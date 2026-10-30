@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import YAML from 'yaml';
 import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import {
   createLLMInferenceServiceConfig,
@@ -96,6 +97,10 @@ describe('LlmAcceleratorInstallTarget', () => {
       metadata: {
         ...config.metadata,
         namespace: 'opendatahub',
+        annotations: {
+          ...config.metadata.annotations,
+          [MetadataAnnotation.InstalledFromCatalog]: 'true',
+        },
       },
     });
     expect(updateLLMInferenceServiceConfig).not.toHaveBeenCalled();
@@ -153,6 +158,7 @@ describe('LlmAcceleratorInstallTarget', () => {
           annotations: {
             'openshift.io/display-name': 'Edited config',
             'opendatahub.io/runtime-version': '1.0.0',
+            [MetadataAnnotation.InstalledFromCatalog]: 'true',
           },
         }),
       }),
@@ -173,6 +179,7 @@ describe('LlmAcceleratorInstallTarget', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
     expect(createMock.mock.calls[0][0].metadata.annotations).toEqual({
       'openshift.io/display-name': 'library-config',
+      [MetadataAnnotation.InstalledFromCatalog]: 'true',
     });
   });
 
@@ -257,7 +264,11 @@ describe('LlmAcceleratorInstallTarget', () => {
       .mockReturnValueOnce([false, true])
       .mockReturnValueOnce([true, true]);
     renderTarget();
-    expect(screen.getByRole('heading', { name: "We can't find that page" })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: "We can't find that page or you may not have permission to view it",
+      }),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId('llm-accelerator-config-name')).not.toBeInTheDocument();
     expect(createMock).not.toHaveBeenCalled();
   });

@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Flex } from '@patternfly/react-core';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { ConnectionModel, ConnectionRef } from '~/app/types';
 import {
   CONNECTION_UNAVAILABLE_LABEL,
@@ -38,6 +40,25 @@ const ConnectionRefLink: React.FC<ConnectionRefLinkProps> = ({
       <Link to={destination} data-testid="connection-ref-link">
         {label}
       </Link>
+    );
+  }
+
+  if (label === CONNECTION_UNAVAILABLE_LABEL) {
+    return (
+      <Flex
+        component="span"
+        alignItems={{ default: 'alignItemsCenter' }}
+        spaceItems={{ default: 'spaceItemsXs' }}
+        className="pf-v6-u-display-inline-flex"
+        data-testid="connection-ref-label"
+      >
+        <ExclamationTriangleIcon
+          aria-hidden="true"
+          color="var(--pf-t--global--icon--color--status--warning--default)"
+          data-testid="connection-unavailable-icon"
+        />
+        {label}
+      </Flex>
     );
   }
 

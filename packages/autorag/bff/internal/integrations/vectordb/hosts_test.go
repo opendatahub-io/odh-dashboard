@@ -44,6 +44,7 @@ func TestParseVectorEndpoints(t *testing.T) {
 		{name: "milvus arbitrary cluster local plaintext", milvus: "http://milvus.team-a.cluster.local:19530"},
 		{name: "milvus localhost plaintext outside development", milvus: "http://localhost:19530", wantErr: true},
 		{name: "pg service plaintext", pgHost: "postgres.team-a.svc.cluster.local", sslMode: "disable"},
+		{name: "pg service plaintext with root dot", pgHost: "postgres.team-a.svc.cluster.local.", sslMode: "disable"},
 		{name: "pg arbitrary cluster local plaintext", pgHost: "postgres.team-a.cluster.local", sslMode: "disable"},
 		{name: "pg localhost plaintext outside development", pgHost: "localhost", sslMode: "disable", wantErr: true},
 		{name: "external milvus plaintext", milvus: "http://milvus.example.com:19530", wantErr: true},
@@ -96,6 +97,8 @@ func TestValidateVectorHostRejectsInvalidDNSHostnames(t *testing.T) {
 		{name: "port separator in host", host: "db.example.com:5432", wantErr: true},
 		{name: "ipv6 zone identifier", host: "fe80::1%eth0", wantErr: true},
 		{name: "punycode label", host: "xn--sse-1na.example.com"},
+		{name: "trailing root dot", host: "db.example.com."},
+		{name: "trailing root dot literal ip", host: "127.0.0.1.", wantErr: true},
 		{name: "single label host", host: "milvus"},
 		{name: "uppercase host", host: "MILVUS.EXAMPLE.COM"},
 	}
@@ -127,6 +130,10 @@ func TestValidateForwardedMilvusEndpointDoesNotRelaxSecretValidation(t *testing.
 	err = ValidateForwardedMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530", "http://127.0.0.1:4321")
 	assert.Error(t, err)
 	err = ValidateForwardedMilvusEndpoint("http://milvus.team-a.svc.cluster.local:19530", "https://localhost:4321")
+	assert.Error(t, err)
+	err = ValidateForwardedMilvusEndpoint("https://milvus.team-a.svc.cluster.local:19530", "https://localhost:4321")
+	assert.NoError(t, err)
+	err = ValidateForwardedMilvusEndpoint("https://milvus.team-a.svc.cluster.local:19530", "http://localhost:4321")
 	assert.Error(t, err)
 }
 

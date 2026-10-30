@@ -155,7 +155,7 @@ func TestPatchCollectionHandlerRejectsCollectionsThatHaveBeenRun(t *testing.T) {
 	mockClient.SetCollection("collection-001", &evalhub.Collection{
 		Resource: evalhub.CollectionResource{ID: "collection-001"},
 		Name:     "Already run suite",
-		State:    &evalhub.CollectionState{RunCount: 1},
+		Status:   &evalhub.CollectionStatus{RunCount: 1},
 	})
 	operations := []evalhub.CollectionPatchOperation{{
 		Op: "replace", Path: "/name", Value: json.RawMessage(`"Updated suite"`),
@@ -314,7 +314,7 @@ func TestCreateCollectionHandler(t *testing.T) {
 	body := evalhub.CreateCollectionRequest{
 		Name:              "My New Suite",
 		Description:       "A custom suite",
-		Domains:           []string{"safety"},
+		Domains:           []string{"trustworthiness"},
 		EvaluationTargets: []string{"model"},
 		Benchmarks:        []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
 	}
@@ -329,8 +329,8 @@ func TestCreateCollectionHandler(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, response.StatusCode)
 	assert.Equal(t, "created-collection", result.Data.Resource.ID)
 	assert.Equal(t, "My New Suite", result.Data.Name)
-	assert.Equal(t, "safety", result.Data.Category)
-	assert.Equal(t, []string{"safety"}, result.Data.Domains)
+	assert.Equal(t, "trustworthiness", result.Data.Category)
+	assert.Equal(t, []string{"trustworthiness"}, result.Data.Domains)
 	assert.Equal(t, []string{"model"}, result.Data.EvaluationTargets)
 	assert.Len(t, result.Data.Benchmarks, 1)
 }
@@ -361,7 +361,7 @@ func TestCreateCollectionHandlerFallsBackForWhitespaceCategory(t *testing.T) {
 	body := evalhub.CreateCollectionRequest{
 		Name:              "My New Suite",
 		Category:          " \t\n",
-		Domains:           []string{"safety"},
+		Domains:           []string{"trustworthiness"},
 		EvaluationTargets: []string{"model"},
 		Benchmarks:        []evalhub.CollectionBenchmark{{ID: "benchmark-001"}},
 	}
@@ -374,7 +374,7 @@ func TestCreateCollectionHandlerFallsBackForWhitespaceCategory(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, response.StatusCode)
-	assert.Equal(t, "safety", result.Data.Category)
+	assert.Equal(t, "trustworthiness", result.Data.Category)
 }
 
 func TestCreateCollectionHandlerRequiresNameAndBenchmark(t *testing.T) {
@@ -473,7 +473,7 @@ func TestCloneCollectionHandler(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	mockClient := ehmocks.NewMockEvalHubClient()
 
-	domains := []string{"safety", "reasoning"}
+	domains := []string{"trustworthiness", "knowledge_and_reasoning"}
 	tasks := []string{"classification"}
 	modalities := []string{"text"}
 	industries := []string{"technology"}
@@ -499,7 +499,7 @@ func TestCloneCollectionHandler(t *testing.T) {
 	assert.Equal(t, "Custom collection settings", result.Data.Description)
 	assert.Equal(t, "Safety", result.Data.Category)
 	assert.Equal(t, []string{"custom", "agent"}, result.Data.Tags)
-	assert.Equal(t, []string{"safety", "reasoning"}, result.Data.Domains)
+	assert.Equal(t, []string{"trustworthiness", "knowledge_and_reasoning"}, result.Data.Domains)
 	assert.Equal(t, []string{"classification"}, result.Data.Tasks)
 	assert.Equal(t, []string{"text"}, result.Data.Modalities)
 	assert.Equal(t, []string{"technology"}, result.Data.Industries)

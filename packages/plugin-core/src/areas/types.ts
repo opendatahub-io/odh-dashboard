@@ -63,6 +63,7 @@ export enum SupportedArea {
   NIM_SERVICE_OPERATOR = 'nim-service-operator',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
+  INFERENCE_PRIORITY_FIELD = 'inference-priority-field',
   LLMD_SERVING = 'llmd-serving',
   LLMD_TOPOLOGY_CONFIGS = 'llmd-topology-configs',
   YAML_VIEWER = 'yaml-viewer',
@@ -99,6 +100,9 @@ export enum SupportedArea {
   FEATURE_STORE = 'feature-store',
   FEATURE_STORE_ADMIN = 'feature-store-admin',
 
+  /* Data Registry */
+  DATA_REGISTRY = 'data-registry',
+
   /* Model Training */
   MODEL_TRAINING = 'model-training',
   RAY_JOBS = 'ray-jobs',
@@ -117,8 +121,14 @@ export enum SupportedArea {
   /* MCP Registry */
   MCP_REGISTRY = 'mcp-registry',
 
+  /* Skill Registry */
+  SKILL_REGISTRY = 'skill-registry',
+
   /* GPUaaS */
   GPUAAS_INFRASTRUCTURE = 'gpuaas-infrastructure',
+
+  /* DRA hardware profiles */
+  HARDWARE_PROFILE_DRA = 'hardware-profile-dra',
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
@@ -134,9 +144,6 @@ export enum SupportedArea {
 
   /* Unified Project Selector — development-only gate for the shared project-selection foundation */
   UNIFIED_PROJECT_SELECTOR = 'unified-project-selector',
-
-  /* Runtime Catalog */
-  RUNTIME_CATALOG = 'runtime-catalog',
 }
 
 export type SupportedAreaType = SupportedArea | string;
@@ -234,6 +241,8 @@ export const DataScienceStackComponentMap: Record<string, string> = {
   [DataScienceStackComponent.KUEUE]: 'Kueue',
   [DataScienceStackComponent.MODEL_REGISTRY]: 'Model registry',
   [DataScienceStackComponent.FEAST_OPERATOR]: 'Feast operator',
+  [DataScienceStackComponent.FEATURE_STORE]: 'Feature Store',
+  [DataScienceStackComponent.DATA_REGISTRY]: 'Data Registry',
   [DataScienceStackComponent.K_SERVE]: 'Model server and metrics',
   [DataScienceStackComponent.RAY]: 'Ray',
   [DataScienceStackComponent.TRAINING_OPERATOR]: 'Training operator',

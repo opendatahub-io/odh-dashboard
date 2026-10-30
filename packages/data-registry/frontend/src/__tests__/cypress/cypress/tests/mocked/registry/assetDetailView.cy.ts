@@ -85,13 +85,14 @@ describe('Table Detail View', () => {
     cy.findByTestId('connection-type').should('contain.text', 's3');
   });
 
-  it('should display asset type badge and Overview tab', () => {
+  it('should display asset details without an Overview tab', () => {
     cy.visit('/ai-hub/data/browse/assets/table/test-project/analytics/claims-data');
     cy.wait('@getTable');
 
     cy.findByTestId('asset-type-badge').should('contain.text', 'Data asset');
-    cy.findByTestId('detail-tabs').should('exist');
-    cy.contains('Overview').should('exist');
+    cy.findByTestId('data-details-card').should('exist');
+    cy.findByTestId('detail-tabs').should('not.exist');
+    cy.contains('Overview').should('not.exist');
   });
 
   it('should display labels, properties, and schema cards', () => {
@@ -146,7 +147,7 @@ describe('Table Detail View', () => {
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
     cy.findByTestId('delete-asset-modal').should('exist');
-    cy.contains('Permanently delete "claims-data" structured asset?').should('exist');
+    cy.contains('Delete data asset?').should('exist');
   });
 
   it('should delete a table and return to the data browse view', () => {
@@ -227,13 +228,14 @@ describe('Volume Detail View', () => {
     cy.findByTestId('asset-format').should('contain.text', 'Documents');
   });
 
-  it('should display asset type badge and Overview tab', () => {
+  it('should display asset details without an Overview tab', () => {
     cy.visit('/ai-hub/data/browse/assets/volume/test-project/default/training-documents');
     cy.wait('@getVolume');
 
     cy.findByTestId('asset-type-badge').should('contain.text', 'Data asset');
-    cy.findByTestId('detail-tabs').should('exist');
-    cy.contains('Overview').should('exist');
+    cy.findByTestId('data-details-card').should('exist');
+    cy.findByTestId('detail-tabs').should('not.exist');
+    cy.contains('Overview').should('not.exist');
   });
 
   it('should display labels and properties cards', () => {
@@ -270,7 +272,7 @@ describe('Volume Detail View', () => {
     cy.findByTestId('asset-actions-toggle').click();
     cy.findByTestId('asset-action-delete').click();
     cy.findByTestId('delete-asset-modal').should('exist');
-    cy.contains('Permanently delete "training-documents" unstructured asset?').should('exist');
+    cy.contains('Delete data asset?').should('exist');
   });
 
   it('should delete a volume and return to the data browse view', () => {

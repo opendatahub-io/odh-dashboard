@@ -26,6 +26,7 @@ jest.mock('@patternfly/chatbot', () => ({
     isSendButtonDisabled,
     hasStopButton,
     attachMenuProps,
+    buttonProps,
     'data-testid': testId,
   }: {
     onSendMessage: (message: string) => void;
@@ -39,6 +40,7 @@ jest.mock('@patternfly/chatbot', () => ({
       attachMenuItems: React.ReactNode;
       onAttachMenuToggleClick: () => void;
     };
+    buttonProps?: { attach?: { tooltipContent?: string } };
     'data-testid': string;
   }) => (
     <div data-testid={testId}>
@@ -65,6 +67,7 @@ jest.mock('@patternfly/chatbot', () => ({
           <button
             data-testid="mock-attach-toggle"
             onClick={attachMenuProps.onAttachMenuToggleClick}
+            title={buttonProps?.attach?.tooltipContent}
             type="button"
           >
             Attach
@@ -205,11 +208,13 @@ describe('ChatbotMessageInput', () => {
     onStopStreaming: jest.fn(),
     isLoading: false,
     isSendDisabled: false,
+    showImageUpload: true,
     onImageUpload: jest.fn(),
     imageUploadState: defaultImageUploadState,
     onRemoveImage: jest.fn(),
     isImageUploadDisabled: false,
     isAudioUploadDisabled: true,
+    showAudioUpload: true,
   };
 
   beforeEach(() => {
@@ -355,7 +360,10 @@ describe('ChatbotMessageInput', () => {
   describe('attach menu', () => {
     it('renders attach menu toggle', () => {
       render(<ChatbotMessageInput {...defaultProps} />);
-      expect(screen.getByTestId('mock-attach-toggle')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-attach-toggle')).toHaveAttribute(
+        'title',
+        'Attach files to this message',
+      );
     });
 
     it('opens attach menu on toggle click and shows three menu items', async () => {
@@ -367,6 +375,26 @@ describe('ChatbotMessageInput', () => {
       expect(screen.getByTestId('menu-item-upload-image')).toBeInTheDocument();
       expect(screen.getByTestId('menu-item-upload-audio')).toBeInTheDocument();
       expect(screen.getByTestId('menu-item-upload-documents')).toBeInTheDocument();
+    });
+
+    it('should hide image upload controls when image upload is disabled', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} showImageUpload={false} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.queryByTestId('upload-image-menu-item')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('vision-file-input')).not.toBeInTheDocument();
+    });
+
+    it('should hide audio upload controls when audio upload is disabled', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} showAudioUpload={false} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.queryByTestId('upload-audio-menu-item')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('audio-file-input')).not.toBeInTheDocument();
     });
 
     it('disables "Upload image" when isImageUploadDisabled is true (no tooltip)', async () => {

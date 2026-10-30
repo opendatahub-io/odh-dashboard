@@ -45,6 +45,22 @@ const hasEvalHubListPayload = (body: unknown): boolean => {
   return Array.isArray(data) || (isRecord(data) && Array.isArray(data.items));
 };
 
+/** Login pages reference the OAuth flow or Keycloak; other HTML (e.g. proxy error pages) does not. */
+const isEvalHubLoginPage = (body: string): boolean =>
+  body.includes('/oauth') || body.toLowerCase().includes('keycloak');
+
+/** Distinguishes an HTML login page from other non-JSON payloads in cleanup errors. */
+const describeEvalHubPayloadError = (body: unknown): string => {
+  // cy.request leaves Content-Type: text/html responses (e.g. OAuth redirects) as raw strings
+  // rather than JSON-parsing them, so a leading '<' reliably identifies HTML here.
+  if (typeof body === 'string' && body.trimStart().startsWith('<')) {
+    return isEvalHubLoginPage(body)
+      ? 'received an HTML login page instead of JSON — the dashboard session is not established'
+      : 'received an unexpected HTML response instead of JSON';
+  }
+  return 'unexpected response payload';
+};
+
 type EvalHubApiRequest = {
   method: 'GET' | 'DELETE';
   url: string;
@@ -154,7 +170,9 @@ const listEvalHubTenantCollections = (
       throw new Error(`Failed to list EvalHub tenant collections: HTTP ${response.status}`);
     }
     if (!hasEvalHubListPayload(response.body)) {
-      throw new Error('Failed to list EvalHub tenant collections: unexpected response payload');
+      throw new Error(
+        `Failed to list EvalHub tenant collections: ${describeEvalHubPayloadError(response.body)}`,
+      );
     }
 
     const pageCollections = extractCollectionRecords(response.body);
@@ -210,7 +228,9 @@ const listEvalHubJobIds = (
       throw new Error(`Failed to list EvalHub evaluation jobs: HTTP ${response.status}`);
     }
     if (!hasEvalHubListPayload(response.body)) {
-      throw new Error('Failed to list EvalHub evaluation jobs: unexpected response payload');
+      throw new Error(
+        `Failed to list EvalHub evaluation jobs: ${describeEvalHubPayloadError(response.body)}`,
+      );
     }
 
     const pageIds = extractJobIds(response.body);
@@ -373,7 +393,7 @@ export type BenchmarkSuiteCreationOptions = {
 
 /**
  * Finds a suffix that is available for every experiment name used by the
- * benchmark-suite spec, including soft-deleted MLflow experiments.
+ * benchmark collection spec, including soft-deleted MLflow experiments.
  */
 export const findAvailableBenchmarkSuiteExperimentSuffix = (
   workspace: string,
@@ -470,6 +490,18 @@ const assertEvaluationHardwareConfig = (profileName?: string): void => {
 };
 
 // Navigation and test setup
+
+/**
+ * The EvalHub REST cleanup endpoints are served through the dashboard and return the OAuth
+ * login page when no browser session exists. Tracks whether setup reached the dashboard so
+ * cleanup can skip the API steps instead of failing with an error that hides the real
+ * setup failure.
+ *
+ * Scoped per spec file: Cypress re-evaluates this module for each spec (fresh browser
+ * context), so the flag starts as false in every spec without an explicit reset.
+ */
+let dashboardSessionEstablished = false;
+
 export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
   cy.step('Log into the application and open Evaluations page');
   cy.visitWithLogin(
@@ -481,9 +513,14 @@ export const navigateToEvaluationsPage = (evaluationTenantProject: string): void
     .findPageTitle({ timeout: 30000 })
     .should('be.visible')
     .and('contain.text', 'Evaluations');
-  cy.step('Open the Benchmark suites tab');
+  cy.step('Open the Benchmark collections tab');
   evaluationsPage.findEvaluateTab({ timeout: 30000 }).should('be.visible').click();
-  evaluationsPage.findEvaluateTabContent({ timeout: 30000 }).should('be.visible');
+  evaluationsPage
+    .findEvaluateTabContent({ timeout: 30000 })
+    .should('be.visible')
+    .then(() => {
+      dashboardSessionEstablished = true;
+    });
 };
 
 /** Removes stale EvalHub runs left by an earlier attempt using the same E2E tenant. */
@@ -566,7 +603,7 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
     .should('be.visible');
 };
 
-// Benchmark-suite flow
+// Benchmark-collection flow
 export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void => {
   const {
     suiteName,
@@ -577,7 +614,7 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
     runAfterSave = false,
   } = opts;
 
-  cy.step(`Create benchmark suite: ${suiteName}`);
+  cy.step(`Create benchmark collection: ${suiteName}`);
   const navigationTimeout = { timeout: 120000 };
   evaluationsPage
     .findCreateSuiteButton(navigationTimeout)
@@ -599,7 +636,7 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
   createEvaluationPage.findCopySuiteNextButton().should('be.enabled').click();
 
   benchmarks.forEach(({ id, name }) => {
-    cy.step(`Add benchmark to suite: ${name} (${id})`);
+    cy.step(`Add benchmark to collection: ${name} (${id})`);
     createEvaluationPage.findBenchmarkCatalogSearch().should('be.visible').clear().type(id);
     createEvaluationPage
       .findBenchmarkCatalogCheckboxById(id, benchmarkProviderId)
@@ -629,7 +666,7 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
   });
 
   if (runAfterSave) {
-    cy.step('Save the suite and open the evaluation run form');
+    cy.step('Save the collection and open the evaluation run form');
     createEvaluationPage.findCreateSuiteSaveAndRunButton().should('be.enabled').click();
     createEvaluationPage
       .findStartEvaluationRunModal('create-suite-run-evaluation-modal', { timeout: 120000 })
@@ -637,7 +674,7 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
     return;
   }
 
-  cy.step('Add the suite to my benchmark suites');
+  cy.step('Add the collection to my collections');
   createEvaluationPage.findCopySuiteSaveOnlyButton().should('be.enabled').click();
   cy.location('pathname', { timeout: 120000 }).should('match', /\/evaluation\/[^/]+\/collections$/);
 };
@@ -692,7 +729,7 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
 export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOptions): void => {
   const { suiteName } = opts;
 
-  cy.step(`Find the newly created suite on the Evaluate tab: ${suiteName}`);
+  cy.step(`Find the newly created collection on the Evaluate tab: ${suiteName}`);
   const suiteLookupTimeout = { timeout: 120000 };
   evaluationsPage.findBenchmarkSuiteCardByName(suiteName, suiteLookupTimeout).should('be.visible');
   evaluationsPage.findBenchmarkSuitePrimaryActionByName(suiteName, suiteLookupTimeout).click();
@@ -705,7 +742,7 @@ export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOpt
 export const submitCreatedBenchmarkSuiteEvaluation = (
   opts: BenchmarkSuiteEvaluationOptions,
 ): void => {
-  cy.step(`Configure the newly created suite evaluation: ${opts.suiteName}`);
+  cy.step(`Configure the newly created collection evaluation: ${opts.suiteName}`);
   configureAndSubmitBenchmarkSuiteEvaluation({
     ...opts,
     modalId: 'create-suite-run-evaluation-modal',
@@ -855,6 +892,21 @@ export type EvalHubCleanupStep = {
   run: () => Cypress.Chainable | void;
 };
 
+/**
+ * Replacement for a cleanup step that calls the EvalHub REST API when no dashboard session
+ * exists (setup failed before the dashboard was opened). Keeps the step visible in the
+ * cleanup log without hiding the original setup failure behind an API error.
+ */
+const skipWithoutDashboardSession = (description: string): EvalHubCleanupStep => ({
+  description,
+  run: (): void => {
+    cy.log(
+      `${description}: skipped — no dashboard session was established during setup; ` +
+        'the EvalHub REST API would return the login page',
+    );
+  },
+});
+
 export type EvalHubCleanupOptions = {
   evaluationTenantProject: string;
   mlflowExperimentName: string;
@@ -868,7 +920,12 @@ export type EvalHubCleanupOptions = {
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-/** Builds the shared cleanup sequence used by the live EvalHub specs. */
+/**
+ * Builds the shared cleanup sequence used by the live EvalHub specs.
+ *
+ * Reads `dashboardSessionEstablished` synchronously at construction time — safe because
+ * specs invoke this from `after()`, once setup has finished setting the flag.
+ */
 export const createEvalHubCleanupSteps = ({
   evaluationTenantProject,
   mlflowExperimentName,
@@ -891,25 +948,35 @@ export const createEvalHubCleanupSteps = ({
   ];
 
   if (evaluationTenantProject) {
-    cleanupSteps.push({
-      description: `Delete EvalHub evaluation jobs for ${evaluationTenantProject}`,
-      run: () => deleteEvalHubEvaluationJobs(evaluationTenantProject),
-    });
+    if (dashboardSessionEstablished) {
+      cleanupSteps.push({
+        description: `Delete EvalHub evaluation jobs for ${evaluationTenantProject}`,
+        run: () => deleteEvalHubEvaluationJobs(evaluationTenantProject),
+      });
+    } else {
+      // Evaluation jobs are namespaced resources, so the project-deletion step below
+      // removes them even when this API-based cleanup is skipped.
+      cleanupSteps.push(skipWithoutDashboardSession('Skip EvalHub evaluation job cleanup'));
+    }
   }
 
   if (evaluationTenantProject) {
-    collectionsToDelete.forEach((createdCollectionId) => {
-      cleanupSteps.push({
-        description: `Delete EvalHub collection ${createdCollectionId}`,
-        run: () => deleteEvalHubCollection(evaluationTenantProject, createdCollectionId),
+    if (dashboardSessionEstablished) {
+      collectionsToDelete.forEach((createdCollectionId) => {
+        cleanupSteps.push({
+          description: `Delete EvalHub collection ${createdCollectionId}`,
+          run: () => deleteEvalHubCollection(evaluationTenantProject, createdCollectionId),
+        });
       });
-    });
 
-    if (deleteAllTenantCollections) {
-      cleanupSteps.push({
-        description: `Delete remaining EvalHub tenant collections for ${evaluationTenantProject}`,
-        run: () => deleteEvalHubTenantCollections(evaluationTenantProject),
-      });
+      if (deleteAllTenantCollections) {
+        cleanupSteps.push({
+          description: `Delete remaining EvalHub tenant collections for ${evaluationTenantProject}`,
+          run: () => deleteEvalHubTenantCollections(evaluationTenantProject),
+        });
+      }
+    } else if (collectionsToDelete.length > 0 || deleteAllTenantCollections) {
+      cleanupSteps.push(skipWithoutDashboardSession('Skip EvalHub tenant collection cleanup'));
     }
 
     experimentsToDelete.forEach((experimentName) => {

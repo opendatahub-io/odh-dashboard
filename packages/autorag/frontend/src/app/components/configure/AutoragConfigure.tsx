@@ -78,7 +78,6 @@ import {
 import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useRunTriggeredTracking } from '~/app/context/RunTriggeredTrackingContext';
-import InlineTooltip from '~/app/components/InlineTooltip';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
@@ -100,6 +99,10 @@ import type { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import {
+  SupportedFileTypesHelpButton,
+  SupportedFileTypesLink,
+} from '~/app/components/common/SupportedFileTypesPopover';
+import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_FILES,
   AUTORAG_UPLOAD_MAX_SIZE_MIB,
@@ -119,7 +122,6 @@ import {
   isAllowedInputDataUploadFile,
   SUPPORTED_FORMAT_EXTENSIONS,
   SUPPORTED_FORMAT_HINT,
-  SUPPORTED_FORMAT_NAMES_STRING_SIMPLE,
   INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
 } from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
@@ -155,9 +157,7 @@ type AutoragConfigureProps = {
   initialDatabaseSecret?: SecretSelection;
   preserveInitialDatabaseSecret?: boolean;
   isReconfigure?: boolean;
-  ragMode?: 'simple' | 'graph';
   selectedDatabaseSecret?: SecretSelection;
-  onRagModeChange?: (mode: 'simple' | 'graph') => void;
   onDatabaseSecretChange?: (secret: SecretSelection | undefined) => void;
   onMaaSModelsReady?: (ready: boolean) => void;
 };
@@ -174,9 +174,7 @@ function AutoragConfigure({
   initialDatabaseSecret,
   preserveInitialDatabaseSecret,
   isReconfigure = false,
-  ragMode,
   selectedDatabaseSecret,
-  onRagModeChange,
   onDatabaseSecretChange,
   onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
@@ -538,8 +536,7 @@ function AutoragConfigure({
               <CardHeader>
                 <Content component="h3">Knowledge setup</Content>
                 <Content component="p">
-                  Select or upload documents to serve as the source of truth for retrieval, and
-                  determine how they should be indexed.
+                  Select or upload documents to use as the knowledge for your experiment.
                 </Content>
               </CardHeader>
               <CardBody>
@@ -637,12 +634,20 @@ function AutoragConfigure({
                       {inputDataSourceMode === 'select' && (
                         <>
                           <StackItem>
-                            <Content component="h4">Select file or folder</Content>
+                            <Flex gap={{ default: 'gapXs' }}>
+                              <FlexItem>
+                                <Content component="h4">Select file or folder</Content>
+                              </FlexItem>
+                              <FlexItem>
+                                <SupportedFileTypesHelpButton />
+                              </FlexItem>
+                            </Flex>
                           </StackItem>
                           <StackItem>
                             <Content component="small">
-                              Select one file or folder from this bucket to use as the knowledge for
-                              your experiment.
+                              Audio upload and automatic transcription are supported. Select a file
+                              or folder from this bucket to use as the knowledge for your
+                              experiment.
                             </Content>
                           </StackItem>
                           <StackItem>
@@ -704,11 +709,20 @@ function AutoragConfigure({
                       {inputDataSourceMode === 'upload' && (
                         <>
                           <StackItem>
-                            <Content component="h4">Upload file</Content>
+                            <Flex gap={{ default: 'gapXs' }}>
+                              <FlexItem>
+                                <Content component="h4">Upload file</Content>
+                              </FlexItem>
+                              <FlexItem>
+                                <SupportedFileTypesHelpButton />
+                              </FlexItem>
+                            </Flex>
                           </StackItem>
                           <StackItem>
                             <Content component="small" id="input-data-upload-description">
-                              Drop a file here or browse to select a file.
+                              Audio upload and automatic transcription are supported. Drop a file
+                              here or browse to select a file to use as the knowledge for your
+                              experiment.
                             </Content>
                           </StackItem>
                           <StackItem>
@@ -747,15 +761,7 @@ function AutoragConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={
-                                    <>
-                                      <InlineTooltip
-                                        text="Accepted file types"
-                                        tooltip={SUPPORTED_FORMAT_NAMES_STRING_SIMPLE}
-                                      />
-                                      . Maximum file size: {AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB
-                                    </>
-                                  }
+                                  infoText={`Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
@@ -877,9 +883,7 @@ function AutoragConfigure({
                         <AutoragVectorStoreSelector
                           initialSecret={initialDatabaseSecret}
                           preserveInitialSelection={preserveInitialDatabaseSecret}
-                          mode={ragMode}
                           selectedSecret={selectedDatabaseSecret}
-                          onModeChange={onRagModeChange}
                           onSelectedSecretChange={onDatabaseSecretChange}
                         />
                       </ConfigureFormGroup>
@@ -1157,12 +1161,12 @@ function AutoragConfigure({
                           <Alert
                             variant="warning"
                             isInline
-                            title="Selected models"
+                            title="No models selected"
                             data-testid="selected-models-warning"
                           >
                             <Content component="p">
-                              No models selected. Select chat and embedding models to run the
-                              experiment.
+                              To run the experiment, select a foundation model and an embedding
+                              model.
                             </Content>
                             <Button
                               variant="primary"
@@ -1384,6 +1388,13 @@ function AutoragConfigure({
         }}
         selectableExtensions={SUPPORTED_FORMAT_EXTENSIONS}
         unselectableReason={SUPPORTED_FORMAT_HINT}
+        modalDescription={
+          <>
+            Select a file or folder from this bucket to use as a knowledge source. When you select a
+            folder, only supported files directly inside that folder are processed. Nested folders
+            are not scanned. Unsupported file types are skipped. <SupportedFileTypesLink />
+          </>
+        }
         disabledPaths={{
           '/autogluon-tabular-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,
           '/autogluon-timeseries-training-pipeline': SYSTEM_FOLDER_DISABLED_REASON,

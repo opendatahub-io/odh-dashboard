@@ -6,6 +6,8 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Flex,
+  FlexItem,
   Skeleton,
   Split,
   SplitItem,
@@ -27,7 +29,6 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
@@ -47,6 +48,7 @@ import { isRunInTerminalState } from '~/app/types/pipeline';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import {
   downloadBlob,
+  formatPatternName,
   isRunCompleted,
   isRunRetryable,
   isRunTerminatable,
@@ -68,6 +70,7 @@ import {
   canUseResponsesForPattern,
   getPatternCollectionName,
   getPatternEmbeddingModel,
+  getPatternStoreProvider,
 } from '~/app/utilities/responses';
 
 type DrawerContentType =
@@ -83,6 +86,33 @@ const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successful
 const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
 const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
 const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
+const MAX_MILVUS_RRF_K = 16384;
+
+const isValidMilvusRRFK = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 && value < MAX_MILVUS_RRF_K;
+
+const isValidRankingAlpha = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+
+const getRankingAlpha = (value: unknown, errorMessage: string): number => {
+  if (value === undefined) {
+    return 0.5;
+  }
+  if (!isValidRankingAlpha(value)) {
+    throw new Error(errorMessage);
+  }
+  return value;
+};
+
+const validatePersistedMilvusRRFK = (
+  value: unknown,
+  field: 'ranker_k' | 'impact_factor',
+): number => {
+  if (!isValidMilvusRRFK(value)) {
+    throw new Error(`Invalid persisted Milvus RRF ${field}`);
+  }
+  return value;
+};
 
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === 'AbortError';
@@ -96,9 +126,44 @@ export const buildResponsesTemplate = (
   const collectionName = getPatternCollectionName(pattern);
   const embeddingModel = getPatternEmbeddingModel(pattern);
   const isHybrid = retrieval.search_mode === 'hybrid';
+  const provider = getPatternStoreProvider(pattern);
+  /* eslint-disable camelcase */
+  let rankingOptions:
+    | { ranker: 'rrf'; alpha: number }
+    | { ranker: 'rrf'; ranker_k: number }
+    | { ranker: 'weighted'; alpha: number }
+    | undefined;
+  if (isHybrid) {
+    if (provider === 'pgvector') {
+      if (retrieval.ranker_strategy === 'weighted') {
+        throw new Error('Weighted ranking is not supported for pgvector');
+      }
+      if (retrieval.ranker_strategy !== undefined && retrieval.ranker_strategy !== 'rrf') {
+        throw new Error(`Unsupported retrieval ranker: ${retrieval.ranker_strategy}`);
+      }
+      rankingOptions = {
+        ranker: 'rrf',
+        alpha: getRankingAlpha(retrieval.ranker_alpha, 'Ranking alpha must be between 0 and 1'),
+      };
+    } else if (retrieval.ranker_strategy === undefined || retrieval.ranker_strategy === 'rrf') {
+      const rankerK = retrieval.ranker_k === undefined ? 60 : retrieval.ranker_k;
+      if (!isValidMilvusRRFK(rankerK)) {
+        throw new Error(
+          `Milvus RRF ranker_k must be greater than 0 and less than ${MAX_MILVUS_RRF_K}`,
+        );
+      }
+      rankingOptions = { ranker: 'rrf', ranker_k: rankerK };
+    } else if (retrieval.ranker_strategy === 'weighted') {
+      rankingOptions = {
+        ranker: 'weighted',
+        alpha: getRankingAlpha(retrieval.ranker_alpha, 'Ranking alpha must be between 0 and 1'),
+      };
+    } else {
+      throw new Error(`Unsupported retrieval ranker: ${retrieval.ranker_strategy}`);
+    }
+  }
 
   return {
-    /* eslint-disable camelcase */
     model: generation.model_id,
     stream: true,
     store: false,
@@ -120,14 +185,7 @@ export const buildResponsesTemplate = (
         type: 'file_search',
         vector_store_ids: collectionName ? [collectionName] : [],
         max_num_results: retrieval.number_of_chunks,
-        ...(isHybrid
-          ? {
-              ranking_options: {
-                ranker: 'rrf',
-                alpha: retrieval.ranker_alpha ?? 0.5,
-              },
-            }
-          : {}),
+        ...(rankingOptions ? { ranking_options: rankingOptions } : {}),
       },
     ],
     tool_choice: { type: 'file_search' },
@@ -139,6 +197,7 @@ export const buildResponsesTemplate = (
 /* eslint-disable camelcase */
 export const normalizeResponsesTemplate = (
   template: AutoRAGResponsesTemplate,
+  provider: 'milvus' | 'pgvector' | 'neo4j',
 ): AutoRAGResponsesTemplate => {
   const { autorag_run_id: runId, ...metadata } = template.metadata;
   return {
@@ -151,12 +210,36 @@ export const normalizeResponsesTemplate = (
       if (!tool.ranking_options) {
         return tool;
       }
+      const ranking = tool.ranking_options;
+      const ranker = ranking.ranker_strategy ?? ranking.ranker;
+      if (ranker !== 'rrf' && ranker !== 'weighted') {
+        throw new Error(`Unsupported persisted retrieval ranker: ${ranker}`);
+      }
+      if (provider === 'pgvector' && ranker === 'weighted') {
+        throw new Error('Weighted ranking is not supported for pgvector');
+      }
+      const weighted = provider !== 'pgvector' && ranker === 'weighted';
+      const rankerK =
+        provider === 'milvus' && ranker === 'rrf'
+          ? ranking.ranker_k !== undefined
+            ? validatePersistedMilvusRRFK(ranking.ranker_k, 'ranker_k')
+            : ranking.impact_factor !== undefined
+              ? validatePersistedMilvusRRFK(ranking.impact_factor, 'impact_factor')
+              : 60
+          : 60;
       return {
         ...tool,
-        ranking_options: {
-          ranker: 'rrf',
-          alpha: Number.isFinite(tool.ranking_options.alpha) ? tool.ranking_options.alpha : 0.5,
-        },
+        ranking_options: weighted
+          ? {
+              ranker: 'weighted',
+              alpha: getRankingAlpha(ranking.alpha, 'Invalid persisted ranking alpha'),
+            }
+          : provider === 'pgvector'
+            ? {
+                ranker: 'rrf',
+                alpha: getRankingAlpha(ranking.alpha, 'Invalid persisted ranking alpha'),
+              }
+            : { ranker: 'rrf', ranker_k: rankerK },
       };
     }),
   };
@@ -218,6 +301,46 @@ const unavailableResponsesTemplate = (patternName: string): AutoRAGResponsesTemp
   include: ['file_search_call.results'],
 });
 /* eslint-enable camelcase */
+
+export const getResponsesTemplateForPattern = (
+  pattern: AutoragPattern,
+  provider: 'milvus' | 'pgvector' | 'neo4j',
+  runId: string | undefined,
+): AutoRAGResponsesTemplate | undefined => {
+  const persistedTemplate = pattern.inference?.responses_template;
+  if (persistedTemplate) {
+    try {
+      const embeddingModel = getPatternEmbeddingModel(pattern);
+      const candidate = {
+        ...persistedTemplate,
+        metadata: {
+          ...persistedTemplate.metadata,
+          ...(embeddingModel
+            ? {
+                // eslint-disable-next-line camelcase
+                embedding_model: embeddingModel,
+              }
+            : {}),
+        },
+      };
+      if (isUsableResponsesTemplate(candidate)) {
+        return normalizeResponsesTemplate(candidate, provider);
+      }
+    } catch {
+      // Build the generated fallback only after the persisted template is unusable.
+    }
+  }
+
+  try {
+    const fallback = buildResponsesTemplate(pattern, runId);
+    return isUsableResponsesTemplate(fallback)
+      ? normalizeResponsesTemplate(fallback, provider)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
   const location = useLocation();
@@ -439,7 +562,7 @@ function AutoragResultsPage(): React.JSX.Element {
       const total = failedPatterns.length + Object.keys(patterns).length;
       notification.warning(
         `${failedPatterns.length} of ${total} patterns could not be loaded`,
-        `The following patterns failed to load: ${failedPatterns.join(', ')}`,
+        `The following patterns failed to load: ${failedPatterns.map(formatPatternName).join(', ')}`,
       );
     }
   }, [failedPatterns, patterns, notification, patternsLoading]);
@@ -465,6 +588,97 @@ function AutoragResultsPage(): React.JSX.Element {
       />
     ),
     [namespace, runId],
+  );
+
+  const headerActions = React.useMemo(
+    () => (
+      <Split hasGutter isWrappable>
+        {runTerminatable || runRetryable ? (
+          <SplitItem>
+            {runTerminatable && (
+              <Button
+                variant="link"
+                icon={<StopCircleIcon />}
+                onClick={() => setIsStopModalOpen(true)}
+                isDisabled={isTerminating || isStopModalOpen}
+                isLoading={isTerminating || isStopModalOpen}
+                spinnerAriaValueText="Stopping run"
+                data-testid="stop-run-button"
+              >
+                Stop
+              </Button>
+            )}
+            {runRetryable && (
+              <Button
+                variant="link"
+                icon={<RedoIcon />}
+                onClick={() => void handleRetry().catch(() => undefined)}
+                isDisabled={isRetrying}
+                isLoading={isRetrying}
+                spinnerAriaValueText="Retrying run"
+                data-testid="retry-run-button"
+              >
+                Retry
+              </Button>
+            )}
+          </SplitItem>
+        ) : null}
+        <SplitItem>
+          <Button
+            variant="link"
+            icon={<CogIcon />}
+            component={ReconfigureLink}
+            data-testid="reconfigure-run-button"
+          >
+            Reconfigure
+          </Button>
+        </SplitItem>
+        <SplitItem>
+          <Tooltip
+            content={starterKitTooltip}
+            trigger={starterKitDisabled ? 'mouseenter focus' : ''}
+          >
+            <Button
+              variant="link"
+              icon={<DownloadIcon />}
+              onClick={() => void handleDownloadStarterKit()}
+              isAriaDisabled={starterKitDisabled}
+              data-testid="starter-kit-download-button"
+            >
+              Download starter kit
+            </Button>
+          </Tooltip>
+        </SplitItem>
+        <SplitItem>
+          <Button
+            variant="link"
+            icon={<OpenDrawerRightIcon />}
+            onClick={() =>
+              setDrawerContent((prev) =>
+                prev?.type === 'run-details' ? null : { type: 'run-details' },
+              )
+            }
+            aria-expanded={drawerContent?.type === 'run-details'}
+            data-testid="run-details-button"
+          >
+            Run details
+          </Button>
+        </SplitItem>
+      </Split>
+    ),
+    [
+      runTerminatable,
+      runRetryable,
+      isTerminating,
+      isStopModalOpen,
+      isRetrying,
+      ReconfigureLink,
+      starterKitTooltip,
+      starterKitDisabled,
+      handleDownloadStarterKit,
+      drawerContent,
+      handleRetry,
+    ],
   );
 
   const ogxSecretName =
@@ -541,36 +755,13 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern) {
         return false;
       }
-      let responsesTemplate: AutoRAGResponsesTemplate;
-      try {
-        const persistedTemplate = pattern.inference?.responses_template;
-        const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
-        const candidate = persistedTemplate
-          ? {
-              ...persistedTemplate,
-              metadata: {
-                ...(persistedTemplate.metadata || {}),
-                ...(getPatternEmbeddingModel(pattern)
-                  ? {
-                      // eslint-disable-next-line camelcase
-                      embedding_model: getPatternEmbeddingModel(pattern),
-                    }
-                  : {}),
-              },
-            }
-          : fallback;
-        // The generated fallback is validated too — buildResponsesTemplate can
-        // emit an empty model or vector_store_ids, and the drawer state should
-        // carry the explicit unavailable marker rather than a half-valid
-        // template.
-        responsesTemplate = isUsableResponsesTemplate(candidate)
-          ? normalizeResponsesTemplate(candidate)
-          : isUsableResponsesTemplate(fallback)
-            ? normalizeResponsesTemplate(fallback)
-            : unavailableResponsesTemplate(patternName);
-      } catch {
-        responsesTemplate = unavailableResponsesTemplate(patternName);
+      const provider = getPatternStoreProvider(pattern);
+      if (!provider) {
+        return false;
       }
+      const responsesTemplate =
+        getResponsesTemplateForPattern(pattern, provider, pipelineRun?.run_id) ??
+        unavailableResponsesTemplate(patternName);
 
       const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
@@ -612,38 +803,16 @@ function AutoragResultsPage(): React.JSX.Element {
       if (!pattern || !canUseResponsesForPattern(contextValue.parameters, pattern)) {
         return;
       }
-      const persistedTemplate = pattern.inference?.responses_template;
-      let responsesTemplate: AutoRAGResponsesTemplate;
-      try {
-        const fallback = buildResponsesTemplate(pattern, pipelineRun?.run_id);
-        const candidate = persistedTemplate
-          ? {
-              ...persistedTemplate,
-              metadata: {
-                ...persistedTemplate.metadata,
-                ...(getPatternEmbeddingModel(pattern)
-                  ? {
-                      // eslint-disable-next-line camelcase
-                      embedding_model: getPatternEmbeddingModel(pattern),
-                    }
-                  : {}),
-              },
-            }
-          : fallback;
-        // The generated fallback is validated too — buildResponsesTemplate can
-        // emit an empty model, and the code snippets must not be built from a
-        // half-valid template. When neither template is usable, View code
-        // stays closed.
-        const usable = isUsableResponsesTemplate(candidate)
-          ? candidate
-          : isUsableResponsesTemplate(fallback)
-            ? fallback
-            : undefined;
-        if (!usable) {
-          return;
-        }
-        responsesTemplate = normalizeResponsesTemplate(usable);
-      } catch {
+      const provider = getPatternStoreProvider(pattern);
+      if (!provider) {
+        return;
+      }
+      const responsesTemplate = getResponsesTemplateForPattern(
+        pattern,
+        provider,
+        pipelineRun?.run_id,
+      );
+      if (!responsesTemplate) {
         return;
       }
       setViewCodePattern({ patternName, responsesTemplate });
@@ -670,120 +839,49 @@ function AutoragResultsPage(): React.JSX.Element {
                 patternInfo={drawerContent.patternInfo}
                 onClose={handleDrawerClose}
                 onSelectPattern={openPlaygroundForPattern}
-                onViewCode={(patternName) => handleViewCode(patternName, 'playground')}
               />
             ) : undefined
           }
         >
           <DrawerContentBody>
             <ApplicationsPage
-              title={<AutoragHeader />}
-              subtext={
-                <h2 className="pf-v6-u-mt-sm">
-                  {pipelineRun ? (
-                    <span>
-                      &quot;
-                      <Truncate content={pipelineRun.display_name || ''} />
-                      &quot; results
-                    </span>
-                  ) : (
-                    <Skeleton width="300px" />
-                  )}
-                </h2>
-              }
-              headerAction={
-                <Split hasGutter>
-                  <SplitItem>
-                    {runTerminatable && (
-                      <Button
-                        variant="link"
-                        icon={<StopCircleIcon />}
-                        onClick={() => setIsStopModalOpen(true)}
-                        isDisabled={isTerminating || isStopModalOpen}
-                        isLoading={isTerminating || isStopModalOpen}
-                        spinnerAriaValueText="Stopping run"
-                        data-testid="stop-run-button"
-                      >
-                        Stop
-                      </Button>
-                    )}
-                    {runRetryable && (
-                      <Button
-                        variant="link"
-                        icon={<RedoIcon />}
-                        onClick={() => void handleRetry().catch(() => undefined)}
-                        isDisabled={isRetrying}
-                        isLoading={isRetrying}
-                        spinnerAriaValueText="Retrying run"
-                        data-testid="retry-run-button"
-                      >
-                        Retry
-                      </Button>
-                    )}
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="link"
-                      icon={<CogIcon />}
-                      component={ReconfigureLink}
-                      data-testid="reconfigure-run-button"
-                    >
-                      Reconfigure
-                    </Button>
-                  </SplitItem>
-                  <SplitItem>
-                    <Tooltip
-                      content={starterKitTooltip}
-                      trigger={starterKitDisabled ? 'mouseenter focus' : ''}
-                    >
-                      <Button
-                        variant="link"
-                        icon={<DownloadIcon />}
-                        onClick={() => void handleDownloadStarterKit()}
-                        isAriaDisabled={starterKitDisabled}
-                        data-testid="starter-kit-download-button"
-                      >
-                        Download starter kit
-                      </Button>
-                    </Tooltip>
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="link"
-                      icon={<OpenDrawerRightIcon />}
-                      onClick={() =>
-                        setDrawerContent((prev) =>
-                          prev?.type === 'run-details' ? null : { type: 'run-details' },
-                        )
-                      }
-                      aria-expanded={drawerContent?.type === 'run-details'}
-                      data-testid="run-details-button"
-                    >
-                      Run details
-                    </Button>
-                  </SplitItem>
-                </Split>
-              }
+              noHeader
               breadcrumb={
                 namespace ? (
-                  <ContextBreadcrumb
-                    pageName="AutoRAG"
-                    projectDisplayName={projectDisplayName}
-                    homePath={getRedirectPath(namespace)}
-                    projectHomePath={`/projects/${namespace}`}
-                    homeTestId="experiment-breadcrumb-home"
-                    projectLinkTestId="project-navigator-link-in-breadcrumb"
+                  <Flex
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    flexWrap={{ default: 'wrap' }}
                   >
-                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link
-                        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
-                        state={{ from: 'results' }}
+                    <FlexItem>
+                      <ContextBreadcrumb
+                        pageName="AutoRAG"
+                        projectDisplayName={projectDisplayName}
+                        homePath={getRedirectPath(namespace)}
+                        projectHomePath={`/projects/${namespace}`}
+                        homeTestId="experiment-breadcrumb-home"
+                        projectLinkTestId="project-navigator-link-in-breadcrumb"
                       >
-                        Run configurations
-                      </Link>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ContextBreadcrumb>
+                        <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                          <Link
+                            to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
+                            state={{ from: 'results' }}
+                          >
+                            Run configurations
+                          </Link>
+                        </BreadcrumbItem>
+                        <BreadcrumbItem isActive data-testid="results-breadcrumb-run-name">
+                          {pipelineRun ? (
+                            <Truncate content={pipelineRun.display_name || ''} />
+                          ) : (
+                            <Skeleton width="300px" />
+                          )}
+                          &nbsp;results
+                        </BreadcrumbItem>
+                      </ContextBreadcrumb>
+                    </FlexItem>
+                    <FlexItem>{headerActions}</FlexItem>
+                  </Flex>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}

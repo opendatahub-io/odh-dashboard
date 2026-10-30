@@ -5,7 +5,11 @@ import type {
   SuppressExtension,
   PatchExtension,
   NavPatch,
+  HrefNavItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+
+// Keep in sync with PORTAL_MODEL_ACCESS_PATH in ./portalPaths.ts (value imports are disallowed here).
+const PORTAL_MODEL_ACCESS_PATH = '/maas/model-access';
 
 const extensions: Extension[] = [
   // Root redirect
@@ -64,6 +68,43 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
+  // Suppression is unconditional, so restore AAE below only when grid is disabled.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.navigation/href',
+      targetId: 'ai-assets',
+    },
+  } satisfies SuppressExtension,
+
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['plugin-gen-ai'], disallowed: ['grid'] },
+    properties: {
+      id: 'ai-assets',
+      title: 'AI asset endpoints',
+      href: '/gen-ai-studio/assets',
+      path: '/gen-ai-studio/assets/*',
+    },
+  } satisfies HrefNavItemExtension,
+  {
+    type: 'app.route',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    properties: {
+      path: '/model-access',
+      component: () => import('@odh-dashboard/maas/ModelAccessPage'),
+    },
+  } satisfies RouteExtension,
+
+  // Hide the Playground navigation item in the MaaS Portal.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.navigation/href',
+      targetId: 'chat-playground',
+    },
+  } satisfies SuppressExtension,
+
   // Patch package-owned nav items: clear section (flatten) and set top-level group order
   {
     type: 'app.patch',
@@ -82,14 +123,6 @@ const extensions: Extension[] = [
     },
   } satisfies PatchExtension<NavPatch>,
   {
-    type: 'app.patch',
-    properties: {
-      targetType: 'app.navigation/href',
-      targetId: 'chat-playground',
-      patch: { section: null, group: '3_playground', label: null },
-    },
-  } satisfies PatchExtension<NavPatch>,
-  {
     type: 'app.navigation/href',
     flags: { required: ['observabilityDashboard'] },
     properties: {
@@ -101,6 +134,26 @@ const extensions: Extension[] = [
     },
   },
   {
+    type: 'app.navigation/href',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'], disallowed: ['grid'] },
+    properties: {
+      id: 'maas-model-access',
+      title: 'Model Access',
+      href: '/model-access',
+      path: '/model-access/*',
+    },
+  } satisfies HrefNavItemExtension,
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    properties: {
+      id: 'maas-model-access-portal',
+      title: 'Model Access',
+      href: PORTAL_MODEL_ACCESS_PATH,
+      path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
+    },
+  } satisfies HrefNavItemExtension,
+  {
     type: 'app.patch',
     properties: {
       targetType: 'app.navigation/href',
@@ -108,6 +161,46 @@ const extensions: Extension[] = [
       patch: { section: null, group: '5_maas_governance' },
     },
   } satisfies PatchExtension<NavPatch>,
+
+  // Read-only model access viewer: the MaaS governance subscriptions table
+  // (Subscription / Groups / Models, with the Groups and Models sub-tables)
+  // without Status, row actions, or create/delete affordances. Available to
+  // MaaS admins independent of the grid feature flag.
+  {
+    type: 'app.route',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    properties: {
+      path: `${PORTAL_MODEL_ACCESS_PATH}/view/:subscriptionName`,
+      component: () => import('@odh-dashboard/maas/ModelAccessSubscriptionPage'),
+    },
+  } satisfies RouteExtension,
+  {
+    type: 'app.route',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    properties: {
+      path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
+      component: () => import('@odh-dashboard/maas/ModelAccessPage'),
+    },
+  } satisfies RouteExtension,
+  {
+    type: 'app.route',
+    flags: { required: ['grid'] },
+    properties: {
+      path: '/maas/models/*',
+      component: () => import('@odh-dashboard/gen-ai/MaaSModelsPageProvider'),
+    },
+  } satisfies RouteExtension,
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['grid'] },
+    properties: {
+      id: 'maas-models',
+      title: 'Model endpoints',
+      href: '/maas/models',
+      path: '/maas/models/*',
+      group: '1_models',
+    },
+  },
 ];
 
 export default extensions;

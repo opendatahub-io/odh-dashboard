@@ -1,4 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 
 const PLUGIN_DATA_REGISTRY = 'plugin-data-registry';
 
@@ -8,6 +9,7 @@ const extensions: Extension[] = [
     properties: {
       id: PLUGIN_DATA_REGISTRY,
       featureFlags: ['dataRegistry'],
+      reliantAreas: [SupportedArea.DATA_REGISTRY],
     },
   },
   {
@@ -18,6 +20,8 @@ const extensions: Extension[] = [
     properties: {
       id: 'data-tab-page',
       title: 'Data',
+      description:
+        'View and manage this project’s data assets. Data assets are metadata records that help users discover and understand external data. They store information like location, format, and schema, but not the data itself.',
       href: '/ai-hub/data',
       path: '/ai-hub/data/*',
       group: '4_data',
@@ -36,7 +40,7 @@ const extensions: Extension[] = [
       pageId: 'data-tab-page',
       id: 'browse',
       title: 'Browse',
-      singleTabTitle: 'Data',
+      singleTabTitle: 'Data assets',
       objectType: 'data-registry',
       component: () => import('./DataRegistryWrapper'),
     },

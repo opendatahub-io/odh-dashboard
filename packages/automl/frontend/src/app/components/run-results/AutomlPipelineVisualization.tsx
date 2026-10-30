@@ -10,6 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import React from 'react';
+import AutomlIcon from '~/app/images/icons/AutomlIcon';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import {
@@ -44,6 +45,8 @@ type AutomlPipelineVisualizationProps = {
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
   showStageMapUnavailableNotice?: boolean;
+  /** Namespace of the run — forwarded to the step details panel. */
+  namespace?: string;
 };
 
 const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = ({
@@ -54,6 +57,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
   componentStageMap,
   pipelineRun,
   showStageMapUnavailableNotice,
+  namespace,
 }) => {
   const statusFilter = React.useMemo((): PipelineStatusFilter => {
     if (treeLoadingMode === 'preparing' || !runState) {
@@ -145,7 +149,15 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
       >
         <FlexItem>
-          <Flex>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <div
+                className="automl-pipeline-visualization__header-icon"
+                data-testid="run-title-icon"
+              >
+                <AutomlIcon />
+              </div>
+            </FlexItem>
             <FlexItem>
               <Title headingLevel="h3" size="lg">
                 {runTitle}
@@ -185,7 +197,6 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
           <DrawerContent
             panelContent={
               <DrawerPanelContent
-                isResizable
                 minSize="320px"
                 defaultSize="320px"
                 className="automl-pipeline-visualization__drawer-panel"
@@ -200,6 +211,7 @@ const AutomlPipelineVisualization: React.FC<AutomlPipelineVisualizationProps> = 
                   componentStageMap={componentStageMap}
                   pipelineRun={pipelineRun}
                   showStageMapUnavailableNotice={showStageMapUnavailableNotice}
+                  namespace={namespace}
                   onClose={handleCloseDetails}
                 />
               </DrawerPanelContent>

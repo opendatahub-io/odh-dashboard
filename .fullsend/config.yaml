@@ -8,13 +8,6 @@ runtime: claude
 # Replace sticky comment bodies in-place (no collapsed "Previous run" history).
 # https://github.com/fullsend-ai/fullsend/pull/6930
 keep_history: false
-models:
-    # Pi includes configured aliases in the trusted subagent model set. Keep
-    # both tiers (GPT-6.1 Sol, GPT-6 Luna) available so review personas can use
-    # the appropriate quality/cost tier within one OpenAI-backed run.
-    aliases:
-        opus: openai/gpt-6.1-sol
-        sonnet: openai/gpt-6-luna
 roles:
     - review
     # Enables the fix stage (Fullsend maps fix to the coder role). The coder
@@ -28,9 +21,14 @@ agents:
     - name: review
       source: harness/review.yaml
       # Keep non-review roles on the production default while using Pi's
-      # per-persona model routing for reviews.
+      # per-persona model routing for reviews. OpenAI models are named here and
+      # per persona, not through models.aliases: Fullsend v0.48 deprecates
+      # aliases that point outside the Claude family, and the aliases would
+      # also remap opus/sonnet for the Claude Code roles. Every persona the
+      # review uploads is listed, so no frontmatter tier resolves to Claude;
+      # rows without a persona run on the agent model.
       runtime: pi
-      model: openai/gpt-6-luna
+      model: openai/gpt-6.1-sol
       subagents:
           challenger: openai/gpt-6.1-sol
           correctness: openai/gpt-6.1-sol

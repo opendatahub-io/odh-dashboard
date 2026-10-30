@@ -21,6 +21,7 @@ import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useFieldArray, useFormContext, Controller } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import styles from './RegistrationForm.module.scss';
 
 const COLUMN_TYPE_OPTIONS = [
   { key: 'string', label: 'String' },
@@ -46,8 +47,8 @@ const SchemaSection: React.FC = () => {
   const nextIdRef = React.useRef(0);
 
   return (
-    <FormSection title="Schema" titleElement="h2" className="odh-data-registry-schema-section">
-      <Content component="p" className="pf-v6-u-mb-xs">
+    <FormSection title="Schema" titleElement="h2" className={styles.schemaSection}>
+      <Content component="p">
         Optionally define columns and value types for the structured data.
       </Content>
 

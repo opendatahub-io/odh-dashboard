@@ -16,14 +16,18 @@ import { Controller, useFormContext } from 'react-hook-form';
 import { RegisterDataFormData } from '~/app/schemas/registerData.schema';
 import { ConnectionModel, ConnectionRef, ConnectionWarning } from '~/app/types';
 import { EditAssetFormData } from '~/app/schemas/editAsset.schema';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import {
   CONNECTION_UNAVAILABLE_LABEL,
   getConnectionDisplayName,
   getConnectionKey,
   shouldDisplayConnectionWarning,
 } from '~/app/utilities/connectionUtils';
+import styles from './RegistrationForm.module.scss';
 
 type DataLocationSectionProps = {
+  project?: string;
   connections?: ConnectionModel[];
   connectionDisplayData?: ConnectionModel[];
   connectionsLoaded?: boolean;
@@ -38,6 +42,7 @@ type DataLocationSectionProps = {
 
 const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   const {
+    project,
     connections = [],
     connectionDisplayData,
     connectionsLoaded = true,
@@ -50,6 +55,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
     isConnectionDisabled = false,
   } = props;
   const { control } = useFormContext<RegisterDataFormData | EditAssetFormData>();
+  const trackEvent = useDataRegistryTrackEvent();
   const [isConnectionOpen, setIsConnectionOpen] = React.useState(false);
   const displayConnections = connectionDisplayData ?? connections;
   const showFallbackWarning = showDchFallbackWarning ?? currentConnection?.type === 'dch';
@@ -80,7 +86,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   };
 
   return (
-    <FormSection title="Asset location" titleElement="h2">
+    <FormSection title="Asset location" titleElement="h2" className={styles.assetLocationSection}>
       <Content component="p">Specify where the data is stored within a connection.</Content>
 
       {connectionsError ? (
@@ -122,7 +128,12 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
         name="connection"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Connection" fieldId="data-connection">
+          <FormGroup
+            label="Connection"
+            fieldId="data-connection"
+            isStack
+            className={`${styles.describedGroup} ${styles.connectionGroup}`}
+          >
             <Content component="p">
               Select the connection in this project where the data is located.
             </Content>
@@ -130,7 +141,14 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
               isOpen={isConnectionOpen}
               selected={field.value}
               onSelect={(_event, value) => {
-                field.onChange(String(value));
+                const selectedConnection = String(value);
+                if (project && selectedConnection && selectedConnection !== field.value) {
+                  trackEvent({
+                    eventName: DATA_REGISTRY_EVENT_NAMES.connectionSelected,
+                    properties: { project },
+                  });
+                }
+                field.onChange(selectedConnection);
                 setIsConnectionOpen(false);
               }}
               onOpenChange={setIsConnectionOpen}
@@ -141,7 +159,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                   isExpanded={isConnectionOpen}
                   isFullWidth
                   isDisabled={!connectionsLoaded || !!connectionsError || isConnectionDisabled}
-                  className="odh-data-registry-registration-form__connection-toggle"
+                  className={styles.connectionToggle}
                   data-testid="data-connection-toggle"
                 >
                   {!connectionsLoaded && !connectionsError && !field.value ? (

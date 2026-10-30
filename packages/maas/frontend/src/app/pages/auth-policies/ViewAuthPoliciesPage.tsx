@@ -169,7 +169,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <MaasModelsSection
                 modelRefSummaries={viewModelRefSummaries(policyInfo)}
-                hideColumns={['tokenLimits']}
+                hideColumns={['tokenLimits', 'status']}
                 resourceType="authorization policy"
               />
             </PageSection>

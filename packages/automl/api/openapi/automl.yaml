@@ -315,7 +315,9 @@ paths:
             Name of the Kubernetes secret containing S3 credentials (required for POST).
             The secret must provide AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
             and AWS_S3_ENDPOINT using those exact field names. Bucket may come from this secret
-            (e.g. AWS_S3_BUCKET) when the bucket query parameter is omitted.
+            (e.g. AWS_S3_BUCKET) when the bucket query parameter is omitted. Optional
+            AWS_S3_UPLOAD_CHECKSUM_ALGORITHM and AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS fields
+            control upload checksums as described below.
           schema:
             type: string
             maxLength: 253
@@ -383,6 +385,16 @@ paths:
       description: >-
         Uploads a CSV file to S3 using credentials from the specified Kubernetes secret.
         The request must be multipart/form-data with a part named `file`.
+
+        The secret may contain `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` (CRC32, CRC32C, SHA1,
+        SHA256, or SHA512; case-insensitive) to select a checksum explicitly, or
+        `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true` for endpoints that reject optional
+        streaming trailers, including affected NetApp ONTAP S3. When no algorithm is
+        selected and the disable flag is absent or false, uploads retain the AWS SDK's
+        default checksum behavior. This preserves existing connections and buckets that
+        require upload checksums. Enabling the disable flag and setting an explicit
+        algorithm are mutually exclusive. Disabling optional checksums does not satisfy
+        bucket-level checksum requirements.
 
         Only CSV uploads are allowed: Content-Type `text/csv`, or `application/octet-stream` (or empty)
         when the part filename ends with `.csv`. The body is size-limited (declared Content-Length
@@ -922,6 +934,37 @@ paths:
         When managedPipelines is already set but definitions are missing,
         performs a rollout restart of the pipeline server deployment so the
         init container re-registers the pipeline definitions on startup.
+
+  /api/v1/pipeline-server/status:
+    summary: Report pipeline server readiness
+    description: >-
+      Returns the observed readiness state of the DSPipelineApplication in the namespace
+      from a fresh (uncached) resource list, so a restarting server is not reported with
+      stale readiness.
+    get:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+      responses:
+        "200":
+          $ref: "#/components/responses/PipelineServerStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getPipelineServerStatus
+      summary: Get Pipeline Server Status
+      description: >-
+        Returns whether the pipeline server in the namespace is ready, starting,
+        or not present. Unlike pipeline-run endpoints, this reflects a fresh read
+        of the DSPipelineApplication rather than a cached discovery result.
 
 components:
   schemas:
@@ -1751,6 +1794,28 @@ components:
           description: Total number of runs across all discovered pipelines
           example: 10
 
+    PipelineServerStatus:
+      type: object
+      description: Observed readiness state of the pipeline server (DSPA) in a namespace
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: >-
+            Readiness state — "ready" when the DSPA Ready condition is True for its
+            current generation, "starting" when a DSPA exists but is not ready, and
+            "not-found" when no DSPA exists in the namespace.
+          enum:
+            - ready
+            - starting
+            - not-found
+          example: ready
+        dspa_name:
+          type: string
+          description: Name of the DSPipelineApplication the status was observed from
+          example: dspa
+
     Error:
       description: Error code and message.
       required:
@@ -1931,6 +1996,21 @@ components:
                 type: string
                 description: Name of the DSPipelineApplication resource
                 example: "dspa"
+
+    PipelineServerStatusResponse:
+      description: Observed readiness state of the pipeline server in the namespace
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              metadata:
+                type: object
+                description: Response metadata
+              data:
+                $ref: "#/components/schemas/PipelineServerStatus"
 
     RegisterModelResponse:
       description: Registered model artifact

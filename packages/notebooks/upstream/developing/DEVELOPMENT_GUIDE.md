@@ -172,6 +172,74 @@ Access the components through the Istio ingress gateway:
 
 You can now make changes to the codebase, and Tilt will automatically rebuild and redeploy the affected components.
 
+### Tilt - Authentication & RBAC
+
+The backend authenticates requests via `kubeflow-userid` and `kubeflow-groups` headers, then authorizes each API call with a Kubernetes [SubjectAccessReview](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#checking-api-access).
+
+Tilt deploys RBAC bindings for two development users which you can use while testing:
+
+| User Name | Namespace Scope                                              | Description                         |
+|-----------|--------------------------------------------------------------|-------------------------------------|
+| `admin`   | Cluster-wide                                                 | Typical cluster admin permissions   |
+| `user`    | `example-profile-1` (`default` if the dashboard is disabled) | Typical workspaces user permissions |
+
+The bindings come from one of two kustomize targets, depending on if the Kubeflow Dashboard is enabled:
+
+| Dashboard                | Manifests                                                                       | `user` is scoped to               |
+|--------------------------|---------------------------------------------------------------------------------|-----------------------------------|
+| `ENABLE_DASHBOARD=false` | [`./manifests/dev-resources-standalone/`](./manifests/dev-resources-standalone) | the `default` namespace           |
+| `ENABLE_DASHBOARD=true`  | [`./manifests/dev-resources-dashboard/`](./manifests/dev-resources-dashboard)   | the `example-profile-1` namespace |
+
+When the dashboard is enabled, `user` is scoped to a single profile namespace so it behaves like a real Kubeflow user who owns one profile.
+These bindings use the same `kubeflow-workspaces-*` ClusterRoles that are defined by [`user_cluster_roles.yaml` in the controller manifests](../workspaces/controller/manifests/kustomize/base/manager/user_cluster_roles.yaml), so they reflect realistic Kubeflow RBAC behavior.
+
+When the dashboard is enabled, profiles are created from those defined in [`./manifests/profiles/`](./manifests/profiles).
+
+> [!TIP]
+>
+> You can switch between users from the **Debug** page in the frontend UI.
+>
+> * The default user is `admin`.
+> * Switch to `user` to test non-admin behavior (e.g., namespace-scoped permissions, 403 responses on admin-only pages).
+
+To inspect the effective permissions for each dev user:
+
+```bash
+# admin (cluster-wide)
+kubectl auth can-i --list --as=admin | grep -E '^Resources|^\S'
+
+# user (namespace-scoped)
+USER_NAME="user"
+USER_NAMESPACE="example-profile-1" # or "default" if the dashboard is disabled
+kubectl auth can-i --list --as="$USER_NAME" -n "$USER_NAMESPACE" | grep -E '^Resources|^\S'
+```
+
+### Tilt - Access Logging
+
+Istio access logging is enabled on the ingress gateway, producing structured JSON logs that include authentication headers.
+This is useful for verifying that `kubeflow-userid` and `kubeflow-groups` headers flow correctly from the frontend through Istio to the backend.
+
+To tail the access logs:
+
+```bash
+kubectl logs -n istio-system -l app=istio-ingressgateway -f
+```
+
+Example log entry:
+
+```json
+{
+    "duration": 105,
+    "kubeflow_groups": null,
+    "kubeflow_userid": "admin",
+    "method": "GET",
+    "path": "/workspaces/api/v1/workspaces/default",
+    "response_code": 200,
+    "timestamp": "2026-05-21T14:12:11.965Z",
+    "upstream": "10.244.1.9:4000"
+}
+```
+
 ### Tilt - Clean Up
 
 When you are done developing with Tilt, you can stop it and clean up the resources.

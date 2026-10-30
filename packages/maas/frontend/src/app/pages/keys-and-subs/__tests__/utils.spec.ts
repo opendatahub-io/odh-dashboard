@@ -15,6 +15,11 @@ import {
   validateAfterDays,
   validateExpirationDate,
   getModelDocumentationUrl,
+  ApiKeyUsageExampleKind,
+  buildApiKeyUsageExample,
+  findMaaSModelBySubscriptionRef,
+  resolveApiKeyUsageExampleKind,
+  getApiKeyUsageExampleEndpointPath,
 } from '~/app/pages/keys-and-subs/utils';
 import { deriveModelGroups } from '~/app/pages/keys-and-subs/mySubscriptions/SubscriptionsTab';
 
@@ -195,5 +200,215 @@ describe('getModelDocumentationUrl', () => {
   });
   it('should return undefined if the gateway URL is not valid', () => {
     expect(getModelDocumentationUrl('granite-3-8b', 'invalid-url')).toBeUndefined();
+  });
+});
+
+describe('findMaaSModelBySubscriptionRef', () => {
+  const models = [
+    {
+      id: 'publishers/maas-models/models/maas-model',
+      // eslint-disable-next-line camelcase
+      owned_by: 'maas-models/maas-model',
+    },
+    {
+      id: 'publishers/maas-models/models/other-model',
+      // eslint-disable-next-line camelcase
+      owned_by: 'maas-models/other-model',
+    },
+    {
+      id: 'granite-3-8b-instruct',
+      // eslint-disable-next-line camelcase
+      owned_by: 'ibm',
+    },
+    {
+      id: 'publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct',
+      // eslint-disable-next-line camelcase
+      owned_by: 'llm/qwen2-5-0-5b-instruct',
+      subscriptions: [{ name: 'qwen25-free-subscription' }],
+    },
+  ];
+
+  it('should return an exact id match', () => {
+    expect(findMaaSModelBySubscriptionRef(models, { refName: 'granite-3-8b-instruct' })?.id).toBe(
+      'granite-3-8b-instruct',
+    );
+  });
+
+  it('should resolve path-style catalog ids from the short subscription ref name', () => {
+    expect(
+      findMaaSModelBySubscriptionRef(models, {
+        refName: 'maas-model',
+        refNamespace: 'maas-models',
+      })?.id,
+    ).toBe('publishers/maas-models/models/maas-model');
+  });
+
+  it('should prefer catalog model_name over the short ref name', () => {
+    expect(
+      findMaaSModelBySubscriptionRef(models, {
+        refName: 'qwen2-5-0-5b-instruct',
+        catalogModelId: 'publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct',
+      })?.id,
+    ).toBe('publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct');
+  });
+
+  it('should resolve HF-style catalog ids via owned_by when last path segment differs', () => {
+    expect(findMaaSModelBySubscriptionRef(models, { refName: 'qwen2-5-0-5b-instruct' })?.id).toBe(
+      'publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct',
+    );
+  });
+
+  it('should prefer exact owned_by namespace/name over another namespace with the same ref name', () => {
+    const colliding = [
+      {
+        id: 'publishers/team-a/models/Qwen/Qwen-A',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+      {
+        id: 'publishers/team-b/models/Qwen/Qwen-B',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b/qwen',
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(colliding, {
+        refName: 'qwen',
+        refNamespace: 'team-b',
+      })?.id,
+    ).toBe('publishers/team-b/models/Qwen/Qwen-B');
+  });
+
+  it('should not resolve owned_by by short name alone when multiple namespaces match', () => {
+    const colliding = [
+      {
+        id: 'publishers/team-a/models/Qwen/Qwen-A',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+      {
+        id: 'publishers/team-b/models/Qwen/Qwen-B',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b/qwen',
+      },
+    ];
+    // No refNamespace and ambiguous owned_by short-name matches → leave unresolved
+    // (last-segment fallback also does not uniquely identify either row).
+    expect(findMaaSModelBySubscriptionRef(colliding, { refName: 'qwen' })).toBeUndefined();
+  });
+
+  it('should resolve via entitlement only when only one model_ref', () => {
+    expect(
+      findMaaSModelBySubscriptionRef(models, {
+        refName: 'unknown-ref',
+        subscriptionId: 'qwen25-free-subscription',
+        subscriptionModelRefCount: 1,
+      })?.id,
+    ).toBe('publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct');
+  });
+
+  it('should not substitute an entitled catalog model when the subscription has multiple refs', () => {
+    const catalog = [
+      {
+        id: 'publishers/team/models/model-123',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team/model-123',
+        subscriptions: [{ name: 'griffin-sub' }],
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, {
+        refName: 'a',
+        refNamespace: 'team',
+        subscriptionId: 'griffin-sub',
+        subscriptionModelRefCount: 2,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('should fall back to matching the last path segment', () => {
+    expect(findMaaSModelBySubscriptionRef(models, { refName: 'other-model' })?.id).toBe(
+      'publishers/maas-models/models/other-model',
+    );
+  });
+
+  it('should return undefined when no model matches', () => {
+    expect(findMaaSModelBySubscriptionRef(models, { refName: 'missing-model' })).toBeUndefined();
+  });
+});
+
+describe('resolveApiKeyUsageExampleKind', () => {
+  it('should resolve embedding from model capabilities', () => {
+    expect(resolveApiKeyUsageExampleKind(['text-embedding'])).toBe(
+      ApiKeyUsageExampleKind.Embedding,
+    );
+    expect(resolveApiKeyUsageExampleKind(['embeddings'])).toBe(ApiKeyUsageExampleKind.Embedding);
+    expect(resolveApiKeyUsageExampleKind(['embedding'])).toBe(ApiKeyUsageExampleKind.Embedding);
+  });
+
+  it('should resolve transcription for ASR-only capabilities', () => {
+    expect(resolveApiKeyUsageExampleKind(['audio-transcription'])).toBe(
+      ApiKeyUsageExampleKind.Transcription,
+    );
+    expect(resolveApiKeyUsageExampleKind(['audio-transcription', 'vision'])).toBe(
+      ApiKeyUsageExampleKind.Transcription,
+    );
+  });
+
+  it('should default to chat for text-generation and multimodal ASR', () => {
+    expect(resolveApiKeyUsageExampleKind(['text-generation'])).toBe(ApiKeyUsageExampleKind.Chat);
+    expect(resolveApiKeyUsageExampleKind(['text-generation', 'audio-transcription'])).toBe(
+      ApiKeyUsageExampleKind.Chat,
+    );
+    expect(resolveApiKeyUsageExampleKind()).toBe(ApiKeyUsageExampleKind.Chat);
+  });
+});
+
+describe('buildApiKeyUsageExample', () => {
+  it('should build an embeddings curl example', () => {
+    const example = buildApiKeyUsageExample(
+      'https://maas.apps.example.com',
+      'embed-model',
+      'sk-test-key',
+      ApiKeyUsageExampleKind.Embedding,
+    );
+    expect(example).toContain('/v1/embeddings');
+    expect(example).toContain('"input":"Hello"');
+    expect(example).not.toContain('messages');
+    expect(getApiKeyUsageExampleEndpointPath(ApiKeyUsageExampleKind.Embedding)).toBe(
+      '/v1/embeddings',
+    );
+  });
+
+  it('should build a transcription curl example', () => {
+    const example = buildApiKeyUsageExample(
+      'https://maas.apps.example.com',
+      'asr-model',
+      'sk-test-key',
+      ApiKeyUsageExampleKind.Transcription,
+    );
+    expect(example).toContain('/v1/audio/transcriptions');
+    expect(example).toContain('-F "file=@<path-to-audio-file>"');
+    expect(example).toContain('-F "model=asr-model"');
+    expect(example).not.toContain('Content-Type: application/json');
+    expect(getApiKeyUsageExampleEndpointPath(ApiKeyUsageExampleKind.Transcription)).toBe(
+      '/v1/audio/transcriptions',
+    );
+  });
+
+  it('should not duplicate /v1 when the base URL already ends with it', () => {
+    const example = buildApiKeyUsageExample(
+      'https://maas.apps.example.com/v1',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(example).toContain('curl -X POST https://maas.apps.example.com/v1/chat/completions');
+    expect(example).not.toContain('/v1/v1/');
+  });
+
+  it('should return empty string for invalid or incomplete inputs', () => {
+    expect(buildApiKeyUsageExample('ftp://api.example.com', 'chat-model', 'sk-test-key')).toBe('');
+    expect(buildApiKeyUsageExample(undefined, 'chat-model', 'sk-test-key')).toBe('');
+    expect(buildApiKeyUsageExample('https://api.example.com', '', 'sk-test-key')).toBe('');
   });
 });

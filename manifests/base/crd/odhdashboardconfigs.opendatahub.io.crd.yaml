@@ -159,6 +159,9 @@ spec:
                     modelAsService:
                       type: boolean
                       description: 'When true, enables Model-as-a-Service (MaaS) features for managed model deployments.'
+                    inferencePriorityField:
+                      type: boolean
+                      description: 'When true, enables inference priority field in the MaaS subscription creation form.'
                     maasAuthPolicies:
                       type: boolean
                       description: 'DEPRECATED: This field is no longer used and will be removed in a future version.'
@@ -177,6 +180,12 @@ spec:
                     genAiAgentDeployment:
                       type: boolean
                       description: 'When true, enables agent deployment features in the Gen AI Studio.'
+                    genAiImageUpload:
+                      type: boolean
+                      description: 'When true, enables image upload in the Gen AI Studio Playground.'
+                    genAiAudioUpload:
+                      type: boolean
+                      description: 'When true, enables audio upload and transcription settings in the Gen AI Studio Playground.'
                     mlflow:
                       type: boolean
                       description: 'DEPRECATED: MLflow is now always enabled when the operator component is present. This field will be removed in a future version.'
@@ -186,6 +195,9 @@ spec:
                     mcpRegistry:
                       type: boolean
                       description: 'When true, enables the MCP (Model Context Protocol) Registry tab within the MCP Servers page.'
+                    skillRegistry:
+                      type: boolean
+                      description: 'When true, enables the Skills page (MLflow Skill Registry) in the AI hub.'
                     genAiMcpRegistryServers:
                       type: boolean
                       description: 'When true, enables MCP Registry servers in the Gen AI Studio playground.'
@@ -237,6 +249,9 @@ spec:
                     llmGatewayField:
                       type: boolean
                       description: 'When true, shows the LLM gateway configuration field for generative AI model deployments that support gateway selections.'
+                    hardwareProfileDRA:
+                      type: boolean
+                      description: 'When true, enables selecting hardware profiles that use dynamic resource allocation (DRA) for workbenches and model deployments. Tech Preview.'
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'

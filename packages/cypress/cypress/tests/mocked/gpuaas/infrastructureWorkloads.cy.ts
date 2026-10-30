@@ -4,6 +4,8 @@ import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8s
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
 import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
+import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
+import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import { mockTrainJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockTrainJobK8sResource';
 import { mockRayJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
@@ -15,6 +17,7 @@ import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
 import {
   HardwareProfileModel,
   LocalQueueModel,
+  ClusterQueueModel,
   PodModel,
   WorkloadModel,
 } from '@odh-dashboard/k8s-core/api/models';
@@ -26,9 +29,10 @@ import {
 import { RayJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { LLMInferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
 import { initIntercepts } from './infrastructureMocks';
+import type { InitInterceptsOptions } from './infrastructureMocks';
 
-import { ProjectModel } from '../../../utils/models';
-import { asProjectAdminUser } from '../../../utils/mockUsers';
+import { ProjectModel, SelfSubjectAccessReviewModel } from '../../../utils/models';
+import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';
 
 const PROJECT_A = 'project-a';
@@ -43,19 +47,37 @@ const kueueProjectA = mockProjectK8sResource({
   enableKueue: true,
 });
 const projectB = mockProjectK8sResource({ k8sName: PROJECT_B, displayName: 'Project-B' });
+const infrastructureClusterQueueName = 'test-cluster-queue';
+const fallbackClusterQueueName = 'fallback-cluster-queue';
+const mockInfrastructureLocalQueue = () => ({
+  ...mockLocalQueueK8sResource({ namespace: PROJECT_A, name: 'user-queue' }),
+  spec: { clusterQueue: fallbackClusterQueueName },
+});
 
 const initWorkloadsIntercepts = (
   workloads = true,
   enableKueue = false,
   includeKueueWorkbenches = false,
   includeHardwareProfile = false,
+  interceptOptions: InitInterceptsOptions = {},
+  clusterAdmin = false,
 ) => {
-  asProjectAdminUser();
-  initIntercepts();
+  if (clusterAdmin) {
+    asClusterAdminUser();
+  } else {
+    asProjectAdminUser();
+  }
+  initIntercepts(interceptOptions);
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([enableKueue ? kueueProjectA : projectA, projectB]),
   );
+  if (enableKueue) {
+    cy.interceptK8sList(
+      { model: LocalQueueModel, ns: PROJECT_A },
+      mockK8sResourceList([mockInfrastructureLocalQueue()]),
+    );
+  }
   cy.interceptK8sList(
     { model: NotebookModel, ns: PROJECT_A },
     mockK8sResourceList(
@@ -177,6 +199,22 @@ const initWorkloadsIntercepts = (
 const initHybridWorkloadsIntercepts = () => {
   initWorkloadsIntercepts(true, true, true);
 
+  cy.interceptK8s(
+    'POST',
+    SelfSubjectAccessReviewModel,
+    mockSelfSubjectAccessReview({
+      group: ClusterQueueModel.apiGroup,
+      resource: ClusterQueueModel.plural,
+      verb: 'get',
+      allowed: true,
+      namespace: PROJECT_A,
+    }),
+  );
+  cy.interceptK8s(
+    { model: ClusterQueueModel, name: 'test-cluster-queue' },
+    mockClusterQueueK8sResource({ name: 'test-cluster-queue' }),
+  );
+
   const gpuPodSet: WorkloadPodSet = {
     count: 1,
     name: 'main',
@@ -252,6 +290,13 @@ const initHybridWorkloadsIntercepts = () => {
           ...workload.metadata.labels,
           'kueue.x-k8s.io/job-name': name,
         };
+        workload.status = {
+          ...workload.status,
+          admission: {
+            clusterQueue: infrastructureClusterQueueName,
+            podSetAssignments: [],
+          },
+        };
       }
       return workload;
     }),
@@ -259,7 +304,7 @@ const initHybridWorkloadsIntercepts = () => {
 
   cy.interceptK8sList(
     { model: LocalQueueModel, ns: PROJECT_A },
-    mockK8sResourceList([mockLocalQueueK8sResource({ namespace: PROJECT_A, name: 'user-queue' })]),
+    mockK8sResourceList([mockInfrastructureLocalQueue()]),
   );
   cy.interceptK8sList({ model: WorkloadModel, ns: PROJECT_A }, mockK8sResourceList(kueueWorkloads));
 
@@ -292,6 +337,19 @@ const initHybridWorkloadsIntercepts = () => {
   }
 };
 
+const visitAdmissions = (
+  interceptOptions: InitInterceptsOptions = {},
+  clusterAdmin = false,
+): void => {
+  initWorkloadsIntercepts(true, true, false, false, interceptOptions, clusterAdmin);
+  infrastructurePage.visit(false);
+  infrastructurePage.findWorkloadsTab().click();
+  infrastructurePage.selectProjectByName('Project-A');
+  infrastructurePage.findProjectSelectorToggle().should('contain.text', 'Project-A');
+  infrastructurePage.findAdmissionsTab().should('be.visible');
+  infrastructurePage.findAdmissionsTab().click();
+};
+
 describe('GPUaaS Infrastructure Workloads', () => {
   it('should update the selected project', () => {
     asProjectAdminUser();
@@ -312,14 +370,20 @@ describe('GPUaaS Infrastructure Workloads', () => {
   });
 
   it('should open status modals for workbench, training, and inference workloads', () => {
-    initWorkloadsIntercepts();
+    initHybridWorkloadsIntercepts();
     infrastructurePage.visit(false);
     infrastructurePage.findWorkloadsTab().click();
     infrastructurePage.selectProjectByName('Project-A');
 
     infrastructurePage.findWorkloadsSection().should('be.visible');
-    infrastructurePage.findWorkloadWorkbenchStatus('gpu-workbench').click();
+    infrastructurePage.findWorkloadWorkbenchStatus('gpu-queued-workbench').click();
     infrastructurePage.findWorkbenchStatusModal().should('be.visible');
+    infrastructurePage.findWorkbenchStatusResourcesTab().should('be.visible').click();
+    infrastructurePage.findWorkbenchStatusClusterQueueSection().should('be.visible');
+    infrastructurePage.findWorkbenchStatusQueueValue().should('have.text', 'test-cluster-queue');
+    infrastructurePage
+      .findWorkbenchStatusModal()
+      .should('not.contain.text', 'Unable to load consumption data.');
     infrastructurePage.findWorkbenchStatusModal().find('[aria-label="Close"]').click();
 
     infrastructurePage.findWorkloadTrainingStatus('gpu-training-job').click();
@@ -337,6 +401,29 @@ describe('GPUaaS Infrastructure Workloads', () => {
     infrastructurePage.findWorkloadInferenceStatus('gpu-llm-inference-service').click();
     infrastructurePage.findDeploymentStatusModal().should('be.visible');
     infrastructurePage.findDeploymentStatusModal().find('[aria-label="Close"]').click();
+  });
+
+  it('should hide Workbench Resources tab when ClusterQueue access is denied', () => {
+    initHybridWorkloadsIntercepts();
+    cy.interceptK8s(
+      'POST',
+      SelfSubjectAccessReviewModel,
+      mockSelfSubjectAccessReview({
+        group: ClusterQueueModel.apiGroup,
+        resource: ClusterQueueModel.plural,
+        verb: 'get',
+        allowed: false,
+        namespace: PROJECT_A,
+      }),
+    );
+
+    infrastructurePage.visit(false);
+    infrastructurePage.findWorkloadsTab().click();
+    infrastructurePage.selectProjectByName('Project-A');
+    infrastructurePage.findWorkloadWorkbenchStatus('gpu-queued-workbench').click();
+
+    infrastructurePage.findWorkbenchStatusModal().should('be.visible');
+    infrastructurePage.findWorkbenchStatusResourcesTab().should('not.exist');
   });
 
   it('should show the empty state when the selected project has no workloads', () => {
@@ -471,6 +558,7 @@ describe('GPUaaS Infrastructure Workloads', () => {
       .find('[data-label="Priority class"]')
       .should('contain.text', 'Non-Kueue');
 
+    infrastructurePage.selectWorkloadsFilterType('status');
     infrastructurePage.selectWorkloadsStatus('Queued');
 
     infrastructurePage.findWorkloadRow('gpu-queued-job').should('exist');
@@ -487,5 +575,95 @@ describe('GPUaaS Infrastructure Workloads', () => {
     infrastructurePage.findWorkloadRow('gpu-queued-job').should('not.exist');
     infrastructurePage.findWorkloadRow('gpu-queued-workbench').should('not.exist');
     infrastructurePage.findWorkloadRow('gpu-ray-job').should('not.exist');
+  });
+
+  it('should use time labels when admissions data is on one calendar day', () => {
+    visitAdmissions({ admissionDataSpan: 'same-day' }, true);
+    infrastructurePage.selectAdmissionTimeWindow('24h');
+    infrastructurePage.findAdmissionMetricCharts().should('be.visible');
+
+    infrastructurePage
+      .findAdmissionMetricCharts()
+      .find('[data-testid^="admission-metric-card-"]')
+      .should('have.length', 4)
+      .each(($metric) => {
+        cy.wrap($metric)
+          .find('svg text')
+          .then(($labels) => {
+            const labels = [...$labels].map((label) => label.textContent.trim()).filter(Boolean);
+            expect(labels.some((label) => label.includes(':'))).to.equal(true);
+          });
+      });
+    infrastructurePage.findAdmissionMetricCharts().find('svg [stroke-dasharray]').should('exist');
+  });
+
+  it('should show all admission charts for cluster admins', () => {
+    visitAdmissions({ admissionDataSpan: 'same-day' }, true);
+    infrastructurePage.findAdmissionMetricCharts().should('be.visible');
+    infrastructurePage
+      .findAdmissionMetricCharts()
+      .find('[data-testid^="admission-metric-card-"]')
+      .should('have.length', 4);
+  });
+
+  it('should use date labels when admissions data spans calendar days', () => {
+    visitAdmissions({ admissionDataSpan: 'multi-day' }, true);
+    infrastructurePage.selectAdmissionTimeWindow('7d');
+    infrastructurePage.findAdmissionMetricCharts().should('be.visible');
+
+    infrastructurePage
+      .findAdmissionMetricCharts()
+      .find('[data-testid^="admission-metric-card-"]')
+      .should('have.length', 4)
+      .each(($metric) => {
+        cy.wrap($metric)
+          .find('svg text')
+          .then(($labels) => {
+            const labels = [...$labels]
+              .map((label) => label.textContent.trim().replace(/\s+/g, ' '))
+              .filter(Boolean);
+            expect(
+              labels.some((label) => /(?:[A-Za-z]{3} \d{1,2}|\d{1,2} [A-Za-z]{3})/.test(label)),
+            ).to.equal(true);
+            expect(labels.some((label) => label.includes(':'))).to.equal(false);
+            expect(new Set(labels).size).to.equal(labels.length);
+          });
+      });
+  });
+
+  it('should render completed all-NaN admission lead-time data without a skeleton', () => {
+    visitAdmissions({ admissionDataSpan: 'same-day', admissionLeadTimeNaN: true }, true);
+    infrastructurePage.findAdmissionMetricCharts().should('be.visible');
+    infrastructurePage.findAdmissionMetricValue('admission-lead-time').should('contain.text', '--');
+    infrastructurePage.findAdmissionMetricChartLoading('admission-lead-time').should('not.exist');
+    infrastructurePage.findAdmissionMetricValueLoading('admission-lead-time').should('not.exist');
+  });
+
+  it('should show an error when admission metrics fail to load', () => {
+    visitAdmissions({ admissionDataSpan: 'same-day', admissionRequestError: true }, true);
+
+    infrastructurePage
+      .findAdmissionMetricsError()
+      .should('be.visible')
+      .and('contain.text', 'Unable to load admission metrics')
+      .and('contain.text', 'Some metrics could not be loaded. Refresh to try again.');
+  });
+
+  it('should hide Admissions when Kueue is disabled', () => {
+    initWorkloadsIntercepts(true, false, false, false, { isKueueInstalled: false });
+    infrastructurePage.visit(false);
+    infrastructurePage.findWorkloadsTab().click();
+    infrastructurePage.selectProjectByName('Project-A');
+
+    infrastructurePage.findAdmissionsTab().should('not.exist');
+  });
+
+  it('should hide Admissions for a project that is not Kueue-managed', () => {
+    initWorkloadsIntercepts(true, false);
+    infrastructurePage.visit(false);
+    infrastructurePage.findWorkloadsTab().click();
+    infrastructurePage.selectProjectByName('Project-A');
+
+    infrastructurePage.findAdmissionsTab().should('not.exist');
   });
 });

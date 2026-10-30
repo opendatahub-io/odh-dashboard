@@ -172,7 +172,7 @@ describe('API Contract Tests', () => {
   it('should return successful response', async () => {
     const result = await apiClient.get('/api/v1/your-endpoint');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/SuccessResponse/content/application/json/schema',
+      ref: '#/components/responses/SuccessResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -180,7 +180,7 @@ describe('API Contract Tests', () => {
   it('should handle error cases', async () => {
     const result = await apiClient.get('/api/v1/your-endpoint?invalid=param');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ErrorResponse/content/application/json/schema',
+      ref: '#/components/responses/ErrorResponse/content/application~1json/schema',
       status: 400,
     });
   });
@@ -213,7 +213,7 @@ describe('Your API Endpoint', () => {
   it('validates successful response', async () => {
     const result = await apiClient.get('/api/v1/your-endpoint');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/SuccessResponse/content/application/json/schema',
+      ref: '#/components/responses/SuccessResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -372,7 +372,7 @@ const apiSchema = loadOpenAPISchema('upstream/api/openapi/your-api-spec.yaml');
 
 // Validate against OpenAPI schema reference
 expect(result).toMatchContract(apiSchema, {
-  ref: '#/components/responses/SuccessResponse/content/application/json/schema',
+  ref: '#/components/responses/SuccessResponse/content/application~1json/schema',
   status: 200,
 });
 ```

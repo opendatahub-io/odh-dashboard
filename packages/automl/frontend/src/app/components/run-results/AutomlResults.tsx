@@ -241,7 +241,7 @@ function AutomlResults(): React.JSX.Element {
 
   return (
     <>
-      <Stack hasGutter>
+      <Stack hasGutter className="automl-results pf-v6-u-h-auto">
         {downloadError && (
           <StackItem>
             <Alert
@@ -264,6 +264,7 @@ function AutomlResults(): React.JSX.Element {
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            namespace={namespace}
             showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
               hasStageMapTask,
               hasComponentStageMap: Boolean(componentStageMap),

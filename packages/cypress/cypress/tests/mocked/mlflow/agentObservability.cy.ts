@@ -4,7 +4,11 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '../../../utils/models';
-import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
+import {
+  asClusterAdminUser,
+  asProductAdminUser,
+  asProjectEditUser,
+} from '../../../utils/mockUsers';
 import { interceptMlflowStatus, interceptMlflowStatusError } from '../../../utils/mlflowUtils';
 import { agentObservability } from '../../../pages/agentObservability';
 import { homePage } from '../../../pages/home/home';
@@ -34,7 +38,7 @@ const initIntercepts = ({
   }
 };
 
-describe('Agent observability page', () => {
+describe('Agent traces page', () => {
   beforeEach(() => {
     initIntercepts();
   });
@@ -42,10 +46,7 @@ describe('Agent observability page', () => {
   describe('Page chrome and navigation', () => {
     it('should display page title and Launch MLflow button', () => {
       agentObservability.visit(PROJECT_A);
-      agentObservability
-        .findPageTitle()
-        .should('be.visible')
-        .should('contain', 'Agent observability');
+      agentObservability.findPageTitle().should('be.visible').should('contain', 'Agent traces');
       agentObservability
         .findLaunchMlflowButton()
         .should('be.visible')
@@ -69,12 +70,12 @@ describe('Agent observability page', () => {
       agentObservability.navigate();
 
       agentObservability.shouldHaveAgentObservabilityUrl();
-      agentObservability.findPageTitle().should('contain', 'Agent observability');
+      agentObservability.findPageTitle().should('contain', 'Agent traces');
     });
   });
 
   describe('Project selector', () => {
-    it('should stay on Agent observability when switching projects', () => {
+    it('should stay on Agent traces when switching projects', () => {
       agentObservability.visit(PROJECT_A);
       agentObservability.projectDropdown.findToggleButton().should('contain', PROJECT_A);
 
@@ -90,6 +91,20 @@ describe('Agent observability page', () => {
       agentObservability.findNoProjectsEmptyState().should('be.visible');
     });
 
+    it('should show setup guidance before the no-projects state when MLflow is disabled', () => {
+      initIntercepts({ projects: [], userSetup: asClusterAdminUser });
+      const dscStatus = mockDscStatus({});
+      dscStatus.components = {
+        ...dscStatus.components,
+        [DataScienceStackComponent.MLFLOW]: { managementState: 'Removed' },
+      };
+      cy.interceptOdh('GET /api/dsc/status', dscStatus);
+
+      agentObservability.visit();
+      agentObservability.findNotConfiguredAdminEmptyState().should('be.visible');
+      agentObservability.findNoProjectsEmptyState().should('not.exist');
+    });
+
     it('should show error state for invalid workspace', () => {
       const invalidWorkspace = 'nonexistent-project';
       agentObservability.visit(invalidWorkspace);
@@ -100,11 +115,12 @@ describe('Agent observability page', () => {
     });
 
     it('should show admin not-configured empty state when MLflow BFF reports unconfigured', () => {
-      initIntercepts({ mlflowConfigured: false });
+      initIntercepts({ mlflowConfigured: false, userSetup: asClusterAdminUser });
       agentObservability.visit(PROJECT_A);
       agentObservability.findNotConfiguredAdminEmptyState().should('be.visible');
       agentObservability.findNotConfiguredEmptyState().should('not.exist');
       agentObservability.findMlflowUnavailableState().should('not.exist');
+      agentObservability.findLaunchMlflowButton().should('not.exist');
     });
 
     it('should show non-admin not-configured empty state when MLflow BFF reports unconfigured', () => {
@@ -123,7 +139,8 @@ describe('Agent observability page', () => {
       agentObservability.findNotConfiguredEmptyState().should('not.exist');
     });
 
-    it('should hide nav item when MLflow operator is removed', () => {
+    it('should show setup guidance when MLflow operator is removed', () => {
+      initIntercepts({ userSetup: asClusterAdminUser });
       const dscStatus = mockDscStatus({});
       dscStatus.components = {
         ...dscStatus.components,
@@ -131,8 +148,12 @@ describe('Agent observability page', () => {
       };
       cy.interceptOdh('GET /api/dsc/status', dscStatus);
 
-      homePage.visit();
-      agentObservability.findNavItem().should('not.exist');
+      agentObservability.visit(PROJECT_A);
+      agentObservability.findNavItem().should('be.visible');
+      agentObservability
+        .findNotConfiguredAdminEmptyState()
+        .should('be.visible')
+        .should('contain', 'Enable agent observability');
     });
   });
 });

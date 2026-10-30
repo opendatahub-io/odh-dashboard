@@ -72,6 +72,7 @@ export enum MetadataAnnotation {
   OdhStorageClassConfig = 'opendatahub.io/sc-config',
   Description = 'description',
   ConnectionName = 'opendatahub.io/connections',
+  InstalledFromCatalog = 'opendatahub.io/installed-from-catalog',
 }
 
 export type DisplayNameAnnotations = Partial<{
@@ -115,6 +116,12 @@ export type TemplateParameter = {
   required: boolean;
 };
 
+export type PodResourceClaim = {
+  name: string;
+  resourceClaimName?: string;
+  resourceClaimTemplateName?: string;
+};
+
 export type PodSpec = {
   affinity?: PodAffinity;
   enableServiceLinks?: boolean;
@@ -123,6 +130,7 @@ export type PodSpec = {
   volumes?: Volume[];
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  resourceClaims?: PodResourceClaim[];
 };
 
 export type PodContainerStatus = {
@@ -240,6 +248,26 @@ export type HardwareProfileKind = K8sResourceCommon & {
   };
 };
 
+export type ResourceClaimTemplateKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  spec: {
+    spec: {
+      devices?: {
+        requests?: {
+          name: string;
+          exactly?: {
+            deviceClassName: string;
+            count?: number;
+          };
+        }[];
+      };
+    };
+  };
+};
+
 /**
  * @deprecated accelerator profiles are being removed; only in deprecation paths
  * modelmesh: RHOAIENG-34917, RHOAIENG-19185
@@ -300,14 +328,18 @@ export type DashboardCommonConfig = {
   disableFeatureStore?: boolean;
   featureStoreAdmin?: boolean;
   genAiStudio?: boolean;
+  genAiImageUpload?: boolean;
+  genAiAudioUpload?: boolean;
   guardrails?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  inferencePriorityField?: boolean;
   aiAssetCustomEndpoints?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  skillRegistry?: boolean;
   genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
@@ -330,8 +362,9 @@ export type DashboardCommonConfig = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
-  runtimeCatalog?: boolean;
+  grid?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;
@@ -366,16 +399,19 @@ export type DashboardConfigKind = K8sResourceCommon & {
 
 export type ManagementState = 'Managed' | 'Unmanaged' | 'Removed';
 
-/** The possible V2 component names that are used as keys in the `components` object of the DSC Status.
- * Each component's key (e.g., 'kserve', 'dashboard', etc.) maps to a specific component status.
- **/
+/** The v2 DSC status component keys used by the dashboard, plus independent
+ * Feature Store and Data Registry availability keys derived from the converted v2 spec.
+ */
 export enum DataScienceStackComponent {
   DASHBOARD = 'dashboard',
   DS_PIPELINES = 'aipipelines',
   K_SERVE = 'kserve',
   KUEUE = 'kueue',
   MODEL_REGISTRY = 'modelregistry',
+  // Shared operand status and release metadata, not an individual feature's availability.
   FEAST_OPERATOR = 'feastoperator',
+  FEATURE_STORE = 'featureStore',
+  DATA_REGISTRY = 'dataRegistry',
   RAY = 'ray',
   TRAINING_OPERATOR = 'trainingoperator',
   TRUSTY_AI = 'trustyai',
@@ -415,6 +451,8 @@ export type DataScienceClusterKindStatus = {
     version: string;
   };
 };
+
+export type { AIHubKind, AIHubNamespaceResponse } from './aihubTypes';
 
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];

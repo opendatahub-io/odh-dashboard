@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"encoding/json"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -8,14 +9,81 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
+func TestConvertSubscriptionListItemsToMySubscriptionsStripsAdminMetadata(t *testing.T) {
+	priority := int32(1)
+	items := ConvertSubscriptionListItemsToMySubscriptions([]models.SubscriptionListItem{{
+		SubscriptionIDHeader:    "simulator-maas-demo-subscription",
+		SubscriptionDescription: "Subscription for simulator MaaS demo model",
+		DisplayName:             "simulator-maas-demo-subscription",
+		Priority:                &priority,
+		OrganizationID:          "grid-tenant-1",
+		Roles:                   []string{"admin"},
+		Owner:                   &models.OwnerSpec{Groups: []models.GroupReference{{Name: "org/ai-grid-users"}}},
+		ModelRefs: []models.ModelRefInfo{{
+			Name:     "simulator-maas-demo",
+			Subjects: &models.SubjectSpec{Groups: []models.GroupReference{{Name: "org/ai-grid-users"}}},
+		}},
+	}})
+
+	if len(items) != 1 || items[0].Priority == nil || *items[0].Priority != 1 {
+		t.Fatalf("unexpected converted subscriptions: %+v", items)
+	}
+	encoded, err := json.Marshal(items[0])
+	if err != nil {
+		t.Fatalf("marshal converted subscription: %v", err)
+	}
+	for _, forbidden := range []string{"roles", "subjects"} {
+		if string(encoded) != "" && jsonContainsKey(encoded, forbidden) {
+			t.Fatalf("converted subscription contains forbidden field %q: %s", forbidden, encoded)
+		}
+		if len(items[0].Owner.Groups) != 1 || items[0].Owner.Groups[0].Name != "org/ai-grid-users" {
+			t.Fatalf("owner groups were not preserved: %+v", items[0].Owner)
+		}
+	}
+}
+
+func TestFilterSubscriptionsForMyViewExcludesOwnerSubscriptions(t *testing.T) {
+	items := []models.SubscriptionListItem{
+		{SubscriptionIDHeader: "owned-sub", Owner: &models.OwnerSpec{}},
+		{SubscriptionIDHeader: "my-sub", Roles: []string{"admin"}},
+	}
+
+	filtered := FilterSubscriptionsForMyView(items)
+	if len(filtered) != 1 || filtered[0].SubscriptionIDHeader != "my-sub" {
+		t.Fatalf("filtered subscriptions = %+v, want only my-sub", filtered)
+	}
+}
+
+func TestFilterSubscriptionsForMyViewExcludesOwnerSubscriptionsForNonAdmins(t *testing.T) {
+	items := []models.SubscriptionListItem{
+		{SubscriptionIDHeader: "owned-sub", Owner: &models.OwnerSpec{}},
+		{SubscriptionIDHeader: "my-sub"},
+	}
+
+	filtered := FilterSubscriptionsForMyView(items)
+	if len(filtered) != 1 || filtered[0].SubscriptionIDHeader != "my-sub" {
+		t.Fatalf("filtered subscriptions = %+v, want only my-sub", filtered)
+	}
+}
+
+func jsonContainsKey(data []byte, key string) bool {
+	var value map[string]any
+	if err := json.Unmarshal(data, &value); err != nil {
+		return false
+	}
+	_, exists := value[key]
+	return exists
+}
+
 func TestConvertUnstructuredToSubscription_FlowControlStatusesAndObjectivesReady(t *testing.T) {
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "maas.opendatahub.io/v1alpha1",
 			"kind":       "MaaSSubscription",
 			"metadata": map[string]interface{}{
-				"name":      "premium-team-sub",
-				"namespace": "maas-system",
+				"name":            "premium-team-sub",
+				"namespace":       "maas-system",
+				"resourceVersion": "98765",
 			},
 			"spec": map[string]interface{}{
 				"inferencePriority": int64(10),
@@ -88,6 +156,9 @@ func TestConvertUnstructuredToSubscription_FlowControlStatusesAndObjectivesReady
 	sub, err := convertUnstructuredToSubscription(obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if sub.ResourceVersion != "98765" {
+		t.Fatalf("ResourceVersion = %q, want 98765", sub.ResourceVersion)
 	}
 	if sub.InferencePriority == nil || *sub.InferencePriority != 10 {
 		t.Fatalf("InferencePriority = %v, want 10", sub.InferencePriority)

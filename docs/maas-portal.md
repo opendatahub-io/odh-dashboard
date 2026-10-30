@@ -58,6 +58,10 @@ Scoped Roles and RoleBindings are deployed in existing `redhat-ods-operator`, `o
 
 When enabled, the portal federation config includes Perses. Custom services must satisfy the [Perses service requirements](dashboard-operator.md#perses-service-requirements).
 
+The portal loads usage dashboard definitions from `GET /maas/api/v1/usage-dashboards` through the MaaS BFF. The BFF uses the same identity and `isAdmin` calculation as `/whoami`: MaaS `/v1/me`, with the existing subscription fallback when organization claims are absent. Regular users receive `dashboard-5-maas-usage-logs`, while MaaS admins also receive `dashboard-4-maas-usage-logs-admin`. A missing identity, denied MaaS user, or failed admin check cannot cause a service account read. Dashboard names and the namespace are fixed by the server, not browser parameters.
+
+The operator sets `PERSES_NAMESPACE` on the MaaS BFF from the configured Perses service namespace, or its platform default when no namespace is configured. This setting points to an existing namespace; it does not create one. The same namespace receives a Role and RoleBinding granting the MaaS BFF service account `get` on only those two `PersesDashboard` resources. The portal continues to send datasource and metrics requests through the existing Perses proxy with the caller's token, so the service account access applies only to dashboard definitions.
+
 ## Upgrade Migration and Rollout
 
 Deploy the matching Core-BFF image built from `distributions/core-bff/Dockerfile.workspace` with a portal frontend built for `/maas-portal/` and a nonempty `/static/maas-portal/index.html` before upgrading the operator. Set `RELATED_IMAGE_ODH_CORE_BFF_IMAGE` to that image digest. The Deployment uses `--static-assets-dir=/static/maas-portal`; an older image cannot serve this operand. Verify the image's assets, then check `deployment/maas-portal` rollout and HTTPRoute acceptance before considering the upgrade complete.

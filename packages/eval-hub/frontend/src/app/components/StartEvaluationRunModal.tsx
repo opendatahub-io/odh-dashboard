@@ -29,7 +29,6 @@ import {
 } from '@odh-dashboard/internal/concepts/mlflow';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
-import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
@@ -39,12 +38,9 @@ import {
   EXTERNAL_ENDPOINT_VALUE,
   useStartEvaluationRunForm,
 } from '~/app/pages/useStartEvaluationRunForm';
-import { isSuiteEvaluatesOption } from '~/app/pages/const';
-import {
-  SOURCE_OPTIONS,
-  suiteEvaluatesToSourceMode,
-} from '~/app/utilities/startEvaluationRunUtils';
 import type { Collection, CollectionResolution, FlatBenchmark, SourceMode } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import './StartEvaluationRunModal.scss';
 
@@ -95,23 +91,29 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   const isStartInFlightRef = React.useRef(false);
   const cloneAbortControllerRef = React.useRef<AbortController | null>(null);
   const clonePendingChangeRef = React.useRef(onClonePendingChange);
+  const wasOpenRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
+        { surface: trackingSource ?? 'unknown' },
+        {
+          collectionType: collection
+            ? collection.resource.read_only
+              ? 'system'
+              : 'custom'
+            : 'unknown',
+          providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+        },
+      );
+    }
+    wasOpenRef.current = isOpen;
+  }, [benchmark, collection, isOpen, trackingSource]);
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',
   });
-
-  const evaluationTargetSourceMode = React.useMemo(() => {
-    const evaluationTargets = collection?.evaluation_targets;
-    if (evaluationTargets?.length !== 1) {
-      return undefined;
-    }
-
-    const evaluationTarget = evaluationTargets[0];
-    return isSuiteEvaluatesOption(evaluationTarget)
-      ? suiteEvaluatesToSourceMode(evaluationTarget)
-      : undefined;
-  }, [collection]);
-  const hasSingleEvaluationTarget = evaluationTargetSourceMode !== undefined;
 
   const {
     inferenceServices,
@@ -129,7 +131,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
     experiments,
     experimentsLoaded,
     defaultEvaluationName,
-    defaultSourceMode: evaluationTargetSourceMode ?? defaultSourceMode,
+    defaultSourceMode,
     trackingSource,
     onSuccess,
     onCancel: onClose,
@@ -138,7 +140,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
 
   const isSubmitting = form.isSubmitting || isCloning;
 
-  const [isSourceOpen, setIsSourceOpen] = React.useState(false);
   React.useEffect(() => {
     if (isCloning) {
       setIsModelOpen(false);
@@ -179,17 +180,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
       setIsModelOpen(false);
     },
     [form, inferenceServices],
-  );
-
-  const handleSourceSelect = React.useCallback(
-    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
-      if (typeof value === 'string') {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        form.handleSourceModeChange(value as SourceMode);
-      }
-      setIsSourceOpen(false);
-    },
-    [form],
   );
 
   const modelDropdownDisplayValue = React.useMemo(() => {
@@ -283,7 +273,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
             className="evalhub-start-evaluation-run-modal__suite-name"
             data-testid="start-evaluation-run-collection-name"
           >
-            Benchmark suite: {collection.name}
+            Collection: {collection.name}
           </Content>
         ) : null}
         {description ? (
@@ -314,54 +304,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                   )}
                 />
               </FormGroup>
-
-              {!hasSingleEvaluationTarget ? (
-                <FormGroup
-                  className="evalhub-form-group--with-description"
-                  label={
-                    <FormGroupLabel
-                      label="Evaluating"
-                      description="Select the model, agent, or dataset to evaluate."
-                      isRequired
-                    />
-                  }
-                  fieldId="source-mode"
-                >
-                  <Select
-                    id="source-mode-menu"
-                    data-testid="source-mode-select"
-                    isOpen={isSourceOpen}
-                    selected={form.sourceMode}
-                    onSelect={handleSourceSelect}
-                    onOpenChange={setIsSourceOpen}
-                    toggle={(toggleRef) => (
-                      <MenuToggle
-                        id="source-mode"
-                        ref={toggleRef}
-                        onClick={() => setIsSourceOpen((prev) => !prev)}
-                        isExpanded={isSourceOpen}
-                        isFullWidth
-                        data-testid="source-mode-toggle"
-                      >
-                        {SOURCE_OPTIONS.find((option) => option.value === form.sourceMode)?.label}
-                      </MenuToggle>
-                    )}
-                    shouldFocusToggleOnSelect
-                  >
-                    <SelectList>
-                      {SOURCE_OPTIONS.map((option) => (
-                        <SelectOption
-                          key={option.value}
-                          value={option.value}
-                          isSelected={option.value === form.sourceMode}
-                        >
-                          {option.label}
-                        </SelectOption>
-                      ))}
-                    </SelectList>
-                  </Select>
-                </FormGroup>
-              ) : null}
 
               {form.sourceMode === 'model' ? (
                 <FormGroup
@@ -471,23 +413,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                 <SourceModelFields
                   modelName={form.modelName}
                   onModelNameChange={form.setModelName}
-                  endpointUrl={form.endpointUrl}
-                  onEndpointUrlChange={form.setEndpointUrl}
-                  apiKeySecretRef={form.apiKeySecretRef}
-                  onApiKeyChange={form.setApiKeySecretRef}
-                  endpointUrlError={form.endpointUrlError}
-                  touched={form.touched}
-                  markTouched={form.markTouched}
-                  connectionValidation={form.connectionValidation}
-                  canVerifyConnection={form.canVerifyConnection}
-                  onVerifyConnection={form.handleVerifyConnection}
-                />
-              ) : null}
-
-              {form.sourceMode === 'agent' ? (
-                <SourceAgentFields
-                  agentName={form.agentName}
-                  onAgentNameChange={form.setAgentName}
                   endpointUrl={form.endpointUrl}
                   onEndpointUrlChange={form.setEndpointUrl}
                   apiKeySecretRef={form.apiKeySecretRef}

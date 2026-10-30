@@ -71,12 +71,15 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findGalleryContent().should('exist');
     evaluationsPage.findCreateSuiteCard().should('not.exist');
     evaluationsPage.findBenchmarkSuitesCategoryFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesIndustryFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesTagsFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesTaskFilter().should('exist');
-    evaluationsPage.findBenchmarkSuitesModalityFilter().should('exist');
+    evaluationsPage
+      .findBenchmarkSuitesMoreFiltersToggle()
+      .should('contain.text', 'Show more filters');
+    evaluationsPage.findBenchmarkSuitesIndustryFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesTagsFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesTaskFilter().should('not.exist');
+    evaluationsPage.findBenchmarkSuitesModalityFilter().should('not.exist');
     evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('not.exist');
-    evaluationsPage.findBenchmarkSuitesPagination().should('exist');
+    evaluationsPage.findBenchmarkSuitesPagination().should('not.exist');
     evaluationsPage
       .findBenchmarkSuitesNameFilter()
       .find('input')
@@ -87,7 +90,7 @@ describe('Evaluations Page - Tabs', () => {
       .findPageDescription()
       .should(
         'contain.text',
-        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
+        'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
       );
   });
 
@@ -99,6 +102,73 @@ describe('Evaluations Page - Tabs', () => {
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/clawbench/copy`);
   });
 
+  it('should show prerequisites and customize-only actions for mapped Gallery suites', () => {
+    const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1', 'unmapped-suite'];
+    const collections = mockCuratedBenchmarkSuiteCollections()
+      .slice(0, ids.length)
+      .map((collection, index) => ({
+        ...collection,
+        resource: { ...collection.resource, id: ids[index] },
+        benchmarks: collection.benchmarks?.map((benchmark, benchmarkIndex) =>
+          index === 0 && benchmarkIndex === 0
+            ? { ...benchmark, parameters: { ...benchmark.parameters, judge_model: '' } }
+            : benchmark,
+        ),
+      }));
+    initIntercepts({ collections, collectionsTotalCount: collections.length });
+
+    evaluationsPage.visitGallery(NAMESPACE);
+
+    evaluationsPage
+      .findBenchmarkSuitePrerequisite('trustworthiness-v1')
+      .should('contain.text', 'Requires a judge model.');
+    evaluationsPage
+      .findBenchmarkSuitePrerequisite('tool-use-v1')
+      .should('contain.text', 'Requires a model that supports multiple tool/function calls.');
+    evaluationsPage
+      .findBenchmarkSuitePrerequisite('multimodal-v1')
+      .should('contain.text', 'Requires a vision-language model that supports image inputs.');
+
+    ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
+      evaluationsPage
+        .findBenchmarkSuitePrimaryAction(collectionId)
+        .should('contain.text', 'Customize')
+        .and('have.class', 'pf-m-secondary');
+      evaluationsPage.findBenchmarkSuiteDropdownToggleInCard(collectionId).should('not.exist');
+    });
+
+    evaluationsPage.findBenchmarkSuitePrimaryAction('unmapped-suite').should('contain.text', 'Run');
+    evaluationsPage.findBenchmarkSuiteDropdownToggleInCard('unmapped-suite').should('exist');
+
+    evaluationsPage.findBenchmarkSuiteName('trustworthiness-v1').click();
+    evaluationsPage
+      .findCollectionDrawerPrerequisite()
+      .should(
+        'contain.text',
+        'Requires a judge model in addition to the model you are evaluating.',
+      );
+    evaluationsPage
+      .findCollectionDrawerPanel()
+      .find('[data-testid="use-benchmark-suite-button"]')
+      .should('not.exist');
+    evaluationsPage.findCollectionDrawerCustomizeButton().should('be.visible');
+    evaluationsPage.findCollectionDrawerSection('modalities').should('be.visible');
+    evaluationsPage.findCollectionDrawerSection('tasks').should('be.visible');
+    evaluationsPage.findCollectionDrawerSection('tags').should('be.visible');
+    evaluationsPage.findCollectionDrawerSection('benchmarks').should('be.visible');
+    evaluationsPage.findCollectionDrawerSectionToggle('benchmarks').click();
+    evaluationsPage
+      .findCollectionDrawerSectionToggle('benchmarks')
+      .should('have.attr', 'aria-expanded', 'false');
+    evaluationsPage.findCollectionDrawerCloseFooter().click();
+
+    evaluationsPage.findBenchmarkSuitePrimaryAction('trustworthiness-v1').click();
+    cy.url().should(
+      'include',
+      `/evaluation/${NAMESPACE}/create/collections/trustworthiness-v1/copy`,
+    );
+  });
+
   it('should hide the Gallery evaluation target filter', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findBenchmarkSuitesEvaluatesFilter().should('not.exist');
@@ -106,6 +176,7 @@ describe('Evaluations Page - Tabs', () => {
 
   it('should filter Gallery suites by category, tags, task, modality, and industry', () => {
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
 
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
@@ -143,9 +214,10 @@ describe('Evaluations Page - Tabs', () => {
 
   it('should allow multiple selections within a Gallery filter', () => {
     evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
     evaluationsPage.findBenchmarkSuitesCategoryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('category', 'code').click();
-    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'safety').click();
+    evaluationsPage.findBenchmarkSuitesFilterOption('category', 'trustworthiness').click();
 
     evaluationsPage.findBenchmarkSuitesCategoryFilterBadge().should('contain.text', '2');
     evaluationsPage.findBenchmarkSuiteCard('software-engineering-agent-suite').should('exist');
@@ -154,7 +226,7 @@ describe('Evaluations Page - Tabs', () => {
 
   it('should navigate to the single benchmark flow from the browse benchmarks section', () => {
     evaluationsPage.visitEvaluate(NAMESPACE);
-    evaluationsPage.findEvaluateTab().should('contain.text', 'Benchmark suites');
+    evaluationsPage.findEvaluateTab().should('contain.text', 'Benchmark collections');
     evaluationsPage.findBrowseAllBenchmarksExploreButton().click();
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
   });
@@ -169,7 +241,7 @@ describe('Evaluations Page - Tabs', () => {
       .findPageDescription()
       .should(
         'contain.text',
-        'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.',
+        'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
       );
     evaluationsPage
       .findRunsDescription()
@@ -198,9 +270,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteCard('finance-evaluation-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('guardrails-compliance-suite').should('exist');
     evaluationsPage.findBenchmarkSuiteCard('model-suite-2').should('contain.text', 'Model suite 2');
-    evaluationsPage
-      .findBenchmarkSuitesSummary()
-      .should('contain.text', 'Go to All my benchmark suites');
+    evaluationsPage.findBenchmarkSuitesViewAllButton().should('contain.text', 'View all');
   });
 
   it('should filter benchmark suites by industry client-side and clear the filter', () => {
@@ -208,6 +278,7 @@ describe('Evaluations Page - Tabs', () => {
     initIntercepts({ collections, collectionsTotalCount: collections.length });
 
     evaluationsPage.visitBenchmarkSuites(NAMESPACE);
+    evaluationsPage.findBenchmarkSuitesMoreFiltersToggle().click();
     evaluationsPage.findBenchmarkSuitesIndustryFilter().click();
     evaluationsPage.findBenchmarkSuitesFilterOption('industry', 'health').click();
 
@@ -230,16 +301,28 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run');
   });
 
-  it('should render curated suite category cards and link to filtered collections', () => {
+  it('should open the suite details drawer when clicking the card title or body', () => {
     initIntercepts({ collections: mockBenchmarkSuiteCollections() });
 
     evaluationsPage.visitEvaluate(NAMESPACE);
 
-    evaluationsPage.findCuratedSuiteCategories().should('exist');
-    evaluationsPage.findCuratedSuiteCategoryCard('models').should('contain.text', 'Models');
-    evaluationsPage.findCuratedSuiteCategoryCard('agents').should('not.exist');
-    evaluationsPage.findCuratedSuiteCategoryCard('models').click();
-    cy.url().should('include', `/evaluation/${NAMESPACE}/collections/model`);
+    evaluationsPage.findBenchmarkSuiteCardTitleRegion('model-suite-2').click();
+    evaluationsPage.findCollectionDrawerPanel().should('be.visible');
+    evaluationsPage.findCollectionDrawerCloseFooter().click();
+    evaluationsPage.findCollectionDrawerPanel().should('not.exist');
+
+    evaluationsPage.findBenchmarkSuiteCardBodyRegion('model-suite-2').click();
+    evaluationsPage.findCollectionDrawerPanel().should('be.visible');
+    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Model suite 2');
+  });
+
+  it('should hide Red Hat validated collections until more evaluation targets are available', () => {
+    initIntercepts({ collections: mockBenchmarkSuiteCollections() });
+
+    evaluationsPage.visitEvaluate(NAMESPACE);
+
+    evaluationsPage.findCuratedSuiteCategories().should('not.exist');
+    evaluationsPage.findBrowseAllBenchmarksExploreButton().should('exist');
   });
 
   it('should show suite contextual actions and the delete confirmation modal', () => {
@@ -255,7 +338,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findBenchmarkSuiteDeleteModal().should('be.visible');
     evaluationsPage
       .findBenchmarkSuiteDeleteModal()
-      .should('contain.text', 'The Model suite 2 benchmark suite will be permanently deleted.');
+      .should('contain.text', 'The Model suite 2 collection will be permanently deleted.');
     evaluationsPage.findBenchmarkSuiteDeleteCancel().click();
     evaluationsPage.findBenchmarkSuiteDeleteModal().should('not.exist');
   });
@@ -263,7 +346,7 @@ describe('Evaluations Page - Tabs', () => {
   it('should disable editing a benchmark suite after it has been run', () => {
     const collections = mockBenchmarkSuiteCollections().map((collection) =>
       collection.resource.id === 'model-suite-2'
-        ? { ...collection, state: { run_count: 1 } }
+        ? { ...collection, status: { run_count: 1 } }
         : collection,
     );
     initIntercepts({ collections });
@@ -359,11 +442,11 @@ describe('Evaluations Page - Empty state', () => {
       .findEmptyStateBody()
       .should(
         'contain.text',
-        'Go to benchmark suites to create a suite or run an individual benchmark, or select a different project to view its runs.',
+        'Go to collections to create a collection or run an individual benchmark, or select a different project to view its runs.',
       );
   });
 
-  it('should navigate to the Benchmark suites tab when clicking the empty state action', () => {
+  it('should navigate to the Benchmark collections tab when clicking the empty state action', () => {
     evaluationsPage.visitRuns(NAMESPACE);
     evaluationsPage.findCreateEvaluationButton().click();
     evaluationsPage.findEvaluateTab().should('have.attr', 'aria-selected', 'true');
@@ -536,6 +619,97 @@ describe('Evaluations Page - Status modal', () => {
     // row 1 = runtime failure (Mar 13)
     evaluationsPage.clickStatusBadge(1);
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Failed');
+  });
+});
+
+describe('Evaluations Page - Failure summary scroll', () => {
+  // Long enough to overflow both the 3-line clamp and the 10lh expanded cap.
+  const LONG_FAILURE_MESSAGE = Array.from(
+    { length: 40 },
+    (_, i) =>
+      `${i + 1}. Benchmark execution failed because the eval harness timed out waiting for the model server to accept connections.`,
+  ).join(' ');
+
+  const longFailedJob = mockEvaluationJob({
+    id: 'eval-long-failure',
+    name: 'Long_Failure_Eval',
+    state: 'failed',
+    modelName: 'test-model',
+    createdAt: '2026-03-14T08:00:00Z',
+    benchmarkIds: ['mmlu'],
+    providerId: 'lm_evaluation_harness',
+    benchmarkStatuses: [{ id: 'mmlu', benchmark_index: 0, status: 'failed' }],
+    statusMessage: LONG_FAILURE_MESSAGE,
+  });
+
+  beforeEach(() => {
+    initIntercepts({ jobs: [longFailedJob] });
+  });
+
+  it('should clamp the collapsed failure summary and scroll the expanded summary inside the modal', () => {
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findStatusModal().should('exist');
+
+    // Collapsed: clamped, and the toggle only renders when the component's
+    // real-browser truncation check (scrollHeight > clientHeight) fires.
+    evaluationsPage.findFailureSummaryText().should('have.class', 'm-clamped');
+    evaluationsPage.findFailureSummaryToggle().should('have.text', 'Show more');
+
+    evaluationsPage.findFailureSummaryToggle().click();
+
+    // Expanded: capped at 10lh, content overflows the cap, and the region
+    // actually scrolls (RHAI-10244). Re-query after the click — saved chains
+    // do not re-run their queries once other commands have been enqueued.
+    evaluationsPage.findFailureSummaryText().should('have.class', 'm-expanded');
+    evaluationsPage.findFailureSummaryText().should('have.attr', 'role', 'region');
+    evaluationsPage.findFailureSummaryText().should('have.attr', 'tabindex', '0');
+    evaluationsPage.findFailureSummaryText().then(($el) => {
+      const el = $el[0];
+      expect(getComputedStyle(el).maxHeight, 'expanded summary is height-capped').to.not.equal(
+        'none',
+      );
+      expect(el.scrollHeight, 'content overflows the expanded cap').to.be.greaterThan(
+        el.clientHeight,
+      );
+      el.scrollTop = 50;
+      expect(el.scrollTop, 'expanded summary scrolls').to.be.greaterThan(0);
+    });
+    evaluationsPage.findFailureSummaryToggle().should('have.text', 'Show less');
+  });
+
+  it('should scroll the modal body when the viewport is too short to fit the modal', () => {
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findStatusModal().should('exist');
+    evaluationsPage.findFailureSummaryToggle().click();
+    evaluationsPage.findFailureSummaryText().should('have.class', 'm-expanded');
+
+    // Shrink the viewport after the modal is open so the a11y check in visit()
+    // still runs at the default size.
+    cy.viewport(1000, 480);
+
+    // The header stack (flex-shrink: 0) plus the floored tab content now exceed
+    // the modal body, so the body must overflow and scroll — the content below
+    // the header stack stays reachable instead of being clipped (RHAI-10244).
+    evaluationsPage.findStatusModalBody().then(($el) => {
+      const el = $el[0];
+      expect(el.scrollHeight, 'modal body overflows on a short viewport').to.be.greaterThan(
+        el.clientHeight,
+      );
+      el.scrollTop = 40;
+      expect(el.scrollTop, 'modal body scrolls').to.be.greaterThan(0);
+    });
+
+    // The tab content holds its min-height floor rather than collapsing to zero.
+    // Assert geometry — Cypress's covered-by visibility heuristic is unreliable
+    // inside the nested scrolled modal.
+    evaluationsPage.findStatusModalTabContent().then(($el) => {
+      expect(
+        $el[0].getBoundingClientRect().height,
+        'tab content is not collapsed',
+      ).to.be.greaterThan(0);
+    });
   });
 });
 /* eslint-enable camelcase */

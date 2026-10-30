@@ -26,6 +26,23 @@ func jsonResponse(w http.ResponseWriter, v any) {
 	}
 }
 
+// --- NewDefaultClient ---
+
+func TestNewDefaultClient_HasTimeoutBackstop(t *testing.T) {
+	c := NewDefaultClient(ClientConfig{})
+	impl, ok := c.(*client)
+	if !ok {
+		t.Fatalf("NewDefaultClient returned %T, want *client", c)
+	}
+	std, ok := impl.HTTPClient.(*http.Client)
+	if !ok {
+		t.Fatalf("HTTPClient is %T, want *http.Client", impl.HTTPClient)
+	}
+	if std.Timeout != maxRequestTimeout {
+		t.Errorf("client Timeout = %v, want %v as the hang backstop", std.Timeout, maxRequestTimeout)
+	}
+}
+
 // --- CreatePipelineRun ---
 
 func TestClient_CreatePipelineRun(t *testing.T) {

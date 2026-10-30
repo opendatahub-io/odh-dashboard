@@ -8,6 +8,7 @@ import {
   type Toleration,
   type NodeSelector,
   type ContainerResources,
+  type PodSpec,
 } from '@odh-dashboard/k8s-core';
 import {
   splitValueUnit,
@@ -19,11 +20,15 @@ import type {
   HardwarePodSpecOptions,
   CrPathConfig,
   ResourceType,
+  DRAHardwareProfileDetails,
+  HardwareProfileBinding,
 } from './types';
 import type {
   HardwareProfileConfig,
   UseHardwareProfileConfigResult,
 } from './useHardwareProfileConfig';
+import type { ResourceClaimTemplateNamesResult } from './useResourceClaimTemplateNames';
+import { DRA_CLAIM_NAME } from './const';
 
 /**
  * changed order of arguments so that the deprecated accelerator profile is last;
@@ -191,18 +196,55 @@ export const getExistingResources = <T extends K8sResourceCommon>(
   };
 };
 
+export const getExistingPodSpec = <T extends K8sResourceCommon>(
+  cr: T | null | undefined,
+  paths?: CrPathConfig,
+): PodSpec | undefined => {
+  const podSpec: PodSpec | undefined =
+    cr && paths?.podSpecPath ? get(cr, paths.podSpecPath) : undefined;
+  return podSpec;
+};
+
 export const getExistingHardwareProfileData = <T extends K8sResourceCommon>(
   resource: T | null | undefined,
-): {
-  name?: string;
-  namespace?: string;
-} => {
+  defaultNamespace?: string,
+): HardwareProfileBinding => {
   const name = resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-name'];
-  const namespace = resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-namespace'];
+  const namespace =
+    resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
+    defaultNamespace;
   return {
     name,
     namespace,
   };
+};
+
+export const isSameHardwareProfileBinding = (
+  a: HardwareProfileBinding,
+  b: HardwareProfileBinding,
+): boolean => a.name === b.name && a.namespace === b.namespace;
+
+export const findHardwareProfileForBinding = (
+  profiles: HardwareProfileKind[],
+  { name, namespace }: HardwareProfileBinding,
+  resourceNamespace?: string,
+  dashboardNamespace?: string,
+): HardwareProfileKind | undefined => {
+  if (!name) {
+    return undefined;
+  }
+  const namespaces = namespace ? [namespace] : [resourceNamespace, dashboardNamespace];
+  for (const candidateNamespace of namespaces) {
+    const profile = candidateNamespace
+      ? profiles.find((p) =>
+          isSameHardwareProfileBinding(p.metadata, { name, namespace: candidateNamespace }),
+        )
+      : undefined;
+    if (profile) {
+      return profile;
+    }
+  }
+  return undefined;
 };
 
 export const assemblePodSpecOptions = (
@@ -245,6 +287,10 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   cr: T,
   config: HardwareProfileConfig,
   paths?: CrPathConfig,
+  existingBinding: HardwareProfileBinding = getExistingHardwareProfileData(
+    cr,
+    cr.metadata?.namespace,
+  ),
 ): T => {
   const result = structuredClone(cr);
   const { selectedProfile, resources, useExistingSettings } = config;
@@ -253,10 +299,17 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     if (!result.metadata) {
       result.metadata = {};
     }
+    const isNewBinding = !isSameHardwareProfileBinding(existingBinding, selectedProfile.metadata);
     result.metadata.annotations = {
       ...result.metadata.annotations,
       'opendatahub.io/hardware-profile-name': selectedProfile.metadata.name,
       'opendatahub.io/hardware-profile-namespace': selectedProfile.metadata.namespace,
+      ...(isNewBinding
+        ? {
+            'opendatahub.io/hardware-profile-resource-version':
+              selectedProfile.metadata.resourceVersion ?? '',
+          }
+        : {}),
     };
     // Empty resources mean the workload had none. Writing them could create a container that
     // does not exist, for example on an LLMInferenceService whose container comes from baseRef.
@@ -307,3 +360,50 @@ export const getLocalQueueLabel = (): string => 'Local queue';
 
 export const isDRAHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
   !!hardwareProfile.spec.dra;
+
+export const filterHardwareProfilesByDRAAvailability = (
+  hardwareProfiles: HardwareProfileKind[],
+  isDRAEnabled: boolean,
+): HardwareProfileKind[] =>
+  isDRAEnabled
+    ? hardwareProfiles
+    : hardwareProfiles.filter((profile) => !isDRAHardwareProfile(profile));
+
+export const getDRAHardwareProfileDetails = (
+  hardwareProfile: HardwareProfileKind,
+  podSpec?: PodSpec,
+): DRAHardwareProfileDetails | undefined => {
+  const profileTemplateName = hardwareProfile.spec.dra?.resourceClaimTemplateName;
+  const workloadTemplateName = podSpec?.resourceClaims?.find(
+    (claim) => claim.name === DRA_CLAIM_NAME,
+  )?.resourceClaimTemplateName;
+  const resourceClaimTemplateName = workloadTemplateName ?? profileTemplateName;
+  if (!resourceClaimTemplateName) {
+    return undefined;
+  }
+  const description =
+    resourceClaimTemplateName === profileTemplateName
+      ? hardwareProfile.metadata.annotations?.['opendatahub.io/resource-claim-description']
+          ?.replace(/\s+/g, ' ')
+          .trim()
+      : undefined;
+  return {
+    resourceClaimTemplateName,
+    ...(description && { description }),
+  };
+};
+
+export const getClaimTemplateMissingText = (
+  profile: HardwareProfileKind,
+  claimTemplateNames: ResourceClaimTemplateNamesResult,
+): string | undefined => {
+  const resourceClaimTemplateName = profile.spec.dra?.resourceClaimTemplateName;
+  if (
+    !resourceClaimTemplateName ||
+    claimTemplateNames.status !== 'ready' ||
+    claimTemplateNames.names.has(resourceClaimTemplateName)
+  ) {
+    return undefined;
+  }
+  return `The claim template ${resourceClaimTemplateName} does not exist in this project. Ask your administrator to create it, or select a different hardware profile.`;
+};

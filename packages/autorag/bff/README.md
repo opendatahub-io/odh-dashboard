@@ -22,6 +22,7 @@ This service exposes the following endpoints:
 - POST `/api/v1/indexing-pipeline-runs` – create a documents indexing pipeline run
 - GET `/api/v1/managed-pipelines` – list discovered managed pipelines (autorag, indexing)
 - POST `/api/v1/managed-pipelines/enable` – enable managed pipelines on a DSPA
+- GET `/api/v1/pipeline-server/status` – get the DSPA pipeline-server readiness status (`ready`, `starting`, or `not-found`) for a namespace
 - POST `/api/v1/responses` – RAG query endpoint; streams an OpenAI Responses API SSE response using MaaS for embeddings and chat completion and a vector DB for retrieval
 
 ## Development
@@ -73,7 +74,11 @@ make run LOG_LEVEL=DEBUG
 | `-key-file`                     | `KEY_FILE`                     | TLS key path                                                                                                       |
 | `-insecure-skip-verify`         | `INSECURE_SKIP_VERIFY`         | Skip upstream TLS verify (dev only)                                                                                |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ## Running the linter locally
 
@@ -157,7 +162,7 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 | `dbSecretName` | Name of the K8s secret with database credentials (auto-detected: Milvus or pgvector) |
 | `maasSecretName` | Name of the K8s secret with MaaS credentials (`MAAS_BASE_URL`, `MAAS_API_KEY`) |
 
-**Request body** — OpenAI Responses API format. The `ranking_options` shown below requests hybrid RRF, which is supported by the pgvector adapter only:
+**Request body** — OpenAI Responses API format. The `ranking_options` shown below requests hybrid RRF against pgvector:
 
 ```json
 {
@@ -189,7 +194,9 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 
 - `input` — conversation history; the last `user` message is the question; an optional `system` message is injected into the chat prompt
 - `tools[].vector_store_ids[0]` — logical vector DB collection name. IDs may contain only letters, numbers, `_`, `-`, and `.`; `-` and `.` are canonicalized to `_` before adapter lookup. Logical names that canonicalize to the same ID cannot coexist (for example, `my-store` and `my.store`).
-- `tools[].ranking_options` — optional supported fields are `ranker: "rrf"` and `alpha` from 0 through 1. Omit the object for dense search; include it for pgvector hybrid RRF search. Milvus rejects hybrid requests because sparse hybrid retrieval is not implemented. `search_mode`, `ranker_strategy`, `ranker_k`, and other ranking fields are rejected rather than ignored.
+- `tools[].ranking_options` — omit for dense search. `ranker: "rrf"` selects hybrid RRF on Milvus or pgvector. Milvus hybrid retrieval requires Milvus 2.5 or newer and a collection with `content` text, `vector` dense, and `sparse` BM25 fields, a BM25 function, indexes on both vector fields, and a loaded collection. It accepts optional `ranker_k` (default 60, strictly between 0 and 16384), but not `alpha` with RRF. Pgvector accepts optional `alpha` (default 0.5) to weight the dense and full-text RRF ranks; its RRF constant is fixed at 60. Milvus also supports `ranker: "weighted"` with `alpha` (default 0.5) as the dense weight. Weighted ranking is unsupported by pgvector. `search_mode`, `ranker_strategy`, and other ranking fields are rejected rather than ignored.
+
+> Automated tests validate hybrid request construction and parameter validation, but they do not replace a live smoke test against a pipeline-created Milvus hybrid collection. Before release, verify the collection schema, BM25 function, indexes, load state, and both RRF and weighted retrieval against the deployed Milvus version.
 - `metadata.embedding_model` — required; model used for query embedding
 - `metadata.context_template_text` — optional; template for each retrieved chunk (`{document}`, `{doc_number}` placeholders)
 - `metadata.user_message_text` — optional; wraps context + question (`{reference_documents}`, `{question}` placeholders)

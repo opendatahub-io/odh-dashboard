@@ -104,6 +104,122 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/whoami:
+    get:
+      summary: Get MaaS Caller Identity
+      operationId: getMaaSWhoAmI
+      description: >
+        Returns structured identity metadata about the authenticated caller from
+        MaaS /v1/me. The BFF reduces organization and subscription authorization
+        data to the isAdmin boolean.
+      responses:
+        '200':
+          description: Caller identity and MaaS admin status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MaaSWhoAmI'
+                required:
+                  - data
+              example:
+                data:
+                  sub: 00u7a1b2c3d4e5f6g7h8
+                  email: alex@grid-tenant-1.com
+                  name: Alex Doe
+                  isAdmin: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '503':
+          description: MaaS API is unavailable or not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+
+  /api/v1/usage-dashboards:
+    get:
+      summary: Get MaaS usage dashboards
+      operationId: getUsageDashboards
+      description: >
+        Validates the caller through the shared MaaS whoami logic. Returns the user usage
+        dashboard to valid users and additionally the admin usage dashboard
+        to MaaS administrators. Definitions are read with the MaaS BFF service
+        account from the configured Perses namespace; callers cannot select a
+        dashboard or namespace. Metrics requests retain the caller's identity.
+      responses:
+        '200':
+          description: Authorized Perses dashboard resources
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UsageDashboard'
+              example:
+                data:
+                  - kind: Dashboard
+                    metadata:
+                      name: dashboard-5-maas-usage-logs
+                      project: redhat-ods-monitoring
+                      version: 1
+                      createdAt: '2026-01-01T00:00:00Z'
+                      updatedAt: '2026-01-01T00:00:00Z'
+                    spec:
+                      display:
+                        name: My Usage
+                      datasources: {}
+                      panels: {}
+                      layouts: []
+                      variables: []
+        '401':
+          description: Caller is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '403':
+          description: Caller is not a valid MaaS user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '500':
+          description: Failed to load authorized dashboards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '503':
+          description: MaaS API or Perses configuration unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+
   /api/v1/namespaces:
     get:
       summary: Get Namespaces
@@ -282,13 +398,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/SubscriptionListItem'
+                      $ref: '#/components/schemas/MySubscriptionListItem'
               example:
                 data:
                   - subscription_id_header: premium-team-sub
                     subscription_description: Premium Team Subscription
                     display_name: Premium Team
-                    inference_priority: 10
+                    priority: 10
                     cost_center: engineering
                     organization_id: org-123
                     key_count: 10
@@ -312,7 +428,7 @@ paths:
                   - subscription_id_header: basic-team-sub
                     subscription_description: Basic Team Subscription
                     display_name: Basic Team
-                    inference_priority: 1
+                    priority: 1
                     key_count: 5
                     model_refs:
                       - name: flan-t5-small
@@ -355,13 +471,13 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/SubscriptionListItem'
+                    $ref: '#/components/schemas/MySubscriptionListItem'
               example:
                 data:
                   subscription_id_header: premium-team-sub
                   subscription_description: Premium Team Subscription
                   display_name: Premium Team
-                  inference_priority: 10
+                  priority: 10
                   cost_center: engineering
                   organization_id: org-123
                   key_count: 10
@@ -624,6 +740,92 @@ paths:
         '500':
           description: Internal Server Error
 
+  /api/v1/api-keys/search/tenant:
+    post:
+      tags:
+        - api-keys
+      summary: Search caller-scoped API keys
+      operationId: searchTenantApiKeys
+      description: Search API keys for the authenticated caller using MaaS API data only. This endpoint does not perform Kubernetes-backed admin or subscription enrichment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: object
+                  properties:
+                    filters:
+                      type: object
+                      properties:
+                        subscription:
+                          type: string
+                        status:
+                          type: array
+                          items:
+                            type: string
+                            enum: [active, revoked, expired]
+                    sort:
+                      type: object
+                      properties:
+                        by:
+                          type: string
+                          enum: [created_at, expires_at, last_used_at, name]
+                        order:
+                          type: string
+                          enum: [asc, desc]
+                    pagination:
+                      type: object
+                      properties:
+                        limit:
+                          type: integer
+                          minimum: 1
+                          maximum: 100
+                        offset:
+                          type: integer
+                          minimum: 0
+      responses:
+        '200':
+          description: OK response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyListEnvelope'
+        '400':
+          description: Bad Request. Missing data envelope or invalid search parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '401':
+          description: Unauthorized response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '502':
+          description: MaaS API returned an unsuccessful client response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '503':
+          description: MaaS API is unavailable, not configured, or returned a server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+
   /api/v1/api-keys/bulk-revoke:
     post:
       tags:
@@ -793,6 +995,71 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden. Insufficient permissions to list subscriptions.
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin-subscriptions:
+    get:
+      tags:
+        - subscriptions
+      summary: List subscriptions (admin view)
+      operationId: listAdminSubscriptions
+      description: >
+        Read-only listing of subscriptions for the MaaS Portal model access page.
+        The response format is identical to `/api/v1/all-subscriptions`, and it is
+        exposed as a separate endpoint so consumer-facing views can be scoped,
+        RBAC-gated, or migrated independently of the all-subscriptions contract.
+
+        Source: the maas-api `/v1/subscriptions` passthrough (the same source used
+        for API key creation). Only subscriptions whose `roles` list contains the
+        exact value `admin` are returned. Missing, empty, or non-admin roles are
+        excluded; no matches returns an empty `data` array. Because that payload is
+        sanitised, `phase`/status conditions and `resourceVersion` are not populated.
+        Group references are copied from upstream `owner.groups`, preserving their
+        full names. Missing groups are returned as an empty list.
+
+        Returns 503 while maas-api is not reachable.
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MaaSSubscription'
+              example:
+                data:
+                  - name: premium-team-sub
+                    displayName: Premium Team
+                    description: Premium Team Subscription
+                    namespace: maas-system
+                    inferencePriority: 10
+                    owner:
+                      groups: []
+                    modelRefs:
+                      - name: llama-2-7b-chat
+                        namespace: maas-models
+                        tokenRateLimits:
+                          - limit: 100000
+                            window: 24h
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden. Insufficient permissions to list subscriptions.
+        '503':
+          description: maas-api is not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -1107,6 +1374,18 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: "MaaSSubscription 'unknown-sub' not found"
+        '409':
+          description: >
+            Conflict. The subscription was modified since the client loaded it
+            (stale resourceVersion), or another concurrent update won.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+              example:
+                error:
+                  code: '409'
+                  message: This subscription was modified by someone else. Refresh the page and try again.
         '500':
           description: Internal Server Error
           content:
@@ -1993,6 +2272,50 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    UsageDashboard:
+      type: object
+      description: Perses DashboardResource converted from a named PersesDashboard CR.
+      required: [kind, metadata, spec]
+      example:
+        kind: Dashboard
+        metadata:
+          name: dashboard-5-maas-usage-logs
+          project: redhat-ods-monitoring
+          version: 1
+          createdAt: '2026-01-01T00:00:00Z'
+          updatedAt: '2026-01-01T00:00:00Z'
+        spec:
+          display:
+            name: My Usage
+          datasources: {}
+          panels: {}
+          layouts: []
+          variables: []
+      properties:
+        kind:
+          type: string
+          enum: [Dashboard]
+        metadata:
+          type: object
+          required: [name, project, version, createdAt, updatedAt]
+          properties:
+            name:
+              type: string
+            project:
+              type: string
+            version:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+        spec:
+          type: object
+          description: Perses dashboard configuration (panels, layouts, variables and datasources).
+          additionalProperties: true
+
     ErrorResponse:
       type: object
       properties:
@@ -2000,6 +2323,29 @@ components:
           type: string
           description: Error message
           example: Failed to retrieve models
+      required:
+        - error
+
+    HTTPErrorResponse:
+      type: object
+      description: >
+        Structured error payload returned by handlers that use HTTPError / ErrorPayload
+        (status code in HTTP status; code and message in the body).
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Application or HTTP status code as a string
+              example: '409'
+            message:
+              type: string
+              description: Human-readable error message
+              example: This subscription was modified by someone else. Refresh the page and try again.
+          required:
+            - code
+            - message
       required:
         - error
 
@@ -2020,6 +2366,46 @@ components:
           type: string
         clusterAdmin:
           type: boolean
+
+    MaasOrg:
+      type: object
+      required:
+        - organization_id
+        - roles
+      properties:
+        organization_id:
+          type: string
+          example: 42c3e46f-2477-44d7-a85b-d3b43f6b31fa
+        organization_name:
+          type: string
+          example: coke
+        roles:
+          type: array
+          items:
+            type: string
+          example:
+            - admins
+
+    MaaSWhoAmI:
+      type: object
+      required:
+        - sub
+        - isAdmin
+      properties:
+        sub:
+          type: string
+          example: 00u7a1b2c3d4e5f6g7h8
+        email:
+          type: string
+          format: email
+          example: alex@grid-tenant-1.com
+        name:
+          type: string
+          example: Alex Doe
+        isAdmin:
+          type: boolean
+          description: Whether the caller has MaaS administrator access.
+          example: true
 
     Namespace:
       type: object
@@ -2258,6 +2644,14 @@ components:
       required:
         - models
 
+    ApiKeyListEnvelope:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ApiKeyListResponse'
+      required:
+        - data
+
     ApiKeyListResponse:
       type: object
       properties:
@@ -2312,6 +2706,10 @@ components:
           items:
             $ref: '#/components/schemas/GroupReference'
           description: Kubernetes group names that own this subscription
+        users:
+          type: array
+          items:
+            type: string
       example:
         groups:
           - name: premium-users
@@ -2440,8 +2838,10 @@ components:
 
     SubscriptionListItem:
       type: object
-      description: Sanitised subscription view returned by the maas-api passthrough endpoint, safe to expose to basic users
+      description: Raw subscription shape returned by maas-api /v1/subscriptions.
       properties:
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
         subscription_id_header:
           type: string
           description: Subscription name to use in the X-MaaS-Subscription header
@@ -2450,6 +2850,15 @@ components:
           type: string
           description: Human-readable description (falls back to display-name, then name)
           example: Premium Team Subscription
+        roles:
+          type: array
+          description: Roles the caller has for this subscription, when provided by maas-api
+          items:
+            type: string
+          example:
+            - admin
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
         display_name:
           type: string
           description: Display name from the openshift.io/display-name annotation
@@ -2461,6 +2870,11 @@ components:
             Subscription inference priority (higher = higher priority).
             Omitted when unset; the scheduler applies default 0.
           example: 10
+        priority:
+          type: integer
+          format: int32
+          description: Priority returned by the maas-api subscriptions endpoint.
+          example: 1
         model_refs:
           type: array
           description: Model references with rate limits
@@ -2491,6 +2905,75 @@ components:
         - subscription_description
         - model_refs
 
+    MySubscriptionListItem:
+      type: object
+      description: Subscription shape returned to the MaaS portal. Backend roles and model subjects are omitted; owner groups are included for Model Access presentation.
+      properties:
+        subscription_id_header:
+          type: string
+        subscription_description:
+          type: string
+        display_name:
+          type: string
+        priority:
+          type: integer
+          format: int32
+        key_count:
+          type: integer
+          format: int32
+        model_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyModelRefInfo'
+        organization_id:
+          type: string
+        cost_center:
+          type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
+      required:
+        - subscription_id_header
+        - subscription_description
+        - model_refs
+
+    MyModelRefInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        model_name:
+          type: string
+        display_name:
+          type: string
+        source:
+          type: string
+        description:
+          type: string
+        namespace:
+          type: string
+        token_rate_limits:
+          type: array
+          items:
+            type: object
+            properties:
+              limit:
+                type: integer
+                format: int64
+              window:
+                type: string
+            required:
+              - limit
+              - window
+        billing_rate:
+          type: object
+          properties:
+            per_token:
+              type: string
+
     ModelRefInfo:
       type: object
       description: Model reference with rate limit information from the passthrough endpoint
@@ -2499,6 +2982,12 @@ components:
           type: string
           description: Name of the MaaSModelRef
           example: granite-3-8b-instruct
+        model_name:
+          type: string
+          description: >
+            Optional catalog model id from upstream maas-api (e.g. publishers/llm/models/Qwen/...).
+            Used by the UI to resolve Access Details Model ID and usage examples.
+          example: publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct
         display_name:
           type: string
           description: Human-readable display name of the model (from openshift.io/display-name annotation)
@@ -2539,6 +3028,8 @@ components:
               type: string
               description: Cost per token
               example: '0.001'
+        subjects:
+          $ref: '#/components/schemas/SubjectSpec'
       required:
         - name
 
@@ -2601,6 +3092,12 @@ components:
           description: >
             InferenceObjectivesReady condition from status.conditions when present
             (only written by the controller when inferencePriority is set).
+        resourceVersion:
+          type: string
+          description: >
+            Kubernetes metadata.resourceVersion at read time.
+            Clients should send this value back on update for optimistic concurrency.
+          example: '12345'
         owner:
           $ref: '#/components/schemas/OwnerSpec'
         modelRefs:
@@ -2634,6 +3131,10 @@ components:
           items:
             $ref: '#/components/schemas/GroupReference'
           description: Kubernetes group names
+        users:
+          type: array
+          items:
+            type: string
 
     ModelRef:
       type: object
@@ -2875,6 +3376,12 @@ components:
             Optional updated subscription inference priority (signed int32).
             Omitted when unset; the scheduler applies default 0.
           example: 20
+        resourceVersion:
+          type: string
+          description: >
+            resourceVersion from when the client loaded the subscription.
+            When provided, update returns 409 if the resource changed since that read.
+          example: '12345'
       required:
         - owner
         - modelRefs

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSecretOps } from '@odh-dashboard/plugin-core';
-import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
+import { getServingRuntimeFromTemplate, isTemplateKind } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
@@ -8,7 +8,10 @@ import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidatio
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
 import { Deployment } from '../../../../extension-points';
-import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
+import {
+  DeploymentAssemblyResources,
+  DeployMethodActivationInput,
+} from '../../../../extension-points/deployment-wizard';
 import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
@@ -22,6 +25,7 @@ import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeplo
  */
 export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
+  deployMethodActivationInput: DeployMethodActivationInput,
   resources: DeploymentAssemblyResources<Deployment>,
   validation: ModelDeploymentWizardValidation,
   externalData: ExternalDataMap,
@@ -39,7 +43,10 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
-  const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
+  const { deployMethod, deployMethodLoaded } = useDeployMethod(
+    deployMethodActivationInput,
+    resources,
+  );
   const { fireModelDeployedTracking } = useModelDeployedTracking(
     formState,
     initialWizardData,
@@ -95,15 +102,20 @@ export const useModelDeploymentSubmit = (
           );
         }
 
-        const serverResourceTemplateName = formState.modelServer?.data?.selection?.name;
-        const allModelServerTemplates = formState.modelFormatState.templatesFilteredForModelType;
-        const serverResource = serverResourceTemplateName
-          ? getServingRuntimeFromTemplate(
-              allModelServerTemplates?.find(
-                (template) => template.metadata.name === serverResourceTemplateName,
-              ),
-            )
-          : undefined;
+        // Prefer the Template on the shared model-server selection (spokes attach it).
+        // Fall back to modelFormatState lookup — existing tech debt for predictive flows.
+        const selection = formState.modelServer?.data?.selection;
+        const serverResourceTemplateName = selection?.name;
+        const templateFromSelection =
+          selection?.template && isTemplateKind(selection.template)
+            ? selection.template
+            : undefined;
+        const serverResource = getServingRuntimeFromTemplate(
+          templateFromSelection ??
+            formState.modelFormatState.templatesFilteredForModelType?.find(
+              (template) => template.metadata.name === serverResourceTemplateName,
+            ),
+        );
 
         await deployModel(
           formState,

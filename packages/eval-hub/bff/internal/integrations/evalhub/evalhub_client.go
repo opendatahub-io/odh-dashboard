@@ -6,10 +6,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -61,10 +64,19 @@ type EvaluationJobLogsResponse struct {
 	Truncated bool
 }
 
+// EvaluationJobsResult is the aggregated result of listing evaluation jobs.
+// TotalCount is the upstream count of all matching jobs; Truncated is true when
+// the fetch-all cap dropped jobs from the result.
+type EvaluationJobsResult struct {
+	Items      []EvaluationJob
+	TotalCount int
+	Truncated  bool
+}
+
 // EvalHubClientInterface defines the operations available against the EvalHub API.
 type EvalHubClientInterface interface {
 	HealthCheck(ctx context.Context, namespace string) (*HealthResponse, error)
-	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error)
+	ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) (EvaluationJobsResult, error)
 	GetEvaluationJob(ctx context.Context, id string, namespace string) (*EvaluationJob, error)
 	CreateEvaluationJob(ctx context.Context, namespace string, req CreateEvaluationJobRequest) (*EvaluationJob, error)
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
@@ -89,6 +101,12 @@ type EvaluationJobsResponse struct {
 	Items      []EvaluationJob `json:"items"`
 	TotalCount int             `json:"total_count"`
 	Limit      int             `json:"limit"`
+	Next       *PaginationLink `json:"next,omitempty"`
+}
+
+// PaginationLink represents a link to another page in a paginated EvalHub response.
+type PaginationLink struct {
+	Href string `json:"href"`
 }
 
 // EvaluationJob represents an evaluation job from eval-hub.
@@ -110,15 +128,13 @@ type EvaluationJob struct {
 }
 
 type JobResource struct {
-	ID                 string     `json:"id"`
-	Tenant             string     `json:"tenant,omitempty"`
-	CreatedAt          string     `json:"created_at,omitempty"`
-	UpdatedAt          string     `json:"updated_at,omitempty"`
-	ReadOnly           bool       `json:"read_only,omitempty"`
-	Owner              string     `json:"owner,omitempty"`
-	MlflowExperimentID string     `json:"mlflow_experiment_id,omitempty"`
-	Message            JobMessage `json:"message,omitempty"`
-	Queue              string     `json:"queue,omitempty"`
+	ID                 string `json:"id"`
+	Tenant             string `json:"tenant,omitempty"`
+	CreatedAt          string `json:"created_at,omitempty"`
+	UpdatedAt          string `json:"updated_at,omitempty"`
+	ReadOnly           bool   `json:"read_only,omitempty"`
+	Owner              string `json:"owner,omitempty"`
+	MlflowExperimentID string `json:"mlflow_experiment_id,omitempty"`
 }
 
 type JobMessage struct {
@@ -129,9 +145,8 @@ type JobMessage struct {
 
 type JobStatus struct {
 	State      string           `json:"state"`
-	Message    JobMessage       `json:"message,omitempty"`
+	Message    *JobMessage      `json:"message,omitempty"`
 	Benchmarks []BenchmarkState `json:"benchmarks,omitempty"`
-	Queue      string           `json:"queue,omitempty"`
 }
 
 type BenchmarkState struct {
@@ -146,7 +161,6 @@ type BenchmarkState struct {
 }
 
 type JobResults struct {
-	TotalEvaluations    int               `json:"total_evaluations"`
 	Benchmarks          []BenchmarkResult `json:"benchmarks,omitempty"`
 	MlflowExperimentURL string            `json:"mlflow_experiment_url,omitempty"`
 	Test                *ResultTest       `json:"test,omitempty"`
@@ -168,17 +182,11 @@ type BenchmarkResult struct {
 	ID             string               `json:"id"`
 	ProviderID     string               `json:"provider_id,omitempty"`
 	BenchmarkIndex *int                 `json:"benchmark_index,omitempty"`
-	Metrics        map[string]float64   `json:"metrics,omitempty"`
-	Artifacts      *BenchmarkArtifact   `json:"artifacts,omitempty"`
+	Metrics        map[string]any       `json:"metrics,omitempty"`
+	Artifacts      map[string]any       `json:"artifacts,omitempty"`
 	MlflowRunID    string               `json:"mlflow_run_id,omitempty"`
 	LogsPath       string               `json:"logs_path,omitempty"`
 	Test           *BenchmarkResultTest `json:"test,omitempty"`
-}
-
-type BenchmarkArtifact struct {
-	OCIDigest    string `json:"oci_digest,omitempty"`
-	OCIReference string `json:"oci_reference,omitempty"`
-	SizeBytes    int64  `json:"size_bytes,omitempty"`
 }
 
 type JobModel struct {
@@ -422,7 +430,8 @@ type Collection struct {
 	Industries        []string                `json:"industries,omitempty"`
 	EvaluationTargets []string                `json:"evaluation_targets,omitempty"`
 	CurationOrder     int                     `json:"curation_order,omitempty"`
-	State             *CollectionState        `json:"state,omitempty"`
+	PinnedOrder       int                     `json:"pinned_order,omitempty"`
+	Status            *CollectionStatus       `json:"status,omitempty"`
 	Custom            map[string]any          `json:"custom,omitempty"`
 	PassCriteria      *CollectionPassCriteria `json:"pass_criteria,omitempty"`
 	Benchmarks        []CollectionBenchmark   `json:"benchmarks,omitempty"`
@@ -439,11 +448,10 @@ type CollectionResource struct {
 	VersionCounter int    `json:"version_counter,omitempty"`
 }
 
-// CollectionState contains server-derived metadata used to order and summarize collections.
-type CollectionState struct {
-	DerivedFrom string `json:"derived_from,omitempty"`
-	RunCount    int    `json:"run_count,omitempty"`
-	PinnedOrder int    `json:"pinned_order,omitempty"`
+// CollectionStatus mirrors EvalHub's top-level status object on collections,
+// which carries the server-computed run count.
+type CollectionStatus struct {
+	RunCount int `json:"run_count"`
 }
 
 // CollectionBenchmark represents a BenchmarkConfig entry within a collection.
@@ -612,9 +620,100 @@ func (c *EvalHubClient) HealthCheck(ctx context.Context, namespace string) (*Hea
 	return resp, nil
 }
 
+const evaluationJobsPageSize = 100
+
+// evaluationJobsMaxItems caps how many jobs the fetch-all mode aggregates, bounding
+// request latency for namespaces with very large job counts.
+const evaluationJobsMaxItems = 1000
+
 // ListEvaluationJobs retrieves evaluation jobs from EvalHub, forwarding any query filters.
+// When no pagination is requested, all upstream pages are fetched because the UI performs
+// filtering and pagination locally; the aggregate is capped at evaluationJobsMaxItems.
+// Explicit limit/offset requests retain upstream pagination semantics.
 // The namespace is sent as the X-Tenant header rather than a query parameter.
-func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) ([]EvaluationJob, error) {
+func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvaluationJobsParams) (EvaluationJobsResult, error) {
+	headers, err := tenantHeaders(params.Namespace)
+	if err != nil {
+		return EvaluationJobsResult{}, err
+	}
+
+	fetchAllPages := params.Limit == "" && params.Offset == ""
+	pageParams := params
+	if fetchAllPages {
+		pageParams.Limit = strconv.Itoa(evaluationJobsPageSize)
+		pageParams.Offset = "0"
+	}
+
+	var jobs []EvaluationJob
+	// Offset-based pagination can re-serve a job on a later page when jobs are
+	// created or deleted concurrently; deduplicate by ID to keep the aggregate exact.
+	seen := make(map[string]struct{})
+	for {
+		resp, err := c.listEvaluationJobsPage(ctx, pageParams, headers)
+		if err != nil {
+			return EvaluationJobsResult{}, wrapClientError(err, "ListEvaluationJobs")
+		}
+
+		for _, job := range resp.Items {
+			if _, duplicate := seen[job.Resource.ID]; duplicate {
+				continue
+			}
+			seen[job.Resource.ID] = struct{}{}
+			jobs = append(jobs, job)
+		}
+		if !fetchAllPages || resp.Next == nil || len(resp.Items) == 0 ||
+			(resp.TotalCount > 0 && len(jobs) >= resp.TotalCount) {
+			return EvaluationJobsResult{Items: jobs, TotalCount: resp.TotalCount}, nil
+		}
+
+		if len(jobs) >= evaluationJobsMaxItems {
+			slog.Warn("evaluation jobs list truncated",
+				"max_items", evaluationJobsMaxItems,
+				"total_count", resp.TotalCount,
+			)
+			return EvaluationJobsResult{
+				Items:      jobs[:evaluationJobsMaxItems],
+				TotalCount: resp.TotalCount,
+				Truncated:  true,
+			}, nil
+		}
+
+		offset, err := strconv.Atoi(pageParams.Offset)
+		if err != nil {
+			return EvaluationJobsResult{}, fmt.Errorf("invalid evaluation jobs offset %q: %w", pageParams.Offset, err)
+		}
+		pageSize := resp.Limit
+		if pageSize <= 0 {
+			pageSize = len(resp.Items)
+		}
+		if pageSize <= 0 {
+			return EvaluationJobsResult{Items: jobs, TotalCount: resp.TotalCount}, nil
+		}
+		nextOffset := offset + pageSize
+		// In a well-behaved flow the item cap above returns before the offset
+		// reaches the cap; paging past it means the upstream is re-serving
+		// duplicates or short pages, so stop and flag the result truncated.
+		if nextOffset >= evaluationJobsMaxItems {
+			slog.Warn("evaluation jobs page budget exhausted",
+				"max_items", evaluationJobsMaxItems,
+				"next_offset", nextOffset,
+				"total_count", resp.TotalCount,
+			)
+			return EvaluationJobsResult{
+				Items:      jobs,
+				TotalCount: resp.TotalCount,
+				Truncated:  true,
+			}, nil
+		}
+		pageParams.Offset = strconv.Itoa(nextOffset)
+	}
+}
+
+func (c *EvalHubClient) listEvaluationJobsPage(
+	ctx context.Context,
+	params ListEvaluationJobsParams,
+	headers map[string]string,
+) (*EvaluationJobsResponse, error) {
 	qp := url.Values{}
 	if params.Limit != "" {
 		qp.Set("limit", params.Limit)
@@ -637,16 +736,7 @@ func (c *EvalHubClient) ListEvaluationJobs(ctx context.Context, params ListEvalu
 		path = fmt.Sprintf("%s?%s", path, encoded)
 	}
 
-	headers, err := tenantHeaders(params.Namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := get[EvaluationJobsResponse](c, ctx, path, headers)
-	if err != nil {
-		return nil, wrapClientError(err, "ListEvaluationJobs")
-	}
-	return resp.Items, nil
+	return get[EvaluationJobsResponse](c, ctx, path, headers)
 }
 
 // GetEvaluationJob retrieves a single evaluation job by ID.
@@ -954,6 +1044,28 @@ func readResponseBody(body io.Reader, maxSize int) ([]byte, error) {
 	return responseBody, nil
 }
 
+// decodeJSON decodes with UseNumber so numbers inside pass-through `any`
+// fields (metrics, artifacts, custom) keep their exact JSON literal rather
+// than losing precision to float64 when re-serialized to the frontend.
+func decodeJSON[T any](body []byte) (*T, error) {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.UseNumber()
+	var result T
+	if err := decoder.Decode(&result); err != nil {
+		return nil, err
+	}
+	// A single Decode accepts the first JSON value and ignores trailing
+	// content; require a clean EOF so malformed bodies fail like Unmarshal.
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if err == nil {
+			err = errors.New("unexpected trailing data after JSON value")
+		}
+		return nil, err
+	}
+	return &result, nil
+}
+
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
@@ -985,11 +1097,7 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](body)
 }
 
 // post performs a typed POST request against the EvalHub API.
@@ -1031,11 +1139,7 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](respBody)
 }
 
 // patch performs a typed PATCH request against the EvalHub API.
@@ -1077,11 +1181,7 @@ func patch[T any](c *EvalHubClient, ctx context.Context, path string, body any, 
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](respBody)
 }
 
 // doRequest performs an HTTP request that does not return a typed body (e.g. DELETE).

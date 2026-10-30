@@ -23,10 +23,12 @@ import {
   Dropdown,
   DropdownList,
   DropdownItem,
+  Divider,
   Toolbar,
   ToolbarContent,
   ToolbarGroup,
   ToolbarItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { FilterIcon, EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td, ThProps } from '@patternfly/react-table';
@@ -42,6 +44,8 @@ import {
 import { useNotification } from '~/app/hooks/useNotification';
 import { assetDetailUrl, projectConnectionUrl } from '~/app/utilities/routes';
 import { getFormatBadge, FORMAT_OPTIONS } from '~/app/utilities/formatUtils';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import AccessDeniedError from '~/app/components/errors/AccessDeniedError';
 import ConnectionError from '~/app/components/errors/ConnectionError';
 import ConnectionRefLink from '~/app/components/ConnectionRefLink';
@@ -101,14 +105,82 @@ const getSearchableAssetText = (asset: RegistryAsset): string =>
     .join(' ')
     .toLowerCase();
 
+type RegistryFilterState = {
+  searchText: string;
+  selectedLabels: string[];
+  selectedAssetTypes: string[];
+  selectedFormats: string[];
+  activeSortIndex: number | undefined;
+  activeSortDirection: 'asc' | 'desc';
+};
+
+const filterRegistryAssets = (
+  assets: RegistryAsset[],
+  filters: RegistryFilterState,
+): RegistryAsset[] => {
+  let result = assets;
+  if (filters.searchText) {
+    const lower = filters.searchText.toLowerCase();
+    result = result.filter((asset) => getSearchableAssetText(asset).includes(lower));
+  }
+  if (filters.selectedLabels.length > 0) {
+    result = result.filter((asset) =>
+      filters.selectedLabels.some((label) => asset.labels.includes(label)),
+    );
+  }
+  if (filters.selectedAssetTypes.length > 0) {
+    result = result.filter((asset) =>
+      filters.selectedAssetTypes.some((selectedType) =>
+        selectedType === 'Structured' ? asset.assetType === 'table' : asset.assetType === 'volume',
+      ),
+    );
+  }
+  if (filters.selectedFormats.length > 0) {
+    result = result.filter((asset) =>
+      filters.selectedFormats.some((selectedFormat) => {
+        const selectedOption = FORMAT_OPTIONS.find((option) => option.key === selectedFormat);
+        return (
+          asset.format.toLowerCase() === (selectedOption?.value ?? selectedFormat).toLowerCase() &&
+          (!selectedOption || asset.assetType === selectedOption.assetType)
+        );
+      }),
+    );
+  }
+  if (filters.activeSortIndex !== undefined) {
+    const sortIndex = filters.activeSortIndex;
+    const getSortValue = (asset: RegistryAsset, columnIndex: number): string => {
+      if (columnIndex === 0) {
+        return asset.name;
+      }
+      if (columnIndex === 1) {
+        return asset.format;
+      }
+      return asset.connectionRef || asset.location;
+    };
+    result = result.toSorted((a, b) => {
+      const aVal = getSortValue(a, sortIndex);
+      const bVal = getSortValue(b, sortIndex);
+      return filters.activeSortDirection === 'asc'
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    });
+  }
+  return result;
+};
+
 const CATEGORY_LABELS: Record<FilterCategory, string> = {
   labels: 'Labels',
   assetType: 'Asset type',
   format: 'Format',
 };
 
+const REGISTRY_SEARCH_PLACEHOLDER = 'Filter by name, description, properties or labels';
+
 const EMPTY_REGISTRY_DESCRIPTION =
-  'Data assets point to the exact location within a connection where information is located, and can be used across workbenches and pipelines in your project. To get started, create a data asset.';
+  'To help users in your organization discover and understand external data, create a data asset. Data assets are metadata records that store information like location, format, and schema, but not the data itself.';
+
+const ASSET_LOCATION_INFO =
+  'This column shows the connection or path for each data asset. If both are specified, the connection is shown.';
 
 const EmptyRegistryStateIcon: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({
   className,
@@ -143,6 +215,9 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   const hasExistingDchConnectionReferences =
     loaded && assets.some((asset) => asset.rawAsset?.connection_ref?.type === 'dch');
   const notification = useNotification();
+  const trackEvent = useDataRegistryTrackEvent();
+  const searchTrackingTimer = React.useRef<ReturnType<typeof setTimeout>>();
+  const clearTrackedRef = React.useRef(false);
   const [searchText, setSearchText] = React.useState('');
   const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('labels');
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
@@ -166,67 +241,89 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
     selectedFormats.length > 0 ||
     !!searchText;
 
+  const currentFilterState = React.useMemo<RegistryFilterState>(
+    () => ({
+      searchText,
+      selectedLabels,
+      selectedAssetTypes,
+      selectedFormats,
+      activeSortIndex,
+      activeSortDirection,
+    }),
+    [
+      activeSortDirection,
+      activeSortIndex,
+      searchText,
+      selectedAssetTypes,
+      selectedFormats,
+      selectedLabels,
+    ],
+  );
+  const clearSearchTrackingTimer = React.useCallback(() => {
+    if (searchTrackingTimer.current) {
+      clearTimeout(searchTrackingTimer.current);
+      searchTrackingTimer.current = undefined;
+    }
+  }, []);
+
+  const getSearchResultCount = React.useCallback(
+    (query: string): number =>
+      filterRegistryAssets(assets, {
+        ...currentFilterState,
+        searchText: query,
+      }).length,
+    [assets, currentFilterState],
+  );
+
+  const emitSearchTracking = React.useCallback(
+    (query: string, resultCount = getSearchResultCount(query)) => {
+      trackEvent({
+        eventName: DATA_REGISTRY_EVENT_NAMES.searchPerformed,
+        properties: {
+          hasQuery: query.length > 0,
+          queryLength: query.length,
+          resultCount,
+          project,
+        },
+      });
+    },
+    [getSearchResultCount, project, trackEvent],
+  );
+  const emitSearchTrackingRef = React.useRef(emitSearchTracking);
+  React.useLayoutEffect(() => {
+    emitSearchTrackingRef.current = emitSearchTracking;
+  }, [emitSearchTracking]);
+
+  const scheduleSearchTracking = React.useCallback(
+    (query: string) => {
+      clearSearchTrackingTimer();
+      searchTrackingTimer.current = setTimeout(() => {
+        emitSearchTrackingRef.current(query);
+        searchTrackingTimer.current = undefined;
+      }, 750);
+    },
+    [clearSearchTrackingTimer],
+  );
+
+  React.useLayoutEffect(() => clearSearchTrackingTimer, [clearSearchTrackingTimer, project]);
+
   const clearAllFilters = React.useCallback(() => {
+    clearSearchTrackingTimer();
+    if (searchText && !clearTrackedRef.current) {
+      emitSearchTracking('', assets.length);
+      clearTrackedRef.current = true;
+    }
     setSelectedLabels([]);
     setSelectedAssetTypes([]);
     setSelectedFormats([]);
     setSearchText('');
     setPage(1);
-  }, []);
+  }, [assets.length, clearSearchTrackingTimer, emitSearchTracking, searchText]);
 
-  const filteredAssets = React.useMemo(() => {
-    let result = assets;
-    if (searchText) {
-      const lower = searchText.toLowerCase();
-      result = result.filter((a) => getSearchableAssetText(a).includes(lower));
-    }
-    if (selectedLabels.length > 0) {
-      result = result.filter((a) => selectedLabels.some((l) => a.labels.includes(l)));
-    }
-    if (selectedAssetTypes.length > 0) {
-      result = result.filter((a) =>
-        selectedAssetTypes.some((selectedAssetType) =>
-          selectedAssetType === 'Structured' ? a.assetType === 'table' : a.assetType === 'volume',
-        ),
-      );
-    }
-    if (selectedFormats.length > 0) {
-      result = result.filter((a) =>
-        selectedFormats.some((selectedFormat) => {
-          const selectedOption = FORMAT_OPTIONS.find((option) => option.key === selectedFormat);
-          return (
-            a.format.toLowerCase() === (selectedOption?.value ?? selectedFormat).toLowerCase() &&
-            (!selectedOption || a.assetType === selectedOption.assetType)
-          );
-        }),
-      );
-    }
-    if (activeSortIndex !== undefined) {
-      const getSortValue = (asset: RegistryAsset, colIndex: number): string => {
-        if (colIndex === 0) {
-          return asset.name;
-        }
-        if (colIndex === 1) {
-          return asset.format;
-        }
-        return asset.connectionRef || asset.location;
-      };
-      result = result.toSorted((a, b) => {
-        const aVal = getSortValue(a, activeSortIndex);
-        const bVal = getSortValue(b, activeSortIndex);
-        return activeSortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      });
-    }
-    return result;
-  }, [
-    assets,
-    searchText,
-    selectedLabels,
-    selectedAssetTypes,
-    selectedFormats,
-    activeSortIndex,
-    activeSortDirection,
-  ]);
+  const filteredAssets = React.useMemo(
+    () => filterRegistryAssets(assets, currentFilterState),
+    [assets, currentFilterState],
+  );
 
   const maxPage = Math.max(1, Math.ceil(filteredAssets.length / perPage));
   const currentPage = Math.min(page, maxPage);
@@ -515,20 +612,37 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
               <ToolbarItem>{renderValueDropdown()}</ToolbarItem>
               {/* Search */}
               <ToolbarItem>
-                <SearchInput
-                  placeholder="Filter by name, description, properties or labels"
-                  value={searchText}
-                  onChange={(_event, value) => {
-                    setSearchText(value);
-                    setPage(1);
-                  }}
-                  onClear={() => {
-                    setSearchText('');
-                    setPage(1);
-                  }}
-                  data-testid="asset-search"
-                  className="odh-data-registry-registry-table__search"
-                />
+                <Tooltip content={REGISTRY_SEARCH_PLACEHOLDER}>
+                  <SearchInput
+                    placeholder={REGISTRY_SEARCH_PLACEHOLDER}
+                    value={searchText}
+                    onChange={(_event, value) => {
+                      if (value) {
+                        clearTrackedRef.current = false;
+                        scheduleSearchTracking(value);
+                      } else {
+                        clearSearchTrackingTimer();
+                        if (searchText && !clearTrackedRef.current) {
+                          emitSearchTracking('');
+                          clearTrackedRef.current = true;
+                        }
+                      }
+                      setSearchText(value);
+                      setPage(1);
+                    }}
+                    onClear={() => {
+                      clearSearchTrackingTimer();
+                      if (searchText && !clearTrackedRef.current) {
+                        emitSearchTracking('');
+                        clearTrackedRef.current = true;
+                      }
+                      setSearchText('');
+                      setPage(1);
+                    }}
+                    data-testid="asset-search"
+                    className="odh-data-registry-registry-table__search"
+                  />
+                </Tooltip>
               </ToolbarItem>
             </ToolbarGroup>
             {/* Register data button */}
@@ -710,13 +824,26 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           ) : null}
         </Toolbar>
 
-        <Table aria-label="Registry assets" data-testid="registry-table">
+        <Table
+          aria-label="Registry assets"
+          borders={assets.length > 0}
+          data-testid="registry-table"
+        >
           {assets.length > 0 ? (
             <Thead>
               <Tr>
                 <Th sort={getSortParams(0)}>Name</Th>
                 <Th sort={getSortParams(1)}>Format</Th>
-                <Th sort={getSortParams(2)}>Asset location</Th>
+                <Th
+                  sort={getSortParams(2)}
+                  info={{
+                    popover: ASSET_LOCATION_INFO,
+                    ariaLabel: 'Asset location information',
+                    className: 'odh-data-registry-registry-table__asset-location-info',
+                  }}
+                >
+                  Asset location
+                </Th>
                 <Th>Labels</Th>
                 <Th screenReaderText="Actions" />
               </Tr>
@@ -768,6 +895,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
             ) : (
               paginatedAssets.map((asset) => {
                 const badge = getFormatBadge(asset.format);
+                const assetTypeLabel = asset.assetType === 'table' ? 'Structured' : 'Unstructured';
                 const assetKey = JSON.stringify([asset.assetType, asset.collection, asset.name]);
                 const connectionRef = asset.rawAsset?.connection_ref;
                 const connectionType = connectionRef
@@ -793,6 +921,12 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                               asset.name,
                               asset.assetType,
                             )}
+                            onClick={() => {
+                              trackEvent({
+                                eventName: DATA_REGISTRY_EVENT_NAMES.assetOpened,
+                                properties: { project },
+                              });
+                            }}
                           />
                         )}
                       >
@@ -803,12 +937,27 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                       ) : null}
                     </Td>
                     <Td dataLabel="Format">
-                      <Label variant="outline" color={badge.color}>
-                        {FORMAT_OPTIONS.find(
-                          (option) =>
-                            option.value === asset.format && option.assetType === asset.assetType,
-                        )?.label || asset.format}
-                      </Label>
+                      <Flex
+                        direction={{ default: 'column' }}
+                        alignItems={{ default: 'alignItemsFlexStart' }}
+                      >
+                        <Flex
+                          direction={{ default: 'column' }}
+                          alignItems={{ default: 'alignItemsFlexStart' }}
+                          className="pf-v6-u-display-inline-flex"
+                        >
+                          <Label variant="outline" color={badge.color}>
+                            {FORMAT_OPTIONS.find(
+                              (option) =>
+                                option.value === asset.format &&
+                                option.assetType === asset.assetType,
+                            )?.label || asset.format}
+                          </Label>
+                          <Content component="small" className="pf-v6-u-text-color-subtle">
+                            {assetTypeLabel}
+                          </Content>
+                        </Flex>
+                      </Flex>
                     </Td>
                     <Td dataLabel="Asset location">
                       {asset.connectionRef ? (
@@ -871,6 +1020,10 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                             key="edit"
                             onClick={() => {
                               if (asset.rawAsset) {
+                                trackEvent({
+                                  eventName: DATA_REGISTRY_EVENT_NAMES.assetEditInitiated,
+                                  properties: { project },
+                                });
                                 setEditAsset(asset);
                                 setIsEditAssetModalOpen(true);
                               }
@@ -880,10 +1033,18 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                           >
                             Edit
                           </DropdownItem>
+                          <Divider component="li" />
                           <DropdownItem
                             key="delete"
-                            onClick={() => setDeleteAsset(asset)}
+                            onClick={() => {
+                              trackEvent({
+                                eventName: DATA_REGISTRY_EVENT_NAMES.assetDeleteInitiated,
+                                properties: { project },
+                              });
+                              setDeleteAsset(asset);
+                            }}
                             isDisabled={!hasWriteAccess}
+                            isDanger
                             data-testid={assetTestId('asset-delete')}
                           >
                             Delete
@@ -901,7 +1062,6 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
       {deleteAsset ? (
         <DeleteAssetModal
           assetName={deleteAsset.name}
-          assetType={deleteAsset.assetType}
           onDelete={() => handleDelete(deleteAsset)}
           onClose={() => setDeleteAsset(null)}
         />

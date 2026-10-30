@@ -38,7 +38,7 @@
 | **NotebookImage** | Image from OpenShift `ImageStream` / `ImageStreamTag`; chosen in the spawner. |
 | **WorkbenchSize** | CPU/memory preset from `OdhDashboardConfig` (“Container size”). |
 | **PVC** | Attached volume for persistent storage; attach existing or create in the wizard. |
-| **Accelerator / Hardware Profile** | GPU/accelerator profile (tolerations + limits) for the pod spec. |
+| **Accelerator / Hardware Profile** | GPU/accelerator profile (tolerations + limits) for the pod spec. DRA profiles (`spec.dra.resourceClaimTemplateName`) are selectable in the project workbench form only when the `hardwareProfileDRA` flag is on; the dashboard passes existing resource claims through and the workbench webhook adds, replaces or removes the `hwp-dra` claim. The Jupyter tile never offers DRA profiles. |
 | **inject-auth annotation** | `notebooks.opendatahub.io/inject-auth: "true"` selects Gateway same-origin URL vs OpenShift Route. |
 | **SSAR** | Access review before rendering notebook UI where enforced. |
 | **POLL_INTERVAL** | Shared poll cadence (`frontend/src/utilities/const.ts`) for live notebook/pod status. |

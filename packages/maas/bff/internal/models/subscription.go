@@ -16,6 +16,39 @@ type BillingRateInfo struct {
 // ModelRefInfo is a model reference with rate limits from the maas-api passthrough.
 type ModelRefInfo struct {
 	Name            string               `json:"name"`
+	ModelName       string               `json:"model_name,omitempty"` // catalog model id from upstream (optional)
+	DisplayName     string               `json:"display_name,omitempty"`
+	Source          string               `json:"source,omitempty"`
+	Description     string               `json:"description,omitempty"`
+	Namespace       string               `json:"namespace,omitempty"`
+	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
+	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
+	Subjects        *SubjectSpec         `json:"subjects,omitempty"`
+}
+
+// SubscriptionListItem is the raw subscription shape returned by maas-api /v1/subscriptions.
+type SubscriptionListItem struct {
+	SubscriptionIDHeader    string            `json:"subscription_id_header"`
+	SubscriptionDescription string            `json:"subscription_description"`
+	Roles                   []string          `json:"roles,omitempty"`
+	DisplayName             string            `json:"display_name,omitempty"`
+	Priority                *int32            `json:"priority,omitempty"`
+	KeyCount                int32             `json:"key_count,omitempty"`
+	ModelRefs               []ModelRefInfo    `json:"model_refs"`
+	OrganizationID          string            `json:"organization_id,omitempty"`
+	CostCenter              string            `json:"cost_center,omitempty"`
+	Labels                  map[string]string `json:"labels,omitempty"`
+	// InferencePriority uses snake_case to match the maas-api passthrough payload.
+	InferencePriority *int32 `json:"inference_priority,omitempty"`
+	// Owner contains group references supplied by maas-api, including full group names.
+	Owner *OwnerSpec `json:"owner,omitempty"`
+}
+
+// MyModelRefInfo is the model reference exposed to the MaaS portal. Access subjects
+// are backend authorization metadata and are intentionally omitted.
+type MyModelRefInfo struct {
+	Name            string               `json:"name"`
+	ModelName       string               `json:"model_name,omitempty"`
 	DisplayName     string               `json:"display_name,omitempty"`
 	Source          string               `json:"source,omitempty"`
 	Description     string               `json:"description,omitempty"`
@@ -24,18 +57,20 @@ type ModelRefInfo struct {
 	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
 }
 
-// SubscriptionListItem is the sanitised subscription view from the maas-api /v1/subscriptions passthrough.
-type SubscriptionListItem struct {
+// MySubscriptionListItem is the subscription shape returned to the MaaS Portal.
+// Roles and model subjects remain backend metadata; owner groups are included
+// for the read-only Model Access presentation.
+type MySubscriptionListItem struct {
 	SubscriptionIDHeader    string            `json:"subscription_id_header"`
 	SubscriptionDescription string            `json:"subscription_description"`
 	DisplayName             string            `json:"display_name,omitempty"`
-	KeyCount                int32             `json:"key_count"`
-	ModelRefs               []ModelRefInfo    `json:"model_refs"`
+	Priority                *int32            `json:"priority,omitempty"`
+	KeyCount                int32             `json:"key_count,omitempty"`
+	ModelRefs               []MyModelRefInfo  `json:"model_refs"`
 	OrganizationID          string            `json:"organization_id,omitempty"`
 	CostCenter              string            `json:"cost_center,omitempty"`
 	Labels                  map[string]string `json:"labels,omitempty"`
-	// InferencePriority uses snake_case to match the maas-api passthrough payload.
-	InferencePriority *int32 `json:"inference_priority,omitempty"`
+	Owner                   *OwnerSpec        `json:"owner,omitempty"`
 }
 
 // GroupReference references a Kubernetes group by name.
@@ -46,6 +81,7 @@ type GroupReference struct {
 // OwnerSpec defines who owns a subscription.
 type OwnerSpec struct {
 	Groups []GroupReference `json:"groups"`
+	Users  []string         `json:"users,omitempty"`
 }
 
 // TokenRateLimit defines a token-based rate limit.
@@ -108,17 +144,20 @@ type MaaSSubscription struct {
 	Reason             string `json:"reason,omitempty"`
 	InferencePriority  *int32 `json:"inferencePriority,omitempty"`
 	// InferenceObjectivesReady is present only when inferencePriority is set and the controller has written the condition.
-	InferenceObjectivesReady *ConditionSummary      `json:"inferenceObjectivesReady,omitempty"`
-	Owner                    OwnerSpec              `json:"owner"`
-	ModelRefs                []ModelSubscriptionRef `json:"modelRefs"`
-	TokenMetadata            *TokenMetadata         `json:"tokenMetadata,omitempty"`
-	CreationTimestamp        *time.Time             `json:"creationTimestamp,omitempty"`
-	DeletionTimestamp        *time.Time             `json:"deletionTimestamp,omitempty"`
+	InferenceObjectivesReady *ConditionSummary `json:"inferenceObjectivesReady,omitempty"`
+	// ResourceVersion is the Kubernetes metadata.resourceVersion at read time (for optimistic concurrency on update).
+	ResourceVersion   string                 `json:"resourceVersion,omitempty"`
+	Owner             OwnerSpec              `json:"owner"`
+	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
+	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
+	CreationTimestamp *time.Time             `json:"creationTimestamp,omitempty"`
+	DeletionTimestamp *time.Time             `json:"deletionTimestamp,omitempty"`
 }
 
 // SubjectSpec defines subjects (groups) that have access.
 type SubjectSpec struct {
 	Groups []GroupReference `json:"groups"`
+	Users  []string         `json:"users,omitempty"`
 }
 
 // ModelRef is a simple reference to a MaaSModelRef by name and namespace.
@@ -192,6 +231,9 @@ type UpdateSubscriptionRequest struct {
 	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
 	InferencePriority *int32                 `json:"inferencePriority,omitempty"`
+	// ResourceVersion is the resourceVersion from when the client loaded the subscription.
+	// When set, the update fails with 409 if the resource has changed since that read.
+	ResourceVersion string `json:"resourceVersion,omitempty"`
 }
 
 // CreateSubscriptionResponse is the response after creating or updating a subscription.

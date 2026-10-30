@@ -1,15 +1,21 @@
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/CreateConnectionWizard';
+import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { testCredentials } from '~/app/api/dch';
-import type { CreateConnectionRequest } from '~/app/types';
+import type { Connection, CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
+jest.mock('~/app/utilities/tracking', () => ({
+  ...jest.requireActual<typeof import('~/app/utilities/tracking')>('~/app/utilities/tracking'),
+  fireDataConnectHubTrackEvent: jest.fn(),
+}));
 const mockNotificationSuccess = jest.fn();
 const mockNotificationError = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -22,11 +28,15 @@ jest.mock('~/app/api/dch', () => ({
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockTestCredentials = jest.mocked(testCredentials);
+const mockTrackEvent = jest.fn();
+const postgresqlConnectionTypeId = '550e8400-e29b-41d4-a716-446655440003';
+const ociConnectionTypeId = '550e8400-e29b-41d4-a716-446655440005';
+const unknownConnectionTypeId = '550e8400-e29b-41d4-a716-446655440009';
 
 const connectionTypes = [
   {
     metadata: {
-      id: 'postgresql',
+      id: postgresqlConnectionTypeId,
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
@@ -39,7 +49,7 @@ const connectionTypes = [
   },
   {
     metadata: {
-      id: 'oci-v1',
+      id: ociConnectionTypeId,
       created_at: '2026-09-08T16:00:00Z',
       updated_at: '2026-09-08T16:00:00Z',
     },
@@ -54,6 +64,7 @@ describe('CreateConnectionWizard', () => {
     mockTestCredentials.mockImplementation(() => () => Promise.resolve());
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
     mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
+    jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
   });
 
   it('rejects duplicate normalized and whitespace-only property keys', () => {
@@ -84,13 +95,28 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={jest.fn()}
-        initialFormData={{ data_connection_type_id: 'postgresql' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect(screen.getByTestId('connection-project-select').textContent).toContain('test-project');
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
+  });
+
+  it('tracks connection type selection in the wizard', async () => {
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
+
+    fireEvent.click(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard-select`));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Type Selected',
+      properties: {
+        connectionTypeProvider: 'postgresql',
+        isGlobalType: true,
+        project: 'test-project',
+      },
+    });
   });
 
   it('should remain on connection type when a prefilled connection type fails to load', async () => {
@@ -101,14 +127,14 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={jest.fn()}
-        initialFormData={{ data_connection_type_id: 'postgresql' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
       />,
     );
 
     expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
     expect(screen.getByText('Unable to load connection types')).toBeTruthy();
     expect(screen.getByText('request failed')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Connection details' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Details' })).toBeNull();
   });
 
   it.each([undefined, 'postgres://supplied', ''])(
@@ -125,7 +151,7 @@ describe('CreateConnectionWizard', () => {
         onClose: jest.fn(),
         onCreate,
         initialFormData: {
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           credentials: {
             secret: '',
             properties: credentialProperties,
@@ -164,7 +190,7 @@ describe('CreateConnectionWizard', () => {
       ]);
       rerender(<CreateConnectionWizard {...props} isOpen />);
 
-      expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+      expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
       await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
       await user.click(screen.getByRole('button', { name: 'Next' }));
       expect(screen.getByTestId('credential-URI')).toHaveProperty(
@@ -202,13 +228,13 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={jest.fn()}
-        initialFormData={{ data_connection_type_id: 'unknown' }}
+        initialFormData={{ data_connection_type_id: unknownConnectionTypeId }}
       />,
     );
 
     expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
-    expect(screen.queryByRole('heading', { name: 'Connection details' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Details' })).toBeNull();
   });
 
   it('should show connection details when namespace loading fails for valid initial form data', async () => {
@@ -221,7 +247,7 @@ describe('CreateConnectionWizard', () => {
         onClose={jest.fn()}
         initialFormData={{
           name: 'existing-connection',
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           credentials: {
             secret: 'existing-connection',
             properties: { URI: 'postgres://example' },
@@ -231,7 +257,7 @@ describe('CreateConnectionWizard', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect(screen.getByText('Unable to load projects')).toBeTruthy();
     expect(screen.getByText('namespace request failed')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
@@ -239,7 +265,24 @@ describe('CreateConnectionWizard', () => {
 
   it('should start at review when all initial form data is valid', async () => {
     const user = userEvent.setup();
-    const onCreate = jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();
+    const createdConnection: Connection = {
+      metadata: { id: 'connection-id' },
+      resource: {
+        name: 'existing-connection',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials_ref: { secret: 'existing-connection' },
+      },
+      status: { state: 'ready' },
+    };
+    const onCreate =
+      jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<Connection>>();
+    onCreate.mockResolvedValue(createdConnection);
+    mockUseNamespaces.mockReturnValue([
+      [{ name: 'test-project', displayName: 'Test Project' }],
+      true,
+      undefined,
+    ]);
     render(
       <CreateConnectionWizard
         isOpen
@@ -248,7 +291,7 @@ describe('CreateConnectionWizard', () => {
         onCreate={onCreate}
         initialFormData={{
           name: 'existing-connection',
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           credentials: {
             secret: 'existing-connection',
             properties: { URI: 'postgres://example' },
@@ -262,6 +305,10 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByText('existing-connection')).toBeTruthy();
     expect(screen.getByText('region: east')).toBeTruthy();
     expect(screen.queryByText('postgres://example')).toBeNull();
+    expect(screen.getByText('URI value hidden')).toBeTruthy();
+    expect(
+      screen.getAllByText('••••••••').every((mask) => mask.getAttribute('aria-hidden') === 'true'),
+    ).toBe(true);
 
     await user.click(screen.getByRole('button', { name: 'Show URI' }));
     expect(screen.getByText('postgres://example')).toBeTruthy();
@@ -271,7 +318,7 @@ describe('CreateConnectionWizard', () => {
       expect(onCreate).toHaveBeenCalledWith(
         {
           name: 'existing-connection',
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           format: 'tabular',
           credentials: {
             secret: 'existing-connection',
@@ -282,6 +329,427 @@ describe('CreateConnectionWizard', () => {
         'test-project',
       ),
     );
+    await waitFor(() => expect(mockNotificationSuccess).toHaveBeenCalled());
+    const [title, message, link] = mockNotificationSuccess.mock.calls[0] as [
+      string,
+      React.ReactNode,
+      { linkUrl: string; linkLabel: string },
+    ];
+    expect(title).toBe('Connection created');
+    const { container } = render(<MemoryRouter>{message as React.ReactNode}</MemoryRouter>);
+    expect(container.textContent).toBe('"existing-connection" was created in Test Project');
+    expect(screen.getByRole('link', { name: 'Test Project' })).toHaveProperty(
+      'href',
+      'http://localhost/projects/test-project',
+    );
+    expect(link).toEqual({
+      linkLabel: 'View connection details',
+      linkUrl: '/ai-hub/connections/connections/connection-id?project=test-project',
+    });
+    expect(onCreate.mock.results[0]?.value).resolves.toBe(createdConnection);
+  });
+
+  it('tracks successful connection creation', async () => {
+    const user = userEvent.setup();
+    const onCreate = jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        onCreate={onCreate}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: { URI: 'postgres://example' },
+          },
+          properties: { region: 'east' },
+        }}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Create connection' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Connection Created',
+      properties: {
+        outcome: 'submit',
+        success: true,
+        connectionTypeProvider: 'postgresql',
+        hasTags: true,
+        tagCount: 1,
+        project: 'test-project',
+      },
+    });
+  });
+
+  it('tracks failed connection creation without exposing the error message', async () => {
+    const user = userEvent.setup();
+    const onCreate = jest
+      .fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<void>>()
+      .mockRejectedValue(new Error('status code 409: connection exists'));
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        onCreate={onCreate}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: { URI: 'postgres://example' },
+          },
+        }}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Create connection' }));
+
+    await waitFor(() =>
+      expect(mockTrackEvent).toHaveBeenCalledWith({
+        eventName: 'Connections Connection Created',
+        properties: {
+          outcome: 'submit',
+          success: false,
+          error: 'http_409',
+          connectionTypeProvider: 'postgresql',
+          hasTags: false,
+          tagCount: 0,
+          project: 'test-project',
+        },
+      }),
+    );
+  });
+
+  it('uses a fixed mask and password input for sensitive credential fields', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              { name: 'API_TOKEN', label: 'API token', required: true, type: 'string' },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: { API_TOKEN: 'short-lived-token' },
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    expect(screen.getByText('API token value hidden')).toBeTruthy();
+    expect(
+      screen.getAllByText('••••••••').every((mask) => mask.getAttribute('aria-hidden') === 'true'),
+    ).toBe(true);
+    expect(screen.queryByText('short-lived-token')).toBeNull();
+
+    const reviewShowButton = screen.getByRole('button', { name: 'Show API token' });
+    expect(within(reviewShowButton).getByTestId('hidden-value-icon')).toBeTruthy();
+
+    await user.click(reviewShowButton);
+    expect(screen.getByText('short-lived-token')).toBeTruthy();
+    expect(within(reviewShowButton).getByTestId('visible-value-icon')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    const tokenInput = screen.getByTestId('credential-API_TOKEN') as HTMLInputElement;
+    expect(tokenInput).toHaveProperty('type', 'password');
+    expect(tokenInput.value).toBe('short-lived-token');
+
+    const configurationShowButton = screen.getByRole('button', { name: 'Show API token' });
+    expect(within(configurationShowButton).getByTestId('hidden-value-icon')).toBeTruthy();
+
+    await user.click(configurationShowButton);
+    expect(tokenInput).toHaveProperty('type', 'text');
+    expect(within(configurationShowButton).getByTestId('visible-value-icon')).toBeTruthy();
+  });
+
+  it('keeps non-sensitive credential fields visible on both wizard steps', async () => {
+    const user = userEvent.setup();
+    const credentialValues = {
+      API_TOKEN: 'short-lived-token',
+      HOST: 'db.example',
+      CA_CERT: 'ca-certificate-value',
+      SSL_MODE: 'require',
+    };
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              { name: 'API_TOKEN', label: 'API token', required: true, type: 'string' },
+              { name: 'HOST', label: 'Host', required: true, type: 'string' },
+              { name: 'CA_CERT', label: 'CA certificate', required: true, type: 'string' },
+              { name: 'SSL_MODE', label: 'SSL mode', required: true, type: 'string' },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: credentialValues,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    expect(screen.queryByText(credentialValues.API_TOKEN)).toBeNull();
+    expect(screen.getByText('API token value hidden')).toBeTruthy();
+    expect(screen.getByText(credentialValues.HOST)).toBeTruthy();
+    expect(screen.getByText(credentialValues.CA_CERT)).toBeTruthy();
+    expect(screen.getByText(credentialValues.SSL_MODE)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show API token' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Show Host' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Show CA certificate' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Show SSL mode' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    expect((screen.getByTestId('credential-API_TOKEN') as HTMLInputElement).type).toBe('password');
+    expect((screen.getByTestId('credential-HOST') as HTMLInputElement).type).toBe('text');
+    expect((screen.getByTestId('credential-CA_CERT') as HTMLInputElement).type).toBe('text');
+    expect((screen.getByTestId('credential-SSL_MODE') as HTMLInputElement).type).toBe('text');
+  });
+
+  it('masks camelCase and concatenated lowercase credential fields on both wizard steps', async () => {
+    const user = userEvent.setup();
+    const credentialValues = {
+      clientSecret: 'client-secret-value',
+      accessToken: 'access-token-value',
+      dbpassword: 'database-password-value',
+      clientsecret: 'client-secret-concatenated-value',
+      accesstoken: 'access-token-concatenated-value',
+      privatekey: 'private-key-concatenated-value',
+    };
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              { name: 'clientSecret', label: 'clientSecret', required: true, type: 'string' },
+              { name: 'accessToken', label: 'accessToken', required: true, type: 'string' },
+              { name: 'dbpassword', label: 'dbpassword', required: true, type: 'string' },
+              { name: 'clientsecret', label: 'clientsecret', required: true, type: 'string' },
+              { name: 'accesstoken', label: 'accesstoken', required: true, type: 'string' },
+              { name: 'privatekey', label: 'privatekey', required: true, type: 'string' },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: credentialValues,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    Object.values(credentialValues).forEach((value) => {
+      expect(screen.queryByText(value)).toBeNull();
+    });
+    Object.keys(credentialValues).forEach((fieldName) => {
+      expect(screen.getByText(`${fieldName} value hidden`)).toBeTruthy();
+      expect(screen.getByRole('button', { name: `Show ${fieldName}` })).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    Object.keys(credentialValues).forEach((fieldName) => {
+      const input = screen.getByTestId(`credential-${fieldName}`) as HTMLInputElement;
+      expect(input.type).toBe('password');
+      expect(input.value).toBe(credentialValues[fieldName as keyof typeof credentialValues]);
+    });
+  });
+
+  it('masks password aliases and additional secret indicators on both wizard steps', async () => {
+    const user = userEvent.setup();
+    const credentialValues = {
+      PWD: 'password-alias-value',
+      PASSWD: 'passwd-alias-value',
+      DB_PWD: 'database-password-value',
+      passwords: 'password-collection-value',
+      secrets: 'secret-collection-value',
+      tokens: 'token-collection-value',
+      SSH_KEY: 'ssh-key-value',
+      SAS: 'shared-access-signature-value',
+      PASSCODE: 'passcode-value',
+      AUTHORIZATION: 'authorization-value',
+    };
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: Object.keys(credentialValues).map((fieldName) => ({
+              name: fieldName,
+              label: fieldName,
+              required: true,
+              type: 'string',
+            })),
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: credentialValues,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    Object.entries(credentialValues).forEach(([fieldName, value]) => {
+      expect(screen.queryByText(value)).toBeNull();
+      expect(screen.getByText(`${fieldName} value hidden`)).toBeTruthy();
+      expect(screen.getByRole('button', { name: `Show ${fieldName}` })).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    Object.entries(credentialValues).forEach(([fieldName, value]) => {
+      const input = screen.getByTestId(`credential-${fieldName}`) as HTMLInputElement;
+      expect(input.type).toBe('password');
+      expect(input.value).toBe(value);
+    });
+  });
+
+  it('masks connection URI and URL fields on both wizard steps', async () => {
+    const user = userEvent.setup();
+    const credentialValues = {
+      URI: 'postgresql://alice:example-password@db.example:5432/app',
+      url: 'postgresql://bob:example-password@db.example:5432/app',
+      DATABASEURL: 'postgresql://erin:example-password@db.example:5432/app',
+      CONNECTION_STRING: 'postgresql://db.example/app?user=carol&password=example-password',
+      DSN: 'host=db.example user=dave password=example-password',
+    };
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              { name: 'URI', label: 'URI', required: true, type: 'string' },
+              { name: 'url', label: 'Connection URL', required: true, type: 'string' },
+              { name: 'DATABASEURL', label: 'Endpoint', required: true, type: 'string' },
+              {
+                name: 'CONNECTION_STRING',
+                label: 'Connection string',
+                required: true,
+                type: 'string',
+              },
+              { name: 'DSN', label: 'Data source name', required: true, type: 'string' },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          name: 'existing-connection',
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: {
+            secret: 'existing-connection',
+            properties: credentialValues,
+          },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+    Object.values(credentialValues).forEach((value) => {
+      expect(screen.queryByText(value)).toBeNull();
+    });
+    ['URI', 'Connection URL', 'Endpoint', 'Connection string', 'Data source name'].forEach(
+      (label) => {
+        expect(screen.getByText(`${label} value hidden`)).toBeTruthy();
+      },
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Show URI' }));
+    await user.click(screen.getByRole('button', { name: 'Show Connection URL' }));
+    await user.click(screen.getByRole('button', { name: 'Show Endpoint' }));
+    await user.click(screen.getByRole('button', { name: 'Show Connection string' }));
+    await user.click(screen.getByRole('button', { name: 'Show Data source name' }));
+    Object.values(credentialValues).forEach((value) => {
+      expect(screen.getByText(value)).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    Object.entries(credentialValues).forEach(([fieldName, value]) => {
+      const input = screen.getByTestId(`credential-${fieldName}`) as HTMLInputElement;
+      expect(input).toHaveProperty('type', 'password');
+      expect(input.value).toBe(value);
+    });
   });
 
   it('should resolve the initial step after merging required credential defaults', async () => {
@@ -309,7 +777,7 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={jest.fn()}
-        initialFormData={{ data_connection_type_id: 'postgresql', name: 'warehouse' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId, name: 'warehouse' }}
       />,
     );
 
@@ -326,19 +794,89 @@ describe('CreateConnectionWizard', () => {
     const props = {
       namespace: 'test-project',
       onClose,
-      initialFormData: { data_connection_type_id: 'postgresql' },
+      initialFormData: { data_connection_type_id: postgresqlConnectionTypeId },
     };
     const { rerender } = render(<CreateConnectionWizard {...props} isOpen />);
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     await user.type(screen.getByTestId('connection-name-input'), 'temporary-name');
     await user.click(screen.getByRole('button', { name: 'Close wizard' }));
+    await user.click(screen.getByTestId('discard-connection-changes-button'));
 
     rerender(<CreateConnectionWizard {...props} isOpen={false} />);
     rerender(<CreateConnectionWizard {...props} isOpen />);
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe('');
+  });
+
+  it('tracks cancellation from the close button', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{
+          data_connection_type_id: postgresqlConnectionTypeId,
+          properties: { region: 'east' },
+        }}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Close wizard' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Create Canceled',
+      properties: {
+        cancelMethod: 'close_x',
+        abandonStep: 'connection_details',
+        project: 'test-project',
+        connectionTypeProvider: 'postgresql',
+      },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Connection Created',
+      properties: {
+        outcome: 'cancel',
+        connectionTypeProvider: 'postgresql',
+        hasTags: true,
+        tagCount: 1,
+        project: 'test-project',
+      },
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks cancellation from the step the user abandons', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Close wizard' }));
+    await user.click(screen.getByTestId('discard-connection-changes-button'));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Create Canceled',
+      properties: {
+        cancelMethod: 'close_x',
+        abandonStep: 'configuration',
+        project: 'test-project',
+        connectionTypeProvider: 'postgresql',
+      },
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('should apply the latest initial data on open without overwriting session edits', async () => {
@@ -353,7 +891,7 @@ describe('CreateConnectionWizard', () => {
         isOpen={false}
         namespace="test-project"
         onClose={onClose}
-        initialFormData={{ data_connection_type_id: 'postgresql' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
       />,
     );
     rerender(
@@ -361,11 +899,11 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={onClose}
-        initialFormData={{ data_connection_type_id: 'postgresql' }}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     await user.type(screen.getByTestId('connection-name-input'), 'session-edit');
 
     rerender(
@@ -373,7 +911,7 @@ describe('CreateConnectionWizard', () => {
         isOpen
         namespace="test-project"
         onClose={onClose}
-        initialFormData={{ data_connection_type_id: 'oci-v1', name: 'updated-prop' }}
+        initialFormData={{ data_connection_type_id: ociConnectionTypeId, name: 'updated-prop' }}
       />,
     );
 
@@ -390,13 +928,13 @@ describe('CreateConnectionWizard', () => {
         namespace="test-project"
         onClose={jest.fn()}
         initialFormData={{
-          data_connection_type_id: 'postgresql',
+          data_connection_type_id: postgresqlConnectionTypeId,
           properties: { region: 'east' },
         }}
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Connection details' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     expect((screen.getByTestId('connection-property-key-1') as HTMLInputElement).value).toBe(
       'region',
     );
@@ -416,6 +954,91 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByText('zone: west')).toBeTruthy();
   });
 
+  it('closes without a warning when the form has not been modified', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    await user.click(screen.getByTestId('cancel-connection-wizard-button'));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
+  });
+
+  it('does not treat asynchronously loaded credential defaults as user changes', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    mockUseConnectionTypes.mockReturnValue([
+      [
+        {
+          ...connectionTypes[0],
+          resource: {
+            ...connectionTypes[0].resource,
+            credentials_fields: [
+              {
+                name: 'URI',
+                label: 'URI',
+                required: true,
+                type: 'string',
+                default_value: 'postgres://default',
+              },
+            ],
+          },
+        },
+      ],
+      true,
+      undefined,
+    ]);
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    await user.click(screen.getByTestId('cancel-connection-wizard-button'));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
+  });
+
+  it('warns before discarding unsaved connection changes', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    render(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    await user.click(
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
+    );
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('heading', { name: 'Discard unsaved changes?' })).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByTestId('discard-connection-changes-button')).toBe(document.activeElement),
+    );
+    await user.tab();
+    expect(screen.getByTestId('cancel-connection-changes-button')).toBe(document.activeElement);
+    expect(
+      screen.getByText(
+        'Your changes on this page are not saved yet. Discard your changes and leave this page, or cancel to continue editing.',
+      ),
+    ).toBeTruthy();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByTestId('discard-connection-changes-modal')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Connection type' })).toBeTruthy();
+  });
+
   it('starts with a blank wizard after the modal is cancelled', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();
@@ -424,11 +1047,15 @@ describe('CreateConnectionWizard', () => {
     );
 
     await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Close wizard' }));
+    await user.click(screen.getByTestId('discard-connection-changes-button'));
     expect(onClose).toHaveBeenCalled();
     rerender(<CreateConnectionWizard isOpen={false} namespace="test-project" onClose={onClose} />);
     rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
@@ -436,14 +1063,45 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
   });
 
+  it('keeps the discard confirmation accessible when the wizard re-renders', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />,
+    );
+
+    await user.click(
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
+    );
+    await user.keyboard('{Escape}');
+    await waitFor(() =>
+      expect(screen.getByTestId('discard-connection-changes-button')).toBe(document.activeElement),
+    );
+
+    rerender(<CreateConnectionWizard isOpen namespace="test-project" onClose={onClose} />);
+
+    expect(screen.getByRole('dialog', { name: 'Discard unsaved changes?' })).toBeTruthy();
+    expect(screen.getByTestId('discard-connection-changes-button')).toBe(document.activeElement);
+    await user.tab();
+    expect(screen.getByTestId('cancel-connection-changes-button')).toBe(document.activeElement);
+  });
+
   it('shows verification for a flight-ready connection type', async () => {
     const user = userEvent.setup();
     render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
 
     await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
@@ -453,7 +1111,7 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByTestId('verify-connection-button')).toBeTruthy();
     await user.click(screen.getByTestId('verify-connection-button'));
     expect(mockTestCredentials).toHaveBeenCalled();
-    expect(await screen.findByText('Connection successful')).toBeTruthy();
+    expect(await screen.findByText('Connection verified')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Next' }));
 
@@ -467,7 +1125,7 @@ describe('CreateConnectionWizard', () => {
     render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
 
     await user.click(
-      within(screen.getByTestId('oci-v1--ConnectionTypeCard')).getByRole('radio', {
+      within(screen.getByTestId(`${ociConnectionTypeId}--ConnectionTypeCard`)).getByRole('radio', {
         hidden: true,
       }),
     );
@@ -491,9 +1149,12 @@ describe('CreateConnectionWizard', () => {
     );
 
     await user.click(
-      within(screen.getByTestId('postgresql--ConnectionTypeCard')).getByRole('radio', {
-        hidden: true,
-      }),
+      within(screen.getByTestId(`${postgresqlConnectionTypeId}--ConnectionTypeCard`)).getByRole(
+        'radio',
+        {
+          hidden: true,
+        },
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.type(screen.getByTestId('connection-name-input'), 'warehouse');

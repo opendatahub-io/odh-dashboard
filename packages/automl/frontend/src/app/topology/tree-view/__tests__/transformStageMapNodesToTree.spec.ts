@@ -374,7 +374,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
 
-  it('labels collapsed spine with winner badge when winnerResolved but no branch matches', () => {
+  it('does not label the collapsed spine as winner when no branch matches', () => {
     const topologyNodes = buildStageMapTopology(makeStageMap([training]));
     const { nodes } = transformStageMapNodesToTree(topologyNodes, {
       modelsExpanded: false,
@@ -386,7 +386,7 @@ describe('transformStageMapNodesToTree', () => {
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
     expect(modelNodes[0].data.label).toBe('Model 1');
-    expect(modelNodes[0].data.labelSubtitle).toBe('winner');
+    expect(modelNodes[0].data.labelSubtitle).toBeUndefined();
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
 
@@ -428,6 +428,12 @@ describe('transformStageMapNodesToTree', () => {
     const firstBranchNodes = nodes.filter(
       (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
     );
+    expect(
+      firstBranchNodes
+        .filter((node) => node.id.endsWith('__branch-0'))
+        .map((node) => node.data.label),
+    ).toEqual(['Engineer features', 'Train model', 'Stack predictions', 'Evaluate results']);
+    expect(firstBranchNodes.every((node) => node.data.hideLabel)).toBe(true);
     const firstBranchXValues = firstBranchNodes
       .map((node) => node.x)
       .filter((x): x is number => x !== undefined);
@@ -470,6 +476,40 @@ describe('transformStageMapNodesToTree', () => {
     expect(winner?.data.hideLabel).toBe(true);
     expect(winner?.data.labelSubtitle).toBe('winner');
     expect(modelNodes.filter((node) => node.data.showWinnerStar).length).toBe(1);
+  });
+
+  it('does not annotate ambiguous display-name matches as winners', () => {
+    const stageMap = makeStageMap([
+      makeComponent('training', [
+        makeStage('load_data', { status: 'completed' }),
+        makeStage('model_selection', {
+          status: 'started',
+          selected_models: ['model_a', 'model_b'],
+        }),
+      ]),
+    ]);
+    const topologyNodes = buildStageMapTopology(
+      stageMap,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        model_a: { name: 'Shared Model' },
+        model_b: { name: 'Shared Model' },
+      },
+    );
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: true,
+      winnerModelLabel: 'Shared Model',
+      winnerModelKey: 'missing-model',
+    });
+
+    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    expect(modelNodes).toHaveLength(2);
+    expect(modelNodes.some((node) => node.data.labelSubtitle === 'winner')).toBe(false);
+    expect(modelNodes.some((node) => node.data.showWinnerStar)).toBe(false);
   });
 
   it('should mark later pending stages unreached after an earlier failure', () => {

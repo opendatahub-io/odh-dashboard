@@ -24,12 +24,66 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-tab-workloads');
   }
 
+  findAdmissionsTab() {
+    return cy.findByTestId('workload-overview-tab-admissions');
+  }
+
+  findAdmissionTimeWindow() {
+    return cy.findByTestId('admission-time-window');
+  }
+
+  selectAdmissionTimeWindow(timeWindow: '1h' | '24h' | '7d' | '30d') {
+    this.findAdmissionTimeWindow().click();
+    cy.findByTestId(timeWindow).click();
+    return this;
+  }
+
+  findAdmissionMetricCharts() {
+    return cy.findByTestId('admission-metric-charts');
+  }
+
+  findAdmissionMetricValue(metricId: string) {
+    return cy.findByTestId(`admission-metric-value-${metricId}`);
+  }
+
+  findAdmissionRateMetric() {
+    return this.findAdmissionMetricValue('admission-rate');
+  }
+
+  findAdmissionLeadTimeMetric() {
+    return this.findAdmissionMetricValue('admission-lead-time');
+  }
+
+  findWaitingWorkloadsMetric() {
+    return this.findAdmissionMetricValue('waiting-workloads');
+  }
+
+  findActiveWorkloadsMetric() {
+    return this.findAdmissionMetricValue('active-workloads');
+  }
+
+  findAdmissionMetricChartLoading(metricId: string) {
+    return cy.findByTestId(`admission-metric-chart-loading-${metricId}`);
+  }
+
+  findAdmissionMetricValueLoading(metricId: string) {
+    return cy.findByTestId(`admission-metric-value-loading-${metricId}`);
+  }
+
+  findAdmissionMetricsError() {
+    return cy.findByTestId('admission-metrics-error');
+  }
+
   findWorkloadsSection() {
     return cy.findByTestId('infrastructure-workloads');
   }
 
   findWorkloadsCard() {
     return cy.findByTestId('infrastructure-workloads-card');
+  }
+
+  findWorkloadsTable() {
+    return cy.findByTestId('infrastructure-workloads-table');
   }
 
   scrollToWorkloadsCard() {
@@ -57,8 +111,22 @@ class InfrastructurePage {
     return cy.findByTestId(`infrastructure-workload-row-${name}`, options);
   }
 
+  findWorkloadQueuePosition(name: string, options?: Cypress.Timeoutable) {
+    return cy.findByTestId(`infrastructure-workload-queue-position-${name}`, options);
+  }
+
+  findWorkloadPriorityClass(name: string, options?: Cypress.Timeoutable) {
+    return cy.findByTestId(`infrastructure-workload-priority-class-${name}`, options);
+  }
+
   findWorkloadsStatusFilter() {
     return cy.findByTestId('infrastructure-workloads-status-filter');
+  }
+
+  selectWorkloadsFilterType(filterType: string) {
+    cy.findByTestId('infrastructure-workloads-filter-type').click();
+    cy.findByTestId(`infrastructure-workloads-filter-option-${filterType}`).click();
+    return this;
   }
 
   findWorkloadsStatusOption(status: string) {
@@ -113,6 +181,18 @@ class InfrastructurePage {
     return cy.findByTestId('notebook-status-modal');
   }
 
+  findWorkbenchStatusResourcesTab() {
+    return this.findWorkbenchStatusModal().findByTestId('expand-resources');
+  }
+
+  findWorkbenchStatusClusterQueueSection() {
+    return this.findWorkbenchStatusModal().findByTestId('cluster-queue-section');
+  }
+
+  findWorkbenchStatusQueueValue() {
+    return this.findWorkbenchStatusModal().findByTestId('queue-value');
+  }
+
   findTrainingJobStatusModal() {
     return cy.findByTestId('training-job-status-modal');
   }
@@ -141,6 +221,11 @@ class InfrastructurePage {
 
   switchToQuotaUsageTab() {
     this.findQuotaUsageTab().click();
+    return this;
+  }
+
+  switchToWorkloadsTab() {
+    this.findWorkloadsTab().click();
     return this;
   }
 

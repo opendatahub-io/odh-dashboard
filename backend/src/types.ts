@@ -58,10 +58,12 @@ export type DashboardConfig = K8sResourceCommon & {
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
+      inferencePriorityField: boolean;
       mlflow: boolean;
       workbenchesV2: boolean;
       mcpCatalog: boolean;
       mcpRegistry: boolean;
+      skillRegistry: boolean;
       genAiMcpRegistryServers: boolean;
       agentOps: boolean;
       agentsCatalog: boolean;
@@ -74,13 +76,16 @@ export type DashboardConfig = K8sResourceCommon & {
       externalVectorStores: boolean;
       agentConfigManagement: boolean;
       genAiAgentDeployment: boolean;
+      genAiImageUpload: boolean;
+      genAiAudioUpload: boolean;
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
+      hardwareProfileDRA: boolean;
       gpuaas: boolean;
       modelCapabilities: boolean;
-      runtimeCatalog: boolean;
+      grid: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
     };
@@ -1045,8 +1050,20 @@ export type DataScienceClusterKindStatus = {
   };
 };
 
+export type DataScienceClusterComponentSpec = {
+  managementState?: ManagementState;
+};
+
+export type DataScienceClusterKindSpec = {
+  components?: {
+    feastoperator?: DataScienceClusterComponentSpec & {
+      dataRegistry?: DataScienceClusterComponentSpec;
+    };
+  };
+};
+
 export type DataScienceClusterKind = K8sResourceCommon & {
-  spec: unknown; // we should never need to look into this
+  spec: DataScienceClusterKindSpec;
   status: DataScienceClusterKindStatus;
 };
 

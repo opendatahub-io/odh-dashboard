@@ -45,12 +45,12 @@ describe('inferSourceMode', () => {
     });
   });
 
-  it('should return agent/external when model has url but no matching service', () => {
+  it('should return model/external when model has url but no matching service', () => {
     const job = mockEvaluationJob({ modelName: 'external-agent' });
     job.model.url = 'https://agent.example.com/v1';
 
     expect(inferSourceMode(job, [])).toEqual({
-      sourceMode: 'agent',
+      sourceMode: 'model',
       modelSelection: 'external',
     });
   });
@@ -188,14 +188,25 @@ describe('extractReconfigureData', () => {
     expect(result.queue).toBe('gpu-default');
   });
 
-  it('should preserve the legacy queue when hardware_config is absent', () => {
+  it('should return an undefined queue when hardware_config is absent', () => {
     const job = mockEvaluationJob();
-    job.status.queue = 'legacy-queue';
 
     const result = extractReconfigureData(job, []);
 
     expect(result.hardwareProfile).toBeUndefined();
-    expect(result.queue).toBe('legacy-queue');
+    expect(result.queue).toBeUndefined();
+  });
+
+  it('should ignore removed legacy queue fields on status and resource', () => {
+    const job = mockEvaluationJob();
+    // The queue fields were removed from the API contract; simulate a legacy
+    // payload that still carries them to guard against fallback reintroduction.
+    Object.assign(job.status, { queue: 'legacy-status-queue' });
+    Object.assign(job.resource, { queue: 'legacy-resource-queue' });
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.queue).toBeUndefined();
   });
 
   it('should preserve raw metric thresholds when reconfiguring a benchmark', () => {

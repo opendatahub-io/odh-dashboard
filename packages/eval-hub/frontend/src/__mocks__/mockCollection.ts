@@ -8,6 +8,7 @@ export {
 
 type MockCollectionOptions = Partial<{
   id: string;
+  tenant: string;
   name: string;
   category: string;
   // Collection-level classifications rendered as domain chips on suite cards.
@@ -17,19 +18,23 @@ type MockCollectionOptions = Partial<{
   benchmarkIds: string[];
   // Mock-only values mapped to each benchmark's primary_score.metric field.
   benchmarkMetrics: string[];
+  // Adds judge_model to the first benchmark's parameters, matching collections
+  // the EvalHub API flags as requiring a judge model.
+  judgeModel: boolean;
   threshold: number;
 }>;
 
 export const mockCollection = (options: MockCollectionOptions = {}): Collection => ({
   resource: {
     id: options.id ?? 'collection-001',
+    tenant: options.tenant,
     created_at: '2026-02-01T12:00:00Z',
     updated_at: '2026-02-01T12:00:00Z',
   },
   name: options.name ?? 'Safety Suite',
   category: options.category ?? 'Safety',
   domains: options.domains,
-  description: options.description ?? 'A comprehensive safety benchmark suite.',
+  description: options.description ?? 'A comprehensive safety collection.',
   tags: options.tags ?? ['safety', 'llm'],
   pass_criteria: options.threshold != null ? { threshold: options.threshold } : undefined,
   benchmarks: (options.benchmarkIds ?? ['harmful_request_refusal', 'toxigen']).map((id, index) => ({
@@ -38,6 +43,7 @@ export const mockCollection = (options: MockCollectionOptions = {}): Collection 
     primary_score: options.benchmarkMetrics?.[index]
       ? { metric: options.benchmarkMetrics[index], lower_is_better: false }
       : undefined,
+    parameters: options.judgeModel && index === 0 ? { judge_model: '' } : undefined,
   })),
 });
 

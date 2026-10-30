@@ -9,7 +9,8 @@ export type MaaSSubscription = {
   conditionType?: string;
   lastTransitionTime?: string;
   reason?: string;
-  priority?: number;
+  inferencePriority?: number;
+  resourceVersion?: string;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
@@ -24,6 +25,11 @@ export type ModelSubscriptionRef = {
   description?: string;
   tokenRateLimits: TokenRateLimit[];
   billingRate?: BillingRate;
+  objectiveName?: string;
+  targetPool?: string;
+  ready?: boolean;
+  reason?: string;
+  message?: string;
 };
 
 export type BillingRate = {
@@ -91,7 +97,7 @@ export type CreateSubscriptionRequest = {
   description?: string;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
-  priority: number;
+  inferencePriority?: number;
   createAuthPolicy: boolean;
 };
 
@@ -101,7 +107,8 @@ export type UpdateSubscriptionRequest = {
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
-  priority: number;
+  inferencePriority?: number;
+  resourceVersion?: string;
 };
 
 export type CreateSubscriptionResponse = {
@@ -150,6 +157,7 @@ export type BillingRateInfo = {
 
 export type ModelRefInfo = {
   name: string;
+  model_name?: string;
   display_name?: string;
   source?: string;
   description?: string;
@@ -162,12 +170,16 @@ export type UserSubscription = {
   subscription_id_header: string;
   subscription_description: string;
   display_name?: string;
-  priority: number;
+  priority?: number;
+  /** @deprecated Legacy fixture compatibility; new BFF responses use priority. */
+  inference_priority?: number;
   key_count?: number;
   model_refs: ModelRefInfo[];
   organization_id?: string;
   cost_center?: string;
   labels?: Record<string, string>;
+  /** Owner group references from the maas-api passthrough; populated for admins. */
+  owner?: OwnerSpec;
 };
 
 export type RateLimit = {

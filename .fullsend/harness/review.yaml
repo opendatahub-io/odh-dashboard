@@ -1,4 +1,4 @@
-base: https://raw.githubusercontent.com/fullsend-ai/agents/ce2eedd097dcccf17e29f4a7cd337ec4d95d7194/harness/review.yaml#sha256=3e9302d8143fcfd93df8e4542162776e98893c8ef367450679e2ffa89e5b0c53
+base: https://raw.githubusercontent.com/fullsend-ai/agents/2da538b8b62ad6d7b91c43d8cf139f4738cfbf51/harness/review.yaml#sha256=083fb43c4c1c5c75282410c4b8381f391eb760eb37b8bf49112a036b02269f4b
 
 agent: agents/review.md
 
@@ -8,9 +8,9 @@ agent: agents/review.md
 # in the review writes inside it.
 readonly_repo: true
 
-# Pin the multi-architecture Fullsend sandbox image (v0.45.0) that carries
-# Pi 0.99.2, the first Pi release whose model catalog has GPT-6.1 Sol.
-image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:dec698251c58eabcb0c0d6d08ab9ca4415929991cc1deec5d3f3a94de5db6cca
+# Pin the multi-architecture Fullsend sandbox image (v0.48.1, Pi 1.3.0). It
+# moves with the reusable workflow pin in .github/workflows/fullsend.yaml.
+image: ghcr.io/fullsend-ai/fullsend-sandbox@sha256:7304e1f635eeebf1a3ebf60bfc9ac20a8db6f01b646d0ebb0ad4d53c2d7c30aa
 
 # The `openai` provider comes from the base, which now declares it.
 
@@ -20,21 +20,22 @@ skills:
   # packaged as nested sub-agent definitions inside this skill, rather than
   # imported as peer skills into the agent's global skill namespace.
   - skills/pr-review
-  # The base lists skills/issue-labels/github and skills/pr-review/github under
-  # forge.github.skills. Fullsend keys skills on the directory basename, so the
-  # second `github` replaces the first and the base's issue-labels skill never
-  # loads. This copy of it has a basename of its own.
-  - skills/issue-labels
+  # issue-labels comes from the base (forge.github.skills). Fullsend v0.48
+  # keys skills on their declared SKILL.md name, so the base's
+  # skills/issue-labels/github and skills/pr-review/github both load.
 
+# The runner owns /sandbox/workspace/.fullsend (output schema, iteration
+# state) and refuses host_files under it, so the registry and the host's
+# adapter output land in a directory of their own.
 host_files:
   - src: dimensions.json
-    dest: /sandbox/workspace/.fullsend/dimensions.json
+    dest: /sandbox/workspace/odh-review/dimensions.json
   # product-ask-review reads its trusted snapshot by path (registry context_file).
   - src: .run/jira.json
-    dest: /sandbox/workspace/.fullsend/.run/jira.json
+    dest: /sandbox/workspace/odh-review/jira.json
     optional: true
   - src: .run/collected.json
-    dest: /sandbox/workspace/.fullsend/.run/collected.json
+    dest: /sandbox/workspace/odh-review/collected.json
     optional: true
 
 model: sonnet
@@ -55,10 +56,20 @@ env:
   # That flag is also what makes pre-review.sh unshallow target-repo, so the
   # depth is requested explicitly: the stock correctness reviewer runs
   # `git log` on modified test files and needs the base branch history.
+  #
+  # The host-adapter credentials come from FULLSEND_GITHUB_RUNNER_SECRETS,
+  # which the shim composes (ADR 0136). env.runner reaches every host-side
+  # script; pre-review.sh unsets these names before it starts any child and
+  # passes each adapter only the names its registry row declares. They must
+  # stay out of env.sandbox, host_files and validation_loop, which the runner
+  # enforces.
   runner:
     REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
     REVIEW_RISK_ASSESSMENT_ENABLED: "false"
     REVIEW_GIT_FETCH_DEPTH: "0"
+    CODERABBIT_API_KEY: "${CODERABBIT_API_KEY}"
+    JIRA_USERNAME: "${JIRA_USERNAME}"
+    JIRA_API_TOKEN: "${JIRA_API_TOKEN}"
   sandbox:
     REVIEW_FINDING_SEVERITY_THRESHOLD: "low"
     REVIEW_RISK_ASSESSMENT_ENABLED: "false"

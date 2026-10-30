@@ -13,11 +13,19 @@ export type AreaContextState = {
    */
   dscStatus: DataScienceClusterKindStatus | null;
   dsciStatus: DataScienceClusterInitializationKindStatus | null;
+  aiHubInstancesNamespace?: string;
+  /**
+   * An AIHub read failure is kept separate from the global DSC state so that
+   * only consumers that require the model registry namespace are blocked.
+   */
+  aiHubError?: Error;
   areasStatus: Record<SupportedAreaType, IsAreaAvailableStatus | undefined>;
 };
 
 export const AreaContext = React.createContext<AreaContextState>({
   dscStatus: null,
   dsciStatus: null,
+  aiHubInstancesNamespace: undefined,
+  aiHubError: undefined,
   areasStatus: {},
 });

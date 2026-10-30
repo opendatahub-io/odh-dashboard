@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
-import { useSettings } from 'mod-arch-core';
+import { getMaaSWhoAmI, getMaaSWhoAmIDisplayName } from '@odh-dashboard/maas/api/whoami';
 
 import { PORTAL_BASE_PATH } from '../portalPaths';
 
@@ -19,11 +19,8 @@ export const portalLogout = (redirect = navigateTo): void => {
   redirect(PORTAL_SIGN_OUT_PATH);
 };
 
-const UserDropdown: React.FC = () => {
+const UserDropdownMenu: React.FC<{ displayName: string }> = ({ displayName }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { userSettings } = useSettings();
-
-  const displayName = userSettings?.userId ?? 'User';
 
   return (
     <Dropdown
@@ -49,5 +46,28 @@ const UserDropdown: React.FC = () => {
     </Dropdown>
   );
 };
+
+const WhoAmIUserDropdown: React.FC = () => {
+  const [displayName, setDisplayName] = React.useState('User');
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void getMaaSWhoAmI()({})
+      .then((whoAmI) => {
+        if (!cancelled) {
+          setDisplayName(getMaaSWhoAmIDisplayName(whoAmI));
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return <UserDropdownMenu displayName={displayName} />;
+};
+
+const UserDropdown: React.FC = () => <WhoAmIUserDropdown />;
 
 export default UserDropdown;

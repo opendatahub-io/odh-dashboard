@@ -1,0 +1,335 @@
+import * as React from 'react';
+import {
+  Alert,
+  Bullseye,
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
+  Label,
+  Pagination,
+  PaginationVariant,
+  SearchInput,
+  Spinner,
+  Title,
+  Toolbar,
+  ToolbarContent,
+  ToolbarGroup,
+  ToolbarItem,
+  ToolbarToggleGroup,
+} from '@patternfly/react-core';
+import { FilterIcon } from '@patternfly/react-icons';
+import { Table, Thead, Tbody, Tr, Th, Td, ThProps } from '@patternfly/react-table';
+import SimpleSelect, {
+  type SimpleSelectOption,
+} from '@odh-dashboard/ui-core/components/SimpleSelect';
+import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import useSecurityArtifacts from './hooks/useSecurityArtifacts';
+import {
+  DEFAULT_TABLE_PER_PAGE,
+  TABLE_PER_PAGE_OPTIONS,
+  getCategoryColor,
+  capitalizeFirst,
+  toTitleCase,
+} from './utils';
+import { SECURITY_INSIGHTS_EVENTS } from './tracking';
+import SecurityInsightsEmptyState from './SecurityInsightsEmptyState';
+import { type SecurityInsightsViewProps } from './securityInsightsTypes';
+import {
+  type FilterOption,
+  type SortConfig,
+  FILTER_LABELS,
+  FILTER_PLACEHOLDERS,
+  COLUMN_NAMES,
+  getFilterValue,
+  getSortableValue,
+} from './securityInsightsConst';
+
+const SECURITY_ARTIFACTS_PAGE_SIZE = 100;
+
+const FILTER_TYPE_OPTIONS: SimpleSelectOption[] = (
+  ['evaluation', 'category', 'benchmark'] as const
+).map((key) => ({ key, label: FILTER_LABELS[key] }));
+
+const SecurityInsightsView: React.FC<SecurityInsightsViewProps> = ({
+  sourceId,
+  modelName,
+  namespace,
+}) => {
+  const { insights, loaded, loadError } = useSecurityArtifacts(
+    sourceId,
+    modelName,
+    namespace,
+    SECURITY_ARTIFACTS_PAGE_SIZE,
+  );
+
+  const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
+
+  const [activeFilter, setActiveFilter] = React.useState<FilterOption>('evaluation');
+  const [filterValue, setFilterValue] = React.useState('');
+  const [sortConfig, setSortConfig] = React.useState<SortConfig>({ index: 1, direction: 'asc' });
+  const [page, setPage] = React.useState(1);
+  const viewTrackedRef = React.useRef(false);
+  const filteredRef = React.useRef<typeof insights>([]);
+
+  const filtered = React.useMemo(() => {
+    const result = !filterValue
+      ? insights
+      : insights.filter((insight) =>
+          getFilterValue(insight, activeFilter).includes(filterValue.toLowerCase()),
+        );
+    filteredRef.current = result;
+    return result;
+  }, [insights, filterValue, activeFilter]);
+
+  const sorted = React.useMemo(() => {
+    const asc = filtered.toSorted((a, b) =>
+      getSortableValue(a, sortConfig.index).localeCompare(getSortableValue(b, sortConfig.index)),
+    );
+    return sortConfig.direction === 'desc' ? asc.toReversed() : asc;
+  }, [filtered, sortConfig]);
+
+  const paginated = React.useMemo(
+    () => sorted.slice(perPage * (page - 1), perPage * page),
+    [sorted, page, perPage],
+  );
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [filterValue, activeFilter]);
+
+  React.useEffect(() => {
+    if (loaded && !viewTrackedRef.current) {
+      viewTrackedRef.current = true;
+      fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.VIEWED, {
+        sourceId,
+        modelName,
+        insightCount: insights.length,
+      });
+    }
+  }, [loaded, sourceId, modelName, insights.length]);
+
+  React.useEffect(() => {
+    if (!filterValue) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      const currentFiltered = filteredRef.current;
+      fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.FILTER_APPLIED, {
+        filterType: activeFilter,
+        hasResults: currentFiltered.length > 0,
+        resultCount: currentFiltered.length,
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filterValue, activeFilter]);
+
+  const getSortParams = (columnIndex: number): ThProps['sort'] => ({
+    sortBy: { index: sortConfig.index, direction: sortConfig.direction },
+    onSort: (_event, index, direction) => {
+      setSortConfig({ index, direction });
+      fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.SORT_CHANGED, {
+        column: COLUMN_NAMES[index] ?? String(index),
+        direction,
+      });
+    },
+    columnIndex,
+  });
+
+  const handleClearFilters = React.useCallback(() => setFilterValue(''), []);
+
+  const handleFilterSelect = React.useCallback(
+    (key: string) => {
+      if (key === 'evaluation' || key === 'category' || key === 'benchmark') {
+        if (key !== activeFilter) {
+          fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.FILTER_TYPE_CHANGED, {
+            previousFilterType: activeFilter,
+            newFilterType: key,
+          });
+        }
+        setActiveFilter(key);
+      }
+      setFilterValue('');
+    },
+    [activeFilter],
+  );
+
+  if (loadError) {
+    return (
+      <Alert variant="danger" isInline title="Error loading security insights">
+        {loadError.message}
+      </Alert>
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  if (insights.length === 0) {
+    return <SecurityInsightsEmptyState />;
+  }
+
+  return (
+    <Flex
+      direction={{ default: 'column' }}
+      gap={{ default: 'gapLg' }}
+      data-testid="security-insights-view"
+    >
+      <FlexItem>
+        <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+          <FlexItem>
+            <Title headingLevel="h2" size="lg">
+              Safety and security insights
+            </Title>
+          </FlexItem>
+          <FlexItem>
+            <Content component={ContentVariants.p}>
+              Compare safety and security evaluation scores across benchmarks to determine if this
+              model is suitable for your use case.
+            </Content>
+          </FlexItem>
+        </Flex>
+      </FlexItem>
+
+      <FlexItem>
+        <Toolbar clearAllFilters={handleClearFilters} data-testid="security-insights-toolbar">
+          <ToolbarContent>
+            <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
+              <ToolbarGroup variant="filter-group">
+                <ToolbarItem>
+                  <SimpleSelect
+                    options={FILTER_TYPE_OPTIONS}
+                    value={activeFilter}
+                    onChange={handleFilterSelect}
+                    icon={<FilterIcon />}
+                    dataTestId="security-filter-type-toggle"
+                    ariaLabel="Filter type"
+                  />
+                </ToolbarItem>
+                <ToolbarItem>
+                  <SearchInput
+                    aria-label={FILTER_PLACEHOLDERS[activeFilter]}
+                    placeholder={FILTER_PLACEHOLDERS[activeFilter]}
+                    value={filterValue}
+                    onChange={(_event, value) => setFilterValue(value)}
+                    onClear={() => setFilterValue('')}
+                    data-testid="security-filter-text-field"
+                  />
+                </ToolbarItem>
+              </ToolbarGroup>
+            </ToolbarToggleGroup>
+            <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
+              <Pagination
+                itemCount={filtered.length}
+                perPage={perPage}
+                page={page}
+                onSetPage={(_event, newPage) => {
+                  setPage(newPage);
+                  fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
+                    page: newPage,
+                    perPage,
+                    totalItems: filtered.length,
+                  });
+                }}
+                onPerPageSelect={(_event, newPerPage, newPage) => {
+                  setPerPage(newPerPage);
+                  setPage(newPage);
+                  fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
+                    page: newPage,
+                    perPage: newPerPage,
+                    totalItems: filtered.length,
+                  });
+                }}
+                perPageOptions={TABLE_PER_PAGE_OPTIONS}
+                data-testid="security-insights-pagination-top"
+              />
+            </ToolbarItem>
+          </ToolbarContent>
+        </Toolbar>
+
+        <Table aria-label="Safety and security insights" data-testid="security-insights-table">
+          <Thead>
+            <Tr>
+              <Th sort={getSortParams(0)} modifier="nowrap">
+                Evaluation Name
+              </Th>
+              <Th sort={getSortParams(1)} modifier="nowrap">
+                Category
+              </Th>
+              <Th sort={getSortParams(2)}>Benchmark</Th>
+              <Th
+                sort={getSortParams(3)}
+                modifier="nowrap"
+                info={{
+                  popover:
+                    'The normalized, weighted value of the benchmarks’ primary metric, such as accuracy, speed, or resource efficiency.',
+                }}
+              >
+                Evaluation Score
+              </Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {paginated.map((insight) => (
+              <Tr
+                key={`${insight.benchmarkName}-${insight.evaluation}`}
+                data-testid="security-insight-row"
+              >
+                <Td dataLabel="Evaluation Name">{toTitleCase(insight.evaluation)}</Td>
+                <Td dataLabel="Category">
+                  {insight.category && (
+                    <Label color={getCategoryColor(insight.category)}>
+                      {capitalizeFirst(insight.category)}
+                    </Label>
+                  )}
+                </Td>
+                <Td dataLabel="Benchmark">
+                  <TableRowTitleDescription
+                    title={toTitleCase(insight.benchmarkName)}
+                    description={insight.benchmarkDescription}
+                    truncateDescriptionLines={2}
+                  />
+                </Td>
+                <Td dataLabel="Evaluation Score">{insight.result}</Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+
+        <Pagination
+          itemCount={filtered.length}
+          perPage={perPage}
+          page={page}
+          variant={PaginationVariant.bottom}
+          onSetPage={(_event, newPage) => {
+            setPage(newPage);
+            fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
+              page: newPage,
+              perPage,
+              totalItems: filtered.length,
+            });
+          }}
+          onPerPageSelect={(_event, newPerPage, newPage) => {
+            setPerPage(newPerPage);
+            setPage(newPage);
+            fireMiscTrackingEvent(SECURITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
+              page: newPage,
+              perPage: newPerPage,
+              totalItems: filtered.length,
+            });
+          }}
+          perPageOptions={TABLE_PER_PAGE_OPTIONS}
+          data-testid="security-insights-pagination-bottom"
+        />
+      </FlexItem>
+    </Flex>
+  );
+};
+
+export default SecurityInsightsView;

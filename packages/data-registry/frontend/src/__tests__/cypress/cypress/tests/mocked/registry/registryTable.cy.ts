@@ -159,6 +159,7 @@ describe('Registry Table', () => {
     cy.findByTestId('no-projects-empty-state').should('exist');
     cy.findByRole('img', { name: 'No projects' }).should('be.visible');
     cy.findByRole('heading', { name: 'No projects' }).should('exist');
+    cy.contains('To create and use data assets, first create a project.').should('exist');
     cy.findByRole('button', { name: 'Create project' }).should('exist');
   });
 
@@ -300,10 +301,10 @@ describe('Registry Table', () => {
     cy.findByTestId('registry-kebab').click();
     cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('create-collection-button').click();
-    cy.findByTestId('create-collection-modal').should('exist');
-    cy.findByTestId('collection-name-input').type('new-collection');
-    cy.findByTestId('collection-description-input').type('A new test collection');
-    cy.findByTestId('create-collection-submit').click();
+    cy.findByTestId('create-collection-row').should('exist');
+    cy.findByTestId('new-collection-name-input').type('new-collection');
+    cy.findByTestId('new-collection-description-input').type('A new test collection');
+    cy.findByTestId('confirm-create-collection').click();
     cy.wait('@createCollection').then((interception) => {
       expect(interception.request.body).to.deep.include({
         namespace: ['new-collection'],
@@ -386,10 +387,10 @@ describe('Registration collection management', () => {
 
     cy.findByRole('button', { name: 'Manage collections' }).click();
     cy.findByTestId('create-collection-button').click();
-    cy.findByTestId('collection-name-input').type('new-collection');
-    cy.findByTestId('create-collection-submit').click();
+    cy.findByTestId('new-collection-name-input').type('new-collection');
+    cy.findByTestId('confirm-create-collection').click();
     cy.wait('@createCollectionFromRegistration');
-    cy.findByTestId('create-collection-modal').should('not.exist');
+    cy.findByTestId('create-collection-row').should('not.exist');
 
     cy.findByTestId('manage-collections-close-button').click();
     cy.findByTestId('register-data-modal').should('exist');
@@ -410,7 +411,7 @@ describe('Register Volume', () => {
     cy.findByTestId('register-data-modal').should('exist');
     cy.contains('Register data').should('exist');
     cy.contains(
-      'A data asset points to the exact location within a connection where the information is located. It can also record information about the structure of the data.',
+      'A data asset is a metadata record that helps users discover and understand external data. It stores information like location, format, and schema, but not the data itself.',
     ).should('exist');
   });
 
@@ -452,6 +453,9 @@ describe('Register Volume', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-unstructured').click();
     cy.findByTestId('data-name-input').type('new-volume');
     cy.findByTestId('data-description-input').type('Test volume');
 
@@ -504,6 +508,9 @@ describe('Register Volume', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-unstructured').click();
     cy.findByTestId('data-name-input').type('existing-volume');
     cy.findByTestId('data-collection-toggle').click();
     cy.contains('analytics').click();
@@ -527,11 +534,12 @@ describe('Register Volume', () => {
     cy.findByTestId('data-name-input').should('have.value', '');
   });
 
-  it('should show asset type selector defaulting to Unstructured', () => {
+  it('should show asset type selector defaulting to Structured', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
     cy.findByTestId('asset-type-toggle').should('not.have.class', 'pf-m-disabled');
-    cy.findByTestId('asset-type-toggle').should('contain.text', 'Unstructured');
+    cy.findByTestId('asset-type-toggle').should('contain.text', 'Structured');
+    cy.findByTestId('data-format-toggle').should('contain.text', 'Other structured');
   });
 
   it('should show "Create new collection" in collection dropdown', () => {
@@ -579,6 +587,24 @@ describe('Manage Labels', () => {
     cy.findByTestId('label-row-production').should('contain.text', 'embeddings');
   });
 
+  it('should show a creation empty state when there are no labels', () => {
+    cy.intercept('GET', `${REGISTRY_API}/test-project/labels`, {
+      body: { labels: [] },
+    });
+
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('labels-empty-state').should('exist');
+    cy.contains('No labels yet').should('exist');
+    cy.findByTestId('label-filter').should('not.exist');
+    cy.findByTestId('labels-table').should('not.exist');
+
+    cy.findByTestId('create-label-button').click();
+    cy.findByTestId('create-label-row').should('exist');
+  });
+
   it('should show dash for labels with no assets', () => {
     cy.intercept('GET', `${REGISTRY_API}/test-project/labels`, {
       body: { labels: ['orphan-label'] },
@@ -601,6 +627,19 @@ describe('Manage Labels', () => {
     cy.findByTestId('label-row-claims').should('not.exist');
     cy.findByTestId('label-row-source-docs').should('not.exist');
     cy.findByTestId('label-row-embeddings').should('not.exist');
+  });
+
+  it('should show a table no-results empty state when filtering finds no labels', () => {
+    visitWithData();
+    cy.findByTestId('registry-kebab').click();
+    cy.findByTestId('manage-labels-action').click();
+
+    cy.findByTestId('label-filter').find('input').type('missing');
+    cy.findByTestId('labels-no-results-state').should('exist');
+    cy.findByTestId('label-filter').should('exist');
+    cy.findByTestId('labels-table').find('thead').should('exist');
+    cy.findByTestId('clear-label-filters').click();
+    cy.findByTestId('label-row-production').should('exist');
   });
 
   it('should show create label inline row and confirm button disabled until input', () => {
@@ -694,29 +733,28 @@ describe('Register Table', () => {
     initIntercepts();
   });
 
-  it('should switch to Structured asset type and show schema section', () => {
+  it('should show schema for Structured and hide it for Unstructured', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
-
-    cy.findByTestId('asset-type-toggle').should('contain.text', 'Unstructured');
-    cy.findByText('Schema').should('not.exist');
-
-    cy.findByTestId('asset-type-toggle').scrollIntoView();
-    cy.findByTestId('asset-type-toggle').click();
-    cy.findByTestId('asset-type-structured').click();
 
     cy.findByTestId('asset-type-toggle').should('contain.text', 'Structured');
     cy.findByText('Schema').should('exist');
-    cy.findByTestId('add-schema-column').should('exist');
-  });
-
-  it('should show structured format options after switching asset type', () => {
-    visitWithData();
-    cy.findByTestId('register-data-button').click();
 
     cy.findByTestId('asset-type-toggle').scrollIntoView();
     cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-unstructured').click();
+
+    cy.findByTestId('asset-type-toggle').should('contain.text', 'Unstructured');
+    cy.findByText('Schema').should('not.exist');
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
     cy.findByTestId('asset-type-structured').click();
+    cy.findByTestId('add-schema-column').should('exist');
+  });
+
+  it('should show structured format options for the default asset type', () => {
+    visitWithData();
+    cy.findByTestId('register-data-button').click();
 
     cy.findByTestId('data-format-toggle').click();
     cy.contains('Apache Iceberg').should('exist');
@@ -730,10 +768,6 @@ describe('Register Table', () => {
   it('should add and remove schema columns', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
-
-    cy.findByTestId('asset-type-toggle').scrollIntoView();
-    cy.findByTestId('asset-type-toggle').click();
-    cy.findByTestId('asset-type-structured').click();
 
     cy.findByTestId('add-schema-column').click();
     cy.findByTestId('schema-column-name-0').should('exist');
@@ -768,10 +802,6 @@ describe('Register Table', () => {
 
     visitWithData();
     cy.findByTestId('register-data-button').click();
-
-    cy.findByTestId('asset-type-toggle').scrollIntoView();
-    cy.findByTestId('asset-type-toggle').click();
-    cy.findByTestId('asset-type-structured').click();
 
     cy.findByTestId('data-name-input').type('test-table');
     cy.findByTestId('data-description-input').type('A test table');
@@ -818,10 +848,6 @@ describe('Register Table', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
-    cy.findByTestId('asset-type-toggle').scrollIntoView();
-    cy.findByTestId('asset-type-toggle').click();
-    cy.findByTestId('asset-type-structured').click();
-
     cy.findByTestId('add-schema-column').click();
     cy.findByTestId('schema-column-name-0').type('test-col');
 
@@ -849,10 +875,6 @@ describe('Register Table', () => {
 
     visitWithData();
     cy.findByTestId('register-data-button').click();
-
-    cy.findByTestId('asset-type-toggle').scrollIntoView();
-    cy.findByTestId('asset-type-toggle').click();
-    cy.findByTestId('asset-type-structured').click();
 
     cy.findByTestId('data-name-input').type('existing-table');
     cy.findByTestId('data-collection-toggle').click();
@@ -923,6 +945,9 @@ describe('Connection Selector', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-unstructured').click();
     cy.findByTestId('data-name-input').type('connected-volume');
 
     cy.findByTestId('data-collection-toggle').click();
@@ -965,10 +990,6 @@ describe('Connection Selector', () => {
     visitWithData();
     cy.findByTestId('register-data-button').click();
 
-    cy.findByTestId('asset-type-toggle').scrollIntoView();
-    cy.findByTestId('asset-type-toggle').click();
-    cy.findByTestId('asset-type-structured').click();
-
     cy.findByTestId('data-name-input').type('connected-table');
 
     cy.findByTestId('data-collection-toggle').click();
@@ -982,7 +1003,7 @@ describe('Connection Selector', () => {
     cy.wait('@createTableWithConnection').then((interception) => {
       expect(interception.request.body).to.deep.include({
         name: 'connected-table',
-        format: 'iceberg',
+        format: 'other',
         connection_ref: {
           type: 'secret',
           secret_name: 'my-uri-connection',
@@ -1008,6 +1029,9 @@ describe('Connection Selector', () => {
 
     visitWithData();
     cy.findByTestId('register-data-button').click();
+    cy.findByTestId('asset-type-toggle').scrollIntoView();
+    cy.findByTestId('asset-type-toggle').click();
+    cy.findByTestId('asset-type-unstructured').click();
     cy.findByTestId('data-name-input').type('test-volume');
     cy.findByTestId('data-collection-toggle').click();
     cy.contains('analytics').click();
@@ -1039,9 +1063,9 @@ describe('Create Collection', () => {
     cy.findByTestId('manage-collections-action').click();
     cy.findByTestId('create-collection-button').click();
 
-    cy.findByTestId('collection-name-input').type('new-collection');
+    cy.findByTestId('new-collection-name-input').type('new-collection');
 
-    cy.findByTestId('create-collection-submit').click();
+    cy.findByTestId('confirm-create-collection').click();
 
     cy.wait('@createCollection').then((interception) => {
       expect(interception.request.body).to.deep.include({

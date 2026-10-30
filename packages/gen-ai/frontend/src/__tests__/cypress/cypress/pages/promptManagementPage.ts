@@ -51,8 +51,12 @@ class PromptManagementModal {
     return cy.findByTestId('prompt-filter-type-toggle');
   }
 
+  findFilterTypeItem(type: 'name' | 'model'): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`prompt-filter-type-${type}`);
+  }
+
   findFilterTypeOption(type: 'name' | 'model'): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`prompt-filter-type-${type}`).findByRole('menuitem');
+    return this.findFilterTypeItem(type).findByRole('menuitem');
   }
 
   selectFilterType(type: 'name' | 'model'): void {
@@ -72,8 +76,12 @@ class PromptManagementModal {
     return cy.findByRole('button', { name: 'Clear all filters' });
   }
 
+  findModelColumnHeader(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('prompt-model-column-header');
+  }
+
   findModelColumnSortButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-model-column-header').findByRole('button');
+    return this.findModelColumnHeader().findByRole('button');
   }
 
   shouldHaveRowNames(names: string[]): void {
@@ -150,24 +158,16 @@ class PromptAssistant {
     return cy.findByTestId('system-instructions-input');
   }
 
-  findEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-edit-button');
-  }
-
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-save-to-registry-button');
-  }
-
-  findSaveAsButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-save-as-button');
   }
 
   findRevertButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('prompt-revert-button');
   }
 
-  findResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('prompt-reset-button');
+  findClearLoadedPromptButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('clear-loaded-prompt-button');
   }
 
   findNameTitle(): Cypress.Chainable<JQuery<HTMLElement>> {

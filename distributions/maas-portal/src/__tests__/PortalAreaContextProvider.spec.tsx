@@ -4,10 +4,23 @@ import { AreaContext, SupportedArea, useIsAreaAvailable } from '@odh-dashboard/p
 import PortalAreaContextProvider from '../providers/PortalAreaContextProvider';
 import PortalContextProvider from '../providers/PortalContextProvider';
 
+const mockModularArchContextProvider = jest.fn(
+  ({ children }: { children: React.ReactNode; config: { mandatoryNamespace?: string } }) => (
+    <>{children}</>
+  ),
+);
+
 jest.mock('mod-arch-core', () => ({
-  ModularArchContextProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  ModularArchContextProvider: (props: {
+    children: React.ReactNode;
+    config: { mandatoryNamespace?: string };
+  }) => mockModularArchContextProvider(props),
   useSettings: () => ({ userSettings: null }),
   DeploymentMode: { Standalone: 'Standalone' },
+}));
+
+jest.mock('@odh-dashboard/maas/api/whoami', () => ({
+  getMaaSWhoAmI: () => () => Promise.resolve({ isAdmin: false }),
 }));
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
@@ -57,6 +70,27 @@ describe('PortalAreaContextProvider', () => {
 });
 
 describe('PortalContextProvider AreaContext composition', () => {
+  beforeEach(() => {
+    mockModularArchContextProvider.mockClear();
+    window.__MAAS_CONSUMER_PORTAL_GRID__ = undefined;
+  });
+
+  afterEach(() => {
+    window.__MAAS_CONSUMER_PORTAL_GRID__ = undefined;
+  });
+
+  it.each([
+    [false, undefined],
+    [true, '__maas_grid__'],
+  ])('sets a mandatory namespace only when grid is %s', (gridEnabled, expectedNamespace) => {
+    window.__MAAS_CONSUMER_PORTAL_GRID__ = gridEnabled;
+    renderHook(() => React.useContext(AreaContext), { wrapper: portalWrapper });
+
+    expect(mockModularArchContextProvider.mock.calls[0][0].config.mandatoryNamespace).toBe(
+      expectedNamespace,
+    );
+  });
+
   it('should expose AreaContext through the production provider tree', () => {
     const { result } = renderHook(() => React.useContext(AreaContext), { wrapper: portalWrapper });
     expect(result.current.dscStatus).toBeNull();

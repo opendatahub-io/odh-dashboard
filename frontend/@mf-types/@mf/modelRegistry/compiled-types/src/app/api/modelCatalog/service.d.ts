@@ -8,7 +8,7 @@ export declare const getCatalogModelsBySource: (hostPath: string, queryParams?: 
 }, searchKeyword?: string, filterData?: ModelCatalogFilterStates, filterOptions?: CatalogFilterOptionsList | null, filterQuery?: string, performanceParams?: {
     targetRPS?: number;
     latencyProperty?: string;
-    recommendations?: boolean;
+    orderBy?: string;
 }) => Promise<CatalogModelList>;
 export declare const getCatalogFilterOptionList: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions) => Promise<CatalogFilterOptionsList>;
 export declare const getListSources: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, listParams?: CatalogSourceListParams) => Promise<CatalogSourceList>;

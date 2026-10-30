@@ -13,6 +13,7 @@ import {
   SidebarPanel,
 } from '@patternfly/react-core';
 import { useModularArchContext } from 'mod-arch-core';
+import type { CuratedCollectionParameterConfig } from '~/app/curatedSuiteConfig';
 import CopySuiteBenchmarkDetailsOverlay from '~/app/components/CopySuiteBenchmarkDetailsOverlay';
 import CopySuiteBenchmarkSection from '~/app/components/CopySuiteBenchmarkSection';
 import BenchmarkWeightsModal from '~/app/components/BenchmarkWeightsModal';
@@ -35,6 +36,7 @@ type CopySuiteBenchmarksStepProps = {
   isValid: boolean;
   isSubmitting: boolean;
   isInteractionDisabled?: boolean;
+  parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
   onUpdateBenchmark: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
   onWeightsChange: (weights: number[]) => void;
   onSaveAndRun: () => void;
@@ -56,6 +58,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   isValid,
   isSubmitting,
   isInteractionDisabled = false,
+  parameterConfig,
   onUpdateBenchmark,
   onWeightsChange,
   onSaveAndRun,
@@ -63,7 +66,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   onBack,
   primaryActionLabel = 'Save and run',
   primaryActionTestId = 'copy-suite-save-and-run',
-  secondaryActionLabel = 'Add to my benchmark suites',
+  secondaryActionLabel = 'Add to my collections',
   showSecondaryAction = true,
   onCancel,
 }) => {
@@ -87,6 +90,22 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   );
 
   const flatBenchmarkByKey = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
+
+  const getParameterErrors = (index: number): Record<string, string> | undefined => {
+    const parameterErrors = errors.benchmarks?.[index]?.parameters;
+    if (!Array.isArray(parameterErrors)) {
+      return undefined;
+    }
+    const result: Record<string, string> = {};
+    parameterErrors.forEach((parameterError, parameterIndex) => {
+      const message = parameterError?.value?.message;
+      const key = benchmarks[index]?.parameters[parameterIndex]?.key;
+      if (typeof message === 'string' && key) {
+        result[key] = message;
+      }
+    });
+    return Object.keys(result).length > 0 ? result : undefined;
+  };
 
   const detailsBenchmark = detailsBenchmarkKey
     ? flatBenchmarkByKey.get(detailsBenchmarkKey)
@@ -190,6 +209,8 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
                     additionalParametersError={
                       errors.benchmarks?.[index]?.additionalParameters?.message
                     }
+                    parameterErrors={getParameterErrors(index)}
+                    parameterConfig={parameterConfig}
                     isInteractionDisabled={isInteractionDisabled}
                     onUpdate={(updatedIndex, field, value) => {
                       if (!isInteractionDisabled) {
@@ -290,7 +311,7 @@ const EmptyBenchmarksState: React.FC<EmptyBenchmarksStateProps> = ({ onBack }) =
     headingLevel="h3"
     titleText="No benchmarks added"
   >
-    <EmptyStateBody>No benchmarks have been added to this suite.</EmptyStateBody>
+    <EmptyStateBody>No benchmarks have been added to this collection.</EmptyStateBody>
     <EmptyStateFooter>
       <EmptyStateActions>
         <Button variant="primary" data-testid="copy-suite-empty-back-btn" onClick={onBack}>

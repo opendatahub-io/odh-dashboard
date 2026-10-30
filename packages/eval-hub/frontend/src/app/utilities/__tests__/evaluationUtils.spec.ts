@@ -5,6 +5,7 @@ import {
   getBenchmarkName,
   getAllBenchmarkNames,
   getBenchmarkDisplayName,
+  getBenchmarkErrorMessage,
   getBenchmarkResultScore,
   getFailedBenchmarkCount,
   getJobBenchmarks,
@@ -21,6 +22,7 @@ import {
   getEvaluationDisplayState,
   getLatestEvaluationJob,
   getEvaluationQueue,
+  isBenchmarkFailed,
   isEvaluationJobComparable,
   isTerminalState,
   normalizeThreshold,
@@ -1040,6 +1042,22 @@ describe('getEvaluationQueue', () => {
 
     expect(getEvaluationQueue(job)).toBe('gpu-default');
   });
+
+  it('should return undefined when no hardware configuration is present', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+
+    expect(getEvaluationQueue(job)).toBeUndefined();
+  });
+
+  it('should ignore removed legacy queue fields on status and resource', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // The queue fields were removed from the API contract; simulate a legacy
+    // payload that still carries them to guard against fallback reintroduction.
+    Object.assign(job.status, { queue: 'legacy-status-queue' });
+    Object.assign(job.resource, { queue: 'legacy-resource-queue' });
+
+    expect(getEvaluationQueue(job)).toBeUndefined();
+  });
 });
 
 describe('getLatestEvaluationJob', () => {
@@ -1163,5 +1181,155 @@ describe('normalizeThreshold', () => {
 
   it('should round fractional results', () => {
     expect(normalizeThreshold(0.333)).toBe(33);
+  });
+});
+
+describe('isBenchmarkFailed', () => {
+  it('should return true for a benchmark whose run status is failed', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        /* eslint-disable camelcase */
+        { id: 'math', benchmark_index: 0, status: 'failed' },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(true);
+  });
+
+  it('should return false for a benchmark whose run status is completed', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        /* eslint-disable camelcase */
+        { id: 'math', benchmark_index: 0, status: 'completed' },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(false);
+  });
+
+  it('should match the benchmark occurrence by index', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        /* eslint-disable camelcase */
+        { id: 'math', benchmark_index: 0, status: 'completed' },
+        { id: 'math', benchmark_index: 1, status: 'failed' },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(false);
+    expect(isBenchmarkFailed(job, 'math', 1)).toBe(true);
+  });
+
+  it('should match by id alone when the status entry has no index', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [{ id: 'math', status: 'failed' }],
+    });
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(true);
+  });
+
+  it('should match duplicate ids without indexes by their array position', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        { id: 'math', status: 'completed' },
+        { id: 'math', status: 'failed' },
+      ],
+    });
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(false);
+    expect(isBenchmarkFailed(job, 'math', 1)).toBe(true);
+  });
+
+  it('should not let an index-less entry of another id shadow the requested occurrence', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        { id: 'math', status: 'failed' },
+        { id: 'gpqa', status: 'completed' },
+        { id: 'math', status: 'completed' },
+      ],
+    });
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(true);
+    expect(isBenchmarkFailed(job, 'math', 2)).toBe(false);
+  });
+
+  it('should return false for a benchmark id not present in the status entries', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        /* eslint-disable camelcase */
+        { id: 'math', benchmark_index: 0, status: 'failed' },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    expect(isBenchmarkFailed(job, 'other', 0)).toBe(false);
+  });
+
+  it('should return false when the job has no benchmark statuses', () => {
+    const job = mockEvaluationJob();
+
+    expect(isBenchmarkFailed(job, 'math', 0)).toBe(false);
+  });
+});
+
+describe('getBenchmarkErrorMessage', () => {
+  it('should return the error message recorded for a failed benchmark', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        /* eslint-disable camelcase */
+        {
+          id: 'math',
+          benchmark_index: 0,
+          status: 'failed',
+          error_message: { message: 'inspect eval failed (exit 1)', message_code: 'unknown' },
+        },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    expect(getBenchmarkErrorMessage(job, 'math', 0)).toBe('inspect eval failed (exit 1)');
+  });
+
+  it('should return the matching occurrence message for duplicate ids without indexes', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        /* eslint-disable camelcase */
+        {
+          id: 'math',
+          status: 'failed',
+          error_message: { message: 'first run failed', message_code: 'unknown' },
+        },
+        {
+          id: 'math',
+          status: 'failed',
+          error_message: { message: 'second run failed', message_code: 'unknown' },
+        },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    expect(getBenchmarkErrorMessage(job, 'math', 0)).toBe('first run failed');
+    expect(getBenchmarkErrorMessage(job, 'math', 1)).toBe('second run failed');
+  });
+
+  it('should return undefined when no error message was recorded', () => {
+    const job = mockEvaluationJob({
+      benchmarkStatuses: [
+        /* eslint-disable camelcase */
+        { id: 'math', benchmark_index: 0, status: 'failed' },
+        /* eslint-enable camelcase */
+      ],
+    });
+
+    expect(getBenchmarkErrorMessage(job, 'math', 0)).toBeUndefined();
+  });
+
+  it('should return undefined for a benchmark id not present in the status entries', () => {
+    const job = mockEvaluationJob();
+
+    expect(getBenchmarkErrorMessage(job, 'math', 0)).toBeUndefined();
   });
 });

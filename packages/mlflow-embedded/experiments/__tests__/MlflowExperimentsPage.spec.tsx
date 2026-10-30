@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import MlflowExperimentsPage, {
   MlflowExperimentWrapperProps,
   UnsupportedTabInfo,
@@ -25,7 +26,22 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
 }));
 
 jest.mock('@odh-dashboard/ui-core', () => ({
-  ApplicationsPage: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  ApplicationsPage: ({
+    children,
+    empty,
+    emptyStatePage,
+    headerContent,
+  }: {
+    children?: React.ReactNode;
+    empty?: boolean;
+    emptyStatePage?: React.ReactNode;
+    headerContent?: React.ReactNode;
+  }) => (
+    <div>
+      {headerContent}
+      {empty ? emptyStatePage : children}
+    </div>
+  ),
   ProjectObjectType: jest.requireActual<typeof import('@odh-dashboard/ui-core/design')>(
     '@odh-dashboard/ui-core/design',
   ).ProjectObjectType,
@@ -42,8 +58,17 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 
 jest.mock('@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
   __esModule: true,
-  default: () => ({ available: true, loaded: true, error: false }),
+  default: jest.fn(),
 }));
+
+jest.mock('../../shared/MLflowNotConfigured', () => ({
+  __esModule: true,
+  default: ({ featureName }: { featureName: string }) => (
+    <div data-testid="mlflow-setup-feature-name">{featureName}</div>
+  ),
+}));
+
+const mockUseIsMlflowCRAvailable = jest.mocked(useIsMlflowCRAvailable);
 
 const reportUnsupportedTab = (info: UnsupportedTabInfo) => {
   const onUnsupportedTab = capturedWrapperProps?.onUnsupportedTab;
@@ -57,6 +82,7 @@ describe('MlflowExperimentsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     capturedWrapperProps = undefined;
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: true, loaded: true, error: false });
   });
 
   it('should lock the MLflow wrapper to the Model training workflow type', () => {
@@ -77,11 +103,22 @@ describe('MlflowExperimentsPage', () => {
     expect(capturedWrapperProps?.basename).toBe('/develop-train/mlflow/experiments');
   });
 
-  it('should pass the Agent observability base path and GenAI workflow type from the Agent observability page', () => {
+  it('should pass the Agent traces base path and GenAI workflow type from the Agent traces page', () => {
     render(<MlflowAgentObservabilityPage />);
 
-    expect(capturedWrapperProps?.basename).toBe('/observe-and-monitor/agent-observability');
+    expect(capturedWrapperProps?.basename).toBe('/observe-and-monitor/agent-traces');
     expect(capturedWrapperProps?.workflowType).toBe(WorkflowType.GENAI);
+  });
+
+  it('should use agent observability in the Agent traces setup guidance', () => {
+    mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: true, error: false });
+
+    render(<MlflowAgentObservabilityPage />);
+
+    expect(screen.getByTestId('mlflow-setup-feature-name')).toHaveTextContent(
+      'agent observability',
+    );
+    expect(screen.queryByTestId('mlflow-embedded-jump-link')).not.toBeInTheDocument();
   });
 
   describe('onUnsupportedTab', () => {
@@ -182,7 +219,7 @@ describe('MlflowExperimentsPage', () => {
       );
     });
 
-    it('should preserve the linked prompt version when redirecting from the Agent observability page', () => {
+    it('should preserve the linked prompt version when redirecting from the Agent traces page', () => {
       render(<MlflowAgentObservabilityPage />);
 
       reportUnsupportedTab({
@@ -199,7 +236,7 @@ describe('MlflowExperimentsPage', () => {
       );
     });
 
-    it('should redirect a GenAI tab on the Experiments page to Agent observability, keeping the path and search', () => {
+    it('should redirect a GenAI tab on the Experiments page to Agent traces, keeping the path and search', () => {
       render(<MlflowExperimentsPage />);
 
       reportUnsupportedTab({
@@ -212,12 +249,12 @@ describe('MlflowExperimentsPage', () => {
 
       expect(mockNavigate).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/observe-and-monitor/agent-observability/123/chat-sessions/session-1?workspace=my-project&selectedTraceId=abc',
+        '/observe-and-monitor/agent-traces/123/chat-sessions/session-1?workspace=my-project&selectedTraceId=abc',
         { replace: true },
       );
     });
 
-    it('should redirect a non-prompts tab on the Experiments page to Agent observability whatever workflow type the remote reports', () => {
+    it('should redirect a non-prompts tab on the Experiments page to Agent traces whatever workflow type the remote reports', () => {
       render(<MlflowExperimentsPage />);
 
       reportUnsupportedTab({
@@ -229,7 +266,7 @@ describe('MlflowExperimentsPage', () => {
       });
 
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/observe-and-monitor/agent-observability/123/chat-sessions?workspace=my-project',
+        '/observe-and-monitor/agent-traces/123/chat-sessions?workspace=my-project',
         { replace: true },
       );
     });
@@ -258,13 +295,13 @@ describe('MlflowExperimentsPage', () => {
         });
 
         expect(`${window.location.pathname}${window.location.search}`).toBe(
-          '/observe-and-monitor/agent-observability/123?workspace=my-project',
+          '/observe-and-monitor/agent-traces/123?workspace=my-project',
         );
         expect(onPopState).toHaveBeenCalledTimes(1);
         expect(mockNavigate).not.toHaveBeenCalled();
       });
 
-      it('should move the remote to the Agent observability root when no experiment is reported', () => {
+      it('should move the remote to the Agent traces root when no experiment is reported', () => {
         render(<MlflowAgentObservabilityPage />);
 
         reportUnsupportedTab({
@@ -275,7 +312,7 @@ describe('MlflowExperimentsPage', () => {
         });
 
         expect(`${window.location.pathname}${window.location.search}`).toBe(
-          '/observe-and-monitor/agent-observability?workspace=my-project',
+          '/observe-and-monitor/agent-traces?workspace=my-project',
         );
         expect(onPopState).toHaveBeenCalledTimes(1);
         expect(mockNavigate).not.toHaveBeenCalled();

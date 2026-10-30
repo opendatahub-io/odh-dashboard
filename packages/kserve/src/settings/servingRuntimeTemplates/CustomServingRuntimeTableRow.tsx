@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { Label, LabelGroup } from '@patternfly/react-core';
-import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { MetadataAnnotation, type TemplateKind } from '@odh-dashboard/k8s-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import {
   getServingRuntimeDisplayNameFromTemplate,
@@ -47,6 +47,11 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup numLabels={5}>
           {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
+          {template.metadata.annotations?.[MetadataAnnotation.InstalledFromCatalog] === 'true' && (
+            <Label color="purple" data-testid="from-library-label">
+              From library
+            </Label>
+          )}
           {renderDeploymentResourceVersionLabels(template)}
         </LabelGroup>
       </Td>

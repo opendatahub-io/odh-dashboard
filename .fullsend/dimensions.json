@@ -71,7 +71,8 @@
         "scope-exceeded", "tier-mismatch", "unauthorized-change", "scope-creep",
         "missing-authorization", "misleading-label", "design-direction",
         "complexity-ratio", "misplaced-abstraction", "architectural-conflict",
-        "design-smell", "over-engineering", "under-engineering"
+        "design-smell", "over-engineering", "under-engineering",
+        "scope-bundling"
       ]
     },
     {
@@ -165,19 +166,15 @@
       "runner": "scripts/fetch-jira-context.sh",
       "producer_file": ".run/jira.json",
       "host": {
-        "execution": "workflow",
-        "artifact_name": "fullsend-jira-context-{pr_number}",
-        "artifact_file": "jira.json",
-        "checkout_pr": false,
+        "execution": "pre_review",
         "setup_runner": "",
         "credentials": {
-          "url_secret": "JIRA_URL",
-          "username_secret": "JIRA_USERNAME",
-          "token_secret": "JIRA_API_TOKEN"
+          "username_env": "JIRA_USERNAME",
+          "token_env": "JIRA_API_TOKEN"
         }
       },
       "failure_severity": "info",
-      "notes": "Trusted host snapshot of the linked issue. It contains context only and never enters challenger synthesis directly."
+      "notes": "Trusted host snapshot of the linked issue. It builds request and browse URLs from JIRA_BASE_URL. It contains context only and never enters challenger synthesis directly."
     },
     {
       "id": "coderabbit",
@@ -188,15 +185,10 @@
       "runner": "scripts/fetch-coderabbit-context.sh",
       "producer_file": ".run/coderabbit.json",
       "host": {
-        "execution": "workflow",
-        "artifact_name": "fullsend-coderabbit-context-{pr_number}",
-        "artifact_file": "coderabbit.json",
-        "checkout_pr": false,
+        "execution": "pre_review",
         "setup_runner": "scripts/setup-coderabbit-cli.sh",
         "credentials": {
-          "url_secret": "FULLSEND_UNUSED",
-          "username_secret": "FULLSEND_UNUSED",
-          "token_secret": "CODERABBIT_API_KEY"
+          "token_env": "CODERABBIT_API_KEY"
         }
       },
       "failure_severity": "info",
@@ -212,7 +204,7 @@
       "dispatch": "always",
       "definition": "skills/pr-review/sub-agents/product-ask-review/SKILL.md",
       "meta_prompt": "meta-prompts/section-output.md",
-      "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
+      "context_file": "/sandbox/workspace/odh-review/jira.json",
       "include_findings": false,
       "failure_severity": "info",
       "re_review": "full",

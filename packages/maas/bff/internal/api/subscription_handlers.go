@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/opendatahub-io/maas-library/bff/internal/constants"
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
+	"github.com/opendatahub-io/maas-library/bff/internal/repositories"
 )
 
 type AppHandler func(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params)
@@ -54,6 +56,39 @@ func ListSubscriptionsHandler(app *App, w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
+	app.writeSubscriptionsResponse(w, r, subscriptions)
+}
+
+// ListAdminSubscriptionsHandler handles GET /api/v1/admin-subscriptions.
+// Serves maas-api subscriptions for which the caller has the admin role,
+// mapped onto the all-subscriptions shape. maas-api must be reachable
+// (503 otherwise).
+func ListAdminSubscriptionsHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	items, err := app.repositories.APIKeys.ListSubscriptionsForApiKeys(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	adminItems := make([]models.SubscriptionListItem, 0, len(items))
+	for _, item := range items {
+		if slices.Contains(item.Roles, "admin") {
+			adminItems = append(adminItems, item)
+		}
+	}
+
+	app.writeSubscriptionsResponse(
+		w,
+		r,
+		repositories.ConvertSubscriptionListItemsToSubscriptions(adminItems, app.config.MaaSSubscriptionNamespace),
+	)
+}
+
+// writeSubscriptionsResponse writes the shared subscriptions list envelope
+// used by both /all-subscriptions and /admin-subscriptions.
+func (app *App) writeSubscriptionsResponse(w http.ResponseWriter, r *http.Request, subscriptions []models.MaaSSubscription) {
 	response := Envelope[[]models.MaaSSubscription, None]{
 		Data: subscriptions,
 	}
@@ -213,7 +248,10 @@ func UpdateSubscriptionHandler(app *App, w http.ResponseWriter, r *http.Request,
 		} else if k8sErrors.IsConflict(err) {
 			app.errorResponse(w, r, &HTTPError{
 				StatusCode: http.StatusConflict,
-				Error:      ErrorPayload{Code: "409", Message: err.Error()},
+				Error: ErrorPayload{
+					Code:    "409",
+					Message: "This subscription was modified by someone else. Refresh the page and try again.",
+				},
 			})
 		} else {
 			app.serverErrorResponse(w, r, err)

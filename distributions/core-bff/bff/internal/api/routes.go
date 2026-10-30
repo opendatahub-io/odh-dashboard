@@ -24,7 +24,7 @@ const (
 func (app *App) Routes() http.Handler {
 	serviceMux := app.newServiceMux()
 	staticHandler := app.newStaticHandler()
-	return app.newCombinedMux(serviceMux, staticHandler)
+	return app.SetSecurityHeaders(app.newCombinedMux(serviceMux, staticHandler))
 }
 
 // Auth contract: apiRouter routes require a token (InjectRequestIdentity).
@@ -67,24 +67,27 @@ func (app *App) newServiceMux() *http.ServeMux {
 }
 
 // newStaticHandler creates the SPA static file server with index.html fallback.
+// Cache-Control mirrors Node: SPA shell (`/` and missing-path fallback) is no-store;
+// real static files use getCacheControlForStaticFile (hashed / short / no-cache).
 func (app *App) newStaticHandler() http.Handler {
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helpers.GetContextLoggerFromReq(r)
-		if r.URL.Path == "/" || r.URL.Path == "/"+constants.IndexHTMLFileName {
-			// The SPA entry point must revalidate after gateway logout so a cached
-			// document cannot render with an expired authentication session.
-			w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
-		}
 		if f, err := staticDir.Open(r.URL.Path); err == nil {
 			f.Close()
+			if r.URL.Path == "/" {
+				// SPA shell under `/` — document cache policy (Node setNoStoreCacheHeaders on /*).
+				w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
+			} else {
+				w.Header().Set(constants.HeaderCacheControl, getCacheControlForStaticFile(r.URL.Path))
+			}
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
-		w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
+		w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, constants.IndexHTMLFileName))
 	})
 }

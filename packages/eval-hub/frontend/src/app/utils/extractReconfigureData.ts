@@ -48,10 +48,6 @@ export const inferSourceMode = (
     return { sourceMode: 'model', modelSelection: 'cluster' };
   }
 
-  if (job.model.url) {
-    return { sourceMode: 'agent', modelSelection: 'external' };
-  }
-
   return { sourceMode: 'model', modelSelection: 'external' };
 };
 
@@ -155,7 +151,7 @@ const extractReconfigureData = (
     additionalArgs,
     experimentName: job.experiment?.name,
     hardwareProfile: job.hardware_config?.hardware_profile_name,
-    queue: job.hardware_config?.queue?.name ?? job.status.queue ?? job.resource.queue,
+    queue: job.hardware_config?.queue?.name,
   };
 };
 

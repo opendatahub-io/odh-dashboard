@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Bullseye,
   Content,
   Drawer,
@@ -50,6 +51,8 @@ import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import type { Collection, EvaluationJob } from '~/app/types';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
 import StopEvaluationModal from '~/app/components/StopEvaluationModal';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import EvaluateTab from './EvaluateTab';
 import GalleryTab from './GalleryTab';
 
@@ -62,7 +65,7 @@ const EVALUATE_TAB = 'evaluate';
 const RUNS_TAB = 'runs';
 const TAB_QUERY_PARAM = 'tab';
 const EVALUATE_DESCRIPTION =
-  'Use benchmark suites to run evaluations and measure model, agent, and dataset performance. Kickstart evaluations with curated suites from the gallery, customize them, or create your own. Curated suites will be added to the benchmark suites in your project.';
+  'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.';
 const RUNS_DESCRIPTION = 'Start and manage evaluation runs for models, agents, and datasets.';
 
 const EvaluationsPage: React.FC = () => {
@@ -80,11 +83,12 @@ const EvaluationsPage: React.FC = () => {
 
   const { isHealthy, loaded: healthLoaded, error: healthError } = useEvalHubHealth(namespace);
 
-  const [evaluations, loaded, error, refreshEvaluations] = useEvaluationJobs(
+  const [evaluationsResult, loaded, error, refreshEvaluations] = useEvaluationJobs(
     { namespace },
     !isHealthy,
     isPollingEnabled,
   );
+  const evaluations = evaluationsResult.jobs;
   const { collectionNameMap, loaded: collectionsLoaded } = useCollectionNameMap();
   const [selectedJob, setSelectedJob] = React.useState<
     { job: EvaluationJob; namespace: string } | undefined
@@ -103,7 +107,6 @@ const EvaluationsPage: React.FC = () => {
     Collection | undefined
   >();
   const [selectedCollectionIsSystem, setSelectedCollectionIsSystem] = React.useState(false);
-
   const handleCloseDrawer = React.useCallback(() => {
     setSelectedCollectionIsSystem(false);
     closeDrawer();
@@ -112,7 +115,7 @@ const EvaluationsPage: React.FC = () => {
   const handleSelectCollection = React.useCallback(
     (collection: Collection, isSystemCollection = false) => {
       setSelectedCollectionIsSystem(isSystemCollection);
-      selectCollection(collection);
+      return selectCollection(collection);
     },
     [selectCollection],
   );
@@ -142,6 +145,17 @@ const EvaluationsPage: React.FC = () => {
 
   const handleDuplicateCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+        {
+          collectionName: collection.name,
+          surface: selectedCollectionIsSystem ? 'curated_gallery' : 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       const route = evaluationCopySuiteRoute(namespace, collection.resource.id);
       if (selectedCollectionIsSystem) {
         navigate(route, { state: evaluationGalleryNavigationState });
@@ -154,6 +168,17 @@ const EvaluationsPage: React.FC = () => {
 
   const handleEvaluateDuplicateCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+        {
+          collectionName: collection.name,
+          surface: 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
         state: evaluationEvaluateNavigationState,
       });
@@ -163,6 +188,17 @@ const EvaluationsPage: React.FC = () => {
 
   const handleEditCollection = React.useCallback(
     (collection: Collection) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+        {
+          collectionName: collection.name,
+          surface: 'my_benchmark_suites',
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
       navigate(evaluationEditSuiteRoute(namespace, collection.resource.id), {
         state: evaluationEvaluateNavigationState,
       });
@@ -327,6 +363,22 @@ const EvaluationsPage: React.FC = () => {
                 removeChildrenTopPadding
                 keepBodyWrapper={false}
               >
+                <Alert
+                  isInline
+                  isPlain
+                  variant="info"
+                  title={
+                    <>
+                      <span className="pf-v6-u-font-weight-normal">The </span>
+                      AI Evaluations UI is in Technology Preview;{' '}
+                      <span className="pf-v6-u-font-weight-normal">
+                        the AI Evaluations back end is Generally Available.
+                      </span>
+                    </>
+                  }
+                  data-testid="evalhub-tech-preview-alert"
+                  className="pf-v6-u-mb-lg"
+                />
                 <Tabs
                   activeKey={activeTab}
                   onSelect={onSelectTab}
@@ -351,8 +403,8 @@ const EvaluationsPage: React.FC = () => {
                   </Tab>
                   <Tab
                     eventKey={EVALUATE_TAB}
-                    title={<TabTitleText>Benchmark suites</TabTitleText>}
-                    aria-label="Benchmark suites tab"
+                    title={<TabTitleText>Benchmark collections</TabTitleText>}
+                    aria-label="Benchmark collections tab"
                     data-testid="evaluate-tab"
                   >
                     <EvaluateTab
@@ -378,11 +430,29 @@ const EvaluationsPage: React.FC = () => {
                         <StackItem>
                           <Content
                             component="p"
-                            className="evalhub-runs-tab__description"
+                            className={`evalhub-runs-tab__description${
+                              evaluationsResult.truncated
+                                ? ' evalhub-runs-tab__description--with-alert'
+                                : ''
+                            }`}
                             data-testid="runs-tab-description"
                           >
                             {RUNS_DESCRIPTION}
                           </Content>
+                        </StackItem>
+                      )}
+                      {evaluationsResult.truncated && (
+                        <StackItem>
+                          <Alert
+                            variant="warning"
+                            isInline
+                            title="Evaluation runs list is incomplete"
+                            className="pf-v6-u-mb-md"
+                            data-testid="evaluations-truncated-alert"
+                          >
+                            Showing {evaluations.length} of {evaluationsResult.totalCount}{' '}
+                            evaluation runs.
+                          </Alert>
                         </StackItem>
                       )}
                       <StackItem>

@@ -2,11 +2,15 @@ import React from 'react';
 import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import type { NotebookKind } from '@odh-dashboard/k8s-core';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
-import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
-import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
+import {
+  findHardwareProfileForBinding,
+  getExistingHardwareProfileData,
+  isHardwareProfileEnabled,
+} from './utils';
 import { HardwareProfileBindingStateInfo } from './types';
 import type { HardwareProfileResource } from './types';
 import { HardwareProfileBindingState } from './const';
+import { useHardwareProfilesByFeatureVisibility } from '../src/pages/useHardwareProfilesByFeatureVisibility';
 
 /**
  * Hook to get hardware profile binding state for a resource.
@@ -19,28 +23,38 @@ export const useHardwareProfileBindingState = (
   visibility?: HardwareProfileFeatureVisibility[],
 ): [HardwareProfileBindingStateInfo | null, boolean, Error | undefined] => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const hardwareProfileName =
-    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
-  const hardwareProfileNamespace =
-    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
-    dashboardNamespace;
+  const resourceNamespace = resource?.metadata.namespace;
+  const { name: hardwareProfileName, namespace: hardwareProfileNamespace } =
+    getExistingHardwareProfileData(resource);
   const resourceVersion =
     resource?.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
 
   const {
     globalProfiles: [globalProfilesList, globalProfilesLoaded, globalProfilesError],
     projectProfiles: [projectProfilesList, projectProfilesLoaded, projectProfilesError],
-  } = useHardwareProfilesByFeatureVisibility(visibility, hardwareProfileNamespace, {
-    includeDRA: true,
-  });
+  } = useHardwareProfilesByFeatureVisibility(
+    visibility,
+    hardwareProfileNamespace || resourceNamespace,
+    { dra: 'all' },
+  );
 
-  const profile = React.useMemo(() => {
-    return [...globalProfilesList, ...projectProfilesList].find(
-      (p) =>
-        p.metadata.name === hardwareProfileName &&
-        p.metadata.namespace === hardwareProfileNamespace,
-    );
-  }, [globalProfilesList, projectProfilesList, hardwareProfileName, hardwareProfileNamespace]);
+  const profile = React.useMemo(
+    () =>
+      findHardwareProfileForBinding(
+        [...globalProfilesList, ...projectProfilesList],
+        { name: hardwareProfileName, namespace: hardwareProfileNamespace },
+        resourceNamespace,
+        dashboardNamespace,
+      ),
+    [
+      globalProfilesList,
+      projectProfilesList,
+      hardwareProfileName,
+      hardwareProfileNamespace,
+      resourceNamespace,
+      dashboardNamespace,
+    ],
+  );
 
   const loaded = globalProfilesLoaded && projectProfilesLoaded;
   const loadError = globalProfilesError || projectProfilesError;
@@ -58,7 +72,7 @@ export const useHardwareProfileBindingState = (
     ];
   }
 
-  if (!hardwareProfileName || !hardwareProfileNamespace) {
+  if (!hardwareProfileName) {
     return [null, true, undefined];
   }
 
@@ -82,11 +96,9 @@ export const useHardwareProfileBindingState = (
   }
 
   const isDisabled = !isHardwareProfileEnabled(profile);
-  const storedResourceVersion =
-    resource.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
   const isUpdated =
-    storedResourceVersion && profile.metadata.resourceVersion
-      ? storedResourceVersion !== profile.metadata.resourceVersion
+    resourceVersion && profile.metadata.resourceVersion
+      ? resourceVersion !== profile.metadata.resourceVersion
       : false;
 
   let state: HardwareProfileBindingState | undefined;

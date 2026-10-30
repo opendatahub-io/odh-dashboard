@@ -1,10 +1,14 @@
 import React from 'react';
 import { EmptyState, EmptyStateBody, PageSection, Spinner } from '@patternfly/react-core';
 import { useLocation, useNavigate } from 'react-router-dom';
-import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import type { ConnectionType } from '~/app/types';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  isGlobalConnectionType,
+} from '~/app/utilities/tracking';
 
 type ConnectionTypesTabProps = { namespace: string };
 
@@ -15,19 +19,25 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
 
   const handleConnectionTypeClick = React.useCallback(
     (connectionType: ConnectionType) => {
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.typeSelected,
+        properties: {
+          connectionTypeProvider: connectionType.resource.provider,
+          isGlobalType: isGlobalConnectionType(connectionType),
+          project: namespace,
+        },
+      });
       const detailsPath = `${pathname.replace(/\/$/, '')}/${encodeURIComponent(
         connectionType.metadata.id,
       )}${search}`;
       navigate(detailsPath);
     },
-    [navigate, pathname, search],
+    [navigate, namespace, pathname, search],
   );
 
-  const isEmpty = connectionTypes.length === 0;
   const hasError = Boolean(typesError);
   const shouldRenderLoadingState = !typesLoaded && !hasError;
-  const shouldRenderGallery = typesLoaded && !hasError && !isEmpty;
-  const shouldRenderEmptyState = typesLoaded && !hasError && isEmpty;
+  const shouldRenderGallery = typesLoaded && !hasError;
 
   return (
     <PageSection isFilled>
@@ -51,17 +61,6 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
           connectionTypes={connectionTypes}
           onConnectionTypeClick={handleConnectionTypeClick}
         />
-      )}
-      {shouldRenderEmptyState && (
-        <EmptyState
-          headingLevel="h3"
-          icon={() => <img src={emptyStateImage} alt="" width={108} height={108} />}
-          titleText="Get started with data connection types"
-        >
-          <EmptyStateBody>
-            Browse available data connection types and use them to create new data connections
-          </EmptyStateBody>
-        </EmptyState>
       )}
     </PageSection>
   );

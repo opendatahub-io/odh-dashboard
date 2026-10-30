@@ -317,6 +317,7 @@ const extensions: (
       isActive: true,
       priority: 0,
       supportsOverwrite: true,
+      supportsDRAHardwareProfiles: true,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
     },
     flags: {
@@ -375,12 +376,13 @@ const extensions: (
     properties: {
       id: 'servingRuntimeTemplate',
       label: 'Serving runtime template',
-      description: 'Install as a ServingRuntime for legacy deployments and predictive models.',
+      description:
+        'Install as a ServingRuntime template for inference service deployments. Not compatible with Models as a Service.',
       selectedState: {
         listName: 'Serving runtime templates',
-        description: 'and the legacy deployment wizard.',
+        description: 'and the inference service deployment wizard.',
       },
-      configureStepLabel: 'Configure template',
+      installTargetName: 'serving runtime template',
       component: () => import('./src/runtimeImageInstall/ServingRuntimeInstallTarget'),
     },
   },

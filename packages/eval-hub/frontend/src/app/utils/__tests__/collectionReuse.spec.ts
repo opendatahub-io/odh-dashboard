@@ -17,7 +17,7 @@ const sourceCollection: Collection = {
   resource: { id: 'curated-suite', created_at: '2026-10-01T12:00:00Z' },
   name: 'Knowledge & Reasoning v1',
   category: 'knowledge',
-  description: 'Knowledge and reasoning benchmark suite.',
+  description: 'Knowledge and reasoning collection.',
   tags: ['curated', 'reasoning'],
   domains: ['knowledge'],
   tasks: ['question_answering'],
@@ -49,16 +49,6 @@ const unchangedCopy: Collection = {
 describe('isReusableCollectionCopy', () => {
   it('should match an unchanged child with top-level lineage while ignoring resource metadata', () => {
     expect(isReusableCollectionCopy(sourceCollection, unchangedCopy)).toBe(true);
-  });
-
-  it('should support legacy nested lineage metadata', () => {
-    expect(
-      isReusableCollectionCopy(sourceCollection, {
-        ...unchangedCopy,
-        derived_from: undefined,
-        state: { derived_from: 'curated-suite', run_count: 2, pinned_order: 3 },
-      }),
-    ).toBe(true);
   });
 
   it('should reject a child with a different parent', () => {
@@ -98,7 +88,7 @@ describe('getAllTenantCollections', () => {
     const firstPage = Array.from({ length: 100 }, (_, index) => ({
       ...sourceCollection,
       resource: { id: `other-suite-${index}` },
-      state: { derived_from: `other-parent-${index}` },
+      derived_from: `other-parent-${index}`,
     }));
     const secondPage = [unchangedCopy];
     const firstRequest = jest.fn().mockResolvedValue({

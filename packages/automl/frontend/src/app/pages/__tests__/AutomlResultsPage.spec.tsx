@@ -150,7 +150,7 @@ jest.mock('mod-arch-shared', () => ({
     loadError,
     emptyStatePage,
     breadcrumb,
-    headerAction,
+    noHeader,
   }: {
     children: React.ReactNode;
     empty: boolean;
@@ -158,22 +158,16 @@ jest.mock('mod-arch-shared', () => ({
     loadError?: Error;
     emptyStatePage: React.ReactNode;
     breadcrumb?: React.ReactNode;
-    headerAction?: React.ReactNode;
+    noHeader?: boolean;
     [key: string]: unknown;
   }) => (
-    <div data-testid="applications-page">
+    <div data-testid="applications-page" data-no-header={noHeader ? 'true' : 'false'}>
       {breadcrumb}
-      {headerAction}
       {loadError ? <div data-testid="load-error">{loadError.message}</div> : null}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
     </div>
   ),
-}));
-
-jest.mock('~/app/components/common/AutomlHeader/AutomlHeader', () => ({
-  __esModule: true,
-  default: () => <span>AutoML</span>,
 }));
 
 // ============================================================================
@@ -761,7 +755,7 @@ describe('AutomlResultsPage', () => {
   });
 
   describe('breadcrumb', () => {
-    it('should display experiment context breadcrumb with Run results', () => {
+    it('should display experiment context breadcrumb with the run name as the final item', () => {
       const { useNamespaceSelector } = jest.requireMock('mod-arch-core');
       useNamespaceSelector.mockReturnValue({
         namespaces: [{ name: 'test-ns' }],
@@ -796,10 +790,27 @@ describe('AutomlResultsPage', () => {
         '/develop-train/automl/reconfigure/test-ns/run-123',
       );
       expect(experimentConfigLink.querySelector('a')).toHaveAttribute('data-from', 'results');
-      expect(screen.getByText('Run results')).toBeInTheDocument();
+      expect(screen.getByTestId('results-breadcrumb-run-name')).toHaveTextContent(
+        'My Custom Run Name results',
+      );
+      expect(screen.queryByText('Run results')).not.toBeInTheDocument();
       expect(
         screen.getByTestId('project-navigator-link-in-breadcrumb').querySelector('a'),
       ).toHaveAttribute('href', '/projects/test-ns');
+    });
+
+    it('should render the page without a header section', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(),
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('applications-page')).toHaveAttribute('data-no-header', 'true');
     });
   });
 
@@ -1333,6 +1344,7 @@ describe('AutomlResultsPage', () => {
       run: PipelineRun,
       options: {
         runLevelPrefixes?: { prefix: string }[];
+        taskName?: string;
         taskPrefixes?: { prefix: string }[];
         notebookContents?: { key: string; size: number }[];
         errorPath?: string;
@@ -1343,9 +1355,9 @@ describe('AutomlResultsPage', () => {
       const rootDir = isTimeseries
         ? 'autogluon-timeseries-training-pipeline'
         : 'autogluon-tabular-training-pipeline';
-      const taskName = isTimeseries
-        ? 'autogluon-timeseries-models-training-2'
-        : 'autogluon-models-training-2';
+      const taskName =
+        options.taskName ??
+        (isTimeseries ? 'autogluon-timeseries-models-training-2' : 'autogluon-models-training-2');
       const taskPath = `${rootDir}/run-123/${taskName}`;
       const executionPath = `${taskPath}/11111111-1111-1111-1111-111111111111`;
       const notebookPath = `${executionPath}/experiment_notebook`;
@@ -1429,7 +1441,7 @@ describe('AutomlResultsPage', () => {
       ['missing task', []],
       [
         'invalid task suffix',
-        [{ prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-3/' }],
+        [{ prefix: 'autogluon-tabular-training-pipeline/run-123/autogluon-models-training-x/' }],
       ],
       [
         'duplicate allowed tasks',
@@ -1575,6 +1587,25 @@ describe('AutomlResultsPage', () => {
           AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
           { downloadType: 'runNotebook' },
         );
+      });
+    });
+
+    it('should discover a run notebook from any numeric training task suffix', async () => {
+      const run = tabularRun();
+      const blob = new Blob(['notebook']);
+      const key = mockNestedArtifactLists(run, { taskName: 'autogluon-models-training-3' });
+      mockFetchS3File.mockResolvedValue(blob);
+      renderWithRun(run);
+
+      await userEvent.click(screen.getByTestId('run-notebook-download-button'));
+
+      await waitFor(() => {
+        expect(mockFetchS3File).toHaveBeenCalledWith(
+          'test-ns',
+          key,
+          expect.objectContaining({ signal: expect.any(AbortSignal) }),
+        );
+        expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'automl_experiment_notebook.ipynb');
       });
     });
 

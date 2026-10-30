@@ -1,3 +1,6 @@
+import { DeploymentMode } from 'mod-arch-core';
+import { DEPLOYMENT_MODE } from '~/app/utilities/const';
+
 const globNamespace = ':namespace';
 export const globNamespaceAll = `/${globNamespace}?/*`;
 
@@ -11,6 +14,9 @@ export const evaluationsBaseRoute = (namespace?: string): string =>
 export const evaluationEvaluateRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}?tab=evaluate`;
 
+export const evaluationRunsRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}?tab=runs`;
+
 export const evaluationGalleryRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}?tab=gallery`;
 
@@ -20,6 +26,10 @@ export const evaluationEvaluateNavigationState = { source: 'evaluate' } as const
 
 export const evaluationBenchmarkSuitesNavigationState = {
   source: 'benchmark-suites',
+} as const;
+
+export const evaluationCollectionSelectionNavigationState = {
+  source: 'collection-selection',
 } as const;
 
 export const evaluationCuratedBenchmarkSuitesNavigationState = (evaluationTarget: string) =>
@@ -68,3 +78,13 @@ export const evaluationCompareBenchmarksRoute = (namespace?: string): string =>
 
 export const evaluationReconfigureRoute = (namespace?: string, jobId?: string): string =>
   `${evaluationsBaseRoute(namespace)}/reconfigure/${jobId ?? ':jobId'}`;
+
+// Link to the host app's project details page; falls back to the projects list when no namespace.
+// Only the federated host mounts a /projects route — standalone and kubeflow deployments
+// redirect unknown paths back to the evaluation root, so the link is omitted there.
+export const projectHomeRoute = (namespace?: string): string | undefined =>
+  DEPLOYMENT_MODE === DeploymentMode.Federated
+    ? namespace
+      ? `/projects/${namespace}`
+      : '/projects'
+    : undefined;

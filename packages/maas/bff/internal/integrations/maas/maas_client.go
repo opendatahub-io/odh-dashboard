@@ -34,7 +34,21 @@ type MaasClient struct {
 }
 
 type MaasApiError struct {
-	Error string `json:"error"`
+	Error json.RawMessage `json:"error"`
+}
+
+func (e MaasApiError) message() string {
+	var plain string
+	if json.Unmarshal(e.Error, &plain) == nil {
+		return plain
+	}
+	var structured struct {
+		Message string `json:"message"`
+	}
+	if json.Unmarshal(e.Error, &structured) == nil {
+		return structured.Message
+	}
+	return ""
 }
 
 type MaasUpstreamError struct {
@@ -117,6 +131,21 @@ func (c *MaasClient) GetAPIKeyConfig(ctx context.Context) (*models.APIKeyConfig,
 	}
 
 	var apiResponse models.APIKeyConfig
+	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
+}
+
+func (c *MaasClient) GetWhoAmI(ctx context.Context) (*models.MaaSWhoAmIUpstream, error) {
+	endpoint, err := c.endpoint("me")
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse models.MaaSWhoAmIUpstream
 	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
 	if err != nil {
 		return nil, err
@@ -308,13 +337,15 @@ func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *u
 		}
 
 		maasApiError := MaasApiError{}
-		if unmarshallErr := json.Unmarshal(body, &maasApiError); unmarshallErr != nil {
-			c.logger.Error("unknown error when invoking maas-api (unmarshall)", "statusCode", response.StatusCode, "endpoint", endpoint.String(), "method", method)
-			return fmt.Errorf("unknown error when invoking maas-api (unmarshall): %w", unmarshallErr)
+		message := http.StatusText(response.StatusCode)
+		if err := json.Unmarshal(body, &maasApiError); err == nil {
+			if upstreamMessage := maasApiError.message(); upstreamMessage != "" {
+				message = upstreamMessage
+			}
 		}
 
-		c.logger.Error("request to maas-api failed", "statusCode", response.StatusCode, "error", maasApiError.Error, "endpoint", endpoint.String(), "method", method)
-		return &MaasUpstreamError{StatusCode: response.StatusCode, Message: maasApiError.Error}
+		c.logger.Error("request to maas-api failed", "statusCode", response.StatusCode, "error", message, "endpoint", endpoint.String(), "method", method)
+		return &MaasUpstreamError{StatusCode: response.StatusCode, Message: message}
 	}
 
 	body, readBodyErr := io.ReadAll(io.LimitReader(response.Body, c.maxResponseSize))

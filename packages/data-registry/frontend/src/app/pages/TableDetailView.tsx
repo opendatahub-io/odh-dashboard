@@ -42,7 +42,7 @@ type TableDetailViewProps = {
 };
 
 const WELL_KNOWN_PROPERTY_LABELS: Record<string, string> = {
-  pii: 'Pii',
+  pii: 'Personally identifiable information (PII)',
   purpose: 'Purpose',
   maturity: 'Maturity',
   license: 'License',
@@ -54,6 +54,19 @@ const hasWellKnownPropertyLabel = (key: string): boolean =>
 
 const getPropertyLabel = (key: string): string =>
   hasWellKnownPropertyLabel(key) ? WELL_KNOWN_PROPERTY_LABELS[key] : key;
+
+// Keep the tooltip order unambiguous across locales while retaining the explicit UTC suffix.
+const formatUtcTimestamp = (date: Date): string =>
+  new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  }).format(date);
 
 const getOrderedProperties = (properties: Record<string, string>) => {
   const entries = Object.entries(properties);
@@ -106,7 +119,8 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
       <Timestamp
         date={date}
         tooltip={{
-          variant: TimestampTooltipVariant.default,
+          variant: TimestampTooltipVariant.custom,
+          content: formatUtcTimestamp(date),
         }}
       >
         {relativeTime(Date.now(), date.getTime())}
@@ -228,8 +242,10 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
                         <Alert
                           key={warning.code}
                           isInline
+                          isPlain={warning.code === 'DCH_FALLBACK'}
                           variant="warning"
                           title={warning.message}
+                          data-testid={`connection-warning-${warning.code}`}
                         />
                       ))}
                     </DescriptionListDescription>
@@ -315,7 +331,9 @@ const TableDetailView: React.FC<TableDetailViewProps> = ({
                     ))}
                   </LabelGroup>
                 ) : (
-                  <span data-testid="asset-labels">No labels</span>
+                  <em className="pf-v6-u-text-color-subtle" data-testid="asset-labels-empty">
+                    No labels
+                  </em>
                 )}
               </CardBody>
             </Card>

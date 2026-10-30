@@ -151,18 +151,15 @@ type JobResource = {
   read_only?: boolean;
   owner?: string;
   mlflow_experiment_id?: string;
-  message?: JobMessage;
-  queue?: string;
 };
 
 type JobStatus = {
   state: EvaluationJobState;
   message?: JobMessage;
   benchmarks?: BenchmarkState[];
-  queue?: string;
 };
 
-type BenchmarkState = {
+export type BenchmarkState = {
   provider_id?: string;
   id: string;
   benchmark_index?: number;
@@ -197,7 +194,6 @@ type JobTestResult = {
 };
 
 type JobResults = {
-  total_evaluations?: number;
   benchmarks?: BenchmarkResult[];
   mlflow_experiment_url?: string;
   test?: JobTestResult;
@@ -340,6 +336,12 @@ export type ListEvaluationJobsParams = {
   tags?: string;
 };
 
+export type EvaluationJobsResult = {
+  jobs: EvaluationJob[];
+  totalCount: number;
+  truncated: boolean;
+};
+
 // ---------------------------------------------------------------------------
 // Collection / Benchmark Suite types
 // ---------------------------------------------------------------------------
@@ -354,10 +356,8 @@ export type CollectionResource = {
   version_counter?: number;
 };
 
-export type CollectionState = {
-  derived_from?: string;
+export type CollectionStatus = {
   run_count?: number;
-  pinned_order?: number;
 };
 
 export type CollectionPrimaryScore = {
@@ -393,7 +393,8 @@ export type Collection = {
   industries?: string[];
   evaluation_targets?: string[];
   curation_order?: number;
-  state?: CollectionState;
+  pinned_order?: number;
+  status?: CollectionStatus;
   custom?: Record<string, unknown>;
   pass_criteria?: CollectionPassCriteria;
   benchmarks?: CollectionBenchmark[];

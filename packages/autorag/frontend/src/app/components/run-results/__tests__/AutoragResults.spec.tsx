@@ -80,6 +80,7 @@ jest.mock('~/app/utilities/utils', () => ({
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useFetchS3File: jest.fn(() => mockFetchS3File),
+  useTaskExecutorError: jest.fn(() => ({ isLoading: false, isError: false })),
 }));
 
 jest.mock('~/app/hooks/useManagedPipelinesQuery', () => ({
@@ -372,7 +373,7 @@ describe('AutoragResults', () => {
         expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('Pattern: Pattern1')).toBeInTheDocument();
+      expect(screen.getByText('Pattern: Pattern A')).toBeInTheDocument();
       expect(screen.getByText('S3 connection failed', { exact: false })).toBeInTheDocument();
     });
 
@@ -534,7 +535,7 @@ describe('AutoragResults', () => {
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(
           mockBlob,
-          'My AutoRAG Run_Pattern1_indexing_notebook.ipynb',
+          'My AutoRAG Run_PatternA_indexing_notebook.ipynb',
         );
       });
 
@@ -570,7 +571,7 @@ describe('AutoragResults', () => {
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(
           mockBlob,
-          'My AutoRAG Run_Pattern1_inference_notebook.ipynb',
+          'My AutoRAG Run_PatternA_inference_notebook.ipynb',
         );
       });
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
@@ -1070,6 +1071,7 @@ describe('AutoragResults', () => {
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
 
       const row = screen.getByTestId('leaderboard-row-1');
+      expect(within(row).getByText('Pattern A')).toBeInTheDocument();
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
 
       fireEvent.click(screen.getByText('Try this pattern'));

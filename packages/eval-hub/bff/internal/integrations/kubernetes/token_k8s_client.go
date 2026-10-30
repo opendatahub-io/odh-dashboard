@@ -203,23 +203,17 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 		return nil, fmt.Errorf("failed to list projects: %w", err)
 	}
 
+	// Projects are namespace-backed and contain the metadata used by namespace callers.
+	// Returning them directly avoids one Namespace GET per visible Project.
 	namespaces := make([]corev1.Namespace, 0, len(projectList.Items))
 	for _, project := range projectList.Items {
-		projectName := project.GetName()
-
-		ns, err := kc.Client.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
-		if err != nil {
-			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
-			namespaces = append(namespaces, corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        projectName,
-					Annotations: project.GetAnnotations(),
-					Labels:      project.GetLabels(),
-				},
-			})
-		} else {
-			namespaces = append(namespaces, *ns)
-		}
+		namespaces = append(namespaces, corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        project.GetName(),
+				Annotations: project.GetAnnotations(),
+				Labels:      project.GetLabels(),
+			},
+		})
 	}
 
 	kc.Logger.Debug("listed namespaces via OpenShift Projects API", "count", len(namespaces))
@@ -352,7 +346,7 @@ func (kc *TokenKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *Re
 		return "", fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	list, err := listEvalHubCRs(ctx, dynClient, namespace)
 	if err != nil {
 		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
 		return "", fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)
@@ -399,7 +393,7 @@ func (kc *TokenKubernetesClient) GetEvalHubCRStatus(ctx context.Context, _ *Requ
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	list, err := dynClient.Resource(EvalHubGVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	list, err := listEvalHubCRs(ctx, dynClient, namespace)
 	if err != nil {
 		kc.Logger.Error("failed to list EvalHub CRs", "namespace", namespace, "error", err)
 		return nil, fmt.Errorf("failed to list EvalHub CRs in namespace %q: %w", namespace, err)

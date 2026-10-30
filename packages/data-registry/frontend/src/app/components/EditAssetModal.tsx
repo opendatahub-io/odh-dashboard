@@ -23,7 +23,7 @@ import {
   RegistrationIdentitySection,
   RegistrationOrganizationSection,
 } from './register-data/RegistrationAssetSections';
-import './register-data/RegistrationForm.scss';
+import styles from './register-data/RegistrationForm.module.scss';
 
 type EditAssetModalProps = {
   isOpen?: boolean;
@@ -270,7 +270,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
           </Alert>
         ) : null}
         <FormProvider {...form}>
-          <Form className="odh-data-registry-registration-form">
+          <Form className={styles.registrationForm}>
             <RegistrationIdentitySection isEditMode />
             <DataLocationSection
               connections={connections}
@@ -288,6 +288,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
             <RegistrationAssetFormatSection isEditMode />
             {isTable ? <SchemaSection /> : null}
             <RegistrationOrganizationSection
+              project={project}
               isEditMode
               onManageCollections={onManageCollections}
               onManageLabels={onManageLabels}

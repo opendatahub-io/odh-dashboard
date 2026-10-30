@@ -15,7 +15,13 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  MetadataAnnotation,
+  translateDisplayNameForK8s,
+} from '@odh-dashboard/k8s-core';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from './paths';
 import { overrideLlmConfigFields } from '../configYamlUtils';
 import ConfigYAMLEditor from '../ConfigYAMLEditor';
@@ -134,6 +140,13 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           success: false,
           mode,
         });
+        if (isInstall) {
+          fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            configurationType: 'llm-accelerator-configuration',
+          });
+        }
       }
       return;
     }
@@ -147,6 +160,13 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           success: false,
           mode,
         });
+        if (isInstall) {
+          fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+            outcome: TrackingOutcome.submit,
+            success: false,
+            configurationType: 'llm-accelerator-configuration',
+          });
+        }
       }
       return;
     }
@@ -156,6 +176,9 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
       displayName: nameDescData.name,
       version,
       labels: { [CONFIG_TYPE_LABEL]: ConfigType.ACCELERATOR },
+      ...(isInstall && {
+        annotations: { [MetadataAnnotation.InstalledFromCatalog]: 'true' },
+      }),
     });
     setLoading(true);
     const submitFn = isEdit
@@ -171,6 +194,13 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             success: true,
             mode,
           });
+          if (isInstall) {
+            fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+              outcome: TrackingOutcome.submit,
+              success: true,
+              configurationType: 'llm-accelerator-configuration',
+            });
+          }
         }
         navigate(listPath);
       })
@@ -187,6 +217,13 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
             success: false,
             mode,
           });
+          if (isInstall) {
+            fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+              outcome: TrackingOutcome.submit,
+              success: false,
+              configurationType: 'llm-accelerator-configuration',
+            });
+          }
         }
       })
       .finally(() => {
@@ -195,6 +232,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
   }, [
     yamlCode,
     isEdit,
+    isInstall,
     mode,
     sourceConfig?.metadata.name,
     nameDescData,
@@ -265,6 +303,12 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
                 outcome: TrackingOutcome.cancel,
                 mode,
               });
+              if (isInstall) {
+                fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                  outcome: TrackingOutcome.cancel,
+                  configurationType: 'llm-accelerator-configuration',
+                });
+              }
             }
             navigate(props.mode === 'install' ? props.cancelReturnRoute : listPath);
           }}

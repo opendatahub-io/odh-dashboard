@@ -9,8 +9,6 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const EvalHubEmptyState: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +22,7 @@ const EvalHubEmptyState: React.FC = () => {
       data-testid="eval-hub-empty-state"
     >
       <EmptyStateBody data-testid="eval-hub-empty-state-body">
-        Go to benchmark suites to create a suite or run an individual benchmark, or select a
+        Go to collections to create a collection or run an individual benchmark, or select a
         different project to view its runs.
       </EmptyStateBody>
       <EmptyStateFooter>
@@ -33,11 +31,10 @@ const EvalHubEmptyState: React.FC = () => {
             variant="primary"
             data-testid="create-evaluation-button"
             onClick={() => {
-              fireSimpleTrackingEvent(EVAL_HUB_EVENTS.START_EVALUATION_SELECTED);
               navigate({ search: '?tab=evaluate' });
             }}
           >
-            View benchmark suites
+            View collections
           </Button>
         </EmptyStateActions>
       </EmptyStateFooter>

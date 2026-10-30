@@ -1,6 +1,10 @@
 const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
+const GEN_AI_MULTIMODAL_FLAGS =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,genAiImageUpload=true,genAiAudioUpload=true,modelAsService=false';
+const GEN_AI_EXTERNAL_VECTOR_STORES_FLAG =
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG =
@@ -10,11 +14,12 @@ const GEN_AI_GUARDRAILS_FLAG =
 const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false';
 const GEN_AI_ALL_FLAGS =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,modelAsService=false';
+  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,genAiImageUpload=true,genAiAudioUpload=true,modelAsService=false';
 const GEN_AI_AGENT_DEPLOYMENTS_FLAGS =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,agentConfigManagement=true,genAiAgentDeployment=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,genAiMcpRegistryServers=true,modelAsService=false';
+const GEN_AI_MAAS_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=true,maasApiKeys=true';
 const GEN_AI_TRACING_FLAG =
   'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,genAiTracing=true,modelAsService=false';
 
@@ -39,6 +44,21 @@ class GenAiPlayground {
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 
+  navigateToAssetsWithExternalVectorStores(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_EXTERNAL_VECTOR_STORES_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToAssetsWithMaaS(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_MAAS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
+  navigateToPlaygroundWithMaaS(projectName: string) {
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_MAAS_FLAG}`);
+    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
+  }
+
   navigateToAssetsWithTracing(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_TRACING_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
@@ -51,6 +71,12 @@ class GenAiPlayground {
 
   navigateToPlaygroundWithRetry(projectName: string) {
     const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
+    cy.visit(playgroundUrl);
+    cy.findByTestId('settings-model-selector-toggle', { timeout: 120000 }).should('be.visible');
+  }
+
+  navigateToMultimodalPlaygroundWithRetry(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_MULTIMODAL_FLAGS}`;
     cy.visit(playgroundUrl);
     cy.findByTestId('settings-model-selector-toggle', { timeout: 120000 }).should('be.visible');
   }
@@ -100,6 +126,31 @@ class GenAiPlayground {
     return cy.findByTestId('empty-state');
   }
 
+  findAiModelsNameFilter() {
+    return cy.findByTestId('models-table-toolbar').find('input');
+  }
+
+  findAiModelRow(modelId: string, options?: { timeout?: number }) {
+    return this.findAiModelsTable(options)
+      .contains('[data-testid="model-id-text"]', modelId, options)
+      .closest('tr');
+  }
+
+  findModelCheckbox(modelName: string) {
+    const sanitizedModelName = modelName.replace(/[^a-zA-Z0-9-]/g, '');
+    return this.findConfigurationTable()
+      .findByTestId(`${sanitizedModelName}-checkbox`)
+      .find('input[type="checkbox"]');
+  }
+
+  findSubscriptionToggle(options?: { timeout?: number }) {
+    return cy.findByTestId('subscription-selector-toggle', options);
+  }
+
+  findStopButton(options?: { timeout?: number }) {
+    return cy.get('[data-testid="chatbot-stop-button"]', options);
+  }
+
   findCreatePlaygroundButton(options?: { timeout?: number }) {
     return cy.findByTestId('create-playground-button', options);
   }
@@ -110,6 +161,15 @@ class GenAiPlayground {
 
   findConfigurationTable() {
     return cy.findByTestId('chatbot-configuration-table');
+  }
+
+  findConfigurationCollectionsTable() {
+    return cy.findByTestId('chatbot-configuration-collections-table');
+  }
+
+  findConfigurationVectorStoreCheckbox(vectorStoreId: string) {
+    const sanitizedId = vectorStoreId.replace(/[^a-zA-Z0-9-]/g, '');
+    return cy.findByTestId(`${sanitizedId}-checkbox`).find('input[type="checkbox"]');
   }
 
   findCreateButtonInDialog() {
@@ -175,10 +235,6 @@ class GenAiPlayground {
     return cy.findByTestId('upload-document-menu-item');
   }
 
-  findDocumentFileInput() {
-    return cy.findByTestId('document-file-input');
-  }
-
   findDocumentAttachmentByName(fileName: string) {
     return cy.contains('[data-testid^="document-attachment-"]', fileName);
   }
@@ -193,10 +249,6 @@ class GenAiPlayground {
 
   findAudioTranscriptionError() {
     return cy.get('[data-testid="audio-transcription-error"]');
-  }
-
-  findStopButton() {
-    return cy.get('[data-testid="chatbot-stop-button"]');
   }
 
   findSendButton() {
@@ -341,6 +393,46 @@ class GenAiPlayground {
     return cy.findByTestId('try-playground-button');
   }
 
+  findVectorStoresTab() {
+    return cy.findByTestId('ai-assets-tab-vectorstores');
+  }
+
+  findVectorStoresTable(options?: { timeout?: number }) {
+    return cy.findByTestId('vector-stores-table', options);
+  }
+
+  findVectorStoreRow(vectorStoreId: string, options?: { timeout?: number }) {
+    return cy.findByTestId(`vector-store-row-${vectorStoreId}`, options);
+  }
+
+  findVectorStoreInfoButton(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-info-${vectorStoreId}`);
+  }
+
+  findVectorStoreDetails(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-details-${vectorStoreId}`);
+  }
+
+  findVectorStoreProviderId(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-provider-id-${vectorStoreId}`).find('input');
+  }
+
+  findVectorStoreProviderType(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-provider-type-${vectorStoreId}`).find('input');
+  }
+
+  findVectorStoreId(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-id-${vectorStoreId}`).find('input');
+  }
+
+  findVectorStoreAddToPlaygroundButton(vectorStoreId: string) {
+    return cy.findByTestId(`vector-store-add-to-playground-${vectorStoreId}`);
+  }
+
+  findVectorStoreTryInPlaygroundButton(vectorStoreId: string, options?: { timeout?: number }) {
+    return cy.findByTestId(`vector-store-try-in-playground-${vectorStoreId}`, options);
+  }
+
   // Settings panel methods
   findSettingsButton() {
     return cy.findByTestId('settings-button');
@@ -443,10 +535,6 @@ class GenAiPlayground {
     return cy.findByTestId('prompt-variable-input-panel');
   }
 
-  scrollPromptTabToBottom() {
-    return cy.findByTestId('chatbot-settings-page-tab-content-prompt').scrollTo('bottom');
-  }
-
   findVariableInput(variableName: string) {
     return cy.findByTestId(`prompt-variable-input-${variableName}`).scrollIntoView();
   }
@@ -458,6 +546,10 @@ class GenAiPlayground {
 
   findKnowledgeModeUploadRadio() {
     return cy.findByTestId('knowledge-mode-upload-radio');
+  }
+
+  findDocumentFileInput() {
+    return cy.findByTestId('document-file-input');
   }
 
   findKnowledgeSourceFileInput() {
@@ -484,6 +576,14 @@ class GenAiPlayground {
 
   findRagToggle() {
     return cy.findByTestId('rag-toggle-switch');
+  }
+
+  findExternalKnowledgeModeRadio() {
+    return cy.findByTestId('knowledge-mode-external-radio');
+  }
+
+  findExternalVectorStoreToggle(options?: { timeout?: number }) {
+    return cy.findByTestId('external-vector-store-toggle', options);
   }
 
   findUploadedFilesCard(options?: { timeout?: number }) {

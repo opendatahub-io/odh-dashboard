@@ -5,6 +5,7 @@ import { KubeFastifyInstance } from '../../../types';
 import { DEV_MODE } from '../../../utils/constants';
 import { isImpersonating, getImpersonateAccessToken } from '../../../devFlags';
 import { getAccessToken } from '../../../utils/directCallUtils';
+import { applyIpv6AwareIdentityCheck, bracketHostIfIPv6 } from '../../../utils/networkUtils';
 
 const REGISTRY_CONDITION_TYPE = 'Registry';
 
@@ -109,6 +110,7 @@ function getUserScopedCustomObjectsApi(
 
   const userKc = new k8s.KubeConfig();
   userKc.loadFromClusterAndUser(cluster, { name: 'current-user', token });
+  applyIpv6AwareIdentityCheck(userKc);
 
   return {
     api: userKc.makeApiClient(k8s.CustomObjectsApi),
@@ -498,7 +500,9 @@ export function constructRegistryProxyUrl(
       process.env.FEAST_REGISTRY_SERVICE_HOST ||
       `${serviceName}.${serviceNamespace}.svc.cluster.local`;
     const envPort = process.env.FEAST_REGISTRY_SERVICE_PORT || port;
-    return `${protocol}://${host}:${envPort}/${path}`;
+    // FEAST_REGISTRY_SERVICE_HOST is the service ClusterIP, which is a raw IPv6 literal on IPv6
+    // single-stack clusters and must be bracketed before concatenating `:port`.
+    return `${protocol}://${bracketHostIfIPv6(host)}:${envPort}/${path}`;
   }
 
   return `${protocol}://${serviceName}.${serviceNamespace}.svc.cluster.local:${port}/${path}`;
@@ -554,10 +558,7 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
 ): Promise<{ data: T; statusCode: number }> {
   const { timeout = 60000, rejectUnauthorized = false, agent } = options;
 
-  const urlObj = new URL(url);
-
-  const isHttps = urlObj.protocol === 'https:';
-  const defaultPort = isHttps ? 443 : 80;
+  const isHttps = new URL(url).protocol === 'https:';
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -568,9 +569,6 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
   }
 
   const requestOptions = {
-    hostname: urlObj.hostname,
-    port: urlObj.port || defaultPort,
-    path: urlObj.pathname + urlObj.search,
     method: 'GET',
     headers,
     rejectUnauthorized,
@@ -579,7 +577,10 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
 
   return new Promise((resolve, reject) => {
     const requestModule = isHttps ? https : http;
-    const req = requestModule.request(requestOptions, (res) => {
+    // Pass the URL string (not a hostname option) so Node strips the surrounding brackets from an
+    // IPv6 literal when deriving the connect host — `URL.hostname` keeps the brackets, which the
+    // `hostname` request option would reject.
+    const req = requestModule.request(url, requestOptions, (res) => {
       let data = '';
       res.on('data', (chunk) => {
         data += chunk;

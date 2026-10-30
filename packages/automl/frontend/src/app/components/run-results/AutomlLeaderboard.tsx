@@ -10,11 +10,10 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
   Label,
   Skeleton,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
@@ -32,11 +31,22 @@ import {
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import { RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
+import {
+  ExecutorLogsTearsheet,
+  RunInProgress,
+} from '@odh-dashboard/autox-core/ui/components/feature';
 import { ManageColumnsModal } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { findFirstFailedTaskKey, useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import {
+  TASK_TYPE_BINARY,
+  TASK_TYPE_MULTICLASS,
+  TASK_TYPE_REGRESSION,
+  TASK_TYPE_TIMESERIES,
+} from '~/app/utilities/const';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import {
   formatMetricName,
@@ -49,6 +59,31 @@ import { fireAutomlLeaderboardSorted, type ModelActionSource } from '~/app/utili
 import './AutomlLeaderboard.scss';
 
 const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
+
+const DEFAULT_VISIBLE_METRIC_KEYS_BY_TASK_TYPE: Record<string, readonly string[]> = {
+  [TASK_TYPE_BINARY]: ['accuracy', 'precision', 'recall', 'f1'],
+  [TASK_TYPE_MULTICLASS]: [
+    'accuracy',
+    'balanced_accuracy',
+    'mcc',
+    'f1_macro',
+    'precision_macro',
+    'recall_macro',
+  ],
+  [TASK_TYPE_REGRESSION]: [
+    'r2',
+    'root_mean_squared_error',
+    'mean_absolute_error',
+    'median_absolute_error',
+  ],
+  [TASK_TYPE_TIMESERIES]: [
+    'mean_absolute_scaled_error',
+    'mean_absolute_error',
+    'root_mean_squared_error',
+    'weighted_quantile_loss',
+  ],
+};
+const EMPTY_METRIC_KEYS: readonly string[] = [];
 
 type LeaderboardEntry = {
   rank: number;
@@ -403,6 +438,7 @@ function AutomlLeaderboard({
     pipelineRun,
     pipelineRunLoading,
     bestModelKey,
+    componentStageMap,
   } = useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
   // this as an actual parameter passed to the pipeline
@@ -416,6 +452,31 @@ function AutomlLeaderboard({
 
   // Check if pipeline is still running
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
+
+  // The failed-run empty state opens the executor log of the first failed
+  // task (the step where the pipeline stopped) in a tearsheet.
+  const isRunFailed =
+    pipelineRun?.state === RuntimeStateKF.FAILED || pipelineRun?.state === RuntimeStateKF.CANCELED;
+  const { rootDir } = useAutomlOutputDir(pipelineRun);
+  const failedRunTaskKey = React.useMemo(
+    () =>
+      isRunFailed && Object.keys(models).length === 0
+        ? findFirstFailedTaskKey(
+            pipelineRun.run_details?.task_details ?? [],
+            componentStageMap?.components.map((component) => component.id) ?? [],
+            rootDir,
+          )
+        : undefined,
+    [componentStageMap, isRunFailed, models, pipelineRun, rootDir],
+  );
+  const runExecutorError = useTaskExecutorError({
+    namespace,
+    runId,
+    pipelineRun,
+    taskKey: failedRunTaskKey,
+    rootDir,
+  });
+  const [isRunLogsTearsheetOpen, setIsRunLogsTearsheetOpen] = React.useState(false);
 
   // Determine the optimized metric (prefer the user's choice, fall back to task-type default)
   const optimizedMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
@@ -467,16 +528,29 @@ function AutomlLeaderboard({
     [nonOptimizedMetricKeys, optimizedMetric],
   );
 
-  // Column visibility and ordering state — whitelist approach so new columns are hidden by default
+  // Column visibility and ordering state — default metrics depend on the run's task type.
+  const defaultMetricKeys = DEFAULT_VISIBLE_METRIC_KEYS_BY_TASK_TYPE[taskType] ?? EMPTY_METRIC_KEYS;
   const DEFAULT_VISIBLE_IDS = React.useMemo(
-    () => new Set(['rank', 'model', 'optimized-metric']),
-    [],
+    () =>
+      new Set([
+        'rank',
+        'model',
+        'optimized-metric',
+        ...defaultMetricKeys.map((key) => `metric:${key}`),
+      ]),
+    [defaultMetricKeys],
   );
   const [visibleColumnIds, setVisibleColumnIds] = React.useState<Set<string>>(
     () => new Set(DEFAULT_VISIBLE_IDS),
   );
   const [columnOrder, setColumnOrder] = React.useState<string[] | null>(null);
   const [isManageColumnsOpen, setIsManageColumnsOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setVisibleColumnIds(new Set(DEFAULT_VISIBLE_IDS));
+    setColumnOrder(null);
+    setActiveSort({ id: 'rank', direction: 'asc' });
+  }, [DEFAULT_VISIBLE_IDS]);
 
   // Default columns in original order with default visibility — used by "Reset to default"
   const defaultColumns: ColumnManagementModalColumn[] = React.useMemo(
@@ -873,9 +947,6 @@ function AutomlLeaderboard({
   // Show empty state when no models were produced
   if (Object.keys(models).length === 0) {
     const isRunSucceeded = pipelineRun?.state === RuntimeStateKF.SUCCEEDED;
-    const isRunFailed =
-      pipelineRun?.state === RuntimeStateKF.FAILED ||
-      pipelineRun?.state === RuntimeStateKF.CANCELED;
 
     // Helper to render message with pipeline run link (falls back to plain text when route params are missing)
     const messageWithLink = (before: string, linkText: string, after = '.') =>
@@ -904,11 +975,37 @@ function AutomlLeaderboard({
         'pipeline configuration and logs',
       );
     } else if (isRunFailed) {
-      messageContent = messageWithLink(
-        'The pipeline run did not complete successfully. Please check the',
-        'pipeline configuration and logs',
-        ' for errors.',
-      );
+      messageContent =
+        namespace && runId ? (
+          <>
+            <span>The pipeline run did not complete successfully. Please check the </span>
+            {runExecutorError.logText ? (
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setIsRunLogsTearsheetOpen(true)}
+                data-testid="leaderboard-failed-run-logs-link"
+              >
+                log
+              </Button>
+            ) : (
+              'log'
+            )}
+            <span> for errors or </span>
+            <Button
+              variant="link"
+              isInline
+              component={(props) => (
+                <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+              )}
+            >
+              pipeline configuration
+            </Button>
+            <span> for more advanced details.</span>
+          </>
+        ) : (
+          'The pipeline run did not complete successfully. Please check the log for errors or pipeline configuration for more advanced details.'
+        );
     } else if (isRunSucceeded) {
       messageContent = messageWithLink(
         'The pipeline run completed but did not generate any models. Please check the',
@@ -923,42 +1020,58 @@ function AutomlLeaderboard({
     }
 
     return (
-      <Bullseye>
-        <EmptyState
-          headingLevel="h2"
-          titleText="No models produced"
-          variant={EmptyStateVariant.sm}
-          data-testid="leaderboard-empty"
-        >
-          <EmptyStateBody>{messageContent}</EmptyStateBody>
-        </EmptyState>
-      </Bullseye>
+      <>
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            titleText="No models produced"
+            variant={EmptyStateVariant.sm}
+            data-testid="leaderboard-empty"
+          >
+            <EmptyStateBody>{messageContent}</EmptyStateBody>
+          </EmptyState>
+        </Bullseye>
+        {runExecutorError.logText ? (
+          <ExecutorLogsTearsheet
+            logText={runExecutorError.logText}
+            isOpen={isRunLogsTearsheetOpen}
+            onClose={() => setIsRunLogsTearsheetOpen(false)}
+          />
+        ) : null}
+      </>
     );
   }
 
   return (
     <Card>
       <CardBody>
-        <Content component={ContentVariants.h3}>Results</Content>
-        <Toolbar hasNoPadding>
-          <ToolbarContent alignItems="center">
-            <ToolbarItem>
-              <Content component={ContentVariants.small} data-testid="columns-selected-count">
-                {visibleColumns.length}/{columnDefs.length} columns selected
-              </Content>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                variant="link"
-                icon={<ColumnsIcon />}
-                onClick={() => setIsManageColumnsOpen(true)}
-                data-testid="manage-columns-button"
-              >
-                Manage columns
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <FlexItem>
+            <Content component={ContentVariants.h3}>Results</Content>
+          </FlexItem>
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+              <FlexItem>
+                <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                  {visibleColumns.length}/{columnDefs.length} columns selected
+                </Content>
+              </FlexItem>
+              <FlexItem>
+                <Button
+                  variant="link"
+                  icon={<ColumnsIcon />}
+                  onClick={() => setIsManageColumnsOpen(true)}
+                  data-testid="manage-columns-button"
+                >
+                  Manage columns
+                </Button>
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
         <InnerScrollContainer>
           <Table
             aria-label="AutoML Model Leaderboard"

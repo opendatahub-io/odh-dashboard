@@ -1,7 +1,26 @@
 import type { RuntimeImageInstallTargetExtension } from '../../../../extension-points/runtime-image-install-target';
 import { isRuntimeImageInstallTargetExtension } from '../../../../extension-points/runtime-image-install-target';
-import { getAvailableInstallTargets, getMatchingInstallTarget } from '../utils';
-import { mockRuntimeImageActionData } from '../mockRuntimeImageActionData';
+import {
+  getInstallTargets,
+  getAvailableInstallTargets,
+  getMatchingInstallTarget,
+  getRuntimeImageInstallRoute,
+} from '../utils';
+import { mockRuntimeImageActionData } from '../../../__mocks__/mockRuntimeImageActionData';
+
+describe('runtime image install route', () => {
+  it('builds the install URL under the runtime details route', () => {
+    expect(getRuntimeImageInstallRoute('runtime-1')).toBe(
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/runtime-1/install',
+    );
+  });
+
+  it('encodes the runtime identifier in the install URL', () => {
+    expect(getRuntimeImageInstallRoute('runtime / one')).toBe(
+      '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog/runtime%20%2F%20one/install',
+    );
+  });
+});
 
 const servingRuntimeTarget: RuntimeImageInstallTargetExtension = {
   type: 'model-serving.runtime-image/install-target',
@@ -11,9 +30,9 @@ const servingRuntimeTarget: RuntimeImageInstallTargetExtension = {
     description: 'Serving runtime description',
     selectedState: {
       listName: 'Serving runtime templates',
-      description: 'and the legacy deployment wizard.',
+      description: 'and the inference service deployment wizard.',
     },
-    configureStepLabel: 'Configure template',
+    installTargetName: 'serving runtime template',
     component: () => Promise.resolve({ default: () => null }),
   },
 };
@@ -28,7 +47,7 @@ const acceleratorTarget: RuntimeImageInstallTargetExtension = {
       listName: 'LLM accelerator configurations',
       description: 'and the LLM inference service deployment wizard.',
     },
-    configureStepLabel: 'Configure accelerator',
+    installTargetName: 'LLM accelerator configuration',
     component: () => Promise.resolve({ default: () => null }),
   },
 };
@@ -63,7 +82,21 @@ describe('install target discovery', () => {
     ).toBe(servingRuntimeTarget);
   });
 
-  it('should include the first active extension for each target with corresponding data', () => {
+  it('should retain all valid contributed options independently of resource data', () => {
+    expect(
+      getInstallTargets([servingRuntimeTarget, servingRuntimeTarget, acceleratorTarget]),
+    ).toEqual([servingRuntimeTarget, acceleratorTarget]);
+    const invalidTarget = {
+      ...servingRuntimeTarget,
+      properties: { ...servingRuntimeTarget.properties, component: undefined },
+    } as unknown as RuntimeImageInstallTargetExtension;
+    expect(getInstallTargets([invalidTarget, servingRuntimeTarget])).toEqual([
+      servingRuntimeTarget,
+    ]);
+    expect(getInstallTargets([invalidTarget])).toEqual([]);
+  });
+
+  it('should filter resolved targets by corresponding resource data', () => {
     expect(
       getAvailableInstallTargets(actionData, [servingRuntimeTarget, acceleratorTarget]),
     ).toEqual([servingRuntimeTarget]);
@@ -74,7 +107,10 @@ describe('install target discovery', () => {
       ]),
     ).toEqual([servingRuntimeTarget, acceleratorTarget]);
     expect(
-      getAvailableInstallTargets(actionData, [servingRuntimeTarget, servingRuntimeTarget]),
+      getAvailableInstallTargets(
+        actionData,
+        getInstallTargets([servingRuntimeTarget, servingRuntimeTarget]),
+      ),
     ).toEqual([servingRuntimeTarget]);
     expect(getAvailableInstallTargets(actionData, [acceleratorTarget])).toEqual([]);
   });

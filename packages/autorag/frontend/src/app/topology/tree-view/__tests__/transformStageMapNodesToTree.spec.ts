@@ -311,7 +311,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern 1');
+    expect(patternNodes[0].data.label).toBe('Pattern\u00a0A');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
     expect(patternNodes[0].data.winnerRank).toBeUndefined();
@@ -347,7 +347,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern 1');
+    expect(patternNodes[0].data.label).toBe('Pattern\u00a0A');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
   });
@@ -363,7 +363,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern 1');
+    expect(patternNodes[0].data.label).toBe('Pattern\u00a0A');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
     expect(patternNodes[0].data.winnerRank).toBeUndefined();
@@ -382,6 +382,61 @@ describe('transformStageMapNodesToTree', () => {
     expect(winner?.data.labelSubtitle).toBe('winner');
     expect(winner?.data.winnerRank).toBeUndefined();
     expect(winner?.data.showWinnerStar).toBe(false);
+  });
+
+  it('should handle a resolved winner without a display label', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const winnerTopologyNode = topologyNodes.find(
+      (node) => node.id.includes('__pattern__') && node.data?.patternKey === 'PatternHyDE',
+    );
+    if (!winnerTopologyNode) {
+      throw new Error('expected a pattern terminus for the winner');
+    }
+    winnerTopologyNode.label = undefined;
+
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: true,
+      winnerPatternKey: 'PatternHyDE',
+    });
+
+    const winner = nodes.find((node) => node.data.isResolvedWinner);
+    expect(winner?.data.label).toBeUndefined();
+    expect(winner?.data.labelSubtitle).toBe('winner');
+  });
+
+  it('does not annotate ambiguous display-name matches as winners', () => {
+    const stageMap = makeStageMap([
+      makeComponent('rag_optimization', [
+        makeStage('validate_inputs', { status: 'completed' }),
+        makeStage('optimize_templates', {
+          status: 'started',
+          selected_patterns: ['pattern_a', 'pattern_b'],
+        }),
+      ]),
+    ]);
+    const topologyNodes = buildStageMapTopology(
+      stageMap,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        pattern_a: { name: 'Shared Pattern' },
+        pattern_b: { name: 'Shared Pattern' },
+      },
+    );
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      patternsExpanded: true,
+      winnerResolved: true,
+      winnerPatternLabel: 'Shared Pattern',
+      winnerPatternKey: 'missing-pattern',
+    });
+
+    const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
+    expect(patternNodes).toHaveLength(2);
+    expect(patternNodes.some((node) => node.data.isResolvedWinner)).toBe(false);
+    expect(patternNodes.some((node) => node.data.labelSubtitle === 'winner')).toBe(false);
   });
 
   it('expands all pattern branches when patternsExpanded is true', () => {
@@ -407,7 +462,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(nodes.some((node) => node.data.nodeRole === 'column-header')).toBe(true);
     expect(nodes.some((node) => node.data.nodeRole === 'column-rule')).toBe(true);
     const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
-    expect(rowLabels.map((node) => node.data.label)).toEqual(['Pattern 1', 'Pattern 2']);
+    expect(rowLabels.map((node) => node.data.label)).toEqual(['Pattern\u00a0A', 'Pattern\u00a0B']);
     const rowLabelXs = [...new Set(rowLabels.map((node) => node.x ?? 0))];
     expect(rowLabelXs).toHaveLength(1);
     expect(rowLabels.every((node) => node.width === 68)).toBe(true);

@@ -13,7 +13,12 @@ import { transformPipelineData } from '~/app/topology/tree-view/transformPipelin
 import { useAutoragTaskTopology } from '~/app/topology/useAutoragTaskTopology';
 import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
 import type { RunDetailsKF } from '~/app/types/pipeline';
-import { downloadBlob, normalizePipelineRunState, sanitizeFilename } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  formatPatternName,
+  normalizePipelineRunState,
+  sanitizeFilename,
+} from '~/app/utilities/utils';
 import { computePatternRankMap } from '~/app/utilities/metricUtils';
 import { buildIndexingPipelineRunRequest } from '~/app/utilities/indexingPipeline';
 import { resolveDatabaseSecretName, resolveMaaSSecretName } from '~/app/utilities/responses';
@@ -120,6 +125,22 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     ],
   );
   const fallbackNodes = useAutoragTaskTopology(pipelineRun?.pipeline_spec, runDetails, runState);
+  const inferredFailureWarningRef = React.useRef<string>();
+  React.useEffect(() => {
+    const inferredNode = stageMapNodes.find((node) => node.data?.inferredFailure);
+    if (!inferredNode) {
+      return;
+    }
+    const warningKey = `${pipelineRun?.run_id ?? 'unknown-run'}:${inferredNode.id}`;
+    if (inferredFailureWarningRef.current === warningKey) {
+      return;
+    }
+    inferredFailureWarningRef.current = warningKey;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[AutoRAG topology] Inferred failed node ${inferredNode.id}${pipelineRun?.run_id ? ` for run ${pipelineRun.run_id}` : ''}; no exact component failure was available.`,
+    );
+  }, [pipelineRun?.run_id, stageMapNodes]);
   const pipelineSpec = pipelineRun?.pipeline_spec?.pipeline_spec ?? pipelineRun?.pipeline_spec;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- pipelineSpec shape varies at runtime
   const hasStageMapTask = Boolean(pipelineSpec?.root?.dag?.tasks?.['publish-component-stage-map']);
@@ -338,7 +359,9 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
           return;
         }
         const displayName = sanitizeFilename(pipelineRun?.display_name || 'pipeline');
-        const safePatternName = sanitizeFilename(patternName);
+        // formatPatternName joins the label with a non-breaking space; filenames omit it (PatternA).
+        const patternLabel = formatPatternName(patternName).replace(/\u00a0/g, '');
+        const safePatternName = sanitizeFilename(patternLabel);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
         fireAutoragNotebookDownloaded(notebookType);
@@ -366,7 +389,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
 
   return (
     <>
-      <Stack hasGutter>
+      <Stack hasGutter className="autorag-results pf-v6-u-h-auto">
         {downloadError && (
           <StackItem>
             <Alert
@@ -374,7 +397,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
               title="Notebook download failed"
               actionClose={<AlertActionCloseButton onClose={() => setDownloadError(null)} />}
             >
-              <strong>Pattern: {downloadError.patternName}</strong>
+              <strong>Pattern: {formatPatternName(downloadError.patternName)}</strong>
               <br />
               {downloadError.message}
             </Alert>
@@ -389,6 +412,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
             treeLoadingMode={treeLoadingMode}
             componentStageMap={componentStageMap}
             pipelineRun={pipelineRun}
+            namespace={namespace}
             showStageMapUnavailableNotice={shouldShowStageMapUnavailableNotice({
               hasStageMapTask,
               hasComponentStageMap: Boolean(componentStageMap),

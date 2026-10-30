@@ -153,45 +153,41 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	if certFile != "" && keyFile != "" {
-		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
-		if err != nil {
-			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
-			os.Exit(1)
-		}
-		srv.TLSConfig = tlsCfg
-	}
+	tlsEnabled := certFile != "" && keyFile != ""
 
-	// Start the server in a goroutine
+	// signalCtx is cancelled on the first shutdown signal; both the HTTPS reload
+	// loop and the graceful-shutdown sequence below key off it.
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
+	var serveErr error
+	serverClosed := make(chan struct{})
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""), "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
-		var err error
-		if certFile != "" && keyFile != "" {
-			err = srv.ListenAndServeTLS(certFile, keyFile)
+		defer close(serverClosed)
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled, "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
+		if tlsEnabled {
+			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
-			err = srv.ListenAndServe()
+			serveErr = srv.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server ListenAndServe", "error", err)
+		if serveErr != nil && serveErr != http.ErrServerClosed {
+			logger.Error("HTTP server failed", "error", serveErr)
+			stop()
 		}
 	}()
 
-	// Graceful shutdown setup
-	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	// Wait for shutdown signal
-	<-shutdownCh
+	<-signalCtx.Done()
 	logger.Info("shutting down gracefully...")
 
-	// Create a context with timeout for the shutdown process
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Shutdown the HTTP server gracefully
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("server shutdown failed", "error", err)
+	if !tlsEnabled {
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Error("server shutdown failed", "error", err)
+		}
 	}
+	<-serverClosed
 
 	// Shutdown telemetry (with its own deadline so span flush isn't starved
 	// by a slow HTTP drain consuming the shared 30s budget above)
@@ -207,6 +203,9 @@ func main() {
 	}
 
 	logger.Info("server stopped")
+	if serveErr != nil && serveErr != http.ErrServerClosed {
+		os.Exit(1)
+	}
 	os.Exit(0)
 
 }

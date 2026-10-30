@@ -92,7 +92,7 @@ const AgentProfileTableRow: React.FC<AgentProfileTableRowProps> = ({
           )}
         </Td>
         {showEndpointsColumn && (
-          <Td dataLabel="Endpoint(s)">
+          <Td dataLabel="Access details">
             {deploymentsLoading ? (
               <Skeleton
                 width="3rem"

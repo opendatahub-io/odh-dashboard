@@ -12,6 +12,34 @@ Deploy the `/maas-portal` HTTPRoute together with a Core-BFF image containing a 
 
 The no-slash URL `/maas-portal` redirects to `/maas-portal/`. Check the portal root, deep links, static assets, API requests, Kubernetes watches, Perses, and logout with the core dashboard both Managed and Removed.
 
+## Run MaaS Portal Locally with AUTH_TOKEN
+
+Run the MaaS portal and both BFFs locally using either setup below.
+
+### Federated with AUTH_TOKEN
+
+Log in to your deployed MaaS portal and copy the token from `/debug/headers`, without
+the `Bearer ` prefix. Provide your MaaS gateway hostname without `https://` or a path.
+
+```bash
+cd distributions/maas-portal
+AUTH_TOKEN='<fresh-raw-jwt>' \
+GATEWAY_DOMAIN='<maas-gateway-hostname>' \
+make grid-start-federated
+```
+
+### Mock data
+
+No token or cluster is needed.
+
+```bash
+cd distributions/maas-portal
+make grid-start-mock
+```
+
+Open http://localhost:4020/maas-portal/ for either setup. Stop with `Ctrl+C` before
+switching modes. View saved logs with `make grid-logs`.
+
 ## Running locally
 
 ### Mode A: Mock data (no cluster needed)
@@ -142,6 +170,23 @@ The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_
 | `src/bootstrap.tsx` | App entry — mounts providers via `createDistribution` |
 | `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
 | `src/PortalContextProvider.tsx` | Composes the standalone MaaS BFF and portal authorization providers |
-| `src/MaaSAuthzProvider.tsx` | Publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility |
+| `src/MaaSAuthzProvider.tsx` | When the `grid` feature flag is off, publishes `ADMIN_USER` from the MaaS authorization check; access failures deny governance visibility. When `grid` is on, skips the check and keeps `ADMIN_USER` false. |
 | `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |
 | `config/contextualTildeResolverPlugin.js` | Resolves `~/` imports per package |
+
+## Grid migration flag
+
+The temporary `grid` feature flag controls all Grid-aware MaaS Consumer Portal behavior in the
+`@odh-dashboard/maas` and `@odh-dashboard/gen-ai` packages. It defaults to `false`, preserving the
+existing Kubernetes-backed behavior while the MaaS Gateway API integration is developed.
+
+For local testing, enable it on the portal URL:
+
+```text
+http://localhost:4020/maas-portal/?devFeatureFlags=grid=true
+```
+
+The value is persisted in session storage and is sent to the existing dashboard configuration
+endpoint as a feature-flag override. Use `?devFeatureFlags=grid=false` to disable it again. The
+flag and the legacy Kubernetes paths are temporary and should be removed after the migration is
+complete.

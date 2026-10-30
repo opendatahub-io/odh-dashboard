@@ -7,26 +7,21 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
+  Stack,
+  StackItem,
   TextInput,
 } from '@patternfly/react-core';
 
 type DeleteAssetModalProps = {
   assetName: string;
-  assetType: 'table' | 'volume';
   onDelete: () => Promise<void>;
   onClose: () => void;
 };
 
-const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({
-  assetName,
-  assetType,
-  onDelete,
-  onClose,
-}) => {
+const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({ assetName, onDelete, onClose }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string>();
   const [confirmation, setConfirmation] = React.useState('');
-  const assetTypeLabel = assetType === 'table' ? 'structured' : 'unstructured';
 
   const handleDelete = React.useCallback(async () => {
     setIsDeleting(true);
@@ -46,32 +41,43 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({
       variant="medium"
       data-testid="delete-asset-modal"
     >
-      <ModalHeader
-        title={`Permanently delete "${assetName}" ${assetTypeLabel} asset?`}
-        titleIconVariant="warning"
-      />
+      <ModalHeader title="Delete data asset?" titleIconVariant="warning" />
       <ModalBody>
-        {error ? <Alert variant="danger" isInline title={error} /> : null}
-        <p>
-          <strong>{assetName}</strong> will be deleted from the registry.
-        </p>
-        <FormGroup
-          label={
-            <>
-              To confirm deletion, type <strong>{assetName}</strong> below:
-            </>
-          }
-          isRequired
-          fieldId="delete-asset-confirmation"
-        >
-          <TextInput
-            id="delete-asset-confirmation"
-            value={confirmation}
-            onChange={(_event, value) => setConfirmation(value)}
-            isDisabled={isDeleting}
-            data-testid="delete-asset-confirmation"
-          />
-        </FormGroup>
+        <Stack hasGutter>
+          <StackItem>
+            <p>
+              The <strong>{assetName}</strong> data asset will be deleted.
+            </p>
+          </StackItem>
+          <StackItem>
+            <FormGroup
+              label={
+                <>
+                  To confirm deletion, type <strong>{assetName}</strong>&#58;
+                  <span aria-hidden="true" className="pf-v6-u-text-color-status-danger">
+                    *
+                  </span>
+                </>
+              }
+              fieldId="delete-asset-confirmation"
+            >
+              <TextInput
+                id="delete-asset-confirmation"
+                value={confirmation}
+                onChange={(_event, value) => setConfirmation(value)}
+                aria-label={`To confirm deletion, type ${assetName}:`}
+                isRequired
+                isDisabled={isDeleting}
+                data-testid="delete-asset-confirmation"
+              />
+            </FormGroup>
+          </StackItem>
+          {error ? (
+            <StackItem>
+              <Alert variant="danger" isInline title={error} />
+            </StackItem>
+          ) : null}
+        </Stack>
       </ModalBody>
       <ModalFooter>
         <Button

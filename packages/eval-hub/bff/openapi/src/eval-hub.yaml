@@ -768,73 +768,6 @@ paths:
         evaluation job. Returns plain text log output.
 
   # =============================================================================
-  # INTER-BFF: MODEL CATALOG SECURITY ARTIFACTS
-  # =============================================================================
-
-  /eval-hub/api/v1/catalog/sources/{source_id}/security_artifacts/{model_name}:
-    summary: Get security artifacts for a model from the Model Catalog
-    description: >-
-      Proxies the request to the Model-Catalog BFF (model-registry package) to
-      retrieve security artifacts for a specific model. Only the security_artifacts
-      endpoint is permitted by the bffclient allowlist; other model-catalog
-      endpoints are blocked.
-    get:
-      tags:
-        - ModelCatalog
-      security:
-        - Bearer: []
-      parameters:
-        - $ref: '#/components/parameters/namespace'
-        - name: source_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Catalog source identifier
-          example: 'sample-source'
-        - name: model_name
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Model name (URL-encoded if it contains slashes, e.g. repo1%2Fgranite-8b)
-          example: 'granite-8b'
-        - $ref: '#/components/parameters/pageSize'
-        - $ref: '#/components/parameters/nextPageToken'
-        - $ref: '#/components/parameters/orderBy'
-        - $ref: '#/components/parameters/sortOrder'
-      responses:
-        '200':
-          $ref: '#/components/responses/CatalogSecurityArtifactsResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '502':
-          description: Bad Gateway - Model-Catalog BFF returned an error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-        '503':
-          description: Service Unavailable - Model-Catalog BFF is unreachable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-      operationId: getCatalogModelSecurityArtifacts
-      summary: Get Model Security Artifacts
-      description: >-
-        Fetches security artifacts for a model from the Model Catalog via
-        inter-BFF communication. The response is proxied from the model-catalog
-        BFF's /model_catalog/sources/{source_id}/security_artifacts/{model_name}
-        endpoint.
-
-  # =============================================================================
   # INFERENCE SERVICES
   # =============================================================================
 
@@ -1061,11 +994,6 @@ components:
           type: string
           format: date-time
           example: '2026-02-20T11:30:00Z'
-        message:
-          $ref: '#/components/schemas/JobMessage'
-        queue:
-          type: string
-          description: LocalQueue assigned to the evaluation job
 
     JobStatus:
       type: object
@@ -1091,9 +1019,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BenchmarkState'
-        queue:
-          type: string
-          description: LocalQueue currently associated with the evaluation job
 
     BenchmarkState:
       type: object
@@ -1132,28 +1057,18 @@ components:
           type: string
         metrics:
           type: object
-          additionalProperties:
-            type: number
-          description: Key-value metric scores
+          additionalProperties: true
+          description: >-
+            Metrics produced by evaluating the model on this benchmark, keyed by
+            metric name. Each value may be a scalar, list, or object.
         artifacts:
-          $ref: '#/components/schemas/BenchmarkArtifact'
-
-    BenchmarkArtifact:
-      type: object
-      properties:
-        oci_digest:
-          type: string
-        oci_reference:
-          type: string
-        size_bytes:
-          type: integer
-          format: int64
+          type: object
+          additionalProperties: true
+          description: Artifact key to location/info
 
     JobResults:
       type: object
       properties:
-        total_evaluations:
-          type: integer
         benchmarks:
           type: array
           items:
@@ -1263,7 +1178,6 @@ components:
         - status
         - results
         - model
-        - benchmarks
       properties:
         resource:
           $ref: '#/components/schemas/JobResource'
@@ -1378,80 +1292,6 @@ components:
       properties:
         oci:
           $ref: '#/components/schemas/OciExport'
-
-    # -------------------------------------------------------------------------
-    # Model Catalog security artifact schemas (inter-BFF)
-    # -------------------------------------------------------------------------
-
-    CatalogSecurityArtifact:
-      type: object
-      required:
-        - artifactType
-      properties:
-        artifactType:
-          type: string
-          example: 'metrics-artifact'
-          description: Type of artifact (e.g. metrics-artifact, model-artifact)
-        id:
-          type: string
-          nullable: true
-          example: '259215'
-          description: Unique artifact identifier from the model registry
-        name:
-          type: string
-          nullable: true
-          example: 'security-b1c2d3e4-3001-4000-a000-000000000005'
-          description: Human-readable artifact name
-        externalId:
-          type: string
-          nullable: true
-          example: 'b1c2d3e4-3001-4000-a000-000000000005'
-          description: External identifier for cross-system reference
-        metricsType:
-          type: string
-          nullable: true
-          example: 'security-metrics'
-          description: Sub-type of metrics artifact
-        uri:
-          type: string
-          nullable: true
-          description: URI to the artifact data
-        createTimeSinceEpoch:
-          type: string
-          nullable: true
-          example: '1693526400000'
-          description: Creation timestamp in milliseconds since epoch
-        lastUpdateTimeSinceEpoch:
-          type: string
-          nullable: true
-          description: Last update timestamp in milliseconds since epoch
-        customProperties:
-          type: object
-          additionalProperties: true
-          nullable: true
-          description: Custom metadata properties associated with the artifact
-
-    CatalogSecurityArtifactList:
-      type: object
-      required:
-        - items
-        - size
-      properties:
-        nextPageToken:
-          type: string
-          description: Token for fetching the next page of results
-        pageSize:
-          type: integer
-          format: int32
-          description: Maximum items per page
-        size:
-          type: integer
-          format: int32
-          description: Number of items returned in this page
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CatalogSecurityArtifact'
 
     # -------------------------------------------------------------------------
     # InferenceService schemas
@@ -1986,17 +1826,13 @@ components:
           additionalProperties: true
           nullable: true
 
-    CollectionState:
+    CollectionStatus:
       type: object
+      description: Server-computed status for a collection.
       properties:
-        derived_from:
-          type: string
-          nullable: true
         run_count:
           type: integer
-          nullable: true
-        pinned_order:
-          type: integer
+          description: Number of successful evaluation runs that used this collection.
           nullable: true
 
     Collection:
@@ -2061,8 +1897,12 @@ components:
           type: integer
           description: Positive ordering priority for system-curated collections. Zero or absent means not curated.
           nullable: true
-        state:
-          $ref: '#/components/schemas/CollectionState'
+        pinned_order:
+          type: integer
+          description: Ordering priority for pinned tenant collections.
+          nullable: true
+        status:
+          $ref: '#/components/schemas/CollectionStatus'
         custom:
           type: object
           additionalProperties: true
@@ -2578,7 +2418,7 @@ components:
               clusterAdmin: true
 
     EvaluationJobsResponse:
-      description: Paginated list of evaluation jobs from EvalHub
+      description: List of evaluation jobs from EvalHub
       content:
         application/json:
           schema:
@@ -2587,16 +2427,25 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/EvaluationJobsData'
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationJob'
+              metadata:
+                type: object
+                description: >-
+                  List metadata. total_count is the upstream total number of
+                  matching jobs. truncated is true when the BFF capped the
+                  aggregated result at its maximum item count.
+                properties:
+                  total_count:
+                    type: integer
+                  truncated:
+                    type: boolean
           example:
-            data:
-              first:
-                href: '/api/v1/evaluations/jobs?offset=0&limit=50'
-              next:
-                href: '/api/v1/evaluations/jobs?offset=50&limit=50'
-              limit: 50
+            metadata:
               total_count: 2
-              items:
+              truncated: false
+            data:
                 - resource:
                     id: 'eval-job-001'
                     tenant: 'MMLU Benchmark'
@@ -2605,7 +2454,6 @@ components:
                   status:
                     state: 'completed'
                   results:
-                    total_evaluations: 1
                     benchmarks:
                       - id: 'arc_easy'
                         provider_id: 'lm_evaluation_harness'
@@ -2627,7 +2475,6 @@ components:
                   benchmarks:
                     - id: 'hellaswag'
                       provider_id: 'lm_evaluation_harness'
-              errors: []
 
     CollectionsResponse:
       description: List of benchmark collections from EvalHub
@@ -2746,34 +2593,6 @@ components:
                     limit: 5
                     tokenizer: 'google/flan-t5-small'
 
-    CatalogSecurityArtifactsResponse:
-      description: Security artifacts for the requested model
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - data
-            properties:
-              data:
-                $ref: '#/components/schemas/CatalogSecurityArtifactList'
-          example:
-            data:
-              nextPageToken: ''
-              pageSize: 10
-              size: 1
-              items:
-                - artifactType: 'metrics-artifact'
-                  metricsType: 'security-metrics'
-                  createTimeSinceEpoch: '1693526400000'
-                  customProperties:
-                    benchmark:
-                      metadataType: 'MetadataStringValue'
-                      string_value: 'intents'
-                    category:
-                      metadataType: 'MetadataStringValue'
-                      string_value: 'security'
-
     CancelEvaluationJobResponse:
       description: Evaluation job cancelled or deleted successfully
       content:
@@ -2867,18 +2686,23 @@ components:
         type: integer
         minimum: 1
         maximum: 100
-        default: 50
       required: false
-      description: Maximum number of evaluations to return
+      description: >-
+        Maximum number of evaluation jobs to return in single-page mode. When
+        both limit and offset are omitted, the BFF aggregates upstream pages
+        and returns up to 1,000 jobs. Supplying either limit or offset selects
+        single-page mode.
     offset:
       in: query
       name: offset
       schema:
         type: integer
         minimum: 0
-        default: 0
       required: false
-      description: Offset for pagination
+      description: >-
+        Pagination start index for single-page mode. Omitting offset (and
+        limit) selects aggregated mode; explicitly supplying offset — even
+        offset=0 — selects single-page mode, so no default is declared.
     statusFilter:
       in: query
       name: status
@@ -3024,5 +2848,3 @@ tags:
     description: Benchmark collection management via EvalHub
   - name: Providers
     description: Evaluation provider and benchmark catalogue management via EvalHub
-  - name: ModelCatalog
-    description: Model Catalog inter-BFF proxy endpoints (security artifacts)

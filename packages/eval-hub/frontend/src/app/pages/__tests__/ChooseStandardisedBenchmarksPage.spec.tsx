@@ -4,12 +4,21 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ChooseStandardisedBenchmarksPage from '~/app/pages/ChooseStandardisedBenchmarksPage';
 import { Provider } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockUseProviders = jest.fn();
 const mockNavigate = jest.fn();
 
 jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: () => mockUseProviders(),
+}));
+
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-project', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -25,6 +34,12 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
 }));
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const makeProvider = (overrides: Partial<Provider> = {}): Provider => ({
   resource: { id: 'lm_evaluation_harness' },
@@ -98,6 +113,16 @@ describe('ChooseStandardisedBenchmarksPage', () => {
     expect(
       screen.getByTestId('benchmark-card-lm_evaluation_harness-truthfulqa_mc1'),
     ).toBeInTheDocument();
+  });
+
+  it('should track benchmark details opened from the catalog', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Basic science Q&A' }));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
+      source: 'catalogTable',
+    });
   });
 
   it('should filter benchmarks by framework', async () => {

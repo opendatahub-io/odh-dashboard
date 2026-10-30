@@ -9,6 +9,11 @@ class AutomlResultsPage {
     cy.testA11y();
   }
 
+  // Breadcrumb
+  findResultsBreadcrumbRunName() {
+    return cy.findByTestId('results-breadcrumb-run-name');
+  }
+
   // Leaderboard
   findLeaderboardTable() {
     return cy.findByTestId('leaderboard-table');
@@ -90,6 +95,14 @@ class AutomlResultsPage {
   // Run Details Drawer
   findRunDetailsButton() {
     return cy.findByTestId('run-details-button');
+  }
+
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
+  findRunNotebookDownloadButton() {
+    return cy.findByTestId('run-notebook-download-button');
   }
 
   findRunDetailsDrawerPanel() {

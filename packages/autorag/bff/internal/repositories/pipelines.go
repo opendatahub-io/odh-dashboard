@@ -69,6 +69,12 @@ func (r *PipelinesRepository) EnableManagedPipelines(ctx context.Context, namesp
 	return r.core.EnableManagedPipelines(ctx, namespace)
 }
 
+// --- Pipeline Server Status ---
+
+func (r *PipelinesRepository) GetPipelineServerStatus(ctx context.Context, namespace string) (*pipelines.DSPAStatus, error) {
+	return r.core.GetDSPAStatus(ctx, namespace)
+}
+
 // ListManagedPipelines returns discovered managed pipelines. Soft-missing pipelines are omitted.
 func (r *PipelinesRepository) ListManagedPipelines(ctx context.Context, namespace string) (*models.ManagedPipelinesData, error) {
 	discovered, err := r.DiscoverNamedPipelines(ctx, namespace)
@@ -538,6 +544,7 @@ func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipel
 		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: params,
 		},
+		PluginsInput: pipelines.DisabledMLflowPluginInput(),
 	}
 }
 
@@ -558,5 +565,6 @@ func BuildIndexingPipelineRunInput(req models.CreateIndexingPipelineRunRequest, 
 		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: params,
 		},
+		PluginsInput: pipelines.DisabledMLflowPluginInput(),
 	}
 }

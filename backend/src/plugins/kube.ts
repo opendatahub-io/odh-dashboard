@@ -6,11 +6,15 @@ import * as k8s from '@kubernetes/client-node';
 import { errorHandler, isKubeFastifyInstance } from '../utils';
 import { DEV_MODE } from '../utils/constants';
 import { cleanupKserveRoleBindings, initializeWatchedResources } from '../utils/resourceUtils';
+import { applyIpv6AwareIdentityCheck } from '../utils/networkUtils';
 
 const CONSOLE_CONFIG_YAML_FIELD = 'console-config.yaml';
 
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
+// Ensure the typed API clients created below validate IPv6 API-server certs correctly (the fix
+// wired into proxyCall does not cover @kubernetes/client-node's own request transport).
+applyIpv6AwareIdentityCheck(kc);
 
 const currentContext = kc.getCurrentContext();
 const customObjectsApi = kc.makeApiClient(k8s.CustomObjectsApi);

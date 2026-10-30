@@ -15,6 +15,7 @@ import type {
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploymentTransformExtension,
   WizardFieldDeploymentFunctionsExtension,
+  WizardTrackingPropertiesExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
@@ -158,6 +159,18 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
       import('../src/wizardFields/gateway/gatewaySelectApplyExtract').then(
         (m) => m.extractGatewaySelectData,
       ),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
+  },
+};
+
+const llmdTrackingPropertiesExtension: WizardTrackingPropertiesExtension<LLMdDeployment> = {
+  type: 'model-serving.deployment/tracking-properties',
+  properties: {
+    platform: LLMD_SERVING_ID,
+    getProperties: () =>
+      import('../src/tracking/llmdWizardTracking').then((m) => m.getLlmdWizardTrackingProperties),
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
@@ -409,6 +422,7 @@ const extensions: (
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
+  | WizardTrackingPropertiesExtension<LLMdDeployment>
   | TopologyConfigsExtensionsType
   | HrefNavItemExtension
   | RouteExtension
@@ -504,6 +518,7 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       priority: 100,
       supportsOverwrite: true,
+      supportsDRAHardwareProfiles: true,
       isActive: () => import('../src/formUtils').then((m) => m.isLLMInferenceServiceActive),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
     },
@@ -610,6 +625,7 @@ const extensions: (
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
+  llmdTrackingPropertiesExtension,
   deploymentMethodExtractorExtensionLllmdOnly,
   deploymentMethodExtractorExtensionvLLMOnMaaS,
   {
@@ -670,12 +686,13 @@ const extensions: (
     properties: {
       id: 'llmInferenceServiceConfig',
       label: 'LLM accelerator configuration',
-      description: 'Install as an LLMInferenceServiceConfig for LLM inference service deployments.',
+      description:
+        'Install as an LLMInferenceServiceConfig for LLM inference service deployments. Compatible with Models as a Service.',
       selectedState: {
         listName: 'LLM accelerator configurations',
         description: 'and the LLM inference service deployment wizard.',
       },
-      configureStepLabel: 'Configure accelerator',
+      installTargetName: 'LLM accelerator configuration',
       component: () => import('../src/runtimeImageInstall/LlmAcceleratorInstallTarget'),
     },
   },

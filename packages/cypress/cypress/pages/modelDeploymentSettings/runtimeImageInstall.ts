@@ -1,13 +1,14 @@
 import { DashboardCodeEditor } from '../components/DashboardCodeEditor';
 
-// TODO this path is a placeholder while we await the real runtime library details page.
-// Changing this route and potentially changing how it mounts/integrates with that page will happen in https://redhat.atlassian.net/browse/RHOAIENG-96641
-const placeholderInstallPath =
-  '/settings/model-resources-operations/model-deployment-settings/placeholder-runtime-library-details-page/install';
+const runtimeImageLibraryPath =
+  '/settings/model-resources-operations/model-deployment-settings/serving-runtime-catalog';
+
+const getInstallPath = (runtimeId: string): string =>
+  `${runtimeImageLibraryPath}/${encodeURIComponent(runtimeId)}/install`;
 
 class RuntimeImageInstallPage {
-  visitInstallDirectly() {
-    cy.visitWithLogin(placeholderInstallPath);
+  visitInstallDirectly(runtimeId: string) {
+    cy.visitWithLogin(getInstallPath(runtimeId));
   }
 
   // To be used after navigating to a details page where the install button is present
@@ -15,8 +16,16 @@ class RuntimeImageInstallPage {
     return cy.findByTestId('runtime-image-install');
   }
 
-  findPageTitle(runtimeImageName: string) {
-    return cy.findByRole('heading', { name: `Install ${runtimeImageName}` });
+  findPageTitle() {
+    return cy.findByRole('heading', { name: 'Create runtime' });
+  }
+
+  findLibraryBreadcrumb() {
+    return cy.findByRole('link', { name: 'Runtime library' });
+  }
+
+  findRuntimeDetailsBreadcrumb(runtimeImageName: string) {
+    return cy.findByRole('link', { name: runtimeImageName });
   }
 
   findNext() {
@@ -60,26 +69,35 @@ class RuntimeImageInstallPage {
   }
 
   findNoResourcesMessage() {
-    return cy.findByText('No runtime image install target extensions are available.');
+    return cy.findByText('This runtime image does not support any available install target');
+  }
+
+  findSingleTargetAlert() {
+    return cy.findByTestId('runtime-image-single-target-alert');
+  }
+
+  findCancel() {
+    return cy.findByRole('button', { name: 'Cancel' });
+  }
+
+  loadActionDataRouterState<T extends { runtimeImageId: string }>(actionData: T) {
+    cy.window().then((win) => {
+      win.history.replaceState(
+        { usr: { actionData } },
+        '',
+        getInstallPath(actionData.runtimeImageId),
+      );
+      win.location.reload();
+    });
   }
 
   loadNoResourceRouterState(cancelReturnRoute: string) {
-    cy.window().then((win) => {
-      win.history.replaceState(
-        {
-          usr: {
-            actionData: {
-              runtimeImageId: 'empty-preview',
-              runtimeImageName: 'No resources',
-              cancelReturnRoute,
-              deploymentResources: {},
-            },
-          },
-        },
-        '',
-        placeholderInstallPath,
-      );
-      win.location.reload();
+    this.loadActionDataRouterState({
+      runtimeImageId: 'empty-preview',
+      runtimeImageName: 'No resources',
+      cancelReturnRoute,
+      libraryReturnRoute: runtimeImageLibraryPath,
+      deploymentResources: {},
     });
   }
 

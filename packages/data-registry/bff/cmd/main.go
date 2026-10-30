@@ -27,7 +27,7 @@ func main() {
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
-	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
+	registerDevModeFlag(flag.CommandLine, &cfg.DevMode)
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// New deployment mode flag
@@ -51,19 +51,22 @@ func main() {
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients",
 		getEnvAsBool("MOCK_BFF_CLIENTS", false),
 		"Enable mock BFF clients (no real HTTP calls to other BFFs)")
+	flag.BoolVar(&cfg.BFFClientsAllowInsecureHTTP, "bff-clients-allow-insecure-http",
+		getEnvAsBool("BFF_CLIENTS_ALLOW_INSECURE_HTTP", false),
+		"Allow plaintext HTTP for inter-BFF clients in development only; forwarded bearer tokens are exposed")
 
 	// ─── Data Registry API ────────────────────────────────────────
 	flag.StringVar(&cfg.BFFDCHServiceName, "bff-dch-service-name", getEnvAsString("BFF_DCH_SERVICE_NAME", ""), "DCH BFF service name; empty disables DCH")
 	flag.StringVar(&cfg.BFFDCHServiceNamespace, "bff-dch-service-namespace", getEnvAsString("BFF_DCH_SERVICE_NAMESPACE", ""), "DCH BFF namespace; defaults to this pod's namespace")
 	flag.IntVar(&cfg.BFFDCHServicePort, "bff-dch-service-port", getEnvAsInt("BFF_DCH_SERVICE_PORT", 9243), "DCH BFF service port")
-	flag.BoolVar(&cfg.BFFDCHTLSEnabled, "bff-dch-tls-enabled", getEnvAsBool("BFF_DCH_TLS_ENABLED", true), "Use HTTPS for the DCH BFF")
+	flag.BoolVar(&cfg.BFFDCHTLSEnabled, "bff-dch-tls-enabled", getEnvAsBool("BFF_DCH_TLS_ENABLED", true), "Use HTTPS for the DCH BFF; disabling TLS requires DEV_MODE=true")
 	flag.StringVar(&cfg.BFFDCHAuthTokenHeader, "bff-dch-auth-token-header", getEnvAsString("BFF_DCH_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "User-token header expected by the DCH BFF")
 	flag.StringVar(&cfg.BFFDCHAuthTokenPrefix, "bff-dch-auth-token-prefix", getEnvAsString("BFF_DCH_AUTH_TOKEN_PREFIX", ""), "User-token prefix expected by the DCH BFF")
 	flag.StringVar(&cfg.BFFDCHDevURL, "bff-dch-dev-url", getEnvAsString("BFF_DCH_DEV_URL", ""), "Local DCH BFF URL override, including /api/v1")
 	flag.IntVar(&cfg.BFFDCHTimeoutSeconds, "bff-dch-timeout-seconds", getEnvAsInt("BFF_DCH_TIMEOUT_SECONDS", 5), "Deadline for both DCH lookups, before Secret fallback")
 
 	flag.StringVar(&cfg.DataRegistryAPIURL, "data-registry-api-url", getEnvAsString("DATA_REGISTRY_API_URL", ""),
-		"Base URL of the upstream Data Registry API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
+		"HTTPS base URL of the upstream Data Registry API (HTTP is allowed only for loopback IP dev/test targets). Overrides the ConfigMap lookup when set")
 	flag.StringVar(&cfg.DataRegistryConfigMapName, "data-registry-configmap-name", getEnvAsString("DATA_REGISTRY_CONFIGMAP_NAME", config.DefaultDataRegistryConfigMapName),
 		"Name of the ConfigMap (in the pod's namespace) holding the Data Registry API URL")
 	flag.StringVar(&cfg.DataRegistryConfigMapKey, "data-registry-configmap-key", getEnvAsString("DATA_REGISTRY_CONFIGMAP_KEY", config.DefaultDataRegistryConfigMapKey),
@@ -93,6 +96,10 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
 	}))
+	if err := validateBFFTransportTLSConfig(cfg.DevMode, cfg.BFFClientsAllowInsecureHTTP, cfg.BFFDCHServiceName != "", cfg.BFFDCHTLSEnabled); err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 
 	// Data Registry runs as an RHOAI/ODH Dashboard module and always uses the caller's
 	// OpenShift bearer token. Service-account authentication is intentionally unsupported.
@@ -123,45 +130,41 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	if certFile != "" && keyFile != "" {
-		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
-		if err != nil {
-			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
-			os.Exit(1)
-		}
-		srv.TLSConfig = tlsCfg
-	}
+	tlsEnabled := certFile != "" && keyFile != ""
 
-	// Start the server in a goroutine
+	// signalCtx is cancelled on the first shutdown signal; both the HTTPS reload
+	// loop and the graceful-shutdown sequence below key off it.
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
+	var serveErr error
+	serverClosed := make(chan struct{})
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
-		var err error
-		if certFile != "" && keyFile != "" {
-			err = srv.ListenAndServeTLS(certFile, keyFile)
+		defer close(serverClosed)
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled)
+		if tlsEnabled {
+			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
-			err = srv.ListenAndServe()
+			serveErr = srv.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server ListenAndServe", "error", err)
+		if serveErr != nil && serveErr != http.ErrServerClosed {
+			logger.Error("HTTP server failed", "error", serveErr)
+			stop()
 		}
 	}()
 
-	// Graceful shutdown setup
-	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	// Wait for shutdown signal
-	<-shutdownCh
+	<-signalCtx.Done()
 	logger.Info("shutting down gracefully...")
 
-	// Create a context with timeout for the shutdown process
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Shutdown the HTTP server gracefully
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("server shutdown failed", "error", err)
+	if !tlsEnabled {
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Error("server shutdown failed", "error", err)
+		}
 	}
+	<-serverClosed
 
 	// Shutdown the App gracefully
 	if err := app.Shutdown(); err != nil {
@@ -169,6 +172,9 @@ func main() {
 	}
 
 	logger.Info("server stopped")
+	if serveErr != nil && serveErr != http.ErrServerClosed {
+		os.Exit(1)
+	}
 	os.Exit(0)
 }
 

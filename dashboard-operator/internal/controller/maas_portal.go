@@ -141,7 +141,7 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 	if retryAfter == 0 {
 		// Capture pre-cleanup existence so deleting the legacy Deployment still
 		// triggers another reconciliation to remove temporary network-policy peers.
-		legacyDeployment, err := legacyMaaSPortalDeploymentExists(ctx, r.Client, r.ApplicationsNamespace)
+		legacyDeployment, err := legacyMaaSPortalDeploymentExists(ctx, r.apiReader(), r.ApplicationsNamespace)
 		if err == nil {
 			migration, err = r.deleteLegacyMaaSPortalResources(ctx)
 		}
@@ -340,6 +340,9 @@ func splitMaaSPortalRoutes(resources []unstructured.Unstructured) (workloads, ro
 }
 
 func (r *DashboardReconciler) deployMaaSPortalResources(ctx context.Context, dashboard *v1alpha1.Dashboard, resources []unstructured.Unstructured) error {
+	if err := revertServicePortDrift(ctx, r.apiReader(), r.Client, resources); err != nil {
+		return fmt.Errorf("repairing MaaS Portal Service port drift: %w", err)
+	}
 	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf), deploy.WithApplyOrder())
 	return deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard,
 		Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources})
@@ -405,19 +408,22 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalNamespacedResources(ctx con
 	for _, list := range []client.ObjectList{
 		&appsv1.DeploymentList{},
 		&corev1.ServiceList{},
-		&corev1.ServiceAccountList{},
+		// ServiceAccounts are cached as metadata-only; use the metadata informer.
+		newMetadataList(serviceAccountListGVK),
 		&networkingv1.NetworkPolicyList{},
-		&corev1.ConfigMapList{},
 	} {
-		errs = append(errs, r.deleteLabeledMaaSPortalResourceList(ctx, list, client.InNamespace(r.ApplicationsNamespace)))
+		errs = append(errs, r.deleteLabeledMaaSPortalResourceList(ctx, r, list, client.InNamespace(r.ApplicationsNamespace)))
 	}
+	errs = append(errs, r.deleteLabeledMaaSPortalResourceList(
+		ctx, r.apiReader(), &corev1.ConfigMapList{}, client.InNamespace(r.ApplicationsNamespace),
+	))
 	return errors.Join(errs...)
 }
 
 func (r *DashboardReconciler) deleteLabeledMaaSPortalRBACResources(ctx context.Context) error {
 	return errors.Join(
-		r.deleteLabeledMaaSPortalResourceList(ctx, &rbacv1.ClusterRoleList{}),
-		r.deleteLabeledMaaSPortalResourceList(ctx, &rbacv1.ClusterRoleBindingList{}),
+		r.deleteLabeledMaaSPortalResourceList(ctx, r, &rbacv1.ClusterRoleList{}),
+		r.deleteLabeledMaaSPortalResourceList(ctx, r, &rbacv1.ClusterRoleBindingList{}),
 		r.deleteLabeledMaaSPortalOperatorSubscriptionRBACResources(ctx),
 	)
 }
@@ -438,7 +444,7 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalCustomResources(ctx context
 	routes := &unstructured.UnstructuredList{}
 	routes.SetAPIVersion("gateway.networking.k8s.io/v1")
 	routes.SetKind("HTTPRouteList")
-	if err := r.List(ctx, routes, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf}, client.InNamespace(r.ApplicationsNamespace)); err != nil {
+	if err := r.apiReader().List(ctx, routes, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf}, client.InNamespace(r.ApplicationsNamespace)); err != nil {
 		if !meta.IsNoMatchError(err) {
 			errs = append(errs, err)
 		}
@@ -448,8 +454,8 @@ func (r *DashboardReconciler) deleteLabeledMaaSPortalCustomResources(ctx context
 	return errors.Join(errs...)
 }
 
-func (r *DashboardReconciler) deleteLabeledMaaSPortalResourceList(ctx context.Context, list client.ObjectList, options ...client.ListOption) error {
-	if err := r.List(ctx, list, append(options, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf})...); err != nil {
+func (r *DashboardReconciler) deleteLabeledMaaSPortalResourceList(ctx context.Context, reader client.Reader, list client.ObjectList, options ...client.ListOption) error {
+	if err := reader.List(ctx, list, append(options, client.MatchingLabels{labels.PlatformPartOf: maasPortalPartOf})...); err != nil {
 		return err
 	}
 	return r.deleteMaaSPortalObjects(ctx, extractItems(list)...)

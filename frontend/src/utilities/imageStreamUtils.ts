@@ -95,6 +95,9 @@ const getPreferredTag = (
   );
 };
 
+export const isImageStreamDeprecated = (image: ImageStreamKind): boolean =>
+  image.metadata.annotations?.[ImageStreamAnnotation.DEPRECATED] === 'true';
+
 export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => {
   const { metadata } = image;
   const annotations = metadata.annotations ?? {};
@@ -145,6 +148,7 @@ export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => 
     ),
     tier: annotations[ImageStreamAnnotation.NOTEBOOK_TIER] || 'custom',
     isOOTB: isOOTBImage,
+    deprecated: isImageStreamDeprecated(image),
   };
 };
 
@@ -154,6 +158,7 @@ export const mapImageStreamToImageInfo = (image: ImageStreamKind): ImageInfo => 
 
   return {
     name: metadata.name,
+    deprecated: isImageStreamDeprecated(image),
     description: annotations[ImageStreamAnnotation.DESC] || '',
     url: annotations[ImageStreamAnnotation.URL] || '',
     // eslint-disable-next-line camelcase

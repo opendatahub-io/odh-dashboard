@@ -131,7 +131,7 @@ var moduleRegistry = map[string]ModuleDefinition{
 		ImageEnvVar:           "RELATED_IMAGE_ODH_MOD_ARCH_DATA_REGISTRY_IMAGE",
 		ManifestSlug:          "data-registry",
 		TLS:                   true,
-		RequiredDSCComponents: []string{"feastoperator"},
+		RequiredDSCComponents: []string{"dataRegistry"},
 		ProxyPaths:            []proxyRoute{{Path: "/data-registry/api", PathRewrite: "/api"}},
 	},
 	"dataConnectHub": {

@@ -133,10 +133,58 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 				"Granite 3 8B Instruct",
 				"Flan T5 Small",
 				"GPT-4o External",
+				"Failed Reconcile Model",
+				"Not Applicable Model",
+				"Unsupported Model",
+				"No Objective Required Model",
 			))
 			Expect(actual.Data.SubscriptionDetails).To(HaveKey("basic-team-sub"))
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].DisplayName).To(Equal("Basic Team Subscription"))
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("Flan T5 Small"))
+		})
+		It("tenant search uses the whoami admin status for subscription enrichment", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[Envelope[*models.APIKeyListResponse, None]](
+				http.MethodPost,
+				"/api/v1/api-keys/search/tenant",
+				Envelope[models.APIKeySearchRequest, None]{
+					Data: models.APIKeySearchRequest{
+						Filters:    &models.APIKeySearchFilters{Subscription: "premium-team-sub", Status: []string{"active"}},
+						Sort:       &models.APIKeySearchSort{By: "name", Order: "asc"},
+						Pagination: &models.APIKeySearchPagination{Limit: 1, Offset: 1},
+					},
+				},
+				k8Factory,
+				identity,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data).NotTo(BeNil())
+			Expect(actual.Data.Data).To(HaveLen(1))
+			Expect(actual.Data.Data[0].Name).To(Equal("api-gateway"))
+			Expect(actual.Data.Data[0].SubscriptionName).To(Equal("premium-team-sub"))
+			Expect(actual.Data.Data[0].Status).To(Equal(models.APIKeyStatusActive))
+			Expect(actual.Data.HasMore).To(BeTrue())
+			Expect(actual.Data.SubscriptionDetails).To(HaveKey("premium-team-sub"))
+			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].DisplayName).To(Equal("Premium Team"))
+		})
+		It("rejects tenant searches without a data envelope", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			for _, body := range []any{
+				nil,
+				map[string]any{"filters": map[string]any{"status": []string{"active"}}},
+				map[string]any{"data": nil},
+			} {
+				_, rs, err := setupMockApiTest[HTTPError](
+					http.MethodPost,
+					"/api/v1/api-keys/search/tenant",
+					body,
+					k8Factory,
+					identity,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+			}
 		})
 		It("for admins includes K8s subscriptions that are absent from the MaaS API My Subscriptions list", func() {
 			originalCheck := isMaasAdminCheck
@@ -411,9 +459,9 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 	})
 
 	var _ = Describe("ListSubscriptionsPassthroughHandler", Ordered, func() {
-		It("returns 200 and a list of subscriptions from the maas-api passthrough", func() {
+		It("filters owner-scoped subscriptions from the My Subscriptions list", func() {
 			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
-			actual, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+			actual, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
 				"/api/v1/subscriptions",
 				nil,
@@ -424,21 +472,31 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 			Expect(actual.Data).NotTo(BeNil())
-			Expect(len(actual.Data)).Should(BeNumerically(">", 0))
+			Expect(actual.Data).To(HaveLen(1))
+			Expect(actual.Data[0].SubscriptionIDHeader).To(Equal("basic-team-sub"))
+			Expect(actual.Data[0].ModelRefs).To(HaveLen(1))
+			Expect(actual.Data[0].ModelRefs[0].DisplayName).To(Equal("Flan T5 Small"))
+			Expect(actual.Data[0].KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
+		})
 
-			first := actual.Data[0]
-			Expect(first.SubscriptionIDHeader).NotTo(BeEmpty())
-			Expect(first.SubscriptionDescription).NotTo(BeEmpty())
-			Expect(first.ModelRefs).NotTo(BeEmpty())
-			Expect(first.ModelRefs[0].DisplayName).To(Equal("Granite 3 8B Instruct"))
-			Expect(first.ModelRefs[0].Description).To(Equal("Granite 3 8B Instruct is a large language model that is used for advanced tasks."))
-			// The fake server returns all 75 keys regardless of the per-subscription filter,
-			// so the BFF clamps the count to subscriptionKeyCountCap.
-			Expect(first.KeyCount).To(Equal(int32(subscriptionKeyCountCap)))
+		It("returns an owner-bearing subscription by ID when maas-api provides it", func() {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			actual, rs, err := setupApiTest[Envelope[*models.MySubscriptionListItem, None]](
+				http.MethodGet,
+				"/api/v1/subscriptions/premium-team-sub",
+				nil,
+				k8Factory,
+				identity,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(actual.Data.SubscriptionIDHeader).To(Equal("premium-team-sub"))
+			Expect(actual.Data.Owner.Groups).To(HaveLen(2))
 		})
 
 		It("returns 400 when no identity is provided", func() {
-			_, rs, err := setupApiTest[Envelope[[]models.SubscriptionListItem, None]](
+			_, rs, err := setupApiTest[Envelope[[]models.MySubscriptionListItem, None]](
 				http.MethodGet,
 				"/api/v1/subscriptions",
 				nil,
@@ -506,7 +564,7 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(res.StatusCode).To(Equal(http.StatusOK))
 			body, err := io.ReadAll(res.Body)
 			Expect(err).NotTo(HaveOccurred())
-			var actual Envelope[[]models.SubscriptionListItem, None]
+			var actual Envelope[[]models.MySubscriptionListItem, None]
 			Expect(json.Unmarshal(body, &actual)).To(Succeed())
 			Expect(actual.Data).NotTo(BeNil())
 			Expect(len(actual.Data)).Should(BeNumerically(">", 0))

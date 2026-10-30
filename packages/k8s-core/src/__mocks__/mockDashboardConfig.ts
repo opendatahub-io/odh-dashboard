@@ -41,10 +41,14 @@ export type MockDashboardConfigType = {
   featureStoreAdmin?: boolean;
   dataRegistry?: boolean;
   genAiStudio?: boolean;
+  genAiImageUpload?: boolean;
+  genAiAudioUpload?: boolean;
   genAiTracing?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  grid?: boolean;
+  inferencePriorityField?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   genAiAgentDeployment?: boolean;
@@ -56,6 +60,7 @@ export type MockDashboardConfigType = {
   workbenchesV2?: boolean;
   mcpCatalog?: boolean;
   mcpRegistry?: boolean;
+  skillRegistry?: boolean;
   genAiMcpRegistryServers?: boolean;
   toolCalling?: boolean;
   projectRBAC?: boolean;
@@ -73,9 +78,11 @@ export type MockDashboardConfigType = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
-  runtimeCatalog?: boolean;
   globalMLflowNamespaces?: string[];
+  isLLMdDefault?: boolean;
+  deploymentStrategy?: string;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -94,10 +101,14 @@ export const mockDashboardConfig = ({
   disableBYONImageStream = false,
   disableISVBadges = false,
   genAiStudio = true,
+  genAiImageUpload = false,
+  genAiAudioUpload = false,
   genAiTracing = false,
   automl = true,
   autorag = true,
   modelAsService = true,
+  grid = false,
+  inferencePriorityField = false,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -117,6 +128,7 @@ export const mockDashboardConfig = ({
   disableModelCatalog = false,
   mcpCatalog = false,
   mcpRegistry = false,
+  skillRegistry = false,
   genAiMcpRegistryServers = false,
   toolCalling = false,
   disableModelRegistry = false,
@@ -139,7 +151,7 @@ export const mockDashboardConfig = ({
   agentConfigManagement = false,
   genAiAgentDeployment = false,
   vLLMDeploymentOnMaaS = false,
-  llmGatewayField = false,
+  llmGatewayField = true,
   promptManagement = true,
   globalProjectPrompts = false,
   nimWizard = true,
@@ -149,10 +161,12 @@ export const mockDashboardConfig = ({
   agentsCatalog = false,
   roleManagement = true,
   gpuaas = true,
+  hardwareProfileDRA = false,
   modelCapabilities = false,
-  runtimeCatalog = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
+  isLLMdDefault,
+  deploymentStrategy,
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
       externalProviders: false,
@@ -303,11 +317,15 @@ export const mockDashboardConfig = ({
       disablePerformanceMetrics,
       disableKServe,
       genAiStudio,
+      genAiImageUpload,
+      genAiAudioUpload,
       genAiTracing,
       automl,
       autorag,
       modelAsService,
+      grid,
       aiAssetCustomEndpoints,
+      inferencePriorityField,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -315,6 +333,7 @@ export const mockDashboardConfig = ({
       disableModelCatalog,
       mcpCatalog,
       mcpRegistry,
+      skillRegistry,
       genAiMcpRegistryServers,
       toolCalling,
       disableModelRegistry,
@@ -348,8 +367,8 @@ export const mockDashboardConfig = ({
       agentsCatalog,
       roleManagement,
       gpuaas,
+      hardwareProfileDRA,
       modelCapabilities,
-      runtimeCatalog,
     },
     notebookController: {
       enabled: !disableNotebookController,
@@ -366,5 +385,13 @@ export const mockDashboardConfig = ({
     hardwareProfileOrder,
     globalMLflowNamespaces,
     genAiStudioConfig,
+    ...(isLLMdDefault !== undefined || deploymentStrategy !== undefined
+      ? {
+          modelServing: {
+            ...(isLLMdDefault !== undefined ? { isLLMdDefault } : {}),
+            ...(deploymentStrategy !== undefined ? { deploymentStrategy } : {}),
+          },
+        }
+      : {}),
   },
 });

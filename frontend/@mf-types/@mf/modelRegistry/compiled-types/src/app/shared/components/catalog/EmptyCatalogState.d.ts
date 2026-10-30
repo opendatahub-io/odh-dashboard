@@ -5,7 +5,7 @@ type EmptyCatalogStateProps = {
     className?: string;
     title: string;
     description: React.ReactNode;
-    headerIcon?: React.ComponentType;
+    headerIcon?: React.ComponentType | null;
     children?: React.ReactNode;
     primaryAction?: React.ReactNode;
     secondaryAction?: React.ReactNode;

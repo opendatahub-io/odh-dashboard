@@ -4,7 +4,7 @@ Backend-for-frontend providing core endpoints required by the dashboard UI.
 
 ## Dependencies
 
-- Go >= 1.25
+- Go >= 1.26
 
 ## Scope
 
@@ -63,7 +63,11 @@ make run LOG_LEVEL=DEBUG
 | `-prometheus-instance` | `PROMETHEUS_INSTANCE` | Prometheus/Thanos instance name (default `thanos-querier`) |
 | `-prometheus-port` | `PROMETHEUS_PORT` | Prometheus/Thanos RBAC port (default `9092`) |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ## Platform Detection
 
@@ -76,6 +80,30 @@ The BFF supports three platform modes via `ODH_PLATFORM_TYPE`:
 ### Mismatch policy
 
 When `ODH_PLATFORM_TYPE` is set explicitly, the configured value is always trusted. For explicit `OpenShift`, the ClusterVersion probe still runs and a warning is logged if the detected platform does not match. For explicit `XKS`, the probe is skipped entirely (no OpenShift API calls are made), so no mismatch warning can occur. When the probe returns an ambiguous error (not clearly "resource unavailable"), auto-detect defaults to OpenShift.
+
+## Response security headers and cache policy
+
+Every normal HTTP reply gets browser security headers via response-writer middleware:
+
+| Header | Value |
+| --- | --- |
+| `X-Content-Type-Options` | `nosniff` |
+| `Cross-Origin-Opener-Policy` | `same-origin` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `X-Frame-Options` | `DENY` |
+| `X-DNS-Prefetch-Control` | `off` |
+
+`Cache-Control` is selective:
+
+- **API paths** (`/api`, `/wss`, module `/…/api/…`) and **SPA document** responses use `no-cache, no-store, private, max-age=0, must-revalidate`.
+- **Module API proxies** also force `no-store` via `ModifyResponse` (parity with the Node `rewriteNoStoreCacheHeaders` helper).
+- **Host static assets** use filename-based policies (immutable for content-hashed bundles, `no-cache` for unhashed scripts, short TTL for media).
+
+Informational `1xx` writes are forwarded without committing the response so a later final status (for example `404` after `103`) is preserved.
+
+### WebSocket 101 upgrade responses
+
+`SetSecurityHeaders` does **not** cover WebSocket upgrades — `gorilla/websocket`'s `Upgrade` writes the `101 Switching Protocols` response directly. `X-Content-Type-Options: nosniff` is passed via the upgrader's `responseHeader` (see `clientUpgradeResponseHeader` in `ws_proxy.go`), along with the negotiated `Sec-WebSocket-Protocol` when present. Unrelated queued headers are not copied onto the 101.
 
 ## Endpoints
 

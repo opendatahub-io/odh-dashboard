@@ -84,6 +84,8 @@ pnpm run type-check
 
 **[Multi-Agent Workflows](docs/multi-agent-workflows.md)** covers running parallel agent sessions locally (git worktrees, Agent Teams, terminal layout) and remotely (Ambient platform).
 
+**[Architecture Decision Records](docs/adr/)** preserve the reasoning behind architectural choices. Use the [ADR template](docs/adr/template.md) and [writing workflow](.claude/skills/writing-adrs/SKILL.md) for new decisions.
+
 ## Package-Specific Guidelines
 
 Some packages have their own AGENTS.md with package-specific guidance. Check the package directory for its own AGENTS.md file.
@@ -97,6 +99,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | Rule                        | File                          | Trigger                                                                        |
 | --------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
 | **Architecture**            | `architecture.md`             | When making structural changes, adding packages, modifying package boundaries, or working on distributions |
+| **ADRs**                    | `adrs.md`                     | When creating, reviewing, or superseding architecture decision records in `docs/adr/` |
 | **BFF Go**                  | `bff-go.md`                   | When working on Go BFF code in `packages/*/bff/` or `distributions/core-bff/bff/` |
 | **Contract Tests**          | `contract-tests.md`           | When working on contract tests or BFF API validation                           |
 | **Conventions**             | `conventions.md`              | When writing or reviewing TypeScript, React, or backend code                   |
@@ -125,9 +128,11 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | Skill                              | Directory                              | Use when                                                                       |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
 | **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
+| **DSC Outage Workaround**         | `skills/dsc-outage-workaround/`        | Diagnosing and safely remediating DSC infrastructure outages that block merges |
 | **Docs Create**                    | `skills/docs-create/`                  | Creating a new documentation file from a description                           |
 | **Docs Create Package**            | `skills/docs-create-package/`          | Scaffolding a package doc and registering it in BOOKMARKS.md                   |
 | **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
+| **Writing ADRs**                  | `skills/writing-adrs/`                | Writing, reviewing, or superseding architecture decision records              |
 | **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
 | **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
 | **Upstream Sync Local**            | `skills/upstream-sync-local/`          | Syncing upstream changes from a local repository clone (pass package name, local repo path, and branch) |
@@ -158,3 +163,14 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Upstream Test Audit**            | `skills/upstream-test-audit/`          | Batch analysis of all `cypress_found_bug` issues — generates HTML executive report with SVG charts, per-repo gap analysis, and team responsibility breakdown |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.
+
+<!-- BEGIN:turborepo-agent-rules -->
+
+# This is NOT the Turborepo you know
+
+Turborepo configuration, task behavior, and CLI commands can vary between installed versions and may differ from your training data. Resolve the `turbo` package from this file's directory or relevant workspace; in monorepos, it may not be visible from the repository root. For example, run `node -p "require.resolve('turbo/package.json')"` from a workspace that depends on `turbo`.
+
+Read `docs/README.md` inside that installed package first, then read the relevant pages from its `docs/` directory before changing Turborepo configuration or commands. Heed deprecation notices. These bundled docs match the installed package version and are available without network access.
+
+This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
+<!-- END:turborepo-agent-rules -->

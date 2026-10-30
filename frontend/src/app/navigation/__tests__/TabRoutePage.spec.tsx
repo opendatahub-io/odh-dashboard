@@ -127,6 +127,16 @@ describe('TabRoutePage', () => {
       expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     });
 
+    it('should render the page description beneath the page title when provided', () => {
+      const tab = createTabExtension({ id: 'only-tab', title: 'Only Tab' });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ description: 'Page description' });
+
+      renderWithRouter(extension, '/test/only-tab');
+
+      expect(screen.getByTestId('app-tab-page-description')).toHaveTextContent('Page description');
+    });
+
     it('should render singleTabTitle instead of generic page title when provided', () => {
       const tab = createTabExtension({
         id: 'only-tab',

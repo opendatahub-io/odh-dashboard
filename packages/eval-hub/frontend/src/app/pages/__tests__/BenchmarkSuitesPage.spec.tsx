@@ -5,9 +5,20 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { mockProvider } from '~/__mocks__/mockProvider';
 import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
+import EvalHubCoreLoader from '~/app/components/EvalHubCoreLoader';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockUseCollectionsQuery = jest.fn();
 const mockUseProviders = jest.fn();
+const mockUseNamespaceSelectorWithPersistence = jest.fn();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({ trackEventOnce: jest.fn(), clear: jest.fn() }),
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const clickFilterOption = (testId: string) => {
   fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
@@ -26,6 +37,37 @@ jest.mock('~/app/hooks/collections', () => ({
 jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: (...args: unknown[]) => mockUseProviders(...args),
 }));
+
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: (...args: unknown[]) =>
+    mockUseNamespaceSelectorWithPersistence(...args),
+}));
+
+jest.mock('~/app/components/EvalHubProjectSelector', () => {
+  const { useNavigate } = require('react-router-dom');
+  const MockProjectSelector = ({
+    namespace,
+    getRedirectPath,
+  }: {
+    namespace?: string;
+    getRedirectPath: (namespace: string) => string;
+  }) => {
+    const navigate = useNavigate();
+    return (
+      <div data-testid="benchmark-suites-project-selector">
+        {namespace}
+        <button
+          type="button"
+          data-testid="benchmark-suites-project-selector-switch"
+          onClick={() => navigate(getRedirectPath('other-project'))}
+        >
+          Switch project
+        </button>
+      </div>
+    );
+  };
+  return { __esModule: true, default: MockProjectSelector };
+});
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
@@ -68,6 +110,14 @@ describe('BenchmarkSuitesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseProviders.mockReturnValue({ providers: [], loaded: true, loadError: undefined });
+    mockUseNamespaceSelectorWithPersistence.mockReturnValue({
+      namespaces: [
+        { name: 'test-project', displayName: 'Test Project' },
+        { name: 'other-project', displayName: 'Other Project' },
+      ],
+      namespacesLoaded: true,
+      preferredNamespace: undefined,
+    });
     mockUseCollectionsQuery.mockReturnValue({
       data: {
         items: mockBenchmarkSuiteCollections(),
@@ -83,15 +133,21 @@ describe('BenchmarkSuitesPage', () => {
   it('should render all tenant benchmark suites', () => {
     renderPage();
 
-    expect(screen.getByTestId('page-title')).toHaveTextContent('My benchmark suites');
-    expect(screen.getByRole('link', { name: 'Benchmark suites' })).toHaveAttribute(
+    const pageTitle = screen.getByTestId('page-title');
+    expect(pageTitle).toHaveTextContent('My benchmark collections');
+    expect(within(pageTitle).getByTestId('benchmark-suites-project-selector')).toHaveTextContent(
+      'test-project',
+    );
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
       'href',
       '/evaluation/test-project?tab=evaluate',
     );
     expect(
-      screen.getByText('View, run, and manage all benchmark suites you have created or saved.'),
+      screen.getByText(
+        'View, run, and manage all benchmark collections you have created or saved.',
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create collection' })).toBeInTheDocument();
     expect(screen.queryByTestId('create-suite-card')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-filter-toolbar')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
@@ -150,6 +206,17 @@ describe('BenchmarkSuitesPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
   });
 
   it('should navigate to the edit suite page from Edit', async () => {
@@ -162,6 +229,18 @@ describe('BenchmarkSuitesPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/edit',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should keep suites visible while a filter refetch is pending', () => {
@@ -372,11 +451,12 @@ describe('BenchmarkSuitesPage', () => {
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     clickFilterOption('benchmark-suites-category-filter-option-code');
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
     clickFilterOption('benchmark-suites-industry-filter-option-health');
 
     expect(screen.getByTestId('benchmark-suites-empty-state')).toHaveTextContent(
-      'No benchmark suites match the current filters.',
+      'No collections match the current filters.',
     );
     expect(
       screen.getByTestId('benchmark-suites-name-filter').querySelector('input'),
@@ -420,6 +500,7 @@ describe('BenchmarkSuitesPage', () => {
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('benchmark-suites-category-filter'));
+    await user.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     await user.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
 
     expect(
@@ -501,6 +582,7 @@ describe('BenchmarkSuitesPage', () => {
 
     clickFilterOption('benchmark-suites-category-filter-option-code');
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     fireEvent.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
     clickFilterOption('benchmark-suites-evaluates-filter-option-agent');
 
@@ -513,6 +595,47 @@ describe('BenchmarkSuitesPage', () => {
       undefined,
       undefined,
       undefined,
+    );
+  });
+
+  it('should clear the drawer and run selection when switching projects', async () => {
+    // Render through EvalHubCoreLoader to exercise the real route wiring, where only
+    // the :namespace param changes on project switch and the page must not retain
+    // project A's namespace-scoped state under project B.
+    render(
+      <MemoryRouter initialEntries={['/evaluation/test-project/collections']}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <EvalHubCoreLoader getInvalidRedirectPath={(ns) => `/evaluation/${ns}/collections`} />
+            }
+          >
+            <Route path="evaluation/:namespace/collections" element={<BenchmarkSuitesPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+
+    // Open the collection drawer and start a run from it in project A.
+    await user.click(screen.getByTestId('benchmark-suite-card-name-model-suite-2'));
+    expect(screen.getByTestId('collection-drawer-panel')).toBeInTheDocument();
+    await user.click(screen.getByTestId('use-benchmark-suite-button'));
+    expect(
+      screen.getByTestId('benchmark-suites-page-start-evaluation-run-modal'),
+    ).toBeInTheDocument();
+
+    // Switch to project B via the project selector.
+    await user.click(screen.getByTestId('benchmark-suites-project-selector-switch'));
+
+    // The drawer and the pending run selection are cleared — no cross-project run flow.
+    expect(screen.queryByTestId('collection-drawer-panel')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-suites-page-start-evaluation-run-modal'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-project-selector')).toHaveTextContent(
+      'other-project',
     );
   });
 });

@@ -13,16 +13,29 @@ import {
   ToolbarContent,
   ToolbarItem,
   Tooltip,
+  TextInput,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
-import { TrashIcon } from '@patternfly/react-icons';
+import { CheckIcon, TimesIcon, TrashIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
+import { useSettings } from 'mod-arch-core';
+import { createCollection, isConflictError } from '~/app/api/dataRegistry';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useCollections, type CollectionInfo } from '~/app/hooks/useCollections';
 import { collectionDetailUrl } from '~/app/utilities/routes';
-import CreateCollectionModal from './CreateCollectionModal';
+import {
+  DEFAULT_COLLECTION_DELETE_MESSAGE,
+  DEFAULT_COLLECTION_NAME,
+  NON_EMPTY_COLLECTION_DELETE_MESSAGE,
+} from '~/app/utilities/collectionConstants';
 import DeleteCollectionModal from './DeleteCollectionModal';
+import './ManageCollectionsModal.scss';
 
+const COLLECTION_SEARCH_PLACEHOLDER = 'Filter by name or description';
+const COLLECTION_NAME_REGEX = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 type ManageCollectionsModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -36,6 +49,9 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   project,
   onRefresh,
 }) => {
+  const { userSettings } = useSettings();
+  const userId = typeof userSettings?.userId === 'string' ? userSettings.userId : '';
+  const isUserIdentityUnavailable = !userId.trim();
   const [assets, , assetsError, assetsRefresh, collectionNames] = useAssets(project);
   const [collections, , collectionsError, collectionsRefresh] = useCollections(
     project,
@@ -47,8 +63,94 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
     await Promise.all([assetsRefresh(), collectionsRefresh(), onRefresh()]);
   }, [assetsRefresh, collectionsRefresh, onRefresh]);
   const [filterText, setFilterText] = React.useState('');
-  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [newCollectionName, setNewCollectionName] = React.useState('');
+  const [newCollectionDescription, setNewCollectionDescription] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [actionError, setActionError] = React.useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<CollectionInfo | null>(null);
+
+  const nameValidationError = React.useMemo(() => {
+    const trimmed = newCollectionName.trim();
+    if (!trimmed) {
+      return '';
+    }
+    if (trimmed.length > 63) {
+      return 'Name must be 63 characters or fewer.';
+    }
+    if (!COLLECTION_NAME_REGEX.test(trimmed)) {
+      return 'Name must contain only lowercase letters, numbers, and hyphens.';
+    }
+    return '';
+  }, [newCollectionName]);
+
+  const resetCreateForm = () => {
+    setIsCreating(false);
+    setNewCollectionName('');
+    setNewCollectionDescription('');
+    setActionError(null);
+  };
+
+  const handleClose = () => {
+    setFilterText('');
+    resetCreateForm();
+    onClose();
+  };
+
+  const handleEscapePress = () => {
+    if (isCreating) {
+      if (!isSubmitting) {
+        resetCreateForm();
+      }
+      return;
+    }
+    handleClose();
+  };
+
+  const handleCreateCollection = async () => {
+    const trimmedName = newCollectionName.trim();
+    if (!trimmedName || !userId.trim() || nameValidationError) {
+      return;
+    }
+    setIsSubmitting(true);
+    setActionError(null);
+    try {
+      await createCollection(project, {
+        namespace: [trimmedName],
+        properties: {
+          ...(newCollectionDescription.trim()
+            ? { description: newCollectionDescription.trim() }
+            : {}),
+          owner: userId,
+          // eslint-disable-next-line camelcase
+          created_at: new Date().toISOString(),
+          // eslint-disable-next-line camelcase
+          created_by: userId,
+        },
+      });
+    } catch (err) {
+      if (isConflictError(err)) {
+        setActionError(`Collection "${trimmedName}" already exists.`);
+      } else {
+        setActionError(err instanceof Error ? err.message : 'Failed to create collection');
+      }
+      setIsSubmitting(false);
+      return;
+    }
+
+    resetCreateForm();
+    try {
+      await handleRefresh();
+    } catch (err) {
+      setActionError(
+        err instanceof Error
+          ? `Collection created, but the collection list could not be refreshed: ${err.message}`
+          : 'Collection created, but the collection list could not be refreshed.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredCollections = React.useMemo(
     () =>
@@ -66,11 +168,9 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
   return (
     <>
       <Modal
-        isOpen={isOpen && !isCreateOpen && deleteTarget === null}
-        onClose={() => {
-          setFilterText('');
-          onClose();
-        }}
+        isOpen={isOpen && deleteTarget === null}
+        onClose={handleClose}
+        onEscapePress={handleEscapePress}
         variant="large"
         data-testid="manage-collections-modal"
       >
@@ -87,6 +187,16 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                 </Alert>
               </StackItem>
             ) : null}
+            {actionError ? (
+              <StackItem>
+                <Alert
+                  variant="danger"
+                  isInline
+                  title={actionError}
+                  data-testid="manage-collections-action-error"
+                />
+              </StackItem>
+            ) : null}
             <StackItem>
               <Alert
                 variant="info"
@@ -98,18 +208,25 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
               <Toolbar>
                 <ToolbarContent>
                   <ToolbarItem>
-                    <SearchInput
-                      placeholder="Filter by name or description"
-                      value={filterText}
-                      onChange={(_event, value) => setFilterText(value)}
-                      onClear={() => setFilterText('')}
-                      data-testid="collection-filter"
-                    />
+                    <Tooltip content={COLLECTION_SEARCH_PLACEHOLDER} position="bottom">
+                      <SearchInput
+                        placeholder={COLLECTION_SEARCH_PLACEHOLDER}
+                        value={filterText}
+                        onChange={(_event, value) => setFilterText(value)}
+                        onClear={() => setFilterText('')}
+                        data-testid="collection-filter"
+                        className="odh-data-registry-manage-collections__search"
+                      />
+                    </Tooltip>
                   </ToolbarItem>
                   <ToolbarItem>
                     <Button
                       variant="primary"
-                      onClick={() => setIsCreateOpen(true)}
+                      onClick={() => {
+                        setIsCreating(true);
+                        setActionError(null);
+                      }}
+                      isDisabled={isCreating}
                       data-testid="create-collection-button"
                     >
                       Create collection
@@ -118,6 +235,18 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                 </ToolbarContent>
               </Toolbar>
             </StackItem>
+            {isCreating && isUserIdentityUnavailable ? (
+              <StackItem>
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="Unable to determine the current user"
+                  data-testid="collection-identity-unavailable"
+                >
+                  Refresh the page and try again before creating a collection.
+                </Alert>
+              </StackItem>
+            ) : null}
           </Stack>
           <Table aria-label="Collections" data-testid="collections-table">
             <Thead>
@@ -129,6 +258,75 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
               </Tr>
             </Thead>
             <Tbody>
+              {isCreating ? (
+                <Tr data-testid="create-collection-row">
+                  <Td dataLabel="Name">
+                    <TextInput
+                      value={newCollectionName}
+                      onChange={(_event, value) => setNewCollectionName(value)}
+                      placeholder="Name"
+                      aria-label="New collection name"
+                      validated={nameValidationError ? 'error' : 'default'}
+                      isDisabled={isSubmitting}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCreateCollection();
+                        }
+                      }}
+                      data-testid="new-collection-name-input"
+                      autoFocus
+                    />
+                    {nameValidationError ? (
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem variant="error">{nameValidationError}</HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    ) : null}
+                  </Td>
+                  <Td dataLabel="Description">
+                    <TextInput
+                      value={newCollectionDescription}
+                      onChange={(_event, value) => setNewCollectionDescription(value)}
+                      placeholder="Description"
+                      aria-label="New collection description"
+                      isDisabled={isSubmitting}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCreateCollection();
+                        }
+                      }}
+                      data-testid="new-collection-description-input"
+                    />
+                  </Td>
+                  <Td dataLabel="Assets">–</Td>
+                  <Td isActionCell modifier="nowrap">
+                    <Button
+                      variant="plain"
+                      aria-label="Confirm create collection"
+                      onClick={handleCreateCollection}
+                      isDisabled={
+                        isSubmitting ||
+                        !newCollectionName.trim() ||
+                        !userId.trim() ||
+                        !!nameValidationError
+                      }
+                      data-testid="confirm-create-collection"
+                    >
+                      <CheckIcon />
+                    </Button>
+                    <Button
+                      variant="plain"
+                      aria-label="Cancel create collection"
+                      onClick={resetCreateForm}
+                      isDisabled={isSubmitting}
+                      data-testid="cancel-create-collection"
+                    >
+                      <TimesIcon />
+                    </Button>
+                  </Td>
+                </Tr>
+              ) : null}
               {filteredCollections.map((collection) => (
                 <Tr key={collection.name}>
                   <Td dataLabel="Name">
@@ -147,8 +345,15 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                     {collection.assetNames.length > 0 ? collection.assetNames.join(', ') : '–'}
                   </Td>
                   <Td isActionCell>
-                    {collection.assetNames.length > 0 ? (
-                      <Tooltip content="Remove all associated assets to delete this collection">
+                    {collection.name === DEFAULT_COLLECTION_NAME ||
+                    collection.assetNames.length > 0 ? (
+                      <Tooltip
+                        content={
+                          collection.name === DEFAULT_COLLECTION_NAME
+                            ? DEFAULT_COLLECTION_DELETE_MESSAGE
+                            : NON_EMPTY_COLLECTION_DELETE_MESSAGE
+                        }
+                      >
                         <span>
                           <Button
                             variant="plain"
@@ -179,23 +384,13 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
         <ModalFooter>
           <Button
             variant="secondary"
-            onClick={() => {
-              setFilterText('');
-              onClose();
-            }}
+            onClick={handleClose}
             data-testid="manage-collections-close-button"
           >
             Close
           </Button>
         </ModalFooter>
       </Modal>
-
-      <CreateCollectionModal
-        isOpen={isOpen && isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        project={project}
-        onCreated={handleRefresh}
-      />
 
       <DeleteCollectionModal
         isOpen={isOpen && deleteTarget !== null}

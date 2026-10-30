@@ -34,6 +34,7 @@ type InfrastructureWorkloadsToolbarProps = {
   onFilterTypeChange: (value: InfrastructureWorkloadsFilterType) => void;
   onFilterValueChange: (type: InfrastructureWorkloadsFilterType, value: string) => void;
   onClearFilters: () => void;
+  onFilterChipClose: (type: InfrastructureWorkloadsFilterType, value: string) => void;
 };
 
 type WorkloadFilterSelectProps = {
@@ -44,12 +45,12 @@ type WorkloadFilterSelectProps = {
 };
 
 const FILTER_LABELS: Record<InfrastructureWorkloadsFilterType, string> = {
-  status: 'Status',
   type: 'Type',
+  status: 'Status',
   hardwareProfile: 'Hardware profile',
 };
 
-const FILTER_TYPES: InfrastructureWorkloadsFilterType[] = ['status', 'type', 'hardwareProfile'];
+const FILTER_TYPES: InfrastructureWorkloadsFilterType[] = ['type', 'status', 'hardwareProfile'];
 
 const WorkloadFilterSelect: React.FC<WorkloadFilterSelectProps> = ({
   type,
@@ -109,6 +110,7 @@ const InfrastructureWorkloadsToolbar: React.FC<InfrastructureWorkloadsToolbarPro
   onFilterTypeChange,
   onFilterValueChange,
   onClearFilters,
+  onFilterChipClose,
 }) => {
   const [isFilterTypeOpen, setIsFilterTypeOpen] = React.useState(false);
   const selectedFilterCount = FILTER_TYPES.reduce(
@@ -203,7 +205,7 @@ const InfrastructureWorkloadsToolbar: React.FC<InfrastructureWorkloadsToolbarPro
                       <Label
                         key={value}
                         isCompact
-                        onClose={() => onFilterValueChange(type, value)}
+                        onClose={() => onFilterChipClose(type, value)}
                         data-testid={`infrastructure-workloads-${type}-chip-${value}`}
                       >
                         {value}
@@ -214,7 +216,7 @@ const InfrastructureWorkloadsToolbar: React.FC<InfrastructureWorkloadsToolbarPro
               ) : null,
             )}
             <ToolbarItem>
-              <Button variant="link" onClick={onClearFilters}>
+              <Button isInline variant="link" onClick={onClearFilters}>
                 Clear filters
               </Button>
             </ToolbarItem>

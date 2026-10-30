@@ -10,6 +10,7 @@ import {
   stopPortForward,
   waitForResource,
   waitForPodReady,
+  getServiceNamespace,
   type PortForwardHandle,
 } from '../../../utils/oc_commands/baseCommands';
 import {
@@ -85,7 +86,7 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
   it(
     'Enables tracing, sends a chat message, opens trace details, and persists tracing state',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to AI asset endpoints page with tracing enabled');
@@ -172,14 +173,22 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
       cy.step('Verify BFF reports tracing enabled for the playground');
       verifyPlaygroundTracingEnabledViaAPI(projectName);
 
-      cy.step('Start port-forward for tracing service');
-      startPortForward(
-        Cypress.env('APPLICATIONS_NAMESPACE'),
-        GENAI_TRACING_COLLECTOR,
-        GENAI_TRACING_COLLECTOR_PORT,
-      ).then((handle) => {
-        traceCollectorPortForwardHandle = handle;
-      });
+      // In-cluster BFFs reach the collector directly; only local runs need discovery and a tunnel.
+      if ((Cypress.config('baseUrl') || '').includes('localhost')) {
+        cy.step('Start port-forward for tracing service');
+        getServiceNamespace(GENAI_TRACING_COLLECTOR)
+          .then((namespace) =>
+            startPortForward(
+              namespace,
+              GENAI_TRACING_COLLECTOR,
+              GENAI_TRACING_COLLECTOR_PORT,
+              30000,
+            ),
+          )
+          .then((handle) => {
+            traceCollectorPortForwardHandle = handle;
+          });
+      }
 
       cy.step('Navigate to Playground with tracing enabled');
       genAiPlayground.navigateToPlaygroundWithTracing(projectName);

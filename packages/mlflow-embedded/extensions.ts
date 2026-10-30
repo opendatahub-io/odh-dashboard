@@ -17,9 +17,18 @@ import {
   MlflowTrackingEvents,
 } from '@odh-dashboard/internal/concepts/mlflow/const';
 // eslint-disable-next-line no-restricted-syntax
-import { AGENT_OBSERVABILITY_PAGE_TITLE, PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
+import {
+  AGENT_OBSERVABILITY_PAGE_TITLE,
+  PROMPT_MANAGEMENT_PAGE_TITLE,
+  SKILL_REGISTRY_PAGE_TITLE,
+} from './shared/const';
 // eslint-disable-next-line no-restricted-syntax
-import { agentObservabilityPath, globAgentObservabilityAll } from './shared/routes';
+import {
+  agentObservabilityPath,
+  globAgentObservabilityAll,
+  globSkillRegistryAll,
+  skillRegistryPath,
+} from './shared/routes';
 // eslint-disable-next-line no-restricted-syntax
 import { MCP_REGISTRY_BASENAME } from './mcp-registry/const';
 
@@ -41,9 +50,6 @@ const extensions: (
   },
   {
     type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       id: EXPERIMENTS_NAV_ID,
       title: 'Experiments',
@@ -58,9 +64,6 @@ const extensions: (
   },
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: '/develop-train/mlflow/*',
       component: () => import('./experiments/GlobalMLflowExperimentsRoutes'),
@@ -80,11 +83,10 @@ const extensions: (
       group: '6_prompt_management',
     },
   },
+  // Keep prompt links from Experiments and Agent traces reachable even when
+  // Gen AI Studio or MLflow is disabled; navigation remains gated separately.
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: globPromptManagementAll,
       component: () => import('./prompts/GlobalMLflowPromptManagementRoutes'),
@@ -92,9 +94,6 @@ const extensions: (
   },
   {
     type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       id: 'agent-observability',
       title: AGENT_OBSERVABILITY_PAGE_TITLE,
@@ -110,9 +109,6 @@ const extensions: (
   },
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.MLFLOW],
-    },
     properties: {
       path: globAgentObservabilityAll,
       component: () => import('./agent-observability/GlobalMLflowAgentObservabilityRoutes'),
@@ -149,6 +145,37 @@ const extensions: (
     },
   },
   {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.SKILL_REGISTRY],
+    },
+    properties: {
+      id: 'skill-registry',
+      title: SKILL_REGISTRY_PAGE_TITLE,
+      href: skillRegistryPath,
+      section: 'ai-hub',
+      path: globSkillRegistryAll,
+      group: '3b_skill_registry',
+      label: 'Tech Preview',
+      trackingEvent: {
+        name: MlflowTrackingEvents.EMBEDDED_VIEW_OPENED,
+        section: 'skill-registry-sidebar-nav',
+      },
+    },
+  },
+  // One route covers the catalog and both skill detail URL shapes
+  // (`/:skillKey` and `/:organization/:skillName`), which the remote resolves.
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.SKILL_REGISTRY],
+    },
+    properties: {
+      path: globSkillRegistryAll,
+      component: () => import('./skill-registry/GlobalMLflowSkillRegistryRoutes'),
+    },
+  },
+  {
     type: 'app.task/item',
     flags: {
       required: [SupportedArea.MLFLOW],
@@ -172,6 +199,19 @@ const extensions: (
       title: 'Create and manage AI prompts',
       destination: { href: promptManagementPath },
       order: '4_prompts',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [SupportedArea.MLFLOW, SupportedArea.SKILL_REGISTRY],
+    },
+    properties: {
+      id: 'ai-hub-skills',
+      group: 'ai-hub',
+      title: 'Discover and register agent skills',
+      destination: { href: skillRegistryPath },
+      order: '3_skills',
     },
   },
 ];

@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { MODEL_EVALUATION_TARGETS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import { getBenchmarkParameterLabel } from '~/app/components/benchmarkUtils';
 import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
 
 export const copySuiteBenchmarkParameterTypeSchema = z.enum(['number', 'boolean', 'text']);
@@ -28,6 +29,9 @@ export type CopySuiteBenchmarkParameter = z.infer<typeof copySuiteBenchmarkParam
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isMissingRequiredValue = (value: CopySuiteBenchmarkParameter['value']): boolean =>
+  value == null || (typeof value === 'string' && value.trim() === '');
 
 export const getAdditionalParametersError = (
   value: string | undefined,
@@ -83,7 +87,7 @@ export const copySuiteBenchmarkSchema = z
 
 export const copySuiteSchema = z
   .object({
-    suiteName: z.string().trim().min(1, 'Suite name is required'),
+    suiteName: z.string().trim().min(1, 'Collection name is required'),
     suiteDescription: z.string(),
     suiteDomains: z.array(z.string()),
     suiteTasks: z.array(z.string()),
@@ -110,7 +114,7 @@ export const copySuiteSchema = z
   });
 
 export const SOURCE_COLLECTION_NAME_ERROR =
-  'Suite name must be different from the source collection name.';
+  'Collection name must be different from the source collection name.';
 
 export const isSameAsSourceCollectionName = (
   suiteName: string,
@@ -118,7 +122,10 @@ export const isSameAsSourceCollectionName = (
 ): boolean =>
   Boolean(sourceCollectionName?.trim()) && suiteName.trim() === sourceCollectionName?.trim();
 
-export const getCopySuiteSchema = (sourceCollectionName?: string): typeof copySuiteSchema =>
+export const getCopySuiteSchema = (
+  sourceCollectionName?: string,
+  requiredParameterKeys: ReadonlySet<string> = new Set(),
+): typeof copySuiteSchema =>
   copySuiteSchema.superRefine((data, ctx) => {
     if (isSameAsSourceCollectionName(data.suiteName, sourceCollectionName)) {
       ctx.addIssue({
@@ -127,6 +134,18 @@ export const getCopySuiteSchema = (sourceCollectionName?: string): typeof copySu
         path: ['suiteName'],
       });
     }
+
+    data.benchmarks.forEach((benchmark, benchmarkIndex) => {
+      benchmark.parameters.forEach((parameter, parameterIndex) => {
+        if (requiredParameterKeys.has(parameter.key) && isMissingRequiredValue(parameter.value)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `${getBenchmarkParameterLabel(parameter.key)} is required.`,
+            path: ['benchmarks', benchmarkIndex, 'parameters', parameterIndex, 'value'],
+          });
+        }
+      });
+    });
   });
 
 export type CopySuiteFormValues = z.infer<typeof copySuiteSchema>;

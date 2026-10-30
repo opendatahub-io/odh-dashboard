@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import {
   Bullseye,
@@ -9,10 +10,11 @@ import {
   EmptyStateVariant,
   Gallery,
   GalleryItem,
+  Label,
+  LabelGroup,
   Pagination,
   SearchInput,
   Spinner,
-  StackItem,
   Title,
   Toolbar,
   ToolbarContent,
@@ -24,6 +26,7 @@ import {
 import {
   ChartLineIcon,
   CubeIcon,
+  DotCircleIcon,
   ExclamationCircleIcon,
   FilterIcon,
   IndustryIcon,
@@ -33,17 +36,17 @@ import {
   TagsIcon,
   TasksIcon,
 } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import { useCollectionsQuery, useDeleteCollectionMutation } from '~/app/hooks/collections';
 import { useNotification } from '~/app/hooks/useNotification';
-import { evaluationBenchmarkSuitesRoute } from '~/app/routes';
+import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
+import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkSuiteCard, { isPopularCollection } from '~/app/components/BenchmarkSuiteCard';
+import BenchmarkSuiteCardSkeleton from '~/app/components/BenchmarkSuiteCardSkeleton';
 import type { BenchmarkSuiteCardAction } from '~/app/components/BenchmarkSuiteCard';
 import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard';
 import DeleteConfirmationModal from '~/app/components/DeleteConfirmationModal';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
-import CategoryFilterIcon from '~/app/icons/CategoryFilterIcon';
 import type { Collection, CollectionFilterParams, CollectionScope } from '~/app/types';
 import {
   formatCategory,
@@ -52,12 +55,62 @@ import {
 } from '~/app/components/benchmarkUtils';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
+import { createEvalHubTrackingScope, trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import type {
+  BenchmarkCollectionFilterType,
+  EvalHubCollectionSurface,
+} from '~/app/tracking/evalhubTrackingConstants';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './BenchmarkSuitesGallery.scss';
 
 // TODO: Remove this curated mock fallback once the curated collections API is available.
 const DEFAULT_PAGE_SIZE = 8;
 const PAGE_SIZE_OPTIONS = [8, 16, 32];
-const FILTER_COMPACTION_LEVELS = 2;
+const GALLERY_LOADING_CARD_COUNT = 6;
+const BENCHMARK_SUITES_LOADING_CARD_COUNT = 2;
+
+type SelectedFilterGroupProps = {
+  categoryName: string;
+  formatLabel?: (value: string) => string;
+  onClearAll: () => void;
+  onRemove: (value: string) => void;
+  selected: string[];
+  testId: string;
+};
+
+const SelectedFilterGroup: React.FC<SelectedFilterGroupProps> = ({
+  categoryName,
+  formatLabel = (value) => value,
+  onClearAll,
+  onRemove,
+  selected,
+  testId,
+}) => {
+  if (selected.length === 0) {
+    return null;
+  }
+
+  return (
+    <ToolbarItem variant="label-group">
+      <LabelGroup categoryName={categoryName} isClosable onClick={onClearAll} data-testid={testId}>
+        {selected.map((value) => (
+          <Label
+            key={value}
+            variant="outline"
+            onClose={(event) => {
+              event.stopPropagation();
+              onRemove(value);
+            }}
+            data-testid={`${testId}-tag-${value}`}
+          >
+            {formatLabel(value)}
+          </Label>
+        ))}
+      </LabelGroup>
+    </ToolbarItem>
+  );
+};
+
 // These are the collection fields or derived values that can provide options for filter dropdowns.
 type CollectionFilterField =
   | 'domains'
@@ -113,6 +166,36 @@ const sortCollectionsByName = (collections: Collection[]): Collection[] =>
     return nameComparison || first.resource.id.localeCompare(second.resource.id);
   });
 
+const getCollectionCreatedAt = (collection: Collection): number | undefined => {
+  if (!collection.resource.created_at) {
+    return undefined;
+  }
+
+  const timestamp = Date.parse(collection.resource.created_at);
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+};
+
+const sortCollectionsByCreatedAt = (collections: Collection[]): Collection[] =>
+  [...collections].toSorted((first, second) => {
+    const firstCreatedAt = getCollectionCreatedAt(first);
+    const secondCreatedAt = getCollectionCreatedAt(second);
+
+    if (firstCreatedAt == null && secondCreatedAt != null) {
+      return 1;
+    }
+    if (firstCreatedAt != null && secondCreatedAt == null) {
+      return -1;
+    }
+    if (firstCreatedAt != null && secondCreatedAt != null && firstCreatedAt !== secondCreatedAt) {
+      return secondCreatedAt - firstCreatedAt;
+    }
+
+    const nameComparison = first.name.localeCompare(second.name, undefined, {
+      sensitivity: 'base',
+    });
+    return nameComparison || first.resource.id.localeCompare(second.resource.id);
+  });
+
 const areStringArraysEqual = (first: string[], second: string[]): boolean =>
   first.length === second.length && first.every((value, index) => value === second[index]);
 
@@ -155,7 +238,7 @@ const getAvailableFilterOptions = (
     ...new Set(collections.flatMap((collection) => getCollectionFieldValues(collection, field))),
   ].toSorted();
 
-const hasCuratedIndex = (collection: Collection): boolean =>
+export const hasCuratedIndex = (collection: Collection): boolean =>
   typeof collection.curation_order === 'number' &&
   Number.isFinite(collection.curation_order) &&
   collection.curation_order > 0;
@@ -164,13 +247,14 @@ type BenchmarkSuitesGalleryProps = {
   namespace: string;
   benchmarkNameMap?: BenchmarkNameMap;
   maxVisibleCollections?: number;
-  showSummary?: boolean;
   showCreateSuiteCard?: boolean;
   showFilters?: boolean;
   showEvaluatesFilter?: boolean;
   showPagination?: boolean;
+  showPaginationControls?: boolean;
   showContextualActions?: boolean;
   scope?: CollectionScope;
+  trackingSurface?: EvalHubCollectionSurface;
   queryFilters?: CollectionFilterParams;
   // System collections without a curation order are not part of the curated gallery.
   requireCuratedIndex?: boolean;
@@ -190,20 +274,21 @@ type BenchmarkSuitesGalleryProps = {
   onDropdownAction?: (collection: Collection) => void;
   onEditCollection?: (collection: Collection) => void;
   onDuplicateCollection: (collection: Collection) => void;
-  onSelectCollection: (collection: Collection) => void;
+  onSelectCollection: (collection: Collection) => boolean | void;
 };
 
 const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   namespace,
   benchmarkNameMap,
   maxVisibleCollections,
-  showSummary = false,
   showCreateSuiteCard = true,
   showFilters = false,
   showEvaluatesFilter = true,
   showPagination = false,
+  showPaginationControls = true,
   showContextualActions = true,
   scope = 'tenant',
+  trackingSurface = 'collection_gallery',
   queryFilters,
   requireCuratedIndex = false,
   primaryActionLabel = 'Run',
@@ -235,111 +320,61 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [collectionToDelete, setCollectionToDelete] = React.useState<Collection | null>(null);
-  const [filterCompactionLevel, setFilterCompactionLevel] = React.useState(0);
-  const filterCompactionLevelRef = React.useRef(filterCompactionLevel);
-  const filterToolbarRef = React.useRef<HTMLDivElement | null>(null);
-  const setFilterToolbarRef = React.useCallback((filterGroup: HTMLDivElement | null) => {
-    filterToolbarRef.current =
-      filterGroup?.closest<HTMLDivElement>('[data-testid="benchmark-suites-filter-content"]') ??
-      null;
-  }, []);
-  filterCompactionLevelRef.current = filterCompactionLevel;
-
-  const measureFilterToolbar = React.useCallback((toolbarContent: HTMLElement | null) => {
-    const filterGroup = toolbarContent?.querySelector<HTMLElement>(
-      '[data-testid="benchmark-suites-filter-group"]',
-    );
-    const pagination = toolbarContent?.querySelector<HTMLElement>(
-      '[data-testid="benchmark-suites-pagination-top"]',
-    );
-
-    if (
-      !toolbarContent ||
-      !filterGroup ||
-      !pagination ||
-      filterGroup.getBoundingClientRect().width === 0
-    ) {
-      return;
-    }
-
-    const paginationTop = pagination.getBoundingClientRect().top;
-    const filterItems = Array.from(filterGroup.children).filter(
-      (filterItem): filterItem is HTMLElement => filterItem instanceof HTMLElement,
-    );
-    if (filterItems.length === 0) {
-      return;
-    }
-    const filterItemTops = filterItems.map((filterItem) => filterItem.getBoundingClientRect().top);
-    const firstFilterTop = Math.min(...filterItemTops);
-    const isFilterGroupWrapped = filterItems.some(
-      (filterItem) => filterItem.getBoundingClientRect().top > firstFilterTop + 1,
-    );
-    const isPaginationWrapped = paginationTop > firstFilterTop + 1;
-
-    if (
-      (isFilterGroupWrapped || isPaginationWrapped) &&
-      filterCompactionLevelRef.current < FILTER_COMPACTION_LEVELS
-    ) {
-      setFilterCompactionLevel((previous) => previous + 1);
-    }
-  }, []);
-
-  React.useLayoutEffect(() => {
-    measureFilterToolbar(filterToolbarRef.current);
-  }, [filterCompactionLevel, measureFilterToolbar]);
-
-  React.useEffect(() => {
-    const toolbarContent = filterToolbarRef.current;
-    if (!toolbarContent || typeof ResizeObserver === 'undefined') {
-      return undefined;
-    }
-
-    let lastWidth = toolbarContent.getBoundingClientRect().width;
-    let animationFrame: number | undefined;
-
-    const scheduleMeasurement = () => {
-      if (animationFrame !== undefined) {
-        cancelAnimationFrame(animationFrame);
-      }
-      animationFrame = requestAnimationFrame(() => {
-        animationFrame = undefined;
-        const { width } = toolbarContent.getBoundingClientRect();
-        if (Math.abs(width - lastWidth) > 0.5) {
-          lastWidth = width;
-          setFilterCompactionLevel(0);
-        }
-        measureFilterToolbar(toolbarContent);
-      });
-    };
-
-    const resizeObserver = new ResizeObserver(scheduleMeasurement);
-    resizeObserver.observe(toolbarContent);
-
-    const filterGroup = toolbarContent.querySelector<HTMLElement>(
-      '[data-testid="benchmark-suites-filter-group"]',
-    );
-    if (filterGroup) {
-      resizeObserver.observe(filterGroup);
-    }
-
-    const pagination = toolbarContent.querySelector<HTMLElement>(
-      '[data-testid="benchmark-suites-pagination-top"]',
-    );
-    if (pagination) {
-      resizeObserver.observe(pagination);
-    }
-
-    scheduleMeasurement();
-
-    return () => {
-      resizeObserver.disconnect();
-      if (animationFrame !== undefined) {
-        cancelAnimationFrame(animationFrame);
-      }
-    };
-  }, [measureFilterToolbar, showFilters, showPagination]);
-
+  const [showMoreFilters, setShowMoreFilters] = React.useState(false);
+  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
+  const loadingCardCount = showCreateSuiteCard
+    ? BENCHMARK_SUITES_LOADING_CARD_COUNT
+    : GALLERY_LOADING_CARD_COUNT;
   const notification = useNotification();
+
+  const trackCollectionFilterApplied = React.useCallback(
+    (filterType: BenchmarkCollectionFilterType, selectedValues: string[]) => {
+      const normalizedSelectedValues = [
+        ...new Set(selectedValues.map((value) => value.trim()).filter(Boolean)),
+      ].toSorted((first, second) =>
+        first.localeCompare(second, undefined, { sensitivity: 'base' }),
+      );
+
+      if (normalizedSelectedValues.length === 0) {
+        return;
+      }
+
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
+        {
+          filterType,
+          value: normalizedSelectedValues.join(', '),
+          surface: trackingSurface,
+        },
+        { collectionType: scope === 'system' ? 'system' : 'custom' },
+      );
+    },
+    [scope, trackingSurface],
+  );
+
+  const handleToggleCollectionFilter = React.useCallback(
+    (
+      filterType: BenchmarkCollectionFilterType,
+      selectedValues: string[],
+      value: string,
+      setSelectedValues: React.Dispatch<React.SetStateAction<string[]>>,
+    ) => {
+      const nextSelectedValues = toggleFilterValue(selectedValues, value);
+      setSelectedValues(nextSelectedValues);
+      trackCollectionFilterApplied(filterType, nextSelectedValues);
+    },
+    [trackCollectionFilterApplied],
+  );
+
+  const handleSearchCommit = React.useCallback(
+    (trimmedLength: number) => {
+      trackCollectionFilterApplied('search', [String(trimmedLength)]);
+    },
+    [trackCollectionFilterApplied],
+  );
+  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit, nameFilter);
+  const resetSearchInputTracking = searchInputTrackingProps.reset;
+
   const clearFilters = React.useCallback(() => {
     setNameFilter('');
     setDomainFilter([]);
@@ -350,7 +385,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     setModalityFilter([]);
     setMetricFilter([]);
     setBenchmarkFilter([]);
-  }, []);
+    resetSearchInputTracking();
+  }, [resetSearchInputTracking]);
   const queryFiltersKey = React.useMemo(
     () =>
       [
@@ -377,18 +413,22 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
       benchmarkFilter.length > 0,
     );
   const queryLimit = showPagination
-    ? requireCuratedIndex || isClientSideFiltering
+    ? requireCuratedIndex || isClientSideFiltering || !showPaginationControls
       ? COLLECTION_FETCH_LIMIT
       : pageSize
-    : maxVisibleCollections;
+    : maxVisibleCollections
+      ? COLLECTION_FETCH_LIMIT
+      : undefined;
   const queryOffset =
-    showPagination && !isClientSideFiltering && !requireCuratedIndex
+    showPaginationControls && showPagination && !isClientSideFiltering && !requireCuratedIndex
       ? (page - 1) * pageSize
       : undefined;
   // Keep route-level filters such as the curated agent/model selection on the API request.
   // User-selected gallery filters are applied locally against the fetched collection set. When a
   // filter is active, that set is intentionally capped at COLLECTION_FETCH_LIMIT until filtering
   // and filter-option discovery move fully to the API.
+  // TODO: Use API-side filtering and created_at ordering here; fetching 200 and sorting client-side
+  // is only a temporary approximation and may miss newer collections beyond this limit.
   const { data, isLoading, isFetching, error, refetch } = useCollectionsQuery(
     namespace,
     scope,
@@ -423,6 +463,29 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   // TODO: Remove the mock fallback and this switch once the collections API is the source of
   // truth for every benchmark suite gallery.
   const isUsingMockCollections = useMockFallback && !isLoading && Boolean(error);
+  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
+
+  React.useEffect(() => {
+    if (isLoading || isFetching || shouldShowLoadError) {
+      return;
+    }
+
+    trackingScope.trackEventOnce(
+      EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED,
+      `${namespace}:${scope}:${queryFilters?.evaluationTargets?.join(',') ?? 'all'}`,
+      { surface: trackingSurface },
+      { collectionType: scope === 'system' ? 'system' : 'custom' },
+    );
+  }, [
+    isFetching,
+    isLoading,
+    namespace,
+    queryFilters?.evaluationTargets,
+    scope,
+    shouldShowLoadError,
+    trackingScope,
+    trackingSurface,
+  ]);
   const collections = React.useMemo(() => {
     if (shouldShowLoadError || isLoading) {
       return [];
@@ -441,7 +504,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   ]);
   const sourceCollections = React.useMemo(() => {
     const orderedCollections =
-      scope === 'tenant' ? sortCollectionsByName(collections) : collections;
+      scope === 'tenant'
+        ? maxVisibleCollections
+          ? sortCollectionsByCreatedAt(collections)
+          : sortCollectionsByName(collections)
+        : collections;
     return maxVisibleCollections
       ? orderedCollections.slice(0, maxVisibleCollections)
       : orderedCollections;
@@ -671,20 +738,23 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     isUsingMockCollections || isClientSideFiltering || requireCuratedIndex;
   // TODO: Remove the mock count branch when mock collections are no longer needed and always use
   // the API total_count for pagination.
-  const filteredCollectionCount = showPagination
-    ? shouldUseClientSidePagination
-      ? filteredCollections.length
-      : (data?.total_count ?? filteredCollections.length)
-    : totalCount;
+  const filteredCollectionCount =
+    showPagination && showPaginationControls
+      ? shouldUseClientSidePagination
+        ? filteredCollections.length
+        : (data?.total_count ?? filteredCollections.length)
+      : totalCount;
   // A server-side count drop (for example, deleting the last suite on the last page) can leave
   // the page state beyond the last valid page. Render the clamped page; the effect below corrects
   // the state itself so the next server-side query offset is clamped too.
   const maxPage = Math.max(1, Math.ceil(filteredCollectionCount / pageSize));
   const currentPage = Math.min(page, maxPage);
   const visibleCollections = showPagination
-    ? shouldUseClientSidePagination
-      ? filteredCollections.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-      : filteredCollections.slice(0, pageSize)
+    ? showPaginationControls
+      ? shouldUseClientSidePagination
+        ? filteredCollections.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+        : filteredCollections.slice(0, pageSize)
+      : filteredCollections
     : sourceCollections;
   const hasPopularCollections = visibleCollections.some(isPopularCollection);
   const hasActiveFilters = Boolean(
@@ -701,7 +771,13 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   const areFiltersDisabled =
     shouldShowLoadError || (!isLoading && sourceCollections.length === 0 && !hasActiveFilters);
   const isRefreshing = isFetching && !isLoading;
-
+  const hasMoreFilterOptions = Boolean(
+    (showEvaluatesFilter && evaluatesOptions.length > 0) ||
+    industryOptions.length > 0 ||
+    modalityOptions.length > 0 ||
+    tagOptions.length > 0 ||
+    taskOptions.length > 0,
+  );
   React.useEffect(() => {
     if (page > maxPage) {
       setPage(maxPage);
@@ -716,7 +792,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     industryFilter,
     metricFilter,
     modalityFilter,
-    maxVisibleCollections,
     nameFilter,
     namespace,
     tagFilter,
@@ -735,7 +810,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     setModalityFilter([]);
     setMetricFilter([]);
     setBenchmarkFilter([]);
-  }, [queryFiltersKey, scope]);
+    resetSearchInputTracking();
+  }, [queryFiltersKey, scope, resetSearchInputTracking]);
 
   const handleDeleteSelect = React.useCallback(
     (collection: Collection) => {
@@ -751,15 +827,35 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
     }
     try {
       await deleteCollection(collectionToDelete.resource.id);
-      notification.success(
-        'Benchmark suite deleted',
-        `"${collectionToDelete.name}" has been deleted.`,
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_DELETED,
+        {
+          collectionName: collectionToDelete.name,
+          outcome: 'success',
+        },
+        {
+          collectionType: collectionToDelete.resource.read_only ? 'system' : 'custom',
+          providerType: collectionToDelete.benchmarks?.[0]?.provider_id,
+        },
       );
+      notification.success('Collection deleted', `"${collectionToDelete.name}" has been deleted.`);
       setCollectionToDelete(null);
     } catch (deleteError) {
       const message =
-        deleteError instanceof Error ? deleteError.message : 'Unable to delete benchmark suite.';
-      notification.error('Unable to delete benchmark suite', message);
+        deleteError instanceof Error ? deleteError.message : 'Unable to delete collection.';
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_DELETED,
+        {
+          collectionName: collectionToDelete.name,
+          outcome: 'error',
+          error_category: deleteError instanceof Error ? deleteError.name : 'unknown_error',
+        },
+        {
+          collectionType: collectionToDelete.resource.read_only ? 'system' : 'custom',
+          providerType: collectionToDelete.benchmarks?.[0]?.provider_id,
+        },
+      );
+      notification.error('Unable to delete collection', message);
       setCollectionToDelete(null);
     }
   }, [collectionToDelete, deleteCollection, notification]);
@@ -776,7 +872,7 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             {
               id: 'edit',
               label: 'Edit',
-              isDisabled: (collection.state?.run_count ?? 0) > 0,
+              isDisabled: (collection.status?.run_count ?? 0) > 0,
               onSelect: onEditCollection,
             },
           ]
@@ -803,22 +899,30 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           <ToolbarContent data-testid="benchmark-suites-filter-content">
             <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
               <ToolbarGroup
-                ref={setFilterToolbarRef}
                 variant="filter-group"
+                rowWrap={{ default: 'wrap' }}
                 data-testid="benchmark-suites-filter-group"
               >
                 <ToolbarFilter
-                  labels={nameFilter ? [nameFilter] : []}
-                  deleteLabel={() => setNameFilter('')}
+                  labels={[]}
+                  deleteLabel={() => {
+                    setNameFilter('');
+                    resetSearchInputTracking();
+                  }}
                   categoryName="Search"
                 >
                   <SearchInput
+                    className="evalhub-benchmark-suite-gallery__search-input"
                     aria-label="Search collections"
                     placeholder="Search collections"
                     value={nameFilter}
                     isDisabled={areFiltersDisabled}
                     onChange={(_event, value) => setNameFilter(value)}
-                    onClear={() => setNameFilter('')}
+                    inputProps={searchInputTrackingProps.inputProps}
+                    onClear={() => {
+                      setNameFilter('');
+                      resetSearchInputTracking();
+                    }}
                     data-testid="benchmark-suites-name-filter"
                   />
                 </ToolbarFilter>
@@ -826,19 +930,21 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   <SearchableMultiSelectFilter
                     categoryName="Category"
                     icon={
-                      <CategoryFilterIcon
+                      <DotCircleIcon
                         aria-hidden="true"
                         data-testid="benchmark-suites-category-filter-icon"
                       />
                     }
-                    isCompact={filterCompactionLevel >= FILTER_COMPACTION_LEVELS}
                     options={domainOptions}
                     selected={domainFilter}
+                    showSelectedLabels={false}
                     formatLabel={formatCategory}
                     onToggleOption={(value) =>
-                      setDomainFilter((previous) => toggleFilterValue(previous, value))
+                      handleToggleCollectionFilter('category', domainFilter, value, setDomainFilter)
                     }
-                    onClearAll={() => setDomainFilter([])}
+                    onClearAll={() => {
+                      setDomainFilter([]);
+                    }}
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-category"
                     testId="benchmark-suites-category-filter"
@@ -848,14 +954,21 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   <SearchableMultiSelectFilter
                     categoryName="Benchmarks"
                     icon={<RhUiCollectionFillIcon aria-hidden="true" />}
-                    isCompact={filterCompactionLevel >= FILTER_COMPACTION_LEVELS}
                     options={benchmarkOptions}
                     selected={benchmarkFilter}
+                    showSelectedLabels={false}
                     formatLabel={formatBenchmarkLabel}
                     onToggleOption={(value) =>
-                      setBenchmarkFilter((previous) => toggleFilterValue(previous, value))
+                      handleToggleCollectionFilter(
+                        'benchmark',
+                        benchmarkFilter,
+                        value,
+                        setBenchmarkFilter,
+                      )
                     }
-                    onClearAll={() => setBenchmarkFilter([])}
+                    onClearAll={() => {
+                      setBenchmarkFilter([]);
+                    }}
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-benchmarks"
                     testId="benchmark-suites-benchmarks-filter"
@@ -865,107 +978,146 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   <SearchableMultiSelectFilter
                     categoryName="Metrics"
                     icon={<ChartLineIcon aria-hidden="true" />}
-                    isCompact={filterCompactionLevel >= FILTER_COMPACTION_LEVELS}
                     options={metricOptions}
                     selected={metricFilter}
+                    showSelectedLabels={false}
                     formatLabel={getMetricDisplayName}
                     onToggleOption={(value) =>
-                      setMetricFilter((previous) => toggleFilterValue(previous, value))
+                      handleToggleCollectionFilter('metric', metricFilter, value, setMetricFilter)
                     }
-                    onClearAll={() => setMetricFilter([])}
+                    onClearAll={() => {
+                      setMetricFilter([]);
+                    }}
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-metrics"
                     testId="benchmark-suites-metrics-filter"
                   />
                 )}
-                {showEvaluatesFilter && evaluatesOptions.length > 0 && (
+                {showMoreFilters && showEvaluatesFilter && evaluatesOptions.length > 0 && (
                   <SearchableMultiSelectFilter
                     categoryName="Evaluates"
                     icon={<CubeIcon aria-hidden="true" />}
-                    isCompact={filterCompactionLevel >= FILTER_COMPACTION_LEVELS}
                     options={evaluatesOptions}
                     selected={evaluatesFilter}
+                    showSelectedLabels={false}
                     formatLabel={formatCategory}
                     onToggleOption={(value) =>
-                      setEvaluatesFilter((previous) => toggleFilterValue(previous, value))
+                      handleToggleCollectionFilter(
+                        'evaluates',
+                        evaluatesFilter,
+                        value,
+                        setEvaluatesFilter,
+                      )
                     }
-                    onClearAll={() => setEvaluatesFilter([])}
+                    onClearAll={() => {
+                      setEvaluatesFilter([]);
+                    }}
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-evaluates"
                     testId="benchmark-suites-evaluates-filter"
                   />
                 )}
-                {modalityOptions.length > 0 && (
+                {showMoreFilters && modalityOptions.length > 0 && (
                   <SearchableMultiSelectFilter
                     categoryName="Modalities"
                     icon={<LayerGroupIcon aria-hidden="true" />}
-                    isCompact={filterCompactionLevel >= 1}
                     options={modalityOptions}
                     selected={modalityFilter}
+                    showSelectedLabels={false}
                     formatLabel={formatCategory}
                     onToggleOption={(value) =>
-                      setModalityFilter((previous) => toggleFilterValue(previous, value))
+                      handleToggleCollectionFilter(
+                        'modality',
+                        modalityFilter,
+                        value,
+                        setModalityFilter,
+                      )
                     }
-                    onClearAll={() => setModalityFilter([])}
+                    onClearAll={() => {
+                      setModalityFilter([]);
+                    }}
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-modality"
                     testId="benchmark-suites-modality-filter"
                   />
                 )}
-                {taskOptions.length > 0 && (
+                {showMoreFilters && taskOptions.length > 0 && (
                   <SearchableMultiSelectFilter
                     categoryName="Tasks"
                     icon={<TasksIcon aria-hidden="true" />}
-                    isCompact={filterCompactionLevel >= 1}
                     options={taskOptions}
                     selected={taskFilter}
+                    showSelectedLabels={false}
                     formatLabel={formatCategory}
                     onToggleOption={(value) =>
-                      setTaskFilter((previous) => toggleFilterValue(previous, value))
+                      handleToggleCollectionFilter('task', taskFilter, value, setTaskFilter)
                     }
-                    onClearAll={() => setTaskFilter([])}
+                    onClearAll={() => {
+                      setTaskFilter([]);
+                    }}
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-task"
                     testId="benchmark-suites-task-filter"
                   />
                 )}
-                {industryOptions.length > 0 && (
+                {showMoreFilters && industryOptions.length > 0 && (
                   <SearchableMultiSelectFilter
                     categoryName="Industry"
                     icon={<IndustryIcon aria-hidden="true" />}
-                    isCompact={filterCompactionLevel >= 1}
                     options={industryOptions}
                     selected={industryFilter}
+                    showSelectedLabels={false}
                     formatLabel={formatCategory}
                     onToggleOption={(value) =>
-                      setIndustryFilter((previous) => toggleFilterValue(previous, value))
+                      handleToggleCollectionFilter(
+                        'industry',
+                        industryFilter,
+                        value,
+                        setIndustryFilter,
+                      )
                     }
-                    onClearAll={() => setIndustryFilter([])}
+                    onClearAll={() => {
+                      setIndustryFilter([]);
+                    }}
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-industry"
                     testId="benchmark-suites-industry-filter"
                   />
                 )}
-                {tagOptions.length > 0 && (
+                {showMoreFilters && tagOptions.length > 0 && (
                   <SearchableMultiSelectFilter
                     categoryName="Tags"
                     icon={<TagsIcon aria-hidden="true" />}
-                    isCompact={filterCompactionLevel >= 1}
                     options={tagOptions}
                     selected={tagFilter}
+                    showSelectedLabels={false}
                     formatLabel={formatCategory}
                     onToggleOption={(value) =>
-                      setTagFilter((previous) => toggleFilterValue(previous, value))
+                      handleToggleCollectionFilter('tag', tagFilter, value, setTagFilter)
                     }
-                    onClearAll={() => setTagFilter([])}
+                    onClearAll={() => {
+                      setTagFilter([]);
+                    }}
                     isDisabled={areFiltersDisabled}
                     testIdPrefix="benchmark-suites-tags"
                     testId="benchmark-suites-tags-filter"
                   />
                 )}
+                {hasMoreFilterOptions && (
+                  <ToolbarItem>
+                    <Button
+                      variant="link"
+                      icon={<FilterIcon aria-hidden="true" />}
+                      onClick={() => setShowMoreFilters((previous) => !previous)}
+                      data-testid="benchmark-suites-more-filters-toggle"
+                    >
+                      {showMoreFilters ? 'Hide more filters' : 'Show more filters'}
+                    </Button>
+                  </ToolbarItem>
+                )}
               </ToolbarGroup>
             </ToolbarToggleGroup>
-            {showPagination && (
+            {showPagination && showPaginationControls && (
               <ToolbarItem align={{ default: 'alignEnd' }} variant="pagination">
                 <Pagination
                   itemCount={filteredCollectionCount}
@@ -989,6 +1141,151 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
               </ToolbarItem>
             )}
           </ToolbarContent>
+          {hasActiveFilters && (
+            <ToolbarContent className="pf-v6-u-pt-0" data-testid="benchmark-suites-active-filters">
+              <ToolbarGroup variant="filter-group">
+                <SelectedFilterGroup
+                  categoryName="Search"
+                  selected={nameFilter ? [nameFilter] : []}
+                  onRemove={() => {
+                    setNameFilter('');
+                    resetSearchInputTracking();
+                  }}
+                  onClearAll={() => {
+                    setNameFilter('');
+                    resetSearchInputTracking();
+                  }}
+                  testId="benchmark-suites-active-search"
+                />
+                <SelectedFilterGroup
+                  categoryName="Category"
+                  selected={domainFilter}
+                  formatLabel={formatCategory}
+                  onRemove={(value) =>
+                    handleToggleCollectionFilter('category', domainFilter, value, setDomainFilter)
+                  }
+                  onClearAll={() => {
+                    setDomainFilter([]);
+                  }}
+                  testId="benchmark-suites-active-category"
+                />
+                <SelectedFilterGroup
+                  categoryName="Benchmarks"
+                  selected={benchmarkFilter}
+                  formatLabel={formatBenchmarkLabel}
+                  onRemove={(value) =>
+                    handleToggleCollectionFilter(
+                      'benchmark',
+                      benchmarkFilter,
+                      value,
+                      setBenchmarkFilter,
+                    )
+                  }
+                  onClearAll={() => {
+                    setBenchmarkFilter([]);
+                  }}
+                  testId="benchmark-suites-active-benchmarks"
+                />
+                <SelectedFilterGroup
+                  categoryName="Metrics"
+                  selected={metricFilter}
+                  formatLabel={getMetricDisplayName}
+                  onRemove={(value) =>
+                    handleToggleCollectionFilter('metric', metricFilter, value, setMetricFilter)
+                  }
+                  onClearAll={() => {
+                    setMetricFilter([]);
+                  }}
+                  testId="benchmark-suites-active-metrics"
+                />
+                <SelectedFilterGroup
+                  categoryName="Evaluates"
+                  selected={evaluatesFilter}
+                  formatLabel={formatCategory}
+                  onRemove={(value) =>
+                    handleToggleCollectionFilter(
+                      'evaluates',
+                      evaluatesFilter,
+                      value,
+                      setEvaluatesFilter,
+                    )
+                  }
+                  onClearAll={() => {
+                    setEvaluatesFilter([]);
+                  }}
+                  testId="benchmark-suites-active-evaluates"
+                />
+                <SelectedFilterGroup
+                  categoryName="Modalities"
+                  selected={modalityFilter}
+                  formatLabel={formatCategory}
+                  onRemove={(value) =>
+                    handleToggleCollectionFilter(
+                      'modality',
+                      modalityFilter,
+                      value,
+                      setModalityFilter,
+                    )
+                  }
+                  onClearAll={() => {
+                    setModalityFilter([]);
+                  }}
+                  testId="benchmark-suites-active-modalities"
+                />
+                <SelectedFilterGroup
+                  categoryName="Tasks"
+                  selected={taskFilter}
+                  formatLabel={formatCategory}
+                  onRemove={(value) =>
+                    handleToggleCollectionFilter('task', taskFilter, value, setTaskFilter)
+                  }
+                  onClearAll={() => {
+                    setTaskFilter([]);
+                  }}
+                  testId="benchmark-suites-active-tasks"
+                />
+                <SelectedFilterGroup
+                  categoryName="Industry"
+                  selected={industryFilter}
+                  formatLabel={formatCategory}
+                  onRemove={(value) =>
+                    handleToggleCollectionFilter(
+                      'industry',
+                      industryFilter,
+                      value,
+                      setIndustryFilter,
+                    )
+                  }
+                  onClearAll={() => {
+                    setIndustryFilter([]);
+                  }}
+                  testId="benchmark-suites-active-industry"
+                />
+                <SelectedFilterGroup
+                  categoryName="Tags"
+                  selected={tagFilter}
+                  formatLabel={formatCategory}
+                  onRemove={(value) =>
+                    handleToggleCollectionFilter('tag', tagFilter, value, setTagFilter)
+                  }
+                  onClearAll={() => {
+                    setTagFilter([]);
+                  }}
+                  testId="benchmark-suites-active-tags"
+                />
+                <ToolbarItem>
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={clearFilters}
+                    data-testid="benchmark-suites-clear-filters"
+                  >
+                    Clear all filters
+                  </Button>
+                </ToolbarItem>
+              </ToolbarGroup>
+            </ToolbarContent>
+          )}
         </Toolbar>
       )}
       {shouldShowLoadError ? (
@@ -1000,11 +1297,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
             headingLevel="h2"
             icon={ExclamationCircleIcon}
             status="danger"
-            titleText="Unable to load benchmark suites"
+            titleText="Unable to load collections"
             variant={EmptyStateVariant.lg}
           >
             <EmptyStateBody>
-              We could not load the benchmark suites right now. Please try again later.
+              We could not load the collections right now. Please try again later.
             </EmptyStateBody>
             <EmptyStateFooter>
               <EmptyStateActions>
@@ -1016,26 +1313,6 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
           </EmptyState>
         </Bullseye>
       ) : isLoading ? (
-        <Bullseye data-testid="benchmark-suites-loading">
-          <Spinner aria-label="Loading benchmark suites" />
-        </Bullseye>
-      ) : // While a changed filter or sort is refetching, placeholderData keeps the previous
-      // results rendered with the localized refreshing spinner. Only treat a filter as matching
-      // nothing once the fetch has settled, so a stale page cannot flash the empty state.
-      (showFilters || showPagination) && filteredCollections.length === 0 && !isFetching ? (
-        <Bullseye data-testid="benchmark-suites-empty-state">
-          <EmptyState variant={EmptyStateVariant.sm} icon={SearchIcon}>
-            <Title headingLevel="h2" size="lg">
-              No benchmark suites found
-            </Title>
-            <EmptyStateBody>
-              {hasActiveFilters
-                ? 'No benchmark suites match the current filters.'
-                : 'No benchmark suites are available.'}
-            </EmptyStateBody>
-          </EmptyState>
-        </Bullseye>
-      ) : (
         <div className="evalhub-benchmark-suite-gallery__container">
           <Gallery
             hasGutter
@@ -1051,66 +1328,115 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 />
               </GalleryItem>
             )}
-            {visibleCollections.map((collection) => (
-              <GalleryItem key={collection.resource.id}>
-                <BenchmarkSuiteCard
-                  collection={collection}
-                  benchmarkNameMap={benchmarkNameMap}
-                  showRunCount={scope === 'tenant'}
-                  primaryAction={{
-                    label: primaryActionLabel,
-                    href: primaryActionRoute?.(collection),
-                    state: primaryActionState,
-                    variant: primaryActionVariant,
-                    onClick: () => onPrimaryAction(collection),
-                  }}
-                  dropdownAction={
-                    dropdownActionLabel
-                      ? {
-                          label: dropdownActionLabel,
-                          href: dropdownActionRoute?.(collection),
-                          state: dropdownActionState,
-                          onClick: () => onDropdownAction?.(collection),
-                        }
-                      : undefined
-                  }
-                  contextualActions={
-                    showContextualActions ? getContextualActions(collection) : undefined
-                  }
-                  onSelect={onSelectCollection}
-                  reservePopularHeader={hasPopularCollections}
-                />
+            {Array.from({ length: loadingCardCount }, (_, index) => (
+              <GalleryItem key={`loading-card-${index}`}>
+                <BenchmarkSuiteCardSkeleton />
               </GalleryItem>
             ))}
+          </Gallery>
+        </div>
+      ) : // While a changed filter or sort is refetching, placeholderData keeps the previous
+      // results rendered with the localized refreshing spinner. Only treat a filter as matching
+      // nothing once the fetch has settled, so a stale page cannot flash the empty state.
+      (showFilters || showPagination) && filteredCollections.length === 0 && !isFetching ? (
+        <Bullseye data-testid="benchmark-suites-empty-state">
+          <EmptyState variant={EmptyStateVariant.sm} icon={SearchIcon}>
+            <Title headingLevel="h2" size="lg">
+              No collections found
+            </Title>
+            <EmptyStateBody>
+              {hasActiveFilters
+                ? 'No collections match the current filters.'
+                : 'No collections are available.'}
+            </EmptyStateBody>
+          </EmptyState>
+        </Bullseye>
+      ) : (
+        <div className="evalhub-benchmark-suite-gallery__container">
+          <Gallery
+            hasGutter
+            className="evalhub-benchmark-suite-gallery"
+            data-testid="benchmark-suites-gallery"
+          >
+            {showCreateSuiteCard && (
+              <GalleryItem>
+                <CreateBenchmarkSuiteCard
+                  createSuiteRoute={createSuiteRoute}
+                  createSuiteRouteState={createSuiteRouteState}
+                  trackingSurface={trackingSurface}
+                  onCreateSuite={onCreateSuite}
+                />
+              </GalleryItem>
+            )}
+            {visibleCollections.map((collection) => {
+              const prerequisite = !collection.resource.tenant
+                ? getCuratedCollectionConfig(collection)?.prerequisite.short
+                : undefined;
+              const hasPrerequisite = Boolean(prerequisite);
+
+              return (
+                <GalleryItem key={collection.resource.id}>
+                  <BenchmarkSuiteCard
+                    collection={collection}
+                    benchmarkNameMap={benchmarkNameMap}
+                    prerequisite={prerequisite}
+                    showRunCount={scope === 'tenant'}
+                    primaryAction={{
+                      label: hasPrerequisite ? 'Customize' : primaryActionLabel,
+                      href: hasPrerequisite
+                        ? dropdownActionRoute?.(collection)
+                        : primaryActionRoute?.(collection),
+                      state: hasPrerequisite ? dropdownActionState : primaryActionState,
+                      variant: hasPrerequisite ? 'secondary' : primaryActionVariant,
+                      tracksRunSelection: !hasPrerequisite,
+                      onClick: () =>
+                        hasPrerequisite
+                          ? onDropdownAction?.(collection)
+                          : onPrimaryAction(collection),
+                    }}
+                    dropdownAction={
+                      !hasPrerequisite && dropdownActionLabel
+                        ? {
+                            label: dropdownActionLabel,
+                            href: dropdownActionRoute?.(collection),
+                            state: dropdownActionState,
+                            onClick: () => onDropdownAction?.(collection),
+                          }
+                        : undefined
+                    }
+                    contextualActions={
+                      showContextualActions ? getContextualActions(collection) : undefined
+                    }
+                    trackingSurface={trackingSurface}
+                    onSelect={onSelectCollection}
+                    reservePopularHeader={hasPopularCollections}
+                  />
+                </GalleryItem>
+              );
+            })}
           </Gallery>
           {isRefreshing && (
             <Bullseye
               className="evalhub-benchmark-suite-gallery__refresh-loading"
               data-testid="benchmark-suites-refresh-loading"
             >
-              <Spinner aria-label="Refreshing benchmark suites" />
+              <Spinner aria-label="Refreshing collections" />
             </Bullseye>
           )}
         </div>
       )}
-      {showSummary && !isLoading && !shouldShowLoadError && totalCount > 0 && (
-        <StackItem className="evalhub-evaluate-tab__summary" data-testid="benchmark-suites-summary">
-          <Link to={evaluationBenchmarkSuitesRoute(namespace)}>Go to All my benchmark suites</Link>
-        </StackItem>
-      )}
       {collectionToDelete && (
         <DeleteConfirmationModal
-          title="Delete benchmark suite?"
+          title="Delete collection?"
           body={
             <>
-              The <strong>{collectionToDelete.name}</strong> benchmark suite will be permanently
-              deleted.
+              The <strong>{collectionToDelete.name}</strong> collection will be permanently deleted.
             </>
           }
           onClose={handleDeleteClose}
           onConfirm={handleDeleteConfirm}
           isSubmitting={isDeleting}
-          ariaLabel="Delete benchmark suite?"
+          ariaLabel="Delete collection?"
           dataTestId="benchmark-suite-delete-modal"
           confirmTestId="benchmark-suite-delete-confirm"
           cancelTestId="benchmark-suite-delete-cancel"
