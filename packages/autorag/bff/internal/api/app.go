@@ -352,7 +352,18 @@ func ensureRootCAPool(rootCAs *x509.CertPool) *x509.CertPool {
 	return rootCAs
 }
 
-const routerCARefreshInterval = 5 * time.Minute
+const (
+	routerCARefreshInterval = 5 * time.Minute
+)
+
+var routerCAInitialRetryDelays = []time.Duration{
+	time.Second,
+	2 * time.Second,
+	4 * time.Second,
+	8 * time.Second,
+	16 * time.Second,
+	30 * time.Second,
+}
 
 func rootCAPoolProvider(pool *maas.DynamicRootCAPool) func() *x509.CertPool {
 	if pool == nil {
@@ -390,27 +401,31 @@ func startRouterCARefresh(
 	go func() {
 		defer close(done)
 		lastCertificate := []byte(nil)
-		refresh := func() {
+		refresh := func() bool {
 			if ctx.Err() != nil {
-				return
+				return false
 			}
 			client, clientErr := newInClusterK8sClient()
 			if clientErr != nil {
 				logger.Warn("router CA refresh unavailable", "error", clientErr)
-				return
+				return false
 			}
 			certificate := syncRouterCAOnce(ctx, namespace, client, logger)
-			if ctx.Err() != nil || len(certificate) == 0 || bytes.Equal(lastCertificate, certificate) {
-				return
+			if ctx.Err() != nil || len(certificate) == 0 {
+				return false
+			}
+			if bytes.Equal(lastCertificate, certificate) {
+				return len(lastCertificate) > 0
 			}
 			if updateErr := rootCAPool.Update(certificate); updateErr != nil {
 				logger.Warn("router CA could not be added to MaaS trust", "error", updateErr)
-				return
+				return false
 			}
 			lastCertificate = append(lastCertificate[:0], certificate...)
+			return true
 		}
 
-		refresh()
+		retryRouterCARefresh(ctx, refresh, routerCAInitialRetryDelays)
 		ticker := time.NewTicker(routerCARefreshInterval)
 		defer ticker.Stop()
 
@@ -427,6 +442,30 @@ func startRouterCARefresh(
 		cancel()
 		<-done
 	}
+}
+
+func retryRouterCARefresh(ctx context.Context, refresh func() bool, delays []time.Duration) bool {
+	if refresh() {
+		return true
+	}
+	for _, delay := range delays {
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			return false
+		case <-timer.C:
+		}
+		if refresh() {
+			return true
+		}
+	}
+	return false
 }
 
 func (app *App) Shutdown() error {

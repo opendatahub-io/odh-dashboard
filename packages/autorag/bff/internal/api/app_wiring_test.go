@@ -2,8 +2,15 @@ package api
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"io"
 	"log/slog"
+	"math/big"
 	"testing"
 	"time"
 
@@ -12,6 +19,7 @@ import (
 	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,6 +54,38 @@ func TestInitPortForwardManagerIsDevOnly(t *testing.T) {
 	}
 	if initPortForwardManager(config.EnvConfig{DevMode: true, MockK8sClient: true}, logger) != nil {
 		t.Fatal("expected no manager with a mock Kubernetes client")
+	}
+}
+
+func TestRetryRouterCARefreshRetriesUntilSuccess(t *testing.T) {
+	calls := 0
+	refreshed := retryRouterCARefresh(context.Background(), func() bool {
+		calls++
+		return calls == 3
+	}, []time.Duration{time.Millisecond, time.Millisecond})
+
+	if !refreshed {
+		t.Fatal("expected router CA refresh to succeed")
+	}
+	if calls != 3 {
+		t.Fatalf("refresh calls = %d, want 3", calls)
+	}
+}
+
+func TestRetryRouterCARefreshStopsWhenCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	calls := 0
+	refreshed := retryRouterCARefresh(ctx, func() bool {
+		calls++
+		cancel()
+		return false
+	}, []time.Duration{time.Hour})
+
+	if refreshed {
+		t.Fatal("expected canceled router CA refresh to stop")
+	}
+	if calls != 1 {
+		t.Fatalf("refresh calls = %d, want 1", calls)
 	}
 }
 
@@ -140,15 +180,16 @@ func TestRouterCARefreshCancellationWaitsForInFlightSync(t *testing.T) {
 
 	started := make(chan struct{})
 	release := make(chan struct{})
+	certificate := newRouterCATestCertificate(t)
 	client := k8sfake.NewSimpleClientset()
 	client.PrependReactor("get", "secrets", func(k8stesting.Action) (bool, runtime.Object, error) {
 		close(started)
 		<-release
-		return true, &corev1.Secret{Data: map[string][]byte{"tls.crt": []byte("router-ca")}}, nil
+		return true, &corev1.Secret{Data: map[string][]byte{"tls.crt": certificate}}, nil
 	})
 	newInClusterK8sClient = func() (k8sclient.Interface, error) { return client, nil }
 
-	pool := maas.NewDynamicRootCAPool(nil)
+	pool := maas.NewDynamicRootCAPool(x509.NewCertPool())
 	cancel := startRouterCARefresh("applications", pool, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	<-started
 
@@ -169,4 +210,36 @@ func TestRouterCARefreshCancellationWaitsForInFlightSync(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("cancellation did not wait for the refresh goroutine")
 	}
+	block, _ := pem.Decode(certificate)
+	require.NotNil(t, block)
+	parsedCertificate, err := x509.ParseCertificate(block.Bytes)
+	require.NoError(t, err)
+	_, err = parsedCertificate.Verify(x509.VerifyOptions{
+		Roots:     pool.Current(),
+		DNSName:   "router-ca.test",
+		KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	})
+	if err == nil {
+		t.Fatal("canceled refresh installed the router CA")
+	}
+}
+
+func newRouterCATestCertificate(t *testing.T) []byte {
+	t.Helper()
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	require.NoError(t, err)
+	template := &x509.Certificate{
+		SerialNumber:          serialNumber,
+		Subject:               pkix.Name{CommonName: "router-ca.test"},
+		NotBefore:             time.Now().Add(-time.Minute),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &privateKey.PublicKey, privateKey)
+	require.NoError(t, err)
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
 }

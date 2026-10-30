@@ -57,7 +57,7 @@ Returns **`503 Service Unavailable`** while MaaS gateway discovery has not compl
 
 ## Gen-AI BFF — reference consumer (`packages/gen-ai/bff`)
 
-Today only the Gen-AI BFF calls the contract endpoints in production. The bullets below are the description of that integration.
+The Gen-AI and AutoRAG BFFs call the contract endpoints in production. The bullets below describe the Gen-AI integration specifically.
 
 - **`ephemeral: true`** is intended to be set when creating keys through this path so keys are short-lived; callers of Gen-AI need not send it if the BFF always sets it.
 - Inter-BFF middleware may set **`X-MaaS-Return-All-Models: true`** on outbound calls to the MaaS BFF so aggregated subscription metadata can appear on model list entries.
