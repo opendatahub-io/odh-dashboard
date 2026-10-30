@@ -504,10 +504,8 @@ describe('Hugging Face API key in catalog deployment wizard', () => {
       Cypress.sinon.match({
         outcome: 'submit',
         success: true,
-        extraDeployTrackingProperties: {
-          hfAccessType: 'gated_auto',
-          isAccessGranted: false,
-        },
+        hfAccessType: 'gated_auto',
+        isAccessGranted: true,
       }),
     );
   });
