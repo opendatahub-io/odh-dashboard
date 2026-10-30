@@ -64,12 +64,12 @@ describe('ConnectionTypesTab', () => {
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
   });
 
-  it('should load and group connection types by capability', () => {
+  it('should load connection types and show ingestion capability badges', () => {
     renderTab();
 
     expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project');
-    expect(screen.getByRole('heading', { name: 'Full integration' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Credentials only' })).toBeTruthy();
+    expect(screen.getAllByText('Ingestion supported')).toHaveLength(2);
+    expect(screen.queryByText('No ingestion')).toBeNull();
     expect(screen.getByText('S3')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Custom source')).toBeTruthy();
@@ -157,8 +157,8 @@ describe('ConnectionTypesTab', () => {
     );
 
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ingestion supported' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'No ingestion' })).toBeNull();
   });
 
   it('should render a loading state before connection types load', () => {

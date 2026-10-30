@@ -969,10 +969,21 @@ describe('CreateConnectionWizard', () => {
   it('does not treat asynchronously loaded credential defaults as user changes', async () => {
     const user = userEvent.setup();
     const onClose = jest.fn();
+    mockUseConnectionTypes.mockReturnValue([[], false, undefined]);
+    const props = {
+      isOpen: true,
+      namespace: 'test-project',
+      onClose,
+      initialFormData: { data_connection_type_id: postgresqlConnectionTypeId },
+    };
+    const { rerender } = render(<CreateConnectionWizard {...props} />);
+
+    expect(screen.getByRole('progressbar', { name: 'Loading connection types' })).toBeTruthy();
+
     mockUseConnectionTypes.mockReturnValue([
       [
-        {
-          ...connectionTypes[0],
+        new ConnectionTypeInstance({
+          ...connectionTypes[0].toJSON(),
           resource: {
             ...connectionTypes[0].resource,
             credentials_fields: [
@@ -985,19 +996,12 @@ describe('CreateConnectionWizard', () => {
               },
             ],
           },
-        },
+        }),
       ],
       true,
       undefined,
     ]);
-    render(
-      <CreateConnectionWizard
-        isOpen
-        namespace="test-project"
-        onClose={onClose}
-        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
-      />,
-    );
+    rerender(<CreateConnectionWizard {...props} />);
 
     expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
     await user.click(screen.getByTestId('cancel-connection-wizard-button'));

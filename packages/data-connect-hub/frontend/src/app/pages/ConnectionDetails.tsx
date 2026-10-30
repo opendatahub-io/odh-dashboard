@@ -275,7 +275,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
               )}
               {connectionType?.isFullIntegration() && (
                 <StackItem>
-                  <Card data-testid="connection-details-card">
+                  <Card data-testid="connection-ingestion-card">
                     <CardTitle>Ingestion integration code</CardTitle>
                     <CardBody>
                       <Stack hasGutter>

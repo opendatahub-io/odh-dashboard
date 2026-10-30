@@ -86,7 +86,7 @@ describe('ConnectionTypeDetails', () => {
     expect(
       screen.getByTestId('connection-type-details').getAttribute('data-connection-type-id'),
     ).toBe('550e8400-e29b-41d4-a716-446655440003');
-    expect(screen.getAllByText('Full integration')).toHaveLength(2);
+    expect(screen.getAllByText('Ingestion supported')).toHaveLength(2);
   });
 
   it('should open a wizard preselected with the displayed connection type', async () => {
