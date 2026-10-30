@@ -207,33 +207,18 @@ export const getModelDeploymentKueueDetailMessage = (
   if (isQuotaShaped) {
     return rawMessage;
   }
+  if (
+    queueName &&
+    (status === KueueWorkloadStatus.Failed || status === KueueWorkloadStatus.Inadmissible) &&
+    rawMessage != null &&
+    QUEUE_NOT_FOUND_REGEX.test(rawMessage)
+  ) {
+    return `Queue ${queueName} does not exist`;
+  }
   if (status === KueueWorkloadStatus.Requeued) {
     return getRequeuedMessage(kueueStatus);
   }
   return getHumanReadableKueueMessage(status, message, displayQueueName);
-};
-
-/**
- * Formats the multi-Pod partial-admission breakdown for model deployments, e.g. (3, 5) →
- * "3 of 5 pods admitted". Only meaningful when `total > 1` (see podAdmissionCounts on
- * KueueWorkloadStatusWithMessage) — callers should gate on that before using this.
- */
-export const formatPodAdmissionCounts = (admitted: number, total: number): string =>
-  `${admitted} of ${total} pods admitted`;
-
-/** Appends partial-admission suffix when multi-replica podAdmissionCounts are present. */
-export const appendModelDeploymentPodAdmissionSuffix = (
-  detail: string,
-  kueueStatus: KueueWorkloadStatusWithMessage,
-): string => {
-  const { podAdmissionCounts } = kueueStatus;
-  if (!podAdmissionCounts || podAdmissionCounts.total <= 1) {
-    return detail;
-  }
-  return `${detail} (${formatPodAdmissionCounts(
-    podAdmissionCounts.admitted,
-    podAdmissionCounts.total,
-  )})`;
 };
 
 /**
@@ -326,34 +311,13 @@ export const getKueueAnalyticsSubState = (
   }
 };
 
-const DEPLOYMENT_SUBSTEP_PREFIX: Partial<Record<KueueWorkloadStatus, string>> = {
-  [KueueWorkloadStatus.Queued]: 'Queued',
-  [KueueWorkloadStatus.Requeued]: 'Requeued',
-  [KueueWorkloadStatus.Inadmissible]: 'Inadmissible',
-  [KueueWorkloadStatus.Failed]: 'Failed',
-  [KueueWorkloadStatus.Preempted]: 'Preempted',
-  [KueueWorkloadStatus.Evicted]: 'Evicted',
-  [KueueWorkloadStatus.BlockedOnPreemptionGates]: 'Blocked',
-  [KueueWorkloadStatus.AdmissionCheck]: 'Admission check',
-};
-
 export const getDeploymentKueueSubStepMessage = (
   kueueStatus: KueueWorkloadStatusWithMessage,
 ): string => {
-  const { status } = kueueStatus;
-  const prefix = DEPLOYMENT_SUBSTEP_PREFIX[status];
-
-  if (status === KueueWorkloadStatus.Preempted) {
-    return appendModelDeploymentPodAdmissionSuffix(
-      'Preempted: Deployment re-queued, waiting for resource',
-      kueueStatus,
-    );
+  if (kueueStatus.status === KueueWorkloadStatus.Preempted) {
+    return 'Deployment re-queued, waiting for resource';
   }
-
-  const body = getModelDeploymentKueueDetailMessage(kueueStatus);
-  const message = prefix ? `${prefix}: ${body}` : body;
-
-  return appendModelDeploymentPodAdmissionSuffix(message, kueueStatus);
+  return getModelDeploymentKueueDetailMessage(kueueStatus);
 };
 
 /**
