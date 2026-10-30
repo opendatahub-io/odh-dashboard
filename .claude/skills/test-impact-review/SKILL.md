@@ -30,7 +30,9 @@ gh pr diff <PR>
 - With a branch name, validate and resolve it, then inspect `git diff main...<branch>` (names and content as needed).
 - With no argument, use `git diff main` (names and content as needed).
 
-Do **not** pass Evidence depth from the test tree alone when the description omits testing proof — unless the changed packages are covered by a suite that required PR status checks run (see Evidence depth below).
+**Required-CI suites are presumed to run and gate.** Unit tests, type checks, lint, and Cypress run under required PR status checks, so treat them as executed and gated — a scoring presumption, not a verified fact. Do not verify it, enumerate the workflows, infer additional coverage from tests that happen to exist in the tree, or fail, warn, or report “could not verify” because no caller supplied coverage information. The presumption covers only what those standard suites run; manual or cluster checks, scripts, and suites outside required CI still need author proof.
+
+Do **not** pass Evidence depth from the test tree alone when the description omits testing proof — unless required-CI suites cover the change under the presumption above (see Evidence depth below).
 
 ## Review procedure
 
@@ -62,7 +64,7 @@ Are tests written efficiently? Call out duplication. Prefer unit tests over Cypr
 
 Dig into available testing evidence (author-supplied and required-CI suites, plus related automation): does it sufficiently cover the changes that were made, and will feature integrity hold so long as those tests continue to pass?
 
-- **Required-CI suites need no author call-out.** When required PR status checks cover the changed packages, treat those suites as proving themselves — they are gated before merge. Do not fail, warn, or report “could not verify” because the description does not restate that run, and never ask the author to paste CI output into prose. This skill does not inspect CI status or confirm the checks are green — the merge gate does that; do not add a CI row or caveat here.
+- **Required-CI suites need no author call-out.** Treat them as proving themselves, per the [required-CI presumption](#inputs-and-direct-cli-defaults). Do not fail, warn, or report “could not verify” because the description does not restate that run, and never ask the author to paste CI output into prose. This skill does not inspect CI status or confirm the checks are green — the merge gate does that; do not add a CI row or caveat here.
 - **Author-supplied proof is still required for what required CI cannot show:** UI/visual proof for UI changes, cluster or manual checks, suites outside required CI, and test-quality judgments (see Automation and Efficiency). Missing proof for any of these stays ❌ as below.
 - Testing proof **not called out in the PR description** → ❌, even when the tree already has good automation. Silent “tests exist in the tree” is not enough. Exception: suites covered by required CI, per the first bullet.
 - Proof present but does not cover the changed behavior, or green tests would not protect integrity → ❌.
