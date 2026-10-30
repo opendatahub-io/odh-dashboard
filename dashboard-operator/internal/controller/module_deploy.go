@@ -212,6 +212,7 @@ func (r *DashboardReconciler) deleteModuleResources(
 				errs = append(errs, fmt.Errorf("cleaning up DCH gateway RBAC: %w", err))
 			}
 		}
+
 		matchLabels := client.MatchingLabels{
 			labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
 			moduleComponentLabel:  mod.ManifestSlug,
