@@ -20,14 +20,23 @@ import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   useTopologyTypeData,
   resolveTopologyConfigsDependencies,
-  isTopologyTypeFieldData,
-  type TopologyTypeFieldData,
   type TopologyTypeExternalData,
   type TopologyConfigsDependencies,
 } from './TopologyTypeField';
-import { TopologyType, type LLMInferenceServiceConfigKind } from '../types';
+import {
+  TopologyType,
+  isTopologyTypeFieldData,
+  type TopologyTypeFieldData,
+  type LLMInferenceServiceConfigKind,
+} from '../types';
 import { isLLMInferenceServiceActive } from '../formUtils';
-import { CUSTOM_TOPOLOGY_CONFIG_FIELD_ID, TOPOLOGY_TYPE_FIELD_ID } from '../const';
+import {
+  CUSTOM_TOPOLOGY_CONFIG_FIELD_ID,
+  TOPOLOGY_CONFIG_DEFAULT,
+  TOPOLOGY_TYPE_FIELD_ID,
+} from '../const';
+
+export { TOPOLOGY_CONFIG_DEFAULT };
 
 // --- Dependencies ---
 
@@ -36,8 +45,6 @@ type CustomTopologyConfigDependencies = TopologyConfigsDependencies & {
 };
 
 // --- Field value ---
-
-export const TOPOLOGY_CONFIG_DEFAULT = 'default' as const;
 
 export type CustomTopologyConfigFieldData = {
   selectedConfig?: LLMInferenceServiceConfigKind | typeof TOPOLOGY_CONFIG_DEFAULT;

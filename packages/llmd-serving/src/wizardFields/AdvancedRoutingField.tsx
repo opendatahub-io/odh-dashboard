@@ -18,10 +18,10 @@ import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/compone
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
-import { isTopologyTypeFieldData } from './TopologyTypeField';
-import type { TopologyTypeFieldData } from './TopologyTypeField';
 import {
   TopologyType,
+  isTopologyTypeFieldData,
+  type TopologyTypeFieldData,
   RoutingTypeLabels,
   type LLMInferenceServiceConfigKind,
   getConfigRoutingType,
@@ -31,6 +31,7 @@ import { isConfigEnabled } from '../utils';
 import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 import { fireRoutingSelected } from '../tracking/llmdTrackingConstants';
+import { DEFAULT_ROUTING_KEY, LLMD_ROUTING_FIELD_ID } from '../const';
 
 // --- External data hook ---
 
@@ -92,7 +93,7 @@ const getCompatibleRouterConfigs = (
   });
 };
 
-const DEFAULT_ROUTING_KEY = '__default-optimized-routing__';
+export { DEFAULT_ROUTING_KEY } from '../const';
 
 const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   value,
@@ -286,7 +287,7 @@ const isActive = (wizardState: RecursivePartial<WizardFormData['state']>): boole
 // --- Field definition ---
 
 export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
-  id: 'llmd-serving/advanced-routing',
+  id: LLMD_ROUTING_FIELD_ID,
   step: 'modelDeployment',
   type: 'addition',
   isActive,

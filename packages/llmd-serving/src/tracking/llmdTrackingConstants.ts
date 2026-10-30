@@ -12,6 +12,7 @@ export enum LlmdTrackingEvent {
 
 export type TopologyTypeSelectedProperties = {
   llmdComposablePattern: string;
+  topologyConfigurationId: string;
   previousPattern?: string;
 };
 

@@ -1,9 +1,17 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { GatewayOption } from '../../api/services/gatewayDiscovery';
 import {
-  getLlmdGatewayTrackingProperties,
-  getLlmdWizardTrackingProperties,
+  ACCELERATOR_CONFIG_DEFAULT,
+  ACCELERATOR_CONFIG_FIELD_ID,
+  CUSTOM_TOPOLOGY_CONFIG_FIELD_ID,
+  TOPOLOGY_TYPE_FIELD_ID,
   LLMD_GATEWAY_FIELD_ID,
+  LLMD_ROUTING_FIELD_ID,
+} from '../../const';
+import { TopologyType } from '../../types';
+import {
+  getLlmdGatewayTrackingProperties,
+  extractLlmdDeploymentTrackingProperties,
   MAAS_DEFAULT_GATEWAY_REF,
   OPENSHIFT_AI_INFERENCE_GATEWAY_REF,
 } from '../llmdWizardTracking';
@@ -95,14 +103,14 @@ describe('getLlmdGatewayTrackingProperties', () => {
   });
 });
 
-describe('getLlmdWizardTrackingProperties', () => {
+describe('extractLlmdDeploymentTrackingProperties', () => {
   it('should return empty properties when the gateway field is absent', () => {
-    expect(getLlmdWizardTrackingProperties(wizardState({}))).toEqual({});
+    expect(extractLlmdDeploymentTrackingProperties(wizardState({}))).toEqual({});
   });
 
   it('should return empty properties when gateway field data is invalid', () => {
     expect(
-      getLlmdWizardTrackingProperties(
+      extractLlmdDeploymentTrackingProperties(
         wizardState({
           [LLMD_GATEWAY_FIELD_ID]: { selections: [{ name: 'gw-only' }] },
         }),
@@ -110,10 +118,196 @@ describe('getLlmdWizardTrackingProperties', () => {
     ).toEqual({});
   });
 
-  it('should derive properties from gateway field selections', () => {
+  it('should derive composable properties without gateway data', () => {
     expect(
-      getLlmdWizardTrackingProperties(
+      extractLlmdDeploymentTrackingProperties(
         wizardState({
+          deploymentMethod: { method: 'llm-inference-service-llmd' },
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE_DISAGGREGATED },
+          [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: {
+            selectedConfig: { metadata: { name: 'topology-config' } },
+          },
+          hardwareProfileConfig: {
+            formData: { selectedProfile: { metadata: { name: 'gpu-profile' } } },
+          },
+          numReplicas: { data: 3 },
+          [ACCELERATOR_CONFIG_FIELD_ID]: {
+            selectedConfig: { metadata: { name: 'accelerator-config' } },
+          },
+          [LLMD_ROUTING_FIELD_ID]: {
+            selectedConfig: { metadata: { name: 'routing-config' } },
+          },
+        }),
+      ),
+    ).toEqual({
+      deploymentMethod: 'llm-inference-service-llmd',
+      llmdComposablePattern: TopologyType.MULTI_NODE_DISAGGREGATED,
+      topologyConfigurationId: 'topology-config',
+      hardwareProfile: 'gpu-profile',
+      replicaCount: 3,
+      acceleratorConfigurationId: 'accelerator-config',
+      routingConfigurationId: 'routing-config',
+    });
+  });
+
+  it('should omit a retained hardware profile when using existing settings', () => {
+    expect(
+      extractLlmdDeploymentTrackingProperties(
+        wizardState({
+          hardwareProfileConfig: {
+            formData: {
+              useExistingSettings: true,
+              selectedProfile: { metadata: { name: 'unused-profile' } },
+            },
+          },
+        }),
+      ),
+    ).toEqual({});
+  });
+
+  it.each([undefined, null, 'malformed', {}])(
+    'should not invent a default for unresolved topology data %p',
+    (config) => {
+      expect(
+        extractLlmdDeploymentTrackingProperties(
+          wizardState({
+            [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.SINGLE_NODE },
+            [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: config,
+          }),
+        ),
+      ).toEqual({ llmdComposablePattern: TopologyType.SINGLE_NODE });
+    },
+  );
+
+  it('should omit defaults and selected configs incompatible with the topology', () => {
+    for (const selectedConfig of [
+      'default',
+      {
+        metadata: {
+          name: 'wrong-config',
+          labels: { 'opendatahub.io/config-type': TopologyType.SINGLE_NODE },
+        },
+      },
+    ]) {
+      expect(
+        extractLlmdDeploymentTrackingProperties(
+          wizardState({
+            [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE },
+            [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { selectedConfig },
+          }),
+        ),
+      ).toEqual({ llmdComposablePattern: TopologyType.MULTI_NODE });
+    }
+  });
+
+  it('should preserve extracted edit references without fetching resources', () => {
+    expect(
+      extractLlmdDeploymentTrackingProperties(
+        wizardState({
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE },
+          [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { configRef: 'existing-topology' },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { configRef: 'existing-accelerator' },
+          [LLMD_ROUTING_FIELD_ID]: { configRef: 'existing-routing' },
+        }),
+      ),
+    ).toEqual({
+      llmdComposablePattern: TopologyType.MULTI_NODE,
+      topologyConfigurationId: 'existing-topology',
+      acceleratorConfigurationId: 'existing-accelerator',
+      routingConfigurationId: 'existing-routing',
+    });
+  });
+
+  it.each([null, 'invalid', {}, { metadata: { name: '' } }, { metadata: { name: 5 } }])(
+    'should not replace a malformed selected config %p with an edit reference',
+    (selectedConfig) => {
+      const result = extractLlmdDeploymentTrackingProperties(
+        wizardState({
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE },
+          [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { selectedConfig, configRef: 'stale-topology' },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { selectedConfig, configRef: 'stale-accelerator' },
+          [LLMD_ROUTING_FIELD_ID]: { selectedConfig, configRef: 'stale-routing' },
+        }),
+      );
+      expect(result).toStrictEqual({ llmdComposablePattern: TopologyType.MULTI_NODE });
+    },
+  );
+
+  it('should not replace incompatible topology or invalid default selections with edit references', () => {
+    for (const selectedConfig of [
+      'default',
+      {
+        metadata: {
+          name: 'wrong-topology',
+          labels: { 'opendatahub.io/config-type': TopologyType.SINGLE_NODE },
+        },
+      },
+    ]) {
+      expect(
+        extractLlmdDeploymentTrackingProperties(
+          wizardState({
+            [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE },
+            [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { selectedConfig, configRef: 'stale-topology' },
+          }),
+        ),
+      ).toStrictEqual({ llmdComposablePattern: TopologyType.MULTI_NODE });
+    }
+  });
+
+  it.each(Object.values(TopologyType))(
+    'should report the serving/decode replica count for %s',
+    (topologyType) => {
+      expect(
+        extractLlmdDeploymentTrackingProperties(
+          wizardState({
+            [TOPOLOGY_TYPE_FIELD_ID]: { topologyType },
+            numReplicas: { data: 4 },
+          }),
+        ),
+      ).toEqual({ llmdComposablePattern: topologyType, replicaCount: 4 });
+    },
+  );
+
+  it('should report explicit built-in defaults and preserve zero replicas', () => {
+    expect(
+      extractLlmdDeploymentTrackingProperties(
+        wizardState({
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.SINGLE_NODE },
+          [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { selectedConfig: 'default' },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { selectedConfig: ACCELERATOR_CONFIG_DEFAULT },
+          [LLMD_ROUTING_FIELD_ID]: {},
+          numReplicas: { data: 0 },
+        }),
+      ),
+    ).toEqual({
+      llmdComposablePattern: TopologyType.SINGLE_NODE,
+      topologyConfigurationId: 'default',
+      acceleratorConfigurationId: 'default',
+      routingConfigurationId: '__default-optimized-routing__',
+      replicaCount: 0,
+    });
+  });
+
+  it('should omit malformed or unresolved property values', () => {
+    expect(
+      extractLlmdDeploymentTrackingProperties(
+        wizardState({
+          deploymentMethod: { method: 2 },
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: 'invalid' },
+          hardwareProfileConfig: { formData: { selectedProfile: { metadata: { name: 5 } } } },
+          numReplicas: { data: Number.NaN },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { selectedConfig: { metadata: { name: '' } } },
+          [LLMD_ROUTING_FIELD_ID]: { selectedConfig: null },
+        }),
+      ),
+    ).toEqual({});
+  });
+
+  it('should derive properties from gateway field selections alongside composable data', () => {
+    expect(
+      extractLlmdDeploymentTrackingProperties(
+        wizardState({
+          deploymentMethod: { method: 'llm-inference-service-llmd' },
           [LLMD_GATEWAY_FIELD_ID]: {
             selections: [
               gateway('custom-gw', 'custom-ns'),
@@ -126,6 +320,7 @@ describe('getLlmdWizardTrackingProperties', () => {
         }),
       ),
     ).toEqual({
+      deploymentMethod: 'llm-inference-service-llmd',
       numberOfGateways: 2,
       usesMaasDefault: false,
       usesOpenShiftInference: true,
