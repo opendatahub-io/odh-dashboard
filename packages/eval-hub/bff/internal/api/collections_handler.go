@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/julienschmidt/httprouter"
@@ -111,26 +112,38 @@ func (t *benchmarkWriteTracker) removeAt(index int) {
 	t.indices = shifted
 }
 
-// foldHasPrefix reports whether s starts with prefix under the Unicode simple
-// case folding that encoding/json uses for field-name matching, so a segment
-// like "benchmarkſ" (U+017F, long s) matches "benchmarks" the same way the
-// JSON decoder would match the resulting duplicate key.
-func foldHasPrefix(s, prefix string) bool {
-	return len(s) >= len(prefix) && strings.EqualFold(s[:len(prefix)], prefix)
+// foldCutPrefix reports whether s begins with prefix under the Unicode
+// simple case folding that encoding/json uses for field-name matching, and
+// returns the remainder of s after the matched prefix. Matching is
+// rune-by-rune, mirroring strings.EqualFold, so a segment like "benchmarkſ"
+// (U+017F, long s) matches "benchmarks" the same way the JSON decoder would
+// match the resulting duplicate key — byte-length slicing would instead cut
+// the multi-byte rune and miss the match.
+func foldCutPrefix(s, prefix string) (string, bool) {
+	for _, pr := range prefix {
+		sr, size := utf8.DecodeRuneInString(s)
+		if size == 0 {
+			return "", false
+		}
+		if !strings.EqualFold(string(sr), string(pr)) {
+			return "", false
+		}
+		s = s[size:]
+	}
+	return s, true
 }
 
-// apply replays a single patch operation against the tracker.
-func (t *benchmarkWriteTracker) apply(op, path string) {
-	if strings.EqualFold(path, "/benchmarks") {
+// apply replays a single patch operation against the tracker. rest is the
+// unmatched part of the JSON Pointer path after a case-folded "/benchmarks"
+// prefix: empty when the operation rewrites the whole array, or beginning
+// with "/" when it targets the array or a benchmark inside it.
+func (t *benchmarkWriteTracker) apply(op, rest string) {
+	if rest == "" {
 		// Whole-array operations rewrite every benchmark.
 		t.markAll()
 		return
 	}
-	if !foldHasPrefix(path, "/benchmarks/") {
-		return // the operation does not touch the benchmarks array
-	}
-	rest := path[len("/benchmarks/"):]
-	token, field, deeper := strings.Cut(rest, "/")
+	token, field, deeper := strings.Cut(rest[1:], "/")
 	if token == "-" {
 		if op == "add" {
 			t.insert(t.length)
@@ -150,7 +163,7 @@ func (t *benchmarkWriteTracker) apply(op, path string) {
 		// Only writes to the test data reference itself (or a field inside it)
 		// require validation — edits to unrelated fields such as weight must
 		// not re-validate an unchanged legacy reference.
-		if strings.EqualFold(field, "test_data_ref") || foldHasPrefix(field, "test_data_ref/") {
+		if refRest, ok := foldCutPrefix(field, "test_data_ref"); ok && (refRest == "" || strings.HasPrefix(refRest, "/")) {
 			t.mark(index)
 		}
 		return
@@ -186,9 +199,10 @@ func validatePatchedBenchmarks(currentJSON json.RawMessage, current *evalhub.Col
 		// variant must not slip past the gate. The original operations are
 		// left untouched for the patch library itself.
 		path := operation.Path
-		if strings.EqualFold(path, "/benchmarks") || foldHasPrefix(path, "/benchmarks/") {
+		rest, ok := foldCutPrefix(path, "/benchmarks")
+		if ok && (rest == "" || strings.HasPrefix(rest, "/")) {
 			touchesBenchmarks = true
-			tracker.apply(operation.Op, path)
+			tracker.apply(operation.Op, rest)
 		}
 	}
 	if !touchesBenchmarks {

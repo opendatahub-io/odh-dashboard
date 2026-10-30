@@ -573,6 +573,91 @@ func TestValidatePatchedBenchmarksNormalizesPathCase(t *testing.T) {
 	}
 }
 
+func TestValidatePatchedBenchmarksTracksFoldVariantKeysInStoredJSON(t *testing.T) {
+	// The stored collection already contains keys that are Unicode
+	// case-fold variants of the tracked names (U+017F in place of s).
+	// jsonpatch resolves those keys exactly, and Go's decoder lets the last
+	// fold-equivalent key win, so patches routed through them change the
+	// decoded benchmarks and must not skip validation.
+	rootVariantJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"test_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}}
+		}],
+		"benchmarkſ": [{
+			"id": "mmlu",
+			"test_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}}
+		}]
+	}`)
+	nestedVariantJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"test_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}},
+			"teſt_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}}
+		}]
+	}`)
+	current := &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID: "mmlu",
+			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+				URL: "https://github.com/example/valid.git",
+				Ref: "main",
+			}},
+		}},
+	}
+
+	tests := []struct {
+		name        string
+		currentJSON json.RawMessage
+		operations  []evalhub.CollectionPatchOperation
+		wantErr     string
+	}{
+		{
+			name:        "fold-variant benchmark array path is validated",
+			currentJSON: rootVariantJSON,
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarkſ/0/test_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+		{
+			name:        "fold-variant nested test data ref path is validated",
+			currentJSON: nestedVariantJSON,
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/teſt_data_ref/git",
+				Value: json.RawMessage(`{"url":"https://user:pass@example.com/data.git","ref":"main"}`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+		{
+			name:        "fold-variant test data ref path is validated",
+			currentJSON: nestedVariantJSON,
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/teſt_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePatchedBenchmarks(tt.currentJSON, current, tt.operations)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
+		})
+	}
+}
+
 func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 	newCollection := func(firstURL, secondURL string) *evalhub.Collection {
 		return &evalhub.Collection{
