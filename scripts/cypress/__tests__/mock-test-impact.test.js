@@ -87,19 +87,60 @@ describe('buildDependencyIndex', () => {
 });
 
 describe('planMockTestImpact', () => {
-  it('proposes no groups for documentation-only changes', () => {
+  it('proposes no groups for documentation and non-runtime changes', () => {
     const result = plan([
-      { status: 'M', path: 'docs/testing.md' },
-      { status: 'M', path: 'README.md' },
-      { status: 'A', path: 'release-notes.adoc' },
-      { status: 'M', path: 'packages/observability/docs/overview.md' },
-      { status: 'M', path: 'dashboard-operator/AGENTS.md' },
+      { status: 'M', path: 'docs/extensionless-note' },
+      { status: 'M', path: '.tekton/odh-core-bff-pull-request.yaml' },
+      { status: 'M', path: '.github/pr-build-simulation/operator-rbac.yaml' },
+      { status: 'M', path: '.github/workflows/pr-build-validation.yml' },
+      { status: 'M', path: 'backend/src/app.ts' },
+      { status: 'M', path: 'data/features.json' },
+      { status: 'M', path: 'prefetch/pnpm/package.json' },
+      { status: 'M', path: 'manifests/base/kustomization.yaml' },
     ]);
 
     assert.equal(result.scope, 'none');
     assert.deepEqual(result.selectedGroups, []);
     assert.equal(result.excludedGroups.length, groups.length);
   });
+
+  it('keeps all groups when a non-runtime change is mixed with a frontend input', () => {
+    const result = plan([
+      { status: 'M', path: 'docs/testing.md' },
+      { status: 'M', path: 'frontend/src/App.tsx' },
+    ]);
+
+    assert.equal(result.scope, 'full');
+    assert.match(result.reason, /outside the proven Cypress dependency graph/);
+  });
+
+  it('keeps all groups when a non-runtime change is mixed with Cypress test input', () => {
+    const result = plan([
+      { status: 'M', path: '.tekton/odh-core-bff-pull-request.yaml' },
+      { status: 'M', path: 'packages/cypress/cypress/support/e2e.ts' },
+    ]);
+
+    assert.equal(result.scope, 'full');
+    assert.match(result.reason, /No Cypress consumer/);
+  });
+
+  for (const path of [
+    'package.json',
+    'pnpm-lock.yaml',
+    '.env',
+    'turbo.jsonc',
+    '.github/workflows/test.yml',
+    '.github/actions/pnpm-setup/action.yml',
+  ]) {
+    it(`keeps all groups when a non-runtime change is mixed with ${path}`, () => {
+      const result = plan([
+        { status: 'M', path: 'docs/testing.md' },
+        { status: 'M', path },
+      ]);
+
+      assert.equal(result.scope, 'full');
+    });
+  }
 
   it('maps a changed spec to its existing CI group', () => {
     const result = plan([{ status: 'M', path: specs[2] }]);
@@ -129,15 +170,15 @@ describe('planMockTestImpact', () => {
     assert.match(result.reason, /outside the proven Cypress dependency graph/);
   });
 
-  it('treats runtime files inside docs directories as application code', () => {
-    const result = plan([{ status: 'M', path: 'backend/src/routes/api/docs/handler.ts' }]);
+  it('treats runtime files in non-allowlisted directories as application code', () => {
+    const result = plan([{ status: 'M', path: 'frontend/src/routes/docs/handler.ts' }]);
 
     assert.equal(result.scope, 'full');
     assert.match(result.reason, /outside the proven Cypress dependency graph/);
   });
 
-  it('keeps all groups for deleted or renamed inputs', () => {
-    const result = plan([{ status: 'D', path: specs[0] }]);
+  it('keeps all groups for deleted or renamed inputs, including non-runtime paths', () => {
+    const result = plan([{ status: 'D', path: 'docs/testing.md' }]);
 
     assert.equal(result.scope, 'full');
     assert.match(result.reason, /base-revision dependency graph/);
