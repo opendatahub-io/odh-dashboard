@@ -1,10 +1,15 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import * as hostApi from '@odh-dashboard/plugin-core/host-api';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import * as llmConfigsApi from '../../api/LLMInferenceServiceConfigs';
-import { useLLMConfigOptions, LLMConfigOptionsFieldNoTemplates } from '../LlmConfigOptionsField';
+import { useLLMConfigOptions, LLMConfigOptionsFieldWizardField } from '../LlmConfigOptionsField';
+import {
+  LLMD_DEPLOYMENT_METHOD_KEY,
+  SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY,
+} from '../deploymentMethodField';
 
 jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
@@ -147,8 +152,42 @@ describe('useLLMConfigOptions', () => {
   });
 });
 
+describe('LLMConfigOptionsFieldWizardField.isActive', () => {
+  const { isActive } = LLMConfigOptionsFieldWizardField;
+
+  it('is active for simple vLLM when vLLMDeploymentOnMaaS is enabled', () => {
+    expect(
+      isActive({
+        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE } },
+        deploymentMethod: { method: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY },
+        devFeatureFlags: { vLLMDeploymentOnMaaS: true },
+      }),
+    ).toBe(true);
+  });
+
+  it('is inactive for llm-d (AcceleratorConfigField owns that path)', () => {
+    expect(
+      isActive({
+        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE } },
+        deploymentMethod: { method: LLMD_DEPLOYMENT_METHOD_KEY },
+        devFeatureFlags: { vLLMDeploymentOnMaaS: true },
+      }),
+    ).toBe(false);
+  });
+
+  it('is inactive when vLLMDeploymentOnMaaS is disabled', () => {
+    expect(
+      isActive({
+        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE } },
+        deploymentMethod: { method: SIMPLE_VLLM_DEPLOYMENT_METHOD_KEY },
+        devFeatureFlags: { vLLMDeploymentOnMaaS: false },
+      }),
+    ).toBe(false);
+  });
+});
+
 describe('getInitialFieldData', () => {
-  const { getInitialFieldData } = LLMConfigOptionsFieldNoTemplates.reducerFunctions;
+  const { getInitialFieldData } = LLMConfigOptionsFieldWizardField.reducerFunctions;
 
   it('should return existing field data when provided', () => {
     const existingData = {

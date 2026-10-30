@@ -80,8 +80,9 @@ const createRedirectComponent = (args: { from: string; to: string }) => () =>
     default: () => module.buildV2RedirectElement(args),
   }));
 
-// When vLLMOnMaaS enabled + llmdTemplates disabled: show accelerator config for all llm-d (single-node fallback)
-const llmConfigOptionsFieldExtensionNoTemplates: WizardFieldExtension<
+// Simple vLLM only — llm-d uses AcceleratorConfigField (avoids duplicate fields when
+// llmdTemplates is off).
+const llmConfigOptionsFieldExtension: WizardFieldExtension<
   LLMConfigOptionsFieldType,
   LLMdDeployment
 > = {
@@ -90,30 +91,11 @@ const llmConfigOptionsFieldExtensionNoTemplates: WizardFieldExtension<
     platform: LLMD_SERVING_ID,
     field: () =>
       import('../src/wizardFields/LlmConfigOptionsField').then(
-        (m) => m.LLMConfigOptionsFieldNoTemplates,
+        (m) => m.LLMConfigOptionsFieldWizardField,
       ),
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
-    disallowed: [SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-// When vLLMOnMaaS enabled + llmdTemplates enabled: show accelerator config only for simple vLLM (non-llm-d)
-const llmConfigOptionsFieldExtensionWithTemplates: WizardFieldExtension<
-  LLMConfigOptionsFieldType,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    platform: LLMD_SERVING_ID,
-    field: () =>
-      import('../src/wizardFields/LlmConfigOptionsField').then(
-        (m) => m.LLMConfigOptionsFieldWithTemplates,
-      ),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
   },
 };
 
@@ -619,8 +601,7 @@ const extensions: (
       required: [LLMD_SERVING_ID],
     },
   },
-  llmConfigOptionsFieldExtensionNoTemplates,
-  llmConfigOptionsFieldExtensionWithTemplates,
+  llmConfigOptionsFieldExtension,
   ...topologyConfigsExtensions,
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
