@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/distribution/reference"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 
@@ -83,6 +84,24 @@ func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.P
 	}
 
 	return params
+}
+
+func validateOCIBaseImage(image string) error {
+	if image == "" {
+		return nil
+	}
+	if image != strings.TrimSpace(image) || strings.ContainsAny(image, "\r\n") {
+		return fmt.Errorf("spec.modelRegistryOCIBaseImage must be a registry-qualified image reference without whitespace")
+	}
+	registry, repository, hasRegistry := strings.Cut(image, "/")
+	if !hasRegistry || repository == "" ||
+		(registry != "localhost" && !strings.ContainsAny(registry, ".:")) {
+		return fmt.Errorf("spec.modelRegistryOCIBaseImage must include a registry hostname, for example mirror.example.com/library/busybox")
+	}
+	if _, err := reference.ParseNamed(image); err != nil {
+		return fmt.Errorf("spec.modelRegistryOCIBaseImage is not a valid image reference: %w", err)
+	}
+	return nil
 }
 
 func readExistingParams(path string) map[string]string {
