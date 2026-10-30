@@ -16,6 +16,10 @@ func TestValidateSearchOptionsByProvider(t *testing.T) {
 		"PGVECTOR_USER":     []byte("user"),
 		"PGVECTOR_PASSWORD": []byte("password"),
 	}
+	neo4j := map[string][]byte{
+		"NEO4J_URI":      []byte("neo4j+s://neo4j.example.com:7687"),
+		"NEO4J_PASSWORD": []byte("password"),
+	}
 	for _, tc := range []struct {
 		name    string
 		secret  map[string][]byte
@@ -30,6 +34,9 @@ func TestValidateSearchOptionsByProvider(t *testing.T) {
 		{name: "pgvector rrf", secret: pgvector, options: SearchOptions{Ranker: "rrf", RankerK: 60, AlphaSpecified: true}},
 		{name: "pgvector custom k", secret: pgvector, options: SearchOptions{Ranker: "rrf", RankerK: 42}, wantErr: true},
 		{name: "pgvector weighted", secret: pgvector, options: SearchOptions{Ranker: "weighted"}, wantErr: true},
+		{name: "neo4j graph search", secret: neo4j, options: SearchOptions{TopK: 5}},
+		{name: "neo4j rrf", secret: neo4j, options: SearchOptions{Ranker: "rrf", RankerK: 60}, wantErr: true},
+		{name: "neo4j weighted", secret: neo4j, options: SearchOptions{Ranker: "weighted", Alpha: 0.5}, wantErr: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			err := ValidateSearchOptions(tc.secret, tc.options)

@@ -77,6 +77,19 @@ describe('playground snippets', () => {
     expect(result).not.toMatch(/^ \t/m);
   });
 
+  it('should omit undefined-valued keys from Python snippets', () => {
+    // The neo4j pattern clears ranking_options; JSON.stringify-based snippets
+    // drop the key, so the Python rendering must not fall back to None.
+    const template: AutoRAGResponsesTemplate = {
+      ...mockTemplate,
+      tools: [{ ...mockTemplate.tools[0], ranking_options: undefined }],
+    };
+
+    const result = generatePythonSnippet({ ...mockParams, template });
+
+    expect(result).not.toContain('ranking_options');
+  });
+
   it('should preserve template content in each displayed language', () => {
     for (const { fn } of generators) {
       expect(fn(mockParams)).toContain('Be helpful.');

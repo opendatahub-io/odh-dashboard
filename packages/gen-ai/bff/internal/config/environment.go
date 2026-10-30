@@ -174,7 +174,17 @@ type EnvConfig struct {
 	// ─── GATEWAY ───────────────────────────────────────────────
 	// GatewayDomain is the external domain of the OpenShift Gateway/Route used to
 	// reach the BFF from user namespaces. Used to construct the base_url for the
-	// remote::passthrough provider in OGX configurations.
+	// remote::passthrough provider in OGX configurations. Must be a bare host:
+	// consumers prepend https:// themselves, so a scheme-qualified value would
+	// produce malformed passthrough URLs.
 	// Injected by the operator via GATEWAY_DOMAIN env var.
 	GatewayDomain string
+
+	// RelayTargetURL is an optional scheme-qualified base URL that the responses
+	// relay forwards to instead of the gateway route. It exists so local
+	// development can point the relay at a locally running BFF without
+	// repurposing GATEWAY_DOMAIN (whose passthrough consumers require a bare
+	// host). A plain http:// value is accepted only for loopback hosts.
+	// Set via the RELAY_TARGET_URL env var.
+	RelayTargetURL string
 }
