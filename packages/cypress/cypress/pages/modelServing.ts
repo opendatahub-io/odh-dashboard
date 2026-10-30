@@ -10,6 +10,7 @@ import { DeleteModal } from './components/DeleteModal';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
 import { ModelLocationSelectOption } from '../utils/modelServingConstants';
+import { OOTBConnectionTypes } from '../types';
 
 type DeploymentMethodKey =
   | 'legacy'
@@ -1283,10 +1284,10 @@ class ModelServingWizard extends Wizard {
 
   /** Select a location and its built-in connection type when a configuration choice is needed. */
   selectModelLocationOption(name: string) {
-    const builtInTypes: Partial<Record<string, string>> = {
-      [ModelLocationSelectOption.URI]: 'URI - v1',
-      [ModelLocationSelectOption.S3]: 'S3 compatible object storage - v1',
-      [ModelLocationSelectOption.OCI]: 'OCI compliant registry - v1',
+    const builtInTypes: Partial<Record<string, OOTBConnectionTypes>> = {
+      [ModelLocationSelectOption.URI]: OOTBConnectionTypes.uri,
+      [ModelLocationSelectOption.S3]: OOTBConnectionTypes.s3,
+      [ModelLocationSelectOption.OCI]: OOTBConnectionTypes.oci,
     };
 
     this.findModelLocationSelectOption(name).click();
