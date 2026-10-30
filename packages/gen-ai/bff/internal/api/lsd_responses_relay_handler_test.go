@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -114,11 +115,13 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		t := GinkgoT()
 
 		var receivedMethod, receivedPath, receivedQuery, receivedAuth, receivedContentType, receivedAccept, receivedBody string
+		var receivedForwardedToken string
 		upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receivedMethod = r.Method
 			receivedPath = r.URL.Path
 			receivedQuery = r.URL.RawQuery
 			receivedAuth = r.Header.Get("Authorization")
+			receivedForwardedToken = r.Header.Get("x-forwarded-access-token")
 			receivedContentType = r.Header.Get("Content-Type")
 			receivedAccept = r.Header.Get("Accept")
 			body, _ := io.ReadAll(r.Body)
@@ -161,9 +164,36 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.Equal(t, "/autorag/api/v1/responses", receivedPath)
 		assert.Equal(t, "namespace=test-ns&dbSecretName=db&maasSecretName=maas", receivedQuery)
 		assert.Equal(t, "Bearer test-token", receivedAuth)
+		assert.Equal(t, "test-token", receivedForwardedToken)
 		assert.Equal(t, "application/json", receivedContentType)
 		assert.Equal(t, "text/event-stream", receivedAccept)
 		assert.Equal(t, body, receivedBody)
+	})
+
+	It("should honor a scheme-qualified gateway domain for local development", func() {
+		t := GinkgoT()
+
+		var receivedPath, receivedQuery string
+		upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedPath = r.URL.Path
+			receivedQuery = r.URL.RawQuery
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"ok":true}`)
+		}))
+		defer upstream.Close()
+
+		app.config.GatewayDomain = upstream.URL + "/"
+		app.httpClient = upstream.Client()
+
+		req := newRelayRequest("target="+url.QueryEscape("/autorag/api/v1/responses?namespace=test-ns"), `{"model":"m"}`)
+		rr := httptest.NewRecorder()
+
+		app.ResponsesRelayHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, "/autorag/api/v1/responses", receivedPath)
+		assert.Equal(t, "namespace=test-ns", receivedQuery)
+		assert.JSONEq(t, `{"ok":true}`, rr.Body.String())
 	})
 
 	It("should pipe a non-200 upstream error envelope verbatim", func() {
@@ -213,3 +243,120 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.NotContains(t, rr.Body.String(), "dial tcp")
 	})
 })
+
+// relayTestTransport records requests without contacting the configured gateway.
+type relayTestTransport func(*http.Request) (*http.Response, error)
+
+func (f relayTestTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+func TestResponsesRelayGatewayScheme(t *testing.T) {
+	const target = "/autorag/api/v1/responses?namespace=test-ns"
+	tests := []struct {
+		name    string
+		gateway string
+		wantURL string
+	}{
+		{name: "bare remote host", gateway: "gateway.example.com", wantURL: "https://gateway.example.com"},
+		{name: "explicit remote HTTPS", gateway: "https://gateway.example.com/", wantURL: "https://gateway.example.com"},
+		{name: "trimmed HTTPS", gateway: "  https://gateway.example.com///  ", wantURL: "https://gateway.example.com"},
+		{name: "localhost HTTP", gateway: "http://localhost:4001/", wantURL: "http://localhost:4001"},
+		{name: "uppercase localhost", gateway: "http://LOCALHOST:4001", wantURL: "http://LOCALHOST:4001"},
+		{name: "IPv4 loopback", gateway: "http://127.0.0.1:4001", wantURL: "http://127.0.0.1:4001"},
+		{name: "IPv4 loopback range", gateway: "http://127.0.0.2:4001", wantURL: "http://127.0.0.2:4001"},
+		{name: "IPv6 loopback", gateway: "http://[::1]:4001/", wantURL: "http://[::1]:4001"},
+		{name: "IPv4 mapped loopback", gateway: "http://[::ffff:127.0.0.1]:4001", wantURL: "http://[::ffff:127.0.0.1]:4001"},
+		{name: "remote HTTP", gateway: "http://gateway.example.com"},
+		{name: "private IPv4 HTTP", gateway: "http://192.168.1.1:4001"},
+		{name: "unspecified IPv4 HTTP", gateway: "http://0.0.0.0:4001"},
+		{name: "unspecified IPv6 HTTP", gateway: "http://[::]:4001"},
+		{name: "remote IPv6 HTTP", gateway: "http://[2001:db8::1]:4001"},
+		{name: "localhost suffix", gateway: "http://localhost.example.com:4001"},
+		{name: "misleading userinfo", gateway: "http://localhost@gateway.example.com"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			app := App{
+				config: config.EnvConfig{GatewayDomain: tt.gateway},
+				logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+				httpClient: &http.Client{Transport: relayTestTransport(func(r *http.Request) (*http.Response, error) {
+					called = true
+					assert.Equal(t, tt.wantURL+target, r.URL.String())
+					assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Header:     make(http.Header),
+						Body:       io.NopCloser(strings.NewReader(`{"ok":true}`)),
+					}, nil
+				})},
+			}
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/responses/relay?target="+url.QueryEscape(target), strings.NewReader("{}"))
+			identity := &integrations.RequestIdentity{Token: "test-token"}
+			req = req.WithContext(context.WithValue(req.Context(), constants.RequestIdentityKey, identity))
+			rr := httptest.NewRecorder()
+
+			app.ResponsesRelayHandler(rr, req, nil)
+
+			if tt.wantURL == "" {
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+				assert.Contains(t, rr.Body.String(), "must use HTTPS")
+				assert.False(t, called, "invalid gateway must not receive a request")
+			} else {
+				assert.Equal(t, http.StatusOK, rr.Code)
+				assert.True(t, called, "allowed gateway must receive the request")
+			}
+		})
+	}
+}
+
+func TestResponsesRelayDoesNotFollowRedirects(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   int
+		location string
+	}{
+		{name: "301 cross-host", status: http.StatusMovedPermanently, location: "https://other.example/responses"},
+		{name: "302 cross-host", status: http.StatusFound, location: "https://other.example/responses"},
+		{name: "303 cross-host", status: http.StatusSeeOther, location: "https://other.example/responses"},
+		{name: "307 cross-host", status: http.StatusTemporaryRedirect, location: "https://other.example/responses"},
+		{name: "308 cross-host", status: http.StatusPermanentRedirect, location: "https://other.example/responses"},
+		{name: "HTTPS downgrade", status: http.StatusTemporaryRedirect, location: "http://gateway.example.com/responses"},
+		{name: "same-origin", status: http.StatusTemporaryRedirect, location: "/autorag/api/v1/redirected"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			requests := 0
+			app := App{
+				config: config.EnvConfig{GatewayDomain: "gateway.example.com"},
+				logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+				httpClient: &http.Client{Transport: relayTestTransport(func(r *http.Request) (*http.Response, error) {
+					requests++
+					if requests > 1 {
+						return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: http.NoBody}, nil
+					}
+					assert.Equal(t, "https://gateway.example.com/autorag/api/v1/responses", r.URL.String())
+					assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+					assert.Equal(t, "test-token", r.Header.Get("x-forwarded-access-token"))
+					return &http.Response{
+						StatusCode: tt.status,
+						Header:     http.Header{"Location": {tt.location}},
+						Body:       io.NopCloser(strings.NewReader("redirect response")),
+					}, nil
+				})},
+			}
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/responses/relay?target="+url.QueryEscape("/autorag/api/v1/responses"), strings.NewReader("{}"))
+			identity := &integrations.RequestIdentity{Token: "test-token"}
+			req = req.WithContext(context.WithValue(req.Context(), constants.RequestIdentityKey, identity))
+			rr := httptest.NewRecorder()
+
+			app.ResponsesRelayHandler(rr, req, nil)
+
+			assert.Equal(t, 1, requests, "redirect destination must not receive a request")
+			assert.Equal(t, tt.status, rr.Code)
+			assert.Equal(t, "redirect response", rr.Body.String())
+			assert.Empty(t, rr.Header().Get("Location"))
+		})
+	}
+}

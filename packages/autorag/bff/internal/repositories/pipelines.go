@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -500,8 +501,93 @@ func ValidateCreateIndexingPipelineRunRequest(req models.CreateIndexingPipelineR
 	if utf8.RuneCountInString(req.Description) > 255 {
 		return NewValidationError("description must be at most 255 characters")
 	}
+	if err := ValidateGraphExtractionConfig(req.Parameters); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+const (
+	graphExtractionConstrained = "constrained"
+	graphExtractionFree        = "free"
+)
+
+// ValidateGraphExtractionConfig validates the graph_extraction.mode setting used
+// by Neo4j GraphRAG indexing pipelines. It mirrors ai4rag's
+// _validate_kg_extraction_config: constrained extraction takes no extra
+// settings, while free extraction requires positive per-chunk entity and
+// relationship limits. Both the indexing parameter name
+// (graph_extraction_config) and the persisted pattern setting name
+// (graph_extraction) are accepted.
+func ValidateGraphExtractionConfig(parameters map[string]any) error {
+	for _, key := range []string{"graph_extraction_config", "graph_extraction"} {
+		raw, found := parameters[key]
+		if !found || raw == nil {
+			continue
+		}
+		config, ok := graphExtractionConfigMap(raw)
+		if !ok {
+			return NewValidationError(fmt.Sprintf("%s must be an object", key))
+		}
+		mode := graphExtractionConstrained
+		if value, present := config["mode"]; present {
+			modeValue, isString := value.(string)
+			if !isString {
+				return NewValidationError(fmt.Sprintf("%s.mode must be a string", key))
+			}
+			mode = modeValue
+		}
+		switch mode {
+		case graphExtractionConstrained:
+			continue
+		case graphExtractionFree:
+			for _, name := range []string{"max_entities_per_chunk", "max_relationships_per_chunk"} {
+				if err := validatePositiveInt(config[name], fmt.Sprintf("%s.%s", key, name)); err != nil {
+					return err
+				}
+			}
+		default:
+			return NewValidationError(fmt.Sprintf("%s.mode must be 'constrained' or 'free'", key))
+		}
+	}
+	return nil
+}
+
+func graphExtractionConfigMap(raw any) (map[string]any, bool) {
+	if config, ok := raw.(map[string]any); ok {
+		return config, true
+	}
+	if text, ok := raw.(string); ok {
+		var config map[string]any
+		if err := json.Unmarshal([]byte(text), &config); err != nil || config == nil {
+			return nil, false
+		}
+		return config, true
+	}
+	return nil, false
+}
+
+func validatePositiveInt(raw any, field string) error {
+	switch value := raw.(type) {
+	case int:
+		if value >= 1 {
+			return nil
+		}
+	case int64:
+		if value >= 1 {
+			return nil
+		}
+	case float64:
+		if value >= 1 && value == float64(int64(value)) {
+			return nil
+		}
+	case json.Number:
+		if parsed, err := value.Int64(); err == nil && parsed >= 1 {
+			return nil
+		}
+	}
+	return NewValidationError(fmt.Sprintf("%s must be a positive integer", field))
 }
 
 func BuildPipelineRunInput(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) *pipelines.CreatePipelineRunInput {

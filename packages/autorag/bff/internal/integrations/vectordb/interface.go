@@ -9,7 +9,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 )
 
-var ErrUnsupportedVectorDB = errors.New("unsupported vector DB: secret must contain MILVUS_URI or PGVECTOR_HOST")
+var ErrUnsupportedVectorDB = errors.New("unsupported vector DB: secret must contain MILVUS_URI, PGVECTOR_HOST, or NEO4J_URI")
 
 var ErrUnsupportedSearch = errors.New("unsupported vector DB search options")
 
@@ -50,8 +50,14 @@ type SearchOptions struct {
 // ValidateSearchOptions rejects combinations that the selected backend cannot support.
 func ValidateSearchOptions(data map[string][]byte, options SearchOptions) error {
 	providers := database.Classify(data)
-	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector) {
+	if len(providers) != 1 || (providers[0] != database.Milvus && providers[0] != database.PGVector && providers[0] != database.Neo4j) {
 		return fmt.Errorf("%w: unsupported or ambiguous provider classification", ErrUnsupportedVectorDB)
+	}
+	if providers[0] == database.Neo4j {
+		if options.Ranker != "" {
+			return fmt.Errorf("%w: neo4j graph search does not support hybrid ranking", ErrUnsupportedSearch)
+		}
+		return nil
 	}
 	milvus := providers[0] == database.Milvus
 	if !milvus && options.Ranker == "weighted" {
