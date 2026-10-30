@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"reflect"
 	"strings"
@@ -726,6 +727,20 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 	})
 
 	t.Run("eligible Service is trusted and skips SSRF validation", func(t *testing.T) {
+		// Reserve an ephemeral port and release it so the pinned dial targets a
+		// loopback port that is reliably closed, instead of assuming 8443 is
+		// unused on the test machine.
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatalf("failed to reserve an ephemeral port: %v", err)
+		}
+		closedPort := listener.Addr().(*net.TCPAddr).Port
+		if err := listener.Close(); err != nil {
+			t.Fatalf("failed to release the ephemeral port: %v", err)
+		}
+		req := req
+		req.BaseURL = fmt.Sprintf("https://my-model.my-ns.svc.cluster.local:%d/v1", closedPort)
+
 		client := &k8smocks.ConfigurableMockKubernetesClient{
 			Service: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
@@ -738,7 +753,7 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 			EndpointSlices: []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
 			Pod:            runningPod("my-ns", "127.0.0.1"),
 		}
-		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		_, err = repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
 			t.Fatal("VerifyExternalModel() error = nil, want pinned dial failure to the loopback address with nothing listening")
 		}
