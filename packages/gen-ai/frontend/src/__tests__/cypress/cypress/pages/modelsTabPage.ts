@@ -29,6 +29,10 @@ class ModelsTabRow {
     return this.find().find('[data-label="Status"]');
   }
 
+  findTryInPlaygroundButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('try-playground-button');
+  }
+
   findPlaygroundCell(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Playground"]');
   }

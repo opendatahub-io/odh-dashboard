@@ -1,4 +1,5 @@
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths -- Shared page objects must resolve outside GenAI's ~ alias.
+import { TableRow } from '../components/table';
 
 class PlaygroundMCPServerRow extends TableRow {
   constructor(

@@ -171,6 +171,8 @@ jobs:
       test-groups: ${{ steps.set-groups.outputs.test-groups }}
       has-tests: ${{ steps.set-groups.outputs.has-tests }}
       full-matrix: ${{ steps.set-groups.outputs.full-matrix }}
+      full-dashboard-matrix: ${{ steps.set-groups.outputs.full-dashboard-matrix }}
+      has-dashboard-tests: ${{ steps.set-groups.outputs.has-dashboard-tests }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -182,6 +184,8 @@ jobs:
         uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - name: Verify Cypress orchestration
+        run: pnpm run test:cypress-orchestration
       - id: set-groups
         name: Select Cypress mock test groups
         shell: bash
@@ -190,7 +194,7 @@ jobs:
             ${{ github.event.pull_request.base.sha || github.event.before }}
           IMPACT_HEAD: ${{ github.sha }}
         run: |
-          node scripts/cypress/plan-mock-test-impact.js \
+          node scripts/cypress/plan-mock-test-applications.js \
             --base "$IMPACT_BASE" \
             --head "$IMPACT_HEAD" \
             --matrix "$RUNNER_TEMP/cypress-mock-matrix.json" \
@@ -199,6 +203,8 @@ jobs:
           TEST_GROUPS=$(jq -c . "$RUNNER_TEMP/cypress-mock-matrix.json")
           SELECTED_GROUPS=$(jq 'length' "$RUNNER_TEMP/cypress-mock-matrix.json")
           HAS_TESTS=$([[ "$SELECTED_GROUPS" -gt 0 ]] && echo true || echo false)
+          HAS_DASHBOARD_TESTS=$(jq 'any(.[]; .runner == "dashboard-shards")' "$RUNNER_TEMP/cypress-mock-matrix.json")
+          FULL_DASHBOARD_MATRIX=$(jq 'any(.[]; .runner == "dashboard-shards" and .coverageComplete == true)' "$RUNNER_TEMP/cypress-mock-matrix.json")
           FULL_MATRIX=$(
             [[ "$(cat "$RUNNER_TEMP/cypress-mock-scope.txt")" == "full" ]] &&
               echo true || echo false
@@ -214,6 +220,8 @@ jobs:
             echo "test-groups=$TEST_GROUPS"
             echo "has-tests=$HAS_TESTS"
             echo "full-matrix=$FULL_MATRIX"
+            echo "full-dashboard-matrix=$FULL_DASHBOARD_MATRIX"
+            echo "has-dashboard-tests=$HAS_DASHBOARD_TESTS"
           } >> "$GITHUB_OUTPUT"
           echo "$TEST_GROUPS" | jq .
 
@@ -333,7 +341,7 @@ jobs:
 
   Cypress-Setup:
     needs: [Setup, Get-Cypress-Packages, Get-Test-Groups]
-    if: needs.Get-Test-Groups.outputs.has-tests == 'true'
+    if: needs.Get-Test-Groups.outputs.has-dashboard-tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
@@ -366,7 +374,7 @@ jobs:
         needs.Setup.result == 'success' &&
         needs.Get-Test-Groups.result == 'success' &&
         needs.Get-Cypress-Packages.result == 'success' &&
-        (needs.Get-Test-Groups.outputs.has-tests != 'true' ||
+        (needs.Get-Test-Groups.outputs.has-dashboard-tests != 'true' ||
         needs.Cypress-Setup.result == 'success')
       }}
     runs-on: ubuntu-latest
@@ -382,7 +390,7 @@ jobs:
       - name: No Cypress mock tests selected
         if: needs.Get-Test-Groups.outputs.has-tests != 'true'
         run: |
-          echo "Documentation-only change; Cypress mock tests are not required."
+          echo "No affected Cypress mock applications; no browser tests are required."
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         with:
@@ -392,8 +400,8 @@ jobs:
         uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore Cypress builds
-        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
+      - name: Restore dashboard Cypress builds
+        if: matrix.test-group.runner == 'dashboard-shards'
         uses: ./.github/actions/cypress-build-restore
         with:
           mode: restore
@@ -427,8 +435,8 @@ jobs:
               `${j.name}=${j.conclusion || 'in_progress'}`
             );
             core.info(`Quality gates: ${status.join(', ')}`);
-      - name: Run Cypress Mock tests
-        if: needs.Get-Test-Groups.outputs.has-tests == 'true'
+      - name: Run dashboard shard Cypress mock tests
+        if: matrix.test-group.runner == 'dashboard-shards'
         env:
           CYPRESS_SPECS: ${{ toJson(matrix.test-group.specs) }}
         run: |
@@ -449,6 +457,12 @@ jobs:
             --out ../packages/cypress/coverage/coverage-final.json \
             "$coverage_parts/*.json"
         working-directory: ./frontend
+      - name: Run standalone app Cypress mock tests
+        if: matrix.test-group.runner == 'standalone-app'
+        env:
+          APPLICATION_WORKSPACE: ${{ matrix.test-group.workspace }}
+          COVERAGE: true
+        run: pnpm --dir "$APPLICATION_WORKSPACE" run test:cypress-ci
       - name: Test group name
         if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         env:
@@ -462,7 +476,7 @@ jobs:
         if: ${{ always() && needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         with:
           name: cypress-results-${{ env.TEST_GROUP_NAME }}
-          path: ./packages/cypress/results/mocked
+          path: ${{ matrix.test-group.results }}
       - name: Upload Cypress coverage
         if: >-
           ${{ env.IS_DRAFT != 'true' &&
@@ -470,8 +484,22 @@ jobs:
         # v4
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
-          path: ./packages/cypress/coverage
+          name: cypress-coverage-${{ matrix.test-group.runner }}-${{ env.TEST_GROUP_NAME }}
+          path: ${{ matrix.test-group.runner == 'dashboard-shards' && 'packages/cypress/coverage' || format('{0}/coverage', matrix.test-group.results) }}
+      - name: Upload standalone app Cypress coverage to Codecov
+        if: >-
+          ${{ env.IS_DRAFT != 'true' &&
+          matrix.test-group.runner == 'standalone-app' }}
+        # v4.6.0
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          flags: cypress-mock-${{ matrix.test-group.application }}
+          name: cypress-mock-${{ matrix.test-group.application }}
+          file: ${{ matrix.test-group.results }}/coverage/coverage-final.json
+          disable_search: true
+          verbose: true
 
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests, Get-Test-Groups]
@@ -517,23 +545,31 @@ jobs:
           ${{ env.IS_DRAFT != 'true' &&
           needs.Get-Test-Groups.outputs.has-tests == 'true' }}
         run: |
-          mkdir -p ./cypress-coverage
+          mkdir -p ./cypress-coverage ./dashboard-cypress-coverage
           find all-artifacts -name "cypress-coverage-*" -type d | \
             while read dir; do
             group_name=$(basename "$dir")
             if [ -f "$dir/coverage-final.json" ]; then
               cp "$dir/coverage-final.json" \
                 "./cypress-coverage/${group_name}-coverage-final.json"
+              if [[ "$group_name" == cypress-coverage-dashboard-shards-* ]]; then
+                cp "$dir/coverage-final.json" \
+                  "./dashboard-cypress-coverage/${group_name}.json"
+              fi
             fi
           done
           echo "Cypress coverage files:"
           ls -la ./cypress-coverage/
           pnpm exec nyc merge ./cypress-coverage \
             ./cypress-coverage/merged-cypress-coverage.json
+          if compgen -G './dashboard-cypress-coverage/*.json' > /dev/null; then
+            pnpm exec nyc merge ./dashboard-cypress-coverage \
+              ./dashboard-cypress-coverage/merged-dashboard-coverage.json
+          fi
       - name: Upload Cypress mock coverage to Codecov
         if: >-
           ${{ env.IS_DRAFT != 'true' &&
-          needs.Get-Test-Groups.outputs.full-matrix == 'true' }}
+          needs.Get-Test-Groups.outputs.full-dashboard-matrix == 'true' }}
         # v4.6.0
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
@@ -541,7 +577,7 @@ jobs:
           fail_ci_if_error: false
           flags: cypress-mock
           name: cypress-mock-tests
-          file: ./cypress-coverage/merged-cypress-coverage.json
+          file: ./dashboard-cypress-coverage/merged-dashboard-coverage.json
           disable_search: true
           verbose: true
 

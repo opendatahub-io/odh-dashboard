@@ -115,6 +115,14 @@ class ChatbotPage {
     return cy.findByTestId('settings-model-selector-toggle');
   }
 
+  findSubscriptionSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-selector-toggle');
+  }
+
+  findSubscriptionOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('option', { name });
+  }
+
   findChatModelOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.contains('[role="menuitem"]', name);
   }
@@ -243,7 +251,7 @@ class ChatbotPage {
   }
 
   findStreamingToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findStreamingSection().find('input[type="checkbox"]');
+    return cy.findByTestId('streaming-toggle');
   }
 
   toggleStreaming(enable: boolean): void {
@@ -376,11 +384,15 @@ class ChatbotPage {
     return cy.findByTestId('new-chat-button');
   }
 
+  findConfirmNewChatButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('dialog').findByTestId('confirm-button');
+  }
+
   startNewChatIfAvailable(): void {
     cy.get('body').then(($body) => {
       if ($body.find('[data-testid="new-chat-button"]:not(:disabled)').length > 0) {
         this.findNewChatButton().click();
-        cy.findByTestId('confirm-button').click();
+        this.findConfirmNewChatButton().click();
         // Wait for page to stabilize after new chat
         this.findChatbotPlayground().should('be.visible');
         this.findMessageInput().should('not.be.disabled');

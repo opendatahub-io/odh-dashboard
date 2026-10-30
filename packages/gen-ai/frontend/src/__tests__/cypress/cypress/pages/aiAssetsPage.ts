@@ -1,6 +1,14 @@
 import { appendFeatureFlagParams } from './appChrome';
 
 class AIAssetsPage {
+  findTitle(options?: { timeout?: number }): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('page-title', options);
+  }
+
+  findProjectSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
   visit(namespace?: string, queryParams?: Record<string, string>): void {
     const qs = queryParams ? `?${new URLSearchParams(queryParams).toString()}` : '';
     if (namespace) {
@@ -12,7 +20,7 @@ class AIAssetsPage {
   }
 
   private waitForPageLoad(): void {
-    cy.findByTestId('page-title', { timeout: 15000 })
+    this.findTitle({ timeout: 15000 })
       .should('be.visible')
       .should('contain.text', 'AI asset endpoints');
     cy.findAllByRole('tab', { timeout: 10000 }).should('have.length.at.least', 1);

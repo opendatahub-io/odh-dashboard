@@ -1,5 +1,12 @@
 /* eslint-disable camelcase */
-import type { AAModelResponse } from '~/app/types';
+import { createMockLlamaStackDistribution } from './mockLlamaStackDistribution';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths -- Exported fixtures cannot rely on GenAI's ~ alias.
+import type {
+  AAModelResponse,
+  BackendResponseData,
+  LlamaModelResponse,
+  LlamaStackDistributionModel,
+} from '../app/types';
 
 export interface AAModelsResponse {
   data: AAModelResponse[];
@@ -42,3 +49,39 @@ export const mockAAModels = (models?: Partial<AAModelResponse>[]): AAModelsRespo
     data: models.map((model) => mockAAModel(model)),
   };
 };
+
+export const mockLlamaModel = (
+  overrides: Partial<LlamaModelResponse> = {},
+): LlamaModelResponse => ({
+  id: 'meta-llama/Llama-3.2-3B-Instruct',
+  object: 'model',
+  created: 1,
+  owned_by: 'meta-llama',
+  ...overrides,
+});
+
+export const mockChatResponse = (
+  overrides: Partial<BackendResponseData> = {},
+): BackendResponseData => ({
+  id: 'test-response',
+  model: 'meta-llama/Llama-3.2-3B-Instruct',
+  status: 'completed',
+  created_at: 1,
+  output: [
+    {
+      id: 'test-message',
+      type: 'message',
+      role: 'assistant',
+      content: [{ type: 'output_text', text: 'Hello from the test model' }],
+    },
+  ],
+  usage: { input_tokens: 5, output_tokens: 8, total_tokens: 13 },
+  ...overrides,
+});
+
+export const mockLsdStatus = (
+  overrides: Partial<LlamaStackDistributionModel> = {},
+): LlamaStackDistributionModel => ({
+  ...createMockLlamaStackDistribution(),
+  ...overrides,
+});
