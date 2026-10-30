@@ -10,8 +10,10 @@ import (
 )
 
 // DynamicRootCAPool keeps an immutable base pool and publishes a replacement
-// pool whenever the installation router CA changes. Readers can safely use the
-// returned pool concurrently because a published pool is never mutated.
+// pool whenever the installation router CA changes. The base must contain only
+// system or administrator-configured roots; replaceable router trust belongs
+// in Update. Readers can safely use the returned pool concurrently because a
+// published pool is never mutated.
 type DynamicRootCAPool struct {
 	base    *x509.CertPool
 	current atomic.Pointer[x509.CertPool]

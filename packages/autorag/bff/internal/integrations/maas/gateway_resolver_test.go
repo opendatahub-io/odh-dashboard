@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -201,13 +202,32 @@ func TestCachedGatewayHostResolverCanCancelWhileRefreshIsInProgress(t *testing.T
 	}()
 	<-started
 
-	ctx, cancel := context.WithCancel(context.Background())
+	baseContext, cancel := context.WithCancel(context.Background())
+	contextReady := make(chan struct{})
+	secondContext := &contextReadyContext{Context: baseContext, ready: contextReady}
+	secondDone := make(chan error, 1)
+	go func() {
+		_, err := resolver.Resolve(secondContext)
+		secondDone <- err
+	}()
+	<-contextReady
 	cancel()
-	_, err := resolver.Resolve(ctx)
+	err := <-secondDone
 	assert.ErrorIs(t, err, context.Canceled)
 
 	close(release)
 	assert.NoError(t, <-firstDone)
+}
+
+type contextReadyContext struct {
+	context.Context
+	ready     chan struct{}
+	readyOnce sync.Once
+}
+
+func (c *contextReadyContext) Done() <-chan struct{} {
+	c.readyOnce.Do(func() { close(c.ready) })
+	return c.Context.Done()
 }
 
 func TestCachedGatewayHostResolverDoesNotCacheCallerSpecificErrors(t *testing.T) {
