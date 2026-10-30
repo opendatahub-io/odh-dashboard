@@ -21,6 +21,7 @@ const COMMON_SECURITY_HEADERS: ReadonlyArray<[string, string]> = [
   ['X-Frame-Options', X_FRAME_OPTIONS],
   ['X-DNS-Prefetch-Control', X_DNS_PREFETCH_CONTROL],
   ['Referrer-Policy', REFERRER_POLICY],
+  ['Strict-Transport-Security', 'max-age=31536000; includeSubDomains'],
 ];
 
 /** Code and text suffixes. Fonts and images use {@link isStaticAsset}. */

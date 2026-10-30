@@ -14,6 +14,7 @@ const (
 	HeaderCrossOriginOpenerPolicy = "Cross-Origin-Opener-Policy"
 	HeaderXFrameOptions           = "X-Frame-Options"
 	HeaderXDNSPrefetchControl     = "X-DNS-Prefetch-Control"
+	HeaderStrictTransportSecurity = "Strict-Transport-Security"
 	HeaderCookie                  = "Cookie"
 	HeaderSetCookie               = "Set-Cookie"
 	HeaderProxyAuthorization      = "Proxy-Authorization"
@@ -48,4 +49,5 @@ const (
 	CrossOriginOpenerPolicySameOrigin         = "same-origin"
 	XFrameOptionsDeny                         = "DENY"
 	XDNSPrefetchControlOff                    = "off"
+	StrictTransportSecurityValue              = "max-age=31536000; includeSubDomains"
 )

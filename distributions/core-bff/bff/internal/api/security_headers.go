@@ -87,6 +87,7 @@ func applySecurityHeaders(h http.Header, urlPath string) {
 	h.Set(constants.HeaderXContentTypeOptions, constants.XContentTypeOptionsNoSniff)
 	h.Set(constants.HeaderCrossOriginOpenerPolicy, constants.CrossOriginOpenerPolicySameOrigin)
 	h.Set(constants.HeaderXFrameOptions, constants.XFrameOptionsDeny)
+	h.Set(constants.HeaderStrictTransportSecurity, constants.StrictTransportSecurityValue)
 	h.Set(constants.HeaderXDNSPrefetchControl, constants.XDNSPrefetchControlOff)
 	h.Set(constants.HeaderReferrerPolicy, constants.ReferrerPolicyStrictOriginWhenCrossOrigin)
 
