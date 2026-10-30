@@ -10,6 +10,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 )
 
 // ErrExternalModelNotFound is returned when an external model is not found in the ConfigMap
@@ -49,6 +50,12 @@ type KubernetesClientInterface interface {
 	// verify what a service DNS name actually backs (e.g. reject ExternalName
 	// aliases pointing outside the caller's namespace).
 	GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error)
+
+	// GetServiceEndpointSlices lists the EndpointSlices backing a Service, so callers
+	// can verify the effective endpoint addresses actually belong to Pods in the
+	// Service's namespace (e.g. reject manually managed slices pointing at another
+	// namespace's Pod IPs).
+	GetServiceEndpointSlices(ctx context.Context, identity *integrations.RequestIdentity, namespace string, serviceName string) ([]discoveryv1.EndpointSlice, error)
 
 	// External Models operations
 	GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)

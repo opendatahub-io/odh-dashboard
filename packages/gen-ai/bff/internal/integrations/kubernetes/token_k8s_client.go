@@ -26,6 +26,7 @@ import (
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 
 	"gopkg.in/yaml.v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -782,6 +783,26 @@ func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, name
 	return configMap, nil
 }
 
+// callerScopedClient returns a controller-runtime client that reads through the
+// caller's own token, keeping trust decisions independent of the dashboard service
+// account's RBAC and limited to resources the caller is authorized to see. It falls
+// back to the client's own credentials for local development when no identity is
+// available.
+func (kc *TokenKubernetesClient) callerScopedClient(identity *integrations.RequestIdentity) (client.Client, error) {
+	if identity == nil || identity.Token == "" {
+		return kc.Client, nil
+	}
+	userConfig := rest.AnonymousClientConfig(kc.Config)
+	userConfig.BearerToken = identity.Token
+	userConfig.BearerTokenFile = ""
+	userClient, err := client.New(userConfig, client.Options{Scheme: kc.Client.Scheme()})
+	if err != nil {
+		kc.Logger.Error("failed to create user client", "error", err)
+		return nil, fmt.Errorf("failed to create user client: %w", err)
+	}
+	return userClient, nil
+}
+
 // GetService reads a core Service through the caller's own credentials so callers
 // can verify what a service DNS name actually backs (e.g. reject ExternalName
 // aliases pointing at another namespace). Reading with the user's token keeps the
@@ -792,17 +813,9 @@ func (kc *TokenKubernetesClient) GetService(ctx context.Context, identity *integ
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	reader := kc.Client
-	if identity != nil && identity.Token != "" {
-		userConfig := rest.AnonymousClientConfig(kc.Config)
-		userConfig.BearerToken = identity.Token
-		userConfig.BearerTokenFile = ""
-		userClient, err := client.New(userConfig, client.Options{Scheme: kc.Client.Scheme()})
-		if err != nil {
-			kc.Logger.Error("failed to create user client", "error", err)
-			return nil, fmt.Errorf("failed to create user client: %w", err)
-		}
-		reader = userClient
+	reader, err := kc.callerScopedClient(identity)
+	if err != nil {
+		return nil, err
 	}
 
 	service := &corev1.Service{}
@@ -810,6 +823,29 @@ func (kc *TokenKubernetesClient) GetService(ctx context.Context, identity *integ
 		return nil, fmt.Errorf("failed to get Service %s/%s: %w", namespace, name, err)
 	}
 	return service, nil
+}
+
+// GetServiceEndpointSlices lists the EndpointSlices backing a Service through the
+// caller's own credentials, so callers can verify which addresses the Service
+// actually routes to (e.g. reject manually managed slices pointing at Pods outside
+// the caller's namespace). It falls back to the client's own credentials for local
+// development when no identity is available.
+func (kc *TokenKubernetesClient) GetServiceEndpointSlices(ctx context.Context, identity *integrations.RequestIdentity, namespace string, serviceName string) ([]discoveryv1.EndpointSlice, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	reader, err := kc.callerScopedClient(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	sliceList := &discoveryv1.EndpointSliceList{}
+	if err := reader.List(ctx, sliceList,
+		client.InNamespace(namespace),
+		client.MatchingLabels{discoveryv1.LabelServiceName: serviceName}); err != nil {
+		return nil, fmt.Errorf("failed to list EndpointSlices for Service %s/%s: %w", namespace, serviceName, err)
+	}
+	return sliceList.Items, nil
 }
 
 // ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore

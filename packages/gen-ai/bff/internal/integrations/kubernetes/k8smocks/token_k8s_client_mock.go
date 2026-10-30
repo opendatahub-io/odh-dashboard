@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,6 +60,12 @@ func (m *TokenKubernetesClientMock) BearerToken() (string, error) {
 // is used.
 func (m *TokenKubernetesClientMock) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
 	return m.TokenKubernetesClient.GetService(ctx, nil, namespace, name)
+}
+
+// GetServiceEndpointSlices lists EndpointSlices from the envtest cluster. The identity
+// is dropped for the same reason as GetService above.
+func (m *TokenKubernetesClientMock) GetServiceEndpointSlices(ctx context.Context, identity *integrations.RequestIdentity, namespace string, serviceName string) ([]discoveryv1.EndpointSlice, error) {
+	return m.TokenKubernetesClient.GetServiceEndpointSlices(ctx, nil, namespace, serviceName)
 }
 
 // GetNamespaces lists namespaces from the envtest cluster

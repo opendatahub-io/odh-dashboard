@@ -243,21 +243,23 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 // are not trusted. Selectorless Services are also rejected: without a selector their
 // endpoint addresses are manually managed and can point at Pods in another namespace,
 // so they must not receive the SSRF exemption. Selector-backed Services are trusted
-// whether or not they are headless: the selector means a controller manages their
-// endpoints (headless KServe model endpoints are legitimate), and a manually attached
-// EndpointSlice on a selector-backed Service is the same residual risk for ClusterIP
-// and headless alike (fail closed on lookup errors too). A Forbidden lookup returns
-// an error so the caller learns the missing permission instead of a misleading
-// connectivity failure.
+// whether or not they are headless (headless KServe model endpoints are legitimate),
+// but only after their EndpointSlices are checked: a selector alone does not prove
+// the effective endpoints, because a caller who can create EndpointSlices in their
+// namespace can attach a manually managed slice (labelled kubernetes.io/service-name)
+// to a selector-backed Service and point it at another namespace's Pod IP. Every
+// ready endpoint must therefore reference a Pod in the caller's namespace, which is
+// all the EndpointSlice controller itself ever produces (fail closed on lookup
+// errors too). A Forbidden lookup returns an error so the caller learns the missing
+// permission instead of a misleading connectivity failure.
 //
 // Known residual risk, deliberately accepted: the connection is not pinned to the
-// validated Service's addresses, so a caller who can mutate Services in their own
-// namespace could race the lookup (e.g. flip an ExternalName Service to ClusterIP
-// and rely on cached DNS) to redirect one request. Every deterministic alias route
-// is rejected above; exploiting the race requires winning a narrow
-// lookup-versus-dial window with namespace Service-mutation privileges, which is
-// defense-in-depth (destination pinning) rather than the cross-namespace
-// authorization gap this function closes.
+// validated addresses, so a caller who can mutate Services or EndpointSlices in
+// their own namespace could race the lookup and rely on cached DNS to redirect one
+// request. Every deterministic alias route is rejected above; exploiting the race
+// requires winning a narrow lookup-versus-dial window with namespace
+// Service-mutation privileges, which is defense-in-depth (destination pinning)
+// rather than the cross-namespace authorization gap this function closes.
 func resolveTrustedHost(
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
@@ -292,6 +294,33 @@ func resolveTrustedHost(
 	}
 	if len(svc.Spec.Selector) == 0 {
 		return false, nil
+	}
+	slices, err := client.GetServiceEndpointSlices(ctx, identity, svcNamespace, svcName)
+	if err != nil {
+		if apierrors.IsForbidden(err) {
+			return false, &externalmodels.ExternalModelError{
+				Code:       "FORBIDDEN",
+				Message:    fmt.Sprintf("verifying an in-cluster endpoint requires permission to list EndpointSlices for the Service %s/%s, which the caller lacks", svcNamespace, svcName),
+				BaseURL:    baseURL,
+				StatusCode: http.StatusForbidden,
+			}
+		}
+		logger.Warn("endpoint slice lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
+		return false, nil
+	}
+	// Not-ready endpoints receive no traffic, so only ready endpoints matter. A ready
+	// endpoint without a Pod targetRef in the caller's namespace can only come from a
+	// manually managed EndpointSlice, so it must not receive the SSRF exemption.
+	for i := range slices {
+		for _, endpoint := range slices[i].Endpoints {
+			if endpoint.Conditions.Ready == nil || !*endpoint.Conditions.Ready {
+				continue
+			}
+			ref := endpoint.TargetRef
+			if ref == nil || ref.Kind != "Pod" || ref.Namespace != namespace || ref.Name == "" {
+				return false, nil
+			}
+		}
 	}
 	return true, nil
 }
