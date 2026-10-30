@@ -525,6 +525,25 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantName: "my-model",
 		},
 		{
+			name:     "TCP Service port is selected when UDP shares the same port number",
+			want:     true,
+			wantName: "my-model",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+				Spec: corev1.ServiceSpec{
+					Type:     corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{"app": "my-model"},
+					Ports: []corev1.ServicePort{
+						{Name: "quic", Port: 8443, Protocol: corev1.ProtocolUDP, TargetPort: intstr.FromInt32(8444)},
+						{Name: "https", Port: 8443, Protocol: corev1.ProtocolTCP, TargetPort: intstr.FromInt32(8443)},
+					},
+				},
+			},
+			slices:        []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+			pod:           runningPod("my-ns", "127.0.0.1"),
+			wantAddresses: []string{"127.0.0.1:8443"},
+		},
+		{
 			name:     "Service with no endpoints fails closed",
 			service:  selectorSvc("", intstr.FromInt32(8443)),
 			slices:   []discoveryv1.EndpointSlice{},

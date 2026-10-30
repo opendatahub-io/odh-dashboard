@@ -322,7 +322,9 @@ func resolveTrustedHost(
 	// the URL's port is the backend port. ClusterIP Services translate the Service
 	// port to the targetPort at the VIP, which direct dialing bypasses, so the
 	// targetPort must be resolved here: numeric targetPorts directly, named ones
-	// per EndpointSlice (slice port names match Service port names).
+	// per EndpointSlice (slice port names match Service port names). Only TCP
+	// Service ports are candidates — the verification connection is TCP, and a
+	// Service may expose the same port number for UDP with a different targetPort.
 	backendPort := ""
 	var svcPort corev1.ServicePort
 	if svc.Spec.ClusterIP != corev1.ClusterIPNone {
@@ -332,7 +334,7 @@ func resolveTrustedHost(
 		}
 		found := false
 		for _, p := range svc.Spec.Ports {
-			if int64(p.Port) == urlPortNum {
+			if int64(p.Port) == urlPortNum && (p.Protocol == "" || p.Protocol == corev1.ProtocolTCP) {
 				svcPort, found = p, true
 				break
 			}
