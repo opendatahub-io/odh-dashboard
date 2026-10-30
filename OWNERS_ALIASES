@@ -87,12 +87,20 @@ aliases:
 
   # Models as a Service (MaaS)
   maas-approvers:
+    - agagancarczyk
+    - ikeola13
+    - danpierce1
+    - jharan1
+    - NickGagan
     - emilys314
-    - Griffin-Sullivan
   maas-reviewers:
     - ashley-o0o
+    - agagancarczyk
+    - ikeola13
+    - danpierce1
+    - jharan1
+    - NickGagan
     - emilys314
-    - Griffin-Sullivan
     - katieperry4
 
   # Pipelines team
