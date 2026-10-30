@@ -9,8 +9,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,8 +19,6 @@ import (
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/yaml"
 )
-
-var clusterRoleKind = regexp.MustCompile(`(?m)^kind: ClusterRole$`)
 
 // TestOperatorRoleCoversDeployedClusterRoles mirrors the API server's RBAC escalation
 // check: the operator SA holds neither escalate nor bind, so every rule in a ClusterRole
@@ -31,10 +29,12 @@ func TestOperatorRoleCoversDeployedClusterRoles(t *testing.T) {
 	operatorRole := readClusterRole(t, filepath.Join("..", "..", "config", "rbac", "role.yaml"))
 
 	roles := readManifestClusterRoles(t, filepath.Join("..", "..", "..", "manifests"))
-	require.Contains(t, roles, "odh-dashboard-notebooks")
+	require.True(t, slices.ContainsFunc(roles, func(role *rbacv1.ClusterRole) bool {
+		return role.Name == "odh-dashboard-notebooks"
+	}), "notebooks ClusterRole not found")
 
-	for name, role := range roles {
-		t.Run(name, func(t *testing.T) {
+	for _, role := range roles {
+		t.Run(role.Name, func(t *testing.T) {
 			assert.Empty(t, uncoveredPermissions(role.Rules, operatorRole.Rules),
 				"operator role must hold these permissions to apply this ClusterRole")
 		})
@@ -50,6 +50,7 @@ func TestUncoveredPermissions(t *testing.T) {
 	}
 	scopedGet := apiServers([]string{"get"}, []string{"cluster"})
 	unscopedGet := apiServers([]string{"get"}, nil)
+	metrics := rbacv1.PolicyRule{NonResourceURLs: []string{"/metrics"}, Verbs: []string{"get"}}
 
 	tests := []struct {
 		name  string
@@ -75,6 +76,26 @@ func TestUncoveredPermissions(t *testing.T) {
 			name: "wildcard hold", grant: unscopedGet,
 			held: []rbacv1.PolicyRule{{APIGroups: []string{"*"}, Resources: []string{"*"}, Verbs: []string{"*"}}},
 		},
+		{name: "non-resource URL held", grant: metrics, held: []rbacv1.PolicyRule{metrics}},
+		{
+			name: "non-resource URL under held prefix", grant: metrics,
+			held: []rbacv1.PolicyRule{{NonResourceURLs: []string{"/met*"}, Verbs: []string{"get"}}},
+		},
+		{
+			name: "non-resource URL not held", grant: metrics,
+			held: []rbacv1.PolicyRule{{NonResourceURLs: []string{"/healthz"}, Verbs: []string{"get"}}},
+			want: []string{"get /metrics"},
+		},
+		{
+			name: "non-resource URL missing verb", grant: metrics,
+			held: []rbacv1.PolicyRule{{NonResourceURLs: []string{"/metrics"}, Verbs: []string{"post"}}},
+			want: []string{"get /metrics"},
+		},
+		{
+			name: "resource wildcard does not cover non-resource URL", grant: metrics,
+			held: []rbacv1.PolicyRule{{APIGroups: []string{"*"}, Resources: []string{"*"}, Verbs: []string{"*"}}},
+			want: []string{"get /metrics"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -93,11 +114,11 @@ func readClusterRole(t *testing.T, path string) *rbacv1.ClusterRole {
 	return role
 }
 
-// readManifestClusterRoles returns every ClusterRole under dir by name, including those in
-// multi-document files. Kustomize patches have no kind line, so they are skipped.
-func readManifestClusterRoles(t *testing.T, dir string) map[string]*rbacv1.ClusterRole {
+// readManifestClusterRoles returns every ClusterRole document under dir, including those in
+// multi-document files. Kustomize JSON patches are lists, so they are skipped.
+func readManifestClusterRoles(t *testing.T, dir string) []*rbacv1.ClusterRole {
 	t.Helper()
-	roles := map[string]*rbacv1.ClusterRole{}
+	var roles []*rbacv1.ClusterRole
 	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || entry.IsDir() || filepath.Ext(path) != ".yaml" {
 			return err
@@ -115,14 +136,18 @@ func readManifestClusterRoles(t *testing.T, dir string) map[string]*rbacv1.Clust
 			if err != nil {
 				return fmt.Errorf("reading %s: %w", path, err)
 			}
-			if !clusterRoleKind.Match(doc) {
+			var parsed any
+			if err := yaml.Unmarshal(doc, &parsed); err != nil {
+				return fmt.Errorf("parsing %s: %w", path, err)
+			}
+			if object, ok := parsed.(map[string]any); !ok || object["kind"] != "ClusterRole" {
 				continue
 			}
 			role := &rbacv1.ClusterRole{}
 			if err := yaml.Unmarshal(doc, role); err != nil {
 				return fmt.Errorf("parsing %s: %w", path, err)
 			}
-			roles[role.Name] = role
+			roles = append(roles, role)
 		}
 	})
 	require.NoError(t, err)
@@ -130,10 +155,21 @@ func readManifestClusterRoles(t *testing.T, dir string) map[string]*rbacv1.Clust
 }
 
 // uncoveredPermissions returns each permission in grants that held does not cover, one
-// entry per verb/group/resource/resourceName so a failure names exactly what is missing.
+// entry per verb/group/resource/resourceName or verb/URL so a failure names exactly what
+// is missing.
 func uncoveredPermissions(grants, held []rbacv1.PolicyRule) []string {
 	var uncovered []string
 	for _, grant := range grants {
+		for _, verb := range grant.Verbs {
+			for _, url := range grant.NonResourceURLs {
+				covered := slices.ContainsFunc(held, func(rule rbacv1.PolicyRule) bool {
+					return nonResourceRuleCovers(rule, verb, url)
+				})
+				if !covered {
+					uncovered = append(uncovered, fmt.Sprintf("%s %s", verb, url))
+				}
+			}
+		}
 		names := grant.ResourceNames
 		if len(names) == 0 {
 			names = []string{""}
@@ -164,11 +200,25 @@ func uncoveredPermissions(grants, held []rbacv1.PolicyRule) []string {
 // ruleCovers reports whether rule allows the permission. An empty name is a grant with no
 // resourceNames, which only a rule that also has no resourceNames can cover.
 func ruleCovers(rule rbacv1.PolicyRule, verb, group, resource, name string) bool {
-	matches := func(values []string, value string) bool {
-		return slices.Contains(values, "*") || slices.Contains(values, value)
-	}
-	if !matches(rule.Verbs, verb) || !matches(rule.APIGroups, group) || !matches(rule.Resources, resource) {
+	if !containsOrWildcard(rule.Verbs, verb) || !containsOrWildcard(rule.APIGroups, group) ||
+		!containsOrWildcard(rule.Resources, resource) {
 		return false
 	}
 	return len(rule.ResourceNames) == 0 || (name != "" && slices.Contains(rule.ResourceNames, name))
+}
+
+// nonResourceRuleCovers reports whether rule allows verb on url. Only nonResourceURLs can
+// grant a URL, and as in the API server a trailing * matches any URL with that prefix.
+func nonResourceRuleCovers(rule rbacv1.PolicyRule, verb, url string) bool {
+	if !containsOrWildcard(rule.Verbs, verb) {
+		return false
+	}
+	return slices.ContainsFunc(rule.NonResourceURLs, func(pattern string) bool {
+		prefix, wildcard := strings.CutSuffix(pattern, "*")
+		return pattern == url || (wildcard && strings.HasPrefix(url, prefix))
+	})
+}
+
+func containsOrWildcard(values []string, value string) bool {
+	return slices.Contains(values, "*") || slices.Contains(values, value)
 }
