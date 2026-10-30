@@ -810,6 +810,11 @@ export function useStartEvaluationRunForm({
         }
         try {
           const url = new URL(serviceUrl);
+          // URL parses non-HTTP(S) schemes (e.g. ftp:) successfully; reject them so the
+          // submission fails with the invalid-endpoint error instead of creating a job.
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            throw new Error('unsupported protocol');
+          }
           const pathname = url.pathname.replace(/\/+$/, '');
           url.pathname = pathname.endsWith('/v1') ? pathname : `${pathname}/v1`;
           return url.toString();

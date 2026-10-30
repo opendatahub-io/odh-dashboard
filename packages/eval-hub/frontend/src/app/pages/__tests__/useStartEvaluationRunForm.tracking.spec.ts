@@ -594,6 +594,8 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
     });
 
     it('should report an invalid cluster URL and allow a retry', async () => {
+      mockHardwareProfiles = [mockCompatibleHardwareProfile];
+      mockKueueAvailability = mockKueueEnabled;
       const onRunFailure = jest.fn();
       const renderResult = renderForm({
         collection: mockCollection,
@@ -605,13 +607,21 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleModelDropdownSelect('model-a', [
           { ...mockInferenceServices[0], url: 'not-a-url' },
         ]);
+        renderResult.result.current.setExperimentMode('new');
+        renderResult.result.current.setNewExperimentName('EvalHub');
+        renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
       });
+
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
 
       await act(async () => {
         await renderResult.result.current.handleSubmit();
       });
 
       expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+      // The URL parse error must fire before hardware-profile verification, which sends
+      // its own request and would mask the parse failure when it errors.
+      expect(mockGetHardwareProfiles).not.toHaveBeenCalled();
       expect(onRunFailure).toHaveBeenCalledWith(
         expect.objectContaining({ message: 'The selected model endpoint URL is invalid.' }),
         mockCollection,
@@ -631,6 +641,36 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       });
 
       expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reject a cluster endpoint URL with an unsupported protocol', async () => {
+      const onRunFailure = jest.fn();
+      const renderResult = renderForm({
+        collection: mockCollection,
+        isCollectionFlow: true,
+        onRunFailure,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', [
+          { ...mockInferenceServices[0], url: 'ftp://model-a.svc:21' },
+        ]);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+      expect(onRunFailure).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'The selected model endpoint URL is invalid.' }),
+        mockCollection,
+      );
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Invalid request',
+        'The selected model endpoint URL is invalid.',
+      );
+      expect(renderResult.result.current.isSubmitting).toBe(false);
     });
 
     it('should preserve a manually entered external endpoint URL', async () => {
