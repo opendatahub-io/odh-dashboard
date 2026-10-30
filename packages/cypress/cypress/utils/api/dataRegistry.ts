@@ -87,58 +87,21 @@ type DataRegistryDeleteResponse = {
 
 type DataRegistryDeleteRequestResult =
   | { response: DataRegistryDeleteResponse }
-  | { transportError: string };
+  | { transportError: string }
+  | { tokenError: string };
 
 const requestDataRegistryDelete = (
   url: string,
-  token: string,
 ): Cypress.Chainable<DataRegistryDeleteRequestResult> =>
-  cy.location('origin').then((origin) =>
-    cy
-      .window({ log: false })
-      .then(
-        { timeout: dataRegistryProxyResponseTimeoutMs + 1_000 },
-        async (window): Promise<DataRegistryDeleteRequestResult> => {
-          const controller = new window.AbortController();
-          const timeout = window.setTimeout(
-            () => controller.abort(),
-            dataRegistryProxyResponseTimeoutMs,
-          );
-          try {
-            // Unlike cy.request, browser fetch lets cleanup turn transport errors into values so
-            // later cleanup steps can still run.
-            const response = await window.fetch(`${origin}${url}`, {
-              method: 'DELETE',
-              headers: requestHeaders(token),
-              credentials: 'same-origin',
-              signal: controller.signal,
-            });
-            const responseText = await response.text();
-            let body: unknown;
-            if (responseText) {
-              try {
-                body = JSON.parse(responseText) as unknown;
-              } catch {
-                body = responseText;
-              }
-            }
-            return {
-              response: {
-                status: response.status,
-                body,
-                headers: { 'content-type': response.headers.get('content-type') },
-              },
-            };
-          } catch (error) {
-            return {
-              transportError: error instanceof Error ? error.message : String(error),
-            };
-          } finally {
-            window.clearTimeout(timeout);
-          }
-        },
+  cy
+    .location('origin')
+    .then((origin) =>
+      cy.task<DataRegistryDeleteRequestResult>(
+        'deleteDataRegistryResource',
+        { origin, path: url },
+        { log: false, timeout: dataRegistryProxyResponseTimeoutMs + 1_000 },
       ),
-  );
+    );
 
 export type DataRegistryDeleteOptions = {
   /** Return a failure message instead of throwing so teardown can attempt remaining cleanup. */
@@ -150,45 +113,36 @@ const deleteDataRegistryResource = (
   resourceDescription: string,
   { continueOnError = false }: DataRegistryDeleteOptions = {},
 ): Cypress.Chainable<string | false> =>
-  cy
-    .exec('oc whoami -t', { failOnNonZeroExit: false, log: false })
-    .then((tokenResult): Cypress.Chainable<string | false> => {
-      const returnFailure = (failureMessage: string): Cypress.Chainable<string | false> => {
-        if (continueOnError) {
-          return cy.wrap<string | false>(failureMessage, { log: false });
-        }
-        throw new Error(failureMessage);
-      };
-
-      const token = tokenResult.stdout.trim();
-      if (tokenResult.exitCode !== 0 || !token) {
-        return returnFailure(
-          `Failed to get OC token for Data Registry ${resourceDescription}: ${
-            tokenResult.stderr || tokenResult.stdout
-          }`,
-        );
+  requestDataRegistryDelete(url).then((result): Cypress.Chainable<string | false> => {
+    const returnFailure = (failureMessage: string): Cypress.Chainable<string | false> => {
+      if (continueOnError) {
+        return cy.wrap<string | false>(failureMessage, { log: false });
       }
+      throw new Error(failureMessage);
+    };
 
-      return requestDataRegistryDelete(url, token).then(
-        (result): Cypress.Chainable<string | false> => {
-          if ('transportError' in result) {
-            return returnFailure(
-              `Failed to delete Data Registry ${resourceDescription}: request failed: ${result.transportError}`,
-            );
-          }
-
-          const { response } = result;
-          if (![200, 202, 204, 404].includes(response.status)) {
-            return returnFailure(
-              `Failed to delete Data Registry ${resourceDescription}: ${JSON.stringify(
-                summarizeDataRegistryResponse(response),
-              )}`,
-            );
-          }
-          return cy.wrap<string | false>(false, { log: false });
-        },
+    if ('tokenError' in result) {
+      return returnFailure(
+        `Failed to get OC token for Data Registry ${resourceDescription}: ${result.tokenError}`,
       );
-    });
+    }
+
+    if ('transportError' in result) {
+      return returnFailure(
+        `Failed to delete Data Registry ${resourceDescription}: request failed: ${result.transportError}`,
+      );
+    }
+
+    const { response } = result;
+    if (![200, 202, 204, 404].includes(response.status)) {
+      return returnFailure(
+        `Failed to delete Data Registry ${resourceDescription}: ${JSON.stringify(
+          summarizeDataRegistryResponse(response),
+        )}`,
+      );
+    }
+    return cy.wrap<string | false>(false, { log: false });
+  });
 
 const verifyDataRegistryResourceStatus = (
   url: string,

@@ -21,6 +21,7 @@ import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
 import { getCypressTestPatterns } from './cypress/utils/discoverTestPatterns';
+import { setupDataRegistryTasks } from './cypress/utils/api/dataRegistryNodeTask';
 
 const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   return Object.fromEntries(
@@ -130,6 +131,7 @@ export default defineConfig({
       );
       /* eslint-enable @typescript-eslint/consistent-type-assertions */
       setupWebsockets(on, config);
+      setupDataRegistryTasks(on, config);
 
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && isCI) {
