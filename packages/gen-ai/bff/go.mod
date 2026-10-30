@@ -9,7 +9,7 @@ require (
 	github.com/kserve/kserve v0.16.1-0.20251105234326-d5a3f748882c
 	github.com/modelcontextprotocol/go-sdk v1.4.1
 	github.com/ogx-ai/ogx-k8s-operator v0.9.0
-	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	github.com/openai/openai-go/v2 v2.7.1
 	github.com/opendatahub-io/mlflow-go v0.0.0-20261021182736-53f4a2e43ff7
