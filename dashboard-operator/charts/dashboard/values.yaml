@@ -55,6 +55,11 @@ serviceAccount:
 rbac:
   create: true
 
+# Least-privilege ingress NetworkPolicy for the controller pod (metrics :8443 from monitoring
+# namespaces, health probes :8081). Satisfies HPSTRAT-104 / operand contract RHOAIENG-90747.
+networkPolicy:
+  enabled: true
+
 webhook:
   enabled: false
   port: 9443
@@ -80,11 +85,14 @@ relatedImages:
   RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE: ""
   RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE: ""
   RELATED_IMAGE_ODH_MOD_ARCH_AGENT_OPS_IMAGE: ""
+  RELATED_IMAGE_ODH_MOD_ARCH_DATA_CONNECT_HUB_IMAGE: ""
   RELATED_IMAGE_ODH_MOD_ARCH_NOTEBOOKS_IMAGE: ""
   RELATED_IMAGE_ODH_MOD_ARCH_DATA_REGISTRY_IMAGE: ""
   RELATED_IMAGE_ODH_AUTOML_IMAGE: ""
   RELATED_IMAGE_ODH_AUTORAG_IMAGE: ""
   RELATED_IMAGE_ODH_CORE_BFF_IMAGE: ""
+  RELATED_IMAGE_ODH_OGX_CORE_IMAGE: ""
+  RELATED_IMAGE_POSTGRESQL_16_IMAGE: ""
 
 config:
   name: odh-dashboard-config

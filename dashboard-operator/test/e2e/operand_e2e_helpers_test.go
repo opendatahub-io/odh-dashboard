@@ -67,6 +67,42 @@ func waitForOperandInventory(
 	return inventory, nil
 }
 
+func waitForCoreOperandInventory(
+	c client.Client,
+	namespace string,
+	ownerUID types.UID,
+	platform string,
+	timeout time.Duration,
+) (operandInventory, error) {
+	var inventory operandInventory
+	var selectionErr error
+	err := wait.PollUntilContextTimeout(
+		context.Background(),
+		e2ePollInterval,
+		timeout,
+		true,
+		func(ctx context.Context) (bool, error) {
+			deployments, err := listOwnedDeployments(ctx, c, namespace, ownerUID)
+			if err != nil {
+				return false, err
+			}
+			services, err := listOwnedServices(ctx, c, namespace, ownerUID)
+			if err != nil {
+				return false, err
+			}
+			inventory, selectionErr = selectCoreOperandInventory(
+				operandInventory{deployments: deployments, services: services},
+				platform,
+			)
+			return selectionErr == nil, nil
+		},
+	)
+	if err != nil {
+		return operandInventory{}, fmt.Errorf("wait for core operand inventory (%v): %w", selectionErr, err)
+	}
+	return inventory, nil
+}
+
 func listOwnedDeployments(ctx context.Context, c client.Client, namespace string, ownerUID types.UID) ([]appsv1.Deployment, error) {
 	list := &appsv1.DeploymentList{}
 	if err := c.List(ctx, list,
@@ -198,6 +234,52 @@ func waitForAdmittedHTTPRoute(
 	)
 	if err != nil {
 		return nil, fmt.Errorf("wait for an owned admitted HTTPRoute: %w", err)
+	}
+	return admitted, nil
+}
+
+func waitForAdmittedHTTPRouteByName(
+	c client.Client,
+	namespace string,
+	name string,
+	timeout time.Duration,
+) (*gatewayv1.HTTPRoute, error) {
+	return waitForAdmittedHTTPRouteByNames(c, namespace, []string{name}, timeout)
+}
+
+func waitForAdmittedHTTPRouteByNames(
+	c client.Client,
+	namespace string,
+	names []string,
+	timeout time.Duration,
+) (*gatewayv1.HTTPRoute, error) {
+	var admitted *gatewayv1.HTTPRoute
+	err := wait.PollUntilContextTimeout(
+		context.Background(),
+		e2ePollInterval,
+		timeout,
+		true,
+		func(ctx context.Context) (bool, error) {
+			for _, name := range names {
+				route := &gatewayv1.HTTPRoute{}
+				key := client.ObjectKey{Namespace: namespace, Name: name}
+				if err := c.Get(ctx, key, route); err != nil {
+					if apierrors.IsNotFound(err) {
+						continue
+					}
+					return false, err
+				}
+				if !httpRouteAdmitted(route) {
+					continue
+				}
+				admitted = route.DeepCopy()
+				return true, nil
+			}
+			return false, nil
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("wait for an admitted HTTPRoute named %s in namespace %s: %w", strings.Join(names, " or "), namespace, err)
 	}
 	return admitted, nil
 }

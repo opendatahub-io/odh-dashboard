@@ -249,7 +249,8 @@ var _ = Describe("MCPStatusHandler", func() {
 			assert.Equal(t, "/mcp-registry/servers/com.example/kubernetes?workspace=demo", path)
 			return marshalToResponse(map[string]interface{}{
 				"data": map[string]interface{}{
-					"name": "com.example/kubernetes",
+					"name":   "com.example/kubernetes",
+					"status": "active",
 					"access_endpoints": []map[string]interface{}{
 						{
 							"endpoint_url":   serverURL,

@@ -403,7 +403,7 @@ If only user auth is problematic, you can revert just `userUtils.ts`:
 
 ```bash
 git checkout HEAD~1 -- backend/src/utils/userUtils.ts
-npm run build
+pnpm run build
 # Redeploy
 ```
 

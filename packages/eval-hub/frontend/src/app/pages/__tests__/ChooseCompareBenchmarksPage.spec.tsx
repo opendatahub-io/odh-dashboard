@@ -16,6 +16,13 @@ jest.mock('~/app/hooks/useCollectionNameMap', () => ({
   useCollectionNameMap: () => mockUseCollectionNameMap(),
 }));
 
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-project', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
+}));
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -88,7 +95,7 @@ describe('ChooseCompareBenchmarksPage', () => {
     /* eslint-enable camelcase */
 
     mockUseEvaluationJobs.mockReturnValue([
-      [collectionJob, benchmarkJob],
+      { jobs: [collectionJob, benchmarkJob], totalCount: 2, truncated: false },
       true,
       undefined,
       jest.fn(),
@@ -101,9 +108,7 @@ describe('ChooseCompareBenchmarksPage', () => {
     expect(screen.getByTestId('compare-selected-benchmarks-button')).toBeInTheDocument();
     expect(screen.getByTestId('choose-compare-benchmarks-table')).toBeInTheDocument();
     expect(screen.getByTestId('compare-select-all-checkbox')).toBeInTheDocument();
-    expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent(
-      'Benchmark suite',
-    );
+    expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent('Collection');
     expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent(
       'Safety and fairness',
     );
@@ -166,7 +171,7 @@ describe('ChooseCompareBenchmarksPage', () => {
     /* eslint-enable camelcase */
 
     mockUseEvaluationJobs.mockReturnValue([
-      [collectionJob, benchmarkJob],
+      { jobs: [collectionJob, benchmarkJob], totalCount: 2, truncated: false },
       true,
       undefined,
       jest.fn(),
@@ -219,7 +224,7 @@ describe('ChooseCompareBenchmarksPage', () => {
     /* eslint-enable camelcase */
 
     mockUseEvaluationJobs.mockReturnValue([
-      [collectionJob, benchmarkJob],
+      { jobs: [collectionJob, benchmarkJob], totalCount: 2, truncated: false },
       true,
       undefined,
       jest.fn(),
@@ -266,7 +271,12 @@ describe('ChooseCompareBenchmarksPage', () => {
     ];
     /* eslint-enable camelcase */
 
-    mockUseEvaluationJobs.mockReturnValue([[jobOne, jobTwo], true, undefined, jest.fn()]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [jobOne, jobTwo], totalCount: 2, truncated: false },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
 
     renderPage('/test-project/compare-runs/benchmarks?jobIds=job-1,job-2');
 
@@ -313,7 +323,12 @@ describe('ChooseCompareBenchmarksPage', () => {
     otherJob.results.benchmarks = [{ id: 'gpqa', benchmark_index: 0, mlflow_run_id: 'run-3' }];
     /* eslint-enable camelcase */
 
-    mockUseEvaluationJobs.mockReturnValue([[collectionJob, otherJob], true, undefined, jest.fn()]);
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [collectionJob, otherJob], totalCount: 2, truncated: false },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
 
     renderPage('/test-project/compare-runs/benchmarks?jobIds=job-collection,job-other');
 
@@ -321,5 +336,22 @@ describe('ChooseCompareBenchmarksPage', () => {
     fireEvent.click(getCheckbox('compare-benchmark-checkbox-job-collection|ifeval|0'));
     fireEvent.click(getCheckbox('compare-benchmark-checkbox-job-collection|bbh|1'));
     expect(compareButton).toBeEnabled();
+  });
+
+  it('should show a truncation alert when the evaluation jobs list is truncated', () => {
+    const jobOne = mockEvaluationJob({ id: 'job-1', name: 'Suite One', benchmarkId: 'ifeval' });
+    const jobTwo = mockEvaluationJob({ id: 'job-2', name: 'Suite Two', benchmarkId: 'gpqa' });
+    mockUseEvaluationJobs.mockReturnValue([
+      { jobs: [jobOne, jobTwo], totalCount: 2500, truncated: true },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderPage('/test-project/compare-runs/benchmarks?jobIds=job-1,job-2');
+
+    const alert = screen.getByTestId('compare-benchmarks-truncated-alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('Showing 2 of 2500 evaluation runs.');
   });
 });

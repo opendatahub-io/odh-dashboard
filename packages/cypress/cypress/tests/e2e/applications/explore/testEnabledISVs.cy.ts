@@ -7,20 +7,13 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
-  let expectedISVs: string[];
+  let visibleISVs: string[];
 
   retryableBefore(() => {
     getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) =>
-      filterHiddenApps(applicationNamespace, metadataNames)
-        .then((visibleApps) => filterFeatureFlaggedApps(visibleApps))
-        .then((filteredApps) => {
-          expectedISVs = filteredApps;
-          cy.log(
-            `Expected applications which should display as Cards in Explore Section: ${expectedISVs.join(
-              ', ',
-            )}`,
-          );
-        }),
+      filterHiddenApps(applicationNamespace, metadataNames).then((filteredApps) => {
+        visibleISVs = filteredApps;
+      }),
     );
   });
 
@@ -37,13 +30,20 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
       explorePage.visit();
 
       cy.step('Searching for each ISV based on the oc command output and rhoai-app manifest flag');
-      expectedISVs.forEach((isv) => {
-        explorePage
-          .findCardLocator(isv)
-          .should('be.visible')
-          .then(() => {
-            cy.log(`✅ Application found: ${isv}`);
-          });
+      filterFeatureFlaggedApps(visibleISVs).then((expectedISVs) => {
+        cy.log(
+          `Expected applications which should display as Cards in Explore Section: ${expectedISVs.join(
+            ', ',
+          )}`,
+        );
+        expectedISVs.forEach((isv) => {
+          explorePage
+            .findCardLocator(isv)
+            .should('be.visible')
+            .then(() => {
+              cy.log(`✅ Application found: ${isv}`);
+            });
+        });
       });
     },
   );

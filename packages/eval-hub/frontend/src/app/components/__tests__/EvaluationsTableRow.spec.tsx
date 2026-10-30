@@ -2,9 +2,15 @@ import * as React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
+import type { EvaluationJob } from '~/app/types';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -19,19 +25,28 @@ jest.mock('~/app/api/k8s', () => ({
 
 const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
+const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockOnActionComplete = jest.fn();
 const mockOnShowStatus = jest.fn();
 const mockOnSelectionChange = jest.fn();
 
-const renderRow = (jobOverrides = {}, rowIndex = 0) => {
-  const job = mockEvaluationJob(jobOverrides);
-  return render(
+const renderJob = (
+  job: EvaluationJob,
+  rowIndex = 0,
+  polledJobData?: EvaluationJob,
+  isKueueWorkloadStatusLoading = false,
+  // Enabled by default so the queued-display tests exercise the enabled path; the
+  // integration is disabled in production (RHOAIENG-99645).
+  isKueueEnabled = true,
+) =>
+  render(
     <MemoryRouter>
       <Table aria-label="test">
         <Tbody>
           <EvaluationsTableRow
             job={job}
+            polledJobData={polledJobData}
             rowIndex={rowIndex}
             namespace="test-ns"
             collectionNameMap={{}}
@@ -39,12 +54,16 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
             onShowStatus={mockOnShowStatus}
             isSelected={false}
             onSelectionChange={mockOnSelectionChange}
+            isKueueWorkloadStatusLoading={isKueueWorkloadStatusLoading}
+            isKueueEnabled={isKueueEnabled}
           />
         </Tbody>
       </Table>
     </MemoryRouter>,
   );
-};
+
+const renderRow = (jobOverrides = {}, rowIndex = 0) =>
+  renderJob(mockEvaluationJob(jobOverrides), rowIndex);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -74,13 +93,64 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Running');
   });
 
+  it('should keep a pending job as Pending until Kueue reports a queued status', () => {
+    renderRow({ state: 'pending' });
+
+    expect(screen.getByTestId('evaluation-status')).toHaveTextContent('Pending');
+  });
+
+  it('should show a neutral loading state while Kueue status is being checked', () => {
+    renderJob(mockEvaluationJob({ state: 'pending' }), 0, undefined, true);
+
+    expect(screen.getByTestId('evaluation-status-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-status')).not.toHaveTextContent('Pending');
+  });
+
+  it('should preserve Queued when detail polling omits the queue assignment', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
+    const polledJob = mockEvaluationJob({ state: 'pending' });
+
+    renderJob(job, 0, polledJob);
+
+    expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
+  });
+
+  it('should show Pending for a queue-assigned job when the Kueue integration is disabled', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
+
+    renderJob(job, 0, undefined, false, false);
+
+    expect(screen.getByTestId('evaluation-status')).toHaveTextContent('Pending');
+  });
+
+  it('should open status using the latest polled job data', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    const polledJob = mockEvaluationJob({ state: 'running' });
+
+    renderJob(job, 0, polledJob);
+
+    fireEvent.click(within(screen.getByTestId('evaluation-status-button')).getByRole('button'));
+
+    expect(mockOnShowStatus).toHaveBeenCalledWith(polledJob);
+  });
+
   it('should disable the compare checkbox when evaluation is not completed', () => {
     renderRow({ state: 'running' });
     expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeDisabled();
   });
 
   it('should enable the compare checkbox when evaluation is completed', () => {
-    renderRow({ state: 'completed' });
+    /* eslint-disable camelcase */
+    const job = mockEvaluationJob({ state: 'completed' });
+    job.resource.mlflow_experiment_id = 'experiment-1';
+    job.results.benchmarks = [{ id: 'default-benchmark', mlflow_run_id: 'run-1' }];
+    /* eslint-enable camelcase */
+
+    renderJob(job);
     expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeEnabled();
   });
 
@@ -127,6 +197,7 @@ describe('EvaluationsTableRow', () => {
               onShowStatus={mockOnShowStatus}
               isSelected={false}
               onSelectionChange={mockOnSelectionChange}
+              isKueueEnabled
             />
           </Tbody>
         </Table>
@@ -359,6 +430,97 @@ describe('EvaluationsTableRow', () => {
       fireEvent.click(screen.getByTestId('evaluation-kebab').querySelector('button')!);
       fireEvent.click(screen.getByText('Reconfigure'));
       expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-ns/reconfigure/eval-job-retry');
+    });
+  });
+
+  describe('completion tracking', () => {
+    const renderTree = (job: EvaluationJob) => (
+      <MemoryRouter>
+        <Table aria-label="test">
+          <Tbody>
+            <EvaluationsTableRow
+              job={job}
+              rowIndex={0}
+              namespace="test-ns"
+              collectionNameMap={{}}
+              onActionComplete={mockOnActionComplete}
+              onShowStatus={mockOnShowStatus}
+              isSelected={false}
+              onSelectionChange={mockOnSelectionChange}
+              isKueueWorkloadStatusLoading={false}
+              isKueueEnabled={false}
+            />
+          </Tbody>
+        </Table>
+      </MemoryRouter>
+    );
+
+    it('should track the status message code instead of raw error text when an evaluation fails', () => {
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+
+      const failedJob = mockEvaluationJob({
+        state: 'failed',
+        statusMessage: 'Benchmark arc_easy failed: user-provided-name already exists',
+      });
+      rerender(renderTree(failedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'failed', error: 'evaluation_job_updated' }),
+      );
+      const trackedCall = mockFireMiscTrackingEvent.mock.calls.find(
+        ([eventName]) => eventName === 'Evaluations Evaluation Completed',
+      );
+      expect(JSON.stringify(trackedCall)).not.toContain('user-provided-name');
+    });
+
+    it('should track unknown_error when a failed evaluation has no message code', () => {
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+
+      const failedJob = mockEvaluationJob({ state: 'failed', statusMessage: 'Runtime crashed' });
+      // eslint-disable-next-line camelcase -- API field name.
+      delete failedJob.status.message?.message_code;
+      rerender(renderTree(failedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+      );
+    });
+
+    it('should omit the error category when the status message is empty', () => {
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+      const completedJob = mockEvaluationJob({ state: 'completed' });
+      completedJob.status.message = {};
+
+      rerender(renderTree(completedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'completed', error: undefined }),
+      );
+    });
+
+    it('should replace an unrecognized message code with unknown_error', () => {
+      const marker = 'failed: private-resource-name';
+      const runningJob = mockEvaluationJob({ state: 'running' });
+      const { rerender } = render(renderTree(runningJob));
+      const failedJob = mockEvaluationJob({ state: 'failed', statusMessage: 'Runtime crashed' });
+      if (failedJob.status.message) {
+        // eslint-disable-next-line camelcase -- API field name.
+        failedJob.status.message.message_code = marker;
+      }
+
+      rerender(renderTree(failedJob));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Evaluations Evaluation Completed',
+        expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+      );
+      expect(JSON.stringify(mockFireMiscTrackingEvent.mock.calls)).not.toContain(marker);
     });
   });
 });

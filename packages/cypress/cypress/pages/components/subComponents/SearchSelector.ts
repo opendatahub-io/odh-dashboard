@@ -18,8 +18,8 @@ export class SearchSelector extends SubComponentBase {
     this.findItem(name, useMenuList).click();
   }
 
-  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findContextualItem('search');
+  findSearchInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findContextualItem('search').find('input');
   }
 
   findToggleButton(): Cypress.Chainable<JQuery<HTMLElement>> {

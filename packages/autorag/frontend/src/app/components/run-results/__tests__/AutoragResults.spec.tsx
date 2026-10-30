@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
@@ -14,7 +14,7 @@ import {
 import type { PipelineRun } from '~/app/types';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
-import * as queries from '~/app/hooks/queries';
+import * as managedPipelinesQuery from '~/app/hooks/useManagedPipelinesQuery';
 import * as treeView from '~/app/topology/tree-view';
 import * as transformPipelineDataModule from '~/app/topology/tree-view/transformPipelineData';
 import * as buildStageMapTopologyModule from '~/app/topology/buildStageMapTopology';
@@ -22,6 +22,8 @@ import * as useAutoragTaskTopologyModule from '~/app/topology/useAutoragTaskTopo
 import * as utils from '~/app/utilities/utils';
 import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
+
+const mockFetchS3File = jest.fn();
 
 jest.mock('~/app/topology/tree-view', () => ({
   useTreeViewData: jest.fn().mockReturnValue({ selectedPattern: undefined, stageMapNodes: [] }),
@@ -75,9 +77,13 @@ jest.mock('~/app/utilities/utils', () => ({
   downloadBlob: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/queries', () => ({
-  ...jest.requireActual('~/app/hooks/queries'),
-  fetchS3File: jest.fn(),
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useFetchS3File: jest.fn(() => mockFetchS3File),
+  useTaskExecutorError: jest.fn(() => ({ isLoading: false, isError: false })),
+}));
+
+jest.mock('~/app/hooks/useManagedPipelinesQuery', () => ({
   useManagedPipelinesQuery: jest.fn().mockReturnValue({
     data: [
       {
@@ -93,7 +99,7 @@ jest.mock('~/app/hooks/queries', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => ({
+jest.mock('~/app/hooks/useCreateIndexingPipelineRunMutation', () => ({
   useCreateIndexingPipelineRunMutation: jest.fn().mockReturnValue({
     mutateAsync: jest.fn(),
     isPending: false,
@@ -139,7 +145,7 @@ const createMockPattern = (name: string): AutoragPattern => ({
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store_binding: {
+    store_binding: {
       provider_type: 'milvus',
       collection_name: 'vs_collection0',
     },
@@ -204,7 +210,7 @@ const createMockPattern = (name: string): AutoragPattern => ({
   },
 });
 
-const fetchS3FileMock = jest.mocked(queries.fetchS3File);
+const fetchS3FileMock = jest.mocked(mockFetchS3File);
 const downloadBlobMock = jest.mocked(utils.downloadBlob);
 const useTreeViewDataMock = jest.mocked(treeView.useTreeViewData);
 const transformPipelineDataMock = jest.mocked(transformPipelineDataModule.transformPipelineData);
@@ -212,6 +218,18 @@ const useAutoragTaskTopologyMock = jest.mocked(useAutoragTaskTopologyModule.useA
 const buildStageMapTopologyMock = jest.mocked(buildStageMapTopologyModule.buildStageMapTopology);
 
 const getPipelineVisualization = () => screen.getByTestId('autorag-pipeline-visualization');
+
+const RouteChange = ({ target }: { target?: string }): null => {
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (target) {
+      navigate(target);
+    }
+  }, [navigate, target]);
+
+  return null;
+};
 
 describe('AutoragResults', () => {
   beforeEach(() => {
@@ -230,34 +248,39 @@ describe('AutoragResults', () => {
     namespace = 'test-namespace',
     contextOverrides?: Partial<AutoragResultsContextProps>,
     props?: React.ComponentProps<typeof AutoragResults>,
-  ) => (
-    <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
-      <Routes>
-        <Route
-          path="/autorag/:namespace/results"
-          element={
-            <AutoragResultsContext.Provider
-              value={{
-                pipelineRun,
-                patterns,
-                parameters: {},
-                ragPatternsBasePath: 'rag_patterns',
-                optimizationMetric: resolveObjectiveReference(
+    navigationTarget?: string,
+  ) => {
+    const runId = pipelineRun?.run_id ?? 'run-123';
+    return (
+      <MemoryRouter initialEntries={[`/autorag/${namespace}/results/${runId}`]}>
+        <Routes>
+          <Route
+            path="/autorag/:namespace/results/:runId"
+            element={
+              <AutoragResultsContext.Provider
+                value={{
+                  pipelineRun,
                   patterns,
-                  typeof pipelineRun?.runtime_config?.parameters?.optimization_metric === 'string'
-                    ? pipelineRun.runtime_config.parameters.optimization_metric
-                    : DEFAULT_OPTIMIZATION_METRIC,
-                ),
-                ...contextOverrides,
-              }}
-            >
-              <AutoragResults {...props} />
-            </AutoragResultsContext.Provider>
-          }
-        />
-      </Routes>
-    </MemoryRouter>
-  );
+                  parameters: {},
+                  ragPatternsBasePath: 'rag_patterns',
+                  optimizationMetric: resolveObjectiveReference(
+                    patterns,
+                    typeof pipelineRun?.runtime_config?.parameters?.optimization_metric === 'string'
+                      ? pipelineRun.runtime_config.parameters.optimization_metric
+                      : DEFAULT_OPTIMIZATION_METRIC,
+                  ),
+                  ...contextOverrides,
+                }}
+              >
+                <AutoragResults {...props} />
+                <RouteChange target={navigationTarget} />
+              </AutoragResultsContext.Provider>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+  };
 
   const renderWithContext = (
     pipelineRun?: PipelineRun,
@@ -282,7 +305,10 @@ describe('AutoragResults', () => {
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
     renderWithContext(mockPipelineRun);
     const fallbackNodes = useAutoragTaskTopologyMock.mock.results[0]?.value;
-    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined);
+    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined, undefined, {
+      evaluator: 'custom',
+      name: 'overall_score',
+    });
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
@@ -292,12 +318,12 @@ describe('AutoragResults', () => {
   });
 
   it('should toast a warning when managed pipelines query fails', () => {
-    jest.mocked(queries.useManagedPipelinesQuery).mockReturnValueOnce({
+    jest.mocked(managedPipelinesQuery.useManagedPipelinesQuery).mockReturnValueOnce({
       data: undefined,
       isLoading: false,
       isError: true,
       error: new Error('Network Error'),
-    } as ReturnType<typeof queries.useManagedPipelinesQuery>);
+    } as ReturnType<typeof managedPipelinesQuery.useManagedPipelinesQuery>);
 
     renderWithContext(mockPipelineRun);
 
@@ -347,7 +373,7 @@ describe('AutoragResults', () => {
         expect(screen.getByText('Notebook download failed')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('Pattern: Pattern1')).toBeInTheDocument();
+      expect(screen.getByText('Pattern: Pattern A')).toBeInTheDocument();
       expect(screen.getByText('S3 connection failed', { exact: false })).toBeInTheDocument();
     });
 
@@ -505,10 +531,11 @@ describe('AutoragResults', () => {
         expect(fetchS3FileMock).toHaveBeenCalledWith(
           'test-namespace',
           'rag_patterns/Pattern1/indexing.ipynb',
+          expect.objectContaining({ signal: expect.any(AbortSignal) }),
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(
           mockBlob,
-          'My AutoRAG Run_Pattern1_indexing_notebook.ipynb',
+          'My AutoRAG Run_PatternA_indexing_notebook.ipynb',
         );
       });
 
@@ -540,10 +567,11 @@ describe('AutoragResults', () => {
         expect(fetchS3FileMock).toHaveBeenCalledWith(
           'test-namespace',
           'rag_patterns/Pattern1/inference.ipynb',
+          expect.objectContaining({ signal: expect.any(AbortSignal) }),
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(
           mockBlob,
-          'My AutoRAG Run_Pattern1_inference_notebook.ipynb',
+          'My AutoRAG Run_PatternA_inference_notebook.ipynb',
         );
       });
       expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
@@ -576,6 +604,120 @@ describe('AutoragResults', () => {
         AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
         expect.anything(),
       );
+    });
+
+    it('should abort and ignore a pending notebook download after the route changes', async () => {
+      const patterns = { Pattern1: createMockPattern('Pattern1') };
+      let resolveDownload: (value: Blob) => void = () => undefined;
+      const pendingDownload = new Promise<Blob>((resolve) => {
+        resolveDownload = resolve;
+      });
+      fetchS3FileMock.mockReturnValue(pendingDownload);
+      const view = renderWithContext(mockPipelineRun, patterns);
+
+      const firstRow = within(screen.getByTestId('leaderboard-table')).getByTestId(
+        'leaderboard-row-1',
+      );
+      await userEvent.click(within(firstRow).getByRole('button', { name: 'Kebab toggle' }));
+      await userEvent.click(screen.getByText('Save as indexing notebook'));
+      const controller = (fetchS3FileMock.mock.calls[0]![2] as { signal: AbortSignal }).signal;
+
+      view.rerender(
+        createResultsElement(
+          { ...mockPipelineRun, run_id: 'run-456' },
+          patterns,
+          'other-namespace',
+          undefined,
+          undefined,
+          '/autorag/other-namespace/results/run-456',
+        ),
+      );
+
+      expect(controller.aborted).toBe(true);
+      resolveDownload(new Blob(['stale notebook']));
+      await pendingDownload;
+      await waitFor(() => {
+        expect(downloadBlobMock).not.toHaveBeenCalled();
+        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+          AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
+          expect.anything(),
+        );
+        expect(screen.queryByText('Notebook download failed')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should abort and ignore a pending notebook download after unmount', async () => {
+      const patterns = { Pattern1: createMockPattern('Pattern1') };
+      let rejectDownload: (reason?: unknown) => void = () => undefined;
+      const pendingDownload = new Promise<Blob>((_, reject) => {
+        rejectDownload = reject;
+      });
+      fetchS3FileMock.mockReturnValue(pendingDownload);
+      const { unmount } = renderWithContext(mockPipelineRun, patterns);
+
+      const firstRow = within(screen.getByTestId('leaderboard-table')).getByTestId(
+        'leaderboard-row-1',
+      );
+      await userEvent.click(within(firstRow).getByRole('button', { name: 'Kebab toggle' }));
+      await userEvent.click(screen.getByText('Save as indexing notebook'));
+      const controller = (fetchS3FileMock.mock.calls[0]![2] as { signal: AbortSignal }).signal;
+
+      unmount();
+      expect(controller.aborted).toBe(true);
+      rejectDownload(new Error('stale notebook failure'));
+      await pendingDownload.catch(() => undefined);
+
+      expect(downloadBlobMock).not.toHaveBeenCalled();
+      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED,
+        expect.anything(),
+      );
+    });
+
+    it('should allow concurrent current-route notebook downloads to complete independently', async () => {
+      const patterns = {
+        Pattern1: createMockPattern('Pattern1'),
+        Pattern2: createMockPattern('Pattern2'),
+      };
+      let resolveFirstDownload: (value: Blob) => void = () => undefined;
+      let resolveSecondDownload: (value: Blob) => void = () => undefined;
+      const firstDownload = new Promise<Blob>((resolve) => {
+        resolveFirstDownload = resolve;
+      });
+      const secondDownload = new Promise<Blob>((resolve) => {
+        resolveSecondDownload = resolve;
+      });
+      fetchS3FileMock.mockReturnValueOnce(firstDownload).mockReturnValueOnce(secondDownload);
+      renderWithContext(mockPipelineRun, patterns);
+
+      const leaderboard = screen.getByTestId('leaderboard-table');
+      const firstRow = within(leaderboard).getByTestId('leaderboard-row-1');
+      const secondRow = within(leaderboard).getByTestId('leaderboard-row-2');
+      await userEvent.click(within(firstRow).getByRole('button', { name: 'Kebab toggle' }));
+      await userEvent.click(screen.getByText('Save as indexing notebook'));
+      await userEvent.click(within(secondRow).getByRole('button', { name: 'Kebab toggle' }));
+      await userEvent.click(screen.getByText('Save as inference notebook'));
+
+      expect(fetchS3FileMock).toHaveBeenCalledTimes(2);
+      const firstSignal = (fetchS3FileMock.mock.calls[0]![2] as { signal: AbortSignal }).signal;
+      const secondSignal = (fetchS3FileMock.mock.calls[1]![2] as { signal: AbortSignal }).signal;
+      expect(firstSignal).not.toBe(secondSignal);
+      expect(firstSignal.aborted).toBe(false);
+      expect(secondSignal.aborted).toBe(false);
+
+      const firstBlob = new Blob(['first notebook']);
+      const secondBlob = new Blob(['second notebook']);
+      resolveFirstDownload(firstBlob);
+      resolveSecondDownload(secondBlob);
+      await waitFor(() => {
+        expect(downloadBlobMock).toHaveBeenCalledTimes(2);
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+          notebookType: 'indexing',
+        });
+        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.NOTEBOOK_DOWNLOADED, {
+          notebookType: 'inference',
+        });
+      });
     });
   });
 
@@ -708,6 +850,8 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -761,6 +905,8 @@ describe('AutoragResults', () => {
         {},
         buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -793,6 +939,8 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -806,6 +954,8 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -820,6 +970,8 @@ describe('AutoragResults', () => {
         {},
         useAutoragTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        { evaluator: 'custom', name: 'overall_score' },
       );
     });
 
@@ -890,7 +1042,11 @@ describe('AutoragResults', () => {
               content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
             },
           ],
-          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          metadata: {
+            autorag_run_id: 'run-123',
+            rag_pattern_name: 'Pattern1',
+            embedding_model: 'embedding-model',
+          },
           instructions: 'Answer from file_search results.',
           tools: [
             {
@@ -898,10 +1054,8 @@ describe('AutoragResults', () => {
               vector_store_ids: ['vs-1'],
               max_num_results: 5,
               ranking_options: {
-                search_mode: 'hybrid',
-                ranker_strategy: 'rrf',
-                ranker_k: 60,
-                ranker_alpha: 0.5,
+                ranker: 'rrf',
+                alpha: 0.5,
               },
             },
           ],
@@ -912,31 +1066,54 @@ describe('AutoragResults', () => {
     };
     const patterns = { Pattern1: patternWithTemplate };
 
-    it('should not expose Try this pattern from the leaderboard action', () => {
+    it('should expose Try this pattern from the leaderboard action', () => {
       const onTryPattern = jest.fn();
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onTryPattern });
 
       const row = screen.getByTestId('leaderboard-row-1');
+      expect(within(row).getByText('Pattern A')).toBeInTheDocument();
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
 
-      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
     });
 
-    it('should not expose Try this pattern from the pattern details modal action', async () => {
-      const user = userEvent.setup();
+    it('should expose Try this pattern when a pattern has no responses template', () => {
       const onTryPattern = jest.fn();
-      renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, {
+      const patternsWithoutTemplate = { Pattern1: createMockPattern('Pattern1') };
+      renderWithContext(mockPipelineRun, patternsWithoutTemplate, 'test-namespace', undefined, {
         onTryPattern,
       });
 
       const row = screen.getByTestId('leaderboard-row-1');
       fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('View details'));
+
+      fireEvent.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'resultsTable');
+    });
+
+    it('should expose Try this pattern from the pattern details modal action', async () => {
+      const user = userEvent.setup();
+      const onTryPattern = jest.fn();
+      renderWithContext(
+        mockPipelineRun,
+        patterns,
+        'test-namespace',
+        { parameters: { db_secret_name: 'milvus', maas_secret_name: 'maas' } },
+        { onTryPattern },
+      );
+
+      const row = screen.getByTestId('leaderboard-row-1');
+      await user.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      const viewDetailsAction = await screen.findByText('View details');
+      await user.click(viewDetailsAction);
 
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
 
-      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+      await user.click(screen.getByText('Try this pattern'));
+      expect(onTryPattern).toHaveBeenCalledWith('Pattern1', 'patternDetails');
     }, 15_000);
   });
 
@@ -955,7 +1132,11 @@ describe('AutoragResults', () => {
               content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
             },
           ],
-          metadata: { autorag_run_id: 'run-123', rag_pattern_name: 'Pattern1' },
+          metadata: {
+            autorag_run_id: 'run-123',
+            rag_pattern_name: 'Pattern1',
+            embedding_model: 'embedding-model',
+          },
           instructions: 'Answer from file_search results.',
           tools: [
             {
@@ -963,10 +1144,8 @@ describe('AutoragResults', () => {
               vector_store_ids: ['vs-1'],
               max_num_results: 5,
               ranking_options: {
-                search_mode: 'hybrid',
-                ranker_strategy: 'rrf',
-                ranker_k: 60,
-                ranker_alpha: 0.5,
+                ranker: 'rrf',
+                alpha: 0.5,
               },
             },
           ],
@@ -993,14 +1172,16 @@ describe('AutoragResults', () => {
       renderWithContext(mockPipelineRun, patterns, 'test-namespace', undefined, { onViewCode });
 
       const row = screen.getByTestId('leaderboard-row-1');
-      fireEvent.click(within(row).getByRole('button', { name: /kebab toggle/i }));
-      fireEvent.click(screen.getByText('View details'));
+      await user.click(within(row).getByRole('button', { name: /kebab toggle/i }));
+
+      const viewDetailsAction = await screen.findByText('View details');
+      await user.click(viewDetailsAction);
 
       const actionsToggle = await screen.findByTestId('pattern-details-actions-toggle');
       await user.click(actionsToggle);
 
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
-    }, 15_000);
+    }, 45_000);
   });
 
   describe('AutoRAG Pattern Details Viewed tracking', () => {

@@ -25,9 +25,15 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { useApplicationSettings } from '@odh-dashboard/internal/app/useApplicationSettings';
-import { HardwareProfilesContext } from '@odh-dashboard/internal/concepts/hardwareProfiles/HardwareProfilesContext';
-import { generateWarningForHardwareProfiles } from './utils';
+import { HardwareProfilesContext } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
+import {
+  generateWarningForHardwareProfiles,
+  mergeHardwareProfileOrder,
+  orderHardwareProfiles,
+} from './utils';
 import HardwareProfilesTable from './HardwareProfilesTable';
+import { useIsDRAHardwareProfileEnabled } from '../../shared/useIsDRAHardwareProfileEnabled';
+import { filterHardwareProfilesByDRAAvailability } from '../../shared/utils';
 
 const description =
   'Manage hardware profiles for your organization. Administrators can use hardware profiles to determine resource allocation strategies for specific workloads or to explicitly define hardware configurations for users.';
@@ -37,15 +43,30 @@ const HardwareProfiles: React.FC = () => {
   const { dashboardConfig, refresh: refreshDashboardConfig } = useApplicationSettings();
 
   const {
-    globalHardwareProfiles: [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles],
+    globalHardwareProfiles: [
+      allHardwareProfiles,
+      loadedHardwareProfiles,
+      loadErrorHardwareProfiles,
+    ],
   } = React.useContext(HardwareProfilesContext);
+  const isDRAEnabled = useIsDRAHardwareProfileEnabled();
+  const hardwareProfiles = React.useMemo(
+    () => filterHardwareProfilesByDRAAvailability(allHardwareProfiles, isDRAEnabled),
+    [allHardwareProfiles, isDRAEnabled],
+  );
+  const hiddenHardwareProfileNames = React.useMemo(() => {
+    const visibleNames = new Set(hardwareProfiles.map((profile) => profile.metadata.name));
+    return allHardwareProfiles
+      .map((profile) => profile.metadata.name)
+      .filter((name) => !visibleNames.has(name));
+  }, [allHardwareProfiles, hardwareProfiles]);
 
   const [allowedToCreate, loadedAllowed] = useAccessAllowed(
     verbModelAccess('create', HardwareProfileModel),
   );
 
   const isEmpty = hardwareProfiles.length === 0;
-  const warningMessages = generateWarningForHardwareProfiles(hardwareProfiles);
+  const warningMessages = generateWarningForHardwareProfiles(hardwareProfiles, isDRAEnabled);
 
   const serverHardwareProfileOrder = React.useMemo(
     () => dashboardConfig?.spec.hardwareProfileOrder || [],
@@ -61,7 +82,14 @@ const HardwareProfiles: React.FC = () => {
   }, [serverHardwareProfileOrder]);
 
   const setHardwareProfileOrder = React.useCallback(
-    async (hwpNameOrder: string[]) => {
+    async (visibleHwpNameOrder: string[]) => {
+      const hwpNameOrder = mergeHardwareProfileOrder(
+        orderHardwareProfiles(allHardwareProfiles, optimisticHardwareProfileOrder).map(
+          (profile) => profile.metadata.name,
+        ),
+        visibleHwpNameOrder,
+        hiddenHardwareProfileNames,
+      );
       // Optimistically update local state immediately
       setOptimisticHardwareProfileOrder(hwpNameOrder);
       try {
@@ -73,7 +101,14 @@ const HardwareProfiles: React.FC = () => {
         throw error;
       }
     },
-    [dashboardNamespace, refreshDashboardConfig, serverHardwareProfileOrder],
+    [
+      dashboardNamespace,
+      refreshDashboardConfig,
+      serverHardwareProfileOrder,
+      allHardwareProfiles,
+      optimisticHardwareProfileOrder,
+      hiddenHardwareProfileNames,
+    ],
   );
 
   const noHardwareProfilePageSection = (

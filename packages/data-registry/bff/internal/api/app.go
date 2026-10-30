@@ -30,10 +30,10 @@ const (
 	Version         = "1.0.0"
 	PathPrefix      = "/data-registry"
 	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath  = "/healthcheck"
-	UserPath         = ApiPathPrefix + "/user"
-	NamespacePath    = ApiPathPrefix + "/namespaces"
-	ConnectionsPath  = ApiPathPrefix + "/connections/:namespace"
+	HealthCheckPath = "/healthcheck"
+	UserPath        = ApiPathPrefix + "/user"
+	NamespacePath   = ApiPathPrefix + "/namespaces"
+	ConnectionsPath = ApiPathPrefix + "/connections/:namespace"
 
 	// DataRegistryPathPrefix is the root under which the Data Registry API catchall proxy is
 	// mounted. It intentionally matches ApiPathPrefix so the publicly exposed route shape stays
@@ -72,8 +72,40 @@ type App struct {
 	dataRegistryDiscoveryCancel context.CancelFunc
 }
 
+func configureBFFClientTLS(bffConfig *bffclient.BFFClientConfig, devMode, allowInsecureHTTP bool) bool {
+	if !devMode || !allowInsecureHTTP {
+		return false
+	}
+
+	for _, target := range []bffclient.BFFTarget{
+		bffclient.BFFTargetMaaS,
+		bffclient.BFFTargetGenAI,
+		bffclient.BFFTargetModelRegistry,
+		bffclient.BFFTargetMLflow,
+	} {
+		if serviceConfig := bffConfig.GetServiceConfig(target); serviceConfig != nil {
+			serviceConfig.TLSEnabled = false
+		}
+	}
+	return true
+}
+
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	logger.Debug("Initializing app with config", slog.Any("config", cfg))
+	// Log only non-sensitive configuration metadata. URL overrides and filesystem paths are
+	// intentionally omitted because they may contain credentials or other sensitive values.
+	logger.Debug("Initializing app",
+		slog.Int("port", cfg.Port),
+		slog.String("deployment_mode", cfg.DeploymentMode.String()),
+		slog.String("log_level", cfg.LogLevel.String()),
+		slog.Bool("dev_mode", cfg.DevMode),
+		slog.Bool("mock_k8_client", cfg.MockK8Client),
+		slog.Bool("mock_http_client", cfg.MockHTTPClient),
+		slog.Bool("mock_bff_clients", cfg.MockBFFClients),
+		slog.Bool("bff_clients_allow_insecure_http", cfg.BFFClientsAllowInsecureHTTP),
+		slog.Bool("data_registry_api_url_configured", cfg.DataRegistryAPIURL != ""),
+		slog.Bool("dch_enabled", cfg.BFFDCHServiceName != ""),
+		slog.Int("bundle_path_count", len(cfg.BundlePaths)),
+	)
 	var k8sFactory k8s.KubernetesClientFactory
 	var err error
 	// used only on mocked k8s client
@@ -127,7 +159,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			return nil, fmt.Errorf("failed to setup envtest: %w", err)
 		}
 		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, logger)
 
 	} else {
 		//create kubernetes client factory
@@ -143,19 +175,28 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	bffConfig := bffclient.NewDefaultBFFClientConfig()
 	bffConfig.MockBFFClients = cfg.MockBFFClients
 	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
+	if configureBFFClientTLS(bffConfig, cfg.DevMode, cfg.BFFClientsAllowInsecureHTTP) {
+		logger.Warn("SECURITY WARNING: inter-BFF bearer tokens will be sent over plaintext HTTP")
+	}
 
-	// Apply target-specific configuration overrides from CLI flags/env vars here.
-	// Example: to configure a target BFF, add fields to EnvConfig and apply them:
-	//
-	//   if targetCfg := bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS); targetCfg != nil {
-	//       targetCfg.ServiceName = cfg.BFFTargetServiceName
-	//       targetCfg.Port = cfg.BFFTargetServicePort
-	//       targetCfg.DevOverrideURL = cfg.BFFTargetDevURL
-	//   }
+	if cfg.BFFDCHServiceName != "" {
+		bffConfig.ServiceConfigs[bffclient.BFFTargetDCH] = &bffclient.BFFServiceConfig{
+			Target:          bffclient.BFFTargetDCH,
+			ServiceName:     cfg.BFFDCHServiceName,
+			Namespace:       cfg.BFFDCHServiceNamespace,
+			Port:            cfg.BFFDCHServicePort,
+			PathPrefix:      "/api/v1",
+			TLSEnabled:      cfg.BFFDCHTLSEnabled,
+			AuthMethod:      config.AuthMethodUser,
+			AuthTokenHeader: cfg.BFFDCHAuthTokenHeader,
+			AuthTokenPrefix: cfg.BFFDCHAuthTokenPrefix,
+			DevOverrideURL:  cfg.BFFDCHDevURL,
+		}
+	}
 
 	if cfg.MockBFFClients {
 		logger.Info("Using mock BFF client factory")
-		bffFactory = bffmocks.NewMockClientFactory(logger)
+		bffFactory = bffmocks.NewMockClientFactoryWithConfig(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	} else {
 		logger.Info("Using real BFF client factory")
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
@@ -250,7 +291,7 @@ func (app *App) Routes() http.Handler {
 	appMux.Handle(ApiPathPrefix+"/connections/", apiRouter)
 	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
 
-	// Data Registry API catchall proxy (Iceberg REST Catalog-compatible + RHOAI extensions):
+	// Data Registry API catchall proxy (Iceberg REST-compatible + RHOAI extensions):
 	// every request under DataRegistryPathPrefix is forwarded verbatim to the upstream Data
 	// Registry API — no per-operation routes, so new upstream endpoints are automatically
 	// reachable without any BFF change ("dumb proxy", confirmed in RHAI-415 review). See

@@ -2,16 +2,22 @@ package ehmocks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 )
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
-	collectionOverrides map[string]*evalhub.Collection
-	logsTruncated       bool
+	mu                        sync.RWMutex
+	collectionOverrides       map[string]*evalhub.Collection
+	deletedCollections        map[string]bool
+	LastListCollectionsParams *evalhub.ListCollectionsParams
+	logsTruncated             bool
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -19,6 +25,12 @@ func NewMockEvalHubClient() *MockEvalHubClient {
 }
 
 func (m *MockEvalHubClient) SetCollection(id string, c *evalhub.Collection) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.setCollection(id, c)
+}
+
+func (m *MockEvalHubClient) setCollection(id string, c *evalhub.Collection) {
 	if m.collectionOverrides == nil {
 		m.collectionOverrides = make(map[string]*evalhub.Collection)
 	}
@@ -26,7 +38,15 @@ func (m *MockEvalHubClient) SetCollection(id string, c *evalhub.Collection) {
 }
 
 func (m *MockEvalHubClient) SetLogsTruncated(truncated bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.logsTruncated = truncated
+}
+
+func (m *MockEvalHubClient) isLogsTruncated() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.logsTruncated
 }
 
 func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.HealthResponse, error) {
@@ -35,11 +55,21 @@ func (m *MockEvalHubClient) HealthCheck(_ context.Context, _ string) (*evalhub.H
 
 // ListCollections returns mock benchmark collections with optional in-memory filtering and pagination.
 func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.ListCollectionsParams) (evalhub.CollectionsResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.LastListCollectionsParams = &params
 	all := mockCollections()
 
 	// Apply filters
 	filtered := make([]evalhub.Collection, 0, len(all))
 	for _, c := range all {
+		if m.deletedCollections[c.Resource.ID] {
+			continue
+		}
+		if override, ok := m.collectionOverrides[c.Resource.ID]; ok {
+			c = *override
+		}
 		if params.Name != "" && !containsCI(c.Name, params.Name) {
 			continue
 		}
@@ -69,6 +99,28 @@ func (m *MockEvalHubClient) ListCollections(_ context.Context, params evalhub.Li
 		TotalCount: total,
 		Limit:      limit,
 		Items:      filtered[offset:end],
+	}, nil
+}
+
+func (m *MockEvalHubClient) CreateCollection(
+	_ context.Context,
+	_ string,
+	req evalhub.CreateCollectionRequest,
+) (*evalhub.Collection, error) {
+	return &evalhub.Collection{
+		Resource:          evalhub.CollectionResource{ID: "created-collection"},
+		Name:              req.Name,
+		Category:          req.Category,
+		Description:       req.Description,
+		Tags:              req.Tags,
+		Domains:           req.Domains,
+		Tasks:             req.Tasks,
+		Modalities:        req.Modalities,
+		Industries:        req.Industries,
+		EvaluationTargets: req.EvaluationTargets,
+		Custom:            req.Custom,
+		PassCriteria:      req.PassCriteria,
+		Benchmarks:        req.Benchmarks,
 	}, nil
 }
 
@@ -360,6 +412,15 @@ func mockProviders() []evalhub.Provider {
 }
 
 func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.getCollection(id)
+}
+
+func (m *MockEvalHubClient) getCollection(id string) (*evalhub.Collection, error) {
+	if m.deletedCollections[id] {
+		return nil, nil
+	}
 	if c, ok := m.collectionOverrides[id]; ok {
 		return c, nil
 	}
@@ -372,11 +433,136 @@ func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string
 	return nil, nil
 }
 
+func (m *MockEvalHubClient) PatchCollection(_ context.Context, id string, _ string, operations []evalhub.CollectionPatchOperation) (*evalhub.Collection, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	collection, err := m.getCollection(id)
+	if err != nil || collection == nil {
+		return collection, err
+	}
+
+	collectionJSON, err := json.Marshal(collection)
+	if err != nil {
+		return nil, fmt.Errorf("marshal collection: %w", err)
+	}
+	operationsJSON, err := json.Marshal(operations)
+	if err != nil {
+		return nil, fmt.Errorf("marshal collection patch: %w", err)
+	}
+	patch, err := jsonpatch.DecodePatch(operationsJSON)
+	if err != nil {
+		return nil, fmt.Errorf("decode collection patch: %w", err)
+	}
+	updatedJSON, err := patch.Apply(collectionJSON)
+	if err != nil {
+		return nil, fmt.Errorf("apply collection patch: %w", err)
+	}
+
+	var updated evalhub.Collection
+	if err := json.Unmarshal(updatedJSON, &updated); err != nil {
+		return nil, fmt.Errorf("unmarshal patched collection: %w", err)
+	}
+	m.setCollection(id, &updated)
+	return &updated, nil
+}
+
+func (m *MockEvalHubClient) DeleteCollection(_ context.Context, id string, _ string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.deletedCollections == nil {
+		m.deletedCollections = make(map[string]bool)
+	}
+	m.deletedCollections[id] = true
+	delete(m.collectionOverrides, id)
+	return nil
+}
+
+func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ string, req evalhub.CloneCollectionRequest) (*evalhub.Collection, error) {
+	source, err := m.GetCollection(context.Background(), id, "")
+	if err != nil {
+		return nil, err
+	}
+	if source == nil {
+		return nil, nil
+	}
+
+	name := req.Name
+	if name == "" {
+		name = source.Name
+	}
+	description := req.Description
+	if description == "" {
+		description = source.Description
+	}
+	category := req.Category
+	if category == "" {
+		category = source.Category
+	}
+	tags := req.Tags
+	if tags == nil {
+		tags = source.Tags
+	}
+	domains := source.Domains
+	if req.Domains != nil {
+		domains = *req.Domains
+	}
+	tasks := source.Tasks
+	if req.Tasks != nil {
+		tasks = *req.Tasks
+	}
+	modalities := source.Modalities
+	if req.Modalities != nil {
+		modalities = *req.Modalities
+	}
+	industries := source.Industries
+	if req.Industries != nil {
+		industries = *req.Industries
+	}
+	evaluationTargets := source.EvaluationTargets
+	if req.EvaluationTargets != nil {
+		evaluationTargets = *req.EvaluationTargets
+	}
+	custom := req.Custom
+	if custom == nil {
+		custom = source.Custom
+	}
+	benchmarks := req.Benchmarks
+	if benchmarks == nil {
+		benchmarks = source.Benchmarks
+	}
+	passCriteria := req.PassCriteria
+	if passCriteria == nil {
+		passCriteria = source.PassCriteria
+	}
+
+	return &evalhub.Collection{
+		Resource: evalhub.CollectionResource{
+			ID:        fmt.Sprintf("%s-clone", id),
+			CreatedAt: "2026-09-02T12:00:00Z",
+			UpdatedAt: "2026-09-02T12:00:00Z",
+		},
+		Name:              name,
+		Description:       description,
+		Category:          category,
+		Tags:              tags,
+		Domains:           domains,
+		Tasks:             tasks,
+		Modalities:        modalities,
+		Industries:        industries,
+		EvaluationTargets: evaluationTargets,
+		Custom:            custom,
+		PassCriteria:      passCriteria,
+		Benchmarks:        benchmarks,
+	}, nil
+}
+
 func (m *MockEvalHubClient) GetEvaluationJob(_ context.Context, id string, _ string) (*evalhub.EvaluationJob, error) {
-	jobs, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
-	for i := range jobs {
-		if jobs[i].Resource.ID == id {
-			return &jobs[i], nil
+	result, _ := m.ListEvaluationJobs(context.Background(), evalhub.ListEvaluationJobsParams{})
+	for i := range result.Items {
+		if result.Items[i].Resource.ID == id {
+			return &result.Items[i], nil
 		}
 	}
 	return nil, nil
@@ -396,12 +582,17 @@ func (m *MockEvalHubClient) CreateEvaluationJob(_ context.Context, _ string, req
 			CreatedAt: "2026-03-09T12:00:00Z",
 			UpdatedAt: "2026-03-09T12:00:00Z",
 		},
-		Status:      evalhub.JobStatus{State: "pending"},
-		Name:        req.Name,
-		Description: req.Description,
-		Tags:        req.Tags,
-		Model:       req.Model,
-		Benchmarks:  benchmarks,
+		Status:       evalhub.JobStatus{State: "pending"},
+		Name:         req.Name,
+		Description:  req.Description,
+		Tags:         req.Tags,
+		Model:        req.Model,
+		PassCriteria: req.PassCriteria,
+		Benchmarks:   benchmarks,
+		Collection:   req.Collection,
+		Experiment:   req.Experiment,
+		Custom:       req.Custom,
+		Exports:      req.Exports,
 	}, nil
 }
 
@@ -412,22 +603,22 @@ func (m *MockEvalHubClient) CancelEvaluationJob(_ context.Context, _ string, _ s
 func (m *MockEvalHubClient) GetEvaluationJobLogs(_ context.Context, id string, _ string, _ evalhub.GetJobLogsParams) (evalhub.EvaluationJobLogsResponse, error) {
 	return evalhub.EvaluationJobLogsResponse{
 		Logs:      fmt.Sprintf("=== Logs for job %s ===\n[2026-03-01T09:00:00Z] Starting evaluation...\n[2026-03-01T09:05:00Z] Benchmark truthfulqa_mc1 completed.\n", id),
-		Truncated: m.logsTruncated,
+		Truncated: m.isLogsTruncated(),
 	}, nil
 }
 
 func (m *MockEvalHubClient) GetEvaluationJobBenchmarkLogs(_ context.Context, id string, benchmarkIndex int, _ string, _ evalhub.GetJobLogsParams) (evalhub.EvaluationJobLogsResponse, error) {
 	return evalhub.EvaluationJobLogsResponse{
 		Logs:      fmt.Sprintf("=== Logs for job %s benchmark %d ===\n[2026-03-01T09:01:00Z] Running benchmark...\n[2026-03-01T09:05:00Z] Benchmark completed.\n", id, benchmarkIndex),
-		Truncated: m.logsTruncated,
+		Truncated: m.isLogsTruncated(),
 	}, nil
 }
 
-func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) ([]evalhub.EvaluationJob, error) {
+func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.ListEvaluationJobsParams) (evalhub.EvaluationJobsResult, error) {
 	pass := true
 	fail := false
 
-	return []evalhub.EvaluationJob{
+	items := []evalhub.EvaluationJob{
 		{
 			Resource: evalhub.JobResource{
 				ID:        "eval-job-001",
@@ -482,13 +673,19 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			Tags:   []string{"Safety"},
 			Status: evalhub.JobStatus{State: "completed"},
 			Results: evalhub.JobResults{
-				TotalEvaluations: 1,
 				Benchmarks: []evalhub.BenchmarkResult{
 					{
 						ID:         "harmful_request_refusal",
 						ProviderID: "safety_eval_suite",
-						Metrics:    map[string]float64{"refusal_rate": 0.30},
-						Test:       &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.30), Threshold: ptr(0.5), Pass: &fail},
+						Metrics: map[string]any{
+							"refusal_rate": 0.30,
+							"verdicts":     []any{"safe", "unsafe", "safe"},
+						},
+						Artifacts: map[string]any{
+							"evalhub.eval_card": "evalcards/eval-job-004-card",
+							"evalhub.env_card":  "envcards/eval-job-004-env",
+						},
+						Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.30), Threshold: ptr(0.5), Pass: &fail},
 					},
 				},
 				Test: &evalhub.ResultTest{
@@ -532,16 +729,15 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			Tags:   []string{"Safety"},
 			Status: evalhub.JobStatus{State: "completed"},
 			Results: evalhub.JobResults{
-				TotalEvaluations: 8,
 				Benchmarks: []evalhub.BenchmarkResult{
-					{ID: "harmful_request_refusal", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"refusal_rate": 0.95, "false_positive_rate": 0.02}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.95), Threshold: ptr(0.8), Pass: &pass}},
-					{ID: "truthfulqa_mc1", ProviderID: "lm_evaluation_harness", Metrics: map[string]float64{"accuracy": 0.68, "calibration": 0.72}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.68), Threshold: ptr(0.5), Pass: &pass}},
-					{ID: "toxigen", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"toxicity_score": 0.12, "false_negative_rate": 0.08}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.88), Threshold: ptr(0.7), Pass: &pass}},
-					{ID: "toxicity_risk", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"risk_score": 0.45}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.55), Threshold: ptr(0.6), Pass: &fail}},
-					{ID: "ethical_alignment", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"alignment_score": 0.81}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.81), Threshold: ptr(0.7), Pass: &pass}},
-					{ID: "winobias", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"bias_score": 0.73}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.73), Threshold: ptr(0.8), Pass: &fail}},
-					{ID: "adversarial_robustness", ProviderID: "safety_eval_suite", Metrics: map[string]float64{"robustness": 0.62}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.62), Threshold: ptr(0.5), Pass: &pass}},
-					{ID: "truthfulqa_gen", ProviderID: "lm_evaluation_harness", Metrics: map[string]float64{"truthfulness": 0.59}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.59), Threshold: ptr(0.5), Pass: &pass}},
+					{ID: "harmful_request_refusal", ProviderID: "safety_eval_suite", Metrics: map[string]any{"refusal_rate": 0.95, "false_positive_rate": 0.02}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.95), Threshold: ptr(0.8), Pass: &pass}},
+					{ID: "truthfulqa_mc1", ProviderID: "lm_evaluation_harness", Metrics: map[string]any{"accuracy": 0.68, "calibration": 0.72}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.68), Threshold: ptr(0.5), Pass: &pass}},
+					{ID: "toxigen", ProviderID: "safety_eval_suite", Metrics: map[string]any{"toxicity_score": 0.12, "false_negative_rate": 0.08}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.88), Threshold: ptr(0.7), Pass: &pass}},
+					{ID: "toxicity_risk", ProviderID: "safety_eval_suite", Metrics: map[string]any{"risk_score": 0.45}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.55), Threshold: ptr(0.6), Pass: &fail}},
+					{ID: "ethical_alignment", ProviderID: "safety_eval_suite", Metrics: map[string]any{"alignment_score": 0.81}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.81), Threshold: ptr(0.7), Pass: &pass}},
+					{ID: "winobias", ProviderID: "safety_eval_suite", Metrics: map[string]any{"bias_score": 0.73}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.73), Threshold: ptr(0.8), Pass: &fail}},
+					{ID: "adversarial_robustness", ProviderID: "safety_eval_suite", Metrics: map[string]any{"robustness": 0.62}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.62), Threshold: ptr(0.5), Pass: &pass}},
+					{ID: "truthfulqa_gen", ProviderID: "lm_evaluation_harness", Metrics: map[string]any{"truthfulness": 0.59}, Test: &evalhub.BenchmarkResultTest{PrimaryScore: ptr(0.59), Threshold: ptr(0.5), Pass: &pass}},
 				},
 				Test: &evalhub.ResultTest{Score: ptr(0.72), Threshold: ptr(0.3), Pass: &pass},
 			},
@@ -562,7 +758,8 @@ func (m *MockEvalHubClient) ListEvaluationJobs(_ context.Context, _ evalhub.List
 			},
 			Collection: &evalhub.JobCollectionID{ID: "collection-002"},
 		},
-	}, nil
+	}
+	return evalhub.EvaluationJobsResult{Items: items, TotalCount: len(items)}, nil
 }
 
 // mockCollections returns the full catalogue used by all mock responses.
@@ -574,6 +771,10 @@ func mockCollections() []evalhub.Collection {
 			Category:    "General",
 			Description: "Comprehensive evaluation suite for general-purpose language models.",
 			Tags:        []string{"Comprehensive", "Industry Standard"},
+			Domains:     []string{"knowledge", "reasoning"},
+			Tasks:       []string{"question_answering"},
+			Modalities:  []string{"text"},
+			Industries:  []string{"general"},
 			Benchmarks: []evalhub.CollectionBenchmark{
 				{ID: "arc_challenge", ProviderID: "lm_evaluation_harness", Weight: 1},
 				{ID: "hellaswag", ProviderID: "lm_evaluation_harness", Weight: 1},

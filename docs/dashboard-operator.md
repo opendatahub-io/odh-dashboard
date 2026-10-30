@@ -23,19 +23,22 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
-| `maasConsumerPortal` | `MaaSConsumerPortalSpec` | MaaS Consumer Portal (`managementState: Managed`/`Removed`; served below the gateway path) |
+| `maasPortal` | `MaaSPortalSpec` | [MaaS Portal](maas-portal.md) (`managementState: Managed`/`Removed`; served below the gateway path) |
 
 ### Status Fields
 
 | Field | Type | Purpose |
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
-| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSConsumerPortalAvailable` |
+| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSPortalAvailable` |
 | `observedGeneration` | `int64` | Last processed spec generation |
 | `url` | `string` | Externally-reachable dashboard URL |
-| `maasConsumerPortalUrl` | `string` | Last known good MaaS Consumer Portal URL; cleared when the operand is removed |
+| `maasPortalUrl` | `string` | Last known good MaaS Portal URL; cleared when the operand is removed |
 | `moduleStatuses` | `map[string]ModuleStatus` | Per-module deployment state |
 | `releases` | `[]ComponentRelease` | Deployed component versions |
+
+See [portal compatibility and availability](maas-portal.md#configuration-and-availability)
+for the legacy CR field spellings and precedence rules.
 
 ### Platform Utilities Integration
 
@@ -52,7 +55,7 @@ The controller follows a sequential pipeline on each reconcile:
 ```text
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
-3. Handle Removed      -> tear down all labeled resources
+3. Handle Removed      -> tear down core resources, retain portal dependencies
 4. Deploy:
    -> Clean up legacy sidecar resources (upgrade path)
    -> Render overlay (odh or rhoai)
@@ -71,19 +74,15 @@ The controller follows a sequential pipeline on each reconcile:
 
 The controller supports `managementState: Removed` on the Dashboard CR. When set:
 
-1. All resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings
-2. Cross-namespace resources (e.g., Perses proxy in observability namespace) are cleaned up
-3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Consumer Portal is managed, status remains `phase: NotReady`; if a MaaS Consumer Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
+1. Resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (HTTPRoutes, Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings, except shared resources still needed by a managed MaaS Portal. HTTPRoute cleanup is skipped when the Gateway API mapping is unavailable.
+2. Enabled observability resources are retained while the portal is managed, including resources in a separate monitoring namespace; otherwise they are cleaned up
+3. Core-dashboard conditions are updated with reason `Removed` and informational severity. If no MaaS Portal is managed, status remains `phase: NotReady`; if a MaaS Portal is managed, its health determines the aggregate `Ready` condition and `phase`.
 4. `status.url` and distribution status are cleared; `status.moduleStatuses` continues to reflect aggregate module demand
-5. The controller requeues while a managed MaaS Consumer Portal is awaiting readiness or retrying a transient failure
+5. The controller requeues while a managed portal is awaiting readiness or retrying a transient failure (see [portal retry behavior](maas-portal.md#configuration-and-availability)).
 
-**The MaaS Consumer Portal is an independent RHOAI-only operand, decoupled from the core dashboard's `managementState`.** It is gated by `spec.maasConsumerPortal.managementState`, not the core dashboard lifecycle:
-
-- Namespaced resources are rendered into `APPLICATIONS_NAMESPACE`; portal resources carry `platform.opendatahub.io/part-of: maas-consumer-portal`, so core teardown (`part-of: dashboard`) never matches them.
-- The shared MaaS and GenAI BFFs remain aggregate-demand resources. Portal-only operation retains them on RHOAI unless an explicit module disable overrides demand.
-- On non-RHOAI platforms the controller removes stale portal resources and reports an informational `UnsupportedPlatform` condition without creating portal demand.
-
-Consequently, core `managementState: Removed` with `maasConsumerPortal.managementState: Managed` retains the portal operand and its aggregate MaaS/GenAI demand. When the portal is removed, the controller deletes only portal-owned resources, including the serving-certificate Secret that does not use owner-reference garbage collection. Dashboard CR deletion cleans up all portal resources.
+The portal lifecycle is independent of the core dashboard's `managementState`.
+A managed portal retains its shared module and observability dependencies during
+core removal. See [portal lifecycle and shared dependencies](maas-portal.md#lifecycle-and-shared-dependencies).
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -91,7 +90,7 @@ The finalizer handles a separate concern: cleanup on CR **deletion** (when `Dele
 
 - **Transient errors**: return `(Result{}, err)` -- controller-runtime requeues with backoff
 - **Expected-missing state** (e.g., Route not admitted): return `(Result{RequeueAfter: 10s}, nil)`
-- **Status always updated**: conditions are set before returning errors so the CR reflects failure reasons
+- **Failure status**: conditions are calculated before returning reconciliation errors so the CR reflects failure reasons; status is persisted only when the final status differs from stored state
 
 ## Manifest Management
 
@@ -135,18 +134,12 @@ The eight registered modules and their manifest directories:
 | mlflow | `manifests/modules/mlflow/` | `odh-dashboard-mlflow-ui` |
 | modelRegistry | `manifests/modules/model-registry/` | `odh-dashboard-model-registry-ui` |
 
-### MaaS Consumer Portal Operand
+### MaaS Portal Operand
 
-When `spec.maasConsumerPortal.managementState` is `Managed` on RHOAI and `spec.gateway.domain` is set, the controller deploys `manifests/distributions/maas-consumer-portal/`: Deployment, Service, ServiceAccount, ClusterRole, ClusterRoleBinding, NetworkPolicy, and HTTPRoute.
-
-- **URL contract**: `https://<spec.gateway.domain>/maas-consumer-portal/`. The portal shares the gateway hostname and its authentication session; it does not require a hostname, DNS record, certificate, listener, or OAuth callback of its own. The URL is retained across transient failures and is only published after the Deployment is Available and the HTTPRoute is accepted with resolved references; it is cleared after successful removal.
-- **Routing**: the portal HTTPRoute redirects the no-slash path to the trailing-slash URL (302), then matches `/maas-consumer-portal` and rewrites only that prefix before forwarding to the portal Service. This makes static assets, deep links, Core-BFF, MaaS, and GenAI APIs work when the core Dashboard HTTPRoute is removed. Gateway path precedence selects this more-specific route ahead of the Dashboard `/` catch-all while both operands are managed.
-- **Gateway prerequisite**: the installed RHOAI Gateway API v1 implementation must merge same-hostname `HTTPRoute`s using Gateway API path precedence, so the portal's more-specific path wins over the Dashboard `/` catch-all. It must also accept and honor `RequestRedirect` and `URLRewrite` filters. The operand intentionally provides no fallback for Gateway implementations that do not support these behaviors.
-- **Authentication and migration**: gateway-owned `/oauth2/sign_out` and `/oauth2/callback` remain unchanged. Login returns to the requested portal deep link. Existing derived-hostname bookmarks are retired and are not redirected, because the operator does not own external hostname exposure. After portal removal, portal-prefixed URLs are handled by the remaining Dashboard catch-all (typically its normal not-found behavior); they no longer serve the portal.
-- **Proxy response paths**: the portal's current Core-BFF handlers and module proxy configuration were inspected for browser-visible redirects. The proxy preserves relative upstream `Location` headers and validates absolute redirect targets for SSRF; no portal-reachable redirect requiring prefix rewriting was found, so no `X-Forwarded-Prefix` contract is configured.
-- **Federation**: the portal-owned `maas-consumer-portal-federation-config` ConfigMap is mounted into the Deployment. Its content hash is patched onto the Deployment template after every successful bundle apply to trigger configuration rollouts.
-- **Availability**: `MaaSConsumerPortalAvailable` requires the MaaS and GenAI dependencies, federation ConfigMap reconciliation, an available Deployment, and an accepted/resolved HTTPRoute.
-- **Cleanup**: removal explicitly deletes the serving-certificate Secret `maas-consumer-portal-tls`, HTTPRoute, RBAC, and other portal-owned resources. Core-dashboard removal does not delete them while the portal remains Managed.
+The controller deploys the independent RHOAI portal operand when
+`spec.maasPortal.managementState` is `Managed` and `spec.gateway.domain` is set.
+See [MaaS Portal](maas-portal.md) for its routing, federation, subscription RBAC,
+resource identity, upgrade migration, and rollout requirements.
 
 ## Module Registry and Dependency Resolution
 
@@ -181,22 +174,11 @@ Module health is checked by inspecting each module's Deployment readiness (repli
 
 ## Dynamic Federation ConfigMap
 
-The operator dynamically builds a `federation-config` ConfigMap based on which modules are enabled. For each enabled module, it generates a service entry pointing to the module's Service:
-
-```json
-{
-  "name": "<moduleName>",
-  "remoteEntry": "/remoteEntry.js",
-  "authorize": true,
-  "tls": true,
-  "proxy": [{"path": "/<module>/api", "pathRewrite": "/api"}],
-  "service": {
-    "name": "odh-dashboard-<slug>-ui",
-    "namespace": "<apps-namespace>",
-    "port": <module-port>
-  }
-}
-```
+The operator dynamically builds a `federation-config` ConfigMap based on which
+modules are enabled. Each module's normalized entry has an optional `backend`
+for its remote bundle and one or more `proxyService` targets for its APIs. See
+[Module Federation](module-federation.md#configmap-structure) for the runtime
+entry schema.
 
 The ConfigMap also includes:
 - A `coreBff` entry for core-bff proxy routing (routes `/core-bff/api` to port 8943 on the main dashboard Service)
@@ -204,6 +186,25 @@ The ConfigMap also includes:
 - An `mlflowEmbedded` entry if the mlflow module is deployed (routes to the embedded MLflow UI)
 
 After deploying the ConfigMap, the operator patches the main Deployment with a content hash annotation (`dashboard.opendatahub.io/federation-config-hash`) to trigger a rolling restart whenever the federation configuration changes. The hash is computed as SHA-256 of the ConfigMap data, and the patch is skipped if the hash has not changed.
+
+### Perses Service Requirements
+
+When `spec.observability` is unset, the controller looks for `data-science-perses:8080` in the platform monitoring namespace (`redhat-ods-monitoring` on RHOAI). Auto-detection runs when either the core dashboard or the MaaS Portal is managed. It configures observability in memory and reports its state through `ObservabilityAvailable`; it does not write `spec.observability` back to the CR or install the Perses server. Set `spec.observability.enabled: false` to disable it explicitly.
+
+`spec.observability.persesService` can override the HTTP service name, namespace, and service port. The managed network policies require the backing pods to have `app.kubernetes.io/managed-by: perses-operator` and listen on TCP port `8080`. A different **service port** must still forward to pod port `8080`. Other pod labels or listening ports require deployment-specific network policies; configuring the service target alone does not support those topologies.
+
+### Community Plugin Entries
+
+During an existing reconciliation, the operator also samples the optional,
+installer-owned `community-plugins-config` ConfigMap from
+`redhat-ods-community-plugins`. A missing source Namespace or ConfigMap is
+ignored. Accepted entries are merged into the generated
+`federation-config`; Dashboard derives their public proxy paths under
+`/community-plugins/<remote-name>/` and uses the same hash-based rollout.
+
+See [Community Plugin Registration](community-plugin-registration.md) for the
+source schema, validation rules, ownership boundary, and reconciliation trigger
+contract.
 
 ## Operator ConfigMap
 
@@ -245,7 +246,7 @@ dashboard-operator/
 |   +-- webhook/                    # Webhook configuration
 |-- Dockerfile                      # Multi-stage Go build
 |-- Makefile                        # Build, test, generate, lint targets
-+-- go.mod                          # Go module (separate from monorepo npm)
++-- go.mod                          # Go module (separate from the pnpm workspace)
 ```
 
 ## Development Workflow
@@ -306,18 +307,21 @@ When transitioning from the legacy ODH Operator to the Dashboard Module Controll
 
 This behavior is built into the `odh-platform-utilities/pkg/deploy` package, which uses `ForceOwnership` in both `ModePatch` and `ModeSSA` modes. No custom adoption code is required in the controller.
 
+Before applying rendered resources, the controller also repairs externally drifted Service port lists that SSA cannot safely reconcile when an associative-list key changes. The repair preserves an API-allocated `nodePort` when the corresponding desired port does not specify one. A Service is left untouched when either the live or rendered resource has the `opendatahub.io/managed: "false"` annotation.
+
 ### Cross-Namespace Cleanup
 
-OwnerReference garbage collection only works within the same namespace (or for cluster-scoped owners referencing cluster-scoped children). The Dashboard CR is cluster-scoped, so namespaced resources in the applications namespace are covered. However, Perses proxy resources may be deployed to a separate observability namespace (`spec.observability.persesService.namespace`).
+The cluster-scoped Dashboard CR can own resources in any namespace. Explicit cleanup also handles soft removal, where the CR remains present and owner-reference garbage collection does not run. Perses resources may be deployed to a separate observability namespace (`spec.observability.persesService.namespace`).
 
-On Dashboard CR deletion, the controller's finalizer explicitly cleans up cross-namespace resources:
-- Lists Services, ConfigMaps, NetworkPolicies, and PersesDashboards in the observability namespace labeled `platform.opendatahub.io/part-of: dashboard`
+On Dashboard CR deletion, or core soft removal when the portal no longer needs observability, the controller explicitly cleans up observability resources:
+
+- Lists Services, ConfigMaps, NetworkPolicies, and PersesDashboards across all namespaces using both `platform.opendatahub.io/part-of: dashboard` and `app.kubernetes.io/component: observability`
+- Also cleans up legacy resources labeled `platform.opendatahub.io/part-of: dashboard` without a component label in the configured observability namespace, or the platform monitoring namespace when none is configured. This fallback is skipped when that namespace matches the applications namespace to avoid deleting unrelated resources.
 - Deletes each resource, ignoring NotFound errors for idempotency
-- Skips cleanup when the observability namespace matches the applications namespace (ownerReference GC handles it)
 
 ### Labels
 
-Core dashboard resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection. MaaS Consumer Portal resources use `platform.opendatahub.io/part-of: maas-consumer-portal`, so the core teardown selector (`part-of: dashboard`) never matches them (see [MaaS Consumer Portal Operand](#maas-consumer-portal-operand)).
+Core dashboard resources deployed by the controller are labeled with `platform.opendatahub.io/part-of: dashboard`, enabling both cleanup and resource discovery. Individual module resources also carry `app.kubernetes.io/component: <slug>` for targeted garbage collection. See [portal resource identity](maas-portal.md#federation-and-resource-identity) for the independent operand's ownership labels and cleanup behavior.
 
 ## Status Aggregation
 
@@ -345,9 +349,11 @@ The Dashboard type provides five methods:
 | `ProvisioningSucceeded` | Manifests rendered and applied | Render or deploy failed |
 | `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
-| `MaaSConsumerPortalAvailable` | MaaS Consumer Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
+| [`MaaSPortalAvailable`](maas-portal.md#configuration-and-availability) | MaaS Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
 
-The `Ready` condition is a rollup derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaaSConsumerPortalAvailable`. Core dashboard removal is informational when MaaS Consumer Portal remains managed, allowing the portal to determine the aggregate result. If both operands are removed, `Ready` is explicitly `False` with reason `Removed`. Informational conditions, such as a disabled portal or unsupported platform, do not block the rollup.
+Portal-specific failure reasons use the `MaaSPortal` prefix. Reconciliation removes the legacy portal availability condition before calculating readiness.
+
+The `Ready` condition is a rollup derived by the conditions manager from `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, and `MaaSPortalAvailable`. Core dashboard removal is informational when MaaS Portal remains managed, allowing the portal to determine the aggregate result. If both operands are removed, `Ready` is explicitly `False` with reason `Removed`. Informational conditions, such as a disabled portal or unsupported platform, do not block the rollup.
 
 ### Phase Derivation
 
@@ -381,6 +387,31 @@ The metrics endpoint binds to port 8443 with HTTPS enabled by default (`--secure
 Each certificate includes DNS names for in-cluster service discovery:
 - `<service-name>.<namespace>.svc`
 - `<service-name>.<namespace>.svc.cluster.local`
+
+### Cluster TLS Profile Resolution
+
+At startup the manager resolves the OpenShift cluster-wide TLS security profile
+(`apiservers.config.openshift.io/cluster`) via `internal/tls` and applies the
+resulting minimum TLS version and cipher suites to **both** the metrics and webhook
+HTTPS listeners. This keeps the operator's own listeners in step with the cluster
+policy rather than pinning a fixed configuration.
+
+Resolution is **fail-closed**: if the profile read is denied (`401`/`403`) or the
+profile is malformed (unknown type/minimum version, or an invalid `Custom` block),
+the manager logs the error and exits (`os.Exit(1)`) rather than serving a weaker
+policy that cannot be proven to match the cluster. A nil/empty profile resolves to
+Mozilla Intermediate defaults (TLS 1.2), and on a non-OpenShift cluster (the API
+group is absent) the manager likewise uses Intermediate defaults.
+
+Unlike the BFF listeners (which reconfigure in-process), the operator does not
+hot-swap TLS on a running listener. A `ProfileWatcher` watches
+`apiservers/cluster`; when the profile changes it cancels the manager's context so
+the process exits and the Deployment restarts it, which re-resolves the new policy.
+Because of this watch, the operator needs `get`, `list`, and `watch` on the
+`apiservers` resource in the `config.openshift.io` API group, granted via the
+operator's ClusterRole. If the manager crash-loops at startup with an `unable to
+resolve TLS configuration` error, check that this RBAC is present and that the
+APIServer config resource is readable.
 
 ## Deployment Prerequisites
 
@@ -555,7 +586,7 @@ spec:
   deploymentMode: Standalone
   gateway:
     domain: ""
-  maasConsumerPortal:
+  maasPortal:
     managementState: Removed
   components:
     modelregistry:
@@ -571,11 +602,21 @@ oc get dashboard default-dashboard -o yaml
 In production, the ODH Operator manages the dashboard-operator's lifecycle:
 
 1. The ODH Operator's `ModuleHandler` for Dashboard renders the Helm chart from `charts/dashboard/`
-2. The Helm chart creates the operator Deployment, ServiceAccount, RBAC, and cert-manager resources
+2. The Helm chart creates the operator Deployment, ServiceAccount, RBAC, cert-manager resources, and an ingress NetworkPolicy for the controller pod
 3. The ODH Operator creates the `Dashboard` CR with component availability from the DSC
 4. The dashboard-operator reconciles and deploys the Dashboard application
 
 The `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE` env var on the ODH Operator pod provides the dashboard-operator image reference.
+
+#### Controller NetworkPolicy
+
+The chart ships a default-enabled ingress `NetworkPolicy` (`<namePrefix>dashboard-operator-metrics`) that selects the controller pod and restricts ingress to:
+
+- **TCP 8443** (HTTPS metrics) from the supported monitoring namespaces only: `openshift-monitoring`, `openshift-user-workload-monitoring`, `redhat-ods-monitoring`, `opendatahub-monitoring`.
+- **TCP 8081** (health/readiness probes), port-scoped with no peer selector — kubelet/node-originated probes are host-sourced and not constrainable via NetworkPolicy peers.
+- The webhook port, only when `webhook.enabled=true`.
+
+Toggle with `networkPolicy.enabled` in `charts/dashboard/values.yaml` (default `true`); set it to `false` to opt out. The operator exempts this policy from `managementState: Removed` teardown so the running controller keeps its metrics isolation.
 
 ### Image Override Pattern
 

@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
@@ -33,7 +34,21 @@ type MaasClient struct {
 }
 
 type MaasApiError struct {
-	Error string `json:"error"`
+	Error json.RawMessage `json:"error"`
+}
+
+func (e MaasApiError) message() string {
+	var plain string
+	if json.Unmarshal(e.Error, &plain) == nil {
+		return plain
+	}
+	var structured struct {
+		Message string `json:"message"`
+	}
+	if json.Unmarshal(e.Error, &structured) == nil {
+		return structured.Message
+	}
+	return ""
 }
 
 type MaasUpstreamError struct {
@@ -48,10 +63,15 @@ func (e *MaasUpstreamError) Error() string {
 // NewMaasClient creates a MaaS API client. An empty baseURL is allowed so the BFF
 // can start before maas-api is discoverable; call SetBaseURL once the URL is known.
 func NewMaasClient(logger *slog.Logger, baseURL string) (*MaasClient, error) {
+	var proxyFromEnv func(*http.Request) (*url.URL, error)
+	if os.Getenv("E2E_USE_PROXY_FROM_ENV") == "true" {
+		proxyFromEnv = http.ProxyFromEnvironment
+	}
 	client := &MaasClient{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
+				Proxy: proxyFromEnv,
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true, // TODO: Don't skip TLS verification; honor `insecure-skip-verify` command line flag
 				},
@@ -102,6 +122,36 @@ func (c *MaasClient) endpoint(parts ...string) (*url.URL, error) {
 		return nil, ErrMaasApiNotConfigured
 	}
 	return c.prefix.JoinPath(parts...), nil
+}
+
+func (c *MaasClient) GetAPIKeyConfig(ctx context.Context) (*models.APIKeyConfig, error) {
+	endpoint, err := c.endpoint("api-keys", "config")
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse models.APIKeyConfig
+	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
+}
+
+func (c *MaasClient) GetWhoAmI(ctx context.Context) (*models.MaaSWhoAmIUpstream, error) {
+	endpoint, err := c.endpoint("me")
+	if err != nil {
+		return nil, err
+	}
+
+	var apiResponse models.MaaSWhoAmIUpstream
+	err = c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiResponse, nil
 }
 
 func (c *MaasClient) CreateAPIKey(ctx context.Context, request models.APIKeyCreateRequest) (*models.APIKeyCreateResponse, error) {
@@ -287,13 +337,15 @@ func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *u
 		}
 
 		maasApiError := MaasApiError{}
-		if unmarshallErr := json.Unmarshal(body, &maasApiError); unmarshallErr != nil {
-			c.logger.Error("unknown error when invoking maas-api (unmarshall)", "statusCode", response.StatusCode, "endpoint", endpoint.String(), "method", method)
-			return fmt.Errorf("unknown error when invoking maas-api (unmarshall): %w", unmarshallErr)
+		message := http.StatusText(response.StatusCode)
+		if err := json.Unmarshal(body, &maasApiError); err == nil {
+			if upstreamMessage := maasApiError.message(); upstreamMessage != "" {
+				message = upstreamMessage
+			}
 		}
 
-		c.logger.Error("request to maas-api failed", "statusCode", response.StatusCode, "error", maasApiError.Error, "endpoint", endpoint.String(), "method", method)
-		return &MaasUpstreamError{StatusCode: response.StatusCode, Message: maasApiError.Error}
+		c.logger.Error("request to maas-api failed", "statusCode", response.StatusCode, "error", message, "endpoint", endpoint.String(), "method", method)
+		return &MaasUpstreamError{StatusCode: response.StatusCode, Message: message}
 	}
 
 	body, readBodyErr := io.ReadAll(io.LimitReader(response.Body, c.maxResponseSize))

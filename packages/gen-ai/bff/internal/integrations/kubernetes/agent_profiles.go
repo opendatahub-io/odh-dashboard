@@ -267,12 +267,31 @@ func validateAgentProfile(profile *models.AgentProfile) error {
 	// Validate MCP servers if provided
 	if len(profile.Spec.MCPServers) > 0 {
 		for i, mcp := range profile.Spec.MCPServers {
-			if mcp.ServerRef.Kind == "" || mcp.ServerRef.Name == "" {
-				return fmt.Errorf("spec.mcpServers[%d]: serverRef.kind and serverRef.name are required", i)
+			hasRegistryFields := mcp.Name != "" || mcp.Source != "" || mcp.Version != ""
+			if mcp.ServerRef != nil && hasRegistryFields {
+				return fmt.Errorf("spec.mcpServers[%d]: exactly one of serverRef or registry reference must be set", i)
 			}
-			// key is required for ConfigMap, unused for MCPServer
-			if mcp.ServerRef.Kind == "ConfigMap" && mcp.ServerRef.Key == "" {
-				return fmt.Errorf("spec.mcpServers[%d]: serverRef.key is required when kind is ConfigMap", i)
+			if mcp.ServerRef != nil {
+				if mcp.ServerRef.Kind == "" || mcp.ServerRef.Name == "" {
+					return fmt.Errorf("spec.mcpServers[%d]: serverRef.kind and serverRef.name are required", i)
+				}
+				if mcp.ServerRef.Kind != "ConfigMap" && mcp.ServerRef.Kind != "MCPServer" {
+					return fmt.Errorf("spec.mcpServers[%d]: unsupported serverRef.kind %q", i, mcp.ServerRef.Kind)
+				}
+				// key is required for ConfigMap, unused for MCPServer
+				if mcp.ServerRef.Kind == "ConfigMap" && mcp.ServerRef.Key == "" {
+					return fmt.Errorf("spec.mcpServers[%d]: serverRef.key is required when kind is ConfigMap", i)
+				}
+				continue
+			}
+			if mcp.CredentialsRef != nil {
+				return fmt.Errorf("spec.mcpServers[%d]: credentialsRef is only supported with serverRef", i)
+			}
+			if mcp.Name == "" || mcp.Source == "" {
+				return fmt.Errorf("spec.mcpServers[%d]: registry name and source are required", i)
+			}
+			if mcp.Source != "mlflow" {
+				return fmt.Errorf("spec.mcpServers[%d]: unsupported registry source %q", i, mcp.Source)
 			}
 		}
 	}

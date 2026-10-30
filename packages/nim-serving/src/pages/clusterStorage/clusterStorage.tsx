@@ -27,6 +27,7 @@ const Fields: React.FC<PVCStorageContextSettingsFieldsProps> = ({ existingPvc, o
             onChange({ [NIM_PVC_SUBPATH_ANNOTATION]: val });
           }
         }}
+        description="Leave this blank to use the PVC root, or specify a subdirectory within the PVC. Updating this field will not alter active storage connections or interrupt running models."
       />
     </FormSection>
   );

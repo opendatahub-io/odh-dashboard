@@ -10,10 +10,37 @@ runtime: claude
 keep_history: false
 roles:
     - review
+    # Enables the fix stage (Fullsend maps fix to the coder role). The coder
+    # role also covers issue-driven /fs-code, which stays off via the code
+    # entry below.
+    - coder
 agents:
+    - name: code
+      enabled: false
     # Dashboard overlay; the base harness still supplies Fullsend's review skills.
     - name: review
       source: harness/review.yaml
+      # Keep non-review roles on the production default while using Pi's
+      # per-persona model routing for reviews. OpenAI models are named here and
+      # per persona, not through models.aliases: Fullsend v0.48 deprecates
+      # aliases that point outside the Claude family, and the aliases would
+      # also remap opus/sonnet for the Claude Code roles. Every persona the
+      # review uploads is listed, so no frontmatter tier resolves to Claude;
+      # rows without a persona run on the agent model.
+      runtime: pi
+      model: openai/gpt-6.1-sol
+      subagents:
+          challenger: openai/gpt-6.1-sol
+          correctness: openai/gpt-6.1-sol
+          cross-repo-contracts: openai/gpt-6.1-sol
+          docs-currency: openai/gpt-6-luna
+          intent-coherence: openai/gpt-6.1-sol
+          investigator: openai/gpt-6-luna
+          # Rating's risk/confidence gates approval; tiny output, so pay for Sol.
+          rating: openai/gpt-6.1-sol
+          security: openai/gpt-6.1-sol
+          security-triage: openai/gpt-6-luna
+          style-conventions: openai/gpt-6-luna
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/

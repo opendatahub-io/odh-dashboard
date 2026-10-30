@@ -1,12 +1,18 @@
 package constants
 
 const (
-	MetricFaithfulness       = "faithfulness"
-	MetricAnswerCorrectness  = "answer_correctness"
-	MetricContextCorrectness = "context_correctness"
-	MetricOverallScore       = "overall_score"
+	MetricUnitxtFaithfulness      = "unitxt:faithfulness"
+	MetricUnitxtAnswerCorrectness = "unitxt:answer_correctness"
+	MetricCustomOverallScore      = "custom:overall_score"
+	MetricRagasFaithfulness       = "ragas:faithfulness"
+	MetricRagasAnswerRelevancy    = "ragas:answer_relevancy"
+	MetricRagasContextPrecision   = "ragas:context_precision"
+	MetricRagasContextRecall      = "ragas:context_recall"
+	LegacyMetricFaithfulness      = "faithfulness"
+	LegacyMetricAnswerCorrectness = "answer_correctness"
+	LegacyMetricOverallScore      = "overall_score"
 
-	DefaultOptimizationMetric = MetricOverallScore
+	DefaultOptimizationMetric = MetricCustomOverallScore
 	DefaultPreset             = "speed"
 
 	MinRagPatterns        = 4
@@ -21,10 +27,38 @@ const (
 )
 
 var ValidOptimizationMetrics = map[string]bool{
-	MetricFaithfulness:       true,
-	MetricAnswerCorrectness:  true,
-	MetricContextCorrectness: true,
-	MetricOverallScore:       true,
+	MetricUnitxtFaithfulness:      true,
+	MetricUnitxtAnswerCorrectness: true,
+	MetricCustomOverallScore:      true,
+	MetricRagasFaithfulness:       true,
+	MetricRagasAnswerRelevancy:    true,
+	MetricRagasContextPrecision:   true,
+	MetricRagasContextRecall:      true,
+	LegacyMetricFaithfulness:      true,
+}
+
+var ValidOptimizationMetricsByPreset = map[string]map[string]bool{
+	"speed": {
+		MetricUnitxtFaithfulness: true, MetricUnitxtAnswerCorrectness: true, MetricCustomOverallScore: true,
+	},
+	"balanced": {
+		MetricUnitxtFaithfulness: true, MetricUnitxtAnswerCorrectness: true, MetricCustomOverallScore: true,
+		MetricRagasFaithfulness: true, MetricRagasAnswerRelevancy: true, MetricRagasContextPrecision: true,
+		MetricRagasContextRecall: true,
+	},
+}
+
+func NormalizeOptimizationMetric(metric, preset string) string {
+	if metric == "" {
+		return DefaultOptimizationMetric
+	}
+	if metric == LegacyMetricFaithfulness {
+		if preset == "balanced" {
+			return MetricRagasFaithfulness
+		}
+		return MetricUnitxtFaithfulness
+	}
+	return metric
 }
 
 // ValidPresets lists the valid preset strings for AutoRAG pipelines.

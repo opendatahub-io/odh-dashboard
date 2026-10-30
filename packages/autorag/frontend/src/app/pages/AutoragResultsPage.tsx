@@ -1,55 +1,345 @@
 import {
+  Alert,
+  AlertActionCloseButton,
   BreadcrumbItem,
   Button,
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Flex,
+  FlexItem,
   Skeleton,
   Split,
   SplitItem,
   Truncate,
+  Tooltip,
 } from '@patternfly/react-core';
-import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import {
+  CogIcon,
+  DownloadIcon,
+  OpenDrawerRightIcon,
+  RedoIcon,
+  StopCircleIcon,
+} from '@patternfly/react-icons';
+import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
+import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { useFetchS3File, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
+import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
-import ExperimentContextBreadcrumb from '~/app/components/common/ExperimentContextBreadcrumb';
-import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
 import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
 import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
-import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
-import { usePipelineRunQuery, useSecretCredentialsQuery } from '~/app/hooks/queries';
-import { useAutoragResults } from '~/app/hooks/useAutoragResults';
+import { usePipelineRunQuery } from '~/app/hooks/usePipelineRunQuery';
+import { useSecretCredentialsQuery } from '~/app/hooks/useSecretCredentialsQuery';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
+import { resolveArtifactDirectory, useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
-import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import {
+  downloadBlob,
+  formatPatternName,
+  isRunCompleted,
+  isRunRetryable,
+  isRunTerminatable,
+} from '~/app/utilities/utils';
 import { getObjectiveMetric, metricLabel } from '~/app/utilities/metricUtils';
 import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
-import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+import type { AutoRAGResponsesTemplate, AutoragPattern } from '~/app/types/autoragPattern';
 import {
+  AUTORAG_EVENTS,
   fireAutoragCodeSnippetsExported,
+  fireAutoragStarterKitDownloaded,
   fireAutoragPlaygroundOpened,
   fireAutoragResultsViewed,
   isAutoragResultsNavigationState,
+  TrackingOutcome,
 } from '~/app/utilities/tracking';
 import type { PlaygroundOpenedSource, ViewCodeEntrySource } from '~/app/utilities/tracking';
+import {
+  canUseResponsesForPattern,
+  getPatternCollectionName,
+  getPatternEmbeddingModel,
+  getPatternStoreProvider,
+} from '~/app/utilities/responses';
 
 type DrawerContentType =
   | { type: 'run-details' }
   | {
       type: 'playground';
-      responsesTemplate: ResponsesTemplate;
+      responsesTemplate: AutoRAGResponsesTemplate;
       patternInfo: PlaygroundPatternInfo;
     };
+
+const STARTER_KIT_FILENAME = 'starter_kit.zip';
+const ARTIFACT_AVAILABLE_TOOLTIP = 'Available after the run completes successfully';
+const ARTIFACT_CHECKING_TOOLTIP = 'Checking artifact availability...';
+const ARTIFACT_UNSUCCESSFUL_TOOLTIP = 'Unavailable because the run did not complete successfully';
+const ARTIFACT_UNAVAILABLE_TOOLTIP = 'Artifact unavailable';
+const MAX_MILVUS_RRF_K = 16384;
+
+const isValidMilvusRRFK = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 && value < MAX_MILVUS_RRF_K;
+
+const isValidRankingAlpha = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+
+const getRankingAlpha = (value: unknown, errorMessage: string): number => {
+  if (value === undefined) {
+    return 0.5;
+  }
+  if (!isValidRankingAlpha(value)) {
+    throw new Error(errorMessage);
+  }
+  return value;
+};
+
+const validatePersistedMilvusRRFK = (
+  value: unknown,
+  field: 'ranker_k' | 'impact_factor',
+): number => {
+  if (!isValidMilvusRRFK(value)) {
+    throw new Error(`Invalid persisted Milvus RRF ${field}`);
+  }
+  return value;
+};
+
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === 'AbortError';
+
+// Prefer the backend-agnostic binding name while keeping historical artifacts readable.
+export const buildResponsesTemplate = (
+  pattern: AutoragPattern,
+  runId: string | undefined,
+): AutoRAGResponsesTemplate => {
+  const { generation, retrieval } = pattern.settings;
+  const collectionName = getPatternCollectionName(pattern);
+  const embeddingModel = getPatternEmbeddingModel(pattern);
+  const isHybrid = retrieval.search_mode === 'hybrid';
+  const provider = getPatternStoreProvider(pattern);
+  /* eslint-disable camelcase */
+  let rankingOptions:
+    | { ranker: 'rrf'; alpha: number }
+    | { ranker: 'rrf'; ranker_k: number }
+    | { ranker: 'weighted'; alpha: number }
+    | undefined;
+  if (isHybrid) {
+    if (provider === 'pgvector') {
+      if (retrieval.ranker_strategy === 'weighted') {
+        throw new Error('Weighted ranking is not supported for pgvector');
+      }
+      if (retrieval.ranker_strategy !== undefined && retrieval.ranker_strategy !== 'rrf') {
+        throw new Error(`Unsupported retrieval ranker: ${retrieval.ranker_strategy}`);
+      }
+      rankingOptions = {
+        ranker: 'rrf',
+        alpha: getRankingAlpha(retrieval.ranker_alpha, 'Ranking alpha must be between 0 and 1'),
+      };
+    } else if (retrieval.ranker_strategy === undefined || retrieval.ranker_strategy === 'rrf') {
+      const rankerK = retrieval.ranker_k === undefined ? 60 : retrieval.ranker_k;
+      if (!isValidMilvusRRFK(rankerK)) {
+        throw new Error(
+          `Milvus RRF ranker_k must be greater than 0 and less than ${MAX_MILVUS_RRF_K}`,
+        );
+      }
+      rankingOptions = { ranker: 'rrf', ranker_k: rankerK };
+    } else if (retrieval.ranker_strategy === 'weighted') {
+      rankingOptions = {
+        ranker: 'weighted',
+        alpha: getRankingAlpha(retrieval.ranker_alpha, 'Ranking alpha must be between 0 and 1'),
+      };
+    } else {
+      throw new Error(`Unsupported retrieval ranker: ${retrieval.ranker_strategy}`);
+    }
+  }
+
+  return {
+    model: generation.model_id,
+    stream: true,
+    store: false,
+    input: [
+      {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: '<user_query_placeholder>' }],
+      },
+    ],
+    metadata: {
+      ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
+      rag_pattern_name: pattern.name,
+      embedding_model: embeddingModel ?? '',
+    },
+    instructions: '',
+    tools: [
+      {
+        type: 'file_search',
+        vector_store_ids: collectionName ? [collectionName] : [],
+        max_num_results: retrieval.number_of_chunks,
+        ...(rankingOptions ? { ranking_options: rankingOptions } : {}),
+      },
+    ],
+    tool_choice: { type: 'file_search' },
+    include: ['file_search_call.results'],
+    /* eslint-enable camelcase */
+  };
+};
+
+/* eslint-disable camelcase */
+export const normalizeResponsesTemplate = (
+  template: AutoRAGResponsesTemplate,
+  provider: 'milvus' | 'pgvector' | 'neo4j',
+): AutoRAGResponsesTemplate => {
+  const { autorag_run_id: runId, ...metadata } = template.metadata;
+  return {
+    ...template,
+    metadata: {
+      ...metadata,
+      ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
+    },
+    tools: template.tools.map((tool) => {
+      if (!tool.ranking_options) {
+        return tool;
+      }
+      const ranking = tool.ranking_options;
+      const ranker = ranking.ranker_strategy ?? ranking.ranker;
+      if (ranker !== 'rrf' && ranker !== 'weighted') {
+        throw new Error(`Unsupported persisted retrieval ranker: ${ranker}`);
+      }
+      if (provider === 'pgvector' && ranker === 'weighted') {
+        throw new Error('Weighted ranking is not supported for pgvector');
+      }
+      const weighted = provider !== 'pgvector' && ranker === 'weighted';
+      const rankerK =
+        provider === 'milvus' && ranker === 'rrf'
+          ? ranking.ranker_k !== undefined
+            ? validatePersistedMilvusRRFK(ranking.ranker_k, 'ranker_k')
+            : ranking.impact_factor !== undefined
+              ? validatePersistedMilvusRRFK(ranking.impact_factor, 'impact_factor')
+              : 60
+          : 60;
+      return {
+        ...tool,
+        ranking_options: weighted
+          ? {
+              ranker: 'weighted',
+              alpha: getRankingAlpha(ranking.alpha, 'Invalid persisted ranking alpha'),
+            }
+          : provider === 'pgvector'
+            ? {
+                ranker: 'rrf',
+                alpha: getRankingAlpha(ranking.alpha, 'Invalid persisted ranking alpha'),
+              }
+            : { ranker: 'rrf', ranker_k: rankerK },
+      };
+    }),
+  };
+};
+/* eslint-enable camelcase */
+
+const isUsableResponsesTemplate = (value: unknown): value is AutoRAGResponsesTemplate => {
+  const isRecord = (entry: unknown): entry is Record<string, unknown> =>
+    typeof entry === 'object' && entry !== null;
+  if (!isRecord(value)) {
+    return false;
+  }
+  if (typeof value.model !== 'string' || value.model.trim() === '') {
+    return false;
+  }
+  if (!isRecord(value.metadata)) {
+    return false;
+  }
+  if (
+    typeof value.metadata.embedding_model !== 'string' ||
+    value.metadata.embedding_model.trim() === ''
+  ) {
+    return false;
+  }
+  if (!(
+    (typeof value.input === 'string' && value.input.trim() !== '') ||
+    (Array.isArray(value.input) && value.input.length > 0)
+  )) {
+    return false;
+  }
+  if (!Array.isArray(value.tools) || value.tools.length === 0) {
+    return false;
+  }
+  if (
+    !value.tools.every((tool) => {
+      if (!isRecord(tool) || tool.type !== 'file_search' || !Array.isArray(tool.vector_store_ids)) {
+        return false;
+      }
+      return tool.vector_store_ids.every(
+        (id) => typeof id === 'string' && /^[A-Za-z0-9_.-]+$/.test(id),
+      );
+    })
+  ) {
+    return false;
+  }
+  return isRecord(value.tool_choice) && value.tool_choice.type === 'file_search';
+};
+
+/* eslint-disable camelcase */
+const unavailableResponsesTemplate = (patternName: string): AutoRAGResponsesTemplate => ({
+  model: '',
+  stream: true,
+  store: false,
+  input: [],
+  metadata: { rag_pattern_name: patternName, embedding_model: '' },
+  instructions: '',
+  tools: [{ type: 'file_search', vector_store_ids: [], max_num_results: 0 }],
+  tool_choice: { type: 'file_search' },
+  include: ['file_search_call.results'],
+});
+/* eslint-enable camelcase */
+
+export const getResponsesTemplateForPattern = (
+  pattern: AutoragPattern,
+  provider: 'milvus' | 'pgvector' | 'neo4j',
+  runId: string | undefined,
+): AutoRAGResponsesTemplate | undefined => {
+  const persistedTemplate = pattern.inference?.responses_template;
+  if (persistedTemplate) {
+    try {
+      const embeddingModel = getPatternEmbeddingModel(pattern);
+      const candidate = {
+        ...persistedTemplate,
+        metadata: {
+          ...persistedTemplate.metadata,
+          ...(embeddingModel
+            ? {
+                // eslint-disable-next-line camelcase
+                embedding_model: embeddingModel,
+              }
+            : {}),
+        },
+      };
+      if (isUsableResponsesTemplate(candidate)) {
+        return normalizeResponsesTemplate(candidate, provider);
+      }
+    } catch {
+      // Build the generated fallback only after the persisted template is unusable.
+    }
+  }
+
+  try {
+    const fallback = buildResponsesTemplate(pattern, runId);
+    return isUsableResponsesTemplate(fallback)
+      ? normalizeResponsesTemplate(fallback, provider)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
@@ -66,6 +356,22 @@ function AutoragResultsPage(): React.JSX.Element {
     setDrawerContent(null);
   }, [locationKey]);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const [starterKitDownloadError, setStarterKitDownloadError] = React.useState<string>();
+  const starterKitDownloadGeneration = React.useRef(0);
+  const starterKitDownloadController = React.useRef<AbortController | null>(null);
+
+  React.useLayoutEffect(() => {
+    starterKitDownloadGeneration.current += 1;
+    starterKitDownloadController.current?.abort();
+    starterKitDownloadController.current = null;
+    setStarterKitDownloadError(undefined);
+
+    return () => {
+      starterKitDownloadGeneration.current += 1;
+      starterKitDownloadController.current?.abort();
+      starterKitDownloadController.current = null;
+    };
+  }, [namespace, runId]);
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -78,6 +384,7 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   const notification = useNotification();
+  const fetchS3File = useFetchS3File();
 
   const {
     data: pipelineRun,
@@ -87,6 +394,99 @@ function AutoragResultsPage(): React.JSX.Element {
     error: pipelineRunLoadError,
     dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
+
+  const { rootDir, patternGenerationDir } = useAutoragOutputDir(pipelineRun);
+  const templatesOptimizationPath =
+    isRunCompleted(pipelineRun?.state) && runId ? `${rootDir}/${runId}` : undefined;
+  const artifactDiscoveryPath = templatesOptimizationPath
+    ? `${templatesOptimizationPath}/${patternGenerationDir}`
+    : undefined;
+  const {
+    data: artifactDiscoveryFiles,
+    isLoading: artifactDiscoveryLoading,
+    isError: artifactDiscoveryError,
+  } = useS3ListFilesQuery(namespace, artifactDiscoveryPath);
+  const artifactUuid = React.useMemo(() => {
+    if (!artifactDiscoveryFiles || !artifactDiscoveryPath) {
+      return undefined;
+    }
+    return resolveArtifactDirectory(artifactDiscoveryFiles.common_prefixes, artifactDiscoveryPath)
+      .id;
+  }, [artifactDiscoveryFiles, artifactDiscoveryPath]);
+  const artifactDirectory = artifactUuid ? `${artifactDiscoveryPath}/${artifactUuid}` : undefined;
+  const {
+    data: starterKitFiles,
+    isLoading: starterKitLoading,
+    isError: starterKitError,
+  } = useS3ListFilesQuery(
+    namespace,
+    artifactDirectory ? `${artifactDirectory}/starter_kit` : undefined,
+  );
+  const starterKitKey = artifactDirectory
+    ? `${artifactDirectory}/starter_kit/${STARTER_KIT_FILENAME}`
+    : undefined;
+  const hasStarterKit = Boolean(
+    starterKitKey && starterKitFiles?.contents.some((object) => object.key === starterKitKey),
+  );
+  const runArtifactLoading = artifactDiscoveryLoading || starterKitLoading;
+  const runArtifactListError = artifactDiscoveryError || starterKitError;
+
+  const starterKitTooltip = React.useMemo(() => {
+    if (!isRunCompleted(pipelineRun?.state)) {
+      return isRunInTerminalState(pipelineRun?.state)
+        ? ARTIFACT_UNSUCCESSFUL_TOOLTIP
+        : ARTIFACT_AVAILABLE_TOOLTIP;
+    }
+    if (runArtifactLoading) {
+      return ARTIFACT_CHECKING_TOOLTIP;
+    }
+    return hasStarterKit && !runArtifactListError ? undefined : ARTIFACT_UNAVAILABLE_TOOLTIP;
+  }, [hasStarterKit, pipelineRun?.state, runArtifactListError, runArtifactLoading]);
+  const starterKitDisabled = Boolean(starterKitTooltip);
+
+  const handleDownloadStarterKit = React.useCallback(async () => {
+    if (starterKitDisabled || !namespace || !starterKitKey) {
+      return;
+    }
+
+    const downloadGeneration = ++starterKitDownloadGeneration.current;
+    const controller = new AbortController();
+    starterKitDownloadController.current = controller;
+    setStarterKitDownloadError(undefined);
+    try {
+      const starterKit = await fetchS3File(namespace, starterKitKey, {
+        signal: controller.signal,
+      });
+      if (
+        downloadGeneration !== starterKitDownloadGeneration.current ||
+        starterKitDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
+      }
+      downloadBlob(starterKit, STARTER_KIT_FILENAME);
+      fireAutoragStarterKitDownloaded();
+    } catch (error) {
+      if (
+        isAbortError(error) ||
+        downloadGeneration !== starterKitDownloadGeneration.current ||
+        starterKitDownloadController.current !== controller ||
+        controller.signal.aborted
+      ) {
+        return;
+      }
+      setStarterKitDownloadError(
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      );
+    } finally {
+      if (
+        downloadGeneration === starterKitDownloadGeneration.current &&
+        starterKitDownloadController.current === controller
+      ) {
+        starterKitDownloadController.current = null;
+      }
+    }
+  }, [fetchS3File, namespace, starterKitDisabled, starterKitKey]);
 
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
@@ -162,7 +562,7 @@ function AutoragResultsPage(): React.JSX.Element {
       const total = failedPatterns.length + Object.keys(patterns).length;
       notification.warning(
         `${failedPatterns.length} of ${total} patterns could not be loaded`,
-        `The following patterns failed to load: ${failedPatterns.join(', ')}`,
+        `The following patterns failed to load: ${failedPatterns.map(formatPatternName).join(', ')}`,
       );
     }
   }, [failedPatterns, patterns, notification, patternsLoading]);
@@ -188,6 +588,97 @@ function AutoragResultsPage(): React.JSX.Element {
       />
     ),
     [namespace, runId],
+  );
+
+  const headerActions = React.useMemo(
+    () => (
+      <Split hasGutter isWrappable>
+        {runTerminatable || runRetryable ? (
+          <SplitItem>
+            {runTerminatable && (
+              <Button
+                variant="link"
+                icon={<StopCircleIcon />}
+                onClick={() => setIsStopModalOpen(true)}
+                isDisabled={isTerminating || isStopModalOpen}
+                isLoading={isTerminating || isStopModalOpen}
+                spinnerAriaValueText="Stopping run"
+                data-testid="stop-run-button"
+              >
+                Stop
+              </Button>
+            )}
+            {runRetryable && (
+              <Button
+                variant="link"
+                icon={<RedoIcon />}
+                onClick={() => void handleRetry().catch(() => undefined)}
+                isDisabled={isRetrying}
+                isLoading={isRetrying}
+                spinnerAriaValueText="Retrying run"
+                data-testid="retry-run-button"
+              >
+                Retry
+              </Button>
+            )}
+          </SplitItem>
+        ) : null}
+        <SplitItem>
+          <Button
+            variant="link"
+            icon={<CogIcon />}
+            component={ReconfigureLink}
+            data-testid="reconfigure-run-button"
+          >
+            Reconfigure
+          </Button>
+        </SplitItem>
+        <SplitItem>
+          <Tooltip
+            content={starterKitTooltip}
+            trigger={starterKitDisabled ? 'mouseenter focus' : ''}
+          >
+            <Button
+              variant="link"
+              icon={<DownloadIcon />}
+              onClick={() => void handleDownloadStarterKit()}
+              isAriaDisabled={starterKitDisabled}
+              data-testid="starter-kit-download-button"
+            >
+              Download starter kit
+            </Button>
+          </Tooltip>
+        </SplitItem>
+        <SplitItem>
+          <Button
+            variant="link"
+            icon={<OpenDrawerRightIcon />}
+            onClick={() =>
+              setDrawerContent((prev) =>
+                prev?.type === 'run-details' ? null : { type: 'run-details' },
+              )
+            }
+            aria-expanded={drawerContent?.type === 'run-details'}
+            data-testid="run-details-button"
+          >
+            Run details
+          </Button>
+        </SplitItem>
+      </Split>
+    ),
+    [
+      runTerminatable,
+      runRetryable,
+      isTerminating,
+      isStopModalOpen,
+      isRetrying,
+      ReconfigureLink,
+      starterKitTooltip,
+      starterKitDisabled,
+      handleDownloadStarterKit,
+      drawerContent,
+      handleRetry,
+    ],
   );
 
   const ogxSecretName =
@@ -260,14 +751,17 @@ function AutoragResultsPage(): React.JSX.Element {
   // (see `onSelectPattern` below), which is not a new "open".
   const openPlaygroundForPattern = React.useCallback(
     (patternName: string): boolean => {
-      const pattern = patterns?.[patternName];
+      const pattern = patterns[patternName];
       if (!pattern) {
         return false;
       }
-      const responsesTemplate = pattern.inference?.responses_template;
-      if (!responsesTemplate) {
+      const provider = getPatternStoreProvider(pattern);
+      if (!provider) {
         return false;
       }
+      const responsesTemplate =
+        getResponsesTemplateForPattern(pattern, provider, pipelineRun?.run_id) ??
+        unavailableResponsesTemplate(patternName);
 
       const metricMean = getObjectiveMetric(pattern, contextValue.optimizationMetric)?.scores.mean;
       setDrawerContent({
@@ -284,7 +778,7 @@ function AutoragResultsPage(): React.JSX.Element {
       });
       return true;
     },
-    [contextValue.optimizationMetric, patterns],
+    [contextValue.optimizationMetric, patterns, pipelineRun?.run_id],
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
@@ -299,19 +793,32 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const [viewCodePattern, setViewCodePattern] = React.useState<{
     patternName: string;
-    responsesTemplate: ResponsesTemplate;
+    responsesTemplate: AutoRAGResponsesTemplate;
   } | null>(null);
 
   const handleViewCode = React.useCallback(
     (patternName: string, source: ViewCodeEntrySource) => {
+      const pattern = patterns[patternName];
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const responsesTemplate = patterns?.[patternName]?.inference?.responses_template;
-      if (responsesTemplate) {
-        setViewCodePattern({ patternName, responsesTemplate });
-        fireAutoragCodeSnippetsExported('viewed', source);
+      if (!pattern || !canUseResponsesForPattern(contextValue.parameters, pattern)) {
+        return;
       }
+      const provider = getPatternStoreProvider(pattern);
+      if (!provider) {
+        return;
+      }
+      const responsesTemplate = getResponsesTemplateForPattern(
+        pattern,
+        provider,
+        pipelineRun?.run_id,
+      );
+      if (!responsesTemplate) {
+        return;
+      }
+      setViewCodePattern({ patternName, responsesTemplate });
+      fireAutoragCodeSnippetsExported('viewed', source);
     },
-    [patterns],
+    [contextValue.parameters, patterns, pipelineRun?.run_id],
   );
 
   return (
@@ -332,108 +839,55 @@ function AutoragResultsPage(): React.JSX.Element {
                 patternInfo={drawerContent.patternInfo}
                 onClose={handleDrawerClose}
                 onSelectPattern={openPlaygroundForPattern}
-                onViewCode={(patternName) => handleViewCode(patternName, 'playground')}
               />
             ) : undefined
           }
         >
           <DrawerContentBody>
             <ApplicationsPage
-              title={<AutoragHeader />}
-              subtext={
-                <h2 className="pf-v6-u-mt-sm">
-                  {pipelineRun ? (
-                    <span>
-                      &quot;
-                      <Truncate content={pipelineRun.display_name || ''} />
-                      &quot; results
-                    </span>
-                  ) : (
-                    <Skeleton width="300px" />
-                  )}
-                </h2>
-              }
-              headerAction={
-                <Split hasGutter>
-                  <SplitItem>
-                    {runTerminatable && (
-                      <Button
-                        variant="secondary"
-                        icon={<StopCircleIcon />}
-                        onClick={() => setIsStopModalOpen(true)}
-                        isDisabled={isTerminating || isStopModalOpen}
-                        isLoading={isTerminating || isStopModalOpen}
-                        spinnerAriaValueText="Stopping run"
-                        data-testid="stop-run-button"
-                      >
-                        Stop
-                      </Button>
-                    )}
-                    {runRetryable && (
-                      <Button
-                        variant="secondary"
-                        icon={<RedoIcon />}
-                        onClick={() => void handleRetry().catch(() => undefined)}
-                        isDisabled={isRetrying}
-                        isLoading={isRetrying}
-                        spinnerAriaValueText="Retrying run"
-                        data-testid="retry-run-button"
-                      >
-                        Retry
-                      </Button>
-                    )}
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="secondary"
-                      icon={<CogIcon />}
-                      component={ReconfigureLink}
-                      data-testid="reconfigure-run-button"
-                    >
-                      Reconfigure
-                    </Button>
-                  </SplitItem>
-                  <SplitItem>
-                    <Button
-                      variant="link"
-                      icon={<OpenDrawerRightIcon />}
-                      onClick={() =>
-                        setDrawerContent((prev) =>
-                          prev?.type === 'run-details' ? null : { type: 'run-details' },
-                        )
-                      }
-                      aria-expanded={drawerContent?.type === 'run-details'}
-                      data-testid="run-details-button"
-                    >
-                      Run details
-                    </Button>
-                  </SplitItem>
-                </Split>
-              }
+              noHeader
               breadcrumb={
                 namespace ? (
-                  <ExperimentContextBreadcrumb
-                    pageName="AutoRAG"
-                    namespace={namespace}
-                    projectDisplayName={projectDisplayName}
-                    homePath={getRedirectPath(namespace)}
+                  <Flex
+                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    flexWrap={{ default: 'wrap' }}
                   >
-                    <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
-                      <Link
-                        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
-                        state={{ from: 'results' }}
+                    <FlexItem>
+                      <ContextBreadcrumb
+                        pageName="AutoRAG"
+                        projectDisplayName={projectDisplayName}
+                        homePath={getRedirectPath(namespace)}
+                        projectHomePath={`/projects/${namespace}`}
+                        homeTestId="experiment-breadcrumb-home"
+                        projectLinkTestId="project-navigator-link-in-breadcrumb"
                       >
-                        Run configurations
-                      </Link>
-                    </BreadcrumbItem>
-                    <BreadcrumbItem isActive>Run results</BreadcrumbItem>
-                  </ExperimentContextBreadcrumb>
+                        <BreadcrumbItem data-testid="results-breadcrumb-experiment-configurations">
+                          <Link
+                            to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
+                            state={{ from: 'results' }}
+                          >
+                            Run configurations
+                          </Link>
+                        </BreadcrumbItem>
+                        <BreadcrumbItem isActive data-testid="results-breadcrumb-run-name">
+                          {pipelineRun ? (
+                            <Truncate content={pipelineRun.display_name || ''} />
+                          ) : (
+                            <Skeleton width="300px" />
+                          )}
+                          &nbsp;results
+                        </BreadcrumbItem>
+                      </ContextBreadcrumb>
+                    </FlexItem>
+                    <FlexItem>{headerActions}</FlexItem>
+                  </Flex>
                 ) : undefined
               }
               empty={noNamespaces || invalidNamespace || invalidPipelineRunId}
               emptyStatePage={
                 invalidPipelineRunId ? (
-                  <InvalidPipelineRun />
+                  <InvalidPipelineRun productName="AutoRAG" />
                 ) : (
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )
@@ -443,6 +897,17 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
+              {starterKitDownloadError && (
+                <Alert
+                  variant="danger"
+                  title="Starter kit download failed"
+                  actionClose={
+                    <AlertActionCloseButton onClose={() => setStarterKitDownloadError(undefined)} />
+                  }
+                >
+                  {starterKitDownloadError}
+                </Alert>
+              )}
               <AutoragResults onTryPattern={handleTryPattern} onViewCode={handleViewCode} />
             </ApplicationsPage>
           </DrawerContentBody>
@@ -454,7 +919,12 @@ function AutoragResultsPage(): React.JSX.Element {
         onConfirm={handleStop}
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
-        source="resultsPage"
+        onCancel={() =>
+          fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, {
+            outcome: TrackingOutcome.cancel,
+            source: 'resultsPage',
+          })
+        }
       />
       {viewCodePattern && (
         <ViewCodeModal
@@ -462,7 +932,6 @@ function AutoragResultsPage(): React.JSX.Element {
           onClose={() => setViewCodePattern(null)}
           patternName={viewCodePattern.patternName}
           responsesTemplate={viewCodePattern.responsesTemplate}
-          ogxCredentials={ogxCredentials}
         />
       )}
     </AutoragResultsContext.Provider>

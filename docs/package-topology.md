@@ -218,7 +218,7 @@ should be parameterized or removed from core packages.
 
 - Feature-specific test specs live inside the feature package (`packages/<pkg>/cypress/`),
   not in the central `packages/cypress/` directory
-- Each package's `cypress/` directory can be declared as its own npm workspace
+- Each package's `cypress/` directory can be declared as its own pnpm workspace
 - Test specs must not import application source code — duplicate UI cues or use
   `data-testid` selectors instead
 - `packages/cypress/` remains the shared test infrastructure: page objects, commands,

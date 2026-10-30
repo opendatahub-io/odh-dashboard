@@ -5,6 +5,7 @@ import {
   FetchStateCallbackPromise,
   APIOptions,
   NotReadyError,
+  useDeepCompareMemoize,
 } from 'mod-arch-core';
 import { AAModelResponse, AIModel } from '~/app/types';
 import {
@@ -12,6 +13,7 @@ import {
   isClusterLocalURL,
   convertMaaSModelToAIModel,
 } from '~/app/utilities/utils';
+import { GenAiContext } from '~/app/context/GenAiContext';
 import { useGenAiAPI } from './useGenAiAPI';
 import useGenAiDashboardConfig from './useGenAiDashboardConfig';
 import useAiAssetModelAsServiceEnabled from './useAiAssetModelAsServiceEnabled';
@@ -51,11 +53,13 @@ export const isValidAAModel = (item: unknown): item is AAModelResponse =>
 
 const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
   const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = React.useContext(GenAiContext);
   const maaSEnabled = !!useAiAssetModelAsServiceEnabled();
   const genAiConfig = useGenAiDashboardConfig();
-  const clusterDomains = React.useMemo(
-    () => genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? EMPTY_CLUSTER_DOMAINS,
-    [genAiConfig],
+  // Config polling can replace an unchanged array. Keep the fetch callback stable
+  // so initialPromisePurity does not reset loading and unmount active playgrounds.
+  const clusterDomains = useDeepCompareMemoize(
+    genAiConfig?.aiAssetCustomEndpoints?.clusterDomains ?? EMPTY_CLUSTER_DOMAINS,
   );
 
   const queryParams = maaSEnabled ? MAAS_QUERY_PARAMS : EMPTY_QUERY_PARAMS;
@@ -64,6 +68,19 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
     async (opts: APIOptions) => {
       if (!apiAvailable) {
         return Promise.reject(new NotReadyError('API not yet available'));
+      }
+
+      if (!namespace) {
+        if (!maaSEnabled) {
+          return [];
+        }
+
+        const rawData = await api.getAAModels({ sources: 'maas' }, opts);
+        if (!Array.isArray(rawData)) {
+          throw new Error('Invalid response from getAAModels: expected an array');
+        }
+
+        return rawData.filter(isValidAAModel).map(convertMaaSModelToAIModel);
       }
 
       const rawData = await api.getAAModels(queryParams, opts);
@@ -96,7 +113,7 @@ const useFetchAIModels = (): FetchStateObject<AIModel[]> => {
         };
       });
     },
-    [api, apiAvailable, clusterDomains, queryParams],
+    [api, apiAvailable, clusterDomains, maaSEnabled, namespace, queryParams],
   );
 
   const [data, loaded, error, refresh] = useFetchState(fetchAIModels, [], {

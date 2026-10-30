@@ -26,6 +26,10 @@ import {
 import { getImageStreamDisplayName } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { k8sMergePatchResource } from '#~/api/k8sUtils';
 import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
+import {
+  isDRAHardwareProfile,
+  isSameHardwareProfileBinding,
+} from '#~/concepts/hardwareProfiles/utils';
 
 export const assembleNotebook = (
   data: StartNotebookData,
@@ -348,6 +352,26 @@ export const mergePatchUpdateNotebook = (
   opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const notebook = assembleNotebook(assignableData, username, undefined);
+
+  const {
+    formData: { selectedProfile },
+    existingBinding,
+  } = assignableData.hardwareProfileOptions.podSpecOptionsState.hardwareProfile;
+  if (
+    selectedProfile &&
+    isDRAHardwareProfile(selectedProfile) &&
+    isSameHardwareProfileBinding(existingBinding, selectedProfile.metadata)
+  ) {
+    return k8sMergePatchResource<NotebookKind>(
+      applyK8sAPIOptions(
+        {
+          model: NotebookModel,
+          resource: notebook,
+        },
+        opts,
+      ),
+    );
+  }
 
   // Remove old node selector keys in merge patch
   const oldNodeSelectorToRemove: Record<string, string | null> = {};

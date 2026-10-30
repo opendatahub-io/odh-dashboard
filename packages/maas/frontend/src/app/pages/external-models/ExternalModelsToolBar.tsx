@@ -88,7 +88,7 @@ const ExternalModelsToolBar: React.FC<ExternalModelsToolBarProps> = ({
             } satisfies ExternalModelsManageProvidersClickedProperties)
           }
         >
-          Manage external providers
+          View providers
         </Button>
       </ToolbarItem>
     </ToolbarGroup>

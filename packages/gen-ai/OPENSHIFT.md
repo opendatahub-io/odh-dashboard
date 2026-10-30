@@ -59,11 +59,10 @@ oc create route edge --service=gen-ai
 
 ## Notes
 
-- Ensure any required environment variables (such as `LLAMA_STACK_URL` and `MAAS_URL`) are set in your deployment configuration.
+- Ensure required environment variables such as `LLAMA_STACK_URL` are set in your deployment configuration.
 - You can view and edit environment variables with:
   ```sh
   oc set env deployment/gen-ai LLAMA_STACK_URL=http://llama-stack-service:8080
-  oc set env deployment/gen-ai MAAS_URL=http://maas-service:8080
   ```
 - For development/testing, you can enable mock clients:
   ```sh

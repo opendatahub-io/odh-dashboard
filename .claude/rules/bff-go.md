@@ -173,7 +173,7 @@ gen-ai and model-registry use K8s `envtest` for integration tests.
 - BFF must expose `/healthcheck`, accept mock flags, and have OpenAPI spec
 - Tests run against mock BFF and validate with `toMatchContract(apiSchema, { ref, status })`
 - OpenAPI spec in `bff/openapi/src/*.yaml`
-- Run: `npm run test:contract` (starts mock BFF, runs Jest)
+- Run: `pnpm run test:contract` (starts mock BFF, runs Jest)
 
 ## Go conventions
 

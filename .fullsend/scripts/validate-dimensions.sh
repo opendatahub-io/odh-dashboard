@@ -12,6 +12,18 @@ fail() {
   exit 1
 }
 
+schema_has_property() {
+  jq -e --arg field "$1" '.properties[$field] != null' "${SCHEMA}" >/dev/null
+}
+
+validate_result_fields() {
+  local id="$1" result_fields="$2" field
+  jq -ne --argjson fields "${result_fields}" '($fields | type == "array" and length > 0) and all($fields[]; type == "string" and . != "")' >/dev/null || fail "${id}: result_fields must be a non-empty string array"
+  while IFS= read -r field; do
+    schema_has_property "${field}" || fail "${id}: result field ${field} is absent from result schema"
+  done < <(jq -r '.[]' <<<"${result_fields}")
+}
+
 jq empty "${REGISTRY}" || fail "invalid JSON: ${REGISTRY}"
 jq empty "${SCHEMA}" || fail "invalid JSON: ${SCHEMA}"
 
@@ -20,22 +32,36 @@ jq -e '
   ([.dimensions[] | select((.kind != "llm-subagent") and (.kind != "llm-skill") and (.kind != "cli-adapter"))] | length == 0)
 ' "${REGISTRY}" >/dev/null || fail "kind must be llm-subagent, llm-skill, or cli-adapter"
 
-while IFS=$'\t' read -r id kind output definition meta result_fields inline_skill; do
+# The orchestrator dispatches an LLM context row only through its pre-dispatch
+# step, so one without the stage would never run, and the stage on any other
+# row would hand reviewers something that is not a context brief.
+jq -e '
+  all(.dimensions[];
+    (.kind == "llm-subagent" or .kind == "llm-skill") as $llm |
+    ((.output // "findings") == "context") as $context |
+    (.stage // "") as $stage |
+    ($stage == "" or $stage == "pre-dispatch") and
+    (($stage == "pre-dispatch") == ($llm and $context)))
+' "${REGISTRY}" >/dev/null || fail "stage must be pre-dispatch on every LLM row with output context, and absent on every other row"
+
+while IFS=$'\t' read -r id label kind output definition meta result_fields inline_skill; do
   [[ -n "${id}" ]] || fail "dimension without id"
+  [[ -n "${label}" ]] || fail "${id}: missing non-empty label"
   case "${output}" in
     findings|context) ;;
     section:*)
       section="${output#section:}"
-      jq -e --arg section "${section}" '.properties[$section] != null' "${SCHEMA}" >/dev/null || fail "${id}: section ${section} is absent from result schema"
-      if [[ -n "${result_fields}" ]]; then
-        jq -ne --argjson fields "${result_fields}" '($fields | type == "array" and length > 0) and all($fields[]; type == "string" and . != "")' >/dev/null || fail "${id}: result_fields must be a non-empty string array"
-        while IFS= read -r field; do
-          jq -e --arg field "${field}" '.properties[$field] != null' "${SCHEMA}" >/dev/null || fail "${id}: result field ${field} is absent from result schema"
-        done < <(jq -r '.[]' <<<"${result_fields}")
+      schema_has_property "${section}" || fail "${id}: section ${section} is absent from result schema"
+      if [[ -n "${result_fields}" && "${result_fields}" != "[]" ]]; then
+        validate_result_fields "${id}" "${result_fields}"
       fi
       ;;
     check:*)
       jq -e '."$defs".readiness_check != null' "${SCHEMA}" >/dev/null || fail "${id}: result schema lacks readiness_check"
+      ;;
+    signal:*)
+      [[ -n "${result_fields}" && "${result_fields}" != "[]" ]] || fail "${id}: signal rows require result_fields"
+      validate_result_fields "${id}" "${result_fields}"
       ;;
     *) fail "${id}: unsupported output ${output}" ;;
   esac
@@ -55,7 +81,7 @@ while IFS=$'\t' read -r id kind output definition meta result_fields inline_skil
   if [[ "${kind}" == "cli-adapter" && "${output}" == context && -n "${meta}" ]]; then
     fail "${id}: cli context adapters must not declare an LLM meta prompt"
   fi
-  printf 'PASS dimension %s (%s, %s)\n' "${id}" "${kind}" "${output}"
-done < <(jq -r '.dimensions[] | [.id, .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // ""), (.result_fields // [] | @json), (.inline_skill // "")] | @tsv' "${REGISTRY}")
+  printf 'PASS dimension %s (%s, %s, label=%s)\n' "${id}" "${kind}" "${output}" "${label}"
+done < <(jq -r '.dimensions[] | [.id, (.label // ""), .kind, (.output // "findings"), (.definition // ""), (.meta_prompt // ""), (.result_fields // [] | @json), (.inline_skill // "")] | @tsv' "${REGISTRY}")
 
 echo "Fullsend dimension registry contract is valid"

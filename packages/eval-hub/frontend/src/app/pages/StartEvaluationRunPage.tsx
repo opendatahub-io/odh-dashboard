@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   ActionGroup,
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -31,7 +30,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import {
   MlflowExperimentSelector,
@@ -41,20 +40,23 @@ import {
   evaluationsBaseRoute,
   evaluationBenchmarksRoute,
   evaluationCollectionsRoute,
-  evaluationCreateRoute,
+  projectHomeRoute,
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
 import SourceModelFields from '~/app/components/SourceModelFields';
-import SourceAgentFields from '~/app/components/SourceAgentFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
-import type { SourceMode } from '~/app/types';
+import HardwareProfileField from '~/app/components/HardwareProfileField';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import {
   useStartEvaluationRunForm,
   DEFAULT_EXPERIMENT_NAME,
@@ -62,12 +64,6 @@ import {
 } from './useStartEvaluationRunForm';
 
 import './StartEvaluationRunPage.css';
-
-const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
-  { value: 'model', label: 'Model' },
-  { value: 'agent', label: 'Agent' },
-  { value: 'prerecorded', label: 'Pre-recorded responses' },
-];
 
 type StartEvaluationRunPageProps = {
   initialValues?: ReconfigureFormData;
@@ -79,6 +75,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   sourceJobId,
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
+  const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const isReconfigure = !!sourceJobId;
 
   const selectionResult = useEvaluationSelection(namespace, isReconfigure);
@@ -102,6 +100,11 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     warning: isWarning,
   } = useInferenceServices(namespace ?? '');
 
+  const previousRoute = isCollectionFlow
+    ? evaluationCollectionsRoute(namespace)
+    : evaluationBenchmarksRoute(namespace);
+  const handleCancel = React.useCallback(() => navigate(previousRoute), [navigate, previousRoute]);
+
   const form = useStartEvaluationRunForm({
     namespace,
     benchmark,
@@ -110,17 +113,36 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     experiments,
     experimentsLoaded,
     initialValues,
+    onCancel: isReconfigure ? undefined : handleCancel,
   });
 
-  const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
+  // The modal flow tracks this on open; the full-page create flow has no modal, so
+  // track once per page opening once the selection has loaded. Reconfigure is a
+  // separate flow with its own event.
+  const hasTrackedOpenRef = React.useRef(false);
+  React.useEffect(() => {
+    if (isReconfigure || !dataLoaded || loadError || hasTrackedOpenRef.current) {
+      return;
+    }
+    hasTrackedOpenRef.current = true;
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
+      { surface: 'create_run_page' },
+      {
+        collectionType: collection
+          ? collection.resource.read_only
+            ? 'system'
+            : 'custom'
+          : 'unknown',
+        providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+      },
+    );
+  }, [benchmark, collection, dataLoaded, isReconfigure, loadError]);
+
+  const breadcrumbFlowLabel = isCollectionFlow ? 'Select collection' : 'Select benchmark';
 
   const getBreadcrumbItems = (): React.ReactElement[] => {
-    const items: React.ReactElement[] = [
-      <BreadcrumbItem
-        key="evaluations"
-        render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-      />,
-    ];
+    const items: React.ReactElement[] = [];
     if (isReconfigure) {
       items.push(
         <BreadcrumbItem key="active" isActive>
@@ -130,22 +152,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     } else {
       items.push(
         <BreadcrumbItem
-          key="type"
-          render={() => <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>}
-        />,
-        <BreadcrumbItem
           key="suite"
-          render={() => (
-            <Link
-              to={
-                isCollectionFlow
-                  ? evaluationCollectionsRoute(namespace)
-                  : evaluationBenchmarksRoute(namespace)
-              }
-            >
-              {breadcrumbFlowLabel}
-            </Link>
-          )}
+          render={() => <Link to={previousRoute}>{breadcrumbFlowLabel}</Link>}
         />,
         <BreadcrumbItem key="active" isActive>
           Start evaluation run
@@ -155,21 +163,9 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     return items;
   };
 
-  // ── Source dropdown state ────────────────────────────────────────────
+  // ── Model dropdown state ────────────────────────────────────────────
 
-  const [isSourceOpen, setIsSourceOpen] = React.useState(false);
   const [isModelOpen, setIsModelOpen] = React.useState(false);
-
-  const handleSourceSelect = React.useCallback(
-    (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
-      if (typeof value === 'string') {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        form.handleSourceModeChange(value as SourceMode);
-      }
-      setIsSourceOpen(false);
-    },
-    [form],
-  );
 
   const handleModelSelect = React.useCallback(
     (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
@@ -229,7 +225,16 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   return (
     <ApplicationsPage
       noHeader
-      breadcrumb={<Breadcrumb>{getBreadcrumbItems()}</Breadcrumb>}
+      breadcrumb={
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName={projectDisplayName}
+          homePath={evaluationsBaseRoute(namespace)}
+          projectHomePath={projectHomeRoute(namespace)}
+        >
+          {getBreadcrumbItems()}
+        </ContextBreadcrumb>
+      }
       loaded
       empty={false}
     >
@@ -264,7 +269,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               onChange={() => {
                 form.setExperimentMode('existing');
                 form.setNewExperimentName('');
-                form.experimentManuallyChangedRef.current = true;
+                // Allow auto-selection when experiments load after switching back from new mode.
+                form.experimentManuallyChangedRef.current = false;
               }}
             />
 
@@ -313,53 +319,6 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
                 />
               </div>
             )}
-          </FormGroup>
-
-          {/* ── Source dropdown ─────────────────────────────────── */}
-          <FormGroup
-            className="evalhub-form-group--with-description"
-            label={
-              <FormGroupLabel
-                label="Evaluating"
-                description="Select the model, agent, or dataset to evaluate."
-                isRequired
-              />
-            }
-            fieldId="source-mode"
-          >
-            <Select
-              id="source-mode-menu"
-              data-testid="source-mode-select"
-              isOpen={isSourceOpen}
-              selected={form.sourceMode}
-              onSelect={handleSourceSelect}
-              onOpenChange={setIsSourceOpen}
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  id="source-mode"
-                  ref={toggleRef}
-                  onClick={() => setIsSourceOpen((prev) => !prev)}
-                  isExpanded={isSourceOpen}
-                  isFullWidth
-                  data-testid="source-mode-toggle"
-                >
-                  {SOURCE_OPTIONS.find((o) => o.value === form.sourceMode)?.label}
-                </MenuToggle>
-              )}
-              shouldFocusToggleOnSelect
-            >
-              <SelectList>
-                {SOURCE_OPTIONS.map((opt) => (
-                  <SelectOption
-                    key={opt.value}
-                    value={opt.value}
-                    isSelected={opt.value === form.sourceMode}
-                  >
-                    {opt.label}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
           </FormGroup>
 
           {/* ── Model mode: model picker ───────────────────────── */}
@@ -487,24 +446,6 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             />
           )}
 
-          {/* ── Agent mode fields ──────────────────────────────── */}
-          {form.sourceMode === 'agent' && (
-            <SourceAgentFields
-              agentName={form.agentName}
-              onAgentNameChange={form.setAgentName}
-              endpointUrl={form.endpointUrl}
-              onEndpointUrlChange={form.setEndpointUrl}
-              apiKeySecretRef={form.apiKeySecretRef}
-              onApiKeyChange={form.setApiKeySecretRef}
-              endpointUrlError={form.endpointUrlError}
-              touched={form.touched}
-              markTouched={form.markTouched}
-              connectionValidation={form.connectionValidation}
-              canVerifyConnection={form.canVerifyConnection}
-              onVerifyConnection={form.handleVerifyConnection}
-            />
-          )}
-
           {/* ── Pre-recorded responses fields ──────────────────── */}
           {form.sourceMode === 'prerecorded' && (
             <SourcePrerecordedFields
@@ -520,11 +461,19 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             />
           )}
 
+          <HardwareProfileField
+            availability={form.kueueAvailability}
+            profiles={form.hardwareProfiles}
+            loaded={form.hardwareProfilesLoaded}
+            error={form.hardwareProfilesError}
+            compatibilityError={form.hardwareProfileCompatibilityError}
+            selectedProfile={form.hardwareProfile}
+            onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+            isRequired={form.requiresHardwareProfile}
+          />
+
           {/* ── Benchmark display ──────────────────────────────── */}
-          <FormGroup
-            label={isCollectionFlow ? 'Benchmark suite' : 'Benchmark'}
-            fieldId="benchmark-name"
-          >
+          <FormGroup label={isCollectionFlow ? 'Collection' : 'Benchmark'} fieldId="benchmark-name">
             <Content component="p" data-testid="benchmark-name-display">
               {form.benchmarkDisplayName}
             </Content>
@@ -534,8 +483,9 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
           <BenchmarkThresholdField
             value={form.threshold}
             onChange={form.handleThresholdChange}
-            label={isCollectionFlow ? 'Benchmark suite threshold' : 'Benchmark threshold'}
+            label={isCollectionFlow ? 'Collection threshold' : 'Benchmark threshold'}
             fieldId="benchmark-threshold"
+            metric={isCollectionFlow ? undefined : form.primaryMetric}
           />
 
           {/* ── Primary scorer metric ──────────────────────────── */}
@@ -597,7 +547,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             <Button
               variant="primary"
               data-testid="start-evaluation-submit"
-              onClick={form.handleSubmit}
+              onClick={() => form.handleSubmit()}
               isDisabled={!form.isValid || form.isSubmitting}
               isLoading={form.isSubmitting}
             >

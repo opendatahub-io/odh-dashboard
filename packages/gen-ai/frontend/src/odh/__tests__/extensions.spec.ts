@@ -1,5 +1,17 @@
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
-import extensions, { MODEL_AS_SERVICE_CAMEL, GEN_AI_TRACING } from '~/odh/extensions';
+import { PluginStore } from '@odh-dashboard/plugin-core';
+import extensions, {
+  GEN_AI_AGENT_DEPLOYMENT,
+  GEN_AI_AUDIO_UPLOAD,
+  GEN_AI_IMAGE_UPLOAD,
+  GEN_AI_STUDIO,
+  GEN_AI_TRACING,
+  GUARDRAILS,
+  MODEL_AS_SERVICE_CAMEL,
+  PLUGIN_GEN_AI,
+  PROMPT_MANAGEMENT,
+  PROMPT_MODEL_ASSOCIATIONS,
+} from '~/odh/extensions';
 
 const findArea = (id: string) => {
   const area = extensions.find((ext) => ext.type === 'app.area' && ext.properties.id === id);
@@ -10,12 +22,38 @@ const findArea = (id: string) => {
 };
 
 const findMaaSArea = () => findArea(MODEL_AS_SERVICE_CAMEL);
+const findGuardrailsArea = () => findArea(GUARDRAILS);
 
 const makeDscStatus = (conditions: K8sCondition[]) =>
   ({
     conditions,
     components: {},
   }) as never;
+
+describe('MaaS Models extensions', () => {
+  const findModelsExtensions = (store: PluginStore) =>
+    store
+      .getExtensions()
+      .filter(
+        (extension) =>
+          (extension.type === 'app.route' &&
+            (extension.properties.path === '/maas/models' ||
+              extension.properties.path === '/maas/models/*')) ||
+          (extension.type === 'app.navigation/href' && extension.properties.id === 'maas-models'),
+      );
+
+  // The MaaS portal distribution owns this route and navigation, not the Gen AI plugin.
+  it('should not register the portal navigation or route', () => {
+    const store = new PluginStore({ genAi: extensions });
+    store.setFeatureFlags({
+      [GEN_AI_STUDIO]: true,
+      [PLUGIN_GEN_AI]: true,
+      [MODEL_AS_SERVICE_CAMEL]: true,
+    });
+
+    expect(findModelsExtensions(store)).toHaveLength(0);
+  });
+});
 
 describe('modelAsService area extension', () => {
   it('should have a customCondition defined', () => {
@@ -95,6 +133,79 @@ describe('modelAsService area extension', () => {
       dsciStatus: null,
     });
 
+    expect(result).toBe(false);
+  });
+});
+
+describe('genAiAgentDeployment area extension', () => {
+  it('should be controlled by the genAiAgentDeployment feature flag', () => {
+    const area = findArea(GEN_AI_AGENT_DEPLOYMENT);
+
+    expect(area.properties.reliantAreas).toEqual(['plugin-gen-ai']);
+    expect(area.properties.featureFlags).toEqual([GEN_AI_AGENT_DEPLOYMENT]);
+  });
+});
+
+describe.each([GEN_AI_IMAGE_UPLOAD, GEN_AI_AUDIO_UPLOAD])('%s area extension', (featureFlag) => {
+  it('should be controlled by its feature flag', () => {
+    const area = findArea(featureFlag);
+
+    expect(area.properties.reliantAreas).toEqual(['plugin-gen-ai']);
+    expect(area.properties.featureFlags).toEqual([featureFlag]);
+  });
+});
+
+describe('promptModelAssociations area extension', () => {
+  it('should rely on promptManagement and be gated only by the promptModelAssociations dev flag', () => {
+    const area = findArea(PROMPT_MODEL_ASSOCIATIONS);
+
+    expect(area.properties.reliantAreas).toEqual([PROMPT_MANAGEMENT]);
+    expect(area.properties.devFlags).toEqual([PROMPT_MODEL_ASSOCIATIONS]);
+    expect(area.properties.featureFlags).toBeUndefined();
+  });
+});
+
+describe('guardrails area extension', () => {
+  it('should return true when TrustyAIReady is True', () => {
+    const area = findGuardrailsArea();
+    const result = area.properties.customCondition!({
+      dashboardConfigSpec: {} as never,
+      dscStatus: makeDscStatus([{ type: 'TrustyAIReady', status: 'True', lastTransitionTime: '' }]),
+      dsciStatus: null,
+    });
+    expect(result).toBe(true);
+  });
+
+  it.each(['False', 'Unknown'] as const)(
+    'should return false when TrustyAIReady is %s',
+    (status) => {
+      const area = findGuardrailsArea();
+      const result = area.properties.customCondition!({
+        dashboardConfigSpec: {} as never,
+        dscStatus: makeDscStatus([{ type: 'TrustyAIReady', status, lastTransitionTime: '' }]),
+        dsciStatus: null,
+      });
+      expect(result).toBe(false);
+    },
+  );
+
+  it('should return false when TrustyAIReady is absent', () => {
+    const area = findGuardrailsArea();
+    const result = area.properties.customCondition!({
+      dashboardConfigSpec: {} as never,
+      dscStatus: makeDscStatus([]),
+      dsciStatus: null,
+    });
+    expect(result).toBe(false);
+  });
+
+  it('should return false when DSC conditions are absent', () => {
+    const area = findGuardrailsArea();
+    const result = area.properties.customCondition!({
+      dashboardConfigSpec: {} as never,
+      dscStatus: { components: {} } as never,
+      dsciStatus: null,
+    });
     expect(result).toBe(false);
   });
 });

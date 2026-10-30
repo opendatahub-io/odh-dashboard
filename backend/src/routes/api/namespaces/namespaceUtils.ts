@@ -1,8 +1,8 @@
-import { PatchUtils, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
+import { PatchUtils, V1Namespace, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
 import { K8sStatus, KnownLabels, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
-import { isK8sStatus } from '../../../utils/pass-through';
+import { isK8sStatus, passThroughResource } from '../../../utils/pass-through';
 import { getDashboardConfig } from '../../../utils/resourceUtils';
 import { createSelfSubjectAccessReview } from '../../../utils/authUtils';
 
@@ -65,6 +65,49 @@ export const ensureNamespaceAccessPermission = async (
   }
 };
 
+export const ensureEditNamespacePermission = async (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  projectNamespace: string,
+): Promise<void> =>
+  ensureNamespaceAccessPermission(
+    fastify,
+    request,
+    projectNamespace,
+    checkEditNamespacePermission,
+    "You don't have edit permission in this project.",
+  );
+
+export const ensureNIMFeatureFlagEnabled = (): void => {
+  const config = getDashboardConfig();
+  if (!config || config.spec.dashboardConfig.disableNIMModelServing) {
+    throw createCustomError('NIM model serving disabled', 'NIM model serving is disabled.', 403);
+  }
+};
+
+export const ensureProjectNIMAnnotation = async (
+  fastify: KubeFastifyInstance,
+  request: OauthFastifyRequest,
+  projectNamespace: string,
+): Promise<void> => {
+  const cluster = fastify.kube.config.getCurrentCluster();
+  let namespaceResource: V1Namespace | K8sStatus;
+  try {
+    namespaceResource = await passThroughResource<V1Namespace>(fastify, request, {
+      url: `${cluster.server}/api/v1/namespaces/${projectNamespace}`,
+      method: 'GET',
+    });
+  } catch (e) {
+    throw createCustomError('Failed', 'Failed to check project NIM promotion status', 500);
+  }
+  if (isK8sStatus(namespaceResource)) {
+    throw createCustomError('Failed', 'Failed to check project NIM promotion status', 500);
+  }
+  if (namespaceResource.metadata?.annotations?.['opendatahub.io/nim-support'] !== 'true') {
+    throw createCustomError('Forbidden', 'NIM model serving is not enabled for this project.', 403);
+  }
+};
+
 export const applyNamespaceChange = async (
   fastify: KubeFastifyInstance,
   request: OauthFastifyRequest,
@@ -97,6 +140,7 @@ export const applyNamespaceChange = async (
       break;
     case NamespaceApplicationCase.KSERVE_NIM_PROMOTION:
       {
+        ensureNIMFeatureFlagEnabled();
         annotations = { 'opendatahub.io/nim-support': 'true' };
         checkPermissionsFn = checkEditNamespacePermission;
       }

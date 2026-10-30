@@ -1,0 +1,641 @@
+import * as React from 'react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { mockBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
+import { mockProvider } from '~/__mocks__/mockProvider';
+import BenchmarkSuitesPage from '~/app/pages/BenchmarkSuitesPage';
+import EvalHubCoreLoader from '~/app/components/EvalHubCoreLoader';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+const mockUseCollectionsQuery = jest.fn();
+const mockUseProviders = jest.fn();
+const mockUseNamespaceSelectorWithPersistence = jest.fn();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({ trackEventOnce: jest.fn(), clear: jest.fn() }),
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
+
+const clickFilterOption = (testId: string) => {
+  fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
+};
+
+jest.mock('~/app/hooks/collections', () => ({
+  useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
+  useDeleteCollectionMutation: () => ({
+    error: null,
+    isPending: false,
+    mutateAsync: jest.fn(),
+    reset: jest.fn(),
+  }),
+}));
+
+jest.mock('~/app/hooks/useProviders', () => ({
+  useProviders: (...args: unknown[]) => mockUseProviders(...args),
+}));
+
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: (...args: unknown[]) =>
+    mockUseNamespaceSelectorWithPersistence(...args),
+}));
+
+jest.mock('~/app/components/EvalHubProjectSelector', () => {
+  const { useNavigate } = require('react-router-dom');
+  const MockProjectSelector = ({
+    namespace,
+    getRedirectPath,
+  }: {
+    namespace?: string;
+    getRedirectPath: (namespace: string) => string;
+  }) => {
+    const navigate = useNavigate();
+    return (
+      <div data-testid="benchmark-suites-project-selector">
+        {namespace}
+        <button
+          type="button"
+          data-testid="benchmark-suites-project-selector-switch"
+          onClick={() => navigate(getRedirectPath('other-project'))}
+        >
+          Switch project
+        </button>
+      </div>
+    );
+  };
+  return { __esModule: true, default: MockProjectSelector };
+});
+
+jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
+  ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule({
+    includeBreadcrumb: true,
+  }),
+}));
+
+jest.mock('~/app/components/StartEvaluationRunModal', () => ({
+  __esModule: true,
+  default: ({ collection, isOpen }: { collection?: { name: string }; isOpen: boolean }) =>
+    isOpen ? (
+      <div data-testid="benchmark-suites-page-start-evaluation-run-modal">{collection?.name}</div>
+    ) : null,
+}));
+
+const LocationDisplay = () => {
+  const { pathname, state } = useLocation();
+  return (
+    <>
+      <div data-testid="location-pathname">{pathname}</div>
+      <div data-testid="location-state">{JSON.stringify(state)}</div>
+    </>
+  );
+};
+
+const renderSuitePage = () =>
+  render(
+    <MemoryRouter initialEntries={['/test-project/collections']}>
+      <LocationDisplay />
+      <Routes>
+        <Route path="/:namespace/collections" element={<BenchmarkSuitesPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const renderPage = () => renderSuitePage();
+
+describe('BenchmarkSuitesPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseProviders.mockReturnValue({ providers: [], loaded: true, loadError: undefined });
+    mockUseNamespaceSelectorWithPersistence.mockReturnValue({
+      namespaces: [
+        { name: 'test-project', displayName: 'Test Project' },
+        { name: 'other-project', displayName: 'Other Project' },
+      ],
+      namespacesLoaded: true,
+      preferredNamespace: undefined,
+    });
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: mockBenchmarkSuiteCollections(),
+        // Match the BFF response field name used by CollectionsListResponse.
+        // eslint-disable-next-line camelcase
+        total_count: 8,
+      },
+      isLoading: false,
+      error: null,
+    });
+  });
+
+  it('should render all tenant benchmark suites', () => {
+    renderPage();
+
+    const pageTitle = screen.getByTestId('page-title');
+    expect(pageTitle).toHaveTextContent('My benchmark collections');
+    expect(within(pageTitle).getByTestId('benchmark-suites-project-selector')).toHaveTextContent(
+      'test-project',
+    );
+    expect(screen.getByRole('link', { name: 'Benchmark collections' })).toHaveAttribute(
+      'href',
+      '/evaluation/test-project?tab=evaluate',
+    );
+    expect(
+      screen.getByText(
+        'View, run, and manage all benchmark collections you have created or saved.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create collection' })).toBeInTheDocument();
+    expect(screen.queryByTestId('create-suite-card')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-filter-toolbar')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Go to first page' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Go to last page' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suite-card-trace-evaluation-suite')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suite-card-guardrails-compliance-suite'),
+    ).toBeInTheDocument();
+    expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
+      'test-project',
+      'tenant',
+      8,
+      undefined,
+      undefined,
+      0,
+    );
+  });
+
+  it('should navigate to the create suite page', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByTestId('create-benchmark-suite-button'));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/new',
+    );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+  });
+
+  it('should open the start evaluation run modal for a suite', async () => {
+    renderPage();
+
+    await userEvent.click(
+      within(screen.getByTestId('benchmark-suite-card-model-suite-2')).getByRole('button', {
+        name: 'Run',
+      }),
+    );
+
+    expect(
+      screen.getByTestId('benchmark-suites-page-start-evaluation-run-modal'),
+    ).toHaveTextContent('Model suite 2');
+  });
+
+  it('should navigate to the copy suite page from Duplicate', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeEnabled();
+    expect(screen.getByRole('menuitem', { name: 'Duplicate' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/model-suite-2/copy',
+    );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
+  });
+
+  it('should navigate to the edit suite page from Edit', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByTestId('benchmark-suite-card-menu-model-suite-2'));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create/collections/model-suite-2/edit',
+    );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"benchmark-suites"}');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
+      expect.objectContaining({
+        collectionName: 'Model suite 2',
+        surface: 'my_benchmark_suites',
+      }),
+      expect.objectContaining({
+        collectionType: 'custom',
+        providerType: expect.any(String),
+      }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('should keep suites visible while a filter refetch is pending', () => {
+    // The query keeps the previous page visible (placeholderData) while the widened
+    // filter query is in flight. A filter that matches nothing on the stale page must
+    // not flash the empty state before the new results land.
+    let isFetching = true;
+    mockUseCollectionsQuery.mockImplementation(() => ({
+      data: {
+        items: mockBenchmarkSuiteCollections(),
+        // eslint-disable-next-line camelcase
+        total_count: 8,
+      },
+      isLoading: false,
+      isFetching,
+      error: null,
+    }));
+
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'not-found' },
+    });
+
+    expect(screen.getByTestId('benchmark-suites-refresh-loading')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-empty-state')).not.toBeInTheDocument();
+
+    // Once the fetch settles with no matches, the empty state renders normally.
+    isFetching = false;
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'still-not-found' },
+    });
+
+    expect(screen.getByTestId('benchmark-suites-empty-state')).toBeInTheDocument();
+  });
+
+  it('should clamp to the last valid page when the result count drops', async () => {
+    // 9 suites => 2 pages of 8. Navigate to page 2, then shrink the result set to a
+    // single page (as happens when the last suite on the last page is deleted) and
+    // verify the gallery renders the last page instead of an out-of-range empty state.
+    const nineCollections = [
+      ...mockBenchmarkSuiteCollections(),
+      {
+        ...mockBenchmarkSuiteCollections()[0],
+        resource: { ...mockBenchmarkSuiteCollections()[0].resource, id: 'extra-suite' },
+      },
+    ];
+    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
+      const offset = args[5];
+      const items = offset === 8 ? [nineCollections[8]] : nineCollections.slice(0, 8);
+      return {
+        // eslint-disable-next-line camelcase
+        data: { items, total_count: nineCollections.length },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    const view = renderSuitePage();
+    const user = userEvent.setup();
+
+    await user.click(
+      within(screen.getByTestId('benchmark-suites-pagination-top')).getByRole('button', {
+        name: 'Go to next page',
+      }),
+    );
+
+    expect(screen.getByTestId('benchmark-suite-card-extra-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+
+    // The deletion lands: the count drops to a single page of suites. Re-render the same
+    // tree so the page state survives and the clamp logic has to correct it.
+    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
+      const offset = args[5];
+      const items = offset === 8 ? [] : mockBenchmarkSuiteCollections();
+      return {
+        // eslint-disable-next-line camelcase
+        data: { items, total_count: mockBenchmarkSuiteCollections().length },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    view.rerender(
+      <MemoryRouter initialEntries={['/test-project/collections']}>
+        <LocationDisplay />
+        <Routes>
+          <Route path="/:namespace/collections" element={<BenchmarkSuitesPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // The stale page-2 state is clamped back to the last valid page.
+    expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('should show a refresh spinner without hiding existing suites while fetching', () => {
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: mockBenchmarkSuiteCollections(),
+        // eslint-disable-next-line camelcase
+        total_count: 8,
+      },
+      isLoading: false,
+      isFetching: true,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByTestId('benchmark-suite-card-model-suite-2')).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-refresh-loading')).toBeInTheDocument();
+  });
+
+  it('should filter tenant benchmark suites by name', () => {
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'code' },
+    });
+
+    expect(screen.getByTestId('benchmark-suite-card-code-quality-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+  });
+
+  it('should search the capped fetched collection set when the name filter is used', () => {
+    const collections = mockBenchmarkSuiteCollections();
+    const firstPageCollections = collections.slice(0, 8);
+
+    mockUseCollectionsQuery.mockImplementation((...args: unknown[]) => {
+      const limit = args[2];
+      const items = limit === 200 ? collections : firstPageCollections;
+
+      return {
+        // eslint-disable-next-line camelcase
+        data: { items, total_count: collections.length },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'finance' },
+    });
+
+    expect(screen.getByTestId('benchmark-suite-card-finance-evaluation-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+    expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
+      'test-project',
+      'tenant',
+      200,
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('should show a search icon when no suites match the filters', () => {
+    renderPage();
+
+    fireEvent.change(screen.getByTestId('benchmark-suites-name-filter').querySelector('input')!, {
+      target: { value: 'not-found' },
+    });
+
+    const emptyState = screen.getByTestId('benchmark-suites-empty-state');
+    expect(emptyState).toBeInTheDocument();
+    expect(emptyState.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('should hide filters when collections do not provide filter fields', () => {
+    const collections = mockBenchmarkSuiteCollections().map((collection) => ({
+      ...collection,
+      category: undefined,
+      domains: [],
+      // eslint-disable-next-line camelcase
+      evaluation_targets: [],
+      tags: [],
+      tasks: [],
+      modalities: [],
+      industries: [],
+    }));
+
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: collections,
+        // eslint-disable-next-line camelcase
+        total_count: collections.length,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.queryByTestId('benchmark-suites-category-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-industry-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-tags-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-task-filter')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suites-modality-filter')).not.toBeInTheDocument();
+  });
+
+  it('should keep filters enabled when an active filter returns no suites', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
+    clickFilterOption('benchmark-suites-industry-filter-option-health');
+
+    expect(screen.getByTestId('benchmark-suites-empty-state')).toHaveTextContent(
+      'No collections match the current filters.',
+    );
+    expect(
+      screen.getByTestId('benchmark-suites-name-filter').querySelector('input'),
+    ).not.toBeDisabled();
+    expect(screen.getByTestId('benchmark-suites-category-filter')).not.toBeDisabled();
+    expect(screen.getByTestId('benchmark-suites-industry-filter')).not.toBeDisabled();
+  });
+
+  it('should derive filter options from collection fields', async () => {
+    const collections = mockBenchmarkSuiteCollections().map((collection, index) => ({
+      ...collection,
+      category: 'legacy-category',
+      domains: [index % 2 === 0 ? 'z-category' : 'a-category'],
+      // eslint-disable-next-line camelcase
+      evaluation_targets: [index % 2 === 0 ? 'z-entity' : 'a-entity'],
+      industries: [index % 2 === 0 ? 'z-industry' : 'a-industry'],
+    }));
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: collections,
+        // eslint-disable-next-line camelcase
+        total_count: collections.length,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId('benchmark-suites-category-filter'));
+
+    expect(
+      screen.getByTestId('benchmark-suites-category-filter-option-a-category'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suites-category-filter-option-z-category'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-suites-category-filter-option-legacy-category'),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('benchmark-suites-category-filter'));
+    await user.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
+    await user.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
+
+    expect(
+      screen.getByTestId('benchmark-suites-evaluates-filter-option-a-entity'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suites-evaluates-filter-option-z-entity'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-suites-evaluates-filter-option-model'),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('benchmark-suites-industry-filter'));
+
+    expect(
+      screen.getByTestId('benchmark-suites-industry-filter-option-a-industry'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('benchmark-suites-industry-filter-option-z-industry'),
+    ).toBeInTheDocument();
+  });
+
+  it('should sort benchmark filter options by display name', async () => {
+    const collections = [
+      {
+        ...mockBenchmarkSuiteCollections()[0],
+        benchmarks: [
+          // eslint-disable-next-line camelcase
+          { id: 'benchmark-z', provider_id: 'benchmark-provider' },
+          // eslint-disable-next-line camelcase
+          { id: 'benchmark-a', provider_id: 'benchmark-provider' },
+        ],
+      },
+    ];
+    mockUseCollectionsQuery.mockReturnValue({
+      // eslint-disable-next-line camelcase
+      data: { items: collections, total_count: collections.length },
+      isLoading: false,
+      error: null,
+    });
+    mockUseProviders.mockReturnValue({
+      providers: [
+        mockProvider({
+          id: 'benchmark-provider',
+          benchmarks: [
+            { id: 'benchmark-z', name: 'Zulu Benchmark' },
+            { id: 'benchmark-a', name: 'Alpha Benchmark' },
+          ],
+        }),
+      ],
+      loaded: true,
+      loadError: undefined,
+    });
+
+    renderPage();
+    await userEvent.click(screen.getByTestId('benchmark-suites-benchmarks-filter'));
+
+    const alphaOption = screen.getByTestId('benchmark-suites-benchmarks-filter-option-benchmark-a');
+    const zuluOption = screen.getByTestId('benchmark-suites-benchmarks-filter-option-benchmark-z');
+    expect(alphaOption.compareDocumentPosition(zuluOption)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('should filter tenant benchmark suites by category and evaluates type', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+
+    expect(screen.getByTestId('benchmark-suite-card-code-quality-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-model-suite-2')).not.toBeInTheDocument();
+    expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
+      'test-project',
+      'tenant',
+      200,
+      undefined,
+      undefined,
+      undefined,
+    );
+
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
+    fireEvent.click(screen.getByTestId('benchmark-suites-evaluates-filter'));
+    clickFilterOption('benchmark-suites-evaluates-filter-option-agent');
+
+    expect(screen.getByTestId('benchmark-suite-card-agent-safety-suite')).toBeInTheDocument();
+    expect(screen.queryByTestId('benchmark-suite-card-code-quality-suite')).not.toBeInTheDocument();
+    expect(mockUseCollectionsQuery).toHaveBeenLastCalledWith(
+      'test-project',
+      'tenant',
+      200,
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('should clear the drawer and run selection when switching projects', async () => {
+    // Render through EvalHubCoreLoader to exercise the real route wiring, where only
+    // the :namespace param changes on project switch and the page must not retain
+    // project A's namespace-scoped state under project B.
+    render(
+      <MemoryRouter initialEntries={['/evaluation/test-project/collections']}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <EvalHubCoreLoader getInvalidRedirectPath={(ns) => `/evaluation/${ns}/collections`} />
+            }
+          >
+            <Route path="evaluation/:namespace/collections" element={<BenchmarkSuitesPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+
+    // Open the collection drawer and start a run from it in project A.
+    await user.click(screen.getByTestId('benchmark-suite-card-name-model-suite-2'));
+    expect(screen.getByTestId('collection-drawer-panel')).toBeInTheDocument();
+    await user.click(screen.getByTestId('use-benchmark-suite-button'));
+    expect(
+      screen.getByTestId('benchmark-suites-page-start-evaluation-run-modal'),
+    ).toBeInTheDocument();
+
+    // Switch to project B via the project selector.
+    await user.click(screen.getByTestId('benchmark-suites-project-selector-switch'));
+
+    // The drawer and the pending run selection are cleared — no cross-project run flow.
+    expect(screen.queryByTestId('collection-drawer-panel')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-suites-page-start-evaluation-run-modal'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-project-selector')).toHaveTextContent(
+      'other-project',
+    );
+  });
+});

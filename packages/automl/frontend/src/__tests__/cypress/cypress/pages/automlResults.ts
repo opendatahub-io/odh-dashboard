@@ -1,5 +1,3 @@
-const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 class AutomlResultsPage {
   visit(namespace: string, runId: string) {
     cy.visit(`/develop-train/automl/results/${namespace}/${runId}`);
@@ -9,6 +7,11 @@ class AutomlResultsPage {
   private wait() {
     cy.findByTestId('leaderboard-table');
     cy.testA11y();
+  }
+
+  // Breadcrumb
+  findResultsBreadcrumbRunName() {
+    return cy.findByTestId('results-breadcrumb-run-name');
   }
 
   // Leaderboard
@@ -37,7 +40,8 @@ class AutomlResultsPage {
   }
 
   findColumnCheck(column: string) {
-    return cy.findByTestId(`column-check-${column}`);
+    const sanitizedColumn = column.replace(/[^a-zA-Z0-9_-]/g, '-');
+    return cy.findByTestId(`column-check-${sanitizedColumn}`);
   }
 
   findManageColumnsSaveButton() {
@@ -63,7 +67,7 @@ class AutomlResultsPage {
   }
 
   findModelSelectorOption(name: string) {
-    return cy.findByRole('menuitem', { name: new RegExp(escapeRegExp(name)) });
+    return this.findModelSelectorDropdown().findDropdownItem(name, 'model-selector-menu');
   }
 
   findTab(tabName: string) {
@@ -91,6 +95,14 @@ class AutomlResultsPage {
   // Run Details Drawer
   findRunDetailsButton() {
     return cy.findByTestId('run-details-button');
+  }
+
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
+  findRunNotebookDownloadButton() {
+    return cy.findByTestId('run-notebook-download-button');
   }
 
   findRunDetailsDrawerPanel() {

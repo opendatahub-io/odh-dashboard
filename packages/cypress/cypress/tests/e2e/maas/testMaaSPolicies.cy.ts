@@ -256,7 +256,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
       subscriptionsPage.findCreateSubscriptionButton().click();
       createSubscriptionPage.findDisplayNameInput().clear().type(subscriptionName);
       createSubscriptionPage.findDescriptionInput().clear().type(subscriptionDescription);
-      createSubscriptionPage.findPriorityInput().should('not.have.value', '');
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[0]);
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[1]);
       // Add a model to the subscription
@@ -330,14 +329,9 @@ describe('An admin can manage MaaS authorization policies and control model acce
         createApiKeyModal
           .findSubscriptionModelRateLimit(modelName)
           .should('contain.text', tokenLimit);
-        createApiKeyModal.findExpirationToggle().click();
-        createApiKeyModal.findExpirationOption('custom').click();
-        createApiKeyModal.findCustomDaysInput().clear().type(testData.apiKeyExpirationTimeInvalid);
-        createApiKeyModal.findSubmitButton().click();
-        createApiKeyModal.findErrorAlert().should('exist');
-        createApiKeyModal.findExpirationToggle().click();
-        createApiKeyModal.findExpirationOption('custom').click();
-        createApiKeyModal.findCustomDaysInput().clear().type(apiKeyExpirationTime);
+        createApiKeyModal.setAfterDays(200);
+        createApiKeyModal.findSubmitButton().should('be.disabled');
+        createApiKeyModal.setAfterDays(Number(apiKeyExpirationTime));
         createApiKeyModal.findSubmitButton().should('be.enabled');
         createApiKeyModal.findSubmitButton().click();
 
@@ -347,6 +341,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         copyApiKeyModal.findApiKeyTokenCopyButton().click();
         getClipboardContent(CLIPBOARD_WRITE_TEXT_STUB_ALIAS).then((apiKeys: string[]) => {
           expect(apiKeys).to.have.length.at.least(1);
+          copyApiKeyModal.acknowledgeKeyCopiedCheckbox();
           copyApiKeyModal.findCloseButton().click();
 
           cy.step('Verify the API key is created');

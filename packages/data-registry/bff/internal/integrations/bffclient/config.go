@@ -9,6 +9,7 @@ import (
 type BFFTarget string
 
 const (
+	BFFTargetDCH           BFFTarget = "data-connect-hub"
 	BFFTargetMaaS          BFFTarget = "maas"
 	BFFTargetGenAI         BFFTarget = "gen-ai"
 	BFFTargetModelRegistry BFFTarget = "model-registry"
@@ -32,15 +33,16 @@ type BFFServiceConfig struct {
 	// PathPrefix is the API path prefix (e.g., "/api/v1")
 	PathPrefix string
 
-	// TLSEnabled enables HTTPS communication
+	// TLSEnabled enables HTTPS communication. Built-in targets default to true;
+	// plaintext HTTP is only allowed through the explicit local-development opt-out.
 	TLSEnabled bool
 
 	// DevOverrideURL allows local development override
 	DevOverrideURL string
 
 	// ─── AUTH CONFIGURATION ─────────────────────────────────
-	// AuthMethod specifies the auth method the target BFF uses
-	// Supported values: "internal" (kubeflow-userid), "user_token" (token in header)
+	// AuthMethod specifies the auth method the target BFF uses. Data Registry targets use
+	// user-token authentication.
 	AuthMethod string
 
 	// AuthTokenHeader is the header the target BFF expects for user_token auth
@@ -78,7 +80,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8243,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true,
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
@@ -88,7 +90,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8143,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true,
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
@@ -98,7 +100,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8043,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true,
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",
@@ -108,7 +110,7 @@ func NewDefaultBFFClientConfig() *BFFClientConfig {
 				ServiceName:     "odh-dashboard",
 				Port:            8343,
 				PathPrefix:      "/api/v1",
-				TLSEnabled:      false,
+				TLSEnabled:      true,
 				AuthMethod:      "user_token",
 				AuthTokenHeader: "x-forwarded-access-token",
 				AuthTokenPrefix: "",

@@ -106,6 +106,24 @@ describe('EvalHubProjectSelector', () => {
 
     expect(mockUpdatePreferredNamespace).toHaveBeenCalledWith({ name: 'new-project' });
     expect(mockGetRedirectPath).toHaveBeenCalledWith('new-project');
-    expect(mockNavigate).toHaveBeenCalledWith('/eval-hub/new-project');
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: '/eval-hub/new-project',
+      search: '',
+    });
+  });
+
+  it('should preserve the current search params when changing projects', () => {
+    render(
+      <MemoryRouter initialEntries={['/eval-hub/project-a?tab=runs']}>
+        <EvalHubProjectSelector namespace="project-a" getRedirectPath={mockGetRedirectPath} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('select-project'));
+
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: '/eval-hub/new-project',
+      search: '?tab=runs',
+    });
   });
 });

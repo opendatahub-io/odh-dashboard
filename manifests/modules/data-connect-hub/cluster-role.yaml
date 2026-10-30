@@ -4,13 +4,25 @@ metadata:
   name: odh-dashboard-data-connect-hub-ui
 rules:
   - apiGroups:
-      - ""
+      - ''
     verbs:
       - get
       - list
       - watch
     resources:
       - configmaps
+  # Read the cluster-wide TLS security profile (apiservers.config.openshift.io/cluster)
+  # so the BFF can enforce it on its HTTPS listener and reload on change. The reload
+  # path polls the singleton with a named GET, so get scoped to resourceNames is
+  # sufficient (no list/watch).
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
   - apiGroups:
       - authorization.k8s.io
     verbs:

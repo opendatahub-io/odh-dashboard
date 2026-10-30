@@ -2,6 +2,7 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
+import { mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockDataSciencePipelineApplicationK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { DSPipelineAPIServerStore } from '@odh-dashboard/internal/k8sTypes.ts';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
@@ -15,6 +16,7 @@ import {
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import { DataSciencePipelineApplicationModel } from '../../../utils/models';
 import { toastNotifications } from '../../../pages/components/ToastNotifications';
+import { captureTracking, expectSafeTracking } from '../../../utils/analytics';
 
 describe('Pipeline Server', () => {
   it('Empty state', () => {
@@ -445,6 +447,23 @@ describe('Pipeline Server', () => {
     cy.wait('@deleteDSPA');
   });
 
+  it('keeps a pipeline server deletion failure out of analytics', () => {
+    const message = 'Private pipeline server diagnostic';
+    initIntercepts({});
+
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.findInput().fill('Test Project pipeline server');
+    cy.intercept('GET', '**/api/k8s/**', {
+      statusCode: 500,
+      body: mock500Error({ message }),
+    }).as('getPipelineServerFailure');
+    captureTracking();
+    deleteModal.findSubmitButton().click();
+    cy.wait('@getPipelineServerFailure');
+    expectSafeTracking('Pipeline Server Deleted', { success: false, error: 'k8s_500' }, message);
+  });
+
   it('View pipeline server', () => {
     initIntercepts({});
     cy.interceptK8s(
@@ -486,7 +505,7 @@ describe('Pipeline Server', () => {
   });
 
   it('should toggle managed pipelines in manage server modal', () => {
-    initIntercepts({});
+    initIntercepts({ managedPipelines: { enabled: false } });
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ automl: true, autorag: true }));
     cy.interceptK8s(
       {
@@ -532,21 +551,20 @@ describe('Pipeline Server', () => {
       const managedPipelinesPatch = interception.request.body.find(
         (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
       );
-      expect(managedPipelinesPatch?.op).to.equal('add');
-      expect(managedPipelinesPatch?.value).to.deep.equal({});
+      expect(managedPipelinesPatch?.op).to.equal('replace');
+      expect(managedPipelinesPatch?.value).to.deep.equal({ enabled: true });
     });
 
     toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
   });
 
-  it('should persist managed pipelines state after save', () => {
+  it('should default managed pipelines to enabled when omitted and preserve the state on reopen', () => {
     initIntercepts({});
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ automl: true, autorag: true }));
     cy.interceptK8s(
       DataSciencePipelineApplicationModel,
       mockDataSciencePipelineApplicationK8sResource({
         namespace: projectName,
-        managedPipelines: {},
       }),
     );
     cy.interceptK8s(
@@ -578,7 +596,7 @@ describe('Pipeline Server', () => {
   });
 
   it('should update both caching and managed pipelines together', () => {
-    initIntercepts({});
+    initIntercepts({ managedPipelines: { enabled: false } });
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ automl: true, autorag: true }));
     cy.interceptK8s(
       {
@@ -635,11 +653,11 @@ describe('Pipeline Server', () => {
       );
       expect(cachePatch.value).to.equal(false);
 
-      // Verify managedPipelines is empty object
+      // Verify managed pipelines are explicitly enabled
       const managedPipelinesPatch = interception.request.body.find(
         (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
       );
-      expect(managedPipelinesPatch.value).to.deep.equal({});
+      expect(managedPipelinesPatch.value).to.deep.equal({ enabled: true });
     });
 
     toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
@@ -652,7 +670,7 @@ describe('Pipeline Server', () => {
       DataSciencePipelineApplicationModel,
       mockDataSciencePipelineApplicationK8sResource({
         namespace: projectName,
-        managedPipelines: {},
+        managedPipelines: { enabled: true },
       }),
     );
     cy.interceptK8s(
@@ -698,8 +716,7 @@ describe('Pipeline Server', () => {
       const managedPipelinesPatch = interception.request.body.find(
         (patch: { path: string }) => patch.path === '/spec/apiServer/managedPipelines',
       );
-      // Should be undefined when disabled
-      expect(managedPipelinesPatch?.value).to.equal(undefined);
+      expect(managedPipelinesPatch?.value).to.deep.equal({ enabled: false });
     });
 
     toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');

@@ -10,21 +10,28 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
-    "test-unit": "jest --silent"
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage"
   },
   "exports": {
     "./extensions": "./extensions.ts"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/k8s-core": "*",
-    "@odh-dashboard/plugin-core": "*",
-    "@odh-dashboard/ui-core": "*"
+    "@odh-dashboard/hardware-profiles": "workspace:*",
+    "@odh-dashboard/internal": "workspace:*",
+    "@odh-dashboard/kserve": "workspace:*",
+    "@odh-dashboard/k8s-core": "workspace:*",
+    "@odh-dashboard/llmd-serving": "workspace:*",
+    "@odh-dashboard/model-serving": "workspace:*",
+    "@odh-dashboard/model-training": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
+    "@odh-dashboard/ui-core": "workspace:*",
+    "echarts": "^5.6.0"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
     "@patternfly/react-charts": "^8",

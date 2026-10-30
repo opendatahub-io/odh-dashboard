@@ -61,6 +61,7 @@ export type HardwareProfileBindingConfig = {
     resourceType: ResourceType;
     isRunning: boolean;
     name?: string;
+    isDRA?: boolean;
   }) => string;
 };
 
@@ -68,11 +69,24 @@ export type CrPathConfig = {
   containerResourcesPath: string;
   tolerationsPath: string;
   nodeSelectorPath: string;
+  podSpecPath?: string;
+};
+
+export type DRAHardwareProfileDetails = {
+  resourceClaimTemplateName: string;
+  description?: string;
+};
+
+export type HardwareProfileBinding = {
+  name?: string;
+  namespace?: string;
 };
 
 export type HardwareProfileOptions = {
   visibleIn: HardwareProfileFeatureVisibility[];
   paths?: CrPathConfig;
+  allowDRAProfiles?: boolean;
+  project?: string;
 };
 
 export type ModelServingPodSpecOptions = PodSpecOptions & {

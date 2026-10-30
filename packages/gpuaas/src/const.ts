@@ -1,5 +1,69 @@
 import type { SortableData } from '@odh-dashboard/ui-core';
 import type { QuotaUsageAcceleratorRow } from './types';
+import type { InfrastructureWorkloadRow } from './types/infrastructureWorkloads';
+
+export const INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE = 'No recent workloads';
+export const INFRASTRUCTURE_WORKLOADS_EMPTY_BODY =
+  'Details about recent workloads in this project will appear here.';
+export const INFRASTRUCTURE_WORKLOADS_PARTIAL_FAILURE_TITLE = 'Some workload data unavailable';
+export const INFRASTRUCTURE_WORKLOAD_NON_KUEUE_LABEL = 'Non-Kueue';
+
+const compareQueuePosition = (a?: string, b?: string): number => {
+  if (a === undefined) return b === undefined ? 0 : 1;
+  if (b === undefined) return -1;
+  return Number(a) - Number(b);
+};
+
+export const getInfrastructureWorkloadsTableColumns = (
+  kueueEnabled: boolean,
+): SortableData<InfrastructureWorkloadRow>[] => {
+  const columns: SortableData<InfrastructureWorkloadRow>[] = [
+    {
+      field: 'name',
+      label: 'Name',
+      sortable: (a, b) => a.name.localeCompare(b.name),
+      width: kueueEnabled ? 30 : 40,
+    },
+    {
+      field: 'type',
+      label: 'Type',
+      sortable: (a, b) => a.type.localeCompare(b.type),
+      width: kueueEnabled ? 15 : 20,
+    },
+    {
+      field: 'status',
+      label: 'Status',
+      sortable: (a, b) => a.status.label.localeCompare(b.status.label),
+      width: kueueEnabled ? 15 : 20,
+    },
+  ];
+
+  if (kueueEnabled) {
+    columns.push(
+      {
+        field: 'queuePosition',
+        label: 'Queue position',
+        sortable: (a, b) => compareQueuePosition(a.queuePosition, b.queuePosition),
+        width: 15,
+      },
+      {
+        field: 'priority',
+        label: 'Priority class',
+        sortable: (a, b) => (a.priority ?? '').localeCompare(b.priority ?? ''),
+        width: 10,
+      },
+    );
+  }
+
+  columns.push({
+    field: 'hardwareProfile',
+    label: 'Hardware profile',
+    sortable: (a, b) => (a.hardwareProfile ?? '').localeCompare(b.hardwareProfile ?? ''),
+    width: kueueEnabled ? 15 : 20,
+  });
+
+  return columns;
+};
 
 export const INFRASTRUCTURE_PAGE_DESCRIPTION =
   'View accelerator utilization, cluster queue cohort configuration, and workload details.';
@@ -9,8 +73,10 @@ export const KUEUE_HELP_POPOVER_BODY =
   "This page shows data from projects managed by Kueue. Projects without a local queue aren't part of queue-based resource management.";
 export const KUEUE_HELP_VIEW_PROJECTS_LINK = 'View projects not managed by Kueue';
 export const NON_KUEUE_PROJECTS_MODAL_TITLE = 'Projects not managed by Kueue';
-export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION =
-  'Data from the following projects is not displayed on the Infrastructure page because they do not use Kueue for workload admission.';
+export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_PREFIX =
+  'Data from the following projects is not displayed on the';
+export const NON_KUEUE_PROJECTS_MODAL_DESCRIPTION_SUFFIX =
+  'page because they do not use Kueue for workload admission.';
 export const NON_KUEUE_PROJECT_STATUS_LABEL = 'not Kueue-managed';
 
 export const CLUSTER_QUEUE_WORKLOADS_SECTION_TITLE = 'Workloads';
@@ -46,21 +112,51 @@ export const clusterQueueWorkloadsFilterPlaceholders: Record<
 };
 
 export const INFRASTRUCTURE_REFRESH_INTERVAL = 30_000;
+export const QUOTA_USAGE_SEARCH_TELEMETRY_DEBOUNCE = 300;
 
 /** Pass to useFetch refreshRate to disable polling; initial load + manual refresh only. */
 export const INFRASTRUCTURE_MANUAL_REFRESH_ONLY = -1;
+export const INFRASTRUCTURE_WORKLOADS_REFRESH_INTERVAL = 10 * 60 * 1000;
 
 /** 5m polling for trend charts and quota-usage workload tables (see useBorrowingLendingMetrics). */
 export const TREND_REFRESH_INTERVAL = 5 * 60 * 1000;
 export const PROMETHEUS_CLUSTER_QUERY_PATH = '/api/prometheus/cluster/query';
 export const PROMETHEUS_CLUSTER_QUERY_RANGE_PATH = '/api/prometheus/cluster/queryRange';
 
-export const INFRASTRUCTURE_TABS = [
-  { id: 'utilization', title: 'Accelerator utilization', layout: 'page' },
-  { id: 'quota-usage', title: 'Quota usage', layout: 'viewport' },
+export const ADMIN_INFRASTRUCTURE_TABS = [
+  { id: 'utilization', title: 'Accelerator utilization', layout: 'page', isDefault: true },
+  { id: 'quota-usage', title: 'Quota usage', layout: 'viewport', isDefault: false },
 ] as const;
 
+export const USER_INFRASTRUCTURE_TABS = [
+  { id: 'workloads', title: 'Workloads', layout: 'page', isDefault: true },
+] as const;
+
+export const INFRASTRUCTURE_TABS = [
+  ...ADMIN_INFRASTRUCTURE_TABS,
+  ...USER_INFRASTRUCTURE_TABS,
+] as const;
+
+export type InfrastructureTab = (typeof INFRASTRUCTURE_TABS)[number];
 export type InfrastructureTabId = (typeof INFRASTRUCTURE_TABS)[number]['id'];
+
+export const getVisibleInfrastructureTabs = (
+  canAccessAdminTabs: boolean,
+): readonly InfrastructureTab[] =>
+  canAccessAdminTabs ? INFRASTRUCTURE_TABS : USER_INFRASTRUCTURE_TABS;
+
+export const getDefaultInfrastructureTab = (
+  tabs: readonly InfrastructureTab[],
+): InfrastructureTabId => {
+  const defaultTab = tabs.find((tab) => tab.isDefault);
+
+  if (!defaultTab) {
+    throw new Error('Infrastructure tabs must define a default tab');
+  }
+
+  return defaultTab.id;
+};
+
 export type InfrastructureTabLayout = (typeof INFRASTRUCTURE_TABS)[number]['layout'];
 
 export const QUOTA_USAGE_DESCRIPTION =
@@ -81,7 +177,7 @@ export const QUOTA_USAGE_SUMMARY = {
   title: 'Summary',
   workloads: 'Workloads',
   acceleratorTableTitle: 'Accelerator usage',
-  viewKueueProjects: 'View Kueue projects',
+  viewKueueProjects: 'View projects',
   capacity: 'Accelerators allocated',
   compute: 'Accelerator compute',
   memory: 'Accelerator memory',
@@ -159,8 +255,8 @@ export const QUOTA_USAGE_BORROWING = {
   popoverSinceLabel: (count: number): string =>
     `Borrowing accelerator${count === 1 ? '' : 's'} since:`,
   popoverModelLine: (count: number, model: string): string => `${count} x ${model}`,
-  cohortCalloutSuffix: (count: number, cohortName: string): string =>
-    ` is borrowing ${cohortName} accelerator${count === 1 ? '' : 's'}`,
+  cohortCalloutPrefix: (count: number): string =>
+    ` is borrowing ${count} accelerator${count === 1 ? '' : 's'} from `,
 } as const;
 
 export const INFRASTRUCTURE_SECTIONS = [

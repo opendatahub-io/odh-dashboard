@@ -20,8 +20,212 @@ class InfrastructurePage {
     return cy.findByTestId('infrastructure-tab-quota-usage');
   }
 
+  findWorkloadsTab() {
+    return cy.findByTestId('infrastructure-tab-workloads');
+  }
+
+  findAdmissionsTab() {
+    return cy.findByTestId('workload-overview-tab-admissions');
+  }
+
+  findAdmissionTimeWindow() {
+    return cy.findByTestId('admission-time-window');
+  }
+
+  selectAdmissionTimeWindow(timeWindow: '1h' | '24h' | '7d' | '30d') {
+    this.findAdmissionTimeWindow().click();
+    cy.findByTestId(timeWindow).click();
+    return this;
+  }
+
+  findAdmissionMetricCharts() {
+    return cy.findByTestId('admission-metric-charts');
+  }
+
+  findAdmissionMetricValue(metricId: string) {
+    return cy.findByTestId(`admission-metric-value-${metricId}`);
+  }
+
+  findAdmissionRateMetric() {
+    return this.findAdmissionMetricValue('admission-rate');
+  }
+
+  findAdmissionLeadTimeMetric() {
+    return this.findAdmissionMetricValue('admission-lead-time');
+  }
+
+  findWaitingWorkloadsMetric() {
+    return this.findAdmissionMetricValue('waiting-workloads');
+  }
+
+  findActiveWorkloadsMetric() {
+    return this.findAdmissionMetricValue('active-workloads');
+  }
+
+  findAdmissionMetricChartLoading(metricId: string) {
+    return cy.findByTestId(`admission-metric-chart-loading-${metricId}`);
+  }
+
+  findAdmissionMetricValueLoading(metricId: string) {
+    return cy.findByTestId(`admission-metric-value-loading-${metricId}`);
+  }
+
+  findAdmissionMetricsError() {
+    return cy.findByTestId('admission-metrics-error');
+  }
+
+  findWorkloadsSection() {
+    return cy.findByTestId('infrastructure-workloads');
+  }
+
+  findWorkloadsCard() {
+    return cy.findByTestId('infrastructure-workloads-card');
+  }
+
+  findWorkloadsTable() {
+    return cy.findByTestId('infrastructure-workloads-table');
+  }
+
+  scrollToWorkloadsCard() {
+    this.findWorkloadsCard().scrollIntoView();
+    return this;
+  }
+
+  findWorkloadOverview() {
+    return cy.findByTestId('workload-overview');
+  }
+
+  findWorkloadCount(bucket: string) {
+    return cy.findByTestId(`workload-count-${bucket}`);
+  }
+
+  findViewInTableButton() {
+    return cy.findByRole('button', { name: 'View in table' });
+  }
+
+  findWorkloadsTableSection() {
+    return cy.findByTestId('infrastructure-workloads-table-section');
+  }
+
+  findWorkloadRow(name: string, options?: Cypress.Timeoutable) {
+    return cy.findByTestId(`infrastructure-workload-row-${name}`, options);
+  }
+
+  findWorkloadQueuePosition(name: string, options?: Cypress.Timeoutable) {
+    return cy.findByTestId(`infrastructure-workload-queue-position-${name}`, options);
+  }
+
+  findWorkloadPriorityClass(name: string, options?: Cypress.Timeoutable) {
+    return cy.findByTestId(`infrastructure-workload-priority-class-${name}`, options);
+  }
+
+  findWorkloadsStatusFilter() {
+    return cy.findByTestId('infrastructure-workloads-status-filter');
+  }
+
+  selectWorkloadsFilterType(filterType: string) {
+    cy.findByTestId('infrastructure-workloads-filter-type').click();
+    cy.findByTestId(`infrastructure-workloads-filter-option-${filterType}`).click();
+    return this;
+  }
+
+  findWorkloadsStatusOption(status: string) {
+    return cy.findByTestId(`infrastructure-workloads-status-option-${status}`);
+  }
+
+  selectWorkloadsStatus(status: string) {
+    this.findWorkloadsStatusFilter().click();
+    this.findWorkloadsStatusOption(status).click();
+    return this;
+  }
+
+  findWorkloadWorkbenchStatus(name: string, options?: Cypress.Timeoutable) {
+    return this.findWorkloadRow(name, options).findByTestId('notebook-status-text');
+  }
+
+  findWorkloadTrainingStatus(name: string, options?: Cypress.Timeoutable) {
+    return this.findWorkloadRow(name, options).findByTestId('training-job-status');
+  }
+
+  findWorkloadRayStatus(name: string, options?: Cypress.Timeoutable) {
+    return this.findWorkloadRow(name, options).findByTestId('ray-job-status');
+  }
+
+  findWorkloadInferenceStatus(name: string, options?: Cypress.Timeoutable) {
+    return this.findWorkloadRow(name, options).findByTestId('model-status-text');
+  }
+
+  findWorkloadsEmptyState() {
+    return cy.findByTestId('infrastructure-workloads-empty');
+  }
+
+  findWorkloadsError() {
+    return cy.findByTestId('infrastructure-workloads-error');
+  }
+
+  findWorkloadsPartialFailure() {
+    return cy.findByTestId('infrastructure-workloads-partial-error');
+  }
+
+  findWorkloadsPartialFailureCloseButton() {
+    return cy.findByTestId('infrastructure-workloads-partial-error-close');
+  }
+
+  findWorkloadsRefreshButton() {
+    return cy.findByTestId('infrastructure-workloads-refresh').findByRole('button', {
+      name: 'Refresh',
+    });
+  }
+
+  findWorkbenchStatusModal() {
+    return cy.findByTestId('notebook-status-modal');
+  }
+
+  findWorkbenchStatusResourcesTab() {
+    return this.findWorkbenchStatusModal().findByTestId('expand-resources');
+  }
+
+  findWorkbenchStatusClusterQueueSection() {
+    return this.findWorkbenchStatusModal().findByTestId('cluster-queue-section');
+  }
+
+  findWorkbenchStatusQueueValue() {
+    return this.findWorkbenchStatusModal().findByTestId('queue-value');
+  }
+
+  findTrainingJobStatusModal() {
+    return cy.findByTestId('training-job-status-modal');
+  }
+
+  findRayJobStatusModal() {
+    return cy.findByTestId('ray-job-status-modal');
+  }
+
+  findDeploymentStatusModal() {
+    return cy.findByTestId('deployment-status-modal');
+  }
+
+  findProjectSelectorToggle() {
+    return cy.findByTestId('project-selector-toggle');
+  }
+
+  findProjectSelectorSearch() {
+    return cy.findByTestId('project-selector-search').find('input');
+  }
+
+  selectProjectByName(name: string) {
+    this.findProjectSelectorToggle().click();
+    this.findProjectSelectorSearch().fill(name);
+    cy.findByRole('menuitem', { name }).click();
+  }
+
   switchToQuotaUsageTab() {
     this.findQuotaUsageTab().click();
+    return this;
+  }
+
+  switchToWorkloadsTab() {
+    this.findWorkloadsTab().click();
     return this;
   }
 
@@ -350,6 +554,7 @@ class InfrastructurePage {
   }
 
   private wait() {
+    cy.findByTestId('infrastructure-tab-utilization').should('exist');
     this.shouldHavePageTitle();
     cy.testA11y();
   }

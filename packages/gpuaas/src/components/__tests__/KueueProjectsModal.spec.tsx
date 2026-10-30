@@ -26,8 +26,12 @@ describe('KueueProjectsModal', () => {
   it('renders title, description, and project rows', () => {
     render(<KueueProjectsModal clusterQueueName="gpu-cq" onClose={jest.fn()} />);
 
-    expect(screen.getByText('Kueue projects')).toBeInTheDocument();
-    expect(screen.getByText('Kueue projects using this cluster queue.')).toBeInTheDocument();
+    expect(screen.getByTestId('kueue-projects-modal')).toHaveTextContent('Projects using gpu-cq');
+    expect(
+      screen.getByText(
+        'Projects that are using this cluster queue for workload admission and quota.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('kueue-projects-row-legacy-jobs')).toBeInTheDocument();
     expect(screen.getByTestId('kueue-projects-row-alpha-team')).toBeInTheDocument();
     expect(useKueueProjectsForClusterQueueMock).toHaveBeenCalledWith('gpu-cq');

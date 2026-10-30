@@ -122,13 +122,25 @@ export const setupBaseMCPServerMocks = (
   }).as('lsdModels');
 
   // Mock user endpoint to prevent k8s client errors in test environment
-  cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
+  cy.interceptGenAi('GET /api/v1/user', { data: { userId: 'test-user' } });
 };
 
 export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {
   return cy.fixture('mocked/mcpServers/mcpTestConfig.yaml').then((yamlString) => {
     return yaml.load(yamlString as string) as MCPTestConfig;
   });
+};
+
+export const clearMCPRegistryServersFlag = (): void => {
+  Cypress.env('_featureFlagParams', '');
+};
+
+export const visitWithMCPRegistryServersFlag = (enabled: boolean): void => {
+  const flagParams = `genAiMcpRegistryServers=${enabled}`;
+  Cypress.env('_featureFlagParams', flagParams);
+  cy.visit(`/?${flagParams}`);
+  cy.document().should('exist');
+  cy.get('body', { timeout: 15000 }).should('be.visible');
 };
 
 type MCPServerStatus = 'healthy' | 'error' | 'unknown';
@@ -188,9 +200,16 @@ export const initIntercepts = ({
   }
 };
 
-export const navigateToPlayground = (namespace: string): void => {
+export const navigateToPlayground = (
+  namespace: string,
+  mcpRegistryServersEnabled?: boolean,
+): void => {
   cy.step('Navigate to Playground');
-  appChrome.visit();
+  if (mcpRegistryServersEnabled === undefined) {
+    appChrome.visit();
+  } else {
+    visitWithMCPRegistryServersFlag(mcpRegistryServersEnabled);
+  }
   playgroundPage.visit(namespace);
   playgroundPage.verifyOnPlaygroundPage(namespace);
   playgroundPage.mcpTab.openMCPTab();

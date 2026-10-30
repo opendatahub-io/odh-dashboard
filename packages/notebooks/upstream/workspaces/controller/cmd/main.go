@@ -116,6 +116,10 @@ func main() {
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", getEnvAsInt("MAX_CONCURRENT_RECONCILES", 10),
 		"The maximum number of Workspaces reconciled (and probed) concurrently. "+
 			"Higher values prevent a slow activity probe from blocking other Workspaces' reconciliation.")
+	flag.Float64Var(&cfg.ClientQPS, "client-qps", getEnvAsFloat64("CLIENT_QPS", 50),
+		"QPS configuration passed to the Kubernetes API client (rest.Config).")
+	flag.IntVar(&cfg.ClientBurst, "client-burst", getEnvAsInt("CLIENT_BURST", 100),
+		"Maximum Burst configuration passed to the Kubernetes API client (rest.Config).")
 
 	// Get controller namespace (from service account file or POD_NAMESPACE env var)
 	cfg.ControllerNamespace = getControllerNamespace("kubeflow-workspaces")
@@ -150,9 +154,20 @@ func main() {
 		"KubeRbacProxyImage", sanitizeImageReference(cfg.KubeRbacProxyImage))
 
 	restCfg := ctrl.GetConfigOrDie()
+	// controller-runtime no longer supplies a default client-side rate limiter.
+	restCfg.QPS = float32(cfg.ClientQPS)
+	restCfg.Burst = cfg.ClientBurst
 	tlsResult, err := pkgtls.Resolve(context.Background(), restCfg)
 	if err != nil {
 		setupLog.Error(err, "unable to resolve TLS configuration")
+		os.Exit(1)
+	}
+	// The controller applies the cluster profile unconditionally to its webhook and
+	// metrics servers, so a Custom profile that resolves to no usable ciphers/groups
+	// cannot be honored — reject it rather than silently serve hardened defaults.
+	// (Denied/transient reads are handled fail-open with watcher self-heal above.)
+	if tlsResult.ProfileUnusable {
+		setupLog.Error(nil, "cluster TLS profile resolved to no usable ciphers/groups; refusing to start with an unenforceable profile")
 		os.Exit(1)
 	}
 	tlsOpts := tlsResult.TLSOpts
@@ -309,11 +324,13 @@ func main() {
 
 	if tlsResult.APIAvailable {
 		watcher := &pkgtls.ProfileWatcher{
-			Client:         mgr.GetClient(),
-			InitialProfile: tlsResult.Profile,
-			OnProfileChange: func(_ context.Context) {
+			Client:           mgr.GetClient(),
+			InitialProfile:   tlsResult.Profile,
+			InitialAdherence: tlsResult.Adherence,
+			OnProfileChange: func(_ context.Context) error {
 				setupLog.Info("TLS profile changed, initiating shutdown to reload")
 				cancel()
+				return nil
 			},
 		}
 		if err := watcher.SetupWithManager(mgr); err != nil {
@@ -387,6 +404,15 @@ func getEnvAsInt(name string, defaultVal int) int {
 	if value, exists := os.LookupEnv(name); exists {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultVal
+}
+
+func getEnvAsFloat64(name string, defaultVal float64) float64 {
+	if value, exists := os.LookupEnv(name); exists {
+		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatValue
 		}
 	}
 	return defaultVal

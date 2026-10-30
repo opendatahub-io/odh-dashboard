@@ -163,7 +163,7 @@ describe('Your Module API Contract Tests', () => {
     it('should return health status', async () => {
       const result = await apiClient.get('/healthcheck');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
+        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -173,7 +173,7 @@ describe('Your Module API Contract Tests', () => {
     it('should successfully retrieve data', async () => {
       const result = await apiClient.get('/api/v1/your-endpoint');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/SuccessResponse/content/application/json/schema',
+        ref: '#/components/responses/SuccessResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -181,7 +181,7 @@ describe('Your Module API Contract Tests', () => {
     it('should handle error cases', async () => {
       const result = await apiClient.get('/api/v1/your-endpoint?invalid=param');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ErrorResponse/content/application/json/schema',
+        ref: '#/components/responses/ErrorResponse/content/application~1json/schema',
         status: 400,
       });
     });
@@ -194,13 +194,13 @@ describe('Your Module API Contract Tests', () => {
 From your module directory:
 
 ```bash
-npm run test:contract
+pnpm run test:contract
 ```
 
 From the workspace root (using Turbo):
 
 ```bash
-npx turbo run test:contract --filter=@odh-dashboard/your-module
+pnpm exec turbo run test:contract --filter=@odh-dashboard/your-module
 ```
 
 ## Test Writing Patterns
@@ -233,7 +233,7 @@ describe('Feature Area Name', () => {
     it('should test specific behavior', async () => {
       const result = await apiClient.get('/endpoint');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ResponseName/content/application/json/schema',
+        ref: '#/components/responses/ResponseName/content/application~1json/schema',
         status: 200,
       });
     });
@@ -247,7 +247,7 @@ describe('Feature Area Name', () => {
 
 ```typescript
 // Reference a named response
-ref: '#/components/responses/SuccessResponse/content/application/json/schema'
+ref: '#/components/responses/SuccessResponse/content/application~1json/schema'
 
 // Reference a schema component
 ref: '#/components/schemas/ModelList'
@@ -267,7 +267,7 @@ describe('HTTP Methods', () => {
   it('should handle GET requests', async () => {
     const result = await apiClient.get('/api/v1/resource');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/GetResponse/content/application/json/schema',
+      ref: '#/components/responses/GetResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -279,7 +279,7 @@ describe('HTTP Methods', () => {
     };
     const result = await apiClient.post('/api/v1/resource', requestBody);
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/CreateResponse/content/application/json/schema',
+      ref: '#/components/responses/CreateResponse/content/application~1json/schema',
       status: 201,
     });
   });
@@ -288,7 +288,7 @@ describe('HTTP Methods', () => {
     const updateData = { status: 'active' };
     const result = await apiClient.put('/api/v1/resource/123', updateData);
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/UpdateResponse/content/application/json/schema',
+      ref: '#/components/responses/UpdateResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -296,7 +296,7 @@ describe('HTTP Methods', () => {
   it('should handle DELETE requests', async () => {
     const result = await apiClient.delete('/api/v1/resource/123');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/DeleteResponse/content/application/json/schema',
+      ref: '#/components/responses/DeleteResponse/content/application~1json/schema',
       status: 204,
     });
   });
@@ -310,7 +310,7 @@ describe('Query Parameters', () => {
   it('should handle namespace parameter', async () => {
     const result = await apiClient.get('/api/v1/models?namespace=default');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+      ref: '#/components/responses/ModelsResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -318,7 +318,7 @@ describe('Query Parameters', () => {
   it('should handle multiple parameters', async () => {
     const result = await apiClient.get('/api/v1/models?namespace=default&limit=10&offset=0');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+      ref: '#/components/responses/ModelsResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -334,7 +334,7 @@ describe('Error Handling', () => {
   it('should return 400 for invalid parameters', async () => {
     const result = await apiClient.get('/api/v1/models?namespace=');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/BadRequestError/content/application/json/schema',
+      ref: '#/components/responses/BadRequestError/content/application~1json/schema',
       status: 400,
     });
   });
@@ -342,7 +342,7 @@ describe('Error Handling', () => {
   it('should return 404 for non-existent resources', async () => {
     const result = await apiClient.get('/api/v1/models/nonexistent');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/NotFoundError/content/application/json/schema',
+      ref: '#/components/responses/NotFoundError/content/application~1json/schema',
       status: 404,
     });
   });
@@ -351,7 +351,7 @@ describe('Error Handling', () => {
     // Trigger server error scenario in your mock BFF
     const result = await apiClient.get('/api/v1/models?trigger-error=true');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ServerError/content/application/json/schema',
+      ref: '#/components/responses/ServerError/content/application~1json/schema',
       status: 500,
     });
   });
@@ -370,7 +370,7 @@ describe('Custom Headers', () => {
       },
     });
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/UserResponse/content/application/json/schema',
+      ref: '#/components/responses/UserResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -384,7 +384,7 @@ describe('Empty Responses', () => {
   it('should handle empty list responses', async () => {
     const result = await apiClient.get('/api/v1/models?namespace=empty');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+      ref: '#/components/responses/ModelsResponse/content/application~1json/schema',
       status: 200,
     });
     // Additional assertion for empty array
@@ -608,13 +608,13 @@ paths:
 
 ```bash
 cd packages/your-module
-npm run test:contract
+pnpm run test:contract
 ```
 
 **Run with HTML reports** (auto-opens browser):
 
 ```bash
-npm run test:contract -- --open
+pnpm run test:contract --open
 ```
 
 ### Using Turbo (Recommended for CI)
@@ -622,19 +622,19 @@ npm run test:contract -- --open
 **Run all contract tests**:
 
 ```bash
-npx turbo run test:contract
+pnpm exec turbo run test:contract
 ```
 
 **Run for specific module**:
 
 ```bash
-npx turbo run test:contract --filter=@odh-dashboard/your-module
+pnpm exec turbo run test:contract --filter=@odh-dashboard/your-module
 ```
 
 **Run with reports**:
 
 ```bash
-npx turbo run test:contract -- --open
+pnpm exec turbo run test:contract -- --open
 ```
 
 ### CI/CD Integration
@@ -644,7 +644,7 @@ Contract tests run automatically in CI/CD pipelines via Turbo:
 ```yaml
 # Example GitHub Actions workflow
 - name: Run Contract Tests
-  run: npx turbo run test:contract
+  run: pnpm exec turbo run test:contract
 ```
 
 The framework handles:
@@ -689,7 +689,7 @@ curl http://localhost:8108/healthcheck
 **Verify schema**:
 ```bash
 # Install OpenAPI validator
-npm install -g @apidevtools/swagger-cli
+pnpm add -g @apidevtools/swagger-cli
 
 # Validate your schema
 swagger-cli validate bff/openapi/src/your-api.yaml
@@ -721,7 +721,7 @@ swagger-cli validate bff/openapi/src/your-api.yaml
 
 **Solutions**:
 1. Verify `@odh-dashboard/contract-tests` is in `devDependencies`
-2. Run `npm install` in your module directory
+2. Run `pnpm install` from the repository root (the monorepo workspace owns the lockfile)
 3. Check TypeScript can find the types
 4. Ensure `@jest-environment node` comment exists
 
@@ -784,7 +784,7 @@ describe('Gen AI API Contract Tests', () => {
     it('should list available AI models', async () => {
       const result = await apiClient.get('/gen-ai/api/v1/lsd/models?namespace=default');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+        ref: '#/components/responses/ModelsResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -828,7 +828,7 @@ describe('Model Registry List Endpoint', () => {
   it('should successfully retrieve model registries list', async () => {
     const result = await apiClient.get('/api/v1/model_registry?namespace=default');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
+      ref: '#/components/responses/ModelRegistryResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -859,9 +859,9 @@ describe('Model Registry List Endpoint', () => {
 
 ### After Implementation
 
-- [ ] Ran tests locally: `npm run test:contract`
+- [ ] Ran tests locally: `pnpm run test:contract`
 - [ ] Verified all tests pass
-- [ ] Checked tests run via Turbo: `npx turbo run test:contract --filter=@odh-dashboard/your-module`
+- [ ] Checked tests run via Turbo: `pnpm exec turbo run test:contract --filter=@odh-dashboard/your-module`
 - [ ] Reviewed HTML reports for completeness
 - [ ] Documented any custom BFF flags required
 - [ ] Added module to CI/CD contract test suite
@@ -878,7 +878,7 @@ it('should return valid data structure', async () => {
 
   // Contract validation
   expect(result).toMatchContract(apiSchema, {
-    ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+    ref: '#/components/responses/ModelsResponse/content/application~1json/schema',
     status: 200,
   });
 
@@ -896,7 +896,7 @@ describe('Pagination', () => {
   it('should handle pagination parameters', async () => {
     const result = await apiClient.get('/api/v1/models?limit=10&offset=0');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelsResponse/content/application/json/schema',
+      ref: '#/components/responses/ModelsResponse/content/application~1json/schema',
       status: 200,
     });
     expect(result.data.models.length).toBeLessThanOrEqual(10);
@@ -922,7 +922,7 @@ describe('Resource Lifecycle', () => {
       name: 'test-resource',
     });
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/CreateResponse/content/application/json/schema',
+      ref: '#/components/responses/CreateResponse/content/application~1json/schema',
       status: 201,
     });
     createdResourceId = result.data.id;
@@ -931,7 +931,7 @@ describe('Resource Lifecycle', () => {
   it('should retrieve created resource', async () => {
     const result = await apiClient.get(`/api/v1/resource/${createdResourceId}`);
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/GetResponse/content/application/json/schema',
+      ref: '#/components/responses/GetResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -982,10 +982,10 @@ describe('Resource Lifecycle', () => {
 A: Use the `--bff-dir` flag with the relative path: `odh-ct-bff-consumer --bff-dir path/to/bff`
 
 **Q: My BFF needs custom mock flags, how do I specify them?**
-A: Set the `BFF_MOCK_FLAGS` environment variable: `BFF_MOCK_FLAGS='--mock-client' npm run test:contract`
+A: Set the `BFF_MOCK_FLAGS` environment variable: `BFF_MOCK_FLAGS='--mock-client' pnpm run test:contract`
 
 **Q: Can I run tests against a manually started BFF?**
-A: Yes, set `CONTRACT_MOCK_BFF_URL`: `CONTRACT_MOCK_BFF_URL=http://localhost:8080 npm run test:contract`
+A: Yes, set `CONTRACT_MOCK_BFF_URL`: `CONTRACT_MOCK_BFF_URL=http://localhost:8080 pnpm run test:contract`
 
 **Q: How do I debug failing schema validation?**
 A: Use OpenAPI validation tools to verify your schema, then compare the actual API response against expected schema.

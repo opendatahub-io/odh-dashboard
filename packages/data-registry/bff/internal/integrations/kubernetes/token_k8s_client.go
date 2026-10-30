@@ -12,6 +12,7 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -80,10 +81,17 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		logger.Error("failed to create token-based dynamic Kubernetes client", "error", err)
+		return nil, fmt.Errorf("failed to create dynamic Kubernetes client: %w", err)
+	}
+
 	return &TokenKubernetesClient{
 		SharedClientLogic: SharedClientLogic{
-			Client: clientset,
-			Logger: logger,
+			Client:        clientset,
+			DynamicClient: dynamicClient,
+			Logger:        logger,
 			// Token is retained for follow-up calls; do not log it.
 			Token: NewBearerToken(token),
 		},
@@ -161,16 +169,7 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 // RequestIdentity is unused because the token already represents the user identity.
 // This endpoint is used only on dev mode that is why is safe to ignore permissions errors
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		kc.Logger.Error("user is not allowed to list namespaces or failed to list namespaces")
-		return []corev1.Namespace{}, fmt.Errorf("failed to list namespaces: %w", err)
-	}
-
-	return nsList.Items, nil
+	return kc.listNamespaces(ctx)
 }
 
 func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
@@ -200,8 +199,10 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 	const saPrefix = "system:serviceaccount:"
 	if strings.HasPrefix(username, saPrefix) {
 		parts := strings.SplitN(strings.TrimPrefix(username, saPrefix), ":", 2)
-		if len(parts) == 2 {
-			return parts[1], nil // Return just the service account name
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			// Preserve the canonical namespace-qualified username so service accounts with
+			// the same name in different namespaces remain distinguishable upstream.
+			return username, nil
 		}
 		kc.Logger.Warn("malformed service account username", "username", username)
 	}

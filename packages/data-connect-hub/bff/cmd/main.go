@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"os/signal"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/api"
 	"github.com/opendatahub-io/data-connect-hub/bff/internal/config"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
 
 	"log/slog"
 	"net/http"
@@ -26,7 +27,7 @@ func main() {
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
-	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// New deployment mode flag
@@ -53,11 +54,7 @@ func main() {
 
 	// ─── Data Connect Hub API ────────────────────────────────────────
 	flag.StringVar(&cfg.DataConnectHubAPIURL, "data-connect-hub-api-url", getEnvAsString("DATA_CONNECT_HUB_API_URL", ""),
-		"Base URL of the upstream Data Connect Hub API. Overrides the ConfigMap lookup when set (primarily for local dev/tests)")
-	flag.StringVar(&cfg.DataConnectHubConfigMapName, "data-connect-hub-configmap-name", getEnvAsString("DATA_CONNECT_HUB_CONFIGMAP_NAME", config.DefaultDataConnectHubConfigMapName),
-		"Name of the ConfigMap (in the pod's namespace) holding the Data Connect Hub API URL")
-	flag.StringVar(&cfg.DataConnectHubConfigMapKey, "data-connect-hub-configmap-key", getEnvAsString("DATA_CONNECT_HUB_CONFIGMAP_KEY", config.DefaultDataConnectHubConfigMapKey),
-		"Key within the Data Connect Hub ConfigMap holding the API URL")
+		"Base URL of the upstream Data Connect Hub API. Overrides gateway Route discovery when set (primarily for local dev/tests)")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
@@ -85,6 +82,13 @@ func main() {
 		logger.Error("invalid auth method: (must be internal or user_token)", "authMethod", cfg.AuthMethod)
 		os.Exit(1)
 	}
+	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, cfg.DevMode, certFile); err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+	if cfg.InsecureSkipVerify {
+		logger.Warn("SECURITY WARNING: TLS certificate verification is disabled for local development")
+	}
 
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)
@@ -104,41 +108,46 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	// Start the server in a goroutine
+	tlsEnabled := certFile != "" && keyFile != ""
+
+	// signalCtx is cancelled on the first shutdown signal; both the HTTPS reload
+	// loop and the graceful-shutdown sequence below key off it.
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
+	var serveErr error
+	serverClosed := make(chan struct{})
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
-		var err error
-		if certFile != "" && keyFile != "" {
-			// Configure TLS if both cert and key files are provided
-			tlsConfig := &tls.Config{
-				MinVersion: tls.VersionTLS13,
-			}
-			srv.TLSConfig = tlsConfig
-			err = srv.ListenAndServeTLS(certFile, keyFile)
+		defer close(serverClosed)
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled)
+		if tlsEnabled {
+			// Serve HTTPS and gracefully restart the listener whenever the
+			// cluster TLS profile changes, so policy updates apply without a pod restart.
+			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
-			err = srv.ListenAndServe()
+			serveErr = srv.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server ListenAndServe", "error", err)
+		if serveErr != nil && serveErr != http.ErrServerClosed {
+			logger.Error("HTTP server failed", "error", serveErr)
+			stop() // trigger graceful shutdown of the rest of the process
 		}
 	}()
 
-	// Graceful shutdown setup
-	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	// Wait for shutdown signal
-	<-shutdownCh
+	// Wait for a shutdown signal or a fatal server error.
+	<-signalCtx.Done()
 	logger.Info("shutting down gracefully...")
 
-	// Create a context with timeout for the shutdown process
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Shutdown the HTTP server gracefully
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("server shutdown failed", "error", err)
+	// The reload loop shuts its own listener down when signalCtx is cancelled;
+	// the plain listener needs an explicit shutdown.
+	if !tlsEnabled {
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Error("server shutdown failed", "error", err)
+		}
 	}
+	<-serverClosed
 
 	// Shutdown the App gracefully
 	if err := app.Shutdown(); err != nil {
@@ -146,5 +155,21 @@ func main() {
 	}
 
 	logger.Info("server stopped")
+	if serveErr != nil && serveErr != http.ErrServerClosed {
+		os.Exit(1)
+	}
 	os.Exit(0)
+}
+
+func validateInsecureSkipVerify(insecureSkipVerify, devMode bool, certFile string) error {
+	if !insecureSkipVerify {
+		return nil
+	}
+	if !devMode {
+		return errors.New("insecure TLS verification is only allowed in dev mode")
+	}
+	if certFile != "" {
+		return errors.New("insecure TLS verification is not allowed when a server certificate is configured")
+	}
+	return nil
 }

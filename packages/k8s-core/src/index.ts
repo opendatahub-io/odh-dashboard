@@ -1,4 +1,6 @@
 export { applyK8sAPIOptions, mergeRequestInit } from './apiMergeUtils';
+export { fetchOperatorSubscriptionStatus } from './api/operatorSubscriptionStatus';
+export type { OperatorSubscriptionStatus } from './api/operatorSubscriptionStatus';
 
 export {
   ContainerResourceAttributes,
@@ -42,6 +44,7 @@ export {
 export type {
   K8sAPIOptions,
   K8sVerb,
+  NamespaceKind,
   AccessReviewResourceAttributes,
   K8sResourceCommon,
   DisplayNameAnnotations,
@@ -59,12 +62,15 @@ export type {
   PodKind,
   TemplateKind,
   HardwareProfileKind,
+  ResourceClaimTemplateKind,
   AcceleratorProfileKind,
   DashboardCommonConfig,
   DashboardConfigKind,
   ManagementState,
   DataScienceClusterComponentStatus,
   DataScienceClusterKindStatus,
+  AIHubKind,
+  AIHubNamespaceResponse,
   DataScienceClusterInitializationKindStatus,
   ConfigMapKind,
   EventKind,
@@ -97,6 +103,7 @@ export type {
 export { OdhApplicationCategory } from './k8sTypes';
 
 export {
+  hasK8sIdentity,
   isK8sDSGResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,

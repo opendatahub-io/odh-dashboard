@@ -1,4 +1,3 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { explorePage } from '../../../pages/explore';
 import { enabledPage } from '../../../pages/enabled';
 import { nimCard } from '../../../pages/components/NIMCard';
@@ -12,19 +11,16 @@ import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 
 /**
- * NIM Application Enablement Test
+ * Legacy NIM enable-via-Explore flow.
  *
- * This test verifies the complete flow for enabling the NVIDIA NIM application:
- * 1. Checks if NIM card is available on the Explore page
- * 2. If not available, automatically applies the NIM OdhApplication manifest
- * 3. Waits for the NIM card to become visible (up to 160 seconds with periodic refreshes)
- * 4. Validates the NIM card contents and description
- * 5. Clicks the NIM card and enables it with NGC API key
- * 6. Verifies the validation process and success notification
- * 7. Confirms the NIM application appears on the Enabled page
+ * When nimWizard is enabled (default), Explore hides the nvidia-nim card.
+ * This test forces nimWizard=false on every Explore visit so the legacy
+ * OdhApplication enable path remains covered.
  *
  * NOTE: NIM is a RHOAI-specific feature. This test is skipped on ODH deployments.
  */
+const LEGACY_NIM_DEV_FLAGS = 'devFeatureFlags=nimWizard=false';
+
 describe('Verify NIM enable flow', () => {
   let skipTest = false;
 
@@ -34,6 +30,10 @@ describe('Verify NIM enable flow', () => {
       return true;
     }
     return false;
+  };
+
+  const visitExploreForLegacyNim = () => {
+    explorePage.visit(LEGACY_NIM_DEV_FLAGS);
   };
 
   retryableBefore(() => {
@@ -70,11 +70,8 @@ describe('Verify NIM enable flow', () => {
         return;
       }
 
-      cy.step('Login to the application');
-      cy.visitWithLogin('/?devFeatureFlags=nimWizard=false', HTPASSWD_CLUSTER_ADMIN_USER);
-
-      cy.step('Navigate to the Explore page');
-      explorePage.visit();
+      cy.step('Login and open Explore with legacy NIM enable flow enabled');
+      visitExploreForLegacyNim();
 
       cy.step('Check if NIM application exists on cluster');
       checkNIMApplicationExists().then((nimExists) => {
@@ -88,9 +85,9 @@ describe('Verify NIM enable flow', () => {
               cy.log('💡 No need to apply manifest, proceeding directly with enablement test');
               executeNIMTestSteps();
             } else {
-              cy.step('NIM application exists on cluster but card is not visible in UI');
-              cy.log('💡 This might be a UI issue - proceeding with test anyway');
-              executeNIMTestSteps();
+              throw new Error(
+                'NIM OdhApplication exists but the Explore card is not visible with nimWizard=false.',
+              );
             }
           });
         } else {
@@ -103,10 +100,8 @@ describe('Verify NIM enable flow', () => {
             cy.step('NIM OdhApplication applied successfully');
             cy.step('Refreshing page to see the NIM card...');
 
-            // Refresh the page to see the newly applied NIM card
-            explorePage.reload();
-            cy.step('Navigate to the Explore page after applying NIM');
-            explorePage.visit();
+            // Re-visit with flags so nimWizard stays disabled after navigation
+            visitExploreForLegacyNim();
 
             // Wait longer for the NIM card to become visible after applying the manifest
             cy.step('Waiting for NIM card to become visible...');
@@ -119,10 +114,8 @@ describe('Verify NIM enable flow', () => {
               attempts++;
               cy.step(`Attempt ${attempts}/${maxAttempts} - Checking for NIM card...`);
 
-              // Refresh the page every 20 seconds to ensure fresh content
-              explorePage.reload();
-              cy.step(`Navigate to Explore page (attempt ${attempts})`);
-              explorePage.visit();
+              // Re-visit with flags every attempt to keep nimWizard disabled
+              visitExploreForLegacyNim();
 
               // Wait for page to load
               // eslint-disable-next-line cypress/no-unnecessary-waiting

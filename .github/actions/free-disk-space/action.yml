@@ -6,12 +6,23 @@ description: >
 runs:
   using: composite
   steps:
-    - name: Free disk space
+    - name: Free disk space when needed
       shell: bash
       run: |
         echo "::group::Disk usage before cleanup"
         df -h
         echo "::endgroup::"
+
+        # Avoid an expensive cleanup on runners that already have sufficient space.
+        # Cypress and Docker builds use the cleanup as a safety valve, not as a
+        # required setup step. Keep 30 GiB available as the conservative threshold.
+        available_kb=$(df -Pk / | awk 'NR == 2 { print $4 }')
+        required_kb=$((30 * 1024 * 1024))
+        if [[ -n "$available_kb" && "$available_kb" -ge "$required_kb" ]]; then
+          echo "Skipping cleanup: ${available_kb} KiB available (threshold: ${required_kb} KiB)."
+          exit 0
+        fi
+
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
           /usr/local/share/boost /usr/local/graalvm /usr/local/.ghcup \
           /usr/share/swift || true

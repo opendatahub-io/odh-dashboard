@@ -1,9 +1,9 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { mockRayJobK8sResource } from '../../__mocks__/mockRayJobK8sResource';
 import useRayJobPods from '../useRayJobPods';
 
-jest.mock('@odh-dashboard/internal/utilities/useK8sWatchResourceList', () => ({
+jest.mock('@odh-dashboard/ui-core/hooks/useK8sWatchResourceList', () => ({
   __esModule: true,
   default: jest.fn(),
 }));

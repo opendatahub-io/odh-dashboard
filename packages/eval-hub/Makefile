@@ -28,20 +28,16 @@ help: ## Display this help.
 
 .PHONY: dev-install-dependencies
 dev-install-dependencies:
-	cd frontend && npm install
+	@echo "Dependencies are installed by pnpm install at the repository root."
 
 .PHONY: dev-bff
-dev-bff: ## Run BFF with all mocks enabled (K8s, EvalHub, BFF clients)
+dev-bff: ## Run BFF with all mocks enabled (K8s, EvalHub)
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true MOCK_BFF_CLIENTS=true DEV_MODE=true DEPLOYMENT_MODE=standalone
-
-.PHONY: dev-bff-inter-bff
-dev-bff-inter-bff: ## Run BFF with Model-Catalog BFF dev URL for inter-BFF testing (mock K8s, real HTTP to Model-Catalog BFF on port 4000)
-	cd bff && make run PORT=4002 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEPLOYMENT_MODE=standalone BFF_MODEL_CATALOG_DEV_URL=http://localhost:4000/api/v1
+	cd bff && make run PORT=4002 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-frontend
 dev-frontend:
-	cd frontend && DEPLOYMENT_MODE=standalone PORT=9106 PROXY_PORT=4002 STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=standalone PORT=9106 PROXY_PORT=4002 STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-start
 dev-start:
@@ -56,7 +52,7 @@ dev-start-kubeflow:
 
 .PHONY: dev-frontend-kubeflow
 dev-frontend-kubeflow:
-	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme npm run start:dev
+	cd frontend && DEPLOYMENT_MODE=kubeflow STYLE_THEME=mui-theme pnpm run start:dev
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
@@ -81,7 +77,7 @@ dev-start-federated-no-portforward: ## Start frontend and bff without port-forwa
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9106 PROXY_PORT=4002 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9106 PROXY_PORT=4002 pnpm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
@@ -95,37 +91,38 @@ E2E_BFF_PORT ?= 4002
 
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true MOCK_BFF_CLIENTS=true DEV_MODE=true DEPLOYMENT_MODE=federated
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_EVALHUB_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false MOCK_EVALHUB_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
+	# Clear the local-development URL so cluster-backed E2E discovers the provisioned EvalHub service.
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false MOCK_EVALHUB_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true EVAL_HUB_URL=
 
 ############ Build ############
 
 .PHONY: docker-build
 docker-build:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -f Dockerfile.workspace -t ${IMG_UI} ../..
 
 .PHONY: docker-build-standalone
 docker-build-standalone:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -f Dockerfile.workspace -t ${IMG_UI_STANDALONE} ../..
 
 .PHONY: docker-build-federated
 docker-build-federated:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} .
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -f Dockerfile.workspace -t ${IMG_UI_FEDERATED} ../..
 
 .PHONY: docker-buildx
 docker-buildx:
-	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI} --push ../..
 
 .PHONY: docker-buildx-standalone
 docker-buildx-standalone:
-	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI_STANDALONE} --push ../..
 
 .PHONY: docker-buildx-federated
 docker-buildx-federated:
-	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -f Dockerfile.workspace -t ${IMG_UI_FEDERATED} --push ../..
 
 ############ Push ############
 
@@ -154,11 +151,11 @@ kubeflow-deployment:
 ############ Build ############	
 .PHONY: frontend-build
 frontend-build:
-	cd frontend && DEPLOYMENT_MODE=kubeflow npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=kubeflow pnpm run build:prod
 
 .PHONY: frontend-build-standalone
 frontend-build-standalone:
-	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+	cd frontend && DEPLOYMENT_MODE=standalone pnpm run build:prod
 
 .PHONY: bff-build
 bff-build:
@@ -171,6 +168,3 @@ build: frontend-build bff-build
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
 	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
-
-
-	

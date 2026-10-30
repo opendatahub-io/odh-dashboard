@@ -14,6 +14,7 @@ import {
   URL_PREFIX,
 } from '~/app/utilities/const';
 import App from '~/app/App';
+import ToastNotifications from '~/app/components/ToastNotifications';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -35,6 +36,7 @@ root.render(
         <BrowserStorageContextProvider>
           <NotificationContextProvider>
             <App />
+            <ToastNotifications />
           </NotificationContextProvider>
         </BrowserStorageContextProvider>
       </ModularArchContextProvider>

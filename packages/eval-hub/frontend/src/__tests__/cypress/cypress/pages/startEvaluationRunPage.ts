@@ -17,6 +17,10 @@ class StartEvaluationRunPage {
     return cy.findByTestId('benchmark-name-display');
   }
 
+  findRunDescription() {
+    return cy.findByTestId('start-evaluation-run-description');
+  }
+
   findEvaluationNameInput() {
     return cy.findByTestId('evaluation-name-input');
   }
@@ -41,10 +45,6 @@ class StartEvaluationRunPage {
     return cy.findByTestId('source-mode-toggle');
   }
 
-  findSourceModeSelect() {
-    return cy.findByTestId('source-mode-select');
-  }
-
   findModelPickerToggle() {
     return cy.findByTestId('model-picker-toggle');
   }
@@ -53,12 +53,12 @@ class StartEvaluationRunPage {
     return cy.findByTestId('model-picker-select');
   }
 
-  findModelNameInput() {
-    return cy.findByTestId('model-name-input');
+  findExternalModelOption() {
+    return cy.findByTestId('model-option-external');
   }
 
-  findAgentNameInput() {
-    return cy.findByTestId('agent-name-input');
+  findModelNameInput() {
+    return cy.findByTestId('model-name-input');
   }
 
   findEndpointUrlInput() {
@@ -105,6 +105,18 @@ class StartEvaluationRunPage {
     return cy.findByTestId('additional-args-upload');
   }
 
+  findHardwareProfileToggle() {
+    return cy.findByTestId('hardware-profile-toggle');
+  }
+
+  findHardwareProfileOption(profileName: string) {
+    return cy.findByTestId(`hardware-profile-option-${profileName}`);
+  }
+
+  findHardwareProfileHelperText() {
+    return cy.findByTestId('hardware-profile-helper-text');
+  }
+
   findSubmitButton() {
     return cy.findByTestId('start-evaluation-submit');
   }
@@ -115,6 +127,14 @@ class StartEvaluationRunPage {
 
   findLoadError() {
     return cy.findByTestId('start-evaluation-load-error');
+  }
+
+  findNotificationTitle(title: string) {
+    return cy.findByTestId('toast-notification-alert').findByText(title);
+  }
+
+  findNotificationMessage(message: string | RegExp) {
+    return cy.findByTestId('toast-notification-alert').findByText(message);
   }
 }
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   ActionGroup,
   Alert,
+  AlertActionLink,
   Button,
   Checkbox,
   Form,
@@ -10,11 +11,11 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  NumberInput,
   PageSection,
   Popover,
 } from '@patternfly/react-core';
 import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
+import NumberInputWrapper from '@odh-dashboard/ui-core/components/NumberInputWrapper';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -25,6 +26,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
@@ -37,6 +39,7 @@ import {
   SubscriptionModelEntry,
   CreateSubscriptionRequest,
   UpdateSubscriptionRequest,
+  SYSTEM_AUTHENTICATED_GROUP,
 } from '~/app/types/subscriptions';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
@@ -51,6 +54,8 @@ import {
   SubscriptionUpdatedErrorProperties,
   SubscriptionUpdatedSuccessProperties,
 } from '~/app/types/event-tracking';
+import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
+import { hasInternalModelKind } from '~/app/utilities/subscriptions';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
@@ -63,15 +68,34 @@ type CreateSubscriptionFormProps = {
   preSelectedModel?: { name: string; namespace?: string };
   editSource?: EventTrackingEditSource;
 };
-const MAX_PRIORITY = 1000000;
-const MIN_PRIORITY = -1000000;
+const MAX_PRIORITY = 2147483647;
+const MIN_PRIORITY = -2147483648;
+
+const SUBSCRIPTION_CONFLICT_MESSAGE =
+  'This subscription was modified by someone else. Refresh the page and try again.';
+
+const isSubscriptionConflictError = (message: string): boolean =>
+  message.includes('modified by someone else') ||
+  message.includes('Operation cannot be fulfilled') ||
+  message.includes('the object has been modified');
+
+const getSubscriptionSubmitError = (error: unknown, editing: boolean): string => {
+  if (error instanceof Error) {
+    if (editing && isSubscriptionConflictError(error.message)) {
+      return SUBSCRIPTION_CONFLICT_MESSAGE;
+    }
+    return error.message;
+  }
+  return `Failed to ${editing ? 'update' : 'create'} subscription`;
+};
 
 const subscriptionFormSchema = z.object({
-  priority: z
-    .number({ message: 'Priority is required' })
-    .int('Priority must be a whole number')
-    .min(MIN_PRIORITY, `Priority must be at least ${MIN_PRIORITY}`)
-    .max(MAX_PRIORITY, `Priority must be at most ${MAX_PRIORITY}`),
+  inferencePriority: z
+    .number()
+    .int('Inference priority must be a whole number')
+    .min(MIN_PRIORITY, `Inference priority must be at least ${MIN_PRIORITY}`)
+    .max(MAX_PRIORITY, `Inference priority must be at most ${MAX_PRIORITY}`)
+    .optional(),
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
   models: z.array(z.unknown()).min(1, 'One or more models must be added'),
 });
@@ -108,6 +132,10 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const isEditing = !!subscriptionInfo;
   const subscription = subscriptionInfo?.subscription;
 
+  const isInferencePriorityFieldEnabled = useIsAreaAvailable(
+    SupportedArea.INFERENCE_PRIORITY_FIELD,
+  ).status;
+
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     subscription
       ? {
@@ -138,7 +166,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [modelsTouched, setModelsTouched] = React.useState(false);
-  const [priority, setPriority] = React.useState<number | undefined>(subscription?.priority ?? 0);
+  const [inferencePriority, setInferencePriority] = React.useState<number | undefined>(
+    subscription?.inferencePriority,
+  );
   const [createAuthPolicy, setCreateAuthPolicy] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -218,24 +248,30 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     [subscriptions, subscription, isEditing],
   );
 
+  const hasInternalModel = hasInternalModelKind(models.map((m) => m.modelRefSummary));
+  const effectiveInferencePriority = hasInternalModel ? inferencePriority : undefined;
+
+  const clearInferencePriorityIfNoInternalModels = (remaining: SubscriptionModelEntry[]) => {
+    if (!hasInternalModelKind(remaining.map((m) => m.modelRefSummary))) {
+      setInferencePriority(undefined);
+    }
+  };
+
   const zodFormData: SubscriptionFormData = React.useMemo(
     () => ({
-      priority: priority == null || Number.isNaN(priority) ? Number.NaN : priority,
+      inferencePriority: effectiveInferencePriority,
       groups: selectedGroupNames,
       models,
     }),
-    [priority, selectedGroupNames, models],
+    [effectiveInferencePriority, selectedGroupNames, models],
   );
 
   const { getFieldValidation } = useZodFormValidation(zodFormData, subscriptionFormSchema);
-
-  const isPriorityValid = priority != null && !Number.isNaN(priority);
 
   const canSubmit =
     isNameValid &&
     getFieldValidation(undefined, true).length === 0 &&
     allModelsHaveRateLimits &&
-    isPriorityValid &&
     !isSubmitting;
 
   const modelRefsPayload = models.map((m) => ({
@@ -245,10 +281,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   }));
 
   const handleSubmit = async () => {
-    if (priority == null || Number.isNaN(priority)) {
-      return;
-    }
-
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -263,7 +295,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           description: nameDescData.description.trim() || undefined,
           owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
           modelRefs: modelRefsPayload,
-          priority,
+          inferencePriority: effectiveInferencePriority,
+          resourceVersion: subscription.resourceVersion,
         };
         await updateSubscription()(apiOpts, subscription.name, request);
         fireFormTrackingEvent(MaaSEvents.SUBSCRIPTION_UPDATED, {
@@ -272,7 +305,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           groupCount: selectedGroupNames.length,
           modelCount: models.length,
           hasDescription: nameDescData.description.trim() !== '',
-          priority,
+          priority: effectiveInferencePriority,
           editSource,
         } satisfies SubscriptionUpdatedSuccessProperties);
       } else {
@@ -282,7 +315,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           description: nameDescData.description.trim() || undefined,
           owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
           modelRefs: modelRefsPayload,
-          priority,
+          inferencePriority: effectiveInferencePriority,
           createAuthPolicy,
         };
         await createSubscription()(apiOpts, request);
@@ -294,17 +327,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           hasDescription: nameDescData.description.trim() !== '',
           modelCountAvailable: modelRefs.length,
           hasMatchingPolicy: createAuthPolicy,
-          priority,
+          priority: effectiveInferencePriority,
           prefillSource,
         } satisfies SubscriptionCreatedSuccessProperties);
       }
       refresh();
       navigate(returnTo ?? getSectionUrl('subscriptions'));
     } catch (e) {
-      const errMsg =
-        e instanceof Error
-          ? e.message
-          : `Failed to ${isEditing ? 'update' : 'create'} subscription`;
+      const errMsg = getSubscriptionSubmitError(e, isEditing);
       fireFormTrackingEvent(
         isEditing ? MaaSEvents.SUBSCRIPTION_UPDATED : MaaSEvents.SUBSCRIPTION_CREATED,
         isEditing
@@ -339,50 +369,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           dataTestId="subscription-name-desc"
         />
 
-        <FormGroup label="Priority" fieldId="subscription-priority" isRequired>
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant="default">
-                Higher numbers indicate higher priority.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-          <NumberInput
-            id="subscription-priority"
-            data-testid="subscription-priority"
-            value={priority == null || Number.isNaN(priority) ? '' : priority}
-            min={MIN_PRIORITY}
-            max={MAX_PRIORITY}
-            onMinus={() =>
-              setPriority(
-                Math.max(
-                  MIN_PRIORITY,
-                  (priority == null || Number.isNaN(priority) ? 0 : priority) - 1,
-                ),
-              )
-            }
-            onPlus={() =>
-              setPriority(
-                Math.min(
-                  MAX_PRIORITY,
-                  (priority == null || Number.isNaN(priority) ? 0 : priority) + 1,
-                ),
-              )
-            }
-            onChange={(event: React.FormEvent<HTMLInputElement>) => {
-              const inputValue = event.currentTarget.value;
-              if (inputValue === '') {
-                setPriority(NaN);
-              } else {
-                const parsed = parseInt(inputValue, 10);
-                if (!Number.isNaN(parsed)) {
-                  setPriority(Math.min(MAX_PRIORITY, Math.max(MIN_PRIORITY, parsed)));
-                }
-              }
-            }}
-          />
-        </FormGroup>
-
         <FormGroup label="Groups" fieldId="subscription-groups" isRequired>
           <FormHelperText>
             <HelperText>
@@ -403,6 +389,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups"
           />
+          {selectedGroupNames.includes(SYSTEM_AUTHENTICATED_GROUP) && (
+            <SystemAuthenticatedWarning />
+          )}
           {groupsTouched && getFieldValidation(['groups'], true).length > 0 && (
             <FormHelperText>
               <HelperText>
@@ -426,27 +415,56 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             and create a MaaSModelRef.
           </Alert>
         ) : (
-          <MaasModelsSection
-            modelRefSummaries={models.map((m) => m.modelRefSummary)}
-            modelRefsWithRateLimits={models.map((m) => ({
-              name: m.modelRefSummary.name,
-              namespace: m.modelRefSummary.namespace,
-              tokenRateLimits: m.tokenRateLimits,
-            }))}
-            editable
-            onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
-            onEditLimits={(index) => setEditLimitsTarget(index)}
-            onRemoveModel={(index) => {
-              setModelsTouched(true);
-              handleRemoveModel(index);
-            }}
-            validationError={
-              modelsTouched && getFieldValidation(['models'], true).length > 0
-                ? getFieldValidation(['models'], true)[0].message
-                : undefined
-            }
-            resourceType="subscription"
-          />
+          <>
+            <MaasModelsSection
+              modelRefSummaries={models.map((m) => m.modelRefSummary)}
+              modelRefsWithRateLimits={models.map((m) => ({
+                name: m.modelRefSummary.name,
+                namespace: m.modelRefSummary.namespace,
+                tokenRateLimits: m.tokenRateLimits,
+              }))}
+              hideColumns={['status']}
+              editable
+              onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
+              onEditLimits={(index) => setEditLimitsTarget(index)}
+              onRemoveModel={(index) => {
+                setModelsTouched(true);
+                clearInferencePriorityIfNoInternalModels(models.filter((_, i) => i !== index));
+                handleRemoveModel(index);
+              }}
+              validationError={
+                modelsTouched && getFieldValidation(['models'], true).length > 0
+                  ? getFieldValidation(['models'], true)[0].message
+                  : undefined
+              }
+              resourceType="subscription"
+            />
+            {hasInternalModel && isInferencePriorityFieldEnabled && (
+              <FormGroup label="Inference priority" fieldId="subscription-inference-priority">
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="default">
+                      This value determines the scheduling order of inference requests for all
+                      internal models in this subscription. Requests with a higher priority value
+                      are scheduled first. If not specified, the default value of 0 is used.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+                <NumberInputWrapper
+                  id="subscription-inference-priority"
+                  data-testid="subscription-inference-priority"
+                  value={
+                    inferencePriority == null || Number.isNaN(inferencePriority)
+                      ? ''
+                      : inferencePriority
+                  }
+                  min={MIN_PRIORITY}
+                  max={MAX_PRIORITY}
+                  onChange={(newValue) => setInferencePriority(newValue)}
+                />
+              </FormGroup>
+            )}
+          </>
         )}
 
         {isAddModelsModalOpen && canAddModels && (
@@ -462,6 +480,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             }}
             onRemove={(refs) => {
               setModelsTouched(true);
+              const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
+              clearInferencePriorityIfNoInternalModels(
+                models.filter(
+                  (m) =>
+                    !keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+                ),
+              );
               handleRemoveModelsByRef(refs);
             }}
             onClose={() => setIsAddModelsModalOpen(false)}
@@ -550,7 +575,17 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           <Alert
             variant="danger"
             isInline
-            title={`Failed to ${isEditing ? 'update' : 'create'} subscription`}
+            title={
+              isEditing && isSubscriptionConflictError(submitError)
+                ? 'Unable to save subscription'
+                : `Failed to ${isEditing ? 'update' : 'create'} subscription`
+            }
+            data-testid="subscription-submit-error"
+            actionLinks={
+              isEditing && isSubscriptionConflictError(submitError) ? (
+                <AlertActionLink onClick={() => window.location.reload()}>Refresh</AlertActionLink>
+              ) : undefined
+            }
           >
             {submitError}
           </Alert>

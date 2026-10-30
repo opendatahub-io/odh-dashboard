@@ -17,6 +17,37 @@ import (
 func setupTestLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
+
+func TestNewHTTPClientProxyIsE2EOnly(t *testing.T) {
+	t.Setenv("E2E_USE_PROXY_FROM_ENV", "")
+	t.Setenv("HTTPS_PROXY", "http://proxy.example.invalid:3128")
+	t.Setenv("NO_PROXY", ".svc,.cluster.local")
+
+	client, err := NewHTTPClient(setupTestLogger(), "https://example.invalid", nil, false, nil)
+	require.NoError(t, err)
+	transport := client.(*HTTPClient).client.Transport.(*http.Transport)
+	assert.Nil(t, transport.Proxy)
+
+	t.Setenv("E2E_USE_PROXY_FROM_ENV", "true")
+	client, err = NewHTTPClient(setupTestLogger(), "https://example.invalid", nil, false, nil)
+	require.NoError(t, err)
+	transport = client.(*HTTPClient).client.Transport.(*http.Transport)
+	require.NotNil(t, transport.Proxy)
+
+	externalRequest, err := http.NewRequest(http.MethodGet, "https://rh-ai.apps.example.invalid", nil)
+	require.NoError(t, err)
+	proxyURL, err := transport.Proxy(externalRequest)
+	require.NoError(t, err)
+	require.NotNil(t, proxyURL)
+	assert.Equal(t, "http://proxy.example.invalid:3128", proxyURL.String())
+
+	internalRequest, err := http.NewRequest(http.MethodGet, "https://model-registry.namespace.svc", nil)
+	require.NoError(t, err)
+	proxyURL, err = transport.Proxy(internalRequest)
+	require.NoError(t, err)
+	assert.Nil(t, proxyURL)
+}
+
 func TestHTTPClient_GET_Success(t *testing.T) {
 	// Setup test server
 	expectedResponse := map[string]interface{}{

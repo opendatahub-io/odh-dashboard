@@ -2,6 +2,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import * as api from '~/app/api/dataRegistry';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
+import type { AssetResponse } from '~/app/types';
 
 jest.mock('~/app/api/dataRegistry');
 
@@ -31,19 +32,21 @@ describe('useGenericTable', () => {
   });
 
   it('should fetch table data when all params are provided', async () => {
-    const mockTable = {
+    const mockTable: AssetResponse = {
       name: 'my-table',
       asset_type: 'table',
+      uuid: 'table-uuid',
       format: 'parquet',
-      location: 's3://bucket/path',
+      storage_location: 's3://bucket/path',
       collection: 'default',
       connection_ref: null,
       owner: 'user1',
       description: 'A table',
       labels: [],
       properties: {},
-      registered_by: 'user1',
       created_at: '2026-01-01',
+      updated_at: '2026-01-02',
+      columns: null,
     };
     mockFetchGenericTable.mockResolvedValue(mockTable);
 
@@ -54,7 +57,12 @@ describe('useGenericTable', () => {
     });
 
     expect(result.current[0]).toEqual(mockTable);
-    expect(mockFetchGenericTable).toHaveBeenCalledWith('my-project', 'default', 'my-table');
+    expect(mockFetchGenericTable).toHaveBeenCalledWith(
+      'my-project',
+      'default',
+      'my-table',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('should handle fetch errors', async () => {

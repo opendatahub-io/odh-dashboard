@@ -1,4 +1,7 @@
-import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import type {
+  HardwareProfileBinding,
+  HardwareProfileConfig,
+} from '@odh-dashboard/hardware-profiles/shared';
 import type { K8sAPIOptions, SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import {
   type InferenceServiceKind,
@@ -34,7 +37,7 @@ import {
   applyModelType,
   applyDeploymentStrategy,
 } from './deployUtils';
-import { applyHfTokenEnvVar } from './hfTokenSecret';
+import { applyHfTokenServiceAccount } from './hfTokenSecret';
 import { applyReplicas } from './hardware';
 import {
   createInferenceService,
@@ -51,6 +54,7 @@ export type CreatingInferenceServiceObject = {
   modelType?: string;
   modelLocationData?: ModelLocationData;
   hardwareProfile: HardwareProfileConfig;
+  hardwareProfileBinding?: HardwareProfileBinding;
   modelFormat?: SupportedModelFormats;
   externalRoute?: ExternalRouteFieldData;
   tokenAuth?: TokenAuthenticationFieldData;
@@ -61,6 +65,7 @@ export type CreatingInferenceServiceObject = {
   createConnectionData?: CreateConnectionData;
   deploymentStrategy?: WizardFormData['state']['deploymentStrategy'];
   hfTokenSecretName?: string;
+  hfTokenServiceAccountName?: string;
 };
 
 export const assembleInferenceService = (
@@ -79,6 +84,7 @@ export const assembleInferenceService = (
     createConnectionData,
     modelFormat,
     hardwareProfile,
+    hardwareProfileBinding,
     numReplicas,
     modelAvailability,
     externalRoute,
@@ -87,6 +93,7 @@ export const assembleInferenceService = (
     environmentVariables,
     deploymentStrategy,
     hfTokenSecretName,
+    hfTokenServiceAccountName,
   } = data;
   let inferenceService: InferenceServiceKind = existingInferenceService
     ? { ...existingInferenceService }
@@ -129,6 +136,7 @@ export const assembleInferenceService = (
     inferenceService,
     hardwareProfile,
     INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+    hardwareProfileBinding,
   );
 
   inferenceService = applyAuth(
@@ -161,7 +169,11 @@ export const assembleInferenceService = (
     inferenceService = applyDeploymentStrategy(inferenceService, deploymentStrategy.data);
   }
 
-  inferenceService = applyHfTokenEnvVar(inferenceService, hfTokenSecretName);
+  inferenceService = applyHfTokenServiceAccount(
+    inferenceService,
+    hfTokenSecretName,
+    hfTokenServiceAccountName,
+  );
 
   return inferenceService;
 };

@@ -15,9 +15,9 @@ jest.mock('react-router', () => ({
   useParams: jest.fn(() => ({ namespace: 'test-namespace' })),
 }));
 
-jest.mock('~/app/components/common/SecretSelector', () => ({
-  __esModule: true,
-  default: ({
+// Mock SecretSelector component to avoid fetch errors
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => {
+  const MockSecretSelector = ({
     onChange,
     dataTestId,
     onRefreshReady,
@@ -35,8 +35,13 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
         Select MaaS Secret
       </button>
     );
-  },
-}));
+  };
+  return {
+    ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
+    __esModule: true,
+    SecretSelector: MockSecretSelector,
+  };
+});
 
 jest.mock('~/app/components/common/MaaSConnectionModal', () => ({
   __esModule: true,

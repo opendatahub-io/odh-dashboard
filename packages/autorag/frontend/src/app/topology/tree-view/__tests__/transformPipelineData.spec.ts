@@ -66,6 +66,7 @@ describe('transformPipelineData', () => {
       winnerResolved: false,
       winnerPatternLabel: undefined,
       winnerPatternKey: undefined,
+      patternRanks: undefined,
     });
   });
 
@@ -87,6 +88,7 @@ describe('transformPipelineData', () => {
       winnerResolved: true,
       winnerPatternLabel: 'Pattern H',
       winnerPatternKey: 'pattern-h',
+      patternRanks: undefined,
     });
   });
 

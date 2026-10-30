@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
@@ -12,7 +13,14 @@ import (
 
 const maxLimit = 100
 
-type EvaluationJobsEnvelope Envelope[[]evalhub.EvaluationJob, None]
+type EvaluationJobsEnvelope Envelope[[]evalhub.EvaluationJob, EvaluationJobsMetadata]
+
+// EvaluationJobsMetadata reports the upstream total job count and whether the BFF's
+// fetch-all cap truncated the returned list.
+type EvaluationJobsMetadata struct {
+	TotalCount int  `json:"total_count"`
+	Truncated  bool `json:"truncated"`
+}
 type EvaluationJobEnvelope Envelope[evalhub.EvaluationJob, None]
 type CreateEvaluationJobEnvelope Envelope[evalhub.EvaluationJob, None]
 type CancelEvaluationJobEnvelope Envelope[string, None]
@@ -115,6 +123,28 @@ func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, fmt.Errorf("model name is required"))
 		return
 	}
+	if input.Collection != nil && strings.TrimSpace(input.Collection.ID) == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("collection id is required"))
+		return
+	}
+	for _, benchmark := range input.Benchmarks {
+		if strings.TrimSpace(benchmark.ID) == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+			return
+		}
+	}
+	if input.Collection != nil {
+		for _, benchmark := range input.Collection.Benchmarks {
+			if strings.TrimSpace(benchmark.ID) == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+				return
+			}
+		}
+	}
+	if len(input.Benchmarks) == 0 && input.Collection == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("at least one benchmark or a collection is required"))
+		return
+	}
 
 	job, err := client.CreateEvaluationJob(ctx, namespace, input)
 	if err != nil {
@@ -169,17 +199,24 @@ func (app *App) EvaluationJobsHandler(w http.ResponseWriter, r *http.Request, _ 
 		Tags:      q.Get("tags"),
 	}
 
-	jobs, err := client.ListEvaluationJobs(ctx, params)
+	result, err := client.ListEvaluationJobs(ctx, params)
 	if err != nil {
 		app.evalHubErrorResponse(w, r, err, "failed to list evaluation jobs")
 		return
 	}
 
+	jobs := result.Items
 	if jobs == nil {
 		jobs = []evalhub.EvaluationJob{}
 	}
 
-	envelope := EvaluationJobsEnvelope{Data: jobs}
+	envelope := EvaluationJobsEnvelope{
+		Data: jobs,
+		Metadata: EvaluationJobsMetadata{
+			TotalCount: result.TotalCount,
+			Truncated:  result.Truncated,
+		},
+	}
 	if err := app.WriteJSON(w, http.StatusOK, envelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -22,6 +23,13 @@ import (
 // to the S3 endpoint. This must complete well under the OpenShift route timeout
 // (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
 const s3ConnectTimeout = 10 * time.Second
+
+// s3ResponseHeaderTimeout bounds the wait for S3 response headers once a request
+// has been fully written. It matches the typical OpenShift route timeout so the
+// BFF can surface a meaningful error rather than the route's raw 504. Body
+// streaming after the headers arrive is intentionally not bounded here — large
+// payloads are legitimate (see s3MetadataTimeout).
+const s3ResponseHeaderTimeout = 30 * time.Second
 
 // s3MetadataTimeout bounds read-only S3 metadata operations (ListObjects, HeadObject
 // for ObjectExists). net/http's connection-level timeouts do not cancel ctx, so an
@@ -45,6 +53,12 @@ type ConnectionOptions struct {
 	SecretAccessKey string
 	Region          string
 	BaseEndpoint    string
+	// ChecksumAlgorithm is an optional upload checksum setting from the S3 connection.
+	// Leave empty to retain the SDK's default checksum behavior.
+	ChecksumAlgorithm ChecksumAlgorithm
+	// DisableUploadChecksumTrailers disables optional streaming checksum trailers.
+	// Checksums required by the S3 operation are still sent.
+	DisableUploadChecksumTrailers bool
 }
 
 // ClientConfig holds knobs for the default S3 client provider.
@@ -187,21 +201,29 @@ func (c *client) DownloadObject(ctx context.Context, opts ConnectionOptions, inp
 }
 
 func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input UploadObjectInput) error {
+	if opts.DisableUploadChecksumTrailers && opts.ChecksumAlgorithm != "" {
+		return fmt.Errorf("%w: %s cannot be combined with %s", ErrChecksumConfiguration, DisableUploadChecksumTrailersSecretKey, ChecksumAlgorithmSecretKey)
+	}
+
 	transferClient, err := c.Provider.CreateTransferClient(opts)
 	if err != nil {
 		return err
 	}
 
 	_, err = transferClient.UploadObject(ctx, &transfermanager.UploadObjectInput{
-		Bucket:      aws.String(input.Bucket),
-		Key:         aws.String(input.Key),
-		Body:        input.Body,
-		ContentType: aws.String(input.ContentType),
-		IfNoneMatch: aws.String("*"),
+		Bucket:            aws.String(input.Bucket),
+		Key:               aws.String(input.Key),
+		Body:              input.Body,
+		ContentType:       aws.String(input.ContentType),
+		IfNoneMatch:       aws.String("*"),
+		ChecksumAlgorithm: opts.ChecksumAlgorithm,
 	})
 	if err != nil {
 		if isS3ConditionalCreateConflict(err) {
 			return ErrObjectAlreadyExists
+		}
+		if !opts.DisableUploadChecksumTrailers && isS3StreamingChecksumTrailerRejection(err) {
+			return fmt.Errorf("%w: %w", ErrUploadChecksumRejected, err)
 		}
 		if translated := translateS3Error(err); translated != nil {
 			return translated
@@ -293,7 +315,17 @@ func (p *awsClientProvider) CreateTransferClient(opts ConnectionOptions) (Transf
 		o.GetObjectBufferSize = cfg.GetObjectBufSize
 		o.PartBodyMaxRetries = cfg.PartBodyMaxRetries
 		o.DisableChecksumValidation = false
+		// Keep the SDK default for existing connections. Connections that reject
+		// optional trailers can opt out explicitly.
+		o.RequestChecksumCalculation = requestChecksumCalculation(opts.DisableUploadChecksumTrailers)
 	}), nil
+}
+
+func requestChecksumCalculation(disableUploadChecksumTrailers bool) aws.RequestChecksumCalculation {
+	if disableUploadChecksumTrailers {
+		return aws.RequestChecksumCalculationWhenRequired
+	}
+	return aws.RequestChecksumCalculationWhenSupported
 }
 
 // buildAWSClient creates a real *awss3.Client with validated endpoint, credentials, and TLS.
@@ -312,8 +344,9 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 			opts.SecretAccessKey,
 			"",
 		),
-		RetryMaxAttempts: 1,
-		HTTPClient:       p.buildHTTPClient(),
+		RetryMaxAttempts:           1,
+		HTTPClient:                 p.buildHTTPClient(),
+		RequestChecksumCalculation: requestChecksumCalculation(opts.DisableUploadChecksumTrailers),
 	}
 
 	return awss3.NewFromConfig(awsCfg, func(o *awss3.Options) {
@@ -325,11 +358,17 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 // buildHTTPClient clones the default transport to preserve connection pooling and sets
 // connect, TLS handshake, and response-header timeouts so that unreachable S3 endpoints
 // fail fast under the OpenShift route timeout.
+//
+// The returned client deliberately sets no Timeout field: http.Client.Timeout spans the
+// entire request lifecycle including body streaming, so any static value would truncate
+// legitimately large uploads and downloads (see s3MetadataTimeout). The hang-prone
+// phases are bounded on the transport instead, and payload streaming is bounded by each
+// caller's request context.
 func (p *awsClientProvider) buildHTTPClient() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.DialContext = ssrfSafeDialContext(&net.Dialer{Timeout: s3ConnectTimeout}, p.cfg.AllowUnresolvableEndpoint)
 	transport.TLSHandshakeTimeout = s3ConnectTimeout
-	transport.ResponseHeaderTimeout = 30 * time.Second
+	transport.ResponseHeaderTimeout = s3ResponseHeaderTimeout
 
 	if p.cfg.RootCAs != nil {
 		// Supply the custom CA pool so that self-signed or cluster-issued
@@ -351,7 +390,10 @@ func (p *awsClientProvider) buildHTTPClient() *http.Client {
 		rt = p.cfg.WrapTransport(rt)
 	}
 
-	return &http.Client{Transport: rt}
+	// A blanket client deadline would truncate large transfers mid-stream; the
+	// hang-prone phases are bounded on the transport above and payload streaming
+	// is bounded by the caller's request context.
+	return &http.Client{Transport: rt} //nosemgrep: go-http-client-no-timeout
 }
 
 func (c ClientConfig) withDefaults() ClientConfig {
@@ -408,6 +450,22 @@ func isS3ConditionalCreateConflict(err error) bool {
 		}
 	}
 	return false
+}
+
+func isS3StreamingChecksumTrailerRejection(err error) bool {
+	var codedErr interface {
+		ErrorCode() string
+		ErrorMessage() string
+	}
+	var responseErr interface{ HTTPStatusCode() int }
+	if !errors.As(err, &codedErr) || codedErr.ErrorCode() != "InvalidArgument" ||
+		!errors.As(err, &responseErr) || responseErr.HTTPStatusCode() != http.StatusBadRequest {
+		return false
+	}
+
+	message := strings.ToLower(codedErr.ErrorMessage())
+	return strings.Contains(message, "x-amz-content-sha256") &&
+		strings.Contains(message, "streaming-aws4-hmac-sha256-payload")
 }
 
 // Compile-time interface checks.

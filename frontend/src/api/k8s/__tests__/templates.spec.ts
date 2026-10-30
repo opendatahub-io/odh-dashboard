@@ -1,7 +1,10 @@
 import { K8sStatus, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
+import YAML from 'yaml';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { genRandomChars } from '@odh-dashboard/foundation';
 import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimePlatform,
@@ -9,16 +12,11 @@ import {
 } from '@odh-dashboard/model-serving/shared';
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
-import {
-  assembleServingRuntimeTemplate,
-  deleteTemplate,
-  groupVersionKind,
-  useTemplates,
-} from '#~/api';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
+import { assembleServingRuntimeTemplate, deleteTemplate, useTemplates } from '#~/api';
 import { TemplateModel } from '#~/api/models';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
-import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -30,7 +28,7 @@ jest.mock('@odh-dashboard/foundation', () => ({
   genRandomChars: jest.fn(),
 }));
 
-jest.mock('#~/utilities/useK8sWatchResourceList', () => ({
+jest.mock('@odh-dashboard/ui-core/hooks/useK8sWatchResourceList', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -71,6 +69,7 @@ describe('assembleServingRuntimeTemplate', () => {
       namespace,
       ServingRuntimeAPIProtocol.REST,
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
+      undefined,
       'template-1',
     );
     expect(result).toStrictEqual(servingRuntimeTemplatesMock);
@@ -91,6 +90,72 @@ describe('assembleServingRuntimeTemplate', () => {
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
     );
     expect(result).toStrictEqual(servingRuntimeTemplatesMock);
+  });
+
+  it('should assemble install metadata from edited form inputs instead of copying source Template annotations', () => {
+    const source = mockServingRuntimeTemplateK8sResource({
+      apiProtocol: ServingRuntimeAPIProtocol.REST,
+      modelTypes: [ServingRuntimeModelType.PREDICTIVE],
+    });
+    const result = assembleServingRuntimeTemplate(
+      YAML.stringify(source.objects[0]),
+      namespace,
+      ServingRuntimeAPIProtocol.GRPC,
+      [ServingRuntimeModelType.GENERATIVE],
+    );
+    expect(result.metadata.annotations).toEqual(
+      expect.objectContaining({
+        'opendatahub.io/modelServingSupport': JSON.stringify([ServingRuntimePlatform.SINGLE]),
+        'opendatahub.io/model-type': JSON.stringify([ServingRuntimeModelType.GENERATIVE]),
+        'opendatahub.io/apiProtocol': ServingRuntimeAPIProtocol.GRPC,
+      }),
+    );
+    expect(result.objects[0]).toEqual(source.objects[0]);
+  });
+
+  it('should include installed-from-catalog annotation when installedFromCatalog is true', () => {
+    genRandomCharsMock.mockReturnValue('456');
+    const servingRuntimeMock = JSON.stringify(createServingRuntime('template-456'));
+
+    const result = assembleServingRuntimeTemplate(
+      servingRuntimeMock,
+      namespace,
+      ServingRuntimeAPIProtocol.REST,
+      [ServingRuntimeModelType.PREDICTIVE],
+      true,
+    );
+    expect(result.metadata.annotations).toEqual(
+      expect.objectContaining({
+        [MetadataAnnotation.InstalledFromCatalog]: 'true',
+      }),
+    );
+  });
+
+  it('should not include installed-from-catalog annotation when installedFromCatalog is false', () => {
+    genRandomCharsMock.mockReturnValue('789');
+    const servingRuntimeMock = JSON.stringify(createServingRuntime('template-789'));
+
+    const result = assembleServingRuntimeTemplate(
+      servingRuntimeMock,
+      namespace,
+      ServingRuntimeAPIProtocol.REST,
+      [ServingRuntimeModelType.PREDICTIVE],
+      false,
+    );
+    expect(result.metadata.annotations).not.toHaveProperty(MetadataAnnotation.InstalledFromCatalog);
+  });
+
+  it('should not include installed-from-catalog annotation when installedFromCatalog is omitted', () => {
+    genRandomCharsMock.mockReturnValue('abc');
+    const servingRuntimeMock = JSON.stringify(createServingRuntime('template-abc'));
+
+    const result = assembleServingRuntimeTemplate(
+      servingRuntimeMock,
+      namespace,
+      ServingRuntimeAPIProtocol.REST,
+      [ServingRuntimeModelType.PREDICTIVE],
+    );
+    expect(result.metadata.annotations).not.toHaveProperty(MetadataAnnotation.InstalledFromCatalog);
   });
 
   it('should throw an error when servingRuntime name doesnt exist', () => {

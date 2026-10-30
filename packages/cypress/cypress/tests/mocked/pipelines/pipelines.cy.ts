@@ -211,6 +211,7 @@ describe('Pipelines', () => {
     pipelineDeleteModal.findSubmitButton().click();
 
     cy.wait('@deleteVersion');
+    pipelineDeleteModal.shouldBeOpen(false);
     pipelineRow.findExpandButton().click();
 
     cy.wait('@refreshVersions').then((interception) => {

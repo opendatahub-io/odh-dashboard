@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -9,7 +10,9 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -29,7 +32,8 @@ import (
 )
 
 const (
-	routingConnectorKey = "routing/traces"
+	routingConnectorKey     = "routing/traces"
+	asgiSpanFilterProcessor = "filter/drop-asgi-events"
 
 	collectorPatchTimeout = 15 * time.Second
 	crDiscoveryTimeout    = 10 * time.Second
@@ -44,14 +48,31 @@ const (
 // the platform "data-science-collector" CR, whose spec.config is fully rendered
 // from a Go template by an operator on reconciliation, so this avoids our changes being overwritten.
 type otelConfigManager struct {
-	mu                  sync.Mutex // serializes read-modify-write on the collector CR
-	dynClient           dynamic.Interface
-	logger              *slog.Logger
-	collectorNamespace  string
-	mlflowK8sServiceURL string // in-cluster K8s service URL for collector exporter, e.g. "https://mlflow.opendatahub.svc:8443"
-	mlflowURL           string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
-	httpClient          *http.Client
-	bearerToken         string // from kubeconfig (local dev) or SA token (in-cluster)
+	mu                      sync.Mutex // serializes read-modify-write on the collector CR
+	dynClient               dynamic.Interface
+	logger                  *slog.Logger
+	collectorNamespace      string
+	mlflowCollectorEndpoint string // MLflow endpoint for collector exporters, includes the /mlflow static prefix, e.g. "https://mlflow.opendatahub.svc:8443/mlflow"
+	mlflowURL               string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
+	httpClient              *http.Client
+	bearerToken             string // from kubeconfig (local dev) or SA token (in-cluster)
+}
+
+// mlflowCollectorExporterEndpoint returns the MLflow endpoint for the
+// collector's otlphttp exporters.
+//
+// MLflow serves all of its routes under the /mlflow static prefix, and since
+// MLflow 3.16 (mlflow/mlflow#24511) that includes the OTLP trace ingestion
+// endpoint: /mlflow/v1/traces. The otlphttp exporter appends /v1/traces to
+// its endpoint, so the exporter must target <service>/mlflow. A prefix-less
+// endpoint makes the collector POST to /v1/traces, which MLflow answers with
+// 404 — silently dropping every span (RHOAIENG-101620).
+//
+// The discovered service URL may or may not already carry the /mlflow path;
+// the result always targets the prefixed endpoint.
+func mlflowCollectorExporterEndpoint(mlflowServiceURL string) string {
+	root := strings.TrimSuffix(strings.TrimSuffix(mlflowServiceURL, "/"), "/mlflow")
+	return root + "/mlflow"
 }
 
 // newOTelConfigManager creates a manager that owns a dedicated gen-ai
@@ -94,28 +115,31 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x5
 		return nil, nil
 	}
 
-	// The collector exporter always uses the in-cluster service URL.
-	mlflowK8sSvc := strings.TrimSuffix(strings.TrimSuffix(mlflowURL, "/mlflow"), "/")
+	// The collector exporter always uses the in-cluster service URL, with the
+	// /mlflow static prefix included — see mlflowCollectorExporterEndpoint.
+	mlflowCollectorEndpoint := mlflowCollectorExporterEndpoint(mlflowURL)
 
+	// The BFF's own API calls use the service root (their request paths carry
+	// the /mlflow prefix) or the local dev override when set.
 	mlflowBFFURL := strings.TrimSuffix(cfg.MLflowURL, "/")
 	if mlflowBFFURL == "" {
-		mlflowBFFURL = mlflowK8sSvc
+		mlflowBFFURL = strings.TrimSuffix(strings.TrimSuffix(mlflowURL, "/mlflow"), "/")
 	}
 
 	logger.Info("OTel config manager initialized",
 		"collectorNamespace", collectorNS,
 		"collectorCR", constants.GenAICollectorName,
-		"mlflowK8sServiceURL", mlflowK8sSvc,
+		"mlflowCollectorEndpoint", mlflowCollectorEndpoint,
 		"mlflowURL", mlflowBFFURL,
 	)
 
 	return &otelConfigManager{
-		dynClient:           dynClient,
-		logger:              logger,
-		collectorNamespace:  collectorNS,
-		mlflowK8sServiceURL: mlflowK8sSvc,
-		mlflowURL:           mlflowBFFURL,
-		bearerToken:         restCfg.BearerToken,
+		dynClient:               dynClient,
+		logger:                  logger,
+		collectorNamespace:      collectorNS,
+		mlflowCollectorEndpoint: mlflowCollectorEndpoint,
+		mlflowURL:               mlflowBFFURL,
+		bearerToken:             restCfg.BearerToken,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
@@ -189,7 +213,7 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 		}
 
 		changed := ensureRoutingConnector(collectorCfg)
-		changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowK8sServiceURL, experimentID) || changed
+		changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowCollectorEndpoint, experimentID) || changed
 
 		if !changed {
 			m.logger.Info("collector config already has route for namespace, no patch needed", "namespace", namespace)
@@ -342,13 +366,19 @@ func (m *otelConfigManager) buildBaseCollectorCR() *unstructured.Unstructured {
 					},
 					"processors": map[string]interface{}{
 						"batch": map[string]interface{}{},
+						asgiSpanFilterProcessor: map[string]interface{}{
+							"error_mode": "ignore",
+							"traces": map[string]interface{}{
+								"span": []interface{}{`IsMatch(name, ".* http (send|receive)$")`},
+							},
+						},
 					},
 					"service": map[string]interface{}{
 						"extensions": []interface{}{"bearertokenauth"},
 						"pipelines": map[string]interface{}{
 							"traces": map[string]interface{}{
 								"receivers":  []interface{}{"otlp"},
-								"processors": []interface{}{"batch"},
+								"processors": []interface{}{asgiSpanFilterProcessor, "batch"},
 								"exporters":  []interface{}{"debug"},
 							},
 						},
@@ -421,9 +451,10 @@ func (m *otelConfigManager) writeBackConfig(ctx context.Context, cr *unstructure
 const (
 	saTokenPath          = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	mlflowExperimentsAPI = "/api/2.0/mlflow/experiments"
+	mlflowExperimentName = "Gen AI studio Playground"
 )
 
-// ensureMLflowExperimentWithToken creates a "Default" experiment in the given
+// ensureMLflowExperimentWithToken creates an experiment in the given
 // workspace if one doesn't exist, and returns its experiment ID. Uses the
 // provided token (typically the user's token, since experiment creation is
 // namespace-scoped and project admins have access). Returns "" on error,
@@ -460,7 +491,13 @@ func (m *otelConfigManager) getAuthToken() string {
 }
 
 func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace string, token string) (string, error) {
-	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter_string=%s", m.mlflowURL, mlflowExperimentsAPI, "name%3D'Default'")
+	// MLflow's REST API reads the experiment filter from the "filter"
+	// query parameter. "filter_string" is the Python SDK's kwarg name — the
+	// SDK translates it to "filter" on the wire — so sending "filter_string"
+	// directly makes MLflow ignore the filter and return the first
+	// experiments in the workspace (RHOAIENG-101622).
+	filterValue := url.QueryEscape(fmt.Sprintf("name='%s'", mlflowExperimentName))
+	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter=%s", m.mlflowURL, mlflowExperimentsAPI, filterValue)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -482,23 +519,32 @@ func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace stri
 	var result struct {
 		Experiments []struct {
 			ExperimentID string `json:"experiment_id"`
+			Name         string `json:"name"`
 		} `json:"experiments"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", err
 	}
 
-	if len(result.Experiments) > 0 {
-		return result.Experiments[0].ExperimentID, nil
+	// Only accept an experiment whose name actually matches. If the filter
+	// were ever ignored again (e.g., a mis-addressed query parameter), an
+	// unfiltered search result must not be mistaken for a match.
+	for _, exp := range result.Experiments {
+		if exp.Name == mlflowExperimentName {
+			return exp.ExperimentID, nil
+		}
 	}
-	return "", fmt.Errorf("no experiments found")
+	return "", fmt.Errorf("no experiment named %q found", mlflowExperimentName)
 }
 
 func (m *otelConfigManager) createExperiment(ctx context.Context, workspace string, token string) (string, error) {
 	url := fmt.Sprintf("%s/mlflow%s/create", m.mlflowURL, mlflowExperimentsAPI)
 
-	body := strings.NewReader(`{"name":"Default"}`)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	body, err := json.Marshal(map[string]string{"name": mlflowExperimentName})
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -578,36 +624,59 @@ func normalizeValue(v interface{}) interface{} {
 
 // --- config manipulation (all maps are map[string]interface{}) ---
 
+// ensureASGISpanFilter drops low-level ASGI send/receive spans. Streaming
+// responses otherwise create one child span per chunk, making the MLflow trace
+// breakdown noisy without adding useful user-facing information.
+func ensureASGISpanFilter(cfg map[string]interface{}) bool {
+	processors := ensureMap(cfg, "processors")
+	if _, exists := processors[asgiSpanFilterProcessor]; exists {
+		return false
+	}
+
+	processors[asgiSpanFilterProcessor] = map[string]interface{}{
+		"error_mode": "ignore",
+		"traces": map[string]interface{}{
+			"span": []interface{}{`IsMatch(name, ".* http (send|receive)$")`},
+		},
+	}
+	return true
+}
+
 // ensureRoutingConnector creates the routing/traces connector alongside the
 // operator-managed traces pipeline. The operator owns the base `traces` pipeline
 // ensureRoutingConnector adds the routing connector and rewires the base
 // traces pipeline to export through it. Since this is our own dedicated
 // collector CR, we own the full config and can restructure the pipeline:
 //
-//	traces: otlp → batch → routing/traces
+//	traces: otlp → filter/drop-asgi-events → batch → routing/traces
 //	traces/<ns>: routing/traces → otlp/http/<ns>  (added per namespace)
 //
 // Returns true if the config was modified.
 func ensureRoutingConnector(cfg map[string]interface{}) bool {
+	changed := ensureASGISpanFilter(cfg)
+
 	connectors := ensureMap(cfg, "connectors")
-	if _, exists := connectors[routingConnectorKey]; exists {
-		return false
+	if _, exists := connectors[routingConnectorKey]; !exists {
+		connectors[routingConnectorKey] = map[string]interface{}{
+			"default_pipelines": []interface{}{},
+			"table":             []interface{}{},
+		}
+		changed = true
 	}
 
-	connectors[routingConnectorKey] = map[string]interface{}{
-		"default_pipelines": []interface{}{},
-		"table":             []interface{}{},
-	}
-
-	// Rewire the base traces pipeline to export through the routing connector
-	pipelines := ensureMap(ensureMap(cfg, "service"), "pipelines")
-	pipelines["traces"] = map[string]interface{}{
+	// Rewire the base traces pipeline to export through the routing connector.
+	pipeline := map[string]interface{}{
 		"receivers":  []interface{}{"otlp"},
-		"processors": []interface{}{"batch"},
+		"processors": []interface{}{asgiSpanFilterProcessor, "batch"},
 		"exporters":  []interface{}{routingConnectorKey},
 	}
+	pipelines := ensureMap(ensureMap(cfg, "service"), "pipelines")
+	if !mapStringInterfaceEqual(pipelines["traces"], pipeline) {
+		pipelines["traces"] = pipeline
+		changed = true
+	}
 
-	return true
+	return changed
 }
 
 // addNamespaceRoute adds a routing table entry, exporter, and pipeline for the
@@ -753,4 +822,9 @@ func toSlice(v interface{}) []interface{} {
 		return s
 	}
 	return nil
+}
+
+func mapStringInterfaceEqual(a interface{}, b map[string]interface{}) bool {
+	am, ok := a.(map[string]interface{})
+	return ok && reflect.DeepEqual(am, b)
 }

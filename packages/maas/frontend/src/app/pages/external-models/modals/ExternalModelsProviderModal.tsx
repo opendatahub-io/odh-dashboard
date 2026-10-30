@@ -13,6 +13,7 @@ import {
   TextInput,
   Content,
 } from '@patternfly/react-core';
+import { convertStringToProviderType } from '~/app/pages/external-providers/utils';
 
 type ProviderURLModalProps = {
   providerURL: string;
@@ -59,10 +60,12 @@ const ProviderURLModal: React.FC<ProviderURLModalProps> = ({
           <strong>Provider</strong>
         </StackItem>
         <StackItem>
-          <Content data-testid="provider-modal-provider-ref-content">{providerRef}</Content>
+          <Content data-testid="provider-modal-provider-ref-content">
+            {convertStringToProviderType(providerRef)}
+          </Content>
         </StackItem>
         <StackItem>
-          <strong>Target model ID</strong>
+          <strong>Model ID</strong>
         </StackItem>
         <StackItem>
           <Content data-testid="provider-modal-target-model-id-content">{targetModelId}</Content>

@@ -1,5 +1,6 @@
 import React from 'react';
 import useFetch, { FetchStateObject, NotReadyError } from '@odh-dashboard/ui-core/hooks/useFetch';
+import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import {
   k8sCreateResource,
   k8sDeleteResource,
@@ -9,10 +10,12 @@ import {
   k8sUpdateResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
-import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
-import { K8sAPIOptions, applyK8sAPIOptions } from '@odh-dashboard/k8s-core';
-import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import {
+  applyK8sAPIOptions,
+  type K8sAPIOptions,
+  type K8sWatchResult,
+} from '@odh-dashboard/k8s-core';
+import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { CONFIG_TYPE_LABEL } from '../const';
 import {
@@ -234,7 +237,7 @@ export const useWatchLLMInferenceServiceConfigs = (
   namespace: string,
   matchLabels?: Record<string, string>,
   opts?: K8sAPIOptions,
-): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
+): K8sWatchResult<LLMInferenceServiceConfigKind[]> => {
   return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
     {
       isList: true,
@@ -298,7 +301,7 @@ export const useFetchTopologyConfigs = (
 export const useWatchTopologyConfigs = (
   namespace: string,
   opts?: K8sAPIOptions,
-): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
+): K8sWatchResult<LLMInferenceServiceConfigKind[]> => {
   return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
     {
       isList: true,
@@ -348,7 +351,7 @@ export const useFetchRouterConfigs = (
 export const useWatchRouterConfigs = (
   namespace: string,
   opts?: K8sAPIOptions,
-): CustomWatchK8sResult<LLMInferenceServiceConfigKind[]> => {
+): K8sWatchResult<LLMInferenceServiceConfigKind[]> => {
   return useK8sWatchResourceList<LLMInferenceServiceConfigKind[]>(
     {
       isList: true,

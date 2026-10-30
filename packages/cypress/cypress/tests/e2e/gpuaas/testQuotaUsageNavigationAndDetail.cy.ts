@@ -204,7 +204,7 @@ describeAdminOnly('Quota usage navigation and detail', () => {
         .should('have.text', '0 active, 0 pending');
       infrastructurePage
         .findQuotaUsageSummaryCapacity()
-        .should('contain.text', `0/${testContext.testData.acceleratorQuota} accelerators`);
+        .should('contain.text', `0/${testContext.testData.acceleratorQuota}`);
       infrastructurePage.findQuotaUsageAcceleratorRow(resourceFlavorName).should('be.visible');
       infrastructurePage.findQuotaUsageWorkloadsSection().scrollIntoView().should('be.visible');
       infrastructurePage

@@ -11,11 +11,16 @@ import {
   initAutoConnectIntercepts,
   initHighToolsCountIntercepts,
   initRegistryIntercepts,
+  clearMCPRegistryServersFlag,
   type MCPTestConfig,
 } from '~/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers';
 
 describe('Playground - MCP Servers', () => {
   let config: MCPTestConfig;
+
+  afterEach(() => {
+    clearMCPRegistryServersFlag();
+  });
 
   before(() => {
     loadMCPTestConfig().then((data) => {
@@ -698,12 +703,16 @@ describe('Playground - MCP Servers', () => {
         ],
       });
 
-      navigateToPlayground(namespace);
+      navigateToPlayground(namespace, true);
 
       cy.step('Verify Registered section is visible');
       playgroundPage.mcpTab.findRegisteredSection().should('be.visible');
       playgroundPage.mcpTab.findRegisteredToggle().should('contain.text', 'Registered');
       playgroundPage.mcpTab.findRegisteredCountBadge().should('contain.text', '0 of 1 servers on');
+      playgroundPage.mcpTab
+        .getRegisteredServerRow('Registry-Server-1', 'http://registry-server-1.local/mcp')
+        .find()
+        .should('be.visible');
 
       cy.step('Verify Manual Connection section is visible');
       playgroundPage.mcpTab.findManualSection().should('be.visible');
@@ -731,7 +740,7 @@ describe('Playground - MCP Servers', () => {
         configmapServers: [],
       });
 
-      navigateToPlayground(namespace);
+      navigateToPlayground(namespace, true);
 
       cy.step('Verify Registered section is visible');
       playgroundPage.mcpTab.findRegisteredSection().should('be.visible');
@@ -741,6 +750,36 @@ describe('Playground - MCP Servers', () => {
       playgroundPage.mcpTab
         .findManualEmptyState()
         .should('contain.text', 'No manual servers configured');
+    },
+  );
+
+  it(
+    'should hide registered servers and keep manual connections when the flag is disabled',
+    { tags: ['@GenAI', '@MCPServers', '@Playground', '@Registry', '@FeatureFlag'] },
+    () => {
+      const namespace = config.defaultNamespace;
+
+      initRegistryIntercepts({
+        config,
+        namespace,
+        registryServers: [{ name: 'Registry-Server-1', url: 'http://registry-server-1.local/mcp' }],
+        configmapServers: [
+          { name: 'ConfigMap-Server-1', url: 'http://configmap-server-1.local/mcp' },
+        ],
+      });
+
+      navigateToPlayground(namespace, false);
+
+      cy.step('Verify registered servers are hidden');
+      playgroundPage.mcpTab.findRegisteredSection().should('not.exist');
+      playgroundPage.mcpTab.findMCPRegisteredServersTable().should('not.exist');
+
+      cy.step('Verify manual connections remain visible');
+      playgroundPage.mcpTab.findManualSection().should('be.visible');
+      playgroundPage.mcpTab
+        .getServerRow('ConfigMap-Server-1', 'http://configmap-server-1.local/mcp')
+        .find()
+        .should('be.visible');
     },
   );
 });

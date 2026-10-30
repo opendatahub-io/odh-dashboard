@@ -6,12 +6,6 @@ export const EventModel: K8sModelCommon = {
   plural: 'events',
 };
 
-export const PodModel: K8sModelCommon = {
-  apiVersion: 'v1',
-  kind: 'Pod',
-  plural: 'pods',
-};
-
 export const StatefulSetModel: K8sModelCommon = {
   apiVersion: 'v1',
   apiGroup: 'apps',

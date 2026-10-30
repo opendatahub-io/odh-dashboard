@@ -6,6 +6,11 @@ import {
   ModalFooter,
   Button,
   Alert,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateVariant,
   SearchInput,
   Toolbar,
   ToolbarContent,
@@ -15,9 +20,15 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { CheckIcon, TimesIcon, TrashIcon } from '@patternfly/react-icons';
+import {
+  CheckIcon,
+  PlusCircleIcon,
+  SearchIcon,
+  TimesIcon,
+  TrashIcon,
+} from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { createLabel, deleteLabel, ApiError } from '~/app/api/dataRegistry';
+import { createLabel, deleteLabel, isConflictError } from '~/app/api/dataRegistry';
 import { RegistryAsset } from '~/app/hooks/useAssets';
 
 type ManageLabelsModalProps = {
@@ -66,6 +77,17 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
     [labelsWithAssets, filterText],
   );
 
+  const hasLabels = labels.length > 0;
+  const showCreationEmptyState = !hasLabels && !isCreating;
+
+  const handleStartCreate = () => {
+    if (!hasLabels) {
+      setFilterText('');
+    }
+    setIsCreating(true);
+    setActionError(null);
+  };
+
   const handleCreateLabel = async () => {
     const trimmed = newLabelName.trim();
     if (!trimmed) {
@@ -79,7 +101,7 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
       setIsCreating(false);
       onRefresh();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
+      if (isConflictError(err)) {
         setActionError(`Label "${trimmed}" already exists.`);
       } else {
         setActionError(err instanceof Error ? err.message : 'Failed to create label');
@@ -114,17 +136,9 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
     <Modal isOpen={isOpen} onClose={handleClose} variant="large" data-testid="manage-labels-modal">
       <ModalHeader
         title="Manage labels"
-        description="Create and delete labels to manage how assets are organized across this project."
+        description="View and manage this project’s labels. Optionally use labels to organize and filter your data assets."
       />
       <ModalBody>
-        <Alert
-          variant="info"
-          isInline
-          title="Changes affect all project assets"
-          className="pf-v6-u-mb-md"
-        >
-          Deleting a label removes it from every asset using it within this project.
-        </Alert>
         {actionError ? (
           <Alert
             variant="danger"
@@ -134,127 +148,177 @@ const ManageLabelsModal: React.FC<ManageLabelsModalProps> = ({
             data-testid="manage-labels-error"
           />
         ) : null}
-        <Toolbar>
-          <ToolbarContent>
-            <ToolbarItem>
-              <SearchInput
-                placeholder="Filter by label name"
-                value={filterText}
-                onChange={(_event, value) => setFilterText(value)}
-                onClear={() => setFilterText('')}
-                data-testid="label-filter"
-              />
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setIsCreating(true);
-                  setActionError(null);
-                }}
-                isDisabled={isCreating}
-                data-testid="create-label-button"
-              >
-                Create label
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
-        <Table aria-label="Labels" data-testid="labels-table">
-          <Thead>
-            <Tr>
-              <Th>Label</Th>
-              <Th>Assets</Th>
-              <Th screenReaderText="Actions" />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {isCreating ? (
-              <Tr data-testid="create-label-row">
-                <Td dataLabel="Label" colSpan={3}>
-                  <Flex
-                    alignItems={{ default: 'alignItemsCenter' }}
-                    flexWrap={{ default: 'nowrap' }}
-                  >
-                    <FlexItem style={{ maxWidth: '200px' }}>
-                      <TextInput
-                        value={newLabelName}
-                        onChange={(_event, value) => setNewLabelName(value)}
-                        placeholder="Enter label name"
-                        aria-label="New label name"
-                        isDisabled={isSubmitting}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleCreateLabel();
-                          } else if (e.key === 'Escape') {
-                            setIsCreating(false);
-                            setNewLabelName('');
-                            setActionError(null);
-                          }
-                        }}
-                        data-testid="new-label-input"
-                        autoFocus
-                      />
-                    </FlexItem>
-                    <FlexItem grow={{ default: 'grow' }} />
-                    <FlexItem>
-                      <Button
-                        variant="plain"
-                        aria-label="Confirm create label"
-                        onClick={handleCreateLabel}
-                        isDisabled={isSubmitting || !newLabelName.trim()}
-                        data-testid="confirm-create-label"
-                      >
-                        <CheckIcon />
-                      </Button>
-                    </FlexItem>
-                    <FlexItem>
-                      <Button
-                        variant="plain"
-                        aria-label="Cancel create label"
-                        onClick={() => {
-                          setIsCreating(false);
-                          setNewLabelName('');
-                          setActionError(null);
-                        }}
-                        isDisabled={isSubmitting}
-                        data-testid="cancel-create-label"
-                      >
-                        <TimesIcon />
-                      </Button>
-                    </FlexItem>
-                  </Flex>
-                </Td>
-              </Tr>
+        {showCreationEmptyState ? (
+          <EmptyState
+            headingLevel="h2"
+            icon={PlusCircleIcon}
+            titleText="No labels yet"
+            variant={EmptyStateVariant.lg}
+            data-testid="labels-empty-state"
+          >
+            <EmptyStateBody>Create a label to organize and filter your data assets.</EmptyStateBody>
+            <EmptyStateFooter>
+              <EmptyStateActions>
+                <Button
+                  variant="primary"
+                  onClick={handleStartCreate}
+                  data-testid="create-label-button"
+                >
+                  Create label
+                </Button>
+              </EmptyStateActions>
+            </EmptyStateFooter>
+          </EmptyState>
+        ) : (
+          <>
+            {hasLabels ? (
+              <Toolbar>
+                <ToolbarContent>
+                  <ToolbarItem>
+                    <SearchInput
+                      placeholder="Filter by label name"
+                      value={filterText}
+                      onChange={(_event, value) => setFilterText(value)}
+                      onClear={() => setFilterText('')}
+                      data-testid="label-filter"
+                    />
+                  </ToolbarItem>
+                  <ToolbarItem>
+                    <Button
+                      variant="primary"
+                      onClick={handleStartCreate}
+                      isDisabled={isCreating}
+                      data-testid="create-label-button"
+                    >
+                      Create label
+                    </Button>
+                  </ToolbarItem>
+                </ToolbarContent>
+              </Toolbar>
             ) : null}
-            {filteredLabels.map((labelInfo) => (
-              <Tr key={labelInfo.name} data-testid={`label-row-${labelInfo.name}`}>
-                <Td dataLabel="Label">
-                  <Label isCompact variant="outline">
-                    {labelInfo.name}
-                  </Label>
-                </Td>
-                <Td dataLabel="Assets">
-                  {labelInfo.assetNames.length > 0 ? labelInfo.assetNames.join(', ') : '–'}
-                </Td>
-                <Td isActionCell>
-                  <Button
-                    variant="plain"
-                    aria-label={`Delete label ${labelInfo.name}`}
-                    onClick={() => handleDeleteLabel(labelInfo.name)}
-                    isDisabled={deletingLabel !== null}
-                    data-testid={`delete-label-${labelInfo.name}`}
-                  >
-                    <TrashIcon />
-                  </Button>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            <Table aria-label="Labels" data-testid="labels-table">
+              <Thead>
+                <Tr>
+                  <Th>Label</Th>
+                  <Th>Data assets</Th>
+                  <Th screenReaderText="Actions" />
+                </Tr>
+              </Thead>
+              <Tbody>
+                {isCreating ? (
+                  <Tr data-testid="create-label-row">
+                    <Td dataLabel="Label" colSpan={3}>
+                      <Flex
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        flexWrap={{ default: 'nowrap' }}
+                      >
+                        <FlexItem style={{ maxWidth: 'var(--pf-t--global--spacer--6xl)' }}>
+                          <TextInput
+                            value={newLabelName}
+                            onChange={(_event, value) => setNewLabelName(value)}
+                            placeholder="New label"
+                            aria-label="New label name"
+                            isDisabled={isSubmitting}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCreateLabel();
+                              } else if (e.key === 'Escape') {
+                                setIsCreating(false);
+                                setNewLabelName('');
+                                setActionError(null);
+                              }
+                            }}
+                            data-testid="new-label-input"
+                            autoFocus
+                          />
+                        </FlexItem>
+                        <FlexItem grow={{ default: 'grow' }} />
+                        <FlexItem>
+                          <Button
+                            variant="plain"
+                            aria-label="Confirm create label"
+                            onClick={handleCreateLabel}
+                            isDisabled={isSubmitting || !newLabelName.trim()}
+                            data-testid="confirm-create-label"
+                          >
+                            <CheckIcon />
+                          </Button>
+                        </FlexItem>
+                        <FlexItem>
+                          <Button
+                            variant="plain"
+                            aria-label="Cancel create label"
+                            onClick={() => {
+                              setIsCreating(false);
+                              setNewLabelName('');
+                              setActionError(null);
+                            }}
+                            isDisabled={isSubmitting}
+                            data-testid="cancel-create-label"
+                          >
+                            <TimesIcon />
+                          </Button>
+                        </FlexItem>
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ) : null}
+                {!isCreating && filteredLabels.length === 0 ? (
+                  <Tr data-testid="labels-no-results-row">
+                    <Td colSpan={3}>
+                      <EmptyState
+                        headingLevel="h3"
+                        icon={SearchIcon}
+                        titleText="No results found"
+                        variant={EmptyStateVariant.sm}
+                        data-testid="labels-no-results-state"
+                      >
+                        <EmptyStateBody>Adjust your filters and try again.</EmptyStateBody>
+                        <EmptyStateFooter>
+                          <EmptyStateActions>
+                            <Button
+                              variant="link"
+                              onClick={() => setFilterText('')}
+                              data-testid="clear-label-filters"
+                            >
+                              Clear all filters
+                            </Button>
+                          </EmptyStateActions>
+                        </EmptyStateFooter>
+                      </EmptyState>
+                    </Td>
+                  </Tr>
+                ) : null}
+                {filteredLabels.map((labelInfo) => (
+                  <Tr key={labelInfo.name} data-testid={`label-row-${labelInfo.name}`}>
+                    <Td dataLabel="Label">
+                      <Label isCompact variant="outline">
+                        {labelInfo.name}
+                      </Label>
+                    </Td>
+                    <Td dataLabel="Data assets">
+                      {labelInfo.assetNames.length > 0 ? labelInfo.assetNames.join(', ') : '–'}
+                    </Td>
+                    <Td isActionCell>
+                      <Button
+                        variant="plain"
+                        aria-label={`Delete label ${labelInfo.name}`}
+                        onClick={() => handleDeleteLabel(labelInfo.name)}
+                        isDisabled={deletingLabel !== null}
+                        data-testid={`delete-label-${labelInfo.name}`}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </>
+        )}
       </ModalBody>
       <ModalFooter>
-        <Button variant="link" onClick={handleClose}>
+        <Button variant="secondary" onClick={handleClose} data-testid="manage-labels-close-button">
           Close
         </Button>
       </ModalFooter>

@@ -298,7 +298,10 @@ func (app *App) Routes() http.Handler {
 	attachSecretHandlers(apiRouter, app)
 	attachYamlHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithMaasApi(app, ListModelsHandler))
+	apiRouter.GET(constants.MaaSGatewayURLPath, handlerWithApp(app, GetMaaSGatewayURLHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
+	apiRouter.GET(constants.WhoAmIPath, handlerWithMaasApi(app, GetWhoAmIHandler))
+	apiRouter.GET(constants.UsageDashboardsPath, handlerWithMaasApi(app, GetUsageDashboardsHandler))
 
 	// Minimal Kubernetes-backed starter endpoints TODO: Remove?
 	apiRouter.GET(UserPath, app.UserHandler)

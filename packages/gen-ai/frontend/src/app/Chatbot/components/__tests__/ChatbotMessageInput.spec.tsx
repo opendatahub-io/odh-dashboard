@@ -1,13 +1,22 @@
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ChatbotMessageInput, {
   ImageUploadState,
 } from '~/app/Chatbot/components/ChatbotMessageInput';
-import { VISION_UPLOAD_CONFIG, AUDIO_UPLOAD_CONFIG } from '~/app/Chatbot/const';
+import {
+  VISION_UPLOAD_CONFIG,
+  AUDIO_UPLOAD_CONFIG,
+  DOCUMENT_ATTACHMENT_CONFIG,
+  FILE_UPLOAD_CONFIG,
+} from '~/app/Chatbot/const';
 import { AudioTranscriptionState } from '~/app/Chatbot/hooks/useAudioTranscription';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
+import { PLAYGROUND_DOCUMENT_EVENTS } from '~/app/tracking/playgroundDocumentTrackingConstants';
 
 jest.mock('@patternfly/chatbot', () => ({
   MessageBar: ({
@@ -17,6 +26,7 @@ jest.mock('@patternfly/chatbot', () => ({
     isSendButtonDisabled,
     hasStopButton,
     attachMenuProps,
+    buttonProps,
     'data-testid': testId,
   }: {
     onSendMessage: (message: string) => void;
@@ -30,6 +40,7 @@ jest.mock('@patternfly/chatbot', () => ({
       attachMenuItems: React.ReactNode;
       onAttachMenuToggleClick: () => void;
     };
+    buttonProps?: { attach?: { tooltipContent?: string } };
     'data-testid': string;
   }) => (
     <div data-testid={testId}>
@@ -56,6 +67,7 @@ jest.mock('@patternfly/chatbot', () => ({
           <button
             data-testid="mock-attach-toggle"
             onClick={attachMenuProps.onAttachMenuToggleClick}
+            title={buttonProps?.attach?.tooltipContent}
             type="button"
           >
             Attach
@@ -72,14 +84,26 @@ jest.mock('@patternfly/chatbot', () => ({
     fileName,
     isLoading,
     onClose,
+    onClick,
     'data-testid': testId,
   }: {
     fileName: string;
     isLoading?: boolean;
     onClose?: (event: React.MouseEvent) => void;
+    onClick?: (event: React.MouseEvent) => void;
     'data-testid'?: string;
   }) => (
-    <div data-testid={testId || 'file-details-label'}>
+    <div
+      data-testid={testId || 'file-details-label'}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+          onClick(event as unknown as React.MouseEvent);
+        }
+      }}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <span data-testid="file-name">{fileName}</span>
       {isLoading && <span data-testid="file-loading-spinner">Loading...</span>}
       {!isLoading && onClose && (
@@ -146,15 +170,31 @@ jest.mock('@patternfly/react-icons', () => ({
   OutlinedFileImageIcon: () => <span data-testid="icon-image" />,
   VolumeUpIcon: () => <span data-testid="icon-audio" />,
   OutlinedFileAltIcon: () => <span data-testid="icon-document" />,
+  TimesIcon: () => <span data-testid="icon-remove" />,
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+  fireFormTrackingEvent: jest.fn(),
 }));
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockFireForm = jest.mocked(fireFormTrackingEvent);
 
 describe('ChatbotMessageInput', () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+
+  beforeAll(() => {
+    URL.createObjectURL = jest.fn(() => 'blob:pending-audio');
+    URL.revokeObjectURL = jest.fn();
+  });
+
+  afterAll(() => {
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+
   const defaultImageUploadState: ImageUploadState = {
     uploading: false,
     progress: 0,
@@ -168,15 +208,110 @@ describe('ChatbotMessageInput', () => {
     onStopStreaming: jest.fn(),
     isLoading: false,
     isSendDisabled: false,
+    showImageUpload: true,
     onImageUpload: jest.fn(),
     imageUploadState: defaultImageUploadState,
     onRemoveImage: jest.fn(),
     isImageUploadDisabled: false,
     isAudioUploadDisabled: true,
+    showAudioUpload: true,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.localStorage.removeItem('playground-image-capability-alert-dismissed');
+  });
+
+  it('shows image capability guidance and remembers the opt-out', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatbotMessageInput
+        {...defaultProps}
+        imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+        showImageCapabilityAlert
+      />,
+    );
+
+    expect(screen.getByTestId('image-capability-alert')).toHaveTextContent(
+      'Vision capability not tagged',
+    );
+    expect(screen.getByTestId('image-capability-alert')).toHaveClass('pf-v6-u-mb-sm');
+    expect(screen.getByTestId('image-capability-alert')).toHaveTextContent(
+      "This model isn't tagged for vision capabilities, which can lead to unexpected output. To identify supported models faster, tag this model's capabilities in the Model Registry or contact your admin.",
+    );
+    expect(
+      screen.getByRole('button', { name: "Don't show this again" }).closest('p'),
+    ).not.toHaveTextContent("This model isn't tagged for vision capabilities");
+    await user.click(screen.getByRole('button', { name: "Don't show this again" }));
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('playground-image-capability-alert-dismissed')).toBe('true');
+  });
+
+  it('shows no vision notice without an image or when the selected model is vision-tagged', () => {
+    const { rerender } = render(<ChatbotMessageInput {...defaultProps} showImageCapabilityAlert />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    rerender(
+      <ChatbotMessageInput
+        {...defaultProps}
+        imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+        showImageCapabilityAlert={false}
+      />,
+    );
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps the vision notice dismissed when the playground is reopened', () => {
+    window.localStorage.setItem('playground-image-capability-alert-dismissed', 'true');
+    const props = {
+      ...defaultProps,
+      imageUploadState: { ...defaultImageUploadState, fileName: 'photo.png' },
+      showImageCapabilityAlert: true,
+    };
+    const { unmount } = render(<ChatbotMessageInput {...props} />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+
+    unmount();
+    render(<ChatbotMessageInput {...props} />);
+    expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+  });
+
+  it('shows the vision notice when the dismissal preference cannot be read', () => {
+    const getItem = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+    try {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+          showImageCapabilityAlert
+        />,
+      );
+      expect(screen.getByTestId('image-capability-alert')).toBeInTheDocument();
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
+  it('dismisses the vision notice when the preference cannot be saved', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatbotMessageInput
+        {...defaultProps}
+        imageUploadState={{ ...defaultImageUploadState, fileName: 'photo.png' }}
+        showImageCapabilityAlert
+      />,
+    );
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+    try {
+      await user.click(screen.getByRole('button', { name: "Don't show this again" }));
+      expect(screen.queryByTestId('image-capability-alert')).not.toBeInTheDocument();
+    } finally {
+      setItem.mockRestore();
+    }
   });
 
   it('renders the message bar', () => {
@@ -225,7 +360,10 @@ describe('ChatbotMessageInput', () => {
   describe('attach menu', () => {
     it('renders attach menu toggle', () => {
       render(<ChatbotMessageInput {...defaultProps} />);
-      expect(screen.getByTestId('mock-attach-toggle')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-attach-toggle')).toHaveAttribute(
+        'title',
+        'Attach files to this message',
+      );
     });
 
     it('opens attach menu on toggle click and shows three menu items', async () => {
@@ -237,6 +375,26 @@ describe('ChatbotMessageInput', () => {
       expect(screen.getByTestId('menu-item-upload-image')).toBeInTheDocument();
       expect(screen.getByTestId('menu-item-upload-audio')).toBeInTheDocument();
       expect(screen.getByTestId('menu-item-upload-documents')).toBeInTheDocument();
+    });
+
+    it('should hide image upload controls when image upload is disabled', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} showImageUpload={false} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.queryByTestId('upload-image-menu-item')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('vision-file-input')).not.toBeInTheDocument();
+    });
+
+    it('should hide audio upload controls when audio upload is disabled', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} showAudioUpload={false} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      expect(screen.queryByTestId('upload-audio-menu-item')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('audio-file-input')).not.toBeInTheDocument();
     });
 
     it('disables "Upload image" when isImageUploadDisabled is true (no tooltip)', async () => {
@@ -412,6 +570,20 @@ describe('ChatbotMessageInput', () => {
       clickSpy.mockRestore();
     });
 
+    it('uses the direct-attachment picker types instead of the Knowledge upload allowlist', () => {
+      render(<ChatbotMessageInput {...defaultProps} />);
+
+      const documentInput = screen.getByTestId('document-file-input');
+      const knowledgeInputTypes = FILE_UPLOAD_CONFIG.ACCEPTED_EXTENSIONS;
+
+      expect(documentInput).toHaveAttribute('accept', DOCUMENT_ATTACHMENT_CONFIG.ACCEPTED_TYPES);
+      expect(documentInput).not.toHaveAttribute('accept', knowledgeInputTypes);
+      expect(documentInput).toHaveAttribute('accept', expect.stringContaining('.docx'));
+      expect(documentInput).toHaveAttribute('accept', expect.stringContaining('.pptx'));
+      expect(documentInput).not.toHaveAttribute('accept', expect.stringContaining('.doc,'));
+      expect(documentInput).not.toHaveAttribute('accept', expect.stringContaining('.ppt,'));
+    });
+
     it('does not trigger file input when "Upload image" is disabled', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} isImageUploadDisabled />);
@@ -485,6 +657,32 @@ describe('ChatbotMessageInput', () => {
   });
 
   describe('image preview chip', () => {
+    it('aligns image and audio attachments with the message bar edge', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          imageUploadState={{ ...defaultImageUploadState, fileName: 'test.jpg' }}
+          audioTranscriptionState={{
+            phase: 'ready',
+            file: new File(['audio-data'], 'recording.wav', { type: 'audio/wav' }),
+            fileName: 'recording.wav',
+            uploadProgress: 100,
+            error: null,
+            transcribedText: 'hello',
+          }}
+        />,
+      );
+
+      const row = screen.getByTestId('media-attachment-row');
+      expect(within(row).getByTestId('vision-file-preview')).toBeInTheDocument();
+      expect(within(row).getByTestId('audio-file-chip')).toBeInTheDocument();
+      expect(row).toHaveStyle('width: 100%');
+      expect(row.style.paddingLeft).toBe('');
+      expect(row.style.maxWidth).toBe('');
+      expect(row.style.marginLeft).toBe('');
+      expect(row.style.marginRight).toBe('');
+    });
+
     it('renders FileDetailsLabel when a file name is present', () => {
       render(
         <ChatbotMessageInput
@@ -581,7 +779,7 @@ describe('ChatbotMessageInput', () => {
       onDocumentAttach.mockClear();
     });
 
-    it('rejects unsupported file types and shows validation error', async () => {
+    it('rejects an unsupported file if it bypasses the file picker filter', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
 
@@ -589,7 +787,7 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('mock-attach-toggle'));
       await user.click(screen.getByTestId('menu-item-upload-documents'));
 
-      // Set an .exe file on the document input
+      // Simulate a browser supplying a file outside the input's accept filter.
       const input = screen.getByTestId('document-file-input') as HTMLInputElement;
       const badFile = new File(['data'], 'malware.exe', { type: 'application/x-msdownload' });
       Object.defineProperty(input, 'files', {
@@ -603,9 +801,23 @@ describe('ChatbotMessageInput', () => {
         expect(screen.getByTestId('vision-validation-error')).toBeInTheDocument();
       });
       expect(onDocumentAttach).not.toHaveBeenCalled();
+      expect(mockFireForm).toHaveBeenCalledWith(PLAYGROUND_DOCUMENT_EVENTS.ATTACHED, {
+        success: false,
+        outcome: 'submit',
+        documentCountAdded: 0,
+        documentFileTypes: ['unknown'],
+        source: 'filePicker',
+        error: 'unsupportedType',
+      });
+      expect(mockFireMisc).toHaveBeenCalledWith(PLAYGROUND_DOCUMENT_EVENTS.PROCESSING_FAILED, {
+        error: 'unsupportedType',
+        documentFileType: 'unknown',
+        documentCount: 1,
+        stage: 'clientValidation',
+      });
     });
 
-    it('rejects oversized files and shows validation error', async () => {
+    it('rejects files exceeding the 50MB limit and shows validation error', async () => {
       const user = userEvent.setup();
       render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
 
@@ -613,9 +825,9 @@ describe('ChatbotMessageInput', () => {
       await user.click(screen.getByTestId('menu-item-upload-documents'));
 
       const input = screen.getByTestId('document-file-input') as HTMLInputElement;
-      // 11MB file exceeds 10MB limit
-      const bigFile = new File(['x'.repeat(11 * 1024 * 1024)], 'huge.txt', {
-        type: 'text/plain',
+      const bigFile = new File(['x'], 'huge.txt', { type: 'text/plain' });
+      Object.defineProperty(bigFile, 'size', {
+        value: DOCUMENT_ATTACHMENT_CONFIG.MAX_FILE_SIZE + 1,
       });
       Object.defineProperty(input, 'files', { value: [bigFile], configurable: true });
       fireEvent.change(input);
@@ -624,6 +836,10 @@ describe('ChatbotMessageInput', () => {
         expect(screen.getByTestId('vision-validation-error')).toBeInTheDocument();
       });
       expect(onDocumentAttach).not.toHaveBeenCalled();
+      expect(mockFireForm).toHaveBeenCalledWith(
+        PLAYGROUND_DOCUMENT_EVENTS.ATTACHED,
+        expect.objectContaining({ error: 'fileTooLarge', documentFileTypes: ['txt'] }),
+      );
     });
 
     it('passes only valid files from a mixed batch', async () => {
@@ -653,6 +869,23 @@ describe('ChatbotMessageInput', () => {
       expect(onDocumentAttach).toHaveBeenCalledWith([validFile], [], expect.any(Event));
     });
 
+    it('accepts supported Office documents when the browser reports a generic MIME type', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} onDocumentAttach={onDocumentAttach} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+      await user.click(screen.getByTestId('menu-item-upload-documents'));
+
+      const input = screen.getByTestId('document-file-input') as HTMLInputElement;
+      const wordDocument = new File(['document'], 'brief.docx', {
+        type: 'application/octet-stream',
+      });
+      Object.defineProperty(input, 'files', { value: [wordDocument], configurable: true });
+      fireEvent.change(input);
+
+      expect(onDocumentAttach).toHaveBeenCalledWith([wordDocument], [], expect.any(Event));
+    });
+
     it('validation error auto-dismisses after timeout', async () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
@@ -679,6 +912,56 @@ describe('ChatbotMessageInput', () => {
     });
   });
 
+  describe('document attachments', () => {
+    const attachment = {
+      // eslint-disable-next-line camelcase
+      file_id: 'file-document',
+      filename: 'notes.txt',
+      text: 'Extracted document content',
+      // eslint-disable-next-line camelcase
+      content_type: 'text/plain',
+      size: 42,
+    };
+
+    it('renders removable attachments and extracted-text viewing', () => {
+      const onRemoveDocument = jest.fn();
+      const onViewDocument = jest.fn();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          documentAttachments={[attachment]}
+          onRemoveDocument={onRemoveDocument}
+          onViewDocument={onViewDocument}
+        />,
+      );
+
+      fireEvent.click(screen.getByText('notes.txt'));
+      expect(onViewDocument).toHaveBeenCalledWith(attachment);
+      fireEvent.click(
+        within(screen.getByTestId('document-attachment-file-document')).getAllByRole('button')[1],
+      );
+      expect(onRemoveDocument).toHaveBeenCalledWith('file-document');
+    });
+
+    it('shows an in-progress attachment while a document is being added', () => {
+      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading />);
+
+      expect(screen.getByTestId('document-attachment-loading')).toHaveTextContent(
+        'Adding Document…',
+      );
+      expect(screen.getByRole('progressbar', { name: 'Adding document' })).toBeInTheDocument();
+    });
+
+    it('uses plural loading text for multiple documents', () => {
+      render(<ChatbotMessageInput {...defaultProps} isDocumentUploading documentUploadCount={2} />);
+
+      expect(screen.getByTestId('document-attachment-loading')).toHaveTextContent(
+        'Adding Documents…',
+      );
+      expect(screen.getByRole('progressbar', { name: 'Adding documents' })).toBeInTheDocument();
+    });
+  });
+
   describe('alwaysShowSendButton', () => {
     it('passes alwayShowSendButton to MessageBar when true', () => {
       const { container } = render(<ChatbotMessageInput {...defaultProps} alwaysShowSendButton />);
@@ -698,11 +981,87 @@ describe('ChatbotMessageInput', () => {
   describe('audio upload', () => {
     const defaultAudioState: AudioTranscriptionState = {
       phase: 'idle',
+      file: null,
       fileName: '',
       uploadProgress: 0,
       error: null,
       transcribedText: '',
     };
+
+    it.each([
+      ['recording.wav', 'audio/wav', 'WAV'],
+      ['recording.mp3', 'audio/mpeg', 'MP3'],
+    ])(
+      'keeps the %s title, type, and player in one pending tile',
+      (fileName, mimeType, typeLabel) => {
+        const file = new File(['audio-data'], fileName, { type: mimeType });
+        const { rerender } = render(
+          <ChatbotMessageInput
+            {...defaultProps}
+            audioTranscriptionState={{
+              ...defaultAudioState,
+              phase: 'waiting-for-model',
+              previewFile: file,
+              fileName: file.name,
+            }}
+          />,
+        );
+
+        expect(URL.createObjectURL).toHaveBeenCalledWith(file);
+        const tile = screen.getByTestId('audio-file-chip');
+        expect(tile).toHaveStyle({ width: '18.75rem', maxWidth: '100%' });
+        expect(tile).not.toHaveClass('pf-v6-u-display-inline-block');
+        expect(within(tile).getByTestId('audio-file-icon')).toHaveClass('gen-ai-chatbot-icon');
+        expect(within(tile).getByText(fileName)).toBeInTheDocument();
+        expect(within(tile).getByText(typeLabel)).toBeInTheDocument();
+        expect(within(tile).getByTestId('pending-audio-player')).toHaveAttribute(
+          'src',
+          'blob:pending-audio',
+        );
+        expect(within(tile).getByLabelText(`Play ${fileName}`)).toHaveAttribute('controls');
+        expect(within(tile).getByTestId('pending-audio-player')).toHaveStyle({
+          minHeight: 'var(--pf-t--global--spacer--2xl)',
+          width: '100%',
+        });
+
+        rerender(
+          <ChatbotMessageInput
+            {...defaultProps}
+            audioTranscriptionState={{
+              ...defaultAudioState,
+              phase: 'ready',
+              file,
+              previewFile: file,
+              fileName: file.name,
+            }}
+          />,
+        );
+
+        expect(screen.getByTestId('pending-audio-player')).toBeInTheDocument();
+        expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+        rerender(
+          <ChatbotMessageInput {...defaultProps} audioTranscriptionState={defaultAudioState} />,
+        );
+
+        expect(screen.queryByTestId('pending-audio-player')).not.toBeInTheDocument();
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pending-audio');
+      },
+    );
+
+    it('explains where to select a model when audio is waiting for one', () => {
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          audioTranscriptionState={{ ...defaultAudioState, phase: 'waiting-for-model' }}
+        />,
+      );
+
+      expect(screen.getByTestId('audio-model-needed-alert')).toHaveTextContent(
+        'Audio files require a transcription model. Select one under the Model tab in Settings.',
+      );
+      expect(screen.getByTestId('audio-model-needed-alert')).toHaveClass('pf-v6-u-mb-sm');
+    });
 
     it('clicking "Upload audio" triggers the hidden audio file input and fires tracking event', async () => {
       const user = userEvent.setup();
@@ -732,23 +1091,26 @@ describe('ChatbotMessageInput', () => {
       clickSpy.mockRestore();
     });
 
-    it('calls onAudioUpload with valid WAV file', () => {
-      const mockOnAudioUpload = jest.fn();
-      render(
-        <ChatbotMessageInput
-          {...defaultProps}
-          isAudioUploadDisabled={false}
-          onAudioUpload={mockOnAudioUpload}
-          audioTranscriptionState={defaultAudioState}
-        />,
-      );
+    it.each(['audio/wav', 'audio/wave', 'audio/x-wav', 'audio/x-pn-wav'])(
+      'calls onAudioUpload with a WAV file reported as %s',
+      (mimeType) => {
+        const mockOnAudioUpload = jest.fn();
+        render(
+          <ChatbotMessageInput
+            {...defaultProps}
+            isAudioUploadDisabled={false}
+            onAudioUpload={mockOnAudioUpload}
+            audioTranscriptionState={defaultAudioState}
+          />,
+        );
 
-      const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
-      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
-      fireEvent.change(fileInput, { target: { files: [file] } });
+        const fileInput = screen.getByTestId('audio-file-input') as HTMLInputElement;
+        const file = new File(['audio-data'], 'recording.wav', { type: mimeType });
+        fireEvent.change(fileInput, { target: { files: [file] } });
 
-      expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
-    });
+        expect(mockOnAudioUpload).toHaveBeenCalledWith(file);
+      },
+    );
 
     it('calls onAudioUpload with valid MP3 file', () => {
       const mockOnAudioUpload = jest.fn();
@@ -879,7 +1241,8 @@ describe('ChatbotMessageInput', () => {
       expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
     });
 
-    it('shows error Alert when audio transcription fails', () => {
+    it('keeps the audio preview visible when transcription fails', () => {
+      const file = new File(['audio-data'], 'recording.wav', { type: 'audio/wav' });
       render(
         <ChatbotMessageInput
           {...defaultProps}
@@ -887,6 +1250,8 @@ describe('ChatbotMessageInput', () => {
           audioTranscriptionState={{
             ...defaultAudioState,
             phase: 'error',
+            previewFile: file,
+            fileName: file.name,
             error: {
               pattern: 'full-failure',
               variant: 'danger',
@@ -909,6 +1274,8 @@ describe('ChatbotMessageInput', () => {
       expect(alert).toBeInTheDocument();
       expect(screen.getByText('Transcription timed out')).toBeInTheDocument();
       expect(screen.getByText(/The transcription took too long/)).toBeInTheDocument();
+      expect(screen.getByTestId('audio-file-chip')).toBeInTheDocument();
+      expect(screen.getByLabelText('Play recording.wav')).toHaveAttribute('controls');
     });
 
     it('shows aria-live announcement during transcription', () => {

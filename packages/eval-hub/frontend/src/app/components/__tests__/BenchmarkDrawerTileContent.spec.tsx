@@ -15,6 +15,10 @@ jest.mock('~/app/utilities/benchmarkDatasetUrls', () => ({
 const mockFireEvent = jest.mocked(fireMiscTrackingEvent);
 const mockGetDatasetUrl = jest.mocked(getBenchmarkDatasetUrl);
 
+const expectTracked = (eventName: string, properties: unknown): void => {
+  expect(mockFireEvent).toHaveBeenCalledWith(eventName, expect.objectContaining(properties));
+};
+
 describe('BenchmarkDrawerTileContent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -111,7 +115,7 @@ describe('BenchmarkDrawerTileContent', () => {
       />,
     );
     fireEvent.click(screen.getByRole('link', { name: /View benchmark dataset/i }));
-    expect(mockFireEvent).toHaveBeenCalledWith('Evaluations External Link Clicked', {
+    expectTracked('Evaluations External Link Clicked', {
       url: 'https://example.com',
       benchmarkId: 'bench-1',
       surface: 'benchmark_drawer',
@@ -174,6 +178,21 @@ describe('BenchmarkDrawerTileContent', () => {
     );
     expect(screen.getByText('Evaluation framework')).toBeInTheDocument();
     expect(screen.getByText('lm-eval')).toBeInTheDocument();
+  });
+
+  it('should format a non-percentage benchmark threshold using its primary metric', () => {
+    /* eslint-disable camelcase */
+    render(
+      <BenchmarkDrawerTileContent
+        name="GuideLLM"
+        id="constant"
+        primaryScore={{ metric: 'output_tokens_per_second', lower_is_better: false }}
+        passCriteria={{ threshold: 0.5 }}
+        trackingSurface="test_surface"
+      />,
+    );
+    /* eslint-enable camelcase */
+    expect(screen.getByText('0.5 output tokens/s')).toBeInTheDocument();
   });
 
   it('should not render provider section when providerName is undefined', () => {

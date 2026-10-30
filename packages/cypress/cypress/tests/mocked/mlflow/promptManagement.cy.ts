@@ -4,7 +4,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '../../../utils/models';
-import { asProductAdminUser } from '../../../utils/mockUsers';
+import { asClusterAdminUser, asProductAdminUser } from '../../../utils/mockUsers';
 import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
 import { promptManagement } from '../../../pages/promptManagement';
 import { appChrome } from '../../../pages/appChrome';
@@ -18,13 +18,15 @@ const initIntercepts = ({
   genAiStudio = true,
   globalMLflowNamespaces = [] as string[],
   globalProjectPrompts = false,
+  userSetup = asProductAdminUser,
 }: {
   mlflowConfigured?: boolean;
   genAiStudio?: boolean;
   globalMLflowNamespaces?: string[];
   globalProjectPrompts?: boolean;
+  userSetup?: () => void;
 } = {}) => {
-  asProductAdminUser();
+  userSetup();
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({ genAiStudio, globalMLflowNamespaces, globalProjectPrompts }),
@@ -164,11 +166,13 @@ describe('Prompt Management page wrapper', () => {
     });
 
     it('should show admin not-configured empty state when MLflow is not configured', () => {
-      initIntercepts({ mlflowConfigured: false });
+      initIntercepts({ mlflowConfigured: false, userSetup: asClusterAdminUser });
       promptManagement.visit(PROJECT_A);
+      promptManagement.findNavItem().should('be.visible');
       promptManagement.findNotConfiguredAdminEmptyState().should('be.visible');
       promptManagement.findNotConfiguredEmptyState().should('not.exist');
       promptManagement.findMlflowUnavailableState().should('not.exist');
+      promptManagement.findLaunchMlflowButton().should('not.exist');
     });
 
     it('should hide nav item when genAiStudio feature flag is disabled', () => {
@@ -177,7 +181,15 @@ describe('Prompt Management page wrapper', () => {
       promptManagement.findNavItem().should('not.exist');
     });
 
-    it('should hide nav item when MLflow operator is removed', () => {
+    it('should keep the direct Prompts route available when Gen AI Studio is disabled', () => {
+      initIntercepts({ genAiStudio: false });
+      promptManagement.visitWithoutGenAiStudio(PROJECT_A);
+      promptManagement.findPageTitle().should('contain', 'Prompts');
+      promptManagement.findNavItem().should('not.exist');
+    });
+
+    it('should hide navigation but show setup guidance at a direct URL when MLflow operator is removed', () => {
+      initIntercepts({ userSetup: asClusterAdminUser });
       const dscStatus = mockDscStatus({});
       dscStatus.components = {
         ...dscStatus.components,
@@ -185,8 +197,12 @@ describe('Prompt Management page wrapper', () => {
       };
       cy.interceptOdh('GET /api/dsc/status', dscStatus);
 
-      cy.visitWithLogin('/');
+      promptManagement.visit(PROJECT_A);
       promptManagement.findNavItem().should('not.exist');
+      promptManagement
+        .findNotConfiguredAdminEmptyState()
+        .should('be.visible')
+        .should('contain', 'Enable prompts');
     });
   });
 });

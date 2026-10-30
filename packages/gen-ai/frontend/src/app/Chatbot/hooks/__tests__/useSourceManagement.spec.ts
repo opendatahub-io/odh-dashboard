@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { renderHook, act } from '@testing-library/react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import * as React from 'react';
 import useSourceManagement from '~/app/Chatbot/hooks/useSourceManagement';
 import { uploadSource } from '~/app/services/llamaStackService';
@@ -11,6 +12,10 @@ import {
   mockDropEvent,
   mockUploadResult,
 } from './useSourceManagement.test-utils';
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+}));
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -275,8 +280,48 @@ describe('useSourceManagement', () => {
       expect(mockOnShowSuccessAlert).toHaveBeenCalled();
       expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
 
-      // Check that file status was updated to uploaded
-      expect(result.current.filesWithSettings[0].status).toBe('uploaded');
+      // The completed file is removed from the temporary upload queue immediately
+      expect(result.current.filesWithSettings).toHaveLength(0);
+    });
+
+    it('should show a file during upload and remove its temporary row on success', async () => {
+      let finishUpload: (value: { success: boolean }) => void = () => {
+        throw new Error('Upload has not started');
+      };
+      mockUploadFile.mockImplementation(
+        () =>
+          new Promise<{ success: boolean }>((resolve) => {
+            finishUpload = resolve;
+          }),
+      );
+      const onFileUploadComplete = jest.fn();
+      const { result } = renderHook(() =>
+        useSourceManagement({
+          onShowSuccessAlert: mockOnShowSuccessAlert,
+          onShowErrorAlert: mockOnShowErrorAlert,
+          onFileUploadComplete,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleSourceDrop(mockDropEvent, [mockFile]);
+      });
+
+      let submitPromise: Promise<void> = Promise.resolve();
+      act(() => {
+        submitPromise = result.current.handleSourceSettingsSubmit(mockSourceSettings);
+      });
+
+      expect(result.current.filesWithSettings).toHaveLength(1);
+      expect(result.current.filesWithSettings[0].status).toBe('uploading');
+
+      await act(async () => {
+        finishUpload({ success: true });
+        await submitPromise;
+      });
+
+      expect(result.current.filesWithSettings).toHaveLength(0);
+      expect(onFileUploadComplete).toHaveBeenCalledTimes(1);
     });
 
     it('should handle upload failure and show error alert', async () => {
@@ -313,6 +358,18 @@ describe('useSourceManagement', () => {
       expect(mockUploadFile).toHaveBeenCalledWith(mockFile, mockSourceSettings);
       expect(mockOnShowErrorAlert).toHaveBeenCalled();
       expect(mockOnShowSuccessAlert).not.toHaveBeenCalled();
+
+      expect(mockOnShowErrorAlert).toHaveBeenCalledWith(
+        expect.stringContaining('Upload failed'),
+        expect.any(String),
+      );
+      expect(fireFormTrackingEvent).toHaveBeenCalledWith(
+        'Playground RAG Upload File',
+        expect.objectContaining({ success: false, error: 'unknown_error' }),
+      );
+      expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(
+        'Upload failed',
+      );
 
       // When upload fails, the file is removed from filesWithSettings (not marked as 'failed')
       expect(result.current.filesWithSettings).toHaveLength(0);

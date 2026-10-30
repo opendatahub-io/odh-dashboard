@@ -6,7 +6,10 @@ import {
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 import { RunDetailsKF } from '~/app/types/pipeline';
-import { buildStageMapTopology } from '~/app/topology/buildStageMapTopology';
+import {
+  buildStageMapTopology,
+  inferFailedNodeForTerminalRun,
+} from '~/app/topology/buildStageMapTopology';
 import { MAX_PATTERN_SELECTION_STEPS } from '~/app/topology/stageMapConstants';
 import { MAX_CONFIGURE_MAX_PATTERNS } from '~/app/topology/stageMapStatus';
 import { MIN_RAG_PATTERNS } from '~/app/utilities/const';
@@ -32,6 +35,7 @@ jest.mock('~/app/topology/utils', () => ({
     runAfterTasks,
     runStatus,
     activeIconVariant,
+    patternKey,
   }: {
     id: string;
     label: string;
@@ -39,6 +43,7 @@ jest.mock('~/app/topology/utils', () => ({
     runAfterTasks?: string[];
     runStatus?: string;
     activeIconVariant?: string;
+    patternKey?: string;
   }) => ({
     id,
     label,
@@ -46,7 +51,7 @@ jest.mock('~/app/topology/utils', () => ({
     width: 100,
     height: 30,
     runAfterTasks,
-    data: { pipelineTask, runStatus, activeIconVariant },
+    data: { pipelineTask, runStatus, activeIconVariant, patternKey },
   }),
 }));
 
@@ -77,10 +82,6 @@ const makeStageMap = (components: ComponentStageMapComponent[]): ComponentStageM
   kfp_run_id: 'run-1',
   published_at: '2025-01-01T00:00:00Z',
 });
-
-// Mirrors buildStageMapTopology's non-placeholder label formatting (inserts a space
-// before a trailing digit run, e.g. "Pattern_1" -> "Pattern_ 1") for label assertions.
-const expectedPatternLabel = (raw: string): string => raw.replace(/(\D)(\d)/, '$1 $2');
 
 const makeRunDetails = (
   tasks: { display_name?: string; state: string; task_id?: string }[],
@@ -172,6 +173,49 @@ describe('buildStageMapTopology', () => {
       expect(patternNodes[1].label).toBe('pattern_b');
     });
 
+    it('should display lettered labels while preserving pattern keys', () => {
+      const stageMap = makeStageMap([
+        makeComponent('rag_optimization', [
+          makeStage('optimize_templates', { selected_patterns: ['Pattern1', 'Pattern2'] }),
+        ]),
+      ]);
+      const nodes = buildStageMapTopology(stageMap);
+      const patternNodes = nodes.filter(
+        (node) => node.id.includes('__pattern__') && node.type !== 'DEFAULT_SPACER_NODE',
+      );
+
+      expect(patternNodes.map((node) => node.label)).toStrictEqual([
+        'Pattern\u00a0A',
+        'Pattern\u00a0B',
+      ]);
+      expect(patternNodes.map((node) => node.data?.patternKey)).toStrictEqual([
+        'Pattern1',
+        'Pattern2',
+      ]);
+    });
+
+    it('should normalize display-name branch identifiers to loaded pattern record keys', () => {
+      const stageMap = makeStageMap([
+        makeComponent('rag_optimization', [
+          makeStage('optimize_templates', {
+            selected_patterns: ['Pattern One', 'Pattern Two'],
+          }),
+        ]),
+      ]);
+      const nodes = buildStageMapTopology(stageMap, undefined, undefined, undefined, undefined, {
+        pattern_one_key: { name: 'Pattern One' },
+        pattern_two_key: { name: 'Pattern Two' },
+      });
+
+      const patternNodes = nodes.filter(
+        (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
+      );
+      expect(patternNodes.map((node) => node.data?.patternKey)).toEqual([
+        'pattern_one_key',
+        'pattern_two_key',
+      ]);
+    });
+
     it('should fan out from optimize_templates node', () => {
       const stageMap = makeStageMap([branchingComponent]);
       const nodes = buildStageMapTopology(stageMap);
@@ -246,6 +290,7 @@ describe('buildStageMapTopology', () => {
       expect(step2?.runAfterTasks).toEqual([step1!.id]);
       expect(step3?.runAfterTasks).toEqual([step2!.id]);
       expect(pattern?.runAfterTasks).toEqual([step3!.id]);
+      expect(pattern?.data?.patternKey).toBe('pattern_a');
     });
 
     it('should use step display names', () => {
@@ -449,9 +494,9 @@ describe('buildStageMapTopology', () => {
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
       expect(patternNodes).toHaveLength(3);
-      expect(patternNodes[0].label).toBe('Pattern 1');
-      expect(patternNodes[1].label).toBe('Pattern 2');
-      expect(patternNodes[2].label).toBe('Pattern 3');
+      expect(patternNodes[0].label).toBe('Pattern\u00a0A');
+      expect(patternNodes[1].label).toBe('Pattern\u00a0B');
+      expect(patternNodes[2].label).toBe('Pattern\u00a0C');
     });
 
     it('should use maxPatterns parameter for placeholder count', () => {
@@ -526,10 +571,8 @@ describe('buildStageMapTopology', () => {
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
       expect(patternNodes).toHaveLength(MAX_CONFIGURE_MAX_PATTERNS);
-      expect(patternNodes[0].label).toBe(expectedPatternLabel(oversizedSelectedPatterns[0]));
-      expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe(
-        expectedPatternLabel(oversizedSelectedPatterns[MAX_CONFIGURE_MAX_PATTERNS - 1]),
-      );
+      expect(patternNodes[0].label).toBe('Pattern_\u00a01');
+      expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe('Pattern_\u00a010');
     });
 
     it('should dedupe selected_patterns before clamping to the configure UI maximum', () => {
@@ -582,9 +625,9 @@ describe('buildStageMapTopology', () => {
         (n) => n.id.includes('__pattern__') && n.type !== 'DEFAULT_SPACER_NODE',
       );
       expect(patternNodes).toHaveLength(MAX_CONFIGURE_MAX_PATTERNS);
-      expect(patternNodes[0].label).toBe(expectedPatternLabel(oversizedLeaderboardNames[0]));
+      expect(patternNodes[0].label).toBe('LeaderboardPattern_\u00a01');
       expect(patternNodes[MAX_CONFIGURE_MAX_PATTERNS - 1].label).toBe(
-        expectedPatternLabel(oversizedLeaderboardNames[MAX_CONFIGURE_MAX_PATTERNS - 1]),
+        'LeaderboardPattern_\u00a010',
       );
     });
 
@@ -660,7 +703,7 @@ describe('buildStageMapTopology', () => {
       expect(patternNodes[1].label).toBe('PatternB');
     });
 
-    it('should show terminal status on placeholder pattern nodes when run is cancelled', () => {
+    it('should leave placeholder pattern nodes unreached when the failed node is inferred earlier', () => {
       const stageMap = makeStageMap([noPatternsComponent]);
       const nodes = buildStageMapTopology(stageMap, undefined, 'FAILED');
 
@@ -669,7 +712,7 @@ describe('buildStageMapTopology', () => {
       );
       expect(patternNodes).toHaveLength(3);
       patternNodes.forEach((node) => {
-        expect(node.data?.runStatus).toBe(RunStatus.Failed);
+        expect(node.data?.runStatus).toBe(RunStatus.Pending);
       });
     });
   });
@@ -925,9 +968,9 @@ describe('buildStageMapTopology', () => {
 
       expect(byId.rag_optimization__optimize_templates.data?.runStatus).toBe(RunStatus.Failed);
       expect(byId['rag_optimization__step__chunking__branch-0'].data?.runStatus).toBe(
-        RunStatus.Failed,
+        RunStatus.Pending,
       );
-      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId['rag_optimization__pattern__branch-0'].data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.rag_optimization__run_optimization.data?.runStatus).toBe(RunStatus.Pending);
       expect(byId.rag_optimization__build_leaderboard.data?.runStatus).toBe(RunStatus.Pending);
     });
@@ -1278,6 +1321,64 @@ describe('buildStageMapTopology', () => {
       const nodes = buildStageMapTopology(stageMap);
       const spacers = nodes.filter((n) => n.type === 'DEFAULT_SPACER_NODE');
       expect(spacers).toHaveLength(0);
+    });
+  });
+
+  describe('terminal failure inference', () => {
+    it('should infer the first reachable unresolved node and leave later nodes pending', () => {
+      const stageMap = makeStageMap([
+        makeComponent('completed_component', [
+          makeStage('validate_inputs', { status: 'completed' }),
+        ]),
+        makeComponent('failed_component', [
+          makeStage('validate_inputs'),
+          makeStage('write_output'),
+        ]),
+      ]);
+
+      const nodes = buildStageMapTopology(
+        stageMap,
+        undefined,
+        'FAILED',
+        undefined,
+        undefined,
+        undefined,
+      );
+      const byId = Object.fromEntries(nodes.map((node) => [node.id, node]));
+
+      expect(byId.completed_component__validate_inputs.data?.runStatus).toBe(RunStatus.Succeeded);
+      expect(byId.failed_component__validate_inputs.data?.runStatus).toBe(RunStatus.Failed);
+      expect(byId.failed_component__write_output.data?.runStatus).toBe(RunStatus.Pending);
+      expect(byId.failed_component__validate_inputs.data?.inferredFailure).toBe(true);
+    });
+
+    it('should not guess between multiple reachable parallel nodes', () => {
+      const nodes = [
+        {
+          id: 'pre',
+          type: 'DEFAULT_TASK_NODE',
+          data: { runStatus: RunStatus.Succeeded },
+        },
+        {
+          id: 'branch-a',
+          type: 'DEFAULT_TASK_NODE',
+          runAfterTasks: ['pre'],
+          data: { runStatus: RunStatus.Pending },
+        },
+        {
+          id: 'branch-b',
+          type: 'DEFAULT_TASK_NODE',
+          runAfterTasks: ['pre'],
+          data: { runStatus: RunStatus.Pending },
+        },
+      ] as unknown as ReturnType<typeof buildStageMapTopology>;
+      const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const result = inferFailedNodeForTerminalRun(nodes, 'FAILED');
+
+      expect(result).toEqual(nodes);
+      expect(warningSpy).not.toHaveBeenCalled();
+      warningSpy.mockRestore();
     });
   });
 

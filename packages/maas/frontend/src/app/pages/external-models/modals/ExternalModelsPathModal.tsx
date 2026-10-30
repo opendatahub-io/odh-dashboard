@@ -41,18 +41,20 @@ const PathModal: React.FC<PathModalProps> = ({
       <Stack hasGutter>
         <StackItem>{description}</StackItem>
         <StackItem>
-          <InputGroup>
-            <InputGroupItem isFill>
-              {inputTitle && <strong>{inputTitle}</strong>}
-              <TextInput
-                value={path}
-                readOnly
-                dir="ltr"
-                isDisabled
-                data-testid="path-modal-input-value"
-              />
-            </InputGroupItem>
-          </InputGroup>
+          <StackItem>{inputTitle && <strong>{inputTitle}</strong>}</StackItem>
+          <StackItem>
+            <InputGroup>
+              <InputGroupItem isFill>
+                <TextInput
+                  value={path}
+                  readOnly
+                  dir="ltr"
+                  isDisabled
+                  data-testid="path-modal-input-value"
+                />
+              </InputGroupItem>
+            </InputGroup>
+          </StackItem>
         </StackItem>
         <StackItem>{subContentTitle && <strong>{subContentTitle}</strong>}</StackItem>
         <StackItem>

@@ -98,7 +98,10 @@ describe('Workbench page', () => {
     createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-project');
     createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
     //to check scrollable dropdown selection
-    createSpawnerPage.findNotebookImageSelector().should('contain.text', 'Select one');
+    createSpawnerPage
+      .findNotebookImageSelector()
+      .should('have.attr', 'placeholder', 'Select one')
+      .and('have.value', '');
     createSpawnerPage.findNotebookImage('test-8').click();
     createSpawnerPage.findNotebookImageVersionSelector().click();
     cy.findByTestId('workbench-image-version-dropdown').should('be.visible');

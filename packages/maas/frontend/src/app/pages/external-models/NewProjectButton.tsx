@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Form, FormGroup, TextArea, TextInput } from '@patternfly/react-core';
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
-import { useHostApi, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useHostApi, useTrackEvent } from '@odh-dashboard/plugin-core';
 
 type NewProjectButtonProps = {
   onProjectCreated?: (projectName: string) => void;

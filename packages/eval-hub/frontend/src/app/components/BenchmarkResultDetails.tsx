@@ -14,9 +14,11 @@ import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
 import { useProvider } from '~/app/hooks/useProvider';
 import {
-  formatAsPercentage,
+  formatThresholdValue,
   getBenchmarkDisplayName,
+  getBenchmarkErrorMessage,
   getJobBenchmarks,
+  isBenchmarkFailed,
 } from '~/app/utilities/evaluationUtils';
 import AboutBenchmarkResultPopover from '~/app/components/AboutBenchmarkResultPopover';
 import { getMetricDisplayName } from './benchmarkUtils';
@@ -47,6 +49,12 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
   }
 
   const passStatus = result.test?.pass ?? null;
+  // Failed benchmark runs never produce test results — derive the fail mark from the job's
+  // per-benchmark status so the details still show a failure indicator and its reason.
+  const benchmarkFailed = passStatus == null && isBenchmarkFailed(job, benchmarkId, benchmarkIndex);
+  const failReason = benchmarkFailed
+    ? getBenchmarkErrorMessage(job, benchmarkId, benchmarkIndex)
+    : undefined;
   const metricKeys = result.metrics ? Object.keys(result.metrics).toSorted() : [];
   const primaryMetricName =
     benchmarkConfig?.primary_score?.metric ?? (metricKeys.length > 0 ? metricKeys[0] : '-');
@@ -68,7 +76,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
         <FlexItem>
           <Title headingLevel="h3">{getBenchmarkDisplayName(benchmarkId)}</Title>
         </FlexItem>
-        {passStatus != null && (
+        {passStatus != null || benchmarkFailed ? (
           <FlexItem>
             <Label
               variant="outline"
@@ -85,7 +93,7 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
               {passStatus ? 'Pass' : 'Fail'}
             </Label>
           </FlexItem>
-        )}
+        ) : null}
         <FlexItem>
           <AboutBenchmarkResultPopover
             benchmarkId={benchmarkId}
@@ -104,6 +112,16 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
         {benchmarkId}
       </Content>
 
+      {benchmarkFailed && failReason ? (
+        <Content
+          component="p"
+          className="pf-v6-u-mb-md pf-v6-u-text-color-status-danger pf-v6-u-text-break-word"
+          data-testid={`benchmark-fail-reason-${benchmarkId}-${benchmarkIndex}`}
+        >
+          {failReason}
+        </Content>
+      ) : null}
+
       <DescriptionList
         isHorizontal
         isCompact
@@ -120,7 +138,9 @@ const BenchmarkResultDetails: React.FC<BenchmarkResultDetailsProps> = ({
         {typeof threshold === 'number' && Number.isFinite(threshold) && (
           <DescriptionListGroup>
             <DescriptionListTerm>Benchmark threshold</DescriptionListTerm>
-            <DescriptionListDescription>{formatAsPercentage(threshold)}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {formatThresholdValue(threshold, primaryMetricName)}
+            </DescriptionListDescription>
           </DescriptionListGroup>
         )}
         {complements?.length ? (

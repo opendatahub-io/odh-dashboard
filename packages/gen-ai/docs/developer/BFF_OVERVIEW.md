@@ -654,7 +654,6 @@ kubectl port-forward -n maas svc/maas 8322:8080
 # Run BFF connected to real services
 make run \
   LLAMA_STACK_URL=http://localhost:8321 \
-  MAAS_URL=http://localhost:8322 \
   MOCK_LS_CLIENT=false \
   MOCK_MAAS_CLIENT=false \
   MOCK_K8S_CLIENT=false
@@ -694,7 +693,6 @@ PATH_PREFIX=/gen-ai                # URL path prefix
 
 # External Services
 LLAMA_STACK_URL=http://...         # Llama Stack API base URL
-MAAS_URL=http://...                # MaaS API base URL (legacy; models use inter-BFF)
 MLFLOW_URL=http://localhost:5001   # MLflow tracking URL (local stack when MOCK_MLFLOW_CLIENT=true)
 
 # Inter-BFF (local dev overrides — see inter-bff-communication.md)

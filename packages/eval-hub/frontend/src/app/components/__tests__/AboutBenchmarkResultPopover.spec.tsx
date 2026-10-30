@@ -79,7 +79,7 @@ describe('AboutBenchmarkResultPopover', () => {
   it('should display the primary metric name and direction', () => {
     renderPopover();
     fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-    expect(screen.getByText('Acc Norm · Higher is better')).toBeInTheDocument();
+    expect(screen.getByText('Accuracy (normalized) · Higher is better')).toBeInTheDocument();
   });
 
   it('should display the score and threshold', () => {
@@ -113,7 +113,7 @@ describe('AboutBenchmarkResultPopover', () => {
   it('should fall back to derived text when no interpretation metadata exists', () => {
     renderPopover({}, null);
     fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-    expect(screen.getByText('Acc Norm; higher is better.')).toBeInTheDocument();
+    expect(screen.getByText('Accuracy (normalized); higher is better.')).toBeInTheDocument();
   });
 
   it('should display "Lower is better" for lower_is_better metrics', () => {
@@ -140,8 +140,8 @@ describe('AboutBenchmarkResultPopover', () => {
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-    expect(screen.getByText('Toxicity Score · Lower is better')).toBeInTheDocument();
-    expect(screen.getByText('Toxicity Score; lower is better.')).toBeInTheDocument();
+    expect(screen.getByText('Toxicity score · Lower is better')).toBeInTheDocument();
+    expect(screen.getByText('Toxicity score; lower is better.')).toBeInTheDocument();
   });
 
   describe('providerDirection fallback logic', () => {
@@ -160,7 +160,7 @@ describe('AboutBenchmarkResultPopover', () => {
       };
       renderPopover({}, provider);
       fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-      expect(screen.getByText('Acc Norm · Lower is better')).toBeInTheDocument();
+      expect(screen.getByText('Accuracy (normalized) · Lower is better')).toBeInTheDocument();
     });
 
     it('should fall back to job config direction when provider metric does not match', () => {
@@ -179,7 +179,7 @@ describe('AboutBenchmarkResultPopover', () => {
       renderPopover({}, provider);
       fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
       // Job benchmarkConfig has lower_is_better: false for acc_norm
-      expect(screen.getByText('Acc Norm · Higher is better')).toBeInTheDocument();
+      expect(screen.getByText('Accuracy (normalized) · Higher is better')).toBeInTheDocument();
     });
 
     it('should fall back to job config direction when provider benchmark has no primary_score', () => {
@@ -189,7 +189,7 @@ describe('AboutBenchmarkResultPopover', () => {
       };
       renderPopover({}, provider);
       fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
-      expect(screen.getByText('Acc Norm · Higher is better')).toBeInTheDocument();
+      expect(screen.getByText('Accuracy (normalized) · Higher is better')).toBeInTheDocument();
     });
   });
 
@@ -232,6 +232,34 @@ describe('AboutBenchmarkResultPopover', () => {
     fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
     expect(
       screen.getByText('This benchmark scored 80% against a threshold of 90%.'),
+    ).toBeInTheDocument();
+  });
+
+  it('should format non-percentage thresholds using the primary metric', () => {
+    /* eslint-disable camelcase */
+    const job = mockEvaluationJob({
+      score: 86.25,
+      benchmarkId: 'default-benchmark',
+    });
+    job.benchmarks = [
+      {
+        id: 'default-benchmark',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+        pass_criteria: { threshold: 0.5 },
+      },
+    ];
+    /* eslint-enable camelcase */
+
+    render(
+      <MemoryRouter>
+        <AboutBenchmarkResultPopover benchmarkId="default-benchmark" benchmarkIndex={0} job={job} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByTestId('about-result-default-benchmark-0'));
+    expect(
+      screen.getByText(
+        'This benchmark scored 86.25 output tokens/s against a threshold of 0.5 output tokens/s.',
+      ),
     ).toBeInTheDocument();
   });
 

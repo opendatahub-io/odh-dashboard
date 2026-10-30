@@ -1,3 +1,5 @@
+const { pnpmTransformIgnorePatterns } = require('@odh-dashboard/jest-config/pnpm');
+
 // Default flavor override: removes references to Kubeflow-only packages.
 module.exports = {
   roots: ['<rootDir>/src/'],
@@ -11,12 +13,12 @@ module.exports = {
     '\\.(css|less|sass|scss)$': '<rootDir>/config/transform.style.js',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/config/transform.file.js',
+    // Resolve @odh-dashboard/internal's #~/ imports to main frontend src
+    '#~/(.*)': '<rootDir>/../../../frontend/src/$1',
     '~/(.*)': '<rootDir>/src/$1',
   },
   testEnvironment: 'jest-environment-jsdom',
-  transformIgnorePatterns: [
-    'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-core)',
-  ],
+  transformIgnorePatterns: pnpmTransformIgnorePatterns,
   snapshotSerializers: [],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/unit/jest.setup.ts'],
   coverageDirectory: 'jest-coverage',

@@ -1,5 +1,11 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { ContainerResources, KnownLabels, NodeSelector, Toleration } from '@odh-dashboard/k8s-core';
+import {
+  ContainerResources,
+  KnownLabels,
+  NodeSelector,
+  PodSpec,
+  Toleration,
+} from '@odh-dashboard/k8s-core';
 import { genUID } from '@odh-dashboard/foundation';
 import { DeploymentMode, InferenceServiceKind, ServingRuntimeModelType } from '../shared';
 
@@ -26,6 +32,8 @@ type MockResourceConfigType = {
   kserveInternalUrl?: string;
   statusPredictor?: Record<string, string>;
   additionalLabels?: Record<string, string>;
+  additionalAnnotations?: Record<string, string>;
+  serviceAccountName?: string;
   args?: string[];
   env?: Array<{
     name: string;
@@ -34,6 +42,7 @@ type MockResourceConfigType = {
   }>;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  resourceClaims?: PodSpec['resourceClaims'];
   isNonDashboardItem?: boolean;
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
@@ -107,10 +116,13 @@ export const mockInferenceServiceK8sResource = ({
   statusPredictor = undefined,
   kserveInternalUrl = '',
   additionalLabels = {},
+  additionalAnnotations = {},
+  serviceAccountName,
   args = [],
   env = [],
   tolerations,
   nodeSelector,
+  resourceClaims,
   isNonDashboardItem = false,
   hardwareProfileName = '',
   hardwareProfileNamespace = undefined,
@@ -142,6 +154,7 @@ export const mockInferenceServiceK8sResource = ({
       ...(modelType && { 'opendatahub.io/model-type': modelType }),
       ...(secretName && { 'opendatahub.io/connections': secretName }),
       ...(path && { 'opendatahub.io/connection-path': path }),
+      ...additionalAnnotations,
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
@@ -160,11 +173,13 @@ export const mockInferenceServiceK8sResource = ({
   spec: {
     predictor: {
       ...(predictorAnnotations && { annotations: predictorAnnotations }),
+      ...(serviceAccountName && { serviceAccountName }),
       minReplicas,
       maxReplicas,
       imagePullSecrets,
       ...(tolerations && { tolerations }),
       ...(nodeSelector && { nodeSelector }),
+      ...(resourceClaims && { resourceClaims }),
       model: {
         modelFormat: {
           name: 'onnx',

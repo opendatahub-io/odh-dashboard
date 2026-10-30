@@ -9,6 +9,7 @@ import {
   startPortForward,
   stopPortForward,
   waitForResource,
+  getClusterArchitecture,
   type PortForwardHandle,
 } from '../../../utils/oc_commands/baseCommands';
 import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/oc_commands/genAi';
@@ -17,13 +18,13 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { genAiPlayground } from '../../../pages/genAiPlayground';
-import { getVllmCpuAmd64RuntimeInfo } from '../../../utils/fileParserUtil';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 
 describe('Verify vLLM model deployment - Playground Integration', { testIsolation: false }, () => {
   let genAiTestData: GenAiTestData;
   let projectName: string;
   let servingRuntimeName: string;
+  let servingRuntimeYamlPath: string;
   let hardwareProfileName: string;
   let portForwardHandle: PortForwardHandle | null = null;
 
@@ -33,9 +34,17 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
         genAiTestData = yaml.load(yamlContent) as GenAiTestData;
         hardwareProfileName = genAiTestData.hardwareProfileName;
       })
-      .then(() => getVllmCpuAmd64RuntimeInfo())
-      .then((info) => {
-        servingRuntimeName = info.singleModelServingName;
+      .then(() => getClusterArchitecture())
+      .then((arch) => {
+        servingRuntimeYamlPath =
+          arch === 'arm64'
+            ? genAiTestData.servingRuntimeArm64YamlPath
+            : genAiTestData.servingRuntimeYamlPath;
+        return cy.fixture(servingRuntimeYamlPath, 'utf8');
+      })
+      .then((runtimeYaml: string) => {
+        const runtime = yaml.load(runtimeYaml) as { metadata: { name: string } };
+        servingRuntimeName = runtime.metadata.name;
         return cleanupServingRuntimeTemplate(servingRuntimeName);
       })
       .then(() => {
@@ -59,7 +68,12 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
             return waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME).then(
               () => {
                 cy.step('Deploy Gen AI model via oc commands');
-                deployGenAiModel(projectName, genAiTestData);
+                deployGenAiModel(
+                  projectName,
+                  genAiTestData,
+                  servingRuntimeYamlPath,
+                  servingRuntimeName,
+                );
               },
             );
           });
@@ -106,8 +120,8 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
 
-      cy.step('Click Add to playground button');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      cy.step('Click Create playground button');
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
 
       cy.step('Ensure model is selected in the configuration table');
       genAiPlayground.findConfigurationTable().should('be.visible');

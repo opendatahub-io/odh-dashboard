@@ -3,7 +3,7 @@ import {
   Card,
   CardBody,
   CardTitle,
-  Content,
+  Button,
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
@@ -11,20 +11,29 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateVariant,
   Grid,
   GridItem,
   Label,
   MenuToggle,
 } from '@patternfly/react-core';
-import { EllipsisVIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionDetail, CollectionAsset } from '~/app/hooks/useCollectionDetail';
+import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
 import { assetDetailUrl } from '~/app/utilities/routes';
+import { FORMAT_OPTIONS, getUnstructuredFormatLabel } from '~/app/utilities/formatUtils';
+import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 
 type CollectionDetailViewProps = {
   collection: CollectionDetail;
   project?: string;
+  onRegisterData?: () => void;
+  isRegisterDataDisabled?: boolean;
 };
 
 type AssetRowProps = {
@@ -36,7 +45,14 @@ type AssetRowProps = {
 
 const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, project }) => {
   const navigate = useNavigate();
+  const trackEvent = useDataRegistryTrackEvent();
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const formatLabel =
+    asset.assetType === 'volume'
+      ? getUnstructuredFormatLabel(asset.format)
+      : FORMAT_OPTIONS.find(
+          (option) => option.value === asset.format && option.assetType === asset.assetType,
+        )?.label || asset.format;
 
   const detailUrl = project
     ? assetDetailUrl(
@@ -49,18 +65,28 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
 
   return (
     <Tr>
-      <Td dataLabel="Name">{detailUrl ? <Link to={detailUrl}>{asset.name}</Link> : asset.name}</Td>
+      <Td dataLabel="Name">
+        {detailUrl ? (
+          <Link
+            to={detailUrl}
+            onClick={() => {
+              trackEvent({
+                eventName: DATA_REGISTRY_EVENT_NAMES.assetOpened,
+                properties: { project: project || '' },
+              });
+            }}
+          >
+            {asset.name}
+          </Link>
+        ) : (
+          asset.name
+        )}
+      </Td>
       <Td dataLabel="Type">{assetType}</Td>
       <Td dataLabel="Format">
-        {asset.format === 'Structured' || asset.format === 'Unstructured' ? (
-          <Label isCompact variant="outline">
-            {assetType}
-          </Label>
-        ) : (
-          <Label isCompact variant="outline">
-            {asset.format}
-          </Label>
-        )}
+        <Label isCompact variant="outline">
+          {formatLabel}
+        </Label>
       </Td>
       <Td isActionCell>
         <Dropdown
@@ -86,6 +112,10 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
               key="view"
               onClick={() => {
                 if (detailUrl) {
+                  trackEvent({
+                    eventName: DATA_REGISTRY_EVENT_NAMES.assetOpened,
+                    properties: { project: project || '' },
+                  });
                   navigate(detailUrl);
                 }
               }}
@@ -100,30 +130,59 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
   );
 };
 
-const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({ collection, project }) => (
+const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
+  collection,
+  project,
+  onRegisterData,
+  isRegisterDataDisabled = false,
+}) => (
   <Grid hasGutter>
     <GridItem md={7}>
       <Card data-testid="data-assets-card">
         <CardTitle>Data assets ({collection.assets.length})</CardTitle>
         <CardBody>
-          <Table aria-label="Collection assets" data-testid="collection-assets-table">
-            <Thead>
-              <Tr>
-                <Th>Name</Th>
-                <Th>Type</Th>
-                <Th>Format</Th>
-                <Th screenReaderText="Actions" />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {collection.assets.length === 0 ? (
+          {collection.assets.length === 0 ? (
+            <EmptyState
+              headingLevel="h3"
+              titleText="No data assets"
+              icon={PlusCircleIcon}
+              variant={EmptyStateVariant.xs}
+              data-testid="collection-assets-empty-state"
+            >
+              <EmptyStateBody>
+                To help users in your organization discover and understand external data, create a
+                data asset. Data assets are metadata records that store information like location,
+                format, and schema, but not the data itself.
+              </EmptyStateBody>
+              {onRegisterData ? (
+                <EmptyStateFooter>
+                  <Button
+                    variant="primary"
+                    onClick={onRegisterData}
+                    isDisabled={isRegisterDataDisabled}
+                    data-testid="collection-empty-register-data-button"
+                  >
+                    Register data
+                  </Button>
+                </EmptyStateFooter>
+              ) : null}
+            </EmptyState>
+          ) : (
+            <Table
+              aria-label="Collection assets"
+              borders={false}
+              data-testid="collection-assets-table"
+            >
+              <Thead>
                 <Tr>
-                  <Td colSpan={4}>
-                    <Content component="p">No data assets in this collection.</Content>
-                  </Td>
+                  <Th>Name</Th>
+                  <Th>Type</Th>
+                  <Th>Format</Th>
+                  <Th screenReaderText="Actions" />
                 </Tr>
-              ) : (
-                collection.assets.map((asset) => {
+              </Thead>
+              <Tbody>
+                {collection.assets.map((asset) => {
                   const assetType = asset.assetType === 'table' ? 'Structured' : 'Unstructured';
                   return (
                     <AssetRow
@@ -134,10 +193,10 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({ collection,
                       project={project}
                     />
                   );
-                })
-              )}
-            </Tbody>
-          </Table>
+                })}
+              </Tbody>
+            </Table>
+          )}
         </CardBody>
       </Card>
     </GridItem>

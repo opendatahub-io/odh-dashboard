@@ -8,6 +8,10 @@ import (
 	"net/url"
 )
 
+// ErrMaaSResponseBodyLimit identifies an upstream response that exceeded the
+// bounded body reader installed on the MaaS HTTP client.
+var ErrMaaSResponseBodyLimit = errors.New("MaaS response body limit exceeded")
+
 type MaaSError struct {
 	Code       string
 	Message    string
@@ -36,6 +40,9 @@ func NewMaaSError(code, message string, statusCode int) *MaaSError {
 func wrapMaaSClientError(err error) *MaaSError {
 	if err == nil {
 		return nil
+	}
+	if errors.Is(err, ErrMaaSResponseBodyLimit) {
+		return NewMaaSError(ErrCodeServerUnavailable, "MaaS response exceeded the supported size", http.StatusServiceUnavailable)
 	}
 	var urlErr *url.Error
 	if errors.As(err, &urlErr) {

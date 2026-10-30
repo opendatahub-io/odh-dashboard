@@ -1,6 +1,9 @@
 import * as React from 'react';
 import {
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   Stack,
   StackItem,
   ExpandableSection,
@@ -20,12 +23,20 @@ import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
 import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
-import { HARDWARE_PROFILE_SELECTION_HELP, LOCAL_QUEUE_MISSING_BODY } from './const';
+import {
+  DRA_HARDWARE_PROFILE_WORKLOAD_LOCKED_MESSAGE,
+  HARDWARE_PROFILE_SELECTION_HELP,
+  LOCAL_QUEUE_MISSING_BODY,
+} from './const';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
 import { PodSpecOptions, HardwarePodSpecOptionsState, HardwarePodSpecOptions } from './types';
-import { getContainerResourcesFromHardwareProfile } from './utils';
+import {
+  getContainerResourcesFromHardwareProfile,
+  isDRAHardwareProfile,
+  isSameHardwareProfileBinding,
+} from './utils';
 
 type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
   isEditing: boolean;
@@ -47,16 +58,31 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
   isLocalQueueMissing = false,
 }) => {
   const {
-    hardwareProfile: { formData, initialHardwareProfile, setFormData },
+    hardwareProfile: {
+      formData,
+      initialHardwareProfile,
+      initialResources,
+      excludeDRAProfiles,
+      claimTemplateNames,
+      claimTemplateMissingText,
+      setFormData,
+    },
   } = podSpecOptionsState;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const isLockedDRAProfile =
+    excludeDRAProfiles &&
+    !!formData.selectedProfile &&
+    isDRAHardwareProfile(formData.selectedProfile);
+  const isProfileChosen = !!formData.selectedProfile || formData.useExistingSettings;
 
   const validation = useValidation(formData, hardwareProfileValidationSchema);
   const hasValidationErrors = Object.keys(validation.getAllValidationIssues()).length > 0;
   const {
     globalProfiles: [hardwareProfiles, loaded, error],
     projectProfiles: projectScopedHardwareProfiles,
-  } = useHardwareProfilesByFeatureVisibility(visibleIn, project);
+  } = useHardwareProfilesByFeatureVisibility(visibleIn, project, {
+    dra: excludeDRAProfiles ? 'none' : 'valid',
+  });
 
   const [isExpanded, setIsExpanded] = React.useState(false);
 
@@ -74,12 +100,36 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
       return;
     }
 
-    // Reset customization when changing profiles
-    const newResources = getContainerResourcesFromHardwareProfile(profile);
+    if (excludeDRAProfiles && isDRAHardwareProfile(profile)) {
+      return;
+    }
+
+    if (
+      isDRAHardwareProfile(profile) &&
+      formData.selectedProfile &&
+      isSameHardwareProfileBinding(profile.metadata, formData.selectedProfile.metadata)
+    ) {
+      return;
+    }
 
     setFormData('selectedProfile', profile);
     setFormData('useExistingSettings', false);
-    setFormData('resources', newResources);
+
+    if (
+      initialHardwareProfile &&
+      isDRAHardwareProfile(initialHardwareProfile) &&
+      isSameHardwareProfileBinding(profile.metadata, initialHardwareProfile.metadata)
+    ) {
+      setFormData('resources', initialResources);
+      return;
+    }
+
+    // Reset customization when changing profiles
+    const claims = formData.resources?.claims;
+    setFormData('resources', {
+      ...getContainerResourcesFromHardwareProfile(profile),
+      ...(claims?.length ? { claims } : {}),
+    });
   };
 
   return (
@@ -90,7 +140,10 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
             label="Hardware profile"
             isRequired
             labelHelp={
-              isProjectScoped && project && projectScopedHardwareProfiles[0].length > 0 ? (
+              isProjectScoped &&
+              project &&
+              (projectScopedHardwareProfiles[0].length > 0 ||
+                formData.selectedProfile?.metadata.namespace === project) ? (
                 <ProjectScopedPopover
                   title="Hardware profile"
                   item="hardware profiles"
@@ -117,6 +170,8 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               onChange={onProfileSelect}
               allowExistingSettings={isEditing && !initialHardwareProfile}
               project={project}
+              excludeDRAProfiles={excludeDRAProfiles}
+              claimTemplateNames={claimTemplateNames}
               selectionIndicator={
                 isLocalQueueMissing ? (
                   <Popover alertSeverityVariant="warning" bodyContent={LOCAL_QUEUE_MISSING_BODY}>
@@ -131,10 +186,34 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
                 ) : undefined
               }
             />
-            <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />
+            {isProfileChosen && (
+              <ZodErrorHelperText zodIssue={validation.getAllValidationIssues()} showAllErrors />
+            )}
+            {claimTemplateMissingText && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem
+                    variant="error"
+                    data-testid="hardware-profile-claim-template-missing"
+                  >
+                    {claimTemplateMissingText}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
+            {isLockedDRAProfile && (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem data-testid="dra-hardware-profile-locked">
+                    {DRA_HARDWARE_PROFILE_WORKLOAD_LOCKED_MESSAGE}
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            )}
           </FormGroup>
         </StackItem>
-        {formData.selectedProfile?.spec.identifiers &&
+        {!isLockedDRAProfile &&
+          formData.selectedProfile?.spec.identifiers &&
           formData.selectedProfile.spec.identifiers.length > 0 &&
           formData.resources && (
             <StackItem>

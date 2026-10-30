@@ -4,6 +4,7 @@ import type {
   DisplayNameAnnotations,
   ImagePullSecret,
   PodContainer,
+  PodSpec,
 } from '@odh-dashboard/k8s-core';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 
@@ -97,8 +98,10 @@ type LLMInferenceServiceSpec = {
     scheduler?: object;
   };
   template?: {
+    serviceAccountName?: string;
     containers?: LLMdContainer[];
     imagePullSecrets?: ImagePullSecret[];
+    resourceClaims?: PodSpec['resourceClaims'];
   };
 };
 

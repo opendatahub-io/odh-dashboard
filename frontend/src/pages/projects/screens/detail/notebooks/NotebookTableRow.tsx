@@ -8,6 +8,7 @@ import {
   Popover,
   Split,
   SplitItem,
+  Stack,
   Tooltip,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
@@ -21,6 +22,8 @@ import {
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import DRAHardwareProfileDetailsSection from '@odh-dashboard/hardware-profiles/shared/DRAHardwareProfileDetailsSection';
+import { useIsDRAHardwareProfileEnabled } from '@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookKind } from '#~/k8sTypes';
@@ -39,7 +42,10 @@ import { isWorkbenchMigrated, useNotebookHardwareProfile } from '#~/concepts/not
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import useNotification from '#~/utilities/useNotification';
-import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
+import {
+  getDeletedHardwareProfilePatches,
+  getDRAHardwareProfileDetails,
+} from '#~/concepts/hardwareProfiles/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { useWorkbenchFeatureStores } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
@@ -86,6 +92,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
     useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
   const showMigrationRequired = !isWorkbenchMigrated(obj.notebook);
+  const isDRAEnabled = useIsDRAHardwareProfileEnabled();
+  const draDetails =
+    isDRAEnabled && bindingStateInfo?.profile
+      ? getDRAHardwareProfileDetails(bindingStateInfo.profile, obj.notebook.spec.template.spec)
+      : undefined;
 
   const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const isFeatureStoreAvailable = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
@@ -351,11 +362,14 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             )}
           </ExpandableRowContent>
         </Td>
-        <Td dataLabel="Limits">
+        <Td dataLabel="Limits" data-testid="notebook-limits-details">
           <ExpandableRowContent>
-            <NotebookSizeDetails
-              notebookContainerSize={podSpecOptionsState.podSpecOptions.resources}
-            />
+            <Stack hasGutter>
+              <NotebookSizeDetails
+                notebookContainerSize={podSpecOptionsState.podSpecOptions.resources}
+              />
+              {draDetails && <DRAHardwareProfileDetailsSection details={draDetails} />}
+            </Stack>
           </ExpandableRowContent>
         </Td>
         {isFeatureStoreAvailable ? (

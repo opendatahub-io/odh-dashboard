@@ -30,9 +30,20 @@ import EmptyStatePage from './EmptyStatePage';
 
 type SubscriptionsTabProps = {
   returnTo?: string;
+  /**
+   * Read-only viewer: hides the Status and row-actions columns, the create button,
+   * and the delete confirmation modal. Defaults to false (admin governance page).
+   */
+  readOnly?: boolean;
+  /** Overrides the subscription name link target. Defaults to the governance view page. */
+  getSubscriptionDetailUrl?: (name: string) => string;
 };
 
-const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
+const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
+  returnTo,
+  readOnly = false,
+  getSubscriptionDetailUrl,
+}) => {
   const {
     subscriptions,
     subscriptionsLoaded: loaded,
@@ -100,7 +111,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
         testId="empty-subscriptions-page"
         title="No subscriptions"
         bodyText="Subscriptions define token limits for model access. Create a subscription to control usage for each user group."
-        showSubsButton
+        showSubsButton={!readOnly}
       />
     );
   }
@@ -117,14 +128,18 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ returnTo }) => {
                 filterData={filterData}
                 onFilterUpdate={onFilterUpdate}
                 returnTo={returnTo}
+                showCreateButton={!readOnly}
               />
             }
             setDeleteSubscription={setDeleteSubscription}
             returnTo={returnTo}
+            showStatus={!readOnly}
+            showActions={!readOnly}
+            getSubscriptionDetailUrl={getSubscriptionDetailUrl}
           />
         </PageSection>
       )}
-      {deleteSubscription && (
+      {!readOnly && deleteSubscription && (
         <DeleteSubscriptionModal
           subscription={deleteSubscription}
           onClose={(deleted?: boolean) => {

@@ -1,0 +1,20 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: odhdashboardconfigs.opendatahub.io
+spec:
+  group: opendatahub.io
+  names:
+    kind: OdhDashboardConfig
+    listKind: OdhDashboardConfigList
+    plural: odhdashboardconfigs
+    singular: odhdashboardconfig
+  scope: Namespaced
+  versions:
+    - name: v1alpha
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true

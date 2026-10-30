@@ -5,16 +5,18 @@ import { mockRouteK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockRout
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
+import { mock500Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts } from './workbenchTestUtils';
 import {
   ImageStreamModel,
   NotebookModel,
   PVCModel,
-  PodModel,
   RouteModel,
   HardwareProfileModel,
 } from '../../../../utils/models';
 import { workbenchPage, notebookImageUpdateModal } from '../../../../pages/workbench';
+import { captureTracking, expectSafeTracking } from '../../../../utils/analytics';
 
 describe('Workbench page', () => {
   it('Update Notebook Image', () => {
@@ -52,6 +54,36 @@ describe('Workbench page', () => {
     notebookImageUpdateModal.findSubmitUpdateImageButton().click();
     workbenchPage.findUpdatingImageIcon().should('be.visible');
     cy.wait('@updateNotebookImage');
+  });
+
+  it('keeps an image update failure diagnostic out of analytics', () => {
+    const message = 'Private workbench image diagnostic';
+    initIntercepts({});
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'outdated-notebook', displayName: 'Outdated Notebook' }),
+      ]),
+    );
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'outdated-notebook' }));
+    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({ isRunning: true })]));
+    workbenchPage.visit('test-project');
+    workbenchPage.getNotebookRow('Outdated Notebook').findNotebookImageLabel().click();
+    notebookImageUpdateModal.findUpdateImageButton().click();
+    notebookImageUpdateModal.findLatestVersionOption().click();
+    cy.interceptK8s(
+      'PATCH',
+      { model: NotebookModel, ns: 'test-project', name: 'outdated-notebook' },
+      {
+        statusCode: 500,
+        body: mock500Error({ message }),
+      },
+    ).as('updateNotebookImageFailure');
+    captureTracking();
+    notebookImageUpdateModal.findSubmitUpdateImageButton().click();
+    cy.wait('@updateNotebookImageFailure');
+    notebookImageUpdateModal.findErrorAlert().should('contain.text', message);
+    expectSafeTracking('Workbench Created', { success: false, error: 'k8s_500' }, message);
   });
 
   it('Shows latest image label', () => {

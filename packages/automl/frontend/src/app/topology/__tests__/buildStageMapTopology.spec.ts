@@ -28,6 +28,7 @@ jest.mock('~/app/topology/utils', () => ({
     id,
     label,
     pipelineTask,
+    modelKey,
     runAfterTasks,
     runStatus,
     activeIconVariant,
@@ -35,6 +36,7 @@ jest.mock('~/app/topology/utils', () => ({
     id: string;
     label: string;
     pipelineTask: unknown;
+    modelKey?: string;
     runAfterTasks?: string[];
     runStatus?: string;
     activeIconVariant?: string;
@@ -45,7 +47,7 @@ jest.mock('~/app/topology/utils', () => ({
     width: 100,
     height: 30,
     runAfterTasks,
-    data: { pipelineTask, runStatus, activeIconVariant },
+    data: { pipelineTask, modelKey, runStatus, activeIconVariant },
   }),
 }));
 
@@ -162,6 +164,22 @@ describe('buildStageMapTopology', () => {
       );
       expect(modelNodes[0].label).toBe('xgboost');
       expect(modelNodes[1].label).toBe('lightgbm');
+    });
+
+    it('should normalize selected model identifiers to loaded record keys', () => {
+      const stageMap = makeStageMap([
+        makeComponent('training', [
+          makeStage('load_data'),
+          makeStage('model_selection', { selected_models: ['Model One'] }),
+        ]),
+      ]);
+      const nodes = buildStageMapTopology(stageMap, undefined, undefined, undefined, undefined, {
+        model_one: { name: 'Model One' },
+      });
+      const modelNode = nodes.find((node) => node.id === 'training__model__branch-0');
+
+      expect(modelNode?.label).toBe('Model One');
+      expect(modelNode?.data?.modelKey).toBe('model_one');
     });
 
     it('should fan out from model_selection node', () => {

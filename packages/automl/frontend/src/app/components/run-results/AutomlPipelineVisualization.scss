@@ -10,9 +10,32 @@
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
 }
 
+// Scaled-down variant of the module icon badge from autox-core's ModuleHeader
+.automl-pipeline-visualization__header-icon {
+  --automl-pipeline-visualization-header-icon-bg: var(--pf-t--color--teal--10);
+
+  :where(.pf-v6-theme-dark) & {
+    --automl-pipeline-visualization-header-icon-bg: var(--pf-t--color--teal--50);
+  }
+
+  background: var(--automl-pipeline-visualization-header-icon-bg);
+  border-radius: 50%;
+  padding: var(--pf-t--global--spacer--xs);
+  width: calc(var(--pf-t--global--spacer--md) + 2 * var(--pf-t--global--spacer--xs));
+  height: calc(var(--pf-t--global--spacer--md) + 2 * var(--pf-t--global--spacer--xs));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  > svg {
+    width: var(--pf-t--global--spacer--md);
+    height: var(--pf-t--global--spacer--md);
+  }
+}
+
 .automl-pipeline-visualization__body {
-  height: 45vh;
-  min-height: 45vh;
+  height: 30vh;
+  min-height: 220px;
   overflow: hidden;
 
   .pf-v6-c-drawer,
@@ -27,14 +50,6 @@
   height: 100%;
   max-height: 100%;
   overflow: hidden;
-
-  .pf-v6-c-drawer__panel-main {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-  }
 
   .pf-v6-c-drawer__head {
     flex-shrink: 0;

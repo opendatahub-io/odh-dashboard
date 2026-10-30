@@ -63,6 +63,22 @@ const testProvider = mockProvider({
   ],
 });
 
+const rawMetricProvider = mockProvider({
+  id: 'guidellm',
+  name: 'guidellm',
+  title: 'GuideLLM',
+  benchmarks: [
+    mockBenchmark({
+      id: 'constant',
+      name: 'Constant load',
+      metrics: ['output_tokens_per_second', 'mean_ttft_ms'],
+      primaryScoreMetric: 'output_tokens_per_second',
+      lowerIsBetter: false,
+      threshold: 10,
+    }),
+  ],
+});
+
 const testCollection = mockCollection({
   id: 'col-safety',
   name: 'Safety Suite',
@@ -100,11 +116,6 @@ const initBaseIntercepts = () => {
   mockVerifyConnectionSuccess();
 };
 
-const selectSourceMode = (mode: 'Model' | 'Agent' | 'Pre-recorded responses') => {
-  startEvaluationRunPage.findSourceModeToggle().click();
-  cy.findByRole('option', { name: mode }).click();
-};
-
 const selectExternalEndpoint = () => {
   startEvaluationRunPage.findModelPickerToggle().click();
   cy.findByTestId('model-option-external').click();
@@ -118,14 +129,15 @@ const fillExternalModelFields = (modelName: string, endpointUrl: string) => {
   cy.wait('@verifyConnection');
 };
 
-const navigateToBenchmarkStart = () => {
-  cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, [
-    testProvider,
-  ]);
+const navigateToBenchmarkStart = (
+  provider = testProvider,
+  benchmarkId = testProvider.benchmarks?.[0].id ?? '',
+) => {
+  cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, [provider]);
 
   chooseBenchmarkPage.visit(NAMESPACE);
   chooseBenchmarkPage
-    .findBenchmarkCard('test-provider', 'bench-alpha')
+    .findBenchmarkCard(provider.resource.id, benchmarkId)
     .findByTestId('select-benchmark-button')
     .click();
 
@@ -156,7 +168,7 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
 
     startEvaluationRunPage.findBenchmarkNameDisplay().should('contain.text', 'Alpha Bench');
     startEvaluationRunPage.findEvaluationNameInput().should('not.have.value', '');
-    startEvaluationRunPage.findSourceModeToggle().should('contain.text', 'Model');
+    startEvaluationRunPage.findSourceModeToggle().should('not.exist');
     startEvaluationRunPage.findModelPickerToggle().should('exist');
     startEvaluationRunPage.findSubmitButton().should('exist');
     startEvaluationRunPage.findCancelButton().should('exist');
@@ -176,21 +188,11 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 
-  it('should switch between source modes via dropdown', () => {
+  it('should not render a source mode selector', () => {
     navigateToBenchmarkStart();
 
-    startEvaluationRunPage.findSourceModeToggle().should('contain.text', 'Model');
+    startEvaluationRunPage.findSourceModeToggle().should('not.exist');
     startEvaluationRunPage.findModelPickerToggle().should('exist');
-
-    selectSourceMode('Agent');
-    startEvaluationRunPage.findAgentNameInput().should('exist');
-    startEvaluationRunPage.findEndpointUrlInput().should('exist');
-    startEvaluationRunPage.findModelPickerToggle().should('not.exist');
-
-    selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findSourceNameInput().should('exist');
-    startEvaluationRunPage.findDatasetUrlInput().should('exist');
-    startEvaluationRunPage.findAgentNameInput().should('not.exist');
   });
 
   it('should show external model fields when selecting Other (External endpoint)', () => {
@@ -298,6 +300,31 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     });
   });
 
+  it('should preserve an untouched raw metric threshold in submission', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-raw-metric-eval',
+      name: 'raw-metric-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createRawMetricJob',
+    );
+
+    navigateToBenchmarkStart(rawMetricProvider, 'constant');
+    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
+
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createRawMetricJob').then((interception) => {
+      expect(interception.request.body.benchmarks[0].pass_criteria).to.have.property(
+        'threshold',
+        10,
+      );
+    });
+  });
+
   it('should submit overridden threshold when user modifies the slider value', () => {
     const createdJob = mockEvaluationJob({
       id: 'new-eval-threshold-override',
@@ -353,6 +380,16 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
       );
     });
   });
+
+  it('should preserve the threshold when the primary metric changes', () => {
+    navigateToBenchmarkStart(rawMetricProvider, 'constant');
+    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
+
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('mean_ttft_ms').click();
+
+    startEvaluationRunPage.findBenchmarkThreshold().should('have.value', '10');
+  });
 });
 
 describe('Start Evaluation Run - Collection Threshold', () => {
@@ -361,7 +398,7 @@ describe('Start Evaluation Run - Collection Threshold', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should display suite threshold defaulting to 70 when no pass_criteria in metadata', () => {
+  it('should display collection threshold defaulting to 70 when no pass_criteria in metadata', () => {
     navigateToCollectionStart();
 
     startEvaluationRunPage.findBenchmarkThreshold().should('exist');
@@ -377,7 +414,7 @@ describe('Start Evaluation Run - Collection Threshold', () => {
     startEvaluationRunPage.findPrimaryScorerMetricToggle().should('not.exist');
   });
 
-  it('should submit overridden suite threshold when user modifies the slider value', () => {
+  it('should submit overridden collection threshold when user modifies the slider value', () => {
     const createdJob = mockEvaluationJob({
       id: 'new-eval-col-threshold-override',
       name: 'col-threshold-override-eval',
@@ -593,50 +630,18 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
   });
 });
 
-describe('Start Evaluation Run - Pre-recorded Mode', () => {
-  beforeEach(() => {
-    initBaseIntercepts();
-    mockMlflowExperiments([]);
-  });
-
-  it('should submit with pre-recorded responses fields', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-003',
-      name: 'prerecorded-eval',
-      state: 'running',
-    });
-
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createPrerecordedJob',
-    );
-
-    navigateToBenchmarkStart();
-
-    selectSourceMode('Pre-recorded responses');
-    startEvaluationRunPage.findSourceNameInput().type('gpt-4-responses');
-    startEvaluationRunPage.findDatasetUrlInput().type('s3://bucket/dataset.jsonl');
-    startEvaluationRunPage.findSubmitButton().should('be.enabled');
-    startEvaluationRunPage.findSubmitButton().click();
-
-    cy.wait('@createPrerecordedJob').then((interception) => {
-      expect(interception.request.body.model).to.have.property('name', 'gpt-4-responses');
-    });
-  });
-});
-
 describe('Start Evaluation Run - Cancel', () => {
   beforeEach(() => {
     initBaseIntercepts();
     mockMlflowExperiments([]);
   });
 
-  it('should navigate back to evaluations on cancel', () => {
+  it('should navigate back to benchmark selection on cancel', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findCancelButton().click();
 
-    cy.url().should('include', `/evaluation/${NAMESPACE}`);
-    cy.url().should('not.include', '/create');
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
   });
 });
 
@@ -727,13 +732,6 @@ describe('Start Evaluation Run - Connection Validation', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should show validate connection button for agent mode', () => {
-    navigateToBenchmarkStart();
-
-    selectSourceMode('Agent');
-    startEvaluationRunPage.findValidateConnectionButton().should('exist');
-  });
-
   it('should show validate connection button for external model', () => {
     navigateToBenchmarkStart();
 
@@ -750,27 +748,6 @@ describe('Start Evaluation Run - Connection Validation', () => {
 
     startEvaluationRunPage.findModelPickerToggle().click();
     cy.findByTestId('model-option-llama-3.2-1b-instruct').click();
-
-    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
-  });
-
-  it('should not show validate connection button for pre-recorded mode', () => {
-    navigateToBenchmarkStart();
-
-    selectSourceMode('Pre-recorded responses');
-
-    startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
-  });
-
-  it('should not show validate connection button after switching from external model to pre-recorded mode', () => {
-    navigateToBenchmarkStart();
-
-    selectExternalEndpoint();
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
-    startEvaluationRunPage.findValidateConnectionButton().should('exist');
-
-    selectSourceMode('Pre-recorded responses');
 
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });

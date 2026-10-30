@@ -23,6 +23,7 @@ import type {
   DeploymentWizardFieldOverrideExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form-data';
+import type { RuntimeImageInstallTargetExtension } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
 import type {
   AreaExtension,
   ClusterStorageConnectedResourcesExtension,
@@ -151,7 +152,7 @@ export const kserveFormDataExtension: ModelServingDeploymentFormDataExtension<KS
       import('./src/deployServer').then((m) => m.extractModelServerTemplate),
     extractHuggingFaceApiKey: () =>
       import('./src/hfTokenSecret').then(
-        (m) => (deployment) => m.extractHuggingFaceApiKeyFromEnv(deployment.model),
+        (m) => (deployment) => m.extractHuggingFaceApiKey(deployment.model),
       ),
     hardwareProfilePaths: () =>
       import('./src/hardware').then((m) => m.INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS),
@@ -182,6 +183,7 @@ const extensions: (
   | TabRouteTabExtension
   | RouteExtension
   | ClusterStorageConnectedResourcesExtension<KServeConnectedResourcesData>
+  | RuntimeImageInstallTargetExtension
 )[] = [
   {
     type: 'app.area',
@@ -315,6 +317,7 @@ const extensions: (
       isActive: true,
       priority: 0,
       supportsOverwrite: true,
+      supportsDRAHardwareProfiles: true,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
     },
     flags: {
@@ -363,6 +366,24 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.K_SERVE],
+    },
+  },
+  {
+    type: 'model-serving.runtime-image/install-target',
+    flags: {
+      required: [SupportedArea.CUSTOM_RUNTIMES, SupportedArea.K_SERVE, ADMIN_USER],
+    },
+    properties: {
+      id: 'servingRuntimeTemplate',
+      label: 'Serving runtime template',
+      description:
+        'Install as a ServingRuntime template for inference service deployments. Not compatible with Models as a Service.',
+      selectedState: {
+        listName: 'Serving runtime templates',
+        description: 'and the inference service deployment wizard.',
+      },
+      installTargetName: 'serving runtime template',
+      component: () => import('./src/runtimeImageInstall/ServingRuntimeInstallTarget'),
     },
   },
   {

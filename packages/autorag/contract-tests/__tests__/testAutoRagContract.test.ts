@@ -2,7 +2,11 @@
 /**
  * @jest-environment node
  */
-import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
+import {
+  ContractApiClient,
+  ContractSchemaValidator,
+  loadOpenAPISchema,
+} from '@odh-dashboard/contract-tests';
 
 describe('AutoRAG API Contract Tests', () => {
   const baseUrl = process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080';
@@ -24,6 +28,63 @@ describe('AutoRAG API Contract Tests', () => {
 
   const SUCCEEDED_RUN = 'e78c5f2a-5726-4e1c-bcb6-60434e77e453';
 
+  describe('OpenAPI schema', () => {
+    it('documents string and message-array input values, but not null', () => {
+      const components = apiSchema.components as Record<string, unknown>;
+      const schemas = components.schemas as Record<string, unknown>;
+      const responsesRequest = schemas.ResponsesRequest as Record<string, unknown>;
+      const properties = responsesRequest.properties as Record<string, unknown>;
+      const input = properties.input as Record<string, unknown>;
+      const inputVariants = input.anyOf as Array<Record<string, unknown>>;
+      const tools = properties.tools as Record<string, unknown>;
+      const toolItem = tools.items as Record<string, unknown>;
+      const toolProperties = toolItem.properties as Record<string, unknown>;
+      const rankingOptions = toolProperties.ranking_options as Record<string, unknown>;
+      const rankingProperties = rankingOptions.properties as Record<string, unknown>;
+
+      expect(inputVariants).toHaveLength(2);
+      expect(inputVariants).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'string' }),
+          expect.objectContaining({ type: 'array' }),
+        ]),
+      );
+      expect(properties.model).toEqual(
+        expect.objectContaining({ type: 'string', minLength: 1, pattern: '\\S' }),
+      );
+      expect(properties.max_output_tokens).toEqual(
+        expect.objectContaining({ type: 'integer', minimum: 0, maximum: 4096, default: 2048 }),
+      );
+      expect(responsesRequest.required).toEqual(
+        expect.arrayContaining(['model', 'input', 'tools', 'metadata']),
+      );
+      expect((properties.metadata as { required: string[] }).required).toContain('embedding_model');
+      expect((properties.tools as { minItems: number }).minItems).toBe(1);
+      expect(rankingProperties.ranker_k).toEqual(
+        expect.objectContaining({
+          type: 'number',
+          minimum: 0,
+          exclusiveMinimum: true,
+          maximum: 16384,
+          exclusiveMaximum: true,
+        }),
+      );
+
+      const modelSchemaValidator = new ContractSchemaValidator();
+      modelSchemaValidator.loadSchema(
+        'ResponsesRequestModel',
+        properties.model as Record<string, unknown>,
+      );
+
+      expect(modelSchemaValidator.validateResponse('   ', 'ResponsesRequestModel').valid).toBe(
+        false,
+      );
+      expect(
+        modelSchemaValidator.validateResponse('test-model', 'ResponsesRequestModel').valid,
+      ).toBe(true);
+    });
+  });
+
   describe('Health Check Endpoint', () => {
     it('should return health status', async () => {
       const result = await apiClient.get('/healthcheck');
@@ -31,6 +92,96 @@ describe('AutoRAG API Contract Tests', () => {
       if (result.success) {
         expect(result.response.status).toBe(200);
       }
+    });
+  });
+
+  describe('Responses Endpoint', () => {
+    const request = {
+      model: 'test-model',
+      input: [
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'What is RAG?' }],
+        },
+      ],
+      tools: [{ type: 'file_search', vector_store_ids: ['vs-test'] }],
+      metadata: { embedding_model: 'embedding-model' },
+    };
+
+    it('should reject a request without the canonical database secret query parameter', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&vectorDbSecretName=legacy&maasSecretName=${MAAS_SECRET}`,
+        request,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            code: '400',
+            message: expect.any(String),
+          }),
+        }),
+      );
+    });
+
+    it('should reject a request missing the database secret query parameter', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&maasSecretName=${MAAS_SECRET}`,
+        request,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
+    });
+
+    it('should reject a request missing the model', async () => {
+      const requestWithoutModel = { ...request };
+      delete (requestWithoutModel as { model?: string }).model;
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        requestWithoutModel,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
+    });
+
+    it('should reject an explicit null input', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        { ...request, input: null },
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
+    });
+
+    it('should reject max_output_tokens above the documented cap', async () => {
+      const result = await apiClient.post(
+        `/api/v1/responses?namespace=${NS}&dbSecretName=${SECRET}&maasSecretName=${MAAS_SECRET}`,
+        { ...request, max_output_tokens: 4097 },
+      );
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+      expect(result.error?.data).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+        }),
+      );
     });
   });
 
@@ -85,6 +236,36 @@ describe('AutoRAG API Contract Tests', () => {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: {
+              name: string;
+              data: Record<string, string>;
+              databaseProviders?: string[];
+            }[];
+          }
+        ).data;
+        const byName = (name: string) => secrets.find((secret) => secret.name === name);
+        expect(byName('vector-db')?.databaseProviders).toEqual(['milvus']);
+        expect(byName('pgvector-legacy-key')?.databaseProviders).toEqual(['pgvector']);
+        expect(byName('neo4j')?.databaseProviders).toEqual(['neo4j']);
+        expect(byName('ambiguous-database')?.databaseProviders).toEqual(['milvus', 'neo4j']);
+        for (const name of [
+          'milvus-empty-uri',
+          'milvus-whitespace-uri',
+          'pgvector-empty-password',
+          'pgvector-whitespace-host',
+          'neo4j-empty-password',
+          'neo4j-whitespace-uri',
+        ]) {
+          expect(byName(name)?.databaseProviders).toBeUndefined();
+        }
+        expect(JSON.stringify(secrets)).not.toContain('https://milvus.example.com:19530');
+        expect(JSON.stringify(secrets)).not.toContain('fake-pgvector-password');
+        expect(JSON.stringify(secrets)).not.toContain('fake-neo4j-password');
+      }
     });
 
     it('should retrieve storage secrets when type=storage', async () => {
@@ -93,6 +274,100 @@ describe('AutoRAG API Contract Tests', () => {
         ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
         status: 200,
       });
+    });
+
+    it('should classify only Neo4j secrets containing both URI and password', async () => {
+      const result = await apiClient.get(
+        `/api/v1/secrets?namespace=${NS}&type=database&provider=neo4j`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: { name: string; databaseProviders?: string[] }[];
+          }
+        ).data;
+        expect(secrets.map((secret) => secret.name)).toEqual(['neo4j', 'neo4j-legacy-key']);
+        expect(secrets.map((secret) => secret.databaseProviders)).toEqual([['neo4j'], ['neo4j']]);
+      }
+    });
+
+    it('should classify canonical and legacy Milvus secrets and redact certificate values', async () => {
+      const result = await apiClient.get(`/api/v1/secrets?namespace=${NS}&type=vector-db`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: { name: string; data: Record<string, string>; databaseProviders?: string[] }[];
+          }
+        ).data;
+        expect(secrets.map((secret) => secret.name)).toEqual([
+          'vector-db',
+          'legacy-milvus',
+          'pgvector-legacy-key',
+          'ambiguous-database',
+        ]);
+        expect(secrets[0].data).toHaveProperty('MILVUS_CA_CERT', '[REDACTED]');
+        expect(secrets[0].data).not.toHaveProperty('MILVUS_SERVER_CERT');
+        expect(secrets[1].data).toHaveProperty('MILVUS_SERVER_CERT', '[REDACTED]');
+        expect(secrets.find((secret) => secret.name === 'vector-db')?.databaseProviders).toEqual([
+          'milvus',
+        ]);
+        expect(
+          secrets.find((secret) => secret.name === 'pgvector-legacy-key')?.databaseProviders,
+        ).toEqual(['pgvector']);
+        expect(
+          secrets.find((secret) => secret.name === 'pgvector-legacy-key')?.data,
+        ).toHaveProperty('MILVUS_SERVER_CERT', '[REDACTED]');
+        expect(
+          secrets.find((secret) => secret.name === 'ambiguous-database')?.databaseProviders,
+        ).toEqual(['milvus', 'neo4j']);
+        const responsePayload = JSON.stringify(secrets);
+        expect(responsePayload).not.toContain('canonical-ca-certificate');
+        expect(responsePayload).not.toContain('legacy-certificate');
+        expect(responsePayload).not.toContain('fake-neo4j-password');
+      }
+    });
+
+    it.each([
+      ['milvus', ['vector-db', 'legacy-milvus']],
+      ['pgvector', ['pgvector-legacy-key']],
+    ])('should classify only non-empty %s credentials', async (provider, expectedNames) => {
+      const result = await apiClient.get(
+        `/api/v1/secrets?namespace=${NS}&type=database&provider=${provider}`,
+      );
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/SecretsResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const secrets = (
+          result.response.data as {
+            data: { name: string; databaseProviders?: string[] }[];
+          }
+        ).data;
+        expect(secrets.map((secret) => secret.name)).toEqual(expectedNames);
+        expect(secrets.every((secret) => secret.databaseProviders?.length === 1)).toBe(true);
+        expect(secrets.map((secret) => secret.name)).not.toEqual(
+          expect.arrayContaining([
+            'milvus-empty-uri',
+            'milvus-whitespace-uri',
+            'pgvector-empty-password',
+            'pgvector-whitespace-host',
+            'neo4j-empty-password',
+            'neo4j-whitespace-uri',
+          ]),
+        );
+      }
     });
 
     it('should return 400 when namespace parameter is missing', async () => {
@@ -253,7 +528,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       }, 8000);
@@ -263,7 +538,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&bucket=${BUCKET}`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       }, 8000);
@@ -275,7 +550,7 @@ describe('AutoRAG API Contract Tests', () => {
         it('should accept request with valid path parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&path=folder/subfolder`);
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
             status: 200,
           });
         }, 8000);
@@ -293,7 +568,7 @@ describe('AutoRAG API Contract Tests', () => {
         it('should accept request with valid search parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&search=myfile`);
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
             status: 200,
           });
         }, 8000);
@@ -311,7 +586,7 @@ describe('AutoRAG API Contract Tests', () => {
         it('should accept request with valid next parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&next=some-continuation-token`);
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
             status: 200,
           });
         }, 8000);
@@ -329,7 +604,7 @@ describe('AutoRAG API Contract Tests', () => {
         it('should accept request with valid limit parameter', async () => {
           const result = await apiClient.get(`${searchParamsUri}&limit=20`);
           expect(result).toMatchContract(apiSchema, {
-            ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+            ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
             status: 200,
           });
         }, 8000);
@@ -374,7 +649,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -384,7 +659,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&bucket=${BUCKET}`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -394,7 +669,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
         expect(result.success).toBe(true);
@@ -405,7 +680,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&path=autorag%20input%20data`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -415,7 +690,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&search=myfile`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -425,7 +700,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&limit=10`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -435,7 +710,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&next=some-token`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -445,7 +720,7 @@ describe('AutoRAG API Contract Tests', () => {
           `/api/v1/s3/files?namespace=${NS}&secretName=test-secret-with-bucket&path=autorag%20input%20data&search=report&limit=5`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/S3GetFilesResponse/content/application/json/schema',
+          ref: '#/components/responses/S3GetFilesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -460,7 +735,7 @@ describe('AutoRAG API Contract Tests', () => {
           undefined,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application/json/schema',
+          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -510,7 +785,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_key: 'autorag input data/pdf/bank_policies_pdf/documents',
           maas_secret_name: 'maas',
-          vector_db_secret_name: 'vector-db',
+          db_secret_name: 'database',
           chunk_size: 512,
           chunk_overlap: 50,
           chunking_method: 'recursive',
@@ -526,6 +801,31 @@ describe('AutoRAG API Contract Tests', () => {
       const result = await apiClient.post(`/api/v1/indexing-pipeline-runs?namespace=${NS}`, {
         display_name: 'incomplete-indexing-run',
       });
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
+    });
+  });
+
+  describe('Pipeline Server Status Endpoint', () => {
+    it('should return 200 with a ready status on a namespace with a DSPA', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 200 with a not-found status when no DSPA exists in namespace', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS_NO_DSPA}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect((result.response.data as { data: { status: string } }).data.status).toBe('not-found');
+    });
+
+    it('should return 400 when namespace query parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/pipeline-server/status');
       expect(result.success).toBe(false);
       expect(result.error?.status).toBe(400);
     });
@@ -623,6 +923,24 @@ describe('AutoRAG API Contract Tests', () => {
     });
 
     describe('Create Pipeline Run', () => {
+      const validCreateRunRequest = {
+        test_data_secret_name: SECRET,
+        test_data_bucket_name: BUCKET,
+        test_data_key:
+          'autorag input data/pdf/bank_policies_pdf/all_bank_policies_eval_data_pdf.json',
+        input_data_secret_name: SECRET,
+        input_data_bucket_name: BUCKET,
+        input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
+        maas_secret_name: MAAS_SECRET,
+        db_secret_name: 'vector-db',
+        embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
+        generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
+      };
+
+      type RunEnvelope = {
+        data: { runtime_config?: { parameters?: Record<string, unknown> } };
+      };
+
       it('should create a pipeline run with required fields', async () => {
         const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
           display_name: 'contract-test-run',
@@ -637,7 +955,7 @@ describe('AutoRAG API Contract Tests', () => {
             'autorag input data/pdf/bank_policies_pdf/archive',
           ],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: 'vector-db',
+          db_secret_name: 'database',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
           generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });
@@ -646,9 +964,6 @@ describe('AutoRAG API Contract Tests', () => {
           status: 200,
         });
         if (result.success) {
-          type RunEnvelope = {
-            data: { runtime_config?: { parameters?: Record<string, unknown> } };
-          };
           const parameters = (result.response.data as RunEnvelope).data.runtime_config?.parameters;
           expect(parameters?.input_data_keys).toEqual([
             'autorag input data/pdf/bank_policies_pdf/documents',
@@ -670,8 +985,8 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: 'vector-db',
-          optimization_metric: 'answer_correctness',
+          db_secret_name: 'database',
+          optimization_metric: 'unitxt:answer_correctness',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
           generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });
@@ -700,13 +1015,65 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: 'vector-db',
+          db_secret_name: 'database',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
           generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
           optimization_metric: 'invalid_metric',
         });
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
+      });
+
+      it('should reject RAGAS metrics for the speed preset', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          ...validCreateRunRequest,
+          display_name: 'speed-ragas-metric-run',
+          preset: 'speed',
+          optimization_metric: 'ragas:faithfulness',
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.status).toBe(400);
+      });
+
+      it('should accept RAGAS metrics for the balanced preset', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          ...validCreateRunRequest,
+          display_name: 'balanced-ragas-metric-run',
+          preset: 'balanced',
+          optimization_metric: 'ragas:faithfulness',
+        });
+
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+        if (result.success) {
+          const parameters = (result.response.data as RunEnvelope).data.runtime_config?.parameters;
+          expect(parameters?.optimization_metric).toBe('ragas:faithfulness');
+        }
+      });
+
+      it.each([
+        { name: 'default speed', preset: undefined, expected: 'unitxt:faithfulness' },
+        { name: 'explicit speed', preset: 'speed', expected: 'unitxt:faithfulness' },
+        { name: 'balanced', preset: 'balanced', expected: 'ragas:faithfulness' },
+      ])('should normalize bare faithfulness for $name', async ({ name, preset, expected }) => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          ...validCreateRunRequest,
+          display_name: `legacy-faithfulness-${name.replace(' ', '-')}-run`,
+          ...(preset ? { preset } : {}),
+          optimization_metric: 'faithfulness',
+        });
+
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+        if (result.success) {
+          const parameters = (result.response.data as RunEnvelope).data.runtime_config?.parameters;
+          expect(parameters?.optimization_metric).toBe(expected);
+        }
       });
 
       it('should return 400 for blank input keys and model identifiers', async () => {
@@ -720,7 +1087,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: 'vector-db',
+          db_secret_name: 'database',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
           generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         };
@@ -747,7 +1114,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: 'vector-db',
+          db_secret_name: 'database',
           embedding_models: ['shared-model'],
           generation_models: ['shared-model'],
         });
@@ -771,7 +1138,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: 'vector-db',
+          db_secret_name: 'database',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
           generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });
@@ -827,7 +1194,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_bucket_name: BUCKET,
           input_data_keys: ['autorag input data/pdf/bank_policies_pdf/documents'],
           maas_secret_name: MAAS_SECRET,
-          vector_db_secret_name: 'vector-db',
+          db_secret_name: 'database',
           embedding_models: ['vllm-embedding/ibm-granite/granite-embedding-english-r2'],
           generation_models: ['vllm-inference/meta-llama/Llama-3.1-8B-Instruct'],
         });

@@ -40,6 +40,9 @@ describe('GPUaaS Infrastructure Page', () => {
       infrastructurePage.findBorrowingError().should('not.exist');
       infrastructurePage.shouldHaveBorrowingChartOrEmptyState();
 
+      cy.step('Verify Workloads tab is present');
+      infrastructurePage.findWorkloadsTab().should('be.visible');
+
       cy.step('Click Quota usage tab and verify section is present');
       infrastructurePage.switchToQuotaUsageTab();
       infrastructurePage.shouldHaveQuotaUsageNavSearchOrEmptyState();
@@ -47,20 +50,22 @@ describe('GPUaaS Infrastructure Page', () => {
   );
 
   it(
-    'Verify Infrastructure page is not accessible for non-admin users',
+    'Verify non-admin users can access Workloads but not administrative tabs',
     { tags: ['@Dashboard', '@GPUaaS', '@GpuaasCI'] },
     () => {
       cy.step('Log in as non-admin user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
-      cy.step('Verify Infrastructure nav item is NOT visible');
-      infrastructurePage.findNavItem().should('not.exist');
+      cy.step('Verify Infrastructure nav item is visible');
+      infrastructurePage.findNavItem().should('be.visible');
 
       cy.step('Navigate directly to Infrastructure page URL');
       cy.visitWithLogin('/observe-and-monitor/infrastructure', LDAP_CONTRIBUTOR_USER);
 
-      cy.step('Verify page does not render for non-admin');
-      infrastructurePage.shouldNotFoundPage();
+      cy.step('Verify Workloads is available and administrative tabs are hidden');
+      infrastructurePage.findWorkloadsTab().should('be.visible');
+      infrastructurePage.findUtilizationTab().should('not.exist');
+      infrastructurePage.findQuotaUsageTab().should('not.exist');
     },
   );
 });

@@ -1,5 +1,15 @@
 import React from 'react';
-import { fetchS3Json, useS3ListFilesQuery } from '~/app/hooks/queries';
+import type { S3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
+import {
+  componentIdToTaskId,
+  findComponentTaskInRunDetails,
+  isKfpDriverTaskName,
+  matchesComponentTaskName,
+  useS3FileFetchers,
+  useS3FileOperations,
+  useS3ListFilesQuery,
+} from '@odh-dashboard/autox-core/ui/hooks';
+import { isRunInTerminalState } from '~/app/types/pipeline';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type {
   ComponentStageMap,
@@ -7,7 +17,6 @@ import type {
   ComponentStageMapStage,
 } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun, PipelineRunTaskDetail, S3ListObjectsResponse } from '~/app/types';
-import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   isAllowedFlattenKey,
   NESTED_STAGE_FIELD_KEYS,
@@ -16,7 +25,6 @@ import {
 import {
   findComponentTaskPrefix,
   isRunCompleted,
-  isRunInTerminalState,
   normalizePipelineRunState,
 } from '~/app/utilities/utils';
 import {
@@ -96,45 +104,15 @@ export function parseComponentStatusArtifact(value: unknown): ComponentStatusFil
   return parseLegacyComponentStatus(value);
 }
 
-export function componentIdToTaskId(componentId: string): string {
-  return componentId.replace(/_/g, '-');
-}
-
-/** Match a component's base task id or a KFP branch suffix variant (e.g. `-2`). */
-export function matchesComponentTaskName(taskName: string, componentId: string): boolean {
-  const baseTaskId = componentIdToTaskId(componentId);
-  if (taskName === baseTaskId) {
-    return true;
-  }
-
-  const suffixPrefix = `${baseTaskId}-`;
-  if (!taskName.startsWith(suffixPrefix)) {
-    return false;
-  }
-
-  const suffix = taskName.slice(suffixPrefix.length);
-  return /^\d+$/.test(suffix);
-}
-
-/** KFP emits a lightweight `-driver` task per component; exclude it from status lookup. */
-export const isKfpDriverTaskName = (taskName: string): boolean => taskName.endsWith('-driver');
-
-/**
- * Resolve the executor task for a component from run details.
- * Task names may include a KFP branch numeric suffix (e.g. `-2`); that suffix
- * disambiguates conditional branches and is unrelated to retries or recency.
- * At most one matching executor task is expected per component.
- */
-export function findComponentTaskInRunDetails(
-  taskDetails: PipelineRunTaskDetail[],
-  componentId: string,
-): PipelineRunTaskDetail | undefined {
-  return taskDetails.find((taskDetail) =>
-    [taskDetail.task_id, taskDetail.display_name]
-      .filter((name): name is string => name != null)
-      .some((name) => !isKfpDriverTaskName(name) && matchesComponentTaskName(name, componentId)),
-  );
-}
+// Task-matching helpers moved to autox-core (shared with the executor-error
+// lookup); re-exported for existing consumers (stageMapStatus, stepMetadata,
+// stageMapStepMetadata, tests).
+export {
+  componentIdToTaskId,
+  matchesComponentTaskName,
+  isKfpDriverTaskName,
+  findComponentTaskInRunDetails,
+};
 
 /** Build run-level S3 prefixes from KFP executor task names while a run is still active. */
 export function buildRunLevelPrefixesFromTaskDetails(
@@ -348,12 +326,13 @@ async function discoverStatusJsonPath(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<string | undefined> {
-  const result: S3ListObjectsResponse = await getS3Files(
-    '',
-    { signal },
-    { namespace, path: s3Prefix },
-  );
+  const result = await listS3Files(namespace, s3Prefix, signal);
   const prefix = result.common_prefixes[0]?.prefix;
   if (!prefix) {
     return undefined;
@@ -365,13 +344,21 @@ async function fetchComponentStatus(
   namespace: string,
   s3Prefix: string,
   signal: AbortSignal,
+  fetchers: S3FileFetchers,
+  listS3Files: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<ComponentStatusFile | undefined> {
-  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal);
+  const jsonPath = await discoverStatusJsonPath(namespace, s3Prefix, signal, listS3Files);
   if (!jsonPath) {
     return undefined;
   }
 
-  return fetchS3Json(namespace, jsonPath, { signal }).then(parseComponentStatusArtifact);
+  return fetchers
+    .fetchS3Json(namespace, jsonPath, { signal, fresh: true })
+    .then(parseComponentStatusArtifact);
 }
 
 export async function fetchComponentStatusForComponent(
@@ -381,12 +368,21 @@ export async function fetchComponentStatusForComponent(
   componentId: string,
   runLevelPrefixes: { prefix: string }[] | undefined,
   signal: AbortSignal,
+  fetchers?: S3FileFetchers,
+  listS3Files?: (
+    namespace: string,
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<S3ListObjectsResponse>,
 ): Promise<{ componentId: string; data: ComponentStatusFile } | undefined> {
   const s3Prefix = resolveComponentTaskS3Prefix(rootDir, runId, componentId, runLevelPrefixes);
   if (!s3Prefix) {
     return undefined;
   }
-  const data = await fetchComponentStatus(namespace, s3Prefix, signal);
+  if (!fetchers || !listS3Files) {
+    return undefined;
+  }
+  const data = await fetchComponentStatus(namespace, s3Prefix, signal, fetchers, listS3Files);
   if (!data || data.component_id !== componentId) {
     return undefined;
   }
@@ -413,6 +409,8 @@ export function useComponentStatuses(
   componentStageMap: ComponentStageMap | undefined,
   dataUpdatedAt: number,
 ): UseComponentStatusesReturn {
+  const fetchers = useS3FileFetchers();
+  const { listS3Files } = useS3FileOperations();
   const { rootDir } = useAutoragOutputDir(pipelineRun);
   const runIsTerminal = isRunInTerminalState(pipelineRun?.state);
   const shouldMergeStatuses = React.useMemo(() => {
@@ -533,6 +531,8 @@ export function useComponentStatuses(
           componentId,
           runLevelPrefixes,
           controller.signal,
+          { fetchS3File: fetchers.fetchS3File, fetchS3Json: fetchers.fetchS3Json },
+          listS3Files,
         ),
       ),
     )
@@ -598,6 +598,8 @@ export function useComponentStatuses(
       controller.abort();
     };
   }, [
+    fetchers,
+    listS3Files,
     runId,
     namespace,
     pipelineRun,

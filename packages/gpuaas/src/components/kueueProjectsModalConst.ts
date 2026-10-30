@@ -2,9 +2,10 @@
 import type { SortableData } from '@odh-dashboard/ui-core';
 import type { KueueProject } from '../types';
 
-export const KUEUE_PROJECTS_MODAL_TITLE = 'Kueue projects';
+export const KUEUE_PROJECTS_MODAL_TITLE = 'Projects using';
 
-export const KUEUE_PROJECTS_MODAL_DESCRIPTION = 'Kueue projects using this cluster queue.';
+export const KUEUE_PROJECTS_MODAL_DESCRIPTION =
+  'Projects that are using this cluster queue for workload admission and quota.';
 
 export const KUEUE_MANAGED_STATUS_LABEL = 'Kueue-managed';
 

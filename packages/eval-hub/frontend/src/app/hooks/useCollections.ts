@@ -3,6 +3,7 @@ import { Collection } from '~/app/types';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { BenchmarkSortOption } from '~/app/pages/const';
+import { getCollectionCategoryValues } from '~/app/components/benchmarkUtils';
 
 const DEFAULT_PAGE_SIZE = 6;
 
@@ -44,10 +45,7 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
 
   // Derive available categories from the full unfiltered list.
   const availableCategories = React.useMemo(
-    () =>
-      [
-        ...new Set(response.items.map((c) => c.category).filter((c): c is string => Boolean(c))),
-      ].toSorted(),
+    () => [...new Set(response.items.flatMap(getCollectionCategoryValues))].toSorted(),
     [response.items],
   );
 
@@ -58,7 +56,9 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
       result = result.filter((c) => c.name.toLowerCase().includes(nameFilter.toLowerCase()));
     }
     if (categoryFilter.length > 0) {
-      result = result.filter((c) => categoryFilter.includes(c.category ?? ''));
+      result = result.filter((c) =>
+        getCollectionCategoryValues(c).some((category) => categoryFilter.includes(category)),
+      );
     }
     return result;
   }, [response.items, nameFilter, categoryFilter]);
@@ -70,7 +70,9 @@ export const useCollections = (namespace: string): UseCollectionsResult => {
         return filteredCollections.toSorted((a, b) => a.name.localeCompare(b.name));
       case BenchmarkSortOption.CATEGORY:
         return filteredCollections.toSorted((a, b) => {
-          const catCmp = (a.category ?? '').localeCompare(b.category ?? '');
+          const catCmp = (getCollectionCategoryValues(a)[0] ?? '').localeCompare(
+            getCollectionCategoryValues(b)[0] ?? '',
+          );
           return catCmp !== 0 ? catCmp : a.name.localeCompare(b.name);
         });
       default:

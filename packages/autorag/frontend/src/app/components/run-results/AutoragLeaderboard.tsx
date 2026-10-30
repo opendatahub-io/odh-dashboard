@@ -11,11 +11,10 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateVariant,
+  Flex,
+  FlexItem,
   Label,
   Skeleton,
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
@@ -33,10 +32,21 @@ import {
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import AutoragRunInProgress from '~/app/components/empty-states/AutoragRunInProgress';
+import {
+  ExecutorLogsTearsheet,
+  RunInProgress,
+} from '@odh-dashboard/autox-core/ui/components/feature';
+import {
+  ManageColumnsModal,
+  type ColumnPreset,
+} from '@odh-dashboard/autox-core/ui/components/primitive';
+import { findFirstFailedTaskKey, useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type { AutoragPattern, MetricReference } from '~/app/types/autoragPattern';
+import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { formatPatternName, isRunInProgress } from '~/app/utilities/utils';
 import {
   findMetric,
@@ -51,6 +61,7 @@ import {
 } from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
 import { METRIC_DESCRIPTIONS } from '~/app/utilities/const';
+import { getMetricDescription } from '~/app/utilities/metricDisplay';
 import {
   fireAutoragResultsColumnToggled,
   fireAutoragLeaderboardPresetApplied,
@@ -58,8 +69,9 @@ import {
   type ResultsColumnName,
   type LeaderboardPresetType,
 } from '~/app/utilities/tracking';
-import ManageColumnsModal, { type ColumnPreset } from './ManageColumnsModal';
 import './AutoragLeaderboard.scss';
+
+const RunInProgressIcon = () => <img src={emptyStateImage} alt="Run in progress" />;
 
 type LeaderboardEntry = {
   rank?: number;
@@ -266,13 +278,25 @@ const COLUMN_META: Record<string, ColumnMeta> = {
 // key returns a value, but dynamic settings and metric names may be absent at runtime.
 const getColumnMeta = (id: string, metric?: MetricReference): ColumnMeta | undefined => {
   if (metric) {
-    return METRIC_COLUMN_META[normalizeMetricReference(metric).name];
+    const { name } = normalizeMetricReference(metric);
+    if (Object.hasOwn(METRIC_COLUMN_META, name)) {
+      return METRIC_COLUMN_META[name];
+    }
+    const description = getMetricDescription(name);
+    if (description) {
+      return {
+        name: metricLabel({ name }),
+        description,
+        minWidth: '15rem',
+      };
+    }
+    return undefined;
   }
-  if (id in COLUMN_META) {
+  if (Object.hasOwn(COLUMN_META, id)) {
     return COLUMN_META[id];
   }
   const lowerId = id.toLowerCase();
-  if (lowerId in COLUMN_META) {
+  if (Object.hasOwn(COLUMN_META, lowerId)) {
     return COLUMN_META[lowerId];
   }
   return undefined;
@@ -406,8 +430,8 @@ type AutoragLeaderboardProps = {
   onRunIndexingPipeline?: (patternName: string) => void;
 };
 
-// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
-const OGX_ACTIONS_ENABLED = false;
+// Code snippets remain unavailable while the Responses API's chat workflow is rolled out.
+const VIEW_CODE_ACTION_ENABLED = false;
 
 function AutoragLeaderboard({
   onViewDetails,
@@ -426,6 +450,7 @@ function AutoragLeaderboard({
     pipelineRunLoading,
     bestPatternKey,
     optimizationMetric,
+    componentStageMap,
   } = useAutoragResultsContext();
   const optimizationMetricKey = metricKey(optimizationMetric);
   const optimizationMetricLabel = metricLabel(optimizationMetric);
@@ -438,6 +463,31 @@ function AutoragLeaderboard({
 
   // Check if pipeline is still running
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
+
+  // The failed-run empty state opens the executor log of the first failed
+  // task (the step where the pipeline stopped) in a tearsheet.
+  const isRunFailed =
+    pipelineRun?.state === RuntimeStateKF.FAILED || pipelineRun?.state === RuntimeStateKF.CANCELED;
+  const { rootDir } = useAutoragOutputDir(pipelineRun);
+  const failedRunTaskKey = React.useMemo(
+    () =>
+      isRunFailed && Object.keys(patterns).length === 0
+        ? findFirstFailedTaskKey(
+            pipelineRun.run_details?.task_details ?? [],
+            componentStageMap?.components.map((component) => component.id) ?? [],
+            rootDir,
+          )
+        : undefined,
+    [componentStageMap, isRunFailed, patterns, pipelineRun, rootDir],
+  );
+  const runExecutorError = useTaskExecutorError({
+    namespace,
+    runId,
+    pipelineRun,
+    taskKey: failedRunTaskKey,
+    rootDir,
+  });
+  const [isRunLogsTearsheetOpen, setIsRunLogsTearsheetOpen] = React.useState(false);
 
   // Extract all unique metric references across all patterns.
   const metricKeys = React.useMemo<MetricColumn[]>(() => {
@@ -507,7 +557,17 @@ function AutoragLeaderboard({
 
   // Column visibility and ordering state — whitelist approach so new columns are hidden by default
   const DEFAULT_VISIBLE_IDS = React.useMemo(
-    () => new Set(['rank', 'pattern', 'modelNames', 'optimized-metric']),
+    () =>
+      new Set([
+        'rank',
+        'pattern',
+        'modelNames',
+        'optimized-metric',
+        'chunkingMethod',
+        'retrievalMethod',
+        'retrievalSearchMode',
+        'retrievalRankerStrategy',
+      ]),
     [],
   );
   const [visibleColumnIds, setVisibleColumnIds] = React.useState<Set<string>>(
@@ -922,7 +982,7 @@ function AutoragLeaderboard({
         </Label>
       ) : (
         // eslint-disable-next-line prettier/prettier -- preserve the JSX fallback expression format
-        entry.rank ?? 'Unranked'
+        (entry.rank ?? 'Unranked')
       );
     }
     if (col.id === 'pattern') {
@@ -977,7 +1037,14 @@ function AutoragLeaderboard({
     if (!namespace) {
       return null;
     }
-    return <AutoragRunInProgress namespace={namespace} />;
+    return (
+      <RunInProgress
+        productName="AutoRAG"
+        icon={RunInProgressIcon}
+        viewRunsRoute={`${autoragExperimentsPathname}/${namespace}`}
+        data-testid="autorag-run-in-progress"
+      />
+    );
   }
 
   // Show loading state with 5 rows and 14 columns
@@ -1032,7 +1099,10 @@ function AutoragLeaderboard({
           <EmptyStateBody>An error occurred while loading pattern results.</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="link" onClick={onRetryPatterns}>
+              <Button
+                variant="link"
+                onClick={() => void Promise.resolve(onRetryPatterns?.()).catch(() => undefined)}
+              >
                 Retry
               </Button>
             </EmptyStateActions>
@@ -1045,9 +1115,6 @@ function AutoragLeaderboard({
   // Show empty state when no patterns were produced
   if (Object.keys(patterns).length === 0) {
     const isRunSucceeded = pipelineRun?.state === RuntimeStateKF.SUCCEEDED;
-    const isRunFailed =
-      pipelineRun?.state === RuntimeStateKF.FAILED ||
-      pipelineRun?.state === RuntimeStateKF.CANCELED;
 
     // Helper to render message with pipeline run link (falls back to plain text when route params are missing)
     const messageWithLink = (before: string, linkText: string, after = '.') =>
@@ -1076,11 +1143,37 @@ function AutoragLeaderboard({
         'pipeline configuration and logs',
       );
     } else if (isRunFailed) {
-      messageContent = messageWithLink(
-        'The pipeline run did not complete successfully. Please check the',
-        'pipeline configuration and logs',
-        ' for errors.',
-      );
+      messageContent =
+        namespace && runId ? (
+          <>
+            <span>The pipeline run did not complete successfully. Please check the </span>
+            {runExecutorError.logText ? (
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setIsRunLogsTearsheetOpen(true)}
+                data-testid="leaderboard-failed-run-logs-link"
+              >
+                log
+              </Button>
+            ) : (
+              'log'
+            )}
+            <span> for errors or </span>
+            <Button
+              variant="link"
+              isInline
+              component={(props) => (
+                <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+              )}
+            >
+              pipeline configuration
+            </Button>
+            <span> for more advanced details.</span>
+          </>
+        ) : (
+          'The pipeline run did not complete successfully. Please check the log for errors or pipeline configuration for more advanced details.'
+        );
     } else if (isRunSucceeded) {
       messageContent = messageWithLink(
         'The pipeline run completed but did not generate any patterns. Please check the',
@@ -1095,23 +1188,58 @@ function AutoragLeaderboard({
     }
 
     return (
-      <Bullseye>
-        <EmptyState
-          headingLevel="h2"
-          titleText="No patterns produced"
-          variant={EmptyStateVariant.sm}
-          data-testid="leaderboard-empty"
-        >
-          <EmptyStateBody>{messageContent}</EmptyStateBody>
-        </EmptyState>
-      </Bullseye>
+      <>
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            titleText="No patterns produced"
+            variant={EmptyStateVariant.sm}
+            data-testid="leaderboard-empty"
+          >
+            <EmptyStateBody>{messageContent}</EmptyStateBody>
+          </EmptyState>
+        </Bullseye>
+        {runExecutorError.logText ? (
+          <ExecutorLogsTearsheet
+            logText={runExecutorError.logText}
+            isOpen={isRunLogsTearsheetOpen}
+            onClose={() => setIsRunLogsTearsheetOpen(false)}
+          />
+        ) : null}
+      </>
     );
   }
 
   return (
     <Card>
       <CardBody>
-        <Content component={ContentVariants.h3}>Results</Content>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <FlexItem>
+            <Content component={ContentVariants.h3}>Results</Content>
+          </FlexItem>
+          <FlexItem>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+              <FlexItem>
+                <Content component={ContentVariants.small} data-testid="columns-selected-count">
+                  {visibleColumns.length}/{columnDefs.length} columns selected
+                </Content>
+              </FlexItem>
+              <FlexItem>
+                <Button
+                  variant="link"
+                  icon={<ColumnsIcon />}
+                  onClick={() => setIsManageColumnsOpen(true)}
+                  data-testid="manage-columns-button"
+                >
+                  Manage columns
+                </Button>
+              </FlexItem>
+            </Flex>
+          </FlexItem>
+        </Flex>
         {Object.values(patterns).some(
           (pattern) => !isPatternRankable(pattern, optimizationMetric),
         ) && (
@@ -1124,25 +1252,6 @@ function AutoragLeaderboard({
             Patterns without exactly one finite objective metric are shown as unranked.
           </Alert>
         )}
-        <Toolbar hasNoPadding>
-          <ToolbarContent alignItems="center">
-            <ToolbarItem>
-              <Content component={ContentVariants.small} data-testid="columns-selected-count">
-                {visibleColumns.length}/{columnDefs.length} columns selected
-              </Content>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button
-                variant="link"
-                icon={<ColumnsIcon />}
-                onClick={() => setIsManageColumnsOpen(true)}
-                data-testid="manage-columns-button"
-              >
-                Manage columns
-              </Button>
-            </ToolbarItem>
-          </ToolbarContent>
-        </Toolbar>
         <InnerScrollContainer>
           <Table
             aria-label="AutoRAG Pattern Leaderboard"
@@ -1206,9 +1315,7 @@ function AutoragLeaderboard({
                     <ActionsColumn
                       items={[
                         /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-                        ...(OGX_ACTIONS_ENABLED &&
-                        patterns[entry.patternKey].inference?.responses_template &&
-                        onTryPattern
+                        ...(onTryPattern
                           ? [
                               {
                                 title: 'Try this pattern',
@@ -1222,7 +1329,7 @@ function AutoragLeaderboard({
                           onClick: () => handleViewDetails(entry.patternKey),
                         },
                         /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-                        ...(OGX_ACTIONS_ENABLED &&
+                        ...(VIEW_CODE_ACTION_ENABLED &&
                         patterns[entry.patternKey].inference?.responses_template &&
                         onViewCode
                           ? [

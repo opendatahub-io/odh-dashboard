@@ -149,7 +149,7 @@ describe('GPUaaS Infrastructure Page — Quota usage', () => {
     infrastructurePage
       .findQuotaUsageSummaryWorkloads()
       .should('contain.text', '2 active, 1 pending');
-    infrastructurePage.findQuotaUsageSummaryCapacity().should('contain.text', '5/8 accelerators');
+    infrastructurePage.findQuotaUsageSummaryCapacity().should('contain.text', '5/8');
     infrastructurePage.findQuotaUsageSummaryCompute().should('contain.text', '30%');
     infrastructurePage.findQuotaUsageSummaryMemory().should('contain.text', '35%');
     infrastructurePage.findQuotaUsageAcceleratorTableSection().should('exist');
@@ -183,7 +183,7 @@ describe('GPUaaS Infrastructure Page — Quota usage', () => {
     infrastructurePage
       .findQuotaUsageDetailPartialError()
       .should('contain.text', 'Some usage telemetry is unavailable');
-    infrastructurePage.findQuotaUsageSummaryCapacity().should('contain.text', '5/8 accelerators');
+    infrastructurePage.findQuotaUsageSummaryCapacity().should('contain.text', '5/8');
     infrastructurePage.findQuotaUsageAcceleratorTableSection().should('exist');
     infrastructurePage.findQuotaUsageAcceleratorRow('NVIDIA A100').should('exist');
     cy.findByTestId('quota-usage-accelerator-table-error').should('not.exist');
@@ -236,8 +236,8 @@ describe('GPUaaS Infrastructure Page — Quota usage', () => {
     infrastructurePage.findQuotaUsageBorrowingEnabledBadge().should('exist');
     infrastructurePage
       .findQuotaUsageBorrowingClusterQueueList()
-      .should('contain.text', 'high-priority-compute')
-      .and('contain.text', 'platform-production accelerators');
+      .should('contain.text', 'High-priority-compute')
+      .and('contain.text', 'is borrowing 2 accelerators from platform-production.');
     infrastructurePage.findQuotaUsageBorrowingLink().should('not.exist');
 
     infrastructurePage.findQuotaUsageTreeNode('high-priority-compute').click();
@@ -245,7 +245,7 @@ describe('GPUaaS Infrastructure Page — Quota usage', () => {
       .findQuotaUsageSummaryWorkloads()
       .should('contain.text', '1 active, 1 pending')
       .and('contain.text', 'needs attention');
-    infrastructurePage.findQuotaUsageSummaryCapacity().should('contain.text', '14/12 accelerators');
+    infrastructurePage.findQuotaUsageSummaryCapacity().should('contain.text', '14/12');
     infrastructurePage.findQuotaUsageSummaryCompute().should('contain.text', '117%');
     infrastructurePage.findQuotaUsageSummaryMemory().should('contain.text', '117%');
     infrastructurePage.findQuotaUsageSummaryCapacityOverQuota().should('exist');

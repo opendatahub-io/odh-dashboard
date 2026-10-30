@@ -54,9 +54,12 @@ describe('getModuleFederationConfigs', () => {
 
       const result = getModuleFederationConfigs(true);
 
-      expect(mockExecSync).toHaveBeenCalledWith('npm query .workspace --json', {
-        encoding: 'utf8',
-      });
+      expect(mockExecSync).toHaveBeenCalledWith(
+        expect.stringContaining('query-workspace-packages.js'),
+        {
+          encoding: 'utf8',
+        },
+      );
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         name: 'test-module',
@@ -263,7 +266,7 @@ describe('getModuleFederationConfigs', () => {
 
     it('should throw error when workspace package query fails', () => {
       mockExecSync.mockImplementation(() => {
-        throw new Error('npm query failed');
+        throw new Error('workspace package query failed');
       });
 
       expect(() => getModuleFederationConfigs(true)).toThrow();

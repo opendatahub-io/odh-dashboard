@@ -1,5 +1,6 @@
 [Dev setup & Requirements]: dev-setup.md
 [Settings Panel]: admin-dashboard.md
+[RHOAI 3.6 Dashboard DSC v3 migration]: rhoai-3.6-dashboard-dsc-v3-migration.md
 [User Interaction]: user-interaction.md
 [Architecture]: https://github.com/opendatahub-io/architecture-decision-records/blob/main/documentation/components/dashboard/README.md
 [SDK]: SDK.md
@@ -9,6 +10,7 @@
 [Dashboard environment variables]: dashboard-environment-variables.md
 [Large Tasks with Claude Code Goals]: ai-agent-large-tasks.md
 [Upstream Sync]: upstream-sync.md
+[Konflux Build Simulation]: KONFLUX_BUILD_SIMULATION.md
 
 # Dashboard Documentation
 
@@ -19,6 +21,7 @@ This is the general documentation of the Dashboard component.
 > Note: We are working to detail out our feature flows to help with internal documentation efforts.
 
 * [Settings Panel]
+* [RHOAI 3.6 Dashboard DSC v3 migration]
 * [User Interaction]
 
 ## Developer Readmes
@@ -32,3 +35,4 @@ This is the general documentation of the Dashboard component.
 * [Dashboard environment variables]
 * [Large Tasks with Claude Code Goals]
 * [Upstream Sync]
+* [Konflux Build Simulation]

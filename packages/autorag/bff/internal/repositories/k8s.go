@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
@@ -31,17 +32,6 @@ var maasTypeRequiredKeys = map[string][]string{
 	},
 }
 
-var vectorDBTypeRequiredKeys = map[string][]string{
-	"milvus": {"MILVUS_URI"},
-	"pgvector": {
-		"PGVECTOR_HOST",
-		"PGVECTOR_PORT",
-		"PGVECTOR_DB",
-		"PGVECTOR_USER",
-		"PGVECTOR_PASSWORD",
-	},
-}
-
 var allowedSecretKeys = map[string]bool{
 	"AWS_S3_BUCKET": true,
 }
@@ -52,6 +42,45 @@ func NewK8sRepository() *K8sRepository {
 	return &K8sRepository{}
 }
 
+func matchingDatabaseProviders(secret kubernetes.SecretInfo) []string {
+	return database.ClassifyStrings(secret.Data)
+}
+
+func filterDatabaseSecretInfos(
+	secretInfos []kubernetes.SecretInfo,
+	provider string,
+) []kubernetes.SecretInfo {
+	filtered := make([]kubernetes.SecretInfo, 0, len(secretInfos))
+	for _, secret := range secretInfos {
+		providers := matchingDatabaseProviders(secret)
+		if len(providers) != 1 || (provider != "" && providers[0] != provider) {
+			continue
+		}
+		filtered = append(filtered, secret)
+	}
+	return filtered
+}
+
+func filterVectorDBSecretInfos(secretInfos []kubernetes.SecretInfo) []kubernetes.SecretInfo {
+	filtered := make([]kubernetes.SecretInfo, 0, len(secretInfos))
+	for _, secret := range secretInfos {
+		providers := matchingDatabaseProviders(secret)
+		if containsProvider(providers, database.Milvus) || containsProvider(providers, database.PGVector) {
+			filtered = append(filtered, secret)
+		}
+	}
+	return filtered
+}
+
+func containsProvider(providers []string, provider string) bool {
+	for _, candidate := range providers {
+		if candidate == provider {
+			return true
+		}
+	}
+	return false
+}
+
 // GetFilteredSecrets retrieves secrets from a namespace and filters them based on secretType.
 // secretType can be:
 //   - "" (empty): return all secrets
@@ -59,11 +88,22 @@ func NewK8sRepository() *K8sRepository {
 //   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
 //   - "maas": filter for secrets containing both MaaS credential keys
 //   - "vector-db": filter for the union of Milvus and PGVector credential schemas
+//   - "database": filter for database credentials, optionally narrowed by provider
 func (r *K8sRepository) GetFilteredSecrets(
 	k8sService kubernetes.Service,
 	ctx context.Context,
 	namespace string,
 	secretType string,
+) ([]models.SecretListItem, error) {
+	return r.GetFilteredSecretsByProvider(k8sService, ctx, namespace, secretType, "")
+}
+
+func (r *K8sRepository) GetFilteredSecretsByProvider(
+	k8sService kubernetes.Service,
+	ctx context.Context,
+	namespace string,
+	secretType string,
+	provider string,
 ) ([]models.SecretListItem, error) {
 	secretInfos, err := k8sService.GetSecretInfos(ctx, namespace)
 	if err != nil {
@@ -81,23 +121,26 @@ func (r *K8sRepository) GetFilteredSecrets(
 	case "maas":
 		filtered = kubernetes.FilterSecretInfos(secretInfos, maasTypeRequiredKeys)
 	case "vector-db":
-		filtered = kubernetes.FilterSecretInfos(secretInfos, vectorDBTypeRequiredKeys)
+		filtered = filterVectorDBSecretInfos(secretInfos)
+	case "database":
+		filtered = filterDatabaseSecretInfos(secretInfos, provider)
 	default:
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
 
 	result := make([]models.SecretListItem, 0, len(filtered))
 	for _, secret := range filtered {
-		responseType := detectType(secret, secretType)
+		responseType := detectType(secret, secretType, provider)
 		redactedData := kubernetes.RedactSecretData(secret.Data, allowedSecretKeys)
 
 		result = append(result, models.SecretListItem{
-			UUID:        secret.UUID,
-			Name:        secret.Name,
-			Type:        responseType,
-			Data:        redactedData,
-			DisplayName: secret.DisplayName,
-			Description: secret.Description,
+			UUID:              secret.UUID,
+			Name:              secret.Name,
+			Type:              responseType,
+			Data:              redactedData,
+			DatabaseProviders: matchingDatabaseProviders(secret),
+			DisplayName:       secret.DisplayName,
+			Description:       secret.Description,
 		})
 	}
 
@@ -130,7 +173,17 @@ func (r *K8sRepository) GetSecretCredentials(
 
 // detectType determines the type for a secret, checking annotation first and
 // then falling back to key-based detection.
-func detectType(secret kubernetes.SecretInfo, secretType string) string {
+func detectType(secret kubernetes.SecretInfo, secretType string, providers ...string) string {
+	if secretType == "database" {
+		if secret.Type != "" {
+			return secret.Type
+		}
+		providers := matchingDatabaseProviders(secret)
+		if len(providers) == 1 {
+			return providers[0]
+		}
+		return "database"
+	}
 	if secret.Type != "" {
 		return secret.Type
 	}

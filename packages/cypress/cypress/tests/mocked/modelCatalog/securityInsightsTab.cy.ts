@@ -1,20 +1,29 @@
 /* eslint-disable camelcase */
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
-import { asProductAdminUser } from '../../../utils/mockUsers';
+import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import { modelDetailsPage } from '../../../pages/modelCatalog/modelDetailsPage';
 import {
   mockSecurityArtifacts,
   mockSecurityArtifactsResponse,
 } from '../../../utils/securityInsightsUtils';
+import {
+  mockQualityArtifacts,
+  mockQualityArtifactsResponse,
+} from '../../../utils/qualityInsightsUtils';
+import { ProjectModel } from '../../../utils/models';
 
 const API_VERSION = 'v1';
 const SOURCE_ID = 'sample-source';
 const MODEL_NAME = 'repo1/model1';
 const ENCODED_MODEL_NAME = 'repo1%2Fmodel1';
-const REGISTRIES_NAMESPACE = 'odh-model-registries';
+const REGISTRIES_NAMESPACE = 'team-a-model-registry';
+const PROJECT_NAMESPACE = 'test-project';
 
 const catalogModel = {
   source_id: SOURCE_ID,
@@ -26,8 +35,22 @@ const catalogModel = {
   customProperties: {},
 };
 
-const setupCommonIntercepts = ({ disableLMEval = false }: { disableLMEval?: boolean } = {}) => {
-  asProductAdminUser();
+const setupCommonIntercepts = ({
+  disableLMEval = false,
+  nonAdmin = false,
+}: { disableLMEval?: boolean; nonAdmin?: boolean } = {}) => {
+  if (nonAdmin) {
+    asProjectEditUser({ projects: [PROJECT_NAMESPACE] });
+  } else {
+    asProductAdminUser();
+  }
+
+  cy.interceptK8sList(
+    ProjectModel,
+    mockK8sResourceList([
+      mockProjectK8sResource({ k8sName: PROJECT_NAMESPACE, displayName: PROJECT_NAMESPACE }),
+    ]),
+  );
 
   cy.interceptOdh(
     'GET /api/config',
@@ -44,11 +67,15 @@ const setupCommonIntercepts = ({ disableLMEval = false }: { disableLMEval?: bool
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: REGISTRIES_NAMESPACE,
         },
         [DataScienceStackComponent.TRUSTY_AI]: { managementState: 'Managed' },
       },
     }),
+  );
+
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: REGISTRIES_NAMESPACE }),
   );
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
@@ -114,46 +141,175 @@ const setupCommonIntercepts = ({ disableLMEval = false }: { disableLMEval?: bool
   );
 };
 
+const interceptShouldShowSecurityArtifacts = (hasData = true) => {
+  cy.intercept(
+    {
+      method: 'GET',
+      url: new RegExp(
+        `/model-registry/api/${API_VERSION}/model_catalog/sources/.*/security_artifacts/.*`,
+      ),
+      query: { pageSize: '1', namespace: REGISTRIES_NAMESPACE },
+      times: 1,
+    },
+    {
+      body: {
+        data: {
+          items: hasData ? [{ id: 'mock-artifact' }] : [],
+          size: hasData ? 1 : 0,
+          pageSize: 1,
+          nextPageToken: '',
+        },
+      },
+    },
+  ).as('shouldShowSecurityArtifacts');
+};
+
 const interceptSecurityArtifacts = (items = mockSecurityArtifacts()) => {
   cy.intercept(
     'GET',
-    `**/eval-hub/api/${API_VERSION}/catalog/sources/${SOURCE_ID}/security_artifacts/**`,
+    `**/model-registry/api/${API_VERSION}/model_catalog/sources/${SOURCE_ID}/security_artifacts/**`,
     { body: mockSecurityArtifactsResponse(items) },
   ).as('getSecurityArtifacts');
 };
 
-describe('Model Catalog Security Insights tab (eval-hub extension)', () => {
+const interceptShouldShowQualityArtifacts = (hasData = true) => {
+  cy.intercept(
+    {
+      method: 'GET',
+      url: new RegExp(`/model-registry/api/${API_VERSION}/model_catalog/sources/.*/artifacts/.*`),
+      query: {
+        pageSize: '1',
+        namespace: REGISTRIES_NAMESPACE,
+        artifactType: 'metrics-artifact',
+        filterQuery: 'metricsType.string_value="evaluation-metrics"',
+      },
+      times: 1,
+    },
+    {
+      body: {
+        data: {
+          items: hasData ? [{ id: 'mock-quality-artifact' }] : [],
+          size: hasData ? 1 : 0,
+          pageSize: 1,
+          nextPageToken: '',
+        },
+      },
+    },
+  ).as('shouldShowQualityArtifacts');
+};
+
+const interceptQualityArtifacts = (items = mockQualityArtifacts()) => {
+  cy.intercept(
+    'GET',
+    `**/model-registry/api/${API_VERSION}/model_catalog/sources/${SOURCE_ID}/artifacts/**`,
+    { body: mockQualityArtifactsResponse(items) },
+  ).as('getQualityArtifacts');
+};
+
+describe('Model Catalog Security and Quality Insights tabs (model-registry extension)', () => {
   beforeEach(() => {
     setupCommonIntercepts();
   });
 
   it('should show the security insights tab when LM eval and model catalog are enabled', () => {
     interceptSecurityArtifacts([]);
+    interceptShouldShowSecurityArtifacts(true);
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
     modelDetailsPage.findSecurityInsightsTab().should('exist');
     modelDetailsPage.findSecurityInsightsEmptyState().should('exist');
+    modelDetailsPage.findSecurityInsightsEmptyStateLink().should('exist');
     cy.wait('@getSecurityArtifacts');
   });
 
-  it('should still show the security insights tab when LM eval is disabled', () => {
-    setupCommonIntercepts({ disableLMEval: true });
-    interceptSecurityArtifacts([]);
+  it('should hide the security insights tab when no security artifacts exist', () => {
+    interceptShouldShowSecurityArtifacts(false);
 
-    cy.visitWithLogin(`/ai-hub/models/catalog/${SOURCE_ID}/${ENCODED_MODEL_NAME}/overview`);
-    modelDetailsPage.findPageTitle().should('exist');
-    modelDetailsPage.findSecurityInsightsTab().should('exist');
+    modelDetailsPage.visit(SOURCE_ID, ENCODED_MODEL_NAME);
+    cy.wait('@shouldShowSecurityArtifacts');
+    modelDetailsPage.findSecurityInsightsTab().should('not.exist');
   });
 
-  it('should render security insights table content from the eval-hub API', () => {
+  it('should show the security insights tab when LM eval is disabled', () => {
+    setupCommonIntercepts({ disableLMEval: true });
+    interceptSecurityArtifacts([]);
+    interceptShouldShowSecurityArtifacts(true);
+
+    modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+    cy.wait('@shouldShowSecurityArtifacts');
+    modelDetailsPage.findSecurityInsightsTab().should('exist');
+    modelDetailsPage.findSecurityInsightsEmptyState().should('exist');
+    modelDetailsPage.findSecurityInsightsEmptyStateLink().should('not.exist');
+    cy.wait('@getSecurityArtifacts');
+  });
+
+  it('should render security insights table content from the model-registry API', () => {
     interceptSecurityArtifacts();
+    interceptShouldShowSecurityArtifacts(true);
     modelDetailsPage.visitSecurityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
 
+    cy.wait('@shouldShowSecurityArtifacts');
     modelDetailsPage.findSecurityInsightsTab().should('exist');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', 'Toxicity');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', 'PII Leakage');
     modelDetailsPage.findSecurityInsightsTable().should('contain.text', '92.0%');
+    modelDetailsPage.findSecurityInsightsTable().should('contain.text', '100.0%');
     modelDetailsPage.findSecurityInsightsEmptyState().should('not.exist');
     cy.wait('@getSecurityArtifacts');
+  });
+
+  it('should show quality insights when evaluation artifacts exist', () => {
+    interceptQualityArtifacts();
+    interceptShouldShowQualityArtifacts(true);
+    modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+
+    modelDetailsPage.findQualityInsightsTab().should('exist');
+    modelDetailsPage.findQualityInsightsTable().should('contain.text', 'HumanEval');
+    modelDetailsPage.findQualityInsightsTable().should('contain.text', '62.8%');
+    modelDetailsPage.findQualityInsightsTable().should('contain.text', 'BBH');
+    cy.wait('@shouldShowQualityArtifacts');
+    cy.wait('@getQualityArtifacts');
+  });
+
+  it('should show quality insights for a non-admin user', () => {
+    setupCommonIntercepts({ nonAdmin: true });
+    interceptQualityArtifacts();
+    interceptShouldShowQualityArtifacts(true);
+    modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+
+    cy.wait('@shouldShowQualityArtifacts');
+    modelDetailsPage.findQualityInsightsTab().should('exist');
+    modelDetailsPage.findQualityInsightsTable().should('contain.text', 'HumanEval');
+    cy.wait('@getQualityArtifacts');
+  });
+
+  it('should hide quality insights when no evaluation artifacts exist', () => {
+    interceptShouldShowQualityArtifacts(false);
+
+    modelDetailsPage.visit(SOURCE_ID, ENCODED_MODEL_NAME);
+    cy.wait('@shouldShowQualityArtifacts');
+    modelDetailsPage.findQualityInsightsTab().should('not.exist');
+  });
+
+  it('should show quality insights when LM eval is disabled', () => {
+    setupCommonIntercepts({ disableLMEval: true });
+    interceptQualityArtifacts([]);
+    interceptShouldShowQualityArtifacts(true);
+
+    modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+    modelDetailsPage.findQualityInsightsTab().should('exist');
+    modelDetailsPage.findQualityInsightsEmptyState().should('exist');
+    modelDetailsPage.findQualityInsightsEmptyStateLink().should('not.exist');
+    cy.wait('@shouldShowQualityArtifacts');
+    cy.wait('@getQualityArtifacts');
+  });
+
+  it('should redirect a hidden quality deep link to the overview page', () => {
+    interceptShouldShowQualityArtifacts(false);
+    interceptShouldShowSecurityArtifacts(true);
+
+    modelDetailsPage.visitQualityInsights(SOURCE_ID, ENCODED_MODEL_NAME);
+    cy.wait('@shouldShowQualityArtifacts');
+    cy.location('pathname').should('match', /\/overview$/);
   });
 });

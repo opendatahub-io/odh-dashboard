@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   Alert,
   Breadcrumb,
@@ -36,6 +37,11 @@ import {
 import { QuotaUsageDetailData } from '../../hooks/useQuotaUsageDetail';
 import { QUOTA_NODE_TYPE, QuotaSelection, QuotaTreeNode } from '../../types';
 import { selectionFromPath } from '../../utils/quotaUsageTreeUtils';
+import {
+  GPUAAS_EVENTS,
+  QUOTA_NODE_TYPE_TRACKING,
+  QUOTA_USAGE_INTERACTION_TYPES,
+} from '../../tracking/gpuaasTrackingConstants';
 
 const scrollableBodyClassName = 'pf-v6-u-min-height-0 pf-v6-u-overflow-auto';
 
@@ -46,6 +52,7 @@ type QuotaUsageDetailPanelProps = {
   detail?: QuotaUsageDetailData;
   detailLoaded: boolean;
   error?: Error;
+  tabLoadedAt: React.MutableRefObject<number>;
 };
 
 export type DetailState =
@@ -73,6 +80,7 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
   detail,
   detailLoaded,
   error,
+  tabLoadedAt,
 }) => {
   const [kueueModalOpen, setKueueModalOpen] = React.useState(false);
   const selectedClusterQueueName =
@@ -88,9 +96,17 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
       const nextSelection = selectionFromPath(tree, pathPrefix);
       if (nextSelection) {
         onSelectionChange(nextSelection);
+        fireMiscTrackingEvent(GPUAAS_EVENTS.COHORT_BREADCRUMB_SELECTED, {
+          breadcrumbLevel: index + 1,
+          targetNodeType: QUOTA_NODE_TYPE_TRACKING[nextSelection.type],
+        });
+        fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+          interactionType: QUOTA_USAGE_INTERACTION_TYPES.breadcrumb,
+          secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
+        });
       }
     },
-    [onSelectionChange, selection, tree],
+    [onSelectionChange, selection, tabLoadedAt, tree],
   );
 
   const handleSelectClusterQueue = React.useCallback(
@@ -219,6 +235,7 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
               <QuotaUsageAcceleratorTable
                 rows={detailState.detail.acceleratorRows}
                 summary={detailState.detail.summary}
+                nodeType={selection.type}
               />
             </StackItem>
           </>
@@ -310,6 +327,9 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
         <KueueProjectsModal
           clusterQueueName={detail.clusterQueueName}
           onClose={() => setKueueModalOpen(false)}
+          onProjectsLoaded={(projectCount) => {
+            fireMiscTrackingEvent(GPUAAS_EVENTS.VIEW_KUEUE_PROJECTS_SELECTED, { projectCount });
+          }}
         />
       )}
     </>

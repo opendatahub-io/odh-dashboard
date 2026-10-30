@@ -678,6 +678,118 @@ func TestWsProxy_SubprotocolForwarding(t *testing.T) {
 	})
 }
 
+func TestWsProxy_UpgradeResponseHeaders(t *testing.T) {
+	k8sWS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{
+			CheckOrigin:  func(r *http.Request) bool { return true },
+			Subprotocols: []string{"base64.binary.k8s.io"},
+		}
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			mt, msg, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			_ = conn.WriteMessage(mt, msg)
+		}
+	}))
+	defer k8sWS.Close()
+
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+
+	handler, err := NewWsProxyHandler(testWsConfig(k8sWS.URL, tracker))
+	if err != nil {
+		t.Fatalf("NewWsProxyHandler() error = %v", err)
+	}
+
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Queue a synthetic Set-Cookie on w to verify it does NOT leak into the 101.
+		w.Header().Set("Set-Cookie", "test-cookie=synthetic")
+		ctx := newIdentityContext("token")
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	}))
+	defer proxyServer.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(proxyServer.URL, "http") + "/wss/k8s/api/v1/pods"
+
+	t.Run("101 includes nosniff and preserves subprotocol", func(t *testing.T) {
+		dialer := websocket.Dialer{
+			Subprotocols: []string{"base64.binary.k8s.io"},
+		}
+		conn, resp, err := dialer.Dial(wsURL, nil)
+		if err != nil {
+			t.Fatalf("dial error: %v", err)
+		}
+		defer conn.Close()
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusSwitchingProtocols {
+			t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusSwitchingProtocols)
+		}
+		if got := resp.Header.Values("X-Content-Type-Options"); len(got) != 1 || got[0] != "nosniff" {
+			t.Errorf("X-Content-Type-Options = %q, want exactly [nosniff]", got)
+		}
+		if got := resp.Header.Values("Sec-WebSocket-Protocol"); len(got) != 1 || got[0] != "base64.binary.k8s.io" {
+			t.Errorf("Sec-WebSocket-Protocol = %q, want [base64.binary.k8s.io]", got)
+		}
+		if sp := conn.Subprotocol(); sp != "base64.binary.k8s.io" {
+			t.Errorf("subprotocol = %q, want %q", sp, "base64.binary.k8s.io")
+		}
+	})
+
+	t.Run("101 includes nosniff without subprotocol", func(t *testing.T) {
+		conn, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		if err != nil {
+			t.Fatalf("dial error: %v", err)
+		}
+		defer conn.Close()
+		defer resp.Body.Close()
+
+		if got := resp.Header.Values("X-Content-Type-Options"); len(got) != 1 || got[0] != "nosniff" {
+			t.Errorf("X-Content-Type-Options = %q, want exactly [nosniff]", got)
+		}
+	})
+
+	t.Run("queued headers on ResponseWriter do not leak into 101", func(t *testing.T) {
+		conn, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		if err != nil {
+			t.Fatalf("dial error: %v", err)
+		}
+		defer conn.Close()
+		defer resp.Body.Close()
+
+		if got := resp.Header.Values("Set-Cookie"); len(got) != 0 {
+			t.Errorf("Set-Cookie = %q, want empty (queued headers should not leak)", got)
+		}
+	})
+
+	t.Run("connection still works after header change", func(t *testing.T) {
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		if err != nil {
+			t.Fatalf("dial error: %v", err)
+		}
+		defer conn.Close()
+
+		testMsg := "header-test"
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(testMsg)); err != nil {
+			t.Fatalf("write error: %v", err)
+		}
+		_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			t.Fatalf("read error: %v", err)
+		}
+		if string(msg) != testMsg {
+			t.Errorf("got %q, want %q", string(msg), testMsg)
+		}
+	})
+}
+
 func TestNewWsProxyHandler_HTTPBlocked(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
 	defer tracker.Stop()

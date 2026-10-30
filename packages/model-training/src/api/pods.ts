@@ -1,6 +1,6 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PodKind } from '@odh-dashboard/k8s-core';
-import { PodModel } from '@odh-dashboard/internal/api/models/index';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
 import { TrainJobKind } from '../k8sTypes';
 
 /**

@@ -28,6 +28,13 @@ const (
 	e2eCleanupTimeout = 5 * time.Minute
 )
 
+func requireManagedFixture(t *testing.T) {
+	t.Helper()
+	if testFixtureMode != fixtureModeManaged || !e2eOwnsFixture {
+		t.Fatalf("test mutates the Dashboard fixture and requires -fixture-mode=%s", fixtureModeManaged)
+	}
+}
+
 func waitForCondition(
 	c client.Client,
 	name string,
@@ -189,7 +196,6 @@ func cleanupDashboardCR(c client.Client, expectedUID types.UID) error {
 	return nil
 }
 
-//nolint:unused // Shared E2E helper for follow-up scenario stories.
 func waitForServiceEndpoints(c client.Client, namespace, name string, timeout time.Duration) error {
 	err := wait.PollUntilContextTimeout(
 		context.Background(),
@@ -226,7 +232,6 @@ func assertJQMatch(t *testing.T, actual any, expression string) {
 	}
 }
 
-//nolint:unused // Shared E2E helper for follow-up scenario stories.
 func validateDashboardPlatformContract(t *testing.T, c client.Client, timeout time.Duration) {
 	t.Helper()
 

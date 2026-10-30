@@ -1,7 +1,8 @@
 /**
  * Generate Cypress test matrix for CI
  *
- * Automatically splits test directories based on file size:
+ * Discovers test groups based on file size, then packs them into a fixed number
+ * of balanced CI shards:
  * - Files > 15KB get individual test groups
  * - Smaller files are grouped together
  * - Package tests with large combined size are split the same way
@@ -10,12 +11,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
+
+const WORKSPACE_QUERY_SCRIPT = path.join(__dirname, 'query-workspace-packages.js');
+const DEFAULT_ROOT = path.resolve(__dirname, '..');
 
 // Configuration
 const TESTS_DIR = 'packages/cypress/cypress/tests/mocked';
 const SIZE_THRESHOLD = 15 * 1024; // 15KB - files larger than this get split into individual groups
 const GROUP_SIZE_THRESHOLD = 40 * 1024; // 40KB - grouped shards larger than this get split into balanced sub-groups
+const MAX_TEST_SHARDS = 12;
 
 /**
  * Validate that a string is safe for use in shell contexts
@@ -27,8 +32,10 @@ function validateSafePath(input, fieldName) {
     throw new Error(`${fieldName} must be a non-empty string`);
   }
 
-  // Reject path traversal attempts
-  if (input.includes('..') || input.includes('//')) {
+  // Cypress runs from frontend/, so generated selectors intentionally start
+  // with ../packages/. Reject every other traversal sequence.
+  const traversalSafeInput = input.replaceAll('../packages/', 'packages/');
+  if (traversalSafeInput.includes('..') || traversalSafeInput.includes('//')) {
     throw new Error(`${fieldName} contains path traversal: ${input}`);
   }
 
@@ -52,7 +59,7 @@ function validateSafePath(input, fieldName) {
 /**
  * Recursively find all directories containing .cy.ts files
  */
-function getTestDirectories(baseDir = TESTS_DIR, relativePath = '') {
+function getTestDirectories(baseDir, relativePath = '') {
   if (!fs.existsSync(baseDir)) {
     console.error(`Error: ${baseDir} not found`);
     return [];
@@ -84,8 +91,8 @@ function getTestDirectories(baseDir = TESTS_DIR, relativePath = '') {
 /**
  * Get all .cy.ts files in a directory with their sizes
  */
-function getTestFiles(dir) {
-  const dirPath = path.join(TESTS_DIR, dir);
+function getTestFiles(root, dir) {
+  const dirPath = path.join(root, TESTS_DIR, dir);
 
   if (!fs.existsSync(dirPath)) {
     return [];
@@ -115,7 +122,9 @@ function getTestFiles(dir) {
 function balancedSplit(files, numBins) {
   const bins = Array.from({ length: numBins }, () => ({ files: [], totalSize: 0 }));
 
-  const sorted = [...files].toSorted((a, b) => b.size - a.size);
+  const sorted = [...files].toSorted(
+    (a, b) => b.size - a.size || (a.name ?? '').localeCompare(b.name ?? ''),
+  );
   for (const file of sorted) {
     const smallest = bins.reduce((min, bin) => (bin.totalSize < min.totalSize ? bin : min));
     smallest.files.push(file);
@@ -123,6 +132,37 @@ function balancedSplit(files, numBins) {
   }
 
   return bins.filter((bin) => bin.files.length > 0);
+}
+
+/**
+ * Pack discovered groups into a stable, bounded matrix.
+ *
+ * Each shard retains its original spec groups so the workflow can run them in
+ * isolated Cypress processes while limiting the number of GitHub check runs
+ * created by the matrix.
+ */
+function createTestShards(groups, maxShards = MAX_TEST_SHARDS) {
+  if (!Number.isInteger(maxShards) || maxShards < 1) {
+    throw new Error('maxShards must be a positive integer');
+  }
+
+  if (groups.length === 0) {
+    return [];
+  }
+
+  const shardCount = Math.min(maxShards, groups.length);
+  const normalizedGroups = groups.map((group) => ({
+    ...group,
+    size: group.size ?? 1,
+  }));
+
+  return balancedSplit(normalizedGroups, shardCount).map((bin, index) => ({
+    name: `shard-${String(index + 1).padStart(2, '0')}`,
+    specs: bin.files.map((group) => `../packages/${group.spec}`),
+    size: bin.totalSize,
+    count: bin.files.reduce((total, group) => total + (group.count ?? 1), 0),
+    strategy: 'shard',
+  }));
 }
 
 /**
@@ -140,6 +180,7 @@ function createGroupedEntry(dir, files, suffix) {
   return {
     name: `${dir}/${suffix}`,
     spec,
+    files: files.map((file) => path.join(TESTS_DIR, file.path)),
     size: totalSize,
     count: files.length,
     strategy: 'grouped',
@@ -149,12 +190,12 @@ function createGroupedEntry(dir, files, suffix) {
 /**
  * Generate test groups for central mock tests
  */
-function generateCentralTestGroups() {
-  const directories = getTestDirectories();
+function generateCentralTestGroups(root = DEFAULT_ROOT) {
+  const directories = getTestDirectories(path.join(root, TESTS_DIR));
   const groups = [];
 
   for (const dir of directories) {
-    const testFiles = getTestFiles(dir);
+    const testFiles = getTestFiles(root, dir);
 
     if (testFiles.length === 0) {
       continue;
@@ -169,6 +210,7 @@ function generateCentralTestGroups() {
       groups.push({
         name: `${dir}/${file.name}`,
         spec: `cypress/cypress/tests/mocked/${file.path}`,
+        files: [path.join(TESTS_DIR, file.path)],
         size: file.size,
         strategy: 'individual',
       });
@@ -196,11 +238,12 @@ function generateCentralTestGroups() {
 }
 
 /**
- * Discover package-based cypress tests using npm query and split by file size
+ * Discover package-based cypress tests using the pnpm workspace and split by file size
  */
-function generatePackageTestGroups() {
+function generatePackageTestGroups(root = DEFAULT_ROOT) {
   try {
-    const output = execSync("npm query '.workspace' --json", {
+    const output = execFileSync(process.execPath, [WORKSPACE_QUERY_SCRIPT], {
+      cwd: root,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'ignore'], // Suppress stderr
     });
@@ -214,15 +257,17 @@ function generatePackageTestGroups() {
         continue;
       }
 
-      // Use the workspace location field (relative to repo root) instead of
-      // deriving from the package name, which breaks for nested paths like
-      // packages/model-serving/cypress
-      const pkgRelPath = pkg.location?.replace(/^packages\//, '');
-      if (!pkgRelPath) {
+      const workspacePath = pkg.location ?? pkg.path;
+      if (!workspacePath?.startsWith('packages/')) {
         continue;
       }
 
-      const testPath = path.join('packages', pkgRelPath);
+      const pkgRelPath = workspacePath.replace(/^packages\//, '');
+      if (!pkgRelPath || pkgRelPath === '.') {
+        continue;
+      }
+
+      const testPath = path.join(root, 'packages', pkgRelPath);
 
       // Verify tests actually exist
       if (!fs.existsSync(testPath)) {
@@ -233,7 +278,7 @@ function generatePackageTestGroups() {
       const mockedPattern = pkg.cypress.mocked;
       // Extract test base dir from glob: "tests/mocked/**/*.cy.ts" -> "tests/mocked"
       const testBaseDir = mockedPattern.replace(/\/?\*\*\/\*\.cy\.ts$/, '');
-      const fullTestBaseDir = path.join('packages', pkgRelPath, testBaseDir);
+      const fullTestBaseDir = path.join(root, 'packages', pkgRelPath, testBaseDir);
 
       const testFilePaths = findTestFiles(fullTestBaseDir);
 
@@ -249,6 +294,7 @@ function generatePackageTestGroups() {
           name: path.basename(filePath, '.cy.ts'),
           size: stats.size,
           relPath,
+          repoPath: path.relative(root, filePath),
           dir: path.dirname(relPath),
         };
       });
@@ -260,6 +306,7 @@ function generatePackageTestGroups() {
         groups.push({
           name: pkgPrefix,
           spec: `${pkgRelPath}/${mockedPattern}`,
+          files: allFiles.map((file) => file.repoPath),
           size: totalSize,
           count: allFiles.length,
           strategy: 'package',
@@ -285,6 +332,7 @@ function generatePackageTestGroups() {
           groups.push({
             name: `${pkgPrefix}/${dir}/${file.name}`,
             spec: `${pkgRelPath}/${testBaseDir}/${file.relPath}`,
+            files: [file.repoPath],
             size: file.size,
             strategy: 'package-individual',
           });
@@ -310,6 +358,7 @@ function generatePackageTestGroups() {
               groups.push({
                 name: `${pkgPrefix}/${dir}/${suffix}`,
                 spec,
+                files: binFiles.map((file) => file.repoPath),
                 size: bins[i].totalSize,
                 count: binFiles.length,
                 strategy: 'package-grouped',
@@ -326,6 +375,7 @@ function generatePackageTestGroups() {
             groups.push({
               name: `${pkgPrefix}/${dir}/other`,
               spec,
+              files: smallFiles.map((file) => file.repoPath),
               size: smallTotal,
               count: smallFiles.length,
               strategy: 'package-grouped',
@@ -370,39 +420,54 @@ function findTestFiles(dir) {
 /**
  * Main function
  */
-function main() {
-  console.error('Generating Cypress test matrix...\n');
-
-  // Generate central test groups
-  const centralGroups = generateCentralTestGroups();
-  console.error(`✓ Found ${centralGroups.length} central test groups`);
-
-  // Generate package test groups
-  const packageGroups = generatePackageTestGroups();
-  console.error(`✓ Found ${packageGroups.length} package test groups`);
-
-  // Combine all groups
+function generateTestGroups(root = DEFAULT_ROOT) {
+  const centralGroups = generateCentralTestGroups(root);
+  const packageGroups = generatePackageTestGroups(root);
   const allGroups = [...centralGroups, ...packageGroups];
 
   if (allGroups.length === 0) {
-    console.error('Warning: No test groups found, using default');
     allGroups.push({
       name: 'default',
       spec: 'cypress/cypress/tests/mocked/**/*.cy.ts',
+      files: findTestFiles(path.join(root, TESTS_DIR)).map((file) => path.relative(root, file)),
     });
   }
 
+  for (const group of allGroups) {
+    validateSafePath(group.name, 'test group name');
+    validateSafePath(group.spec, 'test group spec');
+  }
+
+  return allGroups;
+}
+
+/**
+ * Main function
+ */
+function main() {
+  console.error('Generating Cypress test matrix...\n');
+
+  const discoveredGroups = generateTestGroups();
+  const centralGroups = discoveredGroups.filter((group) => !group.name.startsWith('pkg-'));
+  const packageGroups = discoveredGroups.filter((group) => group.name.startsWith('pkg-'));
+
+  console.error(`✓ Found ${centralGroups.length} central test groups`);
+  console.error(`✓ Found ${packageGroups.length} package test groups`);
+
+  const allGroups = createTestShards(discoveredGroups);
+
   // Log summary
   console.error(`\n📊 Test Matrix Summary:`);
-  console.error(`   Total groups: ${allGroups.length}`);
+  console.error(`   Discovered groups: ${discoveredGroups.length}`);
+  console.error(`   CI shards: ${allGroups.length} (maximum ${MAX_TEST_SHARDS})`);
 
-  const individual = allGroups.filter(
+  const individual = discoveredGroups.filter(
     (g) => g.strategy === 'individual' || g.strategy === 'package-individual',
   );
-  const grouped = allGroups.filter(
+  const grouped = discoveredGroups.filter(
     (g) => g.strategy === 'grouped' || g.strategy === 'package-grouped',
   );
-  const unsplitPackages = allGroups.filter((g) => g.strategy === 'package');
+  const unsplitPackages = discoveredGroups.filter((g) => g.strategy === 'package');
 
   if (individual.length > 0) {
     console.error(`   Individual files (>${SIZE_THRESHOLD / 1024}KB): ${individual.length}`);
@@ -418,10 +483,13 @@ function main() {
   // Output JSON for GitHub Actions
   // Remove metadata fields (size, count, strategy) from final output
   // Validate all names and specs for shell safety
-  const output = allGroups.map(({ name, spec }) => {
+  const output = allGroups.map(({ name, specs }) => {
     validateSafePath(name, 'test group name');
-    validateSafePath(spec, 'test group spec');
-    return { name, spec };
+    if (!Array.isArray(specs) || specs.length === 0) {
+      throw new Error('test group specs must be a non-empty array');
+    }
+    specs.forEach((spec) => validateSafePath(spec, 'test group spec'));
+    return { name, specs };
   });
   console.log(JSON.stringify(output));
 }
@@ -431,4 +499,12 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { generateCentralTestGroups, generatePackageTestGroups };
+module.exports = {
+  MAX_TEST_SHARDS,
+  balancedSplit,
+  createTestShards,
+  generateCentralTestGroups,
+  generatePackageTestGroups,
+  generateTestGroups,
+  validateSafePath,
+};

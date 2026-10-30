@@ -1,8 +1,22 @@
 {
-  "comment": "Review dimension registry. Findings dimensions are dispatched by the local pr-review orchestrator and adjudicated by the challenger. Context adapters provide trusted host data and are never reviewed as findings.",
+  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings + section:* + check:* together (required), challenger after all findings raised, then every signal:* row (after challenger + all checks + all sections). It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis. Host post-review uses optional label for human-facing Check/Producer names; id remains the machine key. The Producers sticky table uses output (Type), result.producers.raised for findings Result, and result_fields (signal/section Result cells).",
   "dimensions": [
     {
+      "id": "investigator",
+      "label": "Investigator",
+      "kind": "llm-subagent",
+      "output": "context",
+      "stage": "pre-dispatch",
+      "dispatch": "conditional",
+      "when": "the change is not mechanical or value-only",
+      "definition": "skills/pr-review/sub-agents/investigator.md",
+      "meta_prompt": "meta-prompts/context-output.md",
+      "failure_severity": "info",
+      "notes": "Runs alone before the reviewer batch and returns a factual brief of the change and the code around it. Every findings, section, check and signal reviewer is told to read the brief as orientation. The challenger does not receive it, and it never enters synthesis."
+    },
+    {
       "id": "correctness",
+      "label": "Correctness",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "always",
@@ -21,6 +35,7 @@
     },
     {
       "id": "security",
+      "label": "Security",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "conditional",
@@ -41,6 +56,7 @@
     },
     {
       "id": "intent-coherence",
+      "label": "Intent coherence",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "conditional",
@@ -50,15 +66,18 @@
       "failure_severity": "info",
       "budget_priority": 3,
       "re_review": "skip-unless-requalified",
+      "remediation_candidates": true,
       "categories": [
         "scope-exceeded", "tier-mismatch", "unauthorized-change", "scope-creep",
         "missing-authorization", "misleading-label", "design-direction",
         "complexity-ratio", "misplaced-abstraction", "architectural-conflict",
-        "design-smell", "over-engineering", "under-engineering"
+        "design-smell", "over-engineering", "under-engineering",
+        "scope-bundling"
       ]
     },
     {
       "id": "style-conventions",
+      "label": "Style conventions",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "always",
@@ -74,6 +93,7 @@
     },
     {
       "id": "style-review",
+      "label": "Style",
       "kind": "llm-skill",
       "output": "findings",
       "dispatch": "conditional",
@@ -90,6 +110,7 @@
     },
     {
       "id": "rbac-review",
+      "label": "RBAC",
       "kind": "llm-skill",
       "output": "findings",
       "dispatch": "conditional",
@@ -106,6 +127,7 @@
     },
     {
       "id": "docs-currency",
+      "label": "Docs currency",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "conditional",
@@ -120,6 +142,7 @@
     },
     {
       "id": "cross-repo-contracts",
+      "label": "Cross-repo contracts",
       "kind": "llm-subagent",
       "output": "findings",
       "dispatch": "conditional",
@@ -136,21 +159,19 @@
     },
     {
       "id": "jira-snapshot",
+      "label": "Jira",
       "kind": "cli-adapter",
       "output": "context",
       "dispatch": "always",
       "runner": "scripts/fetch-jira-context.sh",
       "producer_file": ".run/jira.json",
       "host": {
-        "execution": "workflow",
-        "artifact_name": "fullsend-jira-context-{pr_number}",
-        "artifact_file": "jira.json",
-        "checkout_pr": false,
+        "execution": "pre_review",
         "setup_runner": "",
         "credentials": {
-          "url_secret": "JIRA_URL",
-          "username_secret": "JIRA_USERNAME",
-          "token_secret": "JIRA_API_TOKEN"
+          "url_env": "JIRA_URL",
+          "username_env": "JIRA_USERNAME",
+          "token_env": "JIRA_API_TOKEN"
         }
       },
       "failure_severity": "info",
@@ -158,21 +179,19 @@
     },
     {
       "id": "coderabbit",
+      "label": "CodeRabbit",
       "kind": "cli-adapter",
       "output": "findings",
       "dispatch": "always",
       "runner": "scripts/fetch-coderabbit-context.sh",
       "producer_file": ".run/coderabbit.json",
       "host": {
-        "execution": "workflow",
-        "artifact_name": "fullsend-coderabbit-context-{pr_number}",
-        "artifact_file": "coderabbit.json",
-        "checkout_pr": false,
+        "execution": "pre_review",
         "setup_runner": "scripts/setup-coderabbit-cli.sh",
         "credentials": {
-          "url_secret": "FULLSEND_UNUSED",
-          "username_secret": "FULLSEND_UNUSED",
-          "token_secret": "CODERABBIT_API_KEY"
+          "url_env": "",
+          "username_env": "",
+          "token_env": "CODERABBIT_API_KEY"
         }
       },
       "failure_severity": "info",
@@ -180,25 +199,23 @@
       "notes": "Host-side CodeRabbit CLI output, normalized without credentials before challenger synthesis. The transport is trusted; finding text is external review evidence that must be verified against repository source."
     },
     {
-      "id": "jira-pr-review",
+      "id": "product-ask-review",
+      "label": "Product ask",
       "kind": "llm-skill",
       "output": "section:product_ask",
-      "result_fields": ["product_ask", "jira_criteria"],
+      "result_fields": ["product_ask"],
       "dispatch": "always",
-      "definition": "skills/pr-review/sub-agents/jira-pr-review/SKILL.md",
+      "definition": "skills/pr-review/sub-agents/product-ask-review/SKILL.md",
       "meta_prompt": "meta-prompts/section-output.md",
-      "context_file": "/sandbox/workspace/.fullsend/.run/jira.json",
-      "include_findings": true,
+      "context_file": "/sandbox/workspace/odh-review/jira.json",
+      "include_findings": false,
       "failure_severity": "info",
       "re_review": "full",
-      "categories": [
-        "jira-criterion-partial", "jira-criterion-missing", "jira-criterion-stale",
-        "jira-eval-unavailable"
-      ],
-      "notes": "Canonical Jira review compares the PR description with trusted Jira context and evaluates explicit acceptance criteria against the diff. product_ask and jira_criteria stay out of challenger synthesis; findings enter it."
+      "notes": "Evaluates whether the PR's stated work fulfills the current Jira product ask. Section producer only — no findings, no challenger input. A disconnect floors confidence via host rating-policy."
     },
     {
       "id": "test-impact-review",
+      "label": "Test impact",
       "kind": "llm-skill",
       "output": "check:test-impact",
       "dispatch": "always",
@@ -207,10 +224,11 @@
       "failure_severity": "info",
       "budget_priority": 3,
       "re_review": "full",
-      "notes": "Reports whether changed behavior has proportionate test coverage; this is a readiness check, not a fabricated code finding."
+      "notes": "Assurance-grade readiness check: Automation, Efficiency, Evidence depth. Overall status follows the applicable aspects. Check status may be fail → request-changes. Readiness check only; excluded from challenger input."
     },
     {
       "id": "pr-description-review",
+      "label": "PR description",
       "kind": "llm-skill",
       "output": "check:pr-description",
       "dispatch": "always",
@@ -219,7 +237,20 @@
       "failure_severity": "info",
       "budget_priority": 4,
       "re_review": "full",
-      "notes": "Checks the pull request template and description readiness independently of code findings."
+      "notes": "Scores the PR body for substance independently of code findings."
+    },
+    {
+      "id": "rating",
+      "label": "Rating",
+      "kind": "llm-subagent",
+      "output": "signal:rating",
+      "result_fields": ["risk", "confidence"],
+      "dispatch": "always",
+      "definition": "skills/pr-review/sub-agents/rating.md",
+      "meta_prompt": "meta-prompts/signal-output.md",
+      "failure_severity": "info",
+      "re_review": "full",
+      "notes": "Signal producer. Runs only after every selected check:* row. Projects result_fields onto the review result. Not a findings producer and not challenger input."
     }
   ]
 }

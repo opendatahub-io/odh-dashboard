@@ -13,8 +13,10 @@ The AutoRAG UI provides an intuitive interface for generating RAG patterns throu
 ## Quick Start
 
 ```bash
+# Run from the repository root
+pnpm install
 cd packages/autorag/frontend
-npm install && npm run start:dev
+pnpm run start:dev
 ```
 
 ---
@@ -23,36 +25,36 @@ npm install && npm run start:dev
 
 ### Development
 
-| Command             | Description                      |
-| ------------------- | -------------------------------- |
-| `npm install`       | Install dependencies             |
-| `npm run start:dev` | Start dev server with hot reload |
+| Command              | Description                                                   |
+| -------------------- | ------------------------------------------------------------- |
+| `pnpm install`       | Install workspace dependencies (run from the repository root) |
+| `pnpm run start:dev` | Start dev server with hot reload                              |
 
 ### Build & Bundle
 
-| Command         | Description                           |
-| --------------- | ------------------------------------- |
-| `npm run build` | Production build to `dist/` directory |
+| Command          | Description                           |
+| ---------------- | ------------------------------------- |
+| `pnpm run build` | Production build to `dist/` directory |
 
 ### Testing
 
-| Command             | Description                                     |
-| ------------------- | ----------------------------------------------- |
-| `npm run test`      | Run all tests (lint, type-check, unit, cypress) |
-| `npm run test:unit` | Run Jest unit tests                             |
-| `npm run test:jest` | Run Jest with output                            |
-| `npm run test:lint` | ESLint & Prettier validation                    |
-| `npm run test:fix`  | Auto-fix linting and formatting issues          |
+| Command              | Description                                     |
+| -------------------- | ----------------------------------------------- |
+| `pnpm run test`      | Run all tests (lint, type-check, unit, cypress) |
+| `pnpm run test:unit` | Run Jest unit tests                             |
+| `pnpm run test:jest` | Run Jest with output                            |
+| `pnpm run test:lint` | ESLint & Prettier validation                    |
+| `pnpm run test:fix`  | Auto-fix linting and formatting issues          |
 
 ### Cypress E2E Testing
 
-| Command                     | Description                            |
-| --------------------------- | -------------------------------------- |
-| `npm run cypress:open`      | Open Cypress test runner (interactive) |
-| `npm run cypress:open:mock` | Open Cypress with mock data            |
-| `npm run cypress:run`       | Run Cypress tests (headless)           |
-| `npm run cypress:run:mock`  | Run Cypress with mock data (headless)  |
-| `npm run test:cypress-ci`   | Full CI test suite with server         |
+| Command                      | Description                            |
+| ---------------------------- | -------------------------------------- |
+| `pnpm run cypress:open`      | Open Cypress test runner (interactive) |
+| `pnpm run cypress:open:mock` | Open Cypress with mock data            |
+| `pnpm run cypress:run`       | Run Cypress tests (headless)           |
+| `pnpm run cypress:run:mock`  | Run Cypress with mock data (headless)  |
+| `pnpm run test:cypress-ci`   | Full CI test suite with server         |
 
 ---
 
@@ -84,7 +86,7 @@ autorag/frontend/
 ```typescript
 import chartIcon from '@assets/images/chart.png';
 
-<img src={chartIcon} alt="Chart visualization" />
+<img src={chartIcon} alt="Chart visualization" />;
 ```
 
 **Local app assets** - Use the `~/app` alias:
@@ -92,7 +94,7 @@ import chartIcon from '@assets/images/chart.png';
 ```typescript
 import logo from '~/app/assets/images/autorag-logo.png';
 
-<img src={logo} alt="AutoRAG logo" />
+<img src={logo} alt="AutoRAG logo" />;
 ```
 
 ### SVG Images
@@ -102,7 +104,7 @@ import logo from '~/app/assets/images/autorag-logo.png';
 ```typescript
 import icon from '~/app/assets/icons/workflow.svg';
 
-<span dangerouslySetInnerHTML={{ __html: icon }} />
+<span dangerouslySetInnerHTML={{ __html: icon }} />;
 ```
 
 > **⚠️ Security Note**: This pattern is safe only for SVG files imported at build time via rspack. Never use `dangerouslySetInnerHTML` with SVG content from external or user-supplied sources.
@@ -130,7 +132,7 @@ When importing CSS from a new npm package, you may encounter rspack errors. Regi
 The AutoRAG UI supports theming through environment variables:
 
 ```bash
-STYLE_THEME=patternfly-theme npm run start:dev
+STYLE_THEME=patternfly-theme pnpm run start:dev
 ```
 
 ---

@@ -24,8 +24,8 @@ export const externalModelsColumns: SortableData<ExternalModel>[] = [
       (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
   },
   {
-    label: 'Provider',
-    field: 'externalProvider',
+    label: 'Provider references',
+    field: 'providerRefs',
     width: 30,
     sortable: false,
     info: {
@@ -50,7 +50,7 @@ export const externalModelsColumns: SortableData<ExternalModel>[] = [
     info: {
       popover: (
         <>
-          The model&apos;s status. A second status appears when the model is waiting for MaaS
+          The model&apos;s status. A second status will appear if the model is waiting for MaaS
           governance setup - for example, when a MaaS subscription or authorization policy
           hasn&apos;t been configured yet.
         </>

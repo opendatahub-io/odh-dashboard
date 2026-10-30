@@ -14,6 +14,7 @@ import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8s
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { mock200Status } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryVectorResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryVectorResponse';
+import { PodModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   clusterStorage,
   addClusterStorageModal,
@@ -24,7 +25,6 @@ import { be } from '../../../../utils/should';
 import {
   NotebookModel,
   PVCModel,
-  PodModel,
   ProjectModel,
   StorageClassModel,
   InferenceServiceModel,

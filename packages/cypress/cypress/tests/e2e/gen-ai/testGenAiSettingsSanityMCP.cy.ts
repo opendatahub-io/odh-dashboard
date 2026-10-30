@@ -161,8 +161,8 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
       genAiPlayground.findCreateExternalModelModal().should('not.exist');
       genAiPlayground.findAiModelsTable().should('contain', testData.displayName);
 
-      cy.step('Add endpoint to playground');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      cy.step('Create playground with the endpoint');
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
@@ -248,7 +248,7 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
         }
       });
 
-      cy.step('Navigate to playground with mcpRegistry flag enabled');
+      cy.step('Navigate to playground with registered MCP servers enabled');
       genAiPlayground.navigateToPlaygroundWithMCPRegistry(projectName);
 
       cy.step('Open settings panel and navigate to MCP tab');

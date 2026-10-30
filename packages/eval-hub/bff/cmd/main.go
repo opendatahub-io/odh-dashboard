@@ -28,6 +28,7 @@ func main() {
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockEvalHubClient, "mock-evalhub-client", getEnvAsBool("MOCK_EVALHUB_CLIENT", false), "Use mock EvalHub client")
 	flag.StringVar(&cfg.EvalHubURL, "eval-hub-url", getEnvAsString("EVAL_HUB_URL", ""), "EvalHub API server URL")
+	flag.StringVar(&cfg.HardwareProfilesNamespace, "hardware-profiles-namespace", getEnvAsString("EVALHUB_HARDWARE_PROFILES_NAMESPACE", ""), "Platform namespace where EvalHub resolves HardwareProfiles")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
@@ -47,16 +48,6 @@ func main() {
 
 	// TLS configuration flags
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")
-
-	// Inter-BFF communication flags
-	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
-	flag.StringVar(&cfg.BFFModelCatalogServiceName, "bff-model-catalog-service-name", getEnvAsString("BFF_MODEL_CATALOG_SERVICE_NAME", ""), "Kubernetes service name for model-catalog BFF")
-	flag.IntVar(&cfg.BFFModelCatalogServicePort, "bff-model-catalog-service-port", getEnvAsInt("BFF_MODEL_CATALOG_SERVICE_PORT", 0), "Port for model-catalog BFF")
-	flag.BoolVar(&cfg.BFFModelCatalogTLSEnabled, "bff-model-catalog-tls-enabled", getEnvAsBool("BFF_MODEL_CATALOG_TLS_ENABLED", false), "Enable TLS for model-catalog BFF communication")
-	flag.StringVar(&cfg.BFFModelCatalogDevURL, "bff-model-catalog-dev-url", getEnvAsString("BFF_MODEL_CATALOG_DEV_URL", ""), "Dev override URL for model-catalog BFF (e.g. http://localhost:4000/api/v1)")
-	flag.StringVar(&cfg.BFFModelCatalogAuthMethod, "bff-model-catalog-auth-method", getEnvAsString("BFF_MODEL_CATALOG_AUTH_METHOD", ""), "Auth method for model-catalog BFF (user_token or internal)")
-	flag.StringVar(&cfg.BFFModelCatalogAuthTokenHeader, "bff-model-catalog-auth-token-header", getEnvAsString("BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to model-catalog BFF")
-	flag.StringVar(&cfg.BFFModelCatalogAuthTokenPrefix, "bff-model-catalog-auth-token-prefix", getEnvAsString("BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")
@@ -105,45 +96,41 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	if certFile != "" && keyFile != "" {
-		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
-		if err != nil {
-			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
-			os.Exit(1)
-		}
-		srv.TLSConfig = tlsCfg
-	}
+	tlsEnabled := certFile != "" && keyFile != ""
 
-	// Start the server in a goroutine
+	// signalCtx is cancelled on the first shutdown signal; both the HTTPS reload
+	// loop and the graceful-shutdown sequence below key off it.
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
+	var serveErr error
+	serverClosed := make(chan struct{})
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
-		var err error
-		if certFile != "" && keyFile != "" {
-			err = srv.ListenAndServeTLS(certFile, keyFile)
+		defer close(serverClosed)
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled)
+		if tlsEnabled {
+			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
-			err = srv.ListenAndServe()
+			serveErr = srv.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server ListenAndServe", "error", err)
+		if serveErr != nil && serveErr != http.ErrServerClosed {
+			logger.Error("HTTP server failed", "error", serveErr)
+			stop()
 		}
 	}()
 
-	// Graceful shutdown setup
-	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	// Wait for shutdown signal
-	<-shutdownCh
+	<-signalCtx.Done()
 	logger.Info("shutting down gracefully...")
 
-	// Create a context with timeout for the shutdown process
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Shutdown the HTTP server gracefully
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("server shutdown failed", "error", err)
+	if !tlsEnabled {
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Error("server shutdown failed", "error", err)
+		}
 	}
+	<-serverClosed
 
 	// Shutdown the App gracefully
 	if err := app.Shutdown(); err != nil {
@@ -151,5 +138,8 @@ func main() {
 	}
 
 	logger.Info("server stopped")
+	if serveErr != nil && serveErr != http.ErrServerClosed {
+		os.Exit(1)
+	}
 	os.Exit(0)
 }

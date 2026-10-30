@@ -265,11 +265,11 @@ describe('Distributed Workload Metrics root page', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Project metrics tab').click();
+    cy.findByRole('tab', { name: /project metrics/i }).click();
     cy.url().should('include', '/project-metrics/test-project');
     cy.findByText('Top 5 resource-consuming workload metrics').should('exist');
 
-    cy.findByLabelText('Distributed workload status tab').click();
+    cy.findByRole('tab', { name: /distributed workload status/i }).click();
     cy.url().should('include', '/workload-status/test-project');
     globalDistributedWorkloads.findStatusOverviewCard().should('exist');
   });
@@ -280,17 +280,17 @@ describe('Distributed Workload Metrics root page', () => {
     cy.url().should('match', /\/workload-status\/test-project(?!\w|-)/);
 
     globalDistributedWorkloads.projectDropdown.openAndSelectItem('Test Project 2', true);
-    cy.url().should('include', '/workload-status/test-project-2');
+    cy.url().should('match', /\/workload-status\/test-project-2(?!\w|-)/);
     globalDistributedWorkloads.findProjectSelect().should('contain.text', 'Test Project 2');
 
-    cy.findByLabelText('Project metrics tab').click();
-    cy.url().should('include', '/project-metrics/test-project-2');
+    cy.findByRole('tab', { name: /project metrics/i }).click();
+    cy.url().should('match', /\/project-metrics\/test-project-2(?!\w|-)/);
 
-    cy.findByLabelText('Distributed workload status tab').click();
-    cy.url().should('include', '/workload-status/test-project-2');
+    cy.findByRole('tab', { name: /distributed workload status/i }).click();
+    cy.url().should('match', /\/workload-status\/test-project-2(?!\w|-)/);
 
     globalDistributedWorkloads.navigate();
-    cy.url().should('include', '/workload-status/test-project-2');
+    cy.url().should('match', /\/workload-status\/test-project-2(?!\w|-)/);
   });
 
   it('Changing the refresh interval and reloading the page should retain the selection', () => {
@@ -341,7 +341,7 @@ describe('Project Metrics tab', () => {
     initIntercepts({ workloads: [] });
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Project metrics tab').click();
+    cy.findByRole('tab', { name: /project metrics/i }).click();
 
     cy.findByText('Requested resources').should('exist');
 
@@ -361,7 +361,7 @@ describe('Project Metrics tab', () => {
     it('Should render', () => {
       initIntercepts({});
       globalDistributedWorkloads.visit();
-      cy.findByLabelText('Project metrics tab').click();
+      cy.findByRole('tab', { name: /project metrics/i }).click();
       globalDistributedWorkloads.findWorkloadResourceMetricsTable().within(() => {
         cy.findByText('test-workload-finished').should('exist');
       });
@@ -370,7 +370,7 @@ describe('Project Metrics tab', () => {
     it('Should not render usage bars on a fully finished workload', () => {
       initIntercepts({});
       globalDistributedWorkloads.visit();
-      cy.findByLabelText('Project metrics tab').click();
+      cy.findByRole('tab', { name: /project metrics/i }).click();
       globalDistributedWorkloads
         .findWorkloadResourceMetricsTable()
         .findByText('test-workload-finished')
@@ -384,7 +384,7 @@ describe('Project Metrics tab', () => {
     it('Should render usage bars on a running workload', () => {
       initIntercepts({});
       globalDistributedWorkloads.visit();
-      cy.findByLabelText('Project metrics tab').click();
+      cy.findByRole('tab', { name: /project metrics/i }).click();
       globalDistributedWorkloads
         .findWorkloadResourceMetricsTable()
         .findByText('test-workload-running')
@@ -398,7 +398,7 @@ describe('Project Metrics tab', () => {
     it('Should render usage bars on a StatefulSet workload', () => {
       initIntercepts({});
       globalDistributedWorkloads.visit();
-      cy.findByLabelText('Project metrics tab').click();
+      cy.findByRole('tab', { name: /project metrics/i }).click();
       globalDistributedWorkloads
         .findWorkloadResourceMetricsTable()
         .findByText('test-workload-notebook')
@@ -412,7 +412,7 @@ describe('Project Metrics tab', () => {
     it('Should render usage bars on a ReplicaSet workload', () => {
       initIntercepts({});
       globalDistributedWorkloads.visit();
-      cy.findByLabelText('Project metrics tab').click();
+      cy.findByRole('tab', { name: /project metrics/i }).click();
       globalDistributedWorkloads
         .findWorkloadResourceMetricsTable()
         .findByText('test-workload-replicaset')
@@ -426,7 +426,7 @@ describe('Project Metrics tab', () => {
     it('Should render usage bars on a LeaderWorkerSet workload', () => {
       initIntercepts({});
       globalDistributedWorkloads.visit();
-      cy.findByLabelText('Project metrics tab').click();
+      cy.findByRole('tab', { name: /project metrics/i }).click();
       globalDistributedWorkloads
         .findWorkloadResourceMetricsTable()
         .findByText('test-workload-lws')
@@ -440,7 +440,7 @@ describe('Project Metrics tab', () => {
     it('Should render usage bars on a succeeded workload that is still spinning down', () => {
       initIntercepts({});
       globalDistributedWorkloads.visit();
-      cy.findByLabelText('Project metrics tab').click();
+      cy.findByRole('tab', { name: /project metrics/i }).click();
       globalDistributedWorkloads
         .findWorkloadResourceMetricsTable()
         .findByText('test-workload-spinning-down-both')
@@ -454,7 +454,7 @@ describe('Project Metrics tab', () => {
     it('Spinning-down workload should render usage bars only on the column that is still consuming resources', () => {
       initIntercepts({});
       globalDistributedWorkloads.visit();
-      cy.findByLabelText('Project metrics tab').click();
+      cy.findByRole('tab', { name: /project metrics/i }).click();
       globalDistributedWorkloads
         .findWorkloadResourceMetricsTable()
         .findByText('test-workload-spinning-down-cpu-only')
@@ -470,7 +470,7 @@ describe('Project Metrics tab', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Project metrics tab').click();
+    cy.findByRole('tab', { name: /project metrics/i }).click();
     cy.findByTestId('requested-resources-cpu-chart-container').should('exist');
   });
 });
@@ -479,7 +479,7 @@ describe('Workload Status tab', () => {
   it('Should render the status overview chart', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
-    cy.findByLabelText('Distributed workload status tab').click();
+    cy.findByRole('tab', { name: /distributed workload status/i }).click();
 
     const statusOverview = globalDistributedWorkloads.findStatusOverviewCard();
     statusOverview.should('exist');
@@ -494,7 +494,7 @@ describe('Workload Status tab', () => {
       ],
     });
     globalDistributedWorkloads.visit();
-    cy.findByLabelText('Distributed workload status tab').click();
+    cy.findByRole('tab', { name: /distributed workload status/i }).click();
 
     const statusOverview = globalDistributedWorkloads.findStatusOverviewCard();
     statusOverview.should('exist');
@@ -505,7 +505,7 @@ describe('Workload Status tab', () => {
     initIntercepts({});
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Distributed workload status tab').click();
+    cy.findByRole('tab', { name: /distributed workload status/i }).click();
     cy.findByText('test-workload-finished').should('exist');
   });
 
@@ -513,7 +513,7 @@ describe('Workload Status tab', () => {
     initIntercepts({ workloads: [] });
     globalDistributedWorkloads.visit();
 
-    cy.findByLabelText('Distributed workload status tab').click();
+    cy.findByRole('tab', { name: /distributed workload status/i }).click();
     cy.findByTestId('dw-workloads-table-card').within(() => {
       cy.findByText('No workload metrics').should('exist');
     });

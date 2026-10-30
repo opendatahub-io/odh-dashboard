@@ -45,12 +45,12 @@ describe('inferSourceMode', () => {
     });
   });
 
-  it('should return agent/external when model has url but no matching service', () => {
+  it('should return model/external when model has url but no matching service', () => {
     const job = mockEvaluationJob({ modelName: 'external-agent' });
     job.model.url = 'https://agent.example.com/v1';
 
     expect(inferSourceMode(job, [])).toEqual({
-      sourceMode: 'agent',
+      sourceMode: 'model',
       modelSelection: 'external',
     });
   });
@@ -173,6 +173,57 @@ describe('extractReconfigureData', () => {
     const result = extractReconfigureData(job, []);
 
     expect(result.threshold).toBe(75);
+  });
+
+  it('should preserve hardware profile and queue configuration when reconfiguring', () => {
+    const job = mockEvaluationJob();
+    job.hardware_config = {
+      hardware_profile_name: 'gpu-small',
+      queue: { kind: 'kueue', name: 'gpu-default' },
+    };
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.hardwareProfile).toBe('gpu-small');
+    expect(result.queue).toBe('gpu-default');
+  });
+
+  it('should return an undefined queue when hardware_config is absent', () => {
+    const job = mockEvaluationJob();
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.hardwareProfile).toBeUndefined();
+    expect(result.queue).toBeUndefined();
+  });
+
+  it('should ignore removed legacy queue fields on status and resource', () => {
+    const job = mockEvaluationJob();
+    // The queue fields were removed from the API contract; simulate a legacy
+    // payload that still carries them to guard against fallback reintroduction.
+    Object.assign(job.status, { queue: 'legacy-status-queue' });
+    Object.assign(job.resource, { queue: 'legacy-resource-queue' });
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.queue).toBeUndefined();
+  });
+
+  it('should preserve raw metric thresholds when reconfiguring a benchmark', () => {
+    const job = mockEvaluationJob({ benchmarkId: 'constant', providerId: 'guidellm' });
+    job.benchmarks = [
+      {
+        id: 'constant',
+        provider_id: 'guidellm',
+        primary_score: { metric: 'output_tokens_per_second', lower_is_better: false },
+        pass_criteria: { threshold: 10 },
+      },
+    ];
+
+    const result = extractReconfigureData(job, []);
+
+    expect(result.threshold).toBe(10);
+    expect(result.primaryMetric).toBe('output_tokens_per_second');
   });
 
   it('should default threshold to 0 when no pass_criteria', () => {

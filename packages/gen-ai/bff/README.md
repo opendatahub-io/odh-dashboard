@@ -79,10 +79,13 @@ make run STATIC_ASSETS_DIR=../frontend/dist
 **Environment Variables:**
 
 - `LLAMA_STACK_URL`: URL of your LlamaStack backend
-- `MAAS_URL`: URL of your MaaS (Model as a Service) backend
 - `AUTH_METHOD=user_token`: Enables token-based authentication
 - `AUTH_TOKEN_HEADER=Authorization`: Header name for the bearer token
 - `AUTH_TOKEN_PREFIX="Bearer "`: Token prefix format
+
+### TLS
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ### 3. Test the Endpoints
 
@@ -1486,11 +1489,11 @@ cd packages/maas && make dev-bff-federated MAAS_API_URL=https://maas.apps.<clust
 
 # Terminal 2: Start Gen-AI BFF with dev override pointing to local MaaS BFF
 cd packages/gen-ai/bff
-BFF_MAAS_DEV_URL=http://localhost:8081/api/v1 MAAS_URL=http://localhost:8081 \
+BFF_MAAS_DEV_URL=http://localhost:8081/api/v1 \
   LLAMA_STACK_URL=http://localhost:8321 make run LOG_LEVEL=debug
 
 # Terminal 3: Frontend
-cd packages/gen-ai/frontend && npm run start:dev
+cd packages/gen-ai/frontend && pnpm run start:dev
 
 # Terminal 4: Port-forward Llama Stack
 oc port-forward -n <namespace> svc/lsd-genai-playground-service 8321:8321

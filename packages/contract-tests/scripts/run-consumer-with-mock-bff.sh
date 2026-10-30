@@ -95,7 +95,7 @@ export NODE_PATH="$REPO_ROOT/node_modules${NODE_PATH:+:$NODE_PATH}"
 # Run tests
 pushd "$CONSUMER_DIR" >/dev/null
 
-CMD=(npx --yes jest)
+CMD=(pnpm exec jest)
 if [[ -n "$JEST_CONFIG" ]]; then
   CMD+=(--config "$JEST_CONFIG")
 fi

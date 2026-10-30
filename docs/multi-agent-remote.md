@@ -115,7 +115,7 @@ Define project-specific workflows in `.ambient/ambient.json` at the repository r
           "tools": ["read", "write", "bash"]
         },
         {
-          "prompt": "Run npm run lint:fix && npm run type-check. Fix any errors.",
+          "prompt": "Run pnpm run lint:fix && pnpm run type-check. Fix any errors.",
           "tools": ["bash", "write"]
         },
         {

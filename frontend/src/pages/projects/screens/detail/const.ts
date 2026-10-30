@@ -11,7 +11,7 @@ export const ProjectSectionTitles: ProjectSectionTitlesType = {
   [ProjectSectionID.ROLES]: 'Roles',
   [ProjectSectionID.SETTINGS]: 'Settings',
   [ProjectSectionID.FEATURE_STORE]: 'Feature Store',
-  [ProjectSectionID.WORKBENCHES_V2]: 'Workbenches v2 (Dev Preview)',
+  [ProjectSectionID.WORKBENCHES_V2]: 'Workbenches v2',
 };
 
 /**

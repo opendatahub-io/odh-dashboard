@@ -1,14 +1,24 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ChooseStandardisedBenchmarksPage from '~/app/pages/ChooseStandardisedBenchmarksPage';
 import { Provider } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockUseProviders = jest.fn();
 const mockNavigate = jest.fn();
 
 jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: () => mockUseProviders(),
+}));
+
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-project', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -24,6 +34,12 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
 }));
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const makeProvider = (overrides: Partial<Provider> = {}): Provider => ({
   resource: { id: 'lm_evaluation_harness' },
@@ -83,6 +99,11 @@ describe('ChooseStandardisedBenchmarksPage', () => {
     expect(screen.getByPlaceholderText('Filter by name or ID')).toBeInTheDocument();
   });
 
+  it('should not render the evaluation type breadcrumb', () => {
+    renderPage();
+    expect(screen.queryByRole('link', { name: 'Select evaluation type' })).not.toBeInTheDocument();
+  });
+
   it('should show all benchmarks when no filter is applied', () => {
     renderPage();
     expect(screen.getByTestId('benchmark-card-lm_evaluation_harness-arc_easy')).toBeInTheDocument();
@@ -92,6 +113,59 @@ describe('ChooseStandardisedBenchmarksPage', () => {
     expect(
       screen.getByTestId('benchmark-card-lm_evaluation_harness-truthfulqa_mc1'),
     ).toBeInTheDocument();
+  });
+
+  it('should track benchmark details opened from the catalog', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Basic science Q&A' }));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
+      source: 'catalogTable',
+    });
+  });
+
+  it('should filter benchmarks by framework', async () => {
+    mockUseProviders.mockReturnValue({
+      providers: [
+        makeProvider({
+          benchmarks: [
+            {
+              id: 'arc_easy',
+              name: 'Basic science Q&A',
+              category: 'Reasoning',
+              metrics: ['accuracy'],
+            },
+          ],
+        }),
+        makeProvider({
+          resource: { id: 'ragas' },
+          name: 'ragas',
+          title: 'RAGAS',
+          benchmarks: [
+            {
+              id: 'ragas_rag_default',
+              name: 'RAG Default Suite',
+              category: 'Rag evaluation',
+              metrics: ['answer_relevancy'],
+            },
+          ],
+        }),
+      ],
+      loaded: true,
+      loadError: undefined,
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId('benchmarks-framework-filter'));
+    await user.click(screen.getByRole('checkbox', { name: 'RAGAS' }));
+
+    expect(screen.getByTestId('benchmark-card-ragas-ragas_rag_default')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-card-lm_evaluation_harness-arc_easy'),
+    ).not.toBeInTheDocument();
   });
 
   it('should filter benchmarks by name', () => {

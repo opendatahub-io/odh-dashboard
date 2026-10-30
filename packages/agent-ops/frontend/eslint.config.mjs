@@ -25,7 +25,6 @@ export default tseslint.config(
       'node_modules/**',
       'public-cypress/**',
       'coverage/**',
-      'config/**',
       'package.json',
     ],
   },

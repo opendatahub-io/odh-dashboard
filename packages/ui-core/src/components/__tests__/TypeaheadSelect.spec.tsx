@@ -15,6 +15,28 @@ describe('TypeaheadSelect', () => {
     fireEvent.click(screen.getByRole('combobox'));
   };
 
+  it('associates toggle descriptions with the combobox input', () => {
+    render(
+      <TypeaheadSelect
+        selectOptions={[]}
+        toggleProps={{ 'aria-describedby': 'description' }}
+        isRequired={false}
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-describedby', 'description');
+  });
+
+  it.each(['__proto__', 'constructor', 'toString'])(
+    'should handle arbitrary group labels such as %s',
+    (group) => {
+      render(<TypeaheadSelect selectOptions={makeGroupedOptions(2, group)} isRequired={false} />);
+      openMenu();
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+      expect(screen.getByRole('heading', { name: group })).toBeInTheDocument();
+    },
+  );
+
   describe('collapsible groups', () => {
     it('should render plain group headers when grouped option count is below threshold', () => {
       const options = makeGroupedOptions(5, 'NIM storage');
@@ -102,6 +124,70 @@ describe('TypeaheadSelect', () => {
       );
 
       expect(onSelect).toHaveBeenCalledWith(undefined, 'only');
+    });
+
+    it('should not auto-select a disabled sole option', () => {
+      const onSelect = jest.fn();
+      render(
+        <TypeaheadSelect
+          selectOptions={[{ value: 'unavailable', content: 'Unavailable', isDisabled: true }]}
+          onSelect={onSelect}
+        />,
+      );
+
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('should not select a disabled option directly', () => {
+      const onSelect = jest.fn();
+      render(
+        <TypeaheadSelect
+          selectOptions={[{ value: 'unavailable', content: 'Unavailable', isDisabled: true }]}
+          onSelect={onSelect}
+          isRequired={false}
+        />,
+      );
+
+      openMenu();
+      fireEvent.click(screen.getByRole('option', { name: 'Unavailable' }));
+
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('should not dispatch a disabled selected option when clearing a filter', () => {
+      const onSelect = jest.fn();
+      render(
+        <TypeaheadSelect
+          selectOptions={[{ value: 'unavailable', content: 'Unavailable', isDisabled: true }]}
+          selected="unavailable"
+          isRequired={false}
+          allowClear
+          onSelect={onSelect}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'filter' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Clear input value' }));
+
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it('should dispatch an enabled selected option when clearing a filter', () => {
+      const onSelect = jest.fn();
+      render(
+        <TypeaheadSelect
+          selectOptions={[{ value: 'available', content: 'Available' }]}
+          selected="available"
+          isRequired={false}
+          allowClear
+          onSelect={onSelect}
+        />,
+      );
+
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'filter' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Clear input value' }));
+
+      expect(onSelect).toHaveBeenCalledWith(undefined, 'available');
     });
   });
 

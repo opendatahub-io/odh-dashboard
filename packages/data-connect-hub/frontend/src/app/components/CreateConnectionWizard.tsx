@@ -1,0 +1,1451 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ActionList,
+  ActionListGroup,
+  ActionListItem,
+  Alert,
+  Button,
+  Content,
+  ContentVariants,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Form,
+  FormHelperText,
+  FormGroup,
+  Flex,
+  FlexItem,
+  Grid,
+  GridItem,
+  HelperText,
+  HelperTextItem,
+  Label,
+  LabelGroup,
+  MenuToggle,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+  ModalVariant,
+  Select,
+  SelectList,
+  SelectOption,
+  Spinner,
+  Stack,
+  StackItem,
+  TextInput,
+  Wizard,
+  WizardFooterWrapper,
+  WizardHeader,
+  WizardStep,
+  useWizardContext,
+} from '@patternfly/react-core';
+import { EyeIcon, EyeSlashIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
+import { Tearsheet } from '@patternfly/react-component-groups';
+import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
+import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { testCredentials } from '~/app/api/dch';
+import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
+import PasswordInput from '~/app/components/PasswordInput';
+import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
+import { useNamespaces } from '~/app/hooks/useNamespaces';
+import { useNotification } from '~/app/hooks/useNotification';
+import { connectionDetailsRoute, projectHomeRoute } from '~/app/routes';
+import { SENSITIVE_CREDENTIAL_MASK, isSensitiveCredentialField } from '~/app/utilities/credentials';
+import type {
+  ConnectionType,
+  ConnectionTypeCredentialField,
+  CreateConnectionRequest,
+  Connection,
+  NamespaceKind,
+} from '~/app/types';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  getCreateConnectionAbandonStep,
+  getConnectionCreationErrorCategory,
+  getConnectionTypeProvider,
+  isGlobalConnectionType,
+  type DataConnectHubCancelMethod,
+} from '~/app/utilities/tracking';
+import './CreateConnectionWizard.scss';
+
+export type CreateConnectionFormData = CreateConnectionRequest;
+
+export type CreateConnectionWizardProps = {
+  isOpen: boolean;
+  namespace: string;
+  onClose: () => void;
+  onCreate?: (
+    data: CreateConnectionFormData,
+    selectedNamespace: string,
+  ) => Connection | void | Promise<Connection | void>;
+  initialFormData?: Partial<CreateConnectionFormData>;
+};
+
+const INITIAL_FORM_DATA: CreateConnectionFormData = {
+  name: '',
+  data_connection_type_id: '',
+  format: 'tabular',
+  credentials: {
+    secret: '',
+    properties: {},
+  },
+  properties: {},
+};
+
+const StepHeader: React.FC<{ title: string; description?: React.ReactNode }> = ({
+  title,
+  description,
+}) => (
+  <Stack hasGutter className="dch-connection-wizard-step-header">
+    <StackItem>
+      <Content component={ContentVariants.h2}>{title}</Content>
+    </StackItem>
+    {description && (
+      <StackItem>
+        <Content component={ContentVariants.p}>{description}</Content>
+      </StackItem>
+    )}
+  </Stack>
+);
+
+const K8S_NAME_MAX_LENGTH = 63;
+const K8S_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
+const isValidConnectionName = (name: string): boolean =>
+  name.length > 0 && name.length <= K8S_NAME_MAX_LENGTH && K8S_NAME_PATTERN.test(name);
+
+const hasCredentialValue = (value?: string): boolean => Boolean(value?.trim());
+
+type ConnectionTypeStepProps = {
+  connectionTypes: ConnectionType[];
+  selectedConnectionTypeId: string;
+  connectionTypesLoaded: boolean;
+  connectionTypesError?: Error;
+  onConnectionTypeChange: (connectionType: ConnectionType) => void;
+};
+
+const ConnectionTypeStep: React.FC<ConnectionTypeStepProps> = ({
+  connectionTypes,
+  selectedConnectionTypeId,
+  connectionTypesLoaded,
+  connectionTypesError,
+  onConnectionTypeChange,
+}) => (
+  <Form>
+    <StepHeader
+      title="Connection type"
+      description="Select the type of external resource you want to connect to."
+    />
+    {connectionTypesError ? (
+      <Alert variant="danger" isInline title="Unable to load connection types">
+        {connectionTypesError.message}
+      </Alert>
+    ) : connectionTypesLoaded ? (
+      <ConnectionTypesGallery
+        connectionTypes={connectionTypes}
+        isSelectable
+        selectedConnectionTypeId={selectedConnectionTypeId}
+        onConnectionTypeClick={onConnectionTypeChange}
+      />
+    ) : (
+      <Spinner aria-label="Loading connection types" />
+    )}
+  </Form>
+);
+
+type ConnectionDetailsStepProps = {
+  namespaces: NamespaceKind[];
+  selectedNamespace: string;
+  connectionName: string;
+  properties: PropertyRow[];
+  propertyErrors: Record<number, string>;
+  touchedProperties: Set<number>;
+  namespacesLoaded: boolean;
+  namespacesError?: Error;
+  connectionTypeWarning?: { connectionTypeName: string; namespace: string };
+  onNamespaceChange: (namespace: string) => void;
+  onConnectionNameChange: (name: string) => void;
+  onPropertyAdd: () => void;
+  onPropertyChange: (id: number, field: 'key' | 'value', value: string) => void;
+  onPropertyBlur: (id: number) => void;
+  onPropertyRemove: (id: number) => void;
+};
+
+const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
+  namespaces,
+  selectedNamespace,
+  connectionName,
+  properties,
+  propertyErrors,
+  touchedProperties,
+  namespacesLoaded,
+  namespacesError,
+  connectionTypeWarning,
+  onNamespaceChange,
+  onConnectionNameChange,
+  onPropertyAdd,
+  onPropertyChange,
+  onPropertyBlur,
+  onPropertyRemove,
+}) => {
+  const [isNamespaceSelectOpen, setIsNamespaceSelectOpen] = React.useState(false);
+  const { goToStepById } = useWizardContext();
+  const hasInvalidName = connectionName.length > 0 && !isValidConnectionName(connectionName);
+
+  return (
+    <Form className="dch-connection-wizard-step-form">
+      <StepHeader title="Details" />
+      {namespacesError ? (
+        <Alert variant="danger" isInline title="Unable to load projects">
+          {namespacesError.message}
+        </Alert>
+      ) : !namespacesLoaded ? (
+        <Spinner aria-label="Loading projects" />
+      ) : (
+        <>
+          {connectionTypeWarning ? (
+            <Alert
+              variant="warning"
+              isInline
+              title={`Connection type "${connectionTypeWarning.connectionTypeName}" is only available in project "${connectionTypeWarning.namespace}"`}
+              actionLinks={
+                <Button
+                  variant="link"
+                  isInline
+                  onClick={() => goToStepById('connection-type-step')}
+                >
+                  Choose a connection type
+                </Button>
+              }
+            >
+              Select a different type or switch back to that project.
+            </Alert>
+          ) : null}
+          <FormGroup label="Project" isRequired fieldId="connection-project">
+            <Select
+              isOpen={isNamespaceSelectOpen}
+              maxMenuHeight="12.5rem"
+              isScrollable
+              selected={selectedNamespace}
+              onSelect={(_event, selection) => {
+                onNamespaceChange(String(selection));
+                setIsNamespaceSelectOpen(false);
+              }}
+              onOpenChange={setIsNamespaceSelectOpen}
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsNamespaceSelectOpen((open) => !open)}
+                  isExpanded={isNamespaceSelectOpen}
+                  isFullWidth
+                  data-testid="connection-project-select"
+                >
+                  {namespaces.find((item) => item.name === selectedNamespace)?.displayName ??
+                    selectedNamespace}
+                </MenuToggle>
+              )}
+            >
+              <SelectList>
+                {namespaces.map((project) => (
+                  <SelectOption key={project.name} value={project.name}>
+                    {project.displayName ?? project.name}
+                  </SelectOption>
+                ))}
+              </SelectList>
+            </Select>
+          </FormGroup>
+          <FormGroup label="Connection name" isRequired fieldId="connection-name">
+            <TextInput
+              isRequired
+              id="connection-name"
+              value={connectionName}
+              onChange={(_event, value) => onConnectionNameChange(value)}
+              validated={hasInvalidName ? 'error' : 'default'}
+              data-testid="connection-name-input"
+            />
+            {hasInvalidName ? (
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem variant="error">
+                    Use lowercase letters, numbers, and hyphens. Start and end with a letter or
+                    number, and use no more than 63 characters.
+                  </HelperTextItem>
+                </HelperText>
+              </FormHelperText>
+            ) : null}
+          </FormGroup>
+          <FormGroup label="Key-value pairs" fieldId="properties">
+            <KeyValueInput
+              properties={properties}
+              propertyErrors={propertyErrors}
+              touchedProperties={touchedProperties}
+              onAdd={onPropertyAdd}
+              onChange={onPropertyChange}
+              onBlur={onPropertyBlur}
+              onRemove={onPropertyRemove}
+            />
+          </FormGroup>
+        </>
+      )}
+    </Form>
+  );
+};
+
+type CredentialFieldProps = {
+  field: ConnectionTypeCredentialField;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+const CredentialField: React.FC<CredentialFieldProps> = ({ field, value, onChange }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const hasOptions = Boolean(field.enum_values?.length);
+  const isSensitive = isSensitiveCredentialField(field);
+
+  return (
+    <FormGroup label={field.label} isRequired={field.required} fieldId={`credential-${field.name}`}>
+      {hasOptions ? (
+        <Select
+          isOpen={isOpen}
+          selected={value}
+          onSelect={(_event, selection) => {
+            onChange(String(selection));
+            setIsOpen(false);
+          }}
+          onOpenChange={setIsOpen}
+          toggle={(toggleRef) => (
+            <MenuToggle
+              ref={toggleRef}
+              onClick={() => setIsOpen((open) => !open)}
+              isExpanded={isOpen}
+              isFullWidth
+              data-testid={`credential-${field.name}`}
+            >
+              {field.enum_values?.find((option) => option.value === value)?.label ??
+                `Select ${field.label}`}
+            </MenuToggle>
+          )}
+        >
+          <SelectList>
+            {field.enum_values?.map((option) => (
+              <SelectOption key={option.value} value={option.value}>
+                {option.label}
+              </SelectOption>
+            ))}
+          </SelectList>
+        </Select>
+      ) : isSensitive ? (
+        <PasswordInput
+          id={`credential-${field.name}`}
+          value={value}
+          onChange={(_event, nextValue) => onChange(nextValue)}
+          isRequired={field.required}
+          autoComplete="off"
+          ariaLabelShow={`Show ${field.label}`}
+          ariaLabelHide={`Hide ${field.label}`}
+          data-testid={`credential-${field.name}`}
+        />
+      ) : (
+        <TextInput
+          id={`credential-${field.name}`}
+          value={value}
+          onChange={(_event, nextValue) => onChange(nextValue)}
+          isRequired={field.required}
+          data-testid={`credential-${field.name}`}
+        />
+      )}
+      {field.description ? (
+        <Content component={ContentVariants.small}>{field.description}</Content>
+      ) : null}
+    </FormGroup>
+  );
+};
+
+type ConfigurationStepProps = {
+  connectionType?: ConnectionType;
+  credentials: Record<string, string>;
+  onCredentialChange: (name: string, value: string) => void;
+  onVerify: () => void;
+  isVerifying: boolean;
+  isVerified: boolean;
+  verificationError?: Error;
+};
+
+type VerificationSectionProps = Omit<ConfigurationStepProps, 'onCredentialChange'>;
+
+const VerifyConnectionSection: React.FC<VerificationSectionProps> = ({
+  connectionType,
+  credentials,
+  onVerify,
+  isVerifying,
+  isVerified,
+  verificationError,
+}) => {
+  if (!connectionType?.status?.flight_ready) {
+    return null;
+  }
+
+  const fields = connectionType?.resource.credentials_fields ?? [];
+
+  return (
+    <div className="pf-v6-u-mt-xl">
+      <Content component={ContentVariants.h3}>Verify connection</Content>
+      <Content component={ContentVariants.p}>
+        Verify that the credentials are accurate and the endpoint can be reached.
+      </Content>
+      <Button
+        variant="tertiary"
+        onClick={onVerify}
+        isLoading={isVerifying}
+        isDisabled={
+          isVerifying ||
+          fields.some((field) => field.required && !hasCredentialValue(credentials[field.name]))
+        }
+        className="pf-v6-u-mb-md"
+        data-testid="verify-connection-button"
+      >
+        Verify
+      </Button>
+      {isVerified ? <Alert variant="success" isInline title="Connection verified" /> : null}
+      {verificationError ? (
+        <Alert variant="danger" isInline title="Connection verification failed">
+          {verificationError.message}
+        </Alert>
+      ) : null}
+    </div>
+  );
+};
+
+const ConfigurationStep: React.FC<ConfigurationStepProps> = (props) => {
+  const { connectionType, credentials, onCredentialChange } = props;
+  const fields = connectionType?.resource.credentials_fields ?? [];
+
+  return (
+    <Form className="dch-connection-wizard-step-form">
+      <StepHeader
+        title="Configuration"
+        description={
+          <>
+            Provide credentials and complete required fields defined by the selected connection
+            type, <strong>{connectionType?.resource.name ?? 'the selected connection type'}</strong>
+            .
+          </>
+        }
+      />
+      {fields.map((field) => (
+        <CredentialField
+          key={field.name}
+          field={field}
+          value={credentials[field.name] ?? field.default_value ?? ''}
+          onChange={(value) => onCredentialChange(field.name, value)}
+        />
+      ))}
+      <VerifyConnectionSection {...props} />
+    </Form>
+  );
+};
+
+type ReviewStepProps = {
+  name: string;
+  namespace: string;
+  connectionType?: ConnectionType;
+  credentials: Record<string, string>;
+  properties: Record<string, string>;
+};
+
+const ReviewCredentialValue: React.FC<{
+  field: ConnectionTypeCredentialField;
+  value?: string;
+}> = ({ field, value }) => {
+  const [isVisible, setIsVisible] = React.useState(false);
+  const isSensitive = isSensitiveCredentialField(field);
+  const displayValue = value?.trim() ? value : '-';
+  const isHidden = isSensitive && !isVisible && displayValue !== '-';
+
+  return (
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      flexWrap={{ default: 'nowrap' }}
+      spaceItems={{ default: 'spaceItemsNone' }}
+    >
+      <FlexItem>
+        {isHidden ? (
+          <>
+            <span aria-hidden="true">{SENSITIVE_CREDENTIAL_MASK}</span>
+            <span className="pf-v6-u-screen-reader">{`${field.label} value hidden`}</span>
+          </>
+        ) : (
+          <span>{displayValue}</span>
+        )}
+      </FlexItem>
+      {isSensitive && displayValue !== '-' ? (
+        <FlexItem>
+          <Button
+            variant="plain"
+            icon={
+              isVisible ? (
+                <EyeIcon data-testid="visible-value-icon" />
+              ) : (
+                <EyeSlashIcon data-testid="hidden-value-icon" />
+              )
+            }
+            onClick={() => setIsVisible((visible) => !visible)}
+            aria-label={isVisible ? `Hide ${field.label}` : `Show ${field.label}`}
+            data-testid={`review-show-${field.name}`}
+          />
+        </FlexItem>
+      ) : null}
+    </Flex>
+  );
+};
+
+const ReviewStep: React.FC<ReviewStepProps> = ({
+  name,
+  namespace,
+  connectionType,
+  credentials,
+  properties,
+}) => {
+  const fields = connectionType?.resource.credentials_fields ?? [];
+  const valueOrDash = (value?: string): string => (value?.trim() ? value : '-');
+
+  return (
+    <Grid hasGutter>
+      <StepHeader title="Review" />
+      <DescriptionList
+        className="dch-connection-wizard-review-summary"
+        columnModifier={{
+          default: '1Col',
+          lg: '2Col',
+        }}
+        isCompact
+        isFillColumns
+      >
+        <DescriptionListGroup>
+          <DescriptionListTerm>Connection name</DescriptionListTerm>
+          <DescriptionListDescription>{valueOrDash(name)}</DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Project</DescriptionListTerm>
+          <DescriptionListDescription>{valueOrDash(namespace)}</DescriptionListDescription>
+        </DescriptionListGroup>
+        <DescriptionListGroup>
+          <DescriptionListTerm>Connection type</DescriptionListTerm>
+          <DescriptionListDescription>
+            {valueOrDash(connectionType?.resource.name)}
+            {connectionType && !connectionType.metadata.tenant_id ? (
+              <Label variant="outline" color="grey" isCompact className="pf-v6-u-ml-sm">
+                Global
+              </Label>
+            ) : null}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+        {fields.map((field) => (
+          <DescriptionListGroup key={field.name}>
+            <DescriptionListTerm>{field.label}</DescriptionListTerm>
+            <DescriptionListDescription>
+              <ReviewCredentialValue
+                field={field}
+                value={credentials[field.name] ?? field.default_value}
+              />
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        ))}
+        <DescriptionListGroup>
+          <DescriptionListTerm>Key-value pairs</DescriptionListTerm>
+          <DescriptionListDescription>
+            {Object.entries(properties).length > 0 ? (
+              <LabelGroup>
+                {Object.entries(properties).map(([key, value]) => (
+                  <Label key={key} variant="outline" color="grey" isCompact>
+                    {key}: {value}
+                  </Label>
+                ))}
+              </LabelGroup>
+            ) : (
+              '-'
+            )}
+          </DescriptionListDescription>
+        </DescriptionListGroup>
+      </DescriptionList>
+    </Grid>
+  );
+};
+
+type PropertyRow = { id: number; key: string; value: string };
+
+const createPropertyRows = (properties: Record<string, string>): PropertyRow[] =>
+  Object.entries(properties).map(([key, value], index) => ({ id: index + 1, key, value }));
+
+const arePropertyValuesEqual = (curr: Record<string, string>, orig: Record<string, string>) =>
+  Object.keys(curr).length === Object.keys(orig).length &&
+  Object.entries(curr).every(([key, value]) => orig[key] === value);
+
+const isConnectionFormDataEqual = (
+  curr: CreateConnectionFormData,
+  orig: CreateConnectionFormData,
+) =>
+  curr.name === orig.name &&
+  curr.data_connection_type_id === orig.data_connection_type_id &&
+  curr.format === orig.format &&
+  curr.credentials.secret === orig.credentials.secret &&
+  arePropertyValuesEqual(curr.properties, orig.properties) &&
+  arePropertyValuesEqual(curr.credentials.properties, orig.credentials.properties);
+
+export const getPropertyErrors = (properties: PropertyRow[]): Record<number, string> => {
+  const errors: Record<number, string> = {};
+  const normalizedKeys = new Map<string, number[]>();
+
+  properties.forEach((property) => {
+    const key = property.key.trim();
+    if (!key) {
+      errors[property.id] = 'Key is required.';
+      return;
+    }
+    normalizedKeys.set(key, [...(normalizedKeys.get(key) ?? []), property.id]);
+  });
+
+  normalizedKeys.forEach((ids) => {
+    if (ids.length > 1) {
+      ids.forEach((id) => {
+        errors[id] = 'Key must be unique.';
+      });
+    }
+  });
+
+  return errors;
+};
+
+type KeyValueInputProps = {
+  properties: PropertyRow[];
+  propertyErrors: Record<number, string>;
+  touchedProperties: Set<number>;
+  onAdd: () => void;
+  onChange: (id: number, field: 'key' | 'value', value: string) => void;
+  onBlur: (id: number) => void;
+  onRemove: (id: number) => void;
+};
+
+const shouldShowPropertyError = (
+  property: PropertyRow,
+  error: string | undefined,
+  touched: boolean,
+): boolean =>
+  Boolean(error && (touched || (error === 'Key must be unique.' && property.key.trim() !== '')));
+
+const KeyValueInput: React.FC<KeyValueInputProps> = ({
+  properties,
+  propertyErrors,
+  touchedProperties,
+  onAdd,
+  onChange,
+  onBlur,
+  onRemove,
+}) => (
+  <Stack hasGutter>
+    <StackItem>
+      <Content component={ContentVariants.small}>
+        Optionally define custom properties using key-value pairs.
+      </Content>
+    </StackItem>
+    <StackItem>
+      {properties.length > 0 ? (
+        <Grid hasGutter className="pf-v6-u-mb-sm">
+          <GridItem span={5}>Key</GridItem>
+          <GridItem span={5}>Value</GridItem>
+          <GridItem span={2} aria-hidden="true" />
+        </Grid>
+      ) : null}
+      {properties.map((property) => {
+        const propertyError = propertyErrors[property.id];
+        const showPropertyError = shouldShowPropertyError(
+          property,
+          propertyError,
+          touchedProperties.has(property.id),
+        );
+        const propertyErrorId = `connection-property-key-error-${property.id}`;
+
+        return (
+          <Grid key={property.id} hasGutter className="pf-v6-u-mb-md">
+            <GridItem span={5}>
+              <TextInput
+                id={`connection-property-key-${property.id}`}
+                value={property.key}
+                placeholder="Key"
+                aria-label={`Property key ${property.id}`}
+                aria-describedby={showPropertyError ? propertyErrorId : undefined}
+                validated={showPropertyError ? 'error' : 'default'}
+                onChange={(_event, value) => onChange(property.id, 'key', value)}
+                onBlur={() => onBlur(property.id)}
+                data-testid={`connection-property-key-${property.id}`}
+              />
+              {showPropertyError ? (
+                <FormHelperText id={propertyErrorId}>
+                  <HelperText>
+                    <HelperTextItem variant="error">{propertyError}</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+            </GridItem>
+            <GridItem span={5}>
+              <TextInput
+                id={`connection-property-value-${property.id}`}
+                value={property.value}
+                placeholder="Value"
+                aria-label={`Property value ${property.id}`}
+                onChange={(_event, value) => onChange(property.id, 'value', value)}
+                onBlur={() => onBlur(property.id)}
+                data-testid={`connection-property-value-${property.id}`}
+              />
+            </GridItem>
+            <GridItem span={2}>
+              <Button
+                variant="plain"
+                icon={<MinusCircleIcon />}
+                onClick={() => onRemove(property.id)}
+                aria-label={`Remove property ${property.key || property.id}`}
+                data-testid={`connection-property-remove-${property.id}`}
+              />
+            </GridItem>
+          </Grid>
+        );
+      })}
+      <Button variant="link" isInline icon={<PlusCircleIcon />} onClick={onAdd}>
+        Add key-value pair
+      </Button>
+    </StackItem>
+  </Stack>
+);
+
+type CreateConnectionWizardFooterProps = {
+  onCreate: () => void;
+  onCancel: () => void;
+  isCreating: boolean;
+  hasSelectedConnectionType: boolean;
+  hasValidDetails: boolean;
+  hasValidConfiguration: boolean;
+};
+
+const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> = ({
+  onCreate,
+  onCancel,
+  isCreating,
+  hasSelectedConnectionType,
+  hasValidDetails,
+  hasValidConfiguration,
+}) => {
+  const { activeStep, steps, goToNextStep, goToPrevStep } = useWizardContext();
+  const isFirstStep = activeStep.index === 1;
+  const isLastStep = activeStep.index === steps.length;
+  const isNextDisabled = (() => {
+    switch (activeStep.index) {
+      case 1:
+        return !hasSelectedConnectionType;
+      case 2:
+        return !hasValidDetails;
+      case 3:
+        return !hasValidConfiguration;
+      case 4:
+        return true;
+      default:
+        return true;
+    }
+  })();
+
+  return (
+    <WizardFooterWrapper>
+      <ActionList>
+        <ActionListGroup>
+          <ActionListItem>
+            <Button
+              variant="secondary"
+              onClick={goToPrevStep}
+              isDisabled={isFirstStep || isCreating}
+            >
+              Back
+            </Button>
+          </ActionListItem>
+          <ActionListItem>
+            {isLastStep ? (
+              <Button
+                variant="primary"
+                onClick={onCreate}
+                isLoading={isCreating}
+                isDisabled={isCreating || !hasValidConfiguration}
+                data-testid="create-connection-submit"
+              >
+                Create connection
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={goToNextStep}
+                isDisabled={isCreating || isNextDisabled}
+              >
+                Next
+              </Button>
+            )}
+          </ActionListItem>
+        </ActionListGroup>
+        <ActionListGroup>
+          <ActionListItem>
+            <Button
+              variant="link"
+              onClick={onCancel}
+              isDisabled={isCreating}
+              data-testid="cancel-connection-wizard-button"
+            >
+              Cancel
+            </Button>
+          </ActionListItem>
+        </ActionListGroup>
+      </ActionList>
+    </WizardFooterWrapper>
+  );
+};
+
+const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
+  isOpen,
+  namespace,
+  onClose,
+  onCreate,
+  initialFormData: propInitialFormData,
+}) => {
+  let initialFormData = INITIAL_FORM_DATA;
+  if (propInitialFormData) {
+    initialFormData = { ...initialFormData, ...propInitialFormData };
+  }
+  const [formData, setFormData] = React.useState<CreateConnectionFormData>(initialFormData);
+  const [sessionStartIndex, setSessionStartIndex] = React.useState(1);
+  const [hasResolvedSessionStartIndex, setHasResolvedSessionStartIndex] = React.useState(false);
+  const [activeStepIndex, setActiveStepIndex] = React.useState(1);
+  const [isOpenSessionReady, setIsOpenSessionReady] = React.useState(false);
+  const [selectedNamespace, setSelectedNamespace] = React.useState(namespace);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [isDiscardModalOpen, setIsDiscardModalOpen] = React.useState(false);
+  const [discardModalCancelMethod, setDiscardModalCancelMethod] =
+    React.useState<DataConnectHubCancelMethod>('cancel_button');
+  const discardButtonFocusTimeoutRef = React.useRef<number | undefined>(undefined);
+  const [isVerifying, setIsVerifying] = React.useState(false);
+  const [isVerified, setIsVerified] = React.useState(false);
+  const [verificationError, setVerificationError] = React.useState<Error>();
+  const [connectionTypeWarning, setConnectionTypeWarning] = React.useState<{
+    connectionTypeName: string;
+    namespace: string;
+  }>();
+  const [propertyRows, setPropertyRows] = React.useState<PropertyRow[]>(() =>
+    createPropertyRows(initialFormData.properties),
+  );
+  const [touchedProperties, setTouchedProperties] = React.useState<Set<number>>(new Set());
+  const propertyIdRef = React.useRef(propertyRows.length);
+  const verificationRequestRef = React.useRef(0);
+  const verificationAbortRef = React.useRef<AbortController>();
+  const wasOpenRef = React.useRef(false);
+  const lastTrackedConnectionTypeIdRef = React.useRef<string>();
+  const [connectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
+    selectedNamespace,
+    isOpen,
+  );
+  const [namespaces, namespacesLoaded, namespacesError] = useNamespaces(isOpen);
+  const notification = useNotification();
+  const availableNamespaces = namespaces.some((item) => item.name === namespace)
+    ? namespaces
+    : [{ name: namespace }, ...namespaces];
+  const selectedNamespaceDisplayName = availableNamespaces.find(
+    (item) => item.name === selectedNamespace,
+  )?.displayName;
+  const selectedConnectionType = connectionTypes.find(
+    (connectionType) => connectionType.metadata.id === formData.data_connection_type_id,
+  );
+  const initialConnectionType = connectionTypes.find(
+    (connectionType) => connectionType.metadata.id === initialFormData.data_connection_type_id,
+  );
+  const hasConnectionType = Boolean(formData.data_connection_type_id);
+  const hasConnectionTypesReady = connectionTypesLoaded && !connectionTypesError;
+  const hasSelectedConnectionType = hasConnectionTypesReady && Boolean(selectedConnectionType);
+  const defaultCredentials = React.useMemo(
+    () =>
+      Object.fromEntries(
+        (selectedConnectionType?.resource.credentials_fields ?? [])
+          .filter((field) => field.default_value !== undefined)
+          .map((field) => [field.name, field.default_value ?? '']),
+      ),
+    [selectedConnectionType],
+  );
+  const initialDefaultCredentials = React.useMemo(
+    () =>
+      Object.fromEntries(
+        (initialConnectionType?.resource.credentials_fields ?? [])
+          .filter((field) => field.default_value !== undefined)
+          .map((field) => [field.name, field.default_value ?? '']),
+      ),
+    [initialConnectionType],
+  );
+  const baselinePropertyRows = React.useMemo(
+    () => createPropertyRows(initialFormData.properties),
+    [initialFormData],
+  );
+  const baselineFormData = React.useMemo(
+    () => ({
+      ...initialFormData,
+      credentials: {
+        ...initialFormData.credentials,
+        properties: {
+          ...initialDefaultCredentials,
+          ...initialFormData.credentials.properties,
+        },
+      },
+    }),
+    [initialDefaultCredentials, initialFormData],
+  );
+  const hasMissingCredentialDefaults = Object.keys(defaultCredentials).some(
+    (name) => !(name in formData.credentials.properties),
+  );
+  const hasNamespacesReady = namespacesLoaded && !namespacesError;
+  const hasValidDetails =
+    hasSelectedConnectionType &&
+    hasNamespacesReady &&
+    Boolean(selectedNamespace) &&
+    isValidConnectionName(formData.name);
+  const propertyErrors = getPropertyErrors(propertyRows);
+  const hasValidProperties = Object.keys(propertyErrors).length === 0;
+  const hasValidDetailsWithProperties = hasValidDetails && hasValidProperties;
+  const requiredCredentialFields =
+    selectedConnectionType?.resource.credentials_fields?.filter((field) => field.required) ?? [];
+  const hasValidConfiguration =
+    hasValidDetailsWithProperties &&
+    requiredCredentialFields.every((field) =>
+      hasCredentialValue(formData.credentials.properties[field.name]),
+    );
+  const needsInitialValidationData =
+    hasConnectionType &&
+    Boolean(selectedNamespace) &&
+    isValidConnectionName(formData.name) &&
+    hasValidProperties;
+  const canResolveStartIndex =
+    isOpenSessionReady &&
+    (!hasSelectedConnectionType || !hasMissingCredentialDefaults) &&
+    (!hasConnectionType || connectionTypesLoaded || Boolean(connectionTypesError)) &&
+    (!needsInitialValidationData || namespacesLoaded || Boolean(namespacesError));
+  const calculatedStartIndex = hasValidConfiguration
+    ? 4
+    : hasValidDetailsWithProperties
+      ? 3
+      : hasSelectedConnectionType
+        ? 2
+        : 1;
+  const startIndex = hasResolvedSessionStartIndex
+    ? sessionStartIndex
+    : canResolveStartIndex
+      ? calculatedStartIndex
+      : 1;
+  const isFormDirty =
+    selectedNamespace !== namespace ||
+    !isConnectionFormDataEqual(formData, baselineFormData) ||
+    propertyRows.length !== baselinePropertyRows.length ||
+    propertyRows.some(
+      (row, index) =>
+        row.key !== baselinePropertyRows[index]?.key ||
+        row.value !== baselinePropertyRows[index]?.value,
+    );
+
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      const initialPropertyRows = createPropertyRows(initialFormData.properties);
+      setFormData(initialFormData);
+      setSelectedNamespace(namespace);
+      setPropertyRows(initialPropertyRows);
+      setTouchedProperties(new Set());
+      propertyIdRef.current = initialPropertyRows.length;
+      setIsOpenSessionReady(true);
+      setActiveStepIndex(1);
+      lastTrackedConnectionTypeIdRef.current = undefined;
+    } else if (!isOpen && wasOpenRef.current) {
+      setIsOpenSessionReady(false);
+      setHasResolvedSessionStartIndex(false);
+      setSessionStartIndex(1);
+      setActiveStepIndex(1);
+    }
+    wasOpenRef.current = isOpen;
+  }, [initialFormData, isOpen, namespace]);
+  React.useEffect(() => {
+    if (isOpen && isOpenSessionReady && hasSelectedConnectionType && hasMissingCredentialDefaults) {
+      setFormData((current) => ({
+        ...current,
+        credentials: {
+          ...current.credentials,
+          properties: { ...defaultCredentials, ...current.credentials.properties },
+        },
+      }));
+    }
+  }, [
+    defaultCredentials,
+    hasMissingCredentialDefaults,
+    hasSelectedConnectionType,
+    isOpen,
+    isOpenSessionReady,
+  ]);
+  React.useEffect(() => {
+    if (isOpen && !hasResolvedSessionStartIndex && canResolveStartIndex) {
+      setSessionStartIndex(calculatedStartIndex);
+      setActiveStepIndex(calculatedStartIndex);
+      setHasResolvedSessionStartIndex(true);
+    }
+  }, [calculatedStartIndex, canResolveStartIndex, hasResolvedSessionStartIndex, isOpen]);
+
+  const invalidateVerification = React.useCallback(() => {
+    verificationRequestRef.current += 1;
+    verificationAbortRef.current?.abort();
+    verificationAbortRef.current = undefined;
+    setIsVerifying(false);
+    setIsVerified(false);
+    setVerificationError(undefined);
+  }, []);
+  React.useEffect(() => {
+    if (!isOpen) {
+      invalidateVerification();
+      setIsDiscardModalOpen(false);
+    }
+  }, [invalidateVerification, isOpen]);
+  React.useEffect(() => {
+    if (!isDiscardModalOpen) {
+      return;
+    }
+    discardButtonFocusTimeoutRef.current = window.setTimeout(() => {
+      document
+        .querySelector<HTMLElement>('[data-testid="discard-connection-changes-button"]')
+        ?.focus();
+    }, 0);
+    return () => window.clearTimeout(discardButtonFocusTimeoutRef.current);
+  }, [isDiscardModalOpen]);
+  const handleConnectionTypeChange = (connectionTypeId: string) => {
+    invalidateVerification();
+    const selectedType = connectionTypes.find(
+      (connectionType) => connectionType.metadata.id === connectionTypeId,
+    );
+    if (selectedType && lastTrackedConnectionTypeIdRef.current !== connectionTypeId) {
+      lastTrackedConnectionTypeIdRef.current = connectionTypeId;
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.typeSelected,
+        properties: {
+          connectionTypeProvider: getConnectionTypeProvider(selectedType) ?? connectionTypeId,
+          isGlobalType: isGlobalConnectionType(selectedType),
+          project: selectedNamespace,
+        },
+      });
+    }
+    const defaultsForType = Object.fromEntries(
+      (selectedType?.resource.credentials_fields ?? [])
+        .filter((field) => field.default_value !== undefined)
+        .map((field) => [field.name, field.default_value ?? '']),
+    );
+    setFormData((current) => ({
+      ...current,
+      data_connection_type_id: connectionTypeId,
+      credentials: { ...current.credentials, properties: defaultsForType },
+    }));
+    setConnectionTypeWarning(undefined);
+  };
+  const handleConnectionNameChange = (name: string) => {
+    setFormData((current) => ({
+      ...current,
+      name,
+      credentials: { ...current.credentials, secret: name },
+    }));
+  };
+  const handleNamespaceChange = (nextNamespace: string) => {
+    invalidateVerification();
+    if (
+      selectedConnectionType?.metadata.tenant_id &&
+      selectedConnectionType.metadata.tenant_id !== nextNamespace
+    ) {
+      setConnectionTypeWarning({
+        connectionTypeName: selectedConnectionType.resource.name,
+        namespace: selectedConnectionType.metadata.tenant_id,
+      });
+      setFormData((current) => ({
+        ...current,
+        data_connection_type_id: '',
+        credentials: { ...current.credentials, properties: {} },
+      }));
+    } else {
+      setConnectionTypeWarning(undefined);
+    }
+    setSelectedNamespace(nextNamespace);
+  };
+  const handleCredentialChange = (name: string, value: string) => {
+    invalidateVerification();
+    setFormData((current) => ({
+      ...current,
+      credentials: {
+        ...current.credentials,
+        properties: { ...current.credentials.properties, [name]: value },
+      },
+    }));
+  };
+  const updateProperties = (rows: PropertyRow[]) => {
+    setPropertyRows(rows);
+    setFormData((current) => ({
+      ...current,
+      properties: Object.fromEntries(
+        rows.filter((row) => row.key.trim()).map((row) => [row.key.trim(), row.value]),
+      ),
+    }));
+  };
+  const handleAddProperty = () => {
+    const id = ++propertyIdRef.current;
+    updateProperties([...propertyRows, { id, key: '', value: '' }]);
+  };
+  const handlePropertyChange = (id: number, field: 'key' | 'value', value: string) => {
+    updateProperties(propertyRows.map((row) => (row.id === id ? { ...row, [field]: value } : row)));
+  };
+  const handlePropertyBlur = (id: number) => {
+    setTouchedProperties((current) => new Set(current).add(id));
+  };
+  const handleRemoveProperty = (id: number) => {
+    updateProperties(propertyRows.filter((row) => row.id !== id));
+    setTouchedProperties((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  };
+  const handleVerify = async () => {
+    if (!selectedConnectionType || !hasValidConfiguration) {
+      return;
+    }
+    verificationAbortRef.current?.abort();
+    const requestId = ++verificationRequestRef.current;
+    const abortController = new AbortController();
+    verificationAbortRef.current = abortController;
+    setIsVerifying(true);
+    setIsVerified(false);
+    setVerificationError(undefined);
+    try {
+      await testCredentials('')({ signal: abortController.signal }, selectedNamespace, {
+        data_connection_type_id: selectedConnectionType.metadata.id,
+        credentials: formData.credentials.properties,
+      });
+      if (requestId !== verificationRequestRef.current || abortController.signal.aborted) {
+        return;
+      }
+      setIsVerified(true);
+    } catch (error) {
+      if (
+        requestId !== verificationRequestRef.current ||
+        abortController.signal.aborted ||
+        (error instanceof Error && error.name === 'AbortError')
+      ) {
+        return;
+      }
+      setVerificationError(
+        error instanceof Error ? error : new Error('Unable to verify connection'),
+      );
+    } finally {
+      if (requestId === verificationRequestRef.current) {
+        setIsVerifying(false);
+      }
+    }
+  };
+  const resetForm = React.useCallback(() => {
+    const initialPropertyRows = createPropertyRows(initialFormData.properties);
+    setFormData(initialFormData);
+    setIsOpenSessionReady(false);
+    setHasResolvedSessionStartIndex(false);
+    setSessionStartIndex(1);
+    setSelectedNamespace(namespace);
+    setIsCreating(false);
+    invalidateVerification();
+    setPropertyRows(initialPropertyRows);
+    setTouchedProperties(new Set());
+    propertyIdRef.current = initialPropertyRows.length;
+  }, [invalidateVerification, namespace, initialFormData]);
+  const handleClose = React.useCallback(
+    (cancelMethod: DataConnectHubCancelMethod) => {
+      if (!isCreating) {
+        const tagCount = Object.keys(formData.properties).length;
+        fireDataConnectHubTrackEvent({
+          eventName: DATA_CONNECT_HUB_EVENT_NAMES.createCanceled,
+          properties: {
+            cancelMethod,
+            abandonStep: getCreateConnectionAbandonStep(activeStepIndex),
+            project: selectedNamespace,
+            connectionTypeProvider: selectedConnectionType
+              ? getConnectionTypeProvider(selectedConnectionType)
+              : undefined,
+          },
+        });
+        fireDataConnectHubTrackEvent({
+          eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+          properties: {
+            outcome: TrackingOutcome.cancel,
+            connectionTypeProvider: selectedConnectionType
+              ? getConnectionTypeProvider(selectedConnectionType)
+              : undefined,
+            hasTags: tagCount > 0,
+            tagCount,
+            project: selectedNamespace,
+          },
+        });
+        resetForm();
+        onClose();
+      }
+    },
+    [
+      activeStepIndex,
+      formData.properties,
+      isCreating,
+      onClose,
+      resetForm,
+      selectedConnectionType,
+      selectedNamespace,
+    ],
+  );
+  const requestClose = React.useCallback(
+    (cancelMethod: DataConnectHubCancelMethod) => {
+      if (!isCreating) {
+        if (!isFormDirty) {
+          handleClose(cancelMethod);
+          return;
+        }
+        setIsDiscardModalOpen(true);
+        setDiscardModalCancelMethod(cancelMethod);
+      }
+    },
+    [handleClose, isCreating, isFormDirty],
+  );
+  const handleTearsheetEscape = React.useCallback(() => {
+    if (!isDiscardModalOpen) {
+      requestClose('esc');
+    }
+  }, [isDiscardModalOpen, requestClose]);
+  const handleDiscard = React.useCallback(() => {
+    setIsDiscardModalOpen(false);
+    handleClose(discardModalCancelMethod);
+  }, [handleClose, discardModalCancelMethod]);
+
+  const handleCreate = async () => {
+    if (!hasValidConfiguration) {
+      return;
+    }
+
+    if (!onCreate) {
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+        properties: {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          connectionTypeProvider: selectedConnectionType
+            ? getConnectionTypeProvider(selectedConnectionType)
+            : undefined,
+          hasTags: Object.keys(formData.properties).length > 0,
+          tagCount: Object.keys(formData.properties).length,
+          project: selectedNamespace,
+        },
+      });
+      resetForm();
+      onClose();
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const createdConnection = await onCreate(formData, selectedNamespace);
+      const connectionName = createdConnection?.resource.name ?? formData.name;
+      const projectName = selectedNamespaceDisplayName ?? selectedNamespace;
+      const projectHomePath = projectHomeRoute(selectedNamespace);
+      const tagCount = Object.keys(formData.properties).length;
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+        properties: {
+          outcome: TrackingOutcome.submit,
+          success: true,
+          connectionTypeProvider: selectedConnectionType
+            ? getConnectionTypeProvider(selectedConnectionType)
+            : undefined,
+          hasTags: tagCount > 0,
+          tagCount,
+          project: selectedNamespace,
+        },
+      });
+      notification.success(
+        'Connection created',
+        <>
+          "{connectionName}" was created in{' '}
+          {projectHomePath ? (
+            <Button
+              component={(props) => <Link {...props} to={projectHomePath} />}
+              variant="link"
+              isInline
+            >
+              {projectName}
+            </Button>
+          ) : (
+            projectName
+          )}
+        </>,
+        createdConnection
+          ? {
+              linkLabel: 'View connection details',
+              linkUrl: connectionDetailsRoute(createdConnection.metadata.id, selectedNamespace),
+            }
+          : undefined,
+      );
+      resetForm();
+      onClose();
+    } catch (error) {
+      const creationError =
+        error instanceof Error ? error : new Error('Unable to create connection');
+      const tagCount = Object.keys(formData.properties).length;
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
+        properties: {
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: getConnectionCreationErrorCategory(error),
+          connectionTypeProvider: selectedConnectionType
+            ? getConnectionTypeProvider(selectedConnectionType)
+            : undefined,
+          hasTags: tagCount > 0,
+          tagCount,
+          project: selectedNamespace,
+        },
+      });
+      notification.error('Unable to create connection', creationError.message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return isOpen ? (
+    <>
+      <Tearsheet
+        isOpen
+        onEscapePress={handleTearsheetEscape}
+        id="create-connection-tearsheet-modal"
+        aria-labelledby="create-connection-wizard-title"
+        data-testid="create-connection-tearsheet"
+        modalProps={{ disableFocusTrap: isDiscardModalOpen }}
+      >
+        <Wizard
+          key={startIndex}
+          startIndex={startIndex}
+          onStepChange={(_event, currentStep) => setActiveStepIndex(currentStep.index)}
+          onClose={() => requestClose('close_x')}
+          header={
+            <WizardHeader
+              title="Create connection"
+              description="Configure a connection to an external resource."
+              titleId="create-connection-wizard-title"
+              onClose={() => requestClose('close_x')}
+              closeButtonAriaLabel="Close wizard"
+            />
+          }
+          footer={
+            <CreateConnectionWizardFooter
+              onCreate={handleCreate}
+              onCancel={() => requestClose('cancel_button')}
+              isCreating={isCreating}
+              hasSelectedConnectionType={hasSelectedConnectionType}
+              hasValidDetails={hasValidDetailsWithProperties}
+              hasValidConfiguration={hasValidConfiguration}
+            />
+          }
+        >
+          <WizardStep name="Connection type" id="connection-type-step">
+            <ConnectionTypeStep
+              connectionTypes={connectionTypes}
+              connectionTypesLoaded={connectionTypesLoaded}
+              connectionTypesError={connectionTypesError}
+              selectedConnectionTypeId={formData.data_connection_type_id}
+              onConnectionTypeChange={(connectionType) =>
+                handleConnectionTypeChange(connectionType.metadata.id)
+              }
+            />
+          </WizardStep>
+          <WizardStep
+            name="Connection details"
+            id="connection-details-step"
+            isDisabled={!hasSelectedConnectionType}
+          >
+            <ConnectionDetailsStep
+              namespaces={availableNamespaces}
+              selectedNamespace={selectedNamespace}
+              connectionName={formData.name}
+              properties={propertyRows}
+              propertyErrors={propertyErrors}
+              touchedProperties={touchedProperties}
+              namespacesLoaded={namespacesLoaded}
+              namespacesError={namespacesError}
+              connectionTypeWarning={connectionTypeWarning}
+              onNamespaceChange={handleNamespaceChange}
+              onConnectionNameChange={handleConnectionNameChange}
+              onPropertyAdd={handleAddProperty}
+              onPropertyChange={handlePropertyChange}
+              onPropertyBlur={handlePropertyBlur}
+              onPropertyRemove={handleRemoveProperty}
+            />
+          </WizardStep>
+          <WizardStep
+            name="Configuration"
+            id="configuration-step"
+            isDisabled={!hasValidDetailsWithProperties}
+          >
+            <ConfigurationStep
+              connectionType={selectedConnectionType}
+              credentials={formData.credentials.properties}
+              onCredentialChange={handleCredentialChange}
+              onVerify={() => void handleVerify()}
+              isVerifying={isVerifying}
+              isVerified={isVerified}
+              verificationError={verificationError}
+            />
+          </WizardStep>
+          <WizardStep name="Review" id="review-step" isDisabled={!hasValidConfiguration}>
+            <ReviewStep
+              name={formData.name}
+              namespace={selectedNamespace}
+              connectionType={selectedConnectionType}
+              credentials={formData.credentials.properties}
+              properties={formData.properties}
+            />
+          </WizardStep>
+        </Wizard>
+      </Tearsheet>
+      {isDiscardModalOpen ? (
+        <Modal
+          isOpen
+          variant={ModalVariant.small}
+          aria-label="Discard unsaved changes?"
+          elementToFocus='[data-testid="discard-connection-changes-button"]'
+          onClose={() => setIsDiscardModalOpen(false)}
+          appendTo={() =>
+            document.getElementById('create-connection-tearsheet-modal') ?? document.body
+          }
+          data-testid="discard-connection-changes-modal"
+        >
+          <ModalHeader title="Discard unsaved changes?" />
+          <ModalBody>
+            Your changes on this page are not saved yet. Discard your changes and leave this page,
+            or cancel to continue editing.
+          </ModalBody>
+          <ModalFooter>
+            <DashboardModalFooter
+              submitLabel="Discard"
+              onSubmit={handleDiscard}
+              onCancel={() => setIsDiscardModalOpen(false)}
+              submitButtonTestId="discard-connection-changes-button"
+              cancelButtonTestId="cancel-connection-changes-button"
+            />
+          </ModalFooter>
+        </Modal>
+      ) : null}
+    </>
+  ) : null;
+};
+
+export default CreateConnectionWizard;

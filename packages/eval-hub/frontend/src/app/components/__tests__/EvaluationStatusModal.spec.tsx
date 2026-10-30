@@ -6,6 +6,17 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import EvaluationStatusModal from '~/app/components/EvaluationStatusModal';
 import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs, LogFetchError } from '~/app/api/k8s';
 import { EvaluationJob } from '~/app/types';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+const mockTrackEvalHubEvent = jest.fn();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({
+    trackEventOnce: jest.fn(),
+    clear: jest.fn(),
+  }),
+  trackEvalHubEvent: (...args: unknown[]) => mockTrackEvalHubEvent(...args),
+}));
 
 jest.mock('~/app/api/k8s', () => ({
   ...jest.requireActual('~/app/api/k8s'),
@@ -32,6 +43,16 @@ jest.mock('~/app/hooks/useNotification', () => ({
 
 const mockGetEvaluationJobLogs = jest.mocked(getEvaluationJobLogs);
 const mockGetEvaluationJobBenchmarkLogs = jest.mocked(getEvaluationJobBenchmarkLogs);
+const mockUseKueueAvailability = jest.fn();
+const mockUseKueueWorkloadStatuses = jest.fn();
+
+jest.mock('~/app/hooks/useKueueAvailability', () => ({
+  useKueueAvailability: () => mockUseKueueAvailability(),
+}));
+
+jest.mock('~/app/hooks/useKueueWorkloadStatuses', () => ({
+  useKueueWorkloadStatuses: (...args: unknown[]) => mockUseKueueWorkloadStatuses(...args),
+}));
 
 const mockOnClose = jest.fn();
 
@@ -63,6 +84,17 @@ beforeEach(() => {
     loaded: true,
     error: undefined,
     refresh: jest.fn(),
+  });
+  mockUseKueueAvailability.mockReturnValue({
+    availability: undefined,
+    loaded: true,
+    error: undefined,
+  });
+  mockUseKueueWorkloadStatuses.mockReturnValue({
+    statusesByEvaluationId: new Map(),
+    loaded: true,
+    isLoading: false,
+    error: undefined,
   });
 });
 
@@ -96,6 +128,63 @@ describe('EvaluationStatusModal tab defaults', () => {
     switchToEventsLog();
     expect(screen.getByTestId('evaluation-status-modal')).toHaveClass(
       'evalhub-status-modal--full-height',
+    );
+  });
+
+  it('should track status tab and log views', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    renderModal(job);
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
+      expect.objectContaining({ tab: 'events_log' }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
+      expect.objectContaining({ source: 'status_tab' }),
+    );
+  });
+
+  it('should not re-emit tab telemetry when re-selecting the active tab', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+    mockTrackEvalHubEvent.mockClear();
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('progress-tab'));
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
+      expect.objectContaining({ tab: 'progress' }),
+    );
+  });
+
+  it('should track general logs when re-selecting Events log from a benchmark log view', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    const polledJob = mockEvaluationJob({ state: 'running' });
+    polledJob.status.benchmarks = makeBenchmarks([
+      { id: 'mmlu', status: 'completed', benchmark_index: 0 },
+    ]);
+
+    renderModal(job, polledJob);
+
+    fireEvent.click(screen.getByTestId('progress-view-logs-0'));
+    mockTrackEvalHubEvent.mockClear();
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
+      expect.anything(),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
+      expect.objectContaining({ source: 'status_tab' }),
     );
   });
 
@@ -174,6 +263,250 @@ describe('EvaluationStatusModal progress tab', () => {
 
     expect(screen.getByTestId('progress-empty-state')).toBeInTheDocument();
     expect(screen.getByText('Waiting for benchmarks to start')).toBeInTheDocument();
+  });
+
+  it('should keep showing Kueue queueing when no LocalQueue is available for new runs', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        enabled: true,
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: false,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueWorkloadStatuses.mockReturnValue({
+      statusesByEvaluationId: new Map([
+        [
+          'eval-job-001',
+          {
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            evaluation_id: 'eval-job-001',
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            queue_name: 'default',
+            state: 'queued',
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            queue_position: 2,
+          },
+        ],
+      ]),
+      loaded: true,
+      isLoading: false,
+      error: undefined,
+    });
+
+    renderModal(mockEvaluationJob({ state: 'pending' }));
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Queued');
+    expect(screen.getByTestId('benchmark-name-header')).toHaveTextContent(
+      'Waiting for quota in default',
+    );
+    expect(screen.getByTestId('status-description')).toHaveTextContent('2nd in queue');
+    expect(screen.queryByTestId('kueue-progress-state')).not.toBeInTheDocument();
+    expect(mockUseKueueWorkloadStatuses).toHaveBeenCalledWith(
+      'test-ns',
+      ['eval-job-001'],
+      true,
+      expect.any(Boolean),
+      true,
+    );
+  });
+
+  it('should keep a pending heading while Kueue status is loading without queue metadata', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        enabled: true,
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: true,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueWorkloadStatuses.mockReturnValue({
+      statusesByEvaluationId: new Map(),
+      loaded: false,
+      isLoading: true,
+      error: undefined,
+    });
+    const job = mockEvaluationJob({ state: 'pending' });
+
+    renderModal(job);
+
+    expect(screen.getByTestId('queue-status-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('evaluation-status-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('status-description')).toHaveTextContent(
+      'Checking resource scheduling status',
+    );
+  });
+
+  it('should preserve the queued heading when detail polling omits the queue assignment', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        enabled: true,
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: true,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    const job = mockEvaluationJob({ state: 'pending' });
+    job.hardware_config = { queue: { name: 'default' } };
+    const polledJob = mockEvaluationJob({ state: 'pending' });
+
+    renderModal(job, polledJob);
+
+    expect(screen.getByTestId('benchmark-name-header')).toHaveTextContent(
+      'Waiting for quota in default',
+    );
+  });
+
+  it('should show Pending without queue details for a queue-assigned job when the Kueue integration is disabled', () => {
+    // Default availability mock (availability undefined) models the disabled integration.
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
+
+    renderModal(job);
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Pending');
+    expect(screen.getByTestId('benchmark-name-header')).not.toHaveTextContent('Waiting for quota');
+    expect(screen.getByTestId('status-description')).toHaveTextContent('Evaluation job is pending');
+  });
+
+  it('should preserve a terminal EvalHub status when Kueue is stale', () => {
+    mockUseKueueWorkloadStatuses.mockReturnValue({
+      statusesByEvaluationId: new Map([
+        [
+          'eval-job-001',
+          {
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            evaluation_id: 'eval-job-001',
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            queue_name: 'default',
+            state: 'admitted',
+          },
+        ],
+      ]),
+      loaded: true,
+      isLoading: false,
+      error: undefined,
+    });
+
+    renderModal(mockEvaluationJob({ state: 'completed' }));
+
+    expect(screen.getByTestId('status-label-completed')).toHaveTextContent('Complete');
+    expect(screen.queryByTestId('kueue-progress-state')).not.toBeInTheDocument();
+  });
+
+  it('should show Kueue admission while the evaluation is pending', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        enabled: true,
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: true,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueWorkloadStatuses.mockReturnValue({
+      statusesByEvaluationId: new Map([
+        [
+          'eval-job-001',
+          {
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            evaluation_id: 'eval-job-001',
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            queue_name: 'default',
+            state: 'admitted',
+          },
+        ],
+      ]),
+      loaded: true,
+      isLoading: false,
+      error: undefined,
+    });
+
+    renderModal(mockEvaluationJob({ state: 'pending' }));
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Admitted');
+    expect(screen.queryByTestId('kueue-progress-state')).not.toBeInTheDocument();
+    expect(screen.getByTestId('status-description')).toHaveTextContent(
+      'admitted by Kueue through LocalQueue default and is pending',
+    );
+    expect(screen.queryByTestId('evaluation-status-queue')).not.toBeInTheDocument();
+  });
+
+  it('should explain why Kueue cannot admit a pending evaluation', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        enabled: true,
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: true,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueWorkloadStatuses.mockReturnValue({
+      statusesByEvaluationId: new Map([
+        [
+          'eval-job-001',
+          {
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            evaluation_id: 'eval-job-001',
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            queue_name: 'default',
+            state: 'inadmissible',
+            message: 'LocalQueue default does not exist',
+          },
+        ],
+      ]),
+      loaded: true,
+      isLoading: false,
+      error: undefined,
+    });
+
+    renderModal(mockEvaluationJob({ state: 'pending' }));
+
+    expect(screen.getByTestId('status-label-pending')).toHaveTextContent('Inadmissible');
+    expect(screen.getByTestId('status-description')).toHaveTextContent(
+      'Kueue could not admit this evaluation: LocalQueue default does not exist',
+    );
+  });
+
+  it('should show EvalHub Running after Kueue admits the evaluation', () => {
+    mockUseKueueAvailability.mockReturnValue({
+      availability: {
+        enabled: true,
+        // eslint-disable-next-line camelcase -- Kueue API field name.
+        scheduling_ready: true,
+      },
+      loaded: true,
+      error: undefined,
+    });
+    mockUseKueueWorkloadStatuses.mockReturnValue({
+      statusesByEvaluationId: new Map([
+        [
+          'eval-job-001',
+          {
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            evaluation_id: 'eval-job-001',
+            // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
+            queue_name: 'default',
+            state: 'admitted',
+          },
+        ],
+      ]),
+      loaded: true,
+      isLoading: false,
+      error: undefined,
+    });
+
+    renderModal(mockEvaluationJob({ state: 'running' }));
+
+    expect(screen.getByTestId('status-label-running')).toHaveTextContent('Running');
+    expect(screen.getByTestId('status-description')).toHaveTextContent(
+      'admitted by Kueue through LocalQueue default and is running',
+    );
   });
 
   it('should sort benchmarks by benchmark_index', () => {
@@ -609,13 +942,26 @@ describe('EvaluationStatusModal failure summary alert', () => {
       const alert = screen.getByTestId('failure-summary-alert');
       expect(alert).toHaveTextContent('bm-a: err-a');
 
+      // Collapsed text is clamped; expanded text is capped, scrollable, and
+      // keyboard-focusable so the modal height stays stable (RHAI-10244).
+      const summaryText = screen.getByTestId('failure-summary-text');
+      expect(summaryText).toHaveClass('evalhub-status-modal__failure-summary');
+      expect(summaryText).toHaveClass('m-clamped');
+      expect(summaryText).not.toHaveAttribute('tabindex');
+
       fireEvent.click(toggle);
       expect(toggle).toHaveTextContent('Show less');
       expect(alert).toHaveTextContent('bm-a: err-a');
+      expect(summaryText).toHaveClass('m-expanded');
+      expect(summaryText).toHaveAttribute('tabindex', '0');
+      expect(summaryText).toHaveAttribute('role', 'region');
+      expect(summaryText).toHaveAttribute('aria-label', 'Failure summary');
 
       fireEvent.click(toggle);
       expect(toggle).toHaveTextContent('Show more');
       expect(alert).toHaveTextContent('bm-a: err-a');
+      expect(summaryText).toHaveClass('m-clamped');
+      expect(summaryText).not.toHaveAttribute('tabindex');
     } finally {
       if (origScrollHeight) {
         Object.defineProperty(Element.prototype, 'scrollHeight', origScrollHeight);
@@ -735,6 +1081,10 @@ describe('EvaluationStatusModal view benchmark logs', () => {
     fireEvent.click(screen.getByTestId('progress-view-logs-0'));
 
     expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
+      expect.objectContaining({ benchmarkIndex: 0, source: 'progress_benchmark' }),
+    );
   });
 });
 
@@ -1265,6 +1615,17 @@ describe('EvaluationStatusModal reconfigure button', () => {
     expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
   });
 
+  it('should track viewing results from the status modal', () => {
+    renderModalWithReconfigure({ state: 'completed' });
+
+    fireEvent.click(screen.getByTestId('status-modal-view-results-button'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_RESULTS_VIEWED,
+      expect.objectContaining({ evaluationName: expect.any(String) }),
+    );
+  });
+
   it('should show view results button for completed jobs without onRequestReconfigure', () => {
     const job = mockEvaluationJob({ state: 'completed' });
     render(
@@ -1301,5 +1662,9 @@ describe('EvaluationStatusModal reconfigure button', () => {
 
     fireEvent.click(screen.getByTestId('status-modal-reconfigure-button'));
     expect(mockOnReconfigure).toHaveBeenCalledWith(job);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_RECONFIGURE_SELECTED,
+      expect.objectContaining({ previousState: 'failed' }),
+    );
   });
 });

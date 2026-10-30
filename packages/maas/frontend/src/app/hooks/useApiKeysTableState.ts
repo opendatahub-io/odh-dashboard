@@ -10,13 +10,19 @@ import {
   emptyApiKeyFilterData,
   APIKeyListResponse,
 } from '~/app/types/api-key';
+import type { SubscriptionDetail } from '~/app/types/api-key';
 import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
-import { applyInactiveFilter, isKeyInactive as isKeyInactiveUtil } from '~/app/utilities/apiKeys';
+import {
+  applyInactiveFilter,
+  isKeyInactive as isKeyInactiveUtil,
+  subscriptionDetailsFromUserSubscriptions,
+} from '~/app/utilities/apiKeys';
 import {
   ApiKeysSearchAppliedProperties,
   ApiKeysStatusFilterAppliedProperties,
   MaaSEvents,
 } from '~/app/types/event-tracking';
+import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';
@@ -32,6 +38,16 @@ export type UseApiKeysTableStateReturn = {
   refresh: () => void;
   filterData: ApiKeyFilterDataType;
   isKeyInactive: (key: APIKey) => boolean;
+  /**
+   * From BFF search enrichment — existence map for inactive status + row display.
+   * Admin: K8s MaaSSubscriptions; non-admin: caller-scoped MaaS /subscriptions.
+   */
+  statusSubscriptionDetails: Record<string, SubscriptionDetail> | undefined;
+  /**
+   * Subscriptions the current viewer can open (My Subscriptions).
+   * Gates whether the subscription cell is a link.
+   */
+  accessibleSubscriptionDetails: Record<string, SubscriptionDetail>;
   localUsername: string;
   setLocalUsername: React.Dispatch<React.SetStateAction<string>>;
   page: number;
@@ -96,9 +112,19 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
 
   const [rawResponse, loaded, error, refresh] = useFetchApiKeys(searchRequest);
 
+  const { subscriptions } = useKeysAndSubsContext();
+
+  // BFF attaches this on search (admin: K8s all CRs; non-admin: My Subscriptions).
+  const statusSubscriptionDetails = rawResponse.subscriptionDetails;
+
+  const accessibleSubscriptionDetails = React.useMemo(
+    () => subscriptionDetailsFromUserSubscriptions(subscriptions),
+    [subscriptions],
+  );
+
   const isKeyInactive = React.useCallback(
-    (key: APIKey): boolean => isKeyInactiveUtil(key, rawResponse.subscriptionDetails),
-    [rawResponse.subscriptionDetails],
+    (key: APIKey): boolean => isKeyInactiveUtil(key, statusSubscriptionDetails),
+    [statusSubscriptionDetails],
   );
 
   const { data: filteredData } = React.useMemo(
@@ -209,6 +235,8 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     refresh,
     filterData,
     isKeyInactive,
+    statusSubscriptionDetails,
+    accessibleSubscriptionDetails,
     localUsername,
     setLocalUsername,
     page,

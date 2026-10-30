@@ -2,7 +2,12 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -18,12 +23,17 @@ import (
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
@@ -31,6 +41,291 @@ import (
 	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+type noMatchListClient struct {
+	client.Client
+}
+
+func TestGetNamespacesUsesProjectsWithoutNamespaceGets(t *testing.T) {
+	const projectCount = 298
+
+	projects := &unstructured.UnstructuredList{}
+	projects.SetAPIVersion("project.openshift.io/v1")
+	projects.SetKind("ProjectList")
+	for i := range projectCount {
+		project := unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "project.openshift.io/v1",
+			"kind":       "Project",
+			"metadata": map[string]any{
+				"name": "project-" + strconv.Itoa(i),
+				"annotations": map[string]any{
+					"openshift.io/display-name": "Project " + strconv.Itoa(i),
+				},
+			},
+		}}
+		projects.Items = append(projects.Items, project)
+	}
+
+	var namespaceListRequests, namespaceGetRequests, projectListRequests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api":
+			_ = json.NewEncoder(w).Encode(metav1.APIVersions{Versions: []string{"v1"}})
+		case "/api/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{
+				GroupVersion: "v1",
+				APIResources: []metav1.APIResource{{Name: "namespaces", Kind: "Namespace"}},
+			})
+		case "/apis":
+			projectVersion := metav1.GroupVersionForDiscovery{
+				GroupVersion: "project.openshift.io/v1",
+				Version:      "v1",
+			}
+			_ = json.NewEncoder(w).Encode(metav1.APIGroupList{Groups: []metav1.APIGroup{{
+				Name:             "project.openshift.io",
+				Versions:         []metav1.GroupVersionForDiscovery{projectVersion},
+				PreferredVersion: projectVersion,
+			}}})
+		case "/apis/project.openshift.io/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{
+				GroupVersion: "project.openshift.io/v1",
+				APIResources: []metav1.APIResource{{Name: "projects", Kind: "Project"}},
+			})
+		case "/api/v1/namespaces":
+			namespaceListRequests++
+			http.Error(w, "forbidden", http.StatusForbidden)
+		case "/apis/project.openshift.io/v1/projects":
+			projectListRequests++
+			if err := json.NewEncoder(w).Encode(projects); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		default:
+			if len(r.URL.Path) > len("/api/v1/namespaces/") && r.URL.Path[:len("/api/v1/namespaces/")] == "/api/v1/namespaces/" {
+				namespaceGetRequests++
+			}
+			http.Error(w, "unexpected request", http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().Build(),
+		Config: &rest.Config{Host: server.URL},
+		Logger: slog.Default(),
+	}
+
+	namespaces, err := kc.GetNamespaces(context.Background(), &integrations.RequestIdentity{Token: "user-token"})
+
+	require.NoError(t, err)
+	require.Len(t, namespaces, projectCount)
+	assert.Equal(t, "project-0", namespaces[0].Name)
+	assert.Equal(t, "Project 0", namespaces[0].Annotations["openshift.io/display-name"])
+	assert.Equal(t, 1, namespaceListRequests)
+	assert.Equal(t, 1, projectListRequests)
+	assert.Zero(t, namespaceGetRequests)
+}
+
+func TestGetExternalModelsConfigUsesRequestClient(t *testing.T) {
+	const namespace = "test-namespace"
+
+	requestClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.ExternalModelsConfigMapName,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"config.yaml": `providers:
+  inference:
+  - provider_id: endpoint-1
+    provider_type: remote::openai
+    config:
+      base_url: https://example.com/v1
+      allowed_models:
+      - example-model
+registered_resources:
+  models:
+  - provider_id: endpoint-1
+    model_id: example-model
+    model_type: llm
+    metadata:
+      display_name: Example model`,
+		},
+	}).Build()
+	kc := &TokenKubernetesClient{
+		Client:   requestClient,
+		SAClient: fake.NewClientBuilder().Build(),
+		Logger:   slog.Default(),
+	}
+
+	config, err := kc.GetExternalModelsConfig(context.Background(), namespace)
+
+	require.NoError(t, err)
+	require.Len(t, config.RegisteredResources.Models, 1)
+	assert.Equal(t, "example-model", config.RegisteredResources.Models[0].ModelID)
+}
+
+func TestCreateOrUpdateExternalModelConfigMapRejectsDuplicateModelIDs(t *testing.T) {
+	const namespace = "test-namespace"
+
+	existingConfigYAML := `providers:
+  inference:
+  - provider_id: endpoint-1
+    provider_type: remote::openai
+    config:
+      base_url: https://example.com/v1
+registered_resources:
+  models:
+  - provider_id: endpoint-1
+    model_id: example-model
+    model_type: llm
+    metadata:
+      display_name: Example model`
+
+	newRequest := func(modelID string) models.ExternalModelRequest {
+		return models.ExternalModelRequest{
+			ModelID:          modelID,
+			ModelDisplayName: "New model",
+			BaseURL:          "https://new-endpoint.com/v1",
+			ModelType:        models.ModelTypeLLM,
+		}
+	}
+
+	t.Run("duplicate model ID under another provider: rejected without modifying the ConfigMap", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "2", "", newRequest("example-model"))
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "'example-model' is already registered")
+		assert.Contains(t, err.Error(), "endpoint-1")
+
+		// The ConfigMap must be unchanged — no provider or model appended.
+		config, getConfigErr := kc.GetExternalModelsConfig(context.Background(), namespace)
+		require.NoError(t, getConfigErr)
+		require.Len(t, config.RegisteredResources.Models, 1)
+		require.Len(t, config.Providers.Inference, 1)
+	})
+
+	t.Run("re-submitting the same model ID under the same provider: rejected", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "1", "", newRequest("example-model"))
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "'example-model' is already registered")
+	})
+
+	t.Run("unique model ID: appended", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "2", "", newRequest("another-model"))
+
+		require.NoError(t, err)
+
+		config, getConfigErr := kc.GetExternalModelsConfig(context.Background(), namespace)
+		require.NoError(t, getConfigErr)
+		require.Len(t, config.RegisteredResources.Models, 2)
+		require.Len(t, config.Providers.Inference, 2)
+	})
+}
+
+func (c noMatchListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
+	return &apimeta.NoKindMatchError{
+		GroupKind: schema.GroupKind{Group: "trustyai.opendatahub.io", Kind: "NemoGuardrails"},
+	}
+}
+
+type errorListClient struct {
+	client.Client
+	err error
+}
+
+func (c errorListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
+	return c.err
+}
+
+func TestGetNemoGuardrailsServiceURL(t *testing.T) {
+	t.Run("returns service URL for a NemoGuardrails CR", func(t *testing.T) {
+		guardrails := &unstructured.Unstructured{Object: map[string]interface{}{
+			"apiVersion": "trustyai.opendatahub.io/v1alpha1",
+			"kind":       "NemoGuardrails",
+			"metadata": map[string]interface{}{
+				"name":      "guardrails",
+				"namespace": testutil.TestNamespace,
+			},
+		}}
+		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().WithObjects(guardrails).Build(), Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Equal(t, "https://guardrails."+testutil.TestNamespace+".svc.cluster.local:443", url)
+	})
+
+	t.Run("returns no URL when no NemoGuardrails CR exists", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().Build(), Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns no URL when the CRD is not installed", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: noMatchListClient{Client: fake.NewClientBuilder().Build()}, Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns no URL when the API server reports the CRD resource as not found", func(t *testing.T) {
+		kc := &TokenKubernetesClient{
+			Client: errorListClient{
+				Client: fake.NewClientBuilder().Build(),
+				err:    apierrors.NewNotFound(schema.GroupResource{Group: "trustyai.opendatahub.io", Resource: "nemoguardrails"}, ""),
+			},
+			Logger: slog.Default(),
+		}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		require.NoError(t, err)
+		assert.Empty(t, url)
+	})
+
+	t.Run("returns an error for an unexpected Kubernetes error", func(t *testing.T) {
+		kc := &TokenKubernetesClient{Client: errorListClient{Client: fake.NewClientBuilder().Build(), err: assert.AnError}, Logger: slog.Default()}
+
+		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+		assert.Empty(t, url)
+		require.ErrorIs(t, err, assert.AnError)
+	})
+}
 
 func TestCanListOGXServers(t *testing.T) {
 	t.Run("should create proper SAR request for OGXServer resources", func(t *testing.T) {
@@ -407,7 +702,7 @@ func TestRequiresPassthroughProvider(t *testing.T) {
 		{name: "custom endpoint LLM", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeLLM)}, want: true},
 		{name: "namespace embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeNamespace, ModelType: string(models.ModelTypeEmbedding)}},
 		{name: "MaaS embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeEmbedding)}},
-		{name: "custom endpoint embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeEmbedding)}},
+		{name: "custom endpoint embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeEmbedding)}, want: true},
 		{name: "transcription", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeTranscription)}},
 	}
 
@@ -1136,6 +1431,227 @@ registered_resources:
 	})
 }
 
+// externalEmbeddingConfigMapYAML returns a gen-ai-aa-custom-model-endpoints ConfigMap body
+// declaring an embedding model. keyed controls only the presence of
+// custom_gen_ai.api_key.secretRef on the provider — the BFF's generated output must be
+// identical either way (RHOAIENG-100933: keyed and keyless take the same proxy-routed path).
+func externalEmbeddingConfigMapYAML(keyed bool) string {
+	credentials := ""
+	if keyed {
+		credentials = `
+        custom_gen_ai:
+          api_key:
+            secretRef:
+              name: "endpoint-api-key-1"
+              key: "api_key"
+`
+	}
+	return `
+providers:
+  inference:
+    - provider_id: "gemini-embedding-provider"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"` + credentials + `
+registered_resources:
+  models:
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding"
+        embedding_dimension: 3072
+`
+}
+
+// externalEmbeddingVectorStore returns a validated vector store whose embedding model is
+// the custom-endpoint embedding model declared by externalEmbeddingConfigMapYAML.
+func externalEmbeddingVectorStore() ValidatedVectorStore {
+	return ValidatedVectorStore{
+		Provider: models.VectorIOProvider{
+			ProviderID:   "pgvector-provider",
+			ProviderType: "remote::pgvector",
+			Config: models.VectorIOProviderConfig{
+				Extra: map[string]interface{}{
+					"host": "pgvector2.pgvect.svc.cluster.local",
+					"db":   "vectordb",
+				},
+			},
+		},
+		RegisteredStore: models.RegisteredVectorStore{
+			VectorStoreID:      "vs-signoff-001",
+			ProviderID:         "pgvector-provider",
+			EmbeddingModel:     "gemini-embedding-001",
+			EmbeddingDimension: 3072,
+			VectorStoreName:    "Example Team Data",
+		},
+	}
+}
+
+func TestGenerateLlamaStackConfigWithExternalEmbeddingModels(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	newConfigMap := func(yaml string) *corev1.ConfigMap {
+		return &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: "test-namespace",
+			},
+			Data: map[string]string{"config.yaml": yaml},
+		}
+	}
+
+	installModels := []models.InstallModel{
+		{
+			ModelName:       "gemini-embedding-001",
+			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+			ModelType:       string(models.ModelTypeEmbedding),
+		},
+	}
+
+	t.Run("GatewayDomain set: registers embedding model under genai-bff-proxy, no direct provider", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(true))).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			Client:    fakeClient,
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+		}
+
+		result, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.NoError(t, err)
+
+		var cfg LlamaStackConfig
+		require.NoError(t, cfg.FromYAML(result))
+
+		// No direct provider entry for the ConfigMap provider — the model routes via genai-bff-proxy.
+		for _, p := range cfg.Providers.Inference {
+			assert.NotEqual(t, "gemini-embedding-provider", p.ProviderID,
+				"no direct provider entry should be created for the custom-endpoint embedding model")
+		}
+
+		// The model is registered under genai-bff-proxy with the embedding dimension preserved.
+		var registered *Model
+		for i := range cfg.RegisteredResources.Models {
+			if cfg.RegisteredResources.Models[i].ModelID == "gemini-embedding-001" {
+				registered = &cfg.RegisteredResources.Models[i]
+			}
+		}
+		require.NotNil(t, registered, "embedding model should be registered")
+		assert.Equal(t, constants.PassthroughProviderID, registered.ProviderID)
+		assert.Equal(t, string(models.ModelTypeEmbedding), registered.ModelType)
+		assert.Equal(t, 3072, registered.Metadata["embedding_dimension"])
+
+		// The vector store binds to the proxy-routed identifier.
+		require.Len(t, cfg.RegisteredResources.VectorStores, 1)
+		assert.Equal(t, constants.PassthroughProviderID+"/gemini-embedding-001",
+			cfg.RegisteredResources.VectorStores[0].EmbeddingModel)
+
+		// The genai-bff-proxy passthrough provider entry is present.
+		var proxyProvider *Provider
+		for i := range cfg.Providers.Inference {
+			if cfg.Providers.Inference[i].ProviderID == constants.PassthroughProviderID {
+				proxyProvider = &cfg.Providers.Inference[i]
+			}
+		}
+		require.NotNil(t, proxyProvider, "genai-bff-proxy provider should be present")
+		assert.Equal(t, constants.PassthroughProviderType, proxyProvider.ProviderType)
+	})
+
+	t.Run("keyed and keyless providers generate identical output", func(t *testing.T) {
+		generate := func(keyed bool) string {
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(keyed))).
+				Build()
+
+			client := &TokenKubernetesClient{
+				Logger:    slog.Default(),
+				Client:    fakeClient,
+				EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+			}
+
+			result, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+			require.NoError(t, err)
+			return result
+		}
+
+		assert.Equal(t, generate(true), generate(false),
+			"keyed and keyless custom-endpoint embedding models must produce identical generated config")
+	})
+
+	t.Run("GatewayDomain empty: install fails fast with a clear error", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(true))).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		_, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.Error(t, err)
+		// Custom-endpoint embedding models require the genai-bff-proxy passthrough provider,
+		// so a missing GATEWAY_DOMAIN fails the install before any config is emitted.
+		assert.Contains(t, err.Error(), "GATEWAY_DOMAIN is not configured")
+		assert.Contains(t, err.Error(), "gemini-embedding-001")
+	})
+
+	t.Run("duplicate model_id across providers: install fails fast with a clear error", func(t *testing.T) {
+		// Proxy-routed registration keeps only the native model ID, so a model_id
+		// declared under two custom-endpoint providers cannot be resolved at query
+		// time (ResolveCustomEndpointModelProvider reports it as ambiguous). The
+		// install must reject the configuration instead of silently failing retrieval.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(`
+providers:
+  inference:
+    - provider_id: "gemini-embedding-provider"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    - provider_id: "gemini-embedding-provider-eu"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://eu.example.com/v1"
+registered_resources:
+  models:
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding"
+        embedding_dimension: 3072
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider-eu"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding (EU)"
+        embedding_dimension: 3072
+`)).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			Client:    fakeClient,
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+		}
+
+		_, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "gemini-embedding-001")
+		assert.Contains(t, err.Error(), "registered under 2 providers")
+		assert.Contains(t, err.Error(), "gemini-embedding-provider, gemini-embedding-provider-eu")
+	})
+}
+
 func TestModelSourceTypeRouting(t *testing.T) {
 	tests := []struct {
 		name               string
@@ -1202,6 +1718,19 @@ func TestModelSourceTypeConstants(t *testing.T) {
 }
 
 func TestInstallModelUnmarshalJSON(t *testing.T) {
+	t.Run("ignores a legacy max_tokens property", func(t *testing.T) {
+		jsonData := []byte(`{
+			"model_name": "gpt-4o", "model_source_type": "custom_endpoint",
+			"max_tokens": 4096.5
+		}`)
+
+		var model models.InstallModel
+		err := model.UnmarshalJSON(jsonData)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "gpt-4o", model.ModelName)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
+	})
 
 	t.Run("should handle custom_endpoint ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
@@ -1239,64 +1768,6 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "model_source_type is required")
-	})
-
-	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.NotNil(t, model.MaxTokens)
-		assert.Equal(t, 4096, *model.MaxTokens)
-	})
-
-	t.Run("should handle max_tokens as float64", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096.0
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.NotNil(t, model.MaxTokens)
-		assert.Equal(t, 4096, *model.MaxTokens)
-	})
-
-	t.Run("should reject fractional max_tokens", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": 4096.5
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "max_tokens must be an integer")
-	})
-
-	t.Run("should handle nil max_tokens", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
-			"max_tokens": null
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
-		assert.Nil(t, model.MaxTokens)
 	})
 
 	t.Run("should handle maas ModelSourceType", func(t *testing.T) {
@@ -1398,6 +1869,40 @@ registered_resources:
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
+	})
+
+	t.Run("custom transcription endpoint retains type and ASR capability", func(t *testing.T) {
+		cm := makeConfigMap(`providers:
+  inference:
+    - provider_id: groq-asr
+      provider_type: remote::openai
+      config:
+        base_url: https://api.groq.com/openai/v1
+registered_resources:
+  models:
+    - provider_id: groq-asr
+      model_id: whisper-large-v3
+      model_type: transcription
+      metadata:
+        display_name: Groq Whisper
+        capabilities:
+          - audio-transcription`)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(cm).
+			Build()
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.GetAAModelsFromExternalModels(context.Background(), identity, "test-ns")
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, result[0].ModelSourceType)
+		assert.Equal(t, models.ModelTypeTranscription, result[0].ModelType)
+		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
 	})
 
 	t.Run("explicit capabilities in YAML are passed through", func(t *testing.T) {
@@ -2207,7 +2712,39 @@ func TestOgxCommand_TracingEnabled(t *testing.T) {
 	assert.Contains(t, cmd[2], "sitecustomize.py")
 	assert.Contains(t, cmd[2], "opentelemetry-instrument")
 	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
+	assert.Contains(t, cmd[2], "--disabled_instrumentations=sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2")
 	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
+	// The office MIME types must also be registered through a .pth file in
+	// site-packages: opentelemetry-instrument prepends its own directory (which
+	// contains a sitecustomize.py) to PYTHONPATH for the main process and for
+	// multiprocessing workers, shadowing the office MIME-types sitecustomize.
+	assert.Contains(t, cmd[2], fmt.Sprintf("printf '%%s\\n' '%s' > \"$d/%s\"", officeMIMETypesPTHRegistration, officeMIMETypesPTHName))
+	assert.Contains(t, cmd[2], "for d in /opt/app-root/lib*/python*/site-packages")
+	// The MIME registration must not import the OTel auto-instrumentation hook,
+	// which would initialize instrumentation twice in worker processes.
+	assert.NotContains(t, officeMIMETypesPTHRegistration, "opentelemetry")
+}
+
+// officeMIMETypesRegistrations is the authoritative list of Office MIME types
+// that must be registered for the OGX file processor to route .docx/.pptx
+// uploads to MarkItDown. Both registration mechanisms — the ConfigMap's
+// sitecustomize module and the .pth file — must cover every entry.
+var officeMIMETypesRegistrations = []struct {
+	mimeType  string
+	extension string
+}{
+	{"application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"},
+	{"application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx"},
+}
+
+func TestOfficeMIMETypesRegistrationsInSync(t *testing.T) {
+	for _, r := range officeMIMETypesRegistrations {
+		call := fmt.Sprintf("mimetypes.add_type(%q, %q)", r.mimeType, r.extension)
+		assert.Contains(t, officeMIMETypesConfigMapContents, call,
+			"officeMIMETypesConfigMapContents must register %s", r.extension)
+		assert.Contains(t, officeMIMETypesPTHRegistration, call,
+			"officeMIMETypesPTHRegistration must register %s", r.extension)
+	}
 }
 
 func TestEnsureOGXGatewayCABundle(t *testing.T) {
@@ -2294,8 +2831,8 @@ func TestOgxEnvVars_TracingEnabled(t *testing.T) {
 	assert.Equal(t, "k8s.namespace.name=my-project", byName["OTEL_RESOURCE_ATTRIBUTES"])
 	assert.Equal(t, "http", byName["OTEL_SEMCONV_STABILITY_OPT_IN"])
 	assert.Equal(t, "true", byName["OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"])
-	assert.Equal(t, "health,version,metadata", byName["OTEL_PYTHON_FASTAPI_EXCLUDED_URLS"])
-	assert.Equal(t, "sqlite3", byName["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"])
+	assert.Equal(t, "health,version,metadata,models,vector_stores,providers,files", byName["OTEL_PYTHON_FASTAPI_EXCLUDED_URLS"])
+	assert.Equal(t, "sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2", byName["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"])
 }
 
 func TestOgxEnvVars_TracingEnabled_NamespaceInResourceAttributes(t *testing.T) {
@@ -2420,7 +2957,7 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		assert.Equal(t, []string{constants.CapabilityTextGeneration}, result[0].Capabilities)
 	})
 
-	t.Run("annotation populates Capabilities with text-generation prepended", func(t *testing.T) {
+	t.Run("hosted transcription annotation retains ASR-only capabilities and type", func(t *testing.T) {
 		isvc := &kservev1beta1.InferenceService{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "whisper-isvc",
@@ -2447,6 +2984,8 @@ func TestGetAAModelsFromInferenceServiceCapabilities(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		assert.Equal(t, []string{constants.CapabilityAudioTranscription}, result[0].Capabilities)
+		assert.Equal(t, models.ModelSourceTypeNamespace, result[0].ModelSourceType)
+		assert.Equal(t, models.ModelTypeTranscription, result[0].ModelType)
 	})
 
 	t.Run("custom capabilities in annotation pass through", func(t *testing.T) {
@@ -2682,4 +3221,88 @@ func TestInstallOGXServer_ZeroRestartPath(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "already exists", "stale URL must fall through to legacy error, not zero-restart")
 	})
+}
+
+func TestInstallOGXServer_UsesConfiguredDistribution(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, ogxapi.AddToScheme(scheme))
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+	kc := &TokenKubernetesClient{
+		Logger:    slog.Default(),
+		Client:    fakeClient,
+		EnvConfig: config.EnvConfig{DistributionName: "rh"},
+	}
+	_, err := kc.InstallOGXServer(context.Background(), &integrations.RequestIdentity{Token: "test-token"},
+		"test-ns", nil, nil, false, nil)
+	require.NoError(t, err)
+
+	server := &ogxapi.OGXServer{}
+	require.NoError(t, fakeClient.Get(context.Background(), types.NamespacedName{
+		Name: lsdName, Namespace: "test-ns",
+	}, server))
+	assert.Equal(t, "rh", server.Spec.Distribution.Name)
+}
+
+func TestOfficeMIMETypesWorkloadOverrides(t *testing.T) {
+	for _, testCase := range []struct {
+		enableTracing bool
+		expectedValue string
+	}{
+		{enableTracing: false, expectedValue: "false"},
+		{enableTracing: true, expectedValue: "true"},
+	} {
+		env, volumes, mounts := officeMIMETypesWorkloadOverrides(testCase.enableTracing)
+
+		require.Len(t, env, 2)
+		assert.Equal(t, "PYTHONPATH", env[0].Name)
+		assert.Equal(t, constants.OfficeMIMETypesMountPath, env[0].Value)
+		assert.Equal(t, "ODH_ENABLE_TRACING", env[1].Name)
+		assert.Equal(t, testCase.expectedValue, env[1].Value)
+
+		require.Len(t, volumes, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, volumes[0].Name)
+		require.NotNil(t, volumes[0].ConfigMap)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, volumes[0].ConfigMap.Name)
+		require.Len(t, volumes[0].ConfigMap.Items, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapKey, volumes[0].ConfigMap.Items[0].Key)
+
+		require.Len(t, mounts, 1)
+		assert.Equal(t, constants.OfficeMIMETypesConfigMapName, mounts[0].Name)
+		assert.Equal(t, constants.OfficeMIMETypesMountPath, mounts[0].MountPath)
+		assert.True(t, mounts[0].ReadOnly)
+	}
+}
+
+func TestNewOfficeMIMETypesConfigMap(t *testing.T) {
+	configMap := newOfficeMIMETypesConfigMap("test-namespace")
+
+	assert.Equal(t, constants.OfficeMIMETypesConfigMapName, configMap.Name)
+	assert.Equal(t, "test-namespace", configMap.Namespace)
+	assert.Equal(t, "true", configMap.Labels[OpenDataHubDashboardLabelKey])
+	assert.Equal(t, lsdName, configMap.Labels["ogx.io/server"])
+	assert.NotNil(t, configMap.Immutable)
+	assert.True(t, *configMap.Immutable)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `".docx"`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `".pptx"`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `ODH_ENABLE_TRACING`)
+	assert.Contains(t, configMap.Data[constants.OfficeMIMETypesConfigMapKey], `if os.environ.get`)
+}
+
+func TestIsTrustedOfficeMIMETypesConfigMap(t *testing.T) {
+	trusted := newOfficeMIMETypesConfigMap("test-namespace")
+	assert.True(t, isTrustedOfficeMIMETypesConfigMap(trusted))
+
+	tampered := trusted.DeepCopy()
+	tampered.Data[constants.OfficeMIMETypesConfigMapKey] += "\nimport malicious_code\n"
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(tampered))
+
+	extraData := trusted.DeepCopy()
+	extraData.Data["unexpected.py"] = "import malicious_code"
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(extraData))
+
+	binaryData := trusted.DeepCopy()
+	binaryData.BinaryData = map[string][]byte{"unexpected.py": []byte("import malicious_code")}
+	assert.False(t, isTrustedOfficeMIMETypesConfigMap(binaryData))
 }

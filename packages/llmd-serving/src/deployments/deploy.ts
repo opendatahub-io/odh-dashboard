@@ -9,7 +9,10 @@ import {
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import type { HardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
+import type {
+  HardwareProfileBinding,
+  HardwareProfileConfig,
+} from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
 import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
@@ -19,9 +22,11 @@ import {
   applyDisplayNameDesc,
   applyDashboardResourceLabel,
   applyTokenAuthentication,
+  applyDefaultScheduler,
 } from './model';
 import { applyConfigBaseRef } from './server';
 import { applyModelAvailabilityData } from '../wizardFields/modelAvailability';
+import { LLMD_DEPLOYMENT_METHOD_KEY } from '../wizardFields/deploymentMethodField';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import {
   isLLMInferenceServiceConfig,
@@ -41,7 +46,11 @@ import {
   updateLLMInferenceServiceConfig,
 } from '../api/LLMInferenceServiceConfigs';
 import { cleanlyDuplicateConfig } from '../utils';
-import { applyHfTokenEnvVar, resolveHfTokenSecretName } from '../hfTokenSecret';
+import {
+  applyHfTokenServiceAccount,
+  resolveHfTokenSecretName,
+  resolveHfTokenServiceAccountName,
+} from '../hfTokenSecret';
 
 export const BaseLLMInferenceService = (
   name?: string,
@@ -62,7 +71,6 @@ export const BaseLLMInferenceService = (
         name: name ?? '',
       },
       router: {
-        scheduler: {},
         route: {},
         gateway: {},
       },
@@ -82,6 +90,7 @@ type CreateLLMInferenceServiceParams = {
   k8sName: string;
   modelLocationData: ModelLocationData;
   hardwareProfile: HardwareProfileConfig;
+  hardwareProfileBinding?: HardwareProfileBinding;
   createConnectionData?: CreateConnectionFieldData;
   displayName?: string;
   description?: string;
@@ -91,6 +100,7 @@ type CreateLLMInferenceServiceParams = {
   modelAvailability?: ModelAvailabilityFieldsData;
   tokenAuthentication?: { displayName: string; uuid: string; error?: string }[];
   baseRef?: string;
+  isLLMdSelected?: boolean;
 };
 
 /**
@@ -109,6 +119,7 @@ const assembleLLMInferenceService = (
     displayName,
     description,
     hardwareProfile,
+    hardwareProfileBinding,
     modelLocationData,
     createConnectionData,
     replicas = 1,
@@ -117,6 +128,7 @@ const assembleLLMInferenceService = (
     modelAvailability,
     tokenAuthentication,
     baseRef,
+    isLLMdSelected,
   } = data;
   let llmInferenceService: LLMInferenceServiceKind = existingDeployment
     ? { ...existingDeployment }
@@ -135,10 +147,12 @@ const assembleLLMInferenceService = (
     createConnectionData,
     dryRun,
   );
+  llmInferenceService = applyDefaultScheduler(llmInferenceService, isLLMdSelected);
   llmInferenceService = applyHardwareProfileConfig(
     llmInferenceService,
     hardwareProfile,
     LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+    hardwareProfileBinding,
   );
   llmInferenceService = applyReplicas(llmInferenceService, replicas);
   llmInferenceService = applyModelEnvVarsAndArgs(
@@ -222,6 +236,7 @@ export const assembleLLMdDeployment = (
         displayName: wizardData.state.k8sNameDesc.data.name,
         description: wizardData.state.k8sNameDesc.data.description,
         hardwareProfile: wizardData.state.hardwareProfileConfig.formData,
+        hardwareProfileBinding: wizardData.state.hardwareProfileConfig.existingBinding,
         modelLocationData: wizardData.state.modelLocationData.data ?? {
           type: ModelLocationType.NEW,
           fieldValues: {},
@@ -234,6 +249,7 @@ export const assembleLLMdDeployment = (
         modelAvailability: wizardData.state.modelAvailability.data,
         tokenAuthentication: wizardData.state.tokenAuthentication.data,
         baseRef: llmInferenceServiceConfig ? k8sName : undefined,
+        isLLMdSelected: wizardData.state.deploymentMethod?.method === LLMD_DEPLOYMENT_METHOD_KEY,
       },
       existingDeployment?.model,
       connectionSecretName,
@@ -308,12 +324,24 @@ export const deployLLMdDeployment = async (
     throw new Error('LLMInferenceService is required');
   }
 
+  const deploymentK8sName =
+    modelResource.metadata.name || wizardData.k8sNameDesc.data.k8sName.value || '';
   const hfTokenSecretName = await resolveHfTokenSecretName(
     projectName,
     wizardData.huggingFaceApiKey.data,
     { dryRun },
   );
-  const llmInferenceServiceToDeploy = applyHfTokenEnvVar(modelResource, hfTokenSecretName);
+  const hfTokenServiceAccountName = await resolveHfTokenServiceAccountName(
+    projectName,
+    hfTokenSecretName,
+    deploymentK8sName,
+    { dryRun },
+  );
+  const llmInferenceServiceToDeploy = applyHfTokenServiceAccount(
+    modelResource,
+    hfTokenSecretName,
+    hfTokenServiceAccountName,
+  );
 
   let llmInferenceServiceConfig: LLMInferenceServiceConfigKind | undefined;
   if (serverResource) {

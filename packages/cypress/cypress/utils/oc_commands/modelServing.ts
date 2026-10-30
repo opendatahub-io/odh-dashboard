@@ -1,6 +1,6 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
 import { createDataConnection } from './dataConnection';
-import { ensureAdminOcSession } from './baseCommands';
+import { ensureAdminOcSession, getClusterArchitecture } from './baseCommands';
 import { AWS_BUCKETS } from '../s3Buckets';
 import type { CommandLineResult, DataConnectionReplacements } from '../../types';
 import { createCleanProject } from '../projectChecker';
@@ -62,6 +62,15 @@ type InferenceServiceState = {
     modelStatus?: {
       states?: {
         activeModelState?: string;
+        targetModelState?: string;
+      };
+      transitionStatus?: string;
+      lastFailureInfo?: {
+        reason?: string;
+        message?: string;
+        location?: string;
+        modelRevisionName?: string;
+        time?: string;
       };
     };
     deploymentMode?: string;
@@ -95,6 +104,7 @@ type ConditionCheckOptions = {
   checkReady?: boolean;
   checkStopped?: boolean;
   requireLoadedState?: boolean;
+  isLargeModel?: boolean;
 };
 
 /**
@@ -133,14 +143,27 @@ const safeString = (value: string | undefined | null): string => value ?? '';
  * @param options Optional configuration for condition checks
  * @returns Result Object of the operation
  */
+// KServe `reason` values on the Ready condition that indicate a terminal, non-recoverable
+// failure. These will never self-heal regardless of how many pod restarts occur.
+const TERMINAL_FAILURE_REASONS = new Set([
+  'ModelLoadFailed',
+  'InvalidStorageURI',
+  'BlockedByFailedLoad',
+  'RuntimeDisabled',
+  'NoSupportingRuntime',
+  'RuntimeNotRecognized',
+]);
+
 export const checkInferenceServiceState = (
   serviceName: string,
   namespace: string,
   options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
   const ocCommand = `oc get InferenceService ${serviceName} -n ${namespace} -o json`;
-  const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
+  const maxAttempts = 24; // 24 attempts × 10 s wait = ~4 minutes maximum OR ~8 minutes if LLM
   let attempts = 0;
+
+  let waitTime = options.isLargeModel ? 20_000 : 10_000; // 20 seconds or 10 seconds
 
   const checkState = (): Cypress.Chainable<Cypress.Exec> =>
     cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
@@ -183,6 +206,11 @@ export const checkInferenceServiceState = (
       // Check active model state
       const activeModelState =
         serviceState.status?.modelStatus?.states?.activeModelState || 'EMPTY';
+      const targetModelState =
+        serviceState.status?.modelStatus?.states?.targetModelState || 'EMPTY';
+      const transitionStatus = serviceState.status?.modelStatus?.transitionStatus || 'EMPTY';
+      const lastFailureReason = serviceState.status?.modelStatus?.lastFailureInfo?.reason || '';
+      const lastFailureMessage = serviceState.status?.modelStatus?.lastFailureInfo?.message || '';
       const conditions = serviceState.status?.conditions || [];
 
       // Check deployment mode — Standard mode does not populate activeModelState;
@@ -194,6 +222,10 @@ export const checkInferenceServiceState = (
       cy.log(`🧐 Attempt ${attempts}: Checking InferenceService state
         Service Name: ${serviceName}
         Active Model State: ${activeModelState}
+        Target Model State: ${targetModelState}
+        Transition Status: ${transitionStatus}
+        Last Failure Reason: ${lastFailureReason || '(none)'}
+        Last Failure Message: ${lastFailureMessage || '(none)'}
         Deployment Mode: ${actualDeploymentMode}
         Total Conditions: ${conditions.length}`);
 
@@ -270,6 +302,76 @@ export const checkInferenceServiceState = (
       );
       cy.log(`📋 InferenceService ${serviceName} deployment mode: ${actualDeploymentMode}`);
 
+      // Build full condition detail string — used in all error messages below.
+      const buildConditionDetails = (): string =>
+        conditions
+          .map(
+            (c) =>
+              `Type: ${safeString(c.type)}, Status: ${safeString(c.status)}, Reason: ${safeString(
+                c.reason,
+              )}, Message: ${safeString(c.message)}`,
+          )
+          .join('\n');
+
+      // --- Terminal failure detection (KServe-specific, both Standard and RawDeployment) ---
+      //
+      // KServe writes failure state in this order:
+      //   1. targetModelState  → 'FailedToLoad'         (set before activeModelState changes)
+      //   2. transitionStatus  → 'BlockedByFailedLoad'  (set in both Standard and RawDeployment)
+      //   3. activeModelState  → may remain '' or 'Loaded' from a prior successful load
+      //
+      // Checking only activeModelState === 'Failed' misses the common cases:
+      //   • Standard mode: activeModelState is never written, it stays ''
+      //   • RawDeployment first-load failure: activeModelState stays '' until KServe catches up
+      //   • Redeployment failure: activeModelState still shows 'Loaded' for the old revision
+      //
+      // The authoritative terminal-failure signal is therefore targetModelState or transitionStatus.
+      // lastFailureInfo.reason / .message carry the human-readable cause.
+      const isTerminalLoadFailure =
+        targetModelState === 'FailedToLoad' || transitionStatus === 'BlockedByFailedLoad';
+
+      if (isTerminalLoadFailure) {
+        const failureDetail =
+          lastFailureReason || lastFailureMessage || 'no additional details available';
+        const errorMessage =
+          `❌ InferenceService ${serviceName} has a terminal load failure — stopping poll.\n` +
+          `  targetModelState: ${targetModelState}\n` +
+          `  transitionStatus: ${transitionStatus}\n` +
+          `  lastFailureInfo.reason: ${lastFailureReason || '(none)'}\n` +
+          `  lastFailureInfo.message: ${lastFailureMessage || '(none)'}\n` +
+          `  Detail: ${failureDetail}\n` +
+          `  Full Condition Details:\n  ${buildConditionDetails()}`;
+        cy.log(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // --- Legacy activeModelState === 'Failed' guard ---
+      // Catches the edge case where KServe sets activeModelState='Failed' directly
+      // without setting targetModelState='FailedToLoad' (older controller versions).
+      // Uses TERMINAL_FAILURE_REASONS to distinguish permanent failures from transient
+      // pod restarts (e.g. RuntimeUnhealthy from OOMKill — those should keep polling).
+      if (activeModelState === 'Failed') {
+        const readyCondition = conditions.find((c) => c.type === 'Ready');
+        const failReason = safeString(readyCondition?.reason);
+        const isTerminal = TERMINAL_FAILURE_REASONS.has(failReason);
+
+        cy.log(
+          `⚠️ activeModelState is "Failed" — Ready condition reason: "${failReason}" — terminal: ${isTerminal}`,
+        );
+
+        if (isTerminal) {
+          const terminalMsg =
+            `❌ InferenceService ${serviceName} has a terminal failure (reason: ${failReason}) — aborting poll immediately\n` +
+            `  Active Model State: ${activeModelState}\n` +
+            `  Ready condition message: ${safeString(readyCondition?.message)}\n` +
+            `  Full Condition Details:\n  ${buildConditionDetails()}`;
+          cy.log(terminalMsg);
+          throw new Error(terminalMsg);
+        }
+        // Non-terminal (e.g. RuntimeUnhealthy) — pod may recover, keep polling.
+        cy.log(`ℹ️ Failure reason "${failReason}" is transient — continuing to poll`);
+      }
+
       // Determine overall success
       const allConditionsPassed =
         !shouldValidateConditions || checkedConditions.every((check) => check.isPassed);
@@ -281,45 +383,49 @@ export const checkInferenceServiceState = (
         return cy.wrap(result);
       }
 
-      if (attempts >= maxAttempts) {
-        // Prepare detailed error message with full condition details
-        const conditionDetails = conditions
-          .map(
-            (condition) =>
-              `Type: ${safeString(condition.type)}, Status: ${safeString(
-                condition.status,
-              )}, Reason: ${safeString(condition.reason)}, Message: ${safeString(
-                condition.message,
-              )}`,
-          )
-          .join('\n');
+      // UI deployment status badge — only shows "Failed" when KServe has conclusively
+      // marked the service as failed in the dashboard. Check before sleeping so a
+      // genuine UI-level failure is caught without waiting the full interval.
+      failOnDeploymentStatus(serviceName);
 
-        const errorMessage = `❌ InferenceService ${serviceName} did not meet all conditions within 8 minutes
-          Active Model State: ${activeModelState}
-          Condition Checks:
-          ${checkedConditions
+      if (attempts >= maxAttempts) {
+        const errorMessage =
+          `❌ InferenceService ${serviceName} did not meet all conditions within ~${
+            (maxAttempts * waitTime) / 60_000
+          } minutes\n` +
+          `  Active Model State: ${activeModelState}\n` +
+          `  Target Model State: ${targetModelState}\n` +
+          `  Transition Status: ${transitionStatus}\n` +
+          `  Last Failure Reason: ${lastFailureReason || '(none)'}\n` +
+          `  Last Failure Message: ${lastFailureMessage || '(none)'}\n` +
+          `  Condition Checks:\n  ${checkedConditions
             .map(
               (check) =>
                 `${check.name}: ${check.isPassed ? '✅' : '❌'} (Status: ${safeString(
                   check.foundCondition?.status,
                 )})`,
             )
-            .join('\n')}
-
-          Full Condition Details:
-          ${conditionDetails}`;
+            .join('\n  ')}\n` +
+          `  Full Condition Details:\n  ${buildConditionDetails()}`;
 
         cy.log(errorMessage);
         throw new Error(errorMessage);
       } else {
-        return cy.wait(50000).then(() => {
-          failOnDeploymentStatus(serviceName);
-          return checkState();
-        });
+        return cy.wait(waitTime).then(() => checkState());
       }
     });
 
-  return checkState();
+  return getClusterArchitecture().then((clusterArchitectureResult) => {
+    if (clusterArchitectureResult === 's390x') {
+      waitTime = 40_000; // 40 seconds = 16 minutes total
+      cy.log(
+        `Arch "${clusterArchitectureResult}" detected — waiting ${
+          waitTime / 1_000
+        }s before next poll`,
+      );
+    }
+    return checkState();
+  });
 };
 
 /**
@@ -607,6 +713,149 @@ export const verifyLLMInferenceServiceRuntimeArgs = (
 
     cy.log(
       `✅ Verified runtime arg "${expectedArg}" on LLMInferenceService "${llmInferenceServiceName}"`,
+    );
+  });
+};
+
+export type LLMInferenceServiceGatewayRef = {
+  name: string;
+  namespace: string;
+};
+
+const gatewayRefKey = (ref: LLMInferenceServiceGatewayRef): string =>
+  `${ref.namespace}/${ref.name}`;
+
+/** Single-quote for safe inclusion in cy.exec shell strings. */
+const shQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`;
+
+/**
+ * Creates a project-scoped Gateway selectable in the llm-d wizard (non-MaaS).
+ * Copies gatewayClassName from openshift-ai-inference so it matches the cluster.
+ */
+export const createProjectGatewayForLlmdTest = (
+  projectNamespace: string,
+  gatewayName: string,
+  fixturePath = 'resources/yaml/llmd-project-gateway.yaml',
+): Cypress.Chainable<Cypress.Exec> => {
+  const getClassCmd = `oc get gateway openshift-ai-inference -n openshift-ingress -o jsonpath='{.spec.gatewayClassName}'`;
+  return cy.exec(getClassCmd, { failOnNonZeroExit: false }).then((classResult) => {
+    const gatewayClassName = classResult.stdout.trim();
+    if (classResult.exitCode !== 0 || !gatewayClassName) {
+      throw new Error(
+        `Unable to resolve gatewayClassName from openshift-ai-inference: ${classResult.stderr}`,
+      );
+    }
+
+    return cy.fixture(fixturePath).then((yamlContent: string) => {
+      const resourceYaml = yamlContent
+        .replace(/name:\s*cypress-llmd-multi-gw/, `name: ${gatewayName}`)
+        .replace('PLACEHOLDER_GATEWAY_CLASS', gatewayClassName);
+      const tempFilePath = `/tmp/temp_llmd_gw_${Date.now()}.yaml`;
+      cy.writeFile(tempFilePath, resourceYaml);
+      const applyCmd = `oc apply -f ${shQuote(tempFilePath)} -n ${shQuote(projectNamespace)}`;
+      cy.log(`Creating project Gateway: ${applyCmd}`);
+      return cy.exec(applyCmd, { failOnNonZeroExit: false }).then((result) => {
+        cy.exec(`rm -f ${shQuote(tempFilePath)}`, { failOnNonZeroExit: false });
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `Failed to create Gateway "${gatewayName}" in "${projectNamespace}": ${result.stderr}`,
+          );
+        }
+        cy.log(`✅ Created Gateway "${gatewayName}" in "${projectNamespace}"`);
+      });
+    });
+  });
+};
+
+/**
+ * Sets the main container image on an LLMInferenceService (CPU workaround for non-GPU clusters).
+ * Prefer this over the YAML viewer when subsequent form fields (e.g. gateway) must be applied —
+ * editing YAML locks submit to the editor snapshot and drops later form field applies.
+ */
+export const patchLLMInferenceServiceContainerImage = (
+  namespace: string,
+  llmInferenceServiceName: string,
+  image: string,
+): Cypress.Chainable<Cypress.Exec> => {
+  const imageArg = JSON.stringify(image);
+  const jqFilter =
+    '.spec.template.containers = ((.spec.template.containers // [{name:"main"}]) | map(if .name == "main" then . + {image: $img} else . end))';
+  const ocCommand = [
+    `oc get LLMInferenceService ${shQuote(llmInferenceServiceName)} -n ${shQuote(
+      namespace,
+    )} -o json`,
+    `jq --arg img ${imageArg} '${jqFilter}'`,
+    `oc apply -f -`,
+  ].join(' | ');
+  cy.log(`Patching LLMInferenceService container image: ${ocCommand}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Failed to patch image on LLMInferenceService "${llmInferenceServiceName}": ${result.stderr}`,
+      );
+    }
+    cy.log(`✅ Patched image on LLMInferenceService "${llmInferenceServiceName}" to ${image}`);
+  });
+};
+
+/**
+ * Verifies `spec.router.gateway` on an LLMInferenceService.
+ * Pass an empty array to assert the optional empty shape (`gateway: {}` / no refs).
+ */
+export const verifyLLMInferenceServiceGatewayRefs = (
+  namespace: string,
+  llmInferenceServiceName: string,
+  expectedRefs: LLMInferenceServiceGatewayRef[],
+): Cypress.Chainable<Cypress.Exec> => {
+  const ocCommand = `oc get LLMInferenceService ${shQuote(llmInferenceServiceName)} -n ${shQuote(
+    namespace,
+  )} -o json`;
+  cy.log(`Executing command: ${ocCommand}`);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `LLMInferenceService "${llmInferenceServiceName}" not found in namespace "${namespace}": ${result.stderr}`,
+      );
+    }
+
+    const parsed = JSON.parse(result.stdout);
+    const hasGatewayProperty =
+      parsed.spec?.router != null &&
+      Object.prototype.hasOwnProperty.call(parsed.spec.router, 'gateway');
+    const gateway: { refs?: LLMInferenceServiceGatewayRef[] } = parsed.spec?.router?.gateway ?? {};
+    const actualRefs = Array.isArray(gateway.refs) ? gateway.refs : [];
+
+    if (expectedRefs.length === 0) {
+      // Require an explicit gateway: {} — omitting gateway entirely is the wrong shape.
+      if (!hasGatewayProperty || actualRefs.length > 0 || Object.keys(gateway).length > 0) {
+        throw new Error(
+          `Expected empty gateway ({}) on LLMInferenceService "${llmInferenceServiceName}", got: ${JSON.stringify(
+            hasGatewayProperty ? gateway : parsed.spec?.router,
+          )}`,
+        );
+      }
+      cy.log(`✅ Verified empty gateway on LLMInferenceService "${llmInferenceServiceName}"`);
+      return;
+    }
+
+    const actualKeys = actualRefs.map(gatewayRefKey).toSorted();
+    const expectedKeys = expectedRefs.map(gatewayRefKey).toSorted();
+    if (
+      actualKeys.length !== expectedKeys.length ||
+      actualKeys.some((key, index) => key !== expectedKeys[index])
+    ) {
+      throw new Error(
+        `Expected gateway refs ${JSON.stringify(
+          expectedRefs,
+        )} on LLMInferenceService "${llmInferenceServiceName}", got: ${JSON.stringify(actualRefs)}`,
+      );
+    }
+
+    cy.log(
+      `✅ Verified gateway refs on LLMInferenceService "${llmInferenceServiceName}": ${expectedKeys.join(
+        ', ',
+      )}`,
     );
   });
 };

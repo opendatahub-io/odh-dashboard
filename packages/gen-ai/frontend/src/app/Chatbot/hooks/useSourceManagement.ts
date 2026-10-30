@@ -3,13 +3,14 @@
 import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { ChatbotSourceSettings, FileModel } from '~/app/types';
 import { FILE_UPLOAD_CONFIG } from '~/app/Chatbot/const';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useFileUploadWithPolling from './useFileUploadWithPolling';
 
-export type FileStatus = 'pending' | 'configured' | 'uploading' | 'uploaded' | 'failed';
+export type FileStatus = 'pending' | 'configured' | 'uploading' | 'failed';
 
 export interface FileWithSettings {
   id: string;
@@ -207,13 +208,9 @@ const useSourceManagement = ({
 
             // Update state based on result
             if (result.success) {
-              // Mark as uploaded - will be auto-removed after 5 seconds by UploadedFileItem
+              // Remove completed files from the temporary upload queue
               setFilesWithSettings((prev) =>
-                prev.map((fileWithSettings) =>
-                  fileWithSettings.file.name === file.name
-                    ? { ...fileWithSettings, status: 'uploaded' }
-                    : fileWithSettings,
-                ),
+                prev.filter((fileWithSettings) => fileWithSettings.file.name !== file.name),
               );
               fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
@@ -231,7 +228,7 @@ const useSourceManagement = ({
               fireFormTrackingEvent(UPLOAD_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
                 success: false,
-                error: result.error,
+                error: errorCategory(result.error),
               });
               errors.push(`${file.name}: ${result.error}`);
               failureCount++;

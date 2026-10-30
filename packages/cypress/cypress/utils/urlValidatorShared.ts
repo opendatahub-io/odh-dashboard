@@ -92,6 +92,12 @@ export const getErrorType = (
     return 'permanent';
   }
 
+  // Status 0 means no HTTP response was received (timeout, DNS failure,
+  // connection refused). The server never rejected the request.
+  if (status === 0) {
+    return 'transient';
+  }
+
   // Network errors are generally transient (DNS, connection issues)
   if (error) {
     const lowerError = error.toLowerCase();

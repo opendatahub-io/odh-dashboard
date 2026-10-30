@@ -5,35 +5,40 @@ import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockW
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
 import type { WorkloadKind, WorkloadPodSet } from '@odh-dashboard/k8s-core';
 import { WorkloadOwnerType } from '@odh-dashboard/k8s-core';
-import { LocalQueueModel, WorkloadModel } from '@odh-dashboard/k8s-core/api/models';
-import { initIntercepts, type InitInterceptsOptions } from './infrastructureMocks';
-import { PodModel, ProjectModel } from '../../../utils/models';
+import { LocalQueueModel, WorkloadModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
+import { initIntercepts } from './infrastructureMocks';
+
+import { ProjectModel } from '../../../utils/models';
 import { getK8sAPIResourceURL } from '../../../utils/k8s';
 import { asClusterAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { infrastructurePage } from '../../../pages/infrastructure';
 
 describe('GPUaaS Infrastructure Page', () => {
-  it('should not be accessible for non-admin users', () => {
+  it('should expose only the Workloads tab for non-admin users', () => {
     asProjectAdminUser();
     initIntercepts();
     infrastructurePage.visit(false);
-    infrastructurePage.findNavItem().should('not.exist');
-    infrastructurePage.shouldNotFoundPage();
+    infrastructurePage.findNavItem().should('exist');
+    infrastructurePage.findWorkloadsTab().should('exist');
+    infrastructurePage.findUtilizationTab().should('not.exist');
+    infrastructurePage.findQuotaUsageTab().should('not.exist');
   });
 
-  (
-    [
-      ['Kueue is not installed', { isKueueInstalled: false }],
-      ['the gpuaas feature flag is disabled', { gpuaas: false }],
-    ] as [string, InitInterceptsOptions][]
-  ).forEach(([description, opts]) => {
-    it(`page does not exist when ${description}`, () => {
-      asClusterAdminUser();
-      initIntercepts(opts);
-      infrastructurePage.visit(false);
-      infrastructurePage.findNavItem().should('not.exist');
-      infrastructurePage.shouldNotFoundPage();
-    });
+  it('should keep the page available when Kueue is not installed', () => {
+    asClusterAdminUser();
+    initIntercepts({ isKueueInstalled: false });
+    infrastructurePage.visit(false);
+    infrastructurePage.findNavItem().should('exist');
+    infrastructurePage.findWorkloadsTab().should('exist');
+    infrastructurePage.findAdmissionsTab().should('not.exist');
+  });
+
+  it('page does not exist when the gpuaas feature flag is disabled', () => {
+    asClusterAdminUser();
+    initIntercepts({ gpuaas: false });
+    infrastructurePage.visit(false);
+    infrastructurePage.findNavItem().should('not.exist');
+    infrastructurePage.shouldNotFoundPage();
   });
 
   describe('cluster summary cards', () => {

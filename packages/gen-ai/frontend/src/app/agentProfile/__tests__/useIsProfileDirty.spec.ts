@@ -139,8 +139,8 @@ describe('useIsProfileDirty', () => {
     // Give useFetchMCPServers real servers so serializeToAgentProfileSpec produces mcpServers.
     jest.mocked(useFetchMCPServers).mockReturnValueOnce({
       data: [
-        { name: 'server-a', url: 'http://server-a' },
-        { name: 'server-b', url: 'http://server-b' },
+        { name: 'server-a', url: 'http://server-a', source: 'configmap' },
+        { name: 'server-b', url: 'http://server-b', source: 'configmap' },
       ] as never,
       configMapName: 'gen-ai-aa-mcp-servers',
       registryAvailable: false,
@@ -206,6 +206,54 @@ describe('useIsProfileDirty', () => {
       () => useIsProfileDirty(DEFAULT_CONFIG_ID, [], 'gen-ai-aa-mcp-servers'),
       { wrapper },
     );
+
+    expect(result.current).toBe(false);
+  });
+
+  it('should ignore registry version changes when the selected server is otherwise unchanged', () => {
+    const url = 'https://registry.example.com/jira';
+    useChatbotConfigStore.setState({
+      profileApplied: true,
+      loadedProfileSpec: makeMatchingSpec({
+        mcpServers: [{ name: 'com.example/jira', source: 'mlflow', version: '1' }],
+      }),
+      configurations: {
+        [DEFAULT_CONFIG_ID]: {
+          ...DEFAULT_CONFIGURATION,
+          selectedMcpServerIds: [url],
+        },
+      },
+    });
+
+    const { result } = renderHook(
+      () =>
+        useIsProfileDirty(DEFAULT_CONFIG_ID, [
+          {
+            name: 'com.example/jira',
+            url,
+            source: 'registry',
+            version: '2',
+          } as never,
+        ]),
+      { wrapper },
+    );
+
+    expect(result.current).toBe(false);
+  });
+
+  it('should not mark an unavailable saved registry server as a removed selection', () => {
+    const savedServer = {
+      name: 'com.example/jira',
+      source: 'mlflow' as const,
+      version: '1',
+      allowedTools: ['search_issues'],
+    };
+    useChatbotConfigStore.setState({
+      profileApplied: true,
+      loadedProfileSpec: makeMatchingSpec({ mcpServers: [savedServer] }),
+    });
+
+    const { result } = renderHook(() => useIsProfileDirty(DEFAULT_CONFIG_ID, []), { wrapper });
 
     expect(result.current).toBe(false);
   });

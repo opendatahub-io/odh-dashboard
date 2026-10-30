@@ -8,6 +8,7 @@
 ## Design Intent
 
 - **BFF**: Authenticates; resolves current user (Kubernetes RBAC or forwarded token in federated mode); proxies upstream MaaS REST API (`MAAS_API_URL`); reads Kubernetes for `MaaSSubscription`, `MaaSAuthPolicy`, `MaaSModelRef`, OpenShift `Group`, and core `Namespace`.
+- **MaaS Portal usage dashboards**: The BFF uses the shared `/whoami` calculation, including its subscription fallback, and its usage dashboard repository returns an allowlist of Perses definitions through `/api/v1/usage-dashboards`. The portal-specific authorization and namespaced RBAC flow is documented in the [MaaS Portal guide](../../../docs/maas-portal.md#observability).
 - **Local dev without cluster**: `cmd/main.go` supports `--mock-k8s-client` and `--mock-http-client`; `GET /healthcheck` for probes and contract tests.
 - **Federated mode**:
   - Module Federation remote **`maas`**: **`./extensions`** (ODH registrations), **`./extension-points`** (host contracts).
@@ -39,3 +40,5 @@
 - **Deprecated flags**: Prefer `--deployment-mode=<mode>` over legacy `--standalone-mode` / `--federated-platform`.
 - **`MOCK_HTTP_CLIENT`**: Fixtures under `bff/internal/integrations/maas/testdata/` do not cover all edge cases.
 - **Kubeflow mode**: Expects a Kuadrant-capable cluster; not fully mockable.
+
+For cluster-backed Cypress E2E runs, `dev-bff-e2e-cluster` keeps `MAAS_API_URL` pointed at the real gateway and sets `E2E_USE_PROXY_FROM_ENV=true` for the MaaS BFF. Its MaaS API client then honors the runner's `HTTPS_PROXY` and `NO_PROXY` settings. Other startup targets do not set this flag.

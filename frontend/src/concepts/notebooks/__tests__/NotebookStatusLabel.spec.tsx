@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { EventStatus } from '#~/types';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
@@ -132,10 +132,28 @@ describe('NotebookStatusLabel', () => {
     expect(getStatusLabelElement()).not.toHaveClass('pf-m-info');
   });
 
-  it('should always use filled variant', () => {
+  it('should use the outlined variant when it is not clickable', () => {
     render(
       <NotebookStatusLabel isStarting={false} isStopping={false} isRunning kueueStatus={null} />,
     );
-    expect(getStatusLabelElement()).not.toHaveClass('pf-m-outline');
+    expect(getStatusLabelElement()).toHaveClass('pf-m-outline');
+  });
+
+  it('should use the filled variant and invoke the handler when it is clickable', () => {
+    const onClick = jest.fn();
+    render(
+      <NotebookStatusLabel
+        isStarting={false}
+        isStopping={false}
+        isRunning
+        kueueStatus={null}
+        onClick={onClick}
+      />,
+    );
+
+    const statusLabel = getStatusLabelElement();
+    expect(statusLabel).not.toHaveClass('pf-m-outline');
+    fireEvent.click(within(statusLabel).getByRole('button'));
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import ClusterQueueWorkloadTableRow from './ClusterQueueWorkloadTableRow';
 import ClusterQueueWorkloadsToolbar, {
   buildWorkloadFilterOptions,
@@ -24,8 +25,10 @@ import {
   CLUSTER_QUEUE_WORKLOADS_EMPTY_BODY,
   CLUSTER_QUEUE_WORKLOADS_EMPTY_TITLE,
   CLUSTER_QUEUE_WORKLOADS_TABLE_DESCRIPTION,
+  ClusterQueueWorkloadsToolbarFilterOptions,
 } from '../../const';
 import { filterClusterQueueWorkloads } from '../../utils/clusterQueueWorkloadsTableUtils';
+import { GPUAAS_EVENTS } from '../../tracking/gpuaasTrackingConstants';
 
 export type ClusterQueueWorkloadsTableProps = {
   workloads: ClusterQueueWorkloadRow[];
@@ -49,12 +52,27 @@ const ClusterQueueWorkloadsTable: React.FC<ClusterQueueWorkloadsTableProps> = ({
 
   const onFilterUpdate = React.useCallback(
     (key: string, value?: string | { label: string; value: string }) => {
+      const nextFilterData = {
+        ...filterData,
+        [key]: value,
+      };
       setFilterData((current) => ({
         ...current,
         [key]: value,
       }));
+      const filterKey = Object.values(ClusterQueueWorkloadsToolbarFilterOptions).find(
+        (option) => option === key,
+      );
+      if (filterKey) {
+        const filterValue = typeof value === 'string' ? value : value?.value;
+        fireMiscTrackingEvent(GPUAAS_EVENTS.DRAWER_WORKLOADS_FILTER_APPLIED, {
+          filterAttribute: filterKey,
+          filterValue: filterValue ?? '',
+          matchCount: filterClusterQueueWorkloads(workloads, nextFilterData).length,
+        });
+      }
     },
-    [],
+    [filterData, workloads],
   );
 
   const onClearFilters = React.useCallback(() => {

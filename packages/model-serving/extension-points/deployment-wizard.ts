@@ -13,6 +13,7 @@ import type {
   ModelLocationData,
 } from '../src/shared/types/form-data';
 import type {
+  EnvironmentVariable,
   HuggingFaceApiKeyFieldData,
   ModelTypeFieldData,
   ModelServerSelectFieldData,
@@ -41,7 +42,7 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractReplicas: CodeRef<(deployment: D) => ExtractionResult<number | null>>;
     extractRuntimeArgs: CodeRef<(deployment: D) => { enabled: boolean; args: string[] } | null>;
     extractEnvironmentVariables: CodeRef<
-      (deployment: D) => { enabled: boolean; variables: { name: string; value: string }[] } | null
+      (deployment: D) => { enabled: boolean; variables: EnvironmentVariable[] } | null
     >;
     extractModelAvailabilityData: CodeRef<
       (deployment: D) => { saveAsAiAsset: boolean; useCase?: string } | null
@@ -54,7 +55,11 @@ export type ModelServingDeploymentFormDataExtension<D extends Deployment = Deplo
     extractModelServerTemplate: CodeRef<
       (deployment: D, dashboardNamespace?: string) => { data: ModelServerSelectFieldData } | null
     >;
-    extractHuggingFaceApiKey?: CodeRef<(deployment: D) => HuggingFaceApiKeyFieldData | null>;
+    extractHuggingFaceApiKey?: CodeRef<
+      (
+        deployment: D,
+      ) => HuggingFaceApiKeyFieldData | null | Promise<HuggingFaceApiKeyFieldData | null>
+    >;
     validateExtraction?: CodeRef<(deployment: D) => string[]>;
   }
 >;
@@ -73,6 +78,10 @@ export type DeploymentAssemblyResources<D extends Deployment = Deployment> = {
   server?: D['server'];
 };
 
+export type DeployMethodActivationInput = Pick<WizardFormData['state'], 'deploymentMethod'> & {
+  modelLocationData: Pick<WizardFormData['state']['modelLocationData'], 'data'>;
+};
+
 export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/deploy',
   {
@@ -80,13 +89,14 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     isActive:
       | CodeRef<
           (
-            wizardData: WizardFormData['state'],
+            wizardData: DeployMethodActivationInput,
             resources?: DeploymentAssemblyResources<D>,
           ) => boolean
         >
       | true;
     priority: number | 0;
     supportsOverwrite?: boolean;
+    supportsDRAHardwareProfiles?: boolean;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],

@@ -26,7 +26,7 @@ const mockPattern: AutoragPattern = {
   max_combinations: 20,
   duration_seconds: 120,
   settings: {
-    vector_store_binding: {
+    store_binding: {
       provider_type: 'milvus',
       collection_name: 'vs_collection0',
     },
@@ -186,7 +186,7 @@ describe('PatternDetailsModal', () => {
       <PatternDetailsModal
         {...defaultProps}
         patterns={[nonWinningCanonicalPattern]}
-        optimizationMetric={{ name: 'faithfulness' }}
+        optimizationMetric={{ name: 'faithfulness', evaluator: 'unitxt' }}
         rank={2}
       />,
     );
@@ -204,7 +204,7 @@ describe('PatternDetailsModal', () => {
     render(<PatternDetailsModal {...defaultProps} />);
 
     expect(screen.getByTestId('tab-pattern_information')).toBeInTheDocument();
-    expect(screen.getByTestId('tab-vector_store_binding')).toBeInTheDocument();
+    expect(screen.getByTestId('tab-store_binding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-chunking')).toBeInTheDocument();
     expect(screen.getByTestId('tab-embedding')).toBeInTheDocument();
     expect(screen.getByTestId('tab-retrieval')).toBeInTheDocument();
@@ -299,7 +299,7 @@ describe('PatternDetailsModal', () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...defaultProps} />);
 
-      await user.click(screen.getByTestId('tab-vector_store_binding'));
+      await user.click(screen.getByTestId('tab-store_binding'));
 
       expect(screen.getByText('Provider Type')).toBeInTheDocument();
       expect(screen.getByText('milvus')).toBeInTheDocument();
@@ -504,7 +504,7 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...twoPatternProps} onPatternChange={onPatternChange} />);
 
       await user.click(screen.getByTestId('pattern-selector-dropdown'));
-      await user.click(screen.getByText('pattern 1'));
+      await user.click(screen.getByText('Pattern A'));
 
       expect(onPatternChange).toHaveBeenCalledWith(1);
     });
@@ -569,7 +569,10 @@ describe('PatternDetailsModal', () => {
       const printSpy = jest.spyOn(window, 'print').mockImplementation(jest.fn());
       try {
         render(
-          <PatternDetailsModal {...defaultProps} optimizationMetric={{ name: 'faithfulness' }} />,
+          <PatternDetailsModal
+            {...defaultProps}
+            optimizationMetric={{ name: 'faithfulness', evaluator: 'unitxt' }}
+          />,
         );
         await user.click(screen.getByTestId('pattern-details-download'));
 
@@ -1161,6 +1164,142 @@ describe('PatternDetailsModal', () => {
       await user.click(screen.getByTestId('pattern-details-actions-toggle'));
       expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
       expect(screen.queryByText('View code')).not.toBeInTheDocument();
+    });
+
+    it('should not expose View code for Neo4j even when a template and database secret exist', async () => {
+      const user = userEvent.setup();
+      const neo4jPattern: AutoragPattern = {
+        ...mockPattern,
+        settings: {
+          ...mockPattern.settings,
+          store_binding: { ...mockPattern.settings.store_binding, provider_type: 'neo4j' },
+        },
+        inference: {
+          responses_template: {
+            model: 'test-model',
+            stream: false,
+            store: true,
+            input: 'question',
+            metadata: {
+              autorag_run_id: 'run-1',
+              rag_pattern_name: 'pattern0',
+              embedding_model: 'embedding-model',
+            },
+            instructions: 'Answer the question.',
+            tools: [
+              {
+                type: 'file_search',
+                vector_store_ids: ['vs-1'],
+                max_num_results: 5,
+              },
+            ],
+            tool_choice: { type: 'file_search' },
+            include: ['file_search_call.results'],
+          },
+        },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[neo4jPattern]}
+          databaseSecretName="neo4j"
+          onViewCode={jest.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByTestId('pattern-details-view-code')).not.toBeInTheDocument();
+    });
+
+    it('should not expose View code when the database secret is missing', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...defaultProps} onViewCode={jest.fn()} />);
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByTestId('pattern-details-view-code')).not.toBeInTheDocument();
+    });
+
+    it('should not expose Try this pattern when the embedding model is missing', async () => {
+      const user = userEvent.setup();
+      const patternWithoutEmbeddingModel = {
+        ...mockPattern,
+        settings: {
+          ...mockPattern.settings,
+          embedding: { ...mockPattern.settings.embedding, model_id: '  ' },
+        },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[patternWithoutEmbeddingModel]}
+          databaseSecretName="milvus"
+          maasSecretName="maas"
+          onTryPattern={jest.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByTestId('pattern-details-try-pattern')).not.toBeInTheDocument();
+      expect(screen.getByTestId('pattern-details-content')).toBeInTheDocument();
+    });
+
+    it('should expose View code for a supported provider with a template and database secret', async () => {
+      const user = userEvent.setup();
+      const supportedPattern: AutoragPattern = {
+        ...mockPattern,
+        inference: {
+          responses_template: {
+            model: 'test-model',
+            stream: false,
+            store: true,
+            input: 'question',
+            metadata: {
+              autorag_run_id: 'run-1',
+              rag_pattern_name: 'pattern0',
+              embedding_model: 'embedding-model',
+            },
+            instructions: 'Answer the question.',
+            tools: [
+              {
+                type: 'file_search',
+                vector_store_ids: ['vs-1'],
+                max_num_results: 5,
+              },
+            ],
+            tool_choice: { type: 'file_search' },
+            include: ['file_search_call.results'],
+          },
+        },
+      };
+
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          patterns={[supportedPattern]}
+          databaseSecretName="milvus"
+          maasSecretName="maas"
+          onViewCode={jest.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.getByTestId('pattern-details-view-code')).toBeInTheDocument();
+    });
+
+    it('should not expose View code when the MaaS secret is missing', async () => {
+      const user = userEvent.setup();
+      render(
+        <PatternDetailsModal
+          {...defaultProps}
+          databaseSecretName="milvus"
+          onViewCode={jest.fn()}
+        />,
+      );
+
+      await user.click(screen.getByTestId('pattern-details-actions-toggle'));
+      expect(screen.queryByTestId('pattern-details-view-code')).not.toBeInTheDocument();
     });
   });
 });

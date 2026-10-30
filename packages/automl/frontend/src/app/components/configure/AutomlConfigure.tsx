@@ -45,7 +45,6 @@ import {
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
-import { useQueryClient } from '@tanstack/react-query';
 import type { FileRejection } from 'react-dropzone';
 import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -53,13 +52,17 @@ import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
 import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import type { ExplorerFile } from '@odh-dashboard/internal/concepts/fileExplorer/types';
+import { ConfigureFormGroup } from '@odh-dashboard/autox-core/ui/components/primitive';
+import {
+  ConnectionModal,
+  SecretSelector,
+  type SecretSelection,
+} from '@odh-dashboard/autox-core/ui/components/feature';
+import { useS3FileUploadMutation } from '@odh-dashboard/autox-core/ui/hooks';
+import { getMissingRequiredKeys } from '@odh-dashboard/autox-core/ui/utils';
 import { getInferredPredictionType } from '~/app/utilities/predictionTypeUtils';
-import AutomlConnectionModal from '~/app/components/common/AutomlConnectionModal';
-import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
-import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
@@ -71,9 +74,12 @@ import {
   PRESET_BETTER_QUALITY,
   PRESET_FASTER,
   PRESET_LABELS,
+  PRESET_QUALITY,
+  PRESETS,
   REQUIRED_CONNECTION_SECRET_KEYS,
   TASK_TYPE_TIMESERIES,
   TASK_TYPES,
+  TIMESERIES_PRESETS,
 } from '~/app/utilities/const';
 import {
   findTimestampColumn,
@@ -82,7 +88,6 @@ import {
   isASCIIOnly,
 } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
-import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
   AUTOML_TRAINING_UPLOAD_MAX_FILES,
@@ -96,8 +101,10 @@ import {
 } from '~/app/utilities/automlTrainingDataFile';
 import { findEquivalentMetric, formatMetricName } from '~/app/utilities/utils';
 import {
+  fireAutomlS3ConnectionCreated,
   fireAutomlTargetColumnConfigured,
   fireAutomlTrainingDataConfigured,
+  TrackingOutcome,
   type AutomlFunnelStep,
 } from '~/app/utilities/tracking';
 import LoadingFormField from './LoadingFormField';
@@ -125,7 +132,6 @@ function AutomlConfigure({
   onFunnelStepChange,
 }: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
-  const queryClient = useQueryClient();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const automlConnectionTypes = React.useMemo(
     () =>
@@ -215,6 +221,14 @@ function AutomlConfigure({
 
   // Calculate max top_n based on task type
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
+  const availablePresets = isTimeseries ? TIMESERIES_PRESETS : PRESETS;
+
+  // Normalize unsupported presets on initial values as well as when switching to timeseries.
+  useEffect(() => {
+    if (isTimeseries && getValues('preset') === PRESET_QUALITY) {
+      setValue('preset', PRESET_FASTER, { shouldValidate: true });
+    }
+  }, [isTimeseries, getValues, setValue]);
 
   // Clear timeseries fields that conflict with the selected target column
   useEffect(() => {
@@ -267,7 +281,7 @@ function AutomlConfigure({
       });
       void trigger('top_n');
     }
-  }, [taskType, isTaskTypeSelected, getValues, setValue, trigger]);
+  }, [taskType, isTaskTypeSelected, isTimeseries, getValues, setValue, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);
@@ -281,6 +295,7 @@ function AutomlConfigure({
     isLoading: isLoadingColumns,
     isFetching: isFetchingColumns,
     error: columnsError,
+    resetSchemaCache,
   } = useS3GetFileSchemaQuery(
     namespace ?? '',
     trainDataSecretName,
@@ -395,10 +410,7 @@ function AutomlConfigure({
       return;
     }
     if (!trainDataSecretName || !trainDataBucketName || !trainDataFileKey) {
-      queryClient.setQueryData(
-        ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
-        [],
-      );
+      resetSchemaCache();
       setValue('target_column', '', { shouldValidate: true });
     }
   }, [
@@ -406,7 +418,7 @@ function AutomlConfigure({
     trainDataBucketName,
     trainDataFileKey,
     namespace,
-    queryClient,
+    resetSchemaCache,
     setValue,
   ]);
 
@@ -1056,7 +1068,7 @@ function AutomlConfigure({
                             name="preset"
                             render={({ field }) => (
                               <Flex direction={{ default: 'column' }}>
-                                {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
+                                {availablePresets.map((preset) => (
                                   <Radio
                                     key={preset}
                                     id={`preset-${preset}`}
@@ -1067,13 +1079,27 @@ function AutomlConfigure({
                                         <>
                                           4 vCPU / 16 GiB
                                           <br />
+                                          45-minute model-selection budget.
+                                          <br />
                                           Use fewer resources to prioritize speed
                                         </>
-                                      ) : (
+                                      ) : preset === PRESET_BETTER_QUALITY ? (
                                         <>
                                           8 vCPU / 32 GiB
                                           <br />
+                                          Up to 3 hours for model selection.
+                                          <br />
                                           Use more resources to prioritize accuracy
+                                        </>
+                                      ) : (
+                                        <>
+                                          16 vCPU / 64 GiB
+                                          <br />
+                                          Up to 6 hours for model selection, plus data loading and
+                                          refit; samples up to 10 GiB.
+                                          <br />
+                                          Choose for large datasets when maximum model search
+                                          quality is worth the longer run and higher resource use.
                                         </>
                                       )
                                     }
@@ -1177,7 +1203,7 @@ function AutomlConfigure({
       </Grid>
 
       {isConnectionModalOpen && (
-        <AutomlConnectionModal
+        <ConnectionModal
           connectionTypes={automlConnectionTypes}
           project={namespace}
           onClose={() => {
@@ -1209,6 +1235,16 @@ function AutomlConfigure({
               setNewConnectionNotLoaded(true);
             }
           }}
+          onOutcome={(outcome) =>
+            fireAutomlS3ConnectionCreated({
+              outcome:
+                outcome.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              ...(outcome.success === false && { error: 'actionFailed' }),
+              ...(outcome.success !== undefined && { success: outcome.success }),
+            })
+          }
+          getCreateError={(error) => (error instanceof Error ? error : new Error(String(error)))}
+          getSubmitError={(error) => (error instanceof Error ? error : new Error(String(error)))}
         />
       )}
       <S3FileExplorer

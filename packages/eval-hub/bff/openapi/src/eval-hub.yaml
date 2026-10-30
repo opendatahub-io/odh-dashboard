@@ -167,6 +167,31 @@ paths:
           schema:
             type: string
             enum: [system, tenant]
+        - name: sort_by
+          in: query
+          description: Sort collections by the requested ordering
+          required: false
+          schema:
+            type: string
+            enum: [curation_order]
+        - name: domains
+          in: query
+          description: Filter collections by domains (comma-separated)
+          required: false
+          schema:
+            type: string
+        - name: industries
+          in: query
+          description: Filter collections by industries (comma-separated)
+          required: false
+          schema:
+            type: string
+        - name: evaluation_targets
+          in: query
+          description: Filter collections by evaluation targets (comma-separated)
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           $ref: '#/components/responses/CollectionsResponse'
@@ -179,9 +204,39 @@ paths:
       operationId: listCollections
       summary: List Collections
       description: Gets a paginated, filterable list of benchmark collections from the EvalHub server.
+    post:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to scope the collection request (tenant)
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: createCollection
+      summary: Create Collection
+      description: Creates a tenant-scoped benchmark collection.
 
   /eval-hub/api/v1/evaluations/collections/{id}:
-    summary: Get a single benchmark collection
+    summary: Get, patch, or delete a single benchmark collection
     description: >-
       Retrieves a single benchmark collection by its resource ID from the
       EvalHub control plane. Returns the collection with its benchmarks,
@@ -208,6 +263,106 @@ paths:
       operationId: getCollection
       summary: Get Collection by ID
       description: Retrieves a single benchmark collection by its resource ID from the EvalHub server.
+    patch:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CollectionPatchOperation'
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: patchCollection
+      summary: Patch Collection
+      description: Applies JSON Patch operations to partially update a benchmark collection.
+    delete:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - $ref: '#/components/parameters/namespace'
+      responses:
+        '204':
+          description: Collection deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: deleteCollection
+      summary: Delete Collection
+      description: Permanently deletes a benchmark collection from the EvalHub server.
+
+  /eval-hub/api/v1/evaluations/collections/{id}/clones:
+    summary: Clone a benchmark collection
+    description: >-
+      Creates a tenant-scoped copy of an existing benchmark collection.
+      The request body can optionally override the name, description,
+      category, tags, evaluation targets, custom metadata, benchmarks, and pass
+      criteria of the cloned collection.
+    post:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/collectionId'
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the request
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloneCollectionRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: cloneCollection
+      summary: Clone a benchmark collection
+      description: >-
+        Creates a tenant-scoped copy of an existing benchmark collection with optional overrides.
 
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
@@ -322,6 +477,166 @@ paths:
       operationId: createEvaluationJob
       summary: Create Evaluation Job
       description: Creates and starts a new evaluation run against the EvalHub control plane.
+
+  # =============================================================================
+  # KUEUE AND HARDWARE PROFILE ENDPOINTS
+  # =============================================================================
+
+  /eval-hub/api/v1/kueue/availability:
+    summary: Get Kueue availability
+    get:
+      tags:
+        - Kueue
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespaceRequired'
+      responses:
+        '200':
+          description: Kueue availability for the namespace
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/KueueAvailability'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getKueueAvailability
+
+  /eval-hub/api/v1/kueue/workloads:
+    summary: Get Kueue Workload statuses for evaluation jobs
+    description: >-
+      The Kueue integration is disabled, so no Kubernetes Workloads are queried. The
+      request shape is validated and successful responses contain an empty items array.
+    get:
+      tags:
+        - Kueue
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespaceRequired'
+        - in: query
+          name: evaluation_ids
+          required: true
+          description: Comma-separated EvalHub evaluation job IDs, with a maximum of 100 unique IDs.
+          style: form
+          explode: false
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 100
+            items:
+              type: string
+              minLength: 1
+      responses:
+        '200':
+          description: Kueue Workload statuses for the requested evaluations; the Kueue integration is disabled, so items is always empty
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/KueueWorkloadStatusesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getKueueWorkloadStatuses
+
+  /eval-hub/api/v1/hardwareprofiles:
+    summary: List compatible HardwareProfiles
+    get:
+      tags:
+        - Kueue
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespaceRequired'
+      responses:
+        '200':
+          description: HardwareProfiles for the requested evaluation namespace; the Kueue integration is disabled, so items is always empty
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/HardwareProfilesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: listHardwareProfiles
+
+  /eval-hub/api/v1/hardwareprofiles/validate:
+    summary: Validate HardwareProfiles for evaluation providers
+    description: >-
+      Validates the shape of the request only. The Kueue integration is disabled, so no
+      HardwareProfile availability or provider resource compatibility checks are performed
+      and successful responses contain an empty items array.
+    post:
+      tags:
+        - Kueue
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespaceRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HardwareProfileValidationRequest'
+      responses:
+        '200':
+          description: Shape validation result for the requested HardwareProfiles; the Kueue integration is disabled, so items is always empty
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/HardwareProfileValidationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          description: EvalHub service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      operationId: validateHardwareProfiles
 
   /eval-hub/api/v1/evaluations/jobs/{id}:
     summary: Cancel or delete an evaluation job
@@ -451,73 +766,6 @@ paths:
       description: >-
         Retrieves execution logs for a specific benchmark within an
         evaluation job. Returns plain text log output.
-
-  # =============================================================================
-  # INTER-BFF: MODEL CATALOG SECURITY ARTIFACTS
-  # =============================================================================
-
-  /eval-hub/api/v1/catalog/sources/{source_id}/security_artifacts/{model_name}:
-    summary: Get security artifacts for a model from the Model Catalog
-    description: >-
-      Proxies the request to the Model-Catalog BFF (model-registry package) to
-      retrieve security artifacts for a specific model. Only the security_artifacts
-      endpoint is permitted by the bffclient allowlist; other model-catalog
-      endpoints are blocked.
-    get:
-      tags:
-        - ModelCatalog
-      security:
-        - Bearer: []
-      parameters:
-        - $ref: '#/components/parameters/namespace'
-        - name: source_id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Catalog source identifier
-          example: 'sample-source'
-        - name: model_name
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Model name (URL-encoded if it contains slashes, e.g. repo1%2Fgranite-8b)
-          example: 'granite-8b'
-        - $ref: '#/components/parameters/pageSize'
-        - $ref: '#/components/parameters/nextPageToken'
-        - $ref: '#/components/parameters/orderBy'
-        - $ref: '#/components/parameters/sortOrder'
-      responses:
-        '200':
-          $ref: '#/components/responses/CatalogSecurityArtifactsResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-        '502':
-          description: Bad Gateway - Model-Catalog BFF returned an error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-        '503':
-          description: Service Unavailable - Model-Catalog BFF is unreachable
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-      operationId: getCatalogModelSecurityArtifacts
-      summary: Get Model Security Artifacts
-      description: >-
-        Fetches security artifacts for a model from the Model Catalog via
-        inter-BFF communication. The response is proxied from the model-catalog
-        BFF's /model_catalog/sources/{source_id}/security_artifacts/{model_name}
-        endpoint.
 
   # =============================================================================
   # INFERENCE SERVICES
@@ -746,8 +994,6 @@ components:
           type: string
           format: date-time
           example: '2026-02-20T11:30:00Z'
-        message:
-          $ref: '#/components/schemas/JobMessage'
 
     JobStatus:
       type: object
@@ -811,28 +1057,18 @@ components:
           type: string
         metrics:
           type: object
-          additionalProperties:
-            type: number
-          description: Key-value metric scores
+          additionalProperties: true
+          description: >-
+            Metrics produced by evaluating the model on this benchmark, keyed by
+            metric name. Each value may be a scalar, list, or object.
         artifacts:
-          $ref: '#/components/schemas/BenchmarkArtifact'
-
-    BenchmarkArtifact:
-      type: object
-      properties:
-        oci_digest:
-          type: string
-        oci_reference:
-          type: string
-        size_bytes:
-          type: integer
-          format: int64
+          type: object
+          additionalProperties: true
+          description: Artifact key to location/info
 
     JobResults:
       type: object
       properties:
-        total_evaluations:
-          type: integer
         benchmarks:
           type: array
           items:
@@ -932,6 +1168,8 @@ components:
           description: Runtime parameters passed to the benchmark (e.g. num_examples, limit, tokenizer)
         test_data_ref:
           $ref: '#/components/schemas/TestDataRef'
+        hardware_config:
+          $ref: '#/components/schemas/HardwareConfig'
 
     EvaluationJob:
       type: object
@@ -940,7 +1178,6 @@ components:
         - status
         - results
         - model
-        - benchmarks
       properties:
         resource:
           $ref: '#/components/schemas/JobResource'
@@ -970,6 +1207,8 @@ components:
           $ref: '#/components/schemas/JobCollection'
         experiment:
           $ref: '#/components/schemas/JobExperiment'
+        hardware_config:
+          $ref: '#/components/schemas/HardwareConfig'
         custom:
           type: object
           additionalProperties: true
@@ -1008,7 +1247,15 @@ components:
       properties:
         id:
           type: string
-          description: ID of the benchmark collection to run
+          minLength: 1
+          pattern: '\S'
+          description: Non-blank ID of the benchmark collection to run
+        benchmarks:
+          type: array
+          description: Optional benchmark configurations to apply for this collection run.
+          items:
+            $ref: '#/components/schemas/JobBenchmark'
+          nullable: true
 
     OciCoordinates:
       type: object
@@ -1045,80 +1292,6 @@ components:
       properties:
         oci:
           $ref: '#/components/schemas/OciExport'
-
-    # -------------------------------------------------------------------------
-    # Model Catalog security artifact schemas (inter-BFF)
-    # -------------------------------------------------------------------------
-
-    CatalogSecurityArtifact:
-      type: object
-      required:
-        - artifactType
-      properties:
-        artifactType:
-          type: string
-          example: 'metrics-artifact'
-          description: Type of artifact (e.g. metrics-artifact, model-artifact)
-        id:
-          type: string
-          nullable: true
-          example: '259215'
-          description: Unique artifact identifier from the model registry
-        name:
-          type: string
-          nullable: true
-          example: 'security-b1c2d3e4-3001-4000-a000-000000000005'
-          description: Human-readable artifact name
-        externalId:
-          type: string
-          nullable: true
-          example: 'b1c2d3e4-3001-4000-a000-000000000005'
-          description: External identifier for cross-system reference
-        metricsType:
-          type: string
-          nullable: true
-          example: 'security-metrics'
-          description: Sub-type of metrics artifact
-        uri:
-          type: string
-          nullable: true
-          description: URI to the artifact data
-        createTimeSinceEpoch:
-          type: string
-          nullable: true
-          example: '1693526400000'
-          description: Creation timestamp in milliseconds since epoch
-        lastUpdateTimeSinceEpoch:
-          type: string
-          nullable: true
-          description: Last update timestamp in milliseconds since epoch
-        customProperties:
-          type: object
-          additionalProperties: true
-          nullable: true
-          description: Custom metadata properties associated with the artifact
-
-    CatalogSecurityArtifactList:
-      type: object
-      required:
-        - items
-        - size
-      properties:
-        nextPageToken:
-          type: string
-          description: Token for fetching the next page of results
-        pageSize:
-          type: integer
-          format: int32
-          description: Maximum items per page
-        size:
-          type: integer
-          format: int32
-          description: Number of items returned in this page
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/CatalogSecurityArtifact'
 
     # -------------------------------------------------------------------------
     # InferenceService schemas
@@ -1263,7 +1436,12 @@ components:
       required:
         - name
         - model
-        - benchmarks
+      anyOf:
+        - required:
+            - benchmarks
+        - required:
+            - collection
+      description: A non-empty benchmarks array or a collection with a non-blank ID is required.
       properties:
         name:
           type: string
@@ -1295,6 +1473,260 @@ components:
           additionalProperties: true
         exports:
           $ref: '#/components/schemas/JobExports'
+        hardware_config:
+          $ref: '#/components/schemas/HardwareConfig'
+        queue:
+          $ref: '#/components/schemas/HardwareQueueConfig'
+          deprecated: true
+          description: Deprecated legacy queue fallback. Use hardware_config.hardware_profile_name for profile mode or hardware_config.queue for direct mode.
+
+    HardwareConfig:
+      type: object
+      description: Hardware and scheduling configuration. HardwareProfile mode is mutually exclusive with direct resource and queue fields.
+      properties:
+        hardware_profile_name:
+          type: string
+          description: Name of the HardwareProfile CR to apply to the evaluation workload
+        cpu:
+          $ref: '#/components/schemas/HardwareResourceConfig'
+        memory:
+          $ref: '#/components/schemas/HardwareResourceConfig'
+        gpu:
+          $ref: '#/components/schemas/HardwareGPUConfig'
+        queue:
+          $ref: '#/components/schemas/HardwareQueueConfig'
+
+    HardwareResourceConfig:
+      type: object
+      properties:
+        request:
+          type: string
+          description: Kubernetes resource request quantity
+        limit:
+          type: string
+          description: Kubernetes resource limit quantity
+
+    HardwareGPUConfig:
+      type: object
+      required:
+        - name
+        - count
+      properties:
+        name:
+          type: string
+          description: Kubernetes extended resource name, such as nvidia.com/gpu
+        count:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Number of GPUs requested
+
+    HardwareQueueConfig:
+      type: object
+      required:
+        - name
+      properties:
+        kind:
+          type: string
+          default: kueue
+          description: Queue implementation kind
+        name:
+          type: string
+          description: LocalQueue name used for Kueue scheduling
+
+    # KUEUE SCHEMAS
+    KueueAvailability:
+      type: object
+      required:
+        - enabled
+        - scheduling_ready
+        - cluster_enabled
+        - namespace_managed
+        - local_queues_available
+        - local_queue_names
+      properties:
+        enabled:
+          type: boolean
+          description: Kueue is installed and manages this namespace.
+        scheduling_ready:
+          type: boolean
+          description: An available LocalQueue is configured and queue-backed evaluations can start.
+        cluster_enabled:
+          type: boolean
+        namespace_managed:
+          type: boolean
+        local_queues_available:
+          type: boolean
+        local_queue_names:
+          type: array
+          items:
+            type: string
+
+    KueueWorkloadState:
+      type: string
+      enum:
+        - queued
+        - admitted
+        - finished
+        - preempted
+        - inadmissible
+
+    KueueWorkloadStatus:
+      type: object
+      required:
+        - evaluation_id
+        - queue_name
+        - state
+      properties:
+        evaluation_id:
+          type: string
+          description: EvalHub evaluation job ID associated with the Kueue Workload
+        queue_name:
+          type: string
+          description: Kueue LocalQueue used by the Workload
+        state:
+          $ref: '#/components/schemas/KueueWorkloadState'
+        message:
+          type: string
+          description: Optional status detail reported by Kueue
+        queue_position:
+          type: integer
+          minimum: 1
+          description: One-based position of the Workload in its Kueue LocalQueue, when available
+
+    KueueWorkloadStatusesResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/KueueWorkloadStatus'
+
+    # HARDWARE PROFILE SCHEMAS
+    HardwareProfileResource:
+      type: object
+      required:
+        - identifier
+      properties:
+        display_name:
+          type: string
+        identifier:
+          type: string
+        resource_type:
+          type: string
+        default:
+          type: string
+        minimum:
+          type: string
+        maximum:
+          type: string
+
+    HardwareProfile:
+      type: object
+      required:
+        - name
+        - display_name
+        - enabled
+      properties:
+        name:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        scheduling_type:
+          type: string
+        local_queue_name:
+          type: string
+        cluster_queue_name:
+          type: string
+          description: ClusterQueue backing the HardwareProfile's LocalQueue
+        priority_class:
+          type: string
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/HardwareProfileResource'
+
+    HardwareProfilesResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HardwareProfile'
+        warning:
+          type: string
+
+    HardwareProfileValidationRequest:
+      type: object
+      required:
+        - hardware_profiles
+        - provider_ids
+      properties:
+        hardware_profiles:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+        provider_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+
+    HardwareProfileResourceMismatch:
+      type: object
+      required:
+        - provider_id
+        - resource
+        - required
+        - available
+        - message
+      properties:
+        provider_id:
+          type: string
+        resource:
+          type: string
+        required:
+          type: string
+        available:
+          type: string
+        message:
+          type: string
+
+    HardwareProfileValidationResult:
+      type: object
+      required:
+        - compatible
+        - hardware_profile
+      properties:
+        compatible:
+          type: boolean
+        hardware_profile:
+          type: string
+        mismatches:
+          type: array
+          items:
+            $ref: '#/components/schemas/HardwareProfileResourceMismatch'
+
+    HardwareProfileValidationResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HardwareProfileValidationResult'
 
     EvaluationJobsData:
       type: object
@@ -1347,6 +1779,9 @@ components:
         owner:
           type: string
           nullable: true
+        version_counter:
+          type: integer
+          nullable: true
 
     CollectionPrimaryScore:
       type: object
@@ -1380,6 +1815,7 @@ components:
           nullable: true
         weight:
           type: number
+          minimum: 0
           nullable: true
         primary_score:
           $ref: '#/components/schemas/CollectionPrimaryScore'
@@ -1388,6 +1824,15 @@ components:
         parameters:
           type: object
           additionalProperties: true
+          nullable: true
+
+    CollectionStatus:
+      type: object
+      description: Server-computed status for a collection.
+      properties:
+        run_count:
+          type: integer
+          description: Number of successful evaluation runs that used this collection.
           nullable: true
 
     Collection:
@@ -1402,6 +1847,10 @@ components:
           type: string
           minLength: 1
           example: 'Open LLM Leaderboard v2'
+        derived_from:
+          type: string
+          description: ID of the system collection this tenant collection was cloned from.
+          nullable: true
         category:
           type: string
           example: 'General'
@@ -1414,6 +1863,46 @@ components:
           items:
             type: string
           nullable: true
+        domains:
+          type: array
+          description: High-level evaluation domains. If unset, the server derives the union from benchmark domains.
+          items:
+            type: string
+          nullable: true
+        tasks:
+          type: array
+          description: Machine-learning tasks evaluated by this collection. If unset, the server derives the union from benchmark tasks.
+          items:
+            type: string
+          nullable: true
+        modalities:
+          type: array
+          description: Data modalities evaluated by this collection. If unset, the server derives the union from benchmark modalities.
+          items:
+            type: string
+          nullable: true
+        industries:
+          type: array
+          description: Business industries relevant to this collection.
+          items:
+            type: string
+          nullable: true
+        evaluation_targets:
+          type: array
+          description: Evaluation targets for this collection.
+          items:
+            type: string
+          nullable: true
+        curation_order:
+          type: integer
+          description: Positive ordering priority for system-curated collections. Zero or absent means not curated.
+          nullable: true
+        pinned_order:
+          type: integer
+          description: Ordering priority for pinned tenant collections.
+          nullable: true
+        status:
+          $ref: '#/components/schemas/CollectionStatus'
         custom:
           type: object
           additionalProperties: true
@@ -1425,6 +1914,142 @@ components:
           items:
             $ref: '#/components/schemas/CollectionBenchmark'
           nullable: true
+
+    CollectionPatchOperation:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required:
+            - op
+            - path
+            - value
+          properties:
+            op:
+              type: string
+              enum:
+                - replace
+                - add
+              description: JSON Patch operation type
+            path:
+              type: string
+              description: JSON Pointer path to the collection field being changed
+            value:
+              description: Value for add or replace operations
+        - type: object
+          additionalProperties: false
+          required:
+            - op
+            - path
+          properties:
+            op:
+              type: string
+              enum:
+                - remove
+              description: JSON Patch operation type
+            path:
+              type: string
+              description: JSON Pointer path to the collection field being changed
+    CollectionCreateRequest:
+      type: object
+      required:
+        - name
+        - benchmarks
+      properties:
+        name:
+          type: string
+          minLength: 1
+          pattern: '\S'
+        category:
+          type: string
+          deprecated: true
+          description: Deprecated legacy collection category.
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        domains:
+          type: array
+          items:
+            type: string
+        tasks:
+          type: array
+          items:
+            type: string
+        modalities:
+          type: array
+          items:
+            type: string
+        industries:
+          type: array
+          items:
+            type: string
+        evaluation_targets:
+          type: array
+          items:
+            type: string
+        custom:
+          type: object
+          additionalProperties: true
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        benchmarks:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CollectionBenchmark'
+
+    CloneCollectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'My Custom Suite'
+        description:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        domains:
+          type: array
+          description: High-level evaluation domains to apply to the cloned collection.
+          items:
+            type: string
+        tasks:
+          type: array
+          description: Machine-learning tasks to apply to the cloned collection.
+          items:
+            type: string
+        modalities:
+          type: array
+          description: Data modalities to apply to the cloned collection.
+          items:
+            type: string
+        industries:
+          type: array
+          description: Business industries to apply to the cloned collection.
+          items:
+            type: string
+        evaluation_targets:
+          type: array
+          description: Evaluation targets for this collection.
+          items:
+            type: string
+        custom:
+          type: object
+          description: User-defined metadata to apply to the cloned collection.
+          additionalProperties: true
+          nullable: true
+        pass_criteria:
+          $ref: '#/components/schemas/CollectionPassCriteria'
+        benchmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionBenchmark'
 
     CollectionsData:
       type: object
@@ -1593,6 +2218,16 @@ components:
         memory_limit:
           type: string
           nullable: true
+        gpu:
+          type: object
+          nullable: true
+          properties:
+            resource:
+              type: string
+              nullable: true
+            count:
+              type: integer
+              nullable: true
         env:
           type: array
           items:
@@ -1783,7 +2418,7 @@ components:
               clusterAdmin: true
 
     EvaluationJobsResponse:
-      description: Paginated list of evaluation jobs from EvalHub
+      description: List of evaluation jobs from EvalHub
       content:
         application/json:
           schema:
@@ -1792,16 +2427,25 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/EvaluationJobsData'
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationJob'
+              metadata:
+                type: object
+                description: >-
+                  List metadata. total_count is the upstream total number of
+                  matching jobs. truncated is true when the BFF capped the
+                  aggregated result at its maximum item count.
+                properties:
+                  total_count:
+                    type: integer
+                  truncated:
+                    type: boolean
           example:
-            data:
-              first:
-                href: '/api/v1/evaluations/jobs?offset=0&limit=50'
-              next:
-                href: '/api/v1/evaluations/jobs?offset=50&limit=50'
-              limit: 50
+            metadata:
               total_count: 2
-              items:
+              truncated: false
+            data:
                 - resource:
                     id: 'eval-job-001'
                     tenant: 'MMLU Benchmark'
@@ -1810,7 +2454,6 @@ components:
                   status:
                     state: 'completed'
                   results:
-                    total_evaluations: 1
                     benchmarks:
                       - id: 'arc_easy'
                         provider_id: 'lm_evaluation_harness'
@@ -1832,7 +2475,6 @@ components:
                   benchmarks:
                     - id: 'hellaswag'
                       provider_id: 'lm_evaluation_harness'
-              errors: []
 
     CollectionsResponse:
       description: List of benchmark collections from EvalHub
@@ -1951,34 +2593,6 @@ components:
                     limit: 5
                     tokenizer: 'google/flan-t5-small'
 
-    CatalogSecurityArtifactsResponse:
-      description: Security artifacts for the requested model
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - data
-            properties:
-              data:
-                $ref: '#/components/schemas/CatalogSecurityArtifactList'
-          example:
-            data:
-              nextPageToken: ''
-              pageSize: 10
-              size: 1
-              items:
-                - artifactType: 'metrics-artifact'
-                  metricsType: 'security-metrics'
-                  createTimeSinceEpoch: '1693526400000'
-                  customProperties:
-                    benchmark:
-                      metadataType: 'MetadataStringValue'
-                      string_value: 'intents'
-                    category:
-                      metadataType: 'MetadataStringValue'
-                      string_value: 'security'
-
     CancelEvaluationJobResponse:
       description: Evaluation job cancelled or deleted successfully
       content:
@@ -2007,6 +2621,20 @@ components:
 
     Unauthorized:
       description: Unauthorized - Invalid or missing authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    Forbidden:
+      description: Forbidden - User is not authorized to access this service
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    Conflict:
+      description: Conflict - Collection cannot be edited after it has been run
       content:
         application/json:
           schema:
@@ -2044,6 +2672,13 @@ components:
         type: string
       required: false
       description: Kubernetes namespace to scope the request (optional)
+    namespaceRequired:
+      in: query
+      name: namespace
+      schema:
+        type: string
+      required: true
+      description: Kubernetes namespace to scope the request
     limit:
       in: query
       name: limit
@@ -2051,18 +2686,23 @@ components:
         type: integer
         minimum: 1
         maximum: 100
-        default: 50
       required: false
-      description: Maximum number of evaluations to return
+      description: >-
+        Maximum number of evaluation jobs to return in single-page mode. When
+        both limit and offset are omitted, the BFF aggregates upstream pages
+        and returns up to 1,000 jobs. Supplying either limit or offset selects
+        single-page mode.
     offset:
       in: query
       name: offset
       schema:
         type: integer
         minimum: 0
-        default: 0
       required: false
-      description: Offset for pagination
+      description: >-
+        Pagination start index for single-page mode. Omitting offset (and
+        limit) selects aggregated mode; explicitly supplying offset — even
+        offset=0 — selects single-page mode, so no default is declared.
     statusFilter:
       in: query
       name: status
@@ -2196,6 +2836,8 @@ components:
 tags:
   - name: HealthCheck
     description: Health check and status endpoints
+  - name: Kueue
+    description: Kueue availability and queue-backed scheduling
   - name: Kubernetes
     description: Kubernetes cluster operations
   - name: Identity
@@ -2206,5 +2848,3 @@ tags:
     description: Benchmark collection management via EvalHub
   - name: Providers
     description: Evaluation provider and benchmark catalogue management via EvalHub
-  - name: ModelCatalog
-    description: Model Catalog inter-BFF proxy endpoints (security artifacts)

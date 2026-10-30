@@ -7,10 +7,11 @@ export type WorkspacePackageInfo = {
   dependencies?: Record<string, string>;
   exports?: Record<string, unknown>;
   'module-federation'?: unknown;
+  'module-federation-shared'?: string[];
 };
 
 export type RuntimeOdhPackages = {
-  /** All ODH packages to declare as shared singletons (host + remotes). */
+  /** All ODH package roots and explicitly declared export subpaths to share as singletons. */
   all: Set<string>;
   /**
    * Subset the host can provide (host dep graph + packages with `./extensions`).
@@ -38,8 +39,7 @@ const readPackageJson = (dir: string): PackageJsonFile | undefined => {
 const findMonorepoRoot = (): string => {
   let dir = process.cwd();
   while (dir !== path.dirname(dir)) {
-    const pkg = readPackageJson(dir);
-    if (pkg?.workspaces != null) {
+    if (fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) {
       return dir;
     }
     dir = path.dirname(dir);
@@ -57,8 +57,9 @@ const collectDependenciesFromContext = (startDir: string): Record<string, string
   readPackageJson(startDir)?.dependencies ?? {};
 
 const getWorkspacePackages = (root: string): WorkspacePackageInfo[] => {
+  const scriptPath = path.join(root, 'scripts/query-workspace-packages.js');
   try {
-    const stdout = execFileSync('npm', ['query', '.workspace', '--json'], {
+    const stdout = execFileSync('node', [scriptPath], {
       encoding: 'utf8',
       cwd: root,
       shell: process.platform === 'win32',
@@ -66,13 +67,13 @@ const getWorkspacePackages = (root: string): WorkspacePackageInfo[] => {
     const packages: WorkspacePackageInfo[] = JSON.parse(stdout);
     if (packages.length === 0) {
       throw new Error(
-        `npm query .workspace returned no packages (cwd: ${root}). ` +
-          'Ensure npm install has been run and the workspace is properly configured.',
+        `Workspace query returned no packages (cwd: ${root}). ` +
+          'Ensure pnpm is available and the workspace is properly configured.',
       );
     }
     return packages;
   } catch (e: unknown) {
-    if (e instanceof Error && e.message.includes('npm query .workspace returned no packages')) {
+    if (e instanceof Error && e.message.includes('Workspace query returned no packages')) {
       throw e;
     }
     const message = e instanceof Error ? e.message : String(e);
@@ -102,8 +103,35 @@ const collectOdhClosure = (
   return visited;
 };
 
+const validateAndExpandSharedExports = (
+  packageNames: Set<string>,
+  byName: Map<string, WorkspacePackageInfo>,
+): Set<string> => {
+  const moduleNames = new Set(packageNames);
+
+  for (const packageName of packageNames) {
+    const pkg = byName.get(packageName);
+    for (const exportPath of pkg?.['module-federation-shared'] ?? []) {
+      const isExplicitExport = exportPath.startsWith('./') && !exportPath.includes('*');
+      if (!isExplicitExport || pkg?.exports?.[exportPath] == null) {
+        const validExports = Object.keys(pkg?.exports ?? {}).filter(
+          (candidate) => candidate.startsWith('./') && !candidate.includes('*'),
+        );
+        throw new Error(
+          `${packageName} declares invalid module-federation-shared export "${exportPath}". ` +
+            'Entries must be explicit paths from the package exports map. ' +
+            `Valid explicit exports: ${validExports.join(', ') || '(none)'}.`,
+        );
+      }
+      moduleNames.add(`${packageName}/${exportPath.slice(2)}`);
+    }
+  }
+
+  return moduleNames;
+};
+
 /**
- * Collect @odh-dashboard/* packages for Module Federation sharing.
+ * Collect @odh-dashboard/* modules for Module Federation sharing.
  *
  * - **hostProvided**: host direct/transitive deps + packages that export
  *   `./extensions` (built into the host via the virtual plugin-extensions module).
@@ -112,6 +140,7 @@ const collectOdhClosure = (
  *   transitive deps. Federated-only entries stay shareable as singletons but must
  *   allow import/fallback on remotes.
  *
+ * Packages may opt specific exports into sharing with `module-federation-shared`.
  * Only follows `dependencies` (not devDependencies).
  * Must run from monorepo root so workspace scope is correct.
  */
@@ -128,8 +157,10 @@ const getRuntimeOdhPackages = (packages?: WorkspacePackageInfo[]): RuntimeOdhPac
     .map((p) => p.name);
   const federatedPackages = pkgs.filter((p) => p['module-federation']).map((p) => p.name);
 
-  const hostProvided = collectOdhClosure([...hostDeps, ...extensionPackages], byName);
-  const all = collectOdhClosure([...hostProvided, ...federatedPackages], byName);
+  const hostProvidedPackages = collectOdhClosure([...hostDeps, ...extensionPackages], byName);
+  const allPackages = collectOdhClosure([...hostProvidedPackages, ...federatedPackages], byName);
+  const hostProvided = validateAndExpandSharedExports(hostProvidedPackages, byName);
+  const all = validateAndExpandSharedExports(allPackages, byName);
 
   return { all, hostProvided };
 };

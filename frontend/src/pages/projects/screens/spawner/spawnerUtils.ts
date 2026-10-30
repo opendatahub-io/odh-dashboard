@@ -1,5 +1,10 @@
 import compareVersions from 'compare-versions';
-import type { Volume, VolumeMount, K8sDSGResource } from '@odh-dashboard/k8s-core';
+import type {
+  ContainerResources,
+  Volume,
+  VolumeMount,
+  K8sDSGResource,
+} from '@odh-dashboard/k8s-core';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { ImageStreamAnnotation, type ImageStreamStatusTag } from '#~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
@@ -440,3 +445,12 @@ export const getPvcVolumeDetails = (
       volumeMounts: [],
     },
   );
+
+// Only requests and limits; claims are objects and do not stringify.
+export const formatContainerResourcesForTracking = (resources?: ContainerResources): string =>
+  (['requests', 'limits'] as const)
+    .filter((key) => resources?.[key])
+    .map((key) =>
+      Object.entries(resources?.[key] || {}).map(([k, v]) => `${key}.${k}: ${v?.toString() || ''}`),
+    )
+    .join(', ');

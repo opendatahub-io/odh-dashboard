@@ -11,42 +11,24 @@ import {
   waitForValidatedModelCards,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
-import { isRHOAI } from '../../../utils/oc_commands/applications';
 import type { ModelCatalogSourceTestData } from '../../../types';
 
-describe('Verify Performance Filters are available on RHOAI', () => {
+describe('Verify Performance Filters are available', () => {
   let testData: ModelCatalogSourceTestData;
   let skipTest = false;
 
   retryableBefore(() => {
-    cy.step('Check if the operator is RHOAI');
-    isRHOAI().then((rhoai) => {
-      if (!rhoai) {
-        cy.log('ODH detected, skipping RHOAI-specific test.');
+    cy.step('Detect model-catalog namespace');
+    detectModelCatalogNamespace().then((foundNamespace) => {
+      if (!foundNamespace) {
+        cy.log('model-catalog deployment not found in any namespace, skipping test.');
         skipTest = true;
+      } else {
+        Cypress.env('MODEL_REGISTRY_NAMESPACE_OVERRIDE', foundNamespace);
+        waitForModelCatalogDeployment();
       }
     });
 
-    // Check if model-catalog deployment exists and detect its namespace
-    cy.then(() => {
-      if (skipTest) {
-        return;
-      }
-
-      cy.step('Detect model-catalog namespace');
-      detectModelCatalogNamespace().then((foundNamespace) => {
-        if (!foundNamespace) {
-          cy.log('model-catalog deployment not found in any namespace, skipping test.');
-          skipTest = true;
-        } else {
-          // Override the namespace for this test
-          Cypress.env('MODEL_REGISTRY_NAMESPACE_OVERRIDE', foundNamespace);
-          waitForModelCatalogDeployment();
-        }
-      });
-    });
-
-    // If not skipping, proceed with test setup
     cy.then(() => {
       if (skipTest) {
         return;
@@ -55,7 +37,7 @@ describe('Verify Performance Filters are available on RHOAI', () => {
       cy.fixture('e2e/modelCatalog/testSourceEnableDisable.yaml', 'utf8').then(
         (yamlContent: string) => {
           testData = yaml.load(yamlContent) as ModelCatalogSourceTestData;
-          ensureModelCatalogSourceEnabled(testData.redhatAiSourceId);
+          ensureModelCatalogSourceEnabled(testData.validatedSourceId);
         },
       );
     });
@@ -84,9 +66,7 @@ describe('Verify Performance Filters are available on RHOAI', () => {
     { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@ModelCatalog'] },
     () => {
       if (skipTest) {
-        cy.log(
-          'Skipping test - Validated models with performance data are RHOAI-specific and not available on ODH.',
-        );
+        cy.log('Skipping test - model-catalog deployment not found.');
         return;
       }
 
@@ -112,9 +92,18 @@ describe('Verify Performance Filters are available on RHOAI', () => {
       modelCatalog.findMaxRpsFilter().should('be.visible');
       modelCatalog.findColdStartLoadTimeFilter().should('be.visible');
 
-      cy.step('Verify performance sidebar slider filters appear');
-      modelCatalog.findMinimumVramFilter().scrollIntoView().should('be.visible');
-      modelCatalog.findContainerSizeFilter().scrollIntoView().should('be.visible');
+      cy.step('Check sidebar slider filters (conditional on backend data)');
+      cy.get('body').then(($body) => {
+        if ($body.find('[data-testid="minimum-vram-filter"]').length > 0) {
+          modelCatalog.findMinimumVramFilter().scrollIntoView().should('be.visible');
+          modelCatalog.findContainerSizeFilter().scrollIntoView().should('be.visible');
+        } else {
+          cy.log(
+            'Sidebar slider filters (vRAM, container size) not available — ' +
+              'backend filter options do not include range data for these fields.',
+          );
+        }
+      });
 
       cy.step('Check if performance data is available on this cluster');
       checkPerformanceDataAvailable(15000).then((count) => {

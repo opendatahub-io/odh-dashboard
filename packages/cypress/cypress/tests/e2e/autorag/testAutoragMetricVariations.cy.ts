@@ -1,6 +1,6 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
+import { deleteAutoXS3TestFiles } from '../../../utils/oc_commands/autoXS3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -69,7 +69,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       testData.vectorDbSecretName,
       connectionOwnership,
     );
-    deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
+    deleteAutoXS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
@@ -107,7 +107,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
       cy.step('Select answer_correctness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
-      autoragConfigurePage.findMetricOption('answer_correctness').click();
+      autoragConfigurePage.findMetricOption('unitxt:answer_correctness').click();
 
       cy.step('Set max RAG patterns');
       autoragConfigurePage
@@ -115,7 +115,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .type(`{selectall}${testData.maxRagPatterns}`);
 
       submitAutoragRun(
-        { ...testData, optimizationMetric: 'answer_correctness' },
+        { ...testData, optimizationMetric: 'unitxt:answer_correctness' },
         projectName,
         getAutoragInputDataKey(testData, uuid),
         getMaaSFixture(),
@@ -137,7 +137,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
       cy.step('Select faithfulness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
-      autoragConfigurePage.findMetricOption('faithfulness').click();
+      autoragConfigurePage.findMetricOption('unitxt:faithfulness').click();
 
       cy.step('Set max RAG patterns');
       autoragConfigurePage
@@ -145,7 +145,11 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
         .type(`{selectall}${testData.maxRagPatterns}`);
 
       submitAutoragRun(
-        { ...testData, runName: `${testData.runName}-faith`, optimizationMetric: 'faithfulness' },
+        {
+          ...testData,
+          runName: `${testData.runName}-faith`,
+          optimizationMetric: 'unitxt:faithfulness',
+        },
         projectName,
         getAutoragInputDataKey(testData, faithUuid),
         getMaaSFixture(),
@@ -167,7 +171,7 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
 
       cy.step('Select overall_score optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
-      autoragConfigurePage.findMetricOption('overall_score').click();
+      autoragConfigurePage.findMetricOption('custom:overall_score').click();
 
       cy.step('Set max RAG patterns');
       autoragConfigurePage

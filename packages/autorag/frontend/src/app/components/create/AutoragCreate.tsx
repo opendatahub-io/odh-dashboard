@@ -12,7 +12,10 @@ import {
 import React, { useRef } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router';
-import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import {
+  SecretSelector,
+  type SecretSelection,
+} from '@odh-dashboard/autox-core/ui/components/feature';
 import MaaSConnectionModal from '~/app/components/common/MaaSConnectionModal';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';

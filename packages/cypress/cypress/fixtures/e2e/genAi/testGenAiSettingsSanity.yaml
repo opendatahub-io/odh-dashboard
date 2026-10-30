@@ -11,6 +11,8 @@ prompt:
   template: 'You are a helpful assistant. Respond concisely to: {{ input }}'
   commitMessage: 'E2E test prompt for custom endpoint'
   testMessageWithPrompt: 'Summarize what a custom endpoint is in one sentence.'
+  variableName: 'input'
+  variableValue: 'e2e-test-value'
 prompt2:
   name: 'e2e-custom-ep-prompt-2'
   template: 'You are a concise technical assistant. Answer briefly: {{ input }}'

@@ -2,9 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+
+	httpclient "github.com/opendatahub-io/data-connect-hub/bff/internal/integrations/httpclient"
 )
 
 type HTTPError struct {
@@ -15,6 +18,18 @@ type HTTPError struct {
 type ErrorPayload struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+func (app *App) upstreamErrorResponse(w http.ResponseWriter, r *http.Request, err error) bool {
+	var upstreamErr *httpclient.HTTPError
+	if !errors.As(err, &upstreamErr) {
+		return false
+	}
+	app.errorResponse(w, r, &HTTPError{
+		StatusCode: upstreamErr.StatusCode,
+		Error:      ErrorPayload{Code: upstreamErr.Code, Message: upstreamErr.Message},
+	})
+	return true
 }
 
 func (app *App) LogError(r *http.Request, err error) {

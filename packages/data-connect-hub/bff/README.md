@@ -62,7 +62,11 @@ make run LOG_LEVEL=DEBUG
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
 | `-mock-bff-clients` | `MOCK_BFF_CLIENTS` | Use mock BFF clients (no real HTTP calls to other BFFs) |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ## Running the linter locally
 
@@ -210,22 +214,15 @@ Examples:
 
 ### Disabling TLS verification (development only)
 
-For local Kubeflow installations with self-signed certificates, you may need to disable TLS certificate verification.
-
-**Kubernetes deployment:**
-
-```yaml
-env:
-  - name: INSECURE_SKIP_VERIFY
-    value: "true"
-```
+For local development against a cluster with self-signed certificates, you may disable TLS certificate verification. The BFF accepts this setting only when development mode is enabled and no server certificate is configured.
 
 **Local development:**
 
 ```shell
-./bin/bff --insecure-skip-verify
+./bin/bff --dev-mode --insecure-skip-verify
 # or
+export DEV_MODE=true
 export INSECURE_SKIP_VERIFY=true
 ```
 
-> **Warning:** Only use in development. Keep TLS verification enabled in production.
+> **Warning:** Only use in local development. Disabling certificate verification exposes forwarded bearer tokens to interception. TLS verification remains enabled by default and the BFF rejects this setting outside development mode or when a server certificate is configured.

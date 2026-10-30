@@ -92,7 +92,7 @@ export const PROVIDER_REFERENCE_API_FORMAT_OPTIONS = Object.entries(
 export const INHERITED_CONFIG_PREVIEW_COUNT = 5;
 
 export const ADD_PATH_PLACEHOLDER_HELPER =
-  'Only the path uses {key} placeholders. {model} is filled automatically from the Target model ID. Other keys come from provider configuration — add a model override in Advanced settings only if this model needs a different value.';
+  "The URL path appended to the provider endpoint when routing requests. Placeholders such as {project} or {location} are replaced with values from the provider's key-value pairs. This field is prefilled with the default path for the selected API format.";
 
 export const EDIT_PATH_PLACEHOLDER_HELPER =
   'Wrap any key from the key-value pairs section in curly braces to insert its value — for example, /v1/projects/{project}/locations/{location}/chat/completions.';
@@ -111,8 +111,15 @@ export const CONFIG_EXAMPLES_HELPER = (
   </>
 );
 
-export const WEIGHT_POPOVER_CONTENT =
-  'Weights are relative integers that determine traffic distribution. The system calculates percentages from the ratio of all weights. Set to 0 to temporarily disable a provider without removing it. Example: weights of 5, 3, 2 result in 50%, 30%, 20% traffic split.';
+export const WEIGHT_POPOVER_CONTENT: React.ReactNode = (
+  <>
+    Weights control how traffic is split when a model references multiple providers. For example,
+    weights of 2 and 1 mean the first provider gets twice as much traffic as the second (67% / 33%).
+    <br />
+    <br />
+    Set a weight to 0 to temporarily disable a provider without removing it.
+  </>
+);
 
 export const EXCLUDED_FROM_ROUTING_POPOVER_CONTENT =
   'This provider reference will not receive any traffic but remains configured for easy re-enablement. Set weight to 1 or higher to include it in routing again. In the actual CRD, a weight of 0 removes the provider reference from active routing.';
@@ -127,15 +134,14 @@ const MISSING_MAAS_MODEL_REF_BODY = (
   <div>
     <p>
       MaaS governance features (subscriptions, authorization policies, API keys) require a
-      MaaSModelRef resource that references this external model. This resource must be deployed in
-      the same namespace as the external model.
+      MaaSModelRef resource that references this external model.
     </p>
   </div>
 );
 
 export const MissingMaaSModelRefWarning: React.FC = () => (
   <Popover
-    headerContent="Missing MaaS model setup"
+    headerContent="Missing MaaS governance setup"
     bodyContent={MISSING_MAAS_MODEL_REF_BODY}
     data-testid="external-model-missing-maas-model-ref-popover"
   >

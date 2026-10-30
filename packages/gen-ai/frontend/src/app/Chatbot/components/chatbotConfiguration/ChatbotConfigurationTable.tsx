@@ -24,8 +24,6 @@ type ChatbotConfigurationTableProps = {
   setSelectedModels: React.Dispatch<React.SetStateAction<AIModel[]>>;
   modelTypeMap: Map<string, string>;
   onModelTypeChange: (modelName: string, value: string) => void;
-  maxTokensMap: Map<string, number | undefined>;
-  onMaxTokensChange: (modelName: string, value: number | undefined) => void;
   embeddingDimensionMap: Map<string, number | undefined>;
   onEmbeddingDimensionChange: (modelName: string, value: number | undefined) => void;
   lockedModelNames: Set<string>;
@@ -37,8 +35,6 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
   setSelectedModels,
   modelTypeMap,
   onModelTypeChange,
-  maxTokensMap,
-  onMaxTokensChange,
   embeddingDimensionMap,
   onEmbeddingDimensionChange,
   lockedModelNames,
@@ -167,8 +163,6 @@ const ChatbotConfigurationTable: React.FC<ChatbotConfigurationTableProps> = ({
                     : 'Inference')
               }
               onModelTypeChange={(value) => onModelTypeChange(model.model_name, value)}
-              maxTokens={maxTokensMap.get(model.model_name)}
-              onMaxTokensChange={(value) => onMaxTokensChange(model.model_name, value)}
               embeddingDimension={
                 embeddingDimensionMap.has(model.model_name)
                   ? embeddingDimensionMap.get(model.model_name)

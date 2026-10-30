@@ -160,5 +160,14 @@ describe('buildURL', () => {
 
       expect(result).toBe('/perses/api/api/v2/projects/test-project/dashboards');
     });
+
+    it('should build URL with a host-provided Perses base path', () => {
+      const result = buildURL({
+        resource: 'dashboards',
+        basePath: '/custom-base/perses/api',
+      });
+
+      expect(result).toBe('/custom-base/perses/api/api/v1/dashboards');
+    });
   });
 });

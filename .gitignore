@@ -86,12 +86,16 @@ public-cypress/
 *.out
 *.test
 
+# Generated self-signed e2e TLS certs
+packages/notebooks/.e2e-tls/
+
 # Package manager caches
 .npm/
 vendor/
 
 # Agent worktrees
 .claude/worktrees/
+.agents/
 
 # Shared specs for cross-worktree context
 .claude/local-specs/

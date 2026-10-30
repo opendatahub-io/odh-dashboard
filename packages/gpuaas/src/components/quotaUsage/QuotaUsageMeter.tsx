@@ -53,7 +53,6 @@ export type QuotaUsageMeterProps = {
   showOverQuotaVisual?: boolean;
   ariaLabel: string;
   compact?: boolean;
-  showAcceleratorsLabel?: boolean;
   'data-testid'?: string;
 };
 
@@ -122,7 +121,6 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
   showOverQuotaVisual = false,
   ariaLabel,
   compact = false,
-  showAcceleratorsLabel = false,
   'data-testid': testId,
 }) => {
   const chartName = React.useId().replace(/:/g, '');
@@ -138,10 +136,7 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
     trackTotal,
   );
   const hasOverQuotaSegment = segments.overQuotaValue > 0;
-  const valueText =
-    variant === QUOTA_USAGE_METER_VARIANT.capacity && showAcceleratorsLabel
-      ? `${segments.valueLabel} accelerators`
-      : segments.valueLabel;
+  const valueText = segments.valueLabel;
   const chartWidth = compact ? COMPACT_CHART_WIDTH : FULL_CHART_WIDTH;
 
   if (variant === QUOTA_USAGE_METER_VARIANT.utilization && percentage === null) {
@@ -178,7 +173,7 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
       aria-label={`${ariaLabel}: ${valueText}`}
       data-testid={testId}
     >
-      <FlexItem flex={{ default: 'flexNone' }}>
+      <FlexItem className="gpuaas-quota-usage-meter__chart" flex={{ default: 'flexNone' }}>
         {hasOverQuotaTooltip ? (
           <Tooltip content={QUOTA_USAGE_METER.overQuotaTooltip}>{meterChart}</Tooltip>
         ) : (
@@ -186,7 +181,7 @@ const QuotaUsageMeter: React.FC<QuotaUsageMeterProps> = ({
         )}
       </FlexItem>
       <FlexItem>
-        <Content component="p" className="gpuaas-quota-usage-meter__value">
+        <Content component="small" className="gpuaas-quota-usage-meter__value">
           {valueText}
         </Content>
       </FlexItem>

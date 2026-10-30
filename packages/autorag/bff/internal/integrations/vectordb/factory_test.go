@@ -1,0 +1,130 @@
+package vectordb
+
+import (
+	"context"
+	"testing"
+
+	milvusclient "github.com/milvus-io/milvus/client/v2/milvusclient"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestNewFromSecretData_Unsupported(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{})
+	require.ErrorIs(t, err, ErrUnsupportedVectorDB)
+}
+
+func TestNewFromSecretData_DispatchesToMilvus(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"MILVUS_URI": []byte("http://milvus.apps.example.com:19530"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "external endpoints must use https")
+}
+
+func TestNewFromSecretData_DispatchesLegacyMilvus(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"MILVUS_URI":         []byte("http://milvus.apps.example.com:19530"),
+		"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "external endpoints must use https")
+}
+
+func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"PGVECTOR_HOST":     []byte("127.0.0.1"),
+		"PGVECTOR_PORT":     []byte("5432"),
+		"PGVECTOR_DB":       []byte("db"),
+		"PGVECTOR_USER":     []byte("user"),
+		"PGVECTOR_PASSWORD": []byte("password"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "literal IP")
+}
+
+func TestNewFromSecretData_PgvectorWithMilvusLegacyKeysDispatchesToPgvector(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"PGVECTOR_HOST":      []byte("127.0.0.1"),
+		"PGVECTOR_PORT":      []byte("5432"),
+		"PGVECTOR_DB":        []byte("db"),
+		"PGVECTOR_USER":      []byte("user"),
+		"PGVECTOR_PASSWORD":  []byte("password"),
+		"MILVUS_SERVER_CERT": []byte("legacy-certificate"),
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pgvector")
+	assert.NotContains(t, err.Error(), "milvus connect")
+}
+
+func TestValidateMilvusEndpoint_RejectsDirectLocalhost(t *testing.T) {
+	assert.Error(t, ValidateMilvusEndpoint("http://localhost:4321"))
+}
+
+func TestNewFromSecretDataWithForwarderLoopbackOriginalBypassesForwarder(t *testing.T) {
+	// Loopback originals are already internal endpoints, so they connect
+	// directly and never reach the forwarder; the CA cert is still validated.
+	called := false
+	_, err := NewFromSecretDataWithForwarder(context.Background(), map[string][]byte{
+		"MILVUS_URI":     []byte("http://localhost:19530"),
+		"MILVUS_CA_CERT": []byte("not a certificate"),
+	}, func(context.Context, string) (string, error) {
+		called = true
+		return "http://localhost:4321", nil
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse MILVUS_CA_CERT")
+	assert.False(t, called)
+}
+
+func TestNewFromSecretDataWithForwarderValidatesOriginalBeforeCallingForwarder(t *testing.T) {
+	called := false
+	_, err := NewFromSecretDataWithForwarder(context.Background(), map[string][]byte{
+		"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530?token=secret"),
+	}, func(context.Context, string) (string, error) {
+		called = true
+		return "http://localhost:4321", nil
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported credentials, query, fragment, or path")
+	assert.False(t, called)
+}
+
+func TestNewFromSecretDataWithForwarderTreatsPortlessExternalNoOpAsUnforwarded(t *testing.T) {
+	var clientConfig *milvusclient.ClientConfig
+	_, err := newFromSecretDataWithClient(
+		context.Background(),
+		map[string][]byte{"MILVUS_URI": []byte("https://milvus.example.com")},
+		func(_ context.Context, rawURL string) (string, error) {
+			assert.Equal(t, "https://milvus.example.com", rawURL)
+			return rawURL, nil
+		},
+		func(_ context.Context, cfg *milvusclient.ClientConfig) (milvusClient, error) {
+			clientConfig = cfg
+			return &captureMilvusClient{}, nil
+		},
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, clientConfig)
+	assert.Equal(t, "milvus.example.com:19530", clientConfig.Address)
+}
+
+func TestNewFromSecretDataWithForwarderRejectsUntrustedDestinations(t *testing.T) {
+	for _, forwarded := range []string{
+		"http://public.example.com:4321",
+		"https://localhost:4321",
+		"http://localhost:80",
+		"http://127.0.0.1:4321",
+	} {
+		t.Run(forwarded, func(t *testing.T) {
+			_, err := NewFromSecretDataWithForwarder(context.Background(), map[string][]byte{
+				"MILVUS_URI": []byte("http://milvus.milvus.svc.cluster.local:19530"),
+			}, func(context.Context, string) (string, error) {
+				return forwarded, nil
+			})
+			require.Error(t, err)
+		})
+	}
+}

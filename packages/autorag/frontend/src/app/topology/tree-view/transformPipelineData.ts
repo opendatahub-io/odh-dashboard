@@ -23,6 +23,7 @@ export const buildBranchExpandOptions = (
   winnerResolved: options?.winnerResolved === true && !!data.selectedPattern,
   winnerPatternLabel: data.winnerPatternLabel,
   winnerPatternKey: data.selectedPattern,
+  patternRanks: data.patternRanks,
 });
 
 export const transformPipelineData = (

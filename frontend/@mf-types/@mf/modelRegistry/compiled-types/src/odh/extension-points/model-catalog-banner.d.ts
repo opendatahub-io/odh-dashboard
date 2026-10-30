@@ -1,6 +1,6 @@
-import type { Extension, ExtensionPredicate, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 export type ModelCatalogBannerExtension = Extension<'model-catalog.page/banner', {
     id: string;
     component: CodeRef<React.ComponentType>;
 }>;
-export declare const isModelCatalogBannerExtension: ExtensionPredicate<ModelCatalogBannerExtension>;
+export declare const isModelCatalogBannerExtension: import("@openshift/dynamic-plugin-sdk").ExtensionPredicate<ModelCatalogBannerExtension>;

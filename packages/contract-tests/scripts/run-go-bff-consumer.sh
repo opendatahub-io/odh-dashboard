@@ -158,11 +158,25 @@ log_success "Go found: $(go version)"
 log_info "Starting Mock BFF server..."
 pushd "$BFF_DIR" >/dev/null
 
-# Provision envtest assets if setup helper missing (versions must match BFF Makefile: ENVTEST_VERSION, ENVTEST_K8S_VERSION)
-ENVTEST_RELEASE=release-0.19
-ENVTEST_K8S_VER=1.29.3
+# Provision envtest assets if setup helper missing.
+# Shared default matches most BFF Makefiles. Callers can override
+# (notebooks test:contract sets ENVTEST_K8S_VER=1.31.0).
+ENVTEST_RELEASE="${ENVTEST_RELEASE:-release-0.19}"
+ENVTEST_K8S_VER="${ENVTEST_K8S_VER:-1.29.3}"
+log_info "Using envtest ${ENVTEST_RELEASE} / Kubernetes ${ENVTEST_K8S_VER}"
+# Prefer the unsuffixed helper `make envtest` installs (notebooks: bin/setup-envtest),
+# then the versioned name used by other BFFs (bin/setup-envtest-release-0.19).
+resolve_setup_envtest() {
+  if [[ -x ./bin/setup-envtest ]]; then
+    printf '%s\n' ./bin/setup-envtest
+  elif [[ -x ./bin/setup-envtest-${ENVTEST_RELEASE} ]]; then
+    printf '%s\n' "./bin/setup-envtest-${ENVTEST_RELEASE}"
+  fi
+}
+
 if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
-  if [[ ! -x ./bin/setup-envtest-${ENVTEST_RELEASE} ]]; then
+  SETUP_ENVTEST="$(resolve_setup_envtest || true)"
+  if [[ -z "$SETUP_ENVTEST" ]]; then
     if command -v make >/dev/null 2>&1; then
       log_info "setup-envtest missing; attempting to provision via 'make envtest'"
       if make envtest; then
@@ -171,9 +185,10 @@ if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
         log_warning "make envtest failed; proceeding without KUBEBUILDER_ASSETS"
       fi
     fi
+    SETUP_ENVTEST="$(resolve_setup_envtest || true)"
   fi
-  if [[ -x ./bin/setup-envtest-${ENVTEST_RELEASE} ]]; then
-    ASSETS_PATH=$(./bin/setup-envtest-${ENVTEST_RELEASE} use "${ENVTEST_K8S_VER}" --bin-dir ./bin -p path || true)
+  if [[ -n "$SETUP_ENVTEST" ]]; then
+    ASSETS_PATH=$("$SETUP_ENVTEST" use "${ENVTEST_K8S_VER}" --bin-dir ./bin -p path || true)
     if [[ -n "$ASSETS_PATH" ]]; then
       export KUBEBUILDER_ASSETS="$ASSETS_PATH"
       export ENVTEST_ASSETS="$ASSETS_PATH"
@@ -200,7 +215,9 @@ log_info "Starting Mock BFF server on port $PORT..."
 
 BFF_BINARY="$(mktemp -d)/bff-test"
 log_info "Building Mock BFF binary..."
-go build -o "$BFF_BINARY" ./cmd
+# Optional Go build tags for BFFs that gate mock Kubernetes behind a tag
+# (e.g. notebooks: BFF_GO_BUILD_TAGS=mockk8s).
+go build ${BFF_GO_BUILD_TAGS:+-tags "$BFF_GO_BUILD_TAGS"} -o "$BFF_BINARY" ./cmd
 
 log_info "Starting Mock BFF server"
 "$BFF_BINARY" $BFF_MOCK_FLAGS --port "$PORT" --allowed-origins="*" > "$BFF_LOG_FILE" 2>&1 &

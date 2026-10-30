@@ -7,6 +7,7 @@ module.exports = require('@odh-dashboard/eslint-config')
       'api/**/*',
       // Ignore Go backend files
       'bff/**/*',
+      '!bff/**/*.md',
       // Ignore frontend (has its own eslint config) but allow markdown
       'frontend/**/*',
       '!frontend/**/*.md',

@@ -20,6 +20,7 @@ import {
   transcribeAudio,
 } from '~/app/services/llamaStackService';
 import { URL_PREFIX } from '~/app/utilities';
+import { ApiErrorClass } from '~/app/types';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
 import { mockVectorStores } from '~/__mocks__/mockVectorStores';
 import { mockLlamaStackDistribution } from '~/__mocks__/mockLlamaStackDistribution';
@@ -281,6 +282,80 @@ describe('llamaStackService', () => {
         );
       });
 
+      it('should extract every completed tool call, including failures', async () => {
+        const responseWithToolCalls = {
+          ...mockBackendResponse,
+          output: [
+            ...(mockBackendResponse.output ?? []),
+            {
+              id: 42,
+              type: 'mcp_call',
+              name: 'invalid-tool',
+            },
+            {
+              id: 'mcp-success',
+              type: 'mcp_call',
+              status: 'completed',
+              name: 'list_branches',
+              server_label: 'GitHub',
+              arguments: '{"repo":"org/platform"}',
+              output: '[{"name":"main"}]',
+            },
+            {
+              id: 'mcp-failed',
+              type: 'mcp_call',
+              status: 'failed',
+              name: 'get_latest_release',
+              server_label: 'GitHub',
+              error: 'Not found',
+            },
+            {
+              id: 'file-search',
+              type: 'file_search_call',
+              status: 'completed',
+              queries: ['{"query":"example"}'],
+              results: [],
+            },
+          ],
+        };
+        mockedRestCREATE.mockResolvedValueOnce({ data: responseWithToolCalls });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockCreateResponseRequest,
+        );
+
+        expect(result.toolCalls).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: 'mcp-success',
+              name: 'list_branches',
+              category: 'MCP',
+              status: 'completed',
+              arguments: '{"repo":"org/platform"}',
+              output: '[{"name":"main"}]',
+            }),
+            expect.objectContaining({
+              id: 'mcp-failed',
+              name: 'get_latest_release',
+              category: 'MCP',
+              status: 'failed',
+              arguments: undefined,
+              output: undefined,
+            }),
+            expect.objectContaining({
+              id: 'file-search',
+              category: 'RAG',
+              status: 'completed',
+              arguments: '{"query":"example"}',
+              output: '[]',
+            }),
+          ]),
+        );
+        expect(result.toolCalls).not.toEqual(
+          expect.arrayContaining([expect.objectContaining({ name: 'invalid-tool' })]),
+        );
+      });
+
       it('should handle response with no output', async () => {
         const responseWithoutOutput = {
           ...mockBackendResponse,
@@ -420,6 +495,30 @@ describe('llamaStackService', () => {
     });
 
     describe('streaming', () => {
+      it('uses the streaming path when no text callback is provided', async () => {
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+        );
+
+        expect(result.content).toBe('Hello');
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockedRestCREATE).not.toHaveBeenCalled();
+      });
+
       it('should handle streaming response successfully', async () => {
         const mockStreamData = jest.fn();
 
@@ -571,6 +670,156 @@ describe('llamaStackService', () => {
 
         expect(result.content).toBe(' World');
         expect(mockStreamData).toHaveBeenCalledTimes(1); // Only delta events processed
+      });
+
+      it('should forward file search lifecycle events to the tool call callback', async () => {
+        const mockStreamData = jest.fn();
+        const onToolCall = jest.fn();
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.added","item":{"id":"call-1","type":"file_search_call","status":"in_progress","queries":["sample request"]}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.file_search_call.in_progress","item_id":"call-1"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.done","item":{"id":"call-1","type":"file_search_call","status":"completed","results":[]}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
+          onStreamData: mockStreamData,
+          onToolCall,
+        });
+
+        expect(onToolCall).toHaveBeenCalledTimes(3);
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            type: 'response.output_item.added',
+            item: expect.objectContaining({ id: 'call-1', type: 'file_search_call' }),
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: 'response.file_search_call.in_progress',
+            item_id: 'call-1',
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({ type: 'response.output_item.done' }),
+        );
+      });
+
+      it('should forward MCP lifecycle events with nullable response fields', async () => {
+        const mockStreamData = jest.fn();
+        const onToolCall = jest.fn();
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.added","item":{"id":"call-1","type":"mcp_call","arguments":"","name":"list_branches","server_label":"GitHub-MCP-Server","error":null,"output":null}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.mcp_call.arguments.done","item_id":"call-1","arguments":"{\\"owner\\":\\"octocat\\"}"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.output_item.done","item":{"id":"call-1","type":"mcp_call","arguments":"{\\"owner\\":\\"octocat\\"}","name":"list_branches","server_label":"GitHub-MCP-Server","error":null,"output":"[]"}}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
+          onStreamData: mockStreamData,
+          onToolCall,
+        });
+
+        expect(onToolCall).toHaveBeenCalledTimes(3);
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            type: 'response.output_item.added',
+            item: expect.objectContaining({ id: 'call-1', type: 'mcp_call', output: null }),
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: 'response.mcp_call.arguments.done',
+            item_id: 'call-1',
+          }),
+        );
+        expect(onToolCall).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({
+            type: 'response.output_item.done',
+            item: expect.objectContaining({ id: 'call-1', type: 'mcp_call', output: '[]' }),
+          }),
+        );
+      });
+
+      it('should not forward malformed tool call lifecycle events', async () => {
+        const mockStreamData = jest.fn();
+        const onToolCall = jest.fn();
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.function_call_arguments.done","item_id":"call-1","arguments":false}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"type":"response.file_search_call.completed"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: true,
+              value: undefined,
+            }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
+          onStreamData: mockStreamData,
+          onToolCall,
+        });
+
+        expect(onToolCall).not.toHaveBeenCalled();
       });
 
       it('should handle streaming HTTP error', async () => {
@@ -1552,6 +1801,301 @@ describe('llamaStackService', () => {
       await expect(
         createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
       ).rejects.toThrow('tool_choice requires --tool-call-parser');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should reject on an OpenAI-style error event', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"type": "error", "message": "embedding failed: path_not_found"}\n',
+          ),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('embedding failed: path_not_found');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['missing message', 'data: {"type": "error"}\n'],
+      ['empty message', 'data: {"type": "error", "message": ""}\n'],
+      ['whitespace-only message', 'data: {"type": "error", "message": "   "}\n'],
+      ['non-string message', 'data: {"type": "error", "message": 42}\n'],
+    ])('should reject an error event with a %s', async (_, sse) => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(sse),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockResolvedValue(undefined),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('The response stream returned an error.');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should preserve the parsed SSE error when cancellation fails', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({
+          done: false,
+          value: new TextEncoder().encode(
+            'data: {"type": "error", "message": "embedding failed: path_not_found"}\n',
+          ),
+        }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn().mockRejectedValue(new TypeError('network error')),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await expect(
+        createPassthroughResponse('/gen-ai/api/v1', 'ns', 'secret', mockBody, jest.fn()),
+      ).rejects.toThrow('embedding failed: path_not_found');
+      expect(mockReader.cancel).toHaveBeenCalledWith('Streaming error');
+      expect(mockReader.releaseLock).toHaveBeenCalled();
+    });
+
+    it('should reject an AutoRAG endpoint URL that is not a same-origin relative path', async () => {
+      for (const endpointUrl of [
+        'https://evil.example/api',
+        '//evil.example/api',
+        'autorag/api/v1/responses',
+      ]) {
+        await expect(
+          createPassthroughResponse(
+            '/gen-ai/api/v1',
+            'ns',
+            'secret',
+            mockBody,
+            jest.fn(),
+            undefined,
+            endpointUrl,
+          ),
+        ).rejects.toThrow('Invalid responses endpoint URL');
+      }
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should route an AutoRAG responses endpoint through the BFF relay', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?namespace=ns&dbSecretName=db&maasSecretName=maas',
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3Fnamespace%3Dns%26dbSecretName%3Ddb%26maasSecretName%3Dmaas',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('should normalize bffBasePath for the relay URL', async () => {
+      const mockReader = {
+        read: jest.fn().mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      await createPassthroughResponse(
+        '/gen-ai',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db',
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3FdbSecretName%3Ddb',
+        expect.anything(),
+      );
+    });
+
+    it('should surface a relay 503 as a structured error', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: () =>
+          Promise.resolve(
+            '{"error":{"code":"service_unavailable","message":"relay target gateway is not configured (GATEWAY_DOMAIN)"}}',
+          ),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        error: {
+          code: 'service_unavailable',
+          message: 'relay target gateway is not configured (GATEWAY_DOMAIN)',
+        },
+        message: 'relay target gateway is not configured (GATEWAY_DOMAIN)',
+      });
+    });
+
+    it('should preserve structured errors from an overridden AutoRAG endpoint', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve('{"error":{"code":"400","message":"invalid RAG input"}}'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        error: { code: '400', message: 'invalid RAG input' },
+        message: 'invalid RAG input',
+      });
+    });
+
+    it.each([
+      ['missing message', '{"error":{"code":"400"}}'],
+      ['empty message', '{"error":{"code":"400","message":""}}'],
+      ['whitespace-only message', '{"error":{"code":"400","message":"   "}}'],
+      ['non-string message', '{"error":{"code":"400","message":123}}'],
+      ['non-object error', '{"error":"invalid error"}'],
+    ])('should use generic fallback for an AutoRAG error with %s', async (_, body) => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve(body),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'HTTP error! status: 400' });
+    });
+
+    it('should use the generic HTTP fallback for a malformed AutoRAG error body', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        text: () => Promise.resolve('{malformed-json'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'HTTP error! status: 502' });
+    });
+
+    it('should preserve a structured AutoRAG 404 error message', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: () =>
+          Promise.resolve('{"error":{"code":"404","message":"vector database secret not found"}}'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+        undefined,
+        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+      );
+
+      await expect(request).rejects.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({
+        error: { code: '404', message: 'vector database secret not found' },
+        message: 'vector database secret not found',
+      });
+    });
+
+    it('should preserve default passthrough fallback behavior without an AutoRAG endpoint', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve('{"error":{"code":"400","message":"invalid input"}}'),
+      });
+
+      const request = createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'ns',
+        'secret',
+        mockBody,
+        jest.fn(),
+      );
+
+      await expect(request).rejects.not.toBeInstanceOf(ApiErrorClass);
+      await expect(request).rejects.toMatchObject({ message: 'invalid input' });
     });
 
     it('should reject with "Response stopped by user" on AbortError', async () => {

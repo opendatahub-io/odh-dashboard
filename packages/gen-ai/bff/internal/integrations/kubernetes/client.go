@@ -43,6 +43,7 @@ type KubernetesClientInterface interface {
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
+	GetDashboardConfigMap(ctx context.Context, namespace string, name string) (*corev1.ConfigMap, error)
 
 	// External Models operations
 	GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
@@ -68,10 +69,34 @@ type KubernetesClientInterface interface {
 	// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
 	GetInferenceServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelName string) (string, error)
 
+	// GetServingModelDetails returns the internal endpoint URL and the served model ID for
+	// an InferenceService or LLMInferenceService. The reference may match the K8s resource
+	// name or the served model name (spec.model.name) of an LLMInferenceService.
+	GetServingModelDetails(ctx context.Context, namespace string, modelRef string) (string, string, error)
+
 	// AgentProfile operations
 	ListAgentProfiles(ctx context.Context, namespace string) (*models.AgentProfileListResponse, error)
 	CreateAgentProfile(ctx context.Context, namespace string, profile *models.AgentProfile) (*models.AgentProfileCreateResponse, error)
 	GetAgentProfile(ctx context.Context, namespace string, name string) (*models.AgentProfile, error)
 	UpdateAgentProfile(ctx context.Context, namespace string, profileID string, request *models.AgentProfileUpdateRequest) (*models.AgentProfileUpdateResponse, error)
 	DeleteAgentProfile(ctx context.Context, namespace string, profileID string) error
+
+	// Agent Deployment operations
+	ListAgentDeployments(ctx context.Context, namespace, agentProfileID string) (*models.AgentDeploymentListResponse, error)
+	IsAgentDeploymentDisplayNameTaken(ctx context.Context, namespace, displayName string) (bool, error)
+	GetAgentDeployment(ctx context.Context, namespace, name string) (*models.AgentDeploymentSummary, error)
+	DeleteAgentDeployment(ctx context.Context, namespace, name string) error
+	CreateSandboxConfigMap(ctx context.Context, namespace string, profileID string, configYAML string) (*corev1.ConfigMap, error)
+	CreateWrapperAppConfigMap(ctx context.Context, namespace string, profileID string, appPy string) (*corev1.ConfigMap, error)
+	CreateSandboxCR(ctx context.Context, namespace string, opts SandboxCROptions) (string, error)
+	SetSandboxConfigMapsOwner(ctx context.Context, namespace, sandboxName string, configMapNames ...string) error
+	CreateSandboxMCPAuthSecret(ctx context.Context, namespace, serverID, authorization string) (*corev1.Secret, error)
+	CreateSandboxModelAuthSecret(ctx context.Context, namespace, apiKey string) (*corev1.Secret, error)
+	SetSandboxMCPAuthSecretsOwner(ctx context.Context, namespace, sandboxName string, secretNames ...string) error
+	RollbackSandboxDeployment(ctx context.Context, namespace string, resources SandboxDeploymentResources)
+
+	// Agent Deployment networking
+	WaitForSandboxSelector(ctx context.Context, namespace, sandboxName string) (map[string]string, error)
+	CreateSandboxService(ctx context.Context, namespace, sandboxName string, selector map[string]string) error
+	CreateSandboxRoute(ctx context.Context, namespace, sandboxName string) (string, error)
 }

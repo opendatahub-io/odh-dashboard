@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ResourceTr } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
-import { Button, Flex, FlexItem, Label, Stack, StackItem } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Icon, Label, Stack, StackItem } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { convertStringToPhaseStatus, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
@@ -17,6 +18,7 @@ import {
   ExternalModelEditClickedProperties,
 } from '~/app/types/event-tracking';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import { convertStringToProviderType } from '~/app/pages/external-providers/utils';
 import { externalModelsColumns } from './columns';
 import {
   editExternalModelPath,
@@ -27,6 +29,7 @@ import {
   getExternalModelResource,
   isAwaitingGovernancePairing,
   isMissingMaaSModelRef,
+  isProviderRefMissing,
 } from './utils';
 import PathModal from './modals/ExternalModelsPathModal';
 import ProviderURLModal from './modals/ExternalModelsProviderModal';
@@ -144,6 +147,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
   }, [externalModel.providerRefs]);
 
   const showMoreToggle = hasOverflow || isExpanded;
+  const hasDeletedProviderRefs = externalModel.providerRefs.some(isProviderRefMissing);
 
   const nameCell = (
     <Td dataLabel={externalModelsColumns[1].label}>
@@ -154,8 +158,21 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
             {externalModel.displayName ?? externalModel.name}
           </span>
         }
+        titleIcon={
+          hasDeletedProviderRefs ? (
+            <Icon
+              status="danger"
+              className="pf-v6-u-ml-sm"
+              data-testid="external-model-deleted-provider-icon"
+              aria-label="One or more referenced providers have been deleted"
+            >
+              <ExclamationCircleIcon />
+            </Icon>
+          ) : undefined
+        }
         description={externalModel.description ?? ''}
         truncateDescriptionLines={2}
+        wrapResourceTitle={false}
         resource={getExternalModelResource(externalModel)}
         onShowPopover={() => {
           fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
@@ -299,7 +316,7 @@ const ExternalModelTableRow: React.FC<ExternalModelTableRowProps> = ({
         title="Path"
         description="The request path appended to the provider URL. If path variables were configured, they're shown with resolved values."
         subContentTitle="Provider"
-        subContent={pathModalRef?.provider?.provider ?? ''}
+        subContent={convertStringToProviderType(pathModalRef?.provider?.provider ?? '')}
       />
       <ProviderURLModal
         isOpen={!!providerURLModalRef}

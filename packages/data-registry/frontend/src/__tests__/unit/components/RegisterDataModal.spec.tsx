@@ -1,26 +1,36 @@
+/* eslint-disable camelcase */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import * as dataRegistryApi from '~/app/api/dataRegistry';
 import * as connectionsHook from '~/app/hooks/useConnections';
+import * as labelsHook from '~/app/hooks/useLabels';
+import * as trackingHook from '~/app/hooks/useDataRegistryTrackEvent';
+import { mockDchConnection, mockRhaiConnection } from '~/__mocks__/mockConnection';
+import { mockAssetResponse } from '~/__mocks__/mockAssetResponse';
+import { mockVolumeInfo } from '~/__mocks__/mockVolumeInfo';
 
 jest.mock('~/app/api/dataRegistry');
 jest.mock('~/app/hooks/useConnections');
-jest.mock('mod-arch-core', () => ({
-  ...jest.requireActual('mod-arch-core'),
-  useSettings: jest.fn(),
-}));
+jest.mock('~/app/hooks/useLabels');
+jest.mock('~/app/hooks/useDataRegistryTrackEvent');
 
 const mockCreateVolume = jest.mocked(dataRegistryApi.createVolume);
 const mockCreateGenericTable = jest.mocked(dataRegistryApi.createGenericTable);
 const mockUseConnections = jest.mocked(connectionsHook.useConnections);
-const mockUseSettings = jest.mocked(require('mod-arch-core').useSettings);
+const mockUseLabels = jest.mocked(labelsHook.useLabels);
+const mockTrackEvent = jest.fn();
 
 const mockConnections = [
-  { name: 'my-s3-connection', displayName: 'My S3 Connection', connectionType: 's3' },
-  { name: 'my-uri-connection', displayName: 'My URI Connection', connectionType: 'uri' },
+  mockRhaiConnection(),
+  mockRhaiConnection({
+    secret_name: 'my-uri-connection',
+    name: 'My URI Connection',
+    connectionType: 'uri',
+  }),
 ];
+const mockRefreshConnections = jest.fn();
 
 describe('RegisterDataModal', () => {
   const defaultProps = {
@@ -30,55 +40,138 @@ describe('RegisterDataModal', () => {
     collections: ['collection-1', 'collection-2'],
     onCreated: jest.fn(),
     onManageCollections: jest.fn(),
+    onManageLabels: jest.fn(),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseConnections.mockReturnValue([mockConnections, true, undefined]);
-    mockUseSettings.mockReturnValue({
-      userSettings: { userId: 'test-user' },
-      configSettings: null,
-      loaded: true,
-      loadError: undefined,
-    });
+    jest.mocked(trackingHook.useDataRegistryTrackEvent).mockReturnValue(mockTrackEvent);
+    mockRefreshConnections.mockResolvedValue(mockConnections);
+    mockUseConnections.mockReturnValue([
+      mockConnections,
+      true,
+      undefined,
+      mockRefreshConnections,
+      [],
+    ]);
+    mockUseLabels.mockReturnValue([['gold', 'team a', 'production'], true, undefined, jest.fn()]);
   });
 
   it('should render modal with all form fields', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
-    expect(screen.getByText('Register data')).toBeTruthy();
+    expect(screen.getByText('Create data asset')).toBeTruthy();
     expect(screen.getByTestId('data-name-input')).toBeTruthy();
     expect(screen.getByTestId('data-description-input')).toBeTruthy();
     expect(screen.getByTestId('asset-type-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-format-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-collection-toggle')).toBeTruthy();
     expect(screen.getByTestId('data-path-input')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Asset type info' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Personally identifiable information details' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Key-value pairs')).toBeInTheDocument();
+    expect(
+      screen.getByText('Optionally define custom properties using key-value pairs.'),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId('data-collection-toggle')
+        .closest('.pf-v6-c-form__group')
+        ?.querySelector('.pf-v6-c-form__label-required'),
+    ).toHaveTextContent('*');
   });
 
-  it('should default to Unstructured asset type', () => {
+  it('should default to Structured asset type and format', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
     const assetTypeToggle = screen.getByTestId('asset-type-toggle');
-    expect(assetTypeToggle.textContent).toBe('Unstructured');
+    expect(assetTypeToggle.textContent).toBe('Structured');
+    expect(screen.getByTestId('data-format-toggle').textContent).toBe('Other structured');
     expect(assetTypeToggle.className).not.toContain('pf-m-disabled');
   });
 
-  it('should not show schema section for unstructured type', () => {
-    render(<RegisterDataModal {...defaultProps} />);
-
-    expect(screen.queryByText('Schema')).toBeNull();
-    expect(screen.queryByTestId('add-schema-column')).toBeNull();
-  });
-
-  it('should show schema section when switching to structured type', async () => {
+  it('should show asset type options in alphabetical order', async () => {
     const user = userEvent.setup();
     render(<RegisterDataModal {...defaultProps} />);
 
     await user.click(screen.getByTestId('asset-type-toggle'));
-    await user.click(screen.getByText('Structured'));
 
-    expect(screen.getByText('Schema')).toBeTruthy();
-    expect(screen.getByTestId('add-schema-column')).toBeTruthy();
+    const assetTypeOptions = screen.getAllByTestId(/asset-type-(structured|unstructured)/);
+    expect(assetTypeOptions[0]).toBe(screen.getByTestId('asset-type-structured'));
+    expect(assetTypeOptions[1]).toBe(screen.getByTestId('asset-type-unstructured'));
+  });
+
+  it('should track explicit create-form selections and deduplicate labels case-insensitively', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Structured'));
+    await user.click(screen.getByTestId('data-format-toggle'));
+    await user.click(screen.getByText('Apache Parquet'));
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    await user.click(screen.getByText('My S3 Connection'));
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    await user.type(
+      within(screen.getByTestId('data-labels-input-0')).getByRole('combobox'),
+      'Finance',
+    );
+    await user.click(await screen.findByText('Create "Finance"'));
+    await user.click(screen.getByTestId('data-add-label-button'));
+    await user.type(
+      within(screen.getByTestId('data-labels-input-1')).getByRole('combobox'),
+      'finance',
+    );
+    await user.click(await screen.findByRole('option', { name: 'Finance' }));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Asset Type Selected',
+      properties: { assetType: 'structured', project: 'test-project' },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Format Selected',
+      properties: { format: 'parquet', project: 'test-project' },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Collection Selection Changed',
+      properties: {
+        initialCollection: 'none',
+        selectedCollection: 'custom',
+        project: 'test-project',
+      },
+    });
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Connection Selected',
+      properties: { project: 'test-project' },
+    });
+    expect(
+      mockTrackEvent.mock.calls.filter(([event]) => event.eventName === 'Data Label Added'),
+    ).toHaveLength(1);
+  });
+
+  it('should show schema section for the default structured type', () => {
+    render(<RegisterDataModal {...defaultProps} />);
+
+    expect(screen.getByText('Schema')).toBeInTheDocument();
+    expect(screen.getByTestId('add-schema-column')).toBeInTheDocument();
+  });
+
+  it('should hide schema section when switching to unstructured type', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
+
+    expect(screen.queryByText('Schema')).toBeNull();
+    expect(screen.queryByTestId('add-schema-column')).toBeNull();
   });
 
   it('should switch format options when changing asset type', async () => {
@@ -86,16 +179,18 @@ describe('RegisterDataModal', () => {
     render(<RegisterDataModal {...defaultProps} />);
 
     const formatToggle = screen.getByTestId('data-format-toggle');
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
+    expect(screen.getByTestId('data-format-toggle').textContent).toBe('Other unstructured');
+
     await user.click(formatToggle);
-    expect(screen.getByText('Documents')).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Documents' })).toBeTruthy();
     expect(screen.queryByText('Apache Iceberg')).toBeNull();
-    await user.click(screen.getByText('Documents'));
+    await user.click(screen.getByRole('option', { name: 'Documents' }));
 
     await user.click(screen.getByTestId('asset-type-toggle'));
     await user.click(screen.getByText('Structured'));
-
-    expect(screen.getByTestId('data-format-toggle').textContent).toBe('Apache Iceberg');
-    expect(screen.queryByText('Documents')).toBeNull();
+    expect(screen.getByTestId('data-format-toggle').textContent).toBe('Other structured');
   });
 
   it('should show validation error when submitting without name', async () => {
@@ -127,24 +222,14 @@ describe('RegisterDataModal', () => {
     expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 
-  it('should render owner field', () => {
-    render(<RegisterDataModal {...defaultProps} />);
-
-    expect(screen.getByText('Owner')).toBeTruthy();
-  });
-
   it('should submit as volume when asset type is unstructured', async () => {
     const user = userEvent.setup();
-    mockCreateVolume.mockResolvedValue({
-      name: 'test-volume',
-      'catalog-name': 'test-project',
-      'schema-name': 'collection-1',
-      'volume-type': 'other',
-      'storage-location': '',
-    });
+    mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'test-volume' }));
 
     render(<RegisterDataModal {...defaultProps} />);
 
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
     await user.type(screen.getByTestId('data-name-input'), 'test-volume');
 
     await user.click(screen.getByTestId('data-collection-toggle'));
@@ -155,39 +240,32 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-volume',
-        // eslint-disable-next-line camelcase
-        content_type: 'other',
-        owner: 'test-user',
+        format: 'other',
       });
     });
 
     expect(mockCreateGenericTable).not.toHaveBeenCalled();
     expect(defaultProps.onCreated).toHaveBeenCalled();
     expect(defaultProps.onClose).toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registered',
+      properties: {
+        success: true,
+        assetType: 'unstructured',
+        format: 'other',
+        hasConnection: false,
+        hasCollection: true,
+        labelCount: 0,
+        project: 'test-project',
+      },
+    });
   });
 
   it('should submit as generic table when asset type is structured', async () => {
     const user = userEvent.setup();
-    /* eslint-disable camelcase */
-    mockCreateGenericTable.mockResolvedValue({
-      name: 'test-table',
-      asset_type: 'table',
-      format: 'iceberg',
-      location: '',
-      description: '',
-      labels: [],
-      collection: 'collection-1',
-      connection_ref: null,
-      owner: '',
-      registered_by: '',
-      created_at: '',
-    });
-    /* eslint-enable camelcase */
+    mockCreateGenericTable.mockResolvedValue(mockAssetResponse({ name: 'test-table' }));
 
     render(<RegisterDataModal {...defaultProps} />);
-
-    await user.click(screen.getByTestId('asset-type-toggle'));
-    await user.click(screen.getByText('Structured'));
 
     await user.type(screen.getByTestId('data-name-input'), 'test-table');
 
@@ -199,8 +277,7 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-table',
-        format: 'iceberg',
-        owner: 'test-user',
+        format: 'other',
       });
     });
 
@@ -214,6 +291,8 @@ describe('RegisterDataModal', () => {
 
     render(<RegisterDataModal {...defaultProps} />);
 
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
     await user.type(screen.getByTestId('data-name-input'), 'existing-asset');
 
     await user.click(screen.getByTestId('data-collection-toggle'));
@@ -228,6 +307,19 @@ describe('RegisterDataModal', () => {
 
     expect(defaultProps.onCreated).not.toHaveBeenCalled();
     expect(defaultProps.onClose).not.toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registered',
+      properties: {
+        success: false,
+        assetType: 'unstructured',
+        format: 'other',
+        hasConnection: false,
+        hasCollection: true,
+        labelCount: 0,
+        project: 'test-project',
+        error: 'http_409',
+      },
+    });
   });
 
   it('should reset form fields on close', async () => {
@@ -238,6 +330,29 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByText('Cancel'));
     expect(defaultProps.onClose).toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'cancel_button', project: 'test-project' },
+    });
+  });
+
+  it('should classify close-X as cancellation and leave collection management out of the funnel', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Manage collections' }));
+    expect(defaultProps.onManageCollections).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).not.toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'close_x', project: 'test-project' },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Registration Canceled',
+      properties: { cancelMethod: 'close_x', project: 'test-project' },
+    });
   });
 
   it('should show "Create new collection" in collection dropdown', async () => {
@@ -246,6 +361,126 @@ describe('RegisterDataModal', () => {
 
     await user.click(screen.getByTestId('data-collection-toggle'));
     expect(screen.getByText('Create new collection')).toBeTruthy();
+  });
+
+  it('should open project label management from the organization section', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByRole('button', { name: 'Manage labels' }));
+
+    expect(defaultProps.onManageLabels).toHaveBeenCalled();
+  });
+
+  it('should disable project label management when no callback is provided', () => {
+    render(<RegisterDataModal {...defaultProps} onManageLabels={undefined} />);
+
+    expect(screen.getByRole('button', { name: 'Manage labels' })).toBeDisabled();
+  });
+
+  it('should preserve form values while the modal is temporarily hidden', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<RegisterDataModal {...defaultProps} />);
+
+    await user.type(screen.getByTestId('data-name-input'), 'asset-under-construction');
+
+    rerender(<RegisterDataModal {...defaultProps} isOpen={false} />);
+    rerender(<RegisterDataModal {...defaultProps} isOpen />);
+
+    expect(screen.getByTestId('data-name-input')).toHaveValue('asset-under-construction');
+  });
+
+  it('should keep added labels as editable rows with remove controls', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.type(labelInput, 'production');
+
+    expect(labelInput).toHaveValue('production');
+    expect(screen.getByTestId('data-label-remove-0')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('data-label-remove-0'));
+    expect(screen.queryByTestId('data-labels-input-0')).not.toBeInTheDocument();
+  });
+
+  it('should offer existing labels and allow new labels through typeahead', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.click(labelInput);
+
+    expect(screen.getByRole('option', { name: 'gold' })).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: 'gold' }));
+    expect(labelInput).toHaveValue('gold');
+
+    await user.clear(labelInput);
+    await user.type(labelInput, 'team b');
+    const createOption = await screen.findByText('Create "team b"');
+    await user.click(createOption);
+    expect(labelInput).toHaveValue('team b');
+  });
+
+  it('should not submit an uncommitted label typed into the typeahead', async () => {
+    const user = userEvent.setup();
+    mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'test-volume' }));
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
+    await user.click(screen.getByTestId('data-add-label-button'));
+    const labelInput = within(screen.getByTestId('data-labels-input-0')).getByRole('combobox');
+    await user.type(labelInput, 'uncommitted-label');
+    await user.click(screen.getByTestId('data-name-input'));
+
+    expect(labelInput).toHaveValue('');
+
+    await user.type(screen.getByTestId('data-name-input'), 'test-volume');
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() => expect(mockCreateVolume).toHaveBeenCalled());
+    expect(mockCreateVolume.mock.calls[0][2]).not.toHaveProperty('labels');
+  });
+
+  it('should use a minus control for custom property rows', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-custom-property'));
+
+    expect(screen.getByTestId('data-custom-property-remove-0')).toBeInTheDocument();
+  });
+
+  it('should show one set of headers above custom property fields', async () => {
+    const user = userEvent.setup();
+    render(<RegisterDataModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId('data-add-custom-property'));
+    await user.click(screen.getByTestId('data-add-custom-property'));
+
+    expect(screen.getByTestId('data-custom-property-headers')).toBeInTheDocument();
+    expect(screen.getAllByText('Key', { exact: true })).toHaveLength(1);
+    expect(screen.getAllByText('Value', { exact: true })).toHaveLength(1);
+    expect(screen.getByTestId('data-custom-property-key-0')).toHaveAttribute('aria-label', 'Key 1');
+    expect(screen.getByTestId('data-custom-property-key-1')).toHaveAttribute('aria-label', 'Key 2');
+    expect(screen.getByTestId('data-custom-property-value-0')).toHaveAttribute(
+      'aria-label',
+      'Value 1',
+    );
+    expect(screen.getByTestId('data-custom-property-value-1')).toHaveAttribute(
+      'aria-label',
+      'Value 2',
+    );
+    expect(screen.getByTestId('data-custom-property-key-0')).toHaveAttribute('placeholder', 'Key');
+    expect(screen.getByTestId('data-custom-property-value-0')).toHaveAttribute(
+      'placeholder',
+      'Value',
+    );
   });
 
   it('should display available connections in dropdown', async () => {
@@ -257,27 +492,37 @@ describe('RegisterDataModal', () => {
     expect(screen.getByText('My URI Connection')).toBeTruthy();
   });
 
-  it('should show empty state when no connections available', async () => {
-    mockUseConnections.mockReturnValue([[], true, undefined]);
+  it('should keep RHOAI display metadata out of the selectable connections', async () => {
     const user = userEvent.setup();
-    render(<RegisterDataModal {...defaultProps} />);
+    const dchConnection = mockDchConnection();
+    const rhaiDisplayConnection = mockRhaiConnection({
+      secret_name: 'legacy-rhai-connection',
+      name: 'Legacy RHOAI connection',
+    });
+    mockUseConnections.mockReturnValue([
+      [dchConnection],
+      true,
+      undefined,
+      mockRefreshConnections,
+      [],
+      [dchConnection, rhaiDisplayConnection],
+    ]);
 
+    render(<RegisterDataModal {...defaultProps} />);
     await user.click(screen.getByTestId('data-connection-toggle'));
-    expect(screen.getByText('No connections available')).toBeTruthy();
+
+    expect(screen.getByTestId(`connection-option-dch:${dchConnection.id}`)).toBeInTheDocument();
+    expect(screen.queryByText('Legacy RHOAI connection')).not.toBeInTheDocument();
   });
 
   it('should include connection_ref when connection is selected for volume', async () => {
     const user = userEvent.setup();
-    mockCreateVolume.mockResolvedValue({
-      name: 'test-volume',
-      'catalog-name': 'test-project',
-      'schema-name': 'collection-1',
-      'volume-type': 'other',
-      'storage-location': '',
-    });
+    mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'test-volume' }));
 
     render(<RegisterDataModal {...defaultProps} />);
 
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
     await user.type(screen.getByTestId('data-name-input'), 'test-volume');
 
     await user.click(screen.getByTestId('data-collection-toggle'));
@@ -291,37 +536,17 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-volume',
-        // eslint-disable-next-line camelcase
-        content_type: 'other',
-        // eslint-disable-next-line camelcase
-        connection_ref: 'my-s3-connection',
-        owner: 'test-user',
+        format: 'other',
+        connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
       });
     });
   });
 
   it('should include connection_ref when connection is selected for table', async () => {
     const user = userEvent.setup();
-    /* eslint-disable camelcase */
-    mockCreateGenericTable.mockResolvedValue({
-      name: 'test-table',
-      asset_type: 'table',
-      format: 'iceberg',
-      location: '',
-      description: '',
-      labels: [],
-      collection: 'collection-1',
-      connection_ref: { type: 'rhai', secret_name: 'my-s3-connection' },
-      owner: '',
-      registered_by: '',
-      created_at: '',
-    });
-    /* eslint-enable camelcase */
+    mockCreateGenericTable.mockResolvedValue(mockAssetResponse({ name: 'test-table' }));
 
     render(<RegisterDataModal {...defaultProps} />);
-
-    await user.click(screen.getByTestId('asset-type-toggle'));
-    await user.click(screen.getByText('Structured'));
 
     await user.type(screen.getByTestId('data-name-input'), 'test-table');
 
@@ -336,26 +561,78 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateGenericTable).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'test-table',
-        format: 'iceberg',
-        // eslint-disable-next-line camelcase
-        connection_ref: 'my-s3-connection',
-        owner: 'test-user',
+        format: 'other',
+        connection_ref: { type: 'secret', secret_name: 'my-s3-connection' },
       });
     });
   });
 
+  it.each(['volume', 'table'] as const)(
+    'should confirm and save a selected DCH reference for a %s',
+    async (kind) => {
+      const user = userEvent.setup();
+      const first = mockDchConnection();
+      const selected = mockDchConnection({ id: '550e8400-e29b-41d4-a716-446655440002' });
+      mockUseConnections.mockReturnValue([
+        [first, selected],
+        true,
+        undefined,
+        mockRefreshConnections,
+        [],
+      ]);
+      mockRefreshConnections.mockResolvedValue([first, { ...selected, name: 'Renamed data' }]);
+      mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'dch-asset' }));
+      mockCreateGenericTable.mockResolvedValue(mockAssetResponse({ name: 'dch-asset' }));
+
+      render(<RegisterDataModal {...defaultProps} />);
+      if (kind === 'volume') {
+        await user.click(screen.getByTestId('asset-type-toggle'));
+        await user.click(screen.getByText('Unstructured'));
+      }
+      await user.type(screen.getByTestId('data-name-input'), 'dch-asset');
+      await user.click(screen.getByTestId('data-collection-toggle'));
+      await user.click(screen.getByText('collection-1'));
+      await user.click(screen.getByTestId('data-connection-toggle'));
+      await user.click(
+        within(screen.getByTestId(`connection-option-dch:${selected.id}`)).getByRole('option'),
+      );
+      await user.click(screen.getByTestId('register-data-submit'));
+
+      const create = kind === 'table' ? mockCreateGenericTable : mockCreateVolume;
+      await waitFor(() => expect(create).toHaveBeenCalled());
+      expect(create.mock.calls[0][2].connection_ref).toEqual({ type: 'dch', id: selected.id });
+      expect(mockRefreshConnections).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('should prevent creation if the selected connection cannot be confirmed', async () => {
+    const user = userEvent.setup();
+    mockRefreshConnections.mockResolvedValue([]);
+    render(<RegisterDataModal {...defaultProps} />);
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
+    await user.type(screen.getByTestId('data-name-input'), 'stale-asset');
+    await user.click(screen.getByTestId('data-collection-toggle'));
+    await user.click(screen.getByText('collection-1'));
+    await user.click(screen.getByTestId('data-connection-toggle'));
+    await user.click(screen.getByText('My S3 Connection'));
+    await user.click(screen.getByTestId('register-data-submit'));
+
+    await waitFor(() =>
+      expect(screen.getByText(/selected connection could not be confirmed/i)).toBeInTheDocument(),
+    );
+    expect(mockCreateVolume).not.toHaveBeenCalled();
+    expect(mockCreateGenericTable).not.toHaveBeenCalled();
+  });
+
   it('should not include default path "/" in request', async () => {
     const user = userEvent.setup();
-    mockCreateVolume.mockResolvedValue({
-      name: 'minimal',
-      'catalog-name': 'test-project',
-      'schema-name': 'collection-1',
-      'volume-type': 'other',
-      'storage-location': '',
-    });
+    mockCreateVolume.mockResolvedValue(mockVolumeInfo({ name: 'minimal' }));
 
     render(<RegisterDataModal {...defaultProps} />);
 
+    await user.click(screen.getByTestId('asset-type-toggle'));
+    await user.click(screen.getByText('Unstructured'));
     await user.type(screen.getByTestId('data-name-input'), 'minimal');
 
     await user.click(screen.getByTestId('data-collection-toggle'));
@@ -366,35 +643,8 @@ describe('RegisterDataModal', () => {
     await waitFor(() => {
       expect(mockCreateVolume).toHaveBeenCalledWith('test-project', 'collection-1', {
         name: 'minimal',
-        // eslint-disable-next-line camelcase
-        content_type: 'other',
-        owner: 'test-user',
+        format: 'other',
       });
     });
-  });
-
-  it('should show validation error when submitting without owner', async () => {
-    mockUseSettings.mockReturnValue({
-      userSettings: { userId: '' },
-      configSettings: null,
-      loaded: true,
-      loadError: undefined,
-    });
-
-    const user = userEvent.setup();
-    render(<RegisterDataModal {...defaultProps} />);
-
-    await user.type(screen.getByTestId('data-name-input'), 'test-asset');
-
-    await user.click(screen.getByTestId('data-collection-toggle'));
-    await user.click(screen.getByText('collection-1'));
-
-    await user.click(screen.getByTestId('register-data-submit'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Owner is required')).toBeTruthy();
-    });
-
-    expect(mockCreateVolume).not.toHaveBeenCalled();
   });
 });

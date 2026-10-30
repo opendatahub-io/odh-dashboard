@@ -86,7 +86,7 @@ const basePattern = {
   max_combinations: 20,
   duration_seconds: 0,
   settings: {
-    vector_store_binding: {
+    store_binding: {
       provider_type: 'milvus',
       collection_name: 'collection0',
     },

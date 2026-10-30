@@ -11,6 +11,7 @@ import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core'
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import NotFound from '@odh-dashboard/ui-core/components/NotFound';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import './TabRoutePage.scss';
 
 type TabRoutePageProps = {
   extension: LoadedExtension<TabRoutePageExtension>;
@@ -40,6 +41,26 @@ const persistTab = (pageId: string, tabId: string): void => {
   } catch {
     // sessionStorage may be unavailable
   }
+};
+
+const isPageTitleHidden = (
+  pathname: string,
+  basePath: string,
+  hiddenPathPrefixes: string[] | undefined,
+): boolean => {
+  const normalizedBasePath = basePath.replace(/\/+$/, '');
+  const isWithinBasePath =
+    pathname === normalizedBasePath || pathname.startsWith(`${normalizedBasePath}/`);
+
+  if (!hiddenPathPrefixes?.length || !isWithinBasePath) {
+    return false;
+  }
+
+  const relativePath = pathname.slice(normalizedBasePath.length).replace(/^\//, '');
+  return hiddenPathPrefixes.some((prefix) => {
+    const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '');
+    return relativePath === normalizedPrefix || relativePath.startsWith(`${normalizedPrefix}/`);
+  });
 };
 
 /**
@@ -177,16 +198,34 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
   const resolvedObjectType =
     (tabObjectTypeStr && isProjectObjectType(tabObjectTypeStr) ? tabObjectTypeStr : undefined) ??
     objectType;
+  const hidePageTitle = isPageTitleHidden(
+    location.pathname,
+    extension.properties.href,
+    extension.properties.hidePageTitleOnPaths,
+  );
 
-  const pageTitle = (
-    <PageSection hasBodyWrapper={false}>
-      <Content component="h1" data-testid="app-tab-page-title">
+  const pageTitle = hidePageTitle ? null : (
+    <PageSection hasBodyWrapper={false} className="odh-dashboard-page-header">
+      <Content
+        component="h1"
+        className="odh-dashboard-page-header__title"
+        data-testid="app-tab-page-title"
+      >
         {resolvedObjectType ? (
           <TitleWithIcon title={resolvedTitle} objectType={resolvedObjectType} />
         ) : (
           resolvedTitle
         )}
       </Content>
+      {extension.properties.description ? (
+        <Content
+          component="p"
+          className="odh-dashboard-page-header__description"
+          data-testid="app-tab-page-description"
+        >
+          {extension.properties.description}
+        </Content>
+      ) : null}
     </PageSection>
   );
 

@@ -1,0 +1,130 @@
+---
+# Self-hosted Renovate runner (trial alongside Dependabot).
+#
+# Neither the Mend Renovate GitHub App nor MintMaker (downstream-only) run
+# against this repository. If the Mend app is enabled here later, delete
+# this workflow to avoid two Renovate instances.
+#
+# Authentication uses the odh-dashboard-agent GitHub App:
+#   - CLAUDE_APP_ID / CLAUDE_APP_PRIVATE_KEY are existing repo secrets,
+#     shared with claude-preflight.yml — rotate or move them only with both
+#     workflows in mind.
+#   - GITHUB_TOKEN cannot replace them: PRs created with it do not trigger
+#     CI workflows.
+#   - Each run mints a short-lived installation token via
+#     actions/create-github-app-token; PRs are opened as
+#     odh-dashboard-agent[bot] and the token is revoked at job end.
+#   - Forks skip the token step; set a fork-level RENOVATE_TOKEN secret to
+#     dry-run there.
+#
+# New PRs are created only in the Monday window (passed as RENOVATE_SCHEDULE
+# below and documented in .github/renovate.json5); all other daily runs rebase
+# existing PRs, close superseded ones, and refresh the Dependency Dashboard.
+# "Run workflow" accepts dry-run, log level, and force_updates (create PRs
+# outside the Monday window) options.
+name: Renovate
+
+on:  # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Dry-run (no branches or PRs created)
+        type: boolean
+        default: false
+      force_updates:
+        description: Create PRs now (bypass the Monday creation window)
+        type: boolean
+        default: false
+      log_level:
+        description: Renovate log level
+        type: choice
+        options: [debug, info, warn, error, fatal]
+        default: info
+  schedule:
+    # Daily 02:00 UTC — within the config's Monday PR-creation window.
+    - cron: '0 2 * * *'
+
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+permissions: {}  # authenticated by the GitHub App token, not GITHUB_TOKEN
+
+jobs:
+  renovate:
+    # Scheduled runs only on upstream; manual runs allowed on forks for
+    # dry-run testing.
+    if: >-
+      github.event_name != 'schedule'
+      || github.repository == 'opendatahub-io/odh-dashboard'
+    # The `renovate` environment holds no secrets — the app credentials are
+    # repo-level and remain visible. Its deployment branch policy (restrict
+    # to `main`) is enforced server-side, so a dispatch from a modified
+    # branch cannot bypass it by editing this file. Do not add required
+    # reviewers to it: the daily schedule would stall.
+    environment: renovate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Short-lived, least-privilege installation token. Upstream only;
+      # forks fall back to their own RENOVATE_TOKEN below.
+      - name: Generate GitHub App token
+        if: github.repository == 'opendatahub-io/odh-dashboard'
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349  # v2
+        id: app-token
+        with:
+          app-id: ${{ secrets.CLAUDE_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
+          # Renovate writes commit statuses but only reads check runs (CI
+          # status detection).
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+          permission-statuses: write
+          permission-checks: read
+          permission-workflows: write
+
+      - name: Run Renovate
+        env:
+          RENOVATE_TOKEN: ${{ steps.app-token.outputs.token || secrets.RENOVATE_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          FORCE_UPDATES: ${{ inputs.force_updates }}
+          LOG_LEVEL: ${{ inputs.log_level || 'info' }}
+          # Pinned image — bump version and digest together.
+          RENOVATE_IMAGE: ghcr.io/renovatebot/renovate:44.148.4@sha256:2c7b118cb2d1b7137e63322efc0e1d3d96d5f6937ec1c35c3cd9b7de73a8ed29
+          # Used via env in the script below instead of ${{ }} in the run
+          # block (template-injection hygiene).
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$RENOVATE_TOKEN" ]; then
+            echo "::notice::No token available — skipping run."
+            echo "Fork testing: set a fork-level RENOVATE_TOKEN secret."
+            exit 0
+          fi
+
+          EXTRA_ENV=()
+          if [ "$DRY_RUN" = "true" ]; then
+            EXTRA_ENV+=(-e RENOVATE_DRY_RUN=full)
+            echo "Dry-run mode: no branches or PRs will be created"
+          fi
+
+          # PR-creation window: the Monday gate by default (scheduled runs and
+          # normal dispatches, matching the documented weekly cadence);
+          # force_updates lets a manual run create PRs immediately.
+          if [ "$FORCE_UPDATES" = "true" ]; then
+            EXTRA_ENV+=(-e 'RENOVATE_SCHEDULE=["at any time"]')
+            echo "Force mode: PRs may be created outside the Monday window"
+          else
+            EXTRA_ENV+=(-e 'RENOVATE_SCHEDULE=["before 4am on Monday"]')
+          fi
+
+          # Renovate clones the repository itself; no checkout is needed.
+          docker run --rm \
+            -e RENOVATE_TOKEN \
+            -e RENOVATE_PLATFORM=github \
+            -e RENOVATE_REPOSITORIES="[\"${REPO}\"]" \
+            -e LOG_LEVEL \
+            "${EXTRA_ENV[@]}" \
+            "$RENOVATE_IMAGE"

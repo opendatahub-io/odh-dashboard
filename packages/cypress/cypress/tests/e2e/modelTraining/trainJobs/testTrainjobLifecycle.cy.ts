@@ -4,7 +4,6 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
-  deleteTrainingRuntime,
   setupTrainingResources,
   verifyTrainJobDeleted,
   verifyTrainJobPodsCompleted,
@@ -19,6 +18,7 @@ import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableH
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { isTrainerManaged } from '../../../../utils/oc_commands/dsc';
+import { patchOpenShiftResource } from '../../../../utils/oc_commands/baseCommands';
 import type { TrainJobTestData } from '../../../../types';
 
 describe('Verify user can monitor a training job through its lifecycle', () => {
@@ -34,6 +34,7 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
   let memoryQuota: number;
   let gpuQuota: number;
   const uuid = generateTestUUID();
+  const trainJobDescription = 'Training job lifecycle status modal description';
 
   retryableBefore(() => {
     cy.step('Check if Trainer component is Managed in DSC');
@@ -55,7 +56,7 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
 
           projectName = `${testData.projectName}-${uuid}`;
           trainJobName = `${testData.trainJobName}-${uuid}`;
-          trainingRuntimeName = `${testData.trainingRuntimeName}-${uuid}`;
+          trainingRuntimeName = testData.trainingRuntimeName;
           flavorName = `${testData.flavorName}-${uuid}`;
           clusterQueueName = `${testData.clusterQueueName}-${uuid}`;
           localQueueName = `${testData.localQueueName}-${uuid}`;
@@ -70,7 +71,7 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
           createCleanProject(projectName);
         })
         .then(() => {
-          cy.step('Setup training resources (Kueue, TrainingRuntime, TrainJob)');
+          cy.step('Setup training resources (Kueue and TrainJob)');
           setupTrainingResources({
             namespace: projectName,
             trainJobName,
@@ -82,6 +83,16 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
             memoryQuota,
             gpuQuota,
           });
+          patchOpenShiftResource(
+            'trainjob',
+            trainJobName,
+            JSON.stringify({
+              metadata: {
+                annotations: { 'openshift.io/description': trainJobDescription },
+              },
+            }),
+            projectName,
+          );
         });
     });
   });
@@ -94,9 +105,6 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
 
     cy.step('Delete project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-
-    cy.step('Delete TrainingRuntime');
-    deleteTrainingRuntime(trainingRuntimeName, projectName, { ignoreNotFound: true });
 
     cy.step('Delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {
@@ -139,8 +147,16 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
 
       cy.step('Verify status modal opens and shows Running status');
       trainingJobStatusModal.shouldBeOpen();
-      trainingJobStatusModal.findTitle().should('exist');
       trainingJobStatusModal.getTrainingJobStatus(TrainingJobState.RUNNING);
+
+      cy.step('Verify the training job title is displayed in the status modal');
+      trainingJobStatusModal.findTitle(trainJobName).should('exist');
+
+      cy.step('Verify the training job description is displayed in the status modal');
+      trainingJobStatusModal
+        .findDescription()
+        .should('be.visible')
+        .and('have.text', trainJobDescription);
 
       cy.step('Switch to Events log tab and verify log entries exist');
       trainingJobStatusModal.selectTab('Events log');

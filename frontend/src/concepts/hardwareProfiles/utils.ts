@@ -27,6 +27,9 @@ export {
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
   getLocalQueueLabel,
+  isDRAHardwareProfile,
+  isSameHardwareProfileBinding,
+  getDRAHardwareProfileDetails,
 } from '@odh-dashboard/hardware-profiles/shared/utils';
 
 export const doesImageStreamSupportHardwareProfile = (

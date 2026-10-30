@@ -1,3 +1,5 @@
+const { pnpmTransformIgnorePatterns } = require('@odh-dashboard/jest-config/pnpm');
+
 module.exports = {
   roots: ['<rootDir>/src/'],
   testMatch: [
@@ -6,6 +8,12 @@ module.exports = {
   ],
   clearMocks: true,
   moduleDirectories: ['node_modules', '<rootDir>/src'],
+  transform: {
+    '^.+\\.(js|tsx?|cts|cjs)$': [
+      'babel-jest',
+      { targets: 'current node', envName: 'test', rootMode: 'upward' },
+    ],
+  },
   moduleNameMapper: {
     '\\.(css|less|sass|scss)$': '<rootDir>/config/transform.style.js',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
@@ -19,7 +27,7 @@ module.exports = {
     '^@odh-dashboard/internal(.*)$': '<rootDir>/../../../frontend/src$1',
   },
   testEnvironment: 'jest-environment-jsdom',
-  transformIgnorePatterns: ['node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator)'],
+  transformIgnorePatterns: pnpmTransformIgnorePatterns,
   snapshotSerializers: [],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/unit/jest.setup.ts'],
   coverageDirectory: 'jest-coverage',

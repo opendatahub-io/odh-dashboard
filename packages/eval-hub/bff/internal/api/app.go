@@ -11,8 +11,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient"
-	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
 	ehmocks "github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub/ehmocks"
 	k8s "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
@@ -40,18 +38,19 @@ const (
 	EvaluationJobByIDPath          = ApiPathPrefix + "/evaluations/jobs/:id"
 	CollectionsPath                = ApiPathPrefix + "/evaluations/collections"
 	CollectionByIDPath             = ApiPathPrefix + "/evaluations/collections/*id"
+	CollectionClonePath            = ApiPathPrefix + "/evaluations/collections/*id"
 	ProvidersPath                  = ApiPathPrefix + "/evaluations/providers"
+	KueueAvailabilityPath          = ApiPathPrefix + "/kueue/availability"
+	KueueWorkloadStatusesPath      = ApiPathPrefix + "/kueue/workloads"
+	HardwareProfilesPath           = ApiPathPrefix + "/hardwareprofiles"
+	HardwareProfileValidationPath  = ApiPathPrefix + "/hardwareprofiles/validate"
 	EvaluationJobLogsPath          = ApiPathPrefix + "/evaluations/jobs/:id/logs"
 	EvaluationJobBenchmarkLogsPath = ApiPathPrefix + "/evaluations/jobs/:id/benchmarks/:benchmark_index/logs"
 	EvalHubCRStatusPath            = ApiPathPrefix + "/evalhub/status"
 	EvalHubServiceHealthPath       = ApiPathPrefix + "/evalhub/health"
 
-	// Inter-BFF: model-catalog security artifacts
-	CatalogSourceID                   = "source_id"
-	CatalogModelName                  = "model_name"
-	CatalogModelSecurityArtifactsPath = ApiPathPrefix + "/catalog/sources/:" + CatalogSourceID + "/security_artifacts/*" + CatalogModelName
-	InferenceServicesPath             = ApiPathPrefix + "/inferenceservices"
-	VerifyConnectionPath              = ApiPathPrefix + "/evaluations/verify-connection"
+	InferenceServicesPath = ApiPathPrefix + "/inferenceservices"
+	VerifyConnectionPath  = ApiPathPrefix + "/evaluations/verify-connection"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
@@ -81,7 +80,7 @@ type App struct {
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	evalHubClientFactory    evalhub.EvalHubClientFactory
-	bffClientFactory        bffclient.BFFClientFactory
+	portForwardManager      *k8s.PortForwardManager
 	repositories            *repositories.Repositories
 	testEnv                 *envtest.Environment
 	rootCAs                 *x509.CertPool
@@ -163,46 +162,32 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	logger.Info("Detected dashboard namespace", slog.String("namespace", dashboardNamespace))
 
+	var portForwardManager *k8s.PortForwardManager
+	if cfg.DevMode && !cfg.MockK8Client {
+		restConfig, err := helper.GetKubeconfig()
+		if err != nil {
+			logger.Warn("failed to initialize dynamic port-forwarding", "error", err)
+		} else {
+			clientset, err := kubernetes.NewForConfig(restConfig)
+			if err != nil {
+				logger.Warn("failed to initialize dynamic port-forwarding", "error", err)
+			} else {
+				portForwardManager = k8s.NewPortForwardManager(restConfig, clientset, logger)
+				logger.Info("dynamic port-forwarding enabled for in-cluster service URLs")
+			}
+		}
+	}
+
 	var ehFactory evalhub.EvalHubClientFactory
 	if cfg.MockEvalHubClient {
 		ehFactory = ehmocks.NewMockClientFactory()
 		logger.Info("Using mock EvalHub client")
 	} else {
-		ehFactory = evalhub.NewRealClientFactory()
-	}
-
-	// Inter-BFF client factory (model-catalog BFF)
-	bffConfig := bffclient.NewDefaultBFFClientConfig()
-	bffConfig.MockBFFClients = cfg.MockBFFClients
-	bffConfig.PodNamespace = dashboardNamespace
-	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
-
-	if mcConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetModelCatalog); mcConfig != nil {
-		if cfg.BFFModelCatalogServiceName != "" {
-			mcConfig.ServiceName = cfg.BFFModelCatalogServiceName
+		var wrapTransport func(http.RoundTripper) http.RoundTripper
+		if portForwardManager != nil {
+			wrapTransport = k8s.PortForwardWrapTransport(portForwardManager, logger)
 		}
-		if cfg.BFFModelCatalogServicePort != 0 {
-			mcConfig.Port = cfg.BFFModelCatalogServicePort
-		}
-		mcConfig.TLSEnabled = cfg.BFFModelCatalogTLSEnabled
-		mcConfig.DevOverrideURL = cfg.BFFModelCatalogDevURL
-		if cfg.BFFModelCatalogAuthMethod != "" {
-			mcConfig.AuthMethod = cfg.BFFModelCatalogAuthMethod
-		}
-		if cfg.BFFModelCatalogAuthTokenHeader != "" {
-			mcConfig.AuthTokenHeader = cfg.BFFModelCatalogAuthTokenHeader
-		}
-		// AuthTokenPrefix can be empty (which is the ODH default)
-		mcConfig.AuthTokenPrefix = cfg.BFFModelCatalogAuthTokenPrefix
-	}
-
-	var bffFactory bffclient.BFFClientFactory
-	if cfg.MockBFFClients {
-		bffFactory = bffmocks.NewMockClientFactory(logger)
-		logger.Info("Using mock BFF clients for inter-BFF communication")
-	} else {
-		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
-		logger.Info("Inter-BFF client configured", "target", bffclient.BFFTargetModelCatalog)
+		ehFactory = evalhub.NewRealClientFactoryWithTransport(wrapTransport)
 	}
 
 	var openAPIHandler *OpenAPIHandler
@@ -216,7 +201,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
 		evalHubClientFactory:    ehFactory,
-		bffClientFactory:        bffFactory,
+		portForwardManager:      portForwardManager,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
@@ -228,6 +213,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.portForwardManager != nil {
+		app.portForwardManager.Close()
+	}
 	if app.testEnv == nil {
 		return nil
 	}
@@ -259,19 +247,22 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(EvaluationJobLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobLogsHandler))))
 	apiRouter.GET(EvaluationJobBenchmarkLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobBenchmarkLogsHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
+	apiRouter.POST(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateCollectionHandler))))
 	apiRouter.GET(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetCollectionHandler))))
+	apiRouter.PATCH(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.PatchCollectionHandler))))
+	apiRouter.DELETE(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.DeleteCollectionHandler))))
+	apiRouter.POST(CollectionClonePath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CloneCollectionHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
+	apiRouter.GET(KueueAvailabilityPath, app.AttachNamespace(app.RequireAccessToService(app.KueueAvailabilityHandler)))
+	apiRouter.GET(KueueWorkloadStatusesPath, app.AttachNamespace(app.RequireAccessToService(app.KueueWorkloadStatusesHandler)))
+	apiRouter.POST(HardwareProfileValidationPath, app.AttachNamespace(app.RequireAccessToService(app.ValidateHardwareProfilesHandler)))
+	apiRouter.GET(HardwareProfilesPath, app.AttachNamespace(app.RequireAccessToService(app.HardwareProfilesHandler)))
 
 	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)
 	apiRouter.GET(InferenceServicesPath, app.AttachNamespace(app.RequireAccessToService(app.InferenceServicesHandler)))
 
 	// Connection verification (probes external endpoints, no EvalHub REST client needed)
 	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
-
-	// Inter-BFF: model-catalog security artifacts (only security_artifacts endpoint is allowed by the bffclient allowlist)
-	apiRouter.GET(CatalogModelSecurityArtifactsPath, app.AttachNamespace(app.RequireAccessToService(
-		bffclient.AttachBFFClient(app.bffClientFactory, bffclient.BFFTargetModelCatalog)(
-			app.GetCatalogModelSecurityArtifactsHandler))))
 
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
 	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))

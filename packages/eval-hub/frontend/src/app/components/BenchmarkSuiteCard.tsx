@@ -1,0 +1,755 @@
+import * as React from 'react';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Content,
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  Flex,
+  FlexItem,
+  getResizeObserver,
+  Label,
+  LabelGroup,
+  List,
+  ListItem,
+  MenuToggle,
+  MenuToggleAction,
+  Stack,
+  StackItem,
+  Tooltip,
+} from '@patternfly/react-core';
+import {
+  RhStandardBrainIcon,
+  RhUiAssessmentIcon,
+  RhUiCheckClipboardIcon,
+  RhUiCodeIcon,
+  RhUiCubesIcon,
+  EllipsisVIcon,
+  OutlinedPlayCircleIcon,
+  RhUiStarFillIcon,
+  RhUiDocumentIcon,
+  RhUiPlugIcon,
+  RhUiSecuredIcon,
+  InfoCircleIcon,
+} from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
+import type { MenuToggleElement } from '@patternfly/react-core';
+import type { Collection } from '~/app/types';
+import { trackEvalHubEvent, type EvalHubCollectionSurface } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { isCollectionCategory, type CollectionCategory } from '~/app/pages/const';
+import {
+  formatCategory,
+  getBenchmarkDisplayName,
+  getCategoryTileColor,
+  getMetricDisplayName,
+  getVisibleMetricCount,
+  normalizeCategory,
+  VISIBLE_METRICS_COUNT,
+} from './benchmarkUtils';
+import type { BenchmarkNameMap } from './benchmarkUtils';
+import './BenchmarkSuiteCard.scss';
+
+const POPULAR_CURATION_ORDERS = new Set([1, 2, 3]);
+
+export const isPopularCollection = (collection: Collection): boolean =>
+  collection.curation_order !== undefined && POPULAR_CURATION_ORDERS.has(collection.curation_order);
+
+type DomainIcon = React.ComponentType<React.ComponentProps<typeof RhStandardBrainIcon>>;
+type DomainIconConfig = { icon: DomainIcon };
+
+/* eslint-disable camelcase */
+const DOMAIN_ICON_CONFIG: Record<CollectionCategory, DomainIconConfig> = {
+  knowledge_and_reasoning: { icon: RhStandardBrainIcon },
+  grounded_document_understanding: { icon: RhUiDocumentIcon },
+  instruction_and_output_reliability: { icon: RhUiCheckClipboardIcon },
+  tool_use_and_function_calling: { icon: RhUiPlugIcon },
+  software: { icon: RhUiCodeIcon },
+  trustworthiness: { icon: RhUiSecuredIcon },
+  multilingual: { icon: RhUiAssessmentIcon },
+  multimodal: { icon: RhUiCubesIcon },
+};
+/* eslint-enable camelcase */
+
+type DomainIconStackProps = {
+  collectionId: string;
+  domains: string[];
+};
+
+type DomainIconsStyle = React.CSSProperties & {
+  '--evalhub-benchmark-suite-card-domain-count': number;
+};
+
+type DomainIconStyle = React.CSSProperties & {
+  '--evalhub-benchmark-suite-card-domain-index': number;
+};
+
+const DomainIconStack: React.FC<DomainIconStackProps> = ({ collectionId, domains }) => {
+  const isMultipleDomains = domains.length > 1;
+  const hasManyDomains = domains.length > 5;
+  const categoryLabel = isMultipleDomains
+    ? `${domains.length} categories`
+    : formatCategory(domains[0] ?? '');
+  const iconsStyle: DomainIconsStyle = {
+    '--evalhub-benchmark-suite-card-domain-count': domains.length,
+  };
+
+  return (
+    <div
+      className={`evalhub-benchmark-suite-card__domain-group${
+        isMultipleDomains ? ' m-multiple' : ''
+      }${hasManyDomains ? ' m-many-domains' : ''}`}
+      data-testid={`benchmark-suite-card-domain-group-${collectionId}`}
+    >
+      <div
+        className="evalhub-benchmark-suite-card__domain-icons"
+        style={iconsStyle}
+        data-testid={`benchmark-suite-card-domain-icons-${collectionId}`}
+      >
+        {domains.map((domain, index) => {
+          const DomainIcon = isCollectionCategory(domain)
+            ? DOMAIN_ICON_CONFIG[domain].icon
+            : RhUiAssessmentIcon;
+          const iconColor = getCategoryTileColor(domain);
+          const iconStyle: DomainIconStyle = {
+            '--evalhub-benchmark-suite-card-domain-index': index,
+          };
+          const domainName = formatCategory(domain);
+
+          return (
+            <Tooltip content={domainName} key={domain}>
+              <span
+                className={`evalhub-benchmark-suite-card__domain-icon evalhub-benchmark-suite-card__domain-icon--${iconColor}`}
+                style={iconStyle}
+                data-testid={
+                  index === 0
+                    ? `benchmark-suite-card-domain-icon-${collectionId}`
+                    : `benchmark-suite-card-domain-icon-${collectionId}-${index}`
+                }
+                data-icon-color={iconColor}
+                role="img"
+                aria-label={domainName}
+              >
+                <DomainIcon aria-hidden="true" />
+              </span>
+            </Tooltip>
+          );
+        })}
+      </div>
+      <span
+        className="evalhub-benchmark-suite-card__category"
+        data-testid={`benchmark-suite-card-category-${collectionId}`}
+      >
+        {categoryLabel}
+      </span>
+    </div>
+  );
+};
+
+export type BenchmarkSuiteCardAction = {
+  id: string;
+  label: string;
+  onSelect: (collection: Collection) => void;
+  isDanger?: boolean;
+  isDisabled?: boolean;
+};
+
+type BenchmarkSuiteCardButton = {
+  label: string;
+  onClick: () => void;
+  href?: string;
+  state?: unknown;
+  variant?: 'primary' | 'secondary' | 'tertiary';
+  /** Whether the button represents selecting a run; set false for actions like Customize. */
+  tracksRunSelection?: boolean;
+};
+
+type BenchmarkSuiteCardProps = {
+  collection: Collection;
+  benchmarkNameMap?: BenchmarkNameMap;
+  prerequisite?: string;
+  primaryAction: BenchmarkSuiteCardButton;
+  showRunCount?: boolean;
+  dropdownAction?: BenchmarkSuiteCardButton;
+  contextualActions?: BenchmarkSuiteCardAction[];
+  trackingSurface?: EvalHubCollectionSurface;
+  onSelect?: (collection: Collection) => boolean | void;
+  reservePopularHeader?: boolean;
+};
+
+type MetricLabelGroupProps = {
+  collectionId: string;
+  metricNames: string[];
+  metricsTooltip: React.ReactNode;
+};
+
+const MetricLabelGroup: React.FC<MetricLabelGroupProps> = ({
+  collectionId,
+  metricNames,
+  metricsTooltip,
+}) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const measurementRef = React.useRef<HTMLDivElement>(null);
+  const [visibleMetricCount, setVisibleMetricCount] = React.useState(() =>
+    Math.min(metricNames.length, VISIBLE_METRICS_COUNT),
+  );
+
+  React.useLayoutEffect(() => {
+    const container = containerRef.current;
+    const measurement = measurementRef.current;
+    if (!container || !measurement) {
+      return undefined;
+    }
+
+    const measure = () => {
+      const availableWidth = container.getBoundingClientRect().width;
+      const metricWidths = Array.from(
+        measurement.querySelectorAll<HTMLElement>('[data-metric-label]'),
+      ).map((label) => label.getBoundingClientRect().width);
+      const overflowLabelWidths = Array.from(
+        measurement.querySelectorAll<HTMLElement>('[data-overflow-label]'),
+      ).map((label) => label.getBoundingClientRect().width);
+      const gap = parseFloat(getComputedStyle(measurement).columnGap) || 0;
+
+      if (!availableWidth || metricWidths.length !== metricNames.length) {
+        return;
+      }
+
+      const nextVisibleMetricCount = getVisibleMetricCount(
+        metricWidths,
+        overflowLabelWidths,
+        availableWidth,
+        gap,
+      );
+      setVisibleMetricCount((currentCount) =>
+        currentCount === nextVisibleMetricCount ? currentCount : nextVisibleMetricCount,
+      );
+    };
+
+    measure();
+    const observedElements = [
+      container,
+      ...Array.from(measurement.querySelectorAll<HTMLElement>('[data-metric-label]')),
+      ...Array.from(measurement.querySelectorAll<HTMLElement>('[data-overflow-label]')),
+    ];
+    const cleanupObservers = observedElements.map((element) => getResizeObserver(element, measure));
+
+    return () => cleanupObservers.forEach((cleanupObserver) => cleanupObserver());
+  }, [metricNames]);
+
+  const labelGroup = (
+    <LabelGroup
+      className="evalhub-benchmark-suite-card__metrics"
+      numLabels={visibleMetricCount}
+      isCompact
+      aria-label="Metrics"
+      data-testid={`benchmark-suite-card-metrics-${collectionId}`}
+    >
+      {metricNames.map((metric) => (
+        <Label key={metric} isCompact variant="outline">
+          {metric}
+        </Label>
+      ))}
+    </LabelGroup>
+  );
+
+  return (
+    <div
+      ref={containerRef}
+      className="evalhub-benchmark-suite-card__footer-metrics"
+      data-testid={`benchmark-suite-card-footer-metrics-${collectionId}`}
+    >
+      {visibleMetricCount < metricNames.length ? (
+        <Tooltip content={metricsTooltip}>{labelGroup}</Tooltip>
+      ) : (
+        labelGroup
+      )}
+      <div
+        ref={measurementRef}
+        className="evalhub-benchmark-suite-card__metrics-measurement"
+        aria-hidden="true"
+      >
+        <div className="evalhub-benchmark-suite-card__metrics-measurement-row">
+          {metricNames.map((metric) => (
+            <Label
+              key={metric}
+              className="evalhub-benchmark-suite-card__metrics-measurement-label"
+              data-metric-label
+              isCompact
+              variant="outline"
+            >
+              <span
+                className="evalhub-benchmark-suite-card__metrics-measurement-text"
+                data-label={metric}
+              />
+            </Label>
+          ))}
+        </div>
+        <div className="evalhub-benchmark-suite-card__metrics-measurement-row">
+          {metricNames.map((_, index) => (
+            <Label
+              key={index}
+              className="evalhub-benchmark-suite-card__metrics-measurement-label"
+              data-overflow-label
+              isCompact
+              variant="overflow"
+            >
+              <span
+                className="evalhub-benchmark-suite-card__metrics-measurement-text"
+                data-label={`${index + 1} more`}
+              />
+            </Label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
+  collection,
+  benchmarkNameMap,
+  prerequisite,
+  primaryAction,
+  showRunCount = false,
+  dropdownAction,
+  contextualActions,
+  trackingSurface = 'collection_gallery',
+  onSelect,
+  reservePopularHeader = false,
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
+  const domains = [...new Set((collection.domains ?? []).map(normalizeCategory).filter(Boolean))];
+  const normalizedCategory = normalizeCategory(collection.category);
+  const resolvedDomains = domains.length > 0 ? domains : [normalizedCategory].filter(Boolean);
+  const metricNames = React.useMemo(
+    () =>
+      [
+        ...new Set(
+          (collection.benchmarks ?? [])
+            .map((benchmark) => benchmark.primary_score?.metric)
+            .filter((metric): metric is string => Boolean(metric)),
+        ),
+      ]
+        .map(getMetricDisplayName)
+        .toSorted((first, second) => first.localeCompare(second)),
+    [collection],
+  );
+  const evaluationTargetNames = [...new Set(collection.evaluation_targets ?? [])]
+    .map(formatCategory)
+    .toSorted((first, second) => first.localeCompare(second));
+  const evaluationTargetLabel = evaluationTargetNames.length
+    ? evaluationTargetNames.length === 1
+      ? `${evaluationTargetNames[0]} evaluation`
+      : `${evaluationTargetNames.length} evaluations`
+    : 'Evaluation';
+  const benchmarkNames = (collection.benchmarks ?? [])
+    .map((benchmark) => ({
+      id: benchmark.id,
+      name: getBenchmarkDisplayName(benchmark, benchmarkNameMap),
+    }))
+    .toSorted((first, second) => first.name.localeCompare(second.name));
+  const benchmarkCount = collection.benchmarks?.length ?? 0;
+  const isPopular = isPopularCollection(collection);
+  const actions = contextualActions ?? [];
+  const hasContextualActions = actions.length > 0;
+  const benchmarksTooltip = (
+    <div className="evalhub-benchmark-suite-card__tooltip-content">
+      <strong>Benchmarks</strong>
+      {benchmarkNames.length > 0 ? (
+        <List className="evalhub-benchmark-suite-card__tooltip-list">
+          {benchmarkNames.map((benchmark) => (
+            <ListItem key={benchmark.id}>{benchmark.name}</ListItem>
+          ))}
+        </List>
+      ) : (
+        <div>No benchmarks available</div>
+      )}
+    </div>
+  );
+  const benchmarksSummaryLabel = `Benchmarks: ${
+    benchmarkNames.map((benchmark) => benchmark.name).join(', ') || 'No benchmarks available'
+  }`;
+  const evaluationTargetsTooltip = (
+    <div className="evalhub-benchmark-suite-card__tooltip-content">
+      <strong>Evaluation targets</strong>
+      {evaluationTargetNames.length > 0 ? (
+        <List className="evalhub-benchmark-suite-card__tooltip-list">
+          {evaluationTargetNames.map((target) => (
+            <ListItem key={target}>{target}</ListItem>
+          ))}
+        </List>
+      ) : (
+        <div>No evaluation targets available</div>
+      )}
+    </div>
+  );
+  const evaluationTargetsSummaryLabel = `Evaluation targets: ${
+    evaluationTargetNames.join(', ') || 'No evaluation targets available'
+  }`;
+  const metricsTooltip = (
+    <div className="evalhub-benchmark-suite-card__tooltip-content">
+      <strong>Metrics</strong>
+      <List className="evalhub-benchmark-suite-card__tooltip-list">
+        {metricNames.map((metric) => (
+          <ListItem key={metric}>{metric}</ListItem>
+        ))}
+      </List>
+    </div>
+  );
+  const runCount = collection.status?.run_count ?? 0;
+  const runCountTooltip = 'Run Count: Number of successful executions of this collection';
+  const trackRunSelected = React.useCallback(() => {
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: collection.name,
+        benchmarkTypes: JSON.stringify(
+          (collection.benchmarks ?? []).map((benchmark) => benchmark.id),
+        ),
+        countOfBenchmarks: collection.benchmarks?.length ?? 0,
+      },
+      {
+        collectionType: collection.resource.read_only ? 'system' : 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
+  }, [collection]);
+  const handlePrimaryAction = React.useCallback(() => {
+    if (primaryAction.tracksRunSelection !== false) {
+      trackRunSelected();
+    }
+    primaryAction.onClick();
+  }, [primaryAction, trackRunSelected]);
+  // Opens the details drawer. Wired to the card title and body regions so the whole
+  // content area is clickable; nested controls stop propagation to keep their own actions.
+  const handleOpenDetails = React.useCallback(() => {
+    const didOpenDrawer = onSelect?.(collection);
+    if (didOpenDrawer === true) {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+        {
+          collectionName: collection.name,
+          surface: trackingSurface,
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
+    }
+  }, [onSelect, collection, trackingSurface]);
+  const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
+    action.href ? (
+      <Button
+        variant={action.variant ?? 'secondary'}
+        isInline
+        component={(props) => <Link {...props} to={action.href!} state={action.state} />}
+        onClick={handlePrimaryAction}
+        data-testid={`benchmark-suite-card-${actionName}-action-${collection.resource.id}`}
+      >
+        {action.label}
+      </Button>
+    ) : (
+      <Button
+        variant={action.variant ?? 'secondary'}
+        isInline
+        onClick={handlePrimaryAction}
+        data-testid={`benchmark-suite-card-${actionName}-action-${collection.resource.id}`}
+      >
+        {action.label}
+      </Button>
+    );
+
+  const primaryActionButton = dropdownAction ? (
+    <MenuToggleAction
+      key="primary-action"
+      aria-label={primaryAction.label}
+      onClick={handlePrimaryAction}
+      data-testid={`benchmark-suite-card-primary-action-${collection.resource.id}`}
+    >
+      {primaryAction.label}
+    </MenuToggleAction>
+  ) : (
+    renderActionButton(primaryAction, 'primary')
+  );
+  const actionFooter = dropdownAction ? (
+    <Dropdown
+      isOpen={isActionMenuOpen}
+      onOpenChange={setIsActionMenuOpen}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          variant={primaryAction.variant === 'secondary' ? 'secondary' : 'primary'}
+          splitButtonItems={[primaryActionButton]}
+          aria-label={`Actions for ${collection.name}`}
+          onClick={() => setIsActionMenuOpen((isOpen) => !isOpen)}
+          data-testid={`benchmark-suite-card-dropdown-toggle-${collection.resource.id}`}
+        />
+      )}
+    >
+      <DropdownList>
+        <DropdownItem
+          {...(dropdownAction.href
+            ? {
+                component: (props) => (
+                  <Link {...props} to={dropdownAction.href!} state={dropdownAction.state} />
+                ),
+              }
+            : {})}
+          onClick={() => {
+            setIsActionMenuOpen(false);
+            dropdownAction.onClick();
+          }}
+          data-testid={`benchmark-suite-card-dropdown-action-${collection.resource.id}`}
+        >
+          {dropdownAction.label}
+        </DropdownItem>
+      </DropdownList>
+    </Dropdown>
+  ) : (
+    primaryActionButton
+  );
+  const contextualActionsMenu = hasContextualActions ? (
+    <Dropdown
+      isOpen={isMenuOpen}
+      onOpenChange={setIsMenuOpen}
+      onSelect={() => setIsMenuOpen(false)}
+      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+        <MenuToggle
+          ref={toggleRef}
+          variant="plain"
+          className="evalhub-benchmark-suite-card__contextual-actions"
+          isExpanded={isMenuOpen}
+          aria-label={`Actions for ${collection.name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMenuOpen((open) => !open);
+          }}
+          data-testid={`benchmark-suite-card-menu-${collection.resource.id}`}
+        >
+          <EllipsisVIcon />
+        </MenuToggle>
+      )}
+    >
+      <DropdownList>
+        {actions.map((action) => (
+          <DropdownItem
+            key={action.id}
+            value={action.id}
+            isDanger={action.isDanger}
+            isDisabled={action.isDisabled}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (action.isDisabled) {
+                return;
+              }
+              setIsMenuOpen(false);
+              action.onSelect(collection);
+            }}
+            data-testid={`benchmark-suite-card-action-${action.id}-${collection.resource.id}`}
+          >
+            {action.label}
+          </DropdownItem>
+        ))}
+      </DropdownList>
+    </Dropdown>
+  ) : null;
+
+  return (
+    <Card
+      className={`evalhub-benchmark-suite-card${onSelect ? ' m-clickable' : ''}`}
+      isFullHeight
+      data-testid={`benchmark-suite-card-${collection.resource.id}`}
+    >
+      {(isPopular || reservePopularHeader) && (
+        <CardHeader className="evalhub-benchmark-suite-card__header">
+          <Flex
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            justifyContent={{ default: 'justifyContentFlexEnd' }}
+            spaceItems={{ default: 'spaceItemsSm' }}
+            className="evalhub-benchmark-suite-card__header-content"
+          >
+            {isPopular && (
+              <FlexItem>
+                <Label
+                  color="teal"
+                  variant="outline"
+                  isCompact
+                  icon={<RhUiStarFillIcon aria-hidden="true" />}
+                  data-testid={`benchmark-suite-card-popular-${collection.resource.id}`}
+                >
+                  Recommended
+                </Label>
+              </FlexItem>
+            )}
+            {!isPopular && reservePopularHeader && (
+              <FlexItem aria-hidden="true">
+                <Label
+                  color="teal"
+                  variant="outline"
+                  isCompact
+                  icon={<RhUiStarFillIcon aria-hidden="true" />}
+                  className="evalhub-benchmark-suite-card__popular-placeholder"
+                  data-testid={`benchmark-suite-card-popular-placeholder-${collection.resource.id}`}
+                >
+                  Recommended
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
+        </CardHeader>
+      )}
+      <CardTitle
+        className="evalhub-benchmark-suite-card__title"
+        onClick={onSelect ? handleOpenDetails : undefined}
+        data-testid={`benchmark-suite-card-title-region-${collection.resource.id}`}
+      >
+        <div className="evalhub-benchmark-suite-card__title-content">
+          <DomainIconStack collectionId={collection.resource.id} domains={resolvedDomains} />
+          {contextualActionsMenu}
+        </div>
+        {onSelect ? (
+          <Button
+            variant="link"
+            isInline
+            className="evalhub-benchmark-suite-card__title-button"
+            onClick={(e) => {
+              // The title region also opens the drawer; keep this click from double-firing.
+              e.stopPropagation();
+              handleOpenDetails();
+            }}
+            data-testid={`benchmark-suite-card-name-${collection.resource.id}`}
+          >
+            <span className="evalhub-benchmark-suite-card__title-name">{collection.name}</span>
+          </Button>
+        ) : (
+          <span className="evalhub-benchmark-suite-card__title-name">{collection.name}</span>
+        )}
+      </CardTitle>
+      <CardBody
+        className="evalhub-benchmark-suite-card__body"
+        onClick={onSelect ? handleOpenDetails : undefined}
+        data-testid={`benchmark-suite-card-body-region-${collection.resource.id}`}
+      >
+        <div className="evalhub-benchmark-suite-card__metadata">
+          {evaluationTargetNames.length > 1 ? (
+            <Tooltip content={evaluationTargetsTooltip}>
+              <button
+                type="button"
+                className="evalhub-benchmark-suite-card__metadata-button"
+                data-testid={`benchmark-suite-card-evaluation-targets-${collection.resource.id}`}
+                aria-label={evaluationTargetsSummaryLabel}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {evaluationTargetLabel}
+              </button>
+            </Tooltip>
+          ) : (
+            <span className="evalhub-benchmark-suite-card__metadata-label">
+              {evaluationTargetLabel}
+            </span>
+          )}
+          <span aria-hidden="true">·</span>
+          <Tooltip content={benchmarksTooltip}>
+            <button
+              type="button"
+              className="evalhub-benchmark-suite-card__metadata-button"
+              data-testid={`benchmark-suite-card-benchmarks-${collection.resource.id}`}
+              aria-label={benchmarksSummaryLabel}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {benchmarkCount} {benchmarkCount === 1 ? 'benchmark' : 'benchmarks'}
+            </button>
+          </Tooltip>
+        </div>
+        <Stack>
+          <StackItem>
+            <Content
+              component="p"
+              className="evalhub-benchmark-suite-card__description"
+              title={collection.description || 'No description provided'}
+            >
+              {collection.description || <em>No description provided</em>}
+            </Content>
+          </StackItem>
+          {prerequisite ? (
+            <StackItem className="pf-v6-u-mt-sm">
+              <Flex
+                className="evalhub-benchmark-suite-card__prerequisite"
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                gap={{ default: 'gapXs' }}
+                data-testid={`benchmark-suite-card-prerequisite-${collection.resource.id}`}
+              >
+                <Flex
+                  flex={{ default: 'flexNone' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  className="evalhub-benchmark-suite-card__prerequisite-icon-container"
+                  aria-hidden="true"
+                >
+                  <InfoCircleIcon className="evalhub-benchmark-suite-card__prerequisite-icon" />
+                </Flex>
+                <FlexItem
+                  flex={{ default: 'flex_1' }}
+                  className="evalhub-benchmark-suite-card__prerequisite-text pf-v6-u-min-width-0"
+                >
+                  {prerequisite}
+                </FlexItem>
+              </Flex>
+            </StackItem>
+          ) : null}
+        </Stack>
+      </CardBody>
+      <CardFooter className="evalhub-benchmark-suite-card__footer">
+        {metricNames.length > 0 && (
+          <MetricLabelGroup
+            collectionId={collection.resource.id}
+            metricNames={metricNames}
+            metricsTooltip={metricsTooltip}
+          />
+        )}
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{
+            default: showRunCount ? 'justifyContentSpaceBetween' : 'justifyContentFlexStart',
+          }}
+          className="evalhub-benchmark-suite-card__footer-content"
+        >
+          <FlexItem>{actionFooter}</FlexItem>
+          {showRunCount && (
+            <FlexItem>
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                className="evalhub-benchmark-suite-card__footer-summary"
+              >
+                <Tooltip content={runCountTooltip}>
+                  <button
+                    type="button"
+                    className="evalhub-benchmark-suite-card__counter evalhub-benchmark-suite-card__counter--run-count evalhub-benchmark-suite-card__tooltip-summary"
+                    data-testid={`benchmark-suite-card-run-count-${collection.resource.id}`}
+                    aria-label={runCountTooltip}
+                  >
+                    <span className="evalhub-benchmark-suite-card__counter-value">
+                      <OutlinedPlayCircleIcon aria-hidden="true" />
+                      <span className="evalhub-benchmark-suite-card__counter-label">Runs:</span>
+                      <span>{runCount}</span>
+                    </span>
+                  </button>
+                </Tooltip>
+              </Flex>
+            </FlexItem>
+          )}
+        </Flex>
+      </CardFooter>
+    </Card>
+  );
+};
+
+export default BenchmarkSuiteCard;

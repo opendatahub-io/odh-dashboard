@@ -1,8 +1,13 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import type { CollectionDetail } from '~/app/hooks/useCollectionDetail';
+import * as trackingHook from '~/app/hooks/useDataRegistryTrackEvent';
 import CollectionDetailView from '~/app/pages/CollectionDetailView';
+
+jest.mock('~/app/hooks/useDataRegistryTrackEvent');
+
+const mockTrackEvent = jest.fn();
 
 const mockCollectionDetail: CollectionDetail = {
   name: 'test-collection',
@@ -20,6 +25,11 @@ const mockCollectionDetail: CollectionDetail = {
 };
 
 describe('CollectionDetailView', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(trackingHook.useDataRegistryTrackEvent).mockReturnValue(mockTrackEvent);
+  });
+
   it('should render collection details card', () => {
     render(
       <BrowserRouter>
@@ -72,13 +82,26 @@ describe('CollectionDetailView', () => {
       unstructuredCount: 0,
     };
 
+    const onRegisterData = jest.fn();
     render(
       <BrowserRouter>
-        <CollectionDetailView collection={emptyCollection} project="demo-user-1" />
+        <CollectionDetailView
+          collection={emptyCollection}
+          project="demo-user-1"
+          onRegisterData={onRegisterData}
+        />
       </BrowserRouter>,
     );
 
-    expect(screen.getByText('No data assets in this collection.')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-assets-empty-state')).toBeInTheDocument();
+    expect(screen.getByText('No data assets')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'To help users in your organization discover and understand external data, create a data asset. Data assets are metadata records that store information like location, format, and schema, but not the data itself.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('collection-empty-register-data-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('collection-assets-table')).not.toBeInTheDocument();
   });
 
   it('should link to table detail pages', () => {
@@ -91,7 +114,7 @@ describe('CollectionDetailView', () => {
     const table1Link = screen.getByText('table1').closest('a');
     expect(table1Link).toHaveAttribute(
       'href',
-      '/ai-hub/data/browse/tables/demo-user-1/test-collection/table1',
+      '/ai-hub/data/browse/assets/table/demo-user-1/test-collection/table1',
     );
   });
 
@@ -105,8 +128,26 @@ describe('CollectionDetailView', () => {
     const volume1Link = screen.getByText('volume1').closest('a');
     expect(volume1Link).toHaveAttribute(
       'href',
-      '/ai-hub/data/browse/volumes/demo-user-1/test-collection/volume1',
+      '/ai-hub/data/browse/assets/volume/demo-user-1/test-collection/volume1',
     );
+  });
+
+  it('should track asset opens from the link and View details action', () => {
+    render(
+      <BrowserRouter>
+        <CollectionDetailView collection={mockCollectionDetail} project="demo-user-1" />
+      </BrowserRouter>,
+    );
+
+    fireEvent.click(screen.getByText('table1'));
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Data Asset Opened',
+      properties: { project: 'demo-user-1' },
+    });
+
+    fireEvent.click(screen.getByTestId('asset-kebab-table1'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'View details' }));
+    expect(mockTrackEvent).toHaveBeenCalledTimes(2);
   });
 
   it('should display created timestamp with user', () => {

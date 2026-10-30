@@ -77,7 +77,7 @@ describe('getPipelineSummaryDetails', () => {
       },
       {
         label: 'Winning pattern',
-        value: 'Pattern1',
+        value: 'Pattern\u00a0A',
         help: {
           header: 'Winning pattern',
           body: 'The configuration that achieved the highest evaluation score during optimization.',
@@ -85,7 +85,7 @@ describe('getPipelineSummaryDetails', () => {
       },
       {
         label: 'Evaluation metric',
-        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+        value: `${OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC]} (custom)`,
       },
     ]);
   });
@@ -192,7 +192,7 @@ describe('getPipelineSummaryDetails', () => {
       },
       {
         label: 'Evaluation metric',
-        value: OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC],
+        value: `${OPTIMIZATION_METRIC_LABELS[DEFAULT_OPTIMIZATION_METRIC]} (custom)`,
       },
     ]);
   });
@@ -239,7 +239,9 @@ describe('getPipelineSummaryDetails', () => {
   it('resolves the winning pattern display name from bestPatternKey', () => {
     const details = getPipelineSummaryDetails(mockPipelineRun, mockStageMap, patterns, 'Pattern2');
 
-    expect(details.find((detail) => detail.label === 'Winning pattern')?.value).toBe('Pattern2');
+    expect(details.find((detail) => detail.label === 'Winning pattern')?.value).toBe(
+      'Pattern\u00a0B',
+    );
   });
 
   it('shows em dash when bestPatternKey is missing from patterns', () => {
@@ -307,7 +309,38 @@ describe('getPipelineSummaryDetails', () => {
     );
 
     expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe(
-      'Answer faithfulness (ragas)',
+      'Faithfulness (RAGAS)',
     );
   });
+
+  it.each([
+    {
+      runtimeMetric: 'unitxt:faithfulness',
+      optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
+      expectedLabel: 'Faithfulness (Unitxt)',
+    },
+    {
+      runtimeMetric: 'ragas:faithfulness',
+      optimizationMetric: { name: 'faithfulness', evaluator: 'ragas' },
+      expectedLabel: 'Faithfulness (RAGAS)',
+    },
+  ])(
+    'renders qualified runtime metric $runtimeMetric',
+    ({ runtimeMetric, optimizationMetric, expectedLabel }) => {
+      const details = getPipelineSummaryDetails(
+        {
+          ...mockPipelineRun,
+          runtime_config: { parameters: { optimization_metric: runtimeMetric } },
+        },
+        mockStageMap,
+        patterns,
+        undefined,
+        optimizationMetric,
+      );
+
+      expect(details.find((detail) => detail.label === 'Evaluation metric')?.value).toBe(
+        expectedLabel,
+      );
+    },
+  );
 });

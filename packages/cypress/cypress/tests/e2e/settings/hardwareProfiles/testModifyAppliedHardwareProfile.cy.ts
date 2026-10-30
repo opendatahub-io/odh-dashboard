@@ -167,10 +167,13 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       hardwareProfileSection.findSelect().should('contain', updatedHardwareProfileName);
       createSpawnerPage.findSubmitButton().click();
 
+      cy.step('Handle potential conflict error on submit');
+      createSpawnerPage.handleConflictIfPresent();
+
       // Verify that the workbench has been updated
       cy.step('Verifying the edited details display after updating');
       // Wait for navigation back to the workbenches page
-      cy.url().should('include', `/projects/${projectName}`);
+      workbenchPage.findNotebookTable(30000).should('exist');
       projectDetails.findSectionTab('workbenches').should('be.visible');
       const notebookEditedRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookEditedRow.findHardwareProfileColumn().should('contain', updatedHardwareProfileName);

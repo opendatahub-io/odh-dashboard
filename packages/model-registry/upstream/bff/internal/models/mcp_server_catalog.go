@@ -129,6 +129,38 @@ type McpRuntimeMetadata struct {
 	Capabilities                 *McpRuntimeMetadataCapabilities    `json:"capabilities,omitempty"`
 	McpPath                      *string                            `json:"mcpPath,omitempty"`
 	Prerequisites                *McpPrerequisites                  `json:"prerequisites,omitempty"`
+	Storage                      []McpStorageMount                  `json:"storage,omitempty"`
+}
+
+type McpStoragePermissions string
+
+const (
+	McpStoragePermissionsReadOnly  McpStoragePermissions = "ReadOnly"
+	McpStoragePermissionsReadWrite McpStoragePermissions = "ReadWrite"
+)
+
+type McpStorageSourceType string
+
+const (
+	McpStorageSourceTypeEmptyDir  McpStorageSourceType = "EmptyDir"
+	McpStorageSourceTypeConfigMap McpStorageSourceType = "ConfigMap"
+	McpStorageSourceTypeSecret    McpStorageSourceType = "Secret"
+)
+
+// McpStorageMount describes a catalog storage mount for an MCPServer.
+type McpStorageMount struct {
+	Path        string                 `json:"path"`
+	Permissions *McpStoragePermissions `json:"permissions,omitempty"`
+	Source      McpStorageSource       `json:"source"`
+}
+
+// McpStorageSource preserves free-form catalog volume options. Pointers retain
+// explicit empty objects (such as emptyDir: {}) while omitting absent options.
+type McpStorageSource struct {
+	Type      McpStorageSourceType    `json:"type"`
+	EmptyDir  *map[string]interface{} `json:"emptyDir,omitempty"`
+	ConfigMap *map[string]interface{} `json:"configMap,omitempty"`
+	Secret    *map[string]interface{} `json:"secret,omitempty"`
 }
 
 type McpToolParameter struct {

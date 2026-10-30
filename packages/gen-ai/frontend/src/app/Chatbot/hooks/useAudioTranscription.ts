@@ -3,6 +3,7 @@ import {
   fireMiscTrackingEvent,
   fireFormTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { uploadMediaFile, transcribeAudio } from '~/app/services/llamaStackService';
 import { AUDIO_TRANSCRIPTION_TIMEOUT_MS } from '~/app/Chatbot/const';
@@ -11,10 +12,19 @@ import { classifyError } from '~/app/utilities/errorClassifier';
 import { ClassifiedError, isApiError } from '~/app/types';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 
-export type AudioTranscriptionPhase = 'idle' | 'uploading' | 'transcribing' | 'ready' | 'error';
+export type AudioTranscriptionPhase =
+  | 'idle'
+  // Keep the file pending while the user chooses a transcription model.
+  | 'waiting-for-model'
+  | 'uploading'
+  | 'transcribing'
+  | 'ready'
+  | 'error';
 
 export interface AudioTranscriptionState {
   phase: AudioTranscriptionPhase;
+  file: File | null;
+  previewFile?: File | null;
   fileName: string;
   uploadProgress: number;
   error: ClassifiedError | null;
@@ -23,6 +33,8 @@ export interface AudioTranscriptionState {
 
 const INITIAL_STATE: AudioTranscriptionState = {
   phase: 'idle',
+  file: null,
+  previewFile: null,
   fileName: '',
   uploadProgress: 0,
   error: null,
@@ -33,6 +45,12 @@ interface UseAudioTranscriptionReturn {
   state: AudioTranscriptionState;
   startUpload: (
     file: File,
+    asrModelId: string,
+    namespace: string,
+    subscription?: string,
+    configIndex?: number,
+  ) => void;
+  resumeUpload: (
     asrModelId: string,
     namespace: string,
     subscription?: string,
@@ -50,6 +68,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
   const xhrRef = React.useRef<XMLHttpRequest | null>(null);
   const uploadGenRef = React.useRef(0);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingFileRef = React.useRef<File | null>(null);
 
   const cleanup = React.useCallback(() => {
     if (timeoutRef.current) {
@@ -70,15 +89,18 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
 
   const abort = React.useCallback(() => {
     cleanup();
+    pendingFileRef.current = null;
     uploadGenRef.current += 1;
     setState(INITIAL_STATE);
   }, [cleanup]);
 
   const reset = React.useCallback(() => {
+    pendingFileRef.current = null;
     setState(INITIAL_STATE);
   }, []);
 
   const discard = React.useCallback(() => {
+    pendingFileRef.current = null;
     setState(INITIAL_STATE);
   }, []);
 
@@ -94,11 +116,28 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
       uploadGenRef.current += 1;
       const gen = uploadGenRef.current;
 
+      if (!asrModelId) {
+        pendingFileRef.current = file;
+        setState({
+          phase: 'waiting-for-model',
+          file: null,
+          previewFile: file,
+          fileName: file.name,
+          uploadProgress: 0,
+          error: null,
+          transcribedText: '',
+        });
+        return;
+      }
+      pendingFileRef.current = null;
+
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
       setState({
         phase: 'uploading',
+        file: null,
+        previewFile: file,
         fileName: file.name,
         uploadProgress: 0,
         error: null,
@@ -208,6 +247,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
           setState((prev) => ({
             ...prev,
             phase: 'ready',
+            file,
             transcribedText: result.text,
           }));
           fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
@@ -233,14 +273,13 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
             return;
           }
 
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
           if (transcribeStartTimeRef.current > 0) {
             fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_TRANSCRIPTION_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: false,
               modelName: asrModelId,
               durationMs: Date.now() - transcribeStartTimeRef.current,
-              error: errorMsg,
+              error: errorCategory(error),
             });
           } else {
             fireFormTrackingEvent(PLAYGROUND_MULTIMODAL_EVENTS.AUDIO_UPLOAD_COMPLETED, {
@@ -248,7 +287,7 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
               success: false,
               fileType: file.type || 'unknown',
               fileSizeBytes: file.size,
-              error: errorMsg,
+              error: errorCategory(error),
             });
           }
 
@@ -282,8 +321,17 @@ export const useAudioTranscription = (): UseAudioTranscriptionReturn => {
     [cleanup],
   );
 
+  const resumeUpload = React.useCallback(
+    (asrModelId: string, namespace: string, subscription?: string, configIndex?: number) => {
+      if (pendingFileRef.current) {
+        startUpload(pendingFileRef.current, asrModelId, namespace, subscription, configIndex);
+      }
+    },
+    [startUpload],
+  );
+
   return React.useMemo(
-    () => ({ state, startUpload, abort, reset, discard }),
-    [state, startUpload, abort, reset, discard],
+    () => ({ state, startUpload, resumeUpload, abort, reset, discard }),
+    [state, startUpload, resumeUpload, abort, reset, discard],
   );
 };

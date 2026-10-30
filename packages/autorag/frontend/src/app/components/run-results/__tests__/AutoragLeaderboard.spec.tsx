@@ -3,9 +3,11 @@ import '@testing-library/jest-dom';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutoragLeaderboard from '~/app/components/run-results/AutoragLeaderboard';
 import { AutoragResultsContext } from '~/app/context/AutoragResultsContext';
+import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
@@ -19,11 +21,22 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 
 const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
+jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
+  useTaskExecutorError: jest.fn(),
+}));
+
+const mockUseTaskExecutorError = jest.mocked(useTaskExecutorError);
+
+beforeEach(() => {
+  mockUseTaskExecutorError.mockReturnValue({ isLoading: false, isError: false });
+});
+
 // Mock empty state component
-jest.mock('~/app/components/empty-states/AutoragRunInProgress', () => ({
-  __esModule: true,
-  default: ({ namespace }: { namespace: string }) => (
-    <div data-testid="run-in-progress">Pipeline running in namespace: {namespace}</div>
+jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
+  ...jest.requireActual('@odh-dashboard/autox-core/ui/components/feature'),
+  RunInProgress: ({ viewRunsRoute }: { viewRunsRoute: string }) => (
+    <div data-testid="run-in-progress">Pipeline running, view runs at: {viewRunsRoute}</div>
   ),
 }));
 
@@ -54,7 +67,7 @@ const createMockPattern = (
   max_combinations: 10,
   duration_seconds: 120,
   settings: {
-    vector_store_binding: {
+    store_binding: {
       provider_type: 'milvus',
       collection_name: 'vs_collection0',
     },
@@ -195,7 +208,7 @@ const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
       faithfulness: 0.88,
     }),
     settings: {
-      vector_store_binding: {
+      store_binding: {
         provider_type: 'milvus',
         collection_name: 'vs_collection0',
       },
@@ -210,10 +223,26 @@ const mockPatternsWithMalformedSettings: Record<string, AutoragPattern> = {
   },
 };
 
+type TestOptimizationMetric =
+  | 'faithfulness'
+  | 'answer_correctness'
+  | 'context_correctness'
+  | 'unitxt:faithfulness'
+  | 'unitxt:answer_correctness'
+  | 'ragas:faithfulness';
+
+const qualifyTestOptimizationMetric = (optimizationMetric: TestOptimizationMetric): string => {
+  if (optimizationMetric === 'faithfulness') {
+    return 'unitxt:faithfulness';
+  }
+  if (optimizationMetric === 'answer_correctness') {
+    return 'unitxt:answer_correctness';
+  }
+  return optimizationMetric;
+};
+
 // Helper to create mock parameters
-const createMockParameters = (
-  optimizationMetric: 'faithfulness' | 'answer_correctness' | 'context_correctness',
-) => ({
+const createMockParameters = (optimizationMetric: TestOptimizationMetric) => ({
   display_name: 'Test RAG Run',
   input_data_secret_name: 'test-secret',
   input_data_bucket_name: 'test-bucket',
@@ -224,13 +253,13 @@ const createMockParameters = (
   ogx_secret_name: 'ogx-secret',
   generation_models: ['llama-3'],
   embedding_models: ['text-embedding-3'],
-  optimization_metric: optimizationMetric,
+  optimization_metric: qualifyTestOptimizationMetric(optimizationMetric),
   optimization_max_rag_patterns: 10,
 });
 
 const createMockPipelineRun = (
   state: RuntimeStateKF,
-  optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness',
+  optimizationMetric?: TestOptimizationMetric,
 ): PipelineRun => ({
   run_id: 'test-run-123',
   display_name: 'Test AutoRAG Run',
@@ -254,12 +283,11 @@ interface RenderWithContextOptions {
   patternsLoading?: boolean;
   patternsError?: boolean;
   patternsLoadError?: Error;
-  onRetryPatterns?: () => void;
-  optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';
+  onRetryPatterns?: () => Promise<void>;
+  optimizationMetric?: TestOptimizationMetric;
   namespace?: string;
+  componentStageMap?: ComponentStageMap;
 }
-
-type TestOptimizationMetric = 'faithfulness' | 'answer_correctness' | 'context_correctness';
 
 const renderWithContext = ({
   patterns = {},
@@ -271,12 +299,13 @@ const renderWithContext = ({
   onRetryPatterns,
   optimizationMetric,
   namespace = 'test-namespace',
+  componentStageMap,
 }: RenderWithContextOptions = {}) => {
   const finalOptimizationMetric: TestOptimizationMetric =
     optimizationMetric ??
     ((pipelineRun?.runtime_config?.parameters as Record<string, unknown> | undefined)
       ?.optimization_metric as TestOptimizationMetric | undefined) ??
-    'faithfulness';
+    'unitxt:faithfulness';
 
   const contextValue = {
     pipelineRun,
@@ -288,6 +317,7 @@ const renderWithContext = ({
     onRetryPatterns,
     parameters: createMockParameters(finalOptimizationMetric),
     optimizationMetric: resolveObjectiveReference(patterns, finalOptimizationMetric),
+    componentStageMap,
   };
 
   return render(
@@ -486,14 +516,14 @@ describe('AutoragLeaderboard component', () => {
       [
         'when run failed',
         RuntimeStateKF.FAILED,
-        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-        /pipeline configuration and logs/i,
+        'The pipeline run did not complete successfully. Please check the log for errors or pipeline configuration for more advanced details.',
+        /pipeline configuration/i,
       ],
       [
         'when run was canceled',
         RuntimeStateKF.CANCELED,
-        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
-        /pipeline configuration and logs/i,
+        'The pipeline run did not complete successfully. Please check the log for errors or pipeline configuration for more advanced details.',
+        /pipeline configuration/i,
       ],
       [
         'when pipelineRun is undefined',
@@ -539,6 +569,100 @@ describe('AutoragLeaderboard component', () => {
         'href',
         '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
       );
+    });
+
+    it('should open the executor log tearsheet from the failed-run message', () => {
+      const logText = '[KFP Executor ERROR]: TestDataLoaderError: bad keys in test data record';
+      mockUseTaskExecutorError.mockReturnValue({ logText, isLoading: false, isError: false });
+      renderWithContext({
+        patterns: {},
+        componentStageMap: {
+          pipeline_id: 'rag-pipeline',
+          description: 'RAG optimization pipeline',
+          kfp_run_id: 'test-run-123',
+          published_at: '2025-01-17T00:00:00Z',
+          components: [
+            { id: 'documents_discovery', description: '', stages: [] },
+            { id: 'pattern_generation', description: '', stages: [] },
+          ],
+        },
+        pipelineRun: {
+          ...createMockPipelineRun(RuntimeStateKF.FAILED),
+          run_details: {
+            task_details: [
+              // KFP system tasks fail alongside the run and precede the
+              // component tasks in the listing — the stage map identifies
+              // the step that actually failed.
+              {
+                task_id: 'uuid-0',
+                display_name: 'documents-rag-optimization-pipeline-vtx7r',
+                state: 'FAILED',
+              },
+              { task_id: 'uuid-1', display_name: 'documents-discovery', state: 'SUCCEEDED' },
+              { task_id: 'uuid-2', display_name: 'pattern-generation', state: 'FAILED' },
+            ],
+          },
+        },
+      });
+
+      // The log link targets the executor log of the first failed task.
+      expect(mockUseTaskExecutorError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskKey: 'pattern-generation',
+          rootDir: 'documents-rag-optimization-pipeline',
+        }),
+      );
+
+      expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('leaderboard-failed-run-logs-link'));
+
+      expect(screen.getByTestId('executor-logs-content')).toHaveTextContent(logText);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument();
+    });
+
+    it('should fall back to the first failed non-system task without a stage map', () => {
+      const logText = '[KFP Executor ERROR]: stage map publisher crashed';
+      mockUseTaskExecutorError.mockReturnValue({ logText, isLoading: false, isError: false });
+      renderWithContext({
+        patterns: {},
+        pipelineRun: {
+          ...createMockPipelineRun(RuntimeStateKF.FAILED),
+          run_details: {
+            task_details: [
+              // No stage map (the publisher itself failed), so the component
+              // walk is unavailable — the fallback must skip the KFP system
+              // tasks via the pipeline name (the S3 rootDir).
+              {
+                task_id: 'uuid-0',
+                display_name: 'documents-rag-optimization-pipeline-vtx7r',
+                state: 'FAILED',
+              },
+              { task_id: 'uuid-1', display_name: 'root', state: 'FAILED' },
+              { task_id: 'uuid-2', display_name: 'executor', state: 'FAILED' },
+              {
+                task_id: 'uuid-3',
+                display_name: 'publish-component-stage-map',
+                state: 'FAILED',
+              },
+            ],
+          },
+        },
+      });
+
+      expect(mockUseTaskExecutorError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskKey: 'publish-component-stage-map',
+          rootDir: 'documents-rag-optimization-pipeline',
+        }),
+      );
+
+      fireEvent.click(screen.getByTestId('leaderboard-failed-run-logs-link'));
+
+      expect(screen.getByTestId('executor-logs-content')).toHaveTextContent(logText);
     });
 
     it('should render loading skeleton with correct structure', () => {
@@ -624,7 +748,7 @@ describe('AutoragLeaderboard component', () => {
         patternsError: false,
         onRetryPatterns: mockRetry,
         parameters: createMockParameters('faithfulness'),
-        optimizationMetric: { name: 'faithfulness' },
+        optimizationMetric: { name: 'faithfulness', evaluator: 'unitxt' },
       };
 
       rerender(
@@ -872,17 +996,18 @@ describe('AutoragLeaderboard component', () => {
     it('qualifies duplicate metric names by evaluator and uses the flagged evaluator value', () => {
       renderWithContext({
         patterns: { 'pattern-1': createMockPatternWithDuplicateFaithfulness() },
-        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'ragas:faithfulness'),
       });
 
       const optimizedHeader = screen.getByTestId('metric-header-faithfulness-ragas');
-      expect(optimizedHeader).toHaveTextContent('Answer faithfulness (ragas)');
+      expect(optimizedHeader).toHaveTextContent('Faithfulness (RAGAS)');
       expect(within(optimizedHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
       expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
 
       showAllColumns();
 
-      expect(screen.getByText('Answer faithfulness (unitxt)')).toBeInTheDocument();
+      expect(screen.getByText('Faithfulness (Unitxt)')).toBeInTheDocument();
+      expect(screen.getByText('Faithfulness (RAGAS)')).toBeInTheDocument();
       expect(screen.getByTestId('metric-faithfulness-unitxt-1')).toHaveTextContent('0.618');
       expect(screen.getByTestId('metric-faithfulness-ragas-1')).toHaveTextContent('0.771');
     });
@@ -989,9 +1114,7 @@ describe('AutoragLeaderboard component', () => {
       });
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
-      expect(
-        screen.getByRole('checkbox', { name: 'Answer faithfulness (unitxt)' }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: 'Faithfulness (Unitxt)' })).toBeInTheDocument();
       expect(
         screen.getByRole('checkbox', { name: 'Answer faithfulness (custom)' }),
       ).toBeInTheDocument();
@@ -1000,7 +1123,7 @@ describe('AutoragLeaderboard component', () => {
       showAllColumns();
 
       expect(
-        screen.getByRole('columnheader', { name: /Answer faithfulness \(unitxt\)/i }),
+        screen.getByRole('columnheader', { name: /Faithfulness \(Unitxt\)/i }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole('columnheader', { name: /Answer faithfulness \(custom\)/i }),
@@ -1027,10 +1150,23 @@ describe('AutoragLeaderboard component', () => {
       renderWithContext({
         patterns: { ambiguous: pattern },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        optimizationMetric: 'faithfulness',
       });
 
       expect(screen.getByTestId('rank-unranked-ambiguous')).toHaveTextContent('Unranked');
       expect(screen.getByTestId('metric-faithfulness-unranked-ambiguous')).toHaveTextContent('N/A');
+    });
+
+    it('should provide definition hover help for metric headers including Answer correctness', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+      showAllColumns();
+
+      const header = screen.getByTestId('metric-header-answer_correctness-unitxt');
+      fireEvent.click(within(header).getByRole('button', { name: /more info/i }));
+      expect(screen.getByText(/matches the expected ground-truth answers/i)).toBeInTheDocument();
     });
 
     it('should display all metrics for each pattern', () => {
@@ -1625,10 +1761,10 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const countText = screen.getByTestId('columns-selected-count');
-      expect(countText).toHaveTextContent(/4\/\d+ columns selected/);
+      expect(countText).toHaveTextContent(/8\/\d+ columns selected/);
     });
 
-    it('should default to only rank, pattern, model, and optimized metric visible', () => {
+    it('should default to the key configuration columns visible', () => {
       renderWithContext({
         patterns: mockStandardPatterns,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
@@ -1638,15 +1774,16 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.getByTestId('pattern-name-header')).toBeInTheDocument();
       expect(screen.getByTestId('model-name-header')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
-
+      expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-method-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-search-mode-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-ranker-strategy-header')).toBeInTheDocument();
       expect(
         screen.queryByTestId('metric-header-answer_correctness-unitxt'),
       ).not.toBeInTheDocument();
       expect(
         screen.queryByTestId('metric-header-context_correctness-unitxt'),
       ).not.toBeInTheDocument();
-      expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('retrieval-method-header')).not.toBeInTheDocument();
     });
 
     it('should reset to default visibility and order when reset button is clicked', () => {
@@ -1664,7 +1801,7 @@ describe('AutoragLeaderboard component', () => {
 
       expect(screen.getByTestId('rank-header')).toBeInTheDocument();
       expect(screen.getByTestId('metric-header-faithfulness-unitxt')).toBeInTheDocument();
-      expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
+      expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
       expect(
         screen.queryByTestId('metric-header-answer_correctness-unitxt'),
       ).not.toBeInTheDocument();
@@ -1799,7 +1936,7 @@ describe('AutoragLeaderboard component', () => {
 
       // Verify all columns are visible — capture original header order
       const originalHeaders = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const originalOrder = originalHeaders.map((h) => h.getAttribute('data-testid'));
 
@@ -1811,18 +1948,18 @@ describe('AutoragLeaderboard component', () => {
 
       // Headers should still be in the same default order
       const headersAfterPreset = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-|chunking-|retrieval-|retrieval-ranker)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const orderAfterPreset = headersAfterPreset.map((h) => h.getAttribute('data-testid'));
       expect(orderAfterPreset).toEqual(originalOrder);
 
-      // Now reset to default — should restore default visibility (only 4 columns)
+      // Now reset to default — should restore default visibility and order
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('manage-columns-reset'));
       fireEvent.click(screen.getByText('Save'));
 
       const headersAfterReset = screen.getAllByTestId(
-        /^(rank-header|pattern-name-header|model-name-header|metric-header-)/,
+        /^(rank-header|pattern-name-header|model-name-header|metric-header-.+|chunking-.+-header|retrieval-.+-header)$/,
       );
       const orderAfterReset = headersAfterReset.map((h) => h.getAttribute('data-testid'));
       expect(orderAfterReset).toEqual([
@@ -1830,6 +1967,10 @@ describe('AutoragLeaderboard component', () => {
         'pattern-name-header',
         'model-name-header',
         'metric-header-faithfulness-unitxt',
+        'chunking-method-header',
+        'retrieval-method-header',
+        'retrieval-search-mode-header',
+        'retrieval-ranker-strategy-header',
       ]);
     });
 

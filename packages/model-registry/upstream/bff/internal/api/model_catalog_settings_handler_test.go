@@ -18,6 +18,43 @@ var _ = Describe("TestModelCatalogSettings", func() {
 		}
 	})
 	Context("fetching catalog source config", func() {
+		It("GET list and single source expose configured credentials without the reference", func() {
+			list, rs, err := setupApiTest[ModelCatalogSettingsSourceConfigListEnvelope](
+				http.MethodGet,
+				"/api/v1/settings/model_catalog/source_configs?namespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			var found bool
+			for _, source := range list.Data.Catalogs {
+				if source.Id == "hugging_face_source" {
+					found = true
+					Expect(source.HasConfiguredApiKey).NotTo(BeNil())
+					Expect(*source.HasConfiguredApiKey).To(BeTrue())
+					Expect(source.ApiKey).To(BeNil())
+				}
+			}
+			Expect(found).To(BeTrue())
+
+			source, rs, err := setupApiTest[ModelCatalogSettingsSourceConfigEnvelope](
+				http.MethodGet,
+				"/api/v1/settings/model_catalog/source_configs/hugging_face_source?namespace=kubeflow",
+				nil,
+				kubernetesMockedStaticClientFactory,
+				requestIdentity,
+				"kubeflow",
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(source.Data.HasConfiguredApiKey).NotTo(BeNil())
+			Expect(*source.Data.HasConfiguredApiKey).To(BeTrue())
+			Expect(source.Data.ApiKey).To(BeNil())
+		})
+
 		It("GET ALL returns 200", func() {
 			_, rs, err := setupApiTest[ModelCatalogSettingsSourceConfigListEnvelope](
 				http.MethodGet,

@@ -20,10 +20,14 @@ const PORT = process.env._PORT;
 const PROXY_PROTOCOL = process.env._PROXY_PROTOCOL;
 const PROXY_HOST = process.env._PROXY_HOST;
 const PROXY_PORT = process.env._PROXY_PORT;
+const GEN_AI_BFF_PROTOCOL = process.env.GEN_AI_BFF_PROTOCOL || 'http';
+const GEN_AI_BFF_HOST = process.env.GEN_AI_BFF_HOST || 'localhost';
+const GEN_AI_BFF_PORT = process.env.GEN_AI_BFF_PORT || 8080;
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/autorag/' : PUBLIC_PATH;
+const IS_CYPRESS_RUN = process.env.CYPRESS_RUN === 'true';
 
 // Get the kubeconfig token at startup as a fallback for standalone dev mode.
 const getKubeconfigToken = () => {
@@ -98,15 +102,33 @@ module.exports = merge(
       port: PORT,
       compress: true,
       historyApiFallback: true,
-      hot: true,
+      hot: !IS_CYPRESS_RUN,
+      liveReload: !IS_CYPRESS_RUN,
       open: false,
       proxy: [
         {
-          context: ['/api', '/autorag/api', '/gen-ai/api'],
+          context: ['/_mf/genAi'],
+          target: `http://localhost:${process.env.GEN_AI_REMOTE_PORT || 9102}`,
+          pathRewrite: { '^/_mf/genAi': '' },
+          changeOrigin: true,
+        },
+        {
+          context: ['/api', '/autorag/api'],
           target: {
             host: PROXY_HOST,
             protocol: PROXY_PROTOCOL,
             port: PROXY_PORT,
+          },
+          changeOrigin: true,
+          headers: getProxyHeaders(),
+          on: { proxyReq: onProxyReq },
+        },
+        {
+          context: ['/gen-ai/api'],
+          target: {
+            host: GEN_AI_BFF_HOST,
+            protocol: GEN_AI_BFF_PROTOCOL,
+            port: GEN_AI_BFF_PORT,
           },
           changeOrigin: true,
           headers: getProxyHeaders(),
@@ -141,7 +163,10 @@ module.exports = merge(
             SRC_DIR,
             COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
-            path.resolve(ROOT_NODE_MODULES, '@patternfly'),
+            path.resolve(RELATIVE_DIRNAME, '../node_modules'),
+            path.resolve(RELATIVE_DIRNAME, '../../../frontend/node_modules'),
+            path.resolve(RELATIVE_DIRNAME, '../../../frontend/src/node_modules'),
+            path.resolve(ROOT_NODE_MODULES),
           ],
           use: ['style-loader', 'css-loader'],
         },

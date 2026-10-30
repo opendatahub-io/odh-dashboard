@@ -70,6 +70,10 @@ const (
 	// Gen-ai playground LLS distribution name
 	lsdName = "lsd-genai-playground"
 
+	// Suppresses noisy OGX Python auto-instrumentors that otherwise emit internal
+	// database and HTTP client spans as standalone request=null MLflow traces.
+	ogxDisabledInstrumentations = "sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2"
+
 	// Label for dashboard-managed OGXServer identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
 
@@ -88,7 +92,90 @@ const (
 	routerCASecretName       = "router-ca"
 	routerCASecretKey        = "tls.crt"
 	ogxRouterCABundleName    = "ogx-router-ca-bundle"
+
+	officeMIMETypesConfigMapContents = `import mimetypes
+import os
+
+# Preserve OGX's optional OpenTelemetry auto-instrumentation hook when it is
+# available in the image. Python imports this module after the standard site
+# initialization, so importing the original hook here keeps both customizations.
+if os.environ.get("ODH_ENABLE_TRACING", "").lower() == "true":
+    try:
+        from opentelemetry.instrumentation.auto_instrumentation import sitecustomize as _otel_sitecustomize
+    except ImportError:
+        pass
+
+mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx")
+mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx")
+`
+
+	// officeMIMETypesPTHName is the .pth file written into the image's Python
+	// site-packages directory by the OGXServer container command when tracing
+	// is enabled. See ogxCommand for why a .pth file is needed in addition to
+	// the sitecustomize module above.
+	officeMIMETypesPTHName = "odh-office-mime-types.pth"
+
+	// officeMIMETypesPTHRegistration is the single import line executed by the
+	// .pth file named above. It must register the same MIME types as
+	// officeMIMETypesConfigMapContents above — keep both in sync. Unlike the
+	// sitecustomize module, it must not import the OTel auto-instrumentation
+	// hook: in OGX worker processes that hook already runs as the top-level
+	// sitecustomize, and importing it again here would initialize
+	// instrumentation twice.
+	officeMIMETypesPTHRegistration = `import mimetypes; mimetypes.add_type("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"); mimetypes.add_type("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx")`
 )
+
+func newOfficeMIMETypesConfigMap(namespace string) *corev1.ConfigMap {
+	immutable := true
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.OfficeMIMETypesConfigMapName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				OpenDataHubDashboardLabelKey: "true",
+				"ogx.io/server":              lsdName,
+				"ogx.io/watch":               "true",
+			},
+		},
+		Data: map[string]string{
+			constants.OfficeMIMETypesConfigMapKey: officeMIMETypesConfigMapContents,
+		},
+		Immutable: &immutable,
+	}
+}
+
+func officeMIMETypesWorkloadOverrides(enableTracing bool) ([]corev1.EnvVar, []corev1.Volume, []corev1.VolumeMount) {
+	return []corev1.EnvVar{{
+			Name:  "PYTHONPATH",
+			Value: constants.OfficeMIMETypesMountPath,
+		}, {
+			Name:  "ODH_ENABLE_TRACING",
+			Value: strconv.FormatBool(enableTracing),
+		}}, []corev1.Volume{{
+			Name: constants.OfficeMIMETypesConfigMapName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: constants.OfficeMIMETypesConfigMapName},
+					Items: []corev1.KeyToPath{{
+						Key:  constants.OfficeMIMETypesConfigMapKey,
+						Path: constants.OfficeMIMETypesConfigMapKey,
+					}},
+				},
+			},
+		}}, []corev1.VolumeMount{{
+			Name:      constants.OfficeMIMETypesConfigMapName,
+			MountPath: constants.OfficeMIMETypesMountPath,
+			ReadOnly:  true,
+		}}
+}
+
+func isTrustedOfficeMIMETypesConfigMap(configMap *corev1.ConfigMap) bool {
+	if configMap == nil || len(configMap.Data) != 1 || len(configMap.BinaryData) != 0 {
+		return false
+	}
+
+	return configMap.Data[constants.OfficeMIMETypesConfigMapKey] == officeMIMETypesConfigMapContents
+}
 
 type modelDetailsResult struct {
 	modelID     string
@@ -401,27 +488,17 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, identity *in
 		return nil, fmt.Errorf("failed to list projects: %w", err)
 	}
 
-	// Convert projects to namespaces
+	// Projects are namespace-backed and contain the metadata used by namespace callers.
+	// Returning them directly avoids one Namespace GET per visible Project.
 	namespaces := make([]corev1.Namespace, 0, len(projectList.Items))
 	for _, project := range projectList.Items {
-		projectName := project.GetName()
-
-		// Fetch full namespace object
-		ns := &corev1.Namespace{}
-		err := userClient.Get(ctx, types.NamespacedName{Name: projectName}, ns)
-		if err != nil {
-			kc.Logger.Warn("failed to get namespace details", "namespace", projectName, "error", err)
-			// Create minimal namespace if we can't fetch full details
-			namespaces = append(namespaces, corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        projectName,
-					Annotations: project.GetAnnotations(),
-					Labels:      project.GetLabels(),
-				},
-			})
-		} else {
-			namespaces = append(namespaces, *ns)
-		}
+		namespaces = append(namespaces, corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        project.GetName(),
+				Annotations: project.GetAnnotations(),
+				Labels:      project.GetLabels(),
+			},
+		})
 	}
 
 	kc.Logger.Debug("listed namespaces via OpenShift Projects API",
@@ -599,6 +676,10 @@ func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context
 	})
 
 	if err := kc.Client.List(ctx, list, client.InNamespace(namespace)); err != nil {
+		if apierrors.IsNotFound(err) || apimeta.IsNoMatchError(err) {
+			kc.Logger.Debug("NemoGuardrails CRD is unavailable", "namespace", namespace)
+			return "", nil
+		}
 		kc.Logger.Error("failed to list NemoGuardrails CRs", "error", err, "namespace", namespace)
 		return "", fmt.Errorf("failed to list NemoGuardrails CRs: %w", err)
 	}
@@ -683,6 +764,21 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 		return nil, fmt.Errorf("failed to get ConfigMap: %w", err)
 	}
 
+	return configMap, nil
+}
+
+// GetDashboardConfigMap reads dashboard-managed, non-secret configuration through the
+// dashboard service account. It falls back to the request client for local development.
+func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, namespace string, name string) (*corev1.ConfigMap, error) {
+	reader := kc.SAClient
+	if reader == nil {
+		reader = kc.Client
+	}
+
+	configMap := &corev1.ConfigMap{}
+	if err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, configMap); err != nil {
+		return nil, fmt.Errorf("failed to get dashboard ConfigMap %s/%s: %w", namespace, name, err)
+	}
 	return configMap, nil
 }
 
@@ -1517,11 +1613,27 @@ func (kc *TokenKubernetesClient) existingServerHasPassthroughFromConfigMap(ctx c
 // sitecustomize.py loading issue and the entrypoint supports OTLP/HTTP export:
 //
 //	return []string{"/opt/app-root/entrypoint.sh"}
+//
+// The command also writes a .pth file registering the Office MIME types into
+// the image's Python site-packages directory. The glob typically resolves to a
+// single directory (reachable via both the lib and lib64 paths) plus one
+// entry per additional Python version, should the image ever ship more.
+// opentelemetry-instrument prepends its
+// own auto_instrumentation directory to PYTHONPATH, and OTel's multiprocessing
+// integration does the same for spawned worker processes (where OGX runs file
+// processing jobs). Those directories contain OTel's own sitecustomize.py, and
+// Python only imports the first sitecustomize module found on sys.path, so the
+// office MIME-types sitecustomize mounted at constants.OfficeMIMETypesMountPath
+// is shadowed and .docx/.pptx uploads fail with "File type 'unknown'". Unlike
+// sitecustomize, .pth files in site-packages are executed for every interpreter
+// regardless of PYTHONPATH ordering, so the MIME registration runs in the main
+// process and the workers alike while leaving the OTel hooks untouched.
 func ogxCommand(enableTracing bool) []string {
 	if enableTracing {
 		return []string{"/bin/sh", "-c", strings.Join([]string{
 			"cp /opt/app-root/lib/python*/site-packages/opentelemetry/instrumentation/auto_instrumentation/sitecustomize.py /opt/app-root/lib/python*/site-packages/ 2>/dev/null || true",
-			"opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none ogx run /etc/ogx/config.yaml --insecure",
+			fmt.Sprintf("for d in /opt/app-root/lib*/python*/site-packages; do printf '%%s\\n' '%s' > \"$d/%s\" 2>/dev/null || true; done", officeMIMETypesPTHRegistration, officeMIMETypesPTHName),
+			fmt.Sprintf("opentelemetry-instrument --traces_exporter=otlp_proto_http --metrics_exporter=none --logs_exporter=none --disabled_instrumentations=%s ogx run /etc/ogx/config.yaml --insecure", ogxDisabledInstrumentations),
 		}, " && ")}
 	}
 	return []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml --insecure"}
@@ -1545,9 +1657,11 @@ func ogxEnvVars(base []corev1.EnvVar, enableTracing bool, namespace string, coll
 			corev1.EnvVar{Name: "OTEL_RESOURCE_ATTRIBUTES", Value: fmt.Sprintf("k8s.namespace.name=%s", namespace)},
 			corev1.EnvVar{Name: "OTEL_SEMCONV_STABILITY_OPT_IN", Value: "http"},
 			corev1.EnvVar{Name: "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", Value: "true"},
-			// Suppress noisy spans from internal endpoints and low-level instrumentors
-			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata"},
-			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: "sqlite3"},
+			// Suppress noisy spans from internal endpoints and low-level database/HTTP
+			// instrumentors. Otherwise OGX discovery, provider health, pgvector, and
+			// persistence calls are exported as separate request=null root traces.
+			corev1.EnvVar{Name: "OTEL_PYTHON_FASTAPI_EXCLUDED_URLS", Value: "health,version,metadata,models,vector_stores,providers,files"},
+			corev1.EnvVar{Name: "OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", Value: ogxDisabledInstrumentations},
 		)
 	}
 
@@ -1612,19 +1726,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Name:  "HF_DATASETS_OFFLINE",
 			Value: "1",
 		},
-	}
-
-	// Add per-model max_tokens environment variables
-	for i, model := range installModels {
-		maxTokensEnvName := fmt.Sprintf("VLLM_MAX_TOKENS_%d", i+1)
-		maxTokensValue := "4096"
-		if model.MaxTokens != nil {
-			maxTokensValue = strconv.Itoa(*model.MaxTokens)
-		}
-		envVars = append(envVars, corev1.EnvVar{
-			Name:  maxTokensEnvName,
-			Value: maxTokensValue,
-		})
 	}
 
 	// Step 2: Validate vector stores and inject credential env vars for providers that need them.
@@ -1832,6 +1933,54 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 
 	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
 
+	// inline::auto relies on Python's mimetypes registry to select MarkItDown
+	// for Office documents. The supported OGX image does not register Office
+	// mappings, so provide them as a small, isolated sitecustomize module.
+	officeMIMETypesConfigMap := newOfficeMIMETypesConfigMap(namespace)
+	officeMIMEConfigMapCreated := false
+	if err := kc.Client.Create(ctx, officeMIMETypesConfigMap); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			if getErr := kc.Client.Get(ctx, types.NamespacedName{Name: officeMIMETypesConfigMap.Name, Namespace: namespace}, officeMIMETypesConfigMap); getErr != nil {
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap lookup failure", "error", deleteErr, "namespace", namespace)
+				}
+				return nil, rollbackPgvector(fmt.Errorf("failed to retrieve existing Office MIME types ConfigMap: %w", getErr))
+			}
+			if !isTrustedOfficeMIMETypesConfigMap(officeMIMETypesConfigMap) {
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after rejecting an untrusted MIME ConfigMap", "error", deleteErr, "namespace", namespace)
+				}
+				return nil, rollbackPgvector(fmt.Errorf("existing Office MIME types ConfigMap has unexpected content"))
+			}
+			if officeMIMETypesConfigMap.Immutable == nil || !*officeMIMETypesConfigMap.Immutable {
+				immutable := true
+				officeMIMETypesConfigMap.Immutable = &immutable
+				if updateErr := kc.Client.Update(ctx, officeMIMETypesConfigMap); updateErr != nil {
+					if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+						kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap immutability update failure", "error", deleteErr, "namespace", namespace)
+					}
+					return nil, rollbackPgvector(fmt.Errorf("failed to make existing Office MIME types ConfigMap immutable: %w", updateErr))
+				}
+			}
+		} else {
+			if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+				kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after MIME ConfigMap creation failure", "error", deleteErr, "namespace", namespace)
+			}
+			return nil, rollbackPgvector(fmt.Errorf("failed to create Office MIME types ConfigMap: %w", err))
+		}
+	} else {
+		officeMIMEConfigMapCreated = true
+	}
+
+	cleanupOfficeMIMEConfigMap := func() {
+		if !officeMIMEConfigMapCreated {
+			return
+		}
+		if deleteErr := kc.Client.Delete(ctx, officeMIMETypesConfigMap); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+			kc.Logger.Warn("failed to clean up Office MIME types ConfigMap", "error", deleteErr, "namespace", namespace)
+		}
+	}
+
 	// Prefer the DSCI-managed bundle. A newly created E2E namespace may not yet
 	// have one, so create an OpenShift-injected bundle as a fallback.
 	caBundleConfigMapName := "odh-trusted-ca-bundle"
@@ -1853,6 +2002,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		}
 		if err := kc.Client.Create(ctx, caBundle); err != nil {
 			if !apierrors.IsAlreadyExists(err) {
+				cleanupOfficeMIMEConfigMap()
+				if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+					kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after CA bundle creation failure", "error", deleteErr, "namespace", namespace)
+				}
 				return nil, rollbackPgvector(fmt.Errorf("failed to create CA trust ConfigMap: %w", err))
 			}
 		} else {
@@ -1876,6 +2029,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 	if kc.EnvConfig.GatewayDomain != "" {
 		routerCABundleName, created, err := kc.ensureOGXGatewayCABundle(ctx, namespace)
 		if err != nil {
+			cleanupOfficeMIMEConfigMap()
+			if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
+				kc.Logger.Warn("failed to clean up Llama Stack ConfigMap after gateway CA bundle failure", "error", deleteErr, "namespace", namespace)
+			}
 			return nil, rollbackPgvector(err)
 		}
 		routerCABundleCreated = created
@@ -1897,6 +2054,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			corev1.ResourceMemory: resource.MustParse("12Gi"),
 		},
 	}
+	officeMIMEEnv, officeMIMEVolumes, officeMIMEVolumeMounts := officeMIMETypesWorkloadOverrides(enableTracing)
 	ogxServer := &ogxapi.OGXServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lsdName,
@@ -1924,8 +2082,10 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: ogxCommand(enableTracing),
-					Env:     ogxEnvVars(envVars, enableTracing, namespace, kc.resolveCollectorEndpoint()),
+					Command:      ogxCommand(enableTracing),
+					Env:          append(ogxEnvVars(envVars, enableTracing, namespace, kc.resolveCollectorEndpoint()), officeMIMEEnv...),
+					Volumes:      officeMIMEVolumes,
+					VolumeMounts: officeMIMEVolumeMounts,
 				},
 			},
 			Network: &ogxapi.NetworkSpec{
@@ -1949,6 +2109,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		} else {
 			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
 		}
+		cleanupOfficeMIMEConfigMap()
 		if fallbackCABundleCreated {
 			if deleteErr := kc.Client.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: caBundleConfigMapName, Namespace: namespace}}); deleteErr != nil {
 				kc.Logger.Error("failed to clean up fallback CA bundle after OGXServer creation failure", "error", deleteErr, "namespace", namespace)
@@ -1985,6 +2146,11 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		// Continue without failing - the OGXServer is created successfully
 	} else {
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
+	}
+
+	officeMIMETypesConfigMap.OwnerReferences = configMap.OwnerReferences
+	if err := kc.Client.Update(ctx, officeMIMETypesConfigMap); err != nil {
+		kc.Logger.Warn("Office MIME types ConfigMap will not be automatically garbage collected when OGXServer is deleted", "error", err, "namespace", namespace)
 	}
 
 	// The fallback bundle is dashboard-owned; leave the DSCI-managed bundle untouched.
@@ -2233,8 +2399,11 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
-				config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, string(models.ModelTypeEmbedding), extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
-				kc.Logger.Info("Registered embedding model (custom endpoint)", "model", extDetails.modelID, "providerID", extDetails.providerID)
+				// Proxy-routed registration: register under genai-bff-proxy so query-time
+				// embedding requests flow through the BFF's genai-proxy, which resolves the
+				// real endpoint and credentials per request.
+				config.AddProxyRoutedEmbeddingModel(extDetails.modelID, extDetails.metadata, model.EmbeddingDimension)
+				kc.Logger.Info("Registered embedding model (proxy-routed via genai-bff-proxy)", "model", extDetails.modelID)
 			} else {
 				kc.Logger.Info("Validated external model", "model", extDetails.modelID, "providerID", extDetails.providerID)
 			}
@@ -2245,7 +2414,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 			if model.ModelType == string(models.ModelTypeEmbedding) {
 				providerID := fmt.Sprintf("vllm-inference-%d", i+1)
-				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.MaxTokens, model.EmbeddingDimension, false)
+				config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, string(models.ModelTypeEmbedding), details.metadata, model.EmbeddingDimension)
 				kc.Logger.Info("Registered embedding model (cluster)", "model", details.modelID, "providerID", providerID)
 			} else {
 				kc.Logger.Info("Validated cluster model", "model", details.modelID, "endpoint", details.endpointURL)
@@ -2352,9 +2521,10 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			"providerID", constants.PassthroughProviderID, "baseURL", passthroughURL)
 	} else {
 		// Without GatewayDomain the remote::passthrough provider cannot be registered.
-		// Namespace and custom-endpoint embedding models use static providers; MaaS
-		// embedding models are validation-only. Transcription models are not registered
-		// in Llama Stack. All other supported model sources require passthrough routing.
+		// Namespace embedding models use static in-cluster vLLM providers; MaaS embedding
+		// models are validation-only. Transcription models are not registered in Llama
+		// Stack. All other supported models — custom-endpoint models included — require
+		// passthrough routing.
 		for _, m := range installModels {
 			if !requiresPassthroughProvider(m) {
 				continue
@@ -2396,29 +2566,28 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 }
 
 // requiresPassthroughProvider reports whether a supported model requires
-// remote::passthrough for inference routing. Namespace and custom-endpoint
-// embedding models use static providers, MaaS embedding models are validation-only,
-// and transcription models are not registered in Llama Stack.
+// remote::passthrough for inference routing. Namespace embedding models use
+// static in-cluster vLLM providers, MaaS embedding models are validation-only,
+// and transcription models are not registered in Llama Stack. Custom-endpoint
+// models — embedding included — route through the genai-bff-proxy passthrough
+// provider.
 func requiresPassthroughProvider(model models.InstallModel) bool {
 	switch model.ModelSourceType {
-	case models.ModelSourceTypeNamespace, models.ModelSourceTypeMaaS, models.ModelSourceTypeCustomEndpoint:
+	case models.ModelSourceTypeNamespace, models.ModelSourceTypeMaaS:
 		return model.ModelType != string(models.ModelTypeEmbedding) &&
 			model.ModelType != string(models.ModelTypeTranscription)
+	case models.ModelSourceTypeCustomEndpoint:
+		return model.ModelType != string(models.ModelTypeTranscription)
 	default:
 		return false
 	}
 }
 
-// GetExternalModelsConfig retrieves and parses the gen-ai-aa-custom-model-endpoints ConfigMap
+// GetExternalModelsConfig retrieves and parses the user-managed
+// gen-ai-aa-custom-model-endpoints ConfigMap using the request-scoped client.
 func (kc *TokenKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
-	// Get the ConfigMap
-	configMap := &corev1.ConfigMap{}
-	configMapName := types.NamespacedName{
-		Name:      constants.ExternalModelsConfigMapName,
-		Namespace: namespace,
-	}
-
-	if err := kc.Client.Get(ctx, configMapName, configMap); err != nil {
+	configMap, err := kc.GetConfigMap(ctx, nil, namespace, constants.ExternalModelsConfigMapName)
+	if err != nil {
 		return nil, err
 	}
 
@@ -2525,18 +2694,31 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 
 // getExternalModelDetails retrieves external model details from a pre-fetched ExternalModelsConfig.
 func (kc *TokenKubernetesClient) getExternalModelDetails(config *models.ExternalModelsConfig, modelID string) (externalModelDetailsResult, error) {
-	// Find the model by model_id
-	var foundModel *models.RegisteredModel
+	// Find the model by model_id. More than one match across providers is
+	// ambiguous: proxy-routed registrations keep only the native model ID, so
+	// query-time resolution (ResolveCustomEndpointModelProvider) cannot tell the
+	// providers apart and the request fails. Reject at install time with a clear
+	// error rather than installing a config whose retrieval silently fails.
+	var matches []*models.RegisteredModel
 	for i := range config.RegisteredResources.Models {
 		if config.RegisteredResources.Models[i].ModelID == modelID {
-			foundModel = &config.RegisteredResources.Models[i]
-			break
+			matches = append(matches, &config.RegisteredResources.Models[i])
 		}
 	}
 
-	if foundModel == nil {
+	if len(matches) == 0 {
 		return externalModelDetailsResult{}, fmt.Errorf("external model with model_id '%s' not found in ConfigMap", modelID)
 	}
+	if len(matches) > 1 {
+		providerIDs := make([]string, 0, len(matches))
+		for _, m := range matches {
+			providerIDs = append(providerIDs, m.ProviderID)
+		}
+		return externalModelDetailsResult{}, fmt.Errorf(
+			"external model '%s' is registered under %d providers (%s); model IDs must be unique across custom-endpoint providers — remove the duplicate registration or rename one of the models",
+			modelID, len(matches), strings.Join(providerIDs, ", "))
+	}
+	foundModel := matches[0]
 
 	// Find the provider for this model
 	var foundProvider *models.InferenceProvider
@@ -2576,6 +2758,11 @@ func (kc *TokenKubernetesClient) getExternalModelDetails(config *models.External
 
 // getModelDetailsFromServingRuntime queries the serving runtime and inference service
 // to get detailed model configuration information
+// ErrServingModelNotFound indicates that no InferenceService or LLMInferenceService
+// matches a model reference. It is distinct from lookup failures (RBAC, timeout,
+// resource not ready), which must not be mistaken for absence.
+var ErrServingModelNotFound = errors.New("serving model not found")
+
 func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.Context, namespace string, modelID string) (modelDetailsResult, error) {
 	// First try to find InferenceService by name
 	targetISVC, err := kc.findInferenceServiceByModelName(ctx, namespace, modelID)
@@ -2586,6 +2773,11 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		targetLLMSVC, llmErr := kc.findLLMInferenceServiceByModelName(ctx, namespace, modelID)
 		if llmErr != nil {
 			kc.Logger.Error("failed to find both InferenceService and LLMInferenceService for model", "modelID", modelID, "inferenceServiceError", err, "llmInferenceServiceError", llmErr)
+			if errors.Is(err, ErrServingModelNotFound) && errors.Is(llmErr, ErrServingModelNotFound) {
+				// Neither resource exists — a distinguishable not-found for callers that
+				// need to tell absence apart from lookup failures.
+				return modelDetailsResult{}, fmt.Errorf("%w: no InferenceService or LLMInferenceService for model '%s' in namespace %s", ErrServingModelNotFound, modelID, namespace)
+			}
 			return modelDetailsResult{}, fmt.Errorf("neither InferenceService nor LLMInferenceService for model '%s' found: InferenceService error: %w, LLMInferenceService error: %w", modelID, err, llmErr)
 		}
 
@@ -2774,7 +2966,7 @@ func (kc *TokenKubernetesClient) findInferenceServiceByModelName(ctx context.Con
 		}
 	}
 
-	return nil, fmt.Errorf("InferenceService with model name '%s' not found in namespace %s", modelName, namespace)
+	return nil, fmt.Errorf("%w: InferenceService with name '%s' not found in namespace %s", ErrServingModelNotFound, modelName, namespace)
 }
 
 // findLLMInferenceServiceByModelName finds an LLMInferenceService by its model name
@@ -2795,7 +2987,7 @@ func (kc *TokenKubernetesClient) findLLMInferenceServiceByModelName(ctx context.
 		}
 	}
 
-	return nil, fmt.Errorf("LLMInferenceService with model name '%s' not found in namespace %s", modelName, namespace)
+	return nil, fmt.Errorf("%w: LLMInferenceService with name '%s' not found in namespace %s", ErrServingModelNotFound, modelName, namespace)
 }
 
 // Address name types from the KServe LLMInferenceService status contract.
@@ -2978,6 +3170,45 @@ func (kc *TokenKubernetesClient) GetInferenceServiceURL(ctx context.Context, _ *
 	return details.endpointURL, nil
 }
 
+// GetServingModelDetails resolves a model reference to the internal endpoint URL of the
+// InferenceService or LLMInferenceService serving it, along with the model ID the server
+// accepts in requests (the served model name). The reference may match the resource name
+// or, for LLMInferenceServices, the served model name (spec.model.name) — vector stores
+// reference the served name, which can differ from the resource name.
+func (kc *TokenKubernetesClient) GetServingModelDetails(ctx context.Context, namespace, modelRef string) (string, string, error) {
+	details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, modelRef)
+	if err == nil {
+		return details.endpointURL, details.modelID, nil
+	}
+	if !errors.Is(err, ErrServingModelNotFound) {
+		// Real lookup failure (RBAC, timeout, not-ready): propagate so callers cannot
+		// mistake it for absence.
+		return "", "", err
+	}
+	// No resource named modelRef — the reference may be the served model name of an
+	// LLMInferenceService whose resource name differs; match those before giving up.
+	var llmSvcList kservev1alpha1.LLMInferenceServiceList
+	if listErr := kc.Client.List(ctx, &llmSvcList, client.InNamespace(namespace)); listErr != nil {
+		kc.Logger.Debug("GetServingModelDetails: unable to list LLMInferenceServices",
+			"namespace", namespace, "error", listErr)
+		return "", "", fmt.Errorf("failed to list LLMInferenceServices in namespace %s: %w", namespace, listErr)
+	}
+	for i := range llmSvcList.Items {
+		llmSvc := &llmSvcList.Items[i]
+		if llmSvc.Spec.Model.Name == nil || strings.TrimSpace(*llmSvc.Spec.Model.Name) != modelRef {
+			continue
+		}
+		endpointURL, extractErr := kc.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		if extractErr != nil {
+			return "", "", extractErr
+		}
+		kc.Logger.Debug("GetServingModelDetails: matched LLMInferenceService by served model name",
+			"modelRef", modelRef, "serviceName", llmSvc.Name, "endpoint", endpointURL)
+		return endpointURL, modelRef, nil
+	}
+	return "", "", err
+}
+
 // GetModelProviderInfo retrieves provider configuration for a model from LlamaStackConfig
 func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*genaitypes.ModelProviderInfo, error) {
 	// Load OGX config from the ConfigMap referenced by the namespace OGXServer
@@ -3104,6 +3335,20 @@ func (kc *TokenKubernetesClient) CreateExternalModelSecret(ctx context.Context, 
 	return nil
 }
 
+// DuplicateModelError is returned when creating an external model whose model_id is
+// already registered under a custom-endpoint provider. CreateExternalModelHandler
+// maps it to HTTP 409 Conflict.
+type DuplicateModelError struct {
+	ModelID   string
+	Providers []string
+}
+
+func (e *DuplicateModelError) Error() string {
+	return fmt.Sprintf(
+		"model ID '%s' is already registered under provider(s) %s; model IDs must be unique across custom-endpoint providers — remove the duplicate registration or rename the model",
+		e.ModelID, strings.Join(e.Providers, ", "))
+}
+
 // CreateOrUpdateExternalModelConfigMap creates or updates the gen-ai-aa-custom-model-endpoints ConfigMap
 func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -3144,6 +3389,22 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 				return fmt.Errorf("failed to parse ConfigMap YAML: %w", err)
 			}
 		}
+	}
+
+	// Reject duplicate model IDs up front. Query-time proxy resolution
+	// (ResolveCustomEndpointModelProvider) and playground installation
+	// (getExternalModelDetails) both require model IDs to be unique across
+	// custom-endpoint providers; appending a duplicate would let this call
+	// succeed while producing a ConfigMap whose models fail at install or
+	// retrieval time with no hint that this registration was the cause.
+	var duplicateProviders []string
+	for _, m := range config.RegisteredResources.Models {
+		if m.ModelID == req.ModelID {
+			duplicateProviders = append(duplicateProviders, m.ProviderID)
+		}
+	}
+	if len(duplicateProviders) > 0 {
+		return &DuplicateModelError{ModelID: req.ModelID, Providers: duplicateProviders}
 	}
 
 	// Select provider type based on model type: embedding models use passthrough, inference models use openai

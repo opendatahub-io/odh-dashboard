@@ -12,14 +12,18 @@ import { deleteModal } from '../../../pages/components/DeleteModal';
 import { HardwareProfileModel, SelfSubjectAccessReviewModel } from '../../../utils/models';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 
-const initIntercepts = () => {
+const interceptDashboardConfig = (hardwareProfileDRA = false) =>
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       modelServerSizes: [],
       notebookSizes: [],
+      hardwareProfileDRA,
     }),
   );
+
+const initIntercepts = () => {
+  interceptDashboardConfig();
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: 'opendatahub' },
     mockK8sResourceList([
@@ -160,6 +164,82 @@ describe('Hardware Profile', () => {
 
       // Custom profile should have delete option
       hardwareProfile.getRow('Custom Profile').findKebabAction('Delete').should('exist');
+    });
+
+    it('should disable edit, duplicate and the enable toggle and show a Tech Preview label for hardware profiles that use DRA', () => {
+      interceptDashboardConfig(true);
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'custom-profile',
+            displayName: 'Custom Profile',
+          }),
+          mockHardwareProfile({
+            name: 'dra-profile',
+            displayName: 'DRA Profile',
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+          }),
+        ]),
+      );
+      hardwareProfile.visit();
+
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findKebabAction('Edit')
+        .should('have.attr', 'aria-disabled', 'true');
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findKebabAction('Duplicate')
+        .should('have.attr', 'aria-disabled', 'true');
+      hardwareProfile.getRow('DRA Profile').findEnabled().should('be.disabled');
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findDRAHelpButton()
+        .should('have.attr', 'aria-label', 'More info about DRA Profile');
+      hardwareProfile
+        .getRow('DRA Profile')
+        .findTechPreviewLabel()
+        .should('have.text', 'Tech Preview');
+
+      hardwareProfile
+        .getRow('Custom Profile')
+        .findKebabAction('Edit')
+        .should('not.have.attr', 'aria-disabled', 'true');
+      hardwareProfile
+        .getRow('Custom Profile')
+        .findKebabAction('Duplicate')
+        .should('not.have.attr', 'aria-disabled', 'true');
+      hardwareProfile.getRow('Custom Profile').findEnabled().should('be.enabled');
+      hardwareProfile.getRow('Custom Profile').findDRAHelpButton().should('not.exist');
+      hardwareProfile.getRow('Custom Profile').findTechPreviewLabel().should('not.exist');
+      cy.testA11y();
+    });
+
+    it('should not list hardware profiles that use DRA when DRA hardware profiles are disabled', () => {
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'custom-profile',
+            displayName: 'Custom Profile',
+          }),
+          mockHardwareProfile({
+            name: 'dra-profile',
+            displayName: 'DRA Profile',
+            dra: { resourceClaimTemplateName: 'single-gpu' },
+            annotations: { 'opendatahub.io/disabled': 'true' },
+          }),
+        ]),
+      );
+      hardwareProfile.visit();
+
+      hardwareProfile.findRows().should('have.length', 1);
+      hardwareProfile.getRow('Custom Profile').find().should('exist');
+      hardwareProfile.findTable().should('not.contain.text', 'DRA Profile');
+      hardwareProfile.getRow('Custom Profile').findTechPreviewLabel().should('not.exist');
+      hardwareProfile.findHardwareProfileBanner().find().should('not.exist');
+      cy.testA11y();
     });
   });
 

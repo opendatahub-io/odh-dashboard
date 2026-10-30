@@ -112,8 +112,7 @@ export interface ChatbotConfigStoreState {
    * Drives the warning alert and disabled Edit in OpenAgentProfileModal.
    */
   loadedProfileWarnings:
-    | import('~/app/agentProfile/validateAgentProfile').ValidationWarning[]
-    | null;
+    import('~/app/agentProfile/validateAgentProfile').ValidationWarning[] | null;
   /**
    * The resolved MLflow prompt from the initial profile load — used by
    * handleResetToLastSaved to restore the correct prompt version regardless

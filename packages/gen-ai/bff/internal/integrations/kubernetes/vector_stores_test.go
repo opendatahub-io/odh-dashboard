@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -84,6 +85,21 @@ func TestBuildEmbeddingModelLookup(t *testing.T) {
 		want := "granite-embed-provider/granite-embedding-english-r2"
 		assert.Equal(t, want, lookup["granite-embedding-english-r2"], "lookup by provider_model_id")
 		assert.Equal(t, want, lookup["RedHatAI/granite-embedding-english-r2"], "lookup by model_id")
+	})
+
+	t.Run("proxy-routed embedding model: registered under genai-bff-proxy, resolves to genai-bff-proxy/model_id", func(t *testing.T) {
+		// Proxy-routed embedding models are registered under the genai-bff-proxy passthrough provider
+		// so query-time embeddings flow through the BFF proxy. They do not set ProviderModelID.
+		ms := []Model{
+			{
+				ProviderID: constants.PassthroughProviderID,
+				ModelID:    "gemini-embedding-001",
+				ModelType:  string(models.ModelTypeEmbedding),
+			},
+		}
+		lookup := buildEmbeddingModelLookup(ms)
+		want := constants.PassthroughProviderID + "/gemini-embedding-001"
+		assert.Equal(t, want, lookup["gemini-embedding-001"], "lookup by model_id")
 	})
 
 	t.Run("non-embedding models are ignored", func(t *testing.T) {

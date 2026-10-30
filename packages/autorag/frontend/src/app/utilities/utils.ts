@@ -1,5 +1,6 @@
+import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
-import { MAX_DISPLAY_NAME_LENGTH } from './const';
+import { DEFAULT_OPTIMIZATION_METRIC, MAX_DISPLAY_NAME_LENGTH } from './const';
 
 const VALID_RUNTIME_STATES = new Set<string>(Object.values(RuntimeStateKF));
 
@@ -21,24 +22,6 @@ export const normalizePipelineRunState = (state: unknown): string | undefined =>
  */
 export const isRunCompleted = (state: unknown): boolean =>
   normalizePipelineRunState(state) === RuntimeStateKF.SUCCEEDED;
-
-/**
- * Whether the run is in a state where it is no longer running.
- */
-export const isRunInTerminalState = (state: unknown): boolean => {
-  const s = normalizePipelineRunState(state);
-  if (!s) {
-    return false;
-  }
-  const TERMINAL_STATES: Set<string> = new Set([
-    RuntimeStateKF.SUCCEEDED,
-    RuntimeStateKF.FAILED,
-    RuntimeStateKF.CANCELED,
-    RuntimeStateKF.SKIPPED,
-    RuntimeStateKF.CACHED,
-  ]);
-  return TERMINAL_STATES.has(s);
-};
 
 /**
  * Whether the run is in a state where it can be terminated (stopped).
@@ -78,6 +61,28 @@ export const isRunDeletable = (state: unknown): boolean => {
     s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
   );
 };
+
+/**
+ * Gets the optimized metric name from the pipeline run's runtime parameters.
+ *
+ * Backend contract: this value always matches the `optimization_metric: true`
+ * flag on exactly one metric inside each pattern's evaluation block.
+ * Both sources are authoritative; prefer this for contexts where the pipeline
+ * run is available but individual pattern data is not (e.g. leaderboard headers).
+ *
+ * @param pipelineRun - The pipeline run object containing parameters
+ * @returns The optimized metric name from parameters, or the default optimization metric
+ */
+export function getOptimizedMetricForRAG(pipelineRun?: PipelineRun): string {
+  const parameters = pipelineRun?.runtime_config?.parameters;
+  if (parameters && 'optimization_metric' in parameters) {
+    const metric = parameters.optimization_metric;
+    if (typeof metric === 'string') {
+      return metric;
+    }
+  }
+  return DEFAULT_OPTIMIZATION_METRIC;
+}
 
 /**
  * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
@@ -180,11 +185,16 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-/**
- * Insert a non-breaking space between a word prefix and trailing digits.
- * e.g. "Pattern7" → "Pattern\u00a07"
- */
+/** Display numbered pattern identifiers as letters while keeping the label together. */
 export function formatPatternName(name: string): string {
+  const match = /^pattern\s*(\d+)$/i.exec(name);
+  if (match) {
+    const letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Number(match[1]) - 1];
+    if (letter) {
+      return `Pattern\u00a0${letter}`;
+    }
+  }
+
   return name.replace(/(\S)\s*(\d+)$/, '$1\u00a0$2');
 }
 

@@ -14,13 +14,13 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@odh-dashboard/ui-core": "*",
+    "@odh-dashboard/ui-core": "workspace:*",
     "@segment/analytics-next": "^1.84.0"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*",
     "@types/node": "^22.0.0"
   }
 }

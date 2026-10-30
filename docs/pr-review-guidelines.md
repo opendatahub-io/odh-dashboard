@@ -10,7 +10,7 @@ Here is a handy list of things to consider when doing a review on any PR.
 - [ ] **Have they answered the [PR template](../.github/pull_request_template.md) properly** – provided screenshots, have sane responses to the questions, etc
 
 - [ ] **Does it have tests?** (Refer to [Testing](testing.md) documentation)
-  - [ ] **Have you made sure to test the PR image on your cluster?** (this is critically important if there are permission changes since the backend needs cluster-admin; use `npm run dev:start:ext` to run the UI with different user permissions to verify the flow on-cluster)
+  - [ ] **Have you made sure to test the PR image on your cluster?** (this is critically important if there are permission changes since the backend needs cluster-admin; use `pnpm run dev:start:ext` to run the UI with different user permissions to verify the flow on-cluster)
 
 - [ ] **You have followed the [Best Practices](best-practices.md)**
 

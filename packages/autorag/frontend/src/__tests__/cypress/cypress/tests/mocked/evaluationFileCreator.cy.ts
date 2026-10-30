@@ -1,4 +1,5 @@
 import {
+  autoragConfigurePage,
   evaluationFileCreator,
   evaluationFileSelector,
   fileExplorer,
@@ -7,9 +8,12 @@ import {
 // my-project is the only fake namespace with a DSPA and secrets
 // (packages/autorag/bff/internal/fake/k8s.go)
 const NAMESPACE = 'my-project';
-// Real fake secrets: an "ogx" secret and a "data-connection" storage secret with a bucket set
-const OGX_SECRET = 'ogx';
+// Real fake secrets: a "maas" secret and a "data-connection" storage secret with a bucket set
+const MAAS_SECRET = 'maas';
 const STORAGE_SECRET = 'data-connection';
+// Matches the ready foundation model in packages/autorag/bff/internal/fake/maas.go.
+const FOUNDATION_MODEL_ID = 'granite-3-8b-instruct';
+const FOUNDATION_TOOLTIP = 'This model is already selected as a foundation model.';
 
 // Real seed data under the fake S3 bucket (packages/autorag/bff/internal/fake/s3-bucket/):
 // autorag input data/pdf/bank_policies_pdf/documents/ contains two PDFs.
@@ -28,20 +32,17 @@ const navigateToConfigure = () => {
   cy.testA11y();
 };
 
-const selectOgxAndStorageSecrets = () => {
+const selectMaaSAndStorageSecrets = () => {
   cy.findByTestId('autorag-name-input').type('Test Experiment');
-  cy.findByTestId('ogx-secret-selector').click();
-  cy.findByRole('option', { name: new RegExp(OGX_SECRET, 'i') }).click();
+  cy.findByTestId('maas-secret-selector', { timeout: 60000 }).should('not.be.disabled');
+  autoragConfigurePage.selectMaaSSecret(MAAS_SECRET);
+  cy.findByTestId('autorag-next-button').should('be.enabled');
   cy.findByTestId('autorag-next-button').click();
   cy.findByTestId('configure-step-subtitle').should('be.visible');
 
   // Select S3 connection — wait for secrets to load
-  cy.findByTestId('aws-secret-selector').should('exist');
-  cy.findByTestId('aws-secret-selector').click();
-  cy.findByTestId('aws-secret-selector').find('input').type(STORAGE_SECRET);
-  cy.findByRole('option', { name: new RegExp(STORAGE_SECRET, 'i') })
-    .should('be.visible')
-    .click();
+  cy.findByTestId('aws-secret-selector', { timeout: 60000 }).should('exist').and('not.be.disabled');
+  autoragConfigurePage.selectStorageSecret(STORAGE_SECRET);
 };
 
 const browseToSeedFolder = () => {
@@ -53,7 +54,7 @@ const browseToSeedFolder = () => {
 };
 
 const advanceToStep2 = () => {
-  selectOgxAndStorageSecrets();
+  selectMaaSAndStorageSecrets();
   browseToSeedFolder();
   fileExplorer.navigateIntoFolder(DOCUMENTS_FOLDER_NAME);
 
@@ -66,7 +67,7 @@ const advanceToStep2 = () => {
 };
 
 const advanceToStep2WithFolder = () => {
-  selectOgxAndStorageSecrets();
+  selectMaaSAndStorageSecrets();
   browseToSeedFolder();
 
   // Select a folder as input data (not a file)
@@ -87,6 +88,34 @@ const addQAPair = (question: string, answer: string) => {
 describe('EvaluationFileCreator', () => {
   beforeEach(() => {
     initIntercepts();
+  });
+
+  it('should render the disabled model tooltip outside the table clipping region', () => {
+    navigateToConfigure();
+    advanceToStep2();
+
+    autoragConfigurePage.findSelectModelsButton().click();
+    autoragConfigurePage.findModelSelectionModal().should('be.visible');
+    autoragConfigurePage.findModelCheckbox('llm', FOUNDATION_MODEL_ID).check();
+    autoragConfigurePage.findModelTab('embedding').click();
+
+    autoragConfigurePage
+      .findDisabledModelTooltip('embedding', FOUNDATION_MODEL_ID)
+      .trigger('mouseover');
+    autoragConfigurePage
+      .findDisabledModelTooltipContent('embedding', FOUNDATION_MODEL_ID)
+      .should('be.visible')
+      .and('contain.text', FOUNDATION_TOOLTIP);
+    autoragConfigurePage
+      .findTooltip()
+      .should('be.visible')
+      .then(($tooltip) => {
+        const bounds = $tooltip[0].getBoundingClientRect();
+        expect(bounds.width).to.be.greaterThan(150);
+        expect(bounds.height).to.be.lessThan(100);
+        expect($tooltip.closest('.autorag-model-selection__table-container')).to.have.length(0);
+        expect($tooltip.closest('[data-testid="embedding-models-table"]')).to.have.length(0);
+      });
   });
 
   it('should open the modal, add a Q&A pair, and verify form state', () => {
@@ -124,7 +153,7 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
     // Edit the row
-    evaluationFileCreator.findKebabAction('Q1', 'Edit').click();
+    evaluationFileCreator.clickKebabAction('Q1', 'Edit');
     evaluationFileCreator.findQuestionInput().should('have.value', 'Q1');
     evaluationFileCreator.findAnswerInput().should('have.value', 'A1');
 
@@ -133,7 +162,7 @@ describe('EvaluationFileCreator', () => {
     evaluationFileCreator.findTableRow('Q1').should('be.visible');
 
     // Delete the row
-    evaluationFileCreator.findKebabAction('Q1', 'Delete').click();
+    evaluationFileCreator.clickKebabAction('Q1', 'Delete');
     evaluationFileCreator.findEmptyState().should('be.visible');
   });
 

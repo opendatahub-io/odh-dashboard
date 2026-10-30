@@ -11,14 +11,21 @@ import { mock200Status, mock500Error } from '@odh-dashboard/k8s-core/__mocks__/m
 import { mockCustomSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClusterSettings';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
+import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
+import {
+  mockDefaultHardwareProfile,
+  mockHardwareProfile,
+} from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockStorageClassList } from '@odh-dashboard/internal/__mocks__/mockStorageClasses';
 import { mockPrometheusQueryVectorResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryVectorResponse';
 import {
   initInterceptsToDeployNimInWizard,
   initInterceptsToEnableNim,
 } from '@odh-dashboard/cypress/cypress/utils/legacyNimUtils';
-import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import { ResourceClaimTemplateModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import {
+  HardwareProfileModel,
   InferenceServiceModel,
   NotebookModel,
   ProjectModel,
@@ -37,6 +44,7 @@ import {
   clusterStorage,
   updateClusterStorageModal,
 } from '@odh-dashboard/cypress/cypress/pages/clusterStorage';
+import { hardwareProfileSection } from '@odh-dashboard/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   ModelLocationSelectOption,
   ModelTypeLabel,
@@ -271,10 +279,11 @@ describe('NIM Models Deployments', () => {
       .findDescriptionListItem('Hardware profile')
       .next('dd')
       .should('have.text', 'default-profile');
+    row.findDescriptionListItem('Users').next('dd').should('have.text', 'Project members');
     row
-      .findDescriptionListItem('Model availability')
+      .findDescriptionListItem('Availability')
       .next('dd')
-      .should('have.text', 'No model availability');
+      .should('have.text', 'Not available in Gen AI Studio');
     row
       .findDescriptionListItem('Token authentication')
       .next('dd')
@@ -524,6 +533,88 @@ describe('NIM Models Deployments', () => {
     });
   });
 
+  it('should not offer DRA hardware profiles when the deployment method changes to NIM', () => {
+    initInterceptsToEnableNim({ nimWizard: true });
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServe: false,
+        disableNIMModelServing: false,
+        nimWizard: true,
+        hardwareProfileDRA: true,
+      }),
+    );
+    initInterceptsToDeployNimInWizard();
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        displayName: 'URI - v1',
+        name: 'uri-v1',
+        category: ['existing-category'],
+        fields: [
+          {
+            type: 'uri',
+            name: 'URI',
+            envVar: 'URI',
+            required: true,
+            properties: {},
+          },
+        ],
+      }),
+    ]);
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockDefaultHardwareProfile,
+        mockHardwareProfile({ name: 'small-profile', displayName: 'Small Profile' }),
+        mockHardwareProfile({
+          name: 'dra-profile',
+          displayName: 'DRA Profile',
+          dra: { resourceClaimTemplateName: 'single-gpu' },
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: ResourceClaimTemplateModel, ns: 'test-project' },
+      mockK8sResourceList([mockResourceClaimTemplate({ name: 'single-gpu' })]),
+    );
+    cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([]));
+    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.URI)
+      .should('exist')
+      .click();
+    modelServingWizard.findUrilocationInput().should('exist').type('https://test');
+    modelServingWizard.findSaveConnectionCheckbox().click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).should('exist').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    hardwareProfileSection.findSelect().click();
+    hardwareProfileSection.selectProfileContaining('DRA Profile');
+    hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
+
+    modelServingWizard.findModelSourceStep().click();
+    modelServingWizard
+      .findModelLocationSelectOption(ModelLocationSelectOption.NIM)
+      .should('exist')
+      .click();
+    modelServingWizard.nim.selectImage('Snowflake Arctic Embed Large Embedding - 1.0.1');
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findModelDeploymentStep().should('be.enabled');
+    hardwareProfileSection.findSelect().should('not.contain.text', 'DRA Profile');
+    hardwareProfileSection.findSelect().click();
+    hardwareProfileSection.findProfileOption(/Small Profile/).should('exist');
+    hardwareProfileSection.findProfileOption(/DRA Profile/).should('not.exist');
+    hardwareProfileSection.findSelect().click();
+    hardwareProfileSection.findProfileList().should('not.exist');
+    cy.testA11y();
+  });
+
   it('should edit a NIM deployment through the wizard', () => {
     initInterceptsToEnableNim({ nimWizard: true });
     initInterceptsToDeployNimInWizard();
@@ -633,7 +724,7 @@ describe('NIM Models Deployments', () => {
     // the mounted PVC preselected, and its subpath loaded from the volumeMount
     modelServingWizardEdit.nim
       .findStorageModeSelect()
-      .should('contain.text', 'Deploy the NIM image from an existing cluster storage');
+      .should('contain.text', 'Use existing cluster storage');
     modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
     modelServingWizardEdit.nim.selectExistingPVC('updated-nim-wizard-pvc');

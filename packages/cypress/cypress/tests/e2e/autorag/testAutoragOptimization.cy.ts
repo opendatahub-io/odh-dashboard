@@ -1,6 +1,6 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
+import { deleteAutoXS3TestFiles } from '../../../utils/oc_commands/autoXS3Cleanup';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -64,7 +64,7 @@ describe('AutoRAG Optimization E2E', () => {
       testData.vectorDbSecretName,
       connectionOwnership,
     );
-    deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
+    deleteAutoXS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
@@ -87,7 +87,7 @@ describe('AutoRAG Optimization E2E', () => {
 
       cy.step('Select faithfulness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
-      autoragConfigurePage.findMetricOption('faithfulness').click();
+      autoragConfigurePage.findMetricOption('unitxt:faithfulness').click();
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage
@@ -147,7 +147,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
       testData.vectorDbSecretName,
       connectionOwnership,
     );
-    deleteS3TestFiles(projectName, testData.awsBucket, `*${completionUuid}*`);
+    deleteAutoXS3TestFiles(projectName, testData.awsBucket, `*${completionUuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
@@ -174,7 +174,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
 
       cy.step('Select faithfulness optimization metric');
       autoragConfigurePage.findOptimizationMetricSelect().click();
-      autoragConfigurePage.findMetricOption('faithfulness').click();
+      autoragConfigurePage.findMetricOption('unitxt:faithfulness').click();
 
       cy.step('Set max RAG patterns to minimize run time');
       autoragConfigurePage

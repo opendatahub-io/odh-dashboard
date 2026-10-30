@@ -2,7 +2,14 @@ import React, { act } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { GatewayOption } from '../../../api/services/gatewayDiscovery';
-import { GatewaySelectField, GatewaySelectFieldData } from '../GatewaySelectField';
+import {
+  GATEWAY_API_FAILURE_MESSAGE,
+  GATEWAY_FIELD_DESCRIPTION,
+  GATEWAY_MAAS_MISSING_MESSAGE,
+  GATEWAY_MISSING_SELECTION_MESSAGE,
+  GatewaySelectField,
+  GatewaySelectFieldData,
+} from '../GatewaySelectField';
 
 const GatewaySelectFieldComponent = GatewaySelectField.component;
 
@@ -10,6 +17,9 @@ const makeGateway = (name: string, namespace: string): GatewayOption => ({
   name,
   namespace,
 });
+
+const optionTestId = (label: string) =>
+  `select-multi-typeahead-${label.replace(/[^a-zA-Z0-9]+/g, '-')}`;
 
 describe('GatewaySelectFieldComponent', () => {
   const mockOnChange = jest.fn();
@@ -19,7 +29,7 @@ describe('GatewaySelectFieldComponent', () => {
   });
 
   const renderComponent = ({
-    value = { selection: undefined },
+    value = { selections: [] },
     initialValue,
     externalData,
     isDisabled = false,
@@ -40,10 +50,35 @@ describe('GatewaySelectFieldComponent', () => {
       />,
     );
 
+  const getCombobox = () => screen.getByRole('combobox', { name: 'Gateway' });
+
   const openDropdown = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByTestId('gateway-select'));
+      fireEvent.keyDown(getCombobox(), { key: 'ArrowDown' });
     });
+  };
+
+  const selectOptionByKeyboard = async (optionLabel: string) => {
+    const combobox = getCombobox();
+    await act(async () => {
+      fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+    });
+    // Focus the matching option, then select with Enter.
+    const optionCount = screen.getAllByTestId(/select-multi-typeahead-/).length;
+    for (let i = 0; i < optionCount; i += 1) {
+      const focusedId = combobox.getAttribute('aria-activedescendant');
+      const focused = focusedId ? document.getElementById(focusedId) : null;
+      if (focused && focused.textContent.includes(optionLabel)) {
+        await act(async () => {
+          fireEvent.keyDown(combobox, { key: 'Enter' });
+        });
+        return;
+      }
+      await act(async () => {
+        fireEvent.keyDown(combobox, { key: 'ArrowDown' });
+      });
+    }
+    throw new Error(`Option not found for keyboard selection: ${optionLabel}`);
   };
 
   describe('options based on gateways', () => {
@@ -56,8 +91,8 @@ describe('GatewaySelectFieldComponent', () => {
 
       await openDropdown();
 
-      expect(screen.getByTestId('gw-alpha | ns-1')).toBeInTheDocument();
-      expect(screen.getByTestId('gw-beta | ns-2')).toBeInTheDocument();
+      expect(screen.getByTestId(optionTestId('gw-alpha | ns-1'))).toBeInTheDocument();
+      expect(screen.getByTestId(optionTestId('gw-beta | ns-2'))).toBeInTheDocument();
     });
 
     it('should filter out gateways listed in hiddenOptions', async () => {
@@ -65,27 +100,28 @@ describe('GatewaySelectFieldComponent', () => {
       const gateways = [makeGateway('gw-alpha', 'ns-1'), maasGateway];
 
       renderComponent({
-        value: { selection: undefined, hiddenOptions: [maasGateway] },
+        value: { selections: [], hiddenOptions: [maasGateway] },
         externalData: { data: gateways, loaded: true },
       });
 
       await openDropdown();
 
-      expect(screen.getByTestId('gw-alpha | ns-1')).toBeInTheDocument();
+      expect(screen.getByTestId(optionTestId('gw-alpha | ns-1'))).toBeInTheDocument();
       expect(
-        screen.queryByTestId('maas-default-gateway | openshift-ingress'),
+        screen.queryByTestId(optionTestId('maas-default-gateway | openshift-ingress')),
       ).not.toBeInTheDocument();
     });
 
-    it('should show the selected value in the toggle', () => {
-      const gateways = [makeGateway('gw-alpha', 'ns-1')];
+    it('should show selected values as chips in the toggle', () => {
+      const gateways = [makeGateway('gw-alpha', 'ns-1'), makeGateway('gw-beta', 'ns-2')];
 
       renderComponent({
-        value: { selection: gateways[0] },
+        value: { selections: gateways },
         externalData: { data: gateways, loaded: true },
       });
 
       expect(screen.getByTestId('gateway-select')).toHaveTextContent('gw-alpha | ns-1');
+      expect(screen.getByTestId('gateway-select')).toHaveTextContent('gw-beta | ns-2');
     });
 
     it('should show placeholder when nothing is selected', () => {
@@ -93,7 +129,29 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
       });
 
-      expect(screen.getByTestId('gateway-select')).toHaveTextContent('Select a gateway');
+      expect(getCombobox()).toHaveAttribute('placeholder', 'Select gateways');
+    });
+
+    it('should hide placeholder when gateways are selected', () => {
+      const gateways = [makeGateway('gw-alpha', 'ns-1')];
+
+      renderComponent({
+        value: { selections: gateways },
+        externalData: { data: gateways, loaded: true },
+      });
+
+      expect(getCombobox()).toHaveAttribute('placeholder', '');
+    });
+
+    it('should render the Gateway label and description with trailing period', () => {
+      renderComponent({
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      expect(
+        screen.getByText('Gateway', { selector: '.pf-v6-c-form__label-text' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(GATEWAY_FIELD_DESCRIPTION)).toBeInTheDocument();
     });
   });
 
@@ -105,30 +163,37 @@ describe('GatewaySelectFieldComponent', () => {
         externalData: { data: gateways, loaded: true },
       });
 
-      await openDropdown();
+      await selectOptionByKeyboard('gw-beta | ns-2');
 
-      await act(async () => {
-        fireEvent.click(screen.getByText('gw-beta | ns-2'));
-      });
-
-      expect(mockOnChange).toHaveBeenCalledWith({ selection: gateways[1] });
+      expect(mockOnChange).toHaveBeenCalledWith({ selections: [gateways[1]] });
     });
 
-    it('should call onChange with undefined selection when deselecting the current value', async () => {
-      const gateways = [makeGateway('gw-alpha', 'ns-1')];
+    it('should call onChange with multiple selections when selecting additional gateways', async () => {
+      const gateways = [makeGateway('gw-alpha', 'ns-1'), makeGateway('gw-beta', 'ns-2')];
 
       renderComponent({
-        value: { selection: gateways[0] },
+        value: { selections: [gateways[0]] },
         externalData: { data: gateways, loaded: true },
       });
 
-      await openDropdown();
+      await selectOptionByKeyboard('gw-beta | ns-2');
 
-      await act(async () => {
-        fireEvent.click(screen.getByRole('option', { name: /gw-alpha \| ns-1/ }));
+      expect(mockOnChange).toHaveBeenCalledWith({ selections: gateways });
+    });
+
+    it('should call onChange with empty selections when deselecting the current value', async () => {
+      const gateways = [makeGateway('gw-alpha', 'ns-1')];
+
+      renderComponent({
+        value: { selections: gateways },
+        externalData: { data: gateways, loaded: true },
       });
 
-      expect(mockOnChange).toHaveBeenCalledWith({ selection: undefined });
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText('Remove gw-alpha | ns-1'));
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith({ selections: [] });
     });
   });
 
@@ -146,10 +211,9 @@ describe('GatewaySelectFieldComponent', () => {
 
       await openDropdown();
 
-      const options = screen.getAllByRole('option');
-      expect(options).toHaveLength(2);
-      expect(screen.getByTestId('gw-alpha | ns-1')).toBeInTheDocument();
-      expect(screen.getByTestId('gw-beta | ns-2')).toBeInTheDocument();
+      expect(screen.getByTestId(optionTestId('gw-alpha | ns-1'))).toBeInTheDocument();
+      expect(screen.getByTestId(optionTestId('gw-beta | ns-2'))).toBeInTheDocument();
+      expect(screen.getAllByTestId(/select-multi-typeahead-/)).toHaveLength(2);
     });
 
     it('should not deduplicate gateways with the same name but different namespace', async () => {
@@ -161,10 +225,9 @@ describe('GatewaySelectFieldComponent', () => {
 
       await openDropdown();
 
-      const options = screen.getAllByRole('option');
-      expect(options).toHaveLength(2);
-      expect(screen.getByTestId('gw-alpha | ns-1')).toBeInTheDocument();
-      expect(screen.getByTestId('gw-alpha | ns-2')).toBeInTheDocument();
+      expect(screen.getByTestId(optionTestId('gw-alpha | ns-1'))).toBeInTheDocument();
+      expect(screen.getByTestId(optionTestId('gw-alpha | ns-2'))).toBeInTheDocument();
+      expect(screen.getAllByTestId(/select-multi-typeahead-/)).toHaveLength(2);
     });
   });
 
@@ -178,11 +241,7 @@ describe('GatewaySelectFieldComponent', () => {
         },
       });
 
-      expect(screen.getByTestId('gateway-select')).toHaveClass('pf-m-warning');
-      expect(screen.getByText(/Gateway discovery failed\./)).toBeInTheDocument();
-      expect(
-        screen.getByText(/Ensure "model-serving-api" service is healthy and accessible\./),
-      ).toBeInTheDocument();
+      expect(screen.getByText(GATEWAY_API_FAILURE_MESSAGE)).toBeInTheDocument();
     });
 
     it('should not show a loadError warning when isDisabled', () => {
@@ -195,7 +254,7 @@ describe('GatewaySelectFieldComponent', () => {
         isDisabled: true,
       });
 
-      expect(screen.queryByText(/Gateway discovery failed\./)).not.toBeInTheDocument();
+      expect(screen.queryByText(GATEWAY_API_FAILURE_MESSAGE)).not.toBeInTheDocument();
     });
   });
 
@@ -212,6 +271,36 @@ describe('GatewaySelectFieldComponent', () => {
       ).toBeInTheDocument();
     });
 
+    it('should disable the select when there are 0 gateways', () => {
+      renderComponent({
+        externalData: { data: [], loaded: true },
+      });
+
+      // PatternFly MenuToggle is a div; disabled state is via attribute + pf-m-disabled
+      expect(screen.getByTestId('gateway-select')).toHaveAttribute('disabled');
+      expect(getCombobox()).toHaveAttribute('placeholder', 'Select gateways');
+    });
+
+    it('should stay enabled when missing selections exist as chips', () => {
+      const missingGateway = makeGateway('gw-removed', 'ns-old');
+
+      renderComponent({
+        value: { selections: [missingGateway] },
+        initialValue: { selections: [missingGateway] },
+        externalData: { data: [], loaded: true },
+      });
+
+      // Discovery empty, but preserved missing chips must remain deselectable
+      expect(screen.getByTestId('gateway-select')).not.toHaveAttribute('disabled');
+      expect(screen.getByText('gw-removed | ns-old')).toBeInTheDocument();
+      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'No Gateways found. Make sure Gateway resources are created and configured',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
     it('should not show the empty warning when gateways exist', () => {
       renderComponent({
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
@@ -222,6 +311,7 @@ describe('GatewaySelectFieldComponent', () => {
           'No Gateways found. Make sure Gateway resources are created and configured',
         ),
       ).not.toBeInTheDocument();
+      expect(screen.getByTestId('gateway-select')).not.toHaveAttribute('disabled');
     });
 
     it('should not show the empty warning when there is a loadError', () => {
@@ -267,21 +357,50 @@ describe('GatewaySelectFieldComponent', () => {
   });
 
   describe('missing selection warning on edit', () => {
-    it('should show a warning when the selected value is not in the gateway list', () => {
+    it('should show a warning when a selected value is not in the gateway list', () => {
       const missingGateway = makeGateway('gw-removed', 'ns-old');
       const gateways = [makeGateway('gw-alpha', 'ns-1')];
 
       renderComponent({
-        value: { selection: missingGateway },
-        initialValue: { selection: missingGateway },
+        value: { selections: [missingGateway] },
+        initialValue: { selections: [missingGateway] },
         externalData: { data: gateways, loaded: true },
       });
 
-      expect(
-        screen.getByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
-        ),
-      ).toBeInTheDocument();
+      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+    });
+
+    it('should show a plural warning when multiple selected values are missing', () => {
+      const missingGateways = [
+        makeGateway('gw-removed-1', 'ns-old'),
+        makeGateway('gw-removed-2', 'ns-old'),
+      ];
+
+      renderComponent({
+        value: { selections: missingGateways },
+        initialValue: { selections: missingGateways },
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+    });
+
+    it('should keep a currently selected missing gateway as an option without initialValue', async () => {
+      const missingGateway = makeGateway('gw-removed', 'ns-old');
+
+      renderComponent({
+        value: { selections: [missingGateway] },
+        externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
+      });
+
+      expect(screen.getByTestId('gateway-select')).toHaveTextContent('gw-removed | ns-old');
+      expect(screen.getByText(GATEWAY_MISSING_SELECTION_MESSAGE)).toBeInTheDocument();
+      expect(screen.getByText('gw-removed | ns-old').closest('.pf-v6-c-label')).toHaveClass(
+        'pf-m-red',
+      );
+
+      await openDropdown();
+      expect(screen.getByTestId(optionTestId('gw-removed | ns-old'))).toBeInTheDocument();
     });
 
     it('should still include the missing gateway as a selectable option', async () => {
@@ -289,67 +408,72 @@ describe('GatewaySelectFieldComponent', () => {
       const gateways = [makeGateway('gw-alpha', 'ns-1')];
 
       renderComponent({
-        value: { selection: missingGateway },
-        initialValue: { selection: missingGateway },
+        value: { selections: [missingGateway] },
+        initialValue: { selections: [missingGateway] },
         externalData: { data: gateways, loaded: true },
       });
 
       await openDropdown();
 
-      expect(screen.getByTestId('gw-removed | ns-old')).toBeInTheDocument();
-      expect(screen.getByTestId('gw-alpha | ns-1')).toBeInTheDocument();
-
-      const options = screen.getAllByRole('option');
-      expect(options).toHaveLength(2);
+      expect(screen.getByTestId(optionTestId('gw-removed | ns-old'))).toBeInTheDocument();
+      expect(screen.getByTestId(optionTestId('gw-alpha | ns-1'))).toBeInTheDocument();
+      expect(screen.getAllByTestId(/select-multi-typeahead-/)).toHaveLength(2);
     });
 
     it('should not show the missing warning when the selection exists in the list', () => {
       const gateway = makeGateway('gw-alpha', 'ns-1');
 
       renderComponent({
-        value: { selection: gateway },
-        initialValue: { selection: gateway },
+        value: { selections: [gateway] },
+        initialValue: { selections: [gateway] },
         externalData: { data: [gateway], loaded: true },
       });
 
-      expect(
-        screen.queryByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
-        ),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(GATEWAY_MISSING_SELECTION_MESSAGE)).not.toBeInTheDocument();
     });
 
     it('should not show the missing warning while data is still loading', () => {
       const gateway = makeGateway('gw-alpha', 'ns-1');
 
       renderComponent({
-        value: { selection: gateway },
-        initialValue: { selection: gateway },
+        value: { selections: [gateway] },
+        initialValue: { selections: [gateway] },
         externalData: { data: undefined, loaded: false },
       });
 
-      expect(
-        screen.queryByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
-        ),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(GATEWAY_MISSING_SELECTION_MESSAGE)).not.toBeInTheDocument();
     });
 
-    it('should not show the missing warning when isDisabled', () => {
-      const missingGateway = makeGateway('gw-removed', 'ns-old');
+    it('should show the MaaS missing warning when isDisabled (locked gateway)', () => {
+      const missingGateway = makeGateway('maas-default-gateway', 'openshift-ingress');
 
       renderComponent({
-        value: { selection: missingGateway },
-        initialValue: { selection: missingGateway },
+        value: { selections: [missingGateway] },
+        initialValue: { selections: [missingGateway] },
         externalData: { data: [makeGateway('gw-alpha', 'ns-1')], loaded: true },
         isDisabled: true,
       });
 
-      expect(
-        screen.queryByText(
-          'The selected gateway was not found. The deployment may not work as expected.',
-        ),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText(GATEWAY_MAAS_MISSING_MESSAGE)).toBeInTheDocument();
+      expect(screen.queryByText(GATEWAY_MISSING_SELECTION_MESSAGE)).not.toBeInTheDocument();
+    });
+
+    it('should not show the missing warning when isDisabled and load failed', () => {
+      const missingGateway = makeGateway('maas-default-gateway', 'openshift-ingress');
+
+      renderComponent({
+        value: { selections: [missingGateway] },
+        initialValue: { selections: [missingGateway] },
+        externalData: {
+          data: undefined,
+          loaded: true,
+          loadError: new Error('Failed to load gateways'),
+        },
+        isDisabled: true,
+      });
+
+      expect(screen.queryByText(GATEWAY_MAAS_MISSING_MESSAGE)).not.toBeInTheDocument();
+      expect(screen.queryByText(GATEWAY_MISSING_SELECTION_MESSAGE)).not.toBeInTheDocument();
     });
 
     it('should not add the initial value as a fallback option when it is in hiddenOptions', async () => {
@@ -357,18 +481,17 @@ describe('GatewaySelectFieldComponent', () => {
       const gateways = [makeGateway('gw-alpha', 'ns-1')];
 
       renderComponent({
-        value: { selection: undefined, hiddenOptions: [hiddenGateway] },
-        initialValue: { selection: hiddenGateway },
+        value: { selections: [], hiddenOptions: [hiddenGateway] },
+        initialValue: { selections: [hiddenGateway] },
         externalData: { data: gateways, loaded: true },
       });
 
       await openDropdown();
 
       expect(
-        screen.queryByTestId('maas-default-gateway | openshift-ingress'),
+        screen.queryByTestId(optionTestId('maas-default-gateway | openshift-ingress')),
       ).not.toBeInTheDocument();
-      const options = screen.getAllByRole('option');
-      expect(options).toHaveLength(1);
+      expect(screen.getAllByTestId(/select-multi-typeahead-/)).toHaveLength(1);
     });
 
     it('should allow re-selecting the missing gateway via onChange', async () => {
@@ -376,18 +499,14 @@ describe('GatewaySelectFieldComponent', () => {
       const gateways = [makeGateway('gw-alpha', 'ns-1')];
 
       renderComponent({
-        value: { selection: undefined },
-        initialValue: { selection: missingGateway },
+        value: { selections: [] },
+        initialValue: { selections: [missingGateway] },
         externalData: { data: gateways, loaded: true },
       });
 
-      await openDropdown();
+      await selectOptionByKeyboard('gw-removed | ns-old');
 
-      await act(async () => {
-        fireEvent.click(screen.getByText('gw-removed | ns-old'));
-      });
-
-      expect(mockOnChange).toHaveBeenCalledWith({ selection: missingGateway });
+      expect(mockOnChange).toHaveBeenCalledWith({ selections: [missingGateway] });
     });
   });
 });
@@ -408,7 +527,7 @@ describe('GatewaySelectField definition', () => {
 
   describe('setFieldData', () => {
     it('should return the value unchanged', () => {
-      const value: GatewaySelectFieldData = { selection: makeGateway('gw-alpha', 'ns-1') };
+      const value: GatewaySelectFieldData = { selections: [makeGateway('gw-alpha', 'ns-1')] };
       expect(GatewaySelectField.reducerFunctions.setFieldData(value)).toBe(value);
     });
   });
@@ -416,13 +535,13 @@ describe('GatewaySelectField definition', () => {
   describe('getInitialFieldData', () => {
     const { getInitialFieldData } = GatewaySelectField.reducerFunctions;
 
-    it('should return empty selection when no existing data is provided', () => {
-      expect(getInitialFieldData(undefined)).toEqual({ selection: undefined });
+    it('should return empty selections when no existing data is provided', () => {
+      expect(getInitialFieldData(undefined)).toEqual({ selections: [] });
     });
 
     it('should return existing data when provided', () => {
       const existing: GatewaySelectFieldData = {
-        selection: makeGateway('gw-alpha', 'ns-1'),
+        selections: [makeGateway('gw-alpha', 'ns-1')],
       };
       expect(getInitialFieldData(existing)).toEqual(existing);
     });
@@ -431,21 +550,24 @@ describe('GatewaySelectField definition', () => {
   describe('getReviewSections', () => {
     const mockWizardState = {} as never;
 
-    it('should return a gateway item when a selection exists', () => {
+    it('should return a gateway item when selections exist', () => {
       const gateway = makeGateway('gw-alpha', 'ns-1');
       const sections =
-        GatewaySelectField.getReviewSections?.({ selection: gateway }, mockWizardState) ?? [];
+        GatewaySelectField.getReviewSections?.(
+          { selections: [gateway, makeGateway('gw-beta', 'ns-2')] },
+          mockWizardState,
+        ) ?? [];
 
       expect(sections).toHaveLength(1);
       expect(sections[0].title).toBe('Advanced settings');
       expect(sections[0].items).toHaveLength(1);
-      expect(sections[0].items[0].label).toBe('Gateway');
-      expect(sections[0].items[0].value(mockWizardState)).toBe('gw-alpha | ns-1');
+      expect(sections[0].items[0].label).toBe('Gateways');
+      expect(sections[0].items[0].value(mockWizardState)).toBe('gw-alpha | ns-1, gw-beta | ns-2');
     });
 
-    it('should return an empty items list when no selection exists', () => {
+    it('should return an empty items list when no selections exist', () => {
       const sections =
-        GatewaySelectField.getReviewSections?.({ selection: undefined }, mockWizardState) ?? [];
+        GatewaySelectField.getReviewSections?.({ selections: [] }, mockWizardState) ?? [];
 
       expect(sections).toHaveLength(1);
       expect(sections[0].title).toBe('Advanced settings');

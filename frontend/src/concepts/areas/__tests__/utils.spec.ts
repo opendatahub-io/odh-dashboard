@@ -50,7 +50,7 @@ describe('isAreaAvailable', () => {
     });
   });
 
-  describe('v2 Operator', () => {
+  describe('v3 Operator', () => {
     describe('flags and cluster states', () => {
       it('should enable area (flag true, cluster true)', () => {
         const isAvailable = isAreaAvailable(
@@ -323,6 +323,19 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.devFlags).toEqual({ guidedTour: 'off' });
         expect(isAvailable.featureFlags).toBe(null);
       });
+
+      it('should disable Unified Project Selector by default', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.UNIFIED_PROJECT_SELECTOR,
+          mockDashboardConfig({}).spec,
+          null,
+          null,
+        );
+
+        expect(isAvailable.status).toBe(false);
+        expect(isAvailable.devFlags).toEqual({ unifiedProjectSelector: 'off' });
+        expect(isAvailable.featureFlags).toBe(null);
+      });
     });
 
     describe('customCondition', () => {
@@ -534,6 +547,149 @@ describe('isAreaAvailable', () => {
     });
   });
 
+  describe('FEATURE_STORE area', () => {
+    it.each([
+      { featureStore: 'Managed', dataRegistry: 'Removed', expected: true },
+      { featureStore: 'Removed', dataRegistry: 'Managed', expected: false },
+      { featureStore: 'Removed', dataRegistry: 'Removed', expected: false },
+      { featureStore: 'Managed', dataRegistry: 'Managed', expected: true },
+    ] as const)(
+      'uses only Feature Store lifecycle when Feature Store is $featureStore and Data Registry is $dataRegistry',
+      ({ featureStore, dataRegistry, expected }) => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.FEATURE_STORE,
+          mockDashboardConfig({ disableFeatureStore: false }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.FEATURE_STORE]: {
+                managementState: featureStore,
+              },
+              [DataScienceStackComponent.DATA_REGISTRY]: {
+                managementState: dataRegistry,
+              },
+            },
+          }),
+          null,
+        );
+
+        expect(isAvailable.status).toBe(expected);
+        expect(isAvailable.featureFlags).toEqual({ disableFeatureStore: 'on' });
+        expect(isAvailable.requiredComponents).toEqual({
+          [DataScienceStackComponent.FEATURE_STORE]: featureStore === 'Managed',
+        });
+      },
+    );
+  });
+
+  describe.each([
+    {
+      area: SupportedArea.FEATURE_STORE,
+      component: DataScienceStackComponent.FEATURE_STORE,
+      otherComponent: DataScienceStackComponent.DATA_REGISTRY,
+      flags: { disableFeatureStore: false },
+    },
+    {
+      area: SupportedArea.DATA_REGISTRY,
+      component: DataScienceStackComponent.DATA_REGISTRY,
+      otherComponent: DataScienceStackComponent.FEATURE_STORE,
+      flags: { dataRegistry: true },
+    },
+  ])('$area shared operator readiness', ({ area, component, otherComponent, flags }) => {
+    it.each(['False', 'Unknown', undefined] as const)(
+      'should stay unavailable when enabled but FeastOperatorReady is %s',
+      (status) => {
+        const result = isAreaAvailable(
+          area,
+          mockDashboardConfig(flags).spec,
+          mockDscStatus({
+            conditions: status ? [{ type: 'FeastOperatorReady', status }] : [],
+          }),
+          null,
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.requiredComponents).toEqual({ [component]: true });
+      },
+    );
+
+    it.each(['Managed', 'Unmanaged'] as const)(
+      'should be available when %s and the shared operator is ready, independently of the other child',
+      (managementState) => {
+        const result = isAreaAvailable(
+          area,
+          mockDashboardConfig(flags).spec,
+          mockDscStatus({
+            components: {
+              [component]: { managementState },
+              [otherComponent]: { managementState: 'Removed' },
+            },
+          }),
+          null,
+        );
+
+        expect(result.status).toBe(true);
+      },
+    );
+
+    it.each(['Removed', undefined] as const)(
+      'should stay unavailable when its lifecycle is %s even if the operator and other child are enabled',
+      (managementState) => {
+        const result = isAreaAvailable(
+          area,
+          mockDashboardConfig(flags).spec,
+          mockDscStatus({
+            components: {
+              [component]: { managementState },
+              [otherComponent]: { managementState: 'Managed' },
+            },
+          }),
+          null,
+        );
+
+        expect(result.status).toBe(false);
+      },
+    );
+
+    it('should stay unavailable when DSC status is missing', () => {
+      const result = isAreaAvailable(area, mockDashboardConfig(flags).spec, null, null);
+
+      expect(result.status).toBe(false);
+    });
+
+    it('should stay unavailable when DSC conditions are omitted', () => {
+      const dscStatus = mockDscStatus({});
+      // Kubernetes may omit an empty conditions array from the status payload.
+      Reflect.deleteProperty(dscStatus, 'conditions');
+
+      const result = isAreaAvailable(area, mockDashboardConfig(flags).spec, dscStatus, null);
+
+      expect(result.status).toBe(false);
+      expect(result.requiredComponents).toEqual({ [component]: true });
+    });
+
+    it('should not substitute DSCI capability readiness for DSC operator readiness', () => {
+      const result = isAreaAvailable(
+        area,
+        mockDashboardConfig(flags).spec,
+        mockDscStatus({ conditions: [] }),
+        mockDsciStatus({ requiredCapabilities: ['FeastOperatorReady'] }),
+      );
+
+      expect(result.status).toBe(false);
+    });
+
+    it('should not substitute overall DSC readiness for Feast operator readiness', () => {
+      const result = isAreaAvailable(
+        area,
+        mockDashboardConfig(flags).spec,
+        mockDscStatus({ conditions: [{ type: 'Ready', status: 'True' }] }),
+        null,
+      );
+
+      expect(result.status).toBe(false);
+    });
+  });
+
   describe('FEATURE_STORE_ADMIN area', () => {
     it('should be available when featureStoreAdmin is true and FEATURE_STORE area is available', () => {
       const isAvailable = isAreaAvailable(
@@ -541,7 +697,7 @@ describe('isAreaAvailable', () => {
         mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: true }).spec,
         mockDscStatus({
           components: {
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+            [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
           },
         }),
         null,
@@ -558,7 +714,7 @@ describe('isAreaAvailable', () => {
         mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: false }).spec,
         mockDscStatus({
           components: {
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+            [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
           },
         }),
         null,
@@ -592,13 +748,30 @@ describe('isAreaAvailable', () => {
       expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
     });
 
+    it('should not be available when Feature Store is Removed even if both UI flags allow it', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.FEATURE_STORE_ADMIN,
+        mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: true }).spec,
+        mockDscStatus({
+          components: {
+            [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Removed' },
+          },
+        }),
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ featureStoreAdmin: 'on' });
+      expect(isAvailable.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
+    });
+
     it('should not affect FEATURE_STORE browse area when admin flag is false', () => {
       const isAvailable = isAreaAvailable(
         SupportedArea.FEATURE_STORE,
         mockDashboardConfig({ disableFeatureStore: false, featureStoreAdmin: false }).spec,
         mockDscStatus({
           components: {
-            [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+            [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
           },
         }),
         null,
@@ -617,7 +790,7 @@ describe('isAreaAvailable', () => {
     describe('AutoML', () => {
       const stateMap = {
         [PLUGIN_AUTOML]: {
-          featureFlags: ['automl' as const],
+          featureFlags: ['automl' as const, 'disablePipelines' as const],
           requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
         },
       };
@@ -632,11 +805,11 @@ describe('isAreaAvailable', () => {
             },
           }),
           null,
-          { internalStateMap: stateMap, flagState: { automl: true } },
+          { internalStateMap: stateMap, flagState: { automl: true, disablePipelines: false } },
         );
 
         expect(result.status).toBe(true);
-        expect(result.featureFlags).toEqual({ automl: 'on' });
+        expect(result.featureFlags).toEqual({ automl: 'on', disablePipelines: 'on' });
         expect(result.requiredComponents).toEqual({
           [DataScienceStackComponent.DS_PIPELINES]: true,
         });
@@ -652,11 +825,11 @@ describe('isAreaAvailable', () => {
             },
           }),
           null,
-          { internalStateMap: stateMap, flagState: { automl: false } },
+          { internalStateMap: stateMap, flagState: { automl: false, disablePipelines: false } },
         );
 
         expect(result.status).toBe(false);
-        expect(result.featureFlags).toEqual({ automl: 'off' });
+        expect(result.featureFlags).toEqual({ automl: 'off', disablePipelines: 'on' });
       });
 
       it('should disable when automl flag is true but DS_PIPELINES is Removed', () => {
@@ -669,13 +842,33 @@ describe('isAreaAvailable', () => {
             },
           }),
           null,
-          { internalStateMap: stateMap, flagState: { automl: true } },
+          { internalStateMap: stateMap, flagState: { automl: true, disablePipelines: false } },
         );
 
         expect(result.status).toBe(false);
-        expect(result.featureFlags).toEqual({ automl: 'on' });
+        expect(result.featureFlags).toEqual({ automl: 'on', disablePipelines: 'on' });
         expect(result.requiredComponents).toEqual({
           [DataScienceStackComponent.DS_PIPELINES]: false,
+        });
+      });
+
+      it('should disable AutoML and AutoRAG when pipelines are disabled', () => {
+        const config = mockDashboardConfig({
+          automl: true,
+          autorag: true,
+          genAiStudio: true,
+          disablePipelines: true,
+        }).spec;
+        const dscStatus = mockDscStatus({
+          components: {
+            [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
+          },
+        });
+
+        [SupportedArea.PLUGIN_AUTOML, SupportedArea.PLUGIN_AUTORAG].forEach((area) => {
+          const result = isAreaAvailable(area, config, dscStatus, null);
+          expect(result.status).toBe(false);
+          expect(result.featureFlags).toMatchObject({ disablePipelines: 'off' });
         });
       });
     });
@@ -729,7 +922,7 @@ describe('isAreaAvailable', () => {
           mockDashboardConfig({ disableFeatureStore: false }).spec,
           mockDscStatus({
             components: {
-              [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Managed' },
+              [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
             },
           }),
           null,
@@ -754,13 +947,13 @@ describe('isAreaAvailable', () => {
         expect(result.featureFlags).toEqual({ disableFeatureStore: 'off' });
       });
 
-      it('should disable when flag is on but FEAST_OPERATOR is Removed', () => {
+      it('should disable when flag is on but FEATURE_STORE is Removed', () => {
         const result = isAreaAvailable(
           PLUGIN_FEATURE_STORE,
           mockDashboardConfig({ disableFeatureStore: false }).spec,
           mockDscStatus({
             components: {
-              [DataScienceStackComponent.FEAST_OPERATOR]: { managementState: 'Removed' },
+              [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Removed' },
             },
           }),
           null,
@@ -770,6 +963,60 @@ describe('isAreaAvailable', () => {
         expect(result.status).toBe(false);
         expect(result.featureFlags).toEqual({ disableFeatureStore: 'on' });
         expect(result.reliantAreas).toEqual({ [SupportedArea.FEATURE_STORE]: false });
+      });
+    });
+
+    describe('Data Registry', () => {
+      it('should enable when dataRegistry is true, its lifecycle is Managed, and the operator is ready', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: true }).spec,
+          mockDscStatus({}),
+          null,
+        );
+
+        expect(result.status).toBe(true);
+        expect(result.featureFlags).toEqual({ dataRegistry: 'on' });
+      });
+
+      it('should stay unavailable when the flag and lifecycle are enabled but the operator is not ready', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: true }).spec,
+          mockDscStatus({ conditions: [{ type: 'FeastOperatorReady', status: 'False' }] }),
+          null,
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.reliantAreas).toEqual({ [SupportedArea.DATA_REGISTRY]: false });
+      });
+
+      it('should stay unavailable when Data Registry is Removed and Feature Store is Managed', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.FEATURE_STORE]: { managementState: 'Managed' },
+              [DataScienceStackComponent.DATA_REGISTRY]: { managementState: 'Removed' },
+            },
+          }),
+          null,
+        );
+
+        expect(result.status).toBe(false);
+      });
+
+      it('should disable when dataRegistry is false', () => {
+        const result = isAreaAvailable(
+          SupportedArea.PLUGIN_DATA_REGISTRY,
+          mockDashboardConfig({ dataRegistry: false }).spec,
+          null,
+          null,
+        );
+
+        expect(result.status).toBe(false);
+        expect(result.featureFlags).toEqual({ dataRegistry: 'off' });
       });
     });
   });

@@ -39,21 +39,6 @@ export const isRunCompleted = (state: unknown): boolean =>
 /**
  * Whether the run is in a state where it is no longer running.
  */
-export const isRunInTerminalState = (state: unknown): boolean => {
-  const s = normalizePipelineRunState(state);
-  if (!s) {
-    return false;
-  }
-  const TERMINAL_STATES: Set<string> = new Set([
-    RuntimeStateKF.SUCCEEDED,
-    RuntimeStateKF.FAILED,
-    RuntimeStateKF.CANCELED,
-    RuntimeStateKF.SKIPPED,
-    RuntimeStateKF.CACHED,
-  ]);
-  return TERMINAL_STATES.has(s);
-};
-
 /**
  * Whether the run is in a state where it can be terminated (stopped).
  */
@@ -92,24 +77,6 @@ export const isRunDeletable = (state: unknown): boolean => {
     s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
   );
 };
-
-/**
- * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
- * has flattened AxiosError to a plain Error, so 403/404/503 branches can still run.
- * @param error - The error object to parse
- * @returns The HTTP status code, or undefined if not found
- */
-export function parseErrorStatus(error: Error): number | undefined {
-  const match =
-    error.message.match(/\bstatus\s+code\s+(\d{3})\b/i) ??
-    error.message.match(/\bstatus[:\s]+(\d{3})\b/i) ??
-    error.message.match(/\b(403|404|503)\b/);
-  if (match) {
-    const code = parseInt(match[1], 10);
-    return code >= 100 && code < 600 ? code : undefined;
-  }
-  return undefined;
-}
 
 /**
  * Extracts the task type from a pipeline run's runtime parameters.
@@ -477,22 +444,44 @@ export function getBestModelFromStageMap(
   return getRecordField(componentStageMap, 'best_model');
 }
 
+const normalizeModelIdentifier = (value: string): string =>
+  value.replace(/[\s_-]+/g, '').toLowerCase();
+
+/** Resolves a model identifier to a unique loaded model record key. */
+export function resolveModelRecordKey(
+  models: Record<string, { name?: string } | null | undefined>,
+  modelIdentifier?: string,
+): string | undefined {
+  if (!modelIdentifier) {
+    return undefined;
+  }
+  if (Object.hasOwn(models, modelIdentifier) && models[modelIdentifier] != null) {
+    return modelIdentifier;
+  }
+  const exactNameMatches = Object.entries(models)
+    .filter(([, model]) => model?.name === modelIdentifier)
+    .map(([key]) => key);
+  if (exactNameMatches.length > 0) {
+    return exactNameMatches.length === 1 ? exactNameMatches[0] : undefined;
+  }
+  const normalizedIdentifier = normalizeModelIdentifier(modelIdentifier);
+  const matchingKeys = Object.entries(models)
+    .filter(
+      ([key, model]) =>
+        model != null &&
+        (normalizeModelIdentifier(key) === normalizedIdentifier ||
+          (model.name != null && normalizeModelIdentifier(model.name) === normalizedIdentifier)),
+    )
+    .map(([key]) => key);
+  return matchingKeys.length === 1 ? matchingKeys[0] : undefined;
+}
+
 /** Maps a stage-map best_model value to a key in the loaded models record. */
 export function resolveBestModelKey(
   models: Record<string, { name?: string } | null | undefined>,
   bestModel?: string,
 ): string | undefined {
-  if (!bestModel) {
-    return undefined;
-  }
-  if (Object.hasOwn(models, bestModel) && models[bestModel] != null) {
-    return bestModel;
-  }
-  const matchingKeys = Object.entries(models)
-    .filter(([, model]) => model?.name === bestModel)
-    .map(([key]) => key);
-  // Ambiguous display-name matches are left unresolved rather than picking arbitrarily.
-  return matchingKeys.length === 1 ? matchingKeys[0] : undefined;
+  return resolveModelRecordKey(models, bestModel);
 }
 
 /** Resolves a models-record key to the display name shown on pipeline tree nodes. */
@@ -503,10 +492,11 @@ export function resolveModelDisplayName(
   if (!modelKey) {
     return undefined;
   }
-  if (!Object.hasOwn(models, modelKey)) {
+  const resolvedKey = resolveModelRecordKey(models, modelKey);
+  if (!resolvedKey) {
     return modelKey;
   }
-  return models[modelKey]?.name ?? modelKey;
+  return models[resolvedKey]?.name ?? modelKey;
 }
 
 export function compareOptimizedMetricValues(aVal: number | string, bVal: number | string): number {
@@ -656,4 +646,62 @@ export function findTrainingTaskPrefix(
     return isTrainingTaskDirName(dirName, pattern);
   });
   return match ? match.prefix.replace(/\/$/, '') : undefined;
+}
+
+const UUID_DIRECTORY_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Resolve a training task only when exactly one allowed task directory is present. */
+export function resolveTrainingTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  allowedTaskNames: string[],
+): string | undefined {
+  const matches = commonPrefixes
+    .filter((prefix) => {
+      const segments = prefix.prefix.split('/').filter(Boolean);
+      const directoryName = segments[segments.length - 1];
+      return allowedTaskNames.includes(directoryName);
+    })
+    .map(({ prefix }) => prefix.replace(/\/$/, ''));
+  const uniqueMatches = [...new Set(matches)];
+
+  return uniqueMatches.length === 1 ? uniqueMatches[0] : undefined;
+}
+
+/** Resolve the only task directory matching the base name or a numeric suffix variant. */
+export function resolveUniqueTrainingTaskPrefix(
+  commonPrefixes: { prefix: string }[],
+  baseTaskName: string,
+): string | undefined {
+  const matches = commonPrefixes
+    .filter((prefix) => {
+      const segments = prefix.prefix.split('/').filter(Boolean);
+      const directoryName = segments[segments.length - 1] ?? '';
+      return isTrainingTaskDirName(directoryName, baseTaskName);
+    })
+    .map(({ prefix }) => prefix.replace(/\/$/, ''));
+  const uniqueMatches = [...new Set(matches)];
+
+  return uniqueMatches.length === 1 ? uniqueMatches[0] : undefined;
+}
+
+/** Resolve a UUID child directory only when exactly one matching child is present. */
+export function resolveUniqueUuidPrefix(
+  commonPrefixes: { prefix: string }[],
+  basePath: string,
+): string | undefined {
+  const normalizedBasePath = basePath.replace(/\/+$/, '');
+  const expectedPrefix = `${normalizedBasePath}/`;
+  const ids = commonPrefixes
+    .map(({ prefix }) => {
+      if (!prefix.startsWith(expectedPrefix)) {
+        return undefined;
+      }
+      const remainder = prefix.slice(expectedPrefix.length).split('/').filter(Boolean);
+      const id = remainder.length === 1 ? remainder[0] : undefined;
+      return id && UUID_DIRECTORY_PATTERN.test(id) ? id : undefined;
+    })
+    .filter((id): id is string => Boolean(id));
+  const uniqueIds = [...new Set(ids)];
+
+  return uniqueIds.length === 1 ? `${normalizedBasePath}/${uniqueIds[0]}` : undefined;
 }

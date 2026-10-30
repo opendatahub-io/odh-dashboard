@@ -46,7 +46,7 @@ const defaultParameters: AutoragRuntimeParameters = {
   test_data_key: 'eval-data.json',
   ogx_secret_name: 'ls-secret',
   vector_io_provider_id: 'milvus',
-  optimization_metric: 'faithfulness',
+  optimization_metric: 'unitxt:faithfulness',
   optimization_max_rag_patterns: 8,
   generation_models: ['llama-4-ma', 'gpt-oss-120b'],
   embedding_models: ['granite-embedding'],
@@ -130,13 +130,13 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         input_data_keys: ['documents/a.pdf'],
         maas_secret_name: 'maas-secret',
-        vector_db_secret_name: 'vector-db-secret',
+        db_secret_name: 'vector-db-secret',
       },
     });
 
     expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
     expect(screen.getByText('MaaS connection')).toBeInTheDocument();
-    expect(screen.getByText('Vector database connection')).toBeInTheDocument();
+    expect(screen.getByText('Database connection')).toBeInTheDocument();
     expect(screen.getByText('documents/a.pdf')).toBeInTheDocument();
     expect(screen.getByText('maas-secret')).toBeInTheDocument();
     expect(screen.getByText('vector-db-secret')).toBeInTheDocument();
@@ -187,7 +187,7 @@ describe('AutoragInputParametersPanel', () => {
             max_combinations: 8,
             duration_seconds: 10,
             settings: {
-              vector_store_binding: {
+              store_binding: {
                 provider_type: 'milvus',
                 collection_name: 'vs-1',
               },
@@ -284,22 +284,22 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should format optimization metric with human-readable label', () => {
     renderPanel();
-    expect(screen.getByText('Answer faithfulness')).toBeInTheDocument();
+    expect(screen.getByText('Faithfulness (Unitxt)')).toBeInTheDocument();
   });
 
   it('should format context_correctness metric with human-readable label', () => {
     renderPanel({
       parameters: {
         ...defaultParameters,
-        optimization_metric: 'context_correctness',
+        optimization_metric: 'unitxt:context_correctness',
       },
     });
-    expect(screen.getByText('Context correctness')).toBeInTheDocument();
+    expect(screen.getByText('Context correctness (unitxt)')).toBeInTheDocument();
   });
 
   it('should include the evaluator when pattern metadata identifies the optimization metric', () => {
     renderPanel(
-      {},
+      { parameters: { ...defaultParameters, optimization_metric: 'ragas:faithfulness' } },
       {
         patterns: {
           pattern1: {
@@ -319,7 +319,7 @@ describe('AutoragInputParametersPanel', () => {
       },
     );
 
-    expect(screen.getByText('Answer faithfulness (ragas)')).toBeInTheDocument();
+    expect(screen.getByText('Faithfulness (RAGAS)')).toBeInTheDocument();
   });
 
   it('should render model configuration with counts', () => {
@@ -371,7 +371,7 @@ describe('AutoragInputParametersPanel', () => {
   it('should display parameters in the defined order', () => {
     renderPanel({
       parameters: {
-        optimization_metric: 'faithfulness',
+        optimization_metric: 'unitxt:faithfulness',
         input_data_secret_name: 's3-connection',
         ogx_secret_name: 'ls-secret',
         description: 'A test run',

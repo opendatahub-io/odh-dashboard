@@ -22,7 +22,7 @@ const DeleteExternalProviderModal: React.FC<DeleteExternalProviderModalProps> = 
 
   return (
     <DeleteModal
-      title="Delete external provider?"
+      title="Delete provider?"
       onClose={() => {
         onClose();
       }}
@@ -39,22 +39,14 @@ const DeleteExternalProviderModal: React.FC<DeleteExternalProviderModalProps> = 
       submitButtonLabel="Delete"
       deleteName={externalProvider.displayName || externalProvider.name}
       error={error}
-      genericLabel
+      genericLabel={false}
       testId="delete-external-provider-modal"
     >
       <Stack hasGutter>
         <StackItem data-testid="delete-modal-confirmation-message">
-          The <strong>{externalProvider.displayName || externalProvider.name}</strong> external
-          provider will be permanently deleted. This action cannot be undone.
-          <br />
-          <br />
-          Any external models that reference this provider will lose their endpoint configuration
-          and their status will change to <strong>Unavailable</strong>. You will need to update
-          those models with a different provider or recreate this one.
-          <br />
-          <br />
-          After deleting, navigate to <strong>External models</strong> to review and update any
-          affected models.
+          The <strong>{externalProvider.displayName || externalProvider.name}</strong> provider will
+          be deleted. Any external models that reference it will lose their endpoint configuration
+          and be unavailable until they are assigned a new provider.
         </StackItem>
       </Stack>
     </DeleteModal>

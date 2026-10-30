@@ -4,6 +4,10 @@ declare module '*.jpeg';
 declare module '*.gif';
 declare module '*.svg';
 declare module '*.css';
+declare module '*.module.scss' {
+  const styles: Record<string, string>;
+  export default styles;
+}
 declare module '*.wav';
 declare module '*.mp3';
 declare module '*.m4a';
