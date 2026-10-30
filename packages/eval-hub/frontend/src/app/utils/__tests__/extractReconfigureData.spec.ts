@@ -39,15 +39,15 @@ describe('inferSourceMode', () => {
 
   it('should scrub each non-S3 prerecorded reference variant on reconfigure', () => {
     const unsupportedRefs: TestDataRef[] = [
-      { pvc: { claim_name: 'responses', type: 'pre_recorded_data' } },
+      { type: 'pre_recorded_data', pvc: { claim_name: 'responses' } },
       {
+        type: 'pre_recorded_data',
         git: {
           url: 'https://git.example.com/responses.git',
           ref: 'main',
-          type: 'pre_recorded_data',
         },
       },
-      { hf: { repo_id: 'org/responses', type: 'pre_recorded_data' } },
+      { type: 'pre_recorded_data', hf: { repo_id: 'org/responses' } },
     ];
 
     unsupportedRefs.forEach((test_data_ref) => {
@@ -72,16 +72,16 @@ describe('inferSourceMode', () => {
         {
           id: 'b1',
           provider_id: 'p1',
-          test_data_ref: { pvc: { claim_name: 'responses', type: 'pre_recorded_data' } },
+          test_data_ref: { type: 'pre_recorded_data', pvc: { claim_name: 'responses' } },
         },
         {
           id: 'b2',
           provider_id: 'p2',
           test_data_ref: {
+            type: 'data_set',
             git: {
               url: 'https://git.example.com/data.git',
               ref: 'main',
-              type: 'data_set',
             },
           },
         },
@@ -94,7 +94,8 @@ describe('inferSourceMode', () => {
     expect(result.collection?.benchmarks?.[0].test_data_ref).toBeUndefined();
     // Supported data_set references still pass through.
     expect(result.collection?.benchmarks?.[1].test_data_ref).toEqual({
-      git: { url: 'https://git.example.com/data.git', ref: 'main', type: 'data_set' },
+      type: 'data_set',
+      git: { url: 'https://git.example.com/data.git', ref: 'main' },
     });
   });
 
@@ -381,18 +382,19 @@ describe('extractReconfigureData', () => {
           id: 'b1',
           provider_id: 'p1',
           test_data_ref: {
-            s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 'data-secret', type: 'data_set' },
+            type: 'data_set',
+            s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 'data-secret' },
           },
         },
         {
           id: 'b2',
           provider_id: 'p2',
           test_data_ref: {
+            type: 'pre_recorded_data',
             s3: {
               bucket: 'responses',
               key: 'data.jsonl',
               secret_ref: 'prerecorded-token',
-              type: 'pre_recorded_data',
             },
           },
         },
@@ -424,7 +426,8 @@ describe('extractReconfigureData', () => {
       {
         id: 'b1',
         test_data_ref: {
-          s3: { key: 's3://bucket/data.jsonl', secret_ref: 'tok', type: 'pre_recorded_data' },
+          type: 'pre_recorded_data',
+          s3: { key: 's3://bucket/data.jsonl', secret_ref: 'tok' },
         },
       },
     ];
@@ -442,11 +445,11 @@ describe('extractReconfigureData', () => {
       {
         id: 'b1',
         test_data_ref: {
+          type: 'pre_recorded_data',
           s3: {
             bucket: 'my-bucket',
             key: 'path/to/data.jsonl',
             secret_ref: 'tok',
-            type: 'pre_recorded_data',
           },
         },
       },
@@ -465,7 +468,8 @@ describe('extractReconfigureData', () => {
       {
         id: 'b1',
         test_data_ref: {
-          s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+          type: 'data_set',
+          s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
         },
       },
     ];
@@ -523,7 +527,8 @@ describe('extractReconfigureData', () => {
       auth: { secret_ref: 'model-secret' },
     });
     expect(request.benchmarks?.[0].test_data_ref).toEqual({
-      s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+      type: 'data_set',
+      s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
     });
   });
 
@@ -533,11 +538,11 @@ describe('extractReconfigureData', () => {
       {
         id: 'b1',
         test_data_ref: {
+          type: 'data_set',
           git: {
             url: 'https://github.com/org/datasets.git',
             ref: 'main',
             sub_path: 'benchmark-a',
-            type: 'data_set',
           },
         },
       },
@@ -563,7 +568,8 @@ describe('extractReconfigureData', () => {
       {
         id: 'b1',
         test_data_ref: {
-          s3: { key: 's3://bucket/data.jsonl', secret_ref: 'tok', type: 'pre_recorded_data' },
+          type: 'pre_recorded_data',
+          s3: { key: 's3://bucket/data.jsonl', secret_ref: 'tok' },
         },
       },
     ];

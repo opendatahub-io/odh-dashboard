@@ -50,7 +50,7 @@ const isPrerecordedTestDataRef = (
 // edit these — prerecorded responses are S3-only — so reconfiguration drops
 // them instead of carrying a reference the form cannot represent.
 const isUnsupportedPrerecordedRef = (ref: TestDataRef | undefined): boolean =>
-  !!ref && !ref.s3 && (ref.pvc?.type ?? ref.git?.type ?? ref.hf?.type) === 'pre_recorded_data';
+  !!ref && !ref.s3 && ref.type === 'pre_recorded_data';
 
 export const inferSourceMode = (
   job: EvaluationJob,

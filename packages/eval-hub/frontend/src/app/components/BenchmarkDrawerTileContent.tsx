@@ -84,7 +84,7 @@ const summarizeTestDataRef = (ref?: TestDataRef): TestDataRefSummary | undefined
   if (ref?.s3) {
     return {
       source: SOURCE_LABELS.s3,
-      typeLabel: getTestDataRefTypeLabel(ref.s3.type),
+      typeLabel: getTestDataRefTypeLabel(ref.type),
       details: buildTestDataRefDetails([
         ['Bucket', ref.s3.bucket],
         ['Object key or prefix', ref.s3.key],
@@ -95,7 +95,7 @@ const summarizeTestDataRef = (ref?: TestDataRef): TestDataRefSummary | undefined
   if (ref?.pvc) {
     return {
       source: SOURCE_LABELS.pvc,
-      typeLabel: getTestDataRefTypeLabel(ref.pvc.type),
+      typeLabel: getTestDataRefTypeLabel(ref.type),
       details: buildTestDataRefDetails([
         ['Claim name', ref.pvc.claim_name],
         ['Sub path', ref.pvc.sub_path],
@@ -105,7 +105,7 @@ const summarizeTestDataRef = (ref?: TestDataRef): TestDataRefSummary | undefined
   if (ref?.git) {
     return {
       source: SOURCE_LABELS.git,
-      typeLabel: getTestDataRefTypeLabel(ref.git.type),
+      typeLabel: getTestDataRefTypeLabel(ref.type),
       details: buildTestDataRefDetails([
         ['Repository URL', ref.git.url],
         ['Git reference', ref.git.ref],
@@ -117,7 +117,7 @@ const summarizeTestDataRef = (ref?: TestDataRef): TestDataRefSummary | undefined
   if (ref?.hf) {
     return {
       source: SOURCE_LABELS.hf,
-      typeLabel: getTestDataRefTypeLabel(ref.hf.type),
+      typeLabel: getTestDataRefTypeLabel(ref.type),
       details: buildTestDataRefDetails([
         ['Repository ID', ref.hf.repo_id],
         ['Revision', ref.hf.revision],

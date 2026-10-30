@@ -254,11 +254,11 @@ describe('createBenchmarkFromKey', () => {
         ],
       }).benchmarks?.[0].test_data_ref,
     ).toEqual({
+      type: 'data_set',
       s3: {
         bucket: 'eval-data',
         key: 'ragas/dataset.jsonl',
         secret_ref: 'my-s3-secret',
-        type: 'data_set',
       },
     });
   });
@@ -353,7 +353,8 @@ describe('useCopySuiteForm', () => {
           {
             ...sourceCollection.benchmarks![0],
             test_data_ref: {
-              s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+              type: 'data_set',
+              s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
             },
           },
         ],
@@ -372,7 +373,8 @@ describe('useCopySuiteForm', () => {
 
     const pending = result.result.current.buildPendingCollection();
     expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
-      s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+      type: 'data_set',
+      s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
     });
   });
 
@@ -384,7 +386,8 @@ describe('useCopySuiteForm', () => {
           {
             ...sourceCollection.benchmarks![0],
             test_data_ref: {
-              pvc: { claim_name: 'responses', type: 'pre_recorded_data' },
+              type: 'pre_recorded_data',
+              pvc: { claim_name: 'responses' },
             },
           },
         ],
@@ -401,7 +404,8 @@ describe('useCopySuiteForm', () => {
 
     const pending = result.result.current.buildPendingCollection();
     expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
-      pvc: { claim_name: 'responses', type: 'pre_recorded_data' },
+      type: 'pre_recorded_data',
+      pvc: { claim_name: 'responses' },
     });
   });
 
@@ -420,7 +424,8 @@ describe('useCopySuiteForm', () => {
 
     const pending = result.result.current.buildPendingCollection();
     expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
-      pvc: { claim_name: 'eval-datasets-pvc', sub_path: 'benchmark-a', type: 'data_set' },
+      type: 'data_set',
+      pvc: { claim_name: 'eval-datasets-pvc', sub_path: 'benchmark-a' },
     });
   });
 

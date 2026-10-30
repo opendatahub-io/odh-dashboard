@@ -46,7 +46,7 @@ const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass
  */
 const mergePrerecordedRef = (
   stored: TestDataRef,
-  edited: { s3: { bucket: string; key: string; secret_ref: string } },
+  edited: { type: 'pre_recorded_data'; s3: { bucket: string; key: string; secret_ref: string } },
   locationEdited: boolean,
   secretEdited: boolean,
 ): TestDataRef => {
@@ -54,6 +54,7 @@ const mergePrerecordedRef = (
     return stored;
   }
   return {
+    ...stored,
     s3: {
       ...stored.s3,
       ...(locationEdited ? { bucket: edited.s3.bucket, key: edited.s3.key } : {}),
@@ -107,12 +108,12 @@ const buildEvaluationRequest = ({
       ? {
           // eslint-disable-next-line camelcase
           test_data_ref: {
+            type: 'pre_recorded_data' as const,
             s3: {
               bucket: prerecordedS3Location.bucket,
               key: prerecordedS3Location.key,
               // eslint-disable-next-line camelcase
               secret_ref: trimmedAccessToken,
-              type: 'pre_recorded_data' as const,
             },
           },
         }

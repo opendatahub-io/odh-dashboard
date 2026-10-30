@@ -123,24 +123,24 @@ describe('refineTestDataRef', () => {
       expect(errors.claimName).toBe('Claim name is required.');
     });
 
-    it('should reject claim names that are not valid DNS subdomains', () => {
+    it('should reject claim names that are not valid DNS labels', () => {
       const errors = fieldErrors({ ...pvcValues, claimName: 'Invalid_Name' });
-      expect(errors.claimName).toContain('Claim name must be a DNS subdomain');
+      expect(errors.claimName).toContain('Claim name must be a DNS label');
     });
 
-    it('should accept dotted claim names (DNS subdomain)', () => {
+    it('should reject dotted claim names (DNS labels disallow dots)', () => {
       const errors = fieldErrors({ ...pvcValues, claimName: 'eval.data' });
-      expect(errors.claimName).toBeUndefined();
+      expect(errors.claimName).toContain('Claim name must be a DNS label');
     });
 
-    it('should reject claim names with malformed dots', () => {
-      const errors = fieldErrors({ ...pvcValues, claimName: 'eval..data' });
-      expect(errors.claimName).toContain('Claim name must be a DNS subdomain');
+    it('should reject claim names with leading or trailing hyphens', () => {
+      const errors = fieldErrors({ ...pvcValues, claimName: '-eval' });
+      expect(errors.claimName).toContain('Claim name must be a DNS label');
     });
 
     it('should reject claim names longer than 63 characters', () => {
       const errors = fieldErrors({ ...pvcValues, claimName: 'a'.repeat(64) });
-      expect(errors.claimName).toContain('Claim name must be a DNS subdomain');
+      expect(errors.claimName).toContain('Claim name must be a DNS label');
     });
 
     it('should reject sub paths with a leading slash', () => {
@@ -321,11 +321,11 @@ describe('serializeTestDataRef', () => {
         secretRef: ' my-secret ',
       }),
     ).toEqual({
+      type: 'data_set',
       s3: {
         bucket: 'eval-data',
         key: 'ragas/data.jsonl',
         secret_ref: 'my-secret',
-        type: 'data_set',
       },
     });
   });
@@ -338,7 +338,7 @@ describe('serializeTestDataRef', () => {
         claimName: 'eval-datasets-pvc',
         subPath: '   ',
       }),
-    ).toEqual({ pvc: { claim_name: 'eval-datasets-pvc', type: 'data_set' } });
+    ).toEqual({ type: 'data_set', pvc: { claim_name: 'eval-datasets-pvc' } });
   });
 
   it('should serialize git with optionals', () => {
@@ -352,12 +352,12 @@ describe('serializeTestDataRef', () => {
         secretRef: 'git-auth',
       }),
     ).toEqual({
+      type: 'data_set',
       git: {
         url: 'https://github.com/org/repo.git',
         ref: 'v1.0.0',
         sub_path: 'data',
         secret_ref: 'git-auth',
-        type: 'data_set',
       },
     });
   });
@@ -370,7 +370,7 @@ describe('serializeTestDataRef', () => {
         repoId: 'cais/mmlu',
         revision: '  ',
       }),
-    ).toEqual({ hf: { repo_id: 'cais/mmlu', type: 'data_set' } });
+    ).toEqual({ type: 'data_set', hf: { repo_id: 'cais/mmlu' } });
   });
 
   it('should preserve a parsed pre_recorded_data type', () => {
@@ -383,7 +383,8 @@ describe('serializeTestDataRef', () => {
         type: 'pre_recorded_data',
       }),
     ).toEqual({
-      git: { url: 'https://github.com/org/repo.git', ref: 'v1.0.0', type: 'pre_recorded_data' },
+      type: 'pre_recorded_data',
+      git: { url: 'https://github.com/org/repo.git', ref: 'v1.0.0' },
     });
   });
 });
@@ -397,7 +398,8 @@ describe('isPrerecordedS3TestDataRef', () => {
   it('should return true for an s3 ref with an explicit pre_recorded_data type', () => {
     expect(
       isPrerecordedS3TestDataRef({
-        s3: { bucket: 'b', key: 'k', secret_ref: 's', type: 'pre_recorded_data' },
+        type: 'pre_recorded_data',
+        s3: { bucket: 'b', key: 'k', secret_ref: 's' },
       }),
     ).toBe(true);
   });
@@ -405,7 +407,8 @@ describe('isPrerecordedS3TestDataRef', () => {
   it('should return false for an s3 ref with an explicit data_set type', () => {
     expect(
       isPrerecordedS3TestDataRef({
-        s3: { bucket: 'b', key: 'k', secret_ref: 's', type: 'data_set' },
+        type: 'data_set',
+        s3: { bucket: 'b', key: 'k', secret_ref: 's' },
       }),
     ).toBe(false);
   });
@@ -418,10 +421,10 @@ describe('isPrerecordedS3TestDataRef', () => {
 
   it('should return false for non-s3 variants', () => {
     expect(
-      isPrerecordedS3TestDataRef({ pvc: { claim_name: 'c', type: 'pre_recorded_data' } }),
+      isPrerecordedS3TestDataRef({ type: 'pre_recorded_data', pvc: { claim_name: 'c' } }),
     ).toBe(false);
     expect(
-      isPrerecordedS3TestDataRef({ git: { url: 'u', ref: 'r', type: 'pre_recorded_data' } }),
+      isPrerecordedS3TestDataRef({ type: 'pre_recorded_data', git: { url: 'u', ref: 'r' } }),
     ).toBe(false);
   });
 });
@@ -474,7 +477,8 @@ describe('parseTestDataRef', () => {
   it('should preserve the reference type of each variant', () => {
     expect(
       parseTestDataRef({
-        s3: { bucket: 'b', key: 'k', secret_ref: 's', type: 'pre_recorded_data' },
+        type: 'pre_recorded_data',
+        s3: { bucket: 'b', key: 'k', secret_ref: 's' },
       }),
     ).toEqual({
       ...testDataRefDefaultValues,
@@ -484,7 +488,7 @@ describe('parseTestDataRef', () => {
       key: 'k',
       secretRef: 's',
     });
-    expect(parseTestDataRef({ pvc: { claim_name: 'c', type: 'data_set' } })).toEqual({
+    expect(parseTestDataRef({ type: 'data_set', pvc: { claim_name: 'c' } })).toEqual({
       ...testDataRefDefaultValues,
       source: 'pvc',
       type: 'data_set',
@@ -493,7 +497,7 @@ describe('parseTestDataRef', () => {
   });
 
   it('should ignore an unrecognized reference type', () => {
-    expect(parseTestDataRef({ hf: { repo_id: 'o/r', type: 'bogus' as TestDataRefType } })).toEqual({
+    expect(parseTestDataRef({ type: 'bogus' as TestDataRefType, hf: { repo_id: 'o/r' } })).toEqual({
       ...testDataRefDefaultValues,
       source: 'hf',
       repoId: 'o/r',

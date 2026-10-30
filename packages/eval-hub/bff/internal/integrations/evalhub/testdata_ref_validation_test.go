@@ -152,6 +152,16 @@ func TestTestDataRefValidate(t *testing.T) {
 			wantErr: "pvc test data claim_name must be at most 63 characters, got 64",
 		},
 		{
+			name:    "pvc with dotted claim_name is rejected",
+			ref:     &TestDataRef{PVC: &TestDataRefPVC{ClaimName: "eval.data"}},
+			wantErr: "pvc test data claim_name must be an RFC 1123 DNS label",
+		},
+		{
+			name:    "pvc with uppercase claim_name is rejected",
+			ref:     &TestDataRef{PVC: &TestDataRefPVC{ClaimName: "EvalData"}},
+			wantErr: "pvc test data claim_name must be an RFC 1123 DNS label",
+		},
+		{
 			name:    "git with missing ref is rejected",
 			ref:     &TestDataRef{Git: &TestDataRefGit{URL: "https://example.com/repo.git"}},
 			wantErr: "git test data ref must not be empty",
@@ -163,47 +173,45 @@ func TestTestDataRefValidate(t *testing.T) {
 		},
 		{
 			name: "s3 with data_set type is valid",
-			ref:  &TestDataRef{S3: &S3DataRef{Bucket: "b", Key: "k", Type: TestDataRefTypeDataSet}},
+			ref:  &TestDataRef{Type: TestDataRefTypeDataSet, S3: &S3DataRef{Bucket: "b", Key: "k"}},
 		},
 		{
 			name: "s3 with pre_recorded_data type is valid",
-			ref:  &TestDataRef{S3: &S3DataRef{Bucket: "b", Key: "k", Type: TestDataRefTypePreRecordedData}},
+			ref:  &TestDataRef{Type: TestDataRefTypePreRecordedData, S3: &S3DataRef{Bucket: "b", Key: "k"}},
 		},
 		{
 			name:    "s3 with unsupported type is rejected",
-			ref:     &TestDataRef{S3: &S3DataRef{Bucket: "b", Key: "k", Type: "dataset"}},
-			wantErr: `s3 test data type must be "data_set" or "pre_recorded_data"`,
+			ref:     &TestDataRef{Type: "dataset", S3: &S3DataRef{Bucket: "b", Key: "k"}},
+			wantErr: `test_data_ref type must be "data_set" or "pre_recorded_data"`,
 		},
 		{
 			name:    "pvc with unsupported type is rejected",
-			ref:     &TestDataRef{PVC: &TestDataRefPVC{ClaimName: "claim", Type: "random"}},
-			wantErr: `pvc test data type must be "data_set" or "pre_recorded_data"`,
+			ref:     &TestDataRef{Type: "random", PVC: &TestDataRefPVC{ClaimName: "claim"}},
+			wantErr: `test_data_ref type must be "data_set" or "pre_recorded_data"`,
 		},
 		{
 			name: "git with pre_recorded_data type is valid",
-			ref: &TestDataRef{Git: &TestDataRefGit{
-				URL:  "https://example.com/repo.git",
-				Ref:  "main",
+			ref: &TestDataRef{
 				Type: TestDataRefTypePreRecordedData,
-			}},
+				Git:  &TestDataRefGit{URL: "https://example.com/repo.git", Ref: "main"},
+			},
 		},
 		{
 			name: "git with unsupported type is rejected",
-			ref: &TestDataRef{Git: &TestDataRefGit{
-				URL:  "https://example.com/repo.git",
-				Ref:  "main",
+			ref: &TestDataRef{
 				Type: "bogus",
-			}},
-			wantErr: `git test data type must be "data_set" or "pre_recorded_data"`,
+				Git:  &TestDataRefGit{URL: "https://example.com/repo.git", Ref: "main"},
+			},
+			wantErr: `test_data_ref type must be "data_set" or "pre_recorded_data"`,
 		},
 		{
 			name: "hf with data_set type is valid",
-			ref:  &TestDataRef{HF: &TestDataRefHF{RepoID: "org/repo", Type: TestDataRefTypeDataSet}},
+			ref:  &TestDataRef{Type: TestDataRefTypeDataSet, HF: &TestDataRefHF{RepoID: "org/repo"}},
 		},
 		{
 			name:    "hf with unsupported type is rejected",
-			ref:     &TestDataRef{HF: &TestDataRefHF{RepoID: "org/repo", Type: "responses"}},
-			wantErr: `hf test data type must be "data_set" or "pre_recorded_data"`,
+			ref:     &TestDataRef{Type: "responses", HF: &TestDataRefHF{RepoID: "org/repo"}},
+			wantErr: `test_data_ref type must be "data_set" or "pre_recorded_data"`,
 		},
 	}
 

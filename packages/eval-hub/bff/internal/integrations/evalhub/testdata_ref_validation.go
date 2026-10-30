@@ -3,8 +3,13 @@ package evalhub
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 )
+
+// Matches the upstream Eval Hub contract for PVC claim_name: an RFC 1123 DNS
+// label (lowercase alphanumeric with internal hyphens), max 63 characters.
+var claimNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$`)
 
 // TestDataRefType values mirror the TestDataRefType enum in the OpenAPI spec.
 const (
@@ -16,8 +21,9 @@ const (
 // reference is valid and means no test data override is supplied. A present
 // reference must set exactly one of the s3, pvc, git, or hf variants, and each
 // variant must carry its identifying field (pvc claim_name, git ref, hf
-// repo_id). PVC claim names are limited to 63 characters, matching the
-// OpenAPI maxLength and the Kubernetes object name limit. Git references must
+// repo_id). PVC claim names must be RFC 1123 DNS labels (lowercase
+// alphanumeric with internal hyphens, max 63 characters), matching the
+// upstream Eval Hub contract. Git references must
 // point at credential-free HTTP(S) URLs and must
 // use HTTPS whenever a secret reference is supplied, so credentials are never
 // sent over plaintext. A non-empty type must be one of the TestDataRefType
@@ -45,6 +51,10 @@ func (r *TestDataRef) Validate() error {
 		return fmt.Errorf("test_data_ref must specify exactly one of s3, pvc, git, or hf, got: %s", strings.Join(variants, ", "))
 	}
 
+	if err := validateTestDataRefType("test_data_ref", r.Type); err != nil {
+		return err
+	}
+
 	if r.S3 != nil {
 		// Bucket and secret_ref emptiness are deliberately not enforced here:
 		// the upstream service owns the required-field contract and rejects
@@ -52,10 +62,7 @@ func (r *TestDataRef) Validate() error {
 		// stored s3 refs verbatim (the benchmark path re-serializes them into
 		// the split shape), so enforcing here would only duplicate the
 		// upstream error. Only the key's path shape is checked.
-		if err := validateRelativePath("s3 test data key", r.S3.Key); err != nil {
-			return err
-		}
-		return validateTestDataRefType("s3", r.S3.Type)
+		return validateRelativePath("s3 test data key", r.S3.Key)
 	}
 	if r.PVC != nil {
 		claimName := strings.TrimSpace(r.PVC.ClaimName)
@@ -65,10 +72,10 @@ func (r *TestDataRef) Validate() error {
 		if len(claimName) > 63 {
 			return fmt.Errorf("pvc test data claim_name must be at most 63 characters, got %d", len(claimName))
 		}
-		if err := validateRelativePath("pvc test data sub_path", r.PVC.SubPath); err != nil {
-			return err
+		if !claimNamePattern.MatchString(claimName) {
+			return fmt.Errorf("pvc test data claim_name must be an RFC 1123 DNS label (lowercase alphanumeric and hyphens), got %q", claimName)
 		}
-		return validateTestDataRefType("pvc", r.PVC.Type)
+		return validateRelativePath("pvc test data sub_path", r.PVC.SubPath)
 	}
 	if r.Git != nil {
 		return r.Git.validate()
@@ -76,10 +83,7 @@ func (r *TestDataRef) Validate() error {
 	if strings.TrimSpace(r.HF.RepoID) == "" {
 		return fmt.Errorf("hf test data repo_id must not be empty")
 	}
-	if err := validateRelativePath("hf test data sub_path", r.HF.SubPath); err != nil {
-		return err
-	}
-	return validateTestDataRefType("hf", r.HF.Type)
+	return validateRelativePath("hf test data sub_path", r.HF.SubPath)
 }
 
 func (g *TestDataRefGit) validate() error {
@@ -100,7 +104,7 @@ func (g *TestDataRefGit) validate() error {
 	if err := validateRelativePath("git test data sub_path", g.SubPath); err != nil {
 		return err
 	}
-	return validateTestDataRefType("git", g.Type)
+	return nil
 }
 
 // validateTestDataRefType rejects non-empty values outside the TestDataRefType
@@ -110,7 +114,7 @@ func validateTestDataRefType(kind, value string) error {
 	case "", TestDataRefTypeDataSet, TestDataRefTypePreRecordedData:
 		return nil
 	}
-	return fmt.Errorf("%s test data type must be %q or %q, got %q", kind, TestDataRefTypeDataSet, TestDataRefTypePreRecordedData, value)
+	return fmt.Errorf("%s type must be %q or %q, got %q", kind, TestDataRefTypeDataSet, TestDataRefTypePreRecordedData, value)
 }
 
 // validateRelativePath rejects empty-safe relative paths that are absolute or

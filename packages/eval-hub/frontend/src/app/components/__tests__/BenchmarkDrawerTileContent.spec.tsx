@@ -204,11 +204,11 @@ describe('BenchmarkDrawerTileContent', () => {
           id="bench-1"
           trackingSurface="test_surface"
           testDataRef={{
+            type: 'data_set',
             s3: {
               bucket: 'eval-data',
               key: 'datasets/benchmark-a/v1',
               secret_ref: 's3-connection',
-              type: 'data_set',
             },
           }}
         />,
@@ -232,7 +232,8 @@ describe('BenchmarkDrawerTileContent', () => {
           id="bench-1"
           trackingSurface="test_surface"
           testDataRef={{
-            pvc: { claim_name: 'responses', sub_path: 'runs/v1', type: 'pre_recorded_data' },
+            type: 'pre_recorded_data',
+            pvc: { claim_name: 'responses', sub_path: 'runs/v1' },
           }}
         />,
       );

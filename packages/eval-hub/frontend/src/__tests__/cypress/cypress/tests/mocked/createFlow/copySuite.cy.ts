@@ -187,11 +187,11 @@ describe('Suite editor benchmark test data', () => {
 
     cy.wait('@cloneSuite').then((interception) => {
       expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.equal({
+        type: 'data_set',
         s3: {
           bucket: 'eval-data',
           key: 'ragas/dataset.jsonl',
           secret_ref: 'my-s3-secret',
-          type: 'data_set',
         },
       });
     });

@@ -800,7 +800,8 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
 
     cy.wait('@createJobWithTestData').then((interception) => {
       expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.equal({
-        pvc: { claim_name: 'eval-datasets-pvc', sub_path: 'benchmark-a', type: 'data_set' },
+        type: 'data_set',
+        pvc: { claim_name: 'eval-datasets-pvc', sub_path: 'benchmark-a' },
       });
     });
   });

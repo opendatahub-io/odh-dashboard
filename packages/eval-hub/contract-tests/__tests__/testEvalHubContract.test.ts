@@ -255,12 +255,12 @@ describe('EvalHub API Contract Tests', () => {
             parameters: { num_few_shot: 5 },
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
             test_data_ref: {
+              type: 'data_set',
               s3: {
                 bucket: 'evalhub-test',
                 key: 'datasets/arc-challenge',
                 // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
                 secret_ref: 's3-credentials',
-                type: 'data_set',
               },
             },
           },
@@ -271,12 +271,12 @@ describe('EvalHub API Contract Tests', () => {
             weight: 0.2,
             // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
             test_data_ref: {
+              type: 'data_set',
               pvc: {
                 // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
                 claim_name: 'eval-datasets-pvc',
                 // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
                 sub_path: 'datasets/helm',
-                type: 'data_set',
               },
             },
           },
@@ -324,19 +324,18 @@ describe('EvalHub API Contract Tests', () => {
               provider_id: 'lm_evaluation_harness',
               // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
               test_data_ref: {
+                type: 'data_set',
                 s3: {
                   bucket: 'evalhub-test',
                   key: 'datasets/arc-challenge',
                   // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
                   secret_ref: 's3-credentials',
-                  type: 'data_set',
                 },
                 pvc: {
                   // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
                   claim_name: 'eval-datasets-pvc',
                   // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
                   sub_path: 'datasets/arc-challenge',
-                  type: 'data_set',
                 },
               },
             },

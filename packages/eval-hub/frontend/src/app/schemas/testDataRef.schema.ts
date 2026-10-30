@@ -114,9 +114,9 @@ export const getTestDataRefFieldErrors = (
   return Object.keys(result).length > 0 ? result : undefined;
 };
 
-// K8s object names (e.g. PersistentVolumeClaim) follow DNS subdomain rules — dot-separated labels
-const RFC_1123_SUBDOMAIN_PATTERN =
-  /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
+// Matches the upstream Eval Hub contract: PersistentVolumeClaimVolumeSource.claimName
+// must be an RFC 1123 DNS label (no dots), max 63 characters.
+const RFC_1123_LABEL_PATTERN = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
 // Hugging Face accepts both `repo` (legacy dataset IDs like `squad`) and `namespace/repo`
 const HF_REPO_ID_PATTERN = /^[\w.-]+(\/[\w.-]+)?$/;
 
@@ -195,11 +195,11 @@ export const refineTestDataRef = (
         addIssue('claimName', 'Claim name is required.');
       } else if (
         values.claimName.trim().length > 63 ||
-        !RFC_1123_SUBDOMAIN_PATTERN.test(values.claimName.trim())
+        !RFC_1123_LABEL_PATTERN.test(values.claimName.trim())
       ) {
         addIssue(
           'claimName',
-          'Claim name must be a DNS subdomain (lowercase alphanumeric, hyphens, or dots, max 63 characters).',
+          'Claim name must be a DNS label (lowercase alphanumeric and hyphens, max 63 characters).',
         );
       }
       if (!isBlank(values.subPath)) {
@@ -271,39 +271,39 @@ export const serializeTestDataRef = (form: TestDataRefFormValues): TestDataRef |
   switch (form.source) {
     case 's3':
       return {
+        type: refType,
         s3: {
           bucket: form.bucket.trim(),
           key: form.key.trim(),
           secret_ref: form.secretRef.trim(),
-          type: refType,
         },
       };
     case 'pvc':
       return {
+        type: refType,
         pvc: {
           claim_name: form.claimName.trim(),
           ...(subPath ? { sub_path: subPath } : {}),
-          type: refType,
         },
       };
     case 'git':
       return {
+        type: refType,
         git: {
           url: form.url.trim(),
           ref: form.ref.trim(),
           ...(subPath ? { sub_path: subPath } : {}),
           ...(secretRef ? { secret_ref: secretRef } : {}),
-          type: refType,
         },
       };
     case 'hf':
       return {
+        type: refType,
         hf: {
           repo_id: form.repoId.trim(),
           ...(form.revision.trim() ? { revision: form.revision.trim() } : {}),
           ...(subPath ? { sub_path: subPath } : {}),
           ...(secretRef ? { secret_ref: secretRef } : {}),
-          type: refType,
         },
       };
     case '':
@@ -324,8 +324,8 @@ export const isPrerecordedS3TestDataRef = (ref: TestDataRef | undefined): boolea
   if (!s3) {
     return false;
   }
-  if (s3.type) {
-    return s3.type === 'pre_recorded_data';
+  if (ref.type) {
+    return ref.type === 'pre_recorded_data';
   }
   return !s3.bucket && (s3.key ?? '').startsWith('s3://');
 };
@@ -340,11 +340,12 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
   if (!wire) {
     return values;
   }
+  const refType = toFormRefType(wire.type);
   if (wire.s3) {
     return {
       ...values,
       source: 's3',
-      type: toFormRefType(wire.s3.type),
+      type: refType,
       bucket: wire.s3.bucket ?? '',
       key: wire.s3.key ?? '',
       secretRef: wire.s3.secret_ref ?? '',
@@ -354,7 +355,7 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
     return {
       ...values,
       source: 'pvc',
-      type: toFormRefType(wire.pvc.type),
+      type: refType,
       claimName: wire.pvc.claim_name ?? '',
       subPath: wire.pvc.sub_path ?? '',
     };
@@ -363,7 +364,7 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
     return {
       ...values,
       source: 'git',
-      type: toFormRefType(wire.git.type),
+      type: refType,
       url: wire.git.url ?? '',
       ref: wire.git.ref ?? '',
       subPath: wire.git.sub_path ?? '',
@@ -374,7 +375,7 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
     return {
       ...values,
       source: 'hf',
-      type: toFormRefType(wire.hf.type),
+      type: refType,
       repoId: wire.hf.repo_id ?? '',
       revision: wire.hf.revision ?? '',
       subPath: wire.hf.sub_path ?? '',

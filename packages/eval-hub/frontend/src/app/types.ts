@@ -225,13 +225,11 @@ export type S3DataRef = {
   bucket?: string;
   key?: string;
   secret_ref?: string;
-  type?: TestDataRefType;
 };
 
 export type TestDataRefPVC = {
   claim_name?: string;
   sub_path?: string;
-  type?: TestDataRefType;
 };
 
 export type TestDataRefGit = {
@@ -239,7 +237,6 @@ export type TestDataRefGit = {
   ref?: string;
   sub_path?: string;
   secret_ref?: string;
-  type?: TestDataRefType;
 };
 
 export type TestDataRefHF = {
@@ -247,10 +244,10 @@ export type TestDataRefHF = {
   revision?: string;
   sub_path?: string;
   secret_ref?: string;
-  type?: TestDataRefType;
 };
 
 export type TestDataRef = {
+  type?: TestDataRefType;
   s3?: S3DataRef;
   pvc?: TestDataRefPVC;
   git?: TestDataRefGit;

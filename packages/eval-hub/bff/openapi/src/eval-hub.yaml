@@ -1117,8 +1117,6 @@ components:
         secret_ref:
           type: string
           description: Reference to a secret for S3 access credentials
-        type:
-          $ref: '#/components/schemas/TestDataRefType'
 
     TestDataRefPVC:
       type: object
@@ -1128,12 +1126,14 @@ components:
         claim_name:
           type: string
           maxLength: 63
-          description: Name of the PersistentVolumeClaim to mount; must exist in the job's namespace
+          pattern: '^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$'
+          description: >-
+            Name of the PersistentVolumeClaim to mount; must exist in the job's
+            namespace. Must be a valid RFC 1123 DNS label (lowercase letters,
+            digits, and internal hyphens; max 63 characters).
         sub_path:
           type: string
           description: Directory within the PVC to mount at /test_data
-        type:
-          $ref: '#/components/schemas/TestDataRefType'
 
     TestDataRefGit:
       type: object
@@ -1153,8 +1153,6 @@ components:
         secret_ref:
           type: string
           description: Basic-auth secret for private repositories (URL must be https when set)
-        type:
-          $ref: '#/components/schemas/TestDataRefType'
 
     TestDataRefHF:
       type: object
@@ -1173,8 +1171,6 @@ components:
         secret_ref:
           type: string
           description: Opaque secret containing a token key, for gated repositories
-        type:
-          $ref: '#/components/schemas/TestDataRefType'
 
     TestDataRefType:
       type: string
@@ -1188,6 +1184,8 @@ components:
       type: object
       description: Reference to benchmark input data mounted read-only at /test_data; exactly one source must be set
       properties:
+        type:
+          $ref: '#/components/schemas/TestDataRefType'
         s3:
           $ref: '#/components/schemas/S3DataRef'
         pvc:

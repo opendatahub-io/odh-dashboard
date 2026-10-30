@@ -192,11 +192,11 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'bucket',
           key: 'data.jsonl',
           secret_ref: 'tok-123',
-          type: 'pre_recorded_data',
         },
       });
     });
@@ -236,11 +236,11 @@ describe('buildEvaluationRequest', () => {
         benchmark: makeBenchmark(),
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'bucket',
           key: 'data.jsonl',
           secret_ref: 'tok-123',
-          type: 'pre_recorded_data',
         },
       });
     });
@@ -263,11 +263,11 @@ describe('buildEvaluationRequest', () => {
             id: 'mmlu',
             provider_id: 'lm_harness',
             test_data_ref: {
+              type: 'pre_recorded_data',
               s3: {
                 bucket: 'old-bucket',
                 key: 'old-data.jsonl',
                 secret_ref: 'old-secret',
-                type: 'pre_recorded_data',
               },
             },
           },
@@ -276,7 +276,8 @@ describe('buildEvaluationRequest', () => {
             provider_id: 'lm_harness',
             // Legacy representation: no bucket, full s3:// URL in key
             test_data_ref: {
-              s3: { key: 's3://old-bucket/legacy.jsonl', type: 'pre_recorded_data' },
+              type: 'pre_recorded_data',
+              s3: { key: 's3://old-bucket/legacy.jsonl' },
             },
           },
         ],
@@ -291,11 +292,11 @@ describe('buildEvaluationRequest', () => {
       });
 
       const expectedRef = {
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'new-bucket',
           key: 'new-data.jsonl',
           secret_ref: 'new-secret',
-          type: 'pre_recorded_data',
         },
       };
       expect(result.collection!.benchmarks![0].test_data_ref).toEqual(expectedRef);
@@ -304,7 +305,8 @@ describe('buildEvaluationRequest', () => {
 
     it('should preserve per-benchmark references that are not prerecorded s3 refs', () => {
       const dataSetRef: TestDataRef = {
-        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+        type: 'data_set',
+        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
       };
       const col = makeCollection({
         benchmarks: [
@@ -312,11 +314,11 @@ describe('buildEvaluationRequest', () => {
             id: 'mmlu',
             provider_id: 'lm_harness',
             test_data_ref: {
+              type: 'pre_recorded_data',
               s3: {
                 bucket: 'old-bucket',
                 key: 'old-data.jsonl',
                 secret_ref: 'old-secret',
-                type: 'pre_recorded_data',
               },
             },
           },
@@ -333,11 +335,11 @@ describe('buildEvaluationRequest', () => {
       });
 
       expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'new-bucket',
           key: 'new-data.jsonl',
           secret_ref: 'new-secret',
-          type: 'pre_recorded_data',
         },
       });
       expect(result.collection!.benchmarks![1].test_data_ref).toEqual(dataSetRef);
@@ -345,11 +347,11 @@ describe('buildEvaluationRequest', () => {
 
     it('should keep stored prerecorded references when the edited fields are incomplete', () => {
       const storedRef: TestDataRef = {
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'old-bucket',
           key: 'old-data.jsonl',
           secret_ref: 'old-secret',
-          type: 'pre_recorded_data',
         },
       };
       const col = makeCollection({
@@ -369,19 +371,19 @@ describe('buildEvaluationRequest', () => {
 
     it('should keep each stored reference on an unchanged reconfiguration with distinct prerecorded refs', () => {
       const refA: TestDataRef = {
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'benchmark-a',
           secret_ref: 'shared-secret',
-          type: 'pre_recorded_data',
         },
       };
       const refB: TestDataRef = {
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'benchmark-b',
           secret_ref: 'shared-secret',
-          type: 'pre_recorded_data',
         },
       };
       const col = makeCollection({
@@ -406,19 +408,19 @@ describe('buildEvaluationRequest', () => {
 
     it('should rotate only the secret on a secret-only edit', () => {
       const refA: TestDataRef = {
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'benchmark-a',
           secret_ref: 'old-secret',
-          type: 'pre_recorded_data',
         },
       };
       const refB: TestDataRef = {
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'benchmark-b',
           secret_ref: 'old-secret',
-          type: 'pre_recorded_data',
         },
       };
       const col = makeCollection({
@@ -438,38 +440,38 @@ describe('buildEvaluationRequest', () => {
 
       // Each benchmark keeps its own dataset location; only the secret rotates.
       expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'benchmark-a',
           secret_ref: 'new-secret',
-          type: 'pre_recorded_data',
         },
       });
       expect(result.collection!.benchmarks![1].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'benchmark-b',
           secret_ref: 'new-secret',
-          type: 'pre_recorded_data',
         },
       });
     });
 
     it('should replace only the location on a location-only edit', () => {
       const refA: TestDataRef = {
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'benchmark-a',
           secret_ref: 'secret-a',
-          type: 'pre_recorded_data',
         },
       };
       const refB: TestDataRef = {
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'benchmark-b',
           secret_ref: 'secret-b',
-          type: 'pre_recorded_data',
         },
       };
       const col = makeCollection({
@@ -489,26 +491,27 @@ describe('buildEvaluationRequest', () => {
 
       // The location is replaced everywhere; each benchmark keeps its own secret.
       expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'new-location',
           secret_ref: 'secret-a',
-          type: 'pre_recorded_data',
         },
       });
       expect(result.collection!.benchmarks![1].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'results',
           key: 'new-location',
           secret_ref: 'secret-b',
-          type: 'pre_recorded_data',
         },
       });
     });
 
     it('should preserve the model endpoint and auth for a mixed collection in prerecorded mode', () => {
       const dataSetRef: TestDataRef = {
-        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+        type: 'data_set',
+        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
       };
       const col = makeCollection({
         benchmarks: [
@@ -516,11 +519,11 @@ describe('buildEvaluationRequest', () => {
             id: 'mmlu',
             provider_id: 'lm_harness',
             test_data_ref: {
+              type: 'pre_recorded_data',
               s3: {
                 bucket: 'results',
                 key: 'benchmark-a',
                 secret_ref: 'shared-secret',
-                type: 'pre_recorded_data',
               },
             },
           },
@@ -553,11 +556,11 @@ describe('buildEvaluationRequest', () => {
             id: 'mmlu',
             provider_id: 'lm_harness',
             test_data_ref: {
+              type: 'pre_recorded_data',
               s3: {
                 bucket: 'results',
                 key: 'benchmark-a',
                 secret_ref: 'shared-secret',
-                type: 'pre_recorded_data',
               },
             },
           },
@@ -593,11 +596,11 @@ describe('buildEvaluationRequest', () => {
         },
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'data_set',
         s3: {
           bucket: 'eval-data',
           key: 'ragas/dataset.jsonl',
           secret_ref: 'my-s3-secret',
-          type: 'data_set',
         },
       });
     });
@@ -614,7 +617,8 @@ describe('buildEvaluationRequest', () => {
         },
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
-        pvc: { claim_name: 'eval-datasets-pvc', type: 'data_set' },
+        type: 'data_set',
+        pvc: { claim_name: 'eval-datasets-pvc' },
       });
     });
 
@@ -632,12 +636,12 @@ describe('buildEvaluationRequest', () => {
         },
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'data_set',
         git: {
           url: 'https://github.com/org/datasets.git',
           ref: 'main',
           sub_path: 'benchmark-a',
           secret_ref: 'git-auth',
-          type: 'data_set',
         },
       });
     });
@@ -654,7 +658,8 @@ describe('buildEvaluationRequest', () => {
         },
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
-        hf: { repo_id: 'cais/mmlu', type: 'data_set' },
+        type: 'data_set',
+        hf: { repo_id: 'cais/mmlu' },
       });
     });
 
@@ -683,11 +688,11 @@ describe('buildEvaluationRequest', () => {
         },
       });
       expect(result.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
         s3: {
           bucket: 'bucket',
           key: 'data.jsonl',
           secret_ref: 'tok-123',
-          type: 'pre_recorded_data',
         },
       });
     });
@@ -699,7 +704,8 @@ describe('buildEvaluationRequest', () => {
             id: 'ragas_rag_default',
             provider_id: 'ragas',
             test_data_ref: {
-              s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+              type: 'data_set',
+              s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
             },
           },
           { id: 'hellaswag', provider_id: 'lm_harness' },
@@ -708,7 +714,8 @@ describe('buildEvaluationRequest', () => {
       const result = buildEvaluationRequest({ ...baseParams, collection: col });
 
       expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
-        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret', type: 'data_set' },
+        type: 'data_set',
+        s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
       });
       expect(result.collection!.benchmarks![1]).not.toHaveProperty('test_data_ref');
     });

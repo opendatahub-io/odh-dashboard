@@ -213,13 +213,11 @@ type S3DataRef struct {
 	Bucket    string `json:"bucket"`
 	Key       string `json:"key"`
 	SecretRef string `json:"secret_ref"`
-	Type      string `json:"type,omitempty"`
 }
 
 type TestDataRefPVC struct {
 	ClaimName string `json:"claim_name"`
 	SubPath   string `json:"sub_path,omitempty"`
-	Type      string `json:"type,omitempty"`
 }
 
 type TestDataRefGit struct {
@@ -227,7 +225,6 @@ type TestDataRefGit struct {
 	Ref       string `json:"ref"`
 	SubPath   string `json:"sub_path,omitempty"`
 	SecretRef string `json:"secret_ref,omitempty"`
-	Type      string `json:"type,omitempty"`
 }
 
 type TestDataRefHF struct {
@@ -235,14 +232,14 @@ type TestDataRefHF struct {
 	Revision  string `json:"revision,omitempty"`
 	SubPath   string `json:"sub_path,omitempty"`
 	SecretRef string `json:"secret_ref,omitempty"`
-	Type      string `json:"type,omitempty"`
 }
 
 type TestDataRef struct {
-	S3  *S3DataRef      `json:"s3,omitempty"`
-	PVC *TestDataRefPVC `json:"pvc,omitempty"`
-	Git *TestDataRefGit `json:"git,omitempty"`
-	HF  *TestDataRefHF  `json:"hf,omitempty"`
+	Type string          `json:"type,omitempty"`
+	S3   *S3DataRef      `json:"s3,omitempty"`
+	PVC  *TestDataRefPVC `json:"pvc,omitempty"`
+	Git  *TestDataRefGit `json:"git,omitempty"`
+	HF   *TestDataRefHF  `json:"hf,omitempty"`
 }
 
 // HardwareConfig describes the resource and scheduling configuration for an evaluation job.
