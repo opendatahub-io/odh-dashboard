@@ -292,6 +292,7 @@ type ConfigurableMockKubernetesClient struct {
 	EndpointSlices      []discoveryv1.EndpointSlice
 	EndpointSlicesError error
 	Pod                 *corev1.Pod
+	Pods                map[string]*corev1.Pod
 	PodError            error
 }
 
@@ -319,6 +320,9 @@ func (c *ConfigurableMockKubernetesClient) GetServiceEndpointSlices(ctx context.
 func (c *ConfigurableMockKubernetesClient) GetPod(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Pod, error) {
 	if c.PodError != nil {
 		return nil, c.PodError
+	}
+	if pod, ok := c.Pods[name]; ok {
+		return pod, nil
 	}
 	if c.Pod != nil {
 		return c.Pod, nil

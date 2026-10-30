@@ -256,13 +256,14 @@ func k8sServiceHost(baseURL string) (service string, namespace string, podLabel 
 // namespace can attach a manually managed slice (labelled kubernetes.io/service-name)
 // to a selector-backed Service and point it at another namespace's Pod IP, and can
 // forge the endpoint's Pod targetRef. Every endpoint must therefore reference
-// a running, non-host-network Pod in the caller's namespace whose PodIPs contain the
+// a non-host-network Pod in the caller's namespace whose PodIPs contain the
 // endpoint's addresses, which is all the EndpointSlice controller itself ever
 // produces (fail closed on lookup errors too; readiness is not relied on for
 // validation, because service routing can fall back to serving/terminating
-// endpoints when no ready endpoint exists). A Forbidden lookup returns an error so
-// the caller learns the missing permission instead of a misleading connectivity
-// failure.
+// endpoints when no ready endpoint exists, and non-running Pods are excluded from
+// dial candidates rather than rejecting the whole Service). A Forbidden lookup
+// returns an error so the caller learns the missing permission instead of a
+// misleading connectivity failure.
 //
 // When the host is trusted, the validated dial targets (address:backendPort) are
 // returned so the connection can be pinned to them (see
@@ -404,8 +405,16 @@ func resolveTrustedHost(
 				}
 				podCache[ref.Name] = pod
 			}
-			if pod.Spec.HostNetwork || pod.Status.Phase != corev1.PodRunning {
+			// Host-network Pods indicate a manually managed setup that must not
+			// receive the SSRF exemption for the whole Service.
+			if pod.Spec.HostNetwork {
 				return false, nil, nil
+			}
+			// Non-running Pods (e.g. a Pending replica that already has an IP and
+			// a published endpoint) are excluded from dial candidates without
+			// discarding the Service's other validated destinations.
+			if pod.Status.Phase != corev1.PodRunning {
+				continue
 			}
 			podIPs := make(map[string]bool, len(pod.Status.PodIPs))
 			for _, podIP := range pod.Status.PodIPs {
@@ -418,7 +427,10 @@ func resolveTrustedHost(
 				target := net.JoinHostPort(address, sliceBackendPort)
 				if endpoint.Conditions.Ready == nil || *endpoint.Conditions.Ready {
 					readyTargets = append(readyTargets, target)
-				} else if endpoint.Conditions.Serving == nil || *endpoint.Conditions.Serving {
+				} else if endpoint.Conditions.Serving != nil && *endpoint.Conditions.Serving {
+					// Terminating-endpoint fallback: only explicitly serving
+					// endpoints are eligible; an absent Serving condition defers
+					// to Ready, which is false here.
 					servingTargets = append(servingTargets, target)
 				}
 			}

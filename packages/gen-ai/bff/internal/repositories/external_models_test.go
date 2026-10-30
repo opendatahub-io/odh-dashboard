@@ -154,6 +154,52 @@ func runningPod(ns, ip string) *corev1.Pod {
 	return runningPodWithIPs(ns, ip)
 }
 
+// namedPod returns a Pod with the given name, IP, and phase.
+func namedPod(name, ip string, phase corev1.PodPhase) *corev1.Pod {
+	pod := runningPodWithIPs("my-ns", ip)
+	pod.Name = name
+	pod.Status.Phase = phase
+	return pod
+}
+
+// podPhaseSlice returns an EndpointSlice whose two ready endpoints reference
+// different Pods by targetRef name, so tests can mix Pod phases.
+func podPhaseSlice() discoveryv1.EndpointSlice {
+	ready := true
+	return discoveryv1.EndpointSlice{
+		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-phases"},
+		AddressType: discoveryv1.AddressTypeIPv4,
+		Endpoints: []discoveryv1.Endpoint{
+			{
+				Addresses:  []string{"127.0.0.1"},
+				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
+				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "running-pod"},
+			},
+			{
+				Addresses:  []string{"127.0.0.2"},
+				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
+				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "pending-pod"},
+			},
+		},
+	}
+}
+
+// unreadyNoServingSlice returns an EndpointSlice whose single endpoint is
+// Ready=false with no Serving condition: an absent Serving condition defers to
+// Ready, so it must not become a fallback dial candidate.
+func unreadyNoServingSlice() discoveryv1.EndpointSlice {
+	notReady := false
+	return discoveryv1.EndpointSlice{
+		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-unready"},
+		AddressType: discoveryv1.AddressTypeIPv4,
+		Endpoints: []discoveryv1.Endpoint{{
+			Addresses:  []string{"127.0.0.1"},
+			Conditions: discoveryv1.EndpointConditions{Ready: &notReady},
+			TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "running-pod"},
+		}},
+	}
+}
+
 // manualSlice returns a manually managed EndpointSlice whose ready endpoint has no
 // Pod targetRef, as an attacker would attach to redirect the Service's traffic at
 // an arbitrary address.
@@ -259,6 +305,7 @@ func TestResolveTrustedHost(t *testing.T) {
 		slices        []discoveryv1.EndpointSlice
 		slicesErr     error
 		pod           *corev1.Pod
+		pods          map[string]*corev1.Pod
 		podErr        error
 		want          bool
 		wantErr       bool
@@ -459,6 +506,25 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantAddresses: []string{"127.0.0.2:8443"},
 		},
 		{
+			name:    "Pending replica is excluded without discarding ready Running replicas",
+			service: selectorSvc("", intstr.FromInt32(8443)),
+			slices:  []discoveryv1.EndpointSlice{podPhaseSlice()},
+			pods: map[string]*corev1.Pod{
+				"running-pod": namedPod("running-pod", "127.0.0.1", corev1.PodRunning),
+				"pending-pod": namedPod("pending-pod", "127.0.0.2", corev1.PodPending),
+			},
+			want:          true,
+			wantName:      "my-model",
+			wantAddresses: []string{"127.0.0.1:8443"},
+		},
+		{
+			name:     "unready endpoint without a Serving condition is not a fallback candidate",
+			service:  selectorSvc("", intstr.FromInt32(8443)),
+			slices:   []discoveryv1.EndpointSlice{unreadyNoServingSlice()},
+			pod:      runningPod("my-ns", "127.0.0.1"),
+			wantName: "my-model",
+		},
+		{
 			name:     "Service with no endpoints fails closed",
 			service:  selectorSvc("", intstr.FromInt32(8443)),
 			slices:   []discoveryv1.EndpointSlice{},
@@ -476,7 +542,7 @@ func TestResolveTrustedHost(t *testing.T) {
 			if baseURL == "" {
 				baseURL = "https://my-model.my-ns.svc.cluster.local:8443/v1"
 			}
-			client := &recordingServiceClient{ConfigurableMockKubernetesClient: k8smocks.ConfigurableMockKubernetesClient{Service: tt.service, ServiceError: tt.err, EndpointSlices: tt.slices, EndpointSlicesError: tt.slicesErr, Pod: tt.pod, PodError: tt.podErr}}
+			client := &recordingServiceClient{ConfigurableMockKubernetesClient: k8smocks.ConfigurableMockKubernetesClient{Service: tt.service, ServiceError: tt.err, EndpointSlices: tt.slices, EndpointSlicesError: tt.slicesErr, Pod: tt.pod, Pods: tt.pods, PodError: tt.podErr}}
 			got, addresses, err := resolveTrustedHost(context.Background(), client, identity, baseURL, "my-ns", logger)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("resolveTrustedHost() error = %v, wantErr %v", err, tt.wantErr)

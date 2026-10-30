@@ -785,11 +785,13 @@ func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, name
 
 // callerScopedClient returns a controller-runtime client that reads through the
 // caller's own token, keeping trust decisions independent of the dashboard service
-// account's RBAC and limited to resources the caller is authorized to see. It falls
-// back to the client's own credentials for local development when no identity is
-// available.
+// account's RBAC and limited to resources the caller is authorized to see. When the
+// identity token is exactly the token kc.Client was already constructed with (the
+// per-request token-auth factory), that client is reused instead of constructing an
+// equivalent one for every lookup. It falls back to the client's own credentials
+// for local development when no identity is available.
 func (kc *TokenKubernetesClient) callerScopedClient(identity *integrations.RequestIdentity) (client.Client, error) {
-	if identity == nil || identity.Token == "" {
+	if identity == nil || identity.Token == "" || kc.Token.Raw() == identity.Token {
 		return kc.Client, nil
 	}
 	userConfig := rest.AnonymousClientConfig(kc.Config)
