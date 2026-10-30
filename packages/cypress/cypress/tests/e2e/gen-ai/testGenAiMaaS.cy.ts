@@ -150,7 +150,7 @@ describe('Verify Gen AI Playground inference with a MaaS model', () => {
 
   it(
     'Creates a playground with a MaaS model and sends a message using its subscription',
-    { tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'] },
+    { tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'] },
     () => {
       if (!testData) {
         throw new Error('Gen AI MaaS test data was not loaded');
