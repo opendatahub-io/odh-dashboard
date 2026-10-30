@@ -50,6 +50,8 @@ export type TreeNodeData = {
   activeIconVariant?: 'sync' | 'pulse';
   /** Pattern is the resolved winner for this run, independent of its leaderboard rank. */
   isResolvedWinner?: boolean;
+  /** Pattern record key for branch-result nodes; shared with the results leaderboard. */
+  patternKey?: string;
   /** Star decorator (upper-right) for the rank-1 winning pattern terminus. */
   showWinnerStar?: boolean;
   /** Rank 1–3 badges on pattern result nodes (expanded table). */
