@@ -373,6 +373,13 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantAddresses: []string{"127.0.0.1:8443"},
 		},
 		{
+			name:    "extra intermediate labels are NOT a valid service DNS name",
+			baseURL: "https://pod-a.extra.my-model.my-ns.svc.cluster.local:8443/v1",
+			service: selectorSvc(corev1.ClusterIPNone, intstr.FromInt32(8443)),
+			slices:  []discoveryv1.EndpointSlice{podNamedSlice()},
+			pod:     runningPodWithIPs("my-ns", "127.0.0.1", "127.0.0.2"),
+		},
+		{
 			name:     "pod-specific DNS name with no matching endpoint hostname fails closed",
 			baseURL:  "https://pod-c.my-model.my-ns.svc.cluster.local:8443/v1",
 			service:  selectorSvc(corev1.ClusterIPNone, intstr.FromInt32(8443)),

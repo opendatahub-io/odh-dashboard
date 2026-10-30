@@ -721,6 +721,7 @@ FILTERED_MODEL_KEYWORDS="granite,llama"  # Only show models matching these keywo
 # TLS Configuration
 BUNDLE_PATHS="/path/to/ca.crt"     # CA bundle paths (comma-separated)
 INSECURE_SKIP_VERIFY=false         # Skip TLS verification (dev only!)
+ALLOW_LOCAL_MODEL_ENDPOINTS=false  # Allow localhost/loopback model endpoints (dev only; refused when a cert file is configured)
 ```
 
 ---

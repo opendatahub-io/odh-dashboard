@@ -228,6 +228,10 @@ func NewExternalModelsClient(
 		if tr, ok := transport.(*http.Transport); ok {
 			targets := opts.PinnedDialAddresses
 			dialer := &net.Dialer{Timeout: 10 * time.Second}
+			// The verification client is one-shot; retained idle connections on
+			// its dedicated transport cannot be reused by later clients and only
+			// hold backend sockets open.
+			tr.DisableKeepAlives = true
 			// The address chosen by the transport's resolver is ignored entirely;
 			// the connection is dialed only to the validated targets.
 			tr.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {

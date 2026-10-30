@@ -236,10 +236,14 @@ func k8sServiceHost(baseURL string) (service string, namespace string, podLabel 
 	if !strings.HasSuffix(h, ".svc.cluster.local") || len(labels) < 5 {
 		return "", "", "", false
 	}
-	// Anchor against the fixed suffix: pod-specific DNS names
-	// (<pod>.<service>.<namespace>.svc.cluster.local) have extra labels before
-	// the Service label, so labels[0] names the pod, not the Service.
-	if len(labels) > 5 {
+	// Exactly five labels form a Service name, six a pod-specific name (the extra
+	// label is the pod hostname). Any further labels do not form a Kubernetes DNS
+	// name the cluster would resolve, so they are rejected rather than silently
+	// discarding intermediate labels.
+	if len(labels) > 6 {
+		return "", "", "", false
+	}
+	if len(labels) == 6 {
 		podLabel = labels[0]
 	}
 	return labels[len(labels)-5], labels[len(labels)-4], podLabel, true
@@ -290,14 +294,22 @@ func resolveTrustedHost(
 	if !isInternalHost(baseURL, namespace, allowLoopback) {
 		return false, nil, nil
 	}
-	svcName, svcNamespace, podLabel, ok := k8sServiceHost(baseURL)
-	if !ok {
-		// localhost/loopback for local development; isInternalHost already gated
-		// this on the local-development setting
-		return true, nil, nil
-	}
 	u, err := url.Parse(baseURL)
 	if err != nil {
+		return false, nil, nil
+	}
+	// localhost/loopback for local development; isInternalHost already gated this
+	// on the local-development setting.
+	host := u.Hostname()
+	ip := net.ParseIP(host)
+	if host == "localhost" || (ip != nil && ip.IsLoopback()) {
+		return true, nil, nil
+	}
+	svcName, svcNamespace, podLabel, ok := k8sServiceHost(baseURL)
+	if !ok {
+		// isInternalHost matched the suffix and namespace but the label count is
+		// not a valid Kubernetes service DNS name (e.g. extra intermediate
+		// labels); fail closed rather than treating it as loopback.
 		return false, nil, nil
 	}
 	urlPort := u.Port()
