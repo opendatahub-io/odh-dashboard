@@ -1,0 +1,213 @@
+# PIPELINE DEFINITION
+# Name: pipeline-a11y-scenarios
+# Description: Success, parallel work, nested sub-steps, an artifact, and an intentional failure.
+components:
+  comp-fail-on-purpose:
+    executorLabel: exec-fail-on-purpose
+  comp-multi-substep-phase:
+    dag:
+      tasks:
+        report-step:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-report-step
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: 'Nested sub-step one: prepare'
+          taskInfo:
+            name: Prepare inputs
+        report-step-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-report-step-2
+          dependentTasks:
+          - report-step
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: 'Nested sub-step two: transform'
+          taskInfo:
+            name: Transform inputs
+        report-step-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-report-step-3
+          dependentTasks:
+          - report-step-2
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: 'Nested sub-step three: verify'
+          taskInfo:
+            name: Verify transformation
+  comp-parallel-check:
+    executorLabel: exec-parallel-check
+  comp-report-step:
+    executorLabel: exec-report-step
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+  comp-report-step-2:
+    executorLabel: exec-report-step-2
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+  comp-report-step-3:
+    executorLabel: exec-report-step-3
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+  comp-skipped-successor:
+    executorLabel: exec-skipped-successor
+  comp-start-step:
+    executorLabel: exec-start-step
+  comp-write-artifact:
+    executorLabel: exec-write-artifact
+    outputDefinitions:
+      artifacts:
+        output:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-fail-on-purpose:
+      container:
+        args:
+        - echo "Intentional failure for accessibility testing" >&2; exit 42
+        command:
+        - sh
+        - -c
+        image: registry.access.redhat.com/ubi9/ubi-minimal:9.6
+    exec-parallel-check:
+      container:
+        args:
+        - 'printf "Step: Parallel check\n"'
+        command:
+        - sh
+        - -c
+        image: registry.access.redhat.com/ubi9/ubi-minimal:9.6
+    exec-report-step:
+      container:
+        args:
+        - 'printf "Step: %s\n" "$0"'
+        - '{{$.inputs.parameters[''message'']}}'
+        command:
+        - sh
+        - -c
+        image: registry.access.redhat.com/ubi9/ubi-minimal:9.6
+    exec-report-step-2:
+      container:
+        args:
+        - 'printf "Step: %s\n" "$0"'
+        - '{{$.inputs.parameters[''message'']}}'
+        command:
+        - sh
+        - -c
+        image: registry.access.redhat.com/ubi9/ubi-minimal:9.6
+    exec-report-step-3:
+      container:
+        args:
+        - 'printf "Step: %s\n" "$0"'
+        - '{{$.inputs.parameters[''message'']}}'
+        command:
+        - sh
+        - -c
+        image: registry.access.redhat.com/ubi9/ubi-minimal:9.6
+    exec-skipped-successor:
+      container:
+        args:
+        - printf "This step should be skipped after the intentional failure\n"
+        command:
+        - sh
+        - -c
+        image: registry.access.redhat.com/ubi9/ubi-minimal:9.6
+    exec-start-step:
+      container:
+        args:
+        - 'printf "Step: Start\n"'
+        command:
+        - sh
+        - -c
+        image: registry.access.redhat.com/ubi9/ubi-minimal:9.6
+    exec-write-artifact:
+      container:
+        args:
+        - printf "artifact for accessibility testing\n" > "$0"
+        - '{{$.outputs.artifacts[''output''].path}}'
+        command:
+        - sh
+        - -c
+        image: registry.access.redhat.com/ubi9/ubi-minimal:9.6
+pipelineInfo:
+  description: Success, parallel work, nested sub-steps, an artifact, and an intentional
+    failure.
+  name: pipeline-a11y-scenarios
+root:
+  dag:
+    tasks:
+      fail-on-purpose:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-fail-on-purpose
+        dependentTasks:
+        - parallel-check
+        - write-artifact
+        taskInfo:
+          name: Intentional failure
+      multi-substep-phase:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-multi-substep-phase
+        dependentTasks:
+        - start-step
+        taskInfo:
+          name: Three sub-step group
+      parallel-check:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-parallel-check
+        dependentTasks:
+        - start-step
+        taskInfo:
+          name: Parallel check
+      skipped-successor:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-skipped-successor
+        dependentTasks:
+        - fail-on-purpose
+        taskInfo:
+          name: Skipped after failure
+      start-step:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-start-step
+        taskInfo:
+          name: Start
+      write-artifact:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-write-artifact
+        dependentTasks:
+        - multi-substep-phase
+        taskInfo:
+          name: Produce artifact
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.2

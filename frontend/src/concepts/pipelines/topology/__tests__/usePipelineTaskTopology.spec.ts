@@ -14,6 +14,7 @@ jest.mock('@patternfly/react-topology', () => ({
     Skipped: 'Skipped',
   },
   observer: (c: unknown) => c,
+  action: (fn: (...args: unknown[]) => unknown) => fn,
   GraphComponent: {},
   ModelKind: { graph: 'graph', node: 'node', edge: 'edge' },
   ComponentFactory: {},

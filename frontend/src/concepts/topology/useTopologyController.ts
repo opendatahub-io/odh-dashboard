@@ -8,6 +8,7 @@ import {
   Visualization,
 } from '@patternfly/react-topology';
 import { pipelineComponentFactory } from './factories';
+import { orderNodesForKeyboard } from './a11yUtils';
 import {
   PIPELINE_LAYOUT,
   PIPELINE_NODE_SEPARATION_HORIZONTAL,
@@ -44,6 +45,7 @@ const useTopologyController = (graphId: string): Visualization | null => {
       false,
     );
     const onGraphLayoutEnd = () => {
+      orderNodesForKeyboard(visualizationController.getGraph());
       visualizationController.getGraph().fit(75);
     };
     visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, onGraphLayoutEnd);
