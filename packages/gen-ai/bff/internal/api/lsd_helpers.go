@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,9 @@ import (
 	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // handleLlamaStackClientError maps LlamaStack client errors to appropriate HTTP status codes and sends the response
@@ -21,6 +25,8 @@ func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Reque
 		}
 
 		frontendErr := app.mapLlamaStackClientErrorToFrontendError(llamastackErr, statusCode)
+		frontendErr.TraceID = otelTraceID(r.Context())
+		recordSpanError(r.Context(), frontendErr.Error.Code, frontendErr.Error.Component)
 
 		// Send frontend-compatible error response
 		if writeErr := app.WriteJSON(w, frontendErr.StatusCode, frontendErr, nil); writeErr != nil {
@@ -32,6 +38,50 @@ func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Reque
 
 	// Fall back to generic error for unknown error types
 	app.serverErrorResponse(w, r, err)
+}
+
+// recordSpanError marks the failed operation as Error, including validation
+// failures, so MLflow's status agrees with its exception indicator. It records only
+// controlled metadata and fixed descriptions, never provider messages or arbitrary
+// codes/components.
+func recordSpanError(ctx context.Context, code, component string) {
+	span := trace.SpanFromContext(ctx)
+	if !span.IsRecording() {
+		return
+	}
+
+	category, description := "upstream_failure", "Upstream request failed."
+	// When adding OGXErr* codes in llamastack/errors.go, review this category
+	// mapping as well as ResolveComponent, and note the source component alone does not
+	// distinguish invalid input from upstream failures.
+	switch code {
+	case llamastack.ErrCodeInvalidRequest, llamastack.OGXErrInvalidPrompt, "400",
+		llamastack.OGXErrInvalidImage, llamastack.OGXErrInvalidImageFormat,
+		llamastack.OGXErrInvalidBase64Image, llamastack.OGXErrInvalidImageURL,
+		llamastack.OGXErrImageTooLarge, llamastack.OGXErrImageTooSmall,
+		llamastack.OGXErrInvalidImageMode, llamastack.OGXErrImageFileTooLarge,
+		llamastack.OGXErrUnsupportedImageMediaType, llamastack.OGXErrEmptyImageFile:
+		category, description = "invalid_request", "Request validation failed."
+	case llamastack.ErrCodeConnectionFailed:
+		category, description = "connection_failure", "Connection failed."
+	}
+	switch component {
+	case llamastack.ComponentBFF, llamastack.ComponentOGX, llamastack.ComponentModel,
+		llamastack.ComponentRAG, llamastack.ComponentASR:
+	default:
+		component = "unknown"
+	}
+
+	span.SetAttributes(
+		attribute.String("error.type", category),
+		attribute.String("error.component", component),
+	)
+	// MLflow uses exception events to display the error indicator next to a span.
+	span.AddEvent("exception", trace.WithAttributes(
+		attribute.String("exception.type", category),
+		attribute.String("exception.message", description),
+	))
+	span.SetStatus(codes.Error, category)
 }
 
 // getDefaultStatusCodeForLlamaStackClientError returns default HTTP status codes for LlamaStackError codes
