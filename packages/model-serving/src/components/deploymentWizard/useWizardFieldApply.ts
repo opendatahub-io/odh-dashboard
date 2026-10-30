@@ -27,11 +27,12 @@ export const useWizardFieldApply = (
   applyExtensionsLoaded: boolean;
   applyExtensionErrors: Error[];
 } => {
-  const [applyExtensions, applyExtensionsLoaded, applyExtensionErrors] = useResolvedExtensions(
+  const [applyExtensions, applyExtensionsResolved, applyExtensionErrors] = useResolvedExtensions(
     isWizardFieldApplyExtension,
   );
 
-  const [fieldExtensions] = useResolvedExtensions(isWizardFieldExtension);
+  const [fieldExtensions, fieldExtensionsLoaded] = useResolvedExtensions(isWizardFieldExtension);
+  const applyExtensionsLoaded = applyExtensionsResolved && fieldExtensionsLoaded;
 
   const activeFields = React.useMemo((): Map<string, WizardField> => {
     const map = new Map<string, WizardField>();
