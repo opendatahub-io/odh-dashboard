@@ -1,17 +1,26 @@
 package controller
 
 import (
+	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	rbacv1 "k8s.io/api/rbac/v1"
+	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/yaml"
 )
+
+var clusterRoleKind = regexp.MustCompile(`(?m)^kind: ClusterRole$`)
 
 // TestOperatorRoleCoversDeployedClusterRoles mirrors the API server's RBAC escalation
 // check: the operator SA holds neither escalate nor bind, so every rule in a ClusterRole
@@ -21,18 +30,11 @@ import (
 func TestOperatorRoleCoversDeployedClusterRoles(t *testing.T) {
 	operatorRole := readClusterRole(t, filepath.Join("..", "..", "config", "rbac", "role.yaml"))
 
-	manifests := filepath.Join("..", "..", "..", "manifests")
-	paths, err := filepath.Glob(filepath.Join(manifests, "modules", "*", "cluster-role.yaml"))
-	require.NoError(t, err)
-	distributionPaths, err := filepath.Glob(filepath.Join(manifests, "distributions", "*", "cluster-role.yaml"))
-	require.NoError(t, err)
-	paths = append(paths, distributionPaths...)
-	paths = append(paths, filepath.Join(manifests, "base", "sa-rbac", "cluster-role.yaml"))
-	require.NotEmpty(t, paths)
+	roles := readManifestClusterRoles(t, filepath.Join("..", "..", "..", "manifests"))
+	require.Contains(t, roles, "odh-dashboard-notebooks")
 
-	for _, path := range paths {
-		t.Run(path, func(t *testing.T) {
-			role := readClusterRole(t, path)
+	for name, role := range roles {
+		t.Run(name, func(t *testing.T) {
 			assert.Empty(t, uncoveredPermissions(role.Rules, operatorRole.Rules),
 				"operator role must hold these permissions to apply this ClusterRole")
 		})
@@ -89,6 +91,42 @@ func readClusterRole(t *testing.T, path string) *rbacv1.ClusterRole {
 	require.NoError(t, yaml.Unmarshal(data, role))
 	require.NotEmpty(t, role.Rules, "%s has no rules", path)
 	return role
+}
+
+// readManifestClusterRoles returns every ClusterRole under dir by name, including those in
+// multi-document files. Kustomize patches have no kind line, so they are skipped.
+func readManifestClusterRoles(t *testing.T, dir string) map[string]*rbacv1.ClusterRole {
+	t.Helper()
+	roles := map[string]*rbacv1.ClusterRole{}
+	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil || entry.IsDir() || filepath.Ext(path) != ".yaml" {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
+		for {
+			doc, err := reader.Read()
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			if err != nil {
+				return fmt.Errorf("reading %s: %w", path, err)
+			}
+			if !clusterRoleKind.Match(doc) {
+				continue
+			}
+			role := &rbacv1.ClusterRole{}
+			if err := yaml.Unmarshal(doc, role); err != nil {
+				return fmt.Errorf("parsing %s: %w", path, err)
+			}
+			roles[role.Name] = role
+		}
+	})
+	require.NoError(t, err)
+	return roles
 }
 
 // uncoveredPermissions returns each permission in grants that held does not cover, one
