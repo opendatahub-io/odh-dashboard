@@ -74,6 +74,22 @@ func TestTestDataRefValidate(t *testing.T) {
 			wantErr: "git test data ref must not begin with a hyphen and must not contain whitespace or control characters",
 		},
 		{
+			name: "git ref with leading whitespace is rejected",
+			ref: &TestDataRef{Git: &TestDataRefGit{
+				URL: "https://example.com/repo.git",
+				Ref: " main",
+			}},
+			wantErr: "git test data ref must not begin with a hyphen and must not contain whitespace or control characters",
+		},
+		{
+			name: "git ref with trailing whitespace is rejected",
+			ref: &TestDataRef{Git: &TestDataRefGit{
+				URL: "https://example.com/repo.git",
+				Ref: "main\n",
+			}},
+			wantErr: "git test data ref must not begin with a hyphen and must not contain whitespace or control characters",
+		},
+		{
 			name:    "no variant set is rejected",
 			ref:     &TestDataRef{},
 			wantErr: "test_data_ref must specify exactly one of s3, pvc, git, or hf, got: ",

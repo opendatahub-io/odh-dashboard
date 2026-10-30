@@ -703,6 +703,31 @@ func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 			status:  http.StatusBadRequest,
 			message: "must not embed credentials",
 		},
+		{
+			// U+017F (long s) is not an ASCII case variant, but encoding/json's
+			// EqualFold fallback treats it as equivalent to s, so the decoder
+			// populates the field from the duplicate key jsonpatch creates.
+			name:       "Unicode fold-variant whole-array path is validated",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarkſ",
+				Value: json.RawMessage(`[{"id":"arc","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}]`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			name:       "Unicode fold-variant test_data_ref path is validated",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/0/teſt_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
 	}
 
 	for _, tt := range tests {

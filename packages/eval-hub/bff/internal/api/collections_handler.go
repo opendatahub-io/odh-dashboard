@@ -111,17 +111,25 @@ func (t *benchmarkWriteTracker) removeAt(index int) {
 	t.indices = shifted
 }
 
+// foldHasPrefix reports whether s starts with prefix under the Unicode simple
+// case folding that encoding/json uses for field-name matching, so a segment
+// like "benchmarkſ" (U+017F, long s) matches "benchmarks" the same way the
+// JSON decoder would match the resulting duplicate key.
+func foldHasPrefix(s, prefix string) bool {
+	return len(s) >= len(prefix) && strings.EqualFold(s[:len(prefix)], prefix)
+}
+
 // apply replays a single patch operation against the tracker.
 func (t *benchmarkWriteTracker) apply(op, path string) {
-	if path == "/benchmarks" {
+	if strings.EqualFold(path, "/benchmarks") {
 		// Whole-array operations rewrite every benchmark.
 		t.markAll()
 		return
 	}
-	rest, ok := strings.CutPrefix(path, "/benchmarks/")
-	if !ok {
+	if !foldHasPrefix(path, "/benchmarks/") {
 		return // the operation does not touch the benchmarks array
 	}
+	rest := path[len("/benchmarks/"):]
 	token, field, deeper := strings.Cut(rest, "/")
 	if token == "-" {
 		if op == "add" {
@@ -142,7 +150,7 @@ func (t *benchmarkWriteTracker) apply(op, path string) {
 		// Only writes to the test data reference itself (or a field inside it)
 		// require validation — edits to unrelated fields such as weight must
 		// not re-validate an unchanged legacy reference.
-		if field == "test_data_ref" || strings.HasPrefix(field, "test_data_ref/") {
+		if strings.EqualFold(field, "test_data_ref") || foldHasPrefix(field, "test_data_ref/") {
 			t.mark(index)
 		}
 		return
@@ -171,13 +179,14 @@ func validatePatchedBenchmarks(currentJSON json.RawMessage, current *evalhub.Col
 	tracker := newBenchmarkWriteTracker(len(current.Benchmarks))
 	touchesBenchmarks := false
 	for _, operation := range operations {
-		// Paths are matched case-insensitively: jsonpatch creates duplicate
-		// keys for case variants, and Go's decoder then overwrites the field
-		// via its case-insensitive fallback, so a variant like /Benchmarks
-		// must not slip past the gate. The original operations are left
-		// untouched for the patch library itself.
-		path := strings.ToLower(operation.Path)
-		if path == "/benchmarks" || strings.HasPrefix(path, "/benchmarks/") {
+		// Paths are matched with the same Unicode case folding as Go's JSON
+		// decoder: jsonpatch creates duplicate keys for fold-equivalent
+		// variants (ASCII case or U+017F in place of s), and the decoder then
+		// overwrites the field via its case-insensitive fallback, so such a
+		// variant must not slip past the gate. The original operations are
+		// left untouched for the patch library itself.
+		path := operation.Path
+		if strings.EqualFold(path, "/benchmarks") || foldHasPrefix(path, "/benchmarks/") {
 			touchesBenchmarks = true
 			tracker.apply(operation.Op, path)
 		}

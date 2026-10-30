@@ -100,14 +100,14 @@ func (g *TestDataRefGit) validate() error {
 	if g.SecretRef != "" && parsed.Scheme != "https" {
 		return fmt.Errorf("git test data url must use https when a secret reference is provided, got %q", g.URL)
 	}
-	ref := strings.TrimSpace(g.Ref)
-	if ref == "" {
+	if strings.TrimSpace(g.Ref) == "" {
 		return fmt.Errorf("git test data ref must not be empty")
 	}
 	// A leading hyphen or embedded whitespace/control characters could be read
 	// as command-line options or split into separate arguments where the ref
-	// ultimately reaches a git invocation.
-	if strings.HasPrefix(ref, "-") || strings.ContainsFunc(ref, func(r rune) bool {
+	// ultimately reaches a git invocation. Check the original value, not a
+	// trimmed copy: the untrimmed ref is what gets forwarded downstream.
+	if strings.HasPrefix(g.Ref, "-") || strings.ContainsFunc(g.Ref, func(r rune) bool {
 		return r < 0x20 || r == 0x7f || unicode.IsSpace(r)
 	}) {
 		return fmt.Errorf("git test data ref must not begin with a hyphen and must not contain whitespace or control characters")

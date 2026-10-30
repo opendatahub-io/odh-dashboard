@@ -145,7 +145,7 @@ describe('BenchmarkTestDataRefFields', () => {
     expect(onChange).toHaveBeenCalledWith({ ...testDataRefDefaultValues, source: 'hf' });
   });
 
-  it('should preserve the reference type when the source changes', () => {
+  it('should reset the pre-recorded type when changing to a non-S3 source', () => {
     const onChange = jest.fn();
     renderFields({
       onChange,
@@ -162,10 +162,29 @@ describe('BenchmarkTestDataRefFields', () => {
     fireEvent.click(screen.getByTestId('test-test-data-ref-source-toggle'));
     fireEvent.click(screen.getByRole('option', { name: 'Hugging Face dataset' }));
 
+    expect(onChange).toHaveBeenCalledWith({ ...testDataRefDefaultValues, source: 'hf' });
+  });
+
+  it('should preserve the reference type when changing to the S3 source', () => {
+    const onChange = jest.fn();
+    renderFields({
+      onChange,
+      value: {
+        ...testDataRefDefaultValues,
+        source: 'git',
+        type: 'data_set',
+        url: 'u',
+        ref: 'r',
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('test-test-data-ref-source-toggle'));
+    fireEvent.click(screen.getByRole('option', { name: 'S3 — object storage' }));
+
     expect(onChange).toHaveBeenCalledWith({
       ...testDataRefDefaultValues,
-      source: 'hf',
-      type: 'pre_recorded_data',
+      source: 's3',
+      type: 'data_set',
     });
   });
 

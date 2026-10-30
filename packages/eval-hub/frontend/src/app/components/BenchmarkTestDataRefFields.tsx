@@ -190,9 +190,11 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
     if (source === value.source) {
       return;
     }
-    // Changing the source clears all values for the previous source. The
-    // reference type is source-independent, so it is preserved.
-    onChange({ ...testDataRefDefaultValues, source, type: value.type });
+    // Changing the source clears all values for the previous source. The wire
+    // type is preserved only for S3 — pre_recorded_data refs are S3-only (the
+    // prerecorded flow has no PVC/Git/HF variant), so switching to another
+    // source resets it and serialization falls back to data_set.
+    onChange({ ...testDataRefDefaultValues, source, type: source === 's3' ? value.type : '' });
     setTouched({});
   };
 
