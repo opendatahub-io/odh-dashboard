@@ -1095,7 +1095,7 @@ function AutomlConfigure({
                                         <>
                                           16 vCPU / 64 GiB
                                           <br />
-                                          Up to 6 h for model selection, plus data loading and
+                                          Up to 6 hours for model selection, plus data loading and
                                           refit; samples up to 10 GiB.
                                           <br />
                                           Choose for large datasets when maximum model search

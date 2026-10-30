@@ -135,12 +135,22 @@ const extensions: Extension[] = [
   },
   {
     type: 'app.navigation/href',
-    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'], disallowed: ['grid'] },
     properties: {
       id: 'maas-model-access',
       title: 'Model Access',
       href: '/model-access',
       path: '/model-access/*',
+    },
+  } satisfies HrefNavItemExtension,
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    properties: {
+      id: 'maas-model-access-portal',
+      title: 'Model Access',
+      href: PORTAL_MODEL_ACCESS_PATH,
+      path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
     },
   } satisfies HrefNavItemExtension,
   {
@@ -155,11 +165,10 @@ const extensions: Extension[] = [
   // Read-only model access viewer: the MaaS governance subscriptions table
   // (Subscription / Groups / Models, with the Groups and Models sub-tables)
   // without Status, row actions, or create/delete affordances. Available to
-  // every portal user (no ADMIN_USER gate), unlike the admin-only MaaS
-  // governance page above, but only in the grid portal mode.
+  // MaaS admins independent of the grid feature flag.
   {
     type: 'app.route',
-    flags: { required: ['grid'] },
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
     properties: {
       path: `${PORTAL_MODEL_ACCESS_PATH}/view/:subscriptionName`,
       component: () => import('@odh-dashboard/maas/ModelAccessSubscriptionPage'),
@@ -167,7 +176,7 @@ const extensions: Extension[] = [
   } satisfies RouteExtension,
   {
     type: 'app.route',
-    flags: { required: ['grid'] },
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
     properties: {
       path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
       component: () => import('@odh-dashboard/maas/ModelAccessPage'),
@@ -186,7 +195,7 @@ const extensions: Extension[] = [
     flags: { required: ['grid'] },
     properties: {
       id: 'maas-models',
-      title: 'Models endpoints',
+      title: 'Model endpoints',
       href: '/maas/models',
       path: '/maas/models/*',
       group: '1_models',

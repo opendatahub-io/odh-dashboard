@@ -156,6 +156,70 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPErrorResponse'
 
+  /api/v1/usage-dashboards:
+    get:
+      summary: Get MaaS usage dashboards
+      operationId: getUsageDashboards
+      description: >
+        Validates the caller through the shared MaaS whoami logic. Returns the user usage
+        dashboard to valid users and additionally the admin usage dashboard
+        to MaaS administrators. Definitions are read with the MaaS BFF service
+        account from the configured Perses namespace; callers cannot select a
+        dashboard or namespace. Metrics requests retain the caller's identity.
+      responses:
+        '200':
+          description: Authorized Perses dashboard resources
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UsageDashboard'
+              example:
+                data:
+                  - kind: Dashboard
+                    metadata:
+                      name: dashboard-5-maas-usage-logs
+                      project: redhat-ods-monitoring
+                      version: 1
+                      createdAt: '2026-01-01T00:00:00Z'
+                      updatedAt: '2026-01-01T00:00:00Z'
+                    spec:
+                      display:
+                        name: My Usage
+                      datasources: {}
+                      panels: {}
+                      layouts: []
+                      variables: []
+        '401':
+          description: Caller is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '403':
+          description: Caller is not a valid MaaS user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '500':
+          description: Failed to load authorized dashboards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+        '503':
+          description: MaaS API or Perses configuration unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPErrorResponse'
+
   /api/v1/namespaces:
     get:
       summary: Get Namespaces
@@ -2208,6 +2272,50 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    UsageDashboard:
+      type: object
+      description: Perses DashboardResource converted from a named PersesDashboard CR.
+      required: [kind, metadata, spec]
+      example:
+        kind: Dashboard
+        metadata:
+          name: dashboard-5-maas-usage-logs
+          project: redhat-ods-monitoring
+          version: 1
+          createdAt: '2026-01-01T00:00:00Z'
+          updatedAt: '2026-01-01T00:00:00Z'
+        spec:
+          display:
+            name: My Usage
+          datasources: {}
+          panels: {}
+          layouts: []
+          variables: []
+      properties:
+        kind:
+          type: string
+          enum: [Dashboard]
+        metadata:
+          type: object
+          required: [name, project, version, createdAt, updatedAt]
+          properties:
+            name:
+              type: string
+            project:
+              type: string
+            version:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+        spec:
+          type: object
+          description: Perses dashboard configuration (panels, layouts, variables and datasources).
+          additionalProperties: true
+
     ErrorResponse:
       type: object
       properties:
@@ -2799,7 +2907,7 @@ components:
 
     MySubscriptionListItem:
       type: object
-      description: Sanitized subscription shape returned to the MaaS portal. Backend roles, owner, and model subjects are omitted.
+      description: Subscription shape returned to the MaaS portal. Backend roles and model subjects are omitted; owner groups are included for Model Access presentation.
       properties:
         subscription_id_header:
           type: string
@@ -2825,6 +2933,8 @@ components:
           type: object
           additionalProperties:
             type: string
+        owner:
+          $ref: '#/components/schemas/OwnerSpec'
       required:
         - subscription_id_header
         - subscription_description

@@ -92,7 +92,7 @@ func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	if item == nil || item.Owner != nil {
+	if item == nil {
 		app.notFoundResponse(w, r)
 		return
 	}

@@ -15,19 +15,12 @@ import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 import { MODEL_ACCESS_PATH } from './utils';
 
-/**
- * Maps the maas-api passthrough payload (GET /subscriptions/{id}) onto the
- * MaaSSubscription shape consumed by the shared governance detail sections.
- * Mirrors the BFF's ConvertSubscriptionListItemsToSubscriptions: the passthrough
- * payload has no phase/status fields, so those stay empty — the status field is
- * hidden on this page (see showStatus={false} below).
- */
 const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
   name: sub.subscription_id_header,
   displayName: sub.display_name,
   description: sub.subscription_description,
   namespace: '',
-  inferencePriority: sub.inference_priority,
+  inferencePriority: sub.inference_priority ?? sub.priority,
   owner: sub.owner ?? { groups: [] },
   modelRefs: sub.model_refs.map<ModelSubscriptionRef>((ref) => ({
     name: ref.name,
@@ -51,6 +44,8 @@ const ModelAccessSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const [subscription, loaded, loadError] = useGetUserSubscription(subscriptionName);
 
+  const maasSubscription = subscription ? toMaaSSubscription(subscription) : undefined;
+
   const displaySubscriptionName = subscription?.display_name?.trim() || subscriptionName;
   const title = loaded ? (
     displaySubscriptionName
@@ -58,7 +53,6 @@ const ModelAccessSubscriptionPage: React.FC = () => {
     <Skeleton width="250px" screenreaderText="Loading" />
   );
 
-  const maasSubscription = subscription ? toMaaSSubscription(subscription) : undefined;
   const modelRefSummaries: MaaSModelRefSummary[] = maasSubscription
     ? modelRefsToSummaries(maasSubscription.modelRefs, [])
     : [];

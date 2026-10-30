@@ -24,6 +24,19 @@ class ChooseBenchmarkPage {
     return cy.findByTestId(`benchmark-card-${providerId}-${benchmarkId}`);
   }
 
+  findBenchmarkCards() {
+    // Exclude the nested title/body click-region testids, which share the card prefix.
+    return cy.findAllByTestId(/^benchmark-card-(?!title-region-|body-region-)/);
+  }
+
+  findBenchmarkCardTitleRegion(providerId: string, benchmarkId: string) {
+    return cy.findByTestId(`benchmark-card-title-region-${providerId}-${benchmarkId}`);
+  }
+
+  findBenchmarkCardBodyRegion(providerId: string, benchmarkId: string) {
+    return cy.findByTestId(`benchmark-card-body-region-${providerId}-${benchmarkId}`);
+  }
+
   findBenchmarkDrawerPanel() {
     return cy.findByTestId('benchmark-drawer-panel');
   }

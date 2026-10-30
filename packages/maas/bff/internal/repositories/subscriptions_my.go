@@ -4,9 +4,8 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
-// FilterSubscriptionsForMyView keeps subscriptions that do not contain backend
-// owner metadata. Owner-bearing entries represent subscriptions owned by another
-// user and must not appear in My subscriptions for either admins or non-admins.
+// FilterSubscriptionsForMyView keeps the subscriptions shown in the My
+// Subscriptions list separate from owner-scoped Model Access details.
 func FilterSubscriptionsForMyView(items []models.SubscriptionListItem) []models.SubscriptionListItem {
 	filtered := make([]models.SubscriptionListItem, 0, len(items))
 	for _, item := range items {
@@ -17,8 +16,8 @@ func FilterSubscriptionsForMyView(items []models.SubscriptionListItem) []models.
 	return filtered
 }
 
-// ConvertSubscriptionListItemsToMySubscriptions removes backend authorization
-// metadata before subscriptions are returned to the MaaS portal.
+// ConvertSubscriptionListItemsToMySubscriptions converts user-accessible
+// subscriptions into the MaaS Portal response shape.
 func ConvertSubscriptionListItemsToMySubscriptions(
 	items []models.SubscriptionListItem,
 ) []models.MySubscriptionListItem {
@@ -53,6 +52,7 @@ func ConvertSubscriptionListItemsToMySubscriptions(
 			OrganizationID:          item.OrganizationID,
 			CostCenter:              item.CostCenter,
 			Labels:                  item.Labels,
+			Owner:                   item.Owner,
 		})
 	}
 	return result
