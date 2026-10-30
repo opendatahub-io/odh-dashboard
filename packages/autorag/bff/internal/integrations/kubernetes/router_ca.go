@@ -39,7 +39,7 @@ func NewInClusterClient() (k8sclient.Interface, error) {
 // memory for the current process.
 func SyncRouterCABundle(ctx context.Context, client k8sclient.Interface, namespace string) ([]byte, error) {
 	if client == nil {
-		return nil, fmt.Errorf("Kubernetes client is not configured")
+		return nil, fmt.Errorf("kubernetes client is not configured")
 	}
 	if namespace == "" {
 		return nil, fmt.Errorf("router CA bundle namespace is empty")
