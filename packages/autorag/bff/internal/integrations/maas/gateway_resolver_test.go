@@ -2,8 +2,11 @@ package maas
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -83,14 +86,42 @@ func TestHTTPGatewayHostResolverRejectsInvalidResponse(t *testing.T) {
 	}
 }
 
+func TestHTTPGatewayHostResolverUsesDynamicRootCAPool(t *testing.T) {
+	server := newTestTLSServer(t, `{"data":{"url":"https://maas.apps.cluster/maas-api"}}`)
+	rootCAPool := NewDynamicRootCAPool(x509.NewCertPool())
+	resolver := NewHTTPGatewayHostResolver(GatewayResolverConfig{
+		ServiceName: "maas-ui",
+		ServicePort: server.Listener.Addr().(*net.TCPAddr).Port,
+		Namespace:   "test-ns",
+		TLSEnabled:  true,
+		RootCAPool:  rootCAPool.Current,
+		DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, network, server.Listener.Addr().String())
+		},
+	})
+
+	_, err := resolver.Resolve(gatewayIdentityContext())
+	require.Error(t, err)
+
+	certificate := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw})
+	require.NoError(t, rootCAPool.Update(certificate))
+	origin, err := resolver.Resolve(gatewayIdentityContext())
+	require.NoError(t, err)
+	assert.Equal(t, MaaSOrigin{Host: "maas.apps.cluster", Port: "443"}, origin)
+}
+
 type fakeGatewayResolver struct {
 	origin MaaSOrigin
 	err    error
 	calls  int
+	onCall func(context.Context)
 }
 
-func (r *fakeGatewayResolver) Resolve(context.Context) (MaaSOrigin, error) {
+func (r *fakeGatewayResolver) Resolve(ctx context.Context) (MaaSOrigin, error) {
 	r.calls++
+	if r.onCall != nil {
+		r.onCall(ctx)
+	}
 	return r.origin, r.err
 }
 
@@ -129,4 +160,110 @@ func TestCachedGatewayHostResolverExpiresWithoutUsingStaleOrigin(t *testing.T) {
 	_, err = resolver.Resolve(context.Background())
 	require.Error(t, err)
 	assert.Equal(t, 3, fake.calls)
+}
+
+func TestCachedGatewayHostResolverDoesNotCacheCanceledRequest(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	fake := &fakeGatewayResolver{
+		err: ErrMaaSGatewayDiscovery,
+		onCall: func(context.Context) {
+			cancel()
+		},
+	}
+	resolver := NewCachedGatewayHostResolver(fake)
+
+	_, err := resolver.Resolve(ctx)
+	require.Error(t, err)
+	assert.Equal(t, 1, fake.calls)
+
+	fake.err = nil
+	fake.onCall = nil
+	origin, err := resolver.Resolve(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, fake.origin, origin)
+	assert.Equal(t, 2, fake.calls)
+}
+
+func TestCachedGatewayHostResolverCanCancelWhileRefreshIsInProgress(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	fake := &fakeGatewayResolver{
+		onCall: func(context.Context) {
+			close(started)
+			<-release
+		},
+	}
+	resolver := NewCachedGatewayHostResolver(fake)
+	firstDone := make(chan error, 1)
+	go func() {
+		_, err := resolver.Resolve(context.Background())
+		firstDone <- err
+	}()
+	<-started
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := resolver.Resolve(ctx)
+	assert.ErrorIs(t, err, context.Canceled)
+
+	close(release)
+	assert.NoError(t, <-firstDone)
+}
+
+func TestCachedGatewayHostResolverDoesNotCacheCallerSpecificErrors(t *testing.T) {
+	fake := &fakeGatewayResolver{
+		err: markGatewayDiscoveryErrorNotCacheable(ErrMaaSGatewayDiscovery),
+	}
+	resolver := NewCachedGatewayHostResolver(fake)
+
+	_, err := resolver.Resolve(context.Background())
+	require.Error(t, err)
+
+	fake.err = nil
+	origin, err := resolver.Resolve(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, fake.origin, origin)
+	assert.Equal(t, 2, fake.calls)
+}
+
+func TestHTTPGatewayHostResolverMarksAuthenticationFailuresAsNonCacheable(t *testing.T) {
+	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden} {
+		t.Run(fmt.Sprintf("status-%d", status), func(t *testing.T) {
+			resolver := NewHTTPGatewayHostResolver(GatewayResolverConfig{
+				HTTPClient: &http.Client{Transport: gatewayRoundTripFunc(func(*http.Request) (*http.Response, error) {
+					return &http.Response{
+						StatusCode: status,
+						Body:       io.NopCloser(strings.NewReader("")),
+					}, nil
+				})},
+			})
+
+			_, err := resolver.Resolve(gatewayIdentityContext())
+			require.Error(t, err)
+			assert.True(t, isNonCacheableGatewayDiscoveryError(err))
+		})
+	}
+}
+
+func TestCachedGatewayHostResolverDoesNotCacheHTTPAuthenticationFailure(t *testing.T) {
+	calls := 0
+	resolver := NewCachedGatewayHostResolver(NewHTTPGatewayHostResolver(GatewayResolverConfig{
+		HTTPClient: &http.Client{Transport: gatewayRoundTripFunc(func(*http.Request) (*http.Response, error) {
+			calls++
+			if calls == 1 {
+				return &http.Response{StatusCode: http.StatusUnauthorized, Body: http.NoBody}, nil
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"data":{"url":"https://maas.apps.example.com/maas-api"}}`)),
+			}, nil
+		})},
+	}))
+
+	_, err := resolver.Resolve(gatewayIdentityContext())
+	require.Error(t, err)
+	origin, err := resolver.Resolve(gatewayIdentityContext())
+	require.NoError(t, err)
+	assert.Equal(t, MaaSOrigin{Host: "maas.apps.example.com", Port: "443"}, origin)
+	assert.Equal(t, 2, calls)
 }

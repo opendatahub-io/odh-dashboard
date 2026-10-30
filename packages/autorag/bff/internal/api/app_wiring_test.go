@@ -5,16 +5,20 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
+	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	k8sclient "k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 func TestInitPortForwardManagerIsDevOnly(t *testing.T) {
@@ -106,7 +110,7 @@ func TestSyncRouterCAOnceUsesPublicCertificateOnly(t *testing.T) {
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "autorag-router-ca-bundle", Namespace: "applications"}},
 	)
 
-	certificate := syncRouterCAOnce("applications", client, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	certificate := syncRouterCAOnce(context.Background(), "applications", client, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if string(certificate) != "router-ca" {
 		t.Fatalf("certificate = %q, want router-ca", certificate)
 	}
@@ -124,8 +128,45 @@ func TestSyncRouterCAOnceUsesPublicCertificateOnly(t *testing.T) {
 
 func TestSyncRouterCAOnceContinuesWithoutSourceCertificate(t *testing.T) {
 	client := k8sfake.NewSimpleClientset()
-	certificate := syncRouterCAOnce("applications", client, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	certificate := syncRouterCAOnce(context.Background(), "applications", client, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if certificate != nil {
 		t.Fatalf("certificate = %q, want nil when source Secret is unavailable", certificate)
+	}
+}
+
+func TestRouterCARefreshCancellationWaitsForInFlightSync(t *testing.T) {
+	oldNewInClusterK8sClient := newInClusterK8sClient
+	t.Cleanup(func() { newInClusterK8sClient = oldNewInClusterK8sClient })
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	client := k8sfake.NewSimpleClientset()
+	client.PrependReactor("get", "secrets", func(k8stesting.Action) (bool, runtime.Object, error) {
+		close(started)
+		<-release
+		return true, &corev1.Secret{Data: map[string][]byte{"tls.crt": []byte("router-ca")}}, nil
+	})
+	newInClusterK8sClient = func() (k8sclient.Interface, error) { return client, nil }
+
+	pool := maas.NewDynamicRootCAPool(nil)
+	cancel := startRouterCARefresh("applications", pool, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	<-started
+
+	cancelDone := make(chan struct{})
+	go func() {
+		cancel()
+		close(cancelDone)
+	}()
+	select {
+	case <-cancelDone:
+		t.Fatal("cancellation returned before the in-flight sync completed")
+	case <-time.After(25 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case <-cancelDone:
+	case <-time.After(time.Second):
+		t.Fatal("cancellation did not wait for the refresh goroutine")
 	}
 }

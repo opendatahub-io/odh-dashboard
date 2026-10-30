@@ -174,9 +174,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// unavailable while the first refresh completes.
 	var routerCACancel context.CancelFunc
 	var routerCARefreshEnabled bool
+	var maasRootCAPool *maas.DynamicRootCAPool
 	if cfg.GatewayDomain != "" && cfg.PodNamespace != "" {
 		routerCARefreshEnabled = true
 		rootCAs = ensureRootCAPool(rootCAs)
+		maasRootCAPool = maas.NewDynamicRootCAPool(rootCAs)
 	}
 
 	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
@@ -250,6 +252,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		InsecureSkipVerify: cfg.InsecureSkipVerify,
 		RootCAs:            rootCAs,
 	}
+	if maasRootCAPool != nil {
+		maasCfg.RootCAPool = maasRootCAPool.Current
+	}
 	if pfManager != nil {
 		maasCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
 	}
@@ -270,6 +275,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			AuthTokenHeader: cfg.BFFMaaSAuthTokenHeader,
 			AuthTokenPrefix: cfg.BFFMaaSAuthTokenPrefix,
 			RootCAs:         rootCAs,
+			RootCAPool:      rootCAPoolProvider(maasRootCAPool),
 		}))
 	}
 
@@ -287,7 +293,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactoryAndGatewayResolver(logger, k8sService, responsesFactory, gatewayResolver)
 	}
 	if routerCARefreshEnabled {
-		routerCACancel = startRouterCARefresh(cfg.PodNamespace, rootCAs, logger)
+		routerCACancel = startRouterCARefresh(cfg.PodNamespace, maasRootCAPool, logger)
 	}
 
 	app := &App{
@@ -346,25 +352,22 @@ func ensureRootCAPool(rootCAs *x509.CertPool) *x509.CertPool {
 	return rootCAs
 }
 
-func appendRootCA(rootCAs *x509.CertPool, certificate []byte) (*x509.CertPool, error) {
-	if len(certificate) == 0 {
-		return rootCAs, fmt.Errorf("CA certificate is empty")
-	}
-	rootCAs = ensureRootCAPool(rootCAs)
-	if !rootCAs.AppendCertsFromPEM(certificate) {
-		return rootCAs, fmt.Errorf("failed to parse router CA certificate")
-	}
-	return rootCAs, nil
-}
-
 const routerCARefreshInterval = 5 * time.Minute
 
+func rootCAPoolProvider(pool *maas.DynamicRootCAPool) func() *x509.CertPool {
+	if pool == nil {
+		return nil
+	}
+	return pool.Current
+}
+
 func syncRouterCAOnce(
+	ctx context.Context,
 	namespace string,
 	client k8sclient.Interface,
 	logger *slog.Logger,
 ) []byte {
-	syncContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	syncContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	certificate, syncErr := k8s.SyncRouterCABundle(syncContext, client, namespace)
@@ -379,24 +382,29 @@ func syncRouterCAOnce(
 
 func startRouterCARefresh(
 	namespace string,
-	rootCAs *x509.CertPool,
+	rootCAPool *maas.DynamicRootCAPool,
 	logger *slog.Logger,
 ) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		lastCertificate := []byte(nil)
 		refresh := func() {
+			if ctx.Err() != nil {
+				return
+			}
 			client, clientErr := newInClusterK8sClient()
 			if clientErr != nil {
 				logger.Warn("router CA refresh unavailable", "error", clientErr)
 				return
 			}
-			certificate := syncRouterCAOnce(namespace, client, logger)
-			if len(certificate) == 0 || bytes.Equal(lastCertificate, certificate) {
+			certificate := syncRouterCAOnce(ctx, namespace, client, logger)
+			if ctx.Err() != nil || len(certificate) == 0 || bytes.Equal(lastCertificate, certificate) {
 				return
 			}
-			if _, appendErr := appendRootCA(rootCAs, certificate); appendErr != nil {
-				logger.Warn("router CA could not be added to MaaS trust", "error", appendErr)
+			if updateErr := rootCAPool.Update(certificate); updateErr != nil {
+				logger.Warn("router CA could not be added to MaaS trust", "error", updateErr)
 				return
 			}
 			lastCertificate = append(lastCertificate[:0], certificate...)
@@ -415,7 +423,10 @@ func startRouterCARefresh(
 			}
 		}
 	}()
-	return cancel
+	return func() {
+		cancel()
+		<-done
+	}
 }
 
 func (app *App) Shutdown() error {

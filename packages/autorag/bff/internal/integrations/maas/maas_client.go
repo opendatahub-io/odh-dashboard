@@ -32,8 +32,12 @@ type MaaSClient struct {
 type MaaSClientConfig struct {
 	InsecureSkipVerify bool
 	RootCAs            *x509.CertPool
-	WrapTransport      func(http.RoundTripper) http.RoundTripper
-	LookupIP           func(context.Context, string) ([]net.IP, error)
+	// RootCAPool provides immutable, atomically published pools for new TLS
+	// connections. It is used when the installation router CA can rotate.
+	RootCAPool    func() *x509.CertPool
+	WrapTransport func(http.RoundTripper) http.RoundTripper
+	LookupIP      func(context.Context, string) ([]net.IP, error)
+	DialContext   func(context.Context, string, string) (net.Conn, error)
 }
 
 // NewDefaultHTTPClient creates the configured transport shared by MaaS clients.
@@ -49,15 +53,26 @@ func NewDefaultHTTPClient(cfg MaaSClientConfig) *http.Client {
 			return net.DefaultResolver.LookupIP(ctx, "ip", host)
 		}
 	}
-	dialer := &net.Dialer{}
-	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
-		DialContext:     maaSSafeDialContext(dialer.DialContext, lookupIP),
+	baseDialContext := cfg.DialContext
+	if baseDialContext == nil {
+		baseDialContext = (&net.Dialer{}).DialContext
 	}
-	var rt http.RoundTripper = transport
-	if cfg.WrapTransport != nil {
-		rt = cfg.WrapTransport(rt)
+	safeDialContext := maaSSafeDialContext(baseDialContext, lookupIP)
+	newTransport := func() http.RoundTripper {
+		transport := &http.Transport{
+			TLSClientConfig: tlsConfig.Clone(),
+			DialContext:     safeDialContext,
+		}
+		if cfg.RootCAPool != nil {
+			transport.DialTLSContext = dynamicTLSDialContext(safeDialContext, transport.TLSClientConfig, cfg.RootCAPool)
+		}
+		var rt http.RoundTripper = transport
+		if cfg.WrapTransport != nil {
+			rt = cfg.WrapTransport(rt)
+		}
+		return rt
 	}
+	var rt http.RoundTripper = newOriginPartitionedTransport(newTransport)
 	rt = limitMaaSResponseBody(rt)
 	return &http.Client{
 		Transport: rt,

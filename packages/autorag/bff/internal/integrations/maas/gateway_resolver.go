@@ -31,6 +31,27 @@ const (
 
 var ErrMaaSGatewayDiscovery = errors.New("MaaS gateway discovery failed")
 
+type nonCacheableGatewayDiscoveryError struct {
+	err error
+}
+
+func (e *nonCacheableGatewayDiscoveryError) Error() string {
+	return e.err.Error()
+}
+
+func (e *nonCacheableGatewayDiscoveryError) Unwrap() error {
+	return e.err
+}
+
+func markGatewayDiscoveryErrorNotCacheable(err error) error {
+	return &nonCacheableGatewayDiscoveryError{err: err}
+}
+
+func isNonCacheableGatewayDiscoveryError(err error) bool {
+	var target *nonCacheableGatewayDiscoveryError
+	return errors.As(err, &target)
+}
+
 type GatewayHostResolver interface {
 	Resolve(context.Context) (MaaSOrigin, error)
 }
@@ -44,7 +65,11 @@ type GatewayResolverConfig struct {
 	AuthTokenHeader string
 	AuthTokenPrefix string
 	RootCAs         *x509.CertPool
-	HTTPClient      *http.Client
+	// RootCAPool provides immutable, atomically published pools for new TLS
+	// connections when the installation router CA can rotate.
+	RootCAPool  func() *x509.CertPool
+	HTTPClient  *http.Client
+	DialContext func(context.Context, string, string) (net.Conn, error)
 }
 
 type HTTPGatewayHostResolver struct {
@@ -84,11 +109,21 @@ func NewHTTPGatewayHostResolver(cfg GatewayResolverConfig) *HTTPGatewayHostResol
 
 	client := cfg.HTTPClient
 	if client == nil {
+		tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: cfg.RootCAs}
+		baseDialContext := cfg.DialContext
+		if baseDialContext == nil {
+			baseDialContext = (&net.Dialer{}).DialContext
+		}
+		transport := &http.Transport{
+			TLSClientConfig: tlsConfig,
+			DialContext:     baseDialContext,
+		}
+		if cfg.RootCAPool != nil {
+			transport.DialTLSContext = dynamicTLSDialContext(baseDialContext, tlsConfig, cfg.RootCAPool)
+		}
 		client = &http.Client{
-			Timeout: 10 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: cfg.RootCAs},
-			},
+			Timeout:   10 * time.Second,
+			Transport: transport,
 			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
@@ -115,7 +150,9 @@ func (r *HTTPGatewayHostResolver) Resolve(ctx context.Context) (MaaSOrigin, erro
 	// valid constraint for the separate MaaS Route hostname.
 	identity, err := corek8s.IdentityFromContext(ctx)
 	if err != nil || identity.Token == "" {
-		return MaaSOrigin{}, fmt.Errorf("%w: authenticated user token is unavailable", ErrMaaSGatewayDiscovery)
+		return MaaSOrigin{}, markGatewayDiscoveryErrorNotCacheable(
+			fmt.Errorf("%w: authenticated user token is unavailable", ErrMaaSGatewayDiscovery),
+		)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.baseURL+"/gateway-url", nil)
@@ -136,7 +173,11 @@ func (r *HTTPGatewayHostResolver) Resolve(ctx context.Context) (MaaSOrigin, erro
 		return MaaSOrigin{}, fmt.Errorf("%w: read MaaS BFF response: %v", ErrMaaSGatewayDiscovery, err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return MaaSOrigin{}, fmt.Errorf("%w: MaaS BFF returned HTTP %d", ErrMaaSGatewayDiscovery, resp.StatusCode)
+		err := fmt.Errorf("%w: MaaS BFF returned HTTP %d", ErrMaaSGatewayDiscovery, resp.StatusCode)
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			return MaaSOrigin{}, markGatewayDiscoveryErrorNotCacheable(err)
+		}
+		return MaaSOrigin{}, err
 	}
 
 	var envelope struct {
@@ -169,7 +210,7 @@ type CachedGatewayHostResolver struct {
 	now      func() time.Time
 
 	mu        sync.Mutex
-	refreshMu sync.Mutex
+	refreshCh chan struct{}
 	origin    MaaSOrigin
 	expiresAt time.Time
 	lastErr   error
@@ -177,10 +218,18 @@ type CachedGatewayHostResolver struct {
 }
 
 func NewCachedGatewayHostResolver(resolver GatewayHostResolver) *CachedGatewayHostResolver {
-	return &CachedGatewayHostResolver{resolver: resolver, ttl: gatewayHostCacheTTL, now: time.Now}
+	return &CachedGatewayHostResolver{
+		resolver:  resolver,
+		ttl:       gatewayHostCacheTTL,
+		now:       time.Now,
+		refreshCh: make(chan struct{}, 1),
+	}
 }
 
 func (r *CachedGatewayHostResolver) Resolve(ctx context.Context) (MaaSOrigin, error) {
+	if err := ctx.Err(); err != nil {
+		return MaaSOrigin{}, err
+	}
 	now := r.now()
 	r.mu.Lock()
 	if r.origin.Host != "" && now.Before(r.expiresAt) {
@@ -196,8 +245,12 @@ func (r *CachedGatewayHostResolver) Resolve(ctx context.Context) (MaaSOrigin, er
 	r.mu.Unlock()
 
 	// Serialize refreshes so an expired cache does not create a request burst.
-	r.refreshMu.Lock()
-	defer r.refreshMu.Unlock()
+	select {
+	case r.refreshCh <- struct{}{}:
+		defer func() { <-r.refreshCh }()
+	case <-ctx.Done():
+		return MaaSOrigin{}, ctx.Err()
+	}
 
 	now = r.now()
 	r.mu.Lock()
@@ -218,6 +271,9 @@ func (r *CachedGatewayHostResolver) Resolve(ctx context.Context) (MaaSOrigin, er
 	}
 	origin, err := r.resolver.Resolve(ctx)
 	if err != nil {
+		if ctx.Err() != nil || isNonCacheableGatewayDiscoveryError(err) {
+			return MaaSOrigin{}, err
+		}
 		r.mu.Lock()
 		r.lastErr = err
 		r.errUntil = r.now().Add(gatewayHostFailureCacheTTL)
