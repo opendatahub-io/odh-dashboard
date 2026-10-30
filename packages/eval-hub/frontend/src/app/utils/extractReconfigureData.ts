@@ -191,7 +191,7 @@ const extractReconfigureData = (
     additionalArgs,
     experimentName: job.experiment?.name,
     hardwareProfile: job.hardware_config?.hardware_profile_name,
-    queue: job.hardware_config?.queue?.name ?? job.status.queue ?? job.resource.queue,
+    queue: job.hardware_config?.queue?.name,
   };
 };
 

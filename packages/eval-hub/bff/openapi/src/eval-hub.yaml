@@ -994,11 +994,6 @@ components:
           type: string
           format: date-time
           example: '2026-02-20T11:30:00Z'
-        message:
-          $ref: '#/components/schemas/JobMessage'
-        queue:
-          type: string
-          description: LocalQueue assigned to the evaluation job
 
     JobStatus:
       type: object
@@ -1024,9 +1019,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BenchmarkState'
-        queue:
-          type: string
-          description: LocalQueue currently associated with the evaluation job
 
     BenchmarkState:
       type: object
@@ -1065,28 +1057,18 @@ components:
           type: string
         metrics:
           type: object
-          additionalProperties:
-            type: number
-          description: Key-value metric scores
+          additionalProperties: true
+          description: >-
+            Metrics produced by evaluating the model on this benchmark, keyed by
+            metric name. Each value may be a scalar, list, or object.
         artifacts:
-          $ref: '#/components/schemas/BenchmarkArtifact'
-
-    BenchmarkArtifact:
-      type: object
-      properties:
-        oci_digest:
-          type: string
-        oci_reference:
-          type: string
-        size_bytes:
-          type: integer
-          format: int64
+          type: object
+          additionalProperties: true
+          description: Artifact key to location/info
 
     JobResults:
       type: object
       properties:
-        total_evaluations:
-          type: integer
         benchmarks:
           type: array
           items:
@@ -2556,7 +2538,6 @@ components:
                   status:
                     state: 'completed'
                   results:
-                    total_evaluations: 1
                     benchmarks:
                       - id: 'arc_easy'
                         provider_id: 'lm_evaluation_harness'

@@ -57,8 +57,9 @@ type MyModelRefInfo struct {
 	BillingRate     *BillingRateInfo     `json:"billing_rate,omitempty"`
 }
 
-// MySubscriptionListItem is the sanitized subscription shape returned to the
-// MaaS portal. It intentionally excludes roles, owner, and model subjects.
+// MySubscriptionListItem is the subscription shape returned to the MaaS Portal.
+// Roles and model subjects remain backend metadata; owner groups are included
+// for the read-only Model Access presentation.
 type MySubscriptionListItem struct {
 	SubscriptionIDHeader    string            `json:"subscription_id_header"`
 	SubscriptionDescription string            `json:"subscription_description"`
@@ -69,6 +70,7 @@ type MySubscriptionListItem struct {
 	OrganizationID          string            `json:"organization_id,omitempty"`
 	CostCenter              string            `json:"cost_center,omitempty"`
 	Labels                  map[string]string `json:"labels,omitempty"`
+	Owner                   *OwnerSpec        `json:"owner,omitempty"`
 }
 
 // GroupReference references a Kubernetes group by name.

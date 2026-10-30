@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const adrDir = process.env.ADR_DIR ? path.resolve(process.env.ADR_DIR) : path.join(__dirname, '..', 'docs', 'adr');
+const files = fs.readdirSync(adrDir).filter((file) => file.endsWith('.md') && file !== 'template.md');
+const seen = new Map();
+let errors = 0;
+
+for (const file of files) {
+  const match = file.match(/^(\d{4})-[^.]+\.md$/);
+  if (!match) {
+    console.error(`${file}: expected NNNN-description.md`);
+    errors++;
+    continue;
+  }
+
+  const number = match[1];
+  if (seen.has(number)) {
+    console.error(`${file}: duplicate ADR number ${number} (also ${seen.get(number)})`);
+    errors++;
+  } else {
+    seen.set(number, file);
+  }
+
+  const content = fs.readFileSync(path.join(adrDir, file), 'utf8');
+  if (/^# 0\d+\. /m.test(content) || /^title:\s*["']?0\d+\. /m.test(content)) {
+    console.error(`${file}: number in title must not have leading zeroes`);
+    errors++;
+  }
+}
+
+if (errors) process.exitCode = 1;
+else console.log(`ADR numbers: ${files.length} files valid`);
