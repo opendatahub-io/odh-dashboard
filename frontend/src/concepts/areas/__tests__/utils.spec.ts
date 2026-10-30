@@ -1,4 +1,5 @@
 import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import type { DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
@@ -574,6 +575,25 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.status).toBe(false);
       },
     );
+
+    // `conditions` is typed as required, but the backend spreads live DSC status onto the
+    // response, so a status object without it can reach the UI. Must not throw — an exception
+    // here would break AreaContextProvider for every area, not just this one.
+    it('should stay unavailable when the DSC status has no conditions array', () => {
+      const dscStatus = mockDscStatus({});
+      delete (dscStatus as Partial<DataScienceClusterKindStatus>).conditions;
+
+      const run = () =>
+        isAreaAvailable(
+          SupportedArea.DS_PIPELINES_ARGO_INVALID,
+          mockDashboardConfig({ disablePipelines: false }).spec,
+          dscStatus,
+          null,
+        );
+
+      expect(run).not.toThrow();
+      expect(run().status).toBe(false);
+    });
 
     it('should be unavailable when the Argo condition is absent', () => {
       const isAvailable = isAreaAvailable(

@@ -8,9 +8,14 @@ import {
 
 // Set by the operator when an Argo Workflows install it does not manage blocks pipelines.
 // `CapabilityDSPv2Argo` is the v2 condition name, which is what the dashboard receives.
-const hasUnmanagedArgoWorkflows: CustomConditionFunction = ({ dscStatus }) =>
-  dscStatus?.conditions.some((c) => c.type === 'CapabilityDSPv2Argo' && c.status === 'False') ??
-  false;
+const hasUnmanagedArgoWorkflows: CustomConditionFunction = ({ dscStatus }) => {
+  const conditions = dscStatus?.conditions;
+  return (
+    conditions?.some(
+      (condition) => condition.type === 'CapabilityDSPv2Argo' && condition.status === 'False',
+    ) ?? false
+  );
+};
 
 // Shared operator readiness does not establish per-child backend reachability.
 const isFeastOperatorReady: CustomConditionFunction = ({ dscStatus }) => {
