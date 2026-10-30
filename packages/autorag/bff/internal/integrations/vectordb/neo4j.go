@@ -112,6 +112,7 @@ type neo4jDB struct {
 }
 
 type neo4jEndpoint struct {
+	scheme    string
 	host      string
 	port      string
 	inCluster bool
@@ -162,19 +163,18 @@ func parseNeo4jEndpointWithLoopback(raw string, allowLoopback bool, hasCA bool) 
 	if hasCA {
 		useTLS = true
 	}
+	if useTLS && !strings.HasSuffix(scheme, "+s") {
+		scheme += "+s"
+	}
 	if !inCluster && !loopback && !useTLS {
 		return neo4jEndpoint{}, fmt.Errorf("neo4j external endpoints must use neo4j+s or bolt+s")
 	}
 
-	return neo4jEndpoint{host: host, port: port, inCluster: inCluster, loopback: loopback, tls: useTLS}, nil
+	return neo4jEndpoint{scheme: scheme, host: host, port: port, inCluster: inCluster, loopback: loopback, tls: useTLS}, nil
 }
 
 func (e neo4jEndpoint) uri() string {
-	scheme := "neo4j"
-	if e.tls {
-		scheme = "neo4j+s"
-	}
-	return scheme + "://" + net.JoinHostPort(e.host, e.port)
+	return e.scheme + "://" + net.JoinHostPort(e.host, e.port)
 }
 
 func classifyNeo4jError(parentCtx, operationCtx context.Context, err error) error {

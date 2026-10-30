@@ -134,6 +134,7 @@ func TestParseNeo4jEndpoint(t *testing.T) {
 			check: func(t *testing.T, endpoint neo4jEndpoint) {
 				assert.Equal(t, "7688", endpoint.port)
 				assert.True(t, endpoint.tls)
+				assert.Equal(t, "bolt+s://neo4j.example.com:7688", endpoint.uri())
 			},
 		},
 		{name: "external plaintext", raw: "neo4j://neo4j.example.com", wantErr: "must use neo4j+s or bolt+s"},
@@ -218,6 +219,44 @@ func TestNewNeo4jFromSecretRejectsMalformedCA(t *testing.T) {
 	_, err := newNeo4jFromSecret(context.Background(), secret)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "NEO4J_CA_CERT")
+}
+
+func TestNewNeo4jFromSecretPreservesScheme(t *testing.T) {
+	tests := []struct {
+		scheme     string
+		hasCA      bool
+		wantScheme string
+	}{
+		{scheme: "neo4j", wantScheme: "neo4j"},
+		{scheme: "bolt", wantScheme: "bolt"},
+		{scheme: "neo4j+s", wantScheme: "neo4j+s"},
+		{scheme: "bolt+s", wantScheme: "bolt+s"},
+		{scheme: "neo4j", hasCA: true, wantScheme: "neo4j+s"},
+		{scheme: "bolt", hasCA: true, wantScheme: "bolt+s"},
+		{scheme: "neo4j+s", hasCA: true, wantScheme: "neo4j+s"},
+		{scheme: "bolt+s", hasCA: true, wantScheme: "bolt+s"},
+	}
+	for _, tt := range tests {
+		name := tt.scheme
+		if tt.hasCA {
+			name += " with CA"
+		}
+		t.Run(name, func(t *testing.T) {
+			secret := validNeo4jSecret()
+			secret["NEO4J_URI"] = []byte(tt.scheme + "://neo4j.team-a.svc.cluster.local:7688")
+			if tt.hasCA {
+				secret[neo4jCACertKey] = generateTestCA(t)
+			}
+			var driverURI string
+			db, err := newNeo4jFromSecretWithDriver(context.Background(), secret, time.Second, func(_ context.Context, uri string, _ neo4j.AuthToken, _ func(*neo4jconfig.Config)) (neo4jDriver, error) {
+				driverURI = uri
+				return &fakeNeo4jDriver{}, nil
+			})
+			require.NoError(t, err)
+			defer func() { require.NoError(t, db.Close()) }()
+			assert.Equal(t, tt.wantScheme+"://neo4j.team-a.svc.cluster.local:7688", driverURI)
+		})
+	}
 }
 
 func TestNewNeo4jFromSecretClassifiesConnectivityErrors(t *testing.T) {
