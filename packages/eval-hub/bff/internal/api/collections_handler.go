@@ -122,7 +122,7 @@ func (t *benchmarkWriteTracker) apply(op, path string) {
 	if !ok {
 		return // the operation does not touch the benchmarks array
 	}
-	token, _, deeper := strings.Cut(rest, "/")
+	token, field, deeper := strings.Cut(rest, "/")
 	if token == "-" {
 		if op == "add" {
 			t.insert(t.length)
@@ -139,7 +139,12 @@ func (t *benchmarkWriteTracker) apply(op, path string) {
 	}
 	if deeper {
 		// A write inside an existing benchmark object; the array is unchanged.
-		t.mark(index)
+		// Only writes to the test data reference itself (or a field inside it)
+		// require validation — edits to unrelated fields such as weight must
+		// not re-validate an unchanged legacy reference.
+		if field == "test_data_ref" || strings.HasPrefix(field, "test_data_ref/") {
+			t.mark(index)
+		}
 		return
 	}
 	switch op {

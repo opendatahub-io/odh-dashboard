@@ -554,6 +554,21 @@ func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 			},
 		},
 		{
+			name:       "editing an unrelated field does not validate the same benchmark's legacy reference",
+			collection: newCollection("https://user:pass@example.com/legacy.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/weight",
+				Value: json.RawMessage(`2`),
+			}},
+			status: http.StatusOK,
+			verify: func(t *testing.T, result CollectionEnvelope) {
+				assert.Len(t, result.Data.Benchmarks, 2)
+				assert.Equal(t, float64(2), result.Data.Benchmarks[0].Weight)
+				assert.Equal(t, "https://user:pass@example.com/legacy.git", result.Data.Benchmarks[0].TestDataRef.Git.URL)
+			},
+		},
+		{
 			name:       "writing a valid reference after a removal succeeds",
 			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
 			operations: []evalhub.CollectionPatchOperation{{
