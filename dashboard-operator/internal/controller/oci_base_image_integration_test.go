@@ -147,7 +147,7 @@ func TestIntegration_OCIBaseImageReconcile(t *testing.T) {
 	assert.Equal(t, "mirror.example.com/base:2", getConfigMap(t, "model-registry-ui-config").Data["images-oci-base-image"])
 
 	dashboard = getDashboard(t)
-	dashboard.Spec.ModelRegistryOCIBaseImage = "mirror.example.com/Busybox:1"
+	dashboard.Spec.ModelRegistryOCIBaseImage = "docker.io/busybox:latest"
 	dashboard.Spec.Gateway.Domain = "updated.example.com"
 	dashboard.Spec.Modules = disableAllModulesExcept("genAi")
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
@@ -167,7 +167,7 @@ func TestIntegration_OCIBaseImageReconcile(t *testing.T) {
 	assert.Equal(t, "registry.example.com/upload:2", getConfigMap(t, "model-registry-ui-config").Data["images-jobs-async-upload"], "invalid OCI input must not block upload Job image updates")
 	params, readErr := os.ReadFile(filepath.Join(manifests, "odh", "params.env"))
 	require.NoError(t, readErr)
-	assert.NotContains(t, string(params), "mirror.example.com/Busybox:1")
+	assert.NotContains(t, string(params), "docker.io/busybox:latest")
 	assert.Equal(t, "mirror.example.com/base:2", getConfigMap(t, "model-registry-ui-config").Data["images-oci-base-image"])
 
 	dashboard = getDashboard(t)

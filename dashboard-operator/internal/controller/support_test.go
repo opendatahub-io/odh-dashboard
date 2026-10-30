@@ -109,7 +109,7 @@ func TestValidateOCIBaseImage(t *testing.T) {
 	}{
 		{name: "omitted"},
 		{name: "tagged", image: "mirror.example.com/library/busybox:1.0"},
-		{name: "Docker Hub shorthand", image: "docker.io/busybox:latest"},
+		{name: "Docker Hub shorthand", image: "docker.io/busybox:latest", wantErr: true},
 		{name: "Docker Hub canonical", image: "docker.io/library/busybox:latest"},
 		{name: "localhost", image: "localhost:5000/library/busybox:1.0"},
 		{name: "digest", image: "registry.example.com/library/busybox@sha256:" + strings.Repeat("a", 64)},
