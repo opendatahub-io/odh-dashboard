@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -127,15 +128,13 @@ type EvaluationJob struct {
 }
 
 type JobResource struct {
-	ID                 string     `json:"id"`
-	Tenant             string     `json:"tenant,omitempty"`
-	CreatedAt          string     `json:"created_at,omitempty"`
-	UpdatedAt          string     `json:"updated_at,omitempty"`
-	ReadOnly           bool       `json:"read_only,omitempty"`
-	Owner              string     `json:"owner,omitempty"`
-	MlflowExperimentID string     `json:"mlflow_experiment_id,omitempty"`
-	Message            JobMessage `json:"message,omitempty"`
-	Queue              string     `json:"queue,omitempty"`
+	ID                 string `json:"id"`
+	Tenant             string `json:"tenant,omitempty"`
+	CreatedAt          string `json:"created_at,omitempty"`
+	UpdatedAt          string `json:"updated_at,omitempty"`
+	ReadOnly           bool   `json:"read_only,omitempty"`
+	Owner              string `json:"owner,omitempty"`
+	MlflowExperimentID string `json:"mlflow_experiment_id,omitempty"`
 }
 
 type JobMessage struct {
@@ -146,9 +145,8 @@ type JobMessage struct {
 
 type JobStatus struct {
 	State      string           `json:"state"`
-	Message    JobMessage       `json:"message,omitempty"`
+	Message    *JobMessage      `json:"message,omitempty"`
 	Benchmarks []BenchmarkState `json:"benchmarks,omitempty"`
-	Queue      string           `json:"queue,omitempty"`
 }
 
 type BenchmarkState struct {
@@ -163,7 +161,6 @@ type BenchmarkState struct {
 }
 
 type JobResults struct {
-	TotalEvaluations    int               `json:"total_evaluations"`
 	Benchmarks          []BenchmarkResult `json:"benchmarks,omitempty"`
 	MlflowExperimentURL string            `json:"mlflow_experiment_url,omitempty"`
 	Test                *ResultTest       `json:"test,omitempty"`
@@ -185,17 +182,11 @@ type BenchmarkResult struct {
 	ID             string               `json:"id"`
 	ProviderID     string               `json:"provider_id,omitempty"`
 	BenchmarkIndex *int                 `json:"benchmark_index,omitempty"`
-	Metrics        map[string]float64   `json:"metrics,omitempty"`
-	Artifacts      *BenchmarkArtifact   `json:"artifacts,omitempty"`
+	Metrics        map[string]any       `json:"metrics,omitempty"`
+	Artifacts      map[string]any       `json:"artifacts,omitempty"`
 	MlflowRunID    string               `json:"mlflow_run_id,omitempty"`
 	LogsPath       string               `json:"logs_path,omitempty"`
 	Test           *BenchmarkResultTest `json:"test,omitempty"`
-}
-
-type BenchmarkArtifact struct {
-	OCIDigest    string `json:"oci_digest,omitempty"`
-	OCIReference string `json:"oci_reference,omitempty"`
-	SizeBytes    int64  `json:"size_bytes,omitempty"`
 }
 
 type JobModel struct {
@@ -1053,6 +1044,28 @@ func readResponseBody(body io.Reader, maxSize int) ([]byte, error) {
 	return responseBody, nil
 }
 
+// decodeJSON decodes with UseNumber so numbers inside pass-through `any`
+// fields (metrics, artifacts, custom) keep their exact JSON literal rather
+// than losing precision to float64 when re-serialized to the frontend.
+func decodeJSON[T any](body []byte) (*T, error) {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.UseNumber()
+	var result T
+	if err := decoder.Decode(&result); err != nil {
+		return nil, err
+	}
+	// A single Decode accepts the first JSON value and ignores trailing
+	// content; require a clean EOF so malformed bodies fail like Unmarshal.
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if err == nil {
+			err = errors.New("unexpected trailing data after JSON value")
+		}
+		return nil, err
+	}
+	return &result, nil
+}
+
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
@@ -1084,11 +1097,7 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](body)
 }
 
 // post performs a typed POST request against the EvalHub API.
@@ -1130,11 +1139,7 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](respBody)
 }
 
 // patch performs a typed PATCH request against the EvalHub API.
@@ -1176,11 +1181,7 @@ func patch[T any](c *EvalHubClient, ctx context.Context, path string, body any, 
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](respBody)
 }
 
 // doRequest performs an HTTP request that does not return a typed body (e.g. DELETE).

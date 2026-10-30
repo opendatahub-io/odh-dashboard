@@ -154,6 +154,9 @@ importers:
       webpack:
         specifier: 5.104.1
         version: 5.104.1(@swc/core@1.16.0)(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@6.1.0)(postcss@8.5.28)(uglify-js@3.19.3)(webpack-cli@6.0.1)
+      yaml:
+        specifier: 2.9.1
+        version: 2.9.1
 
   backend:
     dependencies:

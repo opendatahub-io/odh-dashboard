@@ -388,6 +388,31 @@ Each certificate includes DNS names for in-cluster service discovery:
 - `<service-name>.<namespace>.svc`
 - `<service-name>.<namespace>.svc.cluster.local`
 
+### Cluster TLS Profile Resolution
+
+At startup the manager resolves the OpenShift cluster-wide TLS security profile
+(`apiservers.config.openshift.io/cluster`) via `internal/tls` and applies the
+resulting minimum TLS version and cipher suites to **both** the metrics and webhook
+HTTPS listeners. This keeps the operator's own listeners in step with the cluster
+policy rather than pinning a fixed configuration.
+
+Resolution is **fail-closed**: if the profile read is denied (`401`/`403`) or the
+profile is malformed (unknown type/minimum version, or an invalid `Custom` block),
+the manager logs the error and exits (`os.Exit(1)`) rather than serving a weaker
+policy that cannot be proven to match the cluster. A nil/empty profile resolves to
+Mozilla Intermediate defaults (TLS 1.2), and on a non-OpenShift cluster (the API
+group is absent) the manager likewise uses Intermediate defaults.
+
+Unlike the BFF listeners (which reconfigure in-process), the operator does not
+hot-swap TLS on a running listener. A `ProfileWatcher` watches
+`apiservers/cluster`; when the profile changes it cancels the manager's context so
+the process exits and the Deployment restarts it, which re-resolves the new policy.
+Because of this watch, the operator needs `get`, `list`, and `watch` on the
+`apiservers` resource in the `config.openshift.io` API group, granted via the
+operator's ClusterRole. If the manager crash-loops at startup with an `unable to
+resolve TLS configuration` error, check that this RBAC is present and that the
+APIServer config resource is readable.
+
 ## Deployment Prerequisites
 
 ### Required

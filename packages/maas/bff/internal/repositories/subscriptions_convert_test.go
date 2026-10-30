@@ -32,9 +32,12 @@ func TestConvertSubscriptionListItemsToMySubscriptionsStripsAdminMetadata(t *tes
 	if err != nil {
 		t.Fatalf("marshal converted subscription: %v", err)
 	}
-	for _, forbidden := range []string{"roles", "owner", "subjects"} {
+	for _, forbidden := range []string{"roles", "subjects"} {
 		if string(encoded) != "" && jsonContainsKey(encoded, forbidden) {
 			t.Fatalf("converted subscription contains forbidden field %q: %s", forbidden, encoded)
+		}
+		if len(items[0].Owner.Groups) != 1 || items[0].Owner.Groups[0].Name != "org/ai-grid-users" {
+			t.Fatalf("owner groups were not preserved: %+v", items[0].Owner)
 		}
 	}
 }

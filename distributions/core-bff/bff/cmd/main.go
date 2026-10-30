@@ -51,8 +51,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := newHTTPServer(app, cfg, certFile, keyFile, logger)
-	awaitShutdown(srv, app, logger)
+	runServer(app, cfg, certFile, keyFile, logger)
 }
 
 func parseFlags() (config.EnvConfig, string, string) {
@@ -160,7 +159,11 @@ func startMockPrometheus(cfg *config.EnvConfig, logger *slog.Logger) func() {
 	return mockProm.Close
 }
 
-func newHTTPServer(app *api.App, cfg config.EnvConfig, certFile, keyFile string, logger *slog.Logger) *http.Server {
+// runServer builds the HTTP server, serves it, and manages graceful shutdown.
+// When TLS is enabled it serves HTTPS via tlsprofile.ListenAndServeTLSWithReload,
+// which tracks the cluster TLS profile and restarts the listener on change so
+// policy updates apply without a pod restart.
+func runServer(app *api.App, cfg config.EnvConfig, certFile, keyFile string, logger *slog.Logger) {
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      app.Routes(),
@@ -170,49 +173,51 @@ func newHTTPServer(app *api.App, cfg config.EnvConfig, certFile, keyFile string,
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	if certFile != "" && keyFile != "" {
-		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
-		if err != nil {
-			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
-			os.Exit(1)
-		}
-		srv.TLSConfig = tlsCfg
-	}
+	tlsEnabled := certFile != "" && keyFile != ""
 
+	// signalCtx is cancelled on the first shutdown signal; both the HTTPS reload
+	// loop and the graceful-shutdown sequence below key off it.
+	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
+	var serveErr error
+	serverClosed := make(chan struct{})
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
-		var err error
-		if certFile != "" && keyFile != "" {
-			err = srv.ListenAndServeTLS(certFile, keyFile)
+		defer close(serverClosed)
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled)
+		if tlsEnabled {
+			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
-			err = srv.ListenAndServe()
+			serveErr = srv.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server ListenAndServe", "error", err)
+		if serveErr != nil && serveErr != http.ErrServerClosed {
+			logger.Error("HTTP server failed", "error", serveErr)
+			stop() // trigger graceful shutdown of the rest of the process
 		}
 	}()
 
-	return srv
-}
-
-func awaitShutdown(srv *http.Server, app *api.App, logger *slog.Logger) {
-	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	<-shutdownCh
+	<-signalCtx.Done()
 	logger.Info("shutting down gracefully...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("server shutdown failed", "error", err)
+	// The reload loop shuts its own listener down when signalCtx is cancelled;
+	// the plain listener needs an explicit shutdown.
+	if !tlsEnabled {
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Error("server shutdown failed", "error", err)
+		}
 	}
+	<-serverClosed
 
 	if err := app.Shutdown(); err != nil {
 		logger.Error("failed to shutdown Kubernetes manager", "error", err)
 	}
 
 	logger.Info("server stopped")
+	if serveErr != nil && serveErr != http.ErrServerClosed {
+		os.Exit(1)
+	}
 	os.Exit(0)
 }
