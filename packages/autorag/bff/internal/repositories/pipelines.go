@@ -310,9 +310,27 @@ func (r *PipelinesRepository) CreateIndexingRun(ctx context.Context, namespace s
 		"accepted_count", len(filteredParameters),
 	}
 	if len(droppedNames) > 0 {
-		// Parameter names only — values may hold secret references.
+		// Parameter names only — values may hold secret references. A client
+		// can send many long unsupported names alongside one accepted
+		// parameter, so bound the entry: the full count is logged separately
+		// and only a fixed number of truncated names are listed.
 		sort.Strings(droppedNames)
-		logAttrs = append(logAttrs, "dropped_names", strings.Join(droppedNames, ", "))
+		listed := droppedNames
+		if len(listed) > maxLoggedDroppedNames {
+			listed = listed[:maxLoggedDroppedNames]
+		}
+		truncated := make([]string, len(listed))
+		for i, name := range listed {
+			if runes := []rune(name); len(runes) > maxLoggedDroppedNameLength {
+				truncated[i] = string(runes[:maxLoggedDroppedNameLength])
+			} else {
+				truncated[i] = name
+			}
+		}
+		logAttrs = append(logAttrs,
+			"dropped_count", len(droppedNames),
+			"dropped_names", strings.Join(truncated, ", "),
+		)
 	}
 	r.logger.Info("filtered indexing pipeline parameters", logAttrs...)
 	req.Parameters = filteredParameters
@@ -549,6 +567,13 @@ const (
 	// accepted at validation and normalized to graphExtractionConfigParam when
 	// the discovered pipeline declares the canonical input.
 	graphExtractionSettingName = "graph_extraction"
+)
+
+// Bounds for the dropped-parameter log entry so a request carrying many long
+// unsupported names cannot produce an unbounded info-level log line.
+const (
+	maxLoggedDroppedNames      = 10
+	maxLoggedDroppedNameLength = 100
 )
 
 // ValidateGraphExtractionConfig validates the graph_extraction.mode setting used

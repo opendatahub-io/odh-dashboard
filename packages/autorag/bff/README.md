@@ -230,13 +230,17 @@ Vector database destinations are restricted to either a cluster-local DNS name e
 `.cluster.local` (plaintext is allowed for the in-cluster adapter contract; resolved loopback,
 link-local, multicast, unspecified, and NAT64-translated addresses are still rejected) or a
 public DNS name using TLS. Userinfo, queries, fragments, unsafe paths, and literal
-IP addresses are rejected. External DNS results are re-validated before the driver is created:
-private, loopback, link-local, multicast, unspecified, and metadata-style addresses are rejected.
-Plaintext endpoints are then pinned to the validated literal IPs on every dial, so later DNS
-changes cannot redirect the connection. TLS endpoints keep the hostname in the driver URI — the
-Neo4j driver derives the TLS server name from the dialed address, so pinning would break
-certificate hostname validation — leaving a narrow DNS-rebinding window between validation and
-the driver's own resolution, which `VerifyConnectivity` triggers immediately.
+IP addresses are rejected. How that endpoint policy is enforced differs by adapter:
+
+- Milvus and pgvector install a dial-time validator (`vectorSafeDialContext`) that resolves
+  and re-validates addresses on every connection and dials the validated IPs directly.
+- Neo4j validates resolved addresses before the driver is created: private, loopback,
+  link-local, multicast, unspecified, and metadata-style addresses are rejected. Plaintext
+  endpoints are then pinned to the validated literal IPs on every dial, so later DNS changes
+  cannot redirect the connection. TLS endpoints keep the hostname in the driver URI — the
+  Neo4j driver derives the TLS server name from the dialed address, so pinning would break
+  certificate hostname validation — leaving a narrow DNS-rebinding window between validation
+  and the driver's own resolution, which `VerifyConnectivity` triggers immediately.
 
 **Sample call (streaming):**
 

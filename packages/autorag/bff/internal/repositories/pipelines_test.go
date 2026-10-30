@@ -1268,6 +1268,65 @@ func TestCreateIndexingRun(t *testing.T) {
 		}
 	})
 
+	t.Run("bounds the dropped-parameter log entry", func(t *testing.T) {
+		var logBuf strings.Builder
+		mock := &mockPipelinesService{
+			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+				return map[string]*pipelines.DiscoveredPipeline{
+					constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+				}, nil
+			},
+			getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+				return []string{"chunk_size"}, nil
+			},
+			createPipelineRunFn: func(context.Context, string, *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+				return &pipelines.PipelineRun{RunID: "idx-run", State: "PENDING"}, nil
+			},
+		}
+		repo := NewPipelinesRepository(slog.New(slog.NewTextHandler(&logBuf, nil)), mock, PipelinesRepositoryConfig{
+			IndexingPipelineName: "documents-indexing-pipeline",
+		})
+
+		// 15 unsupported names of 148 runes each; the zero-padded prefixes
+		// keep the sorted order stable so the first 10 listed are 00–09.
+		parameters := map[string]any{"chunk_size": 512}
+		for i := 0; i < 15; i++ {
+			parameters[fmt.Sprintf("%02d%s", i, strings.Repeat("x", 148))] = "value"
+		}
+		if _, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+			DisplayName: "index-run",
+			Parameters:  parameters,
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		log := logBuf.String()
+		if !strings.Contains(log, "dropped_count=15") {
+			t.Errorf("log should carry the full dropped count: %s", log)
+		}
+		value := log[strings.Index(log, "dropped_names=")+len("dropped_names="):]
+		if newline := strings.IndexByte(value, '\n'); newline >= 0 {
+			value = value[:newline]
+		}
+		// The text handler quotes values containing commas/spaces.
+		value = strings.Trim(value, "\"")
+		names := strings.Split(value, ", ")
+		if len(names) != 10 {
+			t.Errorf("listed dropped names = %d, want the capped 10", len(names))
+		}
+		for _, name := range names {
+			if runeLen := len([]rune(name)); runeLen != 100 {
+				t.Errorf("listed name %q has %d runes, want the truncated 100", name, runeLen)
+			}
+		}
+		if !strings.Contains(value, "00"+strings.Repeat("x", 98)) {
+			t.Errorf("sorted listing should start with the first dropped name: %s", value)
+		}
+		if strings.Contains(value, "10"+strings.Repeat("x", 98)) {
+			t.Errorf("sorted listing should not include the 11th dropped name: %s", value)
+		}
+	})
+
 	t.Run("rejects a request with no supported parameters", func(t *testing.T) {
 		mock := &mockPipelinesService{
 			discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
