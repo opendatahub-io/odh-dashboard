@@ -156,6 +156,7 @@ type DashboardReconciler struct {
 	Platform              cluster.Platform
 	Namespace             string
 	ApplicationsNamespace string
+	RouteAPIAvailable     bool
 }
 
 // apiReader makes direct-read semantics explicit while retaining a fake-client
@@ -184,6 +185,11 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if !dashboard.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
+			if dashboard.Spec.LegacyRedirects != nil {
+				if err := r.cleanupLegacyRedirects(ctx); err != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to cleanup legacy dashboard redirects: %w", err)
+				}
+			}
 			cleanup, err := r.deleteMaaSPortalResources(ctx)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup MaaS Portal resources: %w", err)
@@ -255,6 +261,11 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if dashboard.Spec.ManagementState == "Removed" {
 		logger.Info("ManagementState is Removed, tearing down resources")
+		var legacyRedirectErr error
+		if err := r.reconcileLegacyRedirects(ctx, dashboard); err != nil {
+			legacyRedirectErr = fmt.Errorf("failed to clean up legacy dashboard redirects: %w", err)
+			logger.Error(err, "Failed to clean up legacy dashboard redirects; continuing Dashboard teardown")
+		}
 
 		// MaaS and GenAI are shared dependencies. Reconcile their aggregate
 		// demand before the core teardown so MaaS Portal-only operation retains them.
@@ -310,6 +321,14 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				conditions.WithReason("Removed"),
 				conditions.WithMessage("Dashboard has been removed via managementState"))
 		}
+		if legacyRedirectErr != nil {
+			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+				conditions.WithError(legacyRedirectErr),
+				conditions.WithReason("LegacyRedirectCleanupFailed"))
+			cm.MarkTrue(string(common.ConditionTypeDegraded),
+				conditions.WithError(legacyRedirectErr),
+				conditions.WithReason("LegacyRedirectCleanupFailed"))
+		}
 		if cm.IsHappy() {
 			dashboard.Status.Phase = common.PhaseReady
 		} else {
@@ -328,7 +347,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, fmt.Errorf("failed to update status after removal: %w", statusErr)
 		}
 
-		return ctrl.Result{RequeueAfter: portalRetryAfter}, nil
+		return ctrl.Result{RequeueAfter: portalRetryAfter}, legacyRedirectErr
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
@@ -343,7 +362,22 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	platformVersion := distributionConfig.PlatformVersion
 
+	legacyRedirectErr := r.reconcileLegacyRedirects(ctx, dashboard)
+	if legacyRedirectErr != nil {
+		logger.Error(legacyRedirectErr, "Failed to reconcile legacy dashboard redirects; continuing Dashboard reconciliation")
+	}
+
 	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil)
+	if legacyRedirectErr != nil {
+		legacyRedirectErr = fmt.Errorf("failed to reconcile legacy dashboard redirects: %w", legacyRedirectErr)
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithError(legacyRedirectErr),
+			conditions.WithReason("LegacyRedirectReconcileFailed"))
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithError(legacyRedirectErr),
+			conditions.WithReason("LegacyRedirectReconcileFailed"))
+		err = errors.Join(err, legacyRedirectErr)
+	}
 
 	releases := []common.ComponentRelease{{
 		Name:    v1alpha1.DashboardComponentName,
