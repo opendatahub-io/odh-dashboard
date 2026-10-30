@@ -28,7 +28,11 @@ const ModelAccessPageContent: React.FC = () => (
     loaded
     empty={false}
   >
-    <SubscriptionsTab readOnly attributeFilters getSubscriptionDetailUrl={getModelAccessSubscriptionViewUrl} />
+    <SubscriptionsTab
+      readOnly
+      attributeFilters
+      getSubscriptionDetailUrl={getModelAccessSubscriptionViewUrl}
+    />
   </ApplicationsPage>
 );
 
