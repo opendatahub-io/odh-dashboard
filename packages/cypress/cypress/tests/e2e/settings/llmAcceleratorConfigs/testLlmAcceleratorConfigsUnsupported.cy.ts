@@ -81,14 +81,15 @@ describe('Unsupported accelerator configs: CRUD + wizard gating', () => {
     modelServingGlobal.selectSingleServingModelButtonIfExists();
     modelServingGlobal.findDeployModelButton().click();
 
-    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+    modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
     modelServingWizard.findUrilocationInput().clear().type(modelURI);
     modelServingWizard.findSaveConnectionCheckbox().uncheck();
-    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+    modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
     modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
+    modelServingWizard.findModelServerManualSelectRadio().check();
   };
 
   it(

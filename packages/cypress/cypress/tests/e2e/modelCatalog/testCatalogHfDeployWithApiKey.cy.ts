@@ -102,11 +102,11 @@ describe('Verify HF private deploy uses ServiceAccount and Secret', () => {
 
       cy.step('Model source: private HF URI + API key');
       modelServingWizard.findModelSourceStep().should('be.enabled');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.selectModelLocationOption(ModelLocationSelectOption.URI);
       modelServingWizard.findUrilocationInput().clear().type(testData.privateModelUri);
       // Avoid requiring a new connection name; HF token wiring is via SA+Secret, not the connection.
       modelServingWizard.findSaveConnectionCheckbox().should('be.checked').click();
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
       modelServingWizard.findHfApiKeyField().should('be.visible');
       modelServingWizard.findHfGatedAccessAlert().should('not.exist');
       modelServingWizard.findNextButton().should('be.disabled');

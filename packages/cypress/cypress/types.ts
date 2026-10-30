@@ -564,7 +564,7 @@ export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };
 
-enum OOTBConnectionTypes {
+export enum OOTBConnectionTypes {
   s3 = 'S3 compatible object storage - v1',
   uri = 'URI - v1',
   oci = 'OCI compliant registry - v1',
