@@ -5,9 +5,13 @@ import {
 } from './oc_commands/project';
 import { ensureAdminOcSession } from './oc_commands/baseCommands';
 
-export const createAndVerifyProject = (projectName: string): Cypress.Chainable<boolean> =>
+export const createAndVerifyProject = (
+  projectName: string,
+  onProjectCreated?: () => void,
+): Cypress.Chainable<boolean> =>
   createOpenShiftProject(projectName).then((result) => {
     expect(result.exitCode).to.equal(0);
+    onProjectCreated?.();
     return verifyOpenShiftProjectExists(projectName).then((exists) => {
       if (!exists) {
         throw new Error(`Expected project ${projectName} to exist, but it does not.`);
@@ -30,7 +34,10 @@ export const cleanupTestProject = (projectName: string): void => {
   });
 };
 
-export const createCleanProject = (projectName: string): Cypress.Chainable<boolean> =>
+export const createCleanProject = (
+  projectName: string,
+  onProjectCreated?: () => void,
+): Cypress.Chainable<boolean> =>
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
       cy.log(`Project ${projectName} already exists. Deleting it.`);
@@ -53,10 +60,10 @@ export const createCleanProject = (projectName: string): Cypress.Chainable<boole
         };
         return checkDeleted().then(() => {
           cy.log(`Creating project ${projectName}`);
-          return createAndVerifyProject(projectName);
+          return createAndVerifyProject(projectName, onProjectCreated);
         });
       });
     }
     cy.log(`Creating project ${projectName}`);
-    return createAndVerifyProject(projectName);
+    return createAndVerifyProject(projectName, onProjectCreated);
   });
