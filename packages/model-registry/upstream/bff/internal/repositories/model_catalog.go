@@ -24,31 +24,37 @@ func NewCatalogRepository() *ModelCatalogRepository {
 	return &ModelCatalogRepository{}
 }
 
-func (m *ModelCatalogRepository) GetModelCatalogWithMode(sessionCtx context.Context, client k8s.KubernetesClientInterface, namespace string, isFederatedMode bool) (models.ModelCatalogModel, error) {
+func (m *ModelCatalogRepository) GetModelCatalog(sessionCtx context.Context, client k8s.KubernetesClientInterface, namespace string) (models.ModelCatalogModel, error) {
 
 	s, err := client.GetServiceDetailsByName(sessionCtx, namespace, ModelCatalogServiceName, k8s.ComponentLabelValueCatalog)
 	if err != nil {
 		return models.ModelCatalogModel{}, fmt.Errorf("error fetching model catalog: %w", err)
 	}
 
+	// Resolve the catalog via its in-cluster service DNS name rather than s.ClusterIP
+	// or s.ExternalAddressRest. Routing through the external address can hairpin
+	// through an external NLB and be silently dropped on some platforms (e.g. ROSA
+	// HCP), so those fields are intentionally not used for address resolution here
+	// (RHOAIENG-101859). Fall back to a namespace-scoped .svc name for older clients
+	// that do not populate ServiceDNSName.
+	serviceHost := s.ServiceDNSName
+	if serviceHost == "" {
+		serviceHost = fmt.Sprintf("%s.%s.svc", ModelCatalogServiceName, namespace)
+	}
 	modelCatalog := models.ModelCatalogModel{
 		Name:          s.Name,
 		Description:   s.Description,
 		DisplayName:   s.DisplayName,
-		ServerAddress: m.ResolveServerAddress(s.ClusterIP, s.HTTPPort, s.IsHTTPS, s.ExternalAddressRest, isFederatedMode, ModelCatalogAPIPath),
+		ServerAddress: m.ResolveServerAddress(serviceHost, s.HTTPPort, s.IsHTTPS, ModelCatalogAPIPath),
 		IsHTTPS:       s.IsHTTPS,
 	}
 	return modelCatalog, nil
 }
 
-func (m *ModelCatalogRepository) ResolveServerAddress(clusterIP string, httpPort int32, isHTTPS bool, externalAddressRest string, isFederatedMode bool, apiPath string) string {
+func (m *ModelCatalogRepository) ResolveServerAddress(host string, port int32, isHTTPS bool, apiPath string) string {
 	protocol := "http"
 	if isHTTPS {
 		protocol = "https"
 	}
-	if isFederatedMode && externalAddressRest != "" {
-		return fmt.Sprintf("%s://%s%s", protocol, externalAddressRest, apiPath)
-	}
-
-	return fmt.Sprintf("%s://%s:%d%s", protocol, clusterIP, httpPort, apiPath)
+	return fmt.Sprintf("%s://%s:%d%s", protocol, host, port, apiPath)
 }

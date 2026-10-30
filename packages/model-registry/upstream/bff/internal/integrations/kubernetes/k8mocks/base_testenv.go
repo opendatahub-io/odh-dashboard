@@ -821,8 +821,12 @@ func createModelCatalogService(k8sClient kubernetes.Interface, ctx context.Conte
 			},
 		},
 		Spec: corev1.ServiceSpec{
+			// Match the operator's catalog-deployment template, which labels the
+			// catalog pods (and selects them from the Service) with both
+			// component: model-catalog and app.kubernetes.io/name: model-catalog.
 			Selector: map[string]string{
-				"component": "model-catalog-server",
+				"component":              "model-catalog",
+				"app.kubernetes.io/name": "model-catalog",
 			},
 			Type:      corev1.ServiceTypeClusterIP,
 			ClusterIP: clusterIP,
