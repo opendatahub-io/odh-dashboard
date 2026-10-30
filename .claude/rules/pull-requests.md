@@ -14,5 +14,5 @@ The PR **description** is the **sole source of truth** for review: put goals, co
 
 - **Use the template shape.** Keep the empty headings; uncomment the top `Fixes:` comment when there is a tracker link; uncomment `## Justifications` only when needed.
 - **Substance over placeholders.** Fill Problem, Solution, and Evidence with real content — no TBD or placeholder text.
-- **Evidence must be reproducible.** Include the steps you took, not only the outcome. Call out automated coverage that protects the change, or briefly explain when new tests are not appropriate. For UI or flow changes, attach or link screenshots, GIFs, and/or video. Redact tokens, passwords, and cluster credentials.
+- **Evidence must be reproducible.** Include the steps you took, not only the outcome. Describe the automation or verification that required CI cannot show; tests that required PR checks already run do not need a separate call-out. When new tests aren't appropriate, give the constraint, why automation is inappropriate or impossible, and the alternative verification. For UI or flow changes, attach or link screenshots, GIFs, and/or video. Redact tokens, passwords, and cluster credentials.
 - **No bare summaries.** Never skip the template and use a plain paragraph as the PR description. Reviewers expect the Problem / Solution / Evidence structure.
