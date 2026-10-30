@@ -8,6 +8,8 @@ import (
 
 	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -97,4 +99,32 @@ func TestGetMaaSModelsPropagatesURLValidation(t *testing.T) {
 	if maaSErr.StatusCode != 400 || maaSErr.Code != maas.ErrCodeInvalidRequest {
 		t.Fatalf("unexpected MaaS error: %+v", maaSErr)
 	}
+}
+
+func TestGetMaaSModelsAttachesDiscoveredTrustedOrigin(t *testing.T) {
+	resolver := repositoryGatewayResolver{origin: maas.MaaSOrigin{Host: "maas.apps.example.com", Port: "443"}}
+	k8s := &mockK8sService{
+		getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+			return &v1.Secret{Data: map[string][]byte{
+				"MAAS_BASE_URL": []byte("https://maas.apps.example.com/maas-api"),
+				"MAAS_API_KEY":  []byte("key"),
+			}}, nil
+		},
+	}
+	client := &mockMaaSClient{
+		listModelsFn: func(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error) {
+			assert.Equal(t, "https://maas.apps.example.com/maas-api", baseURL)
+			assert.Equal(t, "key", apiKey)
+			origin, ok := maas.TrustedMaaSOriginFromContext(ctx)
+			if !ok || !origin.Equal(resolver.origin) {
+				return nil, errors.New("trusted MaaS origin was not attached")
+			}
+			return []models.MaaSNativeModel{{ID: "model-a"}}, nil
+		},
+	}
+
+	repo := NewMaaSRepository(slog.Default(), client, k8s, resolver)
+	data, err := repo.GetMaaSModels(context.Background(), "ns", "maas")
+	require.NoError(t, err)
+	require.Len(t, data.Models, 1)
 }

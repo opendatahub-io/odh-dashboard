@@ -118,6 +118,23 @@ type EnvConfig struct {
 	// Missing or unreadable files are ignored.
 	BundlePaths []string
 
+	// GatewayDomain is the configured Dashboard gateway domain. Its value is not
+	// trusted as a MaaS endpoint; its presence enables router-CA synchronization
+	// for the installation gateway discovered through the MaaS BFF.
+	GatewayDomain string
+
+	// PodNamespace is populated by the downward API and is used for in-cluster
+	// MaaS BFF service discovery and router-CA bundle synchronization.
+	PodNamespace string
+
+	// BFFMaaS* configure the authenticated in-cluster MaaS BFF client used to
+	// discover the installation's externally reachable MaaS gateway hostname.
+	BFFMaaSServiceName     string
+	BFFMaaSServicePort     int
+	BFFMaaSTLSEnabled      bool
+	BFFMaaSAuthTokenHeader string
+	BFFMaaSAuthTokenPrefix string
+
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
 	// Valid values: "internal" or "user_token"

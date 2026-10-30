@@ -432,6 +432,84 @@ func TestEmbedPreservesNormalResponseSemantics(t *testing.T) {
 	assert.Equal(t, []float32{1.5, 2}, got)
 }
 
+func TestClientWithTrustedOriginPropagatesCapabilityToRequests(t *testing.T) {
+	origin := MaaSOrigin{Host: "maas.apps.example.com", Port: "443"}
+	client, err := NewClientWithHTTPClient("https://maas.apps.example.com", "key", &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		got, ok := trustedMaaSOriginFromContext(req.Context())
+		if !ok || !got.Equal(origin) {
+			return nil, fmt.Errorf("trusted origin was not propagated")
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"data":[{"embedding":[1]}]}`)),
+		}, nil
+	})})
+	require.NoError(t, err)
+
+	_, err = client.WithTrustedMaaSOrigin(origin).Embed(context.Background(), "embedding-model", "text")
+	require.NoError(t, err)
+}
+
+func TestListModelsPropagatesTrustedOriginCapability(t *testing.T) {
+	origin := MaaSOrigin{Host: "maas.apps.example.com", Port: "443"}
+	client := NewMaaSClient(&http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		got, ok := trustedMaaSOriginFromContext(req.Context())
+		if !ok || !got.Equal(origin) {
+			return nil, fmt.Errorf("trusted origin was not propagated")
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"data":[]}`)),
+		}, nil
+	})})
+
+	_, err := client.ListModels(WithTrustedMaaSOrigin(context.Background(), origin), "https://maas.apps.example.com", "key")
+	require.NoError(t, err)
+}
+
+func TestChatCompletePropagatesTrustedOriginCapability(t *testing.T) {
+	origin := MaaSOrigin{Host: "maas.apps.example.com", Port: "443"}
+	client, err := NewClientWithHTTPClient("https://maas.apps.example.com", "key", &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		got, ok := trustedMaaSOriginFromContext(req.Context())
+		if !ok || !got.Equal(origin) {
+			return nil, fmt.Errorf("trusted origin was not propagated")
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(`{"choices":[{"message":{"content":"answer"}}]}`)),
+		}, nil
+	})})
+	require.NoError(t, err)
+
+	response, err := client.WithTrustedMaaSOrigin(origin).ChatComplete(context.Background(), ChatRequest{Model: "model"})
+	require.NoError(t, err)
+	assert.Equal(t, "answer", response.Answer)
+}
+
+func TestChatCompleteStreamPropagatesTrustedOriginCapability(t *testing.T) {
+	origin := MaaSOrigin{Host: "maas.apps.example.com", Port: "443"}
+	client, err := NewClientWithHTTPClient("https://maas.apps.example.com", "key", &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		got, ok := trustedMaaSOriginFromContext(req.Context())
+		if !ok || !got.Equal(origin) {
+			return nil, fmt.Errorf("trusted origin was not propagated")
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"text/event-stream"}},
+			Body: io.NopCloser(strings.NewReader(
+				"data: {\"choices\":[{\"delta\":{\"content\":\"answer\"}}]}\n\n" +
+					"data: [DONE]\n\n",
+			)),
+		}, nil
+	})})
+	require.NoError(t, err)
+
+	result, err := client.WithTrustedMaaSOrigin(origin).ChatCompleteStreamWithCallback(context.Background(), ChatRequest{Model: "model"}, func(string) {})
+	require.NoError(t, err)
+	assert.Equal(t, "answer", result.FullAnswer)
+}
+
 func TestMaaSSafeDialContextRejectsUnsafeResolvedAddress(t *testing.T) {
 	baseDialed := false
 	dial := maaSSafeDialContext(
@@ -468,6 +546,68 @@ func TestMaaSSafeDialContextRejectsPrivateAndLinkLocalResolvedAddresses(t *testi
 			assert.False(t, baseDialed)
 		})
 	}
+}
+
+func TestMaaSSafeDialContextAllowsOnlyMatchingTrustedPrivateOrigin(t *testing.T) {
+	baseDialed := false
+	dial := maaSSafeDialContext(
+		func(_ context.Context, _, addr string) (net.Conn, error) {
+			baseDialed = true
+			assert.Equal(t, "10.0.0.15:443", addr)
+			return nil, fmt.Errorf("stop after recording address")
+		},
+		func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("10.0.0.15")}, nil
+		},
+	)
+
+	ctx := WithTrustedMaaSOrigin(context.Background(), MaaSOrigin{Host: "maas.example", Port: "443"})
+	_, err := dial(ctx, "tcp", "maas.example:443")
+	require.Error(t, err)
+	assert.True(t, baseDialed, "matching trusted origin should allow the private address")
+}
+
+func TestMaaSSafeDialContextRejectsAnyBlockedAddressFromDNSResults(t *testing.T) {
+	for _, addresses := range [][]string{
+		{"198.51.100.10", "10.0.0.15"},
+		{"10.0.0.15", "198.51.100.10"},
+	} {
+		t.Run(strings.Join(addresses, "-"), func(t *testing.T) {
+			baseDialed := false
+			dial := maaSSafeDialContext(
+				func(context.Context, string, string) (net.Conn, error) {
+					baseDialed = true
+					return nil, fmt.Errorf("unexpected dial")
+				},
+				func(context.Context, string) ([]net.IP, error) {
+					return []net.IP{net.ParseIP(addresses[0]), net.ParseIP(addresses[1])}, nil
+				},
+			)
+
+			_, err := dial(context.Background(), "tcp", "maas.example:443")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "blocked")
+			assert.False(t, baseDialed, "a blocked DNS result must prevent dialing any result")
+		})
+	}
+}
+
+func TestMaaSSafeDialContextRejectsTrustedHostnameOnDifferentPort(t *testing.T) {
+	baseDialed := false
+	dial := maaSSafeDialContext(
+		func(context.Context, string, string) (net.Conn, error) {
+			baseDialed = true
+			return nil, fmt.Errorf("unexpected dial")
+		},
+		func(context.Context, string) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("10.0.0.15")}, nil
+		},
+	)
+
+	ctx := WithTrustedMaaSOrigin(context.Background(), MaaSOrigin{Host: "maas.example", Port: "443"})
+	_, err := dial(ctx, "tcp", "maas.example:8443")
+	require.Error(t, err)
+	assert.False(t, baseDialed, "a different port must not inherit the private-origin exception")
 }
 
 func TestMaaSSafeDialContextRejectsNonLoopbackLocalhost(t *testing.T) {
