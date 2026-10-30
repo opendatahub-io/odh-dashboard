@@ -5,6 +5,8 @@ import {
 import {
   getHumanReadableKueueMessage,
   getKueueSubStepInfo,
+  getQueuePosition,
+  isQueuePositionStatus,
   getDeploymentKueueSubStepMessage,
   getPreemptionToastBody,
   getEvictionToastBody,
@@ -425,6 +427,35 @@ describe('appendQueuePositionToKueueMessage', () => {
   });
 });
 
+describe('queue position helpers', () => {
+  it.each([KueueWorkloadStatus.Queued, KueueWorkloadStatus.Inadmissible])(
+    'should identify %s as a queue-position status',
+    (status) => {
+      expect(isQueuePositionStatus(status)).toBe(true);
+    },
+  );
+
+  it('should return queue-position data when all required values are present', () => {
+    expect(
+      getQueuePosition({
+        status: KueueWorkloadStatus.Queued,
+        queueName: 'my-queue',
+        queuePosition: 2,
+      }),
+    ).toEqual({ position: 2, queue: 'my-queue' });
+  });
+
+  it('should return undefined when queue position is not supported by the status', () => {
+    expect(
+      getQueuePosition({
+        status: KueueWorkloadStatus.Failed,
+        queueName: 'my-queue',
+        queuePosition: 2,
+      }),
+    ).toBeUndefined();
+  });
+});
+
 describe('getPreemptionToastBody', () => {
   it('should include formatted timestamp and reentered message when timestamp provided', () => {
     const result = getPreemptionToastBody('my-workbench', '2026-02-16T08:00:00Z');
@@ -452,15 +483,36 @@ describe('getKueueSubStepInfo', () => {
       expect(result.label).not.toMatch(/^Re-queued:/);
     });
 
-    it('does not apply prefix for non-Queued statuses even in recovery', () => {
-      const result = getKueueSubStepInfo(
-        KueueWorkloadStatus.Inadmissible,
+    it.each([
+      [
+        'without a queue position',
         'LocalQueue no-lq does not exist',
         'no-lq',
-        true,
-      );
-      expect(result.label).not.toMatch(/^Re-queued:/);
-    });
+        undefined,
+        'Queue no-lq does not exist',
+      ],
+      [
+        'with a queue position',
+        'Workload exceeds the ClusterQueue capacity',
+        'my-queue',
+        1,
+        '1st in my-queue',
+      ],
+    ] as const)(
+      'does not apply prefix for Inadmissible status during recovery %s',
+      (_caseName, message, queueName, queuePosition, expectedLabel) => {
+        const result = getKueueSubStepInfo(
+          KueueWorkloadStatus.Inadmissible,
+          message,
+          queueName,
+          true,
+          queuePosition,
+        );
+
+        expect(result.label).toBe(expectedLabel);
+        expect(result.label).not.toMatch(/^Re-queued:/);
+      },
+    );
 
     it('does not double-prefix for Requeued status in recovery', () => {
       const result = getKueueSubStepInfo(

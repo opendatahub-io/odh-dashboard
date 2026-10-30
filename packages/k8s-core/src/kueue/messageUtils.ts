@@ -171,6 +171,26 @@ const PENDING_QUEUE_POSITION_STATUSES: KueueWorkloadStatus[] = [
   KueueWorkloadStatus.Inadmissible,
 ];
 
+export const isQueuePositionStatus = (status: KueueWorkloadStatus): boolean =>
+  PENDING_QUEUE_POSITION_STATUSES.includes(status);
+
+export const getQueuePosition = (
+  kueueStatus: KueueWorkloadStatusWithMessage,
+): { position: number; queue: string } | undefined => {
+  if (
+    kueueStatus.queuePosition == null ||
+    !kueueStatus.queueName ||
+    !isQueuePositionStatus(kueueStatus.status)
+  ) {
+    return undefined;
+  }
+
+  return {
+    position: kueueStatus.queuePosition,
+    queue: kueueStatus.queueName,
+  };
+};
+
 /** Appends Visibility API queue position when populated (mirrors NotebookStateStatus subtitle). */
 export const appendQueuePositionToKueueMessage = (
   message: string,
@@ -179,7 +199,7 @@ export const appendQueuePositionToKueueMessage = (
   if (
     kueueStatus.queuePosition != null &&
     kueueStatus.queueName &&
-    PENDING_QUEUE_POSITION_STATUSES.includes(kueueStatus.status)
+    isQueuePositionStatus(kueueStatus.status)
   ) {
     return `${message} (${formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName)})`;
   }
@@ -384,13 +404,16 @@ export const getKueueSubStepInfo = (
   }
 
   const raw = getHumanReadableKueueMessage(status, message, queueName);
+  const shouldShowRecoveryPrefix = isRecovery && status === KueueWorkloadStatus.Queued;
 
-  const withRecovery =
-    isRecovery && status === KueueWorkloadStatus.Queued ? `Re-queued: ${raw}` : raw;
+  const withRecovery = shouldShowRecoveryPrefix ? `Re-queued: ${raw}` : raw;
 
   const label =
     PENDING_QUEUE_POSITION_STATUSES.includes(status) && queuePosition != null && queueName
-      ? `${isRecovery ? 'Re-queued: ' : ''}${formatQueuePosition(queuePosition, queueName)}`
+      ? `${shouldShowRecoveryPrefix ? 'Re-queued: ' : ''}${formatQueuePosition(
+          queuePosition,
+          queueName,
+        )}`
       : withRecovery;
 
   return { label };

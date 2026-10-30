@@ -18,11 +18,13 @@ import {
   getHumanReadableKueueMessage,
   getRequeuedMessage,
   formatQueuePosition,
+  getQueuePosition,
 } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import UnderlinedTruncateButton from '@odh-dashboard/ui-core/components/UnderlinedTruncateButton';
 import { EventStatus, NotebookStatus } from '#~/types';
 import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
 import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
+import { QueueSubtitleText } from '#~/concepts/kueue/KueueSubtitleText';
 import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -92,13 +94,9 @@ export const getStatusSubtitle = ({
       kueueStatus.message,
       kueueStatus.queueName,
     );
-    if (
-      kueueStatus.queuePosition != null &&
-      kueueStatus.queueName &&
-      (kueueStatus.status === KueueWorkloadStatus.Queued ||
-        kueueStatus.status === KueueWorkloadStatus.Inadmissible)
-    ) {
-      return formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName);
+    const queuePosition = getQueuePosition(kueueStatus);
+    if (queuePosition) {
+      return formatQueuePosition(queuePosition.position, queuePosition.queue);
     }
     return message;
   }
@@ -150,6 +148,10 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
     setStartModalOpen(true);
   }, [kueueStatus, isStarting, isRunning, isStopping]);
 
+  const queuePosition = kueueStatus ? getQueuePosition(kueueStatus) : undefined;
+  const queueName = kueueStatus?.queueName;
+  const hasQueueNameSubtitle = Boolean(!queuePosition && queueName && statusSubtitle);
+
   return (
     <>
       <Flex
@@ -169,17 +171,41 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           />
         </FlexItem>
         {statusSubtitle != null ? (
-          <UnderlinedTruncateButton
-            data-testid="notebook-status-subtitle"
-            content={statusSubtitle}
-            color={getNotebookStatusColor(notebookStatus, kueueStatus)}
-            textDecoration={getNotebookStatusTextDecoration(
-              notebookStatus,
-              isStarting,
-              kueueStatus,
-            )}
-            onClick={openStatusModal}
-          />
+          queuePosition || hasQueueNameSubtitle ? (
+            <Button
+              variant="link"
+              isInline
+              data-testid="notebook-status-subtitle"
+              onClick={openStatusModal}
+            >
+              <QueueSubtitleText
+                text={
+                  queuePosition
+                    ? formatQueuePosition(queuePosition.position, queuePosition.queue)
+                    : statusSubtitle
+                }
+                queue={queuePosition?.queue ?? queueName}
+                color={getNotebookStatusColor(notebookStatus, kueueStatus)}
+                textDecoration={getNotebookStatusTextDecoration(
+                  notebookStatus,
+                  isStarting,
+                  kueueStatus,
+                )}
+              />
+            </Button>
+          ) : (
+            <UnderlinedTruncateButton
+              data-testid="notebook-status-subtitle"
+              content={statusSubtitle}
+              color={getNotebookStatusColor(notebookStatus, kueueStatus)}
+              textDecoration={getNotebookStatusTextDecoration(
+                notebookStatus,
+                isStarting,
+                kueueStatus,
+              )}
+              onClick={openStatusModal}
+            />
+          )
         ) : null}
       </Flex>
       {isStartModalOpen ? (
