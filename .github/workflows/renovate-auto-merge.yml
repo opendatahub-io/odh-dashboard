@@ -100,7 +100,10 @@ jobs:
           #   2. Otherwise a bot removal is Prow invalidating a stale review
           #      after a push: revalidate the current head.
           #   3. Anything else, including our own cleanup: respect it.
-          timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s '.')
+          # `gh api --paginate` emits one array per page, so flatten the pages
+          # before selecting; a bare `jq -s '.'` would leave an array of arrays
+          # and every selector below would match nothing.
+          timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s 'add // []')
           last_push=$(jq -r '[.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""' <<<"$timeline")
           last_cancel=$(jq -r '[.[] | select(.event == "commented" and ((.body // "") | test("/lgtm[[:space:]]+cancel"))) | .created_at] | max // ""' <<<"$timeline")
           remover=$(jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""' <<<"$timeline")
