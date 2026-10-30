@@ -44,6 +44,36 @@ func jsonHandler(t *testing.T, v any) http.Handler {
 	})
 }
 
+func TestGetWhoAmIUpstreamErrorPreservesStatus(t *testing.T) {
+	tests := []struct {
+		name       string
+		statusCode int
+		body       string
+		message    string
+	}{
+		{name: "string error", statusCode: http.StatusUnauthorized, body: `{"error":"invalid token"}`, message: "invalid token"},
+		{name: "object error", statusCode: http.StatusUnauthorized, body: `{"error":{"message":"Authentication required","type":"authentication_error","code":401}}`, message: "Authentication required"},
+		{name: "object error without message", statusCode: http.StatusUnauthorized, body: `{"error":{"code":401}}`, message: http.StatusText(http.StatusUnauthorized)},
+		{name: "malformed error", statusCode: http.StatusForbidden, body: `not-json`, message: http.StatusText(http.StatusForbidden)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.statusCode)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			_, err := client.GetWhoAmI(context.Background())
+			var upstreamErr *MaasUpstreamError
+			if !errors.As(err, &upstreamErr) {
+				t.Fatalf("error = %v, want MaasUpstreamError", err)
+			}
+			if upstreamErr.StatusCode != tt.statusCode || upstreamErr.Message != tt.message {
+				t.Fatalf("upstream error = %#v, want status %d and message %q", upstreamErr, tt.statusCode, tt.message)
+			}
+		})
+	}
+}
+
 func TestNewMaasClient_ProxyFromEnvironmentOnlyInE2E(t *testing.T) {
 	// Go caches proxy environment settings on first use, so test their values
 	// in a fresh process rather than relying on the order of other tests.

@@ -49,7 +49,7 @@ describe('Feature Store Admin Lifecycle (Create → Verify Ready → Delete)', (
   it(
     'Creates a feature store via the wizard, verifies it becomes Ready on the manage page, and deletes it',
     {
-      tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@FeatureFlagged'],
+      tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Featureflagged'],
       retries: { runMode: 1, openMode: 0 },
     },
     () => {

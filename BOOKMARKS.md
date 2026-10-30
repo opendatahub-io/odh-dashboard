@@ -20,6 +20,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 |-----|-------------|
 | [Architecture](docs/architecture.md) | Overall system architecture |
 | [Architecture Decisions](docs/architecture-decisions.md) | Key architecture decisions (monorepo, Module Federation, Turbo) |
+| [Architecture Decision Records](docs/adr/) | Historical decisions and their rationale; use the [template](docs/adr/template.md) and [writing workflow](.claude/skills/writing-adrs/SKILL.md) for new ADRs |
 | [Module Federation](docs/module-federation.md) | Module Federation implementation |
 | [Community Plugin Registration](docs/community-plugin-registration.md) | Fixed ConfigMap contract for installer-owned community federation entries |
 | [Extensibility](docs/extensibility.md) | Plugin/extension system |

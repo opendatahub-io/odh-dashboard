@@ -549,6 +549,13 @@ func (r *DashboardReconciler) reconcileDeployment(
 		return ctrl.Result{}, fmt.Errorf("failed to remove stale containers: %w", err)
 	}
 
+	if err := revertServicePortDrift(ctx, r.apiReader(), r.Client, allResources); err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("ServicePortDriftRepairFailed"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("failed to repair Service port drift: %w", err)
+	}
+
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
@@ -957,6 +964,32 @@ func (r *DashboardReconciler) cleanupObservabilityResources(ctx context.Context,
 		logger.Info("Deleting cross-namespace networkpolicy", "name", netpols.Items[i].Name, "namespace", obsNS)
 		if err := r.Delete(ctx, &netpols.Items[i]); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting networkpolicy %s/%s: %w", obsNS, netpols.Items[i].Name, err)
+		}
+	}
+
+	var roles rbacv1.RoleList
+	if err := r.apiReader().List(ctx, &roles, opts...); err != nil {
+		return fmt.Errorf("listing observability roles: %w", err)
+	}
+	for i := range roles.Items {
+		if !shouldDelete(&roles.Items[i], "Role") {
+			continue
+		}
+		if err := r.Delete(ctx, &roles.Items[i]); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting observability Role %s/%s: %w", roles.Items[i].Namespace, roles.Items[i].Name, err)
+		}
+	}
+
+	var bindings rbacv1.RoleBindingList
+	if err := r.apiReader().List(ctx, &bindings, opts...); err != nil {
+		return fmt.Errorf("listing observability rolebindings: %w", err)
+	}
+	for i := range bindings.Items {
+		if !shouldDelete(&bindings.Items[i], "RoleBinding") {
+			continue
+		}
+		if err := r.Delete(ctx, &bindings.Items[i]); client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("deleting observability RoleBinding %s/%s: %w", bindings.Items[i].Namespace, bindings.Items[i].Name, err)
 		}
 	}
 

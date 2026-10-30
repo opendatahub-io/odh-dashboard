@@ -31,11 +31,14 @@ import InferencePriorityStatusModal from './InferencePriorityStatusModal';
 type SubscriptionDetailsSectionProps = {
   subscription: MaaSSubscription;
   modelRefs: MaaSModelRefSummary[];
+  /** Read-only viewers omit the Status field. Defaults to true. */
+  showStatus?: boolean;
 };
 
 const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
   subscription,
   modelRefs,
+  showStatus = true,
 }) => {
   const isInferencePriorityFieldEnabled = useIsAreaAvailable(
     SupportedArea.INFERENCE_PRIORITY_FIELD,
@@ -58,29 +61,31 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
               {subscription.displayName?.trim() || subscription.name}
             </DescriptionListDescription>
           </DescriptionListGroup>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Status</DescriptionListTerm>
-            <DescriptionListDescription data-testid="subscription-phase">
-              <PhaseLabel
-                phase={subscription.phase}
-                statusMessage={subscription.statusMessage}
-                reason={subscription.reason}
-                status={subscription.status}
-                conditionType={subscription.conditionType}
-                lastTransitionTime={subscription.lastTransitionTime}
-                resourceType={PhaseResourceType.SUBSCRIPTION}
-                resourceName={subscription.displayName ?? subscription.name}
-                affectedModels={getAffectedModels(modelRefs)}
-                onClick={() => {
-                  fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
-                    popoverType: EventTrackingPopoverType.STATUS,
-                    status: convertStringToPopoverViewedStatus(subscription.phase),
-                    location: PhaseLabelLocation.DETAIL_PAGE,
-                  } satisfies MaaSGovernanceStatusPopoverViewedProperties);
-                }}
-              />
-            </DescriptionListDescription>
-          </DescriptionListGroup>
+          {showStatus ? (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Status</DescriptionListTerm>
+              <DescriptionListDescription data-testid="subscription-phase">
+                <PhaseLabel
+                  phase={subscription.phase}
+                  statusMessage={subscription.statusMessage}
+                  reason={subscription.reason}
+                  status={subscription.status}
+                  conditionType={subscription.conditionType}
+                  lastTransitionTime={subscription.lastTransitionTime}
+                  resourceType={PhaseResourceType.SUBSCRIPTION}
+                  resourceName={subscription.displayName ?? subscription.name}
+                  affectedModels={getAffectedModels(modelRefs)}
+                  onClick={() => {
+                    fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+                      popoverType: EventTrackingPopoverType.STATUS,
+                      status: convertStringToPopoverViewedStatus(subscription.phase),
+                      location: PhaseLabelLocation.DETAIL_PAGE,
+                    } satisfies MaaSGovernanceStatusPopoverViewedProperties);
+                  }}
+                />
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          ) : null}
           <DescriptionListGroup>
             <DescriptionListTerm>Description</DescriptionListTerm>
             <DescriptionListDescription>

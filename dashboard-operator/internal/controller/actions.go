@@ -140,6 +140,32 @@ func remapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, appli
 	}
 }
 
+// setMaaSUsageDashboardRoleBindingNamespace binds the MaaS BFF service account
+// from the operator's configured applications namespace, not a fixed platform namespace.
+func setMaaSUsageDashboardRoleBindingNamespace(resources []unstructured.Unstructured, applicationsNamespace string) error {
+	for i := range resources {
+		resource := &resources[i]
+		if resource.GetKind() != "RoleBinding" || resource.GetName() != "odh-dashboard-maas-usage-dashboards" {
+			continue
+		}
+		subjects, found, err := unstructured.NestedSlice(resource.Object, "subjects")
+		if err != nil {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding has invalid subjects: %w", err)
+		}
+		if !found || len(subjects) != 1 {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding must have one subject")
+		}
+		subject, ok := subjects[0].(map[string]interface{})
+		if !ok || subject["kind"] != "ServiceAccount" || subject["name"] != "odh-dashboard-maas" {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding has unexpected subject")
+		}
+		subject["namespace"] = applicationsNamespace
+		return unstructured.SetNestedSlice(resource.Object, subjects, "subjects")
+	}
+	// Some test and custom observability overlays contain no MaaS RBAC.
+	return nil
+}
+
 func dataConnectHubGatewayRBACForPlatform(platform cluster.Platform) (string, string) {
 	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
 		return dchRhoaiGatewayRBACName, dataScienceGatewayNamespace
@@ -324,6 +350,9 @@ func deployObservabilityManifests(
 	}
 
 	if maasPortalSupportedPlatform(platform) {
+		if err := setMaaSUsageDashboardRoleBindingNamespace(rendered, applicationsNamespace); err != nil {
+			return err
+		}
 		if err := setMaaSPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
 			return err
 		}
@@ -333,6 +362,9 @@ func deployObservabilityManifests(
 	}
 
 	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))
+	if err := revertServicePortDrift(ctx, reader, cli, rendered); err != nil {
+		return fmt.Errorf("repairing observability Service port drift: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),

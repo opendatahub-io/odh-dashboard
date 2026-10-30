@@ -3,3 +3,24 @@
   margin-top: var(--pf-t--global--spacer--xs);
   overflow-wrap: anywhere;
 }
+
+.evalhub-benchmark-card__title-button {
+  font-weight: var(--pf-t--global--font--weight--heading--default);
+}
+
+// Details drawer click region: the title and body open the drawer while the
+// footer action keeps its own behavior. Text selection is disabled so click
+// attempts do not highlight the description; the same description stays
+// selectable in the details drawer that the click opens.
+.evalhub-benchmark-card.m-clickable {
+  .evalhub-benchmark-card__title,
+  .evalhub-benchmark-card__body {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .evalhub-benchmark-card__title:hover .evalhub-benchmark-card__title-name {
+    text-decoration-color: var(--pf-t--global--text-decoration--color--hover);
+    text-decoration-line: var(--pf-t--global--text-decoration--link--line--hover);
+  }
+}
