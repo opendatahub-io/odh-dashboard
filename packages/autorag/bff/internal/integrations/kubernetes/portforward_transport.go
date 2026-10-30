@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	corekubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 )
 
@@ -38,6 +40,7 @@ func (t *portForwardRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse forwarded URL %s: %w", safeURLForLog(forwarded), err)
 		}
+		ctx = corekubernetes.WithTrustedPortForwardEndpoint(ctx, parsed.Host)
 		req = req.Clone(ctx)
 		req.URL = parsed
 	}
