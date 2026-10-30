@@ -93,7 +93,7 @@ describe('External vector store full lifecycle', () => {
   it(
     'validates the registered store through a grounded Playground response',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent', '@Playground'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent', '@Playground'],
     },
     () => {
       cy.step('Wait for the inference endpoint in AI assets');

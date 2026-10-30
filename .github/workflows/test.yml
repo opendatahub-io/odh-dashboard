@@ -96,6 +96,9 @@ jobs:
           else
             pnpm run type-check
           fi
+      - name: Run ADR linter tests
+        if: matrix.check == 'lint'
+        run: pnpm run test:adr
 
   Unit-Tests:
     needs: [Setup]
