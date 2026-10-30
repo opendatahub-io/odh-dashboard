@@ -23,6 +23,7 @@ import {
 } from './utils';
 import DRAHardwareProfileDetailsSection from './DRAHardwareProfileDetailsSection';
 import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
+import type { ResourceType } from './types';
 import {
   getClusterQueueNameFromLocalQueues,
   getHardwareProfileDescription,
@@ -36,9 +37,8 @@ type HardwareProfileDetailsPopoverProps = {
   nodeSelector?: NodeSelector;
   hardwareProfile?: HardwareProfileKind;
   tableView?: boolean;
+  resourceType?: ResourceType;
 };
-const noHardwareProfileMessage =
-  "This workbench isn't using a hardware profile. Edit the workbench to assign one.";
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
   localQueueName,
@@ -47,6 +47,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   nodeSelector,
   hardwareProfile,
   tableView = false,
+  resourceType = 'workbench',
 }) => {
   const { localQueues } = React.useContext(LocalQueuesContext);
   const isDRAEnabled = useIsDRAHardwareProfileEnabled();
@@ -99,6 +100,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   };
 
   const noHpTableView = tableView && !hardwareProfile;
+  const noHardwareProfileMessage = `This ${resourceType} isn't using a hardware profile. Edit the ${resourceType} to assign one.`;
 
   const headerContent = hardwareProfile
     ? `${getHardwareProfileDisplayName(hardwareProfile)} details`

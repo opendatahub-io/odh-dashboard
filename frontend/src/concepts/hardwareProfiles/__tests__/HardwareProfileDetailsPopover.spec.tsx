@@ -100,6 +100,16 @@ describe('HardwareProfileDetailsPopover', () => {
   });
 
   describe('no hardware profile', () => {
+    it('should use the resource type in the missing profile message', async () => {
+      renderWithContext(<HardwareProfileDetailsPopover resourceType="deployment" tableView />);
+
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+      expect(screen.getByTestId('hardware-profile-details')).toHaveTextContent(
+        "This deployment isn't using a hardware profile. Edit the deployment to assign one.",
+      );
+    });
+
     it('should display "View details" trigger and fallback message in non-tableView mode', async () => {
       renderWithContext(<HardwareProfileDetailsPopover />);
 
