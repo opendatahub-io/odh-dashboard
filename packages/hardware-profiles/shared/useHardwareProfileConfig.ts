@@ -9,11 +9,9 @@ import {
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
 import useGenericObjectState from '@odh-dashboard/ui-core/utilities/useGenericObjectState';
 import { isCpuLimitLarger, isMemoryLimitLarger } from '@odh-dashboard/ui-core/utilities/valueUnits';
-import { isHardwareProfileEnabled } from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
-import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import {
   computeLocalQueueNamesResult,
   filterProfilesByKueue,
@@ -25,6 +23,7 @@ import {
   findHardwareProfileForBinding,
   getClaimTemplateMissingText,
   getContainerResourcesFromHardwareProfile,
+  isHardwareProfileEnabled,
   isDRAHardwareProfile,
   isSameHardwareProfileBinding,
 } from './utils';
@@ -34,6 +33,7 @@ import {
   useResourceClaimTemplateNames,
 } from './useResourceClaimTemplateNames';
 import type { HardwareProfileBinding } from './types';
+import { useHardwareProfilesByFeatureVisibility } from '../src/pages/useHardwareProfilesByFeatureVisibility';
 
 export type HardwareProfileConfig = {
   selectedProfile?: HardwareProfileKind;

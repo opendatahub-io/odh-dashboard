@@ -17,7 +17,7 @@ import {
   getExistingResources,
 } from './utils';
 
-export { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
+export { useWatchHardwareProfiles } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
 
 export type UseAssignHardwareProfileResult<T extends K8sResourceCommon> = {
   podSpecOptionsState: HardwarePodSpecOptionsState<HardwarePodSpecOptions>;

@@ -69,7 +69,7 @@ export {
   isHardwareProfileWithAcceleratorPrefix,
   isNvidiaHardwareProfile,
   prioritizeHardwareProfiles,
-} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
+} from '../src/pages/utils';
 
 // Components
 export { default as HardwareProfileBindingStateLabel } from './HardwareProfileBindingStateLabel';
