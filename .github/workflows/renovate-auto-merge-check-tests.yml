@@ -10,6 +10,7 @@ on: # yamllint disable-line rule:truthy
     paths:
       - '.github/scripts/renovate-automerge-check.js'
       - '.github/scripts/__tests__/**'
+      - '.github/renovate.json5'
       - '.github/workflows/renovate-auto-merge.yml'
       - '.github/workflows/renovate-auto-merge-check-tests.yml'
   workflow_dispatch:

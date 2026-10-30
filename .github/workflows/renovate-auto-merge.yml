@@ -90,14 +90,25 @@ jobs:
             echo "tier label $LABEL removed — re-evaluating eligibility"
             echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          # Attribute the removal instead of comparing timestamps. A delayed
-          # Prow removal after a push can land AFTER this workflow re-applied
-          # lgtm, so "push newer than label" misses exactly the race this step
-          # exists for. Who removed it is unambiguous:
-          #   - another bot (Prow) is invalidating a stale review: revalidate
-          #   - a human, or this workflow's own cleanup, is deliberate: respect
-          remover=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate \
-            | jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""')
+          # Attribute the removal instead of comparing label and push times. A
+          # delayed Prow removal can land AFTER this workflow re-applied lgtm,
+          # which a timestamp comparison reads as a human cancel. But the actor
+          # alone is not enough either: Prow also removes lgtm as a bot when a
+          # maintainer runs `/lgtm cancel`.
+          #   1. A `/lgtm cancel` newer than the last push is a deliberate
+          #      withdrawal for the current revision: respect it.
+          #   2. Otherwise a bot removal is Prow invalidating a stale review
+          #      after a push: revalidate the current head.
+          #   3. Anything else, including our own cleanup: respect it.
+          timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s '.')
+          last_push=$(jq -r '[.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""' <<<"$timeline")
+          last_cancel=$(jq -r '[.[] | select(.event == "commented" and ((.body // "") | test("/lgtm[[:space:]]+cancel"))) | .created_at] | max // ""' <<<"$timeline")
+          remover=$(jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""' <<<"$timeline")
+          if [ -n "$last_cancel" ] && [[ "$last_cancel" > "$last_push" ]]; then
+            echo "lgtm cancelled by command after the last push, respecting it"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           case "$remover" in
             "github-actions[bot]")
               echo "lgtm removed by this workflow, respecting it"
@@ -145,7 +156,7 @@ jobs:
           echo "tier=${label#renovate/}" >> "$GITHUB_OUTPUT"
 
       - name: Verify commit provenance
-        id: authors
+        id: provenance
         if: steps.tier.outputs.tier != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -155,32 +166,37 @@ jobs:
         run: |
           set -euo pipefail
           # Provenance is what lets the diff checker treat its input as bot
-          # output. Two things must hold for EVERY commit:
-          #   1. GitHub verified the signature. platformCommit makes GitHub the
-          #      signer, so this is the part a branch writer cannot forge.
-          #   2. The commit is attributed to the app. This is metadata and is
-          #      forgeable on its own, which is why it is not sufficient.
-          # An unsigned commit fails closed and the PR is left for a human.
+          # output. Three things must hold for EVERY commit:
+          #   1. GitHub verified a signature. platformCommit makes GitHub the
+          #      signer, so this cannot be produced from an unrelated key.
+          #   2. The author is the app. Metadata, forgeable on its own.
+          #   3. The committer is the app or GitHub's `web-flow`. This is what
+          #      stops a forged app author combined with a personal signature.
+          # Anything else fails closed and the PR is left for a human.
           rows=$(gh api "repos/$REPO/pulls/$PR_NUMBER/commits" --paginate \
             --jq '.[] | [(.author.login // ""), (.committer.login // ""), ((.commit.verification.verified // false) | tostring), .sha] | @tsv')
           if [ -z "$rows" ]; then
             echo "Not eligible: no commits returned for the PR"
-            echo "authors=false" >> "$GITHUB_OUTPUT"
+            echo "provenance=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # All three must hold. A valid signature alone proves only that SOME
+          # key signed the commit, so `author` (forgeable) is paired with a
+          # committer allowlist: platformCommit makes GitHub's `web-flow` the
+          # committer. That rejects author=app with an unrelated signer.
           foreign=$(printf '%s\n' "$rows" | awk -F'\t' -v app="$APP_LOGIN" \
-            'NF && ($3 != "true" || ($1 != app && $2 != app)) {print $4}')
+            'NF && ($3 != "true" || $1 != app || ($2 != app && $2 != "web-flow")) {print $4}')
           if [ -n "$foreign" ]; then
-            echo "Not eligible: commits are unsigned or not attributable to $APP_LOGIN:"
+            echo "Not eligible: commits not GitHub-verified and authored by $APP_LOGIN:"
             echo "$foreign"
-            echo "authors=false" >> "$GITHUB_OUTPUT"
+            echo "provenance=false" >> "$GITHUB_OUTPUT"
           else
-            echo "All commits are verified and attributable to $APP_LOGIN"
-            echo "authors=true" >> "$GITHUB_OUTPUT"
+            echo "All commits are GitHub-verified and authored by $APP_LOGIN"
+            echo "provenance=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout base branch (trusted script only)
-        if: steps.tier.outputs.tier != '' && steps.authors.outputs.authors == 'true'
+        if: steps.tier.outputs.tier != '' && steps.provenance.outputs.provenance == 'true'
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -189,7 +205,7 @@ jobs:
 
       - name: Validate diff against tier
         id: check
-        if: steps.tier.outputs.tier != '' && steps.authors.outputs.authors == 'true'
+        if: steps.tier.outputs.tier != '' && steps.provenance.outputs.provenance == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
