@@ -68,7 +68,7 @@ set -euo pipefail
 # env.runner in harness/review.yaml gives every host-side script the
 # host-adapter credentials. Only pre-review.sh uses them, so drop them before
 # this script starts any child. Keep the list in step with env.runner.
-unset CODERABBIT_API_KEY JIRA_URL JIRA_USERNAME JIRA_API_TOKEN
+unset CODERABBIT_API_KEY JIRA_USERNAME JIRA_API_TOKEN
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
 
@@ -1381,18 +1381,70 @@ def trusted_jira_issue_url(key):
 
 
 def _pa_key_label(key):
-    """Safe label for a Jira key (trusted URL when shape matches)."""
+    """Safe label for a trusted Jira key. Invalid shapes are omitted, never echoed."""
     key = str(key or "").strip()
-    if not key:
+    if not key or not JIRA_KEY_RE.fullmatch(key):
         return ""
-    if not JIRA_KEY_RE.fullmatch(key):
-        return f"`{code_span_text(key)}`"
     url = trusted_jira_issue_url(key)
     return f"[{key}]({url})" if url else f"`{code_span_text(key)}`"
 
 
-def _pa_issue_link(issue):
-    return _pa_key_label(issue.get("key"))
+class PaIssueKeyResolver:
+    """Map untrusted issues[] entries onto keys from the host Jira snapshot.
+
+    Match a well-formed key, then its URL. Fall back to a lone unclaimed
+    snapshot key only when the snapshot holds a single distinct key, key-only
+    failure entries included, and the reported key is unusable, so masked or
+    truncated metadata still renders. A well-formed key that contradicts an
+    existing snapshot is never swapped for a different issue, a key absent
+    from an existing snapshot is never published even when it is well formed,
+    and a key outside ``JIRA_KEY_RE`` is never returned.
+    """
+
+    def __init__(self):
+        # Every well-formed key in the snapshot, including key-only entries
+        # whose fetch failed, so snapshot absence stays distinguishable from
+        # the absence of URL-bearing keys.
+        self.snapshot_keys = {
+            key for key in TRUSTED_JIRA_ISSUES if JIRA_KEY_RE.fullmatch(key)
+        }
+        # URL-bearing snapshot keys, the only candidates for URL recovery.
+        self.url_keys = [
+            key for key in TRUSTED_JIRA_ISSUES
+            if JIRA_KEY_RE.fullmatch(key) and trusted_jira_issue_url(key)
+        ]
+        self.claimed = set()
+
+    def _claim(self, key):
+        if key in self.snapshot_keys and key not in self.claimed:
+            self.claimed.add(key)
+            return key
+        return ""
+
+    def resolve(self, issue):
+        if not isinstance(issue, dict):
+            return ""
+        raw = str(issue.get("key") or "").strip()
+        well_formed = bool(JIRA_KEY_RE.fullmatch(raw))
+        if well_formed and self._claim(raw):
+            return raw
+        if well_formed and self.snapshot_keys:
+            # A well-formed key outside an existing snapshot contradicts it;
+            # never borrow a different issue via URL recovery.
+            return ""
+        url = str(issue.get("url") or "").strip()
+        if url:
+            for candidate in self.url_keys:
+                if candidate in self.claimed:
+                    continue
+                if trusted_jira_issue_url(candidate) == url:
+                    return self._claim(candidate)
+        if not well_formed and len(self.snapshot_keys) == 1:
+            # Only a snapshot holding exactly one distinct key, key-only
+            # failures included, may resolve an unusable key to itself.
+            return self._claim(next(iter(self.snapshot_keys)))
+        # With no snapshot, a well-formed key is still safe to display.
+        return raw if well_formed and not self.snapshot_keys else ""
 
 
 def render_product_ask_evaluation_limits():
@@ -1434,14 +1486,16 @@ def render_product_ask_section(pa):
         return []
     issues = pa.get("issues") if isinstance(pa.get("issues"), list) else []
     ok_issues = [i for i in issues if (i.get("status") or "none") != "none"]
+    resolver = PaIssueKeyResolver()
     lines = ["", "## Product ask", ""]
     if len(ok_issues) > 1:
         lines += [_pa_status_line("Overall", pa), ""]
         for issue in ok_issues:
-            lines += [f"### {_pa_issue_link(issue)}", ""]
+            link = _pa_key_label(resolver.resolve(issue))
+            lines += [f"### {link or 'Linked Jira issue'}", ""]
             lines += _render_pa_block(issue)
     elif len(ok_issues) == 1:
-        link = _pa_issue_link(ok_issues[0])
+        link = _pa_key_label(resolver.resolve(ok_issues[0]))
         lines += _render_pa_block(ok_issues[0], suffix=f" · {link}" if link else "")
     else:
         lines += _render_pa_block(pa)
@@ -1723,7 +1777,7 @@ run_self_test() {
       missing_creds+=" ${cred_name}"
     fi
   done < <(jq -r '[.dimensions[] | select(.kind == "cli-adapter") | .host.credentials // {}
-    | .url_env, .username_env, .token_env | select(type == "string" and . != "")] | unique[]' \
+    | .username_env, .token_env | select(type == "string" and . != "")] | unique[]' \
     "${POST_REVIEW_SCRIPT_DIR}/../dimensions.json")
   if [[ -z "${unset_line}" || -n "${missing_creds}" ]]; then
     echo "FAIL adapter credentials: not unset here, not in env.runner, or no shim placeholder:${missing_creds:- (no unset line)}" >&2
@@ -1885,11 +1939,14 @@ JSON
                 -e '@org/team' <<<"${body}"; then
     echo "FAIL pa-hostile: hostile URL, Markdown, HTML, or mention reached the body" >&2
     fail=1
-  elif ! grep -qF 'bad] [more] @' <<<"${body}"; then
-    echo "FAIL pa-hostile: hostile key was not flattened into a safe code span" >&2
+  elif grep -qF 'bad]' <<<"${body}"; then
+    echo "FAIL pa-hostile: hostile key reached the body" >&2
+    fail=1
+  elif ! grep -qF '### Linked Jira issue' <<<"${body}"; then
+    echo "FAIL pa-hostile: unresolved issue heading missing" >&2
     fail=1
   else
-    echo "PASS pa-hostile: issue links and labels escaped hostile metadata"
+    echo "PASS pa-hostile: trusted link kept, hostile key omitted, metadata escaped"
   fi
 
   # Hostile aligned/mismatched prose: strip comments before mention suppression,
@@ -2005,6 +2062,158 @@ JSON
     fail=1
   else
     echo "PASS pa-omitted: over-cap keys surface evaluation limits"
+  fi
+
+  # An issues[].key that is not a valid key never reaches the body; the label
+  # comes from the host snapshot instead.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "key": "RHOAIENG-100828",
+  "url": "https://issues.redhat.com/browse/RHOAIENG-100828",
+  "issues": [
+    {"key": "RHOAIENG-100828", "url": "https://issues.redhat.com/browse/RHOAIENG-100828", "summary": "Sticky key"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOA...\",\"url\":\"***/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-truncated.json"
+  render_jira_fixture pa-truncated
+  body=$(jq -r .body "${tmp}/pa-truncated-out.json")
+  if ! grep -qF '[RHOAIENG-100828](https://issues.redhat.com/browse/RHOAIENG-100828)' <<<"${body}"; then
+    echo "FAIL pa-truncated: snapshot key was not linked" >&2
+    fail=1
+  elif grep -qF -e 'RHOA...' -e '***' <<<"${body}"; then
+    echo "FAIL pa-truncated: truncated or masked key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned` · [RHOAIENG-100828]' <<<"${body}"; then
+    echo "FAIL pa-truncated: status line lost the snapshot link" >&2
+    fail=1
+  else
+    echo "PASS pa-truncated: snapshot key replaces a truncated/masked key"
+  fi
+
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"***\",\"url\":\"***/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-masked.json"
+  render_jira_fixture pa-masked
+  body=$(jq -r .body "${tmp}/pa-masked-out.json")
+  if ! grep -qF '[RHOAIENG-100828](https://issues.redhat.com/browse/RHOAIENG-100828)' <<<"${body}"; then
+    echo "FAIL pa-masked: snapshot key was not linked" >&2
+    fail=1
+  elif grep -qF '***' <<<"${body}"; then
+    echo "FAIL pa-masked: masked key reached the body" >&2
+    fail=1
+  else
+    echo "PASS pa-masked: snapshot key replaces a masked key"
+  fi
+
+  # A well-formed key that contradicts the snapshot must not borrow the
+  # snapshot key. Only masked or truncated metadata may use the fallback.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-conflict.json"
+  render_jira_fixture pa-conflict
+  body=$(jq -r .body "${tmp}/pa-conflict-out.json")
+  if grep -qF 'RHOAIENG-100828' <<<"${body}"; then
+    echo "FAIL pa-conflict: conflicting key was relabeled as the snapshot key" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-999999' <<<"${body}"; then
+    echo "FAIL pa-conflict: unknown well-formed key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-conflict: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-conflict: well-formed key never borrows the snapshot key"
+  fi
+
+  # The same conflict carrying the snapshot issue's URL must not be recovered
+  # through URL matching: a well-formed key that cannot be claimed is final.
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-conflict-url.json"
+  render_jira_fixture pa-conflict-url
+  body=$(jq -r .body "${tmp}/pa-conflict-url-out.json")
+  if grep -qF 'RHOAIENG-100828' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: conflicting key was relabeled via URL recovery" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-999999' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: unknown well-formed key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-conflict-url: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-conflict-url: URL recovery cannot relabel a claimed-key conflict"
+  fi
+
+  # In a multi-issue snapshot, an exact match claims one key; a later
+  # malformed entry without a matching URL must stay unlabeled rather than
+  # inherit the snapshot's remaining key.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "issues": [
+    {"key": "RHOAIENG-100828", "url": "https://issues.redhat.com/browse/RHOAIENG-100828", "summary": "First"},
+    {"key": "RHOAIENG-100829", "url": "https://issues.redhat.com/browse/RHOAIENG-100829", "summary": "Second"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100828\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"First matches.\"]},{\"key\":\"***\",\"status\":\"aligned\",\"aligned\":[\"Second matches.\"]}]}}" > "${tmp}/pa-multi-orphan.json"
+  render_jira_fixture pa-multi-orphan
+  body=$(jq -r .body "${tmp}/pa-multi-orphan-out.json")
+  if ! grep -qF '[RHOAIENG-100828](https://issues.redhat.com/browse/RHOAIENG-100828)' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: exact-match key lost its link" >&2
+    fail=1
+  elif grep -qF 'RHOAIENG-100829' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: malformed entry inherited the remaining snapshot key" >&2
+    fail=1
+  elif ! grep -qF '### Linked Jira issue' <<<"${body}"; then
+    echo "FAIL pa-multi-orphan: unresolved heading missing" >&2
+    fail=1
+  else
+    echo "PASS pa-multi-orphan: multi-issue snapshot does not exhaust into a malformed entry"
+  fi
+
+  # A key-only snapshot exists: a well-formed producer key that is absent from
+  # it must not be published as the evaluated ticket.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "issues": [
+    {"key": "RHOAIENG-100828", "summary": "Key-only host snapshot"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-keyonly.json"
+  render_jira_fixture pa-keyonly
+  body=$(jq -r .body "${tmp}/pa-keyonly-out.json")
+  if grep -qF 'RHOAIENG-999999' <<<"${body}"; then
+    echo "FAIL pa-keyonly: producer key outside a key-only snapshot reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-keyonly: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-keyonly: key-only snapshot still rejects keys it does not contain"
+  fi
+
+  # Mixed fetch success/failure: the snapshot holds two distinct keys, so an
+  # unusable producer key must stay unlabeled instead of taking the one key
+  # that happened to fetch.
+  cat > "${jira_config}/.run/jira.json" <<'JSON'
+{
+  "issues": [
+    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580", "summary": "Export"},
+    {"key": "RHOAIENG-100583", "status": "error", "reason": "http-404"}
+  ]
+}
+JSON
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"***\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-mixed-unresolved.json"
+  render_jira_fixture pa-mixed-unresolved
+  body=$(jq -r .body "${tmp}/pa-mixed-unresolved-out.json")
+  if grep -qF '](https://issues.redhat.com/browse/RHOAIENG-100580)' <<<"${body}"; then
+    echo "FAIL pa-mixed-unresolved: unusable key inherited the only fetched snapshot key" >&2
+    fail=1
+  elif grep -qF '***' <<<"${body}"; then
+    echo "FAIL pa-mixed-unresolved: unusable key reached the body" >&2
+    fail=1
+  elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
+    echo "FAIL pa-mixed-unresolved: status line missing" >&2
+    fail=1
+  else
+    echo "PASS pa-mixed-unresolved: mixed-success snapshot does not absorb an unusable key"
   fi
 
   # Restore the shared jira fixture for later tests that reuse render_jira_fixture.
