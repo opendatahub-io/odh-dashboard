@@ -4,51 +4,57 @@
 # Build from repository root:
 #   docker build -f distributions/rhaii/Dockerfile -t rhaii-dashboard:latest .
 #
-ARG NODE_BASE_IMAGE=node:22
-ARG GOLANG_BASE_IMAGE=golang:1.25
-ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
-ARG BUILDPLATFORM
+ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.26
+ARG RUNTIME_BASE_IMAGE=registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 # ── Stage 1: UI Builder ──────────────────────────────────────────────────────
-FROM --platform=$BUILDPLATFORM ${NODE_BASE_IMAGE} AS ui-builder
+FROM ${NODE_BASE_IMAGE} AS ui-builder
 
 WORKDIR /usr/src/workspace
 
-# Copy root workspace manifest and lockfile for pnpm workspace resolution
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Install the pinned pnpm CLI from the npm-prefetched bootstrap package. Hermeto
+# supplies .npmrc during Konflux builds, allowing these installs to use the
+# prefetched registry rather than the public npm registry.
+COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
+COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=default:root .npmrc ./
 
 # Copy workspace packages required by the RHAII distribution
-COPY frontend/package.json ./frontend/
-COPY frontend/src/ ./frontend/src/
-COPY packages/plugin-core/ ./packages/plugin-core/
-COPY packages/app-config/ ./packages/app-config/
-COPY packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root frontend/package.json ./frontend/
+COPY --chown=default:root frontend/src/ ./frontend/src/
+COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
+COPY --chown=default:root packages/app-config/ ./packages/app-config/
+COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
 
 # Copy feature packages used by the RHAII distribution.
-COPY packages/model-serving/ ./packages/model-serving/
-COPY packages/kserve/ ./packages/kserve/
-COPY packages/llmd-serving/ ./packages/llmd-serving/
-COPY packages/analytics/ ./packages/analytics/
-COPY packages/trustyai/ ./packages/trustyai/
-COPY packages/foundation/ ./packages/foundation/
-COPY packages/hardware-profiles/ ./packages/hardware-profiles/
-COPY packages/connection-types/ ./packages/connection-types/
-COPY packages/k8s-core/ ./packages/k8s-core/
-COPY packages/model-registry/ ./packages/model-registry/
-COPY packages/ui-core/ ./packages/ui-core/
+COPY --chown=default:root packages/model-serving/ ./packages/model-serving/
+COPY --chown=default:root packages/kserve/ ./packages/kserve/
+COPY --chown=default:root packages/llmd-serving/ ./packages/llmd-serving/
+COPY --chown=default:root packages/analytics/ ./packages/analytics/
+COPY --chown=default:root packages/trustyai/ ./packages/trustyai/
+COPY --chown=default:root packages/foundation/ ./packages/foundation/
+COPY --chown=default:root packages/hardware-profiles/ ./packages/hardware-profiles/
+COPY --chown=default:root packages/connection-types/ ./packages/connection-types/
+COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
+COPY --chown=default:root packages/model-registry/ ./packages/model-registry/
+COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
 
 # Copy build scripts required by rspack/webpack configs
-COPY scripts/ ./scripts/
+COPY --chown=default:root scripts/ ./scripts/
 
 # Copy the base distribution (shell components + shared rspack config)
-COPY distributions/base/ ./distributions/base/
+COPY --chown=default:root distributions/base/ ./distributions/base/
 
 # Copy the RHAII distribution
-COPY distributions/rhaii/ ./distributions/rhaii/
+COPY --chown=default:root distributions/rhaii/ ./distributions/rhaii/
 
-# Install pnpm and workspace dependencies
-RUN npm install -g pnpm@11.22.0
-RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
+# The UBI Node builder uses the non-root assemble user for package installation.
+USER default
+ENV PATH="/usr/src/workspace/prefetch/pnpm/node_modules/.bin:${PATH}"
+RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
+    && test "$(pnpm --version)" = "11.22.0"
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --prefer-offline
 
 # Build the RHAII frontend
 WORKDIR /usr/src/workspace/distributions/rhaii
@@ -71,7 +77,7 @@ ENV PUBLIC_PATH=/_mf/modelServing/
 RUN pnpm run build:prod
 
 # ── Stage 2: BFF Builder ─────────────────────────────────────────────────────
-FROM --platform=$BUILDPLATFORM ${GOLANG_BASE_IMAGE} AS bff-builder
+FROM ${GOLANG_BASE_IMAGE} AS bff-builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -92,13 +98,14 @@ COPY distributions/core-bff/bff/internal/ internal/
 COPY distributions/core-bff/bff/openapi/ openapi/
 
 # Build the Go binary
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bff ./cmd
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
+    go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/bff ./cmd
 
 # ── Stage 3: Final ───────────────────────────────────────────────────────────
-FROM ${DISTROLESS_BASE_IMAGE}
+FROM ${RUNTIME_BASE_IMAGE}
 
 WORKDIR /
-COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /tmp/bff ./bff
 COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/workspace/distributions/rhaii/public ./static/
 COPY --from=ui-builder /usr/src/workspace/packages/model-serving/frontend/dist ./static/_mf/modelServing/
