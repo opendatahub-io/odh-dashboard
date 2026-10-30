@@ -335,8 +335,10 @@ describe('Start Notebook modal', () => {
       />,
     );
 
-    expect(screen.getByTestId('notebook-latest-status')).toHaveTextContent('1st in test-queue');
-    expect(screen.getByTestId('notebook-latest-status')).not.toHaveTextContent('Waiting for quota');
+    const statusLabel = screen.getByTestId('notebook-latest-status');
+    expect(statusLabel).toHaveTextContent('1st in test-queue');
+    expect(statusLabel.querySelector('strong')).toHaveTextContent('test-queue');
+    expect(statusLabel).not.toHaveTextContent('Waiting for quota');
   });
 
   it('should keep quota message in modal header when queue position is unavailable', () => {
@@ -357,9 +359,9 @@ describe('Start Notebook modal', () => {
       />,
     );
 
-    expect(screen.getByTestId('notebook-latest-status')).toHaveTextContent(
-      'Waiting for quota in test-queue',
-    );
+    const statusLabel = screen.getByTestId('notebook-latest-status');
+    expect(statusLabel).toHaveTextContent('Waiting for quota in test-queue');
+    expect(statusLabel.querySelector('strong')).toHaveTextContent('test-queue');
   });
 
   it.each([
