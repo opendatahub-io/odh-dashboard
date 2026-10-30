@@ -296,13 +296,43 @@ describe('BenchmarkDrawerTileContent', () => {
       expect(within(section).getByText('hf-token')).toBeInTheDocument();
     });
 
-    it('should render the test data section with the None source when no ref is provided', () => {
+    it('should not render the test data section when no ref is provided', () => {
       render(
         <BenchmarkDrawerTileContent name="Test" id="bench-1" trackingSurface="test_surface" />,
       );
+      expect(screen.queryByTestId('benchmark-test-data-ref')).not.toBeInTheDocument();
+      expect(screen.queryByText('Test data')).not.toBeInTheDocument();
+    });
+
+    it('should render the must-be-provided source when test data is required and no ref is provided', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="ragas_rag_default"
+          providerId="ragas"
+          trackingSurface="test_surface"
+        />,
+      );
       const section = screen.getByTestId('benchmark-test-data-ref');
-      expect(within(section).getByText('None (use benchmark default data)')).toBeInTheDocument();
+      expect(within(section).getByText('None (must be provided by user)')).toBeInTheDocument();
       expect(within(section).queryByText('Data type')).not.toBeInTheDocument();
+    });
+
+    it('should render the provided ref over the must-be-provided source when test data is required', () => {
+      render(
+        <BenchmarkDrawerTileContent
+          name="Test"
+          id="ragas_rag_default"
+          providerId="ragas"
+          trackingSurface="test_surface"
+          testDataRef={{ pvc: { claim_name: 'responses' } }}
+        />,
+      );
+      const section = screen.getByTestId('benchmark-test-data-ref');
+      expect(within(section).getByText('Persistent volume claim (PVC)')).toBeInTheDocument();
+      expect(
+        within(section).queryByText('None (must be provided by user)'),
+      ).not.toBeInTheDocument();
     });
 
     it('should render the test data section with the None source when the ref has no source', () => {
@@ -495,7 +525,7 @@ describe('BenchmarkDrawerTileContent', () => {
       expect(screen.getByText('Metrics evaluated')).toBeInTheDocument();
     });
 
-    it('should be collapsible with only the None test data section when tile has no description or metadata', () => {
+    it('should be collapsible with no test data section when tile has no description or metadata', () => {
       render(
         <BenchmarkDrawerTileContent
           name="Empty Benchmark"
@@ -509,8 +539,8 @@ describe('BenchmarkDrawerTileContent', () => {
       expect(screen.queryByText('Test data')).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
-      expect(screen.getByText('Test data')).toBeInTheDocument();
-      expect(screen.getByText('None (use benchmark default data)')).toBeInTheDocument();
+      expect(screen.queryByText('Test data')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('benchmark-test-data-ref')).not.toBeInTheDocument();
     });
 
     it('should still show header name and subtitle when collapsed', () => {

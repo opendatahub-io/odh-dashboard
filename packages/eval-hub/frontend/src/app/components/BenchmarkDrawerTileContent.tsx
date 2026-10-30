@@ -23,6 +23,7 @@ import {
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
+import { benchmarkRequiresTestData } from '~/app/utilities/testDataRefRequirements';
 import InlineTooltip from '~/app/components/InlineTooltip';
 import { formatThresholdValue } from '~/app/utilities/evaluationUtils';
 import { capitalizeFirst, getMetricDisplayName, toSafeExternalUrl } from './benchmarkUtils';
@@ -39,6 +40,7 @@ type BenchmarkDrawerTileContentProps = {
   primaryScore?: ProviderBenchmarkScore;
   passCriteria?: ProviderBenchmarkPassCriteria;
   testDataRef?: TestDataRef;
+  providerId?: string;
   url?: string;
   trackingSurface: string;
   showHeader?: boolean;
@@ -77,8 +79,10 @@ const buildTestDataRefDetails = (
 /**
  * Flattens a benchmark's test_data_ref into the definition rendered on the card.
  * Exactly one source is set per the API contract, so the first match wins.
- * A missing or source-less ref falls back to the "None" summary so the section
- * still renders, mirroring the None option in the test data source dropdown.
+ * A source-less ref falls back to the "None" summary, mirroring the None option
+ * in the test data source dropdown. An undefined ref suppresses the section
+ * unless the benchmark requires caller-supplied test data, in which case the
+ * "must be provided by user" summary renders instead.
  */
 const summarizeTestDataRef = (ref?: TestDataRef): TestDataRefSummary | undefined => {
   if (ref?.s3) {
@@ -134,6 +138,21 @@ const NONE_TEST_DATA_REF_SUMMARY: TestDataRefSummary = {
   details: [],
 };
 
+const REQUIRED_TEST_DATA_REF_SUMMARY: TestDataRefSummary = {
+  source: 'None (must be provided by user)',
+  details: [],
+};
+
+const getTestDataRefSummary = (
+  testDataRef: TestDataRef | undefined,
+  requiresTestData: boolean,
+): TestDataRefSummary | undefined => {
+  if (testDataRef) {
+    return summarizeTestDataRef(testDataRef) ?? NONE_TEST_DATA_REF_SUMMARY;
+  }
+  return requiresTestData ? REQUIRED_TEST_DATA_REF_SUMMARY : undefined;
+};
+
 const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   name,
   id,
@@ -144,6 +163,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   primaryScore,
   passCriteria,
   testDataRef,
+  providerId,
   url,
   trackingSurface,
   showHeader = true,
@@ -152,7 +172,10 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const resolvedUrl = toSafeExternalUrl(url) ?? getBenchmarkDatasetUrl(id);
-  const testDataRefSummary = summarizeTestDataRef(testDataRef) ?? NONE_TEST_DATA_REF_SUMMARY;
+  const testDataRefSummary = getTestDataRefSummary(
+    testDataRef,
+    benchmarkRequiresTestData(providerId, id),
+  );
 
   const compactFontStyle: React.CSSProperties | undefined = isCompact
     ? { fontSize: 'var(--pf-t--global--font--size--sm)' }
@@ -253,7 +276,6 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
             </FlexItem>
           )}
 
-          {/* The Test data summary is always present (falls back to the None summary), so this list always renders */}
           <FlexItem>
             <DescriptionList isCompact={isCompact} isAutoFit={isCompact}>
               {hasMetrics && (
@@ -292,47 +314,49 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               )}
-              <DescriptionListGroup>
-                <DescriptionListTerm className={isCompact ? 'pf-v6-u-font-size-sm' : undefined}>
-                  Test data
-                </DescriptionListTerm>
-                <DescriptionListDescription data-testid="benchmark-test-data-ref">
-                  <DescriptionList
-                    isCompact={isCompact}
-                    isAutoFit={isCompact}
-                    className="pf-v6-u-pl-sm"
-                  >
-                    <DescriptionListGroup>
-                      <DescriptionListTerm className={testDataDetailClassName}>
-                        Source
-                      </DescriptionListTerm>
-                      <DescriptionListDescription className={testDataDetailClassName}>
-                        {testDataRefSummary.source}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                    {testDataRefSummary.typeLabel && (
+              {testDataRefSummary && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm className={isCompact ? 'pf-v6-u-font-size-sm' : undefined}>
+                    Test data
+                  </DescriptionListTerm>
+                  <DescriptionListDescription data-testid="benchmark-test-data-ref">
+                    <DescriptionList
+                      isCompact={isCompact}
+                      isAutoFit={isCompact}
+                      className="pf-v6-u-pl-sm"
+                    >
                       <DescriptionListGroup>
                         <DescriptionListTerm className={testDataDetailClassName}>
-                          Data type
+                          Source
                         </DescriptionListTerm>
                         <DescriptionListDescription className={testDataDetailClassName}>
-                          {testDataRefSummary.typeLabel}
+                          {testDataRefSummary.source}
                         </DescriptionListDescription>
                       </DescriptionListGroup>
-                    )}
-                    {testDataRefSummary.details.map((detail) => (
-                      <DescriptionListGroup key={detail.label}>
-                        <DescriptionListTerm className={testDataDetailClassName}>
-                          {detail.label}
-                        </DescriptionListTerm>
-                        <DescriptionListDescription className={testDataDetailClassName}>
-                          {detail.value}
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    ))}
-                  </DescriptionList>
-                </DescriptionListDescription>
-              </DescriptionListGroup>
+                      {testDataRefSummary.typeLabel && (
+                        <DescriptionListGroup>
+                          <DescriptionListTerm className={testDataDetailClassName}>
+                            Data type
+                          </DescriptionListTerm>
+                          <DescriptionListDescription className={testDataDetailClassName}>
+                            {testDataRefSummary.typeLabel}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      )}
+                      {testDataRefSummary.details.map((detail) => (
+                        <DescriptionListGroup key={detail.label}>
+                          <DescriptionListTerm className={testDataDetailClassName}>
+                            {detail.label}
+                          </DescriptionListTerm>
+                          <DescriptionListDescription className={testDataDetailClassName}>
+                            {detail.value}
+                          </DescriptionListDescription>
+                        </DescriptionListGroup>
+                      ))}
+                    </DescriptionList>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
               {providerName && (
                 <DescriptionListGroup>
                   <DescriptionListTerm style={compactFontStyle}>

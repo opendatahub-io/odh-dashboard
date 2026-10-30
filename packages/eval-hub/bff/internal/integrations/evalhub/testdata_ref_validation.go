@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 // Matches the upstream Eval Hub contract for PVC claim_name: an RFC 1123 DNS
@@ -24,7 +25,8 @@ const (
 // repo_id). PVC claim names must be RFC 1123 DNS labels (lowercase
 // alphanumeric with internal hyphens, max 63 characters), matching the
 // upstream Eval Hub contract. Git references must
-// point at credential-free HTTP(S) URLs and must
+// point at credential-free HTTP(S) URLs, must not begin with a hyphen or
+// contain whitespace or control characters, and must
 // use HTTPS whenever a secret reference is supplied, so credentials are never
 // sent over plaintext. A non-empty type must be one of the TestDataRefType
 // enum values. Relative paths (s3 key, sub_path) must stay within the test data
@@ -98,8 +100,17 @@ func (g *TestDataRefGit) validate() error {
 	if g.SecretRef != "" && parsed.Scheme != "https" {
 		return fmt.Errorf("git test data url must use https when a secret reference is provided, got %q", g.URL)
 	}
-	if strings.TrimSpace(g.Ref) == "" {
+	ref := strings.TrimSpace(g.Ref)
+	if ref == "" {
 		return fmt.Errorf("git test data ref must not be empty")
+	}
+	// A leading hyphen or embedded whitespace/control characters could be read
+	// as command-line options or split into separate arguments where the ref
+	// ultimately reaches a git invocation.
+	if strings.HasPrefix(ref, "-") || strings.ContainsFunc(ref, func(r rune) bool {
+		return r < 0x20 || r == 0x7f || unicode.IsSpace(r)
+	}) {
+		return fmt.Errorf("git test data ref must not begin with a hyphen and must not contain whitespace or control characters")
 	}
 	if err := validateRelativePath("git test data sub_path", g.SubPath); err != nil {
 		return err

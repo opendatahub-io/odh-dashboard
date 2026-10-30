@@ -162,7 +162,22 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
   // Errors come from form-level validation, which runs as soon as any field in the form
   // changes. Hide them until the user interacts with the field so switching the source
   // does not flag every dependent field as missing before it has been visited.
-  const [touched, setTouched] = React.useState<Partial<Record<TestDataRefFormField, boolean>>>({});
+  // Prefilled values (edit/copy flows) are excepted: fields that arrive with a value are
+  // treated as touched so invalid prefilled data shows its errors without interaction.
+  const [touched, setTouched] = React.useState<Partial<Record<TestDataRefFormField, boolean>>>(
+    () => {
+      const initial: Partial<Record<TestDataRefFormField, boolean>> = {};
+      if (value.source) {
+        initial.source = true;
+        FIELDS_BY_SOURCE[value.source].forEach(({ field }) => {
+          if (value[field] !== '') {
+            initial[field] = true;
+          }
+        });
+      }
+      return initial;
+    },
+  );
   const fields = value.source ? FIELDS_BY_SOURCE[value.source] : [];
   const sourceError = isRequired && touched.source ? errors?.source : undefined;
 

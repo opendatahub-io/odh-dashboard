@@ -172,6 +172,26 @@ describe('refineTestDataRef', () => {
       expect(errors.ref).toBe('Ref is required.');
     });
 
+    it('should allow a sha or fully qualified ref', () => {
+      expect(collectIssues({ ...gitValues, ref: '9f3b1c2' })).toEqual([]);
+      expect(collectIssues({ ...gitValues, ref: 'refs/heads/release-1.0' })).toEqual([]);
+    });
+
+    it('should reject refs that begin with a hyphen', () => {
+      const errors = fieldErrors({ ...gitValues, ref: '-foo' });
+      expect(errors.ref).toBe(
+        'Ref must not begin with a hyphen and must not contain whitespace or control characters.',
+      );
+    });
+
+    it('should reject refs containing whitespace or control characters', () => {
+      const message =
+        'Ref must not begin with a hyphen and must not contain whitespace or control characters.';
+      expect(fieldErrors({ ...gitValues, ref: 'ma in' }).ref).toBe(message);
+      expect(fieldErrors({ ...gitValues, ref: 'ma\tin' }).ref).toBe(message);
+      expect(fieldErrors({ ...gitValues, ref: 'ma\x00in' }).ref).toBe(message);
+    });
+
     it('should reject SSH urls', () => {
       const errors = fieldErrors({ ...gitValues, url: 'git@github.com:org/repo.git' });
       expect(errors.url).toBe(

@@ -219,6 +219,7 @@ const CollectionBenchmarksSection: React.FC<CollectionBenchmarksSectionProps> = 
                         primaryScore={b.primary_score ?? details?.primary_score}
                         passCriteria={b.pass_criteria ?? details?.pass_criteria}
                         testDataRef={b.test_data_ref}
+                        providerId={b.provider_id}
                         url={b.url ?? details?.url}
                         trackingSurface="collection_drawer"
                         isCompact

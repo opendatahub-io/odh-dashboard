@@ -119,6 +119,16 @@ export const getTestDataRefFieldErrors = (
 const RFC_1123_LABEL_PATTERN = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
 // Hugging Face accepts both `repo` (legacy dataset IDs like `squad`) and `namespace/repo`
 const HF_REPO_ID_PATTERN = /^[\w.-]+(\/[\w.-]+)?$/;
+// Git itself rejects refs with these shapes; enforcing here keeps values that
+// could be read as command-line options or split into arguments from ever
+// reaching the service that invokes git.
+const isInvalidGitRef = (value: string): boolean =>
+  value.startsWith('-') ||
+  /\s/.test(value) ||
+  [...value].some((char) => {
+    const code = char.charCodeAt(0);
+    return code < 0x20 || code === 0x7f;
+  });
 
 const isBlank = (value: string | undefined): boolean => !value || value.trim() === '';
 
@@ -227,6 +237,11 @@ export const refineTestDataRef = (
       }
       if (isBlank(values.ref)) {
         addIssue('ref', 'Ref is required.');
+      } else if (isInvalidGitRef(values.ref.trim())) {
+        addIssue(
+          'ref',
+          'Ref must not begin with a hyphen and must not contain whitespace or control characters.',
+        );
       }
       if (!isBlank(values.subPath)) {
         const subPath = values.subPath.trim();

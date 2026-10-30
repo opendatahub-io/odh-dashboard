@@ -171,9 +171,15 @@ func validatePatchedBenchmarks(currentJSON json.RawMessage, current *evalhub.Col
 	tracker := newBenchmarkWriteTracker(len(current.Benchmarks))
 	touchesBenchmarks := false
 	for _, operation := range operations {
-		if operation.Path == "/benchmarks" || strings.HasPrefix(operation.Path, "/benchmarks/") {
+		// Paths are matched case-insensitively: jsonpatch creates duplicate
+		// keys for case variants, and Go's decoder then overwrites the field
+		// via its case-insensitive fallback, so a variant like /Benchmarks
+		// must not slip past the gate. The original operations are left
+		// untouched for the patch library itself.
+		path := strings.ToLower(operation.Path)
+		if path == "/benchmarks" || strings.HasPrefix(path, "/benchmarks/") {
 			touchesBenchmarks = true
-			tracker.apply(operation.Op, operation.Path)
+			tracker.apply(operation.Op, path)
 		}
 	}
 	if !touchesBenchmarks {

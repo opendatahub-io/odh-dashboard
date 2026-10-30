@@ -43,6 +43,37 @@ func TestTestDataRefValidate(t *testing.T) {
 			}},
 		},
 		{
+			name: "git ref with sha and nested ref name is valid",
+			ref: &TestDataRef{Git: &TestDataRefGit{
+				URL: "https://example.com/repo.git",
+				Ref: "refs/heads/release-1.0",
+			}},
+		},
+		{
+			name: "git ref beginning with hyphen is rejected",
+			ref: &TestDataRef{Git: &TestDataRefGit{
+				URL: "https://example.com/repo.git",
+				Ref: "-foo",
+			}},
+			wantErr: "git test data ref must not begin with a hyphen and must not contain whitespace or control characters",
+		},
+		{
+			name: "git ref containing whitespace is rejected",
+			ref: &TestDataRef{Git: &TestDataRefGit{
+				URL: "https://example.com/repo.git",
+				Ref: "ma in",
+			}},
+			wantErr: "git test data ref must not begin with a hyphen and must not contain whitespace or control characters",
+		},
+		{
+			name: "git ref containing control characters is rejected",
+			ref: &TestDataRef{Git: &TestDataRefGit{
+				URL: "https://example.com/repo.git",
+				Ref: "ma\x00in",
+			}},
+			wantErr: "git test data ref must not begin with a hyphen and must not contain whitespace or control characters",
+		},
+		{
 			name:    "no variant set is rejected",
 			ref:     &TestDataRef{},
 			wantErr: "test_data_ref must specify exactly one of s3, pvc, git, or hf, got: ",

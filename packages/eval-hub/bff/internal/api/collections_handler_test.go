@@ -503,6 +503,76 @@ func TestValidatePatchedBenchmarksHandlesExplicitNullFields(t *testing.T) {
 	}
 }
 
+func TestValidatePatchedBenchmarksNormalizesPathCase(t *testing.T) {
+	// json-patch appends case-variant keys after the originals, and Go's
+	// decoder resolves them onto the same struct fields via its
+	// case-insensitive fallback, so variant paths must be tracked and
+	// validated like their exact-case counterparts.
+	currentJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"test_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}}
+		}]
+	}`)
+	current := &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID: "mmlu",
+			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+				URL: "https://github.com/example/valid.git",
+				Ref: "main",
+			}},
+		}},
+	}
+
+	tests := []struct {
+		name       string
+		operations []evalhub.CollectionPatchOperation
+		wantErr    string
+	}{
+		{
+			name: "case-variant whole-array path is validated",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/Benchmarks",
+				Value: json.RawMessage(`[{"id":"arc","test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}]`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+		{
+			name: "case-variant test_data_ref path is validated",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/0/Test_Data_Ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+		{
+			name: "case-variant non-benchmark path is passed through",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/Name",
+				Value: json.RawMessage(`"Renamed"`),
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePatchedBenchmarks(currentJSON, current, tt.operations)
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 	newCollection := func(firstURL, secondURL string) *evalhub.Collection {
 		return &evalhub.Collection{
@@ -607,6 +677,28 @@ func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
 				Op:    "add",
 				Path:  "/benchmarks/0",
 				Value: json.RawMessage(`{"id":"arc","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			name:       "case-variant whole-array path is validated",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/Benchmarks",
+				Value: json.RawMessage(`[{"id":"arc","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}]`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			name:       "case-variant test_data_ref path is validated",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/0/Test_Data_Ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
 			}},
 			status:  http.StatusBadRequest,
 			message: "must not embed credentials",

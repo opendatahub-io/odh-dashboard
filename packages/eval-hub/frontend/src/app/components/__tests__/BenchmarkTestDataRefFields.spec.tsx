@@ -220,6 +220,32 @@ describe('BenchmarkTestDataRefFields', () => {
     expect(children).not.toContainElement(screen.getByTestId('test-test-data-ref-source-toggle'));
   });
 
+  it('should show validation errors immediately for prefilled fields', () => {
+    renderFields({
+      value: {
+        ...testDataRefDefaultValues,
+        source: 'git',
+        url: 'git@github.com:my-org/my-eval-datasets.git',
+      },
+      errors: {
+        url: 'Repository URL must be a valid HTTP or HTTPS URL (SSH URLs are not supported).',
+      },
+    });
+
+    expect(screen.getByTestId('test-test-data-ref-url-error')).toHaveTextContent(
+      'Repository URL must be a valid HTTP or HTTPS URL (SSH URLs are not supported).',
+    );
+  });
+
+  it('should hide validation errors for prefilled fields left blank', () => {
+    renderFields({
+      value: { ...testDataRefDefaultValues, source: 's3', bucket: 'eval-data' },
+      errors: { secretRef: 'Secret is required.' },
+    });
+
+    expect(screen.queryByTestId('test-test-data-ref-secretRef-error')).not.toBeInTheDocument();
+  });
+
   it('should hide validation errors until the field is interacted with', () => {
     renderFields({
       value: { ...testDataRefDefaultValues, source: 's3' },
