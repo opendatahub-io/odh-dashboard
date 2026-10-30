@@ -1062,6 +1062,10 @@ func TestBuildHTTPClient_PreservesLoopbackProxyForExternalHTTPS(t *testing.T) {
 			http.Error(w, "expected CONNECT", http.StatusMethodNotAllowed)
 			return
 		}
+		if r.Host != "external.example.invalid:443" {
+			http.Error(w, "unexpected CONNECT target", http.StatusBadGateway)
+			return
+		}
 		hijacker, ok := w.(http.Hijacker)
 		if !ok {
 			return
@@ -1096,15 +1100,14 @@ func TestBuildHTTPClient_PreservesLoopbackProxyForExternalHTTPS(t *testing.T) {
 	}))
 	defer proxy.Close()
 
-	t.Setenv("HTTPS_PROXY", proxy.URL)
-	t.Setenv("https_proxy", proxy.URL)
-	t.Setenv("HTTP_PROXY", "")
-	t.Setenv("http_proxy", "")
-	t.Setenv("ALL_PROXY", "")
-	t.Setenv("all_proxy", "")
-	t.Setenv("NO_PROXY", "")
-	t.Setenv("no_proxy", "")
-	client := (&awsClientProvider{cfg: ClientConfig{InsecureSkipVerify: true}}).buildHTTPClient(false)
+	proxyURL, err := url.Parse(proxy.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := (&awsClientProvider{cfg: ClientConfig{InsecureSkipVerify: true}}).buildHTTPClientWithProxySelector(
+		false,
+		http.ProxyURL(proxyURL),
+	)
 	proxyContextTransport, ok := client.Transport.(*proxyContextRoundTripper)
 	if !ok {
 		t.Fatalf("Transport is %T, want *proxyContextRoundTripper", client.Transport)

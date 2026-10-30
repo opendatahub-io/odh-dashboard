@@ -375,11 +375,20 @@ func (p *awsClientProvider) buildAWSClient(opts ConnectionOptions) (*awss3.Clien
 // phases are bounded on the transport instead, and payload streaming is bounded by each
 // caller's request context.
 func (p *awsClientProvider) buildHTTPClient(requirePrivateEndpoint bool) *http.Client {
+	return p.buildHTTPClientWithProxySelector(requirePrivateEndpoint, nil)
+}
+
+func (p *awsClientProvider) buildHTTPClientWithProxySelector(
+	requirePrivateEndpoint bool,
+	proxySelector func(*http.Request) (*url.URL, error),
+) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if requirePrivateEndpoint {
 		// A proxy would receive the request destination and make the dialer validate
 		// the proxy address instead of the private-only S3 endpoint.
 		transport.Proxy = nil
+	} else if proxySelector != nil {
+		transport.Proxy = proxySelector
 	}
 	transport.DialContext = ssrfSafeDialContext(
 		&net.Dialer{Timeout: s3ConnectTimeout},
