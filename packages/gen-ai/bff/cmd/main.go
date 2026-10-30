@@ -68,6 +68,7 @@ func main() {
 	// TLS configuration
 	flag.Func("bundle-paths", "CA bundle file paths (comma-separated list)", newBundlePathParser(&cfg.BundlePaths, getEnvAsString("BUNDLE_PATHS", "")))
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification")
+	flag.BoolVar(&cfg.AllowLocalModelEndpoints, "allow-local-model-endpoints", getEnvAsBool("ALLOW_LOCAL_MODEL_ENDPOINTS", false), "Allow verifying model endpoints on localhost/loopback (local development only)")
 
 	// RBAC configuration
 	flag.BoolVar(&cfg.EnableLlamaStackRBAC, "enable-llamastack-rbac", getEnvAsBool("ENABLE_LLAMASTACK_RBAC", false), "Enable RBAC endpoint filtering on LlamaStack configurations")
@@ -112,6 +113,9 @@ func main() {
 	// Go's default formatter, which is acceptable since the process exits immediately on
 	// failure and never reaches normal operation.
 	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, certFile); err != nil {
+		os.Exit(1)
+	}
+	if err := validateAllowLocalModelEndpoints(cfg.AllowLocalModelEndpoints, certFile); err != nil {
 		os.Exit(1)
 	}
 
@@ -227,6 +231,28 @@ func validateInsecureSkipVerify(insecureSkipVerify bool, certFile string) error 
 	}
 
 	slog.Warn("SECURITY WARNING: TLS certificate verification is DISABLED (InsecureSkipVerify=true)",
+		"use_case", "local development only - NEVER use in production",
+	)
+	return nil
+}
+
+// validateAllowLocalModelEndpoints validates the AllowLocalModelEndpoints
+// configuration at startup, mirroring the InsecureSkipVerify fail-fast check.
+func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, certFile string) error {
+	if !allowLocalModelEndpoints {
+		return nil
+	}
+
+	if certFile != "" {
+		slog.Error("SECURITY: AllowLocalModelEndpoints cannot be used when TLS certificates are mounted",
+			"cert_file", certFile,
+			"allow_local_model_endpoints", allowLocalModelEndpoints,
+			"fix", "Remove --allow-local-model-endpoints flag and ALLOW_LOCAL_MODEL_ENDPOINTS env var",
+		)
+		return errors.New("AllowLocalModelEndpoints cannot be used when TLS certificates are mounted (deployed environment detected)")
+	}
+
+	slog.Warn("SECURITY WARNING: verifying localhost/loopback model endpoints is ENABLED (AllowLocalModelEndpoints=true)",
 		"use_case", "local development only - NEVER use in production",
 	)
 	return nil

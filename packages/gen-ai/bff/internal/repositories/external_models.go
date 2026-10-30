@@ -198,7 +198,7 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 // In-cluster services in other namespaces are NOT trusted: the caller is only
 // authorized for their own namespace, so cross-namespace hosts must go through
 // normal SSRF validation (CWE-918). All other URLs are subject to SSRF checks.
-func isInternalHost(baseURL string, allowedNamespace string) bool {
+func isInternalHost(baseURL string, allowedNamespace string, allowLoopback bool) bool {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return false
@@ -206,7 +206,9 @@ func isInternalHost(baseURL string, allowedNamespace string) bool {
 	h := u.Hostname()
 	ip := net.ParseIP(h)
 	if h == "localhost" || (ip != nil && ip.IsLoopback()) {
-		return true
+		// Loopback endpoints are only exempt from SSRF validation in local
+		// development; in a deployed BFF they would target BFF-local services.
+		return allowLoopback
 	}
 	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
 	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
@@ -282,14 +284,16 @@ func resolveTrustedHost(
 	identity *integrations.RequestIdentity,
 	baseURL string,
 	namespace string,
+	allowLoopback bool,
 	logger *slog.Logger,
 ) (bool, []string, error) {
-	if !isInternalHost(baseURL, namespace) {
+	if !isInternalHost(baseURL, namespace, allowLoopback) {
 		return false, nil, nil
 	}
 	svcName, svcNamespace, podLabel, ok := k8sServiceHost(baseURL)
 	if !ok {
-		// localhost/loopback for local development
+		// localhost/loopback for local development; isInternalHost already gated
+		// this on the local-development setting
 		return true, nil, nil
 	}
 	u, err := url.Parse(baseURL)
@@ -477,6 +481,8 @@ func internalHostRootCAs(trusted bool, rootCAs *x509.CertPool) *x509.CertPool {
 // in-cluster service hosts are trusted to skip SSRF validation.
 // rootCAs is the application CA pool (nil falls back to system pool for external hosts).
 // insecureSkipVerify mirrors cfg.InsecureSkipVerify and disables TLS cert validation when true.
+// allowLoopback mirrors cfg.AllowLocalModelEndpoints and trusts localhost/loopback endpoints
+// only in local development.
 func (r *ExternalModelsRepository) VerifyExternalModel(
 	logger *slog.Logger,
 	ctx context.Context,
@@ -486,8 +492,9 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	req models.VerifyExternalModelRequest,
 	rootCAs *x509.CertPool,
 	insecureSkipVerify bool,
+	allowLoopback bool,
 ) (*models.VerifyExternalModelResponse, error) {
-	trusted, pinnedAddresses, err := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace, logger)
+	trusted, pinnedAddresses, err := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace, allowLoopback, logger)
 	if err != nil {
 		return nil, err
 	}

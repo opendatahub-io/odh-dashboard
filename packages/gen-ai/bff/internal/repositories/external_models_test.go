@@ -23,32 +23,35 @@ import (
 )
 
 // TestIsInternalHost verifies that SSRF validation is only skipped for localhost/loopback
-// and for in-cluster services in the caller's authorized namespace. Cross-namespace and
-// external hosts must NOT be treated as internal (CWE-918).
+// in local development mode and for in-cluster services in the caller's authorized
+// namespace. Cross-namespace and external hosts must NOT be treated as internal (CWE-918).
 func TestIsInternalHost(t *testing.T) {
 	tests := []struct {
 		name             string
 		baseURL          string
 		allowedNamespace string
+		allowLoopback    bool
 		want             bool
 	}{
-		{"same-namespace cluster service is trusted", "https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", true},
-		{"same-namespace cluster service on arbitrary port", "http://model.my-ns.svc.cluster.local:19530", "my-ns", true},
-		{"cross-namespace cluster service is NOT trusted", "https://secret.kube-system.svc.cluster.local/v1", "my-ns", false},
-		{"namespace-like service name does not match", "https://my-ns.other-ns.svc.cluster.local/v1", "my-ns", false},
-		{"cluster service with empty authorized namespace is NOT trusted", "https://svc.my-ns.svc.cluster.local", "", false},
-		{"localhost is trusted", "http://localhost:8080", "my-ns", true},
-		{"loopback IP is trusted", "http://127.0.0.1:9000", "my-ns", true},
-		{"private IP is not internal", "http://10.0.0.5:8080", "my-ns", false},
-		{"external host is not internal", "https://api.openai.com/v1", "my-ns", false},
-		{"lookalike cluster suffix is not internal", "https://evil.cluster.local", "my-ns", false},
-		{"too-few labels is not internal", "https://svc.cluster.local", "my-ns", false},
-		{"unparseable url is not internal", "://bad-url", "my-ns", false},
+		{"same-namespace cluster service is trusted", "https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", false, true},
+		{"same-namespace cluster service on arbitrary port", "http://model.my-ns.svc.cluster.local:19530", "my-ns", false, true},
+		{"cross-namespace cluster service is NOT trusted", "https://secret.kube-system.svc.cluster.local/v1", "my-ns", false, false},
+		{"namespace-like service name does not match", "https://my-ns.other-ns.svc.cluster.local/v1", "my-ns", false, false},
+		{"cluster service with empty authorized namespace is NOT trusted", "https://svc.my-ns.svc.cluster.local", "", false, false},
+		{"localhost is NOT trusted outside local development", "http://localhost:8080", "my-ns", false, false},
+		{"loopback IP is NOT trusted outside local development", "http://127.0.0.1:9000", "my-ns", false, false},
+		{"localhost is trusted in local development", "http://localhost:8080", "my-ns", true, true},
+		{"loopback IP is trusted in local development", "http://127.0.0.1:9000", "my-ns", true, true},
+		{"private IP is not internal", "http://10.0.0.5:8080", "my-ns", false, false},
+		{"external host is not internal", "https://api.openai.com/v1", "my-ns", false, false},
+		{"lookalike cluster suffix is not internal", "https://evil.cluster.local", "my-ns", false, false},
+		{"too-few labels is not internal", "https://svc.cluster.local", "my-ns", false, false},
+		{"unparseable url is not internal", "://bad-url", "my-ns", false, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isInternalHost(tt.baseURL, tt.allowedNamespace); got != tt.want {
-				t.Errorf("isInternalHost(%q, %q) = %v, want %v", tt.baseURL, tt.allowedNamespace, got, tt.want)
+			if got := isInternalHost(tt.baseURL, tt.allowedNamespace, tt.allowLoopback); got != tt.want {
+				t.Errorf("isInternalHost(%q, %q, %v) = %v, want %v", tt.baseURL, tt.allowedNamespace, tt.allowLoopback, got, tt.want)
 			}
 		})
 	}
@@ -562,7 +565,7 @@ func TestResolveTrustedHost(t *testing.T) {
 				baseURL = "https://my-model.my-ns.svc.cluster.local:8443/v1"
 			}
 			client := &recordingServiceClient{ConfigurableMockKubernetesClient: k8smocks.ConfigurableMockKubernetesClient{Service: tt.service, ServiceError: tt.err, EndpointSlices: tt.slices, EndpointSlicesError: tt.slicesErr, Pod: tt.pod, Pods: tt.pods, PodError: tt.podErr}}
-			got, addresses, err := resolveTrustedHost(context.Background(), client, identity, baseURL, "my-ns", logger)
+			got, addresses, err := resolveTrustedHost(context.Background(), client, identity, baseURL, "my-ns", false, logger)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("resolveTrustedHost() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -600,7 +603,7 @@ func TestResolveTrustedHostForbiddenLookup(t *testing.T) {
 	}
 	trusted, _, err := resolveTrustedHost(
 		context.Background(), client, nil,
-		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", slog.Default(),
+		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", false, slog.Default(),
 	)
 	if trusted {
 		t.Error("resolveTrustedHost() = true, want false on forbidden lookup")
@@ -628,7 +631,7 @@ func TestResolveTrustedHostForbiddenEndpointSliceLookup(t *testing.T) {
 	}
 	trusted, _, err := resolveTrustedHost(
 		context.Background(), client, nil,
-		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", slog.Default(),
+		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", false, slog.Default(),
 	)
 	if trusted {
 		t.Error("resolveTrustedHost() = true, want false on forbidden endpoint slice lookup")
@@ -657,7 +660,7 @@ func TestResolveTrustedHostForbiddenPodLookup(t *testing.T) {
 	}
 	trusted, _, err := resolveTrustedHost(
 		context.Background(), client, nil,
-		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", slog.Default(),
+		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", false, slog.Default(),
 	)
 	if trusted {
 		t.Error("resolveTrustedHost() = true, want false on forbidden pod lookup")
@@ -692,7 +695,7 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		client := &k8smocks.ConfigurableMockKubernetesClient{
 			ServiceError: fmt.Errorf("connection refused"),
 		}
-		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false)
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
 			t.Fatal("VerifyExternalModel() error = nil, want SSRF validation failure")
 		}
@@ -705,7 +708,7 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		client := &k8smocks.ConfigurableMockKubernetesClient{
 			ServiceError: apierrors.NewForbidden(schema.GroupResource{Resource: "services"}, "my-model", fmt.Errorf("denied")),
 		}
-		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false)
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
 			t.Fatal("VerifyExternalModel() error = nil, want permission error")
 		}
@@ -728,7 +731,7 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 			EndpointSlices: []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
 			Pod:            runningPod("my-ns", "127.0.0.1"),
 		}
-		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false)
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
 			t.Fatal("VerifyExternalModel() error = nil, want pinned dial failure to the loopback address with nothing listening")
 		}
@@ -752,7 +755,7 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 			},
 			EndpointSlices: []discoveryv1.EndpointSlice{manualSlice()},
 		}
-		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false)
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
 			t.Fatal("VerifyExternalModel() error = nil, want SSRF validation failure")
 		}

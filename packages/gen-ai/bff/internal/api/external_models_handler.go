@@ -234,7 +234,7 @@ func (app *App) VerifyExternalModelHandler(
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, k8sClient, identity, namespace, req, app.rootCAs, app.config.InsecureSkipVerify)
+	response, err := app.repositories.ExternalModels.VerifyExternalModel(app.logger, ctx, k8sClient, identity, namespace, req, app.rootCAs, app.config.InsecureSkipVerify, app.config.AllowLocalModelEndpoints)
 	if err != nil {
 		// Handle custom error types
 		if extErr, ok := err.(*externalmodels.ExternalModelError); ok {

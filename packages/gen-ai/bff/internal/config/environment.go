@@ -61,6 +61,10 @@ type EnvConfig struct {
 	// TLS verification settings for HTTP client connections
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
 	InsecureSkipVerify bool
+	// AllowLocalModelEndpoints when true, allows verification of model endpoints on
+	// localhost/loopback addresses (local development only; refused at startup when
+	// TLS certificates are mounted, i.e. in deployed environments)
+	AllowLocalModelEndpoints bool
 	// Custom distribution name
 	DistributionName string
 
