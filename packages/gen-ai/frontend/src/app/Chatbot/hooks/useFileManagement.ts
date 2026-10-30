@@ -3,7 +3,9 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { FileModel, VectorStoreFile } from '~/app/types';
+import { findInlineVectorStore } from '~/app/Chatbot/findInlineVectorStore';
 import { GenAiContext } from '~/app/context/GenAiContext';
+import { useUserContext } from '~/app/context/UserContext';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 
 export interface UseFileManagementReturn {
@@ -42,29 +44,37 @@ export const DELETE_EVENT_NAME = 'Playground RAG Delete File';
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
   const { onShowDeleteSuccessAlert, onShowErrorAlert } = props;
   const { namespace } = React.useContext(GenAiContext);
+  const { username } = useUserContext();
   const [files, setFiles] = React.useState<FileModel[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [currentVectorStoreId, setCurrentVectorStoreId] = React.useState<string | null>(null);
   const { api, apiAvailable } = useGenAiAPI();
+  const refreshGeneration = React.useRef(0);
 
   const refreshFiles = React.useCallback(async () => {
-    if (!apiAvailable) {
+    if (!apiAvailable || !username) {
       return;
     }
 
+    const generation = refreshGeneration.current + 1;
+    refreshGeneration.current = generation;
     setIsLoading(true);
     setError(null);
 
     try {
       // First, get the list of vector stores
       const vectorStores = await api.listVectorStores();
+      if (generation !== refreshGeneration.current) {
+        return;
+      }
 
-      // Find the auto-provisioned file-upload store for this user
-      const userStore = vectorStores.find((vs) => vs.metadata.created_by === 'auto-provisioning');
+      // Only the signed-in user's auto-provisioned store.
+      const userStore = findInlineVectorStore(vectorStores, username);
       if (!userStore) {
         setFiles([]);
+        setCurrentVectorStoreId(null);
         return;
       }
 
@@ -79,18 +89,26 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         order: 'desc',
         filter: 'completed',
       });
+      if (generation !== refreshGeneration.current) {
+        return;
+      }
 
       // Convert vector store files to FileModel format
       const convertedFiles = vectorStoreFiles.map(convertVectorStoreFileToFileModel);
       setFiles(convertedFiles);
     } catch (err) {
+      if (generation !== refreshGeneration.current) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch files';
       setError(errorMessage);
       onShowErrorAlert?.(errorMessage, 'File Fetch Error');
     } finally {
-      setIsLoading(false);
+      if (generation === refreshGeneration.current) {
+        setIsLoading(false);
+      }
     }
-  }, [onShowErrorAlert, api, apiAvailable]);
+  }, [onShowErrorAlert, api, apiAvailable, username]);
 
   const deleteFileById = React.useCallback(
     async (fileId: string) => {
@@ -138,7 +156,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
   React.useEffect(() => {
     refreshFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespace?.name]); // Only depend on namespace.name, not the entire refreshFiles function
+  }, [namespace?.name, username]); // Refresh when the project or signed-in user changes
 
   return {
     files,

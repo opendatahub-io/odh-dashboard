@@ -17,21 +17,77 @@ type UserContextProviderProps = {
   children: React.ReactNode;
 };
 
+const USER_LOOKUP_ATTEMPTS = 3;
+const USER_LOOKUP_RETRY_MS = 200;
+const USER_LOOKUP_RECOVERY_DELAYS_MS = [2000, 5000];
+
+const lookupUsername = async (): Promise<string | undefined> => {
+  for (let attempt = 0; attempt < USER_LOOKUP_ATTEMPTS; attempt += 1) {
+    try {
+      const res = await getCurrentUser({});
+      if (res.userId) {
+        return res.userId;
+      }
+    } catch {
+      // A timeout or empty id is retried before the session keeps uploads disabled.
+    }
+    if (attempt < USER_LOOKUP_ATTEMPTS - 1) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, USER_LOOKUP_RETRY_MS);
+      });
+    }
+  }
+  return undefined;
+};
+
 const UserContextProvider: React.FunctionComponent<UserContextProviderProps> = ({ children }) => {
   const [username, setUsername] = React.useState<string | undefined>(undefined);
 
   const refreshUser = React.useCallback(async () => {
-    try {
-      const res = await getCurrentUser({});
-      setUsername(res.userId);
-    } catch {
-      setUsername(undefined);
-    }
+    setUsername(await lookupUsername());
   }, []);
 
   React.useEffect(() => {
-    void refreshUser();
-  }, [refreshUser]);
+    let cancelled = false;
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+
+    const recoverLater = (delays: number[]) => {
+      if (cancelled || delays.length === 0) {
+        return;
+      }
+      const [delay, ...remaining] = delays;
+      const timer = setTimeout(() => {
+        void (async () => {
+          const userId = await lookupUsername();
+          if (cancelled) {
+            return;
+          }
+          if (userId) {
+            setUsername(userId);
+            return;
+          }
+          recoverLater(remaining);
+        })();
+      }, delay);
+      timers.push(timer);
+    };
+
+    void (async () => {
+      const userId = await lookupUsername();
+      if (cancelled) {
+        return;
+      }
+      setUsername(userId);
+      if (!userId) {
+        recoverLater([...USER_LOOKUP_RECOVERY_DELAYS_MS]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      timers.forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
 
   const value = React.useMemo<UserContextValue>(
     () => ({ username, refreshUser }),
