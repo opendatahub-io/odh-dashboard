@@ -98,6 +98,7 @@ describe('startEvaluationRunSchema', () => {
       selectedInferenceServiceName: undefined,
       sourceName: '',
       datasetUrl: '',
+      accessToken: '',
     });
 
     expect(invalidResult.success).toBe(false);
@@ -106,6 +107,7 @@ describe('startEvaluationRunSchema', () => {
         expect.arrayContaining([
           expect.objectContaining({ path: ['sourceName'], message: 'Source name is required' }),
           expect.objectContaining({ path: ['datasetUrl'], message: 'Dataset URL is required.' }),
+          expect.objectContaining({ path: ['accessToken'], message: 'Secret name is required.' }),
         ]),
       );
     }
@@ -116,9 +118,48 @@ describe('startEvaluationRunSchema', () => {
         sourceMode: 'prerecorded',
         selectedInferenceServiceName: undefined,
         sourceName: 'Recorded responses',
-        datasetUrl: 'not-required-to-be-a-url-by-this-form',
+        datasetUrl: 'not-an-s3-url',
+        accessToken: 'tok-123',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      startEvaluationRunSchema.safeParse({
+        ...validValues(),
+        sourceMode: 'prerecorded',
+        selectedInferenceServiceName: undefined,
+        sourceName: 'Recorded responses',
+        datasetUrl: 's3://bucket-name/data.jsonl',
+        accessToken: 'tok-123',
       }).success,
     ).toBe(true);
+  });
+
+  it('should reject prerecorded dataset URLs whose key fails the reference path rules', () => {
+    const parse = (datasetUrl: string) =>
+      startEvaluationRunSchema.safeParse({
+        ...validValues(),
+        sourceMode: 'prerecorded',
+        selectedInferenceServiceName: undefined,
+        sourceName: 'Recorded responses',
+        datasetUrl,
+        accessToken: 'tok-123',
+      });
+
+    for (const datasetUrl of ['s3://bucket-name//data.jsonl', 's3://bucket-name/a/../data.jsonl']) {
+      const result = parse(datasetUrl);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['datasetUrl'],
+              message: 'Dataset URL must be an S3 URL in the format s3://bucket-name/path.',
+            }),
+          ]),
+        );
+      }
+    }
   });
 
   it('should require the selected experiment only in existing experiment mode', () => {

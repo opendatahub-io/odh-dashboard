@@ -7,6 +7,7 @@ import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import type {
   FlatBenchmark,
   Collection,
@@ -131,6 +132,7 @@ const reconfigureValues: ReconfigureFormData = {
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
+  testDataRef: { ...testDataRefDefaultValues },
   benchmark: mockBenchmark,
   collection: undefined,
   isCollectionFlow: false,
@@ -140,6 +142,22 @@ const reconfigureValues: ReconfigureFormData = {
   experimentName: 'EvalHub',
   hardwareProfile: mockCompatibleHardwareProfile.name,
   queue: mockCompatibleHardwareProfile.local_queue_name,
+};
+
+const collectionReconfigureValues: ReconfigureFormData = {
+  ...reconfigureValues,
+  benchmark: undefined,
+  collection: mockCollection,
+  isCollectionFlow: true,
+  // Hydrated from a collection benchmark; the empty secret ref fails
+  // single-benchmark form validation.
+  testDataRef: {
+    ...testDataRefDefaultValues,
+    source: 's3',
+    bucket: 'legacy-bucket',
+    key: 'data.jsonl',
+    secretRef: '',
+  },
 };
 
 const defaultFormParams = {
@@ -678,6 +696,30 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
 
       expect(renderResult.result.current.isValid).toBe(false);
       expect(renderResult.result.current.hardwareProfile).toBeUndefined();
+    });
+
+    it('should stay valid when a collection reconfigure hydrates a test-data ref that fails single-benchmark validation', async () => {
+      const renderResult = renderForm({
+        benchmark: undefined,
+        collection: mockCollection,
+        isCollectionFlow: true,
+        initialValues: collectionReconfigureValues,
+      });
+
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+      expect(renderResult.result.current.testDataRefErrors).toBeUndefined();
+    });
+
+    it('should stay invalid when a single-benchmark reconfigure hydrates the same failing test-data ref', async () => {
+      const renderResult = renderForm({
+        initialValues: {
+          ...reconfigureValues,
+          testDataRef: collectionReconfigureValues.testDataRef,
+        },
+      });
+
+      await waitFor(() => expect(renderResult.result.current.testDataRefErrors).toBeDefined());
+      expect(renderResult.result.current.isValid).toBe(false);
     });
 
     it('should stop submission when the selected profile disappears after loading', async () => {

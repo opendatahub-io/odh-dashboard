@@ -2,6 +2,7 @@ import * as React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import CopySuiteBenchmarkSection from '~/app/components/CopySuiteBenchmarkSection';
 import type { CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
 jest.mock('~/app/components/BenchmarkThresholdField', () => ({
   __esModule: true,
@@ -18,6 +19,7 @@ const benchmark: CopySuiteBenchmark = {
   name: 'Benchmark One',
   weight: 0.2,
   parameters: [],
+  testDataRef: { ...testDataRefDefaultValues },
   threshold: 70,
   availableMetrics: [],
 };
@@ -176,5 +178,58 @@ describe('CopySuiteBenchmarkSection', () => {
     const fileUpload = screen.getByTestId('benchmark-additional-parameters-0');
     expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
     expect(fileUpload.querySelector('textarea')).toBeDisabled();
+  });
+
+  it('should render the test data source selector with a None default', () => {
+    renderSection();
+
+    expect(screen.getByTestId('benchmark-test-data-ref-0-source-toggle')).toHaveTextContent(
+      'None (use benchmark default data)',
+    );
+  });
+
+  it('should clear previous source values when the test data source changes', () => {
+    const onUpdate = jest.fn();
+    renderSection({
+      onUpdate,
+      benchmark: {
+        ...benchmark,
+        testDataRef: {
+          ...testDataRefDefaultValues,
+          source: 's3',
+          bucket: 'eval-data',
+          key: 'ragas/data.jsonl',
+          secretRef: 'my-secret',
+        },
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('benchmark-test-data-ref-0-source-toggle'));
+    fireEvent.click(screen.getByRole('option', { name: 'Git repository' }));
+
+    expect(onUpdate).toHaveBeenCalledWith(0, 'testDataRef', {
+      ...testDataRefDefaultValues,
+      source: 'git',
+    });
+  });
+
+  it('should surface test data ref validation errors', () => {
+    renderSection({
+      benchmark: {
+        ...benchmark,
+        testDataRef: { ...testDataRefDefaultValues, source: 's3', bucket: 'eval-data' },
+      },
+      testDataRefErrors: { key: 'Key is required.', secretRef: 'Secret is required.' },
+    });
+
+    fireEvent.blur(screen.getByTestId('benchmark-test-data-ref-0-key'));
+    fireEvent.blur(screen.getByTestId('benchmark-test-data-ref-0-secretRef'));
+
+    expect(screen.getByTestId('benchmark-test-data-ref-0-key-error')).toHaveTextContent(
+      'Key is required.',
+    );
+    expect(screen.getByTestId('benchmark-test-data-ref-0-secretRef-error')).toHaveTextContent(
+      'Secret is required.',
+    );
   });
 });

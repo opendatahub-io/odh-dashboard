@@ -18,6 +18,7 @@ import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import type { EvalHubTrackingContext } from '~/app/tracking/evalhubTracking';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
+import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
 import getErrorTitle from '~/app/utils/getErrorTitle';
 import {
@@ -35,7 +36,14 @@ import {
   startEvaluationRunSchema,
   type StartEvaluationRunFormValues,
 } from '~/app/schemas/startEvaluationRun.schema';
+import {
+  getTestDataRefFieldErrors,
+  testDataRefDefaultValues,
+  type TestDataRefFormField,
+  type TestDataRefFormValues,
+} from '~/app/schemas/testDataRef.schema';
 import type { Collection, FlatBenchmark, InferenceServiceItem, SourceMode } from '~/app/types';
+import { benchmarkRequiresTestData } from '~/app/utilities/testDataRefRequirements';
 
 type ExperimentMode = StartEvaluationRunFormValues['experimentMode'];
 
@@ -131,6 +139,7 @@ const buildInitialFormValues = ({
   sourceName: initialValues?.sourceName ?? '',
   datasetUrl: initialValues?.datasetUrl ?? '',
   accessToken: initialValues?.accessToken ?? '',
+  testDataRef: initialValues?.testDataRef ?? { ...testDataRefDefaultValues },
   experimentMode: 'existing',
   selectedExperimentName: initialValues?.experimentName,
   newExperimentName: '',
@@ -236,6 +245,7 @@ export function useStartEvaluationRunForm({
     sourceName,
     datasetUrl,
     accessToken,
+    testDataRef,
     experimentMode,
     selectedExperimentName,
     newExperimentName,
@@ -258,6 +268,7 @@ export function useStartEvaluationRunForm({
       'sourceName',
       'datasetUrl',
       'accessToken',
+      'testDataRef',
       'experimentMode',
       'selectedExperimentName',
       'newExperimentName',
@@ -493,8 +504,40 @@ export function useStartEvaluationRunForm({
     if (datasetUrl.trim() === '') {
       return 'Dataset URL is required.';
     }
+    if (!parseS3DatasetUrl(datasetUrl)) {
+      return 'Dataset URL must be an S3 URL in the format s3://bucket-name/path.';
+    }
     return undefined;
   }, [sourceMode, datasetUrl]);
+
+  const accessTokenError = React.useMemo((): string | undefined => {
+    if (sourceMode !== 'prerecorded') {
+      return undefined;
+    }
+    if (accessToken.trim() === '') {
+      return 'Secret name is required.';
+    }
+    return undefined;
+  }, [sourceMode, accessToken]);
+
+  // Computed from values (not formState.errors): the onChange resolver only applies
+  // the error for the field that changed, so nested superRefine issues never land
+  // in formState for this form.
+  const testDataRefRequired = React.useMemo(
+    () => benchmarkRequiresTestData(benchmark?.providerId, benchmark?.id),
+    [benchmark?.providerId, benchmark?.id],
+  );
+  // Collection flows hide the test-data fields and keep each benchmark's wire
+  // reference, so a hydrated ref that fails single-benchmark validation must
+  // not block submission with no visible field to correct.
+  const testDataRefErrors = React.useMemo(
+    (): Partial<Record<TestDataRefFormField, string>> | undefined =>
+      sourceMode === 'model' && !isCollectionFlow
+        ? getTestDataRefFieldErrors(testDataRef, testDataRefRequired)
+        : undefined,
+    [sourceMode, isCollectionFlow, testDataRef, testDataRefRequired],
+  );
+  const hasTestDataRefErrors = !!testDataRefErrors && Object.keys(testDataRefErrors).length > 0;
 
   const hasExperiment =
     (experimentMode === 'existing' && !!selectedExperimentName?.trim()) ||
@@ -529,6 +572,9 @@ export function useStartEvaluationRunForm({
     }
 
     if (sourceMode === 'model') {
+      if (hasTestDataRefErrors) {
+        return false;
+      }
       if (modelSelection === 'cluster') {
         return !!selectedInferenceServiceName?.trim();
       }
@@ -539,7 +585,7 @@ export function useStartEvaluationRunForm({
       return agentName.trim() !== '' && !endpointUrlError;
     }
 
-    return sourceName.trim() !== '' && !datasetUrlError;
+    return sourceName.trim() !== '' && !datasetUrlError && !accessTokenError;
   }, [
     evaluationName,
     hasBenchmarks,
@@ -550,6 +596,8 @@ export function useStartEvaluationRunForm({
     agentName,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
+    hasTestDataRefErrors,
     sourceName,
     selectedInferenceServiceName,
     hardwareProfilesLoaded,
@@ -594,6 +642,10 @@ export function useStartEvaluationRunForm({
   );
   const setAccessToken = React.useCallback(
     (value: string) => form.setValue('accessToken', value, { shouldValidate: true }),
+    [form],
+  );
+  const setTestDataRef = React.useCallback(
+    (value: TestDataRefFormValues) => form.setValue('testDataRef', value, { shouldValidate: true }),
     [form],
   );
   const setExperimentMode = React.useCallback(
@@ -801,22 +853,15 @@ export function useStartEvaluationRunForm({
       return values.sourceName.trim();
     })();
 
-    const resolvedEndpointUrl = (() => {
-      if (values.sourceMode === 'model' && values.modelSelection === 'cluster') {
-        return selectedInferenceServiceRef.current?.url ?? '';
-      }
-      if (values.sourceMode === 'model' || values.sourceMode === 'agent') {
-        return values.endpointUrl.trim();
-      }
-      return '';
-    })();
+    // Endpoint and auth pass through in every mode: prerecorded-mode clearing
+    // is owned by buildEvaluationRequest, which preserves them for mixed
+    // collections whose non-prerecorded benchmarks still need inference.
+    const resolvedEndpointUrl =
+      values.sourceMode === 'model' && values.modelSelection === 'cluster'
+        ? (selectedInferenceServiceRef.current?.url ?? '')
+        : values.endpointUrl.trim();
 
-    const resolvedAuth = (() => {
-      if (values.sourceMode === 'model' || values.sourceMode === 'agent') {
-        return values.apiKeySecretRef.trim();
-      }
-      return '';
-    })();
+    const resolvedAuth = values.apiKeySecretRef.trim();
 
     const request = buildEvaluationRequest({
       evaluationName: values.evaluationName,
@@ -829,6 +874,7 @@ export function useStartEvaluationRunForm({
       sourceName: values.sourceName.trim(),
       datasetUrl: values.datasetUrl.trim(),
       accessToken: values.accessToken.trim(),
+      testDataRef: values.testDataRef,
       additionalArgs: parsedArgs,
       experimentName: experimentName || undefined,
       experimentTags: undefined,
@@ -1000,6 +1046,10 @@ export function useStartEvaluationRunForm({
     setDatasetUrl,
     accessToken,
     setAccessToken,
+    testDataRef,
+    setTestDataRef,
+    testDataRefRequired,
+    testDataRefErrors,
     experimentMode,
     setExperimentMode,
     selectedExperiment,
@@ -1029,6 +1079,7 @@ export function useStartEvaluationRunForm({
     markTouched,
     endpointUrlError,
     datasetUrlError,
+    accessTokenError,
     connectionValidation,
     handleVerifyConnection,
     canVerifyConnection,
