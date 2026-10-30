@@ -178,9 +178,20 @@ func TestRecordSpanErrorCategories(t *testing.T) {
 	}{
 		{llamastack.ErrCodeInvalidRequest, "invalid_request"},
 		{llamastack.OGXErrInvalidPrompt, "invalid_request"},
+		{llamastack.OGXErrInvalidImage, "invalid_request"},
+		{llamastack.OGXErrInvalidImageFormat, "invalid_request"},
+		{llamastack.OGXErrInvalidBase64Image, "invalid_request"},
+		{llamastack.OGXErrInvalidImageURL, "invalid_request"},
+		{llamastack.OGXErrImageTooLarge, "invalid_request"},
+		{llamastack.OGXErrImageTooSmall, "invalid_request"},
+		{llamastack.OGXErrInvalidImageMode, "invalid_request"},
+		{llamastack.OGXErrImageFileTooLarge, "invalid_request"},
+		{llamastack.OGXErrUnsupportedImageMediaType, "invalid_request"},
+		{llamastack.OGXErrEmptyImageFile, "invalid_request"},
 		{"400", "invalid_request"},
 		{llamastack.ErrCodeConnectionFailed, "connection_failure"},
 		{llamastack.OGXErrServerError, "upstream_failure"},
+		{llamastack.OGXErrFailedToDownloadImage, "upstream_failure"},
 		{"arbitrary-provider-code", "upstream_failure"},
 	} {
 		t.Run(tc.code, func(t *testing.T) {

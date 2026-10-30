@@ -52,7 +52,12 @@ func recordSpanError(ctx context.Context, code, component string) {
 
 	category, description := "upstream_failure", "Upstream request failed."
 	switch code {
-	case llamastack.ErrCodeInvalidRequest, llamastack.OGXErrInvalidPrompt, "400":
+	case llamastack.ErrCodeInvalidRequest, llamastack.OGXErrInvalidPrompt, "400",
+		llamastack.OGXErrInvalidImage, llamastack.OGXErrInvalidImageFormat,
+		llamastack.OGXErrInvalidBase64Image, llamastack.OGXErrInvalidImageURL,
+		llamastack.OGXErrImageTooLarge, llamastack.OGXErrImageTooSmall,
+		llamastack.OGXErrInvalidImageMode, llamastack.OGXErrImageFileTooLarge,
+		llamastack.OGXErrUnsupportedImageMediaType, llamastack.OGXErrEmptyImageFile:
 		category, description = "invalid_request", "Request validation failed."
 	case llamastack.ErrCodeConnectionFailed:
 		category, description = "connection_failure", "Connection failed."
