@@ -88,7 +88,11 @@ class McpManageSourcePage {
 
   visitManageSource(catalogSourceId: string) {
     cy.visit(`${mcpCatalogSettingsUrl()}/manage-source/${encodeURIComponent(catalogSourceId)}`);
-    this.wait();
+    this.findHeading();
+    // Preview panel uses decorative status icons; scan the form only.
+    // PF 6.4.x childless Tab emits aria-controls for an unrendered section —
+    // excluded upstream in kubeflow/model-registry b15fb0f (fixed in PF 6.6+).
+    cy.testA11y({ exclude: ['[data-testid="mcp-preview-panel"]'] });
   }
 
   private wait() {
