@@ -177,7 +177,13 @@ func (app *App) VerifyExternalModelHandler(
 	// Authorized namespace from context (the route is wrapped with AttachNamespace +
 	// RequireAccessToService, so by the time we get here the caller is authorized for it).
 	// It scopes which in-cluster service hosts may skip SSRF validation (CWE-918).
-	namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	// A missing namespace here is a server-side middleware misconfiguration, not a
+	// caller error.
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+		return
+	}
 	// With authentication disabled (local development), no identity is injected and
 	// Service lookups fall back to the client's own credentials.
 	identity, _ := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
