@@ -276,7 +276,6 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 	}
 
 	names := []string{"Analytics", "Warehouse", "Data Lake", "Reporting", "Archive", "Metrics"}
-	tags := []string{"domain: database", "domain: storage", "access: sql", "access: read-only", "environment: dev", "environment: production"}
 	types := []ConnectionType{postgresql, s3}
 	for i := range 30 {
 		dummyConnectionType := baseMockConnectionType
@@ -284,10 +283,28 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 		dummyConnectionType.Resource.Name = fmt.Sprintf("%s %d", names[rng.IntN(len(names))], i+1)
 		dummyConnectionType.Resource.Description = dummyConnectionType.Resource.Description[:rng.IntN(len(dummyConnectionType.Resource.Description)+1)]
 		dummyConnectionType.Status.FlightReady = rng.IntN(2) == 0
-		for _, j := range rng.Perm(len(tags))[:1+rng.IntN(len(tags))] {
-			dummyConnectionType.Resource.Tags = append(dummyConnectionType.Resource.Tags, tags[j])
-		}
-		types = append(types, dummyConnectionType)
+		types = append(types, addMockTags(dummyConnectionType))
 	}
 	return types
+}
+
+func addMockTags(connectionType ConnectionType) ConnectionType {
+	tags := []string{
+		"database", "storage", "sql", "read-only", "dev", "production",
+		"staging", "testing", "sandbox", "analytics", "reporting", "warehouse",
+		"data-lake", "lakehouse", "archive", "backup", "streaming", "batch",
+		"real-time", "structured", "semi-structured", "unstructured", "postgresql",
+		"mysql", "mongodb", "redis", "s3", "azure-blob", "google-cloud-storage",
+		"parquet", "csv", "json", "avro", "iceberg", "delta-lake",
+		"read-write", "encrypted", "internal", "public", "restricted", "confidential",
+		"finance", "marketing", "engineering", "research", "customer-data",
+		"sales", "operations", "machine-learning", "training", "inference",
+		"embeddings", "vector-search", "high-availability", "low-latency",
+		"high-throughput", "daily-refresh", "hourly-refresh", "us-east", "us-west",
+		"europe", "asia-pacific",
+	}
+	for _, j := range rand.Perm(len(tags))[:1+rand.IntN(len(tags))] {
+		connectionType.Resource.Tags = append(connectionType.Resource.Tags, tags[j])
+	}
+	return connectionType
 }
