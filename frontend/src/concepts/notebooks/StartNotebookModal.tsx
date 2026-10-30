@@ -49,11 +49,7 @@ import {
   InProgressIcon,
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
-import {
-  getDescriptionFromK8sResource,
-  type PodContainerStatus,
-  type ProjectKind,
-} from '@odh-dashboard/k8s-core';
+import { type PodContainerStatus, type ProjectKind } from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
@@ -165,7 +161,6 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
-  const workbenchDescription = notebook ? getDescriptionFromK8sResource(notebook).trim() : '';
   const notebookProgress = useNotebookProgress(
     notebook,
     isRunning,
@@ -667,15 +662,13 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       <ModalHeader
         data-testid="notebook-status-modal-header"
         description={
-          workbenchDescription ? (
-            <Content
-              component="p"
-              data-testid="notebook-status-modal-description"
-              style={{ color: Gray60.value }}
-            >
-              {workbenchDescription}
-            </Content>
-          ) : undefined
+          <Content
+            component="p"
+            data-testid="notebook-status-modal-description"
+            style={{ color: Gray60.value }}
+          >
+            Workbench status
+          </Content>
         }
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>

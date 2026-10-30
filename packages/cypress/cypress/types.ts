@@ -259,6 +259,7 @@ export type ModifyHardwareProfileTestData = {
 export type WBStatusTestData = {
   wbStatusTestNamespace: string;
   wbStatusTestDescription: string;
+  statusModalDescription: string;
   notebookImage: string;
   hardwareProfileName: string;
 };

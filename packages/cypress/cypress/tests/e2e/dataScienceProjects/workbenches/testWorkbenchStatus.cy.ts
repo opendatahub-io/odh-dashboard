@@ -21,6 +21,7 @@ import { deriveWorkbenchName } from '../../../../utils/nameGenerator';
 describe('Workbenches - status tests', () => {
   let projectName: string;
   let projectDescription: string;
+  let statusModalDescription: string;
   let notebookImage: string;
   let hardwareProfileName: string;
   const uuid = generateTestUUID();
@@ -31,6 +32,7 @@ describe('Workbenches - status tests', () => {
       .then((fixtureData: WBStatusTestData) => {
         projectName = `${fixtureData.wbStatusTestNamespace}-${uuid}`;
         projectDescription = fixtureData.wbStatusTestDescription;
+        statusModalDescription = fixtureData.statusModalDescription;
         notebookImage = fixtureData.notebookImage;
         hardwareProfileName = fixtureData.hardwareProfileName;
 
@@ -106,8 +108,8 @@ describe('Workbenches - status tests', () => {
             notebookRow.findHaveNotebookStatusText().click();
             workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Ready);
 
-            cy.step('Verify the workbench description is displayed in the status modal');
-            workbenchStatusModal.findModalDescription().should('have.text', projectDescription);
+            cy.step('Verify the resource-type description is displayed in the status modal');
+            workbenchStatusModal.findModalDescription().should('have.text', statusModalDescription);
 
             // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');
