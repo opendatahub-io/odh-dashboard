@@ -15,18 +15,17 @@ import (
 
 var sectionTitle = map[cluster.Platform]string{
 	cluster.SelfManagedRhoai: "OpenShift Self Managed Services",
-	cluster.ManagedRhoai:     "OpenShift Managed Services",
 	cluster.OpenDataHub:      "OpenShift Open Data Hub",
 }
 
 var platformPaths = map[cluster.Platform]string{
 	cluster.SelfManagedRhoai: "/rhoai",
-	cluster.ManagedRhoai:     "/not-supported",
 	cluster.OpenDataHub:      "/odh",
 }
 
 var imagesMap = map[string]string{
 	"odh-dashboard-image":            "RELATED_IMAGE_ODH_DASHBOARD_IMAGE",
+	"rhaii-dashboard-image":          "RELATED_IMAGE_ODH_RHAII_DASHBOARD_IMAGE",
 	"kube-rbac-proxy":                "RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE",
 	"images-jobs-async-upload":       "RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE",
 	"automl-pipeline-runtime-image":  "RELATED_IMAGE_ODH_AUTOML_IMAGE",
@@ -43,30 +42,41 @@ func init() {
 	}
 }
 
-func defaultManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
-	sourcePath, ok := platformPaths[platform]
-	if !ok {
-		sourcePath = platformPaths[cluster.OpenDataHub]
-	}
-
+// openShiftManifestInfo identifies the core dashboard overlay for an
+// OpenShift lifecycle. XKS selects its RHAII distribution separately.
+func openShiftManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
 	return render.ManifestInfo{
 		Path:       basePath,
 		ContextDir: "",
-		SourcePath: sourcePath,
+		SourcePath: openShiftSourcePath(platform),
 	}
 }
 
-func observabilityManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
-	sourcePath, ok := platformPaths[platform]
-	if !ok {
-		sourcePath = platformPaths[cluster.OpenDataHub]
+// rhaiiManifestInfo identifies the standalone RHAII dashboard bundle. It is
+// intentionally separate from the OpenShift dashboard overlays: XKS deploys
+// the self-contained RHAII shell and does not deploy the OpenShift core pod or
+// its modular BFF operands.
+func rhaiiManifestInfo(basePath string) render.ManifestInfo {
+	return render.ManifestInfo{
+		Path:       basePath,
+		ContextDir: "distributions",
+		SourcePath: "rhaii",
 	}
+}
 
+func openShiftObservabilityManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
 	return render.ManifestInfo{
 		Path:       basePath,
 		ContextDir: "observability",
-		SourcePath: sourcePath,
+		SourcePath: openShiftSourcePath(platform),
 	}
+}
+
+func openShiftSourcePath(platform cluster.Platform) string {
+	if sourcePath, ok := platformPaths[platform]; ok {
+		return sourcePath
+	}
+	return platformPaths[cluster.OpenDataHub]
 }
 
 func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.Platform) map[string]string {

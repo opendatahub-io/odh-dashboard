@@ -133,7 +133,7 @@ func TestIntegration_MaaSPortalConditionMigration(t *testing.T) {
 		{name: "combined", coreState: "Managed", portalState: "Managed", platform: cluster.SelfManagedRhoai, portalReady: true, wantReason: "Deployed", wantReady: metav1.ConditionTrue, wantPhase: common.PhaseReady},
 		{name: "both removed", coreState: "Removed", portalState: "Removed", platform: cluster.SelfManagedRhoai, wantReason: "Disabled", wantSeverity: common.ConditionSeverityInfo, wantReady: metav1.ConditionFalse, wantPhase: common.PhaseNotReady},
 		{name: "unsupported with core", coreState: "Managed", portalState: "Managed", platform: cluster.OpenDataHub, wantReason: "UnsupportedPlatform", wantSeverity: common.ConditionSeverityInfo, wantReady: metav1.ConditionTrue, wantPhase: common.PhaseReady},
-		{name: "unsupported without core", coreState: "Removed", portalState: "Managed", platform: cluster.OpenDataHub, wantReason: "UnsupportedPlatform", wantSeverity: common.ConditionSeverityInfo, wantReady: metav1.ConditionTrue, wantPhase: common.PhaseReady},
+		{name: "unsupported without core", coreState: "Removed", portalState: "Managed", platform: cluster.OpenDataHub, wantReason: "UnsupportedPlatform", wantSeverity: common.ConditionSeverityInfo, wantReady: metav1.ConditionFalse, wantPhase: common.PhaseNotReady},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -166,15 +166,25 @@ func TestIntegration_MaaSPortalConditionMigration(t *testing.T) {
 					require.NoError(t, k8sClient.Status().Update(ctx, &deployment))
 				}
 			}
+			if tt.coreState == common.Managed {
+				dashboardName := odhDashboardName
+				if tt.platform == cluster.SelfManagedRhoai {
+					dashboardName = rhoaiDashboardName
+				}
+				establishDashboardAvailability(t, r, dashboardName)
+			}
 			if tt.portalReady {
 				deployment := &appsv1.Deployment{}
 				require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, deployment))
 				deployment.Status.ObservedGeneration = deployment.Generation
+				deployment.Status.Replicas = 1
+				deployment.Status.ReadyReplicas = 1
+				deployment.Status.AvailableReplicas = 1
 				deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
 				require.NoError(t, k8sClient.Status().Update(ctx, deployment))
 				route := &gatewayv1.HTTPRoute{}
 				require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
-				route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+				route.Status.Parents = []gatewayv1.RouteParentStatus{{ParentRef: route.Spec.ParentRefs[0], Conditions: []metav1.Condition{
 					{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 					{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 				}}}
@@ -408,7 +418,7 @@ func TestIntegration_MaaSPortalLifecycle(t *testing.T) {
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "maas-portal", Namespace: integrationNamespace}, route))
 	previousRouteUID := route.GetUID()
 	assert.Equal(t, []gatewayv1.Hostname{"test.example.com"}, route.Spec.Hostnames)
-	route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+	route.Status.Parents = []gatewayv1.RouteParentStatus{{ParentRef: route.Spec.ParentRefs[0], Conditions: []metav1.Condition{
 		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 	}}}
@@ -771,7 +781,7 @@ func TestIntegration_MaaSPortalLegacyResourceMigration(t *testing.T) {
 	t.Cleanup(func() {
 		require.NoError(t, client.IgnoreNotFound(k8sClient.Delete(ctx, partialRoute)))
 	})
-	partialRoute.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+	partialRoute.Status.Parents = []gatewayv1.RouteParentStatus{{ParentRef: partialRoute.Spec.ParentRefs[0], Conditions: []metav1.Condition{
 		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: partialRoute.Generation},
 		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: partialRoute.Generation},
 	}}}
@@ -808,7 +818,7 @@ func TestIntegration_MaaSPortalLegacyResourceMigration(t *testing.T) {
 	require.NoError(t, k8sClient.Get(ctx, client.ObjectKey{Name: "maas-portal", Namespace: integrationNamespace}, newRoute))
 	assert.NotNil(t, getPortalResource(t, "v1", "Service", legacyName), "retain legacy backend until replacement admission")
 	assertNetworkAccess(true)
-	newRoute.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+	newRoute.Status.Parents = []gatewayv1.RouteParentStatus{{ParentRef: newRoute.Spec.ParentRefs[0], Conditions: []metav1.Condition{
 		{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: newRoute.Generation},
 		{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: newRoute.Generation},
 	}}}

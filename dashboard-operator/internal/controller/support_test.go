@@ -16,21 +16,20 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-func TestDefaultManifestInfo(t *testing.T) {
+func TestOpenShiftManifestInfo(t *testing.T) {
 	tests := []struct {
 		name       string
 		platform   cluster.Platform
 		wantSource string
 	}{
 		{name: "SelfManagedRhoai", platform: cluster.SelfManagedRhoai, wantSource: "/rhoai"},
-		{name: "ManagedRhoai", platform: cluster.ManagedRhoai, wantSource: "/not-supported"},
 		{name: "OpenDataHub", platform: cluster.OpenDataHub, wantSource: "/odh"},
-		{name: "unknown platform falls back to ODH", platform: cluster.XKS, wantSource: "/odh"},
+		{name: "Unknown falls back to OpenDataHub", platform: cluster.Platform("unknown"), wantSource: "/odh"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			info := defaultManifestInfo("/base", tt.platform)
+			info := openShiftManifestInfo("/base", tt.platform)
 			assert.Equal(t, "/base", info.Path)
 			assert.Equal(t, "", info.ContextDir)
 			assert.Equal(t, tt.wantSource, info.SourcePath)

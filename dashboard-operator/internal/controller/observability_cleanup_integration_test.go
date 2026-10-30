@@ -81,6 +81,7 @@ func TestIntegration_Observability_CleanupFailureDoesNotBlockCore(t *testing.T) 
 		return apierrors.IsForbidden(restricted.List(ctx, list))
 	}, 10*time.Second, 100*time.Millisecond, "Perses lists must be denied by RBAC")
 	reconcile(t, r) // Add the finalizer.
+	establishDashboardAvailability(t, r, odhDashboardName)
 
 	for _, operation := range []string{"list", "delete"} {
 		t.Run(operation, func(t *testing.T) {

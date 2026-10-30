@@ -25,36 +25,24 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
-
-func TestManifestSets(t *testing.T) {
-	tests := []struct {
-		name     string
-		platform cluster.Platform
-	}{
-		{name: "SelfManagedRhoai", platform: cluster.SelfManagedRhoai},
-		{name: "ManagedRhoai", platform: cluster.ManagedRhoai},
-		{name: "OpenDataHub", platform: cluster.OpenDataHub},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sets := manifestSets("/base", tt.platform)
-			require.Len(t, sets, 1)
-			assert.Equal(t, "/base", sets[0].Path)
-		})
-	}
-}
 
 func TestApplyKustomizeParams(t *testing.T) {
 	dir := t.TempDir()
 	overlay := filepath.Join(dir, "rhoai")
 	require.NoError(t, os.MkdirAll(overlay, 0755))
-	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte("existing-key=existing-value\n"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte(`existing-key=existing-value
+gateway-domain=
+dashboard-url=
+section-title=
+model-registry-ui-image=quay.io/model-registry:default
+`), 0644))
 
 	t.Setenv("RELATED_IMAGE_ODH_MOD_ARCH_MODEL_REGISTRY_IMAGE", "quay.io/mr:prod")
+	t.Setenv("RELATED_IMAGE_ODH_CORE_BFF_IMAGE", "quay.io/core-bff:prod")
 
 	dashboard := &v1alpha1.Dashboard{
 		Spec: v1alpha1.DashboardSpec{
@@ -62,7 +50,7 @@ func TestApplyKustomizeParams(t *testing.T) {
 		},
 	}
 
-	manifests := manifestSets(dir, cluster.SelfManagedRhoai)
+	manifests := []render.ManifestInfo{openShiftManifestInfo(dir, cluster.SelfManagedRhoai)}
 	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.SelfManagedRhoai))
 
 	overlayData, err := os.ReadFile(filepath.Join(overlay, "params.env"))
@@ -74,6 +62,8 @@ func TestApplyKustomizeParams(t *testing.T) {
 	assert.Contains(t, overlayContent, "existing-key=existing-value")
 	assert.Contains(t, overlayContent, "model-registry-ui-image=quay.io/mr:prod",
 		"RELATED_IMAGE env var should be written to overlay params.env")
+	assert.NotContains(t, overlayContent, "core-bff-image=quay.io/core-bff:prod",
+		"undeclared image parameters must not be added to a bundle")
 }
 
 func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
@@ -88,7 +78,7 @@ func TestApplyKustomizeParamsPreservesDigestDefaults(t *testing.T) {
 	}
 
 	dashboard := &v1alpha1.Dashboard{}
-	manifests := manifestSets(dir, cluster.SelfManagedRhoai)
+	manifests := []render.ManifestInfo{openShiftManifestInfo(dir, cluster.SelfManagedRhoai)}
 	require.NoError(t, applyKustomizeParams(dashboard, manifests, cluster.SelfManagedRhoai))
 
 	overlayData, err := os.ReadFile(filepath.Join(overlay, "params.env"))
@@ -110,17 +100,11 @@ func TestExtractDashboardURL(t *testing.T) {
 	tests := []struct {
 		name      string
 		dashboard *v1alpha1.Dashboard
-		platform  cluster.Platform
 		routes    []routev1.Route
 		wantURL   string
 		wantErr   error
 		wantErrIs bool
 	}{
-		{
-			name:      "xKS platform returns empty URL without error",
-			dashboard: &v1alpha1.Dashboard{},
-			platform:  cluster.XKS,
-		},
 		{
 			name: "gateway domain takes priority over routes",
 			dashboard: &v1alpha1.Dashboard{
@@ -128,7 +112,6 @@ func TestExtractDashboardURL(t *testing.T) {
 					Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
 				},
 			},
-			platform: cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -149,7 +132,6 @@ func TestExtractDashboardURL(t *testing.T) {
 		{
 			name:      "no gateway domain falls back to routes - no routes",
 			dashboard: &v1alpha1.Dashboard{},
-			platform:  cluster.OpenDataHub,
 			routes:    nil,
 			wantErr:   ErrDashboardRouteNotReady,
 			wantErrIs: true,
@@ -157,7 +139,6 @@ func TestExtractDashboardURL(t *testing.T) {
 		{
 			name:      "route without ingress",
 			dashboard: &v1alpha1.Dashboard{},
-			platform:  cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -169,7 +150,6 @@ func TestExtractDashboardURL(t *testing.T) {
 		{
 			name:      "route with admitted ingress",
 			dashboard: &v1alpha1.Dashboard{},
-			platform:  cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -190,7 +170,6 @@ func TestExtractDashboardURL(t *testing.T) {
 		{
 			name:      "route with non-admitted ingress",
 			dashboard: &v1alpha1.Dashboard{},
-			platform:  cluster.SelfManagedRhoai,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -212,7 +191,6 @@ func TestExtractDashboardURL(t *testing.T) {
 		{
 			name:      "multiple routes",
 			dashboard: &v1alpha1.Dashboard{},
-			platform:  cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{ObjectMeta: metav1.ObjectMeta{Name: "r1", Namespace: namespace, Labels: partOfLabel}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "r2", Namespace: namespace, Labels: partOfLabel}},
@@ -234,7 +212,9 @@ func TestExtractDashboardURL(t *testing.T) {
 				WithRuntimeObjects(objs...).
 				Build()
 
-			url, err := extractDashboardURL(context.Background(), cli, tt.dashboard, namespace, tt.platform)
+			url, err := extractDashboardURL(
+				context.Background(), cli, tt.dashboard, namespace, cluster.OpenDataHub,
+			)
 			if tt.wantErrIs {
 				assert.ErrorIs(t, err, tt.wantErr)
 				assert.Empty(t, url)
@@ -362,16 +342,6 @@ func TestFilterAndRemapDataConnectHubGatewayRBAC(t *testing.T) {
 		assert.Equal(t, "redhat-ods-applications", subjects[0].(map[string]interface{})["namespace"])
 	})
 
-	t.Run("Managed RHOAI keeps only RHOAI gateway resources", func(t *testing.T) {
-		result := filterAndRemapDataConnectHubGatewayRBAC(makeResources(), "redhat-ods-applications", cluster.ManagedRhoai)
-
-		require.Len(t, result, 3)
-		assert.Equal(t, dchRhoaiGatewayRBACName, result[0].GetName())
-		assert.Equal(t, dataScienceGatewayNamespace, result[0].GetNamespace())
-		assert.Equal(t, dchRhoaiGatewayRBACName, result[1].GetName())
-		assert.Equal(t, dataScienceGatewayNamespace, result[1].GetNamespace())
-	})
-
 	t.Run("ODH keeps only ODH gateway resources in opendatahub", func(t *testing.T) {
 		result := filterAndRemapDataConnectHubGatewayRBAC(makeResources(), "opendatahub", cluster.OpenDataHub)
 
@@ -441,12 +411,6 @@ func TestMonitoringNamespace(t *testing.T) {
 		{
 			name:                  "SelfManagedRhoai returns hardcoded monitoring namespace",
 			platform:              cluster.SelfManagedRhoai,
-			applicationsNamespace: "redhat-ods-applications",
-			want:                  "redhat-ods-monitoring",
-		},
-		{
-			name:                  "ManagedRhoai returns hardcoded monitoring namespace",
-			platform:              cluster.ManagedRhoai,
 			applicationsNamespace: "redhat-ods-applications",
 			want:                  "redhat-ods-monitoring",
 		},
@@ -617,7 +581,7 @@ func TestDeployObservabilityManifests_PersesServiceRequired(t *testing.T) {
 		},
 	}
 
-	err := deployObservabilityManifests(context.Background(), cli, cli, dashboard, "/base", cluster.OpenDataHub, "applications")
+	err := deployObservabilityManifests(context.Background(), cli, cli, dashboard, openShiftObservabilityManifestInfo("/base", cluster.OpenDataHub), cluster.OpenDataHub, "applications")
 	assert.ErrorIs(t, err, ErrPersesServiceRequired)
 }
 
@@ -764,7 +728,7 @@ func TestReconcileObservability_APIFailuresRetry(t *testing.T) {
 					require.NoError(t, r.autoDetectObservability(context.Background(), dashboard))
 				}
 				cm := maasPortalTestManager(t, dashboard)
-				assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(context.Background(), dashboard, cm))
+				assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(context.Background(), dashboard, cm, openShiftObservabilityManifestInfo(r.ManifestsBasePath, r.Platform)))
 				condition := cm.GetCondition(conditionObservabilityAvailable)
 				require.NotNil(t, condition)
 				assert.Equal(t, metav1.ConditionFalse, condition.Status)
@@ -805,7 +769,7 @@ func TestReconcileObservability_CleanupFailuresRetry(t *testing.T) {
 			}}
 			cm := maasPortalTestManager(t, dashboard)
 			ctx := context.Background()
-			assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(ctx, dashboard, cm))
+			assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(ctx, dashboard, cm, openShiftObservabilityManifestInfo(r.ManifestsBasePath, r.Platform)))
 			condition := cm.GetCondition(conditionObservabilityAvailable)
 			require.NotNil(t, condition)
 			assert.Equal(t, "CleanupFailed", condition.Reason)
@@ -815,11 +779,11 @@ func TestReconcileObservability_CleanupFailuresRetry(t *testing.T) {
 
 			// Without a managed core, cleanup failures must still be errors.
 			dashboard.Spec.ManagementState = "Removed"
-			assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(ctx, dashboard, cm))
+			assert.Equal(t, observabilityRetryInterval, r.reconcileObservability(ctx, dashboard, cm, openShiftObservabilityManifestInfo(r.ManifestsBasePath, r.Platform)))
 			assert.Equal(t, common.ConditionSeverityError, cm.GetCondition(conditionObservabilityAvailable).Severity)
 
 			failCleanup = false
-			assert.Zero(t, r.reconcileObservability(ctx, dashboard, cm))
+			assert.Zero(t, r.reconcileObservability(ctx, dashboard, cm, openShiftObservabilityManifestInfo(r.ManifestsBasePath, r.Platform)))
 			assert.Equal(t, "Disabled", cm.GetCondition(conditionObservabilityAvailable).Reason)
 			assert.True(t, apierrors.IsNotFound(cli.Get(ctx, client.ObjectKeyFromObject(service), &corev1.Service{})))
 		})

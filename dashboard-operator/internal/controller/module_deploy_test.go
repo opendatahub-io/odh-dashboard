@@ -50,7 +50,6 @@ func TestMainDashboardDeploymentName(t *testing.T) {
 	}{
 		{name: "OpenDataHub", platform: cluster.OpenDataHub, want: "odh-dashboard"},
 		{name: "SelfManagedRhoai", platform: cluster.SelfManagedRhoai, want: "rhods-dashboard"},
-		{name: "ManagedRhoai", platform: cluster.ManagedRhoai, want: "rhods-dashboard"},
 		{name: "XKS falls back to ODH", platform: cluster.XKS, want: "odh-dashboard"},
 	}
 
@@ -60,6 +59,32 @@ func TestMainDashboardDeploymentName(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestBuildFederationConfigMap_ManagedRhoaiTargetsODHDashboardService(t *testing.T) {
+	scheme := testScheme(t)
+	reconciler := &ctrlpkg.DashboardReconciler{
+		Client:                fake.NewClientBuilder().WithScheme(scheme).Build(),
+		Scheme:                scheme,
+		Platform:              cluster.ManagedRhoai,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	configMap, err := ctrlpkg.BuildFederationConfigMap(reconciler, nil, &v1alpha1.Dashboard{})
+	require.NoError(t, err)
+
+	var entries []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(configMap.Data["module-federation-config.json"]), &entries))
+	for _, entry := range entries {
+		if entry["name"] != "coreBff" {
+			continue
+		}
+		proxyServices := entry["proxyService"].([]interface{})
+		target := proxyServices[0].(map[string]interface{})["service"].(map[string]interface{})
+		assert.Equal(t, "odh-dashboard", target["name"])
+		return
+	}
+	t.Fatal("coreBff federation entry is missing")
 }
 
 func allDeployedStatuses() map[string]v1alpha1.ModuleStatus {
@@ -74,7 +99,7 @@ func allDeployedStatuses() map[string]v1alpha1.ModuleStatus {
 	return statuses
 }
 
-func TestReconcileModuleDemand_WhenNeitherOperandRequiresModules(t *testing.T) {
+func TestReconcileModuleResources_WhenNeitherOperandRequiresModules(t *testing.T) {
 	scheme := testScheme(t)
 	reconciler := &ctrlpkg.DashboardReconciler{
 		Client:                fake.NewClientBuilder().WithScheme(scheme).Build(),
@@ -88,7 +113,7 @@ func TestReconcileModuleDemand_WhenNeitherOperandRequiresModules(t *testing.T) {
 		MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Removed"},
 	}}
 
-	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	statuses, err := reconciler.ReconcileModuleResources(context.Background(), dashboard)
 	require.NoError(t, err)
 	for module, status := range statuses {
 		assert.Equalf(t, v1alpha1.ModulePhaseNotDeployed, status.Phase, "%s should not be deployed", module)
@@ -96,7 +121,7 @@ func TestReconcileModuleDemand_WhenNeitherOperandRequiresModules(t *testing.T) {
 	}
 }
 
-func TestReconcileModuleDemand_MissingAgentOpsManifestsIsGraceful(t *testing.T) {
+func TestReconcileModuleResources_MissingAgentOpsManifestsIsGraceful(t *testing.T) {
 	scheme := testScheme(t)
 	reconciler := &ctrlpkg.DashboardReconciler{
 		Client:                fake.NewClientBuilder().WithScheme(scheme).Build(),
@@ -113,13 +138,13 @@ func TestReconcileModuleDemand_MissingAgentOpsManifestsIsGraceful(t *testing.T) 
 	}
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: overrides}}
 
-	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	statuses, err := reconciler.ReconcileModuleResources(context.Background(), dashboard)
 	require.NoError(t, err)
 	require.Equal(t, v1alpha1.ModulePhaseNotDeployed, statuses["agentOps"].Phase)
 	require.Equal(t, "DeploymentNotFound", statuses["agentOps"].Reason)
 }
 
-func TestReconcileModuleDemand_ExplicitDisableRemovesExistingResources(t *testing.T) {
+func TestReconcileModuleResources_ExplicitDisableRemovesExistingResources(t *testing.T) {
 	scheme := testScheme(t)
 	resourceLabels := map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}
 	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace, Labels: resourceLabels}}
@@ -127,7 +152,7 @@ func TestReconcileModuleDemand_ExplicitDisableRemovesExistingResources(t *testin
 	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment, service).Build(), Scheme: scheme, ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}}}
 
-	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	statuses, err := reconciler.ReconcileModuleResources(context.Background(), dashboard)
 	require.NoError(t, err)
 	assert.Equal(t, v1alpha1.ModulePhaseDisabled, statuses["maas"].Phase)
 	assert.Equal(t, "ExplicitOverride", statuses["maas"].Reason)
@@ -135,7 +160,7 @@ func TestReconcileModuleDemand_ExplicitDisableRemovesExistingResources(t *testin
 	assert.Error(t, reconciler.Get(context.Background(), types.NamespacedName{Name: "maas-ui", Namespace: testNamespace}, &corev1.Service{}))
 }
 
-func TestReconcileModuleDemand_ReturnsCleanupError(t *testing.T) {
+func TestReconcileModuleResources_ReturnsCleanupError(t *testing.T) {
 	scheme := testScheme(t)
 	resourceLabels := map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}
 	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace, Labels: resourceLabels}}
@@ -149,12 +174,12 @@ func TestReconcileModuleDemand_ReturnsCleanupError(t *testing.T) {
 	}
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: map[string]v1alpha1.ModuleOverride{"maas": {State: v1alpha1.ModuleDisabled}}}}
 
-	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	statuses, err := reconciler.ReconcileModuleResources(context.Background(), dashboard)
 	assert.Nil(t, statuses)
 	require.ErrorContains(t, err, "deleting deployment for module maas: simulated delete failure")
 }
 
-func TestReconcileModuleDemand_OverlaysStandaloneReadiness(t *testing.T) {
+func TestReconcileModuleResources_OverlaysStandaloneReadiness(t *testing.T) {
 	scheme := testScheme(t)
 	resourceLabels := map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}
 	replicas := int32(1)
@@ -162,7 +187,7 @@ func TestReconcileModuleDemand_OverlaysStandaloneReadiness(t *testing.T) {
 	reconciler := &ctrlpkg.DashboardReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(deployment).Build(), Scheme: scheme, ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub, ApplicationsNamespace: testNamespace}
 	dashboard := &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{Modules: map[string]v1alpha1.ModuleOverride{"modelRegistry": {State: v1alpha1.ModuleDisabled}, "genAi": {State: v1alpha1.ModuleDisabled}, "mlflow": {State: v1alpha1.ModuleDisabled}, "evalHub": {State: v1alpha1.ModuleDisabled}, "automl": {State: v1alpha1.ModuleDisabled}, "autorag": {State: v1alpha1.ModuleDisabled}, "agentOps": {State: v1alpha1.ModuleDisabled}, "notebooks": {State: v1alpha1.ModuleDisabled}}}}
 
-	statuses, err := reconciler.ReconcileModuleDemand(context.Background(), dashboard)
+	statuses, err := reconciler.ReconcileModuleResources(context.Background(), dashboard)
 	require.NoError(t, err)
 	assert.Equal(t, v1alpha1.ModulePhaseDegraded, statuses["maas"].Phase)
 	assert.Equal(t, "ReplicasNotReady", statuses["maas"].Reason)

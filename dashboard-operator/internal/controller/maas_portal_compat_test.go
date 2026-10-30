@@ -24,7 +24,6 @@ func TestMaaSPortalManaged(t *testing.T) {
 		{name: "canonical removed overrides legacy managed", spec: v1alpha1.DashboardSpec{MaaSPortal: removed, MaaSConsumerPortal: managed}, platform: cluster.SelfManagedRhoai},
 		{name: "removed", spec: v1alpha1.DashboardSpec{MaaSPortal: removed}, platform: cluster.SelfManagedRhoai},
 		{name: "unset", platform: cluster.SelfManagedRhoai},
-		{name: "managed RHOAI", spec: v1alpha1.DashboardSpec{MaaSPortal: managed}, platform: cluster.ManagedRhoai, want: true},
 		{name: "unsupported platform", spec: v1alpha1.DashboardSpec{MaaSPortal: managed}, platform: cluster.OpenDataHub},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
