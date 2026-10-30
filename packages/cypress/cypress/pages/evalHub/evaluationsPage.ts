@@ -34,10 +34,21 @@ class EvaluationsPage {
   }
 
   findBenchmarkSuiteCardByName(suiteName: string, options?: Partial<Cypress.Timeoutable>) {
+    // Derive the collection ID from the name element's test ID and resolve the card root exactly.
+    // A prefix-matching .parents() query would match nearer ancestors first — the clickable title
+    // region (benchmark-suite-card-title-region-<id>) sits between the name and the card root.
     return this.findBenchmarkSuitesGallery(options)
       .contains('[data-testid^="benchmark-suite-card-name-"]', suiteName, options)
-      .parents('[data-testid^="benchmark-suite-card-"]')
-      .first();
+      .then(($name) => {
+        const collectionId = ($name.attr('data-testid') ?? '').replace(
+          'benchmark-suite-card-name-',
+          '',
+        );
+        return cy.wrap(
+          $name.closest(`[data-testid="benchmark-suite-card-${collectionId}"]`),
+          options,
+        );
+      });
   }
 
   findBenchmarkSuitePrimaryActionByName(suiteName: string, options?: Partial<Cypress.Timeoutable>) {
