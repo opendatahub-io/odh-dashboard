@@ -196,6 +196,39 @@ func TestCreateEvaluationJobHandlerRequiresBenchmarksOrCollection(t *testing.T) 
 				},
 			},
 		},
+		{
+			name: "benchmark with test data ref with no variant",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:       baseRequest.Name,
+				Model:      baseRequest.Model,
+				Benchmarks: []evalhub.JobBenchmark{{ID: "arc_challenge", TestDataRef: &evalhub.TestDataRef{}}},
+			},
+		},
+		{
+			name: "benchmark with git test data ref with embedded credentials",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:  baseRequest.Name,
+				Model: baseRequest.Model,
+				Benchmarks: []evalhub.JobBenchmark{{
+					ID:          "arc_challenge",
+					TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{URL: "https://user:pass@example.com/repo.git"}},
+				}},
+			},
+		},
+		{
+			name: "collection benchmark with git test data ref with secret over http",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:  baseRequest.Name,
+				Model: baseRequest.Model,
+				Collection: &evalhub.JobCollectionID{
+					ID: "collection-001",
+					Benchmarks: []evalhub.JobBenchmark{{
+						ID:          "arc_challenge",
+						TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{URL: "http://example.com/repo.git", SecretRef: "my-secret"}},
+					}},
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, response, err := setupApiTestWithEvalHub[HTTPError](

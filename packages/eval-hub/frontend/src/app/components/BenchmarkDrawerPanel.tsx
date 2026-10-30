@@ -106,6 +106,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
           providerAgent={benchmark.providerAgent}
           primaryScore={benchmark.primary_score}
           passCriteria={benchmark.pass_criteria}
+          providerId={benchmark.providerId}
           url={benchmark.url}
           trackingSurface="benchmark_drawer"
           showHeader={false}

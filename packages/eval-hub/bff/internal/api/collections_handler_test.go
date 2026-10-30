@@ -255,6 +255,607 @@ func TestPatchCollectionHandlerRejectsInvalidOperations(t *testing.T) {
 	}
 }
 
+func TestPatchCollectionHandlerRejectsInvalidBenchmarkTestDataRefs(t *testing.T) {
+	gitCollection := func() *evalhub.Collection {
+		return &evalhub.Collection{
+			Resource: evalhub.CollectionResource{ID: "collection-001"},
+			Name:     "Suite with git test data",
+			Benchmarks: []evalhub.CollectionBenchmark{{
+				ID:         "mmlu",
+				ProviderID: "lm_evaluation_harness",
+				Weight:     1,
+				TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+					URL: "https://github.com/example/data.git",
+					Ref: "main",
+				}},
+			}},
+		}
+	}
+
+	tests := []struct {
+		name       string
+		collection *evalhub.Collection
+		operations []evalhub.CollectionPatchOperation
+		message    string
+	}{
+		{
+			name:       "whole benchmark replacement with embedded credentials",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0",
+				Value: json.RawMessage(`{"id":"mmlu","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}`),
+			}},
+			message: "must not embed credentials",
+		},
+		{
+			name:       "nested git url patch with embedded credentials",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/test_data_ref/git/url",
+				Value: json.RawMessage(`"https://user:pass@example.com/data.git"`),
+			}},
+			message: "must not embed credentials",
+		},
+		{
+			name:       "appended benchmark with http url and secret reference",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/-",
+				Value: json.RawMessage(`{"id":"hellaswag","weight":1,"test_data_ref":{"git":{"url":"http://example.com/data.git","ref":"main","secret_ref":"my-secret"}}}`),
+			}},
+			message: "must use https when a secret reference is provided",
+		},
+		{
+			name:       "nested secret ref patch added to http url",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/test_data_ref/git/url",
+				Value: json.RawMessage(`"http://example.com/data.git"`),
+			}, {
+				Op:    "add",
+				Path:  "/benchmarks/0/test_data_ref/git/secret_ref",
+				Value: json.RawMessage(`"my-secret"`),
+			}},
+			message: "must use https when a secret reference is provided",
+		},
+		{
+			name:       "patch that does not apply to current collection",
+			collection: gitCollection(),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:   "remove",
+				Path: "/benchmarks/9",
+			}},
+			message: "patch does not apply to the current collection",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			mockClient := ehmocks.NewMockEvalHubClient()
+			mockClient.SetCollection("collection-001", tt.collection)
+
+			result, response, err := setupApiTestWithEvalHub[HTTPError](
+				http.MethodPatch,
+				ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+				tt.operations, nil, identity, mockClient,
+			)
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+			assert.Contains(t, result.Error.Message, tt.message)
+
+			getResult, getResponse, err := setupApiTestWithEvalHub[CollectionEnvelope](
+				http.MethodGet,
+				ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+				nil, nil, identity, mockClient,
+			)
+
+			require.NoError(t, err)
+			assert.Equal(t, http.StatusOK, getResponse.StatusCode)
+			assert.Equal(t, "https://github.com/example/data.git", getResult.Data.Benchmarks[0].TestDataRef.Git.URL)
+		})
+	}
+}
+
+func TestPatchCollectionHandlerAllowsValidBenchmarkTestDataRef(t *testing.T) {
+	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+	mockClient := ehmocks.NewMockEvalHubClient()
+	mockClient.SetCollection("collection-001", &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite with git test data",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID:         "mmlu",
+			ProviderID: "lm_evaluation_harness",
+			Weight:     1,
+			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+				URL: "https://github.com/example/data.git",
+				Ref: "main",
+			}},
+		}},
+	})
+	operations := []evalhub.CollectionPatchOperation{{
+		Op:    "replace",
+		Path:  "/benchmarks/0/test_data_ref",
+		Value: json.RawMessage(`{"git":{"url":"https://github.com/example/data-v2.git","ref":"v2"}}`),
+	}}
+
+	result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
+		http.MethodPatch,
+		ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+		operations, nil, identity, mockClient,
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+	assert.Equal(t, "https://github.com/example/data-v2.git", result.Data.Benchmarks[0].TestDataRef.Git.URL)
+	assert.Equal(t, "v2", result.Data.Benchmarks[0].TestDataRef.Git.Ref)
+}
+
+func TestValidatePatchedBenchmarksReplaysAgainstOriginalJSON(t *testing.T) {
+	// Raw upstream JSON as a live EvalHub instance returns it: an explicit
+	// zero weight (dropped by omitempty when re-marshaling the decoded
+	// struct) and an unknown field inside a benchmark.
+	currentJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"provider_id": "lm_evaluation_harness",
+			"weight": 0,
+			"extra_upstream_field": "value",
+			"test_data_ref": {"git": {"url": "https://github.com/example/data.git", "ref": "main"}}
+		}]
+	}`)
+	current := &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID:         "mmlu",
+			ProviderID: "lm_evaluation_harness",
+			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+				URL: "https://github.com/example/data.git",
+				Ref: "main",
+			}},
+		}},
+	}
+
+	tests := []struct {
+		name       string
+		operations []evalhub.CollectionPatchOperation
+	}{
+		{
+			name: "replacing a zero-value field present in the upstream JSON",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/weight",
+				Value: json.RawMessage(`2`),
+			}},
+		},
+		{
+			name: "replacing an unknown field inside a benchmark",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/extra_upstream_field",
+				Value: json.RawMessage(`"updated"`),
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePatchedBenchmarks(currentJSON, current, tt.operations)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestValidatePatchedBenchmarksHandlesExplicitNullFields(t *testing.T) {
+	// A null weight decodes to the zero value and is dropped by omitempty on
+	// re-marshal, so the raw JSON is the only representation where the path
+	// exists for replace and remove operations.
+	currentJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"provider_id": "lm_evaluation_harness",
+			"weight": null
+		}]
+	}`)
+	current := &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID:         "mmlu",
+			ProviderID: "lm_evaluation_harness",
+		}},
+	}
+
+	tests := []struct {
+		name       string
+		operations []evalhub.CollectionPatchOperation
+	}{
+		{
+			name: "replacing an explicitly null field",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/weight",
+				Value: json.RawMessage(`2`),
+			}},
+		},
+		{
+			name: "removing an explicitly null field",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:   "remove",
+				Path: "/benchmarks/0/weight",
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePatchedBenchmarks(currentJSON, current, tt.operations)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestValidatePatchedBenchmarksNormalizesPathCase(t *testing.T) {
+	// json-patch appends case-variant keys after the originals, and Go's
+	// decoder resolves them onto the same struct fields via its
+	// case-insensitive fallback, so variant paths must be tracked and
+	// validated like their exact-case counterparts.
+	currentJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"test_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}}
+		}]
+	}`)
+	current := &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID: "mmlu",
+			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+				URL: "https://github.com/example/valid.git",
+				Ref: "main",
+			}},
+		}},
+	}
+
+	tests := []struct {
+		name       string
+		operations []evalhub.CollectionPatchOperation
+		wantErr    string
+	}{
+		{
+			name: "case-variant whole-array path is validated",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/Benchmarks",
+				Value: json.RawMessage(`[{"id":"arc","test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}]`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+		{
+			name: "case-variant test_data_ref path is validated",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/0/Test_Data_Ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+		{
+			name: "case-variant non-benchmark path is passed through",
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/Name",
+				Value: json.RawMessage(`"Renamed"`),
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePatchedBenchmarks(currentJSON, current, tt.operations)
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidatePatchedBenchmarksTracksFoldVariantKeysInStoredJSON(t *testing.T) {
+	// The stored collection already contains keys that are Unicode
+	// case-fold variants of the tracked names (U+017F in place of s).
+	// jsonpatch resolves those keys exactly, and Go's decoder lets the last
+	// fold-equivalent key win, so patches routed through them change the
+	// decoded benchmarks and must not skip validation.
+	rootVariantJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"test_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}}
+		}],
+		"benchmarkſ": [{
+			"id": "mmlu",
+			"test_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}}
+		}]
+	}`)
+	nestedVariantJSON := json.RawMessage(`{
+		"resource": {"id": "collection-001"},
+		"name": "Suite",
+		"benchmarks": [{
+			"id": "mmlu",
+			"test_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}},
+			"teſt_data_ref": {"git": {"url": "https://github.com/example/valid.git", "ref": "main"}}
+		}]
+	}`)
+	current := &evalhub.Collection{
+		Resource: evalhub.CollectionResource{ID: "collection-001"},
+		Name:     "Suite",
+		Benchmarks: []evalhub.CollectionBenchmark{{
+			ID: "mmlu",
+			TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+				URL: "https://github.com/example/valid.git",
+				Ref: "main",
+			}},
+		}},
+	}
+
+	tests := []struct {
+		name        string
+		currentJSON json.RawMessage
+		operations  []evalhub.CollectionPatchOperation
+		wantErr     string
+	}{
+		{
+			name:        "fold-variant benchmark array path is validated",
+			currentJSON: rootVariantJSON,
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarkſ/0/test_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+		{
+			name:        "fold-variant nested test data ref path is validated",
+			currentJSON: nestedVariantJSON,
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/teſt_data_ref/git",
+				Value: json.RawMessage(`{"url":"https://user:pass@example.com/data.git","ref":"main"}`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+		{
+			name:        "fold-variant test data ref path is validated",
+			currentJSON: nestedVariantJSON,
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/teſt_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			wantErr: "must not embed credentials",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePatchedBenchmarks(tt.currentJSON, current, tt.operations)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
+		})
+	}
+}
+
+func TestPatchCollectionHandlerValidatesOnlyWrittenBenchmarkRefs(t *testing.T) {
+	newCollection := func(firstURL, secondURL string) *evalhub.Collection {
+		return &evalhub.Collection{
+			Resource: evalhub.CollectionResource{ID: "collection-001"},
+			Name:     "Suite with git test data",
+			Benchmarks: []evalhub.CollectionBenchmark{
+				{
+					ID:         "mmlu",
+					ProviderID: "lm_evaluation_harness",
+					Weight:     1,
+					TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+						URL: firstURL,
+						Ref: "main",
+					}},
+				},
+				{
+					ID:         "hellaswag",
+					ProviderID: "lm_evaluation_harness",
+					Weight:     1,
+					TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{
+						URL: secondURL,
+						Ref: "main",
+					}},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name       string
+		collection *evalhub.Collection
+		operations []evalhub.CollectionPatchOperation
+		status     int
+		message    string
+		verify     func(t *testing.T, result CollectionEnvelope)
+	}{
+		{
+			name:       "editing one benchmark does not validate a legacy reference on another",
+			collection: newCollection("https://user:pass@example.com/legacy.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/1/weight",
+				Value: json.RawMessage(`2`),
+			}},
+			status: http.StatusOK,
+			verify: func(t *testing.T, result CollectionEnvelope) {
+				assert.Len(t, result.Data.Benchmarks, 2)
+				assert.Equal(t, float64(2), result.Data.Benchmarks[1].Weight)
+			},
+		},
+		{
+			name:       "editing an unrelated field does not validate the same benchmark's legacy reference",
+			collection: newCollection("https://user:pass@example.com/legacy.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/0/weight",
+				Value: json.RawMessage(`2`),
+			}},
+			status: http.StatusOK,
+			verify: func(t *testing.T, result CollectionEnvelope) {
+				assert.Len(t, result.Data.Benchmarks, 2)
+				assert.Equal(t, float64(2), result.Data.Benchmarks[0].Weight)
+				assert.Equal(t, "https://user:pass@example.com/legacy.git", result.Data.Benchmarks[0].TestDataRef.Git.URL)
+			},
+		},
+		{
+			name:       "writing a valid reference after a removal succeeds",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/1/test_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://github.com/example/data-v2.git","ref":"v2"}}`),
+			}, {
+				Op:   "remove",
+				Path: "/benchmarks/0",
+			}},
+			status: http.StatusOK,
+			verify: func(t *testing.T, result CollectionEnvelope) {
+				assert.Len(t, result.Data.Benchmarks, 1)
+				assert.Equal(t, "hellaswag", result.Data.Benchmarks[0].ID)
+				assert.Equal(t, "https://github.com/example/data-v2.git", result.Data.Benchmarks[0].TestDataRef.Git.URL)
+			},
+		},
+		{
+			name:       "removing a benchmark shifts validation onto the written position",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "replace",
+				Path:  "/benchmarks/1/test_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}, {
+				Op:   "remove",
+				Path: "/benchmarks/0",
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			name:       "inserting a benchmark validates the inserted position",
+			collection: newCollection("https://user:pass@example.com/legacy.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/0",
+				Value: json.RawMessage(`{"id":"arc","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			name:       "case-variant whole-array path is validated",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/Benchmarks",
+				Value: json.RawMessage(`[{"id":"arc","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}]`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			name:       "case-variant test_data_ref path is validated",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/0/Test_Data_Ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			// U+017F (long s) is not an ASCII case variant, but encoding/json's
+			// EqualFold fallback treats it as equivalent to s, so the decoder
+			// populates the field from the duplicate key jsonpatch creates.
+			name:       "Unicode fold-variant whole-array path is validated",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarkſ",
+				Value: json.RawMessage(`[{"id":"arc","weight":1,"test_data_ref":{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}}]`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+		{
+			name:       "Unicode fold-variant test_data_ref path is validated",
+			collection: newCollection("https://github.com/example/valid.git", "https://github.com/example/valid.git"),
+			operations: []evalhub.CollectionPatchOperation{{
+				Op:    "add",
+				Path:  "/benchmarks/0/teſt_data_ref",
+				Value: json.RawMessage(`{"git":{"url":"https://user:pass@example.com/data.git","ref":"main"}}`),
+			}},
+			status:  http.StatusBadRequest,
+			message: "must not embed credentials",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
+			mockClient := ehmocks.NewMockEvalHubClient()
+			mockClient.SetCollection("collection-001", tt.collection)
+
+			if tt.status == http.StatusOK {
+				result, response, err := setupApiTestWithEvalHub[CollectionEnvelope](
+					http.MethodPatch,
+					ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+					tt.operations, nil, identity, mockClient,
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, response.StatusCode)
+				tt.verify(t, result)
+			} else {
+				result, response, err := setupApiTestWithEvalHub[HTTPError](
+					http.MethodPatch,
+					ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+					tt.operations, nil, identity, mockClient,
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+				assert.Contains(t, result.Error.Message, tt.message)
+
+				getResult, getResponse, err := setupApiTestWithEvalHub[CollectionEnvelope](
+					http.MethodGet,
+					ApiPathPrefix+"/evaluations/collections/collection-001?namespace=test-ns",
+					nil, nil, identity, mockClient,
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, getResponse.StatusCode)
+				assert.Equal(t, tt.collection.Benchmarks[0].TestDataRef.Git.URL, getResult.Data.Benchmarks[0].TestDataRef.Git.URL)
+			}
+		})
+	}
+}
+
 func TestPatchCollectionHandlerServerError(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
 	operations := []evalhub.CollectionPatchOperation{{
@@ -389,6 +990,41 @@ func TestCreateCollectionHandlerRequiresNameAndBenchmark(t *testing.T) {
 		{name: "missing benchmark", body: evalhub.CreateCollectionRequest{Name: "Suite"}},
 		{name: "blank benchmark id", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: " \t"}}}},
 		{name: "negative benchmark weight", body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: -0.1}}}},
+		{
+			name: "test data ref with no variant",
+			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
+				ID:          "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{},
+			}}},
+		},
+		{
+			name: "test data ref with multiple variants",
+			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
+				ID: "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{
+					S3: &evalhub.S3DataRef{Bucket: "bucket"},
+					HF: &evalhub.TestDataRefHF{RepoID: "org/repo"},
+				},
+			}}},
+		},
+		{
+			name: "git test data ref with embedded credentials",
+			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
+				ID: "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{
+					Git: &evalhub.TestDataRefGit{URL: "https://user:pass@example.com/repo.git"},
+				},
+			}}},
+		},
+		{
+			name: "git test data ref with secret over http",
+			body: evalhub.CreateCollectionRequest{Name: "Suite", Benchmarks: []evalhub.CollectionBenchmark{{
+				ID: "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{
+					Git: &evalhub.TestDataRefGit{URL: "http://example.com/repo.git", SecretRef: "my-secret"},
+				},
+			}}},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, response, err := setupApiTestWithEvalHub[HTTPError](
@@ -605,6 +1241,22 @@ func TestCloneCollectionHandlerInvalidBenchmark(t *testing.T) {
 		{name: "whitespace-only", benchmarks: []evalhub.CollectionBenchmark{{ID: " \t"}}},
 		{name: "invalid ID after valid ID", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001"}, {ID: " "}}},
 		{name: "negative weight", benchmarks: []evalhub.CollectionBenchmark{{ID: "benchmark-001", Weight: -0.1}}},
+		{
+			name: "test data ref with no variant",
+			benchmarks: []evalhub.CollectionBenchmark{{
+				ID:          "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{},
+			}},
+		},
+		{
+			name: "git test data ref with non-http scheme",
+			benchmarks: []evalhub.CollectionBenchmark{{
+				ID: "benchmark-001",
+				TestDataRef: &evalhub.TestDataRef{
+					Git: &evalhub.TestDataRefGit{URL: "ssh://git@example.com/repo.git"},
+				},
+			}},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, response, err := setupApiTestWithEvalHub[HTTPError](

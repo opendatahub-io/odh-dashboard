@@ -1,12 +1,15 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
@@ -38,6 +41,206 @@ func validateCollectionPatchOperations(operations []evalhub.CollectionPatchOpera
 	return nil
 }
 
+// benchmarkWriteTracker tracks which benchmark positions in the patched
+// collection were written by the patch operations. Positions shift as add and
+// remove operations change the array, so operations are replayed in order.
+// Whole-array writes conservatively mark every resulting benchmark as written.
+type benchmarkWriteTracker struct {
+	all     bool
+	indices map[int]struct{}
+	length  int
+}
+
+func newBenchmarkWriteTracker(length int) *benchmarkWriteTracker {
+	return &benchmarkWriteTracker{indices: make(map[int]struct{}), length: length}
+}
+
+// written reports whether the benchmark at the given patched index must be
+// validated.
+func (t *benchmarkWriteTracker) written(index int) bool {
+	if t.all {
+		return true
+	}
+	_, ok := t.indices[index]
+	return ok
+}
+
+func (t *benchmarkWriteTracker) markAll() {
+	t.all = true
+}
+
+func (t *benchmarkWriteTracker) mark(index int) {
+	if !t.all {
+		t.indices[index] = struct{}{}
+	}
+}
+
+// insert records an add at index, shifting existing marks at or past index up.
+func (t *benchmarkWriteTracker) insert(index int) {
+	t.length++
+	if t.all {
+		return
+	}
+	shifted := make(map[int]struct{}, len(t.indices)+1)
+	for i := range t.indices {
+		if i >= index {
+			i++
+		}
+		shifted[i] = struct{}{}
+	}
+	shifted[index] = struct{}{}
+	t.indices = shifted
+}
+
+// removeAt records a remove at index, dropping its mark and shifting marks past
+// index down.
+func (t *benchmarkWriteTracker) removeAt(index int) {
+	t.length--
+	if t.all {
+		return
+	}
+	shifted := make(map[int]struct{}, len(t.indices))
+	for i := range t.indices {
+		switch {
+		case i == index:
+		case i > index:
+			shifted[i-1] = struct{}{}
+		default:
+			shifted[i] = struct{}{}
+		}
+	}
+	t.indices = shifted
+}
+
+// foldCutPrefix reports whether s begins with prefix under the Unicode
+// simple case folding that encoding/json uses for field-name matching, and
+// returns the remainder of s after the matched prefix. Matching is
+// rune-by-rune, mirroring strings.EqualFold, so a segment like "benchmarkſ"
+// (U+017F, long s) matches "benchmarks" the same way the JSON decoder would
+// match the resulting duplicate key — byte-length slicing would instead cut
+// the multi-byte rune and miss the match.
+func foldCutPrefix(s, prefix string) (string, bool) {
+	for _, pr := range prefix {
+		sr, size := utf8.DecodeRuneInString(s)
+		if size == 0 {
+			return "", false
+		}
+		if !strings.EqualFold(string(sr), string(pr)) {
+			return "", false
+		}
+		s = s[size:]
+	}
+	return s, true
+}
+
+// apply replays a single patch operation against the tracker. rest is the
+// unmatched part of the JSON Pointer path after a case-folded "/benchmarks"
+// prefix: empty when the operation rewrites the whole array, or beginning
+// with "/" when it targets the array or a benchmark inside it.
+func (t *benchmarkWriteTracker) apply(op, rest string) {
+	if rest == "" {
+		// Whole-array operations rewrite every benchmark.
+		t.markAll()
+		return
+	}
+	token, field, deeper := strings.Cut(rest[1:], "/")
+	if token == "-" {
+		if op == "add" {
+			t.insert(t.length)
+		} else {
+			// '-' is only valid for add; anything else fails to apply.
+			t.markAll()
+		}
+		return
+	}
+	index, err := strconv.Atoi(token)
+	if err != nil || index < 0 {
+		t.markAll()
+		return
+	}
+	if deeper {
+		// A write inside an existing benchmark object; the array is unchanged.
+		// Only writes to the test data reference itself (or a field inside it)
+		// require validation — edits to unrelated fields such as weight must
+		// not re-validate an unchanged legacy reference.
+		if refRest, ok := foldCutPrefix(field, "test_data_ref"); ok && (refRest == "" || strings.HasPrefix(refRest, "/")) {
+			t.mark(index)
+		}
+		return
+	}
+	switch op {
+	case "add":
+		t.insert(index)
+	case "remove":
+		t.removeAt(index)
+	default:
+		t.mark(index)
+	}
+}
+
+// validatePatchedBenchmarks applies the patch operations to the current
+// collection's original upstream JSON and validates the test data references
+// of benchmarks the patch added or changed, so a patch cannot bypass the
+// checks that create and clone enforce (e.g. embedded Git credentials or
+// non-HTTPS URLs with a secret reference) while edits that leave other stored
+// references untouched are not blocked by them. The original JSON is used
+// rather than a re-marshal of the decoded collection because re-marshaling
+// drops nullable and unknown fields, which can make valid patches fail to
+// apply. Patches that do not touch the benchmarks are passed through without
+// applying them.
+func validatePatchedBenchmarks(currentJSON json.RawMessage, current *evalhub.Collection, operations []evalhub.CollectionPatchOperation) error {
+	tracker := newBenchmarkWriteTracker(len(current.Benchmarks))
+	touchesBenchmarks := false
+	for _, operation := range operations {
+		// Paths are matched with the same Unicode case folding as Go's JSON
+		// decoder: jsonpatch creates duplicate keys for fold-equivalent
+		// variants (ASCII case or U+017F in place of s), and the decoder then
+		// overwrites the field via its case-insensitive fallback, so such a
+		// variant must not slip past the gate. The original operations are
+		// left untouched for the patch library itself.
+		path := operation.Path
+		rest, ok := foldCutPrefix(path, "/benchmarks")
+		if ok && (rest == "" || strings.HasPrefix(rest, "/")) {
+			touchesBenchmarks = true
+			tracker.apply(operation.Op, rest)
+		}
+	}
+	if !touchesBenchmarks {
+		return nil
+	}
+
+	operationsJSON, err := json.Marshal(operations)
+	if err != nil {
+		return fmt.Errorf("failed to encode patch operations: %w", err)
+	}
+	patch, err := jsonpatch.DecodePatch(operationsJSON)
+	if err != nil {
+		return fmt.Errorf("failed to decode patch operations: %w", err)
+	}
+	patchedJSON, err := patch.Apply(currentJSON)
+	if err != nil {
+		return fmt.Errorf("patch does not apply to the current collection: %w", err)
+	}
+
+	var patched evalhub.Collection
+	if err := json.Unmarshal(patchedJSON, &patched); err != nil {
+		return fmt.Errorf("failed to decode patched collection: %w", err)
+	}
+	for index, benchmark := range patched.Benchmarks {
+		if !tracker.written(index) {
+			continue
+		}
+		if err := benchmark.TestDataRef.Validate(); err != nil {
+			id := benchmark.ID
+			if id == "" {
+				id = strconv.Itoa(index)
+			}
+			return fmt.Errorf("benchmark %s: %w", id, err)
+		}
+	}
+	return nil
+}
+
 func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -64,7 +267,7 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 	}
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	currentCollection, err := client.GetCollection(ctx, id, namespace)
+	currentCollection, currentJSON, err := client.GetCollection(ctx, id, namespace)
 	if err != nil {
 		app.evalHubErrorResponse(w, r, err, "failed to check collection before patch")
 		return
@@ -75,6 +278,10 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 	}
 	if currentCollection.Status != nil && currentCollection.Status.RunCount > 0 {
 		app.conflictResponse(w, r, fmt.Errorf("collection cannot be edited after it has been run"))
+		return
+	}
+	if err := validatePatchedBenchmarks(currentJSON, currentCollection, operations); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -140,7 +347,7 @@ func (app *App) GetCollectionHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
-	collection, err := client.GetCollection(ctx, id, namespace)
+	collection, _, err := client.GetCollection(ctx, id, namespace)
 	if err != nil {
 		app.evalHubErrorResponse(w, r, err, "failed to get collection")
 		return
@@ -260,6 +467,10 @@ func (app *App) CreateCollectionHandler(w http.ResponseWriter, r *http.Request, 
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
 			return
 		}
+		if err := benchmark.TestDataRef.Validate(); err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark %s: %w", benchmark.ID, err))
+			return
+		}
 	}
 	// TODO: Remove this temporary mapping once the EvalHub API is deployed.
 	input.Category = strings.TrimSpace(input.Category)
@@ -332,6 +543,10 @@ func (app *App) CloneCollectionHandler(w http.ResponseWriter, r *http.Request, p
 		}
 		if benchmark.Weight < 0 {
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark weight must be non-negative"))
+			return
+		}
+		if err := benchmark.TestDataRef.Validate(); err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark %s: %w", benchmark.ID, err))
 			return
 		}
 	}

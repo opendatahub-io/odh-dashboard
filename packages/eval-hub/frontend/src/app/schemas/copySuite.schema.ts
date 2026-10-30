@@ -2,6 +2,8 @@ import * as z from 'zod';
 import { MODEL_EVALUATION_TARGETS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
 import { getBenchmarkParameterLabel } from '~/app/components/benchmarkUtils';
 import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
+import { refineTestDataRef, testDataRefFormSchema } from '~/app/schemas/testDataRef.schema';
+import { benchmarkRequiresTestData } from '~/app/utilities/testDataRefRequirements';
 
 export const copySuiteBenchmarkParameterTypeSchema = z.enum(['number', 'boolean', 'text']);
 export type CopySuiteBenchmarkParameterType = z.infer<typeof copySuiteBenchmarkParameterTypeSchema>;
@@ -74,6 +76,7 @@ export const copySuiteBenchmarkSchema = z
     additionalParameters: z.string().optional(),
     threshold: z.number().min(0),
     availableMetrics: z.array(z.string()),
+    testDataRef: testDataRefFormSchema,
   })
   .superRefine((benchmark, ctx) => {
     if (isPercentageMetric(benchmark.primaryMetric) && benchmark.threshold > 100) {
@@ -83,6 +86,12 @@ export const copySuiteBenchmarkSchema = z
         path: ['threshold'],
       });
     }
+    refineTestDataRef(
+      benchmark.testDataRef,
+      ctx,
+      ['testDataRef'],
+      benchmarkRequiresTestData(benchmark.providerId, benchmark.id),
+    );
   });
 
 export const copySuiteSchema = z

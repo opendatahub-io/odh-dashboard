@@ -207,7 +207,8 @@ const CollectionBenchmarksSection: React.FC<CollectionBenchmarksSectionProps> = 
                   <Card isCompact>
                     <CardBody>
                       {/* Collection benchmarks can override provider defaults for
-                         primary_score, pass_criteria, and url. */}
+                         primary_score, pass_criteria, and url, and can carry their own
+                         test_data_ref. */}
                       <BenchmarkDrawerTileContent
                         name={details?.name ?? b.id}
                         id={b.id}
@@ -217,6 +218,8 @@ const CollectionBenchmarksSection: React.FC<CollectionBenchmarksSectionProps> = 
                         providerAgent={details?.providerAgent}
                         primaryScore={b.primary_score ?? details?.primary_score}
                         passCriteria={b.pass_criteria ?? details?.pass_criteria}
+                        testDataRef={b.test_data_ref}
+                        providerId={b.provider_id}
                         url={b.url ?? details?.url}
                         trackingSurface="collection_drawer"
                         isCompact

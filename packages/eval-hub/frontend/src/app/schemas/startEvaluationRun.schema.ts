@@ -1,5 +1,11 @@
 import * as z from 'zod';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
+import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
+import {
+  refineTestDataRef,
+  testDataRefDefaultValues,
+  testDataRefFormSchema,
+} from '~/app/schemas/testDataRef.schema';
 
 export const SOURCE_MODES = ['model', 'agent', 'prerecorded'] as const;
 export const MODEL_SELECTIONS = ['cluster', 'external'] as const;
@@ -18,6 +24,7 @@ export const startEvaluationRunSchema = z
     sourceName: z.string(),
     datasetUrl: z.string(),
     accessToken: z.string(),
+    testDataRef: testDataRefFormSchema,
     experimentMode: z.enum(EXPERIMENT_MODES),
     selectedExperimentName: z.string().optional(),
     newExperimentName: z.string(),
@@ -42,6 +49,8 @@ export const startEvaluationRunSchema = z
     }
 
     if (data.sourceMode === 'model') {
+      refineTestDataRef(data.testDataRef, ctx, ['testDataRef']);
+
       if (data.modelSelection === 'cluster') {
         if (!data.selectedInferenceServiceName?.trim()) {
           ctx.addIssue({
@@ -106,6 +115,20 @@ export const startEvaluationRunSchema = z
         message: 'Dataset URL is required.',
         path: ['datasetUrl'],
       });
+    } else if (!parseS3DatasetUrl(data.datasetUrl)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Dataset URL must be an S3 URL in the format s3://bucket-name/path.',
+        path: ['datasetUrl'],
+      });
+    }
+
+    if (data.accessToken.trim() === '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Secret name is required.',
+        path: ['accessToken'],
+      });
     }
   });
 
@@ -123,6 +146,7 @@ export const startEvaluationRunDefaultValues: StartEvaluationRunFormValues = {
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
+  testDataRef: { ...testDataRefDefaultValues },
   experimentMode: 'existing',
   selectedExperimentName: undefined,
   newExperimentName: '',
