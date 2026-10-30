@@ -14,6 +14,7 @@
 // ***********************************************************
 
 import '@odh-dashboard/internal/types';
+import { TOUR_SEEN_STORAGE_KEY } from '@odh-dashboard/internal/concepts/whatsNew/const';
 import '@cypress/grep';
 import chaiSubset from 'chai-subset';
 import '@cypress/code-coverage/support';
@@ -111,7 +112,7 @@ Cypress.Keyboard.defaults({
 
 // Suppress the "What's New" auto-launch modal in all Cypress tests
 Cypress.on('window:before:load', (win) => {
-  win.localStorage.setItem('odh-whats-new-3.5-seen', JSON.stringify(true));
+  win.localStorage.setItem(TOUR_SEEN_STORAGE_KEY, JSON.stringify(true));
 });
 
 // Disable polling in mock tests by injecting window globals before app code runs

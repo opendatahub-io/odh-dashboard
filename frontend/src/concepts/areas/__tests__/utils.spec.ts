@@ -311,7 +311,7 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.devFlags).toEqual({ [testDevFlag]: 'on' });
       });
 
-      it('should disable Guided Tour by default when guidedTour is unset', () => {
+      it('should enable Guided Tour by default when guidedTour is unset', () => {
         const isAvailable = isAreaAvailable(
           SupportedArea.GUIDED_TOUR,
           mockDashboardConfig({}).spec,
@@ -319,9 +319,22 @@ describe('isAreaAvailable', () => {
           null,
         );
 
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.devFlags).toEqual({ guidedTour: 'on' });
+        expect(isAvailable.featureFlags).toBe(null);
+      });
+
+      it('should disable Guided Tour when guidedTour is overridden to false', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.GUIDED_TOUR,
+          mockDashboardConfig({}).spec,
+          null,
+          null,
+          { internalStateMap: SupportedAreasStateMap, flagState: { guidedTour: false } },
+        );
+
         expect(isAvailable.status).toBe(false);
         expect(isAvailable.devFlags).toEqual({ guidedTour: 'off' });
-        expect(isAvailable.featureFlags).toBe(null);
       });
 
       it('should disable Unified Project Selector by default', () => {
