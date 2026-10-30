@@ -406,6 +406,55 @@ describe('buildEvaluationRequest', () => {
       expect(result.collection!.benchmarks![1].test_data_ref).toEqual(refB);
     });
 
+    it('should upgrade a legacy bucket-less reference on an unchanged reconfiguration', () => {
+      const legacyRef: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: { key: 's3://results/legacy.jsonl', secret_ref: 'shared-secret' },
+      };
+      const col = makeCollection({
+        benchmarks: [{ id: 'mmlu', provider_id: 'lm_harness', test_data_ref: legacyRef }],
+      });
+      // Hydrated from the legacy key and left untouched by the user.
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/legacy.jsonl',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: { bucket: 'results', key: 'legacy.jsonl', secret_ref: 'shared-secret' },
+      });
+    });
+
+    it('should upgrade a legacy reference and apply the re-entered secret when the stored ref has none', () => {
+      const legacyRef: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: { key: 's3://results/legacy.jsonl' },
+      };
+      const col = makeCollection({
+        benchmarks: [{ id: 'mmlu', provider_id: 'lm_harness', test_data_ref: legacyRef }],
+      });
+      // The stored ref has no secret, so the user must re-enter one; the
+      // dataset URL is left at its hydrated legacy value.
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/legacy.jsonl',
+        accessToken: 'new-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: { bucket: 'results', key: 'legacy.jsonl', secret_ref: 'new-secret' },
+      });
+    });
+
     it('should rotate only the secret on a secret-only edit', () => {
       const refA: TestDataRef = {
         type: 'pre_recorded_data',

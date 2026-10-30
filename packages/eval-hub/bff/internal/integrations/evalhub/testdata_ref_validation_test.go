@@ -143,6 +143,11 @@ func TestTestDataRefValidate(t *testing.T) {
 			wantErr: "pvc test data claim_name must not be empty",
 		},
 		{
+			name:    "pvc with space-padded claim_name is rejected",
+			ref:     &TestDataRef{PVC: &TestDataRefPVC{ClaimName: " claim "}},
+			wantErr: "pvc test data claim_name must be an RFC 1123 DNS label",
+		},
+		{
 			name: "pvc with 63 character claim_name is valid",
 			ref:  &TestDataRef{PVC: &TestDataRefPVC{ClaimName: strings.Repeat("a", 63)}},
 		},

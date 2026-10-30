@@ -65,8 +65,8 @@ func (r *TestDataRef) Validate() error {
 		return validateRelativePath("s3 test data key", r.S3.Key)
 	}
 	if r.PVC != nil {
-		claimName := strings.TrimSpace(r.PVC.ClaimName)
-		if claimName == "" {
+		claimName := r.PVC.ClaimName
+		if strings.TrimSpace(claimName) == "" {
 			return fmt.Errorf("pvc test data claim_name must not be empty")
 		}
 		if len(claimName) > 63 {

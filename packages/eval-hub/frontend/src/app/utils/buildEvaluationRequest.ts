@@ -42,7 +42,9 @@ const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass
  * Merges a collection-wide prerecorded edit into a benchmark's stored S3
  * reference. Each dimension applies independently: a location edit replaces
  * the bucket and key everywhere, a secret edit rotates the secret everywhere,
- * and untouched dimensions keep each benchmark's own stored value.
+ * and untouched dimensions keep each benchmark's own stored value. A stored
+ * ref without a bucket is the legacy shape (full s3:// URL in key) and is
+ * upgraded to the split bucket/key contract even when no field was edited.
  */
 const mergePrerecordedRef = (
   stored: TestDataRef,
@@ -50,14 +52,15 @@ const mergePrerecordedRef = (
   locationEdited: boolean,
   secretEdited: boolean,
 ): TestDataRef => {
-  if (!locationEdited && !secretEdited) {
+  const isLegacyRef = !stored.s3?.bucket;
+  if (!locationEdited && !secretEdited && !isLegacyRef) {
     return stored;
   }
   return {
     ...stored,
     s3: {
       ...stored.s3,
-      ...(locationEdited ? { bucket: edited.s3.bucket, key: edited.s3.key } : {}),
+      ...(locationEdited || isLegacyRef ? { bucket: edited.s3.bucket, key: edited.s3.key } : {}),
       ...(secretEdited ? { secret_ref: edited.s3.secret_ref } : {}),
     },
   };
@@ -186,7 +189,9 @@ const buildEvaluationRequest = ({
   // dimensions apply independently: a location edit replaces the bucket and
   // key everywhere, and a secret edit rotates the secret everywhere — each
   // preserves the other dimension's per-benchmark stored value. Other
-  // per-benchmark references (e.g. data_set) are untouched.
+  // per-benchmark references (e.g. data_set) are untouched. Legacy refs (no
+  // bucket, full s3:// URL in key) are upgraded to the split bucket/key
+  // contract even when unedited, since the S3DataRef contract requires bucket.
   // eslint-disable-next-line camelcase
   const editedPrerecordedRef = prerecordedDataRef.test_data_ref;
   const hydrationSource = collection?.benchmarks?.find((b) =>
