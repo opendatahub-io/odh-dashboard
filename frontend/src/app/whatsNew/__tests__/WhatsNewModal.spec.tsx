@@ -125,6 +125,18 @@ describe('WhatsNewModal', () => {
     jest.useRealTimers();
   });
 
+  describe('platform gating', () => {
+    it('should not render on Open Data Hub', () => {
+      useAppContextMock.mockReturnValue({ ...buildAppContext(), isRHOAI: false });
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+
+      expect(screen.queryByTestId('whats-new-modal')).not.toBeInTheDocument();
+    });
+  });
+
   describe('seen state', () => {
     it('should not render when already seen', () => {
       mockUseBrowserStorage.mockReturnValue([true, mockSetSeen]);
@@ -198,6 +210,44 @@ describe('WhatsNewModal', () => {
       expect(screen.getByText(/OdhDashboardConfig/)).toBeInTheDocument();
       expect(screen.getByText('dataRegistry')).toBeInTheDocument();
       expect(screen.queryByText(/Contact your administrator/)).not.toBeInTheDocument();
+    });
+
+    it('should list only the missing flag when Agent endpoints has one of two flags off', () => {
+      useAppContextMock.mockReturnValue(
+        buildAppContext({
+          genAiStudio: true,
+          genAiAgentDeployment: true,
+          agentConfigManagement: false,
+        }),
+      );
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      clickNextStep();
+
+      expect(screen.getByText('Agent endpoints')).toBeInTheDocument();
+      expect(screen.getByText('agentConfigManagement')).toBeInTheDocument();
+      expect(screen.queryByText('genAiAgentDeployment')).not.toBeInTheDocument();
+    });
+
+    it('should ask admins to unset disableFeatureStore when the Feature stores area is off', () => {
+      useAppContextMock.mockReturnValue(
+        buildAppContext({ featureStoreAdmin: true, disableFeatureStore: true }),
+      );
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+
+      expect(screen.getByText('Feature stores')).toBeInTheDocument();
+      expect(screen.getByText(/disableFeatureStore/)).toBeInTheDocument();
     });
 
     it('should tell non-admins to contact their administrator', () => {
@@ -348,6 +398,31 @@ describe('WhatsNewModal', () => {
 
       expect(screen.getByText('Start full tour')).toBeInTheDocument();
       expect(screen.queryByText('Projects')).not.toBeInTheDocument();
+    });
+
+    it('should include Settings in the new-features path for admins and go back to it', () => {
+      useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      expect(screen.getByText('1 of 5')).toBeInTheDocument();
+
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      expect(screen.getByText("You're ready to go!")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('whats-new-done-back'));
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+      expect(screen.getByText('5 of 5')).toBeInTheDocument();
     });
 
     it('should go back from the summary to the last step of the path', () => {

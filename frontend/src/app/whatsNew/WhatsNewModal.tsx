@@ -28,14 +28,15 @@ import {
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import { useAppContext } from '#~/app/AppContext';
 import { useUser } from '#~/redux/selectors';
-import { TOUR_SEEN_STORAGE_KEY, TOUR_VERSION } from '#~/concepts/whatsNew/const';
+import {
+  TOUR_DOCS_BASE_URL,
+  TOUR_SEEN_STORAGE_KEY,
+  TOUR_VERSION,
+} from '#~/concepts/whatsNew/const';
+import { useIsGuidedTourAvailable } from '#~/concepts/whatsNew/useIsGuidedTourAvailable';
 import type { GuidedTourDismissMethod, GuidedTourEntryPoint } from './tracking/guidedTourTracking';
 import { useGuidedTourTracking } from './tracking/useGuidedTourTracking';
 import { useWhatsNewTourListener } from './whatsNewEvent';
-
-// TODO: Verify these 3.6 doc URLs resolve once the 3.6 docs are published.
-const DEFAULT_DOC_URL =
-  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6';
 
 type NewFeature = {
   title: string;
@@ -56,7 +57,7 @@ type TourStep = {
   title: string;
   description: string;
   navSelector: string;
-  docUrl?: string;
+  docUrl: string;
   sectionAvailable: boolean;
   sectionFlagName?: string;
   newFeatures: NewFeature[];
@@ -73,14 +74,18 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
   const lmEvalAvailable = !config.disableLMEval;
   const dataRegistryAvailable = config.dataRegistry ?? false;
   const nimWizardAvailable = config.nimWizard ?? false;
+  const nimModelAvailable = !config.disableNIMModelServing;
   const llmGatewayFieldAvailable = config.llmGatewayField ?? false;
+  const llmdAvailable = !config.disableLLMd;
   const featureStoreAdminAvailable = config.featureStoreAdmin ?? false;
+  const featureStoreAvailable = !config.disableFeatureStore;
   const dataConnectHubAvailable = config.dataConnectHub ?? false;
   const genAiMcpRegistryServersAvailable = config.genAiMcpRegistryServers ?? false;
   const genAiAgentDeploymentAvailable = config.genAiAgentDeployment ?? false;
   const agentConfigManagementAvailable = config.agentConfigManagement ?? false;
   const hardwareProfileDRAAvailable = config.hardwareProfileDRA ?? false;
   const inferencePriorityFieldAvailable = config.inferencePriorityField ?? false;
+  const maasAvailable = config.modelAsService ?? false;
   const modelCatalogAvailable = !config.disableModelCatalog;
   const modelRegistryAvailable = !config.disableModelRegistry;
   const modelServingAvailable = !config.disableModelServing;
@@ -102,8 +107,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Organize workbenches, pipelines, model servers, and storage so your team can collaborate in one place.',
         navSelector: 'a[href="/projects"]',
-        docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/getting_started_with_red_hat_openshift_ai_self-managed/index',
+        docUrl: `${TOUR_DOCS_BASE_URL}/html/getting_started_with_red_hat_openshift_ai_self-managed/index`,
         sectionAvailable: true,
         newFeatures: [],
       },
@@ -113,8 +117,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Discover and deploy models, manage connections and data assets, and connect to MCP servers.',
         navSelector: 'button[id="ai-hub"]',
-        docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/working_with_the_model_catalog/index',
+        docUrl: `${TOUR_DOCS_BASE_URL}/html/working_with_the_model_catalog/index`,
         sectionAvailable: aiHubAvailable,
         newFeatures: withAvailability([
           {
@@ -131,12 +134,18 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
           {
             title: 'NIM deployments',
             description: 'Deploy NVIDIA NIM models using project-level API keys.',
-            flags: [{ name: 'nimWizard', enabled: nimWizardAvailable }],
+            flags: [
+              { name: 'nimWizard', enabled: nimWizardAvailable },
+              { name: 'disableNIMModelServing', enabled: nimModelAvailable },
+            ],
           },
           {
             title: 'Deployment gateways',
             description: 'Choose which gateways serve your model deployments.',
-            flags: [{ name: 'llmGatewayField', enabled: llmGatewayFieldAvailable }],
+            flags: [
+              { name: 'llmGatewayField', enabled: llmGatewayFieldAvailable },
+              { name: 'disableLLMd', enabled: llmdAvailable },
+            ],
           },
           {
             title: 'Simplified connection management',
@@ -151,8 +160,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Test models and prompts, experiment with RAG, and prepare configurations before building them into applications.',
         navSelector: 'button[id="gen-ai-studio"]',
-        docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/experimenting_with_models_in_the_gen_ai_playground/index',
+        docUrl: `${TOUR_DOCS_BASE_URL}/html/experimenting_with_models_in_the_gen_ai_playground/index`,
         sectionAvailable: genAiAvailable,
         sectionFlagName: 'genAiStudio',
         newFeatures: withAvailability([
@@ -178,8 +186,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         description:
           'Build pipelines, run training jobs, track experiments, and evaluate model performance.',
         navSelector: 'button[id="develop-and-train"]',
-        docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/evaluating_ai_systems/index',
+        docUrl: `${TOUR_DOCS_BASE_URL}/html/evaluating_ai_systems/index`,
         sectionAvailable: true,
         newFeatures: withAvailability([
           {
@@ -195,8 +202,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
         title: 'Observe & monitor',
         description: 'Check resource usage and workload health across your projects.',
         navSelector: 'button[id="observe-and-monitor"]',
-        docUrl:
-          'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/monitoring_your_ai_systems/index',
+        docUrl: `${TOUR_DOCS_BASE_URL}/html/monitoring_your_ai_systems/index`,
         sectionAvailable: true,
         newFeatures: withAvailability([
           {
@@ -215,8 +221,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
               description:
                 'Manage user access, environment setup, and model serving resources for your organization.',
               navSelector: 'button[id="settings"]',
-              docUrl:
-                'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.6/html/managing_openshift_ai/index',
+              docUrl: `${TOUR_DOCS_BASE_URL}/html/managing_openshift_ai/index`,
               sectionAvailable: true,
               newFeatures: withAvailability([
                 {
@@ -227,7 +232,10 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
                 {
                   title: 'Feature stores',
                   description: 'Set up feature stores to share ML features across projects.',
-                  flags: [{ name: 'featureStoreAdmin', enabled: featureStoreAdminAvailable }],
+                  flags: [
+                    { name: 'featureStoreAdmin', enabled: featureStoreAdminAvailable },
+                    { name: 'disableFeatureStore', enabled: featureStoreAvailable },
+                  ],
                 },
                 {
                   title: 'New hardware profile type',
@@ -241,6 +249,7 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
                     'Control which inference requests get processed first by assigning priorities to MaaS subscriptions.',
                   flags: [
                     { name: 'inferencePriorityField', enabled: inferencePriorityFieldAvailable },
+                    { name: 'modelAsService', enabled: maasAvailable },
                   ],
                 },
               ]),
@@ -254,14 +263,18 @@ const useTourSteps = (isAdmin: boolean): TourStep[] => {
       skillRegistryEnabled,
       dataRegistryAvailable,
       nimWizardAvailable,
+      nimModelAvailable,
       llmGatewayFieldAvailable,
+      llmdAvailable,
       featureStoreAdminAvailable,
+      featureStoreAvailable,
       dataConnectHubAvailable,
       genAiMcpRegistryServersAvailable,
       genAiAgentDeploymentAvailable,
       agentConfigManagementAvailable,
       hardwareProfileDRAAvailable,
       inferencePriorityFieldAvailable,
+      maasAvailable,
       modelServingAvailable,
       aiHubAvailable,
       mlflowAvailable,
@@ -574,12 +587,12 @@ const WhatsNewModalContent: React.FC = () => {
               variant="link"
               isInline
               component="a"
-              href={DEFAULT_DOC_URL}
+              href={TOUR_DOCS_BASE_URL}
               target="_blank"
               rel="noopener noreferrer"
               icon={<ExternalLinkAltIcon />}
               iconPosition="end"
-              onClick={() => trackSummaryDocs(DEFAULT_DOC_URL)}
+              onClick={() => trackSummaryDocs(TOUR_DOCS_BASE_URL)}
             >
               documentation
             </Button>
@@ -613,7 +626,7 @@ const WhatsNewModalContent: React.FC = () => {
     return null;
   }
 
-  const learnMoreUrl = currentStep.docUrl ?? DEFAULT_DOC_URL;
+  const learnMoreUrl = currentStep.docUrl;
   const unavailableFeatures = currentStep.newFeatures.filter((f) => !f.available);
   const unavailableFlags = [
     ...new Set(
@@ -715,7 +728,9 @@ const WhatsNewModalContent: React.FC = () => {
                 )}
                 {isAdmin && (unavailableFlags.length > 0 || sectionFlagMissing) && (
                   <div className="pf-v6-u-mt-sm">
-                    Enable these feature flags in OdhDashboardConfig:
+                    <Content component={ContentVariants.p}>
+                      Enable these feature flags in OdhDashboardConfig:
+                    </Content>
                     <List>
                       {sectionFlagMissing && (
                         <ListItem key={currentStep.sectionFlagName}>
@@ -738,7 +753,9 @@ const WhatsNewModalContent: React.FC = () => {
                 )}
                 {isAdmin && unavailableComponents.length > 0 && (
                   <div className="pf-v6-u-mt-sm">
-                    Set these components to <code>Managed</code> in the DataScienceCluster:
+                    <Content component={ContentVariants.p}>
+                      Set these components to <code>Managed</code> in the DataScienceCluster:
+                    </Content>
                     <List>
                       {unavailableComponents.map((componentName) => (
                         <ListItem key={componentName}>
@@ -841,7 +858,7 @@ const WhatsNewModalContent: React.FC = () => {
 };
 
 const WhatsNewModal: React.FC = () => {
-  const isGuidedTourAvailable = useIsAreaAvailable(SupportedArea.GUIDED_TOUR).status;
+  const isGuidedTourAvailable = useIsGuidedTourAvailable();
   if (!isGuidedTourAvailable) {
     return null;
   }

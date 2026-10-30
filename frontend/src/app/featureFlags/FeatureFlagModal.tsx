@@ -92,7 +92,7 @@ const FeatureFlagModal: React.FC<Props> = ({
         <Tab eventKey={1} title={<TabTitleText>Dev Flags</TabTitleText>} data-testid="devFlagTab">
           <Content style={{ height: '400px', padding: '8px' }}>
             <Content component="p">
-              Dev flags default to inactive unless listed in devFlagDefaults, and can only be
+              Dev flags are inactive by default unless a default is set in code, and can only be
               changed for the current session.
             </Content>
             {renderFlags(devFlags, devFlagDefaults)}

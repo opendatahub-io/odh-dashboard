@@ -12,13 +12,13 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import LightBulbIcon from '#~/images/icons/LightBulbIcon';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import taskAssistantIllustration from '#~/images/Illustration-Learning_path-Teal-RH.svg';
 import { openWhatsNewTour } from '#~/app/whatsNew/whatsNewEvent';
+import { useIsGuidedTourAvailable } from '#~/concepts/whatsNew/useIsGuidedTourAvailable';
 import TaskGroupCard from './TaskGroupCard';
 import TaskAssistantPillBar from './TaskAssistantPillBar';
 import TaskAssistantSearchDropdown from './TaskAssistantSearchDropdown';
@@ -31,7 +31,7 @@ const TaskAssistantSection: React.FC = () => {
   const [isOpen, setIsOpen] = useBrowserStorage<boolean>(STORAGE_KEY, true, true, false);
   const { groups, groupedTasks, resolved } = useTaskAssistantData();
   const scrollTargetRef = React.useRef<string | null>(null);
-  const isGuidedTourAvailable = useIsAreaAvailable(SupportedArea.GUIDED_TOUR).status;
+  const isGuidedTourAvailable = useIsGuidedTourAvailable();
 
   React.useEffect(() => {
     if (isOpen && scrollTargetRef.current) {
