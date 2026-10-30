@@ -10,6 +10,8 @@ import (
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sclient "k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
@@ -89,5 +91,41 @@ func TestNewAppMockMaaSClientDisablesResponsesFactory(t *testing.T) {
 	}
 	if err.Error() != "MaaS Responses are unavailable with the mock MaaS client" {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSyncRouterCAOnceUsesPublicCertificateOnly(t *testing.T) {
+	client := k8sfake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "router-ca", Namespace: "openshift-ingress-operator"},
+			Data: map[string][]byte{
+				"tls.crt": []byte("router-ca"),
+				"tls.key": []byte("private-key"),
+			},
+		},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "autorag-router-ca-bundle", Namespace: "applications"}},
+	)
+
+	certificate := syncRouterCAOnce("applications", client, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if string(certificate) != "router-ca" {
+		t.Fatalf("certificate = %q, want router-ca", certificate)
+	}
+	bundle, err := client.CoreV1().ConfigMaps("applications").Get(context.Background(), "autorag-router-ca-bundle", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("failed to read synchronized bundle: %v", err)
+	}
+	if got := bundle.Data["ca-bundle.crt"]; got != "router-ca" {
+		t.Fatalf("bundle certificate = %q, want router-ca", got)
+	}
+	if _, found := bundle.Data["tls.key"]; found {
+		t.Fatal("router private key was copied into the bundle")
+	}
+}
+
+func TestSyncRouterCAOnceContinuesWithoutSourceCertificate(t *testing.T) {
+	client := k8sfake.NewSimpleClientset()
+	certificate := syncRouterCAOnce("applications", client, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if certificate != nil {
+		t.Fatalf("certificate = %q, want nil when source Secret is unavailable", certificate)
 	}
 }

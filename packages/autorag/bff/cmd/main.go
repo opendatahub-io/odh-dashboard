@@ -45,6 +45,13 @@ func main() {
 	// If not provided via flag, it can be set via BUNDLE_PATHS env var (comma-separated). Defaults to empty.
 	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
 	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
+	flag.StringVar(&cfg.GatewayDomain, "gateway-domain", getEnvAsString("GATEWAY_DOMAIN", ""), "Dashboard gateway domain used for router CA synchronization")
+	flag.StringVar(&cfg.PodNamespace, "pod-namespace", getEnvAsString("POD_NAMESPACE", ""), "Namespace where the AutoRAG pod is running")
+	flag.StringVar(&cfg.BFFMaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard-maas-ui"), "In-cluster MaaS BFF service name")
+	flag.IntVar(&cfg.BFFMaaSServicePort, "bff-maas-service-port", getEnvAsInt("BFF_MAAS_SERVICE_PORT", 8243), "In-cluster MaaS BFF service port")
+	flag.BoolVar(&cfg.BFFMaaSTLSEnabled, "bff-maas-tls-enabled", getEnvAsBool("BFF_MAAS_TLS_ENABLED", true), "Use TLS for in-cluster MaaS BFF calls")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenHeader, "bff-maas-auth-token-header", getEnvAsString("BFF_MAAS_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header used to forward the authenticated user token to MaaS BFF")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenPrefix, "bff-maas-auth-token-prefix", getEnvAsString("BFF_MAAS_AUTH_TOKEN_PREFIX", ""), "Prefix used when forwarding the authenticated user token to MaaS BFF")
 	if err := cfg.AuthMethod.Set(getEnvAsString("AUTH_METHOD", config.AuthMethodUser.String())); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)

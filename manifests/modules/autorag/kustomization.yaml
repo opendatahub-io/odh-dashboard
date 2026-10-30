@@ -4,6 +4,11 @@ resources:
   - service-account.yaml
   - cluster-role.yaml
   - cluster-role-binding.yaml
+  - role.yaml
+  - role-binding.yaml
+  - router-ca-role.yaml
+  - router-ca-role-binding.yaml
+  - router-ca-configmap.yaml
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
@@ -33,3 +38,13 @@ replacements:
           name: autorag-ui
         fieldPaths:
           - spec.template.spec.containers.[name=autorag-ui].env.[name=RELATED_IMAGE_ODH_AUTORAG_IMAGE].value
+  - source:
+      kind: ConfigMap
+      name: autorag-params
+      fieldPath: data.gateway-domain
+    targets:
+      - select:
+          kind: Deployment
+          name: autorag-ui
+        fieldPaths:
+          - spec.template.spec.containers.[name=autorag-ui].env.[name=GATEWAY_DOMAIN].value

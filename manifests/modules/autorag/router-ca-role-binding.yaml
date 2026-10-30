@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: odh-dashboard-autorag-router-ca-reader
+  namespace: openshift-ingress-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: odh-dashboard-autorag-router-ca-reader
+subjects:
+  - kind: ServiceAccount
+    name: odh-dashboard-autorag
+    namespace: default

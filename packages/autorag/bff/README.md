@@ -73,6 +73,13 @@ make run LOG_LEVEL=DEBUG
 | `-cert-file`                    | `CERT_FILE`                    | TLS certificate path (enables TLS when paired with key)                                                            |
 | `-key-file`                     | `KEY_FILE`                     | TLS key path                                                                                                       |
 | `-insecure-skip-verify`         | `INSECURE_SKIP_VERIFY`         | Skip upstream TLS verify (dev only)                                                                                |
+| `-gateway-domain`               | `GATEWAY_DOMAIN`               | Dashboard gateway domain; enables router CA synchronization                                                        |
+| `-pod-namespace`                | `POD_NAMESPACE`                | Namespace used for in-cluster MaaS BFF discovery and router CA synchronization                                   |
+| `-bff-maas-service-name`        | `BFF_MAAS_SERVICE_NAME`        | In-cluster MaaS BFF Service name (default `odh-dashboard-maas-ui`)                                               |
+| `-bff-maas-service-port`        | `BFF_MAAS_SERVICE_PORT`        | In-cluster MaaS BFF Service port (default `8243`)                                                                 |
+| `-bff-maas-tls-enabled`         | `BFF_MAAS_TLS_ENABLED`         | Use TLS for in-cluster MaaS BFF discovery (default `true`)                                                        |
+| `-bff-maas-auth-token-header`   | `BFF_MAAS_AUTH_TOKEN_HEADER`   | Header used to forward the authenticated user token to MaaS BFF                                                  |
+| `-bff-maas-auth-token-prefix`   | `BFF_MAAS_AUTH_TOKEN_PREFIX`   | Optional prefix for the forwarded user token                                                                      |
 
 TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
 
@@ -128,6 +135,10 @@ Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 - **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
 - **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true`). Useful for local testing. **Not recommended for production.**
 - Mock MaaS model discovery is enabled with `MOCK_MAAS_CLIENT=true`; fully mocked Makefile targets set this automatically so fake MaaS credentials never reach an external service.
+- In production, AutoRAG asks the in-cluster MaaS BFF for the discovered `maas-default-gateway` URL. The returned exact HTTPS origin is cached for five minutes and is used only to permit that origin's private ingress address; the selected Secret's `MAAS_BASE_URL` and `MAAS_API_KEY` remain the direct data-plane credentials.
+- If MaaS BFF discovery is unavailable, public MaaS endpoints continue under normal SSRF validation, while private destinations remain blocked. Development modes without a bearer token skip discovery safely.
+- Router CA synchronization is asynchronous and bounded so BFF startup is never blocked; private MaaS calls may remain unavailable briefly while the initial trust bundle is loaded, then the bundle is refreshed periodically.
+- AutoRAG synchronizes only the public `tls.crt` from `openshift-ingress-operator/router-ca` into `autorag-router-ca-bundle`; private keys are not used, copied, persisted, or logged. Optimization/indexing runtime pods are outside this BFF contract and require separate runtime-image validation.
 
 ### Sample local calls
 

@@ -58,7 +58,7 @@ Only `id`, optional display metadata, optional `owned_by`, and `ready` are expos
 - `502`: invalid or unreachable upstream response/connection
 - `503`: MaaS temporarily unavailable or timed out
 
-The BFF requires HTTPS for non-local MaaS URLs. Plain HTTP is allowed only for explicit local development hosts (`localhost`, `127.0.0.1`, and IPv6 loopback `::1`). It also validates the URL host, rejects embedded credentials, query strings, fragments, and blocked address resolutions, uses configured CA bundles/TLS settings, disables redirects, limits response size, and applies an operation timeout. Secret values and raw upstream response bodies are not logged.
+The BFF requires HTTPS for MaaS URLs and rejects embedded credentials, query strings, fragments, unsafe paths, blocked address resolutions, redirects, oversized responses, and timed-out operations. For a private disconnected-cluster ingress address, AutoRAG calls the in-cluster MaaS BFF `GET /api/v1/gateway-url` and accepts a private resolution only when the selected Secret's exact HTTPS origin matches the discovered `maas-default-gateway` origin. The discovery result is cached for five minutes; an expired or unavailable result never grants private-host access. A short negative cache avoids repeatedly hammering an unavailable MaaS BFF. Public MaaS URLs continue under the normal SSRF policy. The BFF synchronizes only `openshift-ingress-operator/router-ca/tls.crt` into `autorag-router-ca-bundle`, adds it to the in-memory trust pool, and refreshes the trust bundle periodically; private keys are not used, copied, persisted, or logged, and Secret values, API keys, and raw upstream response bodies are not logged.
 
 ## Local Mock
 

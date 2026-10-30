@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: odh-dashboard-autorag-router-ca-reader
+  namespace: openshift-ingress-operator
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - router-ca
+    verbs:
+      - get

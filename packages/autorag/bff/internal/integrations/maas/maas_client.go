@@ -160,7 +160,7 @@ func ValidateBaseURL(rawBaseURL string) (*url.URL, error) {
 		return nil, fmt.Errorf("MaaS base URL contains an unsupported path")
 	}
 	if ip := net.ParseIP(host); ip != nil {
-		if err := validateMaaSIP(ip); err != nil {
+		if err := validateMaaSIP(ip, false); err != nil {
 			return nil, err
 		}
 	}
@@ -182,7 +182,7 @@ func maaSSafeDialContext(
 		}
 
 		if ip := net.ParseIP(host); ip != nil {
-			if err := validateMaaSIP(ip); err != nil {
+			if err := validateMaaSIP(ip, false); err != nil {
 				return nil, err
 			}
 			return baseDialContext(ctx, network, addr)
@@ -193,6 +193,8 @@ func maaSSafeDialContext(
 			return nil, fmt.Errorf("MaaS host %q cannot be resolved: %w", host, err)
 		}
 		allowLocalhost := strings.EqualFold(host, "localhost")
+		trustedOrigin, hasTrustedOrigin := trustedMaaSOriginFromContext(ctx)
+		allowPrivate := hasTrustedOrigin && trustedOrigin.Host == strings.TrimSuffix(strings.ToLower(host), ".") && trustedOrigin.Port == port
 		for _, ip := range ips {
 			if allowLocalhost {
 				if !ip.IsLoopback() {
@@ -200,7 +202,7 @@ func maaSSafeDialContext(
 				}
 				continue
 			}
-			if err := validateMaaSIP(ip); err != nil {
+			if err := validateMaaSIP(ip, allowPrivate); err != nil {
 				return nil, fmt.Errorf("MaaS host %q resolves to blocked address: %w", host, err)
 			}
 		}
@@ -221,8 +223,8 @@ func maaSSafeDialContext(
 	}
 }
 
-func validateMaaSIP(ip net.IP) error {
-	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() || ip.IsMulticast() {
+func validateMaaSIP(ip net.IP, allowPrivate bool) error {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() || ip.IsMulticast() || (!allowPrivate && ip.IsPrivate()) {
 		return fmt.Errorf("MaaS host resolves to a blocked address")
 	}
 	return nil

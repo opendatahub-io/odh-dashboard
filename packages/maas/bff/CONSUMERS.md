@@ -25,6 +25,7 @@ Keep this list current: **add a row in the same PR** that introduces or changes 
 | Consumer package      | Notes (public routes, client, PRs)                                                                    |
 | :-------------------- | :---------------------------------------------------------------------------------------------------- |
 | `packages/gen-ai/bff` | `POST …/bff/maas/tokens` → `POST /api/v1/api-keys` <br> `GET …/bff/maas/models` → `GET /api/v1/models`|
+| `packages/autorag/bff` | Uses `GET /api/v1/gateway-url` as the installation MaaS gateway trust source; AutoRAG keeps its Secret-based data plane. |
 
 ---
 
