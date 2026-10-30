@@ -40,7 +40,6 @@ var (
 const (
 	dataScienceGatewayNamespace   = "openshift-ingress"
 	rayDataScienceGatewayRBACName = "fetch-ray-data-science-gateway"
-	autoragRouterCARBACName       = "odh-dashboard-autorag-router-ca-reader"
 	odhGatewayNamespace           = "opendatahub"
 	dchRhoaiGatewayRBACName       = "odh-dashboard-data-connect-hub-rhoai-gateway-discovery"
 	dchOdhGatewayRBACName         = "odh-dashboard-data-connect-hub-odh-gateway-discovery"
@@ -108,32 +107,6 @@ func remapRayDashboardGatewayRBAC(resources []unstructured.Unstructured) {
 			if r.GetName() == rayDataScienceGatewayRBACName {
 				r.SetNamespace(dataScienceGatewayNamespace)
 			}
-		}
-	}
-}
-
-// remapAutoragRouterCARBAC moves the router-ca reader Role/RoleBinding into
-// openshift-ingress while keeping the subject bound to the rendered
-// applications namespace. The module renderer applies the applications
-// namespace to every namespaced resource before deployment.
-func remapAutoragRouterCARBAC(resources []unstructured.Unstructured, applicationsNamespace string) {
-	for i := range resources {
-		r := &resources[i]
-		if r.GetName() != autoragRouterCARBACName || (r.GetKind() != "Role" && r.GetKind() != "RoleBinding") {
-			continue
-		}
-		r.SetNamespace(dataScienceGatewayNamespace)
-		if r.GetKind() != "RoleBinding" {
-			continue
-		}
-		if subjects, found, err := unstructured.NestedSlice(r.Object, "subjects"); err == nil && found {
-			for _, rawSubject := range subjects {
-				subject, ok := rawSubject.(map[string]interface{})
-				if ok && subject["kind"] == "ServiceAccount" && subject["name"] == "odh-dashboard-autorag" {
-					subject["namespace"] = applicationsNamespace
-				}
-			}
-			_ = unstructured.SetNestedSlice(r.Object, subjects, "subjects")
 		}
 	}
 }

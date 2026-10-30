@@ -162,7 +162,6 @@ func (r *DashboardReconciler) deployModuleManifests(
 			return fmt.Errorf("failed to render manifests for module %s: %w", name, err)
 		}
 		remapRayDashboardGatewayRBAC(rendered)
-		remapAutoragRouterCARBAC(rendered, r.ApplicationsNamespace)
 		rendered = filterAndRemapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace, r.Platform)
 		if maasPortalSupportedPlatform(r.Platform) && mod.RequiredByMaaSPortal {
 			if err := preserveLegacyMaaSPortalNetworkAccess(ctx, r.apiReader(), rendered, r.ApplicationsNamespace); err != nil {
@@ -213,12 +212,6 @@ func (r *DashboardReconciler) deleteModuleResources(
 				errs = append(errs, fmt.Errorf("cleaning up DCH gateway RBAC: %w", err))
 			}
 		}
-		if mod.ManifestSlug == "autorag" {
-			if err := r.cleanupAutoragRouterCARBAC(ctx, r.ApplicationsNamespace); err != nil {
-				errs = append(errs, fmt.Errorf("cleaning up AutoRAG router CA RBAC: %w", err))
-			}
-		}
-
 		matchLabels := client.MatchingLabels{
 			labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind),
 			moduleComponentLabel:  mod.ManifestSlug,
@@ -325,22 +318,6 @@ func (r *DashboardReconciler) deleteModuleResources(
 		}
 	}
 
-	return errors.Join(errs...)
-}
-
-func (r *DashboardReconciler) cleanupAutoragRouterCARBAC(ctx context.Context, applicationsNamespace string) error {
-	var errs []error
-	resources := []client.Object{
-		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: autoragRouterCARBACName, Namespace: dataScienceGatewayNamespace}},
-		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: autoragRouterCARBACName, Namespace: dataScienceGatewayNamespace}},
-		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-autorag-router-ca", Namespace: applicationsNamespace}},
-		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-autorag-router-ca", Namespace: applicationsNamespace}},
-	}
-	for _, resource := range resources {
-		if err := r.Delete(ctx, resource); client.IgnoreNotFound(err) != nil {
-			errs = append(errs, fmt.Errorf("deleting AutoRAG router CA RBAC %s/%s: %w", resource.GetNamespace(), resource.GetName(), err))
-		}
-	}
 	return errors.Join(errs...)
 }
 

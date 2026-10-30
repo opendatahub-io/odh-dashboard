@@ -289,29 +289,6 @@ func TestRemapRayDashboardGatewayRBAC(t *testing.T) {
 	assert.Equal(t, "opendatahub", resources[2].GetNamespace())
 }
 
-func TestRemapAutoragRouterCARBAC(t *testing.T) {
-	resources := []unstructured.Unstructured{
-		{Object: map[string]interface{}{
-			"kind": "Role", "metadata": map[string]interface{}{"name": autoragRouterCARBACName, "namespace": "redhat-ods-applications"},
-		}},
-		{Object: map[string]interface{}{
-			"kind": "RoleBinding", "metadata": map[string]interface{}{"name": autoragRouterCARBACName, "namespace": "redhat-ods-applications"},
-			"subjects": []interface{}{map[string]interface{}{
-				"kind": "ServiceAccount", "name": "odh-dashboard-autorag", "namespace": "redhat-ods-applications",
-			}},
-		}},
-	}
-
-	remapAutoragRouterCARBAC(resources, "redhat-ods-applications")
-
-	assert.Equal(t, dataScienceGatewayNamespace, resources[0].GetNamespace())
-	assert.Equal(t, dataScienceGatewayNamespace, resources[1].GetNamespace())
-	subjects, found, err := unstructured.NestedSlice(resources[1].Object, "subjects")
-	require.NoError(t, err)
-	require.True(t, found)
-	assert.Equal(t, "redhat-ods-applications", subjects[0].(map[string]interface{})["namespace"])
-}
-
 func TestRemapDataConnectHubGatewayRBAC(t *testing.T) {
 	resources := []unstructured.Unstructured{
 		{Object: map[string]interface{}{

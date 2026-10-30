@@ -17,3 +17,20 @@ rules:
       - create
     resources:
       - subjectaccessreviews
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+    resources:
+      - secrets
+    resourceNames:
+      - router-ca
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - update
+    resources:
+      - configmaps
+    resourceNames:
+      - autorag-router-ca-bundle
