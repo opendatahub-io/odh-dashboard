@@ -71,7 +71,9 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
 
   it(
     'Can submit a run, verify it in experiments list, and stop it',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
+    {
+      tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGCI', '@Featureflagged'],
+    },
     () => {
       configureAutoragRun(testData, projectName, uuid, getMaaSFixture(), {
         createConnections: true,

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "defaultCapabilities": {
+    "odh": true,
+    "rhoai": true,
+    "fips": false,
+    "connected": true,
+    "disconnected": false,
+    "operator": true,
+    "rbac": true,
+    "image-contract": true,
+    "performance": false
+  },
+  "tags": [
+    "@ci-dashboard-regression-tags",
+    "@Pipelines",
+    "@Workbenches",
+    "@FeatureStoreCI",
+    "@AutoMLCI",
+    "@AutoRAGCI",
+    "@ConnectionTypesCI",
+    "@EvalHubCI",
+    "@GenAICI",
+    "@GpuaasCI",
+    "@HardwareProfilesCI",
+    "@KServeCI",
+    "@LLMDServingCI",
+    "@LearningResourcesCI",
+    "@MaaSCI",
+    "@MLflowEmbeddedCI",
+    "@ModelCatalogCI",
+    "@ModelRegistryCI",
+    "@ModelServingCI",
+    "@ModelTrainingCI",
+    "@NIMServingCI",
+    "@PipelinesCI",
+    "@ProjectsCI",
+    "@SettingsCI",
+    "@StorageClassesCI",
+    "@WorkbenchesCI",
+    "@WorkloadMetricsCI"
+  ],
+  "tagOverrides": {
+    "@ModelCatalogCI": {
+      "performance": true
+    }
+  },
+  "notSupportedReasons": {
+    "fips": "The current Cypress E2E workflow does not provision a FIPS cluster.",
+    "disconnected": "The current Cypress E2E workflow does not provision a disconnected cluster.",
+    "performance": "No performance benchmark environment is provisioned for this tag."
+  }
+}
