@@ -66,6 +66,11 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Output: Saved as the `dashboard-operator-image` artifact for reuse in the Phase 4 Kind cluster (no rebuild)
   - Triggers: Runs when the PR touches `dashboard-operator/**` (alongside frontend/backend/manifest changes)
 
+- ✅ **Core BFF image build** (`distributions/core-bff/Dockerfile.workspace`)
+  - Builds: The Core BFF from the PR checkout
+  - Output: Saved as an artifact and loaded into the Phase 4 Kind cluster
+  - Why: Keeps the simulator independent of the mutable published Core BFF `:main` image
+
 ### Phase 2: Runtime Validation
 - ✅ **Container startup health**
   - Starts container and waits 30 seconds
@@ -126,11 +131,13 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 ### Phase 4: Operator Integration (Kind Cluster)
 - ✅ **Kind cluster creation**
   - Creates: Temporary local Kubernetes cluster
-  - Loads: Built dashboard Docker image and the dashboard-operator image (from the Phase 1 artifacts)
+  - Loads: Built dashboard, Core BFF, and dashboard-operator images from Phase 1 artifacts
 
 - ✅ **Manifest application**
-  - Applies: Kustomize overlays (`manifests/odh`)
+  - Renders: The current `manifests/odh` through a CI-only Kind overlay
+  - Adapts: Dashboard deployment images and resources for Kind, and the existing dashboard RBAC binding subjects for the Kind namespace without changing production manifests
   - Tests: CRD installation, ConfigMap generation
+  - Note: Missing OpenShift and Gateway API mappings are expected in Kind
 
 - ✅ **Deployment validation**
   - Waits: Up to 5 minutes for pod to be ready
