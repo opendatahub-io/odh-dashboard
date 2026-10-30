@@ -247,11 +247,13 @@ func k8sServiceHost(baseURL string) (service string, namespace string, ok bool) 
 // but only after their EndpointSlices are checked: a selector alone does not prove
 // the effective endpoints, because a caller who can create EndpointSlices in their
 // namespace can attach a manually managed slice (labelled kubernetes.io/service-name)
-// to a selector-backed Service and point it at another namespace's Pod IP. Every
-// ready endpoint must therefore reference a Pod in the caller's namespace, which is
-// all the EndpointSlice controller itself ever produces (fail closed on lookup
-// errors too). A Forbidden lookup returns an error so the caller learns the missing
-// permission instead of a misleading connectivity failure.
+// to a selector-backed Service and point it at another namespace's Pod IP, and can
+// forge the endpoint's Pod targetRef. Every ready endpoint must therefore reference
+// a running, non-host-network Pod in the caller's namespace whose PodIPs contain the
+// endpoint's addresses, which is all the EndpointSlice controller itself ever
+// produces (fail closed on lookup errors too). A Forbidden lookup returns an error
+// so the caller learns the missing permission instead of a misleading connectivity
+// failure.
 //
 // Known residual risk, deliberately accepted: the connection is not pinned to the
 // validated addresses, so a caller who can mutate Services or EndpointSlices in
@@ -279,12 +281,7 @@ func resolveTrustedHost(
 	svc, err := client.GetService(ctx, identity, svcNamespace, svcName)
 	if err != nil {
 		if apierrors.IsForbidden(err) {
-			return false, &externalmodels.ExternalModelError{
-				Code:       "FORBIDDEN",
-				Message:    fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Service %s/%s, which the caller lacks", svcNamespace, svcName),
-				BaseURL:    baseURL,
-				StatusCode: http.StatusForbidden,
-			}
+			return false, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Service %s/%s, which the caller lacks", svcNamespace, svcName))
 		}
 		logger.Warn("service lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
 		return false, nil
@@ -298,31 +295,61 @@ func resolveTrustedHost(
 	slices, err := client.GetServiceEndpointSlices(ctx, identity, svcNamespace, svcName)
 	if err != nil {
 		if apierrors.IsForbidden(err) {
-			return false, &externalmodels.ExternalModelError{
-				Code:       "FORBIDDEN",
-				Message:    fmt.Sprintf("verifying an in-cluster endpoint requires permission to list EndpointSlices for the Service %s/%s, which the caller lacks", svcNamespace, svcName),
-				BaseURL:    baseURL,
-				StatusCode: http.StatusForbidden,
-			}
+			return false, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to list EndpointSlices for the Service %s/%s, which the caller lacks", svcNamespace, svcName))
 		}
 		logger.Warn("endpoint slice lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
 		return false, nil
 	}
-	// Not-ready endpoints receive no traffic, so only ready endpoints matter. A ready
-	// endpoint without a Pod targetRef in the caller's namespace can only come from a
-	// manually managed EndpointSlice, so it must not receive the SSRF exemption.
+	// Not-ready endpoints receive no traffic, so only ready endpoints matter (a nil
+	// Ready condition is interpreted as ready per the EndpointSlice API). A ready
+	// endpoint is only trusted after fetching its referenced Pod and confirming the
+	// endpoint addresses belong to that Pod: a targetRef is just a name an
+	// EndpointSlice writer can forge, so it must be checked against a running,
+	// non-host-network Pod in the caller's namespace whose PodIPs contain every
+	// endpoint address.
 	for i := range slices {
 		for _, endpoint := range slices[i].Endpoints {
-			if endpoint.Conditions.Ready == nil || !*endpoint.Conditions.Ready {
+			if endpoint.Conditions.Ready != nil && !*endpoint.Conditions.Ready {
 				continue
 			}
 			ref := endpoint.TargetRef
 			if ref == nil || ref.Kind != "Pod" || ref.Namespace != namespace || ref.Name == "" {
 				return false, nil
 			}
+			pod, err := client.GetPod(ctx, identity, svcNamespace, ref.Name)
+			if err != nil {
+				if apierrors.IsForbidden(err) {
+					return false, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Pod %s/%s, which the caller lacks", svcNamespace, ref.Name))
+				}
+				logger.Warn("pod lookup failed during trusted host resolution", "pod", ref.Name, "namespace", svcNamespace, "error", err)
+				return false, nil
+			}
+			if pod.Spec.HostNetwork || pod.Status.Phase != corev1.PodRunning {
+				return false, nil
+			}
+			podIPs := make(map[string]bool, len(pod.Status.PodIPs))
+			for _, podIP := range pod.Status.PodIPs {
+				podIPs[podIP.IP] = true
+			}
+			for _, address := range endpoint.Addresses {
+				if !podIPs[address] {
+					return false, nil
+				}
+			}
 		}
 	}
 	return true, nil
+}
+
+// forbiddenTrustError builds the permission error returned when a caller lacks read
+// access to a resource needed to verify an in-cluster endpoint.
+func forbiddenTrustError(baseURL, message string) *externalmodels.ExternalModelError {
+	return &externalmodels.ExternalModelError{
+		Code:       "FORBIDDEN",
+		Message:    message,
+		BaseURL:    baseURL,
+		StatusCode: http.StatusForbidden,
+	}
 }
 
 // internalHostRootCAs returns the provided CA pool only when the URL targets an internal

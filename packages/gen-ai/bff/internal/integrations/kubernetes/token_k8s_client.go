@@ -848,6 +848,26 @@ func (kc *TokenKubernetesClient) GetServiceEndpointSlices(ctx context.Context, i
 	return sliceList.Items, nil
 }
 
+// GetPod reads a core Pod through the caller's own credentials so callers can verify
+// that an endpoint's Pod reference is real and that its addresses belong to that Pod.
+// It falls back to the client's own credentials for local development when no
+// identity is available.
+func (kc *TokenKubernetesClient) GetPod(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Pod, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	reader, err := kc.callerScopedClient(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	pod := &corev1.Pod{}
+	if err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, pod); err != nil {
+		return nil, fmt.Errorf("failed to get Pod %s/%s: %w", namespace, name, err)
+	}
+	return pod, nil
+}
+
 // ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore
 // after they have been correlated by provider_id from the gen-ai-aa-vector-stores ConfigMap.
 type ValidatedVectorStore struct {

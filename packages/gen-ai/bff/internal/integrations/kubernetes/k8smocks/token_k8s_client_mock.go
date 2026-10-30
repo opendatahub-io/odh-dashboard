@@ -68,6 +68,12 @@ func (m *TokenKubernetesClientMock) GetServiceEndpointSlices(ctx context.Context
 	return m.TokenKubernetesClient.GetServiceEndpointSlices(ctx, nil, namespace, serviceName)
 }
 
+// GetPod reads a Pod from the envtest cluster. The identity is dropped for the same
+// reason as GetService above.
+func (m *TokenKubernetesClientMock) GetPod(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Pod, error) {
+	return m.TokenKubernetesClient.GetPod(ctx, nil, namespace, name)
+}
+
 // GetNamespaces lists namespaces from the envtest cluster
 func (m *TokenKubernetesClientMock) GetNamespaces(ctx context.Context, identity *integrations.RequestIdentity) ([]corev1.Namespace, error) {
 	var nsList corev1.NamespaceList

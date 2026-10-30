@@ -247,6 +247,8 @@ type ConfigurableMockTokenClientFactory struct {
 	ServiceError        error
 	EndpointSlices      []discoveryv1.EndpointSlice
 	EndpointSlicesError error
+	Pod                 *corev1.Pod
+	PodError            error
 }
 
 func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
@@ -262,6 +264,8 @@ func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s
 		ServiceError:        f.ServiceError,
 		EndpointSlices:      f.EndpointSlices,
 		EndpointSlicesError: f.EndpointSlicesError,
+		Pod:                 f.Pod,
+		PodError:            f.PodError,
 	}, nil
 }
 
@@ -287,6 +291,8 @@ type ConfigurableMockKubernetesClient struct {
 	ServiceError        error
 	EndpointSlices      []discoveryv1.EndpointSlice
 	EndpointSlicesError error
+	Pod                 *corev1.Pod
+	PodError            error
 }
 
 func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
@@ -308,6 +314,16 @@ func (c *ConfigurableMockKubernetesClient) GetServiceEndpointSlices(ctx context.
 		return nil, c.EndpointSlicesError
 	}
 	return c.EndpointSlices, nil
+}
+
+func (c *ConfigurableMockKubernetesClient) GetPod(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Pod, error) {
+	if c.PodError != nil {
+		return nil, c.PodError
+	}
+	if c.Pod != nil {
+		return c.Pod, nil
+	}
+	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
 }
 
 func (c *ConfigurableMockKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
