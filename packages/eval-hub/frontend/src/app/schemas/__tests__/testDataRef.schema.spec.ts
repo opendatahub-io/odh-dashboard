@@ -503,4 +503,36 @@ describe('parseTestDataRef', () => {
       repoId: 'o/r',
     });
   });
+
+  it('should split a legacy prerecorded s3 URL into bucket and key', () => {
+    expect(
+      parseTestDataRef({ s3: { key: 's3://eval-data/ragas/data.jsonl', secret_ref: 's' } }),
+    ).toEqual({
+      ...testDataRefDefaultValues,
+      source: 's3',
+      type: 'pre_recorded_data',
+      bucket: 'eval-data',
+      key: 'ragas/data.jsonl',
+      secretRef: 's',
+    });
+  });
+
+  it('should keep a legacy prerecorded key that does not parse as an s3 URL', () => {
+    expect(parseTestDataRef({ s3: { key: 's3://Invalid_Bucket/data.jsonl' } })).toEqual({
+      ...testDataRefDefaultValues,
+      source: 's3',
+      key: 's3://Invalid_Bucket/data.jsonl',
+    });
+  });
+
+  it('should round-trip a legacy prerecorded ref as pre_recorded_data with a split location', () => {
+    expect(
+      serializeTestDataRef(
+        parseTestDataRef({ s3: { key: 's3://eval-data/ragas/data.jsonl', secret_ref: 's' } }),
+      ),
+    ).toEqual({
+      type: 'pre_recorded_data',
+      s3: { bucket: 'eval-data', key: 'ragas/data.jsonl', secret_ref: 's' },
+    });
+  });
 });

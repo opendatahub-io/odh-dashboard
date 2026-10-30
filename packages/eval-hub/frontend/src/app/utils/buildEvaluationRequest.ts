@@ -44,7 +44,10 @@ const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass
  * the bucket and key everywhere, a secret edit rotates the secret everywhere,
  * and untouched dimensions keep each benchmark's own stored value. A stored
  * ref without a bucket is the legacy shape (full s3:// URL in key) and is
- * upgraded to the split bucket/key contract even when no field was edited.
+ * upgraded to the split bucket/key contract from its own stored URL even when
+ * no field was edited, so per-benchmark locations are preserved. The merged
+ * ref always carries type pre_recorded_data — the legacy shape has
+ * no type, and the wire default for an omitted type is data_set.
  */
 const mergePrerecordedRef = (
   stored: TestDataRef,
@@ -53,14 +56,20 @@ const mergePrerecordedRef = (
   secretEdited: boolean,
 ): TestDataRef => {
   const isLegacyRef = !stored.s3?.bucket;
-  if (!locationEdited && !secretEdited && !isLegacyRef) {
+  const legacyLocation = isLegacyRef ? parseS3DatasetUrl(stored.s3?.key ?? '') : undefined;
+  if (!locationEdited && !secretEdited && !legacyLocation) {
     return stored;
   }
   return {
     ...stored,
+    type: 'pre_recorded_data',
     s3: {
       ...stored.s3,
-      ...(locationEdited || isLegacyRef ? { bucket: edited.s3.bucket, key: edited.s3.key } : {}),
+      ...(locationEdited
+        ? { bucket: edited.s3.bucket, key: edited.s3.key }
+        : legacyLocation
+          ? { bucket: legacyLocation.bucket, key: legacyLocation.key }
+          : {}),
       ...(secretEdited ? { secret_ref: edited.s3.secret_ref } : {}),
     },
   };
@@ -191,7 +200,8 @@ const buildEvaluationRequest = ({
   // preserves the other dimension's per-benchmark stored value. Other
   // per-benchmark references (e.g. data_set) are untouched. Legacy refs (no
   // bucket, full s3:// URL in key) are upgraded to the split bucket/key
-  // contract even when unedited, since the S3DataRef contract requires bucket.
+  // contract even when unedited, parsed from their own stored URL so distinct
+  // per-benchmark locations survive the upgrade.
   // eslint-disable-next-line camelcase
   const editedPrerecordedRef = prerecordedDataRef.test_data_ref;
   const hydrationSource = collection?.benchmarks?.find((b) =>

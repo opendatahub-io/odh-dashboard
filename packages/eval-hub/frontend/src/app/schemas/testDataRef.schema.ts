@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import type { TestDataRef, TestDataRefType } from '~/app/types';
+import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 import { S3_BUCKET_PATTERN } from '~/app/utils/validationUtils';
 
 export const TEST_DATA_REF_SOURCES = ['s3', 'pvc', 'git', 'hf'] as const;
@@ -342,12 +343,19 @@ export const parseTestDataRef = (wire: TestDataRef | undefined): TestDataRefForm
   }
   const refType = toFormRefType(wire.type);
   if (wire.s3) {
+    // Legacy prerecorded refs emitted by the old UI carry no bucket and store the
+    // full s3:// URL in key; split it so the form validates and serialization
+    // keeps the pre_recorded_data discriminator.
+    const legacyLocation =
+      isPrerecordedS3TestDataRef(wire) && !wire.s3.bucket
+        ? parseS3DatasetUrl(wire.s3.key ?? '')
+        : undefined;
     return {
       ...values,
       source: 's3',
-      type: refType,
-      bucket: wire.s3.bucket ?? '',
-      key: wire.s3.key ?? '',
+      type: legacyLocation ? 'pre_recorded_data' : refType,
+      bucket: legacyLocation?.bucket ?? wire.s3.bucket ?? '',
+      key: legacyLocation?.key ?? wire.s3.key ?? '',
       secretRef: wire.s3.secret_ref ?? '',
     };
   }

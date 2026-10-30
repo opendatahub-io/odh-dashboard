@@ -167,9 +167,7 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
   };
 
   const hasMetrics = metrics && metrics.length > 0;
-  const hasDescriptionList =
-    hasMetrics || providerName || primaryScore || passCriteria || !!testDataRefSummary;
-  const collapsible = isCollapsible && showHeader && (!!description || !!hasDescriptionList);
+  const collapsible = isCollapsible && showHeader;
 
   return (
     <Flex direction={{ default: 'column' }} gap={{ default: isCompact ? 'gapSm' : 'gapMd' }}>
@@ -255,127 +253,126 @@ const BenchmarkDrawerTileContent: React.FC<BenchmarkDrawerTileContentProps> = ({
             </FlexItem>
           )}
 
-          {hasDescriptionList && (
-            <FlexItem>
-              <DescriptionList isCompact={isCompact} isAutoFit={isCompact}>
-                {hasMetrics && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm style={compactFontStyle}>
-                      Metrics evaluated
-                    </DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <LabelGroup numLabels={metrics.length} isCompact>
-                        {metrics.map((metric) => (
-                          <Label key={metric} isCompact variant="outline">
-                            {getMetricDisplayName(metric)}
-                          </Label>
-                        ))}
-                      </LabelGroup>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
-                {primaryScore && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm style={compactFontStyle}>
-                      Primary scorer metric
-                    </DescriptionListTerm>
-                    <DescriptionListDescription style={compactFontStyle}>
-                      {primaryScore.metric}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
-                {passCriteria && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm style={compactFontStyle}>
-                      Benchmark threshold
-                    </DescriptionListTerm>
-                    <DescriptionListDescription style={compactFontStyle}>
-                      {formatThresholdValue(passCriteria.threshold, primaryScore?.metric)}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
+          {/* The Test data summary is always present (falls back to the None summary), so this list always renders */}
+          <FlexItem>
+            <DescriptionList isCompact={isCompact} isAutoFit={isCompact}>
+              {hasMetrics && (
                 <DescriptionListGroup>
-                  <DescriptionListTerm className={isCompact ? 'pf-v6-u-font-size-sm' : undefined}>
-                    Test data
+                  <DescriptionListTerm style={compactFontStyle}>
+                    Metrics evaluated
                   </DescriptionListTerm>
-                  <DescriptionListDescription data-testid="benchmark-test-data-ref">
-                    <DescriptionList
-                      isCompact={isCompact}
-                      isAutoFit={isCompact}
-                      className="pf-v6-u-pl-sm"
-                    >
-                      <DescriptionListGroup>
-                        <DescriptionListTerm className={testDataDetailClassName}>
-                          Source
-                        </DescriptionListTerm>
-                        <DescriptionListDescription className={testDataDetailClassName}>
-                          {testDataRefSummary.source}
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                      {testDataRefSummary.typeLabel && (
-                        <DescriptionListGroup>
-                          <DescriptionListTerm className={testDataDetailClassName}>
-                            Data type
-                          </DescriptionListTerm>
-                          <DescriptionListDescription className={testDataDetailClassName}>
-                            {testDataRefSummary.typeLabel}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
-                      )}
-                      {testDataRefSummary.details.map((detail) => (
-                        <DescriptionListGroup key={detail.label}>
-                          <DescriptionListTerm className={testDataDetailClassName}>
-                            {detail.label}
-                          </DescriptionListTerm>
-                          <DescriptionListDescription className={testDataDetailClassName}>
-                            {detail.value}
-                          </DescriptionListDescription>
-                        </DescriptionListGroup>
+                  <DescriptionListDescription>
+                    <LabelGroup numLabels={metrics.length} isCompact>
+                      {metrics.map((metric) => (
+                        <Label key={metric} isCompact variant="outline">
+                          {getMetricDisplayName(metric)}
+                        </Label>
                       ))}
-                    </DescriptionList>
+                    </LabelGroup>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-                {providerName && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm style={compactFontStyle}>
-                      Evaluation framework
-                    </DescriptionListTerm>
-                    <DescriptionListDescription style={compactFontStyle}>
-                      {Array.isArray(providerAgent?.recommended_when) &&
-                      providerAgent.recommended_when.length > 0 ? (
-                        <InlineTooltip
-                          text={providerName}
-                          data-testid="benchmark-provider-tooltip"
-                          tooltip={
-                            <div className="evalhub-inline-tooltip__content">
-                              <div className="evalhub-inline-tooltip__header">
-                                <strong>Recommended when:</strong>
-                              </div>
-                              <List>
-                                {providerAgent.recommended_when.map((item) => (
-                                  <ListItem key={item}>{item}</ListItem>
-                                ))}
-                              </List>
+              )}
+              {primaryScore && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm style={compactFontStyle}>
+                    Primary scorer metric
+                  </DescriptionListTerm>
+                  <DescriptionListDescription style={compactFontStyle}>
+                    {primaryScore.metric}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+              {passCriteria && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm style={compactFontStyle}>
+                    Benchmark threshold
+                  </DescriptionListTerm>
+                  <DescriptionListDescription style={compactFontStyle}>
+                    {formatThresholdValue(passCriteria.threshold, primaryScore?.metric)}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+              <DescriptionListGroup>
+                <DescriptionListTerm className={isCompact ? 'pf-v6-u-font-size-sm' : undefined}>
+                  Test data
+                </DescriptionListTerm>
+                <DescriptionListDescription data-testid="benchmark-test-data-ref">
+                  <DescriptionList
+                    isCompact={isCompact}
+                    isAutoFit={isCompact}
+                    className="pf-v6-u-pl-sm"
+                  >
+                    <DescriptionListGroup>
+                      <DescriptionListTerm className={testDataDetailClassName}>
+                        Source
+                      </DescriptionListTerm>
+                      <DescriptionListDescription className={testDataDetailClassName}>
+                        {testDataRefSummary.source}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    {testDataRefSummary.typeLabel && (
+                      <DescriptionListGroup>
+                        <DescriptionListTerm className={testDataDetailClassName}>
+                          Data type
+                        </DescriptionListTerm>
+                        <DescriptionListDescription className={testDataDetailClassName}>
+                          {testDataRefSummary.typeLabel}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    )}
+                    {testDataRefSummary.details.map((detail) => (
+                      <DescriptionListGroup key={detail.label}>
+                        <DescriptionListTerm className={testDataDetailClassName}>
+                          {detail.label}
+                        </DescriptionListTerm>
+                        <DescriptionListDescription className={testDataDetailClassName}>
+                          {detail.value}
+                        </DescriptionListDescription>
+                      </DescriptionListGroup>
+                    ))}
+                  </DescriptionList>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              {providerName && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm style={compactFontStyle}>
+                    Evaluation framework
+                  </DescriptionListTerm>
+                  <DescriptionListDescription style={compactFontStyle}>
+                    {Array.isArray(providerAgent?.recommended_when) &&
+                    providerAgent.recommended_when.length > 0 ? (
+                      <InlineTooltip
+                        text={providerName}
+                        data-testid="benchmark-provider-tooltip"
+                        tooltip={
+                          <div className="evalhub-inline-tooltip__content">
+                            <div className="evalhub-inline-tooltip__header">
+                              <strong>Recommended when:</strong>
                             </div>
-                          }
-                        />
-                      ) : (
-                        providerName
-                      )}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
-                {providerAgent?.target_type && (
-                  <DescriptionListGroup>
-                    <DescriptionListTerm style={compactFontStyle}>Target type</DescriptionListTerm>
-                    <DescriptionListDescription style={compactFontStyle}>
-                      {capitalizeFirst(providerAgent.target_type)}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                )}
-              </DescriptionList>
-            </FlexItem>
-          )}
+                            <List>
+                              {providerAgent.recommended_when.map((item) => (
+                                <ListItem key={item}>{item}</ListItem>
+                              ))}
+                            </List>
+                          </div>
+                        }
+                      />
+                    ) : (
+                      providerName
+                    )}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+              {providerAgent?.target_type && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm style={compactFontStyle}>Target type</DescriptionListTerm>
+                  <DescriptionListDescription style={compactFontStyle}>
+                    {capitalizeFirst(providerAgent.target_type)}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+            </DescriptionList>
+          </FlexItem>
         </>
       )}
     </Flex>

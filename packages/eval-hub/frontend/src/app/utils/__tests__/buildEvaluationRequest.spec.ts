@@ -430,6 +430,79 @@ describe('buildEvaluationRequest', () => {
       });
     });
 
+    it('should upgrade each distinct legacy reference from its own URL on an unchanged reconfiguration', () => {
+      const col = makeCollection({
+        benchmarks: [
+          {
+            id: 'mmlu',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              s3: { key: 's3://results/legacy-a.jsonl', secret_ref: 'shared-secret' },
+            },
+          },
+          {
+            id: 'hellaswag',
+            provider_id: 'lm_harness',
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              s3: { key: 's3://other-results/legacy-b.jsonl', secret_ref: 'shared-secret' },
+            },
+          },
+        ],
+      });
+      // Hydrated from the first legacy key and left untouched by the user.
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/legacy-a.jsonl',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: { bucket: 'results', key: 'legacy-a.jsonl', secret_ref: 'shared-secret' },
+      });
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: { bucket: 'other-results', key: 'legacy-b.jsonl', secret_ref: 'shared-secret' },
+      });
+    });
+
+    it('should upgrade a legacy reference from its own URL after an unchanged split reference', () => {
+      const splitRef: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: { bucket: 'results', key: 'benchmark-a', secret_ref: 'shared-secret' },
+      };
+      const legacyRef: TestDataRef = {
+        type: 'pre_recorded_data',
+        s3: { key: 's3://other-results/legacy-b.jsonl', secret_ref: 'shared-secret' },
+      };
+      const col = makeCollection({
+        benchmarks: [
+          { id: 'mmlu', provider_id: 'lm_harness', test_data_ref: splitRef },
+          { id: 'hellaswag', provider_id: 'lm_harness', test_data_ref: legacyRef },
+        ],
+      });
+      // Hydrated from the first (split) reference and left untouched by the user.
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/benchmark-a',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual(splitRef);
+      expect(result.collection!.benchmarks![1].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: { bucket: 'other-results', key: 'legacy-b.jsonl', secret_ref: 'shared-secret' },
+      });
+    });
+
     it('should upgrade a legacy reference and apply the re-entered secret when the stored ref has none', () => {
       const legacyRef: TestDataRef = {
         type: 'pre_recorded_data',
@@ -453,6 +526,33 @@ describe('buildEvaluationRequest', () => {
         type: 'pre_recorded_data',
         s3: { bucket: 'results', key: 'legacy.jsonl', secret_ref: 'new-secret' },
       });
+    });
+
+    it('should upgrade an untyped legacy reference and stamp pre_recorded_data on an unchanged reconfiguration', () => {
+      // Legacy shape the old UI emitted: no type, no bucket, full s3:// URL in key.
+      const legacyRef: TestDataRef = {
+        s3: { key: 's3://results/legacy.jsonl', secret_ref: 'shared-secret' },
+      };
+      const col = makeCollection({
+        benchmarks: [{ id: 'mmlu', provider_id: 'lm_harness', test_data_ref: legacyRef }],
+      });
+      // Hydrated from the legacy key and left untouched by the user.
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        sourceMode: 'prerecorded',
+        sourceName: 'gpt-4o',
+        datasetUrl: 's3://results/legacy.jsonl',
+        accessToken: 'shared-secret',
+        collection: col,
+      });
+
+      expect(result.collection!.benchmarks![0].test_data_ref).toEqual({
+        type: 'pre_recorded_data',
+        s3: { bucket: 'results', key: 'legacy.jsonl', secret_ref: 'shared-secret' },
+      });
+      // The untyped legacy ref counts as prerecorded, so the endpoint is cleared —
+      // the merged ref must keep prerecorded semantics, not fall back to data_set.
+      expect(result.model.url).toBe('');
     });
 
     it('should rotate only the secret on a secret-only edit', () => {
