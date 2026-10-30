@@ -120,7 +120,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
   it(
     'Create custom endpoint in AI asset endpoints page',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
@@ -173,7 +173,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
   it(
     'Add endpoint to playground and wait for OGX Server to be ready',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
@@ -219,7 +219,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
   it(
     'Verify prompt management — load and use a saved prompt',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@PromptManagement', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@PromptManagement', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground with prompt management enabled');
@@ -279,7 +279,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
   it(
     'Verify RAG — upload document and retrieve relevant content',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground with RAG enabled');
@@ -338,7 +338,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
   it(
     'Verify guardrails lifecycle — user input toggle blocks malicious message',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground with guardrails enabled');
@@ -394,7 +394,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
   it(
     'Verify endpoint deletion and resource cleanup',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate back to AI Assets to delete the endpoint');
