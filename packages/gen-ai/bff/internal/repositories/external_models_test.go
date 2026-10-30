@@ -275,6 +275,23 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantAddresses: []string{"127.0.0.1:9443"},
 		},
 		{
+			name:     "Service URL on port 80 dials the endpoint on targetPort 8080",
+			baseURL:  "http://my-model.my-ns.svc.cluster.local:80/v1",
+			want:     true,
+			wantName: "my-model",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+				Spec: corev1.ServiceSpec{
+					Type:     corev1.ServiceTypeClusterIP,
+					Selector: map[string]string{"app": "my-model"},
+					Ports:    []corev1.ServicePort{{Name: "http", Port: 80, TargetPort: intstr.FromInt32(8080)}},
+				},
+			},
+			slices:        []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+			pod:           runningPod("my-ns", "127.0.0.1"),
+			wantAddresses: []string{"127.0.0.1:8080"},
+		},
+		{
 			name:     "named targetPort is resolved from the EndpointSlice",
 			want:     true,
 			wantName: "my-model",
