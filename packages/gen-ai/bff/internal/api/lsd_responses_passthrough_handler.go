@@ -9,6 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/openai/openai-go/v2/responses"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
 
 // LlamaStackPassthroughResponseHandler handles POST /api/v1/lsd/responses/passthrough
@@ -91,7 +92,8 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 		CustomErrorHandler: func(event responses.ResponseStreamEventUnion) (errorJSON []byte, shouldTerminate bool) {
 			if failedErr := extractResponseFailedError(event); failedErr != "" {
 				logger.Error("OGX upstream returned response.failed", "error", failedErr)
-				recordSpanError(ctx, "server_error", "ogx")
+				errorCode := string(event.Response.Error.Code)
+				recordSpanError(ctx, errorCode, llamastack.ResolveComponent(errorCode))
 				errorData := map[string]interface{}{
 					"error": map[string]interface{}{
 						"code":    "server_error",

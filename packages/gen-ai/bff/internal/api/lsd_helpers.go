@@ -51,6 +51,9 @@ func recordSpanError(ctx context.Context, code, component string) {
 	}
 
 	category, description := "upstream_failure", "Upstream request failed."
+	// When adding OGXErr* codes in llamastack/errors.go, review this category
+	// mapping as well as ResolveComponent, and note the source component alone does not
+	// distinguish invalid input from upstream failures.
 	switch code {
 	case llamastack.ErrCodeInvalidRequest, llamastack.OGXErrInvalidPrompt, "400",
 		llamastack.OGXErrInvalidImage, llamastack.OGXErrInvalidImageFormat,

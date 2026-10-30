@@ -171,6 +171,58 @@ func TestResponseErrorSpanMetadata(t *testing.T) {
 	}
 }
 
+func TestPassthroughFailureSpanMetadata(t *testing.T) {
+	const sensitiveMessage = "api_key=test-secret-sentinel prompt=private-prompt-sentinel"
+	for _, tc := range []struct {
+		name      string
+		code      responses.ResponseErrorCode
+		category  string
+		component string
+	}{
+		{"invalid prompt", llamastack.OGXErrInvalidPrompt, "invalid_request", llamastack.ComponentModel},
+		{"invalid image format", llamastack.OGXErrInvalidImageFormat, "invalid_request", llamastack.ComponentModel},
+		{"vector store timeout", llamastack.OGXErrVectorStoreTimeout, "upstream_failure", llamastack.ComponentRAG},
+		{"untrusted code", sensitiveMessage, "upstream_failure", llamastack.ComponentOGX},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			exporter := tracetest.NewInMemoryExporter()
+			tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+			t.Cleanup(func() { require.NoError(t, tp.Shutdown(context.Background())) })
+			ctx, span := tp.Tracer("test").Start(context.Background(), "request")
+			ctx = context.WithValue(ctx, constants.LlamaStackClientKey, &errorTracePassthroughClient{
+				stream: lsmocks.NewMockStreamIterator([]responses.ResponseStreamEventUnion{{
+					Type: "response.failed",
+					Response: responses.Response{Error: responses.ResponseError{
+						Code: tc.code, Message: sensitiveMessage,
+					}},
+				}}),
+			})
+			req := httptest.NewRequest(http.MethodPost, "/responses/passthrough", strings.NewReader(`{"model":"test","input":"hello"}`)).WithContext(ctx)
+			rr := httptest.NewRecorder()
+			app := &App{logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+			app.LlamaStackPassthroughResponseHandler(rr, req, nil)
+			span.End()
+
+			assert.Equal(t, http.StatusOK, rr.Code)
+			payload := strings.TrimPrefix(strings.SplitN(rr.Body.String(), "\n\n", 2)[0], "data: ")
+			data := assertErrorTraceID(t, []byte(payload), ctx)
+			assert.Equal(t, map[string]interface{}{
+				"code": "server_error", "message": sensitiveMessage,
+			}, data["error"], "client error payload remains unchanged")
+
+			spans := exporter.GetSpans()
+			require.Len(t, spans, 1)
+			assert.ElementsMatch(t, []attribute.KeyValue{
+				attribute.String("error.type", tc.category),
+				attribute.String("error.component", tc.component),
+			}, spans[0].Attributes)
+			assertSpanErrorEvent(t, spans[0].Events, tc.category)
+			assert.Equal(t, codes.Error, spans[0].Status.Code)
+			assert.Equal(t, tc.category, spans[0].Status.Description)
+		})
+	}
+}
+
 func TestRecordSpanErrorCategories(t *testing.T) {
 	for _, tc := range []struct {
 		code     string
