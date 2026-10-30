@@ -19,6 +19,12 @@ type DataRegistryDeleteTaskArgs = {
   path: string;
 };
 
+type DataRegistryHttpRequest = (
+  requestUrl: URL,
+  options: http.RequestOptions,
+  callback: (response: http.IncomingMessage) => void,
+) => http.ClientRequest;
+
 type CypressTaskConfig = {
   baseUrl?: string | null;
   env: Record<string, unknown>;
@@ -89,12 +95,14 @@ const getOpenShiftToken = (): Promise<string | { tokenError: string }> =>
     });
   });
 
-const requestDataRegistryDelete = (
+export const requestDataRegistryDelete = (
   requestUrl: URL,
   token: string,
+  requestFunction?: DataRegistryHttpRequest,
 ): Promise<DataRegistryDeleteRequestResult> =>
   new Promise((resolve) => {
     const requestModule = requestUrl.protocol === 'https:' ? https : http;
+    const sendRequest = requestFunction ?? (requestModule.request as DataRegistryHttpRequest);
     let settled = false;
     const finish = (result: DataRegistryDeleteRequestResult): void => {
       if (!settled) {
@@ -110,7 +118,7 @@ const requestDataRegistryDelete = (
       dataRegistryDeleteTimeoutMs,
     );
     try {
-      request = requestModule.request(
+      request = sendRequest(
         requestUrl,
         {
           method: 'DELETE',
@@ -157,8 +165,13 @@ const requestDataRegistryDelete = (
 /**
  * Creates a Node-side task for deleting Data Registry resources without exposing the token to app code.
  */
-const createDataRegistryDeleteTask =
-  (config: CypressTaskConfig) =>
+type DataRegistryDeleteTaskDependencies = {
+  getOpenShiftToken?: typeof getOpenShiftToken;
+  requestDataRegistryDelete?: typeof requestDataRegistryDelete;
+};
+
+export const createDataRegistryDeleteTask =
+  (config: CypressTaskConfig, dependencies: DataRegistryDeleteTaskDependencies = {}) =>
   (args: unknown): Promise<DataRegistryDeleteRequestResult> => {
     if (!isDataRegistryDeleteTaskArgs(args)) {
       return Promise.resolve({
@@ -171,11 +184,14 @@ const createDataRegistryDeleteTask =
       return Promise.resolve(requestUrl);
     }
 
-    return getOpenShiftToken().then((tokenResult) => {
+    const getToken = dependencies.getOpenShiftToken ?? getOpenShiftToken;
+    const sendRequest = dependencies.requestDataRegistryDelete ?? requestDataRegistryDelete;
+
+    return getToken().then((tokenResult) => {
       if (typeof tokenResult !== 'string') {
         return tokenResult;
       }
-      return requestDataRegistryDelete(requestUrl, tokenResult);
+      return sendRequest(requestUrl, tokenResult);
     });
   };
 
