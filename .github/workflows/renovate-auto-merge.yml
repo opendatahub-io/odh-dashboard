@@ -1,0 +1,283 @@
+---
+# yamllint disable rule:line-length
+name: Renovate Auto-merge
+
+# Applies Tide's merge labels (lgtm + approved) to Renovate PRs whose update
+# is low-risk and attributable to the bot. Tide then merges after required CI
+# passes.
+#
+# Trust chain, all of which must hold:
+#   1. PR author is odh-dashboard-agent[bot] (the app that runs renovate.yml).
+#   2. Exactly one renovate/<tier> label, added by that same app — a label
+#      added by anyone else grants nothing.
+#   3. Every commit is platform-verified (signed by GitHub, which is what
+#      platformCommit produces) and attributed to that app. Author and
+#      committer logins are metadata that anyone able to push to the branch can
+#      forge, so the signature is what authenticates the content. An unsigned
+#      commit fails closed.
+#   4. The tier is eligible (npm-patch, npm-minor, go-patch, go-minor).
+#   5. .github/scripts/renovate-automerge-check.js, run from the BASE branch
+#      (never from the PR), re-derives the update class from the diff and
+#      agrees with the tier.
+# The PR head is re-read immediately before labeling, so a push during
+# validation labels nothing. A crash or an ineligible result removes labels
+# this workflow added; a human's /lgtm or /approve is never touched.
+# Re-runs on every push, and again when Prow strips lgtm after a push (Prow
+# can do that after this workflow already re-labeled, which is how Dependabot
+# PRs got stuck, e.g. #10320). A manual `/lgtm cancel` with no push since our
+# labeling is respected. To stop an eligible PR, use `/hold`.
+# If a push makes the PR ineligible, labels THIS workflow added are removed;
+# labels a human added are never touched.
+#
+# pull_request_target is safe here: PR content is only read as git objects,
+# never checked out into the workspace or executed.
+
+on:
+  # Needed for a write token on bot PRs. Safe: PR content is never checked
+  # out or executed (see header), same as dependabot-auto-merge.yml.
+  pull_request_target:  # zizmor: ignore[dangerous-triggers]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+# Least privilege: the write token is scoped to the job below, not the
+# workflow, so a future job cannot inherit it by accident.
+permissions: {}
+
+env:
+  # Upstream is pinned to the app; a fork rehearsing with a personal token
+  # sets the RENOVATE_APP_LOGIN repo variable to that token's login.
+  RENOVATE_APP_LOGIN: ${{ github.repository == 'opendatahub-io/odh-dashboard' && 'odh-dashboard-agent[bot]' || vars.RENOVATE_APP_LOGIN || 'odh-dashboard-agent[bot]' }}
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read        # checkout of the base SHA
+      pull-requests: write  # add/remove lgtm and approved
+    # Job-level, without cancel-in-progress: Renovate fires opened + several
+    # labeled events at once. Workflow-level cancellation let an irrelevant
+    # event (e.g. labeled:dependencies, skipped by `if`) cancel the run for
+    # the renovate/<tier> label, so nothing was evaluated (fork rehearsal).
+    # Skipped jobs never join this group, and runs are idempotent.
+    concurrency:
+      group: renovate-auto-merge-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    if: >-
+      github.event.pull_request.user.login == (github.repository == 'opendatahub-io/odh-dashboard' && 'odh-dashboard-agent[bot]' || vars.RENOVATE_APP_LOGIN || 'odh-dashboard-agent[bot]') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'renovate/') &&
+      (github.event.action != 'labeled' || startsWith(github.event.label.name, 'renovate/')) &&
+      (github.event.action != 'unlabeled' ||
+        startsWith(github.event.label.name, 'renovate/') ||
+        github.event.label.name == 'lgtm')
+    steps:
+      - name: Decide whether an lgtm removal needs action
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ACTION: ${{ github.event.action }}
+          LABEL: ${{ github.event.label.name }}
+        run: |
+          set -euo pipefail
+          if [ "$ACTION" != "unlabeled" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Removing a tier label revokes eligibility: re-evaluate and withdraw
+          # whatever this workflow added, even if no push happened.
+          if [[ "$LABEL" == renovate/* ]]; then
+            echo "tier label $LABEL removed — re-evaluating eligibility"
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Attribute the removal instead of comparing label and push times. A
+          # delayed Prow removal can land AFTER this workflow re-applied lgtm,
+          # which a timestamp comparison reads as a human cancel. But the actor
+          # alone is not enough either: Prow also removes lgtm as a bot when a
+          # maintainer runs `/lgtm cancel`.
+          #   1. A `/lgtm cancel` newer than the last push is a deliberate
+          #      withdrawal for the current revision: respect it.
+          #   2. Otherwise a bot removal is Prow invalidating a stale review
+          #      after a push: revalidate the current head.
+          #   3. Anything else, including our own cleanup: respect it.
+          # `gh api --paginate` emits one array per page, so flatten the pages
+          # before selecting; a bare `jq -s '.'` would leave an array of arrays
+          # and every selector below would match nothing.
+          timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s 'add // []')
+          last_push=$(jq -r '[.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""' <<<"$timeline")
+          last_cancel=$(jq -r '[.[] | select(.event == "commented" and ((.body // "") | test("/lgtm[[:space:]]+cancel"))) | .created_at] | max // ""' <<<"$timeline")
+          remover=$(jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""' <<<"$timeline")
+          if [ -n "$last_cancel" ] && [[ "$last_cancel" > "$last_push" ]]; then
+            echo "lgtm cancelled by command after the last push, respecting it"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$remover" in
+            "github-actions[bot]")
+              echo "lgtm removed by this workflow, respecting it"
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *"[bot]")
+              echo "lgtm removed by $remover (stale review), revalidating the current head"
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "lgtm removed by '${remover:-unknown}', respecting it"
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Find tier label and who added it
+        id: tier
+        if: steps.gate.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # Current renovate/* labels with the actor that most recently added each.
+          labels=$(gh api "repos/$REPO/issues/$PR_NUMBER/labels" --jq '[.[].name | select(startswith("renovate/"))]')
+          count=$(jq 'length' <<<"$labels")
+          if [ "$count" -ne 1 ]; then
+            echo "Not eligible: expected exactly one renovate/<tier> label, found $count: $labels"
+            echo "tier=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          label=$(jq -r '.[0]' <<<"$labels")
+          # Pass the label as a jq variable. Interpolating it into the filter
+          # would let a label name containing quotes rewrite the program.
+          actor=$(gh api "repos/$REPO/issues/$PR_NUMBER/events" --paginate \
+            | jq -r --arg l "$label" '.[] | select(.event == "labeled" and .label.name == $l) | .actor.login' \
+            | tail -n 1)
+          if [ "$actor" != "$RENOVATE_APP_LOGIN" ]; then
+            echo "Not eligible: $label was added by '$actor', not $RENOVATE_APP_LOGIN"
+            echo "tier=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Tier label $label added by $actor"
+          echo "tier=${label#renovate/}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify commit provenance
+        id: provenance
+        if: steps.tier.outputs.tier != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          APP_LOGIN: ${{ env.RENOVATE_APP_LOGIN }}
+        run: |
+          set -euo pipefail
+          # Provenance is what lets the diff checker treat its input as bot
+          # output. Three things must hold for EVERY commit:
+          #   1. GitHub verified a signature. platformCommit makes GitHub the
+          #      signer, so this cannot be produced from an unrelated key.
+          #   2. The author is the app. Metadata, forgeable on its own.
+          #   3. The committer is the app or GitHub's `web-flow`. This is what
+          #      stops a forged app author combined with a personal signature.
+          # Anything else fails closed and the PR is left for a human.
+          rows=$(gh api "repos/$REPO/pulls/$PR_NUMBER/commits" --paginate \
+            --jq '.[] | [(.author.login // ""), (.committer.login // ""), ((.commit.verification.verified // false) | tostring), .sha] | @tsv')
+          if [ -z "$rows" ]; then
+            echo "Not eligible: no commits returned for the PR"
+            echo "provenance=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # All three must hold. A valid signature alone proves only that SOME
+          # key signed the commit, so `author` (forgeable) is paired with a
+          # committer allowlist: platformCommit makes GitHub's `web-flow` the
+          # committer. That rejects author=app with an unrelated signer.
+          foreign=$(printf '%s\n' "$rows" | awk -F'\t' -v app="$APP_LOGIN" \
+            'NF && ($3 != "true" || $1 != app || ($2 != app && $2 != "web-flow")) {print $4}')
+          if [ -n "$foreign" ]; then
+            echo "Not eligible: commits not GitHub-verified and authored by $APP_LOGIN:"
+            echo "$foreign"
+            echo "provenance=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "All commits are GitHub-verified and authored by $APP_LOGIN"
+            echo "provenance=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout base branch (trusted script only)
+        if: steps.tier.outputs.tier != '' && steps.provenance.outputs.provenance == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate diff against tier
+        id: check
+        if: steps.tier.outputs.tier != '' && steps.provenance.outputs.provenance == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TIER: ${{ steps.tier.outputs.tier }}
+        run: |
+          set -euo pipefail
+          # node and yq are preinstalled on GitHub-hosted Ubuntu runners; fail
+          # loudly rather than silently refusing every PR if that changes.
+          node --version && yq --version
+          # Fetch the PR head as objects only; the workspace stays on base.
+          git fetch --no-tags origin "+refs/pull/$PR_NUMBER/head:refs/remotes/pr/head"
+          test "$(git rev-parse refs/remotes/pr/head)" = "$HEAD_SHA"
+          result=$(node .github/scripts/renovate-automerge-check.js "$BASE_SHA" "$HEAD_SHA" "$TIER")
+          echo "$result"
+          echo "$result" | tail -n 1 >> "$GITHUB_OUTPUT"
+
+      - name: Re-check head before labeling
+        id: head
+        if: steps.tier.outputs.tier != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Validation and labeling are not atomic: a push in between would
+          # label a head this run never saw. Defer to the run for the new head
+          # instead of adding or removing anything.
+          live=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq .head.sha)
+          if [ "$live" != "$HEAD_SHA" ]; then
+            echo "::warning::PR head moved ($HEAD_SHA -> $live); deferring to the run for the new head"
+            echo "moved=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "moved=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply or remove merge labels
+        # `!cancelled()` so a crash in validation cannot leave stale
+        # lgtm/approved behind: an empty ELIGIBLE already means "not eligible".
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          ELIGIBLE: ${{ steps.check.outputs.eligible }}
+          MOVED: ${{ steps.head.outputs.moved }}
+          TIER: ${{ steps.tier.outputs.tier }}
+        run: |
+          set -euo pipefail
+          if [ "$MOVED" = "true" ]; then
+            echo "Head moved during validation — leaving labels for the new head's run"
+            exit 0
+          fi
+          if [ "$ELIGIBLE" = "true" ]; then
+            gh pr edit "$PR_URL" --add-label "lgtm,approved"
+            echo "### ✅ Auto-merge labels applied (tier: $TIER)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Remove merge labels only where this workflow was the last to
+            # add them; a human's /lgtm or /approve stays.
+            for l in lgtm approved; do
+              by=$(gh api "repos/$REPO/issues/$PR_NUMBER/events" --paginate \
+                | jq -r --arg l "$l" '.[] | select(.event == "labeled" and .label.name == $l) | .actor.login' \
+                | tail -n 1)
+              if [ "$by" = "github-actions[bot]" ]; then
+                gh pr edit "$PR_URL" --remove-label "$l" 2>/dev/null || true
+              fi
+            done
+            echo "### ⏭️ Not auto-merged (tier: ${TIER:-none}) — needs human /lgtm + /approve" >> "$GITHUB_STEP_SUMMARY"
+          fi
