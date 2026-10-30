@@ -71,12 +71,22 @@ rules:
       - tokenreviews
   # Read the cluster-wide TLS security profile (apiservers.config.openshift.io/cluster)
   # so the notebooks BFF can enforce it on its HTTPS listener and reload on change.
-  # list/watch must omit resourceNames to be granted; apiservers is a cluster singleton.
+  # Keep get scoped to the singleton: the dashboard-operator applies this role and can
+  # only grant what it holds (config/rbac/role.yaml), so an unscoped get is rejected as
+  # privilege escalation. Unlike the polling BFFs, the notebooks backend watches the
+  # profile through an informer, which needs list/watch; those must omit resourceNames.
   - apiGroups:
       - config.openshift.io
-    verbs:
-      - get
-      - list
-      - watch
     resources:
       - apiservers
+    resourceNames:
+      - cluster
+    verbs:
+      - get
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - apiservers
+    verbs:
+      - list
+      - watch
