@@ -369,9 +369,10 @@ func resolveTrustedHost(
 		slice := &slices[i]
 		sliceBackendPort := backendPort
 		if sliceBackendPort == "" {
-			// Named targetPort: resolve it against this slice's ports.
+			// Named targetPort: resolve it against this slice's ports, whose names
+			// correspond to Service port names.
 			for _, p := range slice.Ports {
-				if p.Port == nil || p.Name == nil || (*p.Name != svcPort.Name && *p.Name != svcPort.TargetPort.String()) {
+				if p.Port == nil || p.Name == nil || *p.Name != svcPort.Name {
 					continue
 				}
 				sliceBackendPort = strconv.Itoa(int(*p.Port))
