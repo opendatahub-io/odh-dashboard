@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"reflect"
 	"strings"
@@ -1185,6 +1186,85 @@ func TestCreateIndexingRun(t *testing.T) {
 		}
 		if created {
 			t.Error("CreatePipelineRun should not be called")
+		}
+	})
+
+	t.Run("ignores a null graph_extraction alias beside a canonical configuration", func(t *testing.T) {
+		// Map iteration order decides which of the two names writes last, so
+		// repeat the request: the canonical configuration must survive every
+		// iteration, never the null alias.
+		setting := map[string]any{"mode": "constrained"}
+		for i := 0; i < 20; i++ {
+			var gotParameters map[string]any
+			mock := &mockPipelinesService{
+				discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+					return map[string]*pipelines.DiscoveredPipeline{
+						constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+					}, nil
+				},
+				getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+					return []string{"embedding_model_id", "graph_extraction_config"}, nil
+				},
+				createPipelineRunFn: func(_ context.Context, _ string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+					gotParameters = input.RuntimeConfig.Parameters
+					return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
+				},
+			}
+			repo := NewPipelinesRepository(slog.New(slog.NewTextHandler(io.Discard, nil)), mock, PipelinesRepositoryConfig{
+				IndexingPipelineName: "documents-indexing-pipeline",
+			})
+
+			if _, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+				DisplayName: "index-run",
+				Parameters: map[string]any{
+					"embedding_model_id":      "embed-model",
+					"graph_extraction":        nil,
+					"graph_extraction_config": setting,
+				},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if got, ok := gotParameters["graph_extraction_config"].(map[string]any); !ok || !reflect.DeepEqual(got, setting) {
+				t.Fatalf("iteration %d: graph_extraction_config = %v, want the canonical configuration (never null)", i, gotParameters["graph_extraction_config"])
+			}
+		}
+	})
+
+	t.Run("ignores a null canonical configuration beside a graph_extraction alias", func(t *testing.T) {
+		setting := map[string]any{"mode": "constrained"}
+		for i := 0; i < 20; i++ {
+			var gotParameters map[string]any
+			mock := &mockPipelinesService{
+				discoverNamedPipelinesFn: func(context.Context, string, string, map[string]string) (map[string]*pipelines.DiscoveredPipeline, error) {
+					return map[string]*pipelines.DiscoveredPipeline{
+						constants.PipelineTypeIndexing: {PipelineID: "idx-pid", PipelineVersionID: "idx-vid"},
+					}, nil
+				},
+				getPipelineInputParametersFn: func(context.Context, string, string, string) ([]string, error) {
+					return []string{"embedding_model_id", "graph_extraction_config"}, nil
+				},
+				createPipelineRunFn: func(_ context.Context, _ string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
+					gotParameters = input.RuntimeConfig.Parameters
+					return &pipelines.PipelineRun{RunID: "idx-run", DisplayName: input.DisplayName, State: "PENDING"}, nil
+				},
+			}
+			repo := NewPipelinesRepository(slog.New(slog.NewTextHandler(io.Discard, nil)), mock, PipelinesRepositoryConfig{
+				IndexingPipelineName: "documents-indexing-pipeline",
+			})
+
+			if _, err := repo.CreateIndexingRun(context.Background(), "ns", models.CreateIndexingPipelineRunRequest{
+				DisplayName: "index-run",
+				Parameters: map[string]any{
+					"embedding_model_id":      "embed-model",
+					"graph_extraction":        setting,
+					"graph_extraction_config": nil,
+				},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if got, ok := gotParameters["graph_extraction_config"].(map[string]any); !ok || !reflect.DeepEqual(got, setting) {
+				t.Fatalf("iteration %d: graph_extraction_config = %v, want the alias value forwarded under the canonical name (never null)", i, gotParameters["graph_extraction_config"])
+			}
 		}
 	})
 

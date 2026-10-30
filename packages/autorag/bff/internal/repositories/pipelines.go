@@ -276,6 +276,13 @@ func (r *PipelinesRepository) CreateIndexingRun(ctx context.Context, namespace s
 	filteredParameters := make(map[string]any, len(req.Parameters))
 	var droppedNames []string
 	for name, value := range req.Parameters {
+		// Null graph-extraction entries are treated as absent by validation;
+		// skipping them here keeps a null value under either name from
+		// overwriting the other name's forwarded configuration — both names
+		// write to the same canonical destination key.
+		if value == nil && (name == graphExtractionConfigParam || name == graphExtractionSettingName) {
+			continue
+		}
 		if _, allowed := allowedParameters[name]; allowed {
 			filteredParameters[name] = value
 			continue
