@@ -27,6 +27,8 @@ const testConfig: TestConfig | undefined = env.CY_TEST_CONFIG
 export const BASE_URL = env.CYPRESS_E2E_PROXY
   ? `http://localhost:${env.PROXY_PORT || '4040'}`
   : testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
+const ODH_DASHBOARD_CANONICAL_URL =
+  testConfig?.ODH_DASHBOARD_CANONICAL_URL || env.ODH_DASHBOARD_CANONICAL_URL;
 
 const LDAP_CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
   AUTH_TYPE: env.TEST_USER_3_AUTH_TYPE || '',
@@ -120,6 +122,7 @@ export const cypressEnv = {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CLUSTER_ADMIN_USER,
   TEST_USER: LDAP_ADMIN_USER,
+  ODH_DASHBOARD_CANONICAL_URL,
   AWS_PIPELINES,
   AWS_CLI_IMAGE,
   APPLICATIONS_NAMESPACE,

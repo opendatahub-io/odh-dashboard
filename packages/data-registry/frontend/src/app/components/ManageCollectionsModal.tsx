@@ -328,7 +328,7 @@ const ManageCollectionsModal: React.FC<ManageCollectionsModalProps> = ({
                 </Tr>
               ) : null}
               {filteredCollections.map((collection) => (
-                <Tr key={collection.name}>
+                <Tr key={collection.name} data-testid="collection-row">
                   <Td dataLabel="Name">
                     <Link
                       to={collectionDetailUrl(project, collection.name)}
