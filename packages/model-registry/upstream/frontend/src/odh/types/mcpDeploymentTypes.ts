@@ -17,6 +17,7 @@ export type MCPEnvVar = {
 
 export type MCPStorageSource = {
   type: string;
+  emptyDir?: Record<string, unknown>;
   configMap?: { name: string };
   secret?: { secretName: string };
 };
@@ -129,7 +130,30 @@ export type McpDeploymentCreateRequest = {
   registryVersion?: string;
   image: string;
   yaml?: string;
+  prerequisites?: McpDeploymentPrerequisite[];
+  gatewayRegistration?: McpGatewayRegistration;
 };
+
+export type McpGatewayRegistration = {
+  category?: string[];
+  hint?: string;
+  prefix?: string;
+  path?: string;
+  tags?: string[];
+};
+
+/** Catalog-declared, non-secret resources that the guided installer may create. */
+export type McpDeploymentPrerequisite =
+  | {
+      type: 'ServiceAccount';
+      name: string;
+      clusterRole?: 'view';
+    }
+  | {
+      type: 'ConfigMap';
+      name: string;
+      data?: Record<string, string>;
+    };
 
 export type McpDeploymentUpdateRequest = {
   displayName?: string;
@@ -175,4 +199,8 @@ export type McpServerDeployReadiness = {
   /** Set only when `deployable` is false. */
   reason?: McpDeployReadinessReason;
   message?: string;
+  /** Platform support lane for the MCP workflow. */
+  supportLevel?: 'production' | 'technologyPreview' | 'developerPreview';
+  /** Explanation of the support lane shown in the installer. */
+  supportMessage?: string;
 };
