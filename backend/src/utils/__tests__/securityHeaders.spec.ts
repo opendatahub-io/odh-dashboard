@@ -71,6 +71,7 @@ describe('applySecurityHeaders', () => {
     expect(headers['cross-origin-opener-policy']).toBe(CROSS_ORIGIN_OPENER_POLICY);
     expect(headers['x-frame-options']).toBe(X_FRAME_OPTIONS);
     expect(headers['x-dns-prefetch-control']).toBe(X_DNS_PREFETCH_CONTROL);
+    expect(headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains');
     expect(headers['referrer-policy']).toBe(REFERRER_POLICY);
   });
 
