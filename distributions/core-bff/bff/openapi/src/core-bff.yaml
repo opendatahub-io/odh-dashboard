@@ -71,34 +71,78 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/UserResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
       operationId: getUser
       summary: Get current user
 
   /api/v1/namespaces:
     summary: Accessible namespaces
     description: >-
-      Returns the list of Kubernetes namespaces accessible to the authenticated user.
-      Requires authentication.
+      Lists namespaces using the authenticated caller's Kubernetes credentials.
+      A user without list permission receives 403; an empty successful list returns data: [].
     get:
       tags:
         - Namespaces
       responses:
         '200':
           $ref: '#/components/responses/NamespacesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
+      operationId: getNamespaces
+      summary: List accessible namespaces
+
+  /api/v1/namespaces/{name}:
+    get:
+      tags:
+        - Namespaces
+      operationId: getNamespaceByName
+      summary: Look up one namespace by its exact Kubernetes name
+      description: >-
+        Read-only lookup using the authenticated caller's Kubernetes credentials.
+        A cluster-scoped SelfSubjectAccessReview for get on namespaces/<name> is
+        performed before reading the Namespace. Does not require list permission.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: DNS-1123 Namespace resource name
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespaceResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      operationId: getNamespaces
-      summary: List accessible namespaces
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   # =============================================================================
   # KUBERNETES API PROXY
@@ -255,6 +299,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     patch:
       tags:
         - Config
@@ -280,6 +328,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/components:
     get:
@@ -302,6 +354,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/components/remove:
     get:
@@ -333,6 +389,10 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/status/{namespace}/allowedUsers:
     get:
@@ -367,6 +427,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/status:
     get:
@@ -384,6 +448,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/operator-subscription-status:
     get:
@@ -406,6 +474,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/dashboardConfig/{namespace}/{name}:
     parameters:
@@ -439,6 +511,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     patch:
       tags:
         - DashboardConfig
@@ -475,6 +551,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/cluster-settings:
     get:
@@ -495,6 +575,10 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     put:
       tags:
         - ClusterSettings
@@ -523,6 +607,10 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   # =============================================================================
   # CONNECTION TYPE ENDPOINTS
@@ -535,7 +623,8 @@ paths:
       against the target data source, and returns success or a specific
       actionable error message. Does not persist or modify any data.
       Worst-case response time is 15 seconds (5s queue wait + 10s probe).
-      Returns 503 PROBE_BUSY if the queue is full.
+      Returns 503 PROBE_BUSY if the queue is full, or SERVICE_UNAVAILABLE if
+      Kubernetes cannot validate the caller's identity.
     post:
       tags:
         - Connections
@@ -574,10 +663,10 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '503':
-          description: Probe queue full — too many concurrent connection tests.
+          description: Probe queue full, or Kubernetes API unavailable during authentication.
           headers:
             Retry-After:
-              description: Suggested wait time in seconds before retrying.
+              description: Suggested wait in seconds when the probe queue is full (PROBE_BUSY only).
               schema:
                 type: integer
                 example: 5
@@ -585,12 +674,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  code: 'PROBE_BUSY'
-                  message: 'Connection test queue is full, please retry later'
+              examples:
+                probeBusy:
+                  summary: Probe queue full (includes Retry-After header)
+                  value:
+                    error:
+                      code: 'PROBE_BUSY'
+                      message: 'Connection test queue is full, please retry later'
+                kubernetesUnavailable:
+                  summary: Kubernetes API unavailable during authentication
+                  value:
+                    error:
+                      code: 'SERVICE_UNAVAILABLE'
+                      message: 'the Kubernetes API is temporarily unavailable'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/connection-types:
     get:
@@ -606,6 +706,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     post:
       tags:
         - ConnectionTypes
@@ -631,6 +735,10 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/connection-types/{name}:
     parameters:
@@ -657,6 +765,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     put:
       tags:
         - ConnectionTypes
@@ -682,6 +794,10 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     patch:
       tags:
         - ConnectionTypes
@@ -718,6 +834,10 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     delete:
       tags:
         - ConnectionTypes
@@ -738,6 +858,10 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   # =============================================================================
   # MODEL SERVING ENDPOINTS
@@ -785,6 +909,10 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   /api/nim-serving/{nimResource}:
     get:
@@ -1083,6 +1211,10 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   # =============================================================================
   # NIM INTEGRATION ENDPOINTS (OpenShift-only)
@@ -1148,6 +1280,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     delete:
       tags:
         - NIM Integration
@@ -1171,6 +1307,10 @@ paths:
           $ref: '#/components/responses/BFFNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   # =============================================================================
   # NON-HTTP SURFACES
@@ -1316,6 +1456,9 @@ components:
       type: object
       required:
         - name
+        - displayName
+        - phase
+        - isAiProject
       properties:
         name:
           type: string
@@ -1323,8 +1466,21 @@ components:
           description: 'Kubernetes namespace name'
         displayName:
           type: string
-          example: 'Open Data Hub'
-          description: 'Human-readable namespace display name'
+          description: 'openshift.io/display-name annotation, falling back to the namespace name'
+        phase:
+          type: string
+          description: 'Kubernetes Namespace status.phase (empty when not reported)'
+        isAiProject:
+          type: boolean
+          description: 'True only when the opendatahub.io/dashboard label is exactly true'
+
+    NamespaceEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Namespace'
 
     NamespacesEnvelope:
       type: object
@@ -1687,8 +1843,47 @@ components:
             data:
               - name: 'opendatahub'
                 displayName: 'Open Data Hub'
+                phase: 'Active'
+                isAiProject: true
               - name: 'my-project'
-                displayName: 'My Project'
+                displayName: 'my-project'
+                phase: 'Active'
+                isAiProject: false
+
+    NamespaceResponse:
+      description: Namespace returned by exact lookup
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceEnvelope'
+          example:
+            data:
+              name: 'opendatahub'
+              displayName: 'Open Data Hub'
+              phase: 'Active'
+              isAiProject: true
+
+    K8sTimeout:
+      description: Timed out contacting the Kubernetes API
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'GATEWAY_TIMEOUT'
+              message: 'the Kubernetes request timed out'
+
+    K8sUnavailable:
+      description: Kubernetes API temporarily unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'SERVICE_UNAVAILABLE'
+              message: 'the Kubernetes API is temporarily unavailable'
 
     StatusResponse:
       description: User session status
