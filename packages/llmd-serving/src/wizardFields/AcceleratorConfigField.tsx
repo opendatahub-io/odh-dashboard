@@ -14,9 +14,8 @@ import {
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { RUNTIME_VERSION_ANNOTATION } from '@odh-dashboard/model-serving/concepts/versions';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import { isTopologyTypeFieldData, type TopologyTypeFieldData } from './TopologyTypeField';
 import {

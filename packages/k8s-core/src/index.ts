@@ -1,4 +1,5 @@
 export { applyK8sAPIOptions, mergeRequestInit } from './apiMergeUtils';
+export { getCompatibleIdentifiers, isCompatibleWithIdentifier } from './acceleratorCompatibility';
 export { fetchOperatorSubscriptionStatus } from './api/operatorSubscriptionStatus';
 export type { OperatorSubscriptionStatus } from './api/operatorSubscriptionStatus';
 
