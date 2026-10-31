@@ -14,6 +14,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,6 +52,26 @@ func newMockedTokenKubernetesClientFromClientset(ctrlClient client.Client, confi
 // BearerToken always returns a fake token for tests
 func (m *TokenKubernetesClientMock) BearerToken() (string, error) {
 	return "FAKE_BEARER_TOKEN", nil
+}
+
+// GetService reads a Service from the envtest cluster. The embedded implementation
+// would build a caller-credential client from the nil rest.Config and panic when an
+// identity token is present, so the identity is dropped and the mock's own client
+// is used.
+func (m *TokenKubernetesClientMock) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
+	return m.TokenKubernetesClient.GetService(ctx, nil, namespace, name)
+}
+
+// GetServiceEndpointSlices lists EndpointSlices from the envtest cluster. The identity
+// is dropped for the same reason as GetService above.
+func (m *TokenKubernetesClientMock) GetServiceEndpointSlices(ctx context.Context, identity *integrations.RequestIdentity, namespace string, serviceName string) ([]discoveryv1.EndpointSlice, error) {
+	return m.TokenKubernetesClient.GetServiceEndpointSlices(ctx, nil, namespace, serviceName)
+}
+
+// GetPod reads a Pod from the envtest cluster. The identity is dropped for the same
+// reason as GetService above.
+func (m *TokenKubernetesClientMock) GetPod(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Pod, error) {
+	return m.TokenKubernetesClient.GetPod(ctx, nil, namespace, name)
 }
 
 // GetNamespaces lists namespaces from the envtest cluster

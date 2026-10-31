@@ -588,12 +588,26 @@ paths:
     description: >-
       Verifies that an external model endpoint is accessible, properly authenticated, and OpenAI-compatible.
       Tests the connection by sending a minimal request to the endpoint and validating the response format.
+      In-cluster base URLs only skip SSRF validation when the Service hostname belongs to the caller's
+      authorized namespace and its backing Service is a selector-backed, non-ExternalName Service readable
+      by the caller; other in-cluster hosts undergo normal SSRF validation. Verifying an in-cluster
+      endpoint requires the caller to be able to get the backing Service, list its EndpointSlices, and
+      get the Pods those EndpointSlices reference (all granted by the standard edit and admin roles);
+      trusted connections are pinned to the validated Pod addresses.
       This is a stateless operation that does not create any resources.
     post:
       tags:
         - ExternalModels
       security:
         - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace of the caller, scoping which in-cluster Services are trusted
+          required: true
+          schema:
+            type: string
+            example: 'llm'
       requestBody:
         required: true
         description: External model verification request
@@ -639,6 +653,22 @@ paths:
                       message:
                         type: string
                         example: 'API key is invalid or unauthorized'
+        '403':
+          description: Caller lacks permission to get the in-cluster Service backing an in-cluster base_url, list its EndpointSlices, or get the Pods its endpoints reference (all required to verify in-cluster endpoints)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'FORBIDDEN'
+                      message:
+                        type: string
+                        example: 'verifying an in-cluster endpoint requires permission to get the Service my-ns/my-model, which the caller lacks'
         '408':
           description: Request timeout - endpoint did not respond in time
           content:
