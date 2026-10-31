@@ -39,8 +39,8 @@ export const patchDeploymentStoppedStatus = (
   });
 
 const KSERVE_CONDITION_LABELS: Record<string, string> = {
-  PredictorReady: 'Predictor ready',
-  IngressReady: 'Ingress ready',
+  PredictorReady: 'Prepare predictor',
+  IngressReady: 'Prepare ingress',
   LatestDeploymentReady: 'Deployment ready',
 };
 
@@ -72,7 +72,7 @@ export const getKServeDeploymentConditions = (
   const conditions: DeploymentCondition[] = [
     {
       type: 'DeploymentRequested',
-      label: 'Deployment requested',
+      label: 'Request deployment',
       status: 'True',
       lastTransitionTime: inferenceService.metadata.creationTimestamp,
     },

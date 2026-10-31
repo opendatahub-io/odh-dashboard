@@ -4,10 +4,7 @@ import {
   t_global_color_status_warning_300 as WarningColor,
 } from '@patternfly/react-tokens';
 import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
-import {
-  appendModelDeploymentPodAdmissionSuffix,
-  getModelDeploymentKueueDetailMessage,
-} from '@odh-dashboard/k8s-core/kueue/messageUtils';
+import { getModelDeploymentKueueDetailMessage } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/k8s-core/kueue/types';
 import { ModelDeploymentState } from '../types';
 import type { DeploymentStatus } from '../../../extension-points';
@@ -27,10 +24,7 @@ export const getDeploymentStatusSubtitle = (status?: DeploymentStatus | null): s
     kueueStatus?.status &&
     KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT.includes(kueueStatus.status)
   ) {
-    return appendModelDeploymentPodAdmissionSuffix(
-      getModelDeploymentKueueDetailMessage(kueueStatus),
-      kueueStatus,
-    );
+    return getModelDeploymentKueueDetailMessage(kueueStatus);
   }
 
   if (state === ModelDeploymentState.FAILED_TO_LOAD && message) {
@@ -39,6 +33,14 @@ export const getDeploymentStatusSubtitle = (status?: DeploymentStatus | null): s
 
   return null;
 };
+
+export const getDeploymentStatusSubtitleBoldText = (
+  status?: DeploymentStatus | null,
+): string | undefined =>
+  status?.kueueStatus?.status &&
+  KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT.includes(status.kueueStatus.status)
+    ? status.kueueStatus.queueName
+    : undefined;
 
 /** Text color for the status subtitle, matching the severity of what it's reporting. */
 export const getDeploymentStatusSubtitleColor = (status?: DeploymentStatus | null): string => {
