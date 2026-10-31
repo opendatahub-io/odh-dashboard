@@ -1,5 +1,5 @@
 import React from 'react';
-import { Radio, Stack, StackItem } from '@patternfly/react-core';
+import { Checkbox, Radio, Stack, StackItem } from '@patternfly/react-core';
 import { useLocation } from 'react-router-dom';
 import { z } from 'zod';
 import type {
@@ -19,10 +19,12 @@ import {
 
 export type MaaSFieldValue = {
   isChecked: boolean;
+  enableMetricsScraping?: boolean;
 };
 
 export const maasFieldSchema = z.object({
   isChecked: z.boolean(),
+  enableMetricsScraping: z.boolean().optional(),
 });
 
 const setMaaSFieldData = (value: MaaSFieldValue): MaaSFieldValue => value;
@@ -106,9 +108,27 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
         description="Available as a service (MaaS) to users with an admin-assigned subscription and authorization policy."
         isChecked={value?.isChecked}
         isDisabled={isDisabled}
-        onChange={() => onChange({ isChecked: true })}
+        onChange={() =>
+          onChange(
+            value?.enableMetricsScraping
+              ? { isChecked: true, enableMetricsScraping: true }
+              : { isChecked: true },
+          )
+        }
         data-testid={id}
       />
+      {value?.isChecked && (
+        <Checkbox
+          id={`${id}-enable-scraping`}
+          data-testid="enable-metrics-scraping-checkbox"
+          label="Enable metrics scraping"
+          description="Add monitoring.opendatahub.io/scrape=true so the observability stack collects this model's metrics."
+          isChecked={value.enableMetricsScraping ?? false}
+          isDisabled={isDisabled}
+          onChange={(_, checked) => onChange({ isChecked: true, enableMetricsScraping: checked })}
+          className="pf-v6-u-ml-lg"
+        />
+      )}
     </Stack>
   </StackItem>
 );
@@ -186,6 +206,11 @@ export const MaaSEndpointFieldWizardField: MaaSFieldType = {
           key: 'maas-endpoint-enabled',
           label: 'MaaS endpoint',
           value: () => (value.isChecked ? 'Yes' : 'No'),
+        },
+        {
+          key: 'metrics-scraping-enabled',
+          label: 'Metrics scraping',
+          value: () => (value.isChecked && value.enableMetricsScraping ? 'Enabled' : 'Disabled'),
         },
       ],
     },

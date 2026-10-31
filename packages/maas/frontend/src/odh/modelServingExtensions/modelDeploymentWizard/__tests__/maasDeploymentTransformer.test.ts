@@ -51,6 +51,35 @@ describe('maasDeploymentTransformer', () => {
       expect(result.model.spec.router?.gateway?.refs).toEqual([MAAS_DEFAULT_GATEWAY]);
     });
 
+    it('should set the monitoring scrape label only when MaaS scraping is enabled', () => {
+      const deployment = createMockDeployment();
+
+      const enabled = applyMaaSEndpointData(deployment, {
+        isChecked: true,
+        enableMetricsScraping: true,
+      });
+      expect(enabled.model.spec.labels?.['monitoring.opendatahub.io/scrape']).toBe('true');
+
+      const disabled = applyMaaSEndpointData(enabled, {
+        isChecked: true,
+        enableMetricsScraping: false,
+      });
+      expect(disabled.model.spec.labels?.['monitoring.opendatahub.io/scrape']).toBeUndefined();
+    });
+
+    it('should remove the monitoring scrape label when MaaS is turned off', () => {
+      const deployment = createMockDeployment();
+      deployment.model.spec.labels = {
+        'monitoring.opendatahub.io/scrape': 'true',
+        'app.kubernetes.io/part-of': 'maas',
+      };
+      deployment.model.spec.router = { gateway: { refs: [MAAS_DEFAULT_GATEWAY] } };
+
+      const result = applyMaaSEndpointData(deployment, { isChecked: false });
+
+      expect(result.model.spec.labels).toEqual({ 'app.kubernetes.io/part-of': 'maas' });
+    });
+
     it('should remove Gen AI asset metadata when MaaS is enabled', () => {
       const deployment = createMockDeployment({
         metadata: {
@@ -177,7 +206,7 @@ describe('maasDeploymentTransformer', () => {
 
       const result = extractMaaSEndpointData(deployment);
 
-      expect(result).toEqual({ isChecked: true });
+      expect(result).toEqual({ isChecked: true, enableMetricsScraping: false });
     });
 
     it('should return isChecked: true when maas-default-gateway is among other gateways', () => {
@@ -190,7 +219,18 @@ describe('maasDeploymentTransformer', () => {
 
       const result = extractMaaSEndpointData(deployment);
 
-      expect(result).toEqual({ isChecked: true });
+      expect(result).toEqual({ isChecked: true, enableMetricsScraping: false });
+    });
+
+    it('should return enableMetricsScraping when the scrape label is set', () => {
+      const deployment = createMockDeployment();
+      deployment.model.spec.labels = { 'monitoring.opendatahub.io/scrape': 'true' };
+      deployment.model.spec.router = { gateway: { refs: [MAAS_DEFAULT_GATEWAY] } };
+
+      expect(extractMaaSEndpointData(deployment)).toEqual({
+        isChecked: true,
+        enableMetricsScraping: true,
+      });
     });
   });
 });
