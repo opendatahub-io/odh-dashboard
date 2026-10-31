@@ -108,10 +108,14 @@ const renderResourcesModal = ({
   );
 };
 
-const getNotebookWithDescription = (description: string) => {
+const getNotebookWithDescription = (description?: string) => {
   const notebook = structuredClone(mockInitialStates.notebookState.notebook);
   notebook.metadata.annotations ??= {};
-  notebook.metadata.annotations['openshift.io/description'] = description;
+  if (description === undefined) {
+    delete notebook.metadata.annotations['openshift.io/description'];
+  } else {
+    notebook.metadata.annotations['openshift.io/description'] = description;
+  }
   return notebook;
 };
 
@@ -126,11 +130,9 @@ describe('Start Notebook modal', () => {
 
   it('should show initial notebook startup status', async () => {
     const mockData = mockInitialStates;
-    const workbenchDescription = 'Workbench for testing model development';
-    const notebookWithDescription = getNotebookWithDescription(workbenchDescription);
     render(
       <StartNotebookModal
-        notebook={notebookWithDescription}
+        notebook={mockData.notebookState.notebook}
         notebookStatus={mockData.notebookStatus}
         isStarting={mockData.notebookState.isStarting}
         isStopping={mockData.notebookState.isStopping}
@@ -144,7 +146,7 @@ describe('Start Notebook modal', () => {
     const header = screen.getByTestId('notebook-status-modal-header');
     expect(header).toHaveTextContent('Test Workbench statusStarting');
     expect(within(header).getByTestId('notebook-status-modal-description')).toHaveTextContent(
-      workbenchDescription,
+      /^Workbench status$/,
     );
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
@@ -164,22 +166,39 @@ describe('Start Notebook modal', () => {
     expect(steps[6]).toHaveTextContent('Workbench started');
   });
 
-  it('should not show a description for a whitespace-only workbench description', () => {
-    const mockData = mockInitialStates;
-    render(
-      <StartNotebookModal
-        notebook={getNotebookWithDescription('   ')}
-        notebookStatus={mockData.notebookStatus}
-        isStarting={mockData.notebookState.isStarting}
-        isStopping={mockData.notebookState.isStopping}
-        isRunning={mockData.notebookState.isRunning}
-        events={mockData.events}
-        buttons={null}
-      />,
-    );
+  it.each([
+    ['populated', 'Workbench for testing model development'],
+    ['empty', ''],
+    ['whitespace-only', '   '],
+    ['missing', undefined],
+  ])(
+    'should show the status header with %s workbench description metadata',
+    (_label, description) => {
+      const mockData = mockInitialStates;
+      render(
+        <StartNotebookModal
+          notebook={getNotebookWithDescription(description)}
+          notebookStatus={mockData.notebookStatus}
+          isStarting={mockData.notebookState.isStarting}
+          isStopping={mockData.notebookState.isStopping}
+          isRunning={mockData.notebookState.isRunning}
+          events={mockData.events}
+          buttons={null}
+        />,
+      );
 
-    expect(screen.queryByTestId('notebook-status-modal-description')).not.toBeInTheDocument();
-  });
+      const header = screen.getByTestId('notebook-status-modal-header');
+      expect(within(header).getByRole('heading')).toHaveTextContent(
+        /^Test Workbench statusStarting$/,
+      );
+      expect(within(header).getByTestId('notebook-status-modal-description')).toHaveTextContent(
+        /^Workbench status$/,
+      );
+      if (description?.trim()) {
+        expect(within(header).queryByText(description)).not.toBeInTheDocument();
+      }
+    },
+  );
 
   it('should show failed notebook startup status', async () => {
     const mockData = mockFailedStates;

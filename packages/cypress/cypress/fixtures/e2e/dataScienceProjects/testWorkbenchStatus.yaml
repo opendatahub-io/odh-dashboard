@@ -1,5 +1,6 @@
 # testWorkbenchStatus.cy.ts Test Data #
   wbStatusTestNamespace: 'dsp-wb-status-test'
   wbStatusTestDescription: 'This is a test description'
+  statusModalDescription: 'Workbench status'
   notebookImage: 'code-server-notebook'
   hardwareProfileName: 'default-profile'
