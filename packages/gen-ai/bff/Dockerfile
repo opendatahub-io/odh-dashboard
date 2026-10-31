@@ -1,5 +1,5 @@
 # Backend build stage
-FROM registry.redhat.io/ubi9/go-toolset:1.24 AS builder
+FROM registry.redhat.io/ubi9/go-toolset:1.26.10-1793294290 AS builder
 WORKDIR /usr/src/app
 COPY go.mod go.sum ./
 RUN go mod download
@@ -8,7 +8,7 @@ COPY internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd
 
 # Final minimal image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8-1793253163
 WORKDIR /
 COPY --from=builder /tmp/bff ./
 COPY static/ ./static/
