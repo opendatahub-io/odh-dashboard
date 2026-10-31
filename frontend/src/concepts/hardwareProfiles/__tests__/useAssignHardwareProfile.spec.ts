@@ -342,7 +342,6 @@ describe('useAssignHardwareProfile', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
 
     mockUseAppContext.mockReturnValue({

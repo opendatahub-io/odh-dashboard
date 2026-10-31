@@ -6,6 +6,17 @@ import {
   DataScienceStackComponent,
 } from '@odh-dashboard/plugin-core/areas';
 
+// Set by the operator when an Argo Workflows install it does not manage blocks pipelines.
+// `CapabilityDSPv2Argo` is the v2 condition name, which is what the dashboard receives.
+const hasUnmanagedArgoWorkflows: CustomConditionFunction = ({ dscStatus }) => {
+  const conditions = dscStatus?.conditions;
+  return (
+    conditions?.some(
+      (condition) => condition.type === 'CapabilityDSPv2Argo' && condition.status === 'False',
+    ) ?? false
+  );
+};
+
 // Shared operator readiness does not establish per-child backend reachability.
 const isFeastOperatorReady: CustomConditionFunction = ({ dscStatus }) => {
   const conditions = dscStatus?.conditions;
@@ -150,6 +161,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.DS_PIPELINES]: {
     featureFlags: ['disablePipelines'],
     requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+  },
+  // Intentionally not reliant on DS_PIPELINES: this reports a pipelines failure, so it must not be
+  // gated on pipelines looking healthy.
+  [SupportedArea.DS_PIPELINES_ARGO_INVALID]: {
+    customCondition: hasUnmanagedArgoWorkflows,
   },
   [SupportedArea.HOME]: {
     featureFlags: ['disableHome'],

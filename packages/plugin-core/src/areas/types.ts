@@ -19,7 +19,6 @@ export type IsAreaAvailableStatus = {
   reliantAreas: { [key in SupportedAreaType]?: boolean } | null; // only needs 1 to be true
   requiredCapabilities: { [key in StackCapability]?: boolean } | null;
   requiredComponents: { [key in DataScienceStackComponent]?: boolean } | null;
-  customCondition: (conditionFunc: CustomConditionFunction) => boolean;
 };
 
 /** All areas that we need to support in some fashion or another */
@@ -34,6 +33,11 @@ export enum SupportedArea {
 
   /* Pipelines areas */
   DS_PIPELINES = 'ds-pipelines',
+  /**
+   * Available when an Argo Workflows install not managed by the operator is blocking pipelines.
+   * Inverted on purpose: this area is "available" when pipelines are broken.
+   */
+  DS_PIPELINES_ARGO_INVALID = 'ds-pipelines-argo-invalid',
 
   /* Admin areas */
   BYON = 'bring-your-own-notebook',
@@ -158,6 +162,13 @@ export type StackCapability = string;
  * Optional function to check for a condition that is not covered by other checks.
  *
  * Example, checking there exists a specific condition in the DSC status.
+ *
+ * Declare conditions here, on the area, rather than evaluating cluster state in a consumer.
+ * The result is AND-ed into the area's `status`, so callers only need to read that boolean.
+ *
+ * When matching a DSC condition `type`, use the **v2** name. The dashboard requests the v2
+ * DataScienceCluster, and the operator's conversion webhook renames condition types on the way
+ * out (for example v3 `DataReady` is surfaced as `FeastOperatorReady`).
  *
  * @param state.dashboardConfigSpec The dashboard config spec
  * @param state.dscStatus The data science cluster status

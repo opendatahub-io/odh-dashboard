@@ -92,7 +92,6 @@ const mockAreaStatuses = (availableAreas: SupportedArea[]) => {
     reliantAreas: {},
     requiredComponents: {},
     requiredCapabilities: {},
-    customCondition: jest.fn(),
   }));
 };
 
@@ -588,7 +587,6 @@ describe('ConfigurePipelinesServerModal', () => {
         reliantAreas: {},
         requiredComponents: {},
         requiredCapabilities: {},
-        customCondition: jest.fn(),
       } as ReturnType<typeof useIsAreaAvailable>);
 
       renderModal();
@@ -609,7 +607,6 @@ describe('ConfigurePipelinesServerModal', () => {
         reliantAreas: {},
         requiredComponents: {},
         requiredCapabilities: {},
-        customCondition: jest.fn(),
       } as ReturnType<typeof useIsAreaAvailable>);
 
       renderModal();

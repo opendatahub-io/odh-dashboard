@@ -18,7 +18,6 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
     reliantAreas: {},
     requiredComponents: {},
     requiredCapabilities: {},
-    customCondition: jest.fn(),
   })),
 }));
 

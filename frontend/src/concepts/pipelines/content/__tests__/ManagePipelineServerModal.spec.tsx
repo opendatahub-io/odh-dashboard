@@ -68,7 +68,6 @@ const mockAreaStatuses = (availableAreas: SupportedArea[]) => {
     reliantAreas: {},
     requiredComponents: {},
     requiredCapabilities: {},
-    customCondition: jest.fn(),
   }));
 };
 
