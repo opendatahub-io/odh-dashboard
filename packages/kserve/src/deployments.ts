@@ -42,14 +42,6 @@ export const useWatchDeployments = (
 ): [KServeDeployment[] | undefined, boolean, Error[] | undefined] => {
   const [inferenceServices, inferenceServiceLoaded, inferenceServiceError] =
     useWatchInferenceServices(project, labelSelectors, opts);
-  const [servingRuntimes, servingRuntimeLoaded, servingRuntimeError] = useWatchServingRuntimes(
-    project,
-    opts,
-  );
-  const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useWatchDeploymentPods(
-    project,
-    opts,
-  );
 
   const [exclusionExtensions, exclusionsResolved] = useResolvedExtensions(
     isModelServingExcludeDeployment,
@@ -75,6 +67,19 @@ export const useWatchDeployments = (
 
     return services;
   }, [inferenceServices, kserveExclusions, filterFn]);
+
+  const hasInferenceServices = filteredInferenceServices.length > 0;
+
+  const [servingRuntimes, servingRuntimeLoaded, servingRuntimeError] = useWatchServingRuntimes(
+    project,
+    opts,
+    hasInferenceServices,
+  );
+  const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useWatchDeploymentPods(
+    project,
+    opts,
+    hasInferenceServices,
+  );
 
   const {
     kueueStatusByDeploymentKey,

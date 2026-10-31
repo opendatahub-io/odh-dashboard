@@ -153,7 +153,11 @@ const initIntercepts = ({
   ).as('getServingRuntimes');
   cy.interceptK8sList(
     { model: InferenceServiceModel, ns: 'test-project' },
-    mockK8sResourceList(inferenceServices),
+    {
+      // Delay primary resource: ServingRuntimes/Pods are skipped when InferenceServices are empty.
+      delay: delayInferenceServices ? 500 : 0,
+      body: mockK8sResourceList(inferenceServices),
+    },
   );
   cy.interceptK8sList(
     { model: InferenceServiceModel, ns: undefined },
@@ -258,7 +262,6 @@ describe('Model Serving Global', () => {
     asClusterAdminUser();
     initIntercepts({
       delayInferenceServices: true,
-      delayServingRuntimes: true,
       servingRuntimes: [],
       inferenceServices: [],
     });

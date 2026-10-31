@@ -25,15 +25,23 @@ export const useWatchDeployments = (
     [llmInferenceServices, filterFn],
   );
 
+  const hasLLMInferenceServices = filteredLLMInferenceServices.length > 0;
+
   const [
     llmInferenceServiceConfigs,
     llmInferenceServiceConfigsLoaded,
     llmInferenceServiceConfigsError,
-  ] = useWatchLLMInferenceServiceConfigs(project.metadata.name, undefined, opts);
+  ] = useWatchLLMInferenceServiceConfigs(
+    project.metadata.name,
+    undefined,
+    opts,
+    hasLLMInferenceServices,
+  );
 
   const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useLLMInferenceServicePods(
     project.metadata.name,
     opts,
+    hasLLMInferenceServices,
   );
 
   const {
