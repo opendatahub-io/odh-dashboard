@@ -96,9 +96,9 @@ The ODH Dashboard has **custom handling for the `namespace` variable**. When a d
 
 ### How it works
 
-1. **Within ODH**: The UI transforms the `namespace` variable to use a static list of project names that the user has access to. This provides proper RBAC filtering and consistency with the rest of the UI where project selection is available.
+1. **Within ODH (supported path)**: The UI replaces the `namespace` variable with a `StaticListVariable` of projects the user can access, and **omits** `customAllValue`. Project=All expands to the concrete list → `namespace=a&namespace=b` for scoped datasources.
 
-2. **Outside ODH (fallback)**: The Prometheus query defined in the variable is executed to populate the namespace options. This allows the dashboard to work standalone in environments like the Perses UI.
+2. **Outside ODH (Perses UI)**: The Prometheus label-values plugin still populates options from `matchers`. That path is **not** the Observe product path. Do not set `customAllValue: ".*"` — scoped datasources (`queryParams.namespace`) reject wildcard All. Prefer selecting concrete namespaces; All without Dashboard's static list is unsupported for scoped datasources.
 
 ### Adding namespace filter support
 
@@ -114,7 +114,9 @@ variables:
         description: Filter by project
       allowMultiple: true
       allowAllValue: true
-      customAllValue: ".*"
+      # Do NOT set customAllValue to ".*" — scoped PersesDatasources send
+      # ${namespace:queryparam} (namespace=a&namespace=b). All must expand to the
+      # concrete project list (Dashboard replaces this with StaticListVariable).
       defaultValue: "$__all"
       plugin:
         kind: PrometheusLabelValuesVariable
@@ -133,8 +135,8 @@ variables:
 | `name` | `namespace` | Required — the UI looks for this exact name |
 | `display.name` | `Project` | User-friendly label |
 | `allowMultiple` | `true` | Enables multi-select |
-| `allowAllValue` | `true` | Enables "All" option |
-| `customAllValue` | `".*"` | Regex pattern for "All" in PromQL queries |
+| `allowAllValue` | `true` | Enables "All" option (expands to every listed project) |
+| `customAllValue` | omit | Do **not** use `".*"` with scoped datasources (`queryParams.namespace`) |
 | `defaultValue` | `"$__all"` | Default to all namespaces |
 | `matchers` | Your metric | Prometheus query used as fallback |
 
@@ -164,7 +166,6 @@ spec:
           description: Filter by project
         allowMultiple: true
         allowAllValue: true
-        customAllValue: ".*"
         defaultValue: "$__all"
         plugin:
           kind: PrometheusLabelValuesVariable
