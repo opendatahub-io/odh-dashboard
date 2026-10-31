@@ -52,11 +52,12 @@ const makeEvent = (
   message: string,
   type: 'Normal' | 'Warning' = 'Normal',
   lastTimestamp?: string,
+  fieldPath?: string,
 ): EventKind => ({
   apiVersion: 'v1',
   kind: 'Event',
   metadata: { name: `evt-${reason}`, namespace: 'test-ns' },
-  involvedObject: { name: 'pod-0' },
+  involvedObject: { name: 'pod-0', fieldPath },
   reason,
   message,
   type,
@@ -529,12 +530,58 @@ describe('getNotebookEventStatus', () => {
 
   it('matches container by name in Created message', () => {
     const result = getNotebookEventStatus(
-      makeEvent('Created', 'Created container my-workbench'),
+      makeEvent('Created', 'Created container: my-workbench'),
       containerNames,
     );
     expect(result?.stepKind).toBe('created');
     expect(result?.containerName).toBe('my-workbench');
   });
+
+  it.each([
+    {
+      reason: 'Created',
+      message: 'Container created',
+      fieldPath: 'spec.containers{my-workbench}',
+    },
+    {
+      reason: 'Started',
+      message: 'Container started',
+      fieldPath: 'spec.containers{my-workbench}',
+    },
+  ])(
+    'should map Kubernetes 1.35 event message "$message" using its field path',
+    ({ reason, message, fieldPath }) => {
+      const result = getNotebookEventStatus(
+        makeEvent(reason, message, 'Normal', undefined, fieldPath),
+        containerNames,
+      );
+      expect(result?.containerName).toBe('my-workbench');
+    },
+  );
+
+  it.each([
+    {
+      reason: 'Created',
+      message: 'Container created',
+      fieldPath: 'spec.containers{my-workbench}',
+      collision: 'created',
+    },
+    {
+      reason: 'Started',
+      message: 'Container started',
+      fieldPath: 'spec.containers{my-workbench}',
+      collision: 'started',
+    },
+  ])(
+    'should parse Kubernetes 1.35 "$message" before matching a container named "$collision"',
+    ({ reason, message, fieldPath, collision }) => {
+      const result = getNotebookEventStatus(
+        makeEvent(reason, message, 'Normal', undefined, fieldPath),
+        [collision, 'my-workbench'],
+      );
+      expect(result?.containerName).toBe('my-workbench');
+    },
+  );
 
   it.each([
     {
