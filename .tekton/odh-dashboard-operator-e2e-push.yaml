@@ -2,9 +2,9 @@
 # test image (Dockerfile.e2e) on pushes to main, providing the stable-tagged
 # image used by the early-gate "shiftleft" runner.
 #
-# HANDOFF: requires the Konflux Component `odh-dashboard-operator-e2e-ci` (and its
+# PREREQUISITE: requires the Konflux Component `odh-dashboard-operator-e2e-ci` (and its
 # `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount) to be registered
-# in the open-data-hub-tenant. Inert scaffolding until DevOps registers it.
+# in the open-data-hub-tenant.
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -14,10 +14,8 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    # RHOAIENG-96237 removes this guard after registering the dedicated Konflux
-    # Component, ServiceAccount, and image credentials in the tenant namespace.
     pipelinesascode.tekton.dev/on-cel-expression: |
-      false && event == "push"
+      event == "push"
       && target_branch == "main"
       && ( "dashboard-operator/test/e2e/**".pathChanged()
             || "dashboard-operator/api/**".pathChanged()
