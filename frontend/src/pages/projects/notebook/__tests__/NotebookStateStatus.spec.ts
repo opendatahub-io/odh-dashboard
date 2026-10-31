@@ -201,7 +201,7 @@ describe('getStatusSubtitle', () => {
             requeueInfo: { count: 3, requeueAt: '2026-02-16T08:05:00Z' },
           },
         }),
-      ).toContain('attempt 3');
+      ).toContain('Attempt 3');
     });
 
     it('should return queue waiting message when no requeueInfo', () => {
@@ -229,18 +229,8 @@ describe('getStatusSubtitle', () => {
     });
 
     it.each([
-      [
-        KueueWorkloadStatus.Queued,
-        'insufficient unused quota',
-        3,
-        'Waiting for quota in test-queue (3rd in test-queue)',
-      ],
-      [
-        KueueWorkloadStatus.Inadmissible,
-        'queue not found',
-        1,
-        'Queue test-queue does not exist (1st in test-queue)',
-      ],
+      [KueueWorkloadStatus.Queued, 'insufficient unused quota', 3, '3rd in test-queue'],
+      [KueueWorkloadStatus.Inadmissible, 'queue not found', 1, '1st in test-queue'],
     ])(
       'should append queue position for %s status when position is available',
       (status, message, position, expected) => {

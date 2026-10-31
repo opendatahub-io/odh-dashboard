@@ -60,7 +60,7 @@ export const getHumanReadableKueueMessage = (
 
 /**
  * Returns a human-readable message for Requeued status including attempt count and next retry time.
- * e.g. "Waiting for quota in my-queue (attempt 3, next retry at 10:20:43)"
+ * e.g. "Waiting for quota in my-queue (Attempt 3, next retry at 07/28/2026, 22:44)"
  */
 export const getRequeuedMessage = (info: KueueWorkloadStatusWithMessage): string => {
   const count = info.requeueInfo?.count ?? 0;
@@ -71,13 +71,20 @@ export const getRequeuedMessage = (info: KueueWorkloadStatusWithMessage): string
   if (requeueAt) {
     const date = new Date(requeueAt);
     if (!Number.isNaN(date.getTime())) {
-      const formatted = date.toLocaleString();
+      const formatted = date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
       return count > 0
-        ? `${base} (attempt ${count}, next retry at ${formatted})`
-        : `${base} (next retry at ${formatted})`;
+        ? `${base} (Attempt ${count}, next retry at ${formatted})`
+        : `${base} (Next retry at ${formatted})`;
     }
   }
-  return count > 0 ? `${base} (attempt ${count})` : base;
+  return count > 0 ? `${base} (Attempt ${count})` : base;
 };
 
 const getQueuedMessage = (rawMessage: string | undefined, queue: string): string => {
@@ -164,6 +171,26 @@ const PENDING_QUEUE_POSITION_STATUSES: KueueWorkloadStatus[] = [
   KueueWorkloadStatus.Inadmissible,
 ];
 
+export const isQueuePositionStatus = (status: KueueWorkloadStatus): boolean =>
+  PENDING_QUEUE_POSITION_STATUSES.includes(status);
+
+export const getQueuePosition = (
+  kueueStatus: KueueWorkloadStatusWithMessage,
+): { position: number; queue: string } | undefined => {
+  if (
+    kueueStatus.queuePosition == null ||
+    !kueueStatus.queueName ||
+    !isQueuePositionStatus(kueueStatus.status)
+  ) {
+    return undefined;
+  }
+
+  return {
+    position: kueueStatus.queuePosition,
+    queue: kueueStatus.queueName,
+  };
+};
+
 /** Appends Visibility API queue position when populated (mirrors NotebookStateStatus subtitle). */
 export const appendQueuePositionToKueueMessage = (
   message: string,
@@ -172,7 +199,7 @@ export const appendQueuePositionToKueueMessage = (
   if (
     kueueStatus.queuePosition != null &&
     kueueStatus.queueName &&
-    PENDING_QUEUE_POSITION_STATUSES.includes(kueueStatus.status)
+    isQueuePositionStatus(kueueStatus.status)
   ) {
     return `${message} (${formatQueuePosition(kueueStatus.queuePosition, kueueStatus.queueName)})`;
   }
@@ -377,13 +404,16 @@ export const getKueueSubStepInfo = (
   }
 
   const raw = getHumanReadableKueueMessage(status, message, queueName);
+  const shouldShowRecoveryPrefix = isRecovery && status === KueueWorkloadStatus.Queued;
 
-  const withRecovery =
-    isRecovery && status === KueueWorkloadStatus.Queued ? `Re-queued: ${raw}` : raw;
+  const withRecovery = shouldShowRecoveryPrefix ? `Re-queued: ${raw}` : raw;
 
   const label =
-    status === KueueWorkloadStatus.Queued && queuePosition != null && queueName
-      ? `${withRecovery} (${formatQueuePosition(queuePosition, queueName)})`
+    PENDING_QUEUE_POSITION_STATUSES.includes(status) && queuePosition != null && queueName
+      ? `${shouldShowRecoveryPrefix ? 'Re-queued: ' : ''}${formatQueuePosition(
+          queuePosition,
+          queueName,
+        )}`
       : withRecovery;
 
   return { label };
