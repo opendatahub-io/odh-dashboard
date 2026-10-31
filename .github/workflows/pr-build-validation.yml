@@ -727,6 +727,15 @@ jobs:
           du -sh /tmp/odh-dist
           echo "::endgroup::"
 
+          # Guard (RHOAIENG-100835): LightningCSS logical-properties lowering must
+          # never re-enter built CSS — the :lang() RTL fallback selectors it emits
+          # carry specificity that beats PatternFly's contextual overrides.
+          echo "::group::Guarding CSS logical-properties lowering"
+          if ! bash scripts/check-css-lowering.sh /tmp/odh-dist; then
+            FAILURES=$((FAILURES + 1))
+          fi
+          echo "::endgroup::"
+
           if [ $FAILURES -gt 0 ]; then
             echo ""
             echo "❌ TOTAL FAILURES: $FAILURES"
@@ -1284,6 +1293,7 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix }}
       has-changes: ${{ steps.detect.outputs.has-changes }}
+      model-serving-changed: ${{ steps.detect.outputs.model-serving-changed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -1308,6 +1318,16 @@ jobs:
             echo "Root build files changed — all BFF modules will be built"
           fi
 
+          # model-serving has no Dockerfile.workspace (it is built standalone,
+          # outside the module shard) — track it separately so its dedicated
+          # CSS guard job knows when to run. app-config changes are included
+          # because the shared LightningCSS minimizer options live there.
+          MODEL_SERVING_CHANGED=false
+          if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qE '^(packages/model-serving/|packages/app-config/)'; then
+            MODEL_SERVING_CHANGED=true
+          fi
+          echo "model-serving-changed=${MODEL_SERVING_CHANGED}" >> "$GITHUB_OUTPUT"
+
           # Dynamically discover workspace modules and distributions with Dockerfile.workspace
           MATRIX_ITEMS="[]"
           while IFS= read -r dockerfile; do
@@ -1321,8 +1341,10 @@ jobs:
               continue
             fi
 
-            # Check if this package has changed files, or root build files changed
-            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qF "${PKG_DIR}/"; then
+            # Check if this package has changed files, root build files changed,
+            # or the shared app-config rspack exports changed (every module's
+            # production minimizer consumes them — RHOAIENG-100835)
+            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qE "^(${PKG_DIR}/|packages/app-config/)"; then
               MATRIX_ITEMS=$(echo "$MATRIX_ITEMS" | jq -c --arg name "$MODULE_NAME" --arg dockerfile "$dockerfile" '. + [{"module": $name, "dockerfile": $dockerfile}]')
               echo "Will build: $MODULE_NAME ($dockerfile)"
             fi
@@ -1430,6 +1452,34 @@ jobs:
               fi
             done
 
+            # Guard (RHOAIENG-100835): scan the module image's frontend output
+            # for LightningCSS logical-properties lowering, same as the host.
+            echo "::group::Guarding CSS logical-properties lowering (${MODULE})"
+            CSS_TMP=$(mktemp -d)
+            CSS_CONTAINER=$(docker create "$IMAGE")
+            # Every module in this matrix packages its frontend under /static
+            # (all packages/*/Dockerfile.workspace and distributions/core-bff's
+            # COPY ... ./static/), so a failed extraction is always a real
+            # failure — an unrunnable guard must never read as a pass. If a
+            # BFF-only module ever joins the matrix, list it here explicitly
+            # instead of inferring the exemption from a failed docker cp.
+            BFF_ONLY_MODULES=""
+            if docker cp "$CSS_CONTAINER":/static "$CSS_TMP/static" 2>"$CSS_TMP/cp-error.log"; then
+              if ! bash scripts/check-css-lowering.sh "$CSS_TMP/static"; then
+                echo "::error::$MODULE emitted CSS contains LightningCSS logical-properties lowering"
+                FAILURES=$((FAILURES + 1))
+              fi
+            elif [[ " $BFF_ONLY_MODULES " == *" $MODULE "* ]]; then
+              echo "ℹ️  INFO: $MODULE is BFF-only (explicit exemption) — no frontend output to scan"
+            else
+              echo "::error::$MODULE: could not extract /static from the image — the CSS guard could not run"
+              cat "$CSS_TMP/cp-error.log" >&2 || true
+              FAILURES=$((FAILURES + 1))
+            fi
+            docker rm "$CSS_CONTAINER" >/dev/null 2>&1 || true
+            rm -rf "$CSS_TMP"
+            echo "::endgroup::"
+
             if [ "$RUNNING" = "true" ]; then
               echo "INFO: $MODULE BFF is still running after 5s"
             else
@@ -1451,6 +1501,34 @@ jobs:
             echo "PASS: $MODULE BFF built and started without crashes"
           done < <(jq -c '.[]' <<<"$MODULES")
 
+  model-serving-css-guard:
+    name: 'Model Serving CSS Guard'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [check-skip, detect-bff-changes]
+    # model-serving has no Dockerfile.workspace, so the BFF module shard never
+    # builds or scans it — guard its independently emitted production CSS here
+    # (RHOAIENG-100835). Runs when model-serving, app-config (shared minimizer
+    # options), or root build files change.
+    if: needs.check-skip.outputs.should-skip != 'true' && needs.detect-bff-changes.outputs.model-serving-changed == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build and guard model-serving UI
+        run: |
+          set -euo pipefail
+          make -C packages/model-serving frontend-build-federated
+          bash scripts/check-css-lowering.sh packages/model-serving/frontend/dist
+
   summary:
     name: 'Build Validation Summary'
     runs-on: ubuntu-latest
@@ -1469,6 +1547,7 @@ jobs:
       - operator-integration
       - detect-bff-changes
       - bff-build-validation
+      - model-serving-css-guard
     # Run summary even when jobs are skipped, but not when workflow is skipped
     if: always() && needs.check-skip.outputs.should-skip != 'true'
     steps:
@@ -1488,6 +1567,7 @@ jobs:
           echo "Phase 5 (Manifest Validation): ${{ needs.manifest-validation.result }}"
           echo "BFF Detection: ${{ needs.detect-bff-changes.result }}"
           echo "BFF Build Validation: ${{ needs.bff-build-validation.result }}"
+          echo "Model Serving CSS Guard: ${{ needs.model-serving-css-guard.result }}"
 
           # Accept "success" and "skipped" as passing states
           # "skipped" occurs when upstream job was skipped (normal dependency chain)
@@ -1503,7 +1583,8 @@ jobs:
                         "${{ needs.runtime-validation-rhoai.result }}" \
                         "${{ needs.operator-integration.result }}" \
                         "${{ needs.detect-bff-changes.result }}" \
-                        "${{ needs.bff-build-validation.result }}"; do
+                        "${{ needs.bff-build-validation.result }}" \
+                        "${{ needs.model-serving-css-guard.result }}"; do
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               FAILED=true
               break
