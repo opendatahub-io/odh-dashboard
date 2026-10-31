@@ -52,7 +52,7 @@
         "issueKey": {
           "type": "string",
           "pattern": "^[A-Z]+-[0-9]+$",
-          "description": "Jira issue key (e.g., RHOAIENG-12345)"
+          "description": "Jira issue key (e.g., RHAI-12345; legacy RHOAIENG-12345)"
         },
         "summary": {
           "type": "string",
