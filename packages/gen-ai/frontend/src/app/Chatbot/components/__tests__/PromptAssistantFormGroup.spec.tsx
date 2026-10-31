@@ -157,6 +157,7 @@ describe('PromptAssistantFormGroup', () => {
           setLoadedProfileWarnings: jest.fn(),
           setLoadedProfilePrompt: jest.fn(),
           resetConfiguration: jest.fn(),
+          resetConfigurationValues: jest.fn(),
           applyAgentProfile: jest.fn(),
           getConfiguration: jest.fn(),
           getPromptSourceType: jest.fn(),

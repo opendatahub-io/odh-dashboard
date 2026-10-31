@@ -222,6 +222,9 @@ type ChatbotPlaygroundProps = {
   onClearAgent?: () => void;
   isProfileDirty?: boolean;
   onResetToLastSaved?: () => void;
+  isDefaultConfigDirty?: boolean;
+  onInitialModelSelected?: (model: string) => void;
+  onRevertToDefaults?: (configId: string) => void;
   mcpServers?: MCPServerFromAPI[];
   mcpRegistryAvailable?: boolean;
   mcpServersLoaded?: boolean;
@@ -255,6 +258,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   onClearAgent,
   isProfileDirty = false,
   onResetToLastSaved,
+  isDefaultConfigDirty,
+  onInitialModelSelected,
+  onRevertToDefaults,
   mcpServers = [],
   mcpRegistryAvailable = false,
   mcpServersLoaded = false,
@@ -1008,12 +1014,14 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   React.useEffect(() => {
     if (modelsLoaded && models.length > 0 && !primarySelectedModel) {
       if (selectedAAModel) {
+        onInitialModelSelected?.(selectedAAModel);
         setSelectedModel(selectedAAModel);
       } else {
         const availableModels = models.filter((model) =>
           isLlamaModelEnabled(model.id, aiModels, maasModels, bffConfig?.isCustomLSD ?? false),
         );
         if (availableModels.length > 0) {
+          onInitialModelSelected?.(availableModels[0].id);
           setSelectedModel(availableModels[0].id);
         }
       }
@@ -1027,6 +1035,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     maasModels,
     bffConfig,
     selectedAAModel,
+    onInitialModelSelected,
   ]);
 
   // Cleanup stale message hooks
@@ -1302,6 +1311,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 onSave={onOpenSave}
                 onSaveAs={onOpenSaveAs}
                 onResetToLastSaved={onResetToLastSaved}
+                isDefaultConfigDirty={isDefaultConfigDirty}
+                onRevertToDefaults={onRevertToDefaults}
               />
             ) : undefined
           }
