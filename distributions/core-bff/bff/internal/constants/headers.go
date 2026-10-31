@@ -14,6 +14,7 @@ const (
 	HeaderCrossOriginOpenerPolicy = "Cross-Origin-Opener-Policy"
 	HeaderXFrameOptions           = "X-Frame-Options"
 	HeaderXDNSPrefetchControl     = "X-DNS-Prefetch-Control"
+	HeaderContentSecurityPolicy   = "Content-Security-Policy"
 	HeaderCookie                  = "Cookie"
 	HeaderSetCookie               = "Set-Cookie"
 	HeaderProxyAuthorization      = "Proxy-Authorization"
@@ -40,12 +41,33 @@ const (
 	CacheControlShort     = "public, max-age=86400"
 	CacheControlImmutable = "public, max-age=31536000, immutable"
 
-	// Cache-Control is applied selectively. Console also sends Pragma: no-cache
-	// and no-store on every response.
+	// Cache-Control is applied selectively.
 	CacheControlNoStore                       = "no-cache, no-store, private, max-age=0, must-revalidate"
 	ReferrerPolicyStrictOriginWhenCrossOrigin = "strict-origin-when-cross-origin"
 	XContentTypeOptionsNoSniff                = "nosniff"
 	CrossOriginOpenerPolicySameOrigin         = "same-origin"
 	XFrameOptionsDeny                         = "DENY"
 	XDNSPrefetchControlOff                    = "off"
+
+	// SegmentTelemetryOrigin is the origin the dashboard's Segment client loads its
+	// bundle from and sends events to. packages/analytics/src/initSegment.ts hardcodes
+	// the same values — update both together if the endpoint ever moves.
+	// Analytics only initializes when tracking is enabled, but the origin is
+	// allowlisted unconditionally so enabling tracking never breaks under the policy.
+	SegmentTelemetryOrigin = "https://console.redhat.com"
+
+	// ContentSecurityPolicy is enforced on HTML responses only and must stay identical to
+	// the Node value in backend/src/utils/securityHeaders.ts. See
+	// docs/content-security-policy.md for the directive rationale.
+	ContentSecurityPolicy = "default-src 'self'; " +
+		"base-uri 'self'; " +
+		"object-src 'self'; " +
+		"script-src 'self' " + SegmentTelemetryOrigin + "; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' https: data: blob:; " +
+		"font-src 'self' data:; " +
+		"media-src 'self' https: data: blob:; " +
+		"connect-src 'self' " + SegmentTelemetryOrigin + "; " +
+		"frame-src 'self' https:; " +
+		"frame-ancestors 'none'"
 )

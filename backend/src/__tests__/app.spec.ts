@@ -4,8 +4,10 @@ import * as path from 'path';
 import { fastify, FastifyInstance } from 'fastify';
 import {
   CACHE_CONTROL_NO_STORE,
+  CONTENT_SECURITY_POLICY,
   CROSS_ORIGIN_OPENER_POLICY,
   REFERRER_POLICY,
+  SEGMENT_TELEMETRY_ORIGIN,
   X_CONTENT_TYPE_OPTIONS,
   X_DNS_PREFETCH_CONTROL,
   X_FRAME_OPTIONS,
@@ -97,7 +99,7 @@ describe('app static and view wiring', () => {
   });
 
   describe('security headers', () => {
-    const expectConsoleSecurityHeaders = (headers: Record<string, unknown>): void => {
+    const expectBrowserSecurityHeaders = (headers: Record<string, unknown>): void => {
       expect(headers['x-content-type-options']).toBe(X_CONTENT_TYPE_OPTIONS);
       expect(headers['cross-origin-opener-policy']).toBe(CROSS_ORIGIN_OPENER_POLICY);
       expect(headers['x-frame-options']).toBe(X_FRAME_OPTIONS);
@@ -105,12 +107,40 @@ describe('app static and view wiring', () => {
       expect(headers['referrer-policy']).toBe(REFERRER_POLICY);
     };
 
-    it('should set Console-equivalent headers and no-store on HTML', async () => {
+    const expectEnforcingCsp = (headers: Record<string, unknown>): void => {
+      expect(headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
+    };
+
+    const expectNoCsp = (headers: Record<string, unknown>): void => {
+      expect(headers['content-security-policy']).toBeUndefined();
+    };
+
+    it('should set browser security headers and no-store on HTML', async () => {
       const response = await app.inject({ method: 'GET', url: '/projects' });
 
       expect(response.statusCode).toBe(200);
-      expectConsoleSecurityHeaders(response.headers);
+      expectBrowserSecurityHeaders(response.headers);
+      expectEnforcingCsp(response.headers);
       expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
+    });
+
+    it('should set the enforcing CSP on the SPA shell', async () => {
+      const response = await app.inject({ method: 'GET', url: '/' });
+
+      expect(response.statusCode).toBe(200);
+      expectEnforcingCsp(response.headers);
+      expect(response.headers['content-security-policy']).toContain(SEGMENT_TELEMETRY_ORIGIN);
+    });
+
+    it('should not set a CSP on non-document responses', async () => {
+      const health = await app.inject({ method: 'GET', url: '/api/health' });
+      const hashed = await app.inject({ method: 'GET', url: `/${HASHED_ASSET}` });
+      const unhashed = await app.inject({ method: 'GET', url: '/vendor.js' });
+      const image = await app.inject({ method: 'GET', url: '/logo.png' });
+
+      for (const response of [health, hashed, unhashed, image]) {
+        expectNoCsp(response.headers);
+      }
     });
 
     it('should keep host static file cache policies', async () => {
@@ -118,7 +148,7 @@ describe('app static and view wiring', () => {
       const unhashed = await app.inject({ method: 'GET', url: '/vendor.js' });
       const image = await app.inject({ method: 'GET', url: '/logo.png' });
 
-      expectConsoleSecurityHeaders(hashed.headers);
+      expectBrowserSecurityHeaders(hashed.headers);
       expect(hashed.headers['cache-control']).toBe('public, max-age=31536000, immutable');
       expect(unhashed.headers['cache-control']).toBe('no-cache');
       expect(image.headers['cache-control']).toBe('public, max-age=86400');
@@ -129,7 +159,7 @@ describe('app static and view wiring', () => {
       const status = await app.inject({ method: 'GET', url: '/api/status' });
 
       for (const response of [health, status]) {
-        expectConsoleSecurityHeaders(response.headers);
+        expectBrowserSecurityHeaders(response.headers);
         expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
       }
       expect(health.json()).toEqual({ status: 'ok' });

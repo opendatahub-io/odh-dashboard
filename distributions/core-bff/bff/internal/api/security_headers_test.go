@@ -6,6 +6,9 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +28,7 @@ func TestSetSecurityHeaders_APIGetsNoStore(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
 
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 	assertNoStoreCache(t, rr.Header())
 }
 
@@ -41,7 +44,150 @@ func TestSetSecurityHeaders_NonAPIDoesNotForceNoStore(t *testing.T) {
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/app.abcdef0123456789.js", nil))
 
 	assert.Equal(t, "public, max-age=31536000, immutable", rr.Header().Get(constants.HeaderCacheControl))
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
+}
+
+// A module document reached through the host proxy keeps the policy.
+// httputil.ReverseProxy copies the upstream Content-Type before writing the status
+// line, so the wrapper still classifies the reply as an HTML document.
+func TestSetSecurityHeaders_ProxiedHTMLGetsCSP(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set(constants.HeaderContentType, "text/html; charset=utf-8")
+		_, _ = io.WriteString(w, "<html></html>")
+	}))
+	defer upstream.Close()
+
+	target, err := url.Parse(upstream.URL)
+	require.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	app := newTestApp()
+	app.SetSecurityHeaders(httputil.NewSingleHostReverseProxy(target)).
+		ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/gen-ai/", nil))
+
+	assertContentSecurityPolicy(t, rr.Header())
+}
+
+// The proxy must not turn JSON into a document: no policy on proxied API replies.
+func TestSetSecurityHeaders_ProxiedJSONHasNoCSP(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
+		_, _ = io.WriteString(w, `{}`)
+	}))
+	defer upstream.Close()
+
+	target, err := url.Parse(upstream.URL)
+	require.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	app := newTestApp()
+	app.SetSecurityHeaders(httputil.NewSingleHostReverseProxy(target)).
+		ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/gen-ai/api/v1/models", nil))
+
+	assert.Empty(t, rr.Header().Get(constants.HeaderContentSecurityPolicy))
+}
+
+func TestSetSecurityHeaders_HTMLGetsCSP(t *testing.T) {
+	app := newTestApp()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(constants.HeaderContentType, "text/html; charset=utf-8")
+		_, _ = io.WriteString(w, "<html></html>")
+	})
+
+	rr := httptest.NewRecorder()
+	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/projects", nil))
+
+	assertContentSecurityPolicy(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
+}
+
+func TestSetSecurityHeaders_NonDocumentsOmitCSP(t *testing.T) {
+	app := newTestApp()
+
+	tests := []struct {
+		name        string
+		contentType string
+		path        string
+	}{
+		{"JSON API", constants.ContentTypeJSON, "/api/v1/healthcheck"},
+		{"JavaScript asset", "application/javascript", "/app.abcdef0123456789.js"},
+		{"CSS asset", "text/css", "/app.abcdef0123456789.css"},
+		{"image asset", "image/png", "/logo.png"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set(constants.HeaderContentType, tt.contentType)
+				w.WriteHeader(http.StatusOK)
+			})
+
+			rr := httptest.NewRecorder()
+			app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, tt.path, nil))
+
+			assertNoContentSecurityPolicy(t, rr.Header())
+			assertBrowserSecurityHeaders(t, rr.Header())
+		})
+	}
+}
+
+func TestIsHTMLResponse(t *testing.T) {
+	tests := []struct {
+		contentType string
+		want        bool
+	}{
+		{"text/html", true},
+		{"text/html; charset=utf-8", true},
+		{"TEXT/HTML", true},
+		{"", false},
+		{"text/plain", false},
+		{"application/json; charset=utf-8", false},
+		{"application/javascript", false},
+		{"text/htmlx", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.contentType, func(t *testing.T) {
+			assert.Equal(t, tt.want, isHTMLResponse(tt.contentType))
+		})
+	}
+}
+
+func TestContentSecurityPolicy(t *testing.T) {
+	directives := map[string][]string{}
+	for _, part := range strings.Split(constants.ContentSecurityPolicy, "; ") {
+		fields := strings.Fields(part)
+		require.NotEmpty(t, fields, "empty directive in %q", part)
+		directives[fields[0]] = fields[1:]
+	}
+
+	assert.Equal(t, []string{"'self'"}, directives["default-src"])
+	assert.Equal(t, []string{"'self'"}, directives["base-uri"])
+	assert.Equal(t, []string{"'self'"}, directives["object-src"])
+	assert.Equal(t, []string{"'none'"}, directives["frame-ancestors"])
+	assert.Contains(t, directives["style-src"], "'unsafe-inline'")
+	assert.Contains(t, directives["frame-src"], "https:")
+	for _, directive := range []string{"img-src", "media-src"} {
+		assert.Contains(t, directives[directive], "blob:")
+		assert.Contains(t, directives[directive], "data:")
+	}
+
+	// The Segment origin belongs to the directives that load and call it, and nowhere else.
+	assert.Contains(t, directives["script-src"], constants.SegmentTelemetryOrigin)
+	assert.Contains(t, directives["connect-src"], constants.SegmentTelemetryOrigin)
+	for directive, values := range directives {
+		if directive == "script-src" || directive == "connect-src" {
+			continue
+		}
+		assert.NotContains(t, values, constants.SegmentTelemetryOrigin, directive)
+	}
+
+	for directive, values := range directives {
+		for _, value := range values {
+			assert.NotEqual(t, "http:", value, directive)
+			assert.False(t, strings.HasPrefix(value, "http://"), "%s allows %s", directive, value)
+		}
+	}
 }
 
 func TestSetSecurityHeaders_FlushAppliesHeaders(t *testing.T) {
@@ -56,7 +202,7 @@ func TestSetSecurityHeaders_FlushAppliesHeaders(t *testing.T) {
 	rr := httptest.NewRecorder()
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
 
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 	assertNoStoreCache(t, rr.Header())
 }
 
@@ -71,7 +217,7 @@ func TestSetSecurityHeaders_UnwrittenResponseFinalized(t *testing.T) {
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 	assertNoStoreCache(t, rr.Header())
 }
 
@@ -87,7 +233,7 @@ func TestSetSecurityHeaders_DuplicateWriteHeaderIgnored(t *testing.T) {
 	app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/api/v1/healthcheck", nil))
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assertConsoleSecurityHeaders(t, rr.Header())
+	assertBrowserSecurityHeaders(t, rr.Header())
 }
 
 // statusCaptureWriter records every WriteHeader call so informational + final statuses can be asserted.
@@ -128,7 +274,7 @@ func TestSecurityHeadersWriter_InformationalThenFinalStatus(t *testing.T) {
 
 	require.Equal(t, []int{http.StatusEarlyHints, http.StatusNotFound}, rec.codes)
 	assert.Equal(t, "missing", string(rec.body))
-	assertConsoleSecurityHeaders(t, rec.header)
+	assertBrowserSecurityHeaders(t, rec.header)
 }
 
 func TestSetSecurityHeaders_InformationalThenFinalViaHTTPServer(t *testing.T) {
@@ -152,7 +298,7 @@ func TestSetSecurityHeaders_InformationalThenFinalViaHTTPServer(t *testing.T) {
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t, "upstream unavailable", string(body))
-	assertConsoleSecurityHeaders(t, resp.Header)
+	assertBrowserSecurityHeaders(t, resp.Header)
 }
 
 type hijackRecorder struct {
@@ -209,7 +355,7 @@ func TestSetSecurityHeaders_ResponseControllerDeadlines(t *testing.T) {
 	assert.True(t, deadline.Equal(wrapped.writeDeadline))
 	assert.True(t, deadline.Equal(wrapped.readDeadline))
 	assert.True(t, wrapped.fullDuplex)
-	assertConsoleSecurityHeaders(t, base.Header())
+	assertBrowserSecurityHeaders(t, base.Header())
 	assertNoStoreCache(t, base.Header())
 }
 

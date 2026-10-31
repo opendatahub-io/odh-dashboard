@@ -2,13 +2,16 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CACHE_HEADER_IMMUTABLE, CACHE_HEADER_NO_CACHE } from '../cacheHeaders';
 import {
   CACHE_CONTROL_NO_STORE,
+  CONTENT_SECURITY_POLICY,
   CROSS_ORIGIN_OPENER_POLICY,
   REFERRER_POLICY,
+  SEGMENT_TELEMETRY_ORIGIN,
   X_CONTENT_TYPE_OPTIONS,
   X_DNS_PREFETCH_CONTROL,
   X_FRAME_OPTIONS,
   applySecurityHeaders,
   isApiPath,
+  isHtmlContentType,
   resolveStaticProxyCacheControl,
   rewriteNoStoreCacheHeaders,
   rewriteStaticProxyCacheHeaders,
@@ -84,6 +87,95 @@ describe('applySecurityHeaders', () => {
     const { reply, headers } = mockReply();
     applySecurityHeaders(mockRequest('/projects'), reply);
     expect(headers['cache-control']).toBeUndefined();
+  });
+});
+
+const parseCsp = (): Record<string, string[]> =>
+  Object.fromEntries(
+    CONTENT_SECURITY_POLICY.split('; ').map((part) => {
+      const [directive, ...values] = part.split(' ');
+      return [directive, values];
+    }),
+  );
+
+describe('isHtmlContentType', () => {
+  it.each(['text/html', 'text/html; charset=utf-8', 'TEXT/HTML'])(
+    'treats %s as HTML',
+    (contentType) => {
+      expect(isHtmlContentType(contentType)).toBe(true);
+    },
+  );
+
+  it.each([
+    undefined,
+    '',
+    'text/plain',
+    'application/json; charset=utf-8',
+    'application/javascript',
+    'image/png',
+    'text/htmlx',
+  ])('does not treat %s as HTML', (contentType) => {
+    expect(isHtmlContentType(contentType)).toBe(false);
+  });
+});
+
+describe('Content-Security-Policy', () => {
+  it('sets the enforcing policy on HTML documents', () => {
+    const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
+    applySecurityHeaders(mockRequest('/projects'), reply);
+    expect(headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
+  });
+
+  it.each([
+    ['application/json', '/api/status'],
+    ['application/javascript', '/vendor.js'],
+    ['text/css', '/app.db5954bb8ab62ecf.css'],
+    ['image/png', '/logo.png'],
+  ])('omits the policy for %s', (contentType, url) => {
+    const { reply, headers } = mockReply({ 'content-type': contentType });
+    applySecurityHeaders(mockRequest(url), reply);
+    expect(headers['content-security-policy']).toBeUndefined();
+  });
+
+  it('allowlists the telemetry origin only where the Segment client needs it', () => {
+    const csp = parseCsp();
+
+    expect(csp['script-src']).toContain(SEGMENT_TELEMETRY_ORIGIN);
+    expect(csp['connect-src']).toContain(SEGMENT_TELEMETRY_ORIGIN);
+
+    for (const directive of [
+      'default-src',
+      'base-uri',
+      'object-src',
+      'style-src',
+      'img-src',
+      'font-src',
+      'media-src',
+      'frame-src',
+      'frame-ancestors',
+    ]) {
+      expect(csp[directive]).not.toContain(SEGMENT_TELEMETRY_ORIGIN);
+    }
+  });
+
+  it('keeps the document locked down and the preview surfaces usable', () => {
+    const csp = parseCsp();
+
+    expect(csp['default-src']).toEqual(["'self'"]);
+    expect(csp['base-uri']).toEqual(["'self'"]);
+    expect(csp['object-src']).toEqual(["'self'"]);
+    expect(csp['frame-ancestors']).toEqual(["'none'"]);
+    expect(csp['frame-src']).toContain('https:');
+    expect(csp['img-src']).toEqual(expect.arrayContaining(['https:', 'data:', 'blob:']));
+    expect(csp['media-src']).toEqual(expect.arrayContaining(['https:', 'data:', 'blob:']));
+    expect(csp['style-src']).toContain("'unsafe-inline'");
+  });
+
+  it('never allows plain http:', () => {
+    const insecure = Object.values(parseCsp())
+      .flat()
+      .filter((value) => value === 'http:' || value.startsWith('http://'));
+    expect(insecure).toEqual([]);
   });
 });
 

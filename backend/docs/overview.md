@@ -44,6 +44,12 @@ Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federa
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `X-Frame-Options` | `DENY` |
 | `X-DNS-Prefetch-Control` | `off` |
+| `Content-Security-Policy` | enforcing policy — HTML responses only (see [CSP](../../docs/content-security-policy.md)) |
+
+The CSP applies to documents only (responses with `Content-Type: text/html`). JSON APIs,
+static assets, and `/_mf` proxy responses carry no policy. It is always enforcing; there is
+no report-only mode. See [docs/content-security-policy.md](../../docs/content-security-policy.md)
+for the directive table and the rationale behind each allowance.
 
 `Cache-Control` is selective (not blanket `no-store`):
 

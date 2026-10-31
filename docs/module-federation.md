@@ -137,7 +137,9 @@ In this example:
 - Use `authorize: true` for modules that require authentication. By setting this property, the backend reverse proxy will forward the user token in the header `Authorization: Bearer <token>`
 - Validate all shared dependencies and their versions
 - Ensure remote modules are served from trusted sources
-- Consider implementing Content Security Policy (CSP) headers
+- The dashboard serves an enforcing Content Security Policy on HTML responses; remotes load
+  from the same origin so no extra allowance is needed. See
+  [Content Security Policy](content-security-policy.md)
 
 ### Example Configuration
 

@@ -12,13 +12,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertConsoleSecurityHeaders(t *testing.T, h http.Header) {
+func assertBrowserSecurityHeaders(t *testing.T, h http.Header) {
 	t.Helper()
 	assert.Equal(t, constants.ReferrerPolicyStrictOriginWhenCrossOrigin, h.Get(constants.HeaderReferrerPolicy))
 	assert.Equal(t, constants.XContentTypeOptionsNoSniff, h.Get(constants.HeaderXContentTypeOptions))
 	assert.Equal(t, constants.CrossOriginOpenerPolicySameOrigin, h.Get(constants.HeaderCrossOriginOpenerPolicy))
 	assert.Equal(t, constants.XFrameOptionsDeny, h.Get(constants.HeaderXFrameOptions))
 	assert.Equal(t, constants.XDNSPrefetchControlOff, h.Get(constants.HeaderXDNSPrefetchControl))
+}
+
+func assertContentSecurityPolicy(t *testing.T, h http.Header) {
+	t.Helper()
+	assert.Equal(t, constants.ContentSecurityPolicy, h.Get(constants.HeaderContentSecurityPolicy))
+}
+
+func assertNoContentSecurityPolicy(t *testing.T, h http.Header) {
+	t.Helper()
+	assert.Empty(t, h.Get(constants.HeaderContentSecurityPolicy))
 }
 
 func assertNoStoreCache(t *testing.T, h http.Header) {
