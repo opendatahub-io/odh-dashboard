@@ -1,7 +1,9 @@
 import { mockToolCallingValidatedConfiguration } from '@odh-dashboard/model-serving/__mocks__/mockValidatedConfigurations';
 import {
   getDeployWizardEntryPoint,
+  getDeployWizardNavState,
   getDeployWizardStartedProperties,
+  getModelDeployedTrackingProperties,
 } from '../deployWizardTracking';
 
 describe('getDeployWizardEntryPoint', () => {
@@ -63,6 +65,36 @@ describe('getDeployWizardStartedProperties', () => {
       catalogModelId: undefined,
       hasValidatedArgumentsSection: false,
       isEditMode: false,
+    });
+  });
+});
+
+describe('getModelDeployedTrackingProperties', () => {
+  it('ignores invalid extra tracking properties', () => {
+    expect(
+      getDeployWizardNavState({
+        extraDeployTrackingProperties: {
+          nested: { value: 'unexpected' },
+        },
+      }).extraDeployTrackingProperties,
+    ).toBeUndefined();
+  });
+
+  it('preserves denied access for a gated catalog model', () => {
+    const navState = getDeployWizardNavState({
+      fromCatalog: true,
+      catalogModelId: 'huggingface/model',
+      extraDeployTrackingProperties: {
+        hfAccessType: 'gated_auto',
+        isAccessGranted: false,
+      },
+    });
+
+    expect(
+      getModelDeployedTrackingProperties({ navState, outcome: 'submit', success: false }),
+    ).toMatchObject({
+      hfAccessType: 'gated_auto',
+      isAccessGranted: false,
     });
   });
 });
