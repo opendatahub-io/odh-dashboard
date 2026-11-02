@@ -363,6 +363,8 @@ export const deleteEvalHubTenantCollections = (namespace: string): Cypress.Chain
 
 export type SingleBenchmarkEvaluationOptions = {
   benchmarkCardTitle: string;
+  benchmarkProviderId: string;
+  benchmarkId: string;
   evaluationRunName: string;
   inferenceServiceName: string;
   mlflowExperimentName: string;
@@ -533,6 +535,8 @@ export const clearEvalHubEvaluationJobs = (evaluationTenantProject: string): voi
 export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationOptions): void => {
   const {
     benchmarkCardTitle,
+    benchmarkProviderId,
+    benchmarkId,
     evaluationRunName,
     inferenceServiceName,
     mlflowExperimentName,
@@ -554,7 +558,7 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
 
   cy.step(`Select benchmark: ${benchmarkCardTitle}`);
   createEvaluationPage
-    .findBenchmarkCardByTitle(benchmarkCardTitle)
+    .findBenchmarkCard(benchmarkProviderId, benchmarkId)
     .scrollIntoView()
     .within(() => {
       createEvaluationPage.findSelectBenchmarkButton().click();
