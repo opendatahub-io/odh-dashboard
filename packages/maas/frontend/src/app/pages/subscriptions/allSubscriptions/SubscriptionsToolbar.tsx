@@ -33,7 +33,7 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
   returnTo,
   showCreateButton = true,
 }) => (
-  <FilterToolbar<SubscriptionsFilterOptions>
+  <FilterToolbar<keyof typeof subscriptionsFilterOptions>
     data-testid="subscriptions-table-toolbar"
     filterOptions={subscriptionsFilterOptions}
     filterOptionRenders={{

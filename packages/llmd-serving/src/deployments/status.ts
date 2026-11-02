@@ -24,24 +24,32 @@ import {
   LLMInferenceServiceReadyConditionReason,
 } from '../types';
 
+const EMPTY_LLM_INFERENCE_SERVICE_PODS_RESULT: K8sWatchResult<PodKind[]> = [[], true, undefined];
+
 export const useLLMInferenceServicePods = (
   namespace: string,
   opts?: K8sAPIOptions,
-): K8sWatchResult<PodKind[]> =>
-  useK8sWatchResourceList<PodKind[]>(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(PodModel),
-      namespace,
-      selector: {
-        matchLabels: {
-          'app.kubernetes.io/component': 'llminferenceservice-workload',
-        },
-      },
-    },
+  enabled = true,
+): K8sWatchResult<PodKind[]> => {
+  const result = useK8sWatchResourceList<PodKind[]>(
+    enabled
+      ? {
+          isList: true,
+          groupVersionKind: groupVersionKind(PodModel),
+          namespace,
+          selector: {
+            matchLabels: {
+              'app.kubernetes.io/component': 'llminferenceservice-workload',
+            },
+          },
+        }
+      : null,
     PodModel,
     opts,
   );
+
+  return enabled ? result : EMPTY_LLM_INFERENCE_SERVICE_PODS_RESULT;
+};
 
 type LLMdConditionSpec = {
   type: string;

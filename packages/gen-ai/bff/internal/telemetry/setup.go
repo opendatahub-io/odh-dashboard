@@ -23,7 +23,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const defaultServiceName = "gen-ai-bff"
+const (
+	defaultServiceName         = "gen-ai-bff"
+	collectorDiscoveryInterval = 30 * time.Second
+)
 
 // otlpTracesPath is the OTLP/HTTP signal path served by the OTel collector.
 const otlpTracesPath = "/v1/traces"
@@ -49,51 +52,109 @@ func normalizeOTLPEndpointURL(endpoint string) string {
 // The collector endpoint is resolved in this order:
 //  1. OTEL_EXPORTER_OTLP_ENDPOINT env var (local dev override)
 //  2. Auto-discovery from the platform OpenTelemetryCollector CR (in-cluster)
-//  3. If neither is available, tracing is disabled (zero runtime cost)
+//  3. If neither is available, discovery retries in the background until a
+//     collector is found, allowing tracing to be enabled after BFF startup.
 //
 // Standard OTel env vars are also respected:
 //   - OTEL_SERVICE_NAME — service name resource attribute (default: gen-ai-bff)
 //   - OTEL_RESOURCE_ATTRIBUTES — comma-separated key=value pairs for resource attributes
 func Setup(logger *slog.Logger) func(context.Context) error {
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if endpoint == "" {
-		endpoint = discoverCollectorEndpoint(logger)
-	}
-	if endpoint == "" {
-		logger.Info("OTel tracing disabled (no collector endpoint configured or discovered)")
-		return func(context.Context) error { return nil }
-	}
-	ctx := context.Background()
+	return setup(logger, discoverCollectorEndpoint, collectorDiscoveryInterval)
+}
 
-	endpoint = normalizeOTLPEndpointURL(endpoint)
+// setup attempts initialization immediately, then retries until it succeeds or
+// shutdown is called. Only this worker publishes a provider, and it stops after
+// success: collector connectivity failures are handled by the OTLP exporter.
+func setup(logger *slog.Logger, discover func(context.Context, *slog.Logger) string, interval time.Duration) func(context.Context) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	var tp *sdktrace.TracerProvider
+	endpointOverride := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
-	exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
-	if err != nil {
-		logger.Error("failed to create OTLP trace exporter", "error", err)
-		return func(context.Context) error { return nil }
-	}
-
-	res, err := buildResource(ctx)
-	if err != nil {
-		logger.Error("failed to build OTel resource", "error", err)
-		return func(context.Context) error { return nil }
-	}
-
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exporter),
-		sdktrace.WithResource(res),
-		sdktrace.WithSpanProcessor(&namespaceSpanProcessor{}),
-	)
-
-	otel.SetTracerProvider(tp)
+	// Install propagation before HTTP middleware/transports are constructed,
+	// including when the tracer provider will only become available later.
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
 
-	logger.Info("OTel tracing enabled", "endpoint", endpoint)
+	initialize := func() bool {
+		endpoint := endpointOverride
+		if endpoint == "" {
+			endpoint = discover(ctx, logger)
+		}
+		if endpoint == "" || ctx.Err() != nil {
+			return false
+		}
+		provider, err := newTracerProvider(ctx, endpoint)
+		if err != nil {
+			logger.Error("failed to initialize OTel tracing, will retry", "error", err)
+			return false
+		}
+		tp = provider
+		// OTel's default provider delegates previously acquired tracers to this
+		// provider, so instrumentation created before discovery also starts tracing.
+		otel.SetTracerProvider(tp)
+		logger.Info("OTel tracing enabled", "endpoint", endpoint)
+		return true
+	}
 
-	return tp.Shutdown
+	if initialize() {
+		close(done)
+	} else {
+		logger.Info("OTel tracing not initialized, retrying in background", "interval", interval)
+		go func() {
+			defer close(done)
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if ctx.Err() != nil {
+						return
+					}
+					if initialize() {
+						return
+					}
+				}
+			}
+		}()
+	}
+
+	return func(shutdownCtx context.Context) error {
+		cancel()
+		// Waiting also synchronizes access to tp and prevents initialization
+		// from racing with provider shutdown.
+		select {
+		case <-done:
+			if tp != nil {
+				return tp.Shutdown(shutdownCtx)
+			}
+			return nil
+		case <-shutdownCtx.Done():
+			return shutdownCtx.Err()
+		}
+	}
+}
+
+func newTracerProvider(ctx context.Context, endpoint string) (*sdktrace.TracerProvider, error) {
+	res, err := buildResource(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build OTel resource: %w", err)
+	}
+
+	exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(normalizeOTLPEndpointURL(endpoint)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OTLP trace exporter: %w", err)
+	}
+
+	return sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+		sdktrace.WithSpanProcessor(&namespaceSpanProcessor{}),
+	), nil
 }
 
 const namespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
@@ -119,7 +180,7 @@ func detectNamespace() string {
 // the endpoint deterministically from the namespace where the platform
 // collector lives, so the OTel SDK exporter retries in the background until
 // the gen-ai collector is created by EnsureRoute.
-func discoverCollectorEndpoint(logger *slog.Logger) string {
+func discoverCollectorEndpoint(ctx context.Context, logger *slog.Logger) string {
 	restCfg, err := rest.InClusterConfig()
 	if err != nil {
 		loadedCfg, loadErr := clientcmd.NewDefaultClientConfigLoadingRules().Load()
@@ -137,7 +198,7 @@ func discoverCollectorEndpoint(logger *slog.Logger) string {
 		return ""
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	list, err := dynClient.Resource(constants.OTelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})

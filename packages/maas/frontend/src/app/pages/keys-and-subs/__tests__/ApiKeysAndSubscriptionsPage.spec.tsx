@@ -61,7 +61,7 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     expect(screen.getByTestId('app-page-title')).toHaveTextContent('API keys');
   });
 
-  it('should render tabs for API keys and Subscriptions', () => {
+  it('should render tabs for API keys and My subscriptions', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
     expect(screen.getByTestId('api-keys-tab')).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('ApiKeysAndSubscriptionsPage', () => {
   it('should navigate when switching to the subscriptions tab', () => {
     render(<ApiKeysAndSubscriptionsPage />);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'My subscriptions tab' }));
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.stringContaining('/keys-and-subs/subscriptions'),
@@ -119,7 +119,7 @@ describe('ApiKeysAndSubscriptionsPage', () => {
     mockTab = 'subscriptions';
     render(<ApiKeysAndSubscriptionsPage />);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Subscriptions tab' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'My subscriptions tab' }));
 
     expect(mockNavigate).not.toHaveBeenCalled();
   });

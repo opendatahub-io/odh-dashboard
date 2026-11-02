@@ -311,7 +311,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern\u00a0A');
+    expect(patternNodes[0].data.label).toBe('PatternGraphRAG');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
     expect(patternNodes[0].data.winnerRank).toBeUndefined();
@@ -353,7 +353,15 @@ describe('transformStageMapNodesToTree', () => {
   });
 
   it('uses winnerPatternLabel on the collapsed spine when the run has succeeded', () => {
-    const topologyNodes = buildStageMapTopology(makeStageMap([ragOptimization]));
+    const optimizationWithWinnerSecond = makeComponent('rag_optimization', [
+      makeStage('validate_inputs', { status: 'completed' }),
+      makeStage('optimize_templates', {
+        status: 'started',
+        selected_patterns: ['PatternHyDE', 'PatternGraphRAG'],
+        steps: ['chunking', 'embedding', 'retrieval'],
+      }),
+    ]);
+    const topologyNodes = buildStageMapTopology(makeStageMap([optimizationWithWinnerSecond]));
     const { nodes } = transformStageMapNodesToTree(topologyNodes, {
       patternsExpanded: false,
       winnerResolved: true,
@@ -363,7 +371,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const patternNodes = nodes.filter((node) => node.id.includes('__pattern__'));
     expect(patternNodes).toHaveLength(1);
-    expect(patternNodes[0].data.label).toBe('Pattern\u00a0A');
+    expect(patternNodes[0].data.label).toBe('Best Pattern Display Name');
     expect(patternNodes[0].data.labelSubtitle).toBe('winner');
     expect(patternNodes[0].data.showWinnerStar).toBe(false);
     expect(patternNodes[0].data.winnerRank).toBeUndefined();
@@ -462,10 +470,10 @@ describe('transformStageMapNodesToTree', () => {
     expect(nodes.some((node) => node.data.nodeRole === 'column-header')).toBe(true);
     expect(nodes.some((node) => node.data.nodeRole === 'column-rule')).toBe(true);
     const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
-    expect(rowLabels.map((node) => node.data.label)).toEqual(['Pattern\u00a0A', 'Pattern\u00a0B']);
+    expect(rowLabels.map((node) => node.data.label)).toEqual(['PatternGraphRAG', 'PatternHyDE']);
     const rowLabelXs = [...new Set(rowLabels.map((node) => node.x ?? 0))];
     expect(rowLabelXs).toHaveLength(1);
-    expect(rowLabels.every((node) => node.width === 68)).toBe(true);
+    expect(rowLabels.every((node) => node.width === 105)).toBe(true);
     expect(rowLabels.every((node) => node.height === 32)).toBe(true);
     const firstBranchNodes = nodes.filter(
       (node) => node.id.includes('__step__') && node.id.includes('__branch-'),

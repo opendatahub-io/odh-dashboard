@@ -24,13 +24,14 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
 | `maasPortal` | `MaaSPortalSpec` | [MaaS Portal](maas-portal.md) (`managementState: Managed`/`Removed`; served below the gateway path) |
+| `modelRegistryOCIBaseImage` | `string` | Optional [OCI upload base image](model-registry-oci-base-image.md) for Model Registry Jobs |
 
 ### Status Fields
 
 | Field | Type | Purpose |
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
-| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSPortalAvailable` |
+| `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSPortalAvailable`, and optional `ModelRegistryConfigValid` |
 | `observedGeneration` | `int64` | Last processed spec generation |
 | `url` | `string` | Externally-reachable dashboard URL |
 | `maasPortalUrl` | `string` | Last known good MaaS Portal URL; cleared when the operand is removed |
@@ -55,15 +56,17 @@ The controller follows a sequential pipeline on each reconcile:
 ```text
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
-3. Handle Removed      -> tear down core resources, retain portal dependencies
+3. Handle core Removed -> reconcile retained modules, then tear down core resources
 4. Deploy:
    -> Clean up legacy sidecar resources (upgrade path)
    -> Render overlay (odh or rhoai)
    -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
+   -> Validate and apply Model Registry upload ConfigMap independently
    -> For each enabled module:
    |   -> Render manifests/modules/<slug>/
    |   -> Deploy as independent Deployment via SSA
-   -> GC disabled module resources
+   |   -> On failure, stop and retry (no module cleanup or federation update)
+   -> Clean up disabled module resources (garbage collection)
    -> Build dynamic federation-config ConfigMap
    -> Patch main Deployment with config hash annotation (rolling restart)
 5. Extract URL         -> Route admission check
@@ -72,7 +75,7 @@ The controller follows a sequential pipeline on each reconcile:
 
 ### ManagementState Handling
 
-The controller supports `managementState: Removed` on the Dashboard CR. When set:
+The controller supports `managementState: Removed` on the Dashboard CR. The Operator keeps running to reconcile removal of the core Dashboard application. When set:
 
 1. Resources labeled `platform.opendatahub.io/part-of: dashboard` in the applications namespace are deleted (HTTPRoutes, Deployments, Services, ConfigMaps, ServiceAccounts, Secrets, NetworkPolicies, Roles, RoleBindings) plus cluster-scoped ClusterRoles and ClusterRoleBindings, except shared resources still needed by a managed MaaS Portal. HTTPRoute cleanup is skipped when the Gateway API mapping is unavailable.
 2. Enabled observability resources are retained while the portal is managed, including resources in a separate monitoring namespace; otherwise they are cleaned up
@@ -83,6 +86,10 @@ The controller supports `managementState: Removed` on the Dashboard CR. When set
 The portal lifecycle is independent of the core dashboard's `managementState`.
 A managed portal retains its shared module and observability dependencies during
 core removal. See [portal lifecycle and shared dependencies](maas-portal.md#lifecycle-and-shared-dependencies).
+Retained-module demand is reconciled before core teardown; if retained-module
+reconciliation fails, teardown is skipped and retried. Invalid Model Registry OCI configuration
+does not block removal or unrelated resource updates; see
+[Model Registry OCI Upload Base Image](model-registry-oci-base-image.md).
 
 The finalizer handles a separate concern: cleanup on CR **deletion** (when `DeletionTimestamp` is set). `Removed` is a "soft stop" that preserves the CR while removing the operand.
 
@@ -107,9 +114,12 @@ The overlay extends `manifests/base/` and produces a core pod with 3 containers 
 
 ### Rendering Pipeline
 
-1. **Kustomize params** computed from Dashboard spec (gateway domain, section title) and `RELATED_IMAGE_*` env vars
-2. **Kustomize engine** renders manifests with namespace injection
-3. **SSA deployer** applies all resources with `dashboard-operator` as field owner
+1. **Kustomize params** combine Dashboard spec values (such as the gateway domain), the platform-specific section title, and container-image `RELATED_IMAGE_*` env vars. The Operator always writes an empty `images-oci-base-image` placeholder, keeping the CR's OCI value out of rendering.
+2. **Kustomize engine** renders manifests with namespace injection. The controller separates `model-registry-ui-config` from the other rendered resources.
+3. **SSA deployer** applies the other resources with `dashboard-operator` as field owner.
+4. **Upload configuration** independently validates `Dashboard.spec.modelRegistryOCIBaseImage` and applies `model-registry-ui-config`. Invalid input preserves only the live OCI value (or an empty value if absent), while other ConfigMap data can still update. Validation is informational; ConfigMap read or apply failures return errors for retry.
+
+For Operator-managed deployments, administrators configure the Dashboard CR; the upload ConfigMap is controller-managed output. Independent Kustomize deployments can set the actual `images-oci-base-image` value in their overlay's `params.env` before rendering. See the [administrator guide](model-registry-oci-base-image.md) for commands, defaults, and status behavior.
 
 ### Module Manifests
 
@@ -307,6 +317,8 @@ When transitioning from the legacy ODH Operator to the Dashboard Module Controll
 
 This behavior is built into the `odh-platform-utilities/pkg/deploy` package, which uses `ForceOwnership` in both `ModePatch` and `ModeSSA` modes. No custom adoption code is required in the controller.
 
+Before applying rendered resources, the controller also repairs externally drifted Service port lists that SSA cannot safely reconcile when an associative-list key changes. The repair preserves an API-allocated `nodePort` when the corresponding desired port does not specify one. A Service is left untouched when either the live or rendered resource has the `opendatahub.io/managed: "false"` annotation.
+
 ### Cross-Namespace Cleanup
 
 The cluster-scoped Dashboard CR can own resources in any namespace. Explicit cleanup also handles soft removal, where the CR remains present and owner-reference garbage collection does not run. Perses resources may be deployed to a separate observability namespace (`spec.observability.persesService.namespace`).
@@ -348,6 +360,7 @@ The Dashboard type provides five methods:
 | `Degraded` | One or more modules degraded | No degradation / route not ready |
 | `ObservabilityAvailable` | Perses proxy deployed | Perses proxy not configured/failed (set with `severity: Info` when simply disabled, which does not block `Ready`) |
 | [`MaaSPortalAvailable`](maas-portal.md#configuration-and-availability) | MaaS Portal Deployment is available and its HTTPRoute is accepted/resolved | Portal dependency, federation, Deployment, route, apply, or cleanup failure; `Disabled` and `UnsupportedPlatform` use `severity: Info` |
+| [`ModelRegistryConfigValid`](model-registry-oci-base-image.md) | Not set to True; cleared when the OCI base-image value is valid or unset, or when the core Dashboard is `Removed` | A value passed admission but failed controller validation (`InvalidOCIBaseImage`, `severity: Info`); excluded from the `Ready` rollup |
 
 Portal-specific failure reasons use the `MaaSPortal` prefix. Reconciliation removes the legacy portal availability condition before calculating readiness.
 
@@ -385,6 +398,31 @@ The metrics endpoint binds to port 8443 with HTTPS enabled by default (`--secure
 Each certificate includes DNS names for in-cluster service discovery:
 - `<service-name>.<namespace>.svc`
 - `<service-name>.<namespace>.svc.cluster.local`
+
+### Cluster TLS Profile Resolution
+
+At startup the manager resolves the OpenShift cluster-wide TLS security profile
+(`apiservers.config.openshift.io/cluster`) via `internal/tls` and applies the
+resulting minimum TLS version and cipher suites to **both** the metrics and webhook
+HTTPS listeners. This keeps the operator's own listeners in step with the cluster
+policy rather than pinning a fixed configuration.
+
+Resolution is **fail-closed**: if the profile read is denied (`401`/`403`) or the
+profile is malformed (unknown type/minimum version, or an invalid `Custom` block),
+the manager logs the error and exits (`os.Exit(1)`) rather than serving a weaker
+policy that cannot be proven to match the cluster. A nil/empty profile resolves to
+Mozilla Intermediate defaults (TLS 1.2), and on a non-OpenShift cluster (the API
+group is absent) the manager likewise uses Intermediate defaults.
+
+Unlike the BFF listeners (which reconfigure in-process), the operator does not
+hot-swap TLS on a running listener. A `ProfileWatcher` watches
+`apiservers/cluster`; when the profile changes it cancels the manager's context so
+the process exits and the Deployment restarts it, which re-resolves the new policy.
+Because of this watch, the operator needs `get`, `list`, and `watch` on the
+`apiservers` resource in the `config.openshift.io` API group, granted via the
+operator's ClusterRole. If the manager crash-loops at startup with an `unable to
+resolve TLS configuration` error, check that this RBAC is present and that the
+APIServer config resource is readable.
 
 ## Deployment Prerequisites
 
@@ -594,6 +632,8 @@ Toggle with `networkPolicy.enabled` in `charts/dashboard/values.yaml` (default `
 ### Image Override Pattern
 
 All container images use `RELATED_IMAGE_*` env vars (required by Konflux/operator-framework). The mapping from kustomize param keys to env vars is in `internal/controller/support.go:imagesMap`. The full list of related images is defined in `charts/dashboard/values.yaml` under `relatedImages`.
+
+The administrator-owned [Model Registry OCI upload base image](model-registry-oci-base-image.md) is configured through the Dashboard CR and has no related-image mapping. The async-upload Job container image follows the normal related-image pattern.
 
 ### ODH vs RHOAI Platform Differences
 

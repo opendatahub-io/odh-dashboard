@@ -19,6 +19,10 @@ jest.mock('mod-arch-core', () => ({
   DeploymentMode: { Standalone: 'Standalone' },
 }));
 
+jest.mock('@odh-dashboard/maas/api/whoami', () => ({
+  getMaaSWhoAmI: () => () => Promise.resolve({ isAdmin: false }),
+}));
+
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   usePluginStore: () => ({
     setFeatureFlags: jest.fn(),

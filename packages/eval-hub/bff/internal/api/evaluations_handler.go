@@ -132,11 +132,19 @@ func (app *App) CreateEvaluationJobHandler(w http.ResponseWriter, r *http.Reques
 			app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
 			return
 		}
+		if err := benchmark.TestDataRef.Validate(); err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("benchmark %s: %w", benchmark.ID, err))
+			return
+		}
 	}
 	if input.Collection != nil {
 		for _, benchmark := range input.Collection.Benchmarks {
 			if strings.TrimSpace(benchmark.ID) == "" {
 				app.badRequestResponse(w, r, fmt.Errorf("benchmark id is required"))
+				return
+			}
+			if err := benchmark.TestDataRef.Validate(); err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("benchmark %s: %w", benchmark.ID, err))
 				return
 			}
 		}

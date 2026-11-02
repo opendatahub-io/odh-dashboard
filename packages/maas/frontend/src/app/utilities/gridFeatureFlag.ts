@@ -12,6 +12,9 @@ const DEV_FEATURE_FLAGS_SESSION_KEY = 'odh-maas-portal-feature-flags';
 // TODO: Remove this placeholder when mod-arch-core supports a namespace-free grid setup.
 export const GRID_MANDATORY_NAMESPACE = '__maas_grid__';
 
+export const isMaaSConsumerPortal = (): boolean =>
+  typeof window !== 'undefined' && window.__MAAS_CONSUMER_PORTAL_GRID__ === true;
+
 const parseGridFlagValue = (value: string): boolean => value === 'true';
 
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
@@ -34,7 +37,7 @@ const readGridFromQuery = (): boolean => {
 };
 
 export const isGridFeatureFlagEnabledFromDevStorage = (): boolean => {
-  if (typeof window !== 'undefined' && window.__MAAS_CONSUMER_PORTAL_GRID__ === true) {
+  if (isMaaSConsumerPortal()) {
     return true;
   }
   if (readGridFromQuery()) {

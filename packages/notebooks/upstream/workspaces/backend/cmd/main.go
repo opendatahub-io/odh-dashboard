@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -27,6 +29,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	tlsprofile "github.com/kubeflow/notebooks/workspaces/controller/pkg/tls"
+
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
@@ -34,6 +38,54 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/server"
 	"github.com/kubeflow/notebooks/workspaces/backend/openapi"
 )
+
+// legacyTLSConfig is the notebooks backend's historical HTTPS policy (TLS 1.3
+// minimum). It is preserved under Legacy/unset cluster TLS adherence so an
+// upgrade does not weaken an existing listener to a lower cluster profile.
+func legacyTLSConfig() *tls.Config {
+	return &tls.Config{MinVersion: tls.VersionTLS13}
+}
+
+// adherenceIsStrict reports whether the cluster TLS adherence policy requires all
+// components to adopt the cluster profile. Empty (unset/unreadable) and
+// LegacyAdheringComponentsOnly are non-strict; StrictAllComponents and any unknown
+// value are treated as strict for forward compatibility.
+func adherenceIsStrict(adherence string) bool {
+	return adherence != "" && adherence != tlsprofile.AdherenceLegacy
+}
+
+// effectiveServerTLSConfig derives the HTTPS listener configuration from a resolved
+// cluster result, honoring the cluster TLS adherence policy (RHOAIENG-96984).
+//
+//   - Policy unreadable (denied/transient read, or malformed adherence): the
+//     adherence decision itself cannot be trusted, so this returns an error
+//     regardless of mode. How the caller treats that error is phase-dependent: at
+//     startup run() exits for a persistent failure but is lenient on a *transient*
+//     one (serves the TLS 1.3 default and lets the watcher apply the real policy
+//     once the API recovers); on reload the watcher callback propagates the error so
+//     it keeps the running configuration and retries. This function does not itself
+//     distinguish those phases — it only reports that the policy is untrusted.
+//   - Strict adherence (clean read): adopt the resolved cluster profile; if that
+//     profile is invalid/inapplicable (degraded), fail closed since Strict requires it.
+//   - Legacy/unset adherence (clean read): preserve the backend's historical TLS 1.3
+//     minimum — even when the cluster profile is inapplicable — rather than failing or
+//     downgrading. Legacy means this component keeps its own (stronger) configuration.
+func effectiveServerTLSConfig(result tlsprofile.Result) (*tls.Config, error) {
+	if result.PolicyUnreadable {
+		return nil, fmt.Errorf("cluster TLS policy could not be read (denied/transient/malformed); refusing to start without a verified policy")
+	}
+	if adherenceIsStrict(result.Adherence) {
+		if result.Degraded {
+			return nil, fmt.Errorf("StrictAllComponents TLS adherence requires the cluster profile but it is invalid or inapplicable")
+		}
+		cfg := &tls.Config{}
+		for _, opt := range result.TLSOpts {
+			opt(cfg)
+		}
+		return cfg, nil
+	}
+	return legacyTLSConfig(), nil
+}
 
 //	@title			Kubeflow Notebooks API
 //	@version		1.0.0
@@ -261,7 +313,37 @@ func run() (status int) {
 		logger.Error("failed to create app", "error", err)
 		return 1
 	}
-	svr, err := server.NewServer(app, logger, certFile, keyFile)
+	// Resolve the HTTPS listener TLS configuration from the cluster TLS profile and
+	// adherence policy (replaces the previously hardcoded TLS 1.3). Only when TLS
+	// is enabled.
+	var serverTLSConfig *tls.Config
+	var initialTLSResult tlsprofile.Result
+	tlsEnabled := certFile != "" && keyFile != ""
+	if tlsEnabled {
+		initialTLSResult, err = tlsprofile.Resolve(context.Background(), kubeconfig)
+		if err != nil {
+			logger.Error("failed to resolve cluster TLS profile", "error", err)
+			return 1
+		}
+		serverTLSConfig, err = effectiveServerTLSConfig(initialTLSResult)
+		if err != nil {
+			// Startup is lenient on a transient read (consistent with the BFF/operator
+			// resolvers): serve our own strong TLS 1.3 default and let the watcher apply
+			// the real policy once the API recovers, rather than crash-looping during a
+			// brownout. A persistent failure (denied RBAC, malformed adherence, or an
+			// invalid profile under Strict) still fails closed. Reload, by contrast,
+			// retains the last-known-good policy (handled in the watcher callback).
+			if initialTLSResult.Transient {
+				logger.Warn("transient error resolving cluster TLS profile at startup; serving TLS 1.3 and relying on the watcher to apply the cluster policy once the API recovers", "error", err)
+				serverTLSConfig = legacyTLSConfig()
+			} else {
+				logger.Error("failed to determine HTTPS listener TLS configuration", "error", err)
+				return 1
+			}
+		}
+	}
+
+	svr, err := server.NewServer(app, logger, certFile, keyFile, serverTLSConfig)
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
 		return 1
@@ -269,6 +351,39 @@ func run() (status int) {
 	if err := svr.SetupWithManager(mgr); err != nil {
 		logger.Error("failed to setup server with manager", "error", err)
 		return 1
+	}
+
+	// Watch the cluster TLS profile and adherence policy, and gracefully restart
+	// the HTTPS listener when either changes, so policy updates apply without a pod
+	// restart. Only register the watcher on OpenShift clusters where the APIServer
+	// config API exists; on plain Kubernetes it is absent and the controller would fail.
+	if tlsEnabled && initialTLSResult.APIAvailable {
+		watcher := &tlsprofile.ProfileWatcher{
+			Client:           mgr.GetClient(),
+			InitialProfile:   initialTLSResult.Profile,
+			InitialAdherence: initialTLSResult.Adherence,
+			OnProfileChange: func(ctx context.Context) error {
+				result, resolveErr := tlsprofile.Resolve(ctx, kubeconfig)
+				if resolveErr != nil {
+					// Keep the running configuration and let the watcher retry
+					// rather than downgrading on a transient/denied re-read.
+					logger.Error("failed to re-resolve TLS profile on change; keeping current configuration and retrying", "error", resolveErr)
+					return resolveErr
+				}
+				newCfg, cfgErr := effectiveServerTLSConfig(result)
+				if cfgErr != nil {
+					logger.Error("failed to determine new HTTPS listener TLS configuration; keeping current and retrying", "error", cfgErr)
+					return cfgErr
+				}
+				logger.Info("cluster TLS profile/adherence changed, reloading HTTPS listener")
+				svr.ReloadTLSConfig(newCfg)
+				return nil
+			},
+		}
+		if err := watcher.SetupWithManager(mgr); err != nil {
+			logger.Error("failed to setup TLS profile watcher", "error", err)
+			return 1
+		}
 	}
 
 	// Start the controller manager

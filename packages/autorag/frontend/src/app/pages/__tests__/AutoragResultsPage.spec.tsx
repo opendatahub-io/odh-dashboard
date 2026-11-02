@@ -328,6 +328,27 @@ describe('buildResponsesTemplate', () => {
     });
   });
 
+  it('should omit ranking options for a Neo4j hybrid pattern (graph retrieval does not support hybrid ranking)', () => {
+    const pattern = {
+      ...mockPatterns['pattern-1'],
+      settings: {
+        ...mockPatterns['pattern-1'].settings,
+        store_binding: {
+          ...mockPatterns['pattern-1'].settings.store_binding,
+          provider_type: 'neo4j',
+        },
+        retrieval: {
+          ...mockPatterns['pattern-1'].settings.retrieval,
+          search_mode: 'hybrid',
+          ranker_strategy: 'weighted',
+          ranker_alpha: 0.5,
+        },
+      },
+    } as AutoragPattern;
+
+    expect(buildResponsesTemplate(pattern, 'run-123').tools[0].ranking_options).toBeUndefined();
+  });
+
   it('should reject a Milvus RRF ranker_k at the exclusive maximum', () => {
     const pattern = {
       ...mockPatterns['pattern-1'],
@@ -508,6 +529,23 @@ describe('buildResponsesTemplate', () => {
 });
 
 describe('normalizeResponsesTemplate', () => {
+  it('should strip ranking options from a persisted Neo4j template', () => {
+    const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
+    const persistedTemplate = {
+      ...template,
+      tools: [
+        {
+          ...template.tools[0],
+          ranking_options: { ranker: 'weighted' as const, alpha: 0.5 },
+        },
+      ],
+    } as typeof template;
+
+    expect(
+      normalizeResponsesTemplate(persistedTemplate, 'neo4j').tools[0].ranking_options,
+    ).toBeUndefined();
+  });
+
   it('should remove legacy ranking fields from a persisted response template', () => {
     const template = buildResponsesTemplate(mockPatterns['pattern-1'], 'run-123');
     const legacyTemplate = {

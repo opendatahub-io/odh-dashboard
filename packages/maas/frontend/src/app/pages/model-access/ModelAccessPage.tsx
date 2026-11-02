@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { MaaSGovernanceProvider } from '~/app/context/MaaSGovernanceContext';
 import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
+import { getModelAccessSubscriptionViewUrl } from './utils';
 
 /**
  * Read-only model access viewer.
@@ -11,10 +12,14 @@ import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
  * Status column, the row kebab, the create button, and the delete modal. Its data
  * comes from the dedicated `admin-subscriptions` endpoint.
  *
+ * `attributeFilters` swaps the keyword search for Subscription / Group / Model
+ * typeahead filters whose options derive from the loaded subscriptions.
+ *
  * `subscriptionsOnly` keeps the page off Kubernetes: the provider does not fetch
  * auth policies, model refs, or groups, none of which this page renders.
  *
- * The tab owns its own loading, error, and empty states.
+ * The tab owns its own loading, error, and empty states. Subscription names link
+ * to the read-only subscription overview page (see ModelAccessSubscriptionPage).
  */
 const ModelAccessPageContent: React.FC = () => (
   <ApplicationsPage
@@ -23,7 +28,11 @@ const ModelAccessPageContent: React.FC = () => (
     loaded
     empty={false}
   >
-    <SubscriptionsTab readOnly />
+    <SubscriptionsTab
+      readOnly
+      attributeFilters
+      getSubscriptionDetailUrl={getModelAccessSubscriptionViewUrl}
+    />
   </ApplicationsPage>
 );
 

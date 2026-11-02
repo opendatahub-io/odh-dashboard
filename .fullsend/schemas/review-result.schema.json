@@ -230,7 +230,11 @@
             "additionalProperties": false,
             "required": ["key", "status"],
             "properties": {
-              "key": { "type": "string", "minLength": 1 },
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Jira key reported by the section producer. The host resolves the published label from its own trusted snapshot and never renders a malformed or unlinked value."
+              },
               "url": { "type": "string" },
               "status": { "type": "string", "enum": ["none", "aligned", "mismatch-justified", "mismatch-unjustified"] },
               "aligned": { "type": "array", "items": { "type": "string" } },

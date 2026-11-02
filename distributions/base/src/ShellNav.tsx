@@ -172,7 +172,6 @@ const NavSectionItem: React.FC<{ extension: LoadedExtension<NavSectionExtension>
     () => allExtensions.filter((e) => e.properties.section === id).toSorted(compareNavItemGroups),
     [id, allExtensions],
   );
-
   const isActive = React.useMemo(
     () =>
       children.some((child) => {
@@ -236,7 +235,6 @@ const ShellNav: React.FC = () => {
     () => getTopLevelExtensions([...navExtensions, ...tabRouteExtensions]),
     [navExtensions, tabRouteExtensions],
   );
-
   return (
     <PageSidebar>
       <PageSidebarBody>

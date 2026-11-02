@@ -461,7 +461,7 @@ describe('CollectionDrawerPanel', () => {
 
     renderPanel({ collection, benchmarkDetailsMap: detailsMap });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
 
     expect(screen.getByText('0.85')).toBeInTheDocument();
     expect(screen.queryByText('30%')).not.toBeInTheDocument();
@@ -493,12 +493,48 @@ describe('CollectionDrawerPanel', () => {
 
     renderPanel({ collection, benchmarkDetailsMap: detailsMap });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
 
     expect(screen.getByText('0.3')).toBeInTheDocument();
     expect(screen.getByText('provider_metric')).toBeInTheDocument();
 
     const datasetLink = screen.getByRole('link', { name: /View benchmark dataset/i });
     expect(datasetLink).toHaveAttribute('href', 'https://provider.example.com/toxigen');
+  });
+
+  it('should render a benchmark test_data_ref definition inside its card', () => {
+    const detailsMap = new Map<string, BenchmarkWithProvider>([
+      ['lm_evaluation_harness:toxigen', makeBenchmark('toxigen', 'lm_evaluation_harness')],
+    ]);
+
+    const collection = makeCollection({
+      resource: { id: 'safety-suite' },
+      name: 'Safety Suite',
+      benchmarks: [
+        {
+          id: 'toxigen',
+          provider_id: 'lm_evaluation_harness',
+          test_data_ref: {
+            git: {
+              url: 'https://example.com/data.git',
+              ref: 'main',
+              secret_ref: 'git-auth',
+            },
+          },
+        },
+      ],
+    });
+
+    renderPanel({ collection, benchmarkDetailsMap: detailsMap });
+
+    expect(screen.queryByText('Test data')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
+
+    const testDataSection = screen.getByTestId('benchmark-test-data-ref');
+    expect(within(testDataSection).getByText('Git repository')).toBeInTheDocument();
+    expect(within(testDataSection).getByText('https://example.com/data.git')).toBeInTheDocument();
+    expect(within(testDataSection).getByText('main')).toBeInTheDocument();
+    expect(within(testDataSection).getByText('git-auth')).toBeInTheDocument();
   });
 });

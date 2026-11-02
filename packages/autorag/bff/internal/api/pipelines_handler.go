@@ -218,6 +218,14 @@ func (h *PipelinesHandler) CreateIndexingPipelineRunHandler(w http.ResponseWrite
 		return
 	}
 
+	// Validate request semantics at the handler boundary, before the
+	// repository is invoked; the repository re-runs the same check as defense
+	// in depth for non-HTTP callers.
+	if err := repositories.ValidateGraphExtractionConfig(req.Parameters); err != nil {
+		badRequestResponse(h.logger, w, r, err.Error())
+		return
+	}
+
 	run, err := h.repo.CreateIndexingRun(r.Context(), namespace, req)
 	if err != nil {
 		h.mapPipelineError(w, r, err)

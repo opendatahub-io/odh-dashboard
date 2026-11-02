@@ -51,6 +51,8 @@ type SubscriptionTableRowProps = {
   showStatus?: boolean;
   /** Read-only viewers omit the kebab (row actions) column. Defaults to true. */
   showActions?: boolean;
+  /** Overrides the subscription name link target. Defaults to the governance view page. */
+  getSubscriptionDetailUrl?: (name: string) => string;
 };
 
 const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
@@ -60,6 +62,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   returnTo,
   showStatus = true,
   showActions = true,
+  getSubscriptionDetailUrl = getSubscriptionViewUrl,
 }) => {
   const columns = getSubscriptionsColumns({ showStatus });
   const groupsColumnIndex = columns.findIndex((col) => col.field === GROUP_COLUMN_FIELD);
@@ -120,7 +123,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
           ) : (
             <ResourceNameTooltip resource={convertSubscriptionToK8sResource(subscription)}>
               <Link
-                to={getSubscriptionViewUrl(subscription.name)}
+                to={getSubscriptionDetailUrl(subscription.name)}
                 state={returnTo ? { returnTo } : undefined}
                 onClick={() =>
                   fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {

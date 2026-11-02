@@ -45,6 +45,7 @@
   },
   "exports": {
     "./api/whoami": "./frontend/src/app/api/whoami.ts",
+    "./ModelAccessPage": "./frontend/src/app/pages/model-access/ModelAccessPage.tsx",
     "./utils/api-keys": "./frontend/src/app/pages/keys-and-subs/utils.ts",
     "./types/api-key": "./frontend/src/app/types/api-key.ts",
     "./types/subscriptions": "./frontend/src/app/types/subscriptions.ts",
@@ -54,6 +55,10 @@
     "./ModelAccessPage": {
       "types": "./types/ModelAccessPage.d.ts",
       "default": "./frontend/src/app/pages/model-access/ModelAccessPage.tsx"
+    },
+    "./ModelAccessSubscriptionPage": {
+      "types": "./types/ModelAccessSubscriptionPage.d.ts",
+      "default": "./frontend/src/app/pages/model-access/ModelAccessSubscriptionPage.tsx"
     },
     "./extensions/static": "./frontend/src/odh/odhExtensions/odhExtensions.ts"
   },

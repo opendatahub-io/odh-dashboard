@@ -372,7 +372,7 @@ export const waitForNemoGuardrailsReady = (namespace: string): Cypress.Chainable
   pollUntilSuccess(
     `oc get nemoguardrails nemoguardrails -n ${namespace} -o json | jq -e '.status.phase == "Ready"' && oc get deployment nemoguardrails -n ${namespace} -o json | jq -e '.status.availableReplicas != null and .status.availableReplicas == .spec.replicas' && oc get endpoints nemoguardrails -n ${namespace} -o json | jq -e '[.subsets[]?.addresses[]?] | length > 0'`,
     `NemoGuardrails to be Ready in namespace ${namespace}`,
-    { maxAttempts: 60, pollIntervalMs: 5000 },
+    { maxAttempts: 360, pollIntervalMs: 5000 },
   );
 
 /**

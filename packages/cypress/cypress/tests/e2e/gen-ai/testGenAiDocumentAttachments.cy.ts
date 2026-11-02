@@ -174,7 +174,7 @@ describe(
           '@Playground',
           '@Documents',
           '@Inference',
-          '@FeatureFlagged',
+          '@Featureflagged',
           '@NonConcurrent',
         ],
       },

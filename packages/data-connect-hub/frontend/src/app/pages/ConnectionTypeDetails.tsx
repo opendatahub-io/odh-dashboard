@@ -128,9 +128,9 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
             isOpen={isConnectionWizardOpen}
             namespace={namespace}
             onClose={() => setIsConnectionWizardOpen(false)}
-            onCreate={async (data, selectedNamespace) => {
-              await createConnection('')({}, selectedNamespace, data);
-            }}
+            onCreate={(data, selectedNamespace) =>
+              createConnection('')({}, selectedNamespace, data)
+            }
             initialFormData={initialFormData}
           />
         )}
