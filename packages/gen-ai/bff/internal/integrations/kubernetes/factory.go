@@ -58,40 +58,36 @@ type TokenClientFactory struct {
 	Config   config.EnvConfig
 	SAClient client.Client // in-cluster SA client for elevated operations (nil in local dev)
 
-	otelMu    sync.Mutex
-	otelMgr   *otelConfigManager
-	otelStop  chan struct{}
-	stopOnce  sync.Once
-	otelRetry sync.Once
-
-	// otelCreator and otelInterval are injectable for tests.
-	otelCreator  func() (*otelConfigManager, error)
-	otelInterval time.Duration
+	otelMu     sync.Mutex
+	otelMgr    *otelConfigManager
+	otelCancel context.CancelFunc
+	otelDone   chan struct{}
 }
 
 func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x509.CertPool) *TokenClientFactory {
-	creator := func() (*otelConfigManager, error) {
-		return newOTelConfigManager(logger, cfg, rootCAs)
+	creator := func(ctx context.Context) (*otelConfigManager, error) {
+		return newOTelConfigManager(ctx, logger, cfg, rootCAs)
 	}
 	return newTokenClientFactory(logger, cfg, creator, otelConfigRetryInterval)
 }
 
-func newTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, creator func() (*otelConfigManager, error), retryInterval time.Duration) *TokenClientFactory {
-	ocm, err := creator()
+// creator and retryInterval are injectable for tests. The factory owns the
+// discovery context from the initial attempt through background retries.
+func newTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, creator func(context.Context) (*otelConfigManager, error), retryInterval time.Duration) *TokenClientFactory {
+	ctx, cancel := context.WithCancel(context.Background())
+	ocm, err := creator(ctx)
 	if err != nil {
 		logger.Warn("failed to create OTel config manager, tracing route management will be unavailable", "error", err)
 	}
 
 	f := &TokenClientFactory{
-		Logger:       logger,
-		Header:       cfg.AuthTokenHeader,
-		Prefix:       cfg.AuthTokenPrefix,
-		Config:       cfg,
-		SAClient:     nil, // set below when not mocked
-		otelMgr:      ocm,
-		otelStop:     make(chan struct{}),
-		otelInterval: retryInterval,
-		otelCreator:  creator,
+		Logger:     logger,
+		Header:     cfg.AuthTokenHeader,
+		Prefix:     cfg.AuthTokenPrefix,
+		Config:     cfg,
+		otelMgr:    ocm,
+		otelCancel: cancel,
+		otelDone:   make(chan struct{}),
 	}
 
 	if !cfg.MockK8sClient {
@@ -105,7 +101,9 @@ func newTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, creator fu
 	}
 
 	if ocm == nil && !cfg.MockK8sClient {
-		f.startOTelConfigManagerRetry()
+		f.startOTelConfigManagerRetry(ctx, creator, retryInterval)
+	} else {
+		close(f.otelDone)
 	}
 
 	return f
@@ -124,42 +122,47 @@ func (f *TokenClientFactory) getOTelConfigManager() *otelConfigManager {
 // the BFF starts before the platform collector or MLflow CR exists: without
 // the retry, playgrounds installed later would get an empty collector
 // endpoint and their traces would never reach MLflow.
-func (f *TokenClientFactory) startOTelConfigManagerRetry() {
-	f.otelRetry.Do(func() {
-		f.Logger.Info("OTel config manager not initialized, retrying in background", "interval", f.otelInterval)
-		go func() {
-			ticker := time.NewTicker(f.otelInterval)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-f.otelStop:
-					return
-				case <-ticker.C:
-					ocm, err := f.otelCreator()
-					if err != nil {
-						f.Logger.Warn("failed to create OTel config manager, will retry", "error", err)
-						continue
-					}
-					if ocm == nil {
-						continue
-					}
-					f.otelMu.Lock()
-					f.otelMgr = ocm
-					f.otelMu.Unlock()
-					f.Logger.Info("OTel config manager initialized after background retry")
+func (f *TokenClientFactory) startOTelConfigManagerRetry(ctx context.Context, creator func(context.Context) (*otelConfigManager, error), interval time.Duration) {
+	f.Logger.Info("OTel config manager not initialized, retrying in background", "interval", interval)
+	go func() {
+		defer close(f.otelDone)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if ctx.Err() != nil {
 					return
 				}
+				ocm, err := creator(ctx)
+				if ctx.Err() != nil {
+					return
+				}
+				if err != nil {
+					f.Logger.Warn("failed to create OTel config manager, will retry", "error", err)
+					continue
+				}
+				if ocm == nil {
+					continue
+				}
+				f.otelMu.Lock()
+				f.otelMgr = ocm
+				f.otelMu.Unlock()
+				f.Logger.Info("OTel config manager initialized after background retry")
+				return
 			}
-		}()
-	})
+		}
+	}()
 }
 
-// Stop cancels background OTel config manager discovery. It is safe to call
-// multiple times and must not be called concurrently with itself.
+// Stop cancels in-flight discovery and waits for the retry worker to exit.
+// No discovery or manager publication can occur after it returns. It is safe
+// to call multiple times, including concurrently.
 func (f *TokenClientFactory) Stop() {
-	f.stopOnce.Do(func() {
-		close(f.otelStop)
-	})
+	f.otelCancel()
+	<-f.otelDone
 }
 
 // buildSAClient creates a controller-runtime client using the pod's service

@@ -1,8 +1,11 @@
 package kubernetes
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -83,7 +86,7 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 	interval := 10 * time.Millisecond
 
 	newFactory := func(attempts *atomic.Int32, succeedAt int32) *TokenClientFactory {
-		creator := func() (*otelConfigManager, error) {
+		creator := func(context.Context) (*otelConfigManager, error) {
 			if n := attempts.Add(1); n < succeedAt {
 				return nil, nil
 			}
@@ -117,16 +120,47 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 		f := newFactory(attempts, 1<<30) // never succeeds
 		defer f.Stop()
 
-		time.Sleep(50 * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return attempts.Load() > 1
+		}, time.Second, interval, "retry loop should have run")
 		assert.Nil(t, f.getOTelConfigManager())
-		assert.Greater(t, attempts.Load(), int32(0), "retry loop should have run")
+	})
+
+	t.Run("retries discovery errors", func(t *testing.T) {
+		var attempts atomic.Int32
+		f := newTokenClientFactory(slog.Default(), config.EnvConfig{}, func(context.Context) (*otelConfigManager, error) {
+			if attempts.Add(1) < 3 {
+				return nil, errors.New("API temporarily unavailable")
+			}
+			return &otelConfigManager{}, nil
+		}, interval)
+		t.Cleanup(f.Stop)
+
+		require.Eventually(t, func() bool {
+			return f.getOTelConfigManager() != nil
+		}, time.Second, interval)
+		assert.Equal(t, int32(3), attempts.Load())
+	})
+
+	t.Run("initial success needs no retry worker", func(t *testing.T) {
+		attempts := &atomic.Int32{}
+		f := newFactory(attempts, 1)
+		t.Cleanup(f.Stop)
+		require.NotNil(t, f.getOTelConfigManager())
+		select {
+		case <-f.otelDone:
+		default:
+			t.Fatal("initial success must mark discovery complete")
+		}
+		f.Stop()
+		assert.Equal(t, int32(1), attempts.Load())
 	})
 
 	t.Run("mock mode skips background discovery", func(t *testing.T) {
 		attempts := &atomic.Int32{}
 		f := newTokenClientFactory(slog.Default(), config.EnvConfig{
 			MockK8sClient: true,
-		}, func() (*otelConfigManager, error) {
+		}, func(context.Context) (*otelConfigManager, error) {
 			attempts.Add(1)
 			return nil, nil
 		}, interval)
@@ -140,15 +174,78 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 		assert.Nil(t, f.SAClient)
 	})
 
+	t.Run("stop cancels in-flight discovery and waits for worker exit", func(t *testing.T) {
+		var attempts atomic.Int32
+		discovering := make(chan struct{})
+		cancelled := make(chan struct{})
+		release := make(chan struct{})
+		var releaseOnce sync.Once
+		releaseWorker := func() { releaseOnce.Do(func() { close(release) }) }
+		f := newTokenClientFactory(slog.Default(), config.EnvConfig{}, func(ctx context.Context) (*otelConfigManager, error) {
+			if attempts.Add(1) == 1 {
+				return nil, nil
+			}
+			close(discovering)
+			<-ctx.Done()
+			close(cancelled)
+			<-release
+			// Even a result returned after cancellation must not be published.
+			return &otelConfigManager{}, nil
+		}, interval)
+		t.Cleanup(func() {
+			releaseWorker()
+			f.Stop()
+		})
+
+		select {
+		case <-discovering:
+		case <-time.After(5 * time.Second):
+			t.Fatal("background discovery did not start")
+		}
+		// Ensure another tick can be ready at the same time as cancellation.
+		time.Sleep(2 * interval)
+		stopped := make(chan struct{}, 2)
+		for range 2 {
+			go func() {
+				f.Stop()
+				stopped <- struct{}{}
+			}()
+		}
+		select {
+		case <-cancelled:
+		case <-time.After(5 * time.Second):
+			t.Fatal("Stop did not cancel in-flight discovery")
+		}
+		select {
+		case <-stopped:
+			t.Fatal("Stop returned before its discovery worker exited")
+		default:
+		}
+
+		releaseWorker()
+		for range 2 {
+			select {
+			case <-stopped:
+			case <-time.After(5 * time.Second):
+				t.Fatal("Stop did not wait for worker completion")
+			}
+		}
+		assert.Nil(t, f.getOTelConfigManager())
+		assert.Equal(t, int32(2), attempts.Load())
+	})
+
 	t.Run("stop cancels the retry loop", func(t *testing.T) {
 		attempts := &atomic.Int32{}
 		f := newFactory(attempts, 1<<30) // never succeeds
 
-		time.Sleep(30 * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return attempts.Load() > 1
+		}, time.Second, interval)
 		f.Stop()
 		stopped := attempts.Load()
-		time.Sleep(50 * time.Millisecond)
-		assert.LessOrEqual(t, attempts.Load(), stopped+1, "no attempts after Stop")
+		assert.Never(t, func() bool {
+			return attempts.Load() != stopped
+		}, 5*interval, interval, "no attempts after Stop")
 
 		// Stop is safe to call multiple times.
 		f.Stop()
