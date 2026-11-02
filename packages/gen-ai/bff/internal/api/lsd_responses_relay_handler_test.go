@@ -133,13 +133,15 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		t := GinkgoT()
 
 		var receivedMethod, receivedPath, receivedQuery, receivedAuth, receivedContentType, receivedAccept, receivedBody string
-		var receivedForwardedToken string
+		var receivedForwardedTokenPresent bool
 		upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			receivedMethod = r.Method
 			receivedPath = r.URL.Path
 			receivedQuery = r.URL.RawQuery
 			receivedAuth = r.Header.Get("Authorization")
-			receivedForwardedToken = r.Header.Get("x-forwarded-access-token")
+			// Direct map access distinguishes an absent header from one sent
+			// with an empty value; Header.Get cannot.
+			receivedForwardedTokenPresent = r.Header["X-Forwarded-Access-Token"] != nil
 			receivedContentType = r.Header.Get("Content-Type")
 			receivedAccept = r.Header.Get("Accept")
 			body, _ := io.ReadAll(r.Body)
@@ -185,8 +187,9 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		// Through GATEWAY_DOMAIN the AI gateway owns x-forwarded-access-token:
 		// it does not pass a client-supplied value through intact (and injects
 		// a validated one only when the header is absent), so the relay must
-		// not send it and clobber the injected value downstream.
-		assert.Empty(t, receivedForwardedToken)
+		// not send it at all — not even empty — and clobber the injected value
+		// downstream.
+		assert.False(t, receivedForwardedTokenPresent, "relay must not send x-forwarded-access-token in gateway mode")
 		assert.Equal(t, "application/json", receivedContentType)
 		assert.Equal(t, "text/event-stream", receivedAccept)
 		assert.Equal(t, body, receivedBody)
@@ -411,7 +414,8 @@ var _ = Describe("ResponsesRelayHandler", func() {
 	It("should follow same-host redirects", func() {
 		t := GinkgoT()
 
-		var receivedAuth, receivedForwardedToken, receivedPath string
+		var receivedAuth, receivedPath string
+		var receivedForwardedTokenPresent bool
 		upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Query().Get("stage") == "" {
 				// Redirect within the same host; the relay must follow it and
@@ -420,7 +424,7 @@ var _ = Describe("ResponsesRelayHandler", func() {
 				return
 			}
 			receivedAuth = r.Header.Get("Authorization")
-			receivedForwardedToken = r.Header.Get("x-forwarded-access-token")
+			receivedForwardedTokenPresent = r.Header["X-Forwarded-Access-Token"] != nil
 			receivedPath = r.URL.Path
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprint(w, `{"ok":true}`)
@@ -439,8 +443,8 @@ var _ = Describe("ResponsesRelayHandler", func() {
 		assert.Equal(t, "/autorag/api/v1/responses", receivedPath)
 		assert.Equal(t, "Bearer test-token", receivedAuth)
 		// Gateway mode: x-forwarded-access-token is owned by the AI gateway,
-		// so the relay must not send it (see the gateway relay test above).
-		assert.Empty(t, receivedForwardedToken)
+		// so the relay must not send it at all (see the gateway relay test above).
+		assert.False(t, receivedForwardedTokenPresent, "relay must not send x-forwarded-access-token in gateway mode")
 		assert.JSONEq(t, `{"ok":true}`, rr.Body.String())
 	})
 
