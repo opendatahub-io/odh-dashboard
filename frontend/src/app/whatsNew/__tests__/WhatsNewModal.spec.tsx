@@ -3,7 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { DashboardConfigKind } from '@odh-dashboard/k8s-core';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
-import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 import type { UserState } from '#~/redux/selectors/types';
@@ -125,6 +125,18 @@ describe('WhatsNewModal', () => {
     jest.useRealTimers();
   });
 
+  describe('platform gating', () => {
+    it('should not render on Open Data Hub', () => {
+      useAppContextMock.mockReturnValue({ ...buildAppContext(), isRHOAI: false });
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+
+      expect(screen.queryByTestId('whats-new-modal')).not.toBeInTheDocument();
+    });
+  });
+
   describe('seen state', () => {
     it('should not render when already seen', () => {
       mockUseBrowserStorage.mockReturnValue([true, mockSetSeen]);
@@ -185,13 +197,7 @@ describe('WhatsNewModal', () => {
   });
 
   describe('role-aware messaging for unavailable features', () => {
-    const unavailableFeatureConfig = {
-      genAiStudio: true,
-      autorag: false,
-      guardrails: false,
-      agentConfigManagement: false,
-      roleManagement: false,
-    };
+    const unavailableFeatureConfig = { dataRegistry: false };
 
     it('should tell admins which flag to enable in OdhDashboardConfig', () => {
       useAppContextMock.mockReturnValue(buildAppContext(unavailableFeatureConfig));
@@ -201,10 +207,47 @@ describe('WhatsNewModal', () => {
       openWelcomeModal();
       startTourAndWait("Tour what's new");
 
-      // First step with features is now Projects (roleManagement disabled)
       expect(screen.getByText(/OdhDashboardConfig/)).toBeInTheDocument();
-      expect(screen.getByText('roleManagement')).toBeInTheDocument();
+      expect(screen.getByText('dataRegistry')).toBeInTheDocument();
       expect(screen.queryByText(/Contact your administrator/)).not.toBeInTheDocument();
+    });
+
+    it('should list only the missing flag when Agent endpoints has one of two flags off', () => {
+      useAppContextMock.mockReturnValue(
+        buildAppContext({
+          genAiStudio: true,
+          genAiAgentDeployment: true,
+          agentConfigManagement: false,
+        }),
+      );
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      clickNextStep();
+
+      expect(screen.getByText('Agent endpoints')).toBeInTheDocument();
+      expect(screen.getByText('agentConfigManagement')).toBeInTheDocument();
+      expect(screen.queryByText('genAiAgentDeployment')).not.toBeInTheDocument();
+    });
+
+    it('should ask admins to unset disableFeatureStore when the Feature stores area is off', () => {
+      useAppContextMock.mockReturnValue(
+        buildAppContext({ featureStoreAdmin: true, disableFeatureStore: true }),
+      );
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+
+      expect(screen.getByText('Feature stores')).toBeInTheDocument();
+      expect(screen.getByText(/disableFeatureStore/)).toBeInTheDocument();
     });
 
     it('should tell non-admins to contact their administrator', () => {
@@ -220,15 +263,13 @@ describe('WhatsNewModal', () => {
     });
 
     it('should not show any unavailability message when all step features are enabled', () => {
-      useAppContextMock.mockReturnValue(buildAppContext({ automl: true }));
+      useAppContextMock.mockReturnValue(buildAppContext({ disableLMEval: false }));
       useUserMock.mockReturnValue(adminUser);
 
       render(<WhatsNewModal />);
       openWelcomeModal();
       startTourAndWait('Start full tour');
 
-      // Navigate to Develop & train (step 4) which only has automl
-      // Step order: Projects → AI hub → Gen AI studio → Develop & train
       clickNextStep();
       clickNextStep();
       clickNextStep();
@@ -239,8 +280,88 @@ describe('WhatsNewModal', () => {
     });
   });
 
-  describe("What's new in 3.5 button", () => {
-    it('should skip to the first step with new features (Projects)', () => {
+  describe('component-gated features', () => {
+    const goToObserveStep = () => {
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait('Start full tour');
+      // Projects → AI hub → Gen AI studio → Develop & train → Observe & monitor
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+    };
+
+    beforeEach(() => {
+      mockUseIsAreaAvailable.mockImplementation((area) =>
+        mockAreaStatus(area !== SupportedArea.MLFLOW),
+      );
+    });
+
+    it('should tell admins which DataScienceCluster component to enable for Agent traces', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(adminUser);
+
+      goToObserveStep();
+
+      expect(screen.getByText('Observe & monitor')).toBeInTheDocument();
+      expect(screen.getByText('Agent traces')).toBeInTheDocument();
+      expect(screen.getByText(/DataScienceCluster/)).toBeInTheDocument();
+      expect(screen.getByText('mlflowoperator')).toBeInTheDocument();
+      expect(screen.queryByText(/OdhDashboardConfig/)).not.toBeInTheDocument();
+    });
+
+    it('should tell non-admins to contact their administrator', () => {
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(regularUser);
+
+      goToObserveStep();
+
+      expect(screen.getByText(/Contact your administrator/)).toBeInTheDocument();
+      expect(screen.queryByText(/DataScienceCluster/)).not.toBeInTheDocument();
+    });
+
+    it('should name only the missing MLflow component for Skills when its flag is on', () => {
+      useAppContextMock.mockReturnValue(buildAppContext({ skillRegistry: true }));
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+
+      expect(screen.getByText('Agent skills')).toBeInTheDocument();
+      expect(screen.getByText('mlflowoperator')).toBeInTheDocument();
+      expect(screen.queryByText('skillRegistry')).not.toBeInTheDocument();
+    });
+
+    it('should name only the Skills flag when MLflow is installed', () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      useAppContextMock.mockReturnValue(buildAppContext({ skillRegistry: false }));
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+
+      expect(screen.getByText('skillRegistry')).toBeInTheDocument();
+      expect(screen.queryByText(/DataScienceCluster/)).not.toBeInTheDocument();
+    });
+
+    it('should not show any unavailability message when MLflow is installed', () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      useAppContextMock.mockReturnValue(buildAppContext());
+      useUserMock.mockReturnValue(adminUser);
+
+      goToObserveStep();
+
+      expect(screen.getByText('Agent traces')).toBeInTheDocument();
+      expect(screen.queryByText(/DataScienceCluster/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/OdhDashboardConfig/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Tour what's new button", () => {
+    it('should skip to the first step with new features (AI hub)', () => {
       useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
       useUserMock.mockReturnValue(regularUser);
 
@@ -248,8 +369,82 @@ describe('WhatsNewModal', () => {
       openWelcomeModal();
       startTourAndWait("Tour what's new");
 
-      expect(screen.getByText('Projects')).toBeInTheDocument();
-      expect(screen.getByText('Roles')).toBeInTheDocument();
+      expect(screen.getByText('AI hub')).toBeInTheDocument();
+      expect(screen.getByText('Agent skills')).toBeInTheDocument();
+    });
+
+    it('should number steps within the new-features path only', () => {
+      useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+
+      expect(screen.getByText('1 of 4')).toBeInTheDocument();
+      clickNextStep();
+      expect(screen.getByText('Gen AI studio')).toBeInTheDocument();
+      expect(screen.getByText('2 of 4')).toBeInTheDocument();
+    });
+
+    it('should return to the welcome screen when going back from the first step', () => {
+      useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      fireEvent.click(screen.getByTestId('tour-step-back'));
+
+      expect(screen.getByText('Start full tour')).toBeInTheDocument();
+      expect(screen.queryByText('Projects')).not.toBeInTheDocument();
+    });
+
+    it('should include Settings in the new-features path for admins and go back to it', () => {
+      useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
+      useUserMock.mockReturnValue(adminUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      expect(screen.getByText('1 of 5')).toBeInTheDocument();
+
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      expect(screen.getByText("You're ready to go!")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('whats-new-done-back'));
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+      expect(screen.getByText('5 of 5')).toBeInTheDocument();
+    });
+
+    it('should go back from the summary to the last step of the path', () => {
+      useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      clickNextStep();
+      expect(screen.getByText("You're ready to go!")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('whats-new-done-back'));
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByText('Observe & monitor')).toBeInTheDocument();
+      expect(screen.getByText('4 of 4')).toBeInTheDocument();
     });
   });
 
@@ -371,7 +566,7 @@ describe('WhatsNewModal', () => {
         outcome: TrackingOutcome.submit,
         success: true,
         entryPoint: 'auto-launch',
-        tourVersion: '3.5',
+        tourVersion: '3.6',
         tourVariant: 'non-admin',
         isReturningUser: false,
         roleType: 'Data Scientist',
@@ -458,6 +653,29 @@ describe('WhatsNewModal', () => {
       );
     });
 
+    it('should report the dismiss step index relative to the new-features path', () => {
+      useAppContextMock.mockReturnValue(buildAppContext({ genAiStudio: true }));
+      useUserMock.mockReturnValue(regularUser);
+
+      render(<WhatsNewModal />);
+      openWelcomeModal();
+      startTourAndWait("Tour what's new");
+      clickNextStep();
+      mockFireFormTrackingEvent.mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+        GUIDED_TOUR_EVENTS.DISMISSED,
+        expect.objectContaining({
+          tourPath: 'new-features-only',
+          dismissStepId: 'gen-ai-studio',
+          dismissStepIndex: 1,
+          totalSteps: 4,
+        }),
+      );
+    });
+
     it('should fire Path Selected and Completed as form events', () => {
       useAppContextMock.mockReturnValue(buildAppContext());
       useUserMock.mockReturnValue(regularUser);
@@ -470,7 +688,7 @@ describe('WhatsNewModal', () => {
         outcome: TrackingOutcome.submit,
         success: true,
         tourPath: 'full',
-        tourVersion: '3.5',
+        tourVersion: '3.6',
         tourVariant: 'non-admin',
         entryPoint: 'auto-launch',
       });
@@ -559,7 +777,7 @@ describe('WhatsNewModal', () => {
         outcome: TrackingOutcome.submit,
         success: true,
         entryPoint: 'masthead',
-        tourVersion: '3.5',
+        tourVersion: '3.6',
         tourVariant: 'non-admin',
         isReturningUser: true,
         roleType: 'Data Scientist',

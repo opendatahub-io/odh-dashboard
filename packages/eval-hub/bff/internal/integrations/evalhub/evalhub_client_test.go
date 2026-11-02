@@ -1330,11 +1330,12 @@ func TestEvalHubClient_GetCollection_ParsesStatus(t *testing.T) {
 	defer server.Close()
 
 	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
-	result, err := client.GetCollection(context.Background(), "332c3b1c", "tenant")
+	result, raw, err := client.GetCollection(context.Background(), "332c3b1c", "tenant")
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "tool-use-v1", result.DerivedFrom)
 	require.NotNil(t, result.Status)
 	assert.Equal(t, 1, result.Status.RunCount)
+	assert.Contains(t, string(raw), `"derived_from": "tool-use-v1"`)
 }

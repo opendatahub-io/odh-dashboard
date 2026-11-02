@@ -31,18 +31,10 @@ import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type { PipelineRun } from '~/app/types';
-import type { AutoragPattern } from '~/app/types/autoragPattern';
-import {
-  getSelectedPatterns,
-  BRANCHING_STAGE_ID,
-  resolvePatternRecordKey,
-} from '~/app/topology/stageMapStatus';
+import { BRANCHING_STAGE_ID } from '~/app/topology/stageMapStatus';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
 import { getStepMetadata, type StepDetail } from '~/app/topology/tree-view/stepMetadata';
-import {
-  parseStageMapNodeId,
-  type ParsedStageMapNode,
-} from '~/app/topology/tree-view/stageMapStepMetadata';
+import { parseStageMapNodeId } from '~/app/topology/tree-view/stageMapStepMetadata';
 import type { TreeNodeData } from '~/app/topology/tree-view/TreeNode';
 import {
   getPipelineDetailsEmptyContent,
@@ -71,31 +63,6 @@ type StepDetailsPanelProps = {
   /** Namespace of the run — used to fetch executor logs for failed steps. */
   namespace?: string;
   onClose?: () => void;
-};
-
-const resolveBranchPatternKey = (
-  parsedNodeId: ParsedStageMapNode | undefined,
-  componentStageMap: ComponentStageMap | undefined,
-  patterns: Record<string, AutoragPattern>,
-  maxPatterns?: number,
-): string | undefined => {
-  if (parsedNodeId?.type !== 'branch_pattern' || !componentStageMap) {
-    return undefined;
-  }
-  const component = componentStageMap.components.find((c) => c.id === parsedNodeId.componentId);
-  if (!component) {
-    return undefined;
-  }
-  const { patterns: branchPatterns, isPlaceholder } = getSelectedPatterns(
-    component.stages,
-    maxPatterns,
-    Object.keys(patterns),
-  );
-  if (isPlaceholder) {
-    return undefined;
-  }
-  const patternKey = resolvePatternRecordKey(patterns, branchPatterns[parsedNodeId.branchIndex]);
-  return patternKey && Object.hasOwn(patterns, patternKey) ? patternKey : undefined;
 };
 
 type StepDetailTermProps = {
@@ -206,7 +173,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   namespace,
   onClose,
 }) => {
-  const { patterns, parameters, bestPatternKey, optimizationMetric } = useAutoragResultsContext();
+  const { patterns, bestPatternKey, optimizationMetric } = useAutoragResultsContext();
   const pipelineSummaryDetails = React.useMemo(
     () =>
       getPipelineSummaryDetails(
@@ -305,18 +272,10 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     componentStageMap,
     pipelineRun,
   });
-  const branchPatternKey = resolveBranchPatternKey(
-    parsedNodeId,
-    componentStageMap,
-    patterns,
-    typeof parameters?.optimization_max_rag_patterns === 'number'
-      ? parameters.optimization_max_rag_patterns
-      : undefined,
-  );
   const isBestPattern =
     statusFilter === 'completed' &&
     selectedPattern != null &&
-    branchPatternKey === selectedPattern &&
+    nodeData.patternKey === selectedPattern &&
     parsedNodeId?.type === 'branch_pattern' &&
     nodeData.stepState === 'completed';
   const panelTitle = isBestPattern ? 'Best pattern' : (nodeData.label ?? 'Step details');

@@ -1,12 +1,20 @@
 # OWNERS
 
 approvers:
-  - Griffin-Sullivan
+  - agagancarczyk
+  - ikeola13
+  - danpierce1
+  - jharan1
+  - NickGagan
   - emilys314
   - andrewballantyne
 
 reviewers:
-  - Griffin-Sullivan
+  - agagancarczyk
+  - ikeola13
+  - danpierce1
+  - jharan1
+  - NickGagan
   - emilys314
   - andrewballantyne
   - ashley-o0o

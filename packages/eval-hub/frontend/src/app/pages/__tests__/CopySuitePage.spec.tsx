@@ -16,6 +16,7 @@ import {
   evaluationGalleryNavigationState,
 } from '~/app/routes';
 import { copySuiteSchema, type CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import type { Collection, Provider } from '~/app/types';
 
 jest.mock('mod-arch-core', () => ({
@@ -196,6 +197,7 @@ const benchmark: CopySuiteBenchmark = {
   parameters: [{ key: 'num_examples', type: 'number', value: 100 }],
   threshold: 70,
   availableMetrics: [],
+  testDataRef: { ...testDataRefDefaultValues },
 };
 
 type Form = ReturnType<typeof useCopySuiteForm>;

@@ -19,6 +19,11 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   useIsAreaAvailable: jest.fn(),
 }));
 
+jest.mock('#~/app/AppContext', () => ({
+  __esModule: true,
+  useAppContext: () => ({ isRHOAI: true }),
+}));
+
 jest.mock('@odh-dashboard/ui-core/utilities', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core/utilities'),
   useBrowserStorage: jest.fn(),

@@ -72,6 +72,22 @@ class CopySuitePage {
     return cy.findByTestId(`benchmark-${index}-parameter-error-${parameterKey}`);
   }
 
+  findBenchmarkTestDataRefSourceToggle(index: number) {
+    return cy.findByTestId(`benchmark-test-data-ref-${index}-source-toggle`);
+  }
+
+  findBenchmarkTestDataRefOption(optionLabel: string) {
+    return cy.findByRole('option', { name: optionLabel });
+  }
+
+  findBenchmarkTestDataRefField(index: number, field: string) {
+    return cy.findByTestId(`benchmark-test-data-ref-${index}-${field}`);
+  }
+
+  findBenchmarkTestDataRefFieldError(index: number, field: string) {
+    return cy.findByTestId(`benchmark-test-data-ref-${index}-${field}-error`);
+  }
+
   findSaveOnlyButton() {
     return cy.findByTestId('copy-suite-save-only');
   }

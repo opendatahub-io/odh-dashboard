@@ -219,14 +219,39 @@ export type JobPassCriteria = {
   threshold: number;
 };
 
-type S3DataRef = {
+export type TestDataRefType = 'data_set' | 'pre_recorded_data';
+
+export type S3DataRef = {
   bucket?: string;
   key?: string;
   secret_ref?: string;
 };
 
-type TestDataRef = {
+export type TestDataRefPVC = {
+  claim_name?: string;
+  sub_path?: string;
+};
+
+export type TestDataRefGit = {
+  url?: string;
+  ref?: string;
+  sub_path?: string;
+  secret_ref?: string;
+};
+
+export type TestDataRefHF = {
+  repo_id?: string;
+  revision?: string;
+  sub_path?: string;
+  secret_ref?: string;
+};
+
+export type TestDataRef = {
+  type?: TestDataRefType;
   s3?: S3DataRef;
+  pvc?: TestDataRefPVC;
+  git?: TestDataRefGit;
+  hf?: TestDataRefHF;
 };
 
 export type HardwareResourceConfig = {
@@ -377,6 +402,7 @@ export type CollectionBenchmark = {
   primary_score?: CollectionPrimaryScore;
   pass_criteria?: CollectionPassCriteria;
   parameters?: Record<string, unknown>;
+  test_data_ref?: TestDataRef;
 };
 
 export type Collection = {

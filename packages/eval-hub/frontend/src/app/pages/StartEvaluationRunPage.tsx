@@ -48,6 +48,7 @@ import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import BenchmarkTestDataRefFields from '~/app/components/BenchmarkTestDataRefFields';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
 import SourceModelFields from '~/app/components/SourceModelFields';
@@ -456,10 +457,23 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
               accessToken={form.accessToken}
               onAccessTokenChange={form.setAccessToken}
               datasetUrlError={form.datasetUrlError}
+              accessTokenError={form.accessTokenError}
               touched={form.touched}
               markTouched={form.markTouched}
             />
           )}
+
+          {/* ── Test data (single benchmark, model mode) ─────── */}
+          {!isCollectionFlow && form.sourceMode === 'model' ? (
+            <BenchmarkTestDataRefFields
+              value={form.testDataRef}
+              idPrefix="start-evaluation"
+              testIdPrefix="start-evaluation-test-data-ref"
+              isRequired={form.testDataRefRequired}
+              errors={form.testDataRefErrors}
+              onChange={form.setTestDataRef}
+            />
+          ) : null}
 
           <HardwareProfileField
             availability={form.kueueAvailability}
