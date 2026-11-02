@@ -62,9 +62,14 @@ type EnvConfig struct {
 	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
 	InsecureSkipVerify bool
 	// AllowLocalModelEndpoints when true, allows verification of model endpoints on
-	// localhost/loopback addresses (local development only; refused at startup when
+	// localhost/loopback addresses (local development only; refused at startup unless
+	// DevMode is enabled and the server is bound to a loopback interface, and when
 	// TLS certificates are mounted, i.e. in deployed environments)
 	AllowLocalModelEndpoints bool
+	// DevMode explicitly marks the process as running in local development mode
+	DevMode bool
+	// Host is the listen host for the API server (empty binds all interfaces)
+	Host string
 	// Custom distribution name
 	DistributionName string
 

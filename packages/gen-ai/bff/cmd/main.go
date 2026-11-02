@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,6 +34,8 @@ func main() {
 
 	// General BFF configuration
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 8080), "API server port")
+	flag.StringVar(&cfg.Host, "host", getEnvAsString("HOST", ""), "API server listen host (empty binds all interfaces)")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Explicit local-development mode (required for --allow-local-model-endpoints)")
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
@@ -116,7 +119,7 @@ func main() {
 	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, certFile); err != nil {
 		os.Exit(1)
 	}
-	if err := validateAllowLocalModelEndpoints(cfg.AllowLocalModelEndpoints, certFile); err != nil {
+	if err := validateAllowLocalModelEndpoints(cfg.AllowLocalModelEndpoints, cfg.DevMode, cfg.Host, certFile); err != nil {
 		os.Exit(1)
 	}
 
@@ -150,7 +153,7 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Addr:         fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  8 * time.Minute, // Allow larger file uploads (up to 10MB)
@@ -239,7 +242,10 @@ func validateInsecureSkipVerify(insecureSkipVerify bool, certFile string) error 
 
 // validateAllowLocalModelEndpoints validates the AllowLocalModelEndpoints
 // configuration at startup, mirroring the InsecureSkipVerify fail-fast check.
-func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, certFile string) error {
+// An empty certFile alone is not evidence of local development: the setting is
+// accepted only when dev mode is explicitly enabled and the server is bound to
+// a loopback interface.
+func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode bool, host string, certFile string) error {
 	if !allowLocalModelEndpoints {
 		return nil
 	}
@@ -251,6 +257,22 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, certFile st
 			"fix", "Remove --allow-local-model-endpoints flag and ALLOW_LOCAL_MODEL_ENDPOINTS env var",
 		)
 		return errors.New("AllowLocalModelEndpoints cannot be used when TLS certificates are mounted (deployed environment detected)")
+	}
+
+	if !devMode {
+		slog.Error("SECURITY: AllowLocalModelEndpoints is only allowed in local development mode",
+			"allow_local_model_endpoints", allowLocalModelEndpoints,
+			"fix", "Remove --allow-local-model-endpoints flag and ALLOW_LOCAL_MODEL_ENDPOINTS env var, or enable --dev-mode for local development",
+		)
+		return errors.New("AllowLocalModelEndpoints is only allowed in local development mode (--dev-mode)")
+	}
+
+	if ip := net.ParseIP(host); host != "localhost" && (ip == nil || !ip.IsLoopback()) {
+		slog.Error("SECURITY: AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface",
+			"host", host,
+			"fix", "Pass --host localhost (or 127.0.0.1) when using --allow-local-model-endpoints",
+		)
+		return errors.New("AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface (--host)")
 	}
 
 	slog.Warn("SECURITY WARNING: verifying localhost/loopback model endpoints is ENABLED (AllowLocalModelEndpoints=true)",

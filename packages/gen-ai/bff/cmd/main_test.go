@@ -169,6 +169,8 @@ func TestValidateAllowLocalModelEndpoints(t *testing.T) {
 	testCases := []struct {
 		name                     string
 		allowLocalModelEndpoints bool
+		devMode                  bool
+		host                     string
 		certFile                 string
 		expectedError            bool
 		expectedErrorContains    string
@@ -179,13 +181,45 @@ func TestValidateAllowLocalModelEndpoints(t *testing.T) {
 			expectedError:            false,
 		},
 		{
-			name:                     "AllowLocalModelEndpoints enabled without cert-file - should pass with warning",
+			name:                     "AllowLocalModelEndpoints enabled without dev-mode - should fail",
 			allowLocalModelEndpoints: true,
+			expectedError:            true,
+			expectedErrorContains:    "local development mode",
+		},
+		{
+			name:                     "AllowLocalModelEndpoints enabled in dev-mode on non-loopback host - should fail",
+			allowLocalModelEndpoints: true,
+			devMode:                  true,
+			host:                     "0.0.0.0",
+			expectedError:            true,
+			expectedErrorContains:    "loopback interface",
+		},
+		{
+			name:                     "AllowLocalModelEndpoints enabled in dev-mode on all-interfaces bind - should fail",
+			allowLocalModelEndpoints: true,
+			devMode:                  true,
+			expectedError:            true,
+			expectedErrorContains:    "loopback interface",
+		},
+		{
+			name:                     "AllowLocalModelEndpoints enabled in dev-mode on localhost - should pass with warning",
+			allowLocalModelEndpoints: true,
+			devMode:                  true,
+			host:                     "localhost",
+			expectedError:            false,
+		},
+		{
+			name:                     "AllowLocalModelEndpoints enabled in dev-mode on 127.0.0.1 - should pass with warning",
+			allowLocalModelEndpoints: true,
+			devMode:                  true,
+			host:                     "127.0.0.1",
 			expectedError:            false,
 		},
 		{
 			name:                     "AllowLocalModelEndpoints enabled with cert-file - should fail",
 			allowLocalModelEndpoints: true,
+			devMode:                  true,
+			host:                     "localhost",
 			certFile:                 "/etc/tls/tls.crt",
 			expectedError:            true,
 			expectedErrorContains:    "TLS certificates are mounted",
@@ -202,6 +236,8 @@ func TestValidateAllowLocalModelEndpoints(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := validateAllowLocalModelEndpoints(
 				tc.allowLocalModelEndpoints,
+				tc.devMode,
+				tc.host,
 				tc.certFile,
 			)
 
