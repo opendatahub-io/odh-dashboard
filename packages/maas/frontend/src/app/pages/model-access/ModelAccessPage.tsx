@@ -24,7 +24,7 @@ import { getModelAccessSubscriptionViewUrl } from './utils';
 const ModelAccessPageContent: React.FC = () => (
   <ApplicationsPage
     title="Model Access"
-    description="Manage subscriptions that control access to models through the Models-as-a-Server (MaaS) gateway."
+    description="View subscriptions that control access to models through the Models-as-a-Server (MaaS) gateway."
     loaded
     empty={false}
   >

@@ -94,7 +94,7 @@ const ModelAccessSubscriptionPage: React.FC = () => {
             <MaasModelsSection
               modelRefSummaries={modelRefSummaries}
               modelRefsWithRateLimits={maasSubscription.modelRefs}
-              hideColumns={['status']}
+              hideColumns={['project', 'status']}
               resourceType="subscription"
             />
           </PageSection>
