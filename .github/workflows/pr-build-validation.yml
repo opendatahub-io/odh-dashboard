@@ -19,6 +19,7 @@ on:
       - 'dashboard-operator/**'
       - '.github/workflows/pr-build-validation.yml'
       - '.github/pr-build-simulation/**'
+      - 'scripts/check-css-lowering.sh'
 
 env:
   NODE_VERSION: '22'
@@ -1321,9 +1322,10 @@ jobs:
           # model-serving has no Dockerfile.workspace (it is built standalone,
           # outside the module shard) — track it separately so its dedicated
           # CSS guard job knows when to run. app-config changes are included
-          # because the shared LightningCSS minimizer options live there.
+          # because the shared LightningCSS minimizer options live there, and
+          # guard-script changes because the job invokes the script directly.
           MODEL_SERVING_CHANGED=false
-          if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qE '^(packages/model-serving/|packages/app-config/)'; then
+          if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qE '^(packages/model-serving/|packages/app-config/|scripts/check-css-lowering\.sh)'; then
             MODEL_SERVING_CHANGED=true
           fi
           echo "model-serving-changed=${MODEL_SERVING_CHANGED}" >> "$GITHUB_OUTPUT"
@@ -1342,9 +1344,10 @@ jobs:
             fi
 
             # Check if this package has changed files, root build files changed,
-            # or the shared app-config rspack exports changed (every module's
-            # production minimizer consumes them — RHOAIENG-100835)
-            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qE "^(${PKG_DIR}/|packages/app-config/)"; then
+            # the shared app-config rspack exports changed (every module's
+            # production minimizer consumes them — RHOAIENG-100835), or the CSS
+            # guard script changed (every module shard invokes it)
+            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qE "^(${PKG_DIR}/|packages/app-config/|scripts/check-css-lowering\.sh)"; then
               MATRIX_ITEMS=$(echo "$MATRIX_ITEMS" | jq -c --arg name "$MODULE_NAME" --arg dockerfile "$dockerfile" '. + [{"module": $name, "dockerfile": $dockerfile}]')
               echo "Will build: $MODULE_NAME ($dockerfile)"
             fi
