@@ -72,69 +72,55 @@ func (r *recordingServiceClient) GetService(ctx context.Context, identity *integ
 	return r.ConfigurableMockKubernetesClient.GetService(ctx, identity, namespace, name)
 }
 
+func boolPtr(b bool) *bool { return &b }
+
+// podRefAt returns a Pod targetRef for the named Pod in the given namespace.
+func podRefAt(ns, name string) *corev1.ObjectReference {
+	return &corev1.ObjectReference{Kind: "Pod", Namespace: ns, Name: name}
+}
+
+// ep builds a single EndpointSlice endpoint; a nil ready/serving pointer leaves
+// the condition unset, and an empty hostname omits the endpoint hostname.
+func ep(address string, ready, serving *bool, hostname string, ref *corev1.ObjectReference) discoveryv1.Endpoint {
+	e := discoveryv1.Endpoint{
+		Addresses:  []string{address},
+		Conditions: discoveryv1.EndpointConditions{Ready: ready, Serving: serving},
+		TargetRef:  ref,
+	}
+	if hostname != "" {
+		e.Hostname = &hostname
+	}
+	return e
+}
+
+// sliceWith builds an EndpointSlice over the given endpoints. labelled marks a
+// manually attached slice, which carries the kubernetes.io/service-name label an
+// attacker uses to attach it to a selector-backed Service.
+func sliceWith(ns, name string, labelled bool, endpoints ...discoveryv1.Endpoint) discoveryv1.EndpointSlice {
+	s := discoveryv1.EndpointSlice{
+		ObjectMeta:  metav1.ObjectMeta{Namespace: ns, Name: name},
+		AddressType: discoveryv1.AddressTypeIPv4,
+		Endpoints:   endpoints,
+	}
+	if labelled {
+		s.Labels = map[string]string{"kubernetes.io/service-name": "my-model"}
+	}
+	return s
+}
+
 // controllerManagedSlice returns an EndpointSlice as the EndpointSlice controller
 // produces it: a ready endpoint whose targetRef points at a Pod in the given
 // namespace. The address is loopback so any resulting pinned dial fails fast and
 // locally instead of depending on the test environment's network.
 func controllerManagedSlice(ns string) discoveryv1.EndpointSlice {
-	ready := true
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: ns, Name: "my-model-x7"},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints: []discoveryv1.Endpoint{{
-			Addresses:  []string{"127.0.0.1"},
-			Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-			TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: ns, Name: "my-model-pod"},
-		}},
-	}
+	return sliceWith(ns, "my-model-x7", false, ep("127.0.0.1", boolPtr(true), nil, "", podRefAt(ns, "my-model-pod")))
 }
 
-// readinessSlice returns an EndpointSlice with a ready endpoint at 127.0.0.1 and a
-// not-ready but serving endpoint at 127.0.0.2, both referencing the same Pod (which
-// the mock returns with both PodIPs).
-func readinessSlice() discoveryv1.EndpointSlice {
-	ready, notReady, serving := true, false, true
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-readiness"},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints: []discoveryv1.Endpoint{
-			{
-				Addresses:  []string{"127.0.0.1"},
-				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "my-model-pod"},
-			},
-			{
-				Addresses:  []string{"127.0.0.2"},
-				Conditions: discoveryv1.EndpointConditions{Ready: &notReady, Serving: &serving},
-				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "my-model-pod"},
-			},
-		},
-	}
-}
-
-// podNamedSlice returns an EndpointSlice for a headless Service with two named
-// endpoints (pod-a at 127.0.0.1, pod-b at 127.0.0.2).
-func podNamedSlice() discoveryv1.EndpointSlice {
-	ready := true
-	podA, podB := "pod-a", "pod-b"
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-named"},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints: []discoveryv1.Endpoint{
-			{
-				Addresses:  []string{"127.0.0.1"},
-				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-				Hostname:   &podA,
-				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "my-model-pod"},
-			},
-			{
-				Addresses:  []string{"127.0.0.2"},
-				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-				Hostname:   &podB,
-				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "my-model-pod"},
-			},
-		},
-	}
+// manualSlice builds a manually managed EndpointSlice whose single ready/serving
+// endpoint sits at an arbitrary address, optionally carrying a (possibly forged)
+// Pod targetRef.
+func manualSlice(name, address string, ready, serving *bool, ref *corev1.ObjectReference) discoveryv1.EndpointSlice {
+	return sliceWith("my-ns", name, true, ep(address, ready, serving, "", ref))
 }
 
 // runningPodWithIPs returns a running, non-host-network Pod with the given pod IPs,
@@ -166,122 +152,27 @@ func namedPod(name, ip string, phase corev1.PodPhase) *corev1.Pod {
 	return pod
 }
 
-// podPhaseSlice returns an EndpointSlice whose two ready endpoints reference
-// different Pods by targetRef name, so tests can mix Pod phases.
-func podPhaseSlice() discoveryv1.EndpointSlice {
-	ready := true
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-phases"},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints: []discoveryv1.Endpoint{
-			{
-				Addresses:  []string{"127.0.0.1"},
-				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "running-pod"},
-			},
-			{
-				Addresses:  []string{"127.0.0.2"},
-				Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-				TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "pending-pod"},
-			},
-		},
-	}
+// namedSlice returns an EndpointSlice for a headless Service with two named
+// endpoints (pod-a at 127.0.0.1, pod-b at 127.0.0.2).
+func namedSlice() discoveryv1.EndpointSlice {
+	return sliceWith("my-ns", "my-model-named", false,
+		ep("127.0.0.1", boolPtr(true), nil, "pod-a", podRefAt("my-ns", "my-model-pod")),
+		ep("127.0.0.2", boolPtr(true), nil, "pod-b", podRefAt("my-ns", "my-model-pod")))
 }
 
-// unreadyNoServingSlice returns an EndpointSlice whose single endpoint is
-// Ready=false with no Serving condition: an absent Serving condition defers to
-// Ready, so it must not become a fallback dial candidate.
-func unreadyNoServingSlice() discoveryv1.EndpointSlice {
-	notReady := false
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-unready"},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints: []discoveryv1.Endpoint{{
-			Addresses:  []string{"127.0.0.1"},
-			Conditions: discoveryv1.EndpointConditions{Ready: &notReady},
-			TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "running-pod"},
-		}},
-	}
+// readinessSlice returns an EndpointSlice with a ready endpoint at 127.0.0.1 and a
+// not-ready but serving endpoint at 127.0.0.2, both referencing the same Pod (which
+// the mock returns with both PodIPs).
+func readinessSlice() discoveryv1.EndpointSlice {
+	return sliceWith("my-ns", "my-model-readiness", false,
+		ep("127.0.0.1", boolPtr(true), nil, "", podRefAt("my-ns", "my-model-pod")),
+		ep("127.0.0.2", boolPtr(false), boolPtr(true), "", podRefAt("my-ns", "my-model-pod")))
 }
 
-// manualSlice returns a manually managed EndpointSlice whose ready endpoint has no
-// Pod targetRef, as an attacker would attach to redirect the Service's traffic at
-// an arbitrary address.
-func manualSlice() discoveryv1.EndpointSlice {
-	ready := true
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-evil", Labels: map[string]string{"kubernetes.io/service-name": "my-model"}},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints: []discoveryv1.Endpoint{{
-			Addresses:  []string{"10.9.9.9"},
-			Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-		}},
-	}
-}
-
-// nilReadyNoTargetSlice returns an EndpointSlice whose endpoint has a nil Ready
-// condition (interpreted as ready per the EndpointSlice API) and no Pod targetRef.
-func nilReadyNoTargetSlice() discoveryv1.EndpointSlice {
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-nilready", Labels: map[string]string{"kubernetes.io/service-name": "my-model"}},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints:   []discoveryv1.Endpoint{{Addresses: []string{"10.9.9.9"}}},
-	}
-}
-
-// forgedRefSlice returns a manually managed EndpointSlice whose ready endpoint
-// carries a forged in-namespace Pod targetRef while its address points elsewhere.
-func forgedRefSlice() discoveryv1.EndpointSlice {
-	ready := true
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-forged", Labels: map[string]string{"kubernetes.io/service-name": "my-model"}},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints: []discoveryv1.Endpoint{{
-			Addresses:  []string{"10.9.9.9"},
-			Conditions: discoveryv1.EndpointConditions{Ready: &ready},
-			TargetRef:  &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "my-model-pod"},
-		}},
-	}
-}
-
-// terminatingSlice returns a manually managed EndpointSlice whose endpoint is
-// Ready=false, Serving=true, Terminating=true — the combination service routing
-// can fall back to when no ready endpoint exists — with the given targetRef and a
-// cross-namespace destination address.
-func terminatingSlice(withRef bool) discoveryv1.EndpointSlice {
-	notReady, serving, terminating := false, true, true
-	endpoint := discoveryv1.Endpoint{
-		Addresses: []string{"10.9.9.9"},
-		Conditions: discoveryv1.EndpointConditions{
-			Ready:       &notReady,
-			Serving:     &serving,
-			Terminating: &terminating,
-		},
-	}
-	if withRef {
-		endpoint.TargetRef = &corev1.ObjectReference{Kind: "Pod", Namespace: "my-ns", Name: "my-model-pod"}
-	}
-	return discoveryv1.EndpointSlice{
-		ObjectMeta:  metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model-term", Labels: map[string]string{"kubernetes.io/service-name": "my-model"}},
-		AddressType: discoveryv1.AddressTypeIPv4,
-		Endpoints:   []discoveryv1.Endpoint{endpoint},
-	}
-}
-
-// TestResolveTrustedHost verifies the Service-backed trust decision: an in-namespace
-// service DNS name is only trusted when the backing Service exists, is not an
-// ExternalName alias (which could point at another namespace), has a selector
-// (selectorless Services have manually managed endpoints that could point at
-// another namespace's Pods; headless Services with a selector are legitimate
-// controller-managed endpoints), and every endpoint of its EndpointSlices —
-// regardless of readiness, since routing can fall back to terminating endpoints —
-// references a running, non-host-network Pod in the caller's namespace whose PodIPs
-// contain the endpoint's addresses (a manually managed EndpointSlice attached to a
-// selector-backed Service could otherwise point at another namespace's Pod IP). A
-// trusted Service returns validated address:backendPort dial targets, with the
-// backend port resolved from the Service's targetPort (ClusterIP Services) or the
-// URL's port (headless Services), ready endpoints preferred over serving ones, and
-// pod-specific DNS names restricted to the matching endpoint hostname.
+// TestResolveTrustedHost verifies the Service-backed trust decision and dial
+// target resolution described on resolveTrustedHost: ExternalName, selectorless,
+// and manually-endpoint-managed Services fail closed, and trusted Services return
+// validated address:backendPort targets with ready endpoints preferred.
 func TestResolveTrustedHost(t *testing.T) {
 	logger := slog.Default()
 	identity := &integrations.RequestIdentity{Token: "user-token"}
@@ -369,7 +260,7 @@ func TestResolveTrustedHost(t *testing.T) {
 			want:          true,
 			wantName:      "my-model",
 			service:       selectorSvc(corev1.ClusterIPNone, intstr.FromInt32(8443)),
-			slices:        []discoveryv1.EndpointSlice{podNamedSlice()},
+			slices:        []discoveryv1.EndpointSlice{namedSlice()},
 			pod:           runningPodWithIPs("my-ns", "127.0.0.1", "127.0.0.2"),
 			wantAddresses: []string{"127.0.0.1:8443"},
 		},
@@ -377,14 +268,14 @@ func TestResolveTrustedHost(t *testing.T) {
 			name:    "extra intermediate labels are NOT a valid service DNS name",
 			baseURL: "https://pod-a.extra.my-model.my-ns.svc.cluster.local:8443/v1",
 			service: selectorSvc(corev1.ClusterIPNone, intstr.FromInt32(8443)),
-			slices:  []discoveryv1.EndpointSlice{podNamedSlice()},
+			slices:  []discoveryv1.EndpointSlice{namedSlice()},
 			pod:     runningPodWithIPs("my-ns", "127.0.0.1", "127.0.0.2"),
 		},
 		{
 			name:     "pod-specific DNS name with no matching endpoint hostname fails closed",
 			baseURL:  "https://pod-c.my-model.my-ns.svc.cluster.local:8443/v1",
 			service:  selectorSvc(corev1.ClusterIPNone, intstr.FromInt32(8443)),
-			slices:   []discoveryv1.EndpointSlice{podNamedSlice()},
+			slices:   []discoveryv1.EndpointSlice{namedSlice()},
 			pod:      runningPodWithIPs("my-ns", "127.0.0.1", "127.0.0.2"),
 			wantName: "my-model",
 		},
@@ -414,7 +305,7 @@ func TestResolveTrustedHost(t *testing.T) {
 		{
 			name:    "manually managed EndpointSlice without a Pod targetRef is NOT trusted",
 			service: selectorSvc("", intstr.FromInt32(8443)),
-			slices:  []discoveryv1.EndpointSlice{manualSlice()},
+			slices:  []discoveryv1.EndpointSlice{manualSlice("my-model-evil", "10.9.9.9", boolPtr(true), nil, nil)},
 		},
 		{
 			name:    "manually managed EndpointSlice targeting another namespace's Pod is NOT trusted",
@@ -424,18 +315,18 @@ func TestResolveTrustedHost(t *testing.T) {
 		{
 			name:    "nil Ready condition without a Pod targetRef is NOT trusted",
 			service: selectorSvc("", intstr.FromInt32(8443)),
-			slices:  []discoveryv1.EndpointSlice{nilReadyNoTargetSlice()},
+			slices:  []discoveryv1.EndpointSlice{manualSlice("my-model-nilready", "10.9.9.9", nil, nil, nil)},
 		},
 		{
 			name:    "forged Pod targetRef with a non-matching address is NOT trusted",
 			service: selectorSvc("", intstr.FromInt32(8443)),
-			slices:  []discoveryv1.EndpointSlice{forgedRefSlice()},
+			slices:  []discoveryv1.EndpointSlice{manualSlice("my-model-forged", "10.9.9.9", boolPtr(true), nil, podRefAt("my-ns", "my-model-pod"))},
 			pod:     runningPod("my-ns", "127.0.0.1"),
 		},
 		{
 			name:    "forged Pod targetRef to a missing Pod is NOT trusted",
 			service: selectorSvc("", intstr.FromInt32(8443)),
-			slices:  []discoveryv1.EndpointSlice{forgedRefSlice()},
+			slices:  []discoveryv1.EndpointSlice{manualSlice("my-model-forged", "10.9.9.9", boolPtr(true), nil, podRefAt("my-ns", "my-model-pod"))},
 			podErr:  apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, "my-model-pod"),
 		},
 		{
@@ -474,22 +365,18 @@ func TestResolveTrustedHost(t *testing.T) {
 		{
 			name:    "terminating endpoint without a Pod targetRef is NOT trusted",
 			service: selectorSvc("", intstr.FromInt32(8443)),
-			slices:  []discoveryv1.EndpointSlice{terminatingSlice(false)},
+			slices:  []discoveryv1.EndpointSlice{manualSlice("my-model-term", "10.9.9.9", boolPtr(false), boolPtr(true), nil)},
 		},
 		{
 			name:    "terminating endpoint with a forged Pod targetRef and unrelated address is NOT trusted",
 			service: selectorSvc("", intstr.FromInt32(8443)),
-			slices:  []discoveryv1.EndpointSlice{terminatingSlice(true)},
+			slices:  []discoveryv1.EndpointSlice{manualSlice("my-model-term", "10.9.9.9", boolPtr(false), boolPtr(true), podRefAt("my-ns", "my-model-pod"))},
 			pod:     runningPod("my-ns", "127.0.0.1"),
 		},
 		{
-			name:    "terminating endpoint referencing a matching Pod is trusted",
-			service: selectorSvc("", intstr.FromInt32(8443)),
-			slices: []discoveryv1.EndpointSlice{func() discoveryv1.EndpointSlice {
-				slice := terminatingSlice(true)
-				slice.Endpoints[0].Addresses = []string{"127.0.0.1"}
-				return slice
-			}()},
+			name:          "terminating endpoint referencing a matching Pod is trusted",
+			service:       selectorSvc("", intstr.FromInt32(8443)),
+			slices:        []discoveryv1.EndpointSlice{manualSlice("my-model-term", "127.0.0.1", boolPtr(false), boolPtr(true), podRefAt("my-ns", "my-model-pod"))},
 			want:          true,
 			pod:           runningPod("my-ns", "127.0.0.1"),
 			wantAddresses: []string{"127.0.0.1:8443"},
@@ -519,7 +406,9 @@ func TestResolveTrustedHost(t *testing.T) {
 		{
 			name:    "Pending replica is excluded without discarding ready Running replicas",
 			service: selectorSvc("", intstr.FromInt32(8443)),
-			slices:  []discoveryv1.EndpointSlice{podPhaseSlice()},
+			slices: []discoveryv1.EndpointSlice{sliceWith("my-ns", "my-model-phases", false,
+				ep("127.0.0.1", boolPtr(true), nil, "", podRefAt("my-ns", "running-pod")),
+				ep("127.0.0.2", boolPtr(true), nil, "", podRefAt("my-ns", "pending-pod")))},
 			pods: map[string]*corev1.Pod{
 				"running-pod": namedPod("running-pod", "127.0.0.1", corev1.PodRunning),
 				"pending-pod": namedPod("pending-pod", "127.0.0.2", corev1.PodPending),
@@ -531,7 +420,7 @@ func TestResolveTrustedHost(t *testing.T) {
 		{
 			name:     "unready endpoint without a Serving condition is not a fallback candidate",
 			service:  selectorSvc("", intstr.FromInt32(8443)),
-			slices:   []discoveryv1.EndpointSlice{unreadyNoServingSlice()},
+			slices:   []discoveryv1.EndpointSlice{sliceWith("my-ns", "my-model-unready", false, ep("127.0.0.1", boolPtr(false), nil, "", podRefAt("my-ns", "running-pod")))},
 			pod:      runningPod("my-ns", "127.0.0.1"),
 			wantName: "my-model",
 		},
@@ -628,82 +517,49 @@ func TestResolveTrustedHost(t *testing.T) {
 }
 
 // TestResolveTrustedHostForbiddenLookup verifies that a caller who cannot read the
-// Service gets a meaningful permission error instead of a misleading connectivity
-// failure, while the host is still not trusted.
+// Service, its EndpointSlices, or the referenced Pod gets a meaningful permission
+// error instead of a misleading connectivity failure, while the host is still not
+// trusted.
 func TestResolveTrustedHostForbiddenLookup(t *testing.T) {
-	client := &k8smocks.ConfigurableMockKubernetesClient{
-		ServiceError: apierrors.NewForbidden(schema.GroupResource{Resource: "services"}, "my-model", fmt.Errorf("denied")),
+	selectorSvc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+		Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP, ClusterIP: corev1.ClusterIPNone, Selector: map[string]string{"app": "my-model"}},
 	}
-	trusted, _, err := resolveTrustedHost(
-		context.Background(), client, nil,
-		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", false, slog.Default(),
-	)
-	if trusted {
-		t.Error("resolveTrustedHost() = true, want false on forbidden lookup")
-	}
-	if err == nil {
-		t.Fatal("resolveTrustedHost() error = nil, want permission error")
-	}
-	var extErr *externalmodels.ExternalModelError
-	if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
-		t.Errorf("resolveTrustedHost() error = %v, want ExternalModelError with status 403", err)
-	}
-}
-
-// TestResolveTrustedHostForbiddenEndpointSliceLookup verifies that a caller who can
-// read the Service but cannot list its EndpointSlices gets a meaningful permission
-// error instead of a misleading connectivity failure, while the host is still not
-// trusted.
-func TestResolveTrustedHostForbiddenEndpointSliceLookup(t *testing.T) {
-	client := &k8smocks.ConfigurableMockKubernetesClient{
-		Service: &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
-			Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP, ClusterIP: corev1.ClusterIPNone, Selector: map[string]string{"app": "my-model"}},
+	tests := []struct {
+		name   string
+		client *k8smocks.ConfigurableMockKubernetesClient
+	}{
+		{
+			name:   "forbidden Service lookup",
+			client: &k8smocks.ConfigurableMockKubernetesClient{ServiceError: apierrors.NewForbidden(schema.GroupResource{Resource: "services"}, "my-model", fmt.Errorf("denied"))},
 		},
-		EndpointSlicesError: apierrors.NewForbidden(schema.GroupResource{Resource: "endpointslices"}, "my-model-x7", fmt.Errorf("denied")),
-	}
-	trusted, _, err := resolveTrustedHost(
-		context.Background(), client, nil,
-		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", false, slog.Default(),
-	)
-	if trusted {
-		t.Error("resolveTrustedHost() = true, want false on forbidden endpoint slice lookup")
-	}
-	if err == nil {
-		t.Fatal("resolveTrustedHost() error = nil, want permission error")
-	}
-	var extErr *externalmodels.ExternalModelError
-	if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
-		t.Errorf("resolveTrustedHost() error = %v, want ExternalModelError with status 403", err)
-	}
-}
-
-// TestResolveTrustedHostForbiddenPodLookup verifies that a caller who can list the
-// EndpointSlices but cannot get the referenced Pod gets a meaningful permission
-// error instead of a misleading connectivity failure, while the host is still not
-// trusted.
-func TestResolveTrustedHostForbiddenPodLookup(t *testing.T) {
-	client := &k8smocks.ConfigurableMockKubernetesClient{
-		Service: &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
-			Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP, ClusterIP: corev1.ClusterIPNone, Selector: map[string]string{"app": "my-model"}},
+		{
+			name:   "forbidden EndpointSlice lookup",
+			client: &k8smocks.ConfigurableMockKubernetesClient{Service: selectorSvc, EndpointSlicesError: apierrors.NewForbidden(schema.GroupResource{Resource: "endpointslices"}, "my-model-x7", fmt.Errorf("denied"))},
 		},
-		EndpointSlices: []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
-		PodError:       apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, "my-model-pod", fmt.Errorf("denied")),
+		{
+			name: "forbidden Pod lookup",
+			client: &k8smocks.ConfigurableMockKubernetesClient{
+				Service:        selectorSvc,
+				EndpointSlices: []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+				PodError:       apierrors.NewForbidden(schema.GroupResource{Resource: "pods"}, "my-model-pod", fmt.Errorf("denied")),
+			},
+		},
 	}
-	trusted, _, err := resolveTrustedHost(
-		context.Background(), client, nil,
-		"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", false, slog.Default(),
-	)
-	if trusted {
-		t.Error("resolveTrustedHost() = true, want false on forbidden pod lookup")
-	}
-	if err == nil {
-		t.Fatal("resolveTrustedHost() error = nil, want permission error")
-	}
-	var extErr *externalmodels.ExternalModelError
-	if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
-		t.Errorf("resolveTrustedHost() error = %v, want ExternalModelError with status 403", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			trusted, _, err := resolveTrustedHost(
+				context.Background(), tt.client, nil,
+				"https://my-model.my-ns.svc.cluster.local:8443/v1", "my-ns", false, slog.Default(),
+			)
+			if trusted {
+				t.Error("resolveTrustedHost() = true, want false on forbidden lookup")
+			}
+			var extErr *externalmodels.ExternalModelError
+			if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+				t.Errorf("resolveTrustedHost() error = %v, want ExternalModelError with status 403", err)
+			}
+		})
 	}
 }
 
@@ -800,7 +656,7 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 					Ports:    []corev1.ServicePort{{Name: "https", Port: 8443, TargetPort: intstr.FromInt32(8443)}},
 				},
 			},
-			EndpointSlices: []discoveryv1.EndpointSlice{manualSlice()},
+			EndpointSlices: []discoveryv1.EndpointSlice{manualSlice("my-model-evil", "10.9.9.9", boolPtr(true), nil, nil)},
 		}
 		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {

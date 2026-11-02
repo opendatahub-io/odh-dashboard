@@ -191,13 +191,11 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
 }
 
-// isInternalHost reports whether a URL targets a host that is known to be internal
-// and trusted for the caller's authorized namespace: localhost/loopback (local
-// development) or a Kubernetes in-cluster service in the caller's own namespace.
-// These legitimately resolve to private IPs, so SSRF validation is skipped for them.
-// In-cluster services in other namespaces are NOT trusted: the caller is only
-// authorized for their own namespace, so cross-namespace hosts must go through
-// normal SSRF validation (CWE-918). All other URLs are subject to SSRF checks.
+// isInternalHost reports whether a URL targets a host trusted for the caller's
+// namespace: loopback (only in local development) or a same-namespace in-cluster
+// Service DNS name. These legitimately resolve to private IPs, so SSRF validation
+// is skipped for them; everything else — including cross-namespace services, since
+// the caller is only authorized for their own namespace — is subject to SSRF checks.
 func isInternalHost(baseURL string, allowedNamespace string, allowLoopback bool) bool {
 	u, err := url.Parse(baseURL)
 	if err != nil {
@@ -223,9 +221,7 @@ func isInternalHost(baseURL string, allowedNamespace string, allowLoopback bool)
 
 // k8sServiceHost extracts the service and namespace labels, plus the pod-specific
 // hostname label when present (empty for plain Service DNS names), from a
-// fully-qualified in-cluster service DNS name
-// (<service>.<namespace>.svc.cluster.local or
-// <pod>.<service>.<namespace>.svc.cluster.local).
+// fully-qualified in-cluster service DNS name.
 func k8sServiceHost(baseURL string) (service string, namespace string, podLabel string, ok bool) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
@@ -250,38 +246,26 @@ func k8sServiceHost(baseURL string) (service string, namespace string, podLabel 
 }
 
 // resolveTrustedHost decides whether a base URL in the caller's own namespace may
-// skip SSRF validation. A namespace user can create a ServiceTypeExternalName Service
-// whose in-namespace DNS name aliases an arbitrary target (e.g. in another namespace),
-// so the backing Service is read through the Kubernetes API and ExternalName services
-// are not trusted. Selectorless Services are also rejected: without a selector their
-// endpoint addresses are manually managed and can point at Pods in another namespace,
-// so they must not receive the SSRF exemption. Selector-backed Services are trusted
-// whether or not they are headless (headless KServe model endpoints are legitimate),
-// but only after their EndpointSlices are checked: a selector alone does not prove
-// the effective endpoints, because a caller who can create EndpointSlices in their
-// namespace can attach a manually managed slice (labelled kubernetes.io/service-name)
-// to a selector-backed Service and point it at another namespace's Pod IP, and can
-// forge the endpoint's Pod targetRef. Every endpoint must therefore reference
-// a non-host-network Pod in the caller's namespace whose PodIPs contain the
-// endpoint's addresses, which is all the EndpointSlice controller itself ever
-// produces (fail closed on lookup errors too; readiness is not relied on for
-// validation, because service routing can fall back to serving/terminating
-// endpoints when no ready endpoint exists, and non-running Pods are excluded from
-// dial candidates rather than rejecting the whole Service). A Forbidden lookup
-// returns an error so the caller learns the missing permission instead of a
-// misleading connectivity failure.
+// skip SSRF validation, and returns the validated dial targets (address:backendPort)
+// to pin the connection to (see ClientOptions.PinnedDialAddresses), so a caller who
+// mutates the Service or its EndpointSlices after the lookup cannot redirect the
+// request — the pinned dial bypasses DNS and the Service VIP entirely.
 //
-// When the host is trusted, the validated dial targets (address:backendPort) are
-// returned so the connection can be pinned to them (see
-// ClientOptions.PinnedDialAddresses): a caller who mutates Services or
-// EndpointSlices in their own namespace after the lookup cannot redirect the
-// request, because the dial bypasses DNS and the Service VIP entirely. The backend
-// port is the Service's targetPort for ClusterIP Services (direct dialing bypasses
-// the VIP's port translation) and the URL's port for headless Services, whose DNS
-// already points at Pod IPs. Dial candidates prefer ready endpoints, falling back
-// to serving endpoints only when no ready endpoint exists, mirroring service
-// routing. Pod-specific DNS names restrict candidates to the endpoint whose
-// hostname matches the pod label.
+// A namespace user can point an in-namespace Service DNS name at an arbitrary
+// target, so trust is only granted after verification through the Kubernetes API:
+// ExternalName and selectorless Services are rejected, and for selector-backed
+// Services (headless or not) every endpoint must reference a running,
+// non-host-network Pod in the caller's namespace whose PodIPs contain the
+// endpoint's addresses — which is all the EndpointSlice controller itself ever
+// produces. Lookups fail closed; a Forbidden lookup returns an error so the caller
+// learns the missing permission instead of a misleading connectivity failure. The
+// backend port is the Service's targetPort for ClusterIP Services (direct dialing
+// bypasses the VIP's port translation) and the URL's port for headless Services,
+// whose DNS already points at Pod IPs. Dial candidates prefer ready endpoints and
+// fall back to serving endpoints only when no ready endpoint exists, mirroring
+// service routing; non-running Pods are excluded from dial candidates rather than
+// rejecting the whole Service, and pod-specific DNS names restrict candidates to
+// the endpoint whose hostname matches the pod label.
 func resolveTrustedHost(
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
