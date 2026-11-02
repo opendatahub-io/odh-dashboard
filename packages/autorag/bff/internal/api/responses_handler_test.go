@@ -341,6 +341,13 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			wantBodySubstr: "vector database is unavailable",
 		},
 		{
+			name:           "vector database query rejection returns 502 with safe message",
+			body:           validResponsesBody,
+			repoErr:        fmt.Errorf("search: %w: raw server rejection detail", vectordb.ErrDatabaseQueryFailed),
+			wantStatusCode: http.StatusBadGateway,
+			wantBodySubstr: "vector database rejected the search",
+		},
+		{
 			name:           "unsupported vector search returns 400",
 			body:           validResponsesBody,
 			repoResult:     nil,
@@ -646,6 +653,28 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 		assert.Contains(t, body, "[DONE]")
 		assert.NotContains(t, logs.String(), "password")
 		assert.Contains(t, logs.String(), "milvus.example:19530")
+		repo.AssertExpectations(t)
+	})
+
+	t.Run("database query rejection emits classified safe error event then DONE", func(t *testing.T) {
+		var logs bytes.Buffer
+		repo := new(mockResponsesRepo)
+		h := &ResponsesHandler{logger: slog.New(slog.NewTextHandler(&logs, nil)), repo: repo}
+
+		repo.On("HandleResponsesStream", mock.Anything, validParams, mock.Anything, mock.AnythingOfType("func(string)")).
+			Return(nil, fmt.Errorf("neo4j search: %w: raw server rejection detail", vectordb.ErrDatabaseQueryFailed))
+		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).Return(nil)
+
+		req := responsesRequestWithNamespace(http.MethodPost, url, streamingResponsesBody, ns)
+		rr := httptest.NewRecorder()
+		h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		body := rr.Body.String()
+		assert.Contains(t, body, `"code":"vector_database_query_failed"`)
+		assert.Contains(t, body, `"message":"The vector database rejected the search."`)
+		assert.NotContains(t, body, "raw server rejection detail")
+		assert.Contains(t, body, "[DONE]")
 		repo.AssertExpectations(t)
 	})
 

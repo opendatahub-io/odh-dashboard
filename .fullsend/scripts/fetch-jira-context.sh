@@ -7,8 +7,8 @@
 # omitted keys, and writes an issues[] array alongside the backward-compatible
 # top-level fields.
 #
-# Reads only the existing Dashboard preflight secrets: JIRA_URL,
-# JIRA_USERNAME, and JIRA_API_TOKEN. It deliberately produces no mock data.
+# Reads JIRA_BASE_URL for request and browse URLs, plus the JIRA username and
+# API token the adapter forwards. It deliberately produces no mock data.
 #
 # Writes context JSON — no findings, no GitHub posts, no secrets in the file.
 #
@@ -112,7 +112,7 @@ keys = collect_keys(title, body)
 OMITTED_KEYS = keys[MAX_JIRA_KEYS:]
 keys = keys[:MAX_JIRA_KEYS]
 key = keys[0] if keys else None
-base = (os.environ.get("FULLSEND_ADAPTER_URL") or os.environ.get("JIRA_URL") or "").rstrip("/")
+base = (os.environ.get("JIRA_BASE_URL") or "").rstrip("/")
 user = os.environ.get("FULLSEND_ADAPTER_USERNAME") or os.environ.get("JIRA_USERNAME") or ""
 token = os.environ.get("FULLSEND_ADAPTER_TOKEN") or os.environ.get("JIRA_API_TOKEN") or ""
 
@@ -151,7 +151,13 @@ if not keys:
     print(f"Wrote Jira snapshot (none: no-issue-key) to {dest}")
     raise SystemExit(0)
 
-if base and user and token:
+if not base:
+    write(envelope(status="none", key=key, issues=[{"key": k} for k in keys],
+                   reason="jira-base-url-unset"))
+    print(f"Wrote Jira snapshot (none: JIRA_BASE_URL unset, keys={','.join(keys)}) to {dest}")
+    raise SystemExit(0)
+
+if user and token:
     import base64
     raw = base64.b64encode(f"{user}:{token}".encode()).decode()
     opener = urllib.request.build_opener(RejectRedirects())
@@ -197,10 +203,11 @@ run_self_test() {
   local tmp
   tmp="$(mktemp)"
 
-  # Existing: HTTPS required.
+  # Authenticated requests must not downgrade to plain HTTP.
   REVIEW_PR_TITLE='fix: export' \
   REVIEW_PR_BODY=$'Fixes RHOAIENG-82129\n' \
-  JIRA_URL='http://jira.example.test' JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
+  JIRA_BASE_URL='http://jira.example.test' \
+  JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -211,9 +218,25 @@ assert data["reason"] == "jira-url-must-use-https", data
 print("PASS jira-snapshot: authenticated requests require HTTPS")
 PY
 
+  # A missing base URL is its own reason, not a credentials failure.
+  REVIEW_PR_TITLE='fix: export' \
+  REVIEW_PR_BODY=$'Fixes RHOAIENG-82129\n' \
+  JIRA_BASE_URL='' \
+  JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["status"] == "none", data
+assert data["reason"] == "jira-base-url-unset", data
+assert data["issues"] == [{"key": "RHOAIENG-82129"}], data
+print("PASS jira-snapshot: missing base URL reported separately")
+PY
+
   # Existing: no key at all.
   REVIEW_PR_TITLE='docs' REVIEW_PR_BODY=$'## Problem\nNo tracker.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -228,7 +251,7 @@ PY
   # HTML-commented template sample + real Fixes: URL at the top.
   REVIEW_PR_TITLE='fix: export RHOAIENG-100655' \
   REVIEW_PR_BODY=$'<!-- Fixes: https://issues.redhat.com/browse/RHOAIENG-123456 -->\nFixes: https://issues.redhat.com/browse/RHOAIENG-100655\n\n## Problem\nBroken.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -243,7 +266,7 @@ PY
   # Multiline comment containing a heading does not end the body preamble.
   REVIEW_PR_TITLE='fix: export RHOAIENG-100655' \
   REVIEW_PR_BODY=$'<!-- template\nFixes: https://issues.redhat.com/browse/RHOAIENG-123456\n## Tracking\n-->\nFixes: https://issues.redhat.com/browse/RHOAIENG-100655\n\n## Problem\nBroken.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -258,7 +281,7 @@ PY
   # Four Fixes: lines at the top (PR #10264 shape).
   REVIEW_PR_TITLE='fix: multi' \
   REVIEW_PR_BODY=$'Fixes: https://issues.redhat.com/browse/RHOAIENG-100580\nFixes: https://issues.redhat.com/browse/RHOAIENG-100583\nFixes: https://issues.redhat.com/browse/RHOAIENG-100584\nFixes: https://issues.redhat.com/browse/RHOAIENG-100585\n\n## Problem\nMulti.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -273,7 +296,7 @@ PY
   # Bare keys at the top with no Fixes: prefix; key under Problem excluded.
   REVIEW_PR_TITLE='fix: stuff' \
   REVIEW_PR_BODY=$'RHOAIENG-100580\nRHOAIENG-100583\n\n## Problem\nSee RHOAIENG-99999 for background.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -288,7 +311,7 @@ PY
   # Comma-separated keys on one preamble line.
   REVIEW_PR_TITLE='fix: combo' \
   REVIEW_PR_BODY=$'Fixes: RHOAIENG-100580, RHOAIENG-100583\n\n## Problem\nMulti.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -302,7 +325,7 @@ PY
   # Same key twice in preamble: deduplicated.
   REVIEW_PR_TITLE='fix: dup' \
   REVIEW_PR_BODY=$'Fixes: RHOAIENG-100580\nFixes: RHOAIENG-100580\n\n## Problem\nDup.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -322,7 +345,7 @@ PY
   done
   REVIEW_PR_TITLE='fix: bounded' \
   REVIEW_PR_BODY="${bounded_body}" \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -338,7 +361,7 @@ PY
   bounded_body+="Fixes: RHOAIENG-100511"$'\n'
   REVIEW_PR_TITLE='fix: bounded' \
   REVIEW_PR_BODY="${bounded_body}" \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -353,7 +376,7 @@ PY
   # Commented key only: no key found.
   REVIEW_PR_TITLE='docs' \
   REVIEW_PR_BODY=$'<!-- Fixes: https://issues.redhat.com/browse/RHOAIENG-123456 -->\n\n## Problem\nNo real tracker.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'
@@ -367,7 +390,7 @@ PY
   # Title fallback when body has no keys.
   REVIEW_PR_TITLE='RHOAIENG-55555: fix it' \
   REVIEW_PR_BODY=$'## Problem\nNo tracker in body.\n' \
-  JIRA_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
+  JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
   python3 - "${tmp}" <<'PY'

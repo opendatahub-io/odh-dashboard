@@ -340,6 +340,9 @@ func splitMaaSPortalRoutes(resources []unstructured.Unstructured) (workloads, ro
 }
 
 func (r *DashboardReconciler) deployMaaSPortalResources(ctx context.Context, dashboard *v1alpha1.Dashboard, resources []unstructured.Unstructured) error {
+	if err := revertServicePortDrift(ctx, r.apiReader(), r.Client, resources); err != nil {
+		return fmt.Errorf("repairing MaaS Portal Service port drift: %w", err)
+	}
 	deployer := deploy.NewDeployer(deploy.WithFieldOwner("dashboard-operator"), deploy.WithLabel(labels.PlatformPartOf, maasPortalPartOf), deploy.WithApplyOrder())
 	return deployer.Deploy(ctx, deploy.DeployInput{Client: r.Client, Owner: dashboard,
 		Release: deploy.ReleaseInfo{Type: string(r.Platform)}, Resources: resources})

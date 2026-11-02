@@ -27,7 +27,7 @@ describe('Verifies that Agents Catalog is available and navigable', () => {
 
   it(
     'Verifies Agents Catalog is available and navigable for an admin user',
-    { tags: ['@FeatureFlagged', '@Dashboard', '@AgentsCatalog'] },
+    { tags: ['@Featureflagged', '@Dashboard', '@AgentsCatalog'] },
     () => {
       cy.step('Login as admin user with agentsCatalog feature flag enabled');
       cy.visitWithLogin('/?devFeatureFlags=agentsCatalog=true', LDAP_ADMIN_USER);
@@ -63,7 +63,7 @@ describe('Verifies that Agents Catalog is available and navigable', () => {
 
   it(
     'Verifies Agents Catalog is available and navigable for a regular user',
-    { tags: ['@FeatureFlagged', '@Dashboard', '@AgentsCatalog'] },
+    { tags: ['@Featureflagged', '@Dashboard', '@AgentsCatalog'] },
     () => {
       cy.step('Login as contributor user with agentsCatalog feature flag enabled');
       cy.visitWithLogin('/?devFeatureFlags=agentsCatalog=true', LDAP_CONTRIBUTOR_USER);

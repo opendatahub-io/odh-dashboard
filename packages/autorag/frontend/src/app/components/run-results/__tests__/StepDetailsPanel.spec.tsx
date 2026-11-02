@@ -14,12 +14,6 @@ jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   useTaskExecutorError: jest.fn(),
 }));
 
-jest.mock('~/app/topology/stageMapStatus', () => ({
-  ...jest.requireActual('~/app/topology/stageMapStatus'),
-  getSelectedPatterns: jest.fn(),
-  BRANCHING_STAGE_ID: 'branching',
-}));
-
 jest.mock('~/app/topology/tree-view/stepMetadata', () => ({
   getStepMetadata: jest.fn(),
 }));
@@ -63,16 +57,12 @@ const renderStep = (nodeData: TreeNodeData, statusFilter: PipelineStatusFilter =
 };
 
 const renderBranchPanel = (): void => {
-  const { getSelectedPatterns } = jest.requireMock('~/app/topology/stageMapStatus') as {
-    getSelectedPatterns: jest.Mock;
-  };
   const { parseStageMapNodeId } = jest.requireMock(
     '~/app/topology/tree-view/stageMapStepMetadata',
   ) as { parseStageMapNodeId: jest.Mock };
   const { getStepMetadata: getStepMetadataMock } = jest.requireMock(
     '~/app/topology/tree-view/stepMetadata',
   ) as { getStepMetadata: jest.Mock };
-  getSelectedPatterns.mockReturnValue({ patterns: ['Pattern One'], isPlaceholder: false });
   parseStageMapNodeId.mockReturnValue({
     type: 'branch_pattern',
     componentId: 'rag_optimization',
@@ -90,7 +80,7 @@ const renderBranchPanel = (): void => {
     >
       <StepDetailsPanel
         selectedNodeId="rag_optimization__pattern__branch-0"
-        nodeData={{ label: 'Pattern One', stepState: 'completed' }}
+        nodeData={{ label: 'Pattern One', patternKey: 'generatedKey', stepState: 'completed' }}
         selectedPattern="generatedKey"
         statusFilter="completed"
         componentStageMap={
@@ -192,7 +182,7 @@ describe('StepDetailsPanel', () => {
     );
   });
 
-  it('should identify a best pattern when the stage map uses its display name', () => {
+  it('should identify the best pattern from the selected node pattern key', () => {
     renderBranchPanel();
 
     expect(screen.getByRole('heading', { name: 'Best pattern' })).toBeInTheDocument();

@@ -53,7 +53,7 @@ describe('store binding provider helpers', () => {
   it('should only allow Milvus and pgvector for Responses', () => {
     expect(isResponsesProvider('milvus')).toBe(true);
     expect(isResponsesProvider('pgvector')).toBe(true);
-    expect(isResponsesProvider('neo4j')).toBe(false);
+    expect(isResponsesProvider('neo4j')).toBe(true);
     expect(isResponsesProvider(undefined)).toBe(false);
   });
 });
@@ -73,11 +73,11 @@ describe('getResponsesUnavailableReason', () => {
     expect(getResponsesUnavailableReason(parameters, pattern)).toBe(reason);
   });
 
-  it('reports unsupported provider, collection, and embedding model', () => {
+  it('reports unknown provider, collection, and embedding model', () => {
     expect(
       getResponsesUnavailableReason({ db_secret_name: 'db', maas_secret_name: 'maas' }, {
         ...pattern,
-        settings: { ...pattern.settings, store_binding: { provider_type: 'neo4j' } },
+        settings: { ...pattern.settings, store_binding: undefined },
       } as AutoragPattern),
     ).toBe('unsupported-provider');
     expect(
@@ -92,6 +92,18 @@ describe('getResponsesUnavailableReason', () => {
         settings: { ...pattern.settings, embedding: { model_id: ' ' } },
       } as AutoragPattern),
     ).toBe('embedding-model');
+  });
+
+  it('accepts Neo4j patterns', () => {
+    expect(
+      getResponsesUnavailableReason({ db_secret_name: 'db', maas_secret_name: 'maas' }, {
+        ...pattern,
+        settings: {
+          ...pattern.settings,
+          store_binding: { provider_type: 'neo4j', collection_name: 'collection' },
+        },
+      } as AutoragPattern),
+    ).toBeUndefined();
   });
 });
 /* eslint-enable camelcase */

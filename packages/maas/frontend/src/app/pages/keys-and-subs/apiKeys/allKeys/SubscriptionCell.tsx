@@ -3,6 +3,7 @@ import { Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { isMaaSConsumerPortal } from '~/app/utilities/gridFeatureFlag';
 import { getSubscriptionViewUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { SubscriptionDetail } from '~/app/types/api-key';
 import {
@@ -30,6 +31,8 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
   linkable = false,
   isMaasAdmin = false,
 }) => {
+  const isMaaSPortal = isMaaSConsumerPortal();
+
   if (!subscriptionName) {
     return <>—</>;
   }
@@ -63,11 +66,13 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
       <StackItem>{nameContent}</StackItem>
       <StackItem>
         <Link
-          to={getSubscriptionViewUrl(subscriptionName)}
+          to={
+            isMaaSPortal ? `${URL_PREFIX}/model-access` : getSubscriptionViewUrl(subscriptionName)
+          }
           data-testid="subscription-governance-link"
           className="pf-v6-u-font-size-sm"
         >
-          View in MaaS governance
+          {isMaaSPortal ? 'View in Model access' : 'View in MaaS governance'}
         </Link>
       </StackItem>
     </Stack>

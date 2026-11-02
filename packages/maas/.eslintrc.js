@@ -12,5 +12,14 @@ module.exports = require('@odh-dashboard/eslint-config')
       'frontend/**/*',
       '!frontend/**/*.md',
     ],
+    overrides: [
+      {
+        files: ['types/ModelAccessPage.d.ts', 'types/ModelAccessSubscriptionPage.d.ts'],
+        rules: {
+          // Hand-written declaration shim; no blank line is needed after the single import.
+          'import/newline-after-import': 'off',
+        },
+      },
+    ],
   })
   .recommendedReactTypescript(__dirname);

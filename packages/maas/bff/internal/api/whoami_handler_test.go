@@ -25,6 +25,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 		closeUpstream       bool
 		wantStatus          int
 		wantCode            string
+		wantMessage         string
 		wantAdmin           bool
 	}{
 		{
@@ -74,6 +75,14 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			upstreamBody:   `{"error":"Unauthorized"}`,
 			wantStatus:     http.StatusUnauthorized,
 			wantCode:       "401",
+		},
+		{
+			name:           "unauthorized with object error",
+			upstreamStatus: http.StatusUnauthorized,
+			upstreamBody:   `{"error":{"message":"Authentication required","type":"authentication_error","code":401}}`,
+			wantStatus:     http.StatusUnauthorized,
+			wantCode:       "401",
+			wantMessage:    "Authentication required",
 		},
 		{
 			name:           "forbidden",
@@ -161,6 +170,9 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			}
 			if body.Error.Code != tt.wantCode {
 				t.Errorf("error code = %q, want %q", body.Error.Code, tt.wantCode)
+			}
+			if tt.wantMessage != "" && body.Error.Message != tt.wantMessage {
+				t.Errorf("error message = %q, want %q", body.Error.Message, tt.wantMessage)
 			}
 		})
 	}

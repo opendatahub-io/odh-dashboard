@@ -117,9 +117,8 @@ jobs:
       FULLSEND_GITHUB_RUNNER_SECRETS: >-
         ${{ (github.event_name == 'pull_request_target'
         || (github.event_name == 'issue_comment' && github.event.comment.body == '/fs-review'))
-        && format('{{"CODERABBIT_API_KEY":{0},"JIRA_URL":{1},"JIRA_USERNAME":{2},"JIRA_API_TOKEN":{3}}}',
+        && format('{{"CODERABBIT_API_KEY":{0},"JIRA_USERNAME":{1},"JIRA_API_TOKEN":{2}}}',
         secrets.CODERABBIT_API_KEY != '' && toJSON(secrets.CODERABBIT_API_KEY) || '"odh-adapter-credential-unset"',
-        secrets.JIRA_URL != '' && toJSON(secrets.JIRA_URL) || '"odh-adapter-credential-unset"',
         secrets.JIRA_USERNAME != '' && toJSON(secrets.JIRA_USERNAME) || '"odh-adapter-credential-unset"',
         secrets.JIRA_API_TOKEN != '' && toJSON(secrets.JIRA_API_TOKEN) || '"odh-adapter-credential-unset"')
         || '' }}

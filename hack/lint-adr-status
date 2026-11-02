@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const adrDir = process.env.ADR_DIR ? path.resolve(process.env.ADR_DIR) : path.join(__dirname, '..', 'docs', 'adr');
+const validStatuses = new Set(['Proposed', 'Accepted', 'Deprecated', 'Superseded']);
+const annotatedLegacyFile = '0001-use-monorepo-with-npm-workspaces.md';
+const annotatedLegacyStatus = 'Superseded for package-manager selection; the monorepo decision remains accepted.';
+const files = fs.readdirSync(adrDir).filter((file) => file.endsWith('.md') && file !== 'template.md');
+
+let errors = 0;
+for (const file of files) {
+  const content = fs.readFileSync(path.join(adrDir, file), 'utf8');
+  const section = content.match(/^## Status[ \t]*\r?\n(?:[ \t]*\r?\n)*[ \t]*([^\r\n]+)/m);
+  const statusLine = section?.[1].trim();
+  const status = file === annotatedLegacyFile && statusLine === annotatedLegacyStatus ? 'Superseded' : statusLine;
+  if (!validStatuses.has(status)) {
+    console.error(`${file}: missing or invalid ## Status (${status || 'none'})`);
+    errors++;
+  }
+}
+
+if (errors) process.exitCode = 1;
+else console.log(`ADR status: ${files.length} files valid`);

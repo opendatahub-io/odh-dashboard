@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -81,7 +82,7 @@ type EvalHubClientInterface interface {
 	CancelEvaluationJob(ctx context.Context, id string, namespace string, hardDelete bool) error
 	ListCollections(ctx context.Context, params ListCollectionsParams) (CollectionsResponse, error)
 	CreateCollection(ctx context.Context, namespace string, req CreateCollectionRequest) (*Collection, error)
-	GetCollection(ctx context.Context, id string, namespace string) (*Collection, error)
+	GetCollection(ctx context.Context, id string, namespace string) (*Collection, json.RawMessage, error)
 	PatchCollection(ctx context.Context, id string, namespace string, operations []CollectionPatchOperation) (*Collection, error)
 	DeleteCollection(ctx context.Context, id string, namespace string) error
 	CloneCollection(ctx context.Context, id string, namespace string, req CloneCollectionRequest) (*Collection, error)
@@ -127,15 +128,13 @@ type EvaluationJob struct {
 }
 
 type JobResource struct {
-	ID                 string     `json:"id"`
-	Tenant             string     `json:"tenant,omitempty"`
-	CreatedAt          string     `json:"created_at,omitempty"`
-	UpdatedAt          string     `json:"updated_at,omitempty"`
-	ReadOnly           bool       `json:"read_only,omitempty"`
-	Owner              string     `json:"owner,omitempty"`
-	MlflowExperimentID string     `json:"mlflow_experiment_id,omitempty"`
-	Message            JobMessage `json:"message,omitempty"`
-	Queue              string     `json:"queue,omitempty"`
+	ID                 string `json:"id"`
+	Tenant             string `json:"tenant,omitempty"`
+	CreatedAt          string `json:"created_at,omitempty"`
+	UpdatedAt          string `json:"updated_at,omitempty"`
+	ReadOnly           bool   `json:"read_only,omitempty"`
+	Owner              string `json:"owner,omitempty"`
+	MlflowExperimentID string `json:"mlflow_experiment_id,omitempty"`
 }
 
 type JobMessage struct {
@@ -146,9 +145,8 @@ type JobMessage struct {
 
 type JobStatus struct {
 	State      string           `json:"state"`
-	Message    JobMessage       `json:"message,omitempty"`
+	Message    *JobMessage      `json:"message,omitempty"`
 	Benchmarks []BenchmarkState `json:"benchmarks,omitempty"`
-	Queue      string           `json:"queue,omitempty"`
 }
 
 type BenchmarkState struct {
@@ -163,7 +161,6 @@ type BenchmarkState struct {
 }
 
 type JobResults struct {
-	TotalEvaluations    int               `json:"total_evaluations"`
 	Benchmarks          []BenchmarkResult `json:"benchmarks,omitempty"`
 	MlflowExperimentURL string            `json:"mlflow_experiment_url,omitempty"`
 	Test                *ResultTest       `json:"test,omitempty"`
@@ -185,17 +182,11 @@ type BenchmarkResult struct {
 	ID             string               `json:"id"`
 	ProviderID     string               `json:"provider_id,omitempty"`
 	BenchmarkIndex *int                 `json:"benchmark_index,omitempty"`
-	Metrics        map[string]float64   `json:"metrics,omitempty"`
-	Artifacts      *BenchmarkArtifact   `json:"artifacts,omitempty"`
+	Metrics        map[string]any       `json:"metrics,omitempty"`
+	Artifacts      map[string]any       `json:"artifacts,omitempty"`
 	MlflowRunID    string               `json:"mlflow_run_id,omitempty"`
 	LogsPath       string               `json:"logs_path,omitempty"`
 	Test           *BenchmarkResultTest `json:"test,omitempty"`
-}
-
-type BenchmarkArtifact struct {
-	OCIDigest    string `json:"oci_digest,omitempty"`
-	OCIReference string `json:"oci_reference,omitempty"`
-	SizeBytes    int64  `json:"size_bytes,omitempty"`
 }
 
 type JobModel struct {
@@ -219,13 +210,36 @@ type JobPassCriteria struct {
 }
 
 type S3DataRef struct {
-	Bucket    string `json:"bucket,omitempty"`
-	Key       string `json:"key,omitempty"`
+	Bucket    string `json:"bucket"`
+	Key       string `json:"key"`
+	SecretRef string `json:"secret_ref"`
+}
+
+type TestDataRefPVC struct {
+	ClaimName string `json:"claim_name"`
+	SubPath   string `json:"sub_path,omitempty"`
+}
+
+type TestDataRefGit struct {
+	URL       string `json:"url"`
+	Ref       string `json:"ref"`
+	SubPath   string `json:"sub_path,omitempty"`
+	SecretRef string `json:"secret_ref,omitempty"`
+}
+
+type TestDataRefHF struct {
+	RepoID    string `json:"repo_id"`
+	Revision  string `json:"revision,omitempty"`
+	SubPath   string `json:"sub_path,omitempty"`
 	SecretRef string `json:"secret_ref,omitempty"`
 }
 
 type TestDataRef struct {
-	S3 *S3DataRef `json:"s3,omitempty"`
+	Type string          `json:"type,omitempty"`
+	S3   *S3DataRef      `json:"s3,omitempty"`
+	PVC  *TestDataRefPVC `json:"pvc,omitempty"`
+	Git  *TestDataRefGit `json:"git,omitempty"`
+	HF   *TestDataRefHF  `json:"hf,omitempty"`
 }
 
 // HardwareConfig describes the resource and scheduling configuration for an evaluation job.
@@ -472,6 +486,7 @@ type CollectionBenchmark struct {
 	PrimaryScore *CollectionPrimaryScore `json:"primary_score,omitempty"`
 	PassCriteria *CollectionPassCriteria `json:"pass_criteria,omitempty"`
 	Parameters   map[string]any          `json:"parameters,omitempty"`
+	TestDataRef  *TestDataRef            `json:"test_data_ref,omitempty"`
 }
 
 // CollectionPrimaryScore defines the primary scoring metric for a benchmark.
@@ -875,21 +890,23 @@ func (c *EvalHubClient) CreateCollection(ctx context.Context, namespace string, 
 	return resp, nil
 }
 
-// GetCollection retrieves a single benchmark collection by ID.
+// GetCollection retrieves a single benchmark collection by ID, returning both
+// the decoded collection and the raw upstream JSON. The raw JSON preserves
+// nullable and unknown fields so JSON Patch operations replay faithfully.
 // The namespace is sent as the X-Tenant header to scope the request to the caller's tenant.
-func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace string) (*Collection, error) {
+func (c *EvalHubClient) GetCollection(ctx context.Context, id string, namespace string) (*Collection, json.RawMessage, error) {
 	path := fmt.Sprintf("/evaluations/collections/%s", url.PathEscape(id))
 
 	headers, err := tenantHeaders(namespace)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	resp, err := get[Collection](c, ctx, path, headers)
+	resp, raw, err := getWithRaw[Collection](c, ctx, path, headers)
 	if err != nil {
-		return nil, wrapClientError(err, "GetCollection")
+		return nil, nil, wrapClientError(err, "GetCollection")
 	}
-	return resp, nil
+	return resp, raw, nil
 }
 
 // PatchCollection partially updates a tenant-owned collection using JSON Patch
@@ -1053,10 +1070,40 @@ func readResponseBody(body io.Reader, maxSize int) ([]byte, error) {
 	return responseBody, nil
 }
 
+// decodeJSON decodes with UseNumber so numbers inside pass-through `any`
+// fields (metrics, artifacts, custom) keep their exact JSON literal rather
+// than losing precision to float64 when re-serialized to the frontend.
+func decodeJSON[T any](body []byte) (*T, error) {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.UseNumber()
+	var result T
+	if err := decoder.Decode(&result); err != nil {
+		return nil, err
+	}
+	// A single Decode accepts the first JSON value and ignores trailing
+	// content; require a clean EOF so malformed bodies fail like Unmarshal.
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if err == nil {
+			err = errors.New("unexpected trailing data after JSON value")
+		}
+		return nil, err
+	}
+	return &result, nil
+}
+
 func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, error) {
+	result, _, err := getWithRaw[T](c, ctx, path, extraHeaders)
+	return result, err
+}
+
+// getWithRaw performs a typed GET request and also returns the raw response
+// body, so callers can replay patches against the upstream JSON instead of a
+// lossy re-marshal of the decoded struct.
+func getWithRaw[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders map[string]string) (*T, json.RawMessage, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	if c.authToken != "" {
@@ -1068,27 +1115,27 @@ func get[T any](c *EvalHubClient, ctx context.Context, path string, extraHeaders
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	body, err := readResponseBody(resp.Body, maxGetResponseSize)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &httpError{
+		return nil, nil, &httpError{
 			StatusCode: resp.StatusCode,
 			Body:       string(body),
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
+	result, err := decodeJSON[T](body)
+	if err != nil {
+		return nil, nil, err
 	}
-	return &result, nil
+	return result, json.RawMessage(body), nil
 }
 
 // post performs a typed POST request against the EvalHub API.
@@ -1130,11 +1177,7 @@ func post[T any](c *EvalHubClient, ctx context.Context, path string, body any, e
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](respBody)
 }
 
 // patch performs a typed PATCH request against the EvalHub API.
@@ -1176,11 +1219,7 @@ func patch[T any](c *EvalHubClient, ctx context.Context, path string, body any, 
 		}
 	}
 
-	var result T
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
+	return decodeJSON[T](respBody)
 }
 
 // doRequest performs an HTTP request that does not return a typed body (e.g. DELETE).

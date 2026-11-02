@@ -1062,8 +1062,11 @@ to block approve (see step 6f). Keep an `info` gap finding in
 `findings[]` at step 7: the severity threshold does not apply to
 `sub-agent-failure` (agent definition, "Severity filtering").
 
-If a **CLI** producer already recorded an empty/error envelope, use
-that envelope; do not invent a second gap finding.
+If a **CLI** producer recorded an envelope with `status: ok` and empty
+`findings`, that is a successful empty review — do not add a gap finding.
+If a **CLI** producer recorded `status: error`, transfer that status into
+`producers.adapters`; do not invent a gap finding. The host refuses
+approve when any adapter has `status: error`.
 
 ```json
 {

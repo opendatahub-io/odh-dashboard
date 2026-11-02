@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -481,8 +482,9 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 		},
 		Spec: v1alpha1.DashboardSpec{
-			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
-			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+			ManagementSpec:            common.ManagementSpec{ManagementState: "Removed"},
+			ModelRegistryOCIBaseImage: "invalid-image",
+			MaaSPortal:                &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 		Status: v1alpha1.DashboardStatus{
 			// Seed legacy status to verify the old condition is removed even when
@@ -495,9 +497,13 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			MaaSConsumerPortalURL: "https://previous.example.com/",
 		},
 	}
+	shared := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}}}
+	core := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "core-config", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard"}}}
 	cli := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(dashboard).
+		WithObjects(dashboard, shared, core).
 		WithStatusSubresource(dashboard).
 		Build()
 	r := &ctrlpkg.DashboardReconciler{
@@ -512,7 +518,10 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	_, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
 	})
-	require.Error(t, err)
+	require.ErrorContains(t, err, "failed to render manifests for module maas")
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(core), &corev1.ConfigMap{}),
+		"core teardown must wait for required shared modules to deploy successfully")
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(shared), &appsv1.Deployment{}), "failed update must not delete a required shared module")
 
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
@@ -985,6 +994,118 @@ func TestReconcile_StatusContract(t *testing.T) {
 			require.NotEmpty(t, updated.GetReleaseStatus().Releases, "release status must be set")
 			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
 			assert.Equal(t, "https://github.com/opendatahub-io/odh-dashboard", updated.GetReleaseStatus().Releases[0].RepoURL)
+		})
+	}
+}
+
+func TestReconcile_ProvisioningFailureStatus(t *testing.T) {
+	for _, tt := range []struct {
+		name          string
+		uploadFailure bool
+		laterFailure  string
+		wantReason    string
+	}{
+		{name: "upload config only", uploadFailure: true, wantReason: "ModelRegistryConfigFailed"},
+		{name: "federation config only", laterFailure: "federation-config", wantReason: "FederationConfigMapFailed"},
+		{name: "federation hash only", laterFailure: "federation-hash", wantReason: "FederationHashPatchFailed"},
+		{name: "preserve federation config failure", uploadFailure: true, laterFailure: "federation-config", wantReason: "FederationConfigMapFailed"},
+		{name: "preserve federation hash failure", uploadFailure: true, laterFailure: "federation-hash", wantReason: "FederationHashPatchFailed"},
+		{name: "preserve module failure", uploadFailure: true, laterFailure: "module", wantReason: "ModuleDeployFailed"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			base := createMinimalManifests(t)
+			overlay := filepath.Join(base, "odh")
+			require.NoError(t, os.WriteFile(filepath.Join(overlay, "kustomization.yaml"), []byte(`resources:
+  - configmap.yaml
+  - upload-config.yaml
+`), 0644))
+			require.NoError(t, os.WriteFile(filepath.Join(overlay, "upload-config.yaml"), []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-registry-ui-config
+data:
+  images-oci-base-image: ""
+`), 0644))
+			modules := make(map[string]v1alpha1.ModuleOverride)
+			for _, name := range ctrlpkg.ModuleNames() {
+				modules[name] = v1alpha1.ModuleOverride{State: v1alpha1.ModuleDisabled}
+			}
+			if tt.laterFailure == "module" {
+				modules["genAi"] = v1alpha1.ModuleOverride{State: v1alpha1.ModuleEnabled}
+				modulePath := filepath.Join(base, "modules", "gen-ai")
+				require.NoError(t, os.MkdirAll(modulePath, 0755))
+				require.NoError(t, os.WriteFile(filepath.Join(modulePath, "kustomization.yaml"), []byte("invalid: ["), 0644))
+			}
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       v1alpha1.DashboardInstanceName,
+					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+				},
+				Spec: v1alpha1.DashboardSpec{
+					Modules:                   modules,
+					ModelRegistryOCIBaseImage: "mirror.example.com/base:1",
+				},
+			}
+			if tt.uploadFailure {
+				dashboard.Spec.ModelRegistryOCIBaseImage = "mirror.example.com/Busybox:1"
+			}
+			deployment := &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard", Namespace: testNamespace},
+			}
+			uploadErr := errors.New("upload ConfigMap read failed")
+			federationErr := errors.New("federation operation failed")
+			scheme := testScheme(t)
+			cli := fake.NewClientBuilder().WithScheme(scheme).
+				WithObjects(dashboard, deployment, admittedRoute(testNamespace)).WithStatusSubresource(dashboard).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if _, ok := obj.(*corev1.ConfigMap); ok && key.Name == "model-registry-ui-config" && tt.uploadFailure {
+							return uploadErr
+						}
+						return delegate.Get(ctx, key, obj, opts...)
+					},
+					Apply: func(ctx context.Context, delegate client.WithWatch, configuration runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
+						if obj, ok := configuration.(metav1.Object); ok && obj.GetName() == "federation-config" && tt.laterFailure == "federation-config" {
+							return federationErr
+						}
+						return delegate.Apply(ctx, configuration, opts...)
+					},
+					Patch: func(ctx context.Context, delegate client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+						if _, ok := obj.(*appsv1.Deployment); ok && obj.GetName() == "odh-dashboard" && tt.laterFailure == "federation-hash" {
+							return federationErr
+						}
+						return delegate.Patch(ctx, obj, patch, opts...)
+					},
+				}).Build()
+			r := &ctrlpkg.DashboardReconciler{
+				Client: cli, Scheme: scheme, ManifestsBasePath: base,
+				Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace,
+			}
+			ctx := context.Background()
+			req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
+			_, err := r.Reconcile(ctx, req)
+			if tt.uploadFailure {
+				require.ErrorIs(t, err, uploadErr)
+			} else {
+				require.NotErrorIs(t, err, uploadErr)
+			}
+			switch tt.laterFailure {
+			case "federation-config", "federation-hash":
+				require.ErrorIs(t, err, federationErr)
+			case "module":
+				require.ErrorContains(t, err, "failed to render manifests for module genAi")
+			}
+			updated := &v1alpha1.Dashboard{}
+			require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
+			provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+			require.NotNil(t, provisioning)
+			assert.Equal(t, metav1.ConditionFalse, provisioning.Status)
+			assert.Equal(t, tt.wantReason, provisioning.Reason)
+			if tt.laterFailure == "federation-config" || tt.laterFailure == "federation-hash" {
+				assert.Contains(t, provisioning.Message, federationErr.Error())
+			}
+			assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+			assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 		})
 	}
 }

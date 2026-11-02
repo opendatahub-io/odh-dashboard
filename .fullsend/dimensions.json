@@ -169,13 +169,12 @@
         "execution": "pre_review",
         "setup_runner": "",
         "credentials": {
-          "url_env": "JIRA_URL",
           "username_env": "JIRA_USERNAME",
           "token_env": "JIRA_API_TOKEN"
         }
       },
       "failure_severity": "info",
-      "notes": "Trusted host snapshot of the linked issue. It contains context only and never enters challenger synthesis directly."
+      "notes": "Trusted host snapshot of the linked issue. It builds request and browse URLs from JIRA_BASE_URL. It contains context only and never enters challenger synthesis directly."
     },
     {
       "id": "coderabbit",
@@ -189,8 +188,6 @@
         "execution": "pre_review",
         "setup_runner": "scripts/setup-coderabbit-cli.sh",
         "credentials": {
-          "url_env": "",
-          "username_env": "",
           "token_env": "CODERABBIT_API_KEY"
         }
       },

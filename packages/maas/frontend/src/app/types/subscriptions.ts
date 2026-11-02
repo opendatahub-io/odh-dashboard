@@ -169,14 +169,17 @@ export type ModelRefInfo = {
 export type UserSubscription = {
   subscription_id_header: string;
   subscription_description: string;
-  roles?: string[];
   display_name?: string;
+  priority?: number;
+  /** @deprecated Legacy fixture compatibility; new BFF responses use priority. */
   inference_priority?: number;
   key_count?: number;
   model_refs: ModelRefInfo[];
   organization_id?: string;
   cost_center?: string;
   labels?: Record<string, string>;
+  /** Owner group references from the maas-api passthrough; populated for admins. */
+  owner?: OwnerSpec;
 };
 
 export type RateLimit = {

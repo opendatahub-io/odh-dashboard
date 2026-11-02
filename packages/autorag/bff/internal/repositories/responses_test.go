@@ -540,9 +540,16 @@ func TestResponsesRepositoryValidateResponsesChecksDatabaseProviderForAllSearchM
 		wantErr    error
 	}{
 		{
-			name:       "unsupported provider",
+			name:       "incomplete provider credentials",
 			secretData: map[string][]byte{"NEO4J_URI": []byte("neo4j://example:7687")},
 			wantErr:    vectordb.ErrUnsupportedVectorDB,
+		},
+		{
+			name: "neo4j provider",
+			secretData: map[string][]byte{
+				"NEO4J_URI":      []byte("neo4j+s://neo4j.example.com:7687"),
+				"NEO4J_PASSWORD": []byte("password"),
+			},
 		},
 		{
 			name: "supported provider",

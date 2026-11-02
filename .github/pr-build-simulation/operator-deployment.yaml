@@ -7,11 +7,10 @@
 # webhook disabled (default) and metrics served over HTTP so no certs are required —
 # enough to prove the controller starts and reconciles a Dashboard CR.
 #
-# RELATED_IMAGE_ODH_DASHBOARD_IMAGE pins the dashboard image the operator writes when
-# it SSA-applies the base manifests. Without it the operator falls back to the baked-in
-# param (quay.io/opendatahub/odh-dashboard:main), pulling that large image over the
-# network during reconcile. Pointing it at the PR image tag that is already loaded into
-# Kind keeps the simulator validating the PR's artifacts and avoids the :main download.
+# RELATED_IMAGE_ODH_DASHBOARD_IMAGE and RELATED_IMAGE_ODH_CORE_BFF_IMAGE pin the images the
+# operator writes when it SSA-applies the base manifests. Without them, the operator falls back
+# to baked-in quay.io/.../:main params. Pointing both at PR image tags already loaded into Kind
+# keeps the simulator validating artifacts from this checkout and avoids mutable :main downloads.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -47,6 +46,8 @@ spec:
               value: opendatahub
             - name: RELATED_IMAGE_ODH_DASHBOARD_IMAGE
               value: odh-dashboard:odh-test
+            - name: RELATED_IMAGE_ODH_CORE_BFF_IMAGE
+              value: odh-core-bff:odh-test
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
