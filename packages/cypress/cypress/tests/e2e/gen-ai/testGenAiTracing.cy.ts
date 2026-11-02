@@ -10,6 +10,7 @@ import {
   stopPortForward,
   waitForResource,
   waitForPodReady,
+  waitForServiceAnyNamespace,
   getServiceNamespace,
   type PortForwardHandle,
 } from '../../../utils/oc_commands/baseCommands';
@@ -172,6 +173,14 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
 
       cy.step('Verify BFF reports tracing enabled for the playground');
       verifyPlaygroundTracingEnabledViaAPI(projectName);
+
+      cy.step('Wait for the gen-ai trace collector Service to be created');
+      // The collector Service is created asynchronously by the BFF's
+      // EnsureRoute after playground installation. Waiting for it verifies
+      // the tracing pipeline was wired up before sending messages that must
+      // appear in MLflow, failing fast at the layer that actually broke
+      // instead of as a trace-details modal failure later in the test.
+      waitForServiceAnyNamespace(GENAI_TRACING_COLLECTOR);
 
       // In-cluster BFFs reach the collector directly; only local runs need discovery and a tunnel.
       if ((Cypress.config('baseUrl') || '').includes('localhost')) {
