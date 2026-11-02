@@ -111,7 +111,10 @@ func TestIntegration_LegacyRedirectsAdoptGatewayOwnedResourcesInPlace(t *testing
 			ObjectMeta: metav1.ObjectMeta{Name: "rhods-dashboard", Namespace: integrationNamespace, OwnerReferences: []metav1.OwnerReference{legacyOwner}},
 			Spec:       routev1.RouteSpec{Host: "rhods-dashboard.apps.example.com"},
 		},
-		&routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: "data-science-gateway", Namespace: integrationNamespace, OwnerReferences: []metav1.OwnerReference{legacyOwner}}},
+		&routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{Name: "data-science-gateway", Namespace: integrationNamespace, OwnerReferences: []metav1.OwnerReference{legacyOwner}},
+			Spec:       routev1.RouteSpec{Host: "data-science-gateway.legacy.example.com"},
+		},
 	}
 	for _, object := range legacyObjects {
 		require.NoError(t, k8sClient.Create(ctx, object))
@@ -156,6 +159,9 @@ func TestIntegration_LegacyRedirectsAdoptGatewayOwnedResourcesInPlace(t *testing
 	dashboardRoute := &routev1.Route{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "rhods-dashboard", Namespace: integrationNamespace}, dashboardRoute))
 	assert.Equal(t, "rhods-dashboard.apps.example.com", dashboardRoute.Spec.Host, "the admitted dashboard hostname must survive adoption")
+	legacyGatewayRoute := &routev1.Route{}
+	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "data-science-gateway", Namespace: integrationNamespace}, legacyGatewayRoute))
+	assert.Equal(t, "data-science-gateway.legacy.example.com", legacyGatewayRoute.Spec.Host, "the legacy gateway hostname must survive adoption even when its DNS suffix differs from the current gateway")
 
 	redirectService := &corev1.Service{}
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{Name: "dashboard-redirect", Namespace: integrationNamespace}, redirectService))

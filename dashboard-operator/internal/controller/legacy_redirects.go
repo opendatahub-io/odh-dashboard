@@ -115,6 +115,10 @@ func (r *DashboardReconciler) reconcileLegacyRedirects(ctx context.Context, dash
 	if err != nil {
 		return err
 	}
+	data.LegacyHostname, err = r.preserveLegacyGatewayHostname(ctx, data.LegacyHostname)
+	if err != nil {
+		return err
+	}
 
 	resources, err := renderDashboardRedirectResources(data)
 	if err != nil {
@@ -219,6 +223,30 @@ func legacyGatewayHostname(gatewayHostname string) (string, error) {
 	return legacyGatewayRouteName + "." + suffix, nil
 }
 
+func (r *DashboardReconciler) preserveLegacyGatewayHostname(ctx context.Context, fallback string) (string, error) {
+	if fallback == "" {
+		return "", nil
+	}
+
+	route := &routev1.Route{}
+	key := client.ObjectKey{Name: legacyGatewayRouteName, Namespace: r.ApplicationsNamespace}
+	if err := r.apiReader().Get(ctx, key, route); err != nil {
+		if apierrors.IsNotFound(err) {
+			return fallback, nil
+		}
+		return "", fmt.Errorf("reading legacy gateway Route hostname: %w", err)
+	}
+
+	// The pre-handoff Route can have a different DNS suffix from the current
+	// gateway. Keep its explicit compatibility endpoint when adopting it rather
+	// than reconstructing a new hostname from spec.gateway.domain.
+	if hostname := strings.TrimSpace(route.Spec.Host); hostname != "" && isOwnedLegacyRedirect(route) {
+		return hostname, nil
+	}
+
+	return fallback, nil
+}
+
 func renderDashboardRedirectResources(data dashboardRedirectTemplateData) ([]unstructured.Unstructured, error) {
 	paths := []string{
 		"resources/dashboard-redirect-configmap.tmpl.yaml",
@@ -311,7 +339,8 @@ func (r *DashboardReconciler) deleteOwnedLegacyRedirect(ctx context.Context, obj
 		return nil
 	}
 
-	return client.IgnoreNotFound(r.Delete(ctx, object))
+	uid := object.GetUID()
+	return client.IgnoreNotFound(r.Delete(ctx, object, client.Preconditions{UID: &uid}))
 }
 
 func isOwnedLegacyRedirect(object client.Object) bool {
