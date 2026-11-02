@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
@@ -81,11 +84,32 @@ func (app *App) resolveRequestAuth(w http.ResponseWriter, r *http.Request, needs
 	username, err := client.GetUser(ctx, nil)
 	if err != nil {
 		app.emitAuditLog(auditUser(identity, app.logger), r, needsAdmin, false)
-		app.unauthorizedResponse(w, r, fmt.Errorf("invalid or expired token: %w", err))
+		switch {
+		case errors.Is(err, context.DeadlineExceeded) || k8serrors.IsTimeout(err) || k8serrors.IsServerTimeout(err) || isKubernetesTransportTimeout(err):
+			app.LogError(r, err)
+			app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusGatewayTimeout, Error: ErrorPayload{Code: "GATEWAY_TIMEOUT", Message: "the Kubernetes request timed out"}})
+		case k8serrors.IsServiceUnavailable(err) || isKubernetesTransportError(err):
+			app.LogError(r, err)
+			app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusServiceUnavailable, Error: ErrorPayload{Code: "SERVICE_UNAVAILABLE", Message: "the Kubernetes API is temporarily unavailable"}})
+		default:
+			app.unauthorizedResponse(w, r, fmt.Errorf("invalid or expired token: %w", err))
+		}
 		return "", nil, nil, false
 	}
 
 	return username, client, identity, true
+}
+
+// isKubernetesTransportTimeout identifies timeouts wrapped by the Kubernetes HTTP client.
+func isKubernetesTransportTimeout(err error) bool {
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
+}
+
+// isKubernetesTransportError recognizes failures to reach the API server, not token failures.
+func isKubernetesTransportError(err error) bool {
+	var netErr net.Error
+	return errors.As(err, &netErr)
 }
 
 // secureRoute wraps a handler with token validation and audit logging.

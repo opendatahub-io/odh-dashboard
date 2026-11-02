@@ -161,6 +161,10 @@ func setupMock(ctx context.Context, mockK8sClient k8sclient.Interface, dynClient
 		if err != nil {
 			return fmt.Errorf("failed to create namespace-restricted RBAC: %w", err)
 		}
+		err = createNamedNamespaceGetRBAC(ctx, mockK8sClient, users[2].UserName, "test-ns-b")
+		if err != nil {
+			return fmt.Errorf("failed to create named namespace get RBAC: %w", err)
+		}
 	}
 
 	if len(users) > 1 && len(users[1].Groups) > 1 {
