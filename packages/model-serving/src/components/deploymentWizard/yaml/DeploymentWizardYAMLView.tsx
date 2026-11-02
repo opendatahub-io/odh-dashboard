@@ -16,14 +16,16 @@ import {
 import { CodeIcon } from '@patternfly/react-icons';
 import { useThemeContext } from '@odh-dashboard/ui-core';
 import { EnterYAMLEditModal } from './EnterYAMLEditModal';
+import { YamlParseResult } from './yamlUtils';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 
 type DeploymentWizardYAMLViewProps = {
-  code?: string;
-  setCode: (code: string) => void;
+  code?: YamlParseResult;
+  setCode: (code: YamlParseResult) => void;
   viewMode: ModelDeploymentWizardViewMode;
   switchToYamlEdit: () => void;
   canEnterYAMLEditMode: boolean;
+  setLastUpdatedSource: React.Dispatch<React.SetStateAction<ModelDeploymentWizardViewMode>>;
   isAutoFallback?: boolean;
 };
 
@@ -33,6 +35,7 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
   viewMode,
   switchToYamlEdit,
   canEnterYAMLEditMode = true,
+  setLastUpdatedSource,
   isAutoFallback,
 }) => {
   const { theme } = useThemeContext();
@@ -99,8 +102,11 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
               </Bullseye>
             ) : undefined
           }
-          code={code}
-          onCodeChange={setCode}
+          code={code?.yaml}
+          onCodeChange={(value) => {
+            setCode({ yaml: value });
+            setLastUpdatedSource('yaml-edit');
+          }}
           language={Language.yaml}
           isDarkTheme={theme === 'dark'}
           isLanguageLabelVisible

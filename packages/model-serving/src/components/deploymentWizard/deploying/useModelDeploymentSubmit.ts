@@ -33,7 +33,7 @@ export const useModelDeploymentSubmit = (
   viewMode: ModelDeploymentWizardViewMode = 'form',
   initialWizardData?: InitialWizardFormData,
   existingDeployment?: Deployment,
-  yamlError?: Error,
+  yamlErrors?: Error[],
 ): {
   onSave: (overwrite?: boolean) => Promise<void>;
   onOverwrite?: () => Promise<void>;
@@ -86,8 +86,8 @@ export const useModelDeploymentSubmit = (
         if (!isExternalDataReady(externalData)) {
           throw new Error('Required data is still loading');
         }
-        if (viewMode === 'yaml-edit' && yamlError) {
-          throw yamlError;
+        if (viewMode === 'yaml-edit' && yamlErrors && yamlErrors.length > 0) {
+          throw yamlErrors[0];
         }
         if (
           viewMode === 'yaml-edit' &&
@@ -159,18 +159,19 @@ export const useModelDeploymentSubmit = (
       viewMode,
       externalData,
       validation.isAllValid,
+      yamlErrors,
+      resources.model,
+      resources.server,
       isReady,
       deployMethod,
       formState,
       secretOps,
-      resources,
       existingDeployment,
       initialWizardData,
       applyAllFieldDataFn,
       runPreDeploy,
       runPostDeploy,
       exitWizardOnSubmit,
-      yamlError,
       fireModelDeployedTracking,
     ],
   );
