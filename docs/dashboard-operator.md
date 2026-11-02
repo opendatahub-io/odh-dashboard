@@ -36,6 +36,9 @@ itself already uses the legacy hostname. Keeping that hostname in the CR lets a
 later `Removed` to `Managed` transition recreate the original Route even when
 the gateway uses a different DNS suffix. `managementState: Removed` deletes only
 redirect resources with recognized Dashboard or legacy GatewayConfig ownership.
+Redirect resources are also cleaned up when the top-level
+`spec.managementState` is `Removed` or the OpenShift Route API is unavailable,
+even if `legacyRedirects.managementState` is `Managed`.
 
 ### Status Fields
 
