@@ -30,6 +30,21 @@ const useServerSelection = ({
   const hasProcessedInitialSelection = React.useRef(false);
   const hasReceivedInitialSelection = React.useRef(false);
   const unavailableSelectedIds = React.useRef(new Set<string>());
+  // Last selection reported to the parent — distinguishes the parent's echo of our
+  // own emissions from external selection resets
+  const lastEmittedIdsRef = React.useRef<string[]>([]);
+  // Last initialSelectedServerIds observed by ID value — the adoption effect only
+  // runs on external changes, so a server-list refresh with unchanged initial IDs
+  // must not reapply them over a local edit the parent never echoed back
+  const lastObservedInitialIdsRef = React.useRef<string[] | null>(null);
+  // Set when an external reset was just adopted but the adopted selection has not
+  // rendered yet. The notify pass consumes it to skip pushing the pre-adoption
+  // local selection back over the adopted value, and reconciliation defers until
+  // the adopted selection settles — reconciling the stale pre-adoption selection
+  // would restore its unavailable IDs and the next notify pass would write them
+  // back over the adopted value (e.g. undoing the empty selection a Revert
+  // requested)
+  const pendingAdoptionRef = React.useRef(false);
 
   // Handle initial selection from route state
   React.useEffect(() => {
@@ -73,10 +88,48 @@ const useServerSelection = ({
     }
   }, [transformedServers, initialSelectedServerIds, selectedServers]);
 
+  // Adopt external selection resets. The parent store echoes this hook's emissions
+  // back through initialSelectedServerIds, so a value diverging from the last
+  // emission can only be an external change — e.g. reverting a pane restores the
+  // baseline MCP servers. Echoes are skipped so they never fight local edits.
+  React.useEffect(() => {
+    if (!initialSelectedServerIds) {
+      return;
+    }
+    const lastObserved = lastObservedInitialIdsRef.current;
+    if (lastObserved) {
+      const isUnchanged =
+        initialSelectedServerIds.length === lastObserved.length &&
+        initialSelectedServerIds.every((id) => lastObserved.includes(id));
+      if (isUnchanged) {
+        return;
+      }
+    }
+    lastObservedInitialIdsRef.current = initialSelectedServerIds;
+    const emittedIds = lastEmittedIdsRef.current;
+    const isEcho =
+      initialSelectedServerIds.length === emittedIds.length &&
+      initialSelectedServerIds.every((id) => emittedIds.includes(id));
+    if (isEcho) {
+      return;
+    }
+    const visibleIds = new Set(transformedServers.map((server) => server.id));
+    unavailableSelectedIds.current = new Set(
+      initialSelectedServerIds.filter((id) => !visibleIds.has(id)),
+    );
+    setSelectedServers(
+      transformedServers.filter((server) => initialSelectedServerIds.includes(server.id)),
+    );
+    pendingAdoptionRef.current = true;
+  }, [initialSelectedServerIds, transformedServers]);
+
   // A selected server can disappear from the usable list while it is unreachable.
   // Keep its ID until it returns, without displaying a stale row in the picker.
   React.useEffect(() => {
     if (!isInitialLoadComplete) {
+      return;
+    }
+    if (pendingAdoptionRef.current) {
       return;
     }
 
@@ -106,7 +159,11 @@ const useServerSelection = ({
         ...unavailableSelectedIds.current,
       ]),
     ];
-
+    lastEmittedIdsRef.current = selectedConnectionUrls;
+    if (pendingAdoptionRef.current) {
+      pendingAdoptionRef.current = false;
+      return;
+    }
     if (isInitialLoadComplete && transformedServers.length > 0) {
       onSelectionChange?.(selectedConnectionUrls);
     }
