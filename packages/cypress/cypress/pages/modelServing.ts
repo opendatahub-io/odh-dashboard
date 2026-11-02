@@ -1,3 +1,4 @@
+import { queryByTestId } from '@testing-library/dom';
 import { appChrome } from './appChrome';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
@@ -8,6 +9,8 @@ import { Wizard } from './components/Wizard';
 import { DeleteModal } from './components/DeleteModal';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import { mixin } from '../utils/mixin';
+import { ModelLocationSelectOption } from '../utils/modelServingConstants';
+import { OOTBConnectionTypes } from '../types';
 
 type DeploymentMethodKey =
   | 'legacy'
@@ -1095,6 +1098,11 @@ class ModelServingWizard extends Wizard {
     });
   }
 
+  selectModelTypeOption(name: string) {
+    // Cypress misidentifies the clickable menu above the wizard footer as clipped.
+    return this.findModelTypeSelectOption(name).click({ force: true });
+  }
+
   findModelDeploymentProjectSelector() {
     return cy.findByTestId('project-selector-toggle');
   }
@@ -1272,6 +1280,23 @@ class ModelServingWizard extends Wizard {
 
   findModelLocationSelectOption(name: string) {
     return this.findModelLocationSelect().findSelectOption(name);
+  }
+
+  /** Select a location and its built-in connection type when a configuration choice is needed. */
+  selectModelLocationOption(name: string) {
+    const builtInTypes: Partial<Record<string, OOTBConnectionTypes>> = {
+      [ModelLocationSelectOption.URI]: OOTBConnectionTypes.uri,
+      [ModelLocationSelectOption.S3]: OOTBConnectionTypes.s3,
+      [ModelLocationSelectOption.OCI]: OOTBConnectionTypes.oci,
+    };
+
+    this.findModelLocationSelectOption(name).click();
+    return cy.document().then((document) => {
+      const connectionType = builtInTypes[name];
+      if (connectionType && queryByTestId(document.body, 'custom-type-select')) {
+        this.findCustomModelLocationSelectOption(connectionType).click();
+      }
+    });
   }
 
   findCustomModelLocationSelect() {
