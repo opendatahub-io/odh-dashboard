@@ -3306,3 +3306,55 @@ func TestIsTrustedOfficeMIMETypesConfigMap(t *testing.T) {
 	binaryData.BinaryData = map[string][]byte{"unexpected.py": []byte("import malicious_code")}
 	assert.False(t, isTrustedOfficeMIMETypesConfigMap(binaryData))
 }
+
+// TestCallerScopedClientCredentialSelection covers the credential-selection
+// branches of callerScopedClient: the fallback to the client's own credentials
+// when no identity token is available (local development), the reuse of the
+// existing client when the identity token is the token the client was already
+// constructed with, the construction of a distinct user-scoped client for a
+// different caller token, and the failure mode for an unusable cluster config.
+func TestCallerScopedClientCredentialSelection(t *testing.T) {
+	newKc := func(token string, host string) *TokenKubernetesClient {
+		return &TokenKubernetesClient{
+			Client: fake.NewClientBuilder().Build(),
+			Config: &rest.Config{Host: host},
+			Logger: slog.Default(),
+			Token:  integrations.NewBearerToken(token),
+		}
+	}
+
+	t.Run("nil identity falls back to the client's own credentials", func(t *testing.T) {
+		kc := newKc("sa-token", "https://test-cluster.example.com")
+		reader, err := kc.callerScopedClient(nil)
+		require.NoError(t, err)
+		assert.Same(t, kc.Client, reader)
+	})
+
+	t.Run("empty identity token falls back to the client's own credentials", func(t *testing.T) {
+		kc := newKc("sa-token", "https://test-cluster.example.com")
+		reader, err := kc.callerScopedClient(&integrations.RequestIdentity{})
+		require.NoError(t, err)
+		assert.Same(t, kc.Client, reader)
+	})
+
+	t.Run("identity token matching the client token reuses the existing client", func(t *testing.T) {
+		kc := newKc("sa-token", "https://test-cluster.example.com")
+		reader, err := kc.callerScopedClient(&integrations.RequestIdentity{Token: "sa-token"})
+		require.NoError(t, err)
+		assert.Same(t, kc.Client, reader)
+	})
+
+	t.Run("different caller token yields a distinct user-scoped client", func(t *testing.T) {
+		kc := newKc("sa-token", "https://test-cluster.example.com")
+		reader, err := kc.callerScopedClient(&integrations.RequestIdentity{Token: "user-token"})
+		require.NoError(t, err)
+		assert.NotSame(t, kc.Client, reader)
+	})
+
+	t.Run("unusable cluster config returns an error instead of a client", func(t *testing.T) {
+		kc := newKc("sa-token", "://invalid-host")
+		reader, err := kc.callerScopedClient(&integrations.RequestIdentity{Token: "user-token"})
+		require.Error(t, err)
+		assert.Nil(t, reader)
+	})
+}

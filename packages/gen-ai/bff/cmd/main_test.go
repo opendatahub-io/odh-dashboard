@@ -164,3 +164,55 @@ func TestValidateInsecureSkipVerify(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateAllowLocalModelEndpoints(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		allowLocalModelEndpoints bool
+		certFile                 string
+		expectedError            bool
+		expectedErrorContains    string
+	}{
+		{
+			name:                     "AllowLocalModelEndpoints disabled - should pass",
+			allowLocalModelEndpoints: false,
+			expectedError:            false,
+		},
+		{
+			name:                     "AllowLocalModelEndpoints enabled without cert-file - should pass with warning",
+			allowLocalModelEndpoints: true,
+			expectedError:            false,
+		},
+		{
+			name:                     "AllowLocalModelEndpoints enabled with cert-file - should fail",
+			allowLocalModelEndpoints: true,
+			certFile:                 "/etc/tls/tls.crt",
+			expectedError:            true,
+			expectedErrorContains:    "TLS certificates are mounted",
+		},
+		{
+			name:                     "AllowLocalModelEndpoints disabled with cert-file - should pass",
+			allowLocalModelEndpoints: false,
+			certFile:                 "/etc/tls/tls.crt",
+			expectedError:            false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateAllowLocalModelEndpoints(
+				tc.allowLocalModelEndpoints,
+				tc.certFile,
+			)
+
+			if tc.expectedError {
+				assert.Error(t, err, "Expected validation to fail")
+				if tc.expectedErrorContains != "" {
+					assert.Contains(t, err.Error(), tc.expectedErrorContains)
+				}
+			} else {
+				assert.NoError(t, err, "Expected validation to pass")
+			}
+		})
+	}
+}

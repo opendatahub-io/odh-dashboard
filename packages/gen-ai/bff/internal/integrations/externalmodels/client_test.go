@@ -2,11 +2,18 @@ package externalmodels
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -245,4 +252,123 @@ func TestPinnedDialFailsClosedWithoutDNSFallback(t *testing.T) {
 	_, err = client.VerifyModel(context.Background(), "my-model", nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "pinned dial")
+}
+
+// generateTestCertificate creates a self-signed certificate valid only for the
+// given DNS name, plus a pool trusting only that certificate.
+func generateTestCertificate(t *testing.T, dnsName string) (tls.Certificate, *x509.CertPool) {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: dnsName},
+		DNSNames:     []string{dnsName},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	require.NoError(t, err)
+	parsed, err := x509.ParseCertificate(der)
+	require.NoError(t, err)
+	pool := x509.NewCertPool()
+	pool.AddCert(parsed)
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}, pool
+}
+
+// TestPinnedDialPreservesTLSHostName proves the HTTPS contract of PinnedDialAddresses:
+// although the connection is dialed to a different pinned address, the TLS handshake
+// presents the URL's hostname as SNI and the certificate is verified against that
+// hostname (the served certificate is trusted only under that name).
+func TestPinnedDialPreservesTLSHostName(t *testing.T) {
+	const hostname = "my-model.my-ns.svc.cluster.local"
+	cert, pool := generateTestCertificate(t, hostname)
+
+	sniReceived := make(chan string, 1)
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data": []}`))
+	}))
+	server.TLS = &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		// ConnectionState.ServerName carries the client's requested server name
+		// from the ClientHello; recording it here asserts the SNI without
+		// weakening the handshake itself.
+		VerifyConnection: func(cs tls.ConnectionState) error {
+			select {
+			case sniReceived <- cs.ServerName:
+			default:
+			}
+			return nil
+		},
+	}
+	server.StartTLS()
+	defer server.Close()
+
+	_, port, err := net.SplitHostPort(server.Listener.Addr().String())
+	require.NoError(t, err)
+
+	client, err := NewExternalModelsClient(
+		slog.Default(),
+		"https://"+hostname+"/v1",
+		"test-api-key",
+		models.ModelTypeLLM,
+		&ClientOptions{
+			SkipSSRFValidation:  true,
+			RootCAs:             pool,
+			PinnedDialAddresses: []string{net.JoinHostPort("127.0.0.1", port)},
+		},
+	)
+	require.NoError(t, err)
+
+	// The response is not a valid OpenAI completion, so verification fails; the
+	// assertion is that the TLS handshake reached the pinned listener with the
+	// URL's hostname as SNI and a certificate valid for it.
+	_, _ = client.VerifyModel(context.Background(), "my-model", nil)
+
+	select {
+	case sni := <-sniReceived:
+		assert.Equal(t, hostname, sni)
+	case <-time.After(5 * time.Second):
+		t.Fatal("pinned dial did not complete a TLS handshake with the local listener")
+	}
+}
+
+// TestPinnedDialRejectsCertificateForDifferentHostName proves the pinned transport
+// still verifies the server certificate against the URL hostname: the listener's
+// certificate is trusted (present in RootCAs) but issued for another name, so the
+// handshake must fail with a hostname mismatch instead of succeeding through the
+// pinned address.
+func TestPinnedDialRejectsCertificateForDifferentHostName(t *testing.T) {
+	cert, pool := generateTestCertificate(t, "other-model.other-ns.svc.cluster.local")
+
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data": []}`))
+	}))
+	server.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+	server.StartTLS()
+	defer server.Close()
+
+	_, port, err := net.SplitHostPort(server.Listener.Addr().String())
+	require.NoError(t, err)
+
+	client, err := NewExternalModelsClient(
+		slog.Default(),
+		"https://my-model.my-ns.svc.cluster.local/v1",
+		"test-api-key",
+		models.ModelTypeLLM,
+		&ClientOptions{
+			SkipSSRFValidation:  true,
+			RootCAs:             pool,
+			PinnedDialAddresses: []string{net.JoinHostPort("127.0.0.1", port)},
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = client.VerifyModel(context.Background(), "my-model", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "certificate is valid for")
 }
