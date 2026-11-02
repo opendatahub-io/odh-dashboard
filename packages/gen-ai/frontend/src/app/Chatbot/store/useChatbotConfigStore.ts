@@ -660,6 +660,9 @@ const createStoreActions = (
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => {
+    if (!skipSessionStorage && initialValues?.mcpToolSelections) {
+      saveMcpToolSelectionsForConfig('default', initialValues.mcpToolSelections);
+    }
     set(
       () => ({
         ...storeInitialState,
@@ -667,12 +670,44 @@ const createStoreActions = (
           default: {
             ...DEFAULT_CONFIGURATION,
             ...initialValues,
-            mcpToolSelections: skipSessionStorage ? {} : loadMcpToolSelectionsForConfig('default'),
+            mcpToolSelections:
+              initialValues?.mcpToolSelections ??
+              (skipSessionStorage ? {} : loadMcpToolSelectionsForConfig('default')),
           },
         },
       }),
       false,
       'resetConfiguration',
+    );
+  },
+
+  // Reset one pane's values in place — keeps configIds and sibling panes intact,
+  // unlike resetConfiguration which collapses the store to the single default config
+  resetConfigurationValues: (id: string, initialValues?: Partial<ChatbotConfiguration>) => {
+    const state = get();
+    if (!state.configurations[id]) {
+      return;
+    }
+    // Persist the effective selections — the default empty map when initialValues
+    // omits them — so a later reset doesn't restore stale stored selections
+    if (!skipSessionStorage) {
+      saveMcpToolSelectionsForConfig(
+        id,
+        initialValues?.mcpToolSelections ?? DEFAULT_CONFIGURATION.mcpToolSelections,
+      );
+    }
+    set(
+      (currentState) => ({
+        configurations: {
+          ...currentState.configurations,
+          [id]: {
+            ...DEFAULT_CONFIGURATION,
+            ...initialValues,
+          },
+        },
+      }),
+      false,
+      'resetConfigurationValues',
     );
   },
 
