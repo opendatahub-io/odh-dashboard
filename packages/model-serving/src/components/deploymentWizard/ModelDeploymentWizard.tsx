@@ -43,7 +43,12 @@ type ModelDeploymentWizardProps = {
   returnRoute?: string;
   cancelReturnRoute?: string;
 };
-
+/**
+ * Core data objects are:
+ * - `initialData`: Used to initialize the wizard form. Comes from navigation or from interpreting the yaml
+ * - `wizardFormData`: The current state of the UI fields in the form.
+ * - `...Resources` (from form or YAML): Final representation of a deployment, what is submitted to kubernetes. Used to parse between form and YAML views too.
+ */
 const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   title,
   description,
@@ -66,6 +71,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     project?.metadata.name,
     externalData,
   );
+  const { resources: formAsResources } = useFormToResourcesTransformer(
+    wizardFormData,
+    existingDeployment,
+  );
+
   const shouldShowPreconfigureStep = calcShouldShowPreconfigureStep(
     project,
     wizardFormData.initialData,
@@ -78,38 +88,42 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   );
   const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
 
-
-  const { resources: formResources } = useFormToResourcesTransformer(
-    wizardFormData,
-    existingDeployment,
-  );
-
   // temp hack to limit yaml editor to LLMd only
   const canEnterYAMLEditMode =
     existingDeployment?.model.kind !== 'InferenceService' &&
     wizardFormData.state.modelServer?.data?.selection?.template?.kind !== 'Template';
-  const { isYAMLViewerEnabled, isAutoFallback, viewMode, switchToForm, switchToYaml } =
-    useYamlViewSession(wizardFormData.initialData?.viewMode ?? 'form', canEnterYAMLEditMode);
+  const {
+    isYAMLViewerEnabled,
+    isAutoFallback,
+    viewMode,
+    switchToForm,
+    switchToYaml,
+    lastUpdatedSource,
+    setLastUpdatedSource,
+  } = useYamlViewSession(initialFormDataFromNav?.viewMode ?? 'form', canEnterYAMLEditMode);
 
   const {
     yaml,
     setYaml,
-    resources: finalResources, // will be from yaml or wizard depending view mode
-    error: yamlError,
-  } = useFormYamlResources(formResources, isAutoFallback ? existingDeployment?.model : undefined);
+    reinitYamlFromResources,
+    resources: yamlAsResources,
+    initialData: initialDataFromYaml,
+    yamlSubmitErrors,
+    yamlToFormErrors,
+  } = useFormYamlResources(isAutoFallback ? existingDeployment : undefined);
 
   const { onSave, onOverwrite, isLoading, isReadinessLoading, submitError, clearSubmitError } =
     useModelDeploymentSubmit(
       wizardFormData.state,
       wizardFormData.deployMethodActivationInput,
-      finalResources,
+      lastUpdatedSource === 'form' ? formAsResources : yamlAsResources.resources,
       validation,
       externalData,
       exitWizardOnSubmit,
       viewMode,
       wizardFormData.initialData,
       existingDeployment,
-      yamlError,
+      yamlSubmitErrors,
     );
 
   const externalDataReady = isExternalDataReady(externalData);
@@ -160,9 +174,30 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         headerAction={
           isYAMLViewerEnabled ? (
             <DeploymentWizardViewModeToggle
+              isYamlEmpty={!yaml?.yaml}
               viewMode={viewMode}
-              switchToForm={() => switchToForm()}
-              switchToYaml={() => switchToYaml()}
+              yamlErrors={yamlToFormErrors}
+              switchToForm={(updateFormWithYaml = true) => {
+                if (
+                  updateFormWithYaml &&
+                  viewMode === 'yaml-edit' &&
+                  initialDataFromYaml?.formData
+                ) {
+                  wizardFormData.dispatch({
+                    type: 'reInitForm',
+                    payload: { initialData: initialDataFromYaml.formData },
+                  });
+                }
+                // Ideally set 'LastUpdated' when a field is updated, but that's only possible for extension based fields using the dispatch to set state
+                setLastUpdatedSource('form');
+                switchToForm();
+              }}
+              switchToYaml={() => {
+                if (viewMode === 'form') {
+                  reinitYamlFromResources(formAsResources);
+                }
+                switchToYaml();
+              }}
             />
           ) : undefined
         }
@@ -187,6 +222,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 switchToYamlEdit={() => switchToYaml(true)}
                 canEnterYAMLEditMode={canEnterYAMLEditMode}
                 isAutoFallback={isAutoFallback}
+                setLastUpdatedSource={setLastUpdatedSource}
               />
             </PageSection>
             <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>
@@ -194,7 +230,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 isSubmitDisabled={
                   !externalDataReady ||
                   isReadinessLoading ||
-                  (viewMode === 'yaml-edit' ? !yaml : !validation.isAllValid)
+                  (viewMode === 'yaml-edit' ? !yaml?.yaml : !validation.isAllValid)
                 }
                 onSave={onSave}
                 onCancel={openExitModal}

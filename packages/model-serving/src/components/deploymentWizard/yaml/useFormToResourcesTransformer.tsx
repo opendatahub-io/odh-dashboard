@@ -8,6 +8,7 @@ import {
 } from '../../../../extension-points/deployment-wizard';
 import type { WizardFormData } from '../../../shared/types/form-data';
 import { useWizardFieldApply } from '../useWizardFieldApply';
+import { getConnectionSecret } from '../utils';
 
 /**
  * Based on the formData, return the assemble function that will be used to assemble the deployment.
@@ -43,8 +44,11 @@ const useAssembleDeploymentFn = (
 export const useFormToResourcesTransformer = (
   formData: WizardFormData,
   existingDeployment?: Deployment,
-  connectionSecretName?: string, // todo remove
-): { resources: DeploymentAssemblyResources<Deployment>; loaded: boolean; errors?: Error[] } => {
+): {
+  resources: DeploymentAssemblyResources<Deployment>;
+  loaded: boolean;
+  errors?: Error[];
+} => {
   // As of now, the assembleFn is what creates the Deployment / model resource with most form data applied.
   // applyFieldData is then used to apply the field data to the deployment.
   const [assembleDeploymentFn, assembleDeploymentFnLoaded, assembleDeploymentFnErrors] =
@@ -60,9 +64,9 @@ export const useFormToResourcesTransformer = (
     return [...assembleDeploymentFnErrors, ...applyExtensionErrors];
   }, [assembleDeploymentFnErrors, applyExtensionErrors]);
 
-  return React.useMemo(() => {
+  const formResources: DeploymentAssemblyResources<Deployment> = React.useMemo(() => {
     if (!assembleDeploymentFn) {
-      return { resources: {}, loaded, errors };
+      return {};
     }
     let deployment = assembleDeploymentFn(
       formData,
@@ -73,19 +77,17 @@ export const useFormToResourcesTransformer = (
     deployment = applyFieldData(deployment);
 
     return {
-      resources: {
-        model: deployment.model,
-        ...(deployment.server ? { server: deployment.server } : {}),
-      },
+      model: deployment.model,
+      ...(deployment.server ? { server: deployment.server } : {}),
+    };
+  }, [applyFieldData, assembleDeploymentFn, existingDeployment, formData]);
+
+  return React.useMemo(
+    () => ({
+      resources: formResources,
       loaded,
       errors,
-    };
-  }, [
-    assembleDeploymentFn,
-    formData,
-    existingDeployment,
-    applyFieldData,
-    loaded,
-    errors,
-  ]);
+    }),
+    [formResources, loaded, errors],
+  );
 };

@@ -25,7 +25,7 @@ export type UseExtractFormDataFromDeploymentReturn = {
   /** Whether all required data is still loading */
   loaded: boolean;
   /** Any errors that occurred during data loading */
-  error: Error | undefined;
+  errors: Error[] | undefined;
 };
 
 /**
@@ -103,9 +103,7 @@ export const useExtractFormDataFromDeployment = (
     data: huggingFaceApiKey,
     loaded: huggingFaceApiKeyLoaded,
     error: huggingFaceApiKeyError,
-  } = useFetch<HuggingFaceApiKeyFieldData | null>(extractHuggingFaceApiKeyCallback, null, {
-    initialPromisePurity: true,
-  });
+  } = useFetch<HuggingFaceApiKeyFieldData | null>(extractHuggingFaceApiKeyCallback, null);
 
   const loaded =
     !deployment ||
@@ -229,8 +227,8 @@ export const useExtractFormDataFromDeployment = (
       modelServer:
         formDataExtension?.properties.extractModelServerTemplate(deployment, dashboardNamespace) ??
         undefined,
-      // Always set to true for existing deployments
-      isEditing: true,
+      // Set to true if resource already exists
+      isEditing: !!deployment.model.metadata.resourceVersion,
       // Include extracted data from dynamic wizard fields (spread as top-level properties)
       ...extractedFieldData,
     };
@@ -249,9 +247,9 @@ export const useExtractFormDataFromDeployment = (
   ]);
 
   // Collect errors from platform-specific extract functions and validation
-  const validationError = React.useMemo((): Error | undefined => {
+  const validationErrors = React.useMemo((): Error[] => {
     if (!deployment || loadingError || !formData) {
-      return undefined;
+      return [];
     }
 
     const errors: string[] = [];
@@ -270,11 +268,9 @@ export const useExtractFormDataFromDeployment = (
     }
 
     if (errors.length > 0) {
-      return new Error(
-        'This deployment contains custom configuration that cannot be displayed in the form.',
-      );
+      return errors.map((e) => new Error(e));
     }
-    return undefined;
+    return [];
   }, [
     deployment,
     formData,
@@ -284,11 +280,11 @@ export const useExtractFormDataFromDeployment = (
     loadingError,
   ]);
 
-  const error = loadingError || validationError;
+  const errors = [...(loadingError ? [loadingError] : []), ...validationErrors];
 
   return {
     formData,
     loaded,
-    error,
+    errors,
   };
 };

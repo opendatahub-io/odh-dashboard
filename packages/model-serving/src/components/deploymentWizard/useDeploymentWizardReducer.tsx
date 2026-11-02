@@ -2,7 +2,6 @@ import React from 'react';
 import { isEqual } from 'lodash-es';
 import type { ExternalDataMap } from './ExternalDataLoader';
 import { getFieldDependencies, getStateKey, useActiveFields } from './dynamicFormUtils';
-import { debugFieldDataAction } from './yaml/debugUtilts';
 import type {
   InitialWizardFormData,
   WizardField,
@@ -66,14 +65,8 @@ export const wizardFormReducer = (
 ): WizardFieldReducerState => {
   switch (action.type) {
     case 'reInitForm':
-      debugFieldDataAction({ type: 'reInitForm' });
       return { fieldValues: {}, initialValues: {} };
     case 'setFieldData':
-      debugFieldDataAction({
-        type: 'setFieldData',
-        id: action.payload.id,
-        value: action.payload.data,
-      });
       return {
         ...state,
         fieldValues: { ...state.fieldValues, [action.payload.id]: action.payload.data },
@@ -84,7 +77,6 @@ export const wizardFormReducer = (
       delete newFieldValues[action.payload.id];
       delete newInitialValues[action.payload.id];
 
-      debugFieldDataAction({ type: 'clearFieldData', id: action.payload.id });
       return { fieldValues: newFieldValues, initialValues: newInitialValues };
     }
     case 'initFieldData': {
@@ -96,7 +88,6 @@ export const wizardFormReducer = (
         dependencies ?? {},
       );
 
-      debugFieldDataAction({ type: 'initFieldData', id: field.id, value: initialValue });
       return {
         ...state,
         initialValues: {
@@ -170,7 +161,7 @@ export const useDeploymentWizardReducer = (
           },
         });
       } else if (action.type === 'reInitForm') {
-        setInitialFormData(action.payload.initialData);
+        setInitialFormData({ ...action.payload.initialData });
         dispatch(action);
         for (const field of activeFieldsRef.current) {
           dispatch({
