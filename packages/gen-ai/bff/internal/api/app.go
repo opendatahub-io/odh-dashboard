@@ -237,10 +237,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	cleanupFuncs = append(cleanupFuncs, func() { stopFactory(k8sFactory) })
 
-	// User lookup always uses a real (non-mock) Kubernetes client, even in
-	// mock mode. Create it once here instead of per request.
+	// Authenticated user lookup uses a real (non-mock) Kubernetes client,
+	// even in mock mode. Disabled auth needs no user-lookup factory and is
+	// not supported by NewKubernetesClientFactory.
 	realK8sFactory := k8sFactory
-	if cfg.MockK8sClient {
+	if cfg.AuthMethod == config.AuthMethodDisabled {
+		realK8sFactory = nil
+	} else if cfg.MockK8sClient {
 		realK8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger, rootCAs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create real Kubernetes client factory: %w", err)

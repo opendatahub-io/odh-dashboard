@@ -18,6 +18,7 @@ func TestExtractRequestIdentity(t *testing.T) {
 		AuthTokenHeader: config.DefaultAuthTokenHeader,
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
 	}, nil)
+	t.Cleanup(factory.Stop)
 
 	t.Run("extracts token from primary header", func(t *testing.T) {
 		h := http.Header{}
@@ -119,6 +120,24 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 		assert.Nil(t, f.getOTelConfigManager())
 		assert.Greater(t, attempts.Load(), int32(0), "retry loop should have run")
+	})
+
+	t.Run("mock mode skips background discovery", func(t *testing.T) {
+		attempts := &atomic.Int32{}
+		f := newTokenClientFactory(slog.Default(), config.EnvConfig{
+			MockK8sClient: true,
+		}, func() (*otelConfigManager, error) {
+			attempts.Add(1)
+			return nil, nil
+		}, interval)
+		t.Cleanup(f.Stop)
+
+		assert.Never(t, func() bool {
+			return attempts.Load() > 1
+		}, 5*interval, interval, "mock mode must not retry discovery")
+		assert.Equal(t, int32(1), attempts.Load(), "only the initial discovery should run")
+		assert.Nil(t, f.getOTelConfigManager())
+		assert.Nil(t, f.SAClient)
 	})
 
 	t.Run("stop cancels the retry loop", func(t *testing.T) {
