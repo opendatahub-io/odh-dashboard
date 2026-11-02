@@ -326,6 +326,31 @@ describe('Model Serving LLMD', () => {
         .should('contain', 'KServe Test Model');
     });
 
+    it('should display LLMD deployments when KServe UI is disabled and the KServe DSC component is managed', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'llmd-with-kserve-ui-disabled',
+            namespace: 'test-project',
+            displayName: 'LLMD Without KServe UI',
+            isReady: true,
+          }),
+        ],
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableKServe: true,
+          disableLLMd: false,
+        }),
+      );
+
+      modelServingGlobal.visit('test-project');
+
+      modelServingGlobal.getModelRow('LLMD Without KServe UI').should('be.visible');
+      modelServingGlobal.findRows().should('have.length', 1);
+    });
+
     it('should show LLMD deployments and runtime options when LLMD is enabled but not when disabled', () => {
       initIntercepts({
         llmInferenceServices: [
