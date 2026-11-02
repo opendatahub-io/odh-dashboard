@@ -256,6 +256,9 @@ func manifestSets(basePath string, platform cluster.Platform) []render.ManifestI
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
 	computed := computeKustomizeVariables(dashboard, platform)
 	maps.Copy(computed, resolveImageParams())
+	// The operator applies the upload ConfigMap separately after validating the
+	// CR value. Render a safe placeholder, including after a previous reconcile.
+	computed[ociBaseImageParam] = ""
 
 	for _, m := range manifests {
 		manifestPath := m.String()

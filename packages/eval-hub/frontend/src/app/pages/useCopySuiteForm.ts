@@ -38,6 +38,11 @@ import {
   type CopySuiteBenchmarkParameter,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
+import {
+  parseTestDataRef,
+  serializeTestDataRef,
+  testDataRefDefaultValues,
+} from '~/app/schemas/testDataRef.schema';
 import type {
   Collection,
   CollectionBenchmark,
@@ -300,6 +305,7 @@ export const buildPendingCollection = ({
         : undefined,
       pass_criteria: { threshold: getThresholdRequestValue(b.threshold, b.primaryMetric) },
       parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+      test_data_ref: serializeTestDataRef(b.testDataRef),
     };
   });
   /* eslint-enable camelcase */
@@ -470,6 +476,7 @@ const buildBenchmarkFromProvider = (
         )
       : DEFAULT_SUITE_THRESHOLD,
     availableMetrics: providerBenchmark.metrics ?? [],
+    testDataRef: { ...testDataRefDefaultValues },
   };
 };
 
@@ -519,6 +526,7 @@ const buildInitialBenchmarks = (
           ? getThresholdInputValue(cb.pass_criteria.threshold, primaryScore?.metric)
           : DEFAULT_SUITE_THRESHOLD,
         availableMetrics: pb?.metrics ?? [],
+        testDataRef: parseTestDataRef(cb.test_data_ref),
       };
     }),
   );
@@ -922,6 +930,7 @@ export function useCopySuiteForm({
           : undefined,
         pass_criteria: { threshold: getThresholdRequestValue(b.threshold, b.primaryMetric) },
         parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+        test_data_ref: serializeTestDataRef(b.testDataRef),
       };
     });
     /* eslint-enable camelcase */

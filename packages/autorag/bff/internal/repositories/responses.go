@@ -54,11 +54,12 @@ type ResponsesParams struct {
 
 // ResponsesRepository handles RAG query execution for the responses endpoint.
 type ResponsesRepository struct {
-	logger        *slog.Logger
-	k8sService    kubernetes.Service
-	urlForwarder  URLForwarder
-	newMaaSClient maas.ClientFactory
-	newVectorDB   func(context.Context, map[string][]byte, func(context.Context, string) (string, error)) (vectordb.VectorDB, error)
+	logger          *slog.Logger
+	k8sService      kubernetes.Service
+	urlForwarder    URLForwarder
+	newMaaSClient   maas.ClientFactory
+	gatewayResolver maas.GatewayHostResolver
+	newVectorDB     func(context.Context, map[string][]byte, func(context.Context, string) (string, error)) (vectordb.VectorDB, error)
 }
 
 // URLForwarder rewrites a URL to a locally forwarded endpoint when applicable.
@@ -88,26 +89,46 @@ func normalizeMilvusForwardURI(raw string) (string, error) {
 }
 
 func NewResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service, forwarders ...URLForwarder) *ResponsesRepository {
-	return newResponsesRepository(logger, k8sService, nil, forwarders...)
+	return newResponsesRepository(logger, k8sService, nil, nil, forwarders...)
 }
 
 // NewResponsesRepositoryWithMaaSClientFactory injects the configured MaaS
 // client factory used by the application for per-secret Responses requests.
 func NewResponsesRepositoryWithMaaSClientFactory(logger *slog.Logger, k8sService kubernetes.Service, newMaaSClient maas.ClientFactory, forwarders ...URLForwarder) *ResponsesRepository {
-	return newResponsesRepository(logger, k8sService, newMaaSClient, forwarders...)
+	return newResponsesRepository(logger, k8sService, newMaaSClient, nil, forwarders...)
 }
 
-func newResponsesRepository(logger *slog.Logger, k8sService kubernetes.Service, newMaaSClient maas.ClientFactory, forwarders ...URLForwarder) *ResponsesRepository {
+// NewResponsesRepositoryWithMaaSClientFactoryAndGatewayResolver injects the
+// configured MaaS client factory and the authenticated MaaS BFF gateway
+// resolver used to grant the private-origin exception per request.
+func NewResponsesRepositoryWithMaaSClientFactoryAndGatewayResolver(
+	logger *slog.Logger,
+	k8sService kubernetes.Service,
+	newMaaSClient maas.ClientFactory,
+	gatewayResolver maas.GatewayHostResolver,
+	forwarders ...URLForwarder,
+) *ResponsesRepository {
+	return newResponsesRepository(logger, k8sService, newMaaSClient, gatewayResolver, forwarders...)
+}
+
+func newResponsesRepository(
+	logger *slog.Logger,
+	k8sService kubernetes.Service,
+	newMaaSClient maas.ClientFactory,
+	gatewayResolver maas.GatewayHostResolver,
+	forwarders ...URLForwarder,
+) *ResponsesRepository {
 	var urlForwarder URLForwarder
 	if len(forwarders) > 0 {
 		urlForwarder = forwarders[0]
 	}
 	return &ResponsesRepository{
-		logger:        logger,
-		k8sService:    k8sService,
-		urlForwarder:  urlForwarder,
-		newMaaSClient: newMaaSClient,
-		newVectorDB:   vectordb.NewFromSecretDataWithForwarder,
+		logger:          logger,
+		k8sService:      k8sService,
+		urlForwarder:    urlForwarder,
+		newMaaSClient:   newMaaSClient,
+		gatewayResolver: gatewayResolver,
+		newVectorDB:     vectordb.NewFromSecretDataWithForwarder,
 	}
 }
 
@@ -184,6 +205,9 @@ func (r *ResponsesRepository) resolveMaasClient(ctx context.Context, namespace, 
 	client, err := r.newMaaSClient(validatedURL.String(), apiKey)
 	if err != nil {
 		return nil, err
+	}
+	if origin, trusted := discoveredTrustedMaaSOrigin(ctx, validatedURL, r.gatewayResolver, r.logger); trusted {
+		client = client.WithTrustedMaaSOrigin(origin)
 	}
 	return client, nil
 }

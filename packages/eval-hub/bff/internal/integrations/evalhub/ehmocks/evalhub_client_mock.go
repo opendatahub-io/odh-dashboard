@@ -411,10 +411,18 @@ func mockProviders() []evalhub.Provider {
 	}
 }
 
-func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, error) {
+func (m *MockEvalHubClient) GetCollection(_ context.Context, id string, _ string) (*evalhub.Collection, json.RawMessage, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.getCollection(id)
+	collection, err := m.getCollection(id)
+	if err != nil || collection == nil {
+		return nil, nil, err
+	}
+	raw, err := json.Marshal(collection)
+	if err != nil {
+		return nil, nil, err
+	}
+	return collection, raw, nil
 }
 
 func (m *MockEvalHubClient) getCollection(id string) (*evalhub.Collection, error) {
@@ -480,7 +488,7 @@ func (m *MockEvalHubClient) DeleteCollection(_ context.Context, id string, _ str
 }
 
 func (m *MockEvalHubClient) CloneCollection(_ context.Context, id string, _ string, req evalhub.CloneCollectionRequest) (*evalhub.Collection, error) {
-	source, err := m.GetCollection(context.Background(), id, "")
+	source, _, err := m.GetCollection(context.Background(), id, "")
 	if err != nil {
 		return nil, err
 	}
