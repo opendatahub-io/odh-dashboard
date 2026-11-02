@@ -966,14 +966,20 @@ def justified_findings(result):
     ]
 
 def render_justified_section(result):
-    """Render ### Justified under ## Findings with omit markers."""
+    """Render ### Justified under ## Findings.
+
+    Heading-delimited on purpose. `fullsend post-review` runs agent-authored
+    bodies through upstream's NeutralizeMarkers, which HTML-escapes every
+    `<!-- fullsend:` opener, so an HTML comment wrapper would surface as
+    visible text in the sticky. Readers find these items by the
+    `### Justified (N)` heading.
+    """
     items = justified_findings(result)
     if not items:
         return []
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     lines = [
         "",
-        "<!-- fullsend:justified-findings -->",
         f"### Justified ({len(items)})",
         "",
         "_These findings were raised by review producers but the PR's "
@@ -994,7 +1000,6 @@ def render_justified_section(result):
         reason = inline_text(finding.get("removal_reason") or "")
         if reason:
             lines.append(f"  - Justification: {reason}")
-    lines += ["", "<!-- /fullsend:justified-findings -->"]
     return lines
 
 def render_removed_audit(result):
@@ -3025,6 +3030,9 @@ JSON
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"PR Justifications explain the architectural choice; diff confirms the new pattern is consistent.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified.json"
   transform_review_result "${tmp}/justified.json" > "${tmp}/justified-out.json"
   body=$(jq -r .body "${tmp}/justified-out.json")
+  # Same boundaries the author helper parses by: ## Findings up to the next
+  # ## heading or the <details> review block.
+  findings_section=$(awk '/^## Findings$/{f=1; next} f && (/^## / || /^<details>/){exit} f' <<<"${body}")
   if [[ "$(jq -r .action "${tmp}/justified-out.json")" != "approve" ]]; then
     echo "FAIL justified: justified-only findings must not block disposition" >&2
     fail=1
@@ -3034,8 +3042,11 @@ JSON
   elif ! grep -q '### Justified (1)' <<<"${body}"; then
     echo "FAIL justified: ### Justified subheading missing or wrong count" >&2
     fail=1
-  elif ! grep -q 'fullsend:justified-findings' <<<"${body}"; then
-    echo "FAIL justified: HTML omit markers missing" >&2
+  elif grep -qE '^<!--' <<<"${findings_section}"; then
+    echo "FAIL justified: an HTML marker leaked into ## Findings" >&2
+    fail=1
+  elif grep -qiE '<(!--[[:space:]]*fullsend[[:space:]]*:)' <<<"${body}"; then
+    echo "FAIL justified: body carries a fullsend: marker upstream would escape as text" >&2
     fail=1
   elif ! grep -q 'Justification:' <<<"${body}"; then
     echo "FAIL justified: challenger reason not rendered under Justified" >&2
