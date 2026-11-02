@@ -41,9 +41,14 @@ type KubernetesClientFactory interface {
 }
 
 // otelConfigRetryInterval is how often the factory retries OTel config
-// manager discovery when the platform collector or MLflow CR was not yet
-// available at startup.
+// manager discovery once the fast first attempt has run.
 const otelConfigRetryInterval = 30 * time.Second
+
+// otelConfigFastRetryDelay shortens the initial retry delay when the platform
+// collector or MLflow CR becomes available shortly after startup. Later
+// retries use the steady interval; this does not guarantee tracing readiness
+// before a playground install.
+const otelConfigFastRetryDelay = 2 * time.Second
 
 // TokenClientFactory creates per-request Kubernetes clients authenticated
 // with the caller's bearer token. The OTel config manager is discovered once
@@ -68,12 +73,12 @@ func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x
 	creator := func(ctx context.Context) (*otelConfigManager, error) {
 		return newOTelConfigManager(ctx, logger, cfg, rootCAs)
 	}
-	return newTokenClientFactory(logger, cfg, creator, otelConfigRetryInterval)
+	return newTokenClientFactory(logger, cfg, creator, otelConfigFastRetryDelay, otelConfigRetryInterval)
 }
 
-// creator and retryInterval are injectable for tests. The factory owns the
+// creator and the retry delays are injectable for tests. The factory owns the
 // discovery context from the initial attempt through background retries.
-func newTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, creator func(context.Context) (*otelConfigManager, error), retryInterval time.Duration) *TokenClientFactory {
+func newTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, creator func(context.Context) (*otelConfigManager, error), firstRetryDelay, retryInterval time.Duration) *TokenClientFactory {
 	ctx, cancel := context.WithCancel(context.Background())
 	ocm, err := creator(ctx)
 	if err != nil {
@@ -101,7 +106,7 @@ func newTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, creator fu
 	}
 
 	if ocm == nil && !cfg.MockK8sClient {
-		f.startOTelConfigManagerRetry(ctx, creator, retryInterval)
+		f.startOTelConfigManagerRetry(ctx, creator, firstRetryDelay, retryInterval)
 	} else {
 		close(f.otelDone)
 	}
@@ -122,37 +127,39 @@ func (f *TokenClientFactory) getOTelConfigManager() *otelConfigManager {
 // the BFF starts before the platform collector or MLflow CR exists: without
 // the retry, playgrounds installed later would get an empty collector
 // endpoint and their traces would never reach MLflow.
-func (f *TokenClientFactory) startOTelConfigManagerRetry(ctx context.Context, creator func(context.Context) (*otelConfigManager, error), interval time.Duration) {
-	f.Logger.Info("OTel config manager not initialized, retrying in background", "interval", interval)
+func (f *TokenClientFactory) startOTelConfigManagerRetry(ctx context.Context, creator func(context.Context) (*otelConfigManager, error), firstRetryDelay, interval time.Duration) {
+	f.Logger.Info("OTel config manager not initialized, retrying in background", "firstRetryIn", firstRetryDelay, "interval", interval)
 	go func() {
 		defer close(f.otelDone)
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
+		// The first retry fires after a short delay rather than a full
+		// interval; subsequent retries use the steady interval.
+		delay := firstRetryDelay
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-ticker.C:
-				if ctx.Err() != nil {
-					return
-				}
-				ocm, err := creator(ctx)
-				if ctx.Err() != nil {
-					return
-				}
-				if err != nil {
-					f.Logger.Warn("failed to create OTel config manager, will retry", "error", err)
-					continue
-				}
-				if ocm == nil {
-					continue
-				}
-				f.otelMu.Lock()
-				f.otelMgr = ocm
-				f.otelMu.Unlock()
-				f.Logger.Info("OTel config manager initialized after background retry")
+			case <-time.After(delay):
+			}
+			delay = interval
+			if ctx.Err() != nil {
 				return
 			}
+			ocm, err := creator(ctx)
+			if ctx.Err() != nil {
+				return
+			}
+			if err != nil {
+				f.Logger.Warn("failed to create OTel config manager, will retry", "error", err)
+				continue
+			}
+			if ocm == nil {
+				continue
+			}
+			f.otelMu.Lock()
+			f.otelMgr = ocm
+			f.otelMu.Unlock()
+			f.Logger.Info("OTel config manager initialized after background retry")
+			return
 		}
 	}()
 }

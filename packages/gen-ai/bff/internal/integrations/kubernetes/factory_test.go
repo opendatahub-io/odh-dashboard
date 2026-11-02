@@ -96,7 +96,7 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 			AuthMethod:      config.AuthMethodUser,
 			AuthTokenHeader: config.DefaultAuthTokenHeader,
 			AuthTokenPrefix: config.DefaultAuthTokenPrefix,
-		}, creator, interval)
+		}, creator, interval, interval)
 		return f
 	}
 
@@ -133,13 +133,39 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 				return nil, errors.New("API temporarily unavailable")
 			}
 			return &otelConfigManager{}, nil
-		}, interval)
+		}, interval, interval)
 		t.Cleanup(f.Stop)
 
 		require.Eventually(t, func() bool {
 			return f.getOTelConfigManager() != nil
 		}, time.Second, interval)
 		assert.Equal(t, int32(3), attempts.Load())
+	})
+
+	t.Run("uses fast first retry then steady interval", func(t *testing.T) {
+		var attempts atomic.Int32
+		// Steady interval is far longer than the test timeout; a second
+		// attempt can only happen if the first retry uses the fast delay.
+		f := newTokenClientFactory(slog.Default(), config.EnvConfig{}, func(context.Context) (*otelConfigManager, error) {
+			attempts.Add(1)
+			return nil, nil
+		}, 5*time.Millisecond, 500*time.Millisecond)
+		t.Cleanup(f.Stop)
+
+		require.Eventually(t, func() bool {
+			return attempts.Load() >= 2
+		}, 100*time.Millisecond, time.Millisecond,
+			"first retry should fire after the fast delay rather than the steady interval")
+
+		assert.Never(t, func() bool {
+			return attempts.Load() > 2
+		}, 50*time.Millisecond, time.Millisecond,
+			"subsequent retries must not keep using the fast delay")
+
+		require.Eventually(t, func() bool {
+			return attempts.Load() >= 3
+		}, 2*time.Second, 5*time.Millisecond,
+			"discovery should continue retrying at the steady interval")
 	})
 
 	t.Run("initial success needs no retry worker", func(t *testing.T) {
@@ -163,7 +189,7 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 		}, func(context.Context) (*otelConfigManager, error) {
 			attempts.Add(1)
 			return nil, nil
-		}, interval)
+		}, interval, interval)
 		t.Cleanup(f.Stop)
 
 		assert.Never(t, func() bool {
@@ -191,7 +217,7 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 			<-release
 			// Even a result returned after cancellation must not be published.
 			return &otelConfigManager{}, nil
-		}, interval)
+		}, interval, interval)
 		t.Cleanup(func() {
 			releaseWorker()
 			f.Stop()
