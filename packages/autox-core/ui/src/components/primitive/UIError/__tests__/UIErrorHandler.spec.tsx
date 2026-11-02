@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import type { UIError, UIErrorMappings } from '../types';
 import { UIErrorInstance } from '../UIErrorInstance';
@@ -397,7 +397,7 @@ describe('UIErrorHandler', () => {
       );
     });
 
-    it('should call onRetry and close modal when retry button is clicked', () => {
+    it('should call onRetry and close modal when retry button is clicked', async () => {
       const retryFn = jest.fn();
       render(
         <UIErrorHandler id="test">
@@ -410,7 +410,7 @@ describe('UIErrorHandler', () => {
       fireEvent.click(screen.getByTestId('UIErrorModal-retry'));
 
       expect(retryFn).toHaveBeenCalledTimes(1);
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 
     it('should not show retry button in modal when onRetry is not provided', () => {

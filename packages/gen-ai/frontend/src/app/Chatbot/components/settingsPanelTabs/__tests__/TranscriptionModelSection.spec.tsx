@@ -306,7 +306,7 @@ describe('TranscriptionModelSection', () => {
 
       expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass('pf-v6-u-pl-0');
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
       expect(
         useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedAsrModel,
       ).toBe('');
@@ -440,7 +440,7 @@ describe('TranscriptionModelSection', () => {
       await user.click(screen.getByRole('button', { name: 'View all models' }));
       await user.click(screen.getByRole('menuitem', { name: /Llama 3 8B/ }));
 
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
       expect(screen.getByTestId('transcription-model-selector')).toHaveTextContent('Llama 3 8B');
       await user.click(screen.getByTestId('transcription-model-selector'));
       expect(screen.getByRole('menuitem', { name: 'Whisper Large V3' })).toBeInTheDocument();

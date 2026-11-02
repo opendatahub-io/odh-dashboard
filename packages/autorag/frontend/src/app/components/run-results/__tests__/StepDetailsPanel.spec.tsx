@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
 import StepDetailsPanel from '~/app/components/run-results/StepDetailsPanel';
@@ -150,7 +150,7 @@ describe('StepDetailsPanel', () => {
     expect(screen.queryByTestId('step-failed-view-logs')).not.toBeInTheDocument();
   });
 
-  it('should show the executor logs in a tearsheet when View logs is clicked', () => {
+  it('should show the executor logs in a tearsheet when View logs is clicked', async () => {
     const logText =
       '[KFP Executor ERROR]: TestDataLoaderError: Incorrect or incomplete keys in test data record.';
     mockUseTaskExecutorError.mockReturnValue({
@@ -170,7 +170,9 @@ describe('StepDetailsPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
-    expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument(),
+    );
   });
 
   it('should not request executor errors for non-failed steps', () => {
