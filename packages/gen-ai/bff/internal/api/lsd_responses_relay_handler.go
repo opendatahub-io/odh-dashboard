@@ -104,9 +104,11 @@ func isLoopbackGatewayHost(hostPort string) bool {
 // verbatim to the same-origin path given by the required "target" query
 // parameter, resolved against the externally accessed gateway route
 // ({scheme}://{GATEWAY_DOMAIN}{target} over HTTPS, or RELAY_TARGET_URL when
-// that local-development override is set). The user's bearer token is attached and
-// the response — including SSE streams and non-200 error envelopes — is piped
-// back transparently, with no synthetic events added.
+// that local-development override is set). The user's bearer token is attached
+// as Authorization; it is additionally attached as x-forwarded-access-token
+// only in direct-target mode, because the AI gateway owns that header on the
+// GATEWAY_DOMAIN path. The response — including SSE streams and non-200 error
+// envelopes — is piped back transparently, with no synthetic events added.
 //
 // There is deliberately no namespace parameter and no SSAR middleware: the
 // relay performs no Kubernetes operations, and the embedded namespace belongs
@@ -236,21 +238,29 @@ func (app *App) ResponsesRelayHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 	proxyReq.Header.Set("Authorization", "Bearer "+identity.Token)
-	// Embedders behind the gateway receive the token as x-forwarded-access-token
-	// (kube-rbac-proxy sets it in-cluster); set it too so a relay pointed at a
-	// BFF directly, as in local development, still authenticates the same token.
-	proxyReq.Header.Set("x-forwarded-access-token", identity.Token)
+	// Attach the identity token as x-forwarded-access-token only when the relay
+	// targets a BFF directly (RELAY_TARGET_URL, local development): nothing else
+	// on that path derives the header, and the target BFF authenticates by it.
+	// Through GATEWAY_DOMAIN the AI gateway owns the header instead — it does
+	// not pass a client-supplied value through intact, and it injects a
+	// validated token only when the header is absent — so the relay must send
+	// Authorization alone and let the gateway populate x-forwarded-access-token
+	// downstream.
+	if strings.TrimSpace(app.config.RelayTargetURL) != "" {
+		proxyReq.Header.Set("x-forwarded-access-token", identity.Token)
+	}
 	proxyReq.Header.Set("Content-Type", "application/json")
 	proxyReq.Header.Set("Accept", "text/event-stream")
 
 	// Dedicated client with no Timeout: a client timeout bounds the entire body
 	// read and would truncate a long stream after WriteHeader has committed.
 	// Reuse the app-level TLS transport for connection pooling and cert trust.
-	// Redirects are restricted to the original host and scheme: the relayed
-	// request carries the user's token in the x-forwarded-access-token header,
-	// which (unlike Authorization) Go's http.Client does not strip when a
-	// redirect crosses hosts, so a cross-host redirect would forward the token
-	// to an arbitrary origin named by the upstream response. A same-host
+	// Redirects are restricted to the original host and scheme: in direct-target
+	// mode the relayed request carries the user's token in the
+	// x-forwarded-access-token header, which (unlike Authorization) Go's
+	// http.Client does not strip when a redirect crosses hosts, so a cross-host
+	// redirect would forward the token to an arbitrary origin named by the
+	// upstream response. A same-host
 	// HTTPS-to-HTTP downgrade must be refused too: Go keeps headers (including
 	// Authorization) across a same-host scheme change, which would send the
 	// token in plaintext.
