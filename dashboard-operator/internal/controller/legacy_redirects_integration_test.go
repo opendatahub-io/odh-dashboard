@@ -33,6 +33,7 @@ func TestIntegration_LegacyRedirectsCleanedWhenDashboardDeleted(t *testing.T) {
 		Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
 		LegacyRedirects: &v1alpha1.LegacyRedirectsSpec{
 			ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
+			LegacyHostname: "data-science-gateway.apps.example.com",
 		},
 		Modules: disableAllModulesExcept(),
 	})
@@ -73,6 +74,7 @@ func TestIntegration_LegacyRedirectsAdoptGatewayOwnedResourcesInPlace(t *testing
 		Gateway: &v1alpha1.GatewaySpec{Domain: "rh-ai.apps.example.com"},
 		LegacyRedirects: &v1alpha1.LegacyRedirectsSpec{
 			ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
+			LegacyHostname: "data-science-gateway.apps.example.com",
 		},
 		Modules: disableAllModulesExcept(),
 	})

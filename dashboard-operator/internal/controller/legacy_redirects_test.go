@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -22,32 +24,32 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-func TestLegacyGatewayHostname(t *testing.T) {
-	t.Parallel()
+func TestResolveLegacyGatewayHostname(t *testing.T) {
+	scheme := legacyRedirectTestScheme(t)
+	legacyRoute := &routev1.Route{
+		ObjectMeta: legacyRedirectOwnedMetadata(legacyGatewayRouteName),
+		Spec:       routev1.RouteSpec{Host: "data-science-gateway.legacy.example.com"},
+	}
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(legacyRoute).Build()
+	r := &DashboardReconciler{Client: cli, APIReader: cli, ApplicationsNamespace: "applications"}
 
-	tests := []struct {
-		name string
-		host string
-		want string
-		err  bool
-	}{
-		{name: "default gateway", host: "rh-ai.apps.example.com", want: "data-science-gateway.apps.example.com"},
-		{name: "custom gateway", host: "custom.apps.example.com", want: "data-science-gateway.apps.example.com"},
-		{name: "already legacy", host: "data-science-gateway.apps.example.com"},
-		{name: "invalid", host: "localhost", err: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got, err := legacyGatewayHostname(tt.host)
-			if tt.err {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tt.want, got)
-		})
-	}
+	got, err := r.resolveLegacyGatewayHostname(context.Background(), "ai.company.example", "data-science-gateway.apps.example.com")
+	require.NoError(t, err)
+	assert.Equal(t, "data-science-gateway.legacy.example.com", got, "the existing compatibility endpoint wins during adoption")
+
+	require.NoError(t, cli.Delete(context.Background(), legacyRoute))
+	got, err = r.resolveLegacyGatewayHostname(context.Background(), "ai.company.example", "data-science-gateway.apps.example.com")
+	require.NoError(t, err)
+	assert.Equal(t, "data-science-gateway.apps.example.com", got, "the projected endpoint recreates a removed Route")
+
+	got, err = r.resolveLegacyGatewayHostname(context.Background(), "data-science-gateway.apps.example.com", "unused.example.com")
+	require.NoError(t, err)
+	assert.Empty(t, got, "no second Route is needed when the gateway already uses the legacy hostname")
+
+	_, err = r.resolveLegacyGatewayHostname(context.Background(), "ai.company.example", "")
+	require.ErrorContains(t, err, "spec.legacyRedirects.legacyHostname is required")
+	_, err = r.resolveLegacyGatewayHostname(context.Background(), "localhost", "data-science-gateway.apps.example.com")
+	require.ErrorContains(t, err, "must contain a subdomain")
 }
 
 func TestDashboardRedirectResourcesPreserveCurrentBehavior(t *testing.T) {
@@ -57,7 +59,7 @@ func TestDashboardRedirectResourcesPreserveCurrentBehavior(t *testing.T) {
 		Platform:              cluster.SelfManagedRhoai,
 		ApplicationsNamespace: "redhat-ods-applications",
 	}
-	data, err := r.dashboardRedirectData("rh-ai.apps.example.com")
+	data, err := r.dashboardRedirectData("rh-ai.apps.example.com", "data-science-gateway.apps.example.com")
 	require.NoError(t, err)
 	assert.Equal(t, dashboardRouteNameRHOAI, data.DashboardRouteName)
 	assert.Equal(t, "OpenShift AI", data.ProductName)
@@ -94,13 +96,24 @@ func TestDashboardRedirectResourcesPreserveCurrentBehavior(t *testing.T) {
 
 func TestDashboardRedirectResourcesOmitRedundantLegacyRoute(t *testing.T) {
 	r := &DashboardReconciler{Platform: cluster.OpenDataHub, ApplicationsNamespace: "opendatahub"}
-	data, err := r.dashboardRedirectData("data-science-gateway.apps.example.com")
+	data, err := r.dashboardRedirectData("data-science-gateway.apps.example.com", "")
 	require.NoError(t, err)
 	resources, err := renderDashboardRedirectResources(data)
 	require.NoError(t, err)
 	assert.Len(t, resources, 4)
 	assert.Equal(t, dashboardRouteNameODH, data.DashboardRouteName)
 	assert.Equal(t, "Open Data Hub", data.ProductName)
+}
+
+func TestDashboardRedirectImageUsesManifestDefault(t *testing.T) {
+	t.Setenv("RELATED_IMAGE_NGINX_126_IMAGE", "")
+	manifests := t.TempDir()
+	overlay := filepath.Join(manifests, "odh")
+	require.NoError(t, os.MkdirAll(overlay, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(overlay, "params.env"), []byte("nginx-126-image=mirror.example.com/nginx@sha256:test\n"), 0644))
+	r := &DashboardReconciler{Platform: cluster.OpenDataHub, ManifestsBasePath: manifests}
+
+	assert.Equal(t, "mirror.example.com/nginx@sha256:test", r.dashboardRedirectImage())
 }
 
 func TestLegacyRedirectHandoffAbsentIsNoOp(t *testing.T) {

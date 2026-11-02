@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
-	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -111,11 +111,11 @@ func (r *DashboardReconciler) reconcileLegacyRedirects(ctx context.Context, dash
 		return errors.New("spec.gateway.domain is required when legacy redirects are Managed")
 	}
 
-	data, err := r.dashboardRedirectData(dashboard.Spec.Gateway.Domain)
+	legacyHostname, err := r.resolveLegacyGatewayHostname(ctx, dashboard.Spec.Gateway.Domain, redirects.LegacyHostname)
 	if err != nil {
 		return err
 	}
-	data.LegacyHostname, err = r.preserveLegacyGatewayHostname(ctx, data.LegacyHostname)
+	data, err := r.dashboardRedirectData(dashboard.Spec.Gateway.Domain, legacyHostname)
 	if err != nil {
 		return err
 	}
@@ -156,23 +156,15 @@ func (r *DashboardReconciler) reconcileLegacyRedirects(ctx context.Context, dash
 	return nil
 }
 
-func (r *DashboardReconciler) dashboardRedirectData(gatewayHostname string) (dashboardRedirectTemplateData, error) {
+func (r *DashboardReconciler) dashboardRedirectData(gatewayHostname, legacyHostname string) (dashboardRedirectTemplateData, error) {
 	gatewayHostname = strings.TrimSpace(gatewayHostname)
-	legacyHostname, err := legacyGatewayHostname(gatewayHostname)
-	if err != nil {
-		return dashboardRedirectTemplateData{}, err
-	}
+	legacyHostname = strings.TrimSpace(legacyHostname)
 
 	productName := "Open Data Hub"
 	dashboardRouteName := dashboardRouteNameODH
 	if r.Platform == cluster.SelfManagedRhoai || r.Platform == cluster.ManagedRhoai {
 		productName = "OpenShift AI"
 		dashboardRouteName = dashboardRouteNameRHOAI
-	}
-
-	image := os.Getenv("RELATED_IMAGE_NGINX_126_IMAGE")
-	if image == "" {
-		image = defaultDashboardRedirectImage
 	}
 
 	data := dashboardRedirectTemplateData{
@@ -185,7 +177,7 @@ func (r *DashboardReconciler) dashboardRedirectData(gatewayHostname string) (das
 		LegacyHostname:      legacyHostname,
 		DashboardRouteName:  dashboardRouteName,
 		ProductName:         productName,
-		Image:               image,
+		Image:               r.dashboardRedirectImage(),
 	}
 
 	config, err := renderDashboardRedirectTemplate("resources/dashboard-redirect-configmap.tmpl.yaml", data)
@@ -201,6 +193,19 @@ func (r *DashboardReconciler) dashboardRedirectData(gatewayHostname string) (das
 	return data, nil
 }
 
+func (r *DashboardReconciler) dashboardRedirectImage() string {
+	if image := strings.TrimSpace(resolveImageParams()["nginx-126-image"]); image != "" {
+		return image
+	}
+
+	manifest := defaultManifestInfo(r.ManifestsBasePath, r.Platform)
+	if image := strings.TrimSpace(readExistingParams(filepath.Join(manifest.String(), "params.env"))["nginx-126-image"]); image != "" {
+		return image
+	}
+
+	return defaultDashboardRedirectImage
+}
+
 func dashboardRedirectConfigHash(data map[string]string) string {
 	hash := sha256.New()
 	for _, key := range []string{"nginx.conf", "redirect.conf", "deprecation.html"} {
@@ -212,39 +217,41 @@ func dashboardRedirectConfigHash(data map[string]string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-func legacyGatewayHostname(gatewayHostname string) (string, error) {
-	subdomain, suffix, ok := strings.Cut(gatewayHostname, ".")
+func (r *DashboardReconciler) resolveLegacyGatewayHostname(
+	ctx context.Context,
+	gatewayHostname string,
+	configuredHostname string,
+) (string, error) {
+	subdomain, suffix, ok := strings.Cut(strings.TrimSpace(gatewayHostname), ".")
 	if !ok || subdomain == "" || suffix == "" {
 		return "", fmt.Errorf("gateway hostname %q must contain a subdomain", gatewayHostname)
 	}
 	if subdomain == legacyGatewayRouteName {
 		return "", nil
 	}
-	return legacyGatewayRouteName + "." + suffix, nil
-}
-
-func (r *DashboardReconciler) preserveLegacyGatewayHostname(ctx context.Context, fallback string) (string, error) {
-	if fallback == "" {
-		return "", nil
-	}
 
 	route := &routev1.Route{}
 	key := client.ObjectKey{Name: legacyGatewayRouteName, Namespace: r.ApplicationsNamespace}
 	if err := r.apiReader().Get(ctx, key, route); err != nil {
-		if apierrors.IsNotFound(err) {
-			return fallback, nil
+		if !apierrors.IsNotFound(err) {
+			return "", fmt.Errorf("reading legacy gateway Route hostname: %w", err)
 		}
-		return "", fmt.Errorf("reading legacy gateway Route hostname: %w", err)
+	} else {
+		if !isOwnedLegacyRedirect(route) {
+			return "", fmt.Errorf("legacy gateway Route %s/%s has unrecognized ownership", route.Namespace, route.Name)
+		}
+		// Preserve the actual pre-handoff endpoint during adoption. It can have a
+		// different DNS suffix from both the current gateway and the projected
+		// fallback value.
+		if hostname := strings.TrimSpace(route.Spec.Host); hostname != "" {
+			return hostname, nil
+		}
 	}
 
-	// The pre-handoff Route can have a different DNS suffix from the current
-	// gateway. Keep its explicit compatibility endpoint when adopting it rather
-	// than reconstructing a new hostname from spec.gateway.domain.
-	if hostname := strings.TrimSpace(route.Spec.Host); hostname != "" && isOwnedLegacyRedirect(route) {
-		return hostname, nil
+	if configuredHostname = strings.TrimSpace(configuredHostname); configuredHostname == "" {
+		return "", errors.New("spec.legacyRedirects.legacyHostname is required when legacy redirects are Managed and the gateway does not use the legacy hostname")
 	}
-
-	return fallback, nil
+	return configuredHostname, nil
 }
 
 func renderDashboardRedirectResources(data dashboardRedirectTemplateData) ([]unstructured.Unstructured, error) {

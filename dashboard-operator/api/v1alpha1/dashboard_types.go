@@ -53,6 +53,15 @@ type LegacyRedirectsSpec struct {
 	// GatewayConfig-owned redirect resources.
 	// +optional
 	common.ManagementSpec `json:",inline"`
+
+	// LegacyHostname is the externally visible hostname of the pre-Gateway
+	// data-science-gateway Route. The orchestrator projects this value so the
+	// Dashboard operator can recreate the same compatibility endpoint after the
+	// redirect resources have been removed.
+	// +optional
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`
+	LegacyHostname string `json:"legacyHostname,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

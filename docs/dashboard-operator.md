@@ -30,9 +30,12 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 When `legacyRedirects` is omitted, the Dashboard operator leaves the redirect
 resources unmanaged so an older platform Gateway controller can continue to
 own them. `managementState: Managed` hands those resources to the Dashboard
-operator and requires `spec.gateway.domain`. `managementState: Removed` deletes
-only redirect resources with recognized Dashboard or legacy GatewayConfig
-ownership.
+operator and requires `spec.gateway.domain` plus the explicit
+`legacyRedirects.legacyHostname` compatibility endpoint unless the gateway
+itself already uses the legacy hostname. Keeping that hostname in the CR lets a
+later `Removed` to `Managed` transition recreate the original Route even when
+the gateway uses a different DNS suffix. `managementState: Removed` deletes only
+redirect resources with recognized Dashboard or legacy GatewayConfig ownership.
 
 ### Status Fields
 
