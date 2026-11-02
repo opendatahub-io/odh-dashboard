@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
@@ -315,7 +315,7 @@ const renderWithContext = ({
     />,
   );
 
-const showAllColumns = () => {
+const showAllColumns = async () => {
   fireEvent.click(screen.getByTestId('manage-columns-button'));
   const checkboxes = screen.getAllByTestId(/^column-check-/);
   checkboxes.forEach((cb) => {
@@ -324,6 +324,7 @@ const showAllColumns = () => {
     }
   });
   fireEvent.click(screen.getByText('Save'));
+  await waitFor(() => expect(screen.queryByTestId('manage-columns-modal')).not.toBeInTheDocument());
 };
 
 // ============================================================================
@@ -335,7 +336,7 @@ describe('AutomlLeaderboard utility functions', () => {
   // We'll test them indirectly through component rendering
 
   describe('formatMetricName', () => {
-    it('should format special case metrics correctly', () => {
+    it('should format special case metrics correctly', async () => {
       renderWithContext({
         models: {
           'model-1': createMockModel('Test Model', {
@@ -353,7 +354,7 @@ describe('AutomlLeaderboard utility functions', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Check that special case acronyms are displayed correctly
       expect(screen.getByText('ROC AUC')).toBeInTheDocument();
@@ -371,7 +372,7 @@ describe('AutomlLeaderboard utility functions', () => {
       expect(within(accuracyHeader).getByTestId('optimized-indicator')).toBeInTheDocument();
     });
 
-    it('should convert snake_case to Title Case for non-special metrics', () => {
+    it('should convert snake_case to Title Case for non-special metrics', async () => {
       renderWithContext({
         models: {
           'model-1': createMockModel('Test Model', {
@@ -381,7 +382,7 @@ describe('AutomlLeaderboard utility functions', () => {
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByText('Custom Metric')).toBeInTheDocument();
       expect(screen.getByText('Another Test Metric')).toBeInTheDocument();
@@ -549,7 +550,7 @@ describe('AutomlLeaderboard component', () => {
       );
     });
 
-    it('should open the executor log tearsheet from the failed-run message', () => {
+    it('should open the executor log tearsheet from the failed-run message', async () => {
       const logText = '[KFP Executor ERROR]: ValueError: Invalid feature columns';
       mockUseTaskExecutorError.mockReturnValue({ logText, isLoading: false, isError: false });
       renderWithContext({
@@ -599,7 +600,9 @@ describe('AutomlLeaderboard component', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
-      expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByTestId('executor-logs-content')).not.toBeInTheDocument(),
+      );
     });
 
     it('should fall back to the first failed non-system task without a stage map', () => {
@@ -821,12 +824,12 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('leaderboard-row-3')).toBeInTheDocument();
     });
 
-    it('should render all column headers', () => {
+    it('should render all column headers', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByTestId('rank-header')).toHaveTextContent('Rank');
       expect(screen.getByTestId('model-name-header')).toHaveTextContent('Model name');
@@ -991,12 +994,12 @@ describe('AutomlLeaderboard component', () => {
   // ========================================================================
 
   describe('metric display', () => {
-    it('should display all metrics for each model', () => {
+    it('should display all metrics for each model', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Check first model (rank 1 - XGBoost with highest accuracy)
       expect(screen.getByTestId('metric-accuracy-1')).toHaveTextContent('0.9700');
@@ -1018,12 +1021,12 @@ describe('AutomlLeaderboard component', () => {
       expect(metricCell).toBeInTheDocument();
     });
 
-    it('should handle different metric types across models', () => {
+    it('should handle different metric types across models', async () => {
       renderWithContext({
         models: mockRegressionModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'regression'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // All models should have all metric columns even if values differ
       expect(screen.getByTestId('metric-r2-1')).toBeInTheDocument();
@@ -1087,12 +1090,12 @@ describe('AutomlLeaderboard component', () => {
       expect(modelLinks[2]).toHaveTextContent('XGBoost');
     });
 
-    it('should sort by metric values', () => {
+    it('should sort by metric values', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       const f1Header = screen.getByTestId('metric-header-f1');
       const sortButton = f1Header.querySelector('button');
@@ -1252,12 +1255,12 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('column-check-optimized-metric')).toBeInTheDocument();
     });
 
-    it('should allow toggling metric columns', () => {
+    it('should allow toggling metric columns', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Verify metric columns exist before hiding
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
@@ -1276,12 +1279,12 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('metric-header-roc_auc')).toBeInTheDocument();
     });
 
-    it('should hide metric data cells when a column is hidden', () => {
+    it('should hide metric data cells when a column is hidden', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByTestId('metric-f1-1')).toBeInTheDocument();
 
@@ -1310,12 +1313,12 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.queryByTestId('metric-header-accuracy')).not.toBeInTheDocument();
     });
 
-    it('should not change columns when modal is cancelled', () => {
+    it('should not change columns when modal is cancelled', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
 
@@ -1326,12 +1329,12 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
     });
 
-    it('should maintain sorting after hiding columns', () => {
+    it('should maintain sorting after hiding columns', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       const modelNameHeader = screen.getByTestId('model-name-header');
       const sortButton = modelNameHeader.querySelector('button');
@@ -1348,12 +1351,12 @@ describe('AutomlLeaderboard component', () => {
       expect(modelLinks[0]).toHaveTextContent('Logistic Regression');
     });
 
-    it('should reset sort when a sorted column is hidden', () => {
+    it('should reset sort when a sorted column is hidden', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Sort by f1
       const f1Header = screen.getByTestId('metric-header-f1');
@@ -1403,7 +1406,7 @@ describe('AutomlLeaderboard component', () => {
       );
     });
 
-    it('should default to and reset to the requested regression metrics', () => {
+    it('should default to and reset to the requested regression metrics', async () => {
       renderWithContext({
         models: mockRegressionModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'regression'),
@@ -1425,7 +1428,7 @@ describe('AutomlLeaderboard component', () => {
       expect(getHeaderIds()).toEqual(expectedHeaders);
       expect(screen.queryByTestId('metric-header-mean_squared_error')).not.toBeInTheDocument();
 
-      showAllColumns();
+      await showAllColumns();
       expect(screen.getByTestId('metric-header-mean_squared_error')).toBeInTheDocument();
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('manage-columns-reset'));
@@ -1434,7 +1437,7 @@ describe('AutomlLeaderboard component', () => {
       expect(getHeaderIds()).toEqual(expectedHeaders);
     });
 
-    it('should default to and reset to the requested time-series metrics', () => {
+    it('should default to and reset to the requested time-series metrics', async () => {
       renderWithContext({
         models: mockTimeseriesModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
@@ -1459,7 +1462,7 @@ describe('AutomlLeaderboard component', () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByTestId('metric-header-mean_squared_error')).not.toBeInTheDocument();
 
-      showAllColumns();
+      await showAllColumns();
       expect(screen.getByTestId('metric-header-weighted_quantile_loss')).toBeInTheDocument();
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('manage-columns-reset'));
@@ -1468,13 +1471,13 @@ describe('AutomlLeaderboard component', () => {
       expect(getHeaderIds()).toEqual(expectedHeaders);
     });
 
-    it('should preserve column customization for the same task and reset it when the task changes', () => {
+    it('should preserve column customization for the same task and reset it when the task changes', async () => {
       const binaryContext = createMockContextValue({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
       const renderResult = render(<LeaderboardTestWrapper contextValue={binaryContext} />);
-      showAllColumns();
+      await showAllColumns();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
       fireEvent.click(screen.getByTestId('column-check-metric-roc_auc'));
@@ -1537,12 +1540,12 @@ describe('AutomlLeaderboard component', () => {
       );
     });
 
-    it('should reset to default when reset button is clicked', () => {
+    it('should reset to default when reset button is clicked', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
 
@@ -1558,12 +1561,12 @@ describe('AutomlLeaderboard component', () => {
       expect(screen.queryByTestId('metric-header-roc_auc')).not.toBeInTheDocument();
     });
 
-    it('should persist column order after save', () => {
+    it('should persist column order after save', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Verify the table headers are in the expected default order
       const headers = screen.getAllByTestId(/^(rank-header|model-name-header|metric-header-)/);
@@ -1578,12 +1581,12 @@ describe('AutomlLeaderboard component', () => {
       expect(headerIds.length).toBeGreaterThan(3);
     });
 
-    it('should reset column order (not just visibility) when reset is clicked', () => {
+    it('should reset column order (not just visibility) when reset is clicked', async () => {
       renderWithContext({
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      showAllColumns();
+      await showAllColumns();
 
       // Capture original header order
       const originalHeaders = screen.getAllByTestId(
@@ -1612,7 +1615,7 @@ describe('AutomlLeaderboard component', () => {
       ]);
 
       // Re-show all and verify original order is restored
-      showAllColumns();
+      await showAllColumns();
       const headersRestored = screen.getAllByTestId(
         /^(rank-header|model-name-header|metric-header-)/,
       );
