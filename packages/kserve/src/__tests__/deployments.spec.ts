@@ -118,6 +118,22 @@ describe('useWatchDeployments', () => {
     expect(deployments).toHaveLength(0);
     expect(loaded).toBe(true);
     expect(error).toHaveLength(0);
+    expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, undefined, false);
+    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, undefined, false);
+  });
+
+  it('should skip secondary resource watches when no inference services are returned', () => {
+    mockUseWatchInferenceServices.mockReturnValue([[], true, undefined]);
+
+    const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+    const [deployments, loaded, error] = renderResult.result.current as DeploymentHookResult;
+
+    expect(deployments).toHaveLength(0);
+    expect(loaded).toBe(true);
+    expect(error).toHaveLength(0);
+    expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, undefined, false);
+    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, undefined, false);
   });
 
   it('should match serving runtimes to inference services', () => {
@@ -318,8 +334,8 @@ describe('useWatchDeployments', () => {
     testHook(useWatchDeployments)(mockProject, undefined, undefined, opts);
 
     expect(mockUseWatchInferenceServices).toHaveBeenCalledWith(mockProject, undefined, opts);
-    expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, opts);
-    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, opts);
+    expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, opts, true);
+    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, opts, true);
   });
 
   it('should handle complex filterFn logic', () => {
