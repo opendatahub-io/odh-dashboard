@@ -3,10 +3,9 @@ import { Button, EmptyState, EmptyStateBody, ToolbarItem } from '@patternfly/rea
 import { CubesIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { Table, SortableData } from '@odh-dashboard/ui-core';
+import { Table, SortableData, useNotification } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import RoutingConfigurationRow, { getSupportedTopologiesLabel } from './RoutingConfigurationRow';
 import { type LLMInferenceServiceConfigKind } from '../../types';
 import { isConfigEnabled, isConfigEffectivelyEnabled } from '../../utils';
