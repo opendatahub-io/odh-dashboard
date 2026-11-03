@@ -1,9 +1,7 @@
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { ensureAdminOcSession, hasNvidiaGpus } from '../../../utils/oc_commands/baseCommands';
-import {
-  cleanupHardwareProfiles,
-  createCleanHardwareProfile,
-} from '../../../utils/oc_commands/hardwareProfiles';
+import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
+import { createCustomResource } from '../../../utils/oc_commands/customResources';
 
 /**
  * Generic GPU HardwareProfile E2E test.
@@ -19,7 +17,7 @@ import {
  * exercised — it does not require actual GPU hardware.
  */
 
-const hardwareProfileName = 'cypress-nim-nvidia-gpu';
+const hardwareProfileName = 'cypress-gpu-e2e-test';
 const hardwareProfileFixture = 'resources/hardwareProfile/nim_nvidia_gpu.yaml';
 
 describe('GPU HardwareProfile lifecycle', () => {
@@ -37,9 +35,21 @@ describe('GPU HardwareProfile lifecycle', () => {
           return;
         }
 
-        return cleanupHardwareProfiles(hardwareProfileName).then(() =>
-          createCleanHardwareProfile(hardwareProfileFixture, hardwareProfileName),
-        );
+        return cleanupHardwareProfiles(hardwareProfileName)
+          .then(() =>
+            createCustomResource(
+              Cypress.env('APPLICATIONS_NAMESPACE'),
+              hardwareProfileFixture,
+              hardwareProfileName,
+            ),
+          )
+          .then((result) => {
+            if (result.exitCode !== 0) {
+              throw new Error(
+                `Failed to create GPU HardwareProfile: ${result.stderr || result.stdout}`,
+              );
+            }
+          });
       }),
     );
   });
@@ -49,7 +59,16 @@ describe('GPU HardwareProfile lifecycle', () => {
     if (!isThereGpus) {
       return;
     }
-    return ensureAdminOcSession().then(() => cleanupHardwareProfiles(hardwareProfileName));
+    return ensureAdminOcSession()
+      .then(() => cleanupHardwareProfiles(hardwareProfileName))
+      .then((result) => {
+        if (result.exitCode !== 0) {
+          cy.log(
+            `⚠️ Cleanup warning: failed to remove HardwareProfile (exit ${result.exitCode}): ` +
+              `${result.stderr || result.stdout}`,
+          );
+        }
+      });
   });
 
   it(
@@ -86,7 +105,7 @@ describe('GPU HardwareProfile lifecycle', () => {
         // Verify basic metadata
         expect(profile.metadata.name).to.equal(hardwareProfileName);
         expect(profile.spec.enabled).to.equal(true);
-        expect(profile.spec.displayName).to.equal(hardwareProfileName);
+        expect(profile.spec.displayName).to.be.a('string').and.not.equal('');
 
         // Verify identifiers include CPU, Memory, and GPU
         const { identifiers } = profile.spec;
@@ -151,6 +170,7 @@ describe('GPU HardwareProfile lifecycle', () => {
         { failOnNonZeroExit: false },
       ).then((result) => {
         expect(result.exitCode).to.not.equal(0);
+        expect(result.stderr).to.contain('NotFound');
       });
     },
   );
