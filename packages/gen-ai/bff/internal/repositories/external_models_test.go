@@ -430,7 +430,7 @@ func TestResolveTrustedHost(t *testing.T) {
 		{
 			name:     "unready endpoint without a Serving condition is not a fallback candidate",
 			service:  selectorSvc("", intstr.FromInt32(8443)),
-			slices:   []discoveryv1.EndpointSlice{sliceWith("my-ns", "my-model-unready", false, ep("127.0.0.1", boolPtr(false), nil, "", podRefAt("my-ns", "running-pod")))},
+			slices:   []discoveryv1.EndpointSlice{sliceWith("my-ns", "my-model-unready", false, ep("127.0.0.1", boolPtr(false), nil, "", podRefAt("my-ns", "my-model-pod")))},
 			pod:      runningPod("my-ns", "127.0.0.1"),
 			wantName: "my-model",
 		},
