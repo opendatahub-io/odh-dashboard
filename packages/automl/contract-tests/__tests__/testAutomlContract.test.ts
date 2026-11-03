@@ -675,7 +675,7 @@ describe('AutoML API Contract Tests', () => {
       });
 
       it('should create a timeseries pipeline run with the quality preset', async () => {
-        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+        const requestBody = {
           display_name: 'contract-test-timeseries-quality',
           train_data_secret_name: SECRET,
           train_data_bucket_name: BUCKET,
@@ -685,7 +685,12 @@ describe('AutoML API Contract Tests', () => {
           id_column: 'item_id',
           timestamp_column: 'timestamp',
           preset: 'quality',
+        };
+        expect(requestBody).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/CreateTimeSeriesRunRequest',
         });
+
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, requestBody);
         type RunEnvelope = { data?: { run_id?: unknown } };
         const runIdCandidate = result.success
           ? (result.response.data as RunEnvelope | null | undefined)?.data?.run_id
