@@ -944,7 +944,10 @@ export const verifyModelExternalToken = (
 
           // Retry on 503 (Service Unavailable), 502 (Bad Gateway), or 400 (Bad Request) - external route/model not ready yet
           if (
-            (response.status === 503 || response.status === 502 || response.status === 400) &&
+            (response.status === 503 ||
+              response.status === 502 ||
+              response.status === 400 ||
+              response.status === 401) &&
             attemptNumber < maxAttempts
           ) {
             cy.log(
