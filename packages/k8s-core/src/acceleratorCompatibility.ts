@@ -11,7 +11,9 @@ export const getCompatibleIdentifiers = (object: AnnotatedResource): string[] =>
     if (annotation) {
       const identifiers: unknown = JSON.parse(annotation);
       if (Array.isArray(identifiers)) {
-        return identifiers;
+        return identifiers.filter(
+          (identifier): identifier is string => typeof identifier === 'string',
+        );
       }
     }
   } catch (error) {

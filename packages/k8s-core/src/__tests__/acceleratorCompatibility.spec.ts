@@ -21,6 +21,22 @@ describe('getCompatibleIdentifiers', () => {
     ).toEqual(['amd.com/gpu', 'nvidia.com/gpu', 'amd.com/gpu']);
   });
 
+  it('should discard non-string entries while preserving string order and duplicates', () => {
+    expect(
+      getCompatibleIdentifiers(
+        resourceWithAnnotation(
+          '[1, null, "nvidia.com/gpu", false, {}, ["amd.com/gpu"], "amd.com/gpu", "nvidia.com/gpu"]',
+        ),
+      ),
+    ).toEqual(['nvidia.com/gpu', 'amd.com/gpu', 'nvidia.com/gpu']);
+  });
+
+  it('should return an empty list when the array contains no strings', () => {
+    expect(getCompatibleIdentifiers(resourceWithAnnotation('[1, null, false, {}, []]'))).toEqual(
+      [],
+    );
+  });
+
   it('should return an empty list when annotations are absent', () => {
     expect(getCompatibleIdentifiers({ metadata: {} })).toEqual([]);
   });
