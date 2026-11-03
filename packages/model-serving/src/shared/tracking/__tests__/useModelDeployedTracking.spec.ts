@@ -48,6 +48,12 @@ describe('getBaseModelDeployedTrackingProperties', () => {
       getBaseModelDeployedTrackingProperties(createMinimalFormState()).deploymentMethod,
     ).toBeUndefined();
   });
+
+  it('should omit an empty deployment method from tracking properties', () => {
+    const state = createMinimalFormState();
+    state.deploymentMethod = { method: '' };
+    expect(getBaseModelDeployedTrackingProperties(state).deploymentMethod).toBeUndefined();
+  });
   it('should emit servingRuntimeSource "preinstalled" when platform.opendatahub.io/part-of label is present', () => {
     const formState = createMinimalFormState({
       templateLabels: { 'platform.opendatahub.io/part-of': 'modelcontroller' },
