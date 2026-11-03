@@ -6,6 +6,7 @@ import { StatusResponse } from '#~/redux/types';
 import { useAppDispatch } from '#~/redux/hooks';
 import useDetectUser from '#~/utilities/useDetectUser';
 import { getUserFulfilled, getUserPending, getUserRejected } from '#~/redux/actions/actions';
+import { POLL_INTERVAL } from '#~/utilities/const';
 
 // Mock Axios
 jest.mock('@odh-dashboard/ui-core/utilities/axios');
@@ -70,6 +71,55 @@ describe('useDetectUser', () => {
       expect(dispatchMock).toHaveBeenCalledWith(getUserRejected(testError));
     });
   });
+
+  it('should handle network errors and retry the API call', async () => {
+    const testError = new Error('Network error');
+    const rejectedAction = getUserRejected(testError);
+    jest.mocked(axios.get).mockRejectedValueOnce(testError).mockRejectedValueOnce(testError);
+    useAppDispatchMock.mockReturnValueOnce(dispatchMock);
+    jest.useFakeTimers();
+
+    const { unmount } = renderHook(() => useDetectUser());
+
+    try {
+      await waitFor(() => {
+        expect(dispatchMock).toHaveBeenCalledWith(rejectedAction);
+      });
+
+      expect(axios.get).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        jest.advanceTimersByTime(POLL_INTERVAL);
+      });
+
+      await waitFor(() => {
+        expect(axios.get).toHaveBeenCalledTimes(2);
+        expect(dispatchMock).toHaveBeenCalledTimes(3);
+        expect(dispatchMock).toHaveBeenNthCalledWith(3, rejectedAction);
+      });
+    } finally {
+      unmount();
+      jest.useRealTimers();
+    }
+  });
+
+  it('should use a fallback error when the rejection has no message', async () => {
+    jest.mocked(axios.get).mockRejectedValueOnce(undefined);
+    useAppDispatchMock.mockReturnValueOnce(dispatchMock);
+
+    const { unmount } = renderHook(() => useDetectUser());
+
+    try {
+      await waitFor(() => {
+        expect(dispatchMock).toHaveBeenCalledWith(
+          getUserRejected(new Error('Unknown error occurred')),
+        );
+      });
+    } finally {
+      unmount();
+    }
+  });
+
   it('should cancel the API call when cancelled is true', async () => {
     jest.mocked(axios.get).mockResolvedValueOnce({ data: {} });
     useAppDispatchMock.mockReturnValueOnce(dispatchMock);
