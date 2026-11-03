@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dashboard-perses-egress
+spec:
+  # The Dashboard proxy runs in the RHOAI Dashboard pod. Keep this source-side
+  # exception separate from the broader Dashboard egress policy so it grants
+  # only the supported Perses path.
+  podSelector:
+    matchLabels:
+      app: rhods-dashboard
+      app.kubernetes.io/part-of: rhods-dashboard
+      app.opendatahub.io/rhods-dashboard: "true"
+      deployment: rhods-dashboard
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: redhat-ods-monitoring
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/instance
+                operator: In
+                values:
+                  - data-science-perses
+              - key: app.kubernetes.io/managed-by
+                operator: In
+                values:
+                  - perses-operator
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - data-science-perses
+      ports:
+        - protocol: TCP
+          port: 8080
