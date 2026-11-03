@@ -2,7 +2,7 @@ import { act } from 'react';
 import { waitFor, renderHook } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import axios from '@odh-dashboard/ui-core/utilities/axios';
-import { StatusResponse } from '#~/redux/types';
+import { Actions, StatusResponse } from '#~/redux/types';
 import { useAppDispatch } from '#~/redux/hooks';
 import useDetectUser from '#~/utilities/useDetectUser';
 import { getUserFulfilled, getUserPending, getUserRejected } from '#~/redux/actions/actions';
@@ -18,6 +18,20 @@ jest.mock('#~/redux/hooks', () => ({
 
 const useAppDispatchMock = jest.mocked(useAppDispatch);
 const dispatchMock = jest.fn();
+
+function expectMalformedResponseRejection(callIndex: number): void {
+  expect(dispatchMock).toHaveBeenNthCalledWith(
+    callIndex,
+    expect.objectContaining({
+      type: Actions.GET_USER_REJECTED,
+      payload: {
+        error: expect.objectContaining({
+          message: expect.stringContaining('userID'),
+        }),
+      },
+    }),
+  );
+}
 
 const createStatusResponse = (): StatusResponse => ({
   kube: {
@@ -72,6 +86,23 @@ describe('useDetectUser', () => {
       expect(dispatchMock).toHaveBeenCalledWith(getUserPending());
       expect(dispatchMock).toHaveBeenCalledWith(getUserRejected(testError));
     });
+  });
+
+  it('should reject malformed status responses before a user is detected', async () => {
+    jest.mocked(axios.get).mockResolvedValueOnce({ data: { kube: null } });
+    useAppDispatchMock.mockReturnValueOnce(dispatchMock);
+
+    const { unmount } = renderHook(() => useDetectUser());
+
+    try {
+      await waitFor(() => {
+        expect(dispatchMock).toHaveBeenCalledTimes(2);
+        expect(dispatchMock).toHaveBeenNthCalledWith(1, getUserPending());
+        expectMalformedResponseRejection(2);
+      });
+    } finally {
+      unmount();
+    }
   });
 
   it('should handle network errors and retry the API call', async () => {
@@ -140,6 +171,71 @@ describe('useDetectUser', () => {
         expect(axios.get).toHaveBeenCalledTimes(3);
         expect(dispatchMock).toHaveBeenCalledTimes(3);
         expect(dispatchMock).toHaveBeenNthCalledWith(3, getUserFulfilled(statusResponseMock));
+      });
+    } finally {
+      unmount();
+      jest.useRealTimers();
+    }
+  });
+
+  it('should reject HTTP errors after a successful API call', async () => {
+    const statusResponseMock = createStatusResponse();
+    const testError = new Error('Unauthorized');
+    const rejectedAction = getUserRejected(testError);
+    jest
+      .mocked(axios.get)
+      .mockResolvedValueOnce({ data: statusResponseMock })
+      .mockRejectedValueOnce({ response: { data: testError } });
+    useAppDispatchMock.mockReturnValueOnce(dispatchMock);
+    jest.useFakeTimers();
+
+    const { unmount } = renderHook(() => useDetectUser());
+
+    try {
+      await waitFor(() => {
+        expect(dispatchMock).toHaveBeenCalledWith(getUserFulfilled(statusResponseMock));
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(POLL_INTERVAL);
+      });
+
+      await waitFor(() => {
+        expect(axios.get).toHaveBeenCalledTimes(2);
+        expect(dispatchMock).toHaveBeenCalledWith(rejectedAction);
+      });
+    } finally {
+      unmount();
+      jest.useRealTimers();
+    }
+  });
+
+  it('should reject malformed status responses after a user is detected', async () => {
+    const statusResponseMock = createStatusResponse();
+    jest
+      .mocked(axios.get)
+      .mockResolvedValueOnce({ data: statusResponseMock })
+      .mockResolvedValueOnce({ data: { kube: null } });
+    useAppDispatchMock.mockReturnValueOnce(dispatchMock);
+    jest.useFakeTimers();
+
+    const { unmount } = renderHook(() => useDetectUser());
+
+    try {
+      await waitFor(() => {
+        expect(dispatchMock).toHaveBeenCalledWith(getUserFulfilled(statusResponseMock));
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(POLL_INTERVAL);
+      });
+
+      await waitFor(() => {
+        expect(axios.get).toHaveBeenCalledTimes(2);
+        expect(dispatchMock).toHaveBeenCalledTimes(3);
+        expect(dispatchMock).toHaveBeenNthCalledWith(1, getUserPending());
+        expect(dispatchMock).toHaveBeenNthCalledWith(2, getUserFulfilled(statusResponseMock));
+        expectMalformedResponseRejection(3);
       });
     } finally {
       unmount();

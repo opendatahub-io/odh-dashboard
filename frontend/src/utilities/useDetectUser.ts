@@ -12,26 +12,33 @@ const useDetectUser = (): void => {
     let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
     dispatch(getUserPending());
-    const detectUser = () => {
-      axios
-        .get('/api/status')
-        .then((response) => {
+    function detectUser(): void {
+      axios.get('/api/status').then(
+        (response) => {
           if (cancelled) {
             return;
           }
+          let fulfilledAction: ReturnType<typeof getUserFulfilled> | undefined;
+          try {
+            fulfilledAction = getUserFulfilled(response.data);
+          } catch (e) {
+            dispatch(getUserRejected(e instanceof Error ? e : new Error('Unknown error occurred')));
+            return;
+          }
+          dispatch(fulfilledAction);
           hasDetectedUser.current = true;
-          dispatch(getUserFulfilled(response.data));
-        })
-        .catch((e) => {
+        },
+        (e) => {
           if (cancelled || (hasDetectedUser.current && !e?.response)) {
             return;
           }
           dispatch(
             getUserRejected(e?.response?.data ?? new Error(e?.message ?? 'Unknown error occurred')),
           );
-        });
+        },
+      );
       watchHandle = setTimeout(detectUser, POLL_INTERVAL);
-    };
+    }
     detectUser();
 
     return () => {
