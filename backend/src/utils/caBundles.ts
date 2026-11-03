@@ -13,12 +13,18 @@ export const CA_BUNDLE_PATHS = [
   '/etc/pki/tls/certs/odh-trusted-ca-bundle.crt',
 ];
 
+const isFileNotFoundError = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
+
 export const readCABundles = (paths: readonly string[] = CA_BUNDLE_PATHS): Buffer[] =>
   paths.reduce<Buffer[]>((bundles, path) => {
     try {
       bundles.push(fs.readFileSync(path));
-    } catch {
-      // Optional CA bundle is not present in this environment.
+    } catch (error) {
+      if (!isFileNotFoundError(error)) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`Unable to read CA bundle ${path}: ${message}`);
+      }
     }
     return bundles;
   }, []);

@@ -23,6 +23,10 @@ describe('readCABundles', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('should read all available CA bundles and skip missing paths', () => {
     const systemCA = Buffer.from('system-ca');
     const serviceCA = Buffer.from('service-ca');
@@ -33,7 +37,7 @@ describe('readCABundles', () => {
       if (path === '/service-ca') {
         return serviceCA;
       }
-      throw new Error('ENOENT');
+      throw Object.assign(new Error('ENOENT: no such file or directory'), { code: 'ENOENT' });
     });
 
     expect(readCABundles(['/system-ca', '/missing-ca', '/service-ca'])).toEqual([
@@ -42,12 +46,17 @@ describe('readCABundles', () => {
     ]);
   });
 
-  it('should return an empty array when no CA bundle can be read', () => {
+  it('should warn and return an empty array when a CA bundle cannot be read', () => {
+    const error = Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' });
     mockReadFileSync.mockImplementation(() => {
-      throw new Error('EACCES');
+      throw error;
     });
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     expect(readCABundles(['/denied-ca'])).toEqual([]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Unable to read CA bundle /denied-ca: EACCES: permission denied',
+    );
   });
 
   it('should return an empty array when no paths are provided', () => {
