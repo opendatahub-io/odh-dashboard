@@ -28,7 +28,8 @@
         "modelCatalog/",
         "mcpCatalog/",
         "agentsCatalog/",
-        "data-registry/"
+        "data-registry/",
+        "promptManagement/"
       ],
       "slack_handle": "@openshift-ai-dashboard-razzmatazz-scrum",
       "slack_group_id": "S06FFRUSFH8",
@@ -59,7 +60,7 @@
     {
       "name": "Crimson",
       "ci_tags": ["GenAICI", "MaaSCI"],
-      "path_patterns": ["gen-ai/", "promptManagement/", "maas/"],
+      "path_patterns": ["gen-ai/", "maas/"],
       "slack_handle": "@openshift-ai-dashboard-crimson-scrum",
       "slack_group_id": "S09A6NJHBU1",
       "emoji": ":crimson:"
