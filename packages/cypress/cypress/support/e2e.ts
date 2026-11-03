@@ -22,6 +22,7 @@ import 'cypress-mochawesome-reporter/register';
 import 'cypress-plugin-steps';
 import { type ModuleFederationConfig, getModuleFederationURL } from '@odh-dashboard/app-config';
 import './commands';
+import './cspViolations';
 import '../utils/moduleFederationMock';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';

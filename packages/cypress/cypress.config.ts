@@ -82,6 +82,11 @@ export default defineConfig({
   defaultCommandTimeout: 10000,
   requestTimeout: 10000,
   e2e: {
+    // Keep the application's Content-Security-Policy instead of stripping it.
+    // Cypress relaxes script-src/default-src for its own instrumentation only; the
+    // rest of the policy is enforced. Violations fail the spec via
+    // cypress/support/cspViolations.ts.
+    experimentalCspAllowList: true,
     injectDocumentDomain: true,
     baseUrl: BASE_URL,
     userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',

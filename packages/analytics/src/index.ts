@@ -6,3 +6,4 @@ export {
   computeAnonymousUserId,
 } from './segmentUtils';
 export type { BaseTrackingEventProperties } from './segmentUtils';
+export { CspViolationToaster } from './components/CspViolationToaster';

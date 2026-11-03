@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks';
+import { CspViolationToaster } from '@odh-dashboard/analytics';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
 import { ThemeProvider } from './app/ThemeContext';
@@ -12,6 +13,8 @@ import SDKInitialize from './SDKInitialize';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import RouteErrorElement from './components/error/RouteErrorElement';
 import { ReduxContext } from './redux/context';
+
+const DEV_MODE = process.env.NODE_ENV !== 'production';
 
 // Creates a data router using createBrowserRouter
 const router = createBrowserRouter([
@@ -24,6 +27,8 @@ const router = createBrowserRouter([
             <NotificationProvider>
               <AnalyticsProvider>
                 <App />
+                {/* Enables CSP violation capture for the whole app; toasts in dev only. */}
+                <CspViolationToaster devMode={DEV_MODE} />
               </AnalyticsProvider>
             </NotificationProvider>
           </ThemeProvider>

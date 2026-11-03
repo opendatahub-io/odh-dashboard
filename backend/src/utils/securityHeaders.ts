@@ -4,9 +4,9 @@ import type { IncomingHttpHeaders } from 'http';
 import { getCacheControlForStaticFile, isStaticAsset } from './cacheHeaders';
 
 /**
- * Header values shared with OpenShift Console `WithSecurityHeaders`.
+ * Baseline browser security headers applied to every response.
  * Cache-Control is selective: no-store on API paths, filename policy for proxied
- * static assets. Console also sends `Pragma: no-cache` and no-store on every response.
+ * static assets.
  */
 export const REFERRER_POLICY = 'strict-origin-when-cross-origin';
 export const X_CONTENT_TYPE_OPTIONS = 'nosniff';
@@ -22,6 +22,74 @@ const COMMON_SECURITY_HEADERS: ReadonlyArray<[string, string]> = [
   ['X-DNS-Prefetch-Control', X_DNS_PREFETCH_CONTROL],
   ['Referrer-Policy', REFERRER_POLICY],
 ];
+
+/**
+ * The only third-party origin the dashboard loads from. It mirrors the hardcoded
+ * `cdnURL` / `apiHost` in `packages/analytics/src/initSegment.ts` — the Segment SDK
+ * is loaded as a remote script from this origin, and events are sent to it. Update
+ * all three constants together if the Segment endpoint ever moves.
+ *
+ * Analytics is initialized only when tracking is enabled
+ * (`disableTracking: false` plus a segment key), but the origin is allowlisted
+ * unconditionally so enabling tracking never breaks under an enforcing policy.
+ */
+export const SEGMENT_TELEMETRY_ORIGIN = 'https://console.redhat.com';
+
+/**
+ * `Content-Security-Policy` directives for HTML responses. Each directive and the
+ * allowances it makes are explained in `docs/content-security-policy.md`.
+ *
+ * This list is the source of truth. The dev server does not copy it: it fetches the
+ * header from the backend (or the cluster in `EXT_CLUSTER` mode) at runtime. The Go
+ * core-bff cannot import TypeScript at runtime, so it keeps one mirror, asserted by
+ * `securityHeaders.spec.ts`:
+ * - `distributions/core-bff/bff/internal/constants/headers.go`
+ */
+export const CONTENT_SECURITY_POLICY_DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
+  ['default-src', "'self'"],
+  ['base-uri', "'self'"],
+  ['object-src', "'none'"],
+  ['script-src', `'self' ${SEGMENT_TELEMETRY_ORIGIN}`],
+  ['style-src', "'self' 'unsafe-inline'"],
+  ['img-src', "'self' https: data: blob:"],
+  ['font-src', "'self' data:"],
+  ['media-src', "'self' https: data: blob:"],
+  ['connect-src', `'self' ${SEGMENT_TELEMETRY_ORIGIN}`],
+  ['frame-src', "'self' https:"],
+  ['form-action', "'self'"],
+  ['worker-src', "'self' blob:"],
+  ['frame-ancestors', "'none'"],
+];
+
+/** Serializes directives into a header value. */
+export const serializeContentSecurityPolicy = (
+  directives: ReadonlyArray<readonly [string, string]>,
+): string => directives.map(([directive, value]) => `${directive} ${value}`).join('; ');
+
+/** Serialized `Content-Security-Policy` header value. */
+export const CONTENT_SECURITY_POLICY = serializeContentSecurityPolicy(
+  CONTENT_SECURITY_POLICY_DIRECTIVES,
+);
+
+export const CSP_HEADER_ENFORCE = 'Content-Security-Policy';
+export const CSP_HEADER_REPORT_ONLY = 'Content-Security-Policy-Report-Only';
+/** Environment variable that selects the header mode. */
+export const CSP_MODE_ENV_VAR = 'CSP_MODE';
+
+export type CspMode = 'enforce' | 'report-only';
+
+/**
+ * `report-only` sends `Content-Security-Policy-Report-Only`. `enforce`, unset, or
+ * empty sends the enforcing header. Unknown values fail closed to enforcement.
+ */
+export const resolveCspMode = (raw: string | undefined): CspMode =>
+  (raw ?? '').trim().toLowerCase() === 'report-only' ? 'report-only' : 'enforce';
+
+export const resolveCspHeaderName = (mode: CspMode): string =>
+  mode === 'report-only' ? CSP_HEADER_REPORT_ONLY : CSP_HEADER_ENFORCE;
+
+/** Reads `CSP_MODE` from the environment. Both serving paths read the same variable. */
+export const getCspMode = (): CspMode => resolveCspMode(process.env[CSP_MODE_ENV_VAR]);
 
 /** Code and text suffixes. Fonts and images use {@link isStaticAsset}. */
 const LIKELY_CODE_EXT = /\.(?:js|mjs|cjs|css|map|json|wasm|html?|txt)$/i;
@@ -96,15 +164,43 @@ export const setNoStoreCacheHeaders = (reply: FastifyReply): void => {
   reply.header('Cache-Control', CACHE_CONTROL_NO_STORE);
 };
 
+/** `text/html` with an optional charset, as set by `@fastify/view` and `@fastify/static`. */
+export const isHtmlContentType = (value: unknown): boolean => {
+  const contentType = Array.isArray(value) ? value[0] : value;
+  const mediaType = String(contentType ?? '')
+    .split(';')[0]
+    .trim()
+    .toLowerCase();
+  return mediaType === 'text/html';
+};
+
+/**
+ * Sets the CSP on HTML documents only. JSON APIs, static assets, and Module
+ * Federation proxy responses are not documents and carry no policy.
+ * Must run after the payload content type is known — `onSend` satisfies that.
+ * Only the header name depends on the mode; the directive string is byte-identical.
+ */
+export const applyContentSecurityPolicy = (
+  reply: FastifyReply,
+  mode: CspMode = getCspMode(),
+): void => {
+  if (!isHtmlContentType(reply.getHeader('content-type'))) {
+    return;
+  }
+  reply.header(resolveCspHeaderName(mode), CONTENT_SECURITY_POLICY);
+};
+
 /**
  * Applies shared browser security headers on normal HTTP replies.
  * Common security headers are set on every response (including static `/*` and `/_mf/`).
- * no-store is applied on host `/api` and `/wss` paths.
+ * CSP is set on HTML documents. no-store is applied on host `/api` and `/wss` paths.
  */
 export const applySecurityHeaders = (request: FastifyRequest, reply: FastifyReply): void => {
   for (const [name, value] of COMMON_SECURITY_HEADERS) {
     reply.header(name, value);
   }
+
+  applyContentSecurityPolicy(reply);
 
   if (isApiPath(getUrlPath(request.url))) {
     setNoStoreCacheHeaders(reply);
