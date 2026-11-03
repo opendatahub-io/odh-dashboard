@@ -42,8 +42,9 @@ export const getBaseModelDeployedTrackingProperties = (
     : template?.metadata?.annotations?.[MetadataAnnotation.InstalledFromCatalog] === 'true'
     ? 'created-from-catalog'
     : undefined;
+  const deploymentMethod = formState.deploymentMethod?.method;
   return {
-    deploymentMethod: formState.deploymentMethod?.method,
+    deploymentMethod: deploymentMethod === '' ? undefined : deploymentMethod,
     modelType: formState.modelType.data?.type,
     runtime: serverTemplateName,
     servingRuntimeName: formState.modelServer?.data?.selection?.label,
