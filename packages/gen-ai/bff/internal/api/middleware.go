@@ -292,7 +292,7 @@ func (app *App) AttachOGXClient(next func(http.ResponseWriter, *http.Request, ht
 		// Get namespace from context (set by AttachNamespace middleware)
 		namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			app.serverErrorResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 			return
 		}
 
@@ -735,7 +735,7 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 		// Get namespace from context (set by AttachNamespace middleware)
 		namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			app.serverErrorResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 			return
 		}
 
