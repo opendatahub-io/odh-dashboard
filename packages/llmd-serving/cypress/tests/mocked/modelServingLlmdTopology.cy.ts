@@ -775,7 +775,6 @@ describe('Model Serving LLMD Topology & Routing', () => {
         'Model Serving LLM-D Topology Type Selected',
         Cypress.sinon.match({
           llmdComposablePattern: TopologyType.MULTI_NODE,
-          isDefaultTopology: false,
           previousPattern: TopologyType.SINGLE_NODE,
         }),
       );
