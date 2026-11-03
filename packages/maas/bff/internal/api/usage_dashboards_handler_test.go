@@ -40,13 +40,13 @@ func TestGetUsageDashboardsHandler(t *testing.T) {
 	}{
 		{
 			name: "user receives only the user usage dashboard", identity: &kubernetes.RequestIdentity{Token: "user-token"},
-			upstreamBody: `{"sub":"user-1","https://redhat.com/maas/orgs":[{"roles":[]}]}`,
+			upstreamBody: `{"sub":"user-1","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":[]}`,
 			persesNS:     "redhat-ods-monitoring", wantStatus: http.StatusOK,
 			wantNames: []string{"dashboard-5-maas-usage-logs"},
 		},
 		{
 			name: "admin receives both usage dashboards", identity: &kubernetes.RequestIdentity{Token: "admin-token"},
-			upstreamBody: `{"sub":"admin-1","https://redhat.com/maas/orgs":[{"roles":["admins"]}]}`,
+			upstreamBody: `{"sub":"admin-1","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":["admins"]}`,
 			persesNS:     "custom-monitoring", wantStatus: http.StatusOK,
 			wantNames: []string{"dashboard-5-maas-usage-logs", "dashboard-4-maas-usage-logs-admin"},
 		},
@@ -78,12 +78,12 @@ func TestGetUsageDashboardsHandler(t *testing.T) {
 		},
 		{
 			name: "missing subject", identity: &kubernetes.RequestIdentity{Token: "user-token"},
-			upstreamBody: `{"https://redhat.com/maas/orgs":[{"roles":[]}]}`,
+			upstreamBody: `{"org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":[]}`,
 			persesNS:     "redhat-ods-monitoring", wantStatus: http.StatusForbidden,
 		},
 		{
 			name: "missing Perses configuration", identity: &kubernetes.RequestIdentity{Token: "user-token"},
-			upstreamBody: `{"sub":"user-1","https://redhat.com/maas/orgs":[{"roles":[]}]}`,
+			upstreamBody: `{"sub":"user-1","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":[]}`,
 			wantStatus:   http.StatusServiceUnavailable,
 		},
 		{
