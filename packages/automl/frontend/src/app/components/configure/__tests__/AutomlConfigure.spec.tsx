@@ -1393,6 +1393,9 @@ describe('AutomlConfigure', () => {
         expect(screen.getByTestId('preset-radio-quality')).toBeInTheDocument();
         expect(screen.getByTestId('preset-radio-speed')).toBeInTheDocument();
         expect(screen.getByTestId('preset-radio-balanced')).toBeInTheDocument();
+        expect(
+          screen.getByText(/Up to 2 hours for model selection; data loading and refit/),
+        ).toBeInTheDocument();
       });
 
       it('should preserve quality when switching to timeseries', () => {

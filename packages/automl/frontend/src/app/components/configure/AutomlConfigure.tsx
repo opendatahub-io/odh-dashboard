@@ -1083,6 +1083,16 @@ function AutomlConfigure({
                                           <br />
                                           Use more resources to prioritize accuracy
                                         </>
+                                      ) : isTimeseries ? (
+                                        <>
+                                          16 vCPU / 64 GiB
+                                          <br />
+                                          Up to 2 hours for model selection; data loading and refit
+                                          may extend total run time. Samples up to 10 GiB.
+                                          <br />
+                                          Choose for large datasets when maximum model search
+                                          quality is worth the longer run and higher resource use.
+                                        </>
                                       ) : (
                                         <>
                                           16 vCPU / 64 GiB
