@@ -217,7 +217,7 @@ describe('extractLlmdDeploymentTrackingProperties', () => {
     });
   });
 
-  it.each([null, 'invalid', {}, { metadata: { name: '' } }, { metadata: { name: 5 } }])(
+  it.each([null, 'invalid', {}, { metadata: null }, { metadata: 5 }])(
     'should not replace a malformed selected config %p with an edit reference',
     (selectedConfig) => {
       const result = extractLlmdDeploymentTrackingProperties(
@@ -231,6 +231,24 @@ describe('extractLlmdDeploymentTrackingProperties', () => {
       expect(result).toStrictEqual({ llmdComposablePattern: TopologyType.MULTI_NODE });
     },
   );
+
+  it('should classify a shaped selected resource without reading or reporting its name', () => {
+    expect(
+      extractLlmdDeploymentTrackingProperties(
+        wizardState({
+          [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: TopologyType.MULTI_NODE },
+          [CUSTOM_TOPOLOGY_CONFIG_FIELD_ID]: { selectedConfig: { metadata: { name: '' } } },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { selectedConfig: { metadata: { name: 'private-name' } } },
+          [LLMD_ROUTING_FIELD_ID]: { selectedConfig: { metadata: { name: 'private-routing' } } },
+        }),
+      ),
+    ).toStrictEqual({
+      llmdComposablePattern: TopologyType.MULTI_NODE,
+      isDefaultTopology: false,
+      isDefaultAccelerator: false,
+      isDefaultRouting: false,
+    });
+  });
 
   it('should not replace incompatible topology or invalid default selections with edit references', () => {
     for (const selectedConfig of [
@@ -279,7 +297,7 @@ describe('extractLlmdDeploymentTrackingProperties', () => {
           [TOPOLOGY_TYPE_FIELD_ID]: { topologyType: 'invalid' },
           hardwareProfileConfig: { formData: { selectedProfile: { metadata: { name: 5 } } } },
           numReplicas: { data: Number.NaN },
-          [ACCELERATOR_CONFIG_FIELD_ID]: { selectedConfig: { metadata: { name: '' } } },
+          [ACCELERATOR_CONFIG_FIELD_ID]: { selectedConfig: { metadata: null } },
           [LLMD_ROUTING_FIELD_ID]: { selectedConfig: null },
         }),
       ),

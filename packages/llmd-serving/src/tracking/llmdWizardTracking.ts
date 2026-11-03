@@ -56,25 +56,18 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0;
 
-const getConfigName = (value: unknown): string | undefined => {
-  if (!isRecord(value) || !isRecord(value.metadata)) {
-    return undefined;
-  }
-  return isNonEmptyString(value.metadata.name) ? value.metadata.name : undefined;
-};
-
 /**
- * Use the saved configRef while selectedConfig is undefined; omit the ID if a selection is present
- * but invalid.
+ * Return true only when a selected resource or saved edit reference establishes a custom choice.
+ * Keep this name-free: config names are user-generated and are not needed for a boolean event flag.
  */
-const getSelectedConfigId = (fieldData: unknown): string | undefined => {
+const hasCustomConfigSelection = (fieldData: unknown): boolean => {
   if (!isRecord(fieldData)) {
-    return undefined;
+    return false;
   }
   if (fieldData.selectedConfig !== undefined) {
-    return getConfigName(fieldData.selectedConfig);
+    return isRecord(fieldData.selectedConfig) && isRecord(fieldData.selectedConfig.metadata);
   }
-  return isNonEmptyString(fieldData.configRef) ? fieldData.configRef : undefined;
+  return isNonEmptyString(fieldData.configRef);
 };
 
 const isGatewaySelectFieldData = (value: unknown): value is GatewaySelectFieldData =>
@@ -153,7 +146,7 @@ const extractTopologyTrackingProperties = (
   }
 
   // Inspect resource names locally for validity, but never send user-generated names.
-  const isDefaultTopology = getSelectedConfigId(config) !== undefined ? false : undefined;
+  const isDefaultTopology = hasCustomConfigSelection(config) ? false : undefined;
   return {
     ...pattern,
     ...(isDefaultTopology !== undefined && { isDefaultTopology }),
@@ -169,7 +162,7 @@ const extractDeploymentConfigurationTrackingProperties = (
   const isDefaultAccelerator =
     isRecord(accelerator) && accelerator.selectedConfig === ACCELERATOR_CONFIG_DEFAULT
       ? true
-      : getSelectedConfigId(accelerator) !== undefined
+      : isRecord(accelerator) && hasCustomConfigSelection(accelerator)
       ? false
       : undefined;
 
@@ -179,7 +172,7 @@ const extractDeploymentConfigurationTrackingProperties = (
   const isDefaultRouting =
     isRecord(routing) && routing.selectedConfig === undefined && routing.configRef === undefined
       ? true
-      : getSelectedConfigId(routing) !== undefined
+      : isRecord(routing) && hasCustomConfigSelection(routing)
       ? false
       : undefined;
 
