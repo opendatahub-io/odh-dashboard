@@ -96,6 +96,40 @@ Producer kinds in the registry today:
 | Host adapters (`cli-adapter`) | jira-snapshot, coderabbit | Context, findings |
 | Signal (`llm-subagent`) | rating | Risk and confidence that gate approval |
 
+## Persona metadata vs our registry
+
+On upstream `main` (agents [b714256](https://github.com/fullsend-ai/agents/commit/b714256),
+2026-10-31, after v0.53.0), each persona file's frontmatter declares how the
+stock orchestrator schedules it. That is the job our `dimensions.json` rows do,
+so for finding personas the two now carry the same data in two places.
+
+| Upstream frontmatter | Our registry field | Notes |
+| --- | --- | --- |
+| `role: dimension` | `kind: llm-subagent`, `output: findings` | Same meaning |
+| `role: preprocessor` | `output: context`, `stage: pre-dispatch` | Upstream uses it for `security-triage` (a fixed step in our orchestrator); our `investigator` fits it |
+| `role: synthesis` | none (challenger is a fixed step); `output: signal:*` | Upstream's `challenger` and `risk-assessment` are synthesis. Our `rating` signal sits in the same slot |
+| `when` | `when` + `dispatch: conditional` | Same text, lightly reworded. Upstream `security` also triggers on RBAC and embedded text; ours does not |
+| `always: true` | `dispatch: always` | Same |
+| `categories` | `categories` | Identical lists for all six stock finding personas |
+| `failure_severity` | `failure_severity` | Identical for all six |
+| (file name) | `definition` | Upstream stages files; we point at a path |
+| none | `output: section:* / check:*`, `result_fields`, `meta_prompt`, `context_file`, `runner`/`host` (CLI adapters), `re_review`, `remediation_candidates`, `include_findings`, `budget_priority`, `pre_pass`, `inline_skill`, `fallback`, `label` | Ours only. These are the producer kinds and plumbing upstream has no slot for (D2) |
+
+What this means:
+
+- The 6 stock finding rows (correctness, security, intent-coherence,
+  style-conventions, docs-currency, cross-repo-contracts) duplicate upstream
+  metadata. When upstream changes a persona's `when`, `categories` or
+  `failure_severity`, our row silently drifts unless the sync updates both.
+- `style-review` and `rbac-review` could be `role: dimension` personas today,
+  except that 11 of their categories are not in upstream's closed enum (D7).
+- `investigator` maps to `preprocessor`, and `rating` to `synthesis` in place
+  of `risk-assessment` (D4, D6).
+- `product-ask-review`, `test-impact-review`, `pr-description-review`,
+  `jira-snapshot` and `coderabbit` have no upstream role (D2, D8).
+- Upstream personas we do not run: `user-experience` (new, on by default, D20)
+  and `risk-assessment` (switched off, D6).
+
 ## Where we diverge
 
 Classification follows the epic: **Adopt** upstream's behaviour, **Propose**
@@ -104,11 +138,11 @@ ours upstream, or **Keep** ours behind a named upstream customisation point.
 | # | Area | Upstream | Ours | Class | Customisation point / next step |
 | --- | --- | --- | --- | --- | --- |
 | D1 | Review skill | Stock `pr-review`; on `main` the roster is built from staged persona files ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858)) | Local `SKILL.md` replaces the whole skill (skills merge by name, so we could not append) | Keep, then shrink | File overlays ([fullsend#8970](https://github.com/fullsend-ai/fullsend/pull/8970), main) and `agents[].subagents.{source,enabled}` ([ADR 0155, fullsend#8969](https://github.com/fullsend-ai/fullsend/pull/8969), open) cover finding personas only. See D2 |
-| D2 | Producer registry | ADR 0155 explicitly rejects "a registry file in the skill" | `dimensions.json`, 15 rows, 5 output kinds | Propose | Ask ADR 0155 for non-finding roles (context, check, section, signal, adapter). Move finding rows to persona frontmatter (`role`, `when`, `categories`) once it ships |
+| D2 | Producer registry | ADR 0155 explicitly rejects "a registry file in the skill" | `dimensions.json`, 15 rows, 5 output kinds | Propose | Ask ADR 0155 for non-finding roles (context, check, section, signal, adapter). The 6 stock finding rows already duplicate upstream frontmatter (see "Persona metadata vs our registry"); drop them once our orchestrator reads frontmatter or we use the base skill |
 | D3 | Stock personas | Upstream files; main adds roster frontmatter ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858), post-v0.53.0) | 8 files copied verbatim at v0.53.0; each finding persona now states an explicit category allowlist matching our registry | Adopt | Drop our copies once D1 uses the base skill |
-| D4 | Investigator | `role: preprocessor` slot exists | Registry `context` row, brief to all but challenger | Adopt | Map to a preprocessor persona; check that the brief still skips the challenger |
+| D4 | Investigator | `role: preprocessor` slot, used by `security-triage` | Registry `context` row, brief to all but challenger | Adopt | Map to a preprocessor persona; check that the brief still skips the challenger |
 | D5 | Challenger and `## Justifications` | Challenger is `role: synthesis`, no author rebuttal input | Challenger reads PR `## Justifications`, marks findings `justified` | Propose | Upstream issue: author justification channel for synthesis |
-| D6 | Risk and approval gate | `risk-assessment` sub-agent and risk verdict gate; per-tier sub-scores proposed ([agents#1879](https://github.com/fullsend-ai/agents/issues/1879)) | `rating` signal plus `rating-policy.json`; upstream risk-assessment switched off | Keep (open decision O3) | Needs a `signal` producer role, or we adopt upstream's risk gate |
+| D6 | Risk and approval gate | `risk-assessment` sub-agent and risk verdict gate; per-tier sub-scores proposed ([agents#1879](https://github.com/fullsend-ai/agents/issues/1879)) | `rating` signal plus `rating-policy.json`; upstream risk-assessment switched off | Keep (open decision O3) | `risk-assessment` is a `role: synthesis` persona on `main`, so `rating` could replace it through an overlay if synthesis output can carry risk and confidence; otherwise adopt upstream's risk gate |
 | D7 | ODH reviewer skills | Personas may only emit the closed category enum (72 values) | style-review, rbac-review, product-ask, test-impact, pr-description with registry categories and section/check outputs | Keep | Added personas via `source:` work for findings only; needs an extensible category namespace (D9) |
 | D8 | Credentialed context (Jira, CodeRabbit) | No review context-provider hook planned; ADR 0141 snapshot is forge-only and unimplemented | Adapters in our `pre-review.sh`, secrets via `FULLSEND_GITHUB_RUNNER_SECRETS` (ADR 0136), output via `host_files` | Keep, propose hook | ADR 0136/0145 is the supported path and we are compatible. Upstream uses `JIRA_TOKEN`/`JIRA_USER_EMAIL`/`JIRA_API_URL`; we use `JIRA_USERNAME`/`JIRA_API_TOKEN` |
 | D9 | Result schema | Closed `category` enum, optional `dimension`; auto-merge fields proposed ([agents#1790](https://github.com/fullsend-ai/agents/issues/1790)) | Own schema: `product_ask`, `checks`, `producers`, risk, confidence | Propose | Extensible categories and producer outputs; align field names with #1790 |
@@ -122,6 +156,57 @@ ours upstream, or **Keep** ours behind a named upstream customisation point.
 | D17 | Dependency scoping | Reviews only the PR's own commits on stacked PRs ([agents#1661](https://github.com/fullsend-ai/agents/pull/1661)) | Not carried (forked skill) | Adopt | Comes free with D1, or port |
 | D18 | GitLab | Supported | GitHub only | Keep | No need |
 | D19 | Upstream bugs we work around | `jira_base_url` not passed to the Review job; `postFailureNotice` escapes our leading marker. Both unfixed on `main` | Literal `JIRA_BASE_URL` in `env.runner`; marker on line 1 | Propose | File both upstream |
+| D20 | UX review persona | `user-experience` persona, on by default ([dc51fc1](https://github.com/fullsend-ai/agents/commit/dc51fc1), [8681499](https://github.com/fullsend-ai/agents/commit/8681499)); `REVIEW_UX_ENABLED` removed on `main` | Not run; `style-review` covers PatternFly conventions | Keep (decide with O2) | On the base skill, disable it with an overlay (`sub-agents/user-experience.md: null`) or evaluate it against `style-review` |
+
+## Upstream changes since our pin
+
+Built from the commit history of the paths we copy or depend on, not from
+PR titles. Grouped by change; "Release" is the first release that contains
+it. Noise (GitLab, GHES, scribe, signed commits, retry fixes) is left out.
+
+### fullsend-ai/agents (`2da538b`..`main`)
+
+| Change | Commits | Release | Touches |
+| --- | --- | --- | --- |
+| Closed review category taxonomy; each persona body lists its allowed categories | [9fb306a](https://github.com/fullsend-ai/agents/commit/9fb306a), [19526c0](https://github.com/fullsend-ai/agents/commit/19526c0), [ad1f24f](https://github.com/fullsend-ai/agents/commit/ad1f24f) | v0.49.0 | D7, D9 |
+| Finding ids scrubbed from posted text | [c0d5e99](https://github.com/fullsend-ai/agents/commit/c0d5e99) … [7265710](https://github.com/fullsend-ai/agents/commit/7265710) | v0.49.0 | D12 (not carried) |
+| Clear `ready-for-merge` at review start, fail closed | [a015218](https://github.com/fullsend-ai/agents/commit/a015218), [6860eb7](https://github.com/fullsend-ai/agents/commit/6860eb7) | v0.49.0 | D11 |
+| `user-experience` persona added, then on by default with an opt-out | [dc51fc1](https://github.com/fullsend-ai/agents/commit/dc51fc1), [8681499](https://github.com/fullsend-ai/agents/commit/8681499), [98f1d85](https://github.com/fullsend-ai/agents/commit/98f1d85) | v0.49.0 / v0.50.0 | D20 |
+| CEL `trigger:` in the review harness | [058f7d2](https://github.com/fullsend-ai/agents/commit/058f7d2) | v0.50.0 | D13 (inherited through `base:`) |
+| `fullsend-fix-budget/N` label caps automatic fixes | [3eaa379](https://github.com/fullsend-ai/agents/commit/3eaa379) | v0.50.0 | Fix agent |
+| Human dismissals no longer cover a more severe row | [ab213ce](https://github.com/fullsend-ai/agents/commit/ab213ce) and #1709 follow-ups | v0.51.0 | D12 (not carried) |
+| Pre-review skips closed PRs and skipped authors via the skip signal | [db96130](https://github.com/fullsend-ai/agents/commit/db96130) | v0.51.0 | Ours already does this (pre-review change 5) |
+| Disclose findings hidden by the severity threshold | [e6bf2d1](https://github.com/fullsend-ai/agents/commit/e6bf2d1), [7f5cd8f](https://github.com/fullsend-ai/agents/commit/7f5cd8f) | v0.53.0 | D10 |
+| Codex wave dispatch; challenger isolated when its spawn is denied | [1f1e7a8](https://github.com/fullsend-ai/agents/commit/1f1e7a8), [c65cd47](https://github.com/fullsend-ai/agents/commit/c65cd47) | v0.53.0 (follow-ups on `main`) | Codex only; challenger text synced |
+| **Roster from persona frontmatter** (`role`, `when`, `always`, `categories`, `failure_severity`); `REVIEW_UX_ENABLED` removed; findings from unstaged personas below high are dropped | [b714256](https://github.com/fullsend-ai/agents/commit/b714256), [d86481e](https://github.com/fullsend-ai/agents/commit/d86481e), [cec0921](https://github.com/fullsend-ai/agents/commit/cec0921) | `main` | D1–D4, D6, D20; see "Persona metadata vs our registry" |
+| Projection suppression keyed on the failed sub-agent name | [ca43e52](https://github.com/fullsend-ai/agents/commit/ca43e52) | `main` | D12 |
+| Finding ids stay on their stamped review threads | [2de650b](https://github.com/fullsend-ai/agents/commit/2de650b) | `main` | D12 (not carried) |
+| Dependency scoping for stacked PRs | [39f7acb](https://github.com/fullsend-ai/agents/commit/39f7acb) … [6544323](https://github.com/fullsend-ai/agents/commit/6544323) | `main` | D17 |
+
+### fullsend-ai/fullsend (`af8cd47`..`main`)
+
+The `reusable-dispatch.yml` inputs and secrets our shim passes are unchanged
+at v0.53.0 and on `main`, and no harness YAML key was added, renamed or
+removed. The changes that matter are behavioural.
+
+| Change | Commits | Release | Touches |
+| --- | --- | --- | --- |
+| Review-findings marker fix we pin past (#8544) | [cb06ac392](https://github.com/fullsend-ai/fullsend/commit/cb06ac392) | v0.49.0 | Our pin can move to a release tag |
+| `pi`, `node` and `python3` must come from agent-unwritable PATH dirs; Pi children start through the pinned node; `#!/usr/bin/env` shebangs other than `node` refused; Pi runs without recorded hook settings refused (ADR 0152) | [540deae43](https://github.com/fullsend-ai/fullsend/commit/540deae43), [50ef6254a](https://github.com/fullsend-ai/fullsend/commit/50ef6254a), [976dd85cc](https://github.com/fullsend-ai/fullsend/commit/976dd85cc) | v0.49.0–v0.53.0 | `runtime: pi` and the `image:` pin: move the image with the CLI |
+| `validation_loop.preflight_check` runs in an allowlisted minimal env; path-shaped values are lint errors | [48ced5579](https://github.com/fullsend-ai/fullsend/commit/48ced5579), [59b7d19e2](https://github.com/fullsend-ai/fullsend/commit/59b7d19e2) | v0.51.0–v0.52.0 | Our inherited `python3 -c "import jsonschema"` probe |
+| Sandbox `.env` parsed as data, not sourced | [eeadc03d0](https://github.com/fullsend-ai/fullsend/commit/eeadc03d0) | v0.49.0 | None (we never write `.env`) |
+| `roles:` no longer gates; our shim `if:` is what keeps triage, retro and prioritize off | [#7786](https://github.com/fullsend-ai/fullsend/pull/7786) | v0.51.0 | D14 |
+| `action.yml` `exec`s `fullsend run`, so cancel sends SIGTERM to the CLI | [66b444a36](https://github.com/fullsend-ai/fullsend/commit/66b444a36) | v0.49.0 | Whether our `post_script` runs on cancel (unverified) |
+| Fix-iteration cap counts App-bot commits with the `fullsend-fix` trailer | [dc4f33c19](https://github.com/fullsend-ai/fullsend/commit/dc4f33c19) | v0.49.0 | Fix stage |
+| `FULLSEND_WORK_ITEM_SOURCE` exported; Jira runs clear `ISSUE_NUMBER` | [d34d195ff](https://github.com/fullsend-ai/fullsend/commit/d34d195ff) | v0.53.0 | None now; P5 |
+| Map-form skill overrides staged; `personas.json` written; `FULLSEND_PERSONAS_FILE` reserved | [#8970](https://github.com/fullsend-ai/fullsend/pull/8970), [83af920c5](https://github.com/fullsend-ai/fullsend/commit/83af920c5) | `main` | D1 (our list-form `skills:` is unaffected) |
+| `base:` lock files: relative files resolve to locked content | [34d63bdfe](https://github.com/fullsend-ai/fullsend/commit/34d63bdfe) | `main` | None unless we adopt `fullsend lock` |
+| Shim template: bots may send `/fs-` commands (not `/fs-fix-stop`) | [e7565147a](https://github.com/fullsend-ai/fullsend/commit/e7565147a) | `main` | Optional port to our hand-written filter |
+| ADRs 0144–0154 accepted; 0151 plans a harness `human_min_role` (not in code yet). ADR 0155 is still only on its PR branch | `docs/ADRs` | v0.53.0 / `main` | 0145, 0151, 0152 touch us |
+
+`internal/cli/postreview.go` and `internal/sticky` have no commits since our
+pin, and the review job still gets no `JIRA_BASE_URL`, so both bugs in D19 are
+still open.
 
 ## Our roadmap
 
@@ -196,9 +281,18 @@ allowlisted category is already accepted (registry match, plus
    - Rebase our `pre-review.sh` edits onto the v0.53.0 bundle; re-test
      review-thread position fields (fullsend#8693).
    - Run `fullsend lint` on our harness.
-2. **Port small upstream behaviour:** clear `ready-for-merge` at review start
+   - Point the dispatch pin at the release tag's commit; #8544 ships in
+     v0.49.0, so the post-release pin comment goes.
+   - Watch the first review after merge for the ADR 0152 launch checks
+     (exit 127 "not found in a PATH directory the agent cannot write") and
+     for the `jsonschema` preflight probe under the minimal environment.
+2. **When frontmatter reaches a release (expected v0.54.0):** the persona
+   sync brings `role`/`when`/`categories` into our copies; keep the 6 stock
+   finding rows in `dimensions.json` equal to it (parity script:
+   `compare-personas.py`), and adopt upstream's broader `security` trigger.
+3. **Port small upstream behaviour:** clear `ready-for-merge` at review start
    (D11), severity-threshold notice (D10).
-3. **v0.54.0 or later:** evaluate persona overlays (O2), then route triggers
+4. **v0.54.0 or later:** evaluate persona overlays (O2), then route triggers
    through `agents[].trigger` (D13).
 
 Blockers: `fullsend lint` cannot be run from this automated environment — the
