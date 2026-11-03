@@ -29,7 +29,6 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
-import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { EllipsisVIcon, InProgressIcon } from '@patternfly/react-icons';
 import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
@@ -62,6 +61,8 @@ import {
 import * as snippets from '~/app/utilities/dchSnippets';
 import { ConnectionTypeLabel } from '~/app/components/ConnectionType.tsx';
 import useDarkMode from '~/app/hooks/useDarkMode';
+
+const DCHCodeEditor = React.lazy(() => import('~/app/components/DCHCodeEditor'));
 
 type ConnectionDetailsContentProps = {
   namespace: string;
@@ -313,19 +314,19 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                           </ToggleGroup>
                         </StackItem>
                         <StackItem>
-                          <CodeEditor
-                            code={
-                              ingestionExample === 'python' ? dataIngestionCode : restIngestionCode
-                            }
-                            language={
-                              ingestionExample === 'python' ? Language.python : Language.shell
-                            }
-                            isReadOnly
-                            isCopyEnabled
-                            isLanguageLabelVisible
-                            isDarkTheme={isDarkMode}
-                            height="400px"
-                          />
+                          <React.Suspense
+                            fallback={<Skeleton screenreaderText="Loading ingestion example" />}
+                          >
+                            <DCHCodeEditor
+                              code={
+                                ingestionExample === 'python'
+                                  ? dataIngestionCode
+                                  : restIngestionCode
+                              }
+                              example={ingestionExample}
+                              isDarkTheme={isDarkMode}
+                            />
+                          </React.Suspense>
                         </StackItem>
                       </Stack>
                     </CardBody>

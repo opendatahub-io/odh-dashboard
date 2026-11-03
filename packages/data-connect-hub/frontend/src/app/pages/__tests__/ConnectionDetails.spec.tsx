@@ -18,6 +18,8 @@ import type { Connection } from '~/app/types';
 jest.mock('~/app/hooks/useConnection');
 jest.mock('~/app/hooks/useConnectionType');
 jest.mock('~/app/hooks/useNamespaces');
+jest.mock('monaco-editor', () => ({ __esModule: true, editor: {} }), { virtual: true });
+jest.mock('@monaco-editor/react', () => ({ loader: { config: jest.fn() } }));
 jest.mock('@patternfly/react-code-editor', () => ({
   ...jest.requireActual<typeof import('@patternfly/react-code-editor')>(
     '@patternfly/react-code-editor',
@@ -229,6 +231,7 @@ describe('ConnectionDetails', () => {
 
     renderDetails();
 
+    await screen.findByTestId('ingestion-code');
     const pythonToggle = screen.getByRole('button', { name: 'Python' });
     const restToggle = screen.getByRole('button', { name: 'REST API (cURL)' });
     expect(pythonToggle.getAttribute('aria-pressed')).toBe('true');
@@ -258,6 +261,7 @@ describe('ConnectionDetails', () => {
       `/ai-hub/connections/connections/${otherConnection.metadata.id}?project=analysis-project`,
     );
 
+    await screen.findByTestId('ingestion-code');
     const pythonToggle = screen.getByRole('button', { name: 'Python' });
     const restToggle = screen.getByRole('button', { name: 'REST API (cURL)' });
     expect(restToggle).toHaveProperty('disabled', false);
