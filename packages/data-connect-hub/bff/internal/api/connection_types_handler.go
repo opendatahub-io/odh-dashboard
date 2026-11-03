@@ -283,12 +283,12 @@ func mockConnectionTypes(namespace string) []ConnectionType {
 		dummyConnectionType.Resource.Name = fmt.Sprintf("%s %d", names[rng.IntN(len(names))], i+1)
 		dummyConnectionType.Resource.Description = dummyConnectionType.Resource.Description[:rng.IntN(len(dummyConnectionType.Resource.Description)+1)]
 		dummyConnectionType.Status.FlightReady = rng.IntN(2) == 0
-		types = append(types, addMockTags(dummyConnectionType))
+		types = append(types, addMockTags(dummyConnectionType, rng))
 	}
 	return types
 }
 
-func addMockTags(connectionType ConnectionType) ConnectionType {
+func addMockTags(connectionType ConnectionType, rng *rand.Rand) ConnectionType {
 	tags := []string{
 		"database", "storage", "sql", "read-only", "dev", "production",
 		"staging", "testing", "sandbox", "analytics", "reporting", "warehouse",
@@ -303,7 +303,7 @@ func addMockTags(connectionType ConnectionType) ConnectionType {
 		"high-throughput", "daily-refresh", "hourly-refresh", "us-east", "us-west",
 		"europe", "asia-pacific",
 	}
-	for _, j := range rand.Perm(len(tags))[:1+rand.IntN(len(tags))] {
+	for _, j := range rng.Perm(len(tags))[:1+rng.IntN(len(tags))] {
 		connectionType.Resource.Tags = append(connectionType.Resource.Tags, tags[j])
 	}
 	return connectionType

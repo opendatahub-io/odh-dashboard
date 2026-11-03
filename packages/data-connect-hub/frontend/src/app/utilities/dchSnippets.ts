@@ -93,13 +93,18 @@ curl --fail-with-body --silent --show-error \
 # Download an object from this binary connection to a local file.
 # Replace this connector-specific path with your object key or file path.
 export DCH_OBJECT_PATH="path/to/your/file.bin"
-curl --fail --silent --show-error \
-  --header "Authorization: Bearer $DCH_TOKEN" \
-  --header "x-tenant-id: $DCH_NAMESPACE" \
-  --get \
-  --data-urlencode "path=$DCH_OBJECT_PATH" \
-  --output ingested-object.bin \
-  "$DCH_ENDPOINT/api/v1alpha1/data/connections/$DCH_CONNECTION_ID/binary"
+(
+  temporary_file=$(mktemp ./ingested-object.bin.XXXXXX) || exit 1
+  trap 'rm -f "$temporary_file"' EXIT
+  curl --fail --silent --show-error \
+    --header "Authorization: Bearer $DCH_TOKEN" \
+    --header "x-tenant-id: $DCH_NAMESPACE" \
+    --get \
+    --data-urlencode "path=$DCH_OBJECT_PATH" \
+    --output "$temporary_file" \
+    "$DCH_ENDPOINT/api/v1alpha1/data/connections/$DCH_CONNECTION_ID/binary" &&
+    mv -- "$temporary_file" ingested-object.bin
+)
 
 # REST API reference: https://opendatahub-io.github.io/data-connect-hub/`;
 
