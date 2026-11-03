@@ -1,4 +1,5 @@
 import fs from 'fs';
+import tls from 'tls';
 
 // tls-ca-bundle.pem is the default CA bundle used by the system in CentOS/RHEL
 // ca.crt is the default CA bundle provided by the service account for kubernetes
@@ -22,9 +23,24 @@ export const readCABundles = (paths: readonly string[] = CA_BUNDLE_PATHS): Buffe
     return bundles;
   }, []);
 
-export const caBundles = readCABundles();
+const caBundles = readCABundles();
+
+const readDefaultCACertificates = (): Buffer[] => {
+  const extraCAPath = process.env.NODE_EXTRA_CA_CERTS;
+  return [
+    ...tls.rootCertificates.map((certificate) => Buffer.from(certificate)),
+    ...(extraCAPath ? readCABundles([extraCAPath]) : []),
+  ];
+};
+
+export const getTrustedCAs = (bundles: readonly Buffer[] = caBundles): Buffer[] | undefined =>
+  bundles.length > 0 ? [...readDefaultCACertificates(), ...bundles] : undefined;
 
 type UndiciTLSOptions = { connect: { ca: Buffer[] } };
 
-export const getUndiciTLSOptions = (bundles: Buffer[] = caBundles): UndiciTLSOptions | undefined =>
-  bundles.length > 0 ? { connect: { ca: bundles } } : undefined;
+export const getUndiciTLSOptions = (
+  bundles: readonly Buffer[] = caBundles,
+): UndiciTLSOptions | undefined => {
+  const trustedCAs = getTrustedCAs(bundles);
+  return trustedCAs ? { connect: { ca: trustedCAs } } : undefined;
+};

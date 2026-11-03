@@ -5,7 +5,7 @@ import { initializeApp } from './app';
 import { registerPatchContentTypeParsers } from './utils/patchContentTypeParsers';
 import { AddressInfo } from 'net';
 import https from 'https';
-import { caBundles } from './utils/caBundles';
+import { getTrustedCAs } from './utils/caBundles';
 
 const transport =
   APP_ENV === 'development'
@@ -48,7 +48,7 @@ app.listen({ port: PORT, host: IP }, (err) => {
     app.log.error(err);
     process.exit(1); // eslint-disable-line
   }
-  https.globalAgent.options.ca = caBundles;
+  https.globalAgent.options.ca = getTrustedCAs();
 
   const address: AddressInfo = app.server.address() as AddressInfo;
   console.log('Fastify Connected...');
