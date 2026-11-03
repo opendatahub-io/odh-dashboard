@@ -12,6 +12,7 @@ commonLabels:
   app.opendatahub.io/rhods-dashboard: "true"
 resources:
   - ../base
+  - ./perses-egress-network-policy.yaml
   - ./consolelink
   - ./odhdashboardconfig
   - ./apps
