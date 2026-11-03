@@ -114,7 +114,7 @@ OMITTED_KEYS = keys[MAX_JIRA_KEYS:]
 keys = keys[:MAX_JIRA_KEYS]
 key = keys[0] if keys else None
 browse_base = (os.environ.get("JIRA_BASE_URL") or "").rstrip("/")
-api_base = (os.environ.get("FULLSEND_ADAPTER_URL") or browse_base).rstrip("/")
+api_base = (os.environ.get("FULLSEND_ADAPTER_URL") or "").rstrip("/")
 user = os.environ.get("FULLSEND_ADAPTER_USERNAME") or os.environ.get("JIRA_USERNAME") or ""
 token = os.environ.get("FULLSEND_ADAPTER_TOKEN") or os.environ.get("JIRA_API_TOKEN") or ""
 
@@ -157,6 +157,20 @@ if not browse_base:
     write(envelope(status="none", key=key, issues=[{"key": k} for k in keys],
                    reason="jira-base-url-unset"))
     print(f"Wrote Jira snapshot (none: JIRA_BASE_URL unset, keys={','.join(keys)}) to {dest}")
+    raise SystemExit(0)
+
+if not api_base:
+    write(envelope(status="none", key=key, issues=[{"key": k} for k in keys],
+                   reason="jira-api-url-unset"))
+    print(f"Wrote Jira snapshot (none: Jira API URL unset, keys={','.join(keys)}) to {dest}")
+    raise SystemExit(0)
+
+api_parts = urllib.parse.urlsplit(api_base)
+if (api_parts.netloc != "api.atlassian.com" or
+        not re.fullmatch(r"/ex/jira/[0-9a-fA-F-]{36}", api_parts.path) or
+        api_parts.query or api_parts.fragment):
+    write(envelope(status="error", key=key, reason="jira-api-url-invalid"))
+    print(f"Wrote Jira snapshot (error: Jira API URL invalid, key={key}) to {dest}")
     raise SystemExit(0)
 
 if user and token:
@@ -234,6 +248,38 @@ assert data["status"] == "none", data
 assert data["reason"] == "jira-base-url-unset", data
 assert data["issues"] == [{"key": "RHOAIENG-82129"}], data
 print("PASS jira-snapshot: missing base URL reported separately")
+PY
+
+  # A site URL cannot be used as the API endpoint for scoped tokens.
+  REVIEW_PR_TITLE='fix: export' \
+  REVIEW_PR_BODY=$'Fixes RHOAIENG-82129\n' \
+  JIRA_BASE_URL='https://redhat.atlassian.net' \
+  FULLSEND_ADAPTER_URL='https://redhat.atlassian.net' \
+  JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["status"] == "error", data
+assert data["reason"] == "jira-api-url-invalid", data
+print("PASS jira-snapshot: site URL refused as API endpoint")
+PY
+
+  # Missing gateway URL is reported without trying the browse site.
+  REVIEW_PR_TITLE='fix: export' \
+  REVIEW_PR_BODY=$'Fixes RHOAIENG-82129\n' \
+  JIRA_BASE_URL='https://redhat.atlassian.net' \
+  FULLSEND_ADAPTER_URL='' \
+  JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
+    run_producer "${tmp}" >/dev/null
+
+  python3 - "${tmp}" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+assert data["status"] == "none", data
+assert data["reason"] == "jira-api-url-unset", data
+print("PASS jira-snapshot: missing gateway does not fall back")
 PY
 
   # Existing: no key at all.

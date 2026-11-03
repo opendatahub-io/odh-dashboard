@@ -337,10 +337,9 @@ skip-author checks:
   unsets them first, and the validation loop, which does not read them.
 - **Jira URLs.** The review harness sets public `JIRA_BASE_URL` to the Jira site
   URL for browse links. `JIRA_URL` is passed only to the Jira adapter for REST
-  requests when it is an Atlassian API gateway URL. Until that secret is
-  rotated, the adapter falls back to the public site URL for classic tokens.
-  The two URLs stay separate
-  so the gateway does not appear in review links. [`post-review.sh`](../../scripts/post-review.sh)
+  requests when it is an Atlassian API gateway URL. Without that URL, the Jira
+  snapshot reports `jira-api-url-unset`; it does not request from the site URL.
+  The gateway does not appear in review links. [`post-review.sh`](../../scripts/post-review.sh)
   resolves each Product ask label from its own `.run/jira.json` snapshot rather
   than the section's `key`/`url`.
 - **Order and cost.** `fullsend run` posts the review start-status comment
