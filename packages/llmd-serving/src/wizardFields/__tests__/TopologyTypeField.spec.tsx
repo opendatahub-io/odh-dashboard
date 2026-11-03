@@ -1,7 +1,6 @@
 import React, { act } from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { LlmdTrackingEvent } from '../../tracking/llmdTrackingConstants';
@@ -16,10 +15,10 @@ import {
   useFetchTopologyConfigs,
   useFetchLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
+import { createHostApiWrapper } from '../../__tests__/hostApiTestUtils';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const mockTrackEvent = jest.fn();
+const wrapper = createHostApiWrapper(mockTrackEvent);
 
 jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
@@ -31,7 +30,6 @@ jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
   useFetchLLMInferenceServiceConfig: jest.fn(),
 }));
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 const mockUseFetchTopologyConfigs = jest.mocked(useFetchTopologyConfigs);
 const mockUseFetchLLMInferenceServiceConfig = jest.mocked(useFetchLLMInferenceServiceConfig);
 
@@ -85,6 +83,7 @@ describe('TopologyTypeField tracking', () => {
         onChange={mockOnChange}
         externalData={externalData}
       />,
+      { wrapper },
     );
 
   const openDropdown = async () => {
@@ -96,6 +95,20 @@ describe('TopologyTypeField tracking', () => {
   // The test id lands on the list item; aria-disabled lives on the option itself.
   const getMultiNodeOption = () =>
     within(screen.getByTestId(`topology-type-${TopologyType.MULTI_NODE}`)).getByRole('option');
+
+  it('should allow topology selection when the host disables tracking', async () => {
+    render(<TopologyTypeFieldComponent id="llmd-serving/topology-type" onChange={mockOnChange} />, {
+      wrapper: createHostApiWrapper(() => undefined),
+    });
+
+    await openDropdown();
+    await act(async () => {
+      fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.SINGLE_NODE]));
+    });
+
+    expect(mockOnChange).toHaveBeenCalledWith({ topologyType: TopologyType.SINGLE_NODE });
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
 
   it('should fire topology type selected tracking with undefined previousPattern on first selection', async () => {
     renderComponent({
@@ -118,13 +131,10 @@ describe('TopologyTypeField tracking', () => {
       fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.SINGLE_NODE]));
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED,
-      {
-        llmdComposablePattern: TopologyType.SINGLE_NODE,
-        previousPattern: undefined,
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, {
+      llmdComposablePattern: TopologyType.SINGLE_NODE,
+      previousPattern: undefined,
+    });
   });
 
   it('should fire topology type selected tracking with previous pattern when switching', async () => {
@@ -149,13 +159,10 @@ describe('TopologyTypeField tracking', () => {
       fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.MULTI_NODE]));
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED,
-      {
-        llmdComposablePattern: TopologyType.MULTI_NODE,
-        previousPattern: TopologyType.SINGLE_NODE,
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.TOPOLOGY_TYPE_SELECTED, {
+      llmdComposablePattern: TopologyType.MULTI_NODE,
+      previousPattern: TopologyType.SINGLE_NODE,
+    });
   });
 
   it('should call onChange with the selected topology type', async () => {

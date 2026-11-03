@@ -8,6 +8,10 @@ import { deleteLlmInferenceServiceConfigIfUnreferenced } from '../../../api/LLMI
 import { CONFIG_DELETION_PENDING_MESSAGE, CONFIG_IN_USE_ERROR_MESSAGE } from '../../../utils';
 import { TopologyType } from '../../../types';
 import TopologyConfigurationsTable from '../TopologyConfigurationsTable';
+import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+
+const mockTrackEvent = jest.fn();
+const wrapper = createHostApiWrapper(mockTrackEvent);
 
 jest.mock('react-router', () => ({
   useNavigate: jest.fn(),
@@ -92,7 +96,7 @@ describe('TopologyConfigurationsTable', () => {
       topologyType: TopologyType.SINGLE_NODE,
     });
 
-    render(<TopologyConfigurationsTable configs={[config]} />);
+    render(<TopologyConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
     fireEvent.click(screen.getByTestId('confirm-delete'));
@@ -121,7 +125,7 @@ describe('TopologyConfigurationsTable', () => {
       topologyType: TopologyType.SINGLE_NODE,
     });
 
-    render(<TopologyConfigurationsTable configs={[config]} />);
+    render(<TopologyConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
     fireEvent.click(screen.getByTestId('confirm-delete'));
@@ -142,7 +146,7 @@ describe('TopologyConfigurationsTable', () => {
       topologyType: TopologyType.SINGLE_NODE,
     });
 
-    render(<TopologyConfigurationsTable configs={[config]} />);
+    render(<TopologyConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
     fireEvent.click(screen.getByTestId('confirm-delete'));
@@ -164,7 +168,7 @@ describe('TopologyConfigurationsTable', () => {
       topologyType: TopologyType.SINGLE_NODE,
     });
 
-    render(<TopologyConfigurationsTable configs={[config]} />);
+    render(<TopologyConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
     fireEvent.click(screen.getByTestId('confirm-delete'));

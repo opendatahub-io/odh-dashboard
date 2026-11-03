@@ -2,7 +2,6 @@ import React, { act } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { LlmdTrackingEvent } from '../../tracking/llmdTrackingConstants';
 import { ConfigType, TopologyType } from '../../types';
@@ -11,12 +10,10 @@ import {
   type AdvancedRoutingExternalData,
   type AdvancedRoutingFieldData,
 } from '../AdvancedRoutingField';
+import { createHostApiWrapper } from '../../__tests__/hostApiTestUtils';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvent = jest.fn();
+const wrapper = createHostApiWrapper(mockTrackEvent);
 
 const { getInitialFieldData, validationSchema } = AdvancedRoutingFieldWizardField.reducerFunctions;
 const AdvancedRoutingFieldComponent = AdvancedRoutingFieldWizardField.component;
@@ -177,6 +174,7 @@ describe('AdvancedRoutingField tracking', () => {
         externalData={externalData}
         dependencies={dependencies}
       />,
+      { wrapper },
     );
 
   const openDropdown = async () => {
@@ -199,7 +197,7 @@ describe('AdvancedRoutingField tracking', () => {
       fireEvent.click(screen.getByText('Default optimized routing'));
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
       routingConfigurationId: '__default-optimized-routing__',
       isDefaultRouting: true,
     });
@@ -218,7 +216,7 @@ describe('AdvancedRoutingField tracking', () => {
       fireEvent.click(screen.getByText('Router Config One'));
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
       routingConfigurationId: 'router-config-1',
       isDefaultRouting: false,
     });
@@ -239,7 +237,7 @@ describe('AdvancedRoutingField tracking', () => {
       fireEvent.click(screen.getByText('Router Config Two'));
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
       routingConfigurationId: 'router-config-2',
       isDefaultRouting: false,
     });
@@ -283,6 +281,7 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData(allConfigs)}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
+      { wrapper },
     );
 
     await waitFor(() => {
@@ -377,6 +376,7 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData([mockCompatibleConfig, mockIncompatibleConfig])}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
+      { wrapper },
     );
 
     await waitFor(() => {
@@ -399,6 +399,7 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData([mockCompatibleConfig])}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
+      { wrapper },
     );
 
     await waitFor(() => {
