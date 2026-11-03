@@ -8,7 +8,6 @@ export enum LlmdTrackingEvent {
 
 export type TopologyTypeSelectedProperties = {
   llmdComposablePattern: string;
-  isDefaultTopology: boolean;
   previousPattern?: string;
 };
 

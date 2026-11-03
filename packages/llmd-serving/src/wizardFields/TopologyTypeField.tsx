@@ -16,7 +16,7 @@ import type {
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   TopologyType,
@@ -32,15 +32,13 @@ import {
   useFetchLLMInferenceServiceConfig,
 } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
-import { useTopologySelectionTracking } from '../tracking/useTopologySelectionTracking';
+import { fireTopologyTypeSelected } from '../tracking/llmdTrackingConstants';
 import { CUSTOM_TOPOLOGY_CONFIG_FIELD_ID, TOPOLOGY_TYPE_FIELD_ID } from '../const';
 
 // --- Dependencies ---
 
 export type TopologyConfigsDependencies = {
   project?: WizardFormData['state']['project'];
-  /** Current topology configuration field value, used to track a completed topology change. */
-  customTopologyConfig?: unknown;
   /** The config this deployment already references, from the edit extractor. */
   configRef?: string;
   /** The topology type this deployment was deployed with, from the edit extractor. */
@@ -65,14 +63,6 @@ export const resolveTopologyConfigsDependencies = (
     initialTopologyType: Object.values(TopologyType).find((t) => t === initialTopologyType),
   };
 };
-
-const resolveTopologyTypeFieldDependencies = (
-  formData: WizardFormData['state'],
-  initialData?: InitialWizardFormData,
-): TopologyConfigsDependencies => ({
-  ...resolveTopologyConfigsDependencies(formData, initialData),
-  customTopologyConfig: formData[CUSTOM_TOPOLOGY_CONFIG_FIELD_ID],
-});
 
 // --- External data hook ---
 
@@ -163,15 +153,9 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
   value,
   onChange,
   externalData,
-  dependencies,
 }) => {
+  const trackEvent = useTrackEvent();
   const configsByTopology = externalData?.data.configsByTopology;
-  const trackTopologySelection = useTopologySelectionTracking({
-    topologyType: value?.topologyType,
-    configurationData: dependencies?.customTopologyConfig,
-    externalData,
-  });
-
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
       Object.values(TopologyType).map((topoType): SimpleSelectOption => {
@@ -206,8 +190,11 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
               if (matched && matched !== value?.topologyType) {
-                // Queue tracking before updating the wizard; the hook waits for configuration resolution.
-                trackTopologySelection(matched);
+                // Track the topology choice immediately; deployment events report configuration defaults.
+                fireTopologyTypeSelected(trackEvent, {
+                  llmdComposablePattern: matched,
+                  previousPattern: value?.topologyType,
+                });
                 onChange({ topologyType: matched });
               }
             }}
@@ -262,7 +249,7 @@ export const TopologyTypeFieldWizardField: TopologyTypeFieldType = {
   type: 'addition',
   isActive,
   reducerFunctions: {
-    resolveDependencies: resolveTopologyTypeFieldDependencies,
+    resolveDependencies: resolveTopologyConfigsDependencies,
     setFieldData: (value: TopologyTypeFieldData) => value,
     getInitialFieldData: (existingFieldData?: TopologyTypeFieldData): TopologyTypeFieldData =>
       existingFieldData ?? { topologyType: TopologyType.SINGLE_NODE },
