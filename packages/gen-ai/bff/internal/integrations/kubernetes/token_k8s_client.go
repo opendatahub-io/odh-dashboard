@@ -850,11 +850,12 @@ func (kc *TokenKubernetesClient) GetServiceEndpointSlices(ctx context.Context, i
 	return sliceList.Items, nil
 }
 
-// GetPod reads a core Pod through the caller's own credentials so callers can verify
-// that an endpoint's Pod reference is real and that its addresses belong to that Pod.
-// It falls back to the client's own credentials for local development when no
-// identity is available.
-func (kc *TokenKubernetesClient) GetPod(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Pod, error) {
+// ListPods reads the core Pods matching a label selector through the caller's own
+// credentials so callers can verify that endpoints' Pod references are real
+// selector-backed Pods and that their addresses belong to those Pods. It falls back
+// to the client's own credentials for local development when no identity is
+// available.
+func (kc *TokenKubernetesClient) ListPods(ctx context.Context, identity *integrations.RequestIdentity, namespace string, selector map[string]string) ([]corev1.Pod, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -863,11 +864,11 @@ func (kc *TokenKubernetesClient) GetPod(ctx context.Context, identity *integrati
 		return nil, err
 	}
 
-	pod := &corev1.Pod{}
-	if err := reader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, pod); err != nil {
-		return nil, fmt.Errorf("failed to get Pod %s/%s: %w", namespace, name, err)
+	podList := &corev1.PodList{}
+	if err := reader.List(ctx, podList, client.InNamespace(namespace), client.MatchingLabels(selector)); err != nil {
+		return nil, fmt.Errorf("failed to list Pods in namespace %s: %w", namespace, err)
 	}
-	return pod, nil
+	return podList.Items, nil
 }
 
 // ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore

@@ -317,17 +317,33 @@ func (c *ConfigurableMockKubernetesClient) GetServiceEndpointSlices(ctx context.
 	return c.EndpointSlices, nil
 }
 
-func (c *ConfigurableMockKubernetesClient) GetPod(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Pod, error) {
+func (c *ConfigurableMockKubernetesClient) ListPods(ctx context.Context, identity *integrations.RequestIdentity, namespace string, selector map[string]string) ([]corev1.Pod, error) {
 	if c.PodError != nil {
 		return nil, c.PodError
 	}
-	if pod, ok := c.Pods[name]; ok {
-		return pod, nil
-	}
+	var pods []corev1.Pod
 	if c.Pod != nil {
-		return c.Pod, nil
+		pods = append(pods, *c.Pod)
 	}
-	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
+	for _, pod := range c.Pods {
+		pods = append(pods, *pod)
+	}
+	// Mirror the API server's label-selector filtering so tests can cover pods
+	// that exist but no longer match the Service selector.
+	filtered := make([]corev1.Pod, 0, len(pods))
+	for _, pod := range pods {
+		matched := true
+		for key, value := range selector {
+			if pod.Labels[key] != value {
+				matched = false
+				break
+			}
+		}
+		if matched {
+			filtered = append(filtered, pod)
+		}
+	}
+	return filtered, nil
 }
 
 func (c *ConfigurableMockKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {

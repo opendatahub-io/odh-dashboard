@@ -51,10 +51,11 @@ type KubernetesClientInterface interface {
 	// aliases pointing outside the caller's namespace).
 	GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error)
 
-	// GetPod fetches a core Pod by namespace and name, so callers can verify that an
-	// EndpointSlice endpoint's Pod targetRef is real and that the endpoint addresses
-	// belong to that Pod.
-	GetPod(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Pod, error)
+	// ListPods lists the core Pods in a namespace matching a label selector, so
+	// callers can verify that EndpointSlice endpoints' Pod targetRefs are real
+	// selector-backed Pods and that the endpoint addresses belong to those Pods,
+	// with a single lookup instead of one get per referenced Pod.
+	ListPods(ctx context.Context, identity *integrations.RequestIdentity, namespace string, selector map[string]string) ([]corev1.Pod, error)
 
 	// GetServiceEndpointSlices lists the EndpointSlices backing a Service, so callers
 	// can verify the effective endpoint addresses actually belong to Pods in the

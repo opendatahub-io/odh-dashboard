@@ -358,15 +358,25 @@ func resolveTrustedHost(
 		logger.Warn("endpoint slice lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
 		return false, nil, nil
 	}
-	// Every endpoint is validated after fetching its referenced Pod and confirming
-	// the endpoint addresses belong to that Pod: a targetRef is just a name an
+	// Every endpoint is validated against its referenced Pod and the endpoint
+	// addresses confirmed to belong to that Pod: a targetRef is just a name an
 	// EndpointSlice writer can forge, so it must be checked against a running,
 	// non-host-network Pod in the caller's namespace whose PodIPs contain every
-	// endpoint address. Pods are cached per name for the duration of this
-	// resolution. Validated addresses become dial candidates, separated by
-	// readiness so that ready endpoints are preferred and serving endpoints are
-	// only used as fallback (mirroring service routing).
-	podCache := make(map[string]*corev1.Pod)
+	// endpoint address. All referenced Pods are resolved with a single
+	// selector-scoped list of the Service's Pods — a referenced Pod absent from
+	// that list (deleted, or no longer matching the selector) fails closed.
+	pods, err := client.ListPods(ctx, identity, svcNamespace, svc.Spec.Selector)
+	if err != nil {
+		if apierrors.IsForbidden(err) {
+			return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to list the Pods of the Service %s/%s, which the caller lacks", svcNamespace, svcName))
+		}
+		logger.Warn("pod list failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
+		return false, nil, nil
+	}
+	podByName := make(map[string]*corev1.Pod, len(pods))
+	for i := range pods {
+		podByName[pods[i].Name] = &pods[i]
+	}
 	var readyTargets, servingTargets []string
 	for i := range slices {
 		slice := &slices[i]
@@ -399,17 +409,11 @@ func resolveTrustedHost(
 			if ref == nil || ref.Kind != "Pod" || ref.Namespace != namespace || ref.Name == "" {
 				return false, nil, nil
 			}
-			pod, cached := podCache[ref.Name]
-			if !cached {
-				pod, err = client.GetPod(ctx, identity, svcNamespace, ref.Name)
-				if err != nil {
-					if apierrors.IsForbidden(err) {
-						return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Pod %s/%s, which the caller lacks", svcNamespace, ref.Name))
-					}
-					logger.Warn("pod lookup failed during trusted host resolution", "pod", ref.Name, "namespace", svcNamespace, "error", err)
-					return false, nil, nil
-				}
-				podCache[ref.Name] = pod
+			pod, found := podByName[ref.Name]
+			if !found {
+				// Fail closed: the referenced Pod is not among the Service's
+				// selector-matched Pods.
+				return false, nil, nil
 			}
 			// Host-network Pods indicate a manually managed setup that must not
 			// receive the SSRF exemption for the whole Service.

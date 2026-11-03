@@ -131,7 +131,7 @@ func runningPodWithIPs(ns string, ips ...string) *corev1.Pod {
 		podIPs = append(podIPs, corev1.PodIP{IP: ip})
 	}
 	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "my-model-pod"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "my-model-pod", Labels: map[string]string{"app": "my-model"}},
 		Status: corev1.PodStatus{
 			Phase:  corev1.PodRunning,
 			PodIPs: podIPs,
@@ -328,6 +328,16 @@ func TestResolveTrustedHost(t *testing.T) {
 			service: selectorSvc("", intstr.FromInt32(8443)),
 			slices:  []discoveryv1.EndpointSlice{manualSlice("my-model-forged", "10.9.9.9", boolPtr(true), nil, podRefAt("my-ns", "my-model-pod"))},
 			podErr:  apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, "my-model-pod"),
+		},
+		{
+			name:    "endpoint Pod that no longer matches the Service selector is NOT trusted",
+			service: selectorSvc("", intstr.FromInt32(8443)),
+			slices:  []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+			pod: func() *corev1.Pod {
+				pod := runningPod("my-ns", "127.0.0.1")
+				pod.Labels = nil
+				return pod
+			}(),
 		},
 		{
 			name:    "host-network Pod is NOT trusted",
