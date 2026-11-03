@@ -347,6 +347,7 @@ export type DashboardCommonConfig = {
   disableLLMd?: boolean;
   llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  bidirectionalYamlWizardGa?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   genAiAgentDeployment?: boolean;

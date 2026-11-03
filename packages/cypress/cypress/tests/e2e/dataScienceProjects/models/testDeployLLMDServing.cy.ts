@@ -132,9 +132,15 @@ describe('A user can deploy an LLMD model', () => {
         .findSaveConnectionInput()
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
-      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
-      modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
-      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
+      modelServingWizard.yaml
+        .findYAMLViewerToggle(YAMLViewerToggleOption.YAML)
+        .should('exist')
+        .click();
+      modelServingWizard.yaml.findYAMLEditorEmptyState().should('be.visible');
+      modelServingWizard.yaml
+        .findYAMLViewerToggle(YAMLViewerToggleOption.FORM)
+        .should('exist')
+        .click();
       modelServingWizard.selectModelTypeOption(ModelTypeLabel.GENERATIVE);
 
       modelServingWizard.findNextButton().should('be.enabled').click();
@@ -155,13 +161,16 @@ describe('A user can deploy an LLMD model', () => {
       // Stub clipboard API AFTER page load (window changes on navigation)
       stubClipboard('copiedYAML');
       modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
-      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
-      modelServingWizard.findYAMLCodeEditor().waitForReady();
+      modelServingWizard.yaml
+        .findYAMLViewerToggle(YAMLViewerToggleOption.YAML)
+        .should('exist')
+        .click();
+      modelServingWizard.yaml.findYAMLCodeEditor().waitForReady();
 
       cy.step('Patch YAML to use CPU image (workaround for non-GPU cluster)');
       // Add the CPU image to the containers spec so deployment works without GPU
-      modelServingWizard.findYAMLCodeEditor().replaceInEditor(existingImage, replaceImage);
-      modelServingWizard.findYAMLCodeEditor().copyToClipboard().click();
+      modelServingWizard.yaml.findYAMLCodeEditor().replaceInEditor(existingImage, replaceImage);
+      modelServingWizard.yaml.findYAMLCodeEditor().copyToClipboard().click();
       // Verify the actual copied YAML content
       getClipboardContent('copiedYAML').then((copied) => {
         expect(copied).to.have.length.at.least(1);
@@ -171,9 +180,12 @@ describe('A user can deploy an LLMD model', () => {
         expect(yamlContent).to.include(`name: ${modelName}`);
         expect(yamlContent).to.include(replaceImage);
       });
-      modelServingWizard.findYAMLCodeEditor().download().should('exist').click();
+      modelServingWizard.yaml.findYAMLCodeEditor().download().should('exist').click();
       // Back to Form view
-      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
+      modelServingWizard.yaml
+        .findYAMLViewerToggle(YAMLViewerToggleOption.FORM)
+        .should('exist')
+        .click();
       // Verify replica settings are available for LLMD
       modelServingWizard.findNumReplicasInputField().should('exist').should('have.value', '1');
       modelServingWizard.findNextButton().should('be.enabled').click();
@@ -235,18 +247,21 @@ describe('A user can deploy an LLMD model', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Enter Manual YAML editor Mode');
-      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
-      modelServingWizard.findManualEditModeButton().click();
-      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+      modelServingWizard.yaml
+        .findYAMLViewerToggle(YAMLViewerToggleOption.YAML)
+        .should('exist')
+        .click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
       modelServingWizard.findSubmitButton().should('be.disabled');
 
       cy.step('Load YAML content from fixture and deploy');
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.findStartFromScratchButton().click();
       yamlEditor.findUpload().selectFile(yamlEditorModelPath, {
         force: true,
       });
-      modelServingWizard.findYAMLCodeEditor().waitForReady();
+      modelServingWizard.yaml.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findSubmitButton().should('be.enabled').click();
       const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
       cy.step('Wait for the deployed model to appear in the deployments table');
@@ -259,8 +274,8 @@ describe('A user can deploy an LLMD model', () => {
       llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
       llmdRow.findKebab().click();
       inferenceServiceActions.findEditInferenceServiceAction().click();
-      modelServingWizard.findYAMLEditFallbackAlert().should('exist');
-      modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
+      modelServingWizard.yaml.findYAMLEditFallbackAlert().should('exist');
+      modelServingWizard.yaml.findYAMLCodeEditor().findInput().should('not.be.empty');
       modelServingWizard.findSubmitButton().should('be.enabled').click();
     },
   );
