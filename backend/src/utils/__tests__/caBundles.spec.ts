@@ -84,6 +84,10 @@ describe('getUndiciTLSOptions', () => {
   it('should omit undici TLS options when no CA bundles are available', () => {
     expect(getUndiciTLSOptions([])).toBeUndefined();
   });
+
+  it('should reuse the default undici TLS options', () => {
+    expect(getUndiciTLSOptions()).toBe(getUndiciTLSOptions());
+  });
 });
 
 describe('getTrustedCAs', () => {

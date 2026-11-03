@@ -89,7 +89,7 @@ export const proxyService =
       upstream: '',
       prefix: `${!service.namespace ? '/:namespace' : ''}${!service.name ? '/:name' : ''}`,
       rewritePrefix: '',
-      undici: getUndiciTLSOptions(),
+      undici: tls ? getUndiciTLSOptions() : undefined,
       replyOptions: {
         // preHandler must set the `upstream` param
         getUpstream: (request) => getParam(request, 'upstream'),
@@ -231,7 +231,8 @@ export const registerProxy = async (
     headers?: Record<string, string>;
   },
 ): Promise<void> => {
-  const scheme = tls === false ? 'http' : 'https';
+  const useTls = tls !== false;
+  const scheme = useTls ? 'https' : 'http';
   const upstream = DEV_MODE
     ? `${scheme}://${local?.host || 'localhost'}:${local?.port ?? service.port}`
     : `${scheme}://${service.name}.${service.namespace}.svc.cluster.local:${service.port}`;
@@ -240,7 +241,7 @@ export const registerProxy = async (
     prefix,
     rewritePrefix: rewritePrefix ?? '',
     upstream,
-    undici: getUndiciTLSOptions(),
+    undici: useTls ? getUndiciTLSOptions() : undefined,
     replyOptions: {
       getUpstream: () => upstream,
       onError,

@@ -49,9 +49,17 @@ export const getTrustedCAs = (bundles: readonly Buffer[] = caBundles): Buffer[] 
 
 type UndiciTLSOptions = { connect: { ca: Buffer[] } };
 
-export const getUndiciTLSOptions = (
-  bundles: readonly Buffer[] = caBundles,
-): UndiciTLSOptions | undefined => {
+const defaultTrustedCAs = getTrustedCAs(caBundles);
+
+const defaultUndiciTLSOptions: UndiciTLSOptions | undefined = defaultTrustedCAs
+  ? { connect: { ca: defaultTrustedCAs } }
+  : undefined;
+
+export const getUndiciTLSOptions = (bundles?: readonly Buffer[]): UndiciTLSOptions | undefined => {
+  if (!bundles) {
+    return defaultUndiciTLSOptions;
+  }
+
   const trustedCAs = getTrustedCAs(bundles);
   return trustedCAs ? { connect: { ca: trustedCAs } } : undefined;
 };

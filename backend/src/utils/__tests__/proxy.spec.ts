@@ -1,6 +1,7 @@
 import httpProxy from '@fastify/http-proxy';
 import { KubeFastifyInstance } from '../../types';
 import { proxyService, registerProxy } from '../proxy';
+import { getUndiciTLSOptions } from '../caBundles';
 
 jest.mock('@fastify/http-proxy', () => ({
   __esModule: true,
@@ -56,5 +57,36 @@ describe('proxy registration', () => {
     );
     const options = (fastify.register as jest.Mock).mock.calls[0][1];
     expect(options.undici.connect.rejectUnauthorized).toBeUndefined();
+  });
+
+  it('should not load undici TLS options for proxyService when TLS is disabled', async () => {
+    const fastify = createFastify();
+    const plugin = proxyService(
+      null,
+      { name: 'model-registry', namespace: 'models', internalPort: 8080 },
+      { host: 'localhost', port: 8080 },
+      undefined,
+      false,
+    );
+
+    await plugin(fastify);
+
+    const options = (fastify.register as jest.Mock).mock.calls[0][1];
+    expect(options.undici).toBeUndefined();
+    expect(getUndiciTLSOptions).not.toHaveBeenCalled();
+  });
+
+  it('should not load undici TLS options for registerProxy when TLS is disabled', async () => {
+    const fastify = createFastify();
+
+    await registerProxy(fastify, {
+      prefix: '/api/model-registry',
+      service: { name: 'model-registry', namespace: 'models', port: 8080 },
+      tls: false,
+    });
+
+    const options = (fastify.register as jest.Mock).mock.calls[0][1];
+    expect(options.undici).toBeUndefined();
+    expect(getUndiciTLSOptions).not.toHaveBeenCalled();
   });
 });
