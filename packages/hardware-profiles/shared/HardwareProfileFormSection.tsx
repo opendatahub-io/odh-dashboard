@@ -19,7 +19,6 @@ import {
 } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useValidation, ValidationContext } from '@odh-dashboard/ui-core/utilities/useValidation';
-import { useHardwareProfilesByFeatureVisibility } from '@odh-dashboard/internal/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { ZodErrorHelperText } from '@odh-dashboard/ui-core/components/ZodErrorFormHelperText';
 import { ProjectScopedPopover } from '@odh-dashboard/ui-core';
 import DashboardHelpTooltip from '@odh-dashboard/ui-core/components/DashboardHelpTooltip';
@@ -37,6 +36,7 @@ import {
   isDRAHardwareProfile,
   isSameHardwareProfileBinding,
 } from './utils';
+import { useHardwareProfilesByFeatureVisibility } from '../src/pages/useHardwareProfilesByFeatureVisibility';
 
 type HardwareProfileFormSectionProps<T extends HardwarePodSpecOptions> = {
   isEditing: boolean;
