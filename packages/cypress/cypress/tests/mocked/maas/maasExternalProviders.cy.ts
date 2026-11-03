@@ -26,8 +26,8 @@ const TEST_PROJECT = 'test-project';
 const setupCommonIntercepts = () => {
   asProductAdminUser();
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
-  cy.interceptOdh('GET /maas/api/v1/user', {
-    data: { userId: 'test-user', clusterAdmin: false },
+  cy.interceptOdh('GET /maas/api/v1/whoami', {
+    data: { sub: 'test-user', isAdmin: false },
   });
   cy.interceptK8sList(
     ProjectModel,
