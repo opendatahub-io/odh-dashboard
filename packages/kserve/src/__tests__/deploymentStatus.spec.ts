@@ -13,7 +13,7 @@ describe('getKServeDeploymentConditions', () => {
 
     expect(conditions[0]).toEqual({
       type: 'DeploymentRequested',
-      label: 'Deployment requested',
+      label: 'Request deployment',
       status: 'True',
       lastTransitionTime: '2026-04-22T15:44:32Z',
     });
@@ -27,7 +27,7 @@ describe('getKServeDeploymentConditions', () => {
 
     const predictorCondition = conditions.find((c) => c.type === 'PredictorReady');
     expect(predictorCondition).toBeDefined();
-    expect(predictorCondition?.label).toBe('Predictor ready');
+    expect(predictorCondition?.label).toBe('Prepare predictor');
     expect(predictorCondition?.lastTransitionTime).toBe('2026-05-26T13:49:27Z');
   });
 

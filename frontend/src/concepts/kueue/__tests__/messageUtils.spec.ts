@@ -13,7 +13,6 @@ import {
   toOrdinal,
   formatQueuePosition,
   appendQueuePositionToKueueMessage,
-  appendModelDeploymentPodAdmissionSuffix,
   getModelDeploymentKueueDetailMessage,
   isInadmissibleQuotaCondition,
 } from '@odh-dashboard/k8s-core/kueue/messageUtils';
@@ -383,27 +382,14 @@ describe('getModelDeploymentKueueDetailMessage', () => {
     });
     expect(result).toBe('4th in my-queue');
   });
-});
 
-describe('appendModelDeploymentPodAdmissionSuffix', () => {
-  it('appends pod admission counts when total > 1', () => {
-    const result = appendModelDeploymentPodAdmissionSuffix('2nd in my-queue', {
-      status: KueueWorkloadStatus.Queued,
-      queueName: 'my-queue',
-      queuePosition: 2,
-      podAdmissionCounts: { admitted: 3, total: 5 },
+  it('does not repeat "queue" when the queue does not exist', () => {
+    const result = getModelDeploymentKueueDetailMessage({
+      status: KueueWorkloadStatus.Inadmissible,
+      queueName: 'no-lq',
+      message: "LocalQueue no-lq doesn't exist",
     });
-    expect(result).toBe('2nd in my-queue (3 of 5 pods admitted)');
-  });
-
-  it('returns detail unchanged when total is 1', () => {
-    const result = appendModelDeploymentPodAdmissionSuffix('2nd in my-queue', {
-      status: KueueWorkloadStatus.Queued,
-      queueName: 'my-queue',
-      queuePosition: 2,
-      podAdmissionCounts: { admitted: 0, total: 1 },
-    });
-    expect(result).toBe('2nd in my-queue');
+    expect(result).toBe('Queue no-lq does not exist');
   });
 });
 
@@ -537,30 +523,29 @@ describe('getKueueSubStepInfo', () => {
 });
 
 describe('getDeploymentKueueSubStepMessage', () => {
-  it('formats Queued as "Queued: <reason>"', () => {
+  it('formats Queued without a status prefix', () => {
     const result = getDeploymentKueueSubStepMessage({
       status: KueueWorkloadStatus.Queued,
       queueName: 'my-queue',
     });
-    expect(result).toBe('Queued: Waiting for quota in my-queue');
+    expect(result).toBe('Waiting for quota in my-queue');
   });
 
-  it('formats Preempted as "Preempted: Deployment re-queued, waiting for resource"', () => {
+  it('formats Preempted as "Deployment re-queued, waiting for resource"', () => {
     const result = getDeploymentKueueSubStepMessage({
       status: KueueWorkloadStatus.Preempted,
       queueName: 'my-queue',
     });
-    expect(result).toBe('Preempted: Deployment re-queued, waiting for resource');
+    expect(result).toBe('Deployment re-queued, waiting for resource');
   });
 
-  it('formats Requeued with its own prefix, not Queued', () => {
+  it('formats Requeued without a status prefix', () => {
     const result = getDeploymentKueueSubStepMessage({
       status: KueueWorkloadStatus.Requeued,
       queueName: 'test-queue',
       requeueInfo: { count: 2, requeueAt: '2026-07-15T10:05:00Z' },
     });
-    expect(result).toMatch(/^Requeued: /);
-    expect(result).not.toMatch(/^Queued: /);
+    expect(result).toMatch(/^Waiting for quota in test-queue/);
     expect(result).toContain('attempt 2');
     expect(result).toContain('test-queue');
   });
@@ -571,7 +556,7 @@ describe('getDeploymentKueueSubStepMessage', () => {
       queueName: 'my-queue',
       message: 'Requested 8 GPUs exceed 4 GPUs queue quota.',
     });
-    expect(result).toBe('Failed: Requested 8 GPUs exceed 4 GPUs queue quota.');
+    expect(result).toBe('Requested 8 GPUs exceed 4 GPUs queue quota.');
   });
 
   it('formats a quota-exceeded Inadmissible status using the raw Kueue message verbatim', () => {
@@ -580,7 +565,7 @@ describe('getDeploymentKueueSubStepMessage', () => {
       queueName: 'my-queue',
       message: 'insufficient unused quota for nvidia.com/gpu',
     });
-    expect(result).toBe('Inadmissible: insufficient unused quota for nvidia.com/gpu');
+    expect(result).toBe('insufficient unused quota for nvidia.com/gpu');
   });
 
   it('falls back to the generic templated message when Failed has no quota-shaped raw message', () => {
@@ -589,27 +574,16 @@ describe('getDeploymentKueueSubStepMessage', () => {
       queueName: 'my-queue',
       message: 'some other failure',
     });
-    expect(result).toBe('Failed: some other failure');
+    expect(result).toBe('some other failure');
   });
 
-  it('appends the partial-admission suffix when podAdmissionCounts.total > 1', () => {
+  it('omits the partial-admission suffix when podAdmissionCounts.total > 1', () => {
     const result = getDeploymentKueueSubStepMessage({
       status: KueueWorkloadStatus.Queued,
       queueName: 'my-queue',
       podAdmissionCounts: { admitted: 3, total: 5 },
     });
-    expect(result).toBe('Queued: Waiting for quota in my-queue (3 of 5 pods admitted)');
-  });
-
-  it('appends the partial-admission suffix to the Preempted message too', () => {
-    const result = getDeploymentKueueSubStepMessage({
-      status: KueueWorkloadStatus.Preempted,
-      queueName: 'my-queue',
-      podAdmissionCounts: { admitted: 2, total: 4 },
-    });
-    expect(result).toBe(
-      'Preempted: Deployment re-queued, waiting for resource (2 of 4 pods admitted)',
-    );
+    expect(result).toBe('Waiting for quota in my-queue');
   });
 
   it('omits the suffix when podAdmissionCounts.total is 1 (single replica)', () => {
@@ -618,7 +592,7 @@ describe('getDeploymentKueueSubStepMessage', () => {
       queueName: 'my-queue',
       podAdmissionCounts: { admitted: 0, total: 1 },
     });
-    expect(result).toBe('Queued: Waiting for quota in my-queue');
+    expect(result).toBe('Waiting for quota in my-queue');
   });
 
   it('shows position only when queuePosition is set for Queued status', () => {
@@ -627,17 +601,17 @@ describe('getDeploymentKueueSubStepMessage', () => {
       queueName: 'my-queue',
       queuePosition: 3,
     });
-    expect(result).toBe('Queued: 3rd in my-queue');
+    expect(result).toBe('3rd in my-queue');
   });
 
-  it('shows position and pod admission suffix when both are set', () => {
+  it('shows position only when both position and pod admission counts are set', () => {
     const result = getDeploymentKueueSubStepMessage({
       status: KueueWorkloadStatus.Queued,
       queueName: 'my-queue',
       queuePosition: 3,
       podAdmissionCounts: { admitted: 3, total: 5 },
     });
-    expect(result).toBe('Queued: 3rd in my-queue (3 of 5 pods admitted)');
+    expect(result).toBe('3rd in my-queue');
   });
 });
 

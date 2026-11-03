@@ -101,6 +101,7 @@
     "./components/conditionalArea": "./src/components/conditionalArea.tsx",
     "./components/MultiSelection": "./src/components/MultiSelection.tsx",
     "./components/UnderlinedTruncateButton": "./src/components/UnderlinedTruncateButton.tsx",
+    "./components/BoldedText": "./src/components/BoldedText.tsx",
     "./hooks/useRefreshInterval": "./src/hooks/useRefreshInterval.ts",
     "./hooks/useMakeFetchObject": "./src/hooks/useMakeFetchObject.ts",
     "./types/prometheus": "./src/types/prometheus.ts",

@@ -55,7 +55,7 @@ describe('DeploymentStatusModal', () => {
 
     render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
 
-    expect(screen.getByText('Test Model status')).toBeInTheDocument();
+    expect(screen.getByText('Test Model')).toBeInTheDocument();
     expect(screen.getByText('Deployment requested')).toBeInTheDocument();
   });
 
@@ -251,7 +251,7 @@ describe('DeploymentStatusModal', () => {
 
     render(<DeploymentStatusModal deployment={deployment} onClose={jest.fn()} />);
 
-    expect(screen.getByText('Test Model status')).toBeInTheDocument();
+    expect(screen.getByText('Test Model')).toBeInTheDocument();
     expect(screen.getByTestId('deployment-status-steps')).toBeInTheDocument();
   });
 });

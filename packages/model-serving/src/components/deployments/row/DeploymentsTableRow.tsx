@@ -22,6 +22,7 @@ import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import {
   ModelStatusIcon,
   getDeploymentStatusSubtitle,
+  getDeploymentStatusSubtitleBoldText,
   getDeploymentStatusSubtitleColor,
 } from '@odh-dashboard/model-serving/shared/components';
 import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
@@ -255,6 +256,7 @@ export const DeploymentRow: React.FC<{
                 <UnderlinedTruncateButton
                   data-testid="deployment-status-subtitle"
                   content={statusSubtitle}
+                  boldText={getDeploymentStatusSubtitleBoldText(deployment.status)}
                   color={getDeploymentStatusSubtitleColor(deployment.status)}
                   onClick={openStatusModal}
                 />
