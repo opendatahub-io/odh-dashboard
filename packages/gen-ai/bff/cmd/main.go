@@ -267,7 +267,7 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 		return errors.New("AllowLocalModelEndpoints is only allowed in local development mode (--dev-mode)")
 	}
 
-	if ip := net.ParseIP(host); host != "localhost" && (ip == nil || !ip.IsLoopback()) {
+	if !hostResolvesToLoopback(host) {
 		slog.Error("SECURITY: AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface",
 			"host", host,
 			"fix", "Pass --host localhost (or 127.0.0.1) when using --allow-local-model-endpoints",
@@ -279,4 +279,27 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 		"use_case", "local development only - NEVER use in production",
 	)
 	return nil
+}
+
+// hostResolvesToLoopback reports whether host is an IP literal that is loopback
+// or a hostname that resolves exclusively to loopback addresses. Hostnames are
+// resolved rather than trusted, so a hosts-file entry pointing "localhost" at a
+// non-loopback address does not bypass the check.
+func hostResolvesToLoopback(host string) bool {
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback()
+	}
+	addrs, err := net.LookupHost(host)
+	if err != nil {
+		return false
+	}
+	if len(addrs) == 0 {
+		return false
+	}
+	for _, addr := range addrs {
+		if ip := net.ParseIP(addr); ip == nil || !ip.IsLoopback() {
+			return false
+		}
+	}
+	return true
 }

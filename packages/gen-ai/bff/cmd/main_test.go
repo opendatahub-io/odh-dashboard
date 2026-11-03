@@ -216,6 +216,14 @@ func TestValidateAllowLocalModelEndpoints(t *testing.T) {
 			expectedError:            false,
 		},
 		{
+			name:                     "AllowLocalModelEndpoints enabled in dev-mode on unresolvable host - should fail",
+			allowLocalModelEndpoints: true,
+			devMode:                  true,
+			host:                     "nonexistent-host.invalid",
+			expectedError:            true,
+			expectedErrorContains:    "loopback interface",
+		},
+		{
 			name:                     "AllowLocalModelEndpoints enabled with cert-file - should fail",
 			allowLocalModelEndpoints: true,
 			devMode:                  true,
