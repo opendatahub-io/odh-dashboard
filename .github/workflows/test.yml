@@ -382,7 +382,7 @@ jobs:
       - name: No Cypress mock tests selected
         if: needs.Get-Test-Groups.outputs.has-tests != 'true'
         run: |
-          echo "Documentation-only change; Cypress mock tests are not required."
+          echo "Non-runtime change; Cypress mock tests are not required."
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         with:
