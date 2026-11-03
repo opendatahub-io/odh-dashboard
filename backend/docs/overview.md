@@ -19,12 +19,12 @@
 
 `utils/caBundles.ts` assembles the outbound trust set used by service proxies and Node HTTPS clients. It combines:
 
-- Platform and Kubernetes CA bundles from the configured paths, when present
+- Platform and Kubernetes CA bundles from the configured paths, when present. Missing optional bundles are skipped; other read failures emit a warning with the path and error.
 - Node's effective default certificate set, including runtime-selected system roots and `NODE_EXTRA_CA_CERTS`
 
 On Node runtimes that predate `tls.getCACertificates`, the fallback uses `tls.rootCertificates` plus certificates loaded from `NODE_EXTRA_CA_CERTS`.
 
-Both proxy registration paths pass the resulting CA list to undici through `undici.connect.ca`. `server.ts` applies the same trust set to `https.globalAgent.options.ca`. Certificate verification remains enabled; if no platform bundles are available, the helpers leave TLS options unset so Node continues using its defaults.
+Both proxy registration paths pass the resulting CA list to undici through `undici.connect.ca`. `server.ts` applies the same trust set to `https.globalAgent.options.ca`. Certificate verification remains enabled in the production server; the `start:dev`, `debug`, and `cypress:server:e2e` scripts explicitly set `NODE_TLS_REJECT_UNAUTHORIZED=0`, so HTTPS checks under those scripts do not exercise certificate verification. If no platform bundles are available, the helpers leave TLS options unset so Node continues using its defaults.
 
 ## Key Concepts
 
