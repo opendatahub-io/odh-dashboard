@@ -94,8 +94,6 @@ const getCompatibleRouterConfigs = (
   });
 };
 
-export { DEFAULT_ROUTING_KEY } from '../const';
-
 const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   value,
   onChange,
