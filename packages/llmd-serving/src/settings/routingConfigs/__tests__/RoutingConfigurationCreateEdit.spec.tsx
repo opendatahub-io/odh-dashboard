@@ -7,6 +7,10 @@ import { TopologyType } from '../../../types';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 import { RoutingConfigContext } from '../RoutingConfigContext';
 import RoutingConfigurationCreateEdit from '../RoutingConfigurationCreateEdit';
+import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+
+const mockTrackEvent = jest.fn();
+const wrapper = createHostApiWrapper(mockTrackEvent);
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
@@ -58,6 +62,7 @@ const renderAtRoute = (
         </Routes>
       </RoutingConfigContext.Provider>
     </MemoryRouter>,
+    { wrapper },
   );
 
 describe('RoutingConfigurationCreateEdit', () => {

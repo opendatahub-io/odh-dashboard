@@ -19,6 +19,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
@@ -87,6 +88,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
   sourceConfig?: LLMInferenceServiceConfigKind;
   isDuplicate: boolean;
 }> = ({ sourceConfig, isDuplicate }) => {
+  const trackEvent = useTrackEvent();
   const listPath = ROUTING_CONFIGS_TAB_PATH;
   const navigate = useNavigate();
   const { configName } = useParams<{ configName?: string }>();
@@ -322,14 +324,14 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
-        fireRoutingConfigUpdated({
+        fireRoutingConfigUpdated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           topologyType: selectedTopology,
         });
       } else {
         await createLLMInferenceServiceConfig(newConfig);
-        fireRoutingConfigCreated({
+        fireRoutingConfigCreated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           mode: isDuplicate ? 'duplicate' : 'create',
@@ -346,13 +348,13 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         err.message,
       );
       if (isEditMode) {
-        fireRoutingConfigUpdated({
+        fireRoutingConfigUpdated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
           topologyType: selectedTopology,
         });
       } else {
-        fireRoutingConfigCreated({
+        fireRoutingConfigCreated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
           mode: isDuplicate ? 'duplicate' : 'create',
@@ -464,9 +466,9 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             isDisabled={loading}
             onClick={() => {
               if (isEditMode) {
-                fireRoutingConfigUpdated({ outcome: TrackingOutcome.cancel });
+                fireRoutingConfigUpdated(trackEvent, { outcome: TrackingOutcome.cancel });
               } else {
-                fireRoutingConfigCreated({
+                fireRoutingConfigCreated(trackEvent, {
                   outcome: TrackingOutcome.cancel,
                   mode: isDuplicate ? 'duplicate' : 'create',
                 });

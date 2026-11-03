@@ -7,6 +7,10 @@ import { type LLMInferenceServiceConfigKind, TopologyType } from '../../../types
 import { TopologyConfigContext } from '../TopologyConfigContext';
 import TopologyConfigurationCreateEdit from '../TopologyConfigurationCreateEdit';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../paths';
+import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+
+const mockTrackEvent = jest.fn();
+const wrapper = createHostApiWrapper(mockTrackEvent);
 
 jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
   useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
@@ -55,6 +59,7 @@ const renderAtDuplicate = (config: LLMInferenceServiceConfigKind) =>
         </Routes>
       </TopologyConfigContext.Provider>
     </MemoryRouter>,
+    { wrapper },
   );
 
 // Renders the add route with an arbitrary :topologyType, plus a placeholder list
@@ -72,6 +77,7 @@ const renderAtAdd = (topologyType: string) =>
         </Routes>
       </TopologyConfigContext.Provider>
     </MemoryRouter>,
+    { wrapper },
   );
 
 // Renders the edit route for a configName with the given configs available in
@@ -89,6 +95,7 @@ const renderAtEdit = (configName: string, configs: LLMInferenceServiceConfigKind
         </Routes>
       </TopologyConfigContext.Provider>
     </MemoryRouter>,
+    { wrapper },
   );
 
 // Renders the duplicate route for a configName with the given configs available
@@ -106,6 +113,7 @@ const renderAtDuplicateByName = (configName: string, configs: LLMInferenceServic
         </Routes>
       </TopologyConfigContext.Provider>
     </MemoryRouter>,
+    { wrapper },
   );
 
 describe('TopologyConfigurationCreateEdit', () => {
