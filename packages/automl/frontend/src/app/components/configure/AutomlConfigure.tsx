@@ -74,7 +74,6 @@ import {
   PRESET_BETTER_QUALITY,
   PRESET_FASTER,
   PRESET_LABELS,
-  PRESET_QUALITY,
   PRESETS,
   REQUIRED_CONNECTION_SECRET_KEYS,
   TASK_TYPE_TIMESERIES,
@@ -223,13 +222,6 @@ function AutomlConfigure({
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
   const availablePresets = isTimeseries ? TIMESERIES_PRESETS : PRESETS;
 
-  // Normalize unsupported presets on initial values as well as when switching to timeseries.
-  useEffect(() => {
-    if (isTimeseries && getValues('preset') === PRESET_QUALITY) {
-      setValue('preset', PRESET_FASTER, { shouldValidate: true });
-    }
-  }, [isTimeseries, getValues, setValue]);
-
   // Clear timeseries fields that conflict with the selected target column
   useEffect(() => {
     if (!targetColumn) {
@@ -281,7 +273,7 @@ function AutomlConfigure({
       });
       void trigger('top_n');
     }
-  }, [taskType, isTaskTypeSelected, isTimeseries, getValues, setValue, trigger]);
+  }, [taskType, isTaskTypeSelected, getValues, setValue, trigger]);
 
   const canSelectFiles = !selectedSecret?.invalid && Boolean(trainDataSecretName);
   const isFileSelected = Boolean(trainDataFileKey);

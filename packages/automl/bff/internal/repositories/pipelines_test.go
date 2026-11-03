@@ -175,11 +175,23 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("quality preset is invalid for timeseries", func(t *testing.T) {
+	t.Run("quality preset is valid for timeseries", func(t *testing.T) {
 		req := validTimeSeriesRequest()
 		req.Preset = ptr("quality")
-		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries); err == nil {
-			t.Fatal("expected quality preset to be rejected for timeseries")
+		if err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("unsupported preset is invalid for timeseries", func(t *testing.T) {
+		req := validTimeSeriesRequest()
+		req.Preset = ptr("unsupported")
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		if err == nil {
+			t.Fatal("expected unsupported preset to be rejected for timeseries")
+		}
+		if !strings.Contains(err.Error(), "invalid preset") {
+			t.Errorf("error should mention invalid preset: %v", err)
 		}
 	})
 
@@ -547,6 +559,15 @@ func TestBuildPipelineRunInput(t *testing.T) {
 		}
 		if disabled := kfp.PluginsInput["mlflow"]["disabled"]; disabled != true {
 			t.Errorf("mlflow plugin disabled = %v, want true", disabled)
+		}
+	})
+
+	t.Run("timeseries quality preset is passed to pipeline parameters", func(t *testing.T) {
+		req := validTimeSeriesRequest()
+		req.Preset = ptr("quality")
+		kfp := BuildPipelineRunInput(req, "pid", "vid", constants.PipelineTypeTimeSeries)
+		if got := kfp.RuntimeConfig.Parameters["preset"]; got != "quality" {
+			t.Errorf("preset = %v, want quality", got)
 		}
 	})
 
