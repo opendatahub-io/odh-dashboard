@@ -8,6 +8,7 @@ import { getAccessToken, getDirectCallOptions } from './directCallUtils';
 import { bracketHostIfIPv6 } from './networkUtils';
 import type { EitherNotBoth } from '@odh-dashboard/foundation';
 import { V1Service } from '@kubernetes/client-node';
+import { getUndiciTLSOptions } from './caBundles';
 
 export const getParam = <F extends FastifyRequest<any, any>>(req: F, name: string): string =>
   (req.params as { [key: string]: string })[name];
@@ -88,6 +89,7 @@ export const proxyService =
       upstream: '',
       prefix: `${!service.namespace ? '/:namespace' : ''}${!service.name ? '/:name' : ''}`,
       rewritePrefix: '',
+      undici: getUndiciTLSOptions(),
       replyOptions: {
         // preHandler must set the `upstream` param
         getUpstream: (request) => getParam(request, 'upstream'),
@@ -238,6 +240,7 @@ export const registerProxy = async (
     prefix,
     rewritePrefix: rewritePrefix ?? '',
     upstream,
+    undici: getUndiciTLSOptions(),
     replyOptions: {
       getUpstream: () => upstream,
       onError,
