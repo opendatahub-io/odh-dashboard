@@ -73,16 +73,8 @@ describe('readCABundles', () => {
 });
 
 describe('getUndiciTLSOptions', () => {
-  it('should pass effective default and configured CA bundles to undici when bundles are available', () => {
-    const ca = Buffer.from('service-ca');
-
-    expect(getUndiciTLSOptions([ca])).toEqual({
-      connect: { ca: [Buffer.from('system-ca'), Buffer.from('extra-ca'), ca] },
-    });
-  });
-
-  it('should omit undici TLS options when no CA bundles are available', () => {
-    expect(getUndiciTLSOptions([])).toBeUndefined();
+  it('should wrap the default trusted CAs in undici options', () => {
+    expect(getUndiciTLSOptions()).toEqual({ connect: { ca: getTrustedCAs() } });
   });
 
   it('should reuse the default undici TLS options', () => {
