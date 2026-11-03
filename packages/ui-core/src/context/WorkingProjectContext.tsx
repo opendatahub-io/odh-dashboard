@@ -4,6 +4,17 @@ import type { WorkingProjectIdentity } from '@odh-dashboard/foundation';
 /** The existing ui-core contract shares the platform-neutral identity with the resolution policy. */
 export type ProjectIdentity = WorkingProjectIdentity;
 
+/** A mounted surface owns the destination URL for an externally synchronized selection. */
+export type WorkingProjectNavigationTransaction = {
+  commit: () => void;
+  cancel: () => void;
+};
+
+export type WorkingProjectNavigation = (
+  project: ProjectIdentity,
+  transaction: WorkingProjectNavigationTransaction,
+) => void;
+
 /** Lifecycle of the host's project source as exposed through the working-project context. */
 export type WorkingProjectStatus =
   /** No working-project provider is mounted above the consumer. */
@@ -24,6 +35,10 @@ export type WorkingProjectContextType = {
   projects: readonly ProjectIdentity[];
   activeProject: ProjectIdentity | null;
   selectProject: (project: ProjectIdentity) => void;
+  registerProjectNavigation?: (navigate: WorkingProjectNavigation) => () => void;
+  cancelProjectNavigation?: () => void;
+  /** Register the mounted unsaved-change blocker's reset, without sharing route shapes. */
+  registerProjectNavigationBlocker?: (reset: () => void) => () => void;
 };
 
 export type WorkingProjectProviderProps = {
@@ -31,6 +46,9 @@ export type WorkingProjectProviderProps = {
   projects: readonly ProjectIdentity[];
   activeProject: ProjectIdentity | null;
   onProjectChange: (project: ProjectIdentity) => void;
+  registerProjectNavigation?: (navigate: WorkingProjectNavigation) => () => void;
+  cancelProjectNavigation?: () => void;
+  registerProjectNavigationBlocker?: (reset: () => void) => () => void;
   /** Omit for a successfully listed source; only a host adapter knows its lifecycle. */
   status?: 'loading' | 'listed' | 'listing-unavailable' | 'project-source-error';
 };
@@ -49,6 +67,9 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   projects,
   activeProject,
   onProjectChange,
+  registerProjectNavigation,
+  cancelProjectNavigation,
+  registerProjectNavigationBlocker,
   status: sourceStatus = 'listed',
 }) => {
   // A list supplied while loading or after an error may be stale. With listing unavailable,
@@ -74,8 +95,24 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   );
 
   const value = React.useMemo(
-    () => ({ status, projects: knownProjects, activeProject: knownActiveProject, selectProject }),
-    [status, knownProjects, knownActiveProject, selectProject],
+    () => ({
+      status,
+      projects: knownProjects,
+      activeProject: knownActiveProject,
+      selectProject,
+      ...(registerProjectNavigation && { registerProjectNavigation }),
+      ...(cancelProjectNavigation && { cancelProjectNavigation }),
+      ...(registerProjectNavigationBlocker && { registerProjectNavigationBlocker }),
+    }),
+    [
+      status,
+      knownProjects,
+      knownActiveProject,
+      selectProject,
+      registerProjectNavigation,
+      cancelProjectNavigation,
+      registerProjectNavigationBlocker,
+    ],
   );
 
   return <WorkingProjectContext.Provider value={value}>{children}</WorkingProjectContext.Provider>;

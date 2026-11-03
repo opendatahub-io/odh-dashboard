@@ -58,6 +58,36 @@ describe('RHOAI ProjectsContextProvider working-project flag', () => {
     >);
   };
 
+  it.each([false, true])('should synchronize normal tabs only when UPS is %s', (enabled) => {
+    if (enabled) {
+      enableUnifiedProjectSelector();
+    }
+    const a = project('a');
+    const b = project('b');
+    watch([a, b]);
+    localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, '"a"');
+    render(
+      <ProjectsContextProvider>
+        <Consumer />
+        <WorkingConsumer />
+      </ProjectsContextProvider>,
+    );
+    localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, '"b"');
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+    act(() =>
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: PREFERRED_NAMESPACE_STORAGE_KEY,
+          newValue: '"b"',
+          storageArea: localStorage,
+        }),
+      ),
+    );
+    expect(context.preferredProject).toBe(enabled ? b : a);
+    expect(working.activeProject?.name ?? null).toBe(enabled ? 'b' : null);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+
   it('should leave default restoration, ordering and clearing unchanged', () => {
     const z = project('z', 'Z');
     const a = project('a', 'A');

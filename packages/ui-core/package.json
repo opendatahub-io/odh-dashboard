@@ -12,6 +12,7 @@
     "./utilities/valueUnits": "./src/utilities/valueUnits.ts",
     "./utilities/utils": "./src/utilities/utils.ts",
     "./hooks": "./src/hooks/index.ts",
+    "./hooks/useWorkingProjectSynchronization": "./src/hooks/useWorkingProjectSynchronization.ts",
     "./hooks/useBrowserStorage": "./src/hooks/useBrowserStorage.tsx",
     "./hooks/useFetch": "./src/hooks/useFetch.ts",
     "./hooks/useFetchState": "./src/hooks/useFetchState.ts",
