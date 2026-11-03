@@ -75,6 +75,32 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
     );
   }
 
+  /**
+   * Waits until the editor model holds the given text.
+   * `setValue` uploads a file, so the editor content only updates once the app has read it and
+   * round-tripped the change back through its own state; assert on the model to wait for that.
+   */
+  shouldContainTextInModel(text: string): void {
+    this.waitForReady();
+    this.find().then(($container) => {
+      // Re-read the live models on each retry, so this only passes once the app has applied the edit
+      cy.window().then((win) =>
+        cy.wrap(win, { log: false }).should(() => {
+          const { monaco } = win as unknown as { monaco?: MonacoGlobal };
+          if (!monaco) {
+            throw new Error('Monaco editor was not found on window');
+          }
+          const editors = monaco.editor.getEditors().filter((editor) => {
+            const node = editor.getDomNode();
+            return node !== null && $container[0].contains(node);
+          });
+          expect(editors, 'Monaco editor inside the requested code editor').to.have.length(1);
+          expect(editors[0].getModel()?.getValue() ?? '').to.contain(text);
+        }),
+      );
+    });
+  }
+
   replaceInEditor(oldText: string, newText: string): void {
     // Monaco virtualizes lines; read/write via Monaco model instead of DOM.
     this.waitForReady();

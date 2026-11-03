@@ -1876,9 +1876,9 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // YAML Viewer
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      modelServingWizard.findYAMLEditorEmptyState().should('exist');
-      modelServingWizard.findYAMLViewerToggle('Form').should('exist').click();
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.yaml.findYAMLEditorEmptyState().should('exist');
+      modelServingWizard.yaml.findYAMLViewerToggle('Form').should('exist').click();
 
       // Fill form to llmd and check yaml preview
       modelServingWizard
@@ -1897,8 +1897,8 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
       // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.containsText('apiVersion: serving.kserve.io/v1alpha2');
       yamlEditor.containsText('kind: LLMInferenceService');
       yamlEditor.containsText('name: test-model');
@@ -1951,17 +1951,17 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 4: Review - switch to YAML preview, verify the auto-generated YAML
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.containsText('kind: LLMInferenceService');
       yamlEditor.containsText('name: test-model');
 
       // Enter manual edit mode via the confirmation modal
-      modelServingWizard.findManualEditModeButton().click();
-      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
 
       // Once in yaml-edit mode, the Form toggle is disabled (cannot go back to wizard)
-      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+      modelServingWizard.yaml.findYAMLViewerToggle('Form').should('be.disabled');
 
       // Edit metadata.name in the YAML editor and verify the change propagates to the request
       yamlEditor.replaceInEditor('name: test-model', 'name: yaml-edited-model');
@@ -2029,18 +2029,18 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Immediately switch to YAML mode without touching the wizard form
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      modelServingWizard.findYAMLEditorEmptyState().should('exist');
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.yaml.findYAMLEditorEmptyState().should('exist');
 
       // Enter manual edit mode via the confirmation modal
-      modelServingWizard.findManualEditModeButton().click();
-      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
 
       // Form toggle is disabled; submit is disabled until YAML is provided
-      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+      modelServingWizard.yaml.findYAMLViewerToggle('Form').should('be.disabled');
       modelServingWizard.findSubmitButton().should('be.disabled');
 
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.findStartFromScratchButton().click();
       yamlEditor.waitForReady();
 
@@ -2137,8 +2137,10 @@ describe('Model Serving Deploy Wizard', () => {
 
       modelServingGlobal.visit('test-project');
       modelServingGlobal.getModelRow('Unparseable Model').findKebabAction('Edit').click();
-      modelServingWizard.findYAMLViewerToggle('YAML').should('have.attr', 'aria-pressed', 'true');
-      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+      modelServingWizard.yaml
+        .findYAMLViewerToggle('YAML')
+        .should('have.attr', 'aria-pressed', 'true');
+      modelServingWizard.yaml.findYAMLViewerToggle('Form').should('be.disabled');
 
       cy.findByTestId('yaml-fallback-alert').should('exist');
       cy.findByTestId('yaml-fallback-alert').should(
