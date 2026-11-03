@@ -1467,8 +1467,11 @@ components:
           type: string
           description: >-
             Name of a Kubernetes Secret (in the request namespace) whose "api-key"
-            data field contains the authentication credential. Mutually exclusive
-            with secret_value; secret_name takes precedence when both are provided.
+            data field contains the authentication credential. If the Secret also
+            contains a "ca_cert" PEM bundle, its CA certificates are trusted for
+            this connection probe. Non-CA certificates are ignored. Mutually
+            exclusive with secret_value; secret_name takes precedence when both
+            are provided.
           example: 'my-api-key-secret'
         secret_value:
           type: string
