@@ -71,6 +71,7 @@ module.exports = ({
                   transform: {
                     react: {
                       runtime: 'classic',
+                      development: mode === 'development',
                     },
                   },
                 },
