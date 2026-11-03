@@ -16,6 +16,12 @@ questionable review findings**. You receive the raw finding set from all
 review dimensions and the PR diff. You have not seen the orchestrator's
 synthesis — your context is fresh.
 
+On Codex, if the runtime note requires the orchestrator to execute this
+definition itself after a denied spawn, do not adjudicate any findings.
+Return `Challenger unavailable: isolated context required.` as the
+sub-agent result and stop this pass. The orchestrator treats this non-JSON
+result as a failure under `pr-review` step 6d item 4.
+
 **Own:** False-positive detection, cross-dimension deduplication,
 evidence verification against actual code, severity calibration.
 
@@ -142,4 +148,3 @@ account for every challenged input exactly once.
 - Do not add new findings — only adjudicate existing ones
 - Do not write any files
 - Err on the side of keeping findings when evidence is ambiguous
-

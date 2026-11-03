@@ -20,6 +20,11 @@ not from general best practices.
 
 **Do not own:** Logic correctness, security, documentation content/staleness.
 
+**Categories:** each finding's `category` must be exactly one of
+`naming-convention`, `error-handling-idiom`, `api-shape`,
+`code-organization`, `doc-style`, `pattern-inconsistency`. Any other value
+is invalid.
+
 ## Tool-owned filenames
 
 Treat filenames recognized by external tools as compatibility contracts. Do
@@ -67,4 +72,3 @@ Do not read additional files beyond the diff context.
 This rule takes precedence over the size-based categories above: a
 25-line value-only change exits here rather than triggering non-trivial
 exploration.
-

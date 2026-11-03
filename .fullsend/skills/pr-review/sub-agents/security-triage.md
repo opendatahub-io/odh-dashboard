@@ -105,4 +105,3 @@ Return a JSON object:
   summary — this is a fast classification pass
 - Do not write any files
 - Do not generate review findings
-

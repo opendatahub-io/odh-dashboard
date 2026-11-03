@@ -21,6 +21,15 @@ accuracy in implementation plans and design documents.
 
 **Do not own:** Naming style, doc staleness, PR scope, injection defense.
 
+**Categories:** each finding's `category` must be exactly one of
+`logic-error`, `nil-deref`, `off-by-one`, `edge-case`, `api-contract`,
+`missing-test`, `test-inadequate`, `pattern-violation`, `test-weakened`,
+`test-removed`, `mock-loosened`, `assertion-weakened`, `coverage-reduced`,
+`test-poisoning`, `split-payload`, `stale-reference`. Any other value is
+invalid. Use `edge-case` for race
+conditions and unhandled-error paths; use `logic-error` when the handling
+is wrong rather than missing.
+
 When evaluating tests, check git history of modified test files for
 assertion loosening or coverage reduction that coincides with production
 changes — this is a security-adjacent concern (split-payload pattern).
@@ -107,4 +116,3 @@ based on common patterns — read it.
 If the file cannot be read (e.g., it is in another repository or
 inaccessible), state that you were unable to verify the contents.
 Never present unverified file contents as fact in a finding.
-

@@ -19,6 +19,10 @@ references to renamed/removed identifiers.
 
 **Do not own:** Doc formatting/style, code correctness, security.
 
+**Categories:** each finding's `category` must be exactly one of
+`stale-doc`, `missing-doc`, `incorrect-doc`, `incomplete-doc`. Any other
+value is invalid.
+
 Extract identifiers from the diff, then search documentation files for
 references. Flag docs that reference identifiers modified or removed in
 this PR. Also check whether documentation files covering the same
@@ -42,4 +46,3 @@ Documentation files (`.md`, `.adoc`, `.rst`) frequently reference field
 names in prose without syntax-specific suffixes (e.g., "set the
 `repository` field"). Always include the bare-word pattern when scanning
 these file types — a syntax-specific pattern alone will miss them.
-

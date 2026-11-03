@@ -35,6 +35,14 @@ title parameter is also sanitized).
 **Do not own:** Code style, documentation, PR scope authorization, PR
 metadata (PR body, commit messages, PR description)
 
+**Categories:** each finding's `category` must be exactly one of
+`auth-bypass`, `rbac-violation`, `data-exposure`, `privilege-escalation`,
+`injection-vuln`, `sandbox-escape`, `xss`, `ssrf`,
+`insecure-deserialization`, `prompt-injection`, `unicode-steganography`,
+`bidi-override`, `homoglyph-attack`, `instruction-smuggling`, `fail-open`,
+`permission-expansion`, `permission-reduction`, `role-escalation`,
+`workflow-permission`, `secret-exposure`. Any other value is invalid.
+
 ## Verification methodology
 
 **Anti-pattern — partial verification generalized to blanket safety
@@ -143,4 +151,3 @@ without justification = **high**.
 For workflow files specifically, also check `secrets:` blocks — verify
 secrets are not exposed to untrusted contexts (e.g.,
 `pull_request_target` running fork code with repo secret access).
-
