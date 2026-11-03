@@ -19,26 +19,28 @@ jest.mock('#~/redux/hooks', () => ({
 const useAppDispatchMock = jest.mocked(useAppDispatch);
 const dispatchMock = jest.fn();
 
+const createStatusResponse = (): StatusResponse => ({
+  kube: {
+    currentContext: 'myContext',
+    currentUser: {
+      name: 'john_doe',
+      token: 'myAuthToken',
+    },
+    namespace: 'myNamespace',
+    userName: 'John Doe',
+    userID: '1234',
+    clusterID: 'myClusterID',
+    clusterBranding: 'My Cluster',
+    isAdmin: true,
+    isAllowed: true,
+    serverURL: 'https://api.example.com',
+    isImpersonating: false,
+  },
+});
+
 describe('useDetectUser', () => {
   it('should dispatch getUserPending and getUserFulfilled on successful API call', async () => {
-    const statusResponseMock: StatusResponse = {
-      kube: {
-        currentContext: 'myContext',
-        currentUser: {
-          name: 'john_doe',
-          token: 'myAuthToken',
-        },
-        namespace: 'myNamespace',
-        userName: 'John Doe',
-        userID: '1234',
-        clusterID: 'myClusterID',
-        clusterBranding: 'My Cluster',
-        isAdmin: true,
-        isAllowed: true,
-        serverURL: 'https://api.example.com',
-        isImpersonating: false,
-      },
-    };
+    const statusResponseMock = createStatusResponse();
 
     // Mock axios.get to return a resolved promise with the statusResponseMock
     jest.mocked(axios.get).mockResolvedValueOnce({ data: statusResponseMock });
@@ -96,6 +98,48 @@ describe('useDetectUser', () => {
         expect(axios.get).toHaveBeenCalledTimes(2);
         expect(dispatchMock).toHaveBeenCalledTimes(3);
         expect(dispatchMock).toHaveBeenNthCalledWith(3, rejectedAction);
+      });
+    } finally {
+      unmount();
+      jest.useRealTimers();
+    }
+  });
+
+  it('should preserve the user state during transient network errors after a successful API call', async () => {
+    const statusResponseMock = createStatusResponse();
+    const testError = new Error('Network error');
+    jest
+      .mocked(axios.get)
+      .mockResolvedValueOnce({ data: statusResponseMock })
+      .mockRejectedValueOnce(testError)
+      .mockResolvedValueOnce({ data: statusResponseMock });
+    useAppDispatchMock.mockReturnValueOnce(dispatchMock);
+    jest.useFakeTimers();
+
+    const { unmount } = renderHook(() => useDetectUser());
+
+    try {
+      await waitFor(() => {
+        expect(dispatchMock).toHaveBeenCalledWith(getUserFulfilled(statusResponseMock));
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(POLL_INTERVAL);
+      });
+
+      await waitFor(() => {
+        expect(axios.get).toHaveBeenCalledTimes(2);
+      });
+      expect(dispatchMock).not.toHaveBeenCalledWith(getUserRejected(expect.anything()));
+
+      act(() => {
+        jest.advanceTimersByTime(POLL_INTERVAL);
+      });
+
+      await waitFor(() => {
+        expect(axios.get).toHaveBeenCalledTimes(3);
+        expect(dispatchMock).toHaveBeenCalledTimes(3);
+        expect(dispatchMock).toHaveBeenNthCalledWith(3, getUserFulfilled(statusResponseMock));
       });
     } finally {
       unmount();

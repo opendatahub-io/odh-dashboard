@@ -6,6 +6,7 @@ import { POLL_INTERVAL } from './const';
 
 const useDetectUser = (): void => {
   const dispatch = useAppDispatch();
+  const hasDetectedUser = React.useRef(false);
 
   React.useEffect(() => {
     let watchHandle: ReturnType<typeof setTimeout>;
@@ -18,10 +19,11 @@ const useDetectUser = (): void => {
           if (cancelled) {
             return;
           }
+          hasDetectedUser.current = true;
           dispatch(getUserFulfilled(response.data));
         })
         .catch((e) => {
-          if (cancelled) {
+          if (cancelled || (hasDetectedUser.current && !e?.response)) {
             return;
           }
           dispatch(
