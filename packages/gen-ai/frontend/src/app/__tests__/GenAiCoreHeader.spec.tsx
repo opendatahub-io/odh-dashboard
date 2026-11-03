@@ -34,5 +34,4 @@ describe('GenAiCoreHeader', () => {
     expect(screen.getByText('Project')).toBeInTheDocument();
     expect(screen.getByTestId('project-selector')).toBeInTheDocument();
   });
-
 });
