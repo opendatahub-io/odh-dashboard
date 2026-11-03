@@ -24,10 +24,9 @@ import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
-import { searchApiKeys, searchTenantApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
+import { searchTenantApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
 import { isKeyInactive } from '~/app/utilities/apiKeys';
-import { useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
 import type { APIKey, SubscriptionDetail } from '~/app/types/api-key';
 import ApiKeyStatusLabel from '~/app/pages/keys-and-subs/apiKeys/ApiKeyStatusLabel';
 import {
@@ -50,7 +49,6 @@ type AdminRevokeAllApiKeysModalProps = {
 };
 
 const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({ onClose }) => {
-  const isGridEnabled = useGridFeatureFlag();
   const notification = useNotification();
   const [username, setUsername] = React.useState('');
   const [searchedUsername, setSearchedUsername] = React.useState('');
@@ -97,10 +95,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
     setHasSearched(true);
 
     try {
-      const response = await (isGridEnabled ? searchTenantApiKeys : searchApiKeys)()(
-        {},
-        { filters: { username: trimmed } },
-      );
+      const response = await searchTenantApiKeys()({}, { filters: { username: trimmed } });
       setApiKeys(response.data);
       setSubscriptionDetails(response.subscriptionDetails);
     } catch (err) {
@@ -110,7 +105,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
     } finally {
       setSearching(false);
     }
-  }, [isGridEnabled, username]);
+  }, [username]);
 
   const handleRevoke = React.useCallback(async () => {
     setRevoking(true);

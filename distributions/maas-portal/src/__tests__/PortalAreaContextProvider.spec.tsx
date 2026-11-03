@@ -72,22 +72,13 @@ describe('PortalAreaContextProvider', () => {
 describe('PortalContextProvider AreaContext composition', () => {
   beforeEach(() => {
     mockModularArchContextProvider.mockClear();
-    window.__MAAS_CONSUMER_PORTAL_GRID__ = undefined;
   });
 
-  afterEach(() => {
-    window.__MAAS_CONSUMER_PORTAL_GRID__ = undefined;
-  });
-
-  it.each([
-    [false, undefined],
-    [true, '__maas_grid__'],
-  ])('sets a mandatory namespace only when grid is %s', (gridEnabled, expectedNamespace) => {
-    window.__MAAS_CONSUMER_PORTAL_GRID__ = gridEnabled;
+  it('sets the MaaS mandatory namespace', () => {
     renderHook(() => React.useContext(AreaContext), { wrapper: portalWrapper });
 
     expect(mockModularArchContextProvider.mock.calls[0][0].config.mandatoryNamespace).toBe(
-      expectedNamespace,
+      '__maas_grid__',
     );
   });
 
