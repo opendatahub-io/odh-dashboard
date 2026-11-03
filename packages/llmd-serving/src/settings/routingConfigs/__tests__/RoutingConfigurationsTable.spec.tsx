@@ -7,6 +7,10 @@ import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-se
 import { deleteLlmInferenceServiceConfigIfUnreferenced } from '../../../api/LLMInferenceServiceConfigs';
 import { CONFIG_DELETION_PENDING_MESSAGE, CONFIG_IN_USE_ERROR_MESSAGE } from '../../../utils';
 import RoutingConfigurationsTable from '../RoutingConfigurationsTable';
+import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+
+const mockTrackEvent = jest.fn();
+const wrapper = createHostApiWrapper(mockTrackEvent);
 
 jest.mock('react-router', () => ({
   useNavigate: jest.fn(),
@@ -90,7 +94,7 @@ describe('RoutingConfigurationsTable', () => {
       displayName: 'Test Config',
     });
 
-    render(<RoutingConfigurationsTable configs={[config]} />);
+    render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
     fireEvent.click(screen.getByTestId('confirm-delete'));
@@ -118,7 +122,7 @@ describe('RoutingConfigurationsTable', () => {
       displayName: 'Test Config',
     });
 
-    render(<RoutingConfigurationsTable configs={[config]} />);
+    render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
     fireEvent.click(screen.getByTestId('confirm-delete'));
@@ -139,7 +143,7 @@ describe('RoutingConfigurationsTable', () => {
       displayName: 'Test Config',
     });
 
-    render(<RoutingConfigurationsTable configs={[config]} />);
+    render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
     fireEvent.click(screen.getByTestId('confirm-delete'));
@@ -160,7 +164,7 @@ describe('RoutingConfigurationsTable', () => {
       displayName: 'Test Config',
     });
 
-    render(<RoutingConfigurationsTable configs={[config]} />);
+    render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
     fireEvent.click(screen.getByTestId('confirm-delete'));
