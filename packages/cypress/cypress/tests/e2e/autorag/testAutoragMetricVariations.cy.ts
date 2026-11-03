@@ -54,10 +54,11 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       .then((fixture) => {
         maasFixture = fixture;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-        provisionAutoragPgvector(projectName);
-        configureAutoragRun(testData, projectName, uuid, fixture, {
-          createConnections: true,
-          connectionOwnership,
+        return provisionAutoragPgvector(projectName).then(() => {
+          configureAutoragRun(testData, projectName, uuid, fixture, {
+            createConnections: true,
+            connectionOwnership,
+          });
         });
       }),
   );

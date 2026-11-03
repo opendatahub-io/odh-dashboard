@@ -16,6 +16,8 @@ import {
 
 const RESOURCES_PATH = 'resources/autorag';
 
+const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
+
 type MaaSModel = { id?: unknown; ready?: unknown };
 
 type MaaSConfig = {
@@ -254,9 +256,11 @@ const verifyVectorDbConnectionSecret = (
   projectName: string,
   connection: ReturnType<typeof getVectorDatabaseConnection>,
 ): void => {
-  const secretCommand = `oc get secret ${testData.vectorDbSecretName} -n ${projectName} -o json`;
+  const secretRef = `${shellQuote(testData.vectorDbSecretName)} -n ${shellQuote(projectName)}`;
+  const existsCommand = `oc get secret ${secretRef} -o name`;
+  const secretCommand = `oc get secret ${secretRef} -o json`;
 
-  pollUntilSuccess(secretCommand, 'AutoRAG PGVector connection secret', {
+  pollUntilSuccess(existsCommand, 'AutoRAG PGVector connection secret', {
     maxAttempts: 30,
     pollIntervalMs: 1000,
   }).then(() =>

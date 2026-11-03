@@ -9,6 +9,7 @@ const PGVECTOR_DATABASE = 'autorag_test_db';
 const PGVECTOR_USER = 'autorag_test_user';
 const PGVECTOR_PORT = '5432';
 const PGVECTOR_NETWORK_CHECK_JOB = 'autorag-pgvector-network-check';
+const PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS = 300;
 const E2E_OWNER_LABEL = 'odh-dashboard.io/e2e-owner';
 const OPERATOR_DEPLOYMENT_LABEL_SELECTOR = 'app.kubernetes.io/name=dashboard-operator';
 const OPERATOR_CONTAINER_NAME = 'manager';
@@ -283,24 +284,51 @@ const cleanupAutoragPgvectorNetworkCheck = (namespace: string): Cypress.Chainabl
   );
 };
 
+const getAutoragPgvectorNetworkDiagnostics = (namespace: string): Cypress.Chainable<string> => {
+  const job = shellQuote(`job/${PGVECTOR_NETWORK_CHECK_JOB}`);
+  const jobNamespace = shellQuote(namespace);
+  return cy
+    .exec(`oc describe ${job} -n ${jobNamespace}`, {
+      failOnNonZeroExit: false,
+      log: false,
+    })
+    .then((describeResult) =>
+      cy
+        .exec(`oc logs ${job} -n ${jobNamespace} --all-containers=true --tail=100`, {
+          failOnNonZeroExit: false,
+          log: false,
+        })
+        .then(
+          (logsResult) =>
+            `Job description: ${commandOutput(describeResult)}; ` +
+            `Pod logs: ${commandOutput(logsResult)}`,
+        ),
+    );
+};
+
 const verifyAutoragPgvectorNetwork = (namespace: string): Cypress.Chainable<unknown> => {
   const waitForJob = `oc wait --for=condition=complete ${shellQuote(
     `job/${PGVECTOR_NETWORK_CHECK_JOB}`,
-  )} -n ${shellQuote(namespace)} --timeout=120s`;
+  )} -n ${shellQuote(namespace)} --timeout=${PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS}s`;
 
   cy.step('Verify same-namespace AutoRAG pipeline connectivity to PGVector');
   return cy
-    .exec(waitForJob, { failOnNonZeroExit: false, timeout: 130000, log: false })
+    .exec(waitForJob, {
+      failOnNonZeroExit: false,
+      timeout: (PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS + 10) * 1000,
+      log: false,
+    })
     .then((waitResult) => {
       if (waitResult.exitCode !== 0) {
-        const waitError = new Error(
-          `AutoRAG pipeline connectivity to PGVector was not ready in ${namespace}: ${commandOutput(
-            waitResult,
-          )}`,
+        return getAutoragPgvectorNetworkDiagnostics(namespace).then((diagnostics) =>
+          cleanupAutoragPgvectorNetworkCheck(namespace).then(() => {
+            throw new Error(
+              `AutoRAG pipeline connectivity to PGVector was not ready in ${namespace}: ${commandOutput(
+                waitResult,
+              )}. ${diagnostics}`,
+            );
+          }),
         );
-        return cleanupAutoragPgvectorNetworkCheck(namespace).then(() => {
-          throw waitError;
-        });
       }
       return cleanupAutoragPgvectorNetworkCheck(namespace);
     })
