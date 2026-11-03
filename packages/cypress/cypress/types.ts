@@ -261,6 +261,9 @@ export type WBStatusTestData = {
   wbStatusTestDescription: string;
   notebookImage: string;
   hardwareProfileName: string;
+  createdContainerEventPattern: string;
+  startedContainerEventPattern: string;
+  pulledImageEventText: string;
 };
 
 export type WBStorageClassesTestData = {
@@ -564,7 +567,7 @@ export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };
 
-enum OOTBConnectionTypes {
+export enum OOTBConnectionTypes {
   s3 = 'S3 compatible object storage - v1',
   uri = 'URI - v1',
   oci = 'OCI compliant registry - v1',
@@ -987,6 +990,10 @@ export type EvalHubTestData = {
   mlflowInstanceResourceYamlPath: string;
   /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
   benchmarkCardTitle: string;
+  /** Provider ID of the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkProviderId: string;
+  /** Benchmark ID of the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkId: string;
   /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
   inferenceModelName: string;
   /** MLflow experiment name entered when starting an evaluation. */
@@ -1003,7 +1010,10 @@ export type EvalHubTestData = {
   hardwareProfileResourceYamlPath: string;
 };
 
-export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
+export type EvalHubBenchmarkSuiteTestData = Omit<
+  EvalHubTestData,
+  'benchmarkCardTitle' | 'benchmarkProviderId' | 'benchmarkId'
+> & {
   /** Base name for the tenant suite created by this spec. */
   suiteName: string;
   /** Category IDs assigned to suites created from this fixture. */
