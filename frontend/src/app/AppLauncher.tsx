@@ -11,7 +11,10 @@ import { ThIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import openshiftLogo from '#~/images/openshift.svg';
 import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks';
-import { getOpenShiftConsoleServerURL } from '#~/utilities/clusterUtils';
+import {
+  getOpenShiftConsoleServerURL,
+  resolveConsoleLinkImageURL,
+} from '#~/utilities/clusterUtils';
 import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
 import { ApplicationAction, Section } from '#~/types';
 import './AppLauncher.scss';
@@ -102,11 +105,17 @@ const AppLauncher: React.FC = () => {
       return [section];
     };
 
+    const consoleURL = getOpenShiftConsoleServerURL(serverURL);
     const sections: Section[] = applicationLinks.reduce((acc, link) => {
       const action: ApplicationAction = {
         label: link.spec.text,
         href: link.spec.href,
-        image: <img src={link.spec.applicationMenu?.imageURL} alt={`${link.spec.text} logo`} />,
+        image: (
+          <img
+            src={resolveConsoleLinkImageURL(link.spec.applicationMenu?.imageURL, consoleURL)}
+            alt={`${link.spec.text} logo`}
+          />
+        ),
       };
       const sectionLabel =
         isMLflowEnabled && isMLflowConsoleLink(link.metadata?.name)
