@@ -20,6 +20,7 @@ on:
       - '.github/workflows/pr-build-validation.yml'
       - '.github/pr-build-simulation/**'
       - 'scripts/check-css-lowering.sh'
+      - 'scripts/__tests__/check-css-lowering.test.js'
 
 env:
   NODE_VERSION: '22'
@@ -71,6 +72,9 @@ jobs:
 
       - name: Free disk space
         uses: ./.github/actions/free-disk-space
+
+      - name: CSS guard self-test
+        run: node --test scripts/__tests__/check-css-lowering.test.js
 
       - name: Validate lockfile for Hermeto/Cachi2 compatibility
         run: |

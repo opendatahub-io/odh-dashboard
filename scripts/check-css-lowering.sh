@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Guard for RHOAIENG-100835: fail when emitted production CSS contains the
 # :lang() RTL fallback selectors LightningCSS emits when it lowers CSS logical
-# properties (its default 'fully supports es6' targets). The lowering beats
-# PatternFly contextual-override specificity and only appears in production
-# builds, so it must not re-enter built output silently.
+# properties. The lowering beats PatternFly contextual-override specificity
+# and only appears in production builds, so it must not re-enter built output
+# silently.
 #
 # Usage: check-css-lowering.sh <dist-dir> [<dist-dir> ...]
 # Invoked from PR Build Validation against the host image's frontend/public
@@ -12,7 +12,11 @@ set -euo pipefail
 
 # LightningCSS emits :lang(ae) (Avestan) only as part of its generated RTL
 # fallback selector lists; no ODH Dashboard source or dependency uses it.
-SIGNATURE=':lang(ae)'
+# The list shape depends on the minimizer's browser targets: the default
+# 'fully supports es6' targets emit a bare :lang(ae), while older targets
+# (e.g. safari 14) emit comma-separated lists like :lang(ae,ar,...) with ae
+# as the first entry. Match both forms.
+SIGNATURE=':lang\(ae[[:space:]]*[,)]'
 
 if [ "$#" -eq 0 ]; then
   echo "Usage: $0 <dist-dir> [<dist-dir> ...]" >&2
@@ -25,7 +29,7 @@ fi
 # prevent — so distinguish the statuses instead of suppressing them.
 offenders=""
 grep_status=0
-offenders=$(grep -R -l -F "$SIGNATURE" "$@" --include='*.css' 2>/dev/null) || grep_status=$?
+offenders=$(grep -R -l -E "$SIGNATURE" "$@" --include='*.css' 2>/dev/null) || grep_status=$?
 
 if [ "$grep_status" -ge 2 ]; then
   echo "❌ FAIL: CSS scan error (grep exit ${grep_status}) — could not read scan target(s): $*" >&2
@@ -37,8 +41,9 @@ if [ -n "$offenders" ]; then
   echo "❌ FAIL: LightningCSS logical-properties lowering found in:" >&2
   echo "$offenders" | sed 's/^/  - /' >&2
   echo >&2
-  echo "Found \"${SIGNATURE}\" — emitted when the minimizer lowers logical properties" >&2
-  echo "into physical values plus :lang() RTL fallbacks (default es6 targets)." >&2
+  echo "Matched \"${SIGNATURE}\" — :lang() RTL fallback selectors are emitted when" >&2
+  echo "the minimizer lowers logical properties into physical values (default" >&2
+  echo "es6 targets emit a bare :lang(ae); older targets emit comma lists)." >&2
   echo "Fix: build with lightningCssMinimizerOptions from @odh-dashboard/app-config/rspack" >&2
   echo "(exclude: { logicalProperties: true }). See RHOAIENG-100835." >&2
   exit 1
