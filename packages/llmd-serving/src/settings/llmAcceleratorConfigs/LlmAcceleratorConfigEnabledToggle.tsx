@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import {
@@ -10,7 +11,6 @@ import {
   UnsupportedStatusAcceptanceModal,
   type UnsupportedStatusDismissAction,
 } from '@odh-dashboard/model-serving/shared/components';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   fireRiskAccepted,
   fireRiskDismissed,
@@ -30,6 +30,7 @@ type LlmAcceleratorConfigEnabledToggleProps = {
 const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledToggleProps> = ({
   config,
 }) => {
+  const trackEvent = useTrackEvent();
   const notification = useNotification();
   const [isToggling, setIsToggling] = React.useState(false);
   const [showAcceptanceModal, setShowAcceptanceModal] = React.useState(false);
@@ -72,7 +73,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
     // The actual resulting state: the intended state on success, unchanged (reverted) on failure.
     if (effectiveEnabled) {
       const success = await patchConfigAnnotations({ [DISABLED_ANNOTATION]: 'true' });
-      fireLlmAcceleratorConfigEnablementChanged({
+      fireLlmAcceleratorConfigEnablementChanged(trackEvent, {
         outcome: TrackingOutcome.submit,
         success,
         enabled: success ? false : effectiveEnabled,
@@ -81,13 +82,13 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
       setShowAcceptanceModal(true);
     } else {
       const success = await patchConfigAnnotations({ [DISABLED_ANNOTATION]: 'false' });
-      fireLlmAcceleratorConfigEnablementChanged({
+      fireLlmAcceleratorConfigEnablementChanged(trackEvent, {
         outcome: TrackingOutcome.submit,
         success,
         enabled: success ? true : effectiveEnabled,
       });
     }
-  }, [effectiveEnabled, unsupportedUnaccepted, patchConfigAnnotations]);
+  }, [effectiveEnabled, unsupportedUnaccepted, patchConfigAnnotations, trackEvent]);
 
   const handleAccept = React.useCallback(async () => {
     setShowAcceptanceModal(false);
@@ -95,14 +96,14 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
       [UNSUPPORTED_STATUS_ACCEPTED_ANNOTATION]: 'true',
       [DISABLED_ANNOTATION]: 'false',
     });
-    fireLlmAcceleratorConfigEnablementChanged({
+    fireLlmAcceleratorConfigEnablementChanged(trackEvent, {
       outcome: TrackingOutcome.submit,
       success,
       // Accept enables from a disabled state; on failure it stays disabled.
       enabled: success,
     });
     if (success) {
-      fireRiskAccepted(fireMiscTrackingEvent, {
+      fireRiskAccepted(trackEvent, {
         runtimeResourceType: 'llm-accelerator-config',
         resourceId: config.metadata.name,
         resourceName: getDisplayNameFromK8sResource(config),
@@ -111,7 +112,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
         success: true,
       });
     }
-  }, [config, patchConfigAnnotations]);
+  }, [config, patchConfigAnnotations, trackEvent]);
 
   return (
     <>
@@ -129,7 +130,7 @@ const LlmAcceleratorConfigEnabledToggle: React.FC<LlmAcceleratorConfigEnabledTog
           onAccept={handleAccept}
           onClose={(dismissAction: UnsupportedStatusDismissAction) => {
             setShowAcceptanceModal(false);
-            fireRiskDismissed(fireMiscTrackingEvent, {
+            fireRiskDismissed(trackEvent, {
               runtimeResourceType: 'llm-accelerator-config',
               resourceId: config.metadata.name,
               resourceName: getDisplayNameFromK8sResource(config),

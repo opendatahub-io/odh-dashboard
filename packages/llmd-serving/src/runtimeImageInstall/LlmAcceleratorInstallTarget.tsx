@@ -14,10 +14,10 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
 import type { RuntimeImageInstallTargetProps } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
 import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { parseLlmInferenceServiceConfig } from './parseLlmInferenceServiceConfig';
 import LlmAcceleratorConfigFormBody from '../settings/llmAcceleratorConfigs/LlmAcceleratorConfigFormBody';
 import { fireLlmAcceleratorConfigCreated } from '../tracking/llmdTrackingConstants';
@@ -28,6 +28,7 @@ const LlmAcceleratorInstallTargetBody: React.FC<RuntimeImageInstallTargetProps> 
   onBack,
   cancelReturnRoute,
 }) => {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const parsed = React.useMemo(() => {
     try {
@@ -60,11 +61,11 @@ const LlmAcceleratorInstallTargetBody: React.FC<RuntimeImageInstallTargetProps> 
               <Button
                 variant="link"
                 onClick={() => {
-                  fireLlmAcceleratorConfigCreated({
+                  fireLlmAcceleratorConfigCreated(trackEvent, {
                     outcome: TrackingOutcome.cancel,
                     mode: 'install',
                   });
-                  fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                  trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                     outcome: TrackingOutcome.cancel,
                     configurationType: 'llm-accelerator-configuration',
                   });
