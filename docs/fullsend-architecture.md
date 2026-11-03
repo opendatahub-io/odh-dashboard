@@ -105,7 +105,7 @@ ours upstream, or **Keep** ours behind a named upstream customisation point.
 | --- | --- | --- | --- | --- | --- |
 | D1 | Review skill | Stock `pr-review`; on `main` the roster is built from staged persona files ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858)) | Local `SKILL.md` replaces the whole skill (skills merge by name, so we could not append) | Keep, then shrink | File overlays ([fullsend#8970](https://github.com/fullsend-ai/fullsend/pull/8970), main) and `agents[].subagents.{source,enabled}` ([ADR 0155, fullsend#8969](https://github.com/fullsend-ai/fullsend/pull/8969), open) cover finding personas only. See D2 |
 | D2 | Producer registry | ADR 0155 explicitly rejects "a registry file in the skill" | `dimensions.json`, 15 rows, 5 output kinds | Propose | Ask ADR 0155 for non-finding roles (context, check, section, signal, adapter). Move finding rows to persona frontmatter (`role`, `when`, `categories`) once it ships |
-| D3 | Stock personas | Upstream files, now with roster frontmatter | 8 files copied verbatim at v0.48.1 | Adopt | Drop our copies once D1 uses the base skill |
+| D3 | Stock personas | Upstream files; main adds roster frontmatter ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858), post-v0.53.0) | 8 files copied verbatim at v0.53.0; each finding persona now states an explicit category allowlist matching our registry | Adopt | Drop our copies once D1 uses the base skill |
 | D4 | Investigator | `role: preprocessor` slot exists | Registry `context` row, brief to all but challenger | Adopt | Map to a preprocessor persona; check that the brief still skips the challenger |
 | D5 | Challenger and `## Justifications` | Challenger is `role: synthesis`, no author rebuttal input | Challenger reads PR `## Justifications`, marks findings `justified` | Propose | Upstream issue: author justification channel for synthesis |
 | D6 | Risk and approval gate | `risk-assessment` sub-agent and risk verdict gate; per-tier sub-scores proposed ([agents#1879](https://github.com/fullsend-ai/agents/issues/1879)) | `rating` signal plus `rating-policy.json`; upstream risk-assessment switched off | Keep (open decision O3) | Needs a `signal` producer role, or we adopt upstream's risk gate |
@@ -180,6 +180,13 @@ Orange: ours. Dashed blue: needs an upstream change we propose.
 Next safe slices, in order. The sync run does one or more per day and records
 blockers here.
 
+Done: the 8 verbatim stock personas are re-synced to agents v0.53.0
+(2026-11-03). v0.53.0 added an explicit per-persona category allowlist to the
+finding personas and a Codex denied-spawn guard to the challenger; every
+allowlisted category is already accepted (registry match, plus
+`scope-authorization-implicit` in the host non-dimensional allowlist), so no
+`dimensions.json` change was needed. No roster frontmatter yet at v0.53.0.
+
 1. **v0.53.0 pins, together.** Move the reusable-dispatch SHA, the harness
    `base:` (SHA and `#sha256=`) and the sandbox image digest to v0.53.0.
    With it:
@@ -188,12 +195,14 @@ blockers here.
      (bot `/fs-` comments now pass) and keep `id-token: write` on `dispatch`.
    - Rebase our `pre-review.sh` edits onto the v0.53.0 bundle; re-test
      review-thread position fields (fullsend#8693).
-   - Re-sync the 8 verbatim persona files; they now carry roster frontmatter
-     that our orchestrator ignores.
    - Run `fullsend lint` on our harness.
 2. **Port small upstream behaviour:** clear `ready-for-merge` at review start
    (D11), severity-threshold notice (D10).
 3. **v0.54.0 or later:** evaluate persona overlays (O2), then route triggers
    through `agents[].trigger` (D13).
 
-Blockers: none recorded yet.
+Blockers: `fullsend lint` cannot be run from this automated environment — the
+sandbox classifier blocks executing the externally-built CLI binary ("Code
+from External"). It lints config/harness structure, not persona markdown, so
+it does not gate the persona slice; it must be run by hand before the pin
+bump (slice 1) lands.
