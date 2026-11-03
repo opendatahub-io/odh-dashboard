@@ -221,6 +221,7 @@ const extensions: (
       required: [PLUGIN_GEN_AI],
     },
     properties: {
+      id: 'gen-ai-routes',
       path: globGenAiAll,
       component: () => import('./GenAiWrapper'),
     },

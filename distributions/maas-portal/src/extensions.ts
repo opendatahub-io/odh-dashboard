@@ -59,6 +59,15 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
+  // Gen AI routes are not exposed by the MaaS Portal, including direct URLs.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.route',
+      targetId: 'gen-ai-routes',
+    },
+  } satisfies SuppressExtension,
+
   // The portal exposes the dedicated Model Access page instead of the
   // legacy MaaS governance navigation item.
   {

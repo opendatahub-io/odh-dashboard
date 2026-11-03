@@ -5,20 +5,21 @@ import {
   ModularArchContextProvider,
   NotificationContextProvider,
   BrowserStorageContextProvider,
+  useSettings,
   type ConfigSettings,
   type UserSettings,
 } from 'mod-arch-core';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { API_URL_PREFIX, MAAS_MANDATORY_NAMESPACE } from '~/app/utilities/const';
+import { API_URL_PREFIX } from '~/app/utilities/const';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { AppContext } from '~/app/context/AppContext';
 import { useMaaSSettings } from '~/app/hooks/useMaaSSettings';
+import { isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX: API_URL_PREFIX,
   BFF_API_VERSION: 'v1',
-  mandatoryNamespace: MAAS_MANDATORY_NAMESPACE,
 };
 
 type MaaSFederatedProvidersProps = {
@@ -75,10 +76,19 @@ const MaaSSettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children })
   return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
 };
 
-const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => (
-  <ModularArchContextProvider config={modularArchConfig}>
-    <MaaSSettingsLoader>{children}</MaaSSettingsLoader>
-  </ModularArchContextProvider>
-);
+const LegacySettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
+  const settings = useSettings();
+  return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
+};
+
+const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
+  const SettingsLoader = isMaaSPortalHost() ? MaaSSettingsLoader : LegacySettingsLoader;
+
+  return (
+    <ModularArchContextProvider config={modularArchConfig}>
+      <SettingsLoader>{children}</SettingsLoader>
+    </ModularArchContextProvider>
+  );
+};
 
 export default MaaSFederatedProviders;
