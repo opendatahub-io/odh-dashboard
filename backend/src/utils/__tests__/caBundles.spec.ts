@@ -11,25 +11,10 @@ jest.mock('fs', () => ({
 jest.mock('tls', () => ({
   __esModule: true,
   default: {
+    getCACertificates: jest.fn(() => ['system-ca', 'extra-ca']),
     rootCertificates: ['default-ca'],
   },
 }));
-
-const originalExtraCAPath = process.env.NODE_EXTRA_CA_CERTS;
-
-beforeAll(() => {
-  delete process.env.NODE_EXTRA_CA_CERTS;
-});
-
-afterEach(() => {
-  delete process.env.NODE_EXTRA_CA_CERTS;
-});
-
-afterAll(() => {
-  if (originalExtraCAPath !== undefined) {
-    process.env.NODE_EXTRA_CA_CERTS = originalExtraCAPath;
-  }
-});
 
 describe('readCABundles', () => {
   const mockReadFileSync = fs.readFileSync as jest.Mock;
@@ -79,11 +64,11 @@ describe('readCABundles', () => {
 });
 
 describe('getUndiciTLSOptions', () => {
-  it('should pass default and configured CA bundles to undici when bundles are available', () => {
+  it('should pass effective default and configured CA bundles to undici when bundles are available', () => {
     const ca = Buffer.from('service-ca');
 
     expect(getUndiciTLSOptions([ca])).toEqual({
-      connect: { ca: [Buffer.from('default-ca'), ca] },
+      connect: { ca: [Buffer.from('system-ca'), Buffer.from('extra-ca'), ca] },
     });
   });
 
@@ -93,21 +78,10 @@ describe('getUndiciTLSOptions', () => {
 });
 
 describe('getTrustedCAs', () => {
-  const mockReadFileSync = fs.readFileSync as jest.Mock;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should preserve Node default trust, including NODE_EXTRA_CA_CERTS', () => {
+  it('should preserve Node effective default trust, including system and NODE_EXTRA_CA_CERTS', () => {
     const ca = Buffer.from('service-ca');
-    process.env.NODE_EXTRA_CA_CERTS = '/extra-ca';
-    mockReadFileSync.mockImplementation((path: string) =>
-      path === '/extra-ca' ? Buffer.from('extra-ca') : Buffer.from('default-ca'),
-    );
 
-    expect(getTrustedCAs([ca])).toEqual([Buffer.from('default-ca'), Buffer.from('extra-ca'), ca]);
-    expect(mockReadFileSync).toHaveBeenCalledWith('/extra-ca');
+    expect(getTrustedCAs([ca])).toEqual([Buffer.from('system-ca'), Buffer.from('extra-ca'), ca]);
   });
 
   it('should return undefined when no configured CA bundles are available', () => {

@@ -26,6 +26,11 @@ export const readCABundles = (paths: readonly string[] = CA_BUNDLE_PATHS): Buffe
 const caBundles = readCABundles();
 
 const readDefaultCACertificates = (): Buffer[] => {
+  if (Reflect.has(tls, 'getCACertificates')) {
+    // eslint-disable-next-line n/no-unsupported-features/node-builtins -- Runtime-guarded for older Node releases.
+    return tls.getCACertificates('default').map((certificate) => Buffer.from(certificate));
+  }
+
   const extraCAPath = process.env.NODE_EXTRA_CA_CERTS;
   return [
     ...tls.rootCertificates.map((certificate) => Buffer.from(certificate)),
