@@ -36,8 +36,6 @@ import {
   TOPOLOGY_TYPE_FIELD_ID,
 } from '../const';
 
-export { TOPOLOGY_CONFIG_DEFAULT };
-
 // --- Dependencies ---
 
 type CustomTopologyConfigDependencies = TopologyConfigsDependencies & {
