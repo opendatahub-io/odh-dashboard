@@ -7,8 +7,9 @@
 # omitted keys, and writes an issues[] array alongside the backward-compatible
 # top-level fields.
 #
-# Reads JIRA_BASE_URL for request and browse URLs, plus the JIRA username and
-# API token the adapter forwards. It deliberately produces no mock data.
+# Reads the public JIRA_BASE_URL for browse links and the adapter's optional
+# API URL for requests, plus its Jira username and token. It deliberately
+# produces no mock data.
 #
 # Writes context JSON — no findings, no GitHub posts, no secrets in the file.
 #
@@ -112,7 +113,8 @@ keys = collect_keys(title, body)
 OMITTED_KEYS = keys[MAX_JIRA_KEYS:]
 keys = keys[:MAX_JIRA_KEYS]
 key = keys[0] if keys else None
-base = (os.environ.get("JIRA_BASE_URL") or "").rstrip("/")
+browse_base = (os.environ.get("JIRA_BASE_URL") or "").rstrip("/")
+api_base = (os.environ.get("FULLSEND_ADAPTER_URL") or browse_base).rstrip("/")
 user = os.environ.get("FULLSEND_ADAPTER_USERNAME") or os.environ.get("JIRA_USERNAME") or ""
 token = os.environ.get("FULLSEND_ADAPTER_TOKEN") or os.environ.get("JIRA_API_TOKEN") or ""
 
@@ -141,7 +143,7 @@ if os.environ.get("FULLSEND_JIRA_SNAPSHOT_READY") == "1" and dest.is_file():
     print(f"Reusing precomputed Jira snapshot ({existing['status']}, key={existing.get('key', 'none')}) at {dest}")
     raise SystemExit(0)
 
-if base and urllib.parse.urlsplit(base).scheme.lower() != "https":
+if any(url and urllib.parse.urlsplit(url).scheme.lower() != "https" for url in (browse_base, api_base)):
     write(envelope(status="error", key=key, reason="jira-url-must-use-https"))
     print(f"Wrote Jira snapshot (error: Jira URL must use HTTPS, key={key}) to {dest}")
     raise SystemExit(0)
@@ -151,7 +153,7 @@ if not keys:
     print(f"Wrote Jira snapshot (none: no-issue-key) to {dest}")
     raise SystemExit(0)
 
-if not base:
+if not browse_base:
     write(envelope(status="none", key=key, issues=[{"key": k} for k in keys],
                    reason="jira-base-url-unset"))
     print(f"Wrote Jira snapshot (none: JIRA_BASE_URL unset, keys={','.join(keys)}) to {dest}")
@@ -164,14 +166,14 @@ if user and token:
 
     issues = []
     for k in keys:
-        url = f"{base}/rest/api/2/issue/{urllib.parse.quote(k)}?fields=summary,description,status"
+        url = f"{api_base}/rest/api/2/issue/{urllib.parse.quote(k)}?fields=summary,description,status"
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
         req.add_unredirected_header("Authorization", f"Basic {raw}")
         try:
             with opener.open(req, timeout=15) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             entry = snapshot_from_issue(data, k)
-            entry["url"] = f"{base}/browse/{k}"
+            entry["url"] = f"{browse_base}/browse/{k}"
             issues.append(entry)
         except urllib.error.HTTPError as exc:
             issues.append({"key": k, "status": "error", "reason": f"http-{exc.code}"})
