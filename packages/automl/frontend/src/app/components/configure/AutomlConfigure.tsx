@@ -1071,7 +1071,9 @@ function AutomlConfigure({
                                         <>
                                           4 vCPU / 16 GiB
                                           <br />
-                                          45-minute model-selection budget.
+                                          {isTimeseries
+                                            ? '10-minute model-selection budget.'
+                                            : '45-minute model-selection budget.'}
                                           <br />
                                           Use fewer resources to prioritize speed
                                         </>
@@ -1079,7 +1081,9 @@ function AutomlConfigure({
                                         <>
                                           8 vCPU / 32 GiB
                                           <br />
-                                          Up to 3 hours for model selection.
+                                          {isTimeseries
+                                            ? 'Up to 1 hour for model selection.'
+                                            : 'Up to 3 hours for model selection.'}
                                           <br />
                                           Use more resources to prioritize accuracy
                                         </>

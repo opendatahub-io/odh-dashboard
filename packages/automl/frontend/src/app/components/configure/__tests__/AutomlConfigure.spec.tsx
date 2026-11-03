@@ -1393,6 +1393,8 @@ describe('AutomlConfigure', () => {
         expect(screen.getByTestId('preset-radio-quality')).toBeInTheDocument();
         expect(screen.getByTestId('preset-radio-speed')).toBeInTheDocument();
         expect(screen.getByTestId('preset-radio-balanced')).toBeInTheDocument();
+        expect(screen.getByText(/10-minute model-selection budget/)).toBeInTheDocument();
+        expect(screen.getByText(/Up to 1 hour for model selection/)).toBeInTheDocument();
         expect(
           screen.getByText(/Up to 2 hours for model selection; data loading and refit/),
         ).toBeInTheDocument();
