@@ -391,7 +391,13 @@ The ValidatingWebhookConfiguration uses cert-manager's `inject-ca-from` annotati
 
 ### Metrics TLS
 
-The metrics endpoint binds to port 8443 with HTTPS enabled by default (`--secure-metrics=true`). Certificates are mounted from the metrics-tls secret at `/tmp/k8s-metrics-server/serving-certs`. HTTP/2 is disabled (via TLS NextProtos) to mitigate CVE-2023-44487 (HTTP/2 rapid reset attack).
+The metrics endpoint binds to port 8443 with HTTPS enabled by default (`--secure-metrics=true`). Certificates are mounted from the metrics-tls secret at `/tmp/k8s-metrics-server/serving-certs`.
+
+HTTP/2 is **enabled** on both the metrics and webhook listeners: the resolved TLS options
+(`internal/tls`) advertise ALPN `h2` and `http/1.1`, and the manager does not add a
+disable-HTTP/2 option. CVE-2023-44487 (HTTP/2 rapid reset) is mitigated by the Go HTTP/2
+server itself (fixed in Go 1.21.3 / 1.20.10, which bound concurrent stream handlers), not by
+turning HTTP/2 off.
 
 ### Certificate DNS Names
 
