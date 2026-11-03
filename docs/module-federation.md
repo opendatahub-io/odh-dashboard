@@ -426,7 +426,7 @@ module.exports = {
 };
 ```
 
-The options exclude logical-property lowering. rspack's minimizer defaults to a `fully supports es6` browser baseline that lacks CSS logical properties, so without the exclusion it rewrites `padding-inline-*` and friends into physical properties with `:lang()` RTL fallback pairs — the extra specificity beats PatternFly's contextual overrides (card titles regain 24px of padding in production builds only; dev builds do not run the minimizer). PR Build Validation runs `scripts/check-css-lowering.sh` against the emitted CSS of every production build and fails if lowered `:lang(ae)` selectors reappear (see [KONFLUX_BUILD_SIMULATION.md](./KONFLUX_BUILD_SIMULATION.md)).
+The options exclude logical-property lowering. rspack's minimizer defaults to a `fully supports es6` browser baseline that lacks CSS logical properties, so without the exclusion it rewrites `padding-inline-*` and friends into physical properties with `:lang()` RTL fallback pairs — the extra specificity beats PatternFly's contextual overrides (card titles regain 24px of padding in production builds only; dev builds do not run the minimizer). PR Build Validation runs `scripts/check-css-lowering.sh` against the emitted CSS of every production build and fails if lowered `:lang(ae...)` fallback selectors reappear, in both the bare `:lang(ae)` and comma-separated `:lang(ae,ar,...)` forms (see [KONFLUX_BUILD_SIMULATION.md](./KONFLUX_BUILD_SIMULATION.md)).
 
 ## Development Workflow
 

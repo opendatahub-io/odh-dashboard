@@ -131,9 +131,11 @@ Runs BEFORE Docker build to catch issues in <1 minute:
     module image's `/static` output, and model-serving's standalone federated
     build (`model-serving-css-guard` job — model-serving has no
     `Dockerfile.workspace`, so the module shard never builds it)
-  - Detects: `:lang(ae)` RTL fallback selectors that LightningCSS emits when it
-    lowers CSS logical properties (its default es6 targets) — the production-only
-    lowering that beats PatternFly contextual-override specificity
+  - Detects: `:lang(ae...)` RTL fallback selectors that LightningCSS emits when
+    it lowers CSS logical properties — bare `:lang(ae)` under the default es6
+    targets, comma-separated lists like `:lang(ae,ar,...)` under older targets
+    (e.g. safari 14) — the production-only lowering that beats PatternFly
+    contextual-override specificity
   - Local invocation: `bash scripts/check-css-lowering.sh <dist-dir>` after any
     production build (e.g. `make -C packages/model-serving frontend-build-federated`,
     then scan `packages/model-serving/frontend/dist`)
