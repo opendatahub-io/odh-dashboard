@@ -6,6 +6,7 @@ import {
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
+  Button,
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
@@ -22,6 +23,7 @@ import McpDeploymentsTable from './McpDeploymentsTable';
 import McpDeploymentsToolbar from './McpDeploymentsToolbar';
 import McpDeploymentsEmptyState from './McpDeploymentsEmptyState';
 import DeleteMcpDeploymentModal from './DeleteMcpDeploymentModal';
+import DeleteMcpGatewayLayerModal from './DeleteMcpGatewayLayerModal';
 import { getDeploymentDisplayName } from './utils';
 
 type McpDeploymentsPageProps = {
@@ -32,6 +34,7 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
   const [deployments, loaded, loadError, refresh] = useMcpDeployments(namespace);
   const [filterText, setFilterText] = React.useState('');
   const [deleteTarget, setDeleteTarget] = React.useState<McpDeployment | undefined>();
+  const [deleteGatewayLayer, setDeleteGatewayLayer] = React.useState(false);
   const [editingDeployment, setEditingDeployment] = React.useState<McpDeployment>();
   const { updatePreferredProject, projects } = useProjectsBridge();
   const navigate = useNavigate();
@@ -91,6 +94,17 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
             selectorOnly
           />
         </FlexItem>
+        {namespace && (
+          <FlexItem>
+            <Button
+              variant="secondary"
+              onClick={() => setDeleteGatewayLayer(true)}
+              data-testid="remove-mcp-gateway-layer"
+            >
+              Remove Gateway layer
+            </Button>
+          </FlexItem>
+        )}
       </Flex>
     </Flex>
   );
@@ -159,6 +173,17 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
             serverName: editingDeployment.serverName,
             image: editingDeployment.image,
             yaml: editingDeployment.yaml,
+          }}
+        />
+      )}
+      {deleteGatewayLayer && namespace && (
+        <DeleteMcpGatewayLayerModal
+          namespace={namespace}
+          onClose={(deleted) => {
+            if (deleted) {
+              refresh();
+            }
+            setDeleteGatewayLayer(false);
           }}
         />
       )}

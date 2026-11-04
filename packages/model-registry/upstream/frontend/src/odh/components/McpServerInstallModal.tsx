@@ -28,7 +28,7 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { APIOptions } from 'mod-arch-core';
 import { isValidK8sName, translateDisplayNameForK8s } from '@odh-dashboard/k8s-core';
 import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';
@@ -68,7 +68,7 @@ const CheckRow: React.FC<{
     ) : state === 'blocked' ? (
       <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
     ) : (
-      <InProgressIcon />
+      <Spinner size="sm" aria-label={`${label} in progress`} />
     );
 
   return (
@@ -293,6 +293,26 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
               </Content>
             </StackItem>
             <StackItem>
+              <Form>
+                <FormGroup
+                  label="Project"
+                  isRequired
+                  fieldId="mcp-install-project-preflight"
+                >
+                  <NamespaceSelectorFieldWrapper
+                    selectedNamespace={selectedNamespace}
+                    onSelect={setSelectedNamespace}
+                    isFullWidth
+                    selectorOnly
+                  />
+                  <Content component="small">
+                    Choose the project where this MCP server will be installed. The readiness
+                    checks below use this project.
+                  </Content>
+                </FormGroup>
+              </Form>
+            </StackItem>
+            <StackItem>
               <List isPlain>
                 <CheckRow
                   label="MCP Lifecycle operator"
@@ -308,9 +328,11 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
                   detail={
                     readinessError?.message ||
                     readiness?.message ||
-                    (readiness?.gatewayRequired
-                      ? 'Gateway is ready for this server'
-                      : 'No gateway is required by this catalog entry')
+                    (readinessLoaded
+                      ? readiness?.gatewayRequired
+                        ? 'Gateway is ready for this server'
+                        : 'No gateway is required by this catalog entry'
+                      : 'Checking MCP Gateway availability')
                   }
                   state={gatewayState}
                 />
@@ -354,6 +376,13 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
 
         {step === 'review' && (
           <Stack hasGutter>
+            {submitError && (
+              <StackItem>
+                <Alert variant="danger" isInline title="Unable to start installation">
+                  {submitError.message}
+                </Alert>
+              </StackItem>
+            )}
             <StackItem>
               <Title headingLevel="h3" size="lg">
                 Review installation
@@ -370,6 +399,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
                     selectedNamespace={selectedNamespace}
                     onSelect={setSelectedNamespace}
                     isFullWidth
+                    selectorOnly
                   />
                 </FormGroup>
               </Form>

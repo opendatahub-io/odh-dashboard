@@ -17,6 +17,10 @@ const (
 	mcpPrerequisiteManagedByLabel = "mcp.opendatahub.io/managed-by"
 	mcpPrerequisiteServerLabel    = "mcp.opendatahub.io/server"
 	mcpPrerequisiteManager        = "odh-dashboard"
+	projectMatrixManagedByLabel   = "ai.redhat.com/managed-by"
+	projectMatrixLayerLabel       = "ai.redhat.com/layer"
+	projectMatrixManager          = "project-matrix"
+	projectMatrixGatewayLayer     = "gateway"
 )
 
 var (
@@ -35,6 +39,8 @@ func mcpPrerequisiteLabels(serverName string) map[string]string {
 	return map[string]string{
 		mcpPrerequisiteManagedByLabel: mcpPrerequisiteManager,
 		mcpPrerequisiteServerLabel:    serverName,
+		projectMatrixManagedByLabel:   projectMatrixManager,
+		projectMatrixLayerLabel:       projectMatrixGatewayLayer,
 	}
 }
 
@@ -106,6 +112,9 @@ func ensureMcpPrerequisites(
 						},
 					}}
 					if _, err := roleBindings.Create(ctx, binding, metav1.CreateOptions{}); err != nil {
+						if apierrors.IsForbidden(err) {
+							return created, fmt.Errorf("%w: the Project Matrix Gateway installer cannot bind the read-only ClusterRole %q; a cluster administrator must apply the Project Matrix Gateway installer RBAC before retrying", ErrMcpDeploymentValidation, prerequisite.ClusterRole)
+						}
 						return created, fmt.Errorf("failed to create RoleBinding %q: %w", roleBindingName, err)
 					}
 					created = append(created, createdMcpPrerequisite{roleBindingGVR, namespace, roleBindingName})

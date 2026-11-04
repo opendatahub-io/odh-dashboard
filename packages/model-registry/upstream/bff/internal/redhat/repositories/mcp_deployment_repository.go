@@ -50,6 +50,86 @@ type McpDeploymentRepository struct {
 	logger *slog.Logger
 }
 
+// DeleteLayer removes only resources created by the Project Matrix Gateway
+// layer installer. Shared platform resources—RHCL, Gateway API, MCP
+// Lifecycle, MCP Gateway, operators, and cluster ingress—are deliberately not
+// in this inventory and are never deleted here.
+func (r *McpDeploymentRepository) DeleteLayer(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	layer string,
+) error {
+	if namespace == "" || layer == "" {
+		return errors.New("namespace and layer are required")
+	}
+	if layer != projectMatrixGatewayLayer {
+		return fmt.Errorf("unsupported Project Matrix layer %q", layer)
+	}
+
+	dyn, err := r.buildDynamicClient(client)
+	if err != nil {
+		return err
+	}
+
+	// Include both the current Project Matrix label and the earlier
+	// odh-dashboard-owned gateway registration label. This makes cleanup
+	// idempotent across the development iterations that predated the layer
+	// ownership label, including stale registrations after a direct MCPServer
+	// deletion.
+	serverNames := map[string]struct{}{}
+	serverSelector := fmt.Sprintf("%s=%s,%s=%s", projectMatrixManagedByLabel, projectMatrixManager, projectMatrixLayerLabel, layer)
+	serverList, err := dyn.Resource(mcpServerGVR).Namespace(namespace).List(ctx, metav1.ListOptions{LabelSelector: serverSelector})
+	if err != nil {
+		return fmt.Errorf("failed to list Project Matrix MCPServer resources: %w", err)
+	}
+	for _, item := range serverList.Items {
+		serverNames[item.GetName()] = struct{}{}
+	}
+
+	legacySelector := fmt.Sprintf("%s=%s", mcpPrerequisiteManagedByLabel, mcpPrerequisiteManager)
+	registrationList, err := dyn.Resource(mcpServerRegistrationGVR).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{LabelSelector: legacySelector})
+	if err != nil && !apierrors.IsForbidden(err) {
+		return fmt.Errorf("failed to list owned MCP gateway registrations: %w", err)
+	}
+	for _, item := range registrationList.Items {
+		serverNames[item.GetName()] = struct{}{}
+	}
+
+	for serverName := range serverNames {
+		if deleteErr := dyn.Resource(mcpServerGVR).Namespace(namespace).Delete(ctx, serverName, metav1.DeleteOptions{}); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+			return fmt.Errorf("failed to delete MCPServer %q: %w", serverName, deleteErr)
+		}
+		cleanupOwnedMcpGatewayRegistration(ctx, dyn, serverName)
+		cleanupOwnedMcpPrerequisites(ctx, dyn, namespace, serverName)
+	}
+
+	// A server can be deleted out-of-band before the layer operation runs. Sweep
+	// only resources carrying Project Matrix ownership labels; no name-only or
+	// namespace-wide deletion is permitted.
+	selector := fmt.Sprintf("%s=%s,%s=%s", projectMatrixManagedByLabel, projectMatrixManager, projectMatrixLayerLabel, layer)
+	for _, resource := range []schema.GroupVersionResource{
+		mcpServerRegistrationGVR,
+		mcpHTTPRouteGVR,
+		mcpReferenceGrantGVR,
+		roleBindingGVR,
+		configMapGVR,
+		serviceAccountGVR,
+	} {
+		list, listErr := dyn.Resource(resource).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{LabelSelector: selector})
+		if listErr != nil {
+			return fmt.Errorf("failed to list owned %s resources: %w", resource.Resource, listErr)
+		}
+		for _, item := range list.Items {
+			if deleteErr := dyn.Resource(resource).Namespace(item.GetNamespace()).Delete(ctx, item.GetName(), metav1.DeleteOptions{}); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+				return fmt.Errorf("failed to delete owned %s %q: %w", resource.Resource, item.GetName(), deleteErr)
+			}
+		}
+	}
+
+	return nil
+}
+
 func NewMcpDeploymentRepository(logger *slog.Logger) *McpDeploymentRepository {
 	return &McpDeploymentRepository{logger: logger}
 }
@@ -339,6 +419,7 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		Kind:       mcpServerKind,
 		Metadata: models.MCPMetadata{
 			Name: name,
+			Labels: mcpPrerequisiteLabels(name),
 			// Always the URL path parameter, never read from req/YAML, so the caller can't
 			// target a different namespace than the one it was authorized against.
 			Namespace: namespace,
