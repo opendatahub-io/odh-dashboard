@@ -17,13 +17,16 @@ the two diverge. This page is the source of truth for that comparison.
 
 ## Pins and drift
 
-As of 2026-11-03.
+As of 2026-11-04.
 
 | Piece | Ours | Upstream latest release | Upstream `main` |
 | --- | --- | --- | --- |
-| `fullsend` reusable workflow / CLI | `af8cd47` (v0.48.1 + fullsend#8544) | v0.53.0 (2026-10-30) | 809 commits ahead of ours |
-| `agents` review harness `base:` | `2da538b` (v0.48.1) | v0.53.0 | 327 commits ahead of ours |
-| Sandbox image | v0.48.1 digest, Pi 1.3.0 | v0.53.0, Pi 1.3.0 | Pi 1.5.0 proposed (fullsend#9000) |
+| `fullsend` reusable workflow / CLI | `af8cd47` (v0.48.1 + fullsend#8544) | v0.54.0 (`90b7310ff`, 2026-11-03) | 840 commits ahead of ours |
+| `agents` review harness `base:` | `2da538b` (v0.48.1) | v0.54.0 (`87a43fcb`) | 339 commits ahead of ours |
+| Sandbox image | v0.48.1 digest, Pi 1.3.0 | v0.54.0, Pi 1.3.0 | Pi 1.5.0 proposed (fullsend#9000) |
+
+Our vendored stock personas track v0.54.0; the three pins above still sit at
+v0.48.1 and move together next.
 
 The three pins move together. A newer CLI on the old sandbox image is not
 supported.
@@ -33,9 +36,12 @@ supported.
 Upstream's review is one stock skill (`pr-review`) in the sandbox. The
 runner stages it, the orchestrator dispatches persona sub-agents, a
 challenger filters findings, and the stock `post-review.sh` posts the review,
-inline threads and labels. On `main` (not yet in a release), the roster comes
-from staged persona files, and a repo can add, replace or disable a persona by
-overlaying single files instead of forking the skill.
+inline threads and labels. As of v0.54.0 the roster is built from each persona
+file's frontmatter, and a repo can add, replace or disable a persona by
+overlaying single files from a `base:` harness instead of forking the skill
+([fullsend#6158](https://github.com/fullsend-ai/fullsend/pull/6158)). A
+config-level form (`agents[].subagents.{model,source,enabled}`, no custom
+harness) is proposed in ADR 0155 and still open.
 
 ```mermaid
 flowchart TD
@@ -98,17 +104,20 @@ Producer kinds in the registry today:
 
 ## Persona metadata vs our registry
 
-On upstream `main` (agents [b714256](https://github.com/fullsend-ai/agents/commit/b714256),
-2026-10-31, after v0.53.0), each persona file's frontmatter declares how the
-stock orchestrator schedules it. That is the job our `dimensions.json` rows do,
-so for finding personas the two now carry the same data in two places.
+As of agents v0.54.0 (agents [b714256](https://github.com/fullsend-ai/agents/commit/b714256),
+2026-10-31, released 2026-11-03), each persona file's frontmatter declares how
+the stock orchestrator schedules it. That is the job our `dimensions.json` rows
+do, so for finding personas the two now carry the same data in two places. Our
+vendored personas are synced to v0.54.0 and all six stock finding rows match
+their frontmatter (`compare-personas.py`); `security` now adopts upstream's
+broader trigger (RBAC, config files, embedded text).
 
 | Upstream frontmatter | Our registry field | Notes |
 | --- | --- | --- |
 | `role: dimension` | `kind: llm-subagent`, `output: findings` | Same meaning |
 | `role: preprocessor` | `output: context`, `stage: pre-dispatch` | Upstream uses it for `security-triage` (a fixed step in our orchestrator); our `investigator` fits it |
 | `role: synthesis` | none (challenger is a fixed step); `output: signal:*` | Upstream's `challenger` and `risk-assessment` are synthesis. Our `rating` signal sits in the same slot |
-| `when` | `when` + `dispatch: conditional` | Same text, lightly reworded. Upstream `security` also triggers on RBAC and embedded text; ours does not |
+| `when` | `when` + `dispatch: conditional` | Same text; our rows now normalize-equal to the frontmatter, `security` included (RBAC, config files, embedded text) |
 | `always: true` | `dispatch: always` | Same |
 | `categories` | `categories` | Identical lists for all six stock finding personas |
 | `failure_severity` | `failure_severity` | Identical for all six |
@@ -137,9 +146,9 @@ ours upstream, or **Keep** ours behind a named upstream customisation point.
 
 | # | Area | Upstream | Ours | Class | Customisation point / next step |
 | --- | --- | --- | --- | --- | --- |
-| D1 | Review skill | Stock `pr-review`; on `main` the roster is built from staged persona files ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858)) | Local `SKILL.md` replaces the whole skill (skills merge by name, so we could not append) | Keep, then shrink | File overlays ([fullsend#8970](https://github.com/fullsend-ai/fullsend/pull/8970), main) and `agents[].subagents.{source,enabled}` ([ADR 0155, fullsend#8969](https://github.com/fullsend-ai/fullsend/pull/8969), open) cover finding personas only. See D2 |
+| D1 | Review skill | Stock `pr-review`; the roster is built from persona frontmatter ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858), v0.54.0) | Local `SKILL.md` replaces the whole skill (skills merge by name, so we could not append) | Keep, then shrink | File overlays from a `base:` harness shipped in v0.54.0 ([fullsend#6158](https://github.com/fullsend-ai/fullsend/pull/6158)/[#8970](https://github.com/fullsend-ai/fullsend/pull/8970)); config-level `agents[].subagents.{source,enabled}` ([ADR 0155, fullsend#8969](https://github.com/fullsend-ai/fullsend/pull/8969), still open, `ready-for-merge`). Both cover finding personas only. See D2 |
 | D2 | Producer registry | ADR 0155 explicitly rejects "a registry file in the skill" | `dimensions.json`, 15 rows, 5 output kinds | Propose | Ask ADR 0155 for non-finding roles (context, check, section, signal, adapter). The 6 stock finding rows already duplicate upstream frontmatter (see "Persona metadata vs our registry"); drop them once our orchestrator reads frontmatter or we use the base skill |
-| D3 | Stock personas | Upstream files; main adds roster frontmatter ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858), post-v0.53.0) | 8 files copied verbatim at v0.53.0; each finding persona now states an explicit category allowlist matching our registry | Adopt | Drop our copies once D1 uses the base skill |
+| D3 | Stock personas | Upstream files; v0.54.0 adds the roster frontmatter ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858)) | 8 files copied verbatim at v0.54.0, frontmatter included; all 6 stock finding rows in `dimensions.json` match the frontmatter | Adopt | Drop our copies once D1 uses the base skill |
 | D4 | Investigator | `role: preprocessor` slot, used by `security-triage` | Registry `context` row, brief to all but challenger | Adopt | Map to a preprocessor persona; check that the brief still skips the challenger |
 | D5 | Challenger and `## Justifications` | Challenger is `role: synthesis`, no author rebuttal input | Challenger reads PR `## Justifications`, marks findings `justified` | Propose | Upstream issue: author justification channel for synthesis |
 | D6 | Risk and approval gate | `risk-assessment` sub-agent and risk verdict gate; per-tier sub-scores proposed ([agents#1879](https://github.com/fullsend-ai/agents/issues/1879)) | `rating` signal plus `rating-policy.json`; upstream risk-assessment switched off | Keep (open decision O3) | `risk-assessment` is a `role: synthesis` persona on `main`, so `rating` could replace it through an overlay if synthesis output can carry risk and confidence; otherwise adopt upstream's risk gate |
@@ -153,10 +162,10 @@ ours upstream, or **Keep** ours behind a named upstream customisation point.
 | D14 | Stage gating | `roles:` no longer gates execution; use `agents[].enabled` ([fullsend#7786](https://github.com/fullsend-ai/fullsend/pull/7786), v0.51.0) | `roles: [review, coder]`, `code` disabled; shim filter keeps triage/retro/prioritize out | Adopt | Disable unused agents explicitly on bump |
 | D15 | Models | Per-persona models; org uses an OpenAI gateway | Pi, GPT-6.1 Sol / GPT-6 Luna per persona, repo-secret OpenAI key | Keep | Aligned with upstream config; repo keys stay supported |
 | D16 | Fork PRs | `/fs-fix` blocked on forks; Route skips read-only fork authors ([fullsend#8709](https://github.com/fullsend-ai/fullsend/issues/8709)) | 35 of 40 recent merged PRs come from forks | Propose | +1 #8709 with our numbers; fork fix needs an upstream design |
-| D17 | Dependency scoping | Reviews only the PR's own commits on stacked PRs ([agents#1661](https://github.com/fullsend-ai/agents/pull/1661)) | Not carried (forked skill) | Adopt | Comes free with D1, or port |
+| D17 | Dependency scoping | Reviews only the PR's own commits on stacked PRs ([agents#1661](https://github.com/fullsend-ai/agents/pull/1661), v0.54.0); adds `github/scripts/dependency-scope.sh` and a `github/SKILL.md` section | Not carried (forked skill); we hold `github/SKILL.md` at v0.53.0 to avoid a dangling script reference | Adopt | Comes free with D1, or port the script + `github/SKILL.md` section together |
 | D18 | GitLab | Supported | GitHub only | Keep | No need |
 | D19 | Upstream bugs we work around | `jira_base_url` not passed to the Review job; `postFailureNotice` escapes our leading marker. Both unfixed on `main` | Literal `JIRA_BASE_URL` in `env.runner`; marker on line 1 | Propose | File both upstream |
-| D20 | UX review persona | `user-experience` persona, on by default ([dc51fc1](https://github.com/fullsend-ai/agents/commit/dc51fc1), [8681499](https://github.com/fullsend-ai/agents/commit/8681499)); `REVIEW_UX_ENABLED` removed on `main` | Not run; `style-review` covers PatternFly conventions | Keep (decide with O2) | On the base skill, disable it with an overlay (`sub-agents/user-experience.md: null`) or evaluate it against `style-review` |
+| D20 | UX review persona | `user-experience` persona, on by default; `REVIEW_UX_ENABLED` removed in v0.54.0 ([agents#1858](https://github.com/fullsend-ai/agents/pull/1858)) — disable only via a skills override | Not run; `style-review` covers PatternFly conventions | Keep (decide with O2) | On the base skill, disable it with an overlay (`sub-agents/user-experience.md: null`) or evaluate it against `style-review` |
 
 ## Upstream changes since our pin
 
@@ -178,10 +187,11 @@ it. Noise (GitLab, GHES, scribe, signed commits, retry fixes) is left out.
 | Pre-review skips closed PRs and skipped authors via the skip signal | [db96130](https://github.com/fullsend-ai/agents/commit/db96130) | v0.51.0 | Ours already does this (pre-review change 5) |
 | Disclose findings hidden by the severity threshold | [e6bf2d1](https://github.com/fullsend-ai/agents/commit/e6bf2d1), [7f5cd8f](https://github.com/fullsend-ai/agents/commit/7f5cd8f) | v0.53.0 | D10 |
 | Codex wave dispatch; challenger isolated when its spawn is denied | [1f1e7a8](https://github.com/fullsend-ai/agents/commit/1f1e7a8), [c65cd47](https://github.com/fullsend-ai/agents/commit/c65cd47) | v0.53.0 (follow-ups on `main`) | Codex only; challenger text synced |
-| **Roster from persona frontmatter** (`role`, `when`, `always`, `categories`, `failure_severity`); `REVIEW_UX_ENABLED` removed; findings from unstaged personas below high are dropped | [b714256](https://github.com/fullsend-ai/agents/commit/b714256), [d86481e](https://github.com/fullsend-ai/agents/commit/d86481e), [cec0921](https://github.com/fullsend-ai/agents/commit/cec0921) | `main` | D1–D4, D6, D20; see "Persona metadata vs our registry" |
-| Projection suppression keyed on the failed sub-agent name | [ca43e52](https://github.com/fullsend-ai/agents/commit/ca43e52) | `main` | D12 |
-| Finding ids stay on their stamped review threads | [2de650b](https://github.com/fullsend-ai/agents/commit/2de650b) | `main` | D12 (not carried) |
-| Dependency scoping for stacked PRs | [39f7acb](https://github.com/fullsend-ai/agents/commit/39f7acb) … [6544323](https://github.com/fullsend-ai/agents/commit/6544323) | `main` | D17 |
+| **Roster from persona frontmatter** (`role`, `when`, `always`, `categories`, `failure_severity`); `REVIEW_UX_ENABLED` removed; findings from unstaged personas below high are dropped | [b714256](https://github.com/fullsend-ai/agents/commit/b714256), [d86481e](https://github.com/fullsend-ai/agents/commit/d86481e), [cec0921](https://github.com/fullsend-ai/agents/commit/cec0921) | v0.54.0 | D1–D4, D6, D20; synced into our personas + registry 2026-11-04 |
+| Projection suppression keyed on the failed sub-agent name | [ca43e52](https://github.com/fullsend-ai/agents/commit/ca43e52) | v0.54.0 | D12 |
+| Finding ids stay on their stamped review threads | [2de650b](https://github.com/fullsend-ai/agents/commit/2de650b) | v0.54.0 | D12 (not carried) |
+| Dependency scoping for stacked PRs | [39f7acb](https://github.com/fullsend-ai/agents/commit/39f7acb) … [6544323](https://github.com/fullsend-ai/agents/commit/6544323) | v0.54.0 | D17 |
+| Config `create_issues` replaced by `tracker` mappings; retro/triage honor allowed targets; `repos install` migrates legacy config | [agents#1881](https://github.com/fullsend-ai/agents/pull/1888) and follow-ups | `main` (post-v0.54.0) | P5 only; review config has no `create_issues`. Pilot [#111](https://github.com/Gkrumbach07/odh-dashboard/pull/111) config migrates on its next pin bump |
 
 ### fullsend-ai/fullsend (`af8cd47`..`main`)
 
@@ -199,10 +209,12 @@ removed. The changes that matter are behavioural.
 | `action.yml` `exec`s `fullsend run`, so cancel sends SIGTERM to the CLI | [66b444a36](https://github.com/fullsend-ai/fullsend/commit/66b444a36) | v0.49.0 | Whether our `post_script` runs on cancel (unverified) |
 | Fix-iteration cap counts App-bot commits with the `fullsend-fix` trailer | [dc4f33c19](https://github.com/fullsend-ai/fullsend/commit/dc4f33c19) | v0.49.0 | Fix stage |
 | `FULLSEND_WORK_ITEM_SOURCE` exported; Jira runs clear `ISSUE_NUMBER` | [d34d195ff](https://github.com/fullsend-ai/fullsend/commit/d34d195ff) | v0.53.0 | None now; P5 |
-| Map-form skill overrides staged; `personas.json` written; `FULLSEND_PERSONAS_FILE` reserved | [#8970](https://github.com/fullsend-ai/fullsend/pull/8970), [83af920c5](https://github.com/fullsend-ai/fullsend/commit/83af920c5) | `main` | D1 (our list-form `skills:` is unaffected) |
-| `base:` lock files: relative files resolve to locked content | [34d63bdfe](https://github.com/fullsend-ai/fullsend/commit/34d63bdfe) | `main` | None unless we adopt `fullsend lock` |
-| Shim template: bots may send `/fs-` commands (not `/fs-fix-stop`) | [e7565147a](https://github.com/fullsend-ai/fullsend/commit/e7565147a) | `main` | Optional port to our hand-written filter |
-| ADRs 0144–0154 accepted; 0151 plans a harness `human_min_role` (not in code yet). ADR 0155 is still only on its PR branch | `docs/ADRs` | v0.53.0 / `main` | 0145, 0151, 0152 touch us |
+| Skill file overrides from a `base:` harness: add/replace/disable single `pr-review` files; `personas.json` manifest written; `FULLSEND_PERSONAS_FILE` reserved | [#6158](https://github.com/fullsend-ai/fullsend/pull/6158)/[#8970](https://github.com/fullsend-ai/fullsend/pull/8970), [83af920c5](https://github.com/fullsend-ai/fullsend/commit/83af920c5) | v0.54.0 | D1, O2 — the customization point to retire our vendored skill; our list-form `skills:` is unaffected |
+| CEL `agents[].trigger` dispatch denies non-label events from bots not registered with the mint (Dependabot, Renovate); own bots' `/fs-` comments now reach triggers | [#8414](https://github.com/fullsend-ai/fullsend/pull/8414)!, [e7565147a](https://github.com/fullsend-ai/fullsend/commit/e7565147a) | v0.54.0 | D13 — when we move the shim `if:` into `agents[].trigger`, Renovate/Dependabot PRs need a `ready-for-review` label |
+| `base:` lock drift fails until `fullsend lock --update`; equal duplicate overrides treated as agreement | [#8979](https://github.com/fullsend-ai/fullsend/pull/8979)!, [#8981](https://github.com/fullsend-ai/fullsend/pull/8981)! | v0.54.0 | None unless we adopt `fullsend lock` / overlays |
+| Jira API URL separated from the site URL so Atlassian service accounts work (ADR 0156) | [#9024](https://github.com/fullsend-ai/fullsend/pull/9024), [#9033](https://github.com/fullsend-ai/fullsend/pull/9033) (draft), [agents#1878](https://github.com/fullsend-ai/agents/pull/1878) | proposed / `main` | D8, D19 — upstream converging on our [#10560](https://github.com/opendatahub-io/odh-dashboard/pull/10560) gateway split |
+| ADR 0158: a matching overlay may grant runtime fetch (`allowed_remote_resources`, `allow_runtime_fetch`) within the config allowlist | [#9086](https://github.com/fullsend-ai/fullsend/pull/9086) | `main` (decided, not implemented) | D1 — overlay capability we would use to adopt overlays |
+| ADRs 0144–0159 on `main`; 0151 plans a harness `human_min_role` (not in code). ADR 0155 (subagents source/enabled) still open, `ready-for-merge` | `docs/ADRs` | v0.53.0 / `main` | 0145, 0151, 0152 touch us; 0155–0158 are the overlay/Jira path |
 
 `internal/cli/postreview.go` and `internal/sticky` have no commits since our
 pin, and the review job still gets no `JIRA_BASE_URL`, so both bugs in D19 are
@@ -255,7 +267,7 @@ Orange: ours. Dashed blue: needs an upstream change we propose.
 | # | Decision | Needed from | By |
 | --- | --- | --- | --- |
 | O1 | Comment on ADR 0155 ([fullsend#8969](https://github.com/fullsend-ai/fullsend/pull/8969)) before it merges: ask for non-finding producer roles and an extensible category namespace. Christian raised the gap in [#forum-fullsend-ai](https://redhat-internal.slack.com/archives/C0AL1K8E7MX/p1793387289662199) and asked Gage to review | Gage, Christian | Before #8969 merges (it has `ready-for-merge`) |
-| O2 | Move our finding personas to upstream overlays once 0155 ships, or keep the forked skill | Monarch | After v0.54.0 |
+| O2 | Move our finding personas to the `base:`-harness file overrides (shipped in v0.54.0, #6158) now, or keep the forked skill until the config-level ADR 0155 form lands | Monarch | Now actionable (harness override released) |
 | O3 | Keep the `rating` signal, or adopt upstream's risk-assessment gate | Christian, Gage | With O2 |
 | O4 | Keep our sticky renderer, or converge on stock `post-review.sh` with a policy hook | Christian | With O2 |
 | O5 | Meet Eder on carrying our review ideas upstream and the Jira→code rollout ([thread](https://redhat-internal.slack.com/archives/C0AL1K8E7MX/p1793653336518279)) | Gage, Christian | Open |
@@ -265,35 +277,37 @@ Orange: ours. Dashed blue: needs an upstream change we propose.
 Next safe slices, in order. The sync run does one or more per day and records
 blockers here.
 
-Done: the 8 verbatim stock personas are re-synced to agents v0.53.0
-(2026-11-03). v0.53.0 added an explicit per-persona category allowlist to the
-finding personas and a Codex denied-spawn guard to the challenger; every
-allowlisted category is already accepted (registry match, plus
-`scope-authorization-implicit` in the host non-dimensional allowlist), so no
-`dimensions.json` change was needed. No roster frontmatter yet at v0.53.0.
+Done (2026-11-04): the 8 verbatim stock personas are re-synced to agents
+v0.54.0, which added the roster frontmatter (`role`/`when`/`always`/
+`categories`/`failure_severity`); the 3 drifting `dimensions.json` `when`
+values were aligned so all 6 stock finding rows match the frontmatter
+(`compare-personas.py` clean), including upstream's broader `security` trigger.
+`github/SKILL.md` held at v0.53.0 (its only v0.54.0 delta is the D17
+dependency-scope section, which references a script we do not vendor).
 
-1. **v0.53.0 pins, together.** Move the reusable-dispatch SHA, the harness
-   `base:` (SHA and `#sha256=`) and the sandbox image digest to v0.53.0.
+1. **v0.54.0 pins, together.** Move the reusable-dispatch SHA to the v0.54.0
+   tag commit (`90b7310ff`), the harness `base:` (SHA and `#sha256=`) to
+   agents v0.54.0 (`87a43fcb`) and the sandbox image digest to v0.54.0.
    With it:
    - Disable unused agents with `agents[].enabled: false` (D14).
    - Diff our shim against upstream's `shim-per-repo.yaml` template
      (bot `/fs-` comments now pass) and keep `id-token: write` on `dispatch`.
-   - Rebase our `pre-review.sh` edits onto the v0.53.0 bundle; re-test
+   - Rebase our `pre-review.sh` edits onto the v0.54.0 bundle; re-test
      review-thread position fields (fullsend#8693).
-   - Run `fullsend lint` on our harness.
+   - Run `fullsend lint` on our harness (by hand — see Blockers).
    - Point the dispatch pin at the release tag's commit; #8544 ships in
      v0.49.0, so the post-release pin comment goes.
+   - If a CEL `agents[].trigger` is added, confirm Renovate/Dependabot PRs
+     still get a `ready-for-review` label ([#8414](https://github.com/fullsend-ai/fullsend/pull/8414)).
    - Watch the first review after merge for the ADR 0152 launch checks
      (exit 127 "not found in a PATH directory the agent cannot write") and
      for the `jsonschema` preflight probe under the minimal environment.
-2. **When frontmatter reaches a release (expected v0.54.0):** the persona
-   sync brings `role`/`when`/`categories` into our copies; keep the 6 stock
-   finding rows in `dimensions.json` equal to it (parity script:
-   `compare-personas.py`), and adopt upstream's broader `security` trigger.
-3. **Port small upstream behaviour:** clear `ready-for-merge` at review start
+2. **Port small upstream behaviour:** clear `ready-for-merge` at review start
    (D11), severity-threshold notice (D10).
-4. **v0.54.0 or later:** evaluate persona overlays (O2), then route triggers
-   through `agents[].trigger` (D13).
+3. **Evaluate the v0.54.0 file overrides (O2):** move finding personas to a
+   `base:`-harness override ([#6158](https://github.com/fullsend-ai/fullsend/pull/6158))
+   to retire the vendored copies, then route triggers through
+   `agents[].trigger` (D13).
 
 Blockers: `fullsend lint` cannot be run from this automated environment — the
 sandbox classifier blocks executing the externally-built CLI binary ("Code
