@@ -16,30 +16,42 @@ export type CuratedCollectionParameterConfig = {
   description?: string;
 };
 
+export type CuratedCollectionPrerequisiteKind = 'config' | 'run';
+
 export type CuratedCollectionPrerequisite = {
+  kind: CuratedCollectionPrerequisiteKind;
   short: string;
   long: string;
 };
 
-export type CuratedCollectionConfig = {
+type HardcodedCollectionConfig = {
   prerequisite: CuratedCollectionPrerequisite;
   parameters?: Record<string, CuratedCollectionParameterConfig>;
 };
 
-export const CURATED_COLLECTION_PREREQUISITES: Partial<Record<string, CuratedCollectionConfig>> = {
-  'tool-use-v1': {
-    prerequisite: {
-      short: 'Requires a model that supports multiple tool/function calls.',
-      long: 'The model you are evaluating must support multiple tool/function calls.',
-    },
-  },
-  'multimodal-v1': {
-    prerequisite: {
-      short: 'Requires a vision-language model that supports image inputs.',
-      long: 'The model you are evaluating must be a vision-language model that supports image inputs.',
-    },
-  },
+export type CuratedCollectionConfig = {
+  prerequisites: CuratedCollectionPrerequisite[];
+  requiresConfiguration: boolean;
+  parameters?: Record<string, CuratedCollectionParameterConfig>;
 };
+
+export const CURATED_COLLECTION_PREREQUISITES: Partial<Record<string, HardcodedCollectionConfig>> =
+  {
+    'tool-use-v1': {
+      prerequisite: {
+        kind: 'run',
+        short: 'Requires a model that supports multiple tool/function calls.',
+        long: 'The model you are evaluating must support multiple tool/function calls.',
+      },
+    },
+    'multimodal-v1': {
+      prerequisite: {
+        kind: 'run',
+        short: 'Requires a vision-language model that supports image inputs.',
+        long: 'The model you are evaluating must be a vision-language model that supports image inputs.',
+      },
+    },
+  };
 
 const JUDGE_MODEL_PARAMETER_KEY = 'judge_model';
 
@@ -50,6 +62,7 @@ const judgeModelParameterConfig: CuratedCollectionParameterConfig = {
 };
 
 const JUDGE_MODEL_PREREQUISITE: CuratedCollectionPrerequisite = {
+  kind: 'config',
   short: 'Requires a judge model.',
   long: 'Requires a judge model in addition to the model you are evaluating. The judge model scores and evaluates the responses produced by the model you are evaluating.',
 };
@@ -70,10 +83,8 @@ export const getCuratedCollectionConfig = (
     requiresJudgeModel ? JUDGE_MODEL_PREREQUISITE : undefined,
   ].filter((part): part is CuratedCollectionPrerequisite => Boolean(part));
   return {
-    prerequisite: {
-      short: prerequisiteParts.map((part) => part.short).join(' '),
-      long: prerequisiteParts.map((part) => part.long).join(' '),
-    },
+    prerequisites: prerequisiteParts,
+    requiresConfiguration: prerequisiteParts.some((part) => part.kind === 'config'),
     parameters: requiresJudgeModel
       ? {
           ...hardcoded?.parameters,

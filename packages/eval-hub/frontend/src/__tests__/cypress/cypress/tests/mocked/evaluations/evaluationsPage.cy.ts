@@ -102,7 +102,7 @@ describe('Evaluations Page - Tabs', () => {
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/clawbench/copy`);
   });
 
-  it('should show prerequisites and customize-only actions for mapped Gallery suites', () => {
+  it('should show prerequisites and gate only judge-model suites behind customization', () => {
     const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1', 'unmapped-suite'];
     const collections = mockCuratedBenchmarkSuiteCollections()
       .slice(0, ids.length)
@@ -129,12 +129,17 @@ describe('Evaluations Page - Tabs', () => {
       .findBenchmarkSuitePrerequisite('multimodal-v1')
       .should('contain.text', 'Requires a vision-language model that supports image inputs.');
 
-    ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
-      evaluationsPage
-        .findBenchmarkSuitePrimaryAction(collectionId)
-        .should('contain.text', 'Customize')
-        .and('have.class', 'pf-m-secondary');
-      evaluationsPage.findBenchmarkSuiteDropdownToggleInCard(collectionId).should('not.exist');
+    evaluationsPage
+      .findBenchmarkSuitePrimaryAction('trustworthiness-v1')
+      .should('contain.text', 'Customize')
+      .and('have.class', 'pf-m-secondary');
+    evaluationsPage
+      .findBenchmarkSuiteDropdownToggleInCard('trustworthiness-v1')
+      .should('not.exist');
+
+    ['tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
+      evaluationsPage.findBenchmarkSuitePrimaryAction(collectionId).should('contain.text', 'Run');
+      evaluationsPage.findBenchmarkSuiteDropdownToggleInCard(collectionId).should('exist');
     });
 
     evaluationsPage.findBenchmarkSuitePrimaryAction('unmapped-suite').should('contain.text', 'Run');

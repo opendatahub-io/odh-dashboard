@@ -1369,10 +1369,11 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
               </GalleryItem>
             )}
             {visibleCollections.map((collection) => {
-              const prerequisite = !collection.resource.tenant
-                ? getCuratedCollectionConfig(collection)?.prerequisite.short
+              const curatedConfig = !collection.resource.tenant
+                ? getCuratedCollectionConfig(collection)
                 : undefined;
-              const hasPrerequisite = Boolean(prerequisite);
+              const prerequisite = curatedConfig?.prerequisites.map((part) => part.short).join(' ');
+              const hasBlockingPrerequisite = Boolean(curatedConfig?.requiresConfiguration);
 
               return (
                 <GalleryItem key={collection.resource.id}>
@@ -1382,20 +1383,20 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                     prerequisite={prerequisite}
                     showRunCount={scope === 'tenant'}
                     primaryAction={{
-                      label: hasPrerequisite ? 'Customize' : primaryActionLabel,
-                      href: hasPrerequisite
+                      label: hasBlockingPrerequisite ? 'Customize' : primaryActionLabel,
+                      href: hasBlockingPrerequisite
                         ? dropdownActionRoute?.(collection)
                         : primaryActionRoute?.(collection),
-                      state: hasPrerequisite ? dropdownActionState : primaryActionState,
-                      variant: hasPrerequisite ? 'secondary' : primaryActionVariant,
-                      tracksRunSelection: !hasPrerequisite,
+                      state: hasBlockingPrerequisite ? dropdownActionState : primaryActionState,
+                      variant: hasBlockingPrerequisite ? 'secondary' : primaryActionVariant,
+                      tracksRunSelection: !hasBlockingPrerequisite,
                       onClick: () =>
-                        hasPrerequisite
+                        hasBlockingPrerequisite
                           ? onDropdownAction?.(collection)
                           : onPrimaryAction(collection),
                     }}
                     dropdownAction={
-                      !hasPrerequisite && dropdownActionLabel
+                      !hasBlockingPrerequisite && dropdownActionLabel
                         ? {
                             label: dropdownActionLabel,
                             href: dropdownActionRoute?.(collection),
