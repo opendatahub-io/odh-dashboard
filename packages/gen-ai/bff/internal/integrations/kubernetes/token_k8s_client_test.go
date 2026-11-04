@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -124,6 +125,93 @@ func TestGetNamespacesUsesProjectsWithoutNamespaceGets(t *testing.T) {
 	assert.Equal(t, 1, namespaceListRequests)
 	assert.Equal(t, 1, projectListRequests)
 	assert.Zero(t, namespaceGetRequests)
+}
+
+// TestCallerScopedReadersUseCallerTokenNamespaceAndSelectors verifies the production
+// reader boundary resolveTrustedHost depends on: GetService, GetServiceEndpointSlices,
+// and ListPods must issue their Kubernetes requests with the caller's bearer token,
+// scoped to the requested namespace, and carrying the expected label selectors.
+func TestCallerScopedReadersUseCallerTokenNamespaceAndSelectors(t *testing.T) {
+	const namespace = "my-ns"
+	var authorizations []string
+	var serviceRequests, sliceRequests, podRequests int
+	var sliceSelector, podSelector string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		authorizations = append(authorizations, r.Header.Get("Authorization"))
+		switch r.URL.Path {
+		case "/api":
+			_ = json.NewEncoder(w).Encode(metav1.APIVersions{Versions: []string{"v1"}})
+		case "/api/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{GroupVersion: "v1", APIResources: []metav1.APIResource{
+				{Name: "services", Kind: "Service", Namespaced: true},
+				{Name: "pods", Kind: "Pod", Namespaced: true},
+			}})
+		case "/apis":
+			gv := metav1.GroupVersionForDiscovery{GroupVersion: "discovery.k8s.io/v1", Version: "v1"}
+			_ = json.NewEncoder(w).Encode(metav1.APIGroupList{Groups: []metav1.APIGroup{{
+				Name:             "discovery.k8s.io",
+				Versions:         []metav1.GroupVersionForDiscovery{gv},
+				PreferredVersion: gv,
+			}}})
+		case "/apis/discovery.k8s.io/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{GroupVersion: "discovery.k8s.io/v1", APIResources: []metav1.APIResource{
+				{Name: "endpointslices", Kind: "EndpointSlice", Namespaced: true},
+			}})
+		case "/api/v1/namespaces/" + namespace + "/services/my-model":
+			serviceRequests++
+			_ = json.NewEncoder(w).Encode(corev1.Service{
+				TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Service"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: "my-model"},
+			})
+		case "/apis/discovery.k8s.io/v1/namespaces/" + namespace + "/endpointslices":
+			sliceRequests++
+			sliceSelector = r.URL.Query().Get("labelSelector")
+			_ = json.NewEncoder(w).Encode(discoveryv1.EndpointSliceList{
+				TypeMeta: metav1.TypeMeta{APIVersion: "discovery.k8s.io/v1", Kind: "EndpointSliceList"},
+				Items:    []discoveryv1.EndpointSlice{{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: "my-model-x1"}}},
+			})
+		case "/api/v1/namespaces/" + namespace + "/pods":
+			podRequests++
+			podSelector = r.URL.Query().Get("labelSelector")
+			_ = json.NewEncoder(w).Encode(corev1.PodList{
+				TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "PodList"},
+				Items:    []corev1.Pod{{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: "my-model-pod"}}},
+			})
+		default:
+			http.Error(w, "unexpected request: "+r.Method+" "+r.URL.Path, http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().Build(),
+		Config: &rest.Config{Host: server.URL},
+		Logger: slog.Default(),
+	}
+	identity := &integrations.RequestIdentity{Token: "user-token"}
+	ctx := context.Background()
+
+	svc, err := kc.GetService(ctx, identity, namespace, "my-model")
+	require.NoError(t, err)
+	assert.Equal(t, "my-model", svc.Name)
+
+	slices, err := kc.GetServiceEndpointSlices(ctx, identity, namespace, "my-model")
+	require.NoError(t, err)
+	require.Len(t, slices, 1)
+
+	pods, err := kc.ListPods(ctx, identity, namespace, map[string]string{"app": "my-model"})
+	require.NoError(t, err)
+	require.Len(t, pods, 1)
+
+	assert.Equal(t, 1, serviceRequests)
+	assert.Equal(t, 1, sliceRequests)
+	assert.Equal(t, 1, podRequests)
+	assert.Equal(t, "kubernetes.io/service-name=my-model", sliceSelector)
+	assert.Equal(t, "app=my-model", podSelector)
+	for _, auth := range authorizations {
+		assert.Equal(t, "Bearer user-token", auth)
+	}
 }
 
 func TestGetExternalModelsConfigUsesRequestClient(t *testing.T) {
