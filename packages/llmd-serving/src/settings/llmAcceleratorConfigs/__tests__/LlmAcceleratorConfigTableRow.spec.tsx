@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigTableRow from '../LlmAcceleratorConfigTableRow';
-import { createTestProviders } from '../../__tests__/testProviders';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 const { wrapper } = createTestProviders();
 

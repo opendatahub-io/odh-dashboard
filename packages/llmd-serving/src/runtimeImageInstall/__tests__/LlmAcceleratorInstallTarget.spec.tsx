@@ -14,7 +14,7 @@ import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLL
 import { LlmAcceleratorConfigTrackingEvent } from '../../tracking/llmdTrackingConstants';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../settings/llmAcceleratorConfigs/paths';
 import LlmAcceleratorInstallTarget from '../LlmAcceleratorInstallTarget';
-import { createTestProviders } from '../../settings/__tests__/testProviders';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
 const { trackEvent: mockTrackEvent, wrapper } = createTestProviders();
 

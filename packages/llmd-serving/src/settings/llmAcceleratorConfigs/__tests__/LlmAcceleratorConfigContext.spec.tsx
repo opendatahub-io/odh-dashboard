@@ -6,7 +6,7 @@ import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-se
 import LlmAcceleratorConfigContextProvider from '../LlmAcceleratorConfigContext';
 import { useWatchLLMInferenceServiceConfigs } from '../../../api/LLMInferenceServiceConfigs';
 import { ConfigType } from '../../../types';
-import { createTestProviders } from '../../__tests__/testProviders';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 const { wrapper } = createTestProviders();
 

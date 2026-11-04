@@ -10,7 +10,7 @@ import {
 import { CONFIG_DELETION_PENDING_MESSAGE, CONFIG_IN_USE_ERROR_MESSAGE } from '../../../utils';
 import { TopologyType } from '../../../types';
 import TopologyConfigurationsTable from '../TopologyConfigurationsTable';
-import { createTestProviders } from '../../__tests__/testProviders';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 const { notification, wrapper } = createTestProviders();
 

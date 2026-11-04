@@ -7,7 +7,7 @@ import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledTog
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 import { LlmAcceleratorConfigTrackingEvent } from '../../../tracking/llmdTrackingConstants';
-import { createTestProviders } from '../../__tests__/testProviders';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 const { trackEvent: mockTrackEvent, notification, wrapper } = createTestProviders();
 

@@ -1,9 +1,8 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { renderHook } from '@odh-dashboard/jest-config/hooks';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { HostApiCoreContext } from '@odh-dashboard/plugin-core/host-api';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { createTestProviders } from './testProviders';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 import {
   createLLMInferenceServiceConfig,
   deleteLlmInferenceServiceConfigIfUnreferenced,
@@ -78,29 +77,47 @@ describe('settings host namespace', () => {
     'should delete %s configs using the latest host namespace',
     async (refType) => {
       const { coreApi } = createTestProviders();
-      let currentCoreApi = { ...coreApi, dashboardNamespace: 'first-dashboard' };
-      const Wrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
-        <HostApiCoreContext.Provider value={currentCoreApi}>{children}</HostApiCoreContext.Provider>
-      );
-      const { result, rerender } = renderHook(() => useDeleteLlmInferenceServiceConfig(refType), {
-        wrapper: Wrapper,
-      });
       const config = mockLLMInferenceServiceConfigK8sResource({ namespace: 'source-namespace' });
-      act(() => result.current.setDeleteConfig(config));
-      currentCoreApi = { ...coreApi, dashboardNamespace: 'second-dashboard' };
-      rerender();
+      const DeleteConfigHarness = () => {
+        const { deleteConfig, setDeleteConfig, handleDelete } =
+          useDeleteLlmInferenceServiceConfig(refType);
+        return (
+          <>
+            <button data-testid="select-config" onClick={() => setDeleteConfig(config)}>
+              Select configuration
+            </button>
+            <button data-testid="delete-config" disabled={!deleteConfig} onClick={handleDelete}>
+              Delete configuration
+            </button>
+          </>
+        );
+      };
+      const Host: React.FC<{ namespace: string }> = ({ namespace }) => {
+        const value = React.useMemo(
+          () => ({ ...coreApi, dashboardNamespace: namespace }),
+          [namespace],
+        );
+        return (
+          <HostApiCoreContext.Provider value={value}>
+            <DeleteConfigHarness />
+          </HostApiCoreContext.Provider>
+        );
+      };
+      const { rerender } = render(<Host namespace="first-dashboard" />);
+      fireEvent.click(screen.getByTestId('select-config'));
+      rerender(<Host namespace="second-dashboard" />);
+      const deleteButton = screen.getByTestId('delete-config');
+      expect(deleteButton).toBeEnabled();
       jest.mocked(deleteLlmInferenceServiceConfigIfUnreferenced).mockResolvedValue('deleted');
 
-      await act(async () => {
-        await result.current.handleDelete();
-      });
+      fireEvent.click(deleteButton);
 
+      await waitFor(() => expect(deleteButton).toBeDisabled());
       expect(deleteLlmInferenceServiceConfigIfUnreferenced).toHaveBeenCalledWith(
         config.metadata.name,
         'second-dashboard',
         refType,
       );
-      expect(result.current.deleteConfig).toBeUndefined();
     },
   );
 });
@@ -109,7 +126,7 @@ describe('settings form host services', () => {
   const cases = ['accelerator', 'topology', 'routing'] as const;
 
   const renderForm = (kind: (typeof cases)[number]) => {
-    const providers = createTestProviders('custom-dashboard');
+    const providers = createTestProviders({ dashboardNamespace: 'custom-dashboard' });
     const source = mockLLMInferenceServiceConfigK8sResource({
       name: 'source-config',
       namespace: 'source-namespace',

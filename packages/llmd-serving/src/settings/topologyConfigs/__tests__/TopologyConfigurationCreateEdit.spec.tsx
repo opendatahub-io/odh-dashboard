@@ -7,7 +7,7 @@ import { type LLMInferenceServiceConfigKind, TopologyType } from '../../../types
 import { TopologyConfigContext } from '../TopologyConfigContext';
 import TopologyConfigurationCreateEdit from '../TopologyConfigurationCreateEdit';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../paths';
-import { createTestProviders } from '../../__tests__/testProviders';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 const { wrapper } = createTestProviders();
 

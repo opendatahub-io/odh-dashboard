@@ -9,7 +9,7 @@ import {
 } from '../../../api/LLMInferenceServiceConfigs';
 import { CONFIG_DELETION_PENDING_MESSAGE, CONFIG_IN_USE_ERROR_MESSAGE } from '../../../utils';
 import RoutingConfigurationsTable from '../RoutingConfigurationsTable';
-import { createTestProviders } from '../../__tests__/testProviders';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 const { notification, wrapper } = createTestProviders();
 

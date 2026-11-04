@@ -7,7 +7,7 @@ import { TopologyType } from '../../../types';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 import { RoutingConfigContext } from '../RoutingConfigContext';
 import RoutingConfigurationCreateEdit from '../RoutingConfigurationCreateEdit';
-import { createTestProviders } from '../../__tests__/testProviders';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 const { wrapper } = createTestProviders();
 
