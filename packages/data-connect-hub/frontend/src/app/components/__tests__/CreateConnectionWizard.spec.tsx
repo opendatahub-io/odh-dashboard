@@ -7,11 +7,13 @@ import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/Crea
 import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import { useCreateConnectionNamespaces } from '~/app/hooks/useCreateConnectionNamespaces';
 import { testCredentials } from '~/app/api/dch';
-import type { Connection, CreateConnectionRequest } from '~/app/types';
+import type { Connection, CreateConnectionRequest, NamespaceKind } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
+jest.mock('~/app/hooks/useCreateConnectionNamespaces');
 jest.mock('~/app/utilities/tracking', () => ({
   ...jest.requireActual<typeof import('~/app/utilities/tracking')>('~/app/utilities/tracking'),
   fireDataConnectHubTrackEvent: jest.fn(),
@@ -27,6 +29,7 @@ jest.mock('~/app/api/dch', () => ({
 
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
+const mockUseCreateConnectionNamespaces = jest.mocked(useCreateConnectionNamespaces);
 const mockTestCredentials = jest.mocked(testCredentials);
 const mockTrackEvent = jest.fn();
 const postgresqlConnectionTypeId = '550e8400-e29b-41d4-a716-446655440003';
@@ -64,6 +67,11 @@ describe('CreateConnectionWizard', () => {
     mockTestCredentials.mockImplementation(() => () => Promise.resolve());
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
     mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
+    mockUseCreateConnectionNamespaces.mockImplementation((namespaces: NamespaceKind[]) => [
+      namespaces,
+      true,
+      undefined,
+    ]);
     jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
   });
 
@@ -1118,6 +1126,55 @@ describe('CreateConnectionWizard', () => {
     // Verification is intentionally available only on Configuration, never Review.
     expect(screen.queryByTestId('verify-connection-button')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Verify connection' })).toBeNull();
+  });
+
+  it('filters projects where the user cannot create connections', async () => {
+    const user = userEvent.setup();
+    mockUseNamespaces.mockReturnValue([
+      [
+        { name: 'test-project', displayName: 'Test Project' },
+        { name: 'read-only-project', displayName: 'Read-only Project' },
+      ],
+      true,
+      undefined,
+    ]);
+    mockUseCreateConnectionNamespaces.mockReturnValue([
+      [{ name: 'test-project', displayName: 'Test Project' }],
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{
+          data_connection_type_id: postgresqlConnectionTypeId,
+          credentials: { secret: '', properties: {} },
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Details' })).toBeTruthy();
+    expect(mockUseCreateConnectionNamespaces).toHaveBeenCalledWith(
+      [
+        { name: 'test-project', displayName: 'Test Project' },
+        { name: 'read-only-project', displayName: 'Read-only Project' },
+      ],
+      true,
+    );
+
+    await user.click(screen.getByTestId('connection-project-select'));
+    expect(screen.getByRole('option', { name: 'Test Project' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Read-only Project' })).toBeNull();
+
+    await user.click(screen.getByTestId('connection-project-access-popover-link'));
+    expect(
+      await screen.findByText(
+        'Only projects where you have permission to create connections are shown. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
   });
 
   it('does not show verification for a non-flight-ready connection type', async () => {
