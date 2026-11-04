@@ -4,6 +4,10 @@ description: >-
   Adversarially challenges review findings, removes false positives,
   deduplicates across dimensions, and produces an adjudicated finding list.
 model: opus
+when: >-
+  Steps 6a-6c produce a non-empty finding set after withholding
+  sub-agent-failure findings.
+role: synthesis
 tools: Read, Grep, Glob
 permissionMode: dontAsk
 background: false
@@ -48,7 +52,7 @@ For each finding:
    describe the same underlying issue should be merged. Keep the
    higher severity and the more specific remediation. Exception: never
    merge a correctness-category finding with a security-category finding
-   (the categories are listed in Constraints) — step 6c keeps them
+   (resolved as in Constraints) — step 6c keeps them
    distinct (a logic error and an auth bypass on the same line are two
    findings).
 4. **Challenge weak reasoning.** If a finding's description is vague,
@@ -133,8 +137,10 @@ account for every challenged input exactly once.
   `merged` finding's `severity` and `category` must equal those of the
   highest-severity input among its `merged_from` inputs (ties broken on the
   more specific remediation), and its `merged_from` must never combine a
-  correctness-category input with a security-category input. Resolve the
-  dimension from `category`: correctness = `logic-error`, `nil-deref`,
+  correctness-category input with a security-category input. Resolve each
+  input's dimension from its `dimension` field (`correctness` or
+  `security`); only when `dimension` is absent, resolve it from `category`:
+  correctness = `logic-error`, `nil-deref`,
   `off-by-one`, `edge-case`, `api-contract`, `missing-test`,
   `test-inadequate`, `pattern-violation`, `test-weakened`, `test-removed`,
   `mock-loosened`, `assertion-weakened`, `coverage-reduced`,

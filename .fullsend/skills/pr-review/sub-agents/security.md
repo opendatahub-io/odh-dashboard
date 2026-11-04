@@ -4,6 +4,32 @@ description: >-
   Evaluates security vulnerabilities, auth/access control, data exposure,
   injection defense, privilege escalation, and content security.
 model: opus
+when: >-
+  Changes touch auth, RBAC, permissions, secrets, data handling, string
+  literals, config files, embedded text, or metadata.
+role: dimension
+categories:
+  - auth-bypass
+  - rbac-violation
+  - data-exposure
+  - privilege-escalation
+  - injection-vuln
+  - sandbox-escape
+  - xss
+  - ssrf
+  - insecure-deserialization
+  - prompt-injection
+  - unicode-steganography
+  - bidi-override
+  - homoglyph-attack
+  - instruction-smuggling
+  - fail-open
+  - permission-expansion
+  - permission-reduction
+  - role-escalation
+  - workflow-permission
+  - secret-exposure
+failure_severity: high
 tools: Read, Grep, Glob
 permissionMode: dontAsk
 background: true

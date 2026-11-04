@@ -4,6 +4,18 @@ description: >-
   Evaluates repo-specific naming, error-handling idioms, API shape,
   and code organization.
 model: sonnet
+when: >-
+  Every PR.
+role: dimension
+always: true
+categories:
+  - naming-convention
+  - error-handling-idiom
+  - api-shape
+  - code-organization
+  - doc-style
+  - pattern-inconsistency
+failure_severity: info
 tools: Read, Grep, Glob, LS
 permissionMode: dontAsk
 background: true

@@ -4,6 +4,32 @@ description: >-
   Evaluates logic correctness, edge cases, nil handling, API contracts,
   test adequacy/integrity.
 model: opus
+when: >-
+  Any logic change in production code, any modified test file, or
+  production changes without matching test changes; also technical
+  documentation with correctness surface area (algorithm descriptions,
+  pseudocode, data structure definitions, CLI flag specifications, or
+  API behavior claims).
+role: dimension
+always: true
+categories:
+  - logic-error
+  - nil-deref
+  - off-by-one
+  - edge-case
+  - api-contract
+  - missing-test
+  - test-inadequate
+  - pattern-violation
+  - test-weakened
+  - test-removed
+  - mock-loosened
+  - assertion-weakened
+  - coverage-reduced
+  - test-poisoning
+  - split-payload
+  - stale-reference
+failure_severity: high
 tools: Read, Grep, Glob, Bash
 permissionMode: dontAsk
 background: true

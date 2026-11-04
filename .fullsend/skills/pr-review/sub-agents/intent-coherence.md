@@ -4,6 +4,25 @@ description: >-
   Evaluates architectural coherence & fit, design coherence,
   intent alignment, PR scope, scope authorization, and tier matching
 model: sonnet
+when: >-
+  Linked issues exist to verify against, or the change is non-trivial.
+role: dimension
+categories:
+  - scope-exceeded
+  - tier-mismatch
+  - unauthorized-change
+  - scope-creep
+  - missing-authorization
+  - misleading-label
+  - design-direction
+  - complexity-ratio
+  - misplaced-abstraction
+  - architectural-conflict
+  - design-smell
+  - over-engineering
+  - under-engineering
+  - scope-bundling
+failure_severity: info
 tools: Read, Grep, Glob
 permissionMode: dontAsk
 background: true

@@ -3,6 +3,15 @@ name: docs-currency
 description: >-
   Evaluates documentation staleness against code changes.
 model: sonnet
+when: >-
+  The repository has documentation files.
+role: dimension
+categories:
+  - stale-doc
+  - missing-doc
+  - incorrect-doc
+  - incomplete-doc
+failure_severity: info
 tools: Read, Grep, Glob, LS
 permissionMode: dontAsk
 background: true

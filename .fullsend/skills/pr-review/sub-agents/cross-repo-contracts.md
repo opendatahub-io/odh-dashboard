@@ -3,6 +3,19 @@ name: cross-repo-contracts
 description: >-
   Evaluates potential API contract breakage affecting other repos.
 model: sonnet
+when: >-
+  Public APIs, exported interfaces, schemas, or CLI args are modified.
+  Skip for PRs that do not touch public API surface.
+role: dimension
+categories:
+  - breaking-api
+  - breaking-schema
+  - breaking-config
+  - breaking-cli
+  - missing-deprecation
+  - missing-version-bump
+  - backward-incompatible
+failure_severity: info
 tools: Read, Grep, Glob
 permissionMode: dontAsk
 background: true
