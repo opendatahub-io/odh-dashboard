@@ -11,6 +11,7 @@ export enum PVCCategory {
 
 export type ExistingPVCOption = {
   name: string;
+  displayName: string;
   subPath?: string;
   category: PVCCategory;
 };
@@ -20,6 +21,7 @@ const isModelServingPVC = (pvc: PersistentVolumeClaimKind): boolean =>
 
 const toPVCOption = (pvc: PersistentVolumeClaimKind): ExistingPVCOption => ({
   name: pvc.metadata.name,
+  displayName: pvc.metadata.annotations?.['openshift.io/display-name'] || pvc.metadata.name,
   subPath: pvc.metadata.annotations?.[NIM_PVC_SUBPATH_ANNOTATION],
   category: isNIMPVC(pvc)
     ? PVCCategory.NIM

@@ -36,6 +36,7 @@ export const nimPVCPreDeploy = async (
   await createPvc(
     {
       name: fieldData.pvcName,
+      k8sName: fieldData.pvcK8sName,
       description: '',
       size: `${fieldData.storageSizeGi}Gi`,
       storageClassName: fieldData.storageClassName,
