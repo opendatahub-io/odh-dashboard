@@ -36,13 +36,14 @@ to native typed-client failures, HTTP proxy failures and rejected upstream WS ha
 contract. Successful resource responses and non-error watch events retain their original bytes.
 JSON HTTP watches buffer one newline-delimited event at a time; HTTP and WS watch `ERROR` objects
 retain their Status semantics with the same sanitization as ordinary failure responses.
+The upstream JSON encoding of each HTTP watch event is limited to 4 MiB, including its newline when present. An oversized event is discarded, logs a safe correlated read failure, and causes the proxy to terminate the stream without appending JSON. Events within the limit retain their existing sanitization and byte-preservation behavior; this cap does not apply to WebSocket messages.
 HTTP watch detection uses Kubernetes' query conversion, including `watch=1`, `watch=TRUE`, empty
 values and bare `watch`; absent parameters, `watch=0` and case-insensitive `watch=false` disable it.
 The proxy removes the caller's `Accept-Encoding` so its transport can negotiate and decompress
 responses. A successful JSON watch that still has a non-empty `Content-Encoding` fails closed before
 commitment with 502 `BAD_GATEWAY`, preventing an encoded stream from bypassing ERROR-event sanitization.
 
-The native `/api/v1/prometheus/*` query family retains its existing `{code, response}` format and
+The native `/api/prometheus/*` query family retains its existing `{code, response}` format and
 Prometheus-specific status/body semantics. BFF-generated unexpected query failures use a fixed safe
 message inside that format. Upstream Prometheus error bodies retain their service contract and are
 outside the Kubernetes sanitization policy.
@@ -54,7 +55,7 @@ retain bounded schema-like group/kind, standard reason, retry delay and validati
 paths. Preserve array positions, redact bracketed map keys in field paths, and replace cause messages.
 Unknown reason/type strings use safe fallbacks. Invalid/non-JSON Kubernetes error bodies become
 sanitized Status with the same HTTP status; error bodies are read with a 1 MiB bound. This bounds
-error inspection only, not successful responses, watch messages or transport policy.
+ordinary error inspection only. JSON HTTP watch events have the separate 4 MiB buffering limit described above; other successful response sizes and transport policies are unchanged.
 
 BFF-generated errors, sanitized Kubernetes failures, and WebSocket close reasons use fixed safe text
 instead of raw errors, submitted Secret values, credentials, cookies or bearer subprotocols.
@@ -96,8 +97,7 @@ BFF contract. After upgrade, send valid upstream close codes with fixed safe rea
 normal closure, 1008 for policy rejection, 1011 for upstream/internal failure and 1001 for shutdown.
 Do not send reserved/invalid codes. Reasons use fixed UTF-8 catalog text below the 123-byte protocol
 limit; upstream and peer free text is discarded. Shutdown notification is implemented by the existing
-connection tracker; process draining/timing remains with the lifecycle task. Heartbeat/size/lifetime
-limits remain with proxy hardening.
+connection tracker; process draining/timing remains with the lifecycle task. Other heartbeat, message-size and lifetime limits remain with proxy hardening.
 
 Native BFF 400/401/403 rejections and native Kubernetes 4xx failures log at Warn. Native request
 failures, HTTP proxy transport failures and tracked stream reads/writes log cancellation at Debug;

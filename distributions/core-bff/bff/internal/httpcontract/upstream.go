@@ -27,7 +27,12 @@ func KubernetesResponse(resp *http.Response) error {
 			if resp.Header.Get(constants.HeaderContentEncoding) != "" {
 				return fmt.Errorf("unsupported watch response encoding")
 			}
-			resp.Body = newWatchBody(resp.Body)
+			if observed, ok := resp.Body.(*observedBody); ok {
+				// Observe parser failures as well as upstream I/O errors, once.
+				observed.ReadCloser = newWatchBody(observed.ReadCloser)
+			} else {
+				resp.Body = newWatchBody(resp.Body)
+			}
 			resp.ContentLength = -1
 			resp.Header.Del(constants.HeaderContentLength)
 		}

@@ -166,7 +166,7 @@ func (t Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	resp, err := base.RoundTrip(out)
 	if resp != nil {
 		CaptureAudit(r.Context(), resp.Header)
-		if resp.Body != nil {
+		if resp.Body != nil && resp.StatusCode != http.StatusSwitchingProtocols {
 			resp.Body = &observedBody{ReadCloser: resp.Body, ctx: r.Context(), logger: t.Logger}
 		}
 	}

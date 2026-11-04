@@ -1,6 +1,9 @@
 package proxy
 
 import (
+	"bytes"
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConnectionTracker_TrackUntrack(t *testing.T) {
@@ -206,4 +210,25 @@ func TestConnectionTracker_StaleCleanupWithConnections(t *testing.T) {
 	if tracker.ActiveCount() != 0 {
 		t.Errorf("after stale cleanup with connections, count = %d, want 0", tracker.ActiveCount())
 	}
+}
+
+func TestConnectionTrackerLogCloseRetainsCorrelationAfterUntrack(t *testing.T) {
+	var logs bytes.Buffer
+	tracker := NewConnectionTracker(slog.New(slog.NewJSONHandler(&logs, nil)))
+	defer tracker.Stop()
+	requestID := "6d755a02-faea-46ea-ae98-9de9cc8dc4f1"
+	id := tracker.Track(nil, nil, requestID)
+	tracker.Untrack(id)
+	require.Zero(t, tracker.ActiveCount())
+	tracker.logClose(id, requestID, &websocket.CloseError{Code: websocket.CloseNormalClosure, Text: "CANARY_SECRET"})
+	var event struct {
+		ID        string `json:"id"`
+		RequestID string `json:"request_id"`
+		CloseCode int    `json:"close_code"`
+	}
+	require.NoError(t, json.Unmarshal(logs.Bytes(), &event))
+	require.Equal(t, id, event.ID)
+	require.Equal(t, requestID, event.RequestID)
+	require.Equal(t, websocket.CloseNormalClosure, event.CloseCode)
+	require.NotContains(t, logs.String(), "CANARY")
 }

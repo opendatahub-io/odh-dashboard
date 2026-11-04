@@ -11,13 +11,17 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"sync"
 	"syscall"
 	"testing"
 	"testing/iotest"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -318,4 +322,58 @@ func TestStreamCancellationLogsAtDebug(t *testing.T) {
 			require.NotContains(t, logs.String(), "CANARY")
 		})
 	}
+}
+
+func TestTransportPreservesUpgradeBodiesAndObservesOrdinaryResponses(t *testing.T) {
+	audit := uuid.NewString()
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !websocket.IsWebSocketUpgrade(r) {
+			_, _ = io.WriteString(w, "ordinary response")
+			return
+		}
+		upgrader := websocket.Upgrader{}
+		conn, err := upgrader.Upgrade(w, r, http.Header{AuditIDHeader: []string{audit}})
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		kind, body, err := conn.ReadMessage()
+		if err != nil {
+			return
+		}
+		_ = conn.WriteMessage(kind, body)
+	}))
+	defer upstream.Close()
+	target, err := url.Parse(upstream.URL)
+	require.NoError(t, err)
+	transport := Transport{Base: upstream.Client().Transport}
+	t.Run("ordinary responses remain observed", func(t *testing.T) {
+		request, err := http.NewRequest(http.MethodGet, upstream.URL, nil)
+		require.NoError(t, err)
+		response, err := transport.RoundTrip(request)
+		require.NoError(t, err)
+		defer response.Body.Close()
+		require.IsType(t, &observedBody{}, response.Body)
+		body, err := io.ReadAll(response.Body)
+		require.NoError(t, err)
+		require.Equal(t, "ordinary response", string(body))
+	})
+	t.Run("101 responses remain writable", func(t *testing.T) {
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		proxy.Transport = transport
+		server := httptest.NewServer(Middleware(proxy))
+		defer server.Close()
+		dialer := websocket.Dialer{HandshakeTimeout: 5 * time.Second}
+		conn, response, err := dialer.Dial("ws"+strings.TrimPrefix(server.URL, "http"), nil)
+		require.NoError(t, err)
+		defer conn.Close()
+		require.Equal(t, http.StatusSwitchingProtocols, response.StatusCode)
+		require.Equal(t, audit, response.Header.Get(AuditIDHeader))
+		_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+		require.NoError(t, conn.WriteMessage(websocket.TextMessage, []byte("upgrade relay")))
+		kind, body, err := conn.ReadMessage()
+		require.NoError(t, err)
+		require.Equal(t, websocket.TextMessage, kind)
+		require.Equal(t, "upgrade relay", string(body))
+	})
 }

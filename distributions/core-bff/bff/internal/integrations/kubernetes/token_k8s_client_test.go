@@ -1,18 +1,24 @@
 package kubernetes
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	authnv1 "k8s.io/api/authentication/v1"
@@ -28,7 +34,7 @@ func TestTokenClientFactory_ForwardsUserToken(t *testing.T) {
 		Logger: slog.Default(),
 		Header: config.DefaultAuthTokenHeader,
 		Prefix: config.DefaultAuthTokenPrefix,
-		NewTokenKubernetesClientFn: func(token string, logger *slog.Logger) (KubernetesClientInterface, error) {
+		NewTokenKubernetesClientFn: func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
 			capturedToken = token
 			return nil, nil
 		},
@@ -53,7 +59,7 @@ func TestTokenClientFactory_DifferentUsersGetDifferentTokens(t *testing.T) {
 		Logger: slog.Default(),
 		Header: config.DefaultAuthTokenHeader,
 		Prefix: config.DefaultAuthTokenPrefix,
-		NewTokenKubernetesClientFn: func(token string, logger *slog.Logger) (KubernetesClientInterface, error) {
+		NewTokenKubernetesClientFn: func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
 			tokens = append(tokens, token)
 			return nil, nil
 		},
@@ -156,7 +162,7 @@ users:
 	t.Setenv("KUBECONFIG", kubeconfigPath)
 
 	userToken := "user-bearer-token-xyz789" //nolint:gosec // test fixture, not a real credential
-	client, err := NewTokenKubernetesClient(userToken, slog.Default())
+	client, err := NewTokenKubernetesClient(context.Background(), userToken, slog.Default())
 	require.NoError(t, err)
 
 	tkc, ok := client.(*TokenKubernetesClient)
@@ -250,6 +256,75 @@ func TestAccessReviewEvaluationFailuresAreNotGrants(t *testing.T) {
 			require.Error(t, err)
 			require.False(t, allowed)
 			require.NotContains(t, err.Error(), "CANARY")
+		})
+	}
+}
+
+func TestTokenClientFactoryLogsCurrentAuditID(t *testing.T) {
+	for _, fallback := range []bool{false, true} {
+		t.Run(fmt.Sprintf("kubeconfig=%v", fallback), func(t *testing.T) {
+			audits := []string{"2895b0a0-7694-47d0-8cb4-869b93fe68be", "6d755a02-faea-46ea-ae98-9de9cc8dc4f1"}
+			var requests atomic.Int32
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				index := int(requests.Add(1)) - 1
+				w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
+				w.Header().Set(httpcontract.AuditIDHeader, audits[index%len(audits)])
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(metav1.Status{TypeMeta: metav1.TypeMeta{Kind: "Status", APIVersion: "v1"}, Code: 403, Status: metav1.StatusFailure, Reason: metav1.StatusReasonForbidden, Message: "CANARY_SECRET"})
+			}))
+			defer upstream.Close()
+			kubeconfig := fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: %s
+  name: test
+contexts:
+- context:
+    cluster: test
+    user: test
+  name: test
+current-context: test
+users:
+- name: test
+  user:
+    token: CANARY_KUBECONFIG_TOKEN
+`, upstream.URL)
+			path := filepath.Join(t.TempDir(), "kubeconfig")
+			require.NoError(t, os.WriteFile(path, []byte(kubeconfig), 0600))
+			t.Setenv("KUBECONFIG", path)
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logs, nil))
+			factory := NewTokenClientFactory(logger, config.EnvConfig{})
+			handler := httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				identity := &RequestIdentity{Token: NewBearerToken("CANARY_USER_TOKEN"), DevFallback: fallback}
+				ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
+				client, err := factory.GetClient(ctx)
+				require.NoError(t, err)
+				for range audits {
+					_, err = client.GetUser(ctx, identity)
+					require.Error(t, err)
+				}
+			}), logger)
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/user", nil))
+			decoder := json.NewDecoder(strings.NewReader(logs.String()))
+			for _, audit := range audits {
+				var event struct {
+					Message   string `json:"msg"`
+					RequestID string `json:"request_id"`
+					AuditID   string `json:"upstream_audit_id"`
+				}
+				require.NoError(t, decoder.Decode(&event))
+				require.Equal(t, "failed to get user identity from token", event.Message)
+				require.NotEmpty(t, event.RequestID)
+				require.Equal(t, response.Header().Get(httpcontract.RequestIDHeader), event.RequestID)
+				require.Equal(t, audit, event.AuditID, "read the audit ID after each upstream response")
+			}
+			var extra any
+			require.ErrorIs(t, decoder.Decode(&extra), io.EOF)
+			require.Equal(t, int32(2), requests.Load())
+			require.NotContains(t, logs.String(), "CANARY")
 		})
 	}
 }

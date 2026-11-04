@@ -2224,6 +2224,10 @@ components:
           $ref: '#/components/headers/RequestID'
         Audit-ID:
           $ref: '#/components/headers/AuditID'
+        Retry-After:
+          description: Retry delay in seconds or an HTTP date, when supplied by Kubernetes.
+          schema:
+            type: string
       description: Timed out contacting the Kubernetes API
       content:
         application/json:
@@ -2241,6 +2245,10 @@ components:
           $ref: '#/components/headers/RequestID'
         Audit-ID:
           $ref: '#/components/headers/AuditID'
+        Retry-After:
+          description: Retry delay in seconds or an HTTP date, when supplied by Kubernetes.
+          schema:
+            type: string
       description: Kubernetes API temporarily unavailable
       content:
         application/json:

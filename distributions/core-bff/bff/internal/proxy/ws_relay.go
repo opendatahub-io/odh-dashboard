@@ -10,19 +10,19 @@ import (
 
 const wsHeartbeatInterval = 15 * time.Second
 
-func forwardTargetToClient(tracker *ConnectionTracker, connID string, target, client *websocket.Conn, cleanup func()) {
+func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string, target, client *websocket.Conn, cleanup func()) {
 	defer cleanup()
 	for {
 		msgType, msg, err := target.ReadMessage()
 		if err != nil {
-			tracker.logClose(connID, err)
+			tracker.logClose(connID, requestID, err)
 			sendCloseMessage(client, err)
 			return
 		}
 		tracker.updateMetricsReceived(connID)
 		trackBookmark(tracker, connID, msg)
 		if writeErr := client.WriteMessage(msgType, httpcontract.SanitizeWatchEvent(msg)); writeErr != nil {
-			tracker.logClose(connID, writeErr)
+			tracker.logClose(connID, requestID, writeErr)
 			sendCloseMessage(target, writeErr)
 			return
 		}
@@ -30,18 +30,18 @@ func forwardTargetToClient(tracker *ConnectionTracker, connID string, target, cl
 	}
 }
 
-func forwardClientToTarget(tracker *ConnectionTracker, connID string, client, target *websocket.Conn, cleanup func()) {
+func forwardClientToTarget(tracker *ConnectionTracker, connID, requestID string, client, target *websocket.Conn, cleanup func()) {
 	defer cleanup()
 	for {
 		msgType, msg, err := client.ReadMessage()
 		if err != nil {
-			tracker.logClose(connID, err)
+			tracker.logClose(connID, requestID, err)
 			sendCloseMessage(target, err)
 			return
 		}
 		tracker.updateMetricsReceived(connID)
 		if writeErr := target.WriteMessage(msgType, msg); writeErr != nil {
-			tracker.logClose(connID, writeErr)
+			tracker.logClose(connID, requestID, writeErr)
 			sendCloseMessage(client, writeErr)
 			return
 		}
@@ -49,14 +49,14 @@ func forwardClientToTarget(tracker *ConnectionTracker, connID string, client, ta
 	}
 }
 
-func runHeartbeat(tracker *ConnectionTracker, connID string, target *websocket.Conn, heartbeat *time.Ticker, done <-chan struct{}, cleanup func(), clients ...*websocket.Conn) {
+func runHeartbeat(tracker *ConnectionTracker, connID, requestID string, target *websocket.Conn, heartbeat *time.Ticker, done <-chan struct{}, cleanup func(), clients ...*websocket.Conn) {
 	for {
 		select {
 		case <-done:
 			return
 		case <-heartbeat.C:
 			if err := target.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeControlTimeout)); err != nil {
-				tracker.logClose(connID, err)
+				tracker.logClose(connID, requestID, err)
 				for _, client := range clients {
 					sendCloseMessage(client, err)
 				}
@@ -68,7 +68,7 @@ func runHeartbeat(tracker *ConnectionTracker, connID string, target *websocket.C
 	}
 }
 
-func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn, requestID ...string) {
+func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn, requestID string) {
 	// Override gorilla's default close handler, which otherwise echoes untrusted peer text.
 	for _, conn := range []*websocket.Conn{clientConn, targetConn} {
 		conn.SetCloseHandler(func(code int, _ string) error {
@@ -76,7 +76,7 @@ func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *webso
 			return conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(safe, closeReason(safe)), time.Now().Add(writeControlTimeout))
 		})
 	}
-	connID := tracker.Track(clientConn, targetConn, requestID...)
+	connID := tracker.Track(clientConn, targetConn, requestID)
 	heartbeat := time.NewTicker(wsHeartbeatInterval)
 	done := make(chan struct{})
 	var closeOnce sync.Once
@@ -90,7 +90,7 @@ func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *webso
 		})
 	}
 
-	go forwardTargetToClient(tracker, connID, targetConn, clientConn, cleanup)
-	go forwardClientToTarget(tracker, connID, clientConn, targetConn, cleanup)
-	go runHeartbeat(tracker, connID, targetConn, heartbeat, done, cleanup, clientConn)
+	go forwardTargetToClient(tracker, connID, requestID, targetConn, clientConn, cleanup)
+	go forwardClientToTarget(tracker, connID, requestID, clientConn, targetConn, cleanup)
+	go runHeartbeat(tracker, connID, requestID, targetConn, heartbeat, done, cleanup, clientConn)
 }

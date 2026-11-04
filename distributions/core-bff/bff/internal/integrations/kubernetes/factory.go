@@ -42,8 +42,9 @@ type TokenClientFactory struct {
 	Header string
 	Prefix string
 	// NewTokenKubernetesClientFn is the function used to create token-based Kubernetes clients.
+	// Pass the request context and base logger; resolve audit correlation when logging.
 	// This can be overridden by downstream code to provide custom client creation logic.
-	NewTokenKubernetesClientFn func(token string, logger *slog.Logger) (KubernetesClientInterface, error)
+	NewTokenKubernetesClientFn func(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error)
 }
 
 // NewTokenClientFactory creates a new token-based Kubernetes client factory.
@@ -103,8 +104,8 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 	}
 
 	if identity.DevFallback {
-		return NewKubeconfigKubernetesClient(httpcontract.LogContext(f.Logger, ctx))
+		return NewKubeconfigKubernetesClient(ctx, f.Logger)
 	}
 
-	return f.NewTokenKubernetesClientFn(identity.Token.Raw(), httpcontract.LogContext(f.Logger, ctx))
+	return f.NewTokenKubernetesClientFn(ctx, identity.Token.Raw(), f.Logger)
 }

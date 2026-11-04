@@ -245,12 +245,6 @@ func (ct *ConnectionTracker) updateResourceVersion(id string, rv string) {
 	}
 }
 
-func (ct *ConnectionTracker) logClose(id string, err error) {
-	ct.mu.Lock()
-	requestID := ""
-	if conn := ct.connections[id]; conn != nil {
-		requestID = conn.requestID
-	}
-	ct.mu.Unlock()
+func (ct *ConnectionTracker) logClose(id, requestID string, err error) {
 	ct.logger.Info("WebSocket closing", "id", id, "request_id", requestID, "close_code", closeCodeFromError(err))
 }

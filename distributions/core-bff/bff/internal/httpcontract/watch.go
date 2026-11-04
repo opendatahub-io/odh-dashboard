@@ -4,10 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const maxWatchEventBytes = 4 << 20 // Includes the newline delimiter, when present.
+
+var errWatchEventTooLarge = errors.New("watch event exceeds buffering limit")
 
 // SanitizeWatchEvent changes only Kubernetes watch ERROR Status objects. Resource events,
 // bookmarks and non-watch/subprotocol messages retain their bytes, including whitespace.
@@ -54,7 +59,7 @@ func (b *watchBody) Read(p []byte) (int, error) {
 		if b.err != nil {
 			return 0, b.err
 		}
-		line, err := b.reader.ReadBytes('\n')
+		line, err := b.readEvent()
 		b.pending = SanitizeWatchEvent(line)
 		b.err = err
 	}
@@ -65,6 +70,21 @@ func (b *watchBody) Read(p []byte) (int, error) {
 	}
 	return n, nil
 }
+
+func (b *watchBody) readEvent() ([]byte, error) {
+	var event []byte
+	for {
+		fragment, err := b.reader.ReadSlice('\n')
+		if len(event)+len(fragment) > maxWatchEventBytes {
+			return nil, errWatchEventTooLarge
+		}
+		event = append(event, fragment...)
+		if !errors.Is(err, bufio.ErrBufferFull) {
+			return event, err
+		}
+	}
+}
+
 func newWatchBody(body io.ReadCloser) io.ReadCloser {
 	return &watchBody{ReadCloser: body, reader: bufio.NewReader(body)}
 }

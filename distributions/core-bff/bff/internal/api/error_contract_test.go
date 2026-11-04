@@ -48,7 +48,7 @@ func TestProductionAuthFailureContract(t *testing.T) {
 			factory := k8s.NewTokenClientFactory(logger, config.EnvConfig{AuthTokenHeader: "X-Custom-Credential"}).(*k8s.TokenClientFactory) //nolint:gosec // G101: header name, not a credential.
 			// The only injected boundary is the upstream location/TLS transport. Identity extraction,
 			// SSR implementation, typed REST decoding and production auth middleware are real.
-			factory.NewTokenKubernetesClientFn = func(token string, l *slog.Logger) (k8s.KubernetesClientInterface, error) {
+			factory.NewTokenKubernetesClientFn = func(ctx context.Context, token string, l *slog.Logger) (k8s.KubernetesClientInterface, error) {
 				cfg := &rest.Config{Host: upstream.URL, BearerToken: token, Transport: upstream.Client().Transport}
 				cfg.Wrap(httpcontract.WrapTransport)
 				client, err := k8sclient.NewForConfig(cfg)
