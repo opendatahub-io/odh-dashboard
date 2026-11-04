@@ -35,10 +35,11 @@ Each target cluster still has two explicit platform prerequisites:
   scoped `bind` permission for the built-in `view` ClusterRole, allowing the
   installer to attach read-only MCP runtime access without granting the
   dashboard service account those read permissions itself.
-- The selected end user or group is granted `get`, `list`, `create`, `patch`,
-  and `delete` on `mcpservers.mcp.x-k8s.io` in the selected project. This is
-  the authorization boundary for the one-click operation; the product must
-  not bind a hard-coded user name.
+- The selected end-user group, or a specifically named evaluator, is granted
+  `get`, `list`, `create`, `patch`, and `delete` on
+  `mcpservers.mcp.x-k8s.io` in the selected project. This is the
+  authorization boundary for the one-click operation; the product must not
+  bind a hard-coded user name.
 
 The installer never grants arbitrary roles. It accepts only the catalog's
 read-only `view` prerequisite and creates a Project Matrix-owned binding for
@@ -46,9 +47,31 @@ the generated MCP runtime service account. If the installer ClusterRole is not
 installed, the cluster administrator must apply it before an end user can run
 the Gateway operation.
 
-The current `jaydilla-installer-access.yaml` file is an evaluation-cluster
-fixture only. It is not a product authorization model and must be replaced by
-the customer’s project user or group binding during deployment.
+The `installer-access.yaml` file is an OpenShift `Template`, not a
+cluster-specific manifest. Its default subject is the named
+`project-matrix-gateway-installers` evaluator group. A deployment can target
+any project and change that subject to the customer’s existing group or to one
+named evaluator without changing the dashboard image. It must not use
+`system:authenticated` as a product default.
+
+For example, a cluster administrator can configure a group in any target
+project with:
+
+```sh
+oc process -f manifests/project-matrix/gateway/installer-access.yaml \
+  -p PROJECT_MATRIX_NAMESPACE=<target-project> \
+  -p PROJECT_MATRIX_INSTALLER_SUBJECT_KIND=Group \
+  -p PROJECT_MATRIX_INSTALLER_SUBJECT_NAME=<approved-evaluator-group> \
+  | oc apply -f -
+```
+
+For a named evaluator, set `PROJECT_MATRIX_INSTALLER_SUBJECT_KIND=User` and
+provide that user’s OpenShift identity as the subject name. The dashboard
+image and one-click workflow remain unchanged across clusters.
+
+This keeps the test path frictionless after one administrator grants the
+approved group, while preserving the same namespace-scoped authorization
+boundary for customer deployments.
 
 ## Gateway-layer definition of done
 
@@ -88,7 +111,8 @@ explicit implementation gates until their adapters and probes exist.
 - [ ] Inference Gateway adapter and validation.
 - [ ] Identity, TLS, exposure, routing, quota, and conformance probes.
 - [ ] Live teardown/reinstall/upgrade-compatibility validation.
-- [ ] JayDilla end-user validation on the live OpenShift AI instance.
+- [ ] Configured evaluator-group or named-user validation on the live
+  OpenShift AI instance.
 - [ ] Upstream contribution review and merge-request preparation.
 
 ## Live milestone evidence
