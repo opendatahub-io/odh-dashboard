@@ -224,15 +224,18 @@ const lockDirectDeps = (text) => {
     throw new Ineligible(`unsupported lockfileVersion ${lock.lockfileVersion}`);
   }
   const deps = {};
+  const specs = {};
   Object.entries(lock.importers ?? {}).forEach(([importer, sections]) => {
     LOCK_DEP_SECTIONS.forEach((section) => {
       Object.entries(sections?.[section] ?? {}).forEach(([dep, info]) => {
+        const key = `${importer}|${section}|${dep}`;
         // strip the peer-dependency suffix: 5.0.1(react@18.3.1) -> 5.0.1
-        [deps[`${importer}|${section}|${dep}`]] = String(info?.version ?? '').split('(');
+        [deps[key]] = String(info?.version ?? '').split('(');
+        specs[key] = String(info?.specifier ?? '');
       });
     });
   });
-  return [lock, deps];
+  return [lock, deps, specs];
 };
 
 /**
@@ -344,6 +347,10 @@ const satisfies = (resolved, spec) => {
     case '=':
       return compare(r, s) === 0;
     case '^':
+      // ^0.0.x pins the patch: ^0.0.2 allows 0.0.2 only.
+      if (s[0] === 0 && s[1] === 0) {
+        return compare(r, s) === 0;
+      }
       return compare(r, s) >= 0 && r[0] === s[0] && (s[0] !== 0 || r[1] === s[1]);
     case '~':
       return compare(r, s) >= 0 && r[0] === s[0] && r[1] === s[1];
@@ -382,13 +389,18 @@ const findLockChange = (changedKeys, importer, section, dep) => {
 const checkNpm = (base, head, files, max) => {
   let changes = [];
   const changedKeys = new Map();
+  // `${importer}|${dep}` -> set of specifiers declared by the manifests being
+  // changed. Used to authorize lockfile specifier edits.
+  const manifestSpecs = new Map();
   let baseLock = null;
   let headLock = null;
+  let baseSpecs = {};
+  let headSpecs = {};
   if (files.includes('pnpm-lock.yaml')) {
     let before;
     let after;
-    [baseLock, before] = lockDirectDeps(blob(base, 'pnpm-lock.yaml') ?? '');
-    [headLock, after] = lockDirectDeps(blob(head, 'pnpm-lock.yaml') ?? '');
+    [baseLock, before, baseSpecs] = lockDirectDeps(blob(base, 'pnpm-lock.yaml') ?? '');
+    [headLock, after, headSpecs] = lockDirectDeps(blob(head, 'pnpm-lock.yaml') ?? '');
     // Fail closed on every top-level key we do not know: lockfileVersion,
     // settings, overrides, and anything pnpm adds later. Only the three
     // update-carrying sections may differ, and those are checked below.
@@ -399,6 +411,18 @@ const checkNpm = (base, head, files, max) => {
           throw new Ineligible(`pnpm-lock.yaml: '${key}' changed`);
         }
       });
+    // Importers and their sections are the shape of the workspace, not part of
+    // a version update, so a bump cannot add, remove or reshape one.
+    if (!sameKeys(baseLock.importers ?? {}, headLock.importers ?? {})) {
+      throw new Ineligible('pnpm-lock.yaml: importers added or removed');
+    }
+    Object.keys(headLock.importers ?? {}).forEach((importer) => {
+      if (!sameKeys(baseLock.importers[importer] ?? {}, headLock.importers[importer] ?? {})) {
+        throw new Ineligible(
+          `pnpm-lock.yaml: dependency sections changed for importer '${importer}'`,
+        );
+      }
+    });
     checkResolutions(baseLock, headLock);
 
     const added = Object.keys(after).filter((k) => !Object.hasOwn(before, k));
@@ -447,6 +471,13 @@ const checkNpm = (base, head, files, max) => {
       NPM_DEP_SECTIONS.forEach((section) => {
         const o = prev[section] ?? {};
         const n = next[section] ?? {};
+        Object.entries(n).forEach(([dep, declared]) => {
+          const key = `${importer}|${dep}`;
+          if (!manifestSpecs.has(key)) {
+            manifestSpecs.set(key, new Set());
+          }
+          manifestSpecs.get(key).add(String(declared));
+        });
         if (!sameKeys(o, n)) {
           throw new Ineligible(`${path}: ${section} entries added/removed`);
         }
@@ -491,6 +522,22 @@ const checkNpm = (base, head, files, max) => {
         });
       });
     });
+
+  // A lockfile specifier may only move when a manifest declares the same new
+  // range, so a lockfile-only edit cannot widen what the manifest allows.
+  Object.entries(headSpecs).forEach(([key, spec]) => {
+    if (String(baseSpecs[key]) === String(spec)) {
+      return;
+    }
+    const [importer, , dep] = key.split('|');
+    const declared = manifestSpecs.get(`${importer}|${dep}`);
+    if (!declared || !declared.has(String(spec))) {
+      throw new Ineligible(
+        `pnpm-lock.yaml: specifier for ${dep} (importer '${importer}') changed to '${spec}' ` +
+          'without a matching package.json change',
+      );
+    }
+  });
 
   checkChanges(changes, max);
 };
@@ -681,6 +728,7 @@ module.exports = {
   parseGoMod,
   parseSpec,
   sameValue,
+  satisfies,
   snapshotName,
   stable,
   uniqueChanges,

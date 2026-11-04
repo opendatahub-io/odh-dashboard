@@ -25,6 +25,7 @@ const {
   parseGoMod,
   parseSpec,
   sameValue,
+  satisfies,
   snapshotName,
   stable,
   uniqueChanges,
@@ -68,6 +69,13 @@ test('stable rejects pseudo-versions and ranges', () => {
 });
 
 // ── unit: package.json specifiers ────────────────────────────────────────
+
+test('satisfies treats ^0.0.x as an exact patch', () => {
+  assert.equal(satisfies('0.0.2', { op: '^', version: '0.0.2' }), true);
+  assert.equal(satisfies('0.0.3', { op: '^', version: '0.0.2' }), false);
+  assert.equal(satisfies('0.2.9', { op: '^', version: '0.2.1' }), true);
+  assert.equal(satisfies('0.3.0', { op: '^', version: '0.2.1' }), false);
+});
 
 test('parseSpec accepts plain semver ranges', () => {
   assert.deepEqual(parseSpec('^1.2.3'), { op: '^', version: '1.2.3' });
@@ -199,6 +207,9 @@ const run = (dir, base, head, tier) => {
 const lock = ({
   root = '1.0.1',
   workspace = '1.0.1',
+  rootSpec = '^1.0.0',
+  workspaceSpec = '^1.0.0',
+  extraImporters = '',
   barDeps = { foo: '1.0.1' },
   extraPackages = '',
   extraSnapshots = '',
@@ -222,14 +233,14 @@ importers:
   .:
     dependencies:
       foo:
-        specifier: ^1.0.0
+        specifier: ${rootSpec}
         version: ${root}
   packages/a:
     dependencies:
       foo:
-        specifier: ^1.0.0
+        specifier: ${workspaceSpec}
         version: ${workspace}
-
+${extraImporters}
 packages:
   foo@1.0.1:
     resolution: {integrity: sha512-AAA}
@@ -470,6 +481,73 @@ integration('npm-patch: a pre-existing local resolution does not block the updat
   );
   const { eligible, output } = run(dir, base, head, 'npm-patch');
   assert.equal(eligible, true, output);
+});
+
+integration('npm: a lockfile specifier change without a manifest change is refused', () => {
+  const { dir, base } = makeRepo({
+    'package.json': rootManifest,
+    'packages/a/package.json': workspaceManifest,
+    'pnpm-lock.yaml': lock({}),
+  });
+  const head = commitFiles(
+    dir,
+    {
+      'pnpm-lock.yaml': lock({
+        root: '1.0.2',
+        workspace: '1.0.2',
+        rootSpec: '^2.0.0',
+        workspaceSpec: '^2.0.0',
+      }),
+    },
+    'lockfile spec only',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, false, output);
+  assert.match(output, /without a matching package\.json change/);
+});
+
+integration('npm-patch: a specifier update matched by the manifest is eligible', () => {
+  const { dir, base } = makeRepo({
+    'package.json': rootManifest,
+    'packages/a/package.json': workspaceManifest,
+    'pnpm-lock.yaml': lock({}),
+  });
+  const head = commitFiles(
+    dir,
+    {
+      'package.json': rootManifest.replace('^1.0.0', '^1.0.2'),
+      'packages/a/package.json': workspaceManifest.replace('^1.0.0', '^1.0.2'),
+      'pnpm-lock.yaml': lock({
+        root: '1.0.2',
+        workspace: '1.0.2',
+        rootSpec: '^1.0.2',
+        workspaceSpec: '^1.0.2',
+      }),
+    },
+    'synced range update',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, true, output);
+});
+
+integration('npm: a new importer in the lockfile is refused', () => {
+  const { dir, base } = makeRepo({
+    'package.json': rootManifest,
+    'packages/a/package.json': workspaceManifest,
+    'pnpm-lock.yaml': lock({}),
+  });
+  const extra =
+    '  packages/b:\n    dependencies:\n      foo:\n        specifier: ^1.0.0\n        version: 1.0.1\n';
+  const head = commitFiles(
+    dir,
+    {
+      'pnpm-lock.yaml': lock({ root: '1.0.2', workspace: '1.0.2', extraImporters: extra }),
+    },
+    'new importer',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, false, output);
+  assert.match(output, /importers added or removed/);
 });
 
 integration('npm: an unknown top-level lockfile key is refused', () => {

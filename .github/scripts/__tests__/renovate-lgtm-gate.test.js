@@ -147,6 +147,22 @@ integration('respects an authorized /lgtm cancel even though a bot removes the l
   assert.equal(decision(out), 'false', out);
 });
 
+integration('recognizes /remove-lgtm as a cancellation', () => {
+  const out = runGate({
+    timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
+    comments: [comment('/remove-lgtm', 'MEMBER', '2026-10-27T10:03:00Z')],
+  });
+  assert.equal(decision(out), 'false', out);
+});
+
+integration('recognizes the cancellation command regardless of case', () => {
+  const out = runGate({
+    timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
+    comments: [comment('/LGTM CANCEL', 'MEMBER', '2026-10-27T10:03:00Z')],
+  });
+  assert.equal(decision(out), 'false', out);
+});
+
 integration('ignores /lgtm cancel from someone without write access', () => {
   // A commenter with no authority must not be able to suppress revalidation.
   const out = runGate({

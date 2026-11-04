@@ -113,7 +113,7 @@ jobs:
               ((.author_association // "") == "OWNER"
                 or (.author_association // "") == "MEMBER"
                 or (.author_association // "") == "COLLABORATOR")
-              and ((.body // "") | test("(^|\n)[[:space:]]*/lgtm[[:space:]]+cancel[[:space:]]*($|\n)"))
+              and ((.body // "") | test("(^|\n)[[:space:]]*(/lgtm[[:space:]]+cancel|/remove-lgtm)[[:space:]]*($|\n)"; "i"))
             ) | .created_at] | max // ""' <<<"$comments")
           remover=$(jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""' <<<"$timeline")
           if [ -n "$last_cancel" ] && [[ "$last_cancel" > "$last_push" ]]; then

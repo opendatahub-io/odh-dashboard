@@ -3,9 +3,11 @@
 # updates for an ecosystem while keeping security updates (GitHub docs:
 # "Configuring Dependabot security updates").
 # The `groups`/`ignore` blocks below still shape SECURITY PRs; version-update
-# groups and cooldowns are inert. Keep the `directories` lists accurate:
-# scripts/security-audit/discover-dependabot-dirs.sh reads them for the
-# weekly audit.
+# groups and cooldowns are inert. `target-branch` is deliberately omitted:
+# Dependabot does not apply an entry's security-update settings when it is set,
+# and every ecosystem already targets the default branch. Keep the
+# `directories` lists accurate: scripts/security-audit/discover-dependabot-dirs.sh
+# reads them for the weekly audit.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -14,7 +16,6 @@ updates:
       interval: monthly
       day: monday
     open-pull-requests-limit: 0
-    target-branch: "main"
     labels:
       - "build"
 
@@ -25,7 +26,6 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 0
-    target-branch: "main"
     labels:
       - "dependencies"
 
@@ -117,7 +117,6 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 0
-    target-branch: "main"
     labels:
       - "dependencies"
 
