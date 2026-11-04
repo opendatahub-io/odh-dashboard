@@ -12,7 +12,7 @@
  */
 'use strict';
 
-const { test } = require('node:test');
+const { after, test } = require('node:test');
 const assert = require('node:assert/strict');
 const { execFileSync, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -32,7 +32,17 @@ const {
 
 const haveGit = spawnSync('git', ['--version']).status === 0;
 const haveYq = spawnSync('yq', ['--version']).status === 0;
+if (process.env.CI && (!haveGit || !haveYq)) {
+  throw new Error('git and yq must be available in CI; the checker tests must not skip there');
+}
 const integration = haveGit && haveYq ? test : test.skip;
+
+// Throwaway repositories are removed when the file finishes, including on
+// failure, so repeated local runs do not accumulate directories.
+const tmpDirs = [];
+after(() => {
+  tmpDirs.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true }));
+});
 
 // ── unit: version classification ─────────────────────────────────────────
 
@@ -163,6 +173,7 @@ const commitFiles = (dir, files, message) => {
 /** Creates a repo at the base commit and returns {dir, base}. */
 const makeRepo = (files) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'renovate-check-'));
+  tmpDirs.push(dir);
   git(dir, 'init', '-q', '-b', 'main');
   git(dir, 'config', 'user.email', 'test@example.com');
   git(dir, 'config', 'user.name', 'test');
@@ -297,6 +308,25 @@ integration('npm-patch: a minor bump in a patch tier is refused', () => {
   const { eligible, output } = run(dir, base, head, 'npm-patch');
   assert.equal(eligible, false, output);
   assert.match(output, /minor update in a patch tier/);
+});
+
+integration('npm-patch: a peerDependency edit is matched to its importer resolution', () => {
+  // pnpm records a peer's resolved version under a normal importer section, so
+  // a peer specifier edit must fall back to that section instead of looking for
+  // a peerDependencies entry that never exists.
+  const manifest = (peer) =>
+    `{\n  "name": "root",\n  "devDependencies": { "foo": "^1.0.0" },\n  "peerDependencies": { "foo": "${peer}" }\n}\n`;
+  const { dir, base } = makeRepo({
+    'package.json': manifest('^1.0.0'),
+    'pnpm-lock.yaml': lock({ root: '1.0.1' }),
+  });
+  const head = commitFiles(
+    dir,
+    { 'package.json': manifest('^1.0.2'), 'pnpm-lock.yaml': lock({ root: '1.0.2' }) },
+    'peer bump',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, true, output);
 });
 
 integration('npm: a specifier change in another workspace is refused', () => {
@@ -605,6 +635,27 @@ integration('go: changing go.mod directives is refused', () => {
   const { eligible, output } = run(dir, base, head, 'go-patch');
   assert.equal(eligible, false, output);
   assert.match(output, /non-require content changed/);
+});
+
+integration('go: a file moved out of upstream/ is still seen as upstream', () => {
+  // With rename detection, --name-only reports only the destination, which
+  // would let an upstream file slide out of the ignored path.
+  const { dir, base } = makeRepo({
+    'packages/x/upstream/go.sum': goSum('v1.2.3', null),
+    'packages/y/go.mod': GO_BASE,
+  });
+  fs.rmSync(path.join(dir, 'packages/x/upstream/go.sum'));
+  const head = commitFiles(
+    dir,
+    {
+      'packages/y/go.sum': goSum('v1.2.3', null),
+      'packages/y/go.mod': GO_BASE.replace('v1.2.3', 'v1.2.4'),
+    },
+    'move upstream sum',
+  );
+  const { eligible, output } = run(dir, base, head, 'go-patch');
+  assert.equal(eligible, false, output);
+  assert.match(output, /upstream-synced files/);
 });
 
 // ── integration: tier and file-scope guards ──────────────────────────────

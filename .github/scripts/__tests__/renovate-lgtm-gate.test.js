@@ -8,14 +8,15 @@
  * execute it with a stubbed `gh`, so the shipped shell is what gets tested.
  *
  * Run: node --test .github/scripts/__tests__/*.test.js
- * Skips when yq or jq is unavailable (both are present on GitHub runners).
+ * Skips locally when yq or jq is unavailable, but fails in CI: the dedicated
+ * workflow asserts both tools, and a silent skip there would hide regressions.
  */
 'use strict';
 
-// Fixtures mirror the GitHub issue-timeline API, which uses snake_case.
+// Fixtures mirror the GitHub issue-timeline and comment APIs (snake_case).
 /* eslint-disable camelcase */
 
-const { test } = require('node:test');
+const { after, test } = require('node:test');
 const assert = require('node:assert/strict');
 const { execFileSync, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -34,7 +35,15 @@ const WORKFLOW = path.join(
 
 const haveYq = spawnSync('yq', ['--version']).status === 0;
 const haveJq = spawnSync('jq', ['--version']).status === 0;
+if (process.env.CI && (!haveYq || !haveJq)) {
+  throw new Error('yq and jq must be available in CI; the gate tests must not skip there');
+}
 const integration = haveYq && haveJq ? test : test.skip;
+
+const tmpDirs = [];
+after(() => {
+  tmpDirs.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true }));
+});
 
 const GATE_QUERY = '.jobs["auto-merge"].steps[] | select(.id == "gate") | .run';
 
@@ -44,24 +53,35 @@ const gateScript = () =>
   JSON.parse(execFileSync('yq', ['-o=json', GATE_QUERY, WORKFLOW], { encoding: 'utf8' }));
 
 /**
- * Runs the gate against a fixture timeline. `gh` is stubbed to return the
- * fixture for every call, which is enough because the step only reads the
- * issue timeline.
+ * Runs the gate against fixture API responses. `gh` is stubbed: it answers
+ * `/comments` with the comments fixture and everything else with the timeline,
+ * which covers every call the step makes.
+ *
+ * `fixture` is either a timeline array or `{ timeline, comments }`.
  */
-const runGate = (events, overrides = {}) => {
+const runGate = (fixture, overrides = {}) => {
+  const { timeline, comments } = Array.isArray(fixture)
+    ? { timeline: fixture, comments: [] }
+    : { comments: [], ...fixture };
+
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lgtm-gate-'));
+  tmpDirs.push(dir);
+
   const script = path.join(dir, 'gate.sh');
   fs.writeFileSync(script, gateScript());
 
-  const timeline = path.join(dir, 'timeline.json');
-  fs.writeFileSync(timeline, JSON.stringify(events));
+  const timelineFile = path.join(dir, 'timeline.json');
+  fs.writeFileSync(timelineFile, JSON.stringify(timeline));
+  const commentsFile = path.join(dir, 'comments.json');
+  fs.writeFileSync(commentsFile, JSON.stringify(comments));
 
-  // Emulate `gh api --paginate`: one JSON array per page.
   const bin = path.join(dir, 'bin');
   fs.mkdirSync(bin);
-  fs.writeFileSync(path.join(bin, 'gh'), '#!/usr/bin/env bash\ncat "$TIMELINE"\n', {
-    mode: 0o755,
-  });
+  fs.writeFileSync(
+    path.join(bin, 'gh'),
+    '#!/usr/bin/env bash\ncase "$*" in\n  *"/comments"*) cat "$COMMENTS" ;;\n  *) cat "$TIMELINE" ;;\nesac\n',
+    { mode: 0o755 },
+  );
 
   const output = path.join(dir, 'github_output');
   fs.writeFileSync(output, '');
@@ -71,7 +91,8 @@ const runGate = (events, overrides = {}) => {
     env: {
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
-      TIMELINE: timeline,
+      TIMELINE: timelineFile,
+      COMMENTS: commentsFile,
       GITHUB_OUTPUT: output,
       REPO: 'opendatahub-io/odh-dashboard',
       PR_NUMBER: '10416',
@@ -85,9 +106,9 @@ const runGate = (events, overrides = {}) => {
   return fs.readFileSync(output, 'utf8');
 };
 
-const decision = (stdout) => {
-  const m = /run=(true|false)/.exec(stdout);
-  assert.ok(m, `no run= line in:\n${stdout}`);
+const decision = (output) => {
+  const m = /run=(true|false)/.exec(output);
+  assert.ok(m, `no run= line in:\n${output}`);
   return m[1];
 };
 
@@ -104,32 +125,55 @@ const prowRemoval = (at) => ({
   actor: { login: 'openshift-ci[bot]' },
   created_at: at,
 });
+const comment = (body, association, at) => ({
+  body,
+  author_association: association,
+  created_at: at,
+});
 
 integration('revalidates when Prow removes lgtm after our label (the race)', () => {
   // Push, we re-apply lgtm, then Prow processes the push and removes it. The
-  // old timestamp comparison read this as a human cancel and left the PR stuck.
+  // original timestamp comparison read this as a human cancel and left the PR
+  // stuck without lgtm.
   const out = runGate([pushed, ourLgtm, prowRemoval('2026-10-27T10:02:00Z')]);
   assert.equal(decision(out), 'true', out);
 });
 
-integration('respects /lgtm cancel even though Prow removes the label as a bot', () => {
-  const out = runGate([
-    pushed,
-    ourLgtm,
-    { event: 'commented', body: '/lgtm cancel', created_at: '2026-10-27T10:03:00Z' },
-    prowRemoval('2026-10-27T10:04:00Z'),
-  ]);
+integration('respects an authorized /lgtm cancel even though a bot removes the label', () => {
+  const out = runGate({
+    timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
+    comments: [comment('/lgtm cancel', 'MEMBER', '2026-10-27T10:03:00Z')],
+  });
   assert.equal(decision(out), 'false', out);
+});
+
+integration('ignores /lgtm cancel from someone without write access', () => {
+  // A commenter with no authority must not be able to suppress revalidation.
+  const out = runGate({
+    timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
+    comments: [comment('/lgtm cancel', 'NONE', '2026-10-27T10:03:00Z')],
+  });
+  assert.equal(decision(out), 'true', out);
+});
+
+integration('ignores prose that merely mentions the cancel command', () => {
+  // "Use `/lgtm cancel` to withdraw the review" is discussion, not a command.
+  const out = runGate({
+    timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
+    comments: [
+      comment('Use `/lgtm cancel` to withdraw the review.', 'MEMBER', '2026-10-27T10:03:00Z'),
+    ],
+  });
+  assert.equal(decision(out), 'true', out);
 });
 
 integration('revalidates when a cancel is older than the latest push', () => {
   // The cancellation applied to a previous revision, so the current head is
   // still eligible for evaluation.
-  const out = runGate([
-    { event: 'commented', body: '/lgtm cancel', created_at: '2026-10-27T09:00:00Z' },
-    pushed,
-    prowRemoval('2026-10-27T10:06:00Z'),
-  ]);
+  const out = runGate({
+    timeline: [pushed, prowRemoval('2026-10-27T10:06:00Z')],
+    comments: [comment('/lgtm cancel', 'OWNER', '2026-10-27T09:00:00Z')],
+  });
   assert.equal(decision(out), 'true', out);
 });
 

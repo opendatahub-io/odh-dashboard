@@ -104,8 +104,17 @@ jobs:
           # before selecting; a bare `jq -s '.'` would leave an array of arrays
           # and every selector below would match nothing.
           timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s 'add // []')
+          comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
           last_push=$(jq -r '[.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""' <<<"$timeline")
-          last_cancel=$(jq -r '[.[] | select(.event == "commented" and ((.body // "") | test("/lgtm[[:space:]]+cancel"))) | .created_at] | max // ""' <<<"$timeline")
+          # Only a standalone command from someone with write access withdraws
+          # approval. Matching the text anywhere would let ordinary prose, or a
+          # commenter with no authority, suppress revalidation.
+          last_cancel=$(jq -r '[.[] | select(
+              ((.author_association // "") == "OWNER"
+                or (.author_association // "") == "MEMBER"
+                or (.author_association // "") == "COLLABORATOR")
+              and ((.body // "") | test("(^|\n)[[:space:]]*/lgtm[[:space:]]+cancel[[:space:]]*($|\n)"))
+            ) | .created_at] | max // ""' <<<"$comments")
           remover=$(jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""' <<<"$timeline")
           if [ -n "$last_cancel" ] && [[ "$last_cancel" > "$last_push" ]]; then
             echo "lgtm cancelled by command after the last push, respecting it"
@@ -228,7 +237,9 @@ jobs:
 
       - name: Re-check head before labeling
         id: head
-        if: steps.tier.outputs.tier != ''
+        # `!cancelled()` so a failed validation (including the moved-head SHA
+        # test) still sets MOVED, instead of leaving it unset for the label step.
+        if: ${{ !cancelled() && steps.tier.outputs.tier != '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -265,7 +276,7 @@ jobs:
             echo "Head moved during validation — leaving labels for the new head's run"
             exit 0
           fi
-          if [ "$ELIGIBLE" = "true" ]; then
+          if [ "$ELIGIBLE" = "true" ] && [ "$MOVED" = "false" ]; then
             gh pr edit "$PR_URL" --add-label "lgtm,approved"
             echo "### ✅ Auto-merge labels applied (tier: $TIER)" >> "$GITHUB_STEP_SUMMARY"
           else

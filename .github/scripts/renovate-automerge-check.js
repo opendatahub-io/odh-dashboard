@@ -56,6 +56,12 @@ const NPM_DEP_SECTIONS = [
   'peerDependencies',
 ];
 const LOCK_DEP_SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies'];
+// pnpm never writes a `peerDependencies` importer section; a peer's resolved
+// version lives under one of the normal sections. A peer specifier edit is
+// therefore explained by the same importer's resolved entry there.
+const LOCK_SECTION_ALIASES = {
+  peerDependencies: ['dependencies', 'devDependencies', 'optionalDependencies'],
+};
 // Resolution fields that make pnpm fetch from somewhere other than the registry.
 // Renovate never emits them, so their presence is tampering, not an update.
 const NON_REGISTRY_RESOLUTION_KEYS = ['tarball', 'repo', 'directory', 'type'];
@@ -354,6 +360,25 @@ const satisfies = (resolved, spec) => {
   }
 };
 
+/**
+ * The lockfile change that explains a specifier edit for this importer and
+ * dependency. Falls back to the sections pnpm actually uses for peers.
+ */
+const findLockChange = (changedKeys, importer, section, dep) => {
+  const direct = changedKeys.get(`${importer}|${section}|${dep}`);
+  if (direct) {
+    return direct;
+  }
+  const aliases = LOCK_SECTION_ALIASES[section] ?? [];
+  for (const alias of aliases) {
+    const change = changedKeys.get(`${importer}|${alias}|${dep}`);
+    if (change) {
+      return change;
+    }
+  }
+  return null;
+};
+
 const checkNpm = (base, head, files, max) => {
   let changes = [];
   const changedKeys = new Map();
@@ -429,11 +454,10 @@ const checkNpm = (base, head, files, max) => {
           if (n[dep] === spec) {
             return;
           }
-          // A specifier edit must be explained by the SAME importer+section+dep
+          // A specifier edit must be explained by the SAME importer+dep
           // resolving to a new version. A change elsewhere in the monorepo does
           // not authorize it.
-          const key = `${importer}|${section}|${dep}`;
-          const change = changedKeys.get(key);
+          const change = findLockChange(changedKeys, importer, section, dep);
           if (!change) {
             throw new Ineligible(
               `${path}: ${dep} specifier changed (${spec} -> ${n[dep]}) without a matching ` +
@@ -612,7 +636,12 @@ const main = (base, head, tier) => {
       throw new Ineligible(`tier '${tier}' is not auto-merge eligible`);
     }
     const mergeBase = git('merge-base', base, head).trim();
-    const files = git('diff', '--name-only', mergeBase, head).split('\n').filter(Boolean);
+    // --no-renames keeps a moved file visible as delete+add. With rename
+    // detection, --name-only reports only the destination, which could move a
+    // file out of an ignored path without the filters below ever seeing it.
+    const files = git('diff', '--no-renames', '--name-only', mergeBase, head)
+      .split('\n')
+      .filter(Boolean);
     if (files.length === 0) {
       throw new Ineligible('empty diff');
     }

@@ -35,6 +35,11 @@ Upstream-synced trees (`packages/model-registry/upstream/`, `packages/notebooks/
 
 Renovate (`.github/renovate.json5`, self-hosted via `.github/workflows/renovate.yml`, app `odh-dashboard-agent`) owns **version updates** for npm, Go modules, GitHub Actions and Dockerfile base images. Dependabot keeps **security updates** only (`open-pull-requests-limit: 0` in `.github/dependabot.yml`), so the two bots never propose the same change.
 
+**Go-live prerequisites** (outside this repo)
+
+- `renovate/*` branch rules must let `odh-dashboard-agent` push, force-push and delete those branches, and nobody else. Force-push is required for rebasing; without it every update stalls at `422 Cannot force-push to this branch`.
+- `odh-dashboard-agent` must be in Prow `trusted_apps`: [openshift/release#87548](https://github.com/openshift/release/pull/87548).
+
 **When things happen**
 
 - Runs daily at 02:00 UTC. New PRs are only opened on **Monday before 04:00 UTC**; other runs rebase/refresh existing PRs and close superseded ones.
