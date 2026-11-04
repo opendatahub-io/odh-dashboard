@@ -3,13 +3,13 @@ import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { type ConfigSettings } from 'mod-arch-core';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
-import { getMaaSWhoAmI } from '~/app/api/whoami';
+import { getIsMaasAdmin } from '~/app/api/k8s';
 import { searchTenantApiKeys } from '~/app/api/api-keys';
 import { AppContext } from '~/app/context/AppContext';
 import { KeysAndSubsProvider, useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 
 jest.mock('~/app/api/subscriptions', () => ({ listUserSubscriptions: jest.fn() }));
-jest.mock('~/app/api/whoami', () => ({ getMaaSWhoAmI: jest.fn() }));
+jest.mock('~/app/api/k8s', () => ({ getIsMaasAdmin: jest.fn() }));
 jest.mock('~/app/api/api-keys', () => ({
   searchTenantApiKeys: jest.fn(),
 }));
@@ -37,17 +37,18 @@ describe('KeysAndSubsProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(listUserSubscriptions).mockReturnValue(jest.fn().mockResolvedValue([]));
-    jest.mocked(getMaaSWhoAmI).mockReturnValue(jest.fn().mockResolvedValue({ isAdmin: true }));
+    jest.mocked(getIsMaasAdmin).mockReturnValue(jest.fn().mockResolvedValue({ allowed: true }));
     jest
       .mocked(searchTenantApiKeys)
       .mockReturnValue(jest.fn().mockResolvedValue({ object: 'list', data: [], has_more: false }));
   });
 
-  it('should expose MaaS organization admin status without a Kubernetes check', async () => {
+  it('should expose MaaS organization admin status from the federated authorization check', async () => {
     const { result } = renderHook(useKeysAndSubsContext, { wrapper });
 
     await waitFor(() => expect(result.current.isMaasAdminLoaded).toBe(true));
     expect(result.current.isMaasAdmin).toBe(true);
+    expect(getIsMaasAdmin).toHaveBeenCalled();
     expect(searchTenantApiKeys).toHaveBeenCalled();
   });
 });
