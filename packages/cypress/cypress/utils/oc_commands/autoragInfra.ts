@@ -10,7 +10,25 @@ const PGVECTOR_DATABASE = 'autorag_test_db';
 const PGVECTOR_USER = 'autorag_test_user';
 const PGVECTOR_PORT = '5432';
 const PGVECTOR_NETWORK_CHECK_JOB = 'autorag-pgvector-network-check';
-const PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS = 300;
+const PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS = 720;
+const PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT = 1;
+const PGVECTOR_NETWORK_CHECK_CONNECT_TIMEOUT_SECONDS = 2;
+const PGVECTOR_NETWORK_CHECK_QUERY_TIMEOUT_MS = 2000;
+const PGVECTOR_NETWORK_CHECK_RETRY_INTERVAL_SECONDS = 2;
+const PGVECTOR_NETWORK_CHECK_SCHEDULING_MARGIN_SECONDS = 60;
+const PGVECTOR_NETWORK_CHECK_POLL_INTERVAL_SECONDS = 10;
+const PGVECTOR_NETWORK_STATUS_ERROR_RETRIES = 6;
+const PGVECTOR_NETWORK_CHECK_ATTEMPT_BUDGET_SECONDS =
+  PGVECTOR_NETWORK_CHECK_CONNECT_TIMEOUT_SECONDS +
+  PGVECTOR_NETWORK_CHECK_QUERY_TIMEOUT_MS / 1000 +
+  PGVECTOR_NETWORK_CHECK_RETRY_INTERVAL_SECONDS;
+const PGVECTOR_NETWORK_CHECK_ATTEMPTS = Math.max(
+  1,
+  Math.floor(
+    (PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS - PGVECTOR_NETWORK_CHECK_SCHEDULING_MARGIN_SECONDS) /
+      (PGVECTOR_NETWORK_CHECK_ATTEMPT_BUDGET_SECONDS * (PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT + 1)),
+  ),
+);
 const E2E_OWNER_LABEL = 'odh-dashboard.io/e2e-owner';
 const OPERATOR_DEPLOYMENT_LABEL_SELECTOR = 'app.kubernetes.io/name=dashboard-operator';
 const OPERATOR_CONTAINER_NAME = 'manager';
@@ -221,7 +239,28 @@ const applyAutoragPgvectorNetworkCheck = (
   cy.fixture(PGVECTOR_NETWORK_CHECK_FIXTURE, 'utf8').then((template: string) => {
     const rendered = template
       .replaceAll('__PGVECTOR_IMAGE__', image)
-      .replaceAll('__PGVECTOR_OWNER__', owner);
+      .replaceAll('__PGVECTOR_OWNER__', owner)
+      .replaceAll(
+        '__PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT__',
+        String(PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT),
+      )
+      .replaceAll(
+        '__PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS__',
+        String(PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS),
+      )
+      .replaceAll('__PGVECTOR_NETWORK_CHECK_ATTEMPTS__', String(PGVECTOR_NETWORK_CHECK_ATTEMPTS))
+      .replaceAll(
+        '__PGVECTOR_NETWORK_CHECK_CONNECT_TIMEOUT_SECONDS__',
+        String(PGVECTOR_NETWORK_CHECK_CONNECT_TIMEOUT_SECONDS),
+      )
+      .replaceAll(
+        '__PGVECTOR_NETWORK_CHECK_QUERY_TIMEOUT_MS__',
+        String(PGVECTOR_NETWORK_CHECK_QUERY_TIMEOUT_MS),
+      )
+      .replaceAll(
+        '__PGVECTOR_NETWORK_CHECK_RETRY_INTERVAL_SECONDS__',
+        String(PGVECTOR_NETWORK_CHECK_RETRY_INTERVAL_SECONDS),
+      );
     return applyOpenShiftYaml(rendered, namespace).then((result) => {
       if (result.exitCode !== 0) {
         throw new Error(
@@ -333,15 +372,51 @@ const getAutoragPgvectorNetworkDiagnostics = (namespace: string): Cypress.Chaina
 };
 
 const verifyAutoragPgvectorNetwork = (namespace: string): Cypress.Chainable<unknown> => {
-  const waitForJob = `oc wait --for=condition=complete ${shellQuote(
-    `job/${PGVECTOR_NETWORK_CHECK_JOB}`,
-  )} -n ${shellQuote(namespace)} --timeout=${PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS}s`;
+  const job = shellQuote(`job/${PGVECTOR_NETWORK_CHECK_JOB}`);
+  const jobNamespace = shellQuote(namespace);
+  const waitForJob =
+    `end_time=$(($(date +%s) + ${PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS})); ` +
+    `status_error_count=0; ` +
+    `while [ "$(date +%s)" -lt "$end_time" ]; do ` +
+    `status_output=$(oc get ${job} -n ${jobNamespace} --request-timeout=5s ` +
+    `-o jsonpath='{range .status.conditions[*]}{.type}={.status}{"\\n"}{end}' 2>&1); ` +
+    `get_exit_code=$?; ` +
+    `if [ "$get_exit_code" -ne 0 ]; then ` +
+    `status_error_count=$((status_error_count + 1)); ` +
+    `if printf '%s\\n' "$status_output" | grep -Eqi 'forbidden|unauthorized|access denied|you must be logged in|login required|authentication required'; then ` +
+    `echo "Unable to read PGVector network-check Job status due to authorization (oc exit code $get_exit_code)." >&2; ` +
+    `exit 3; ` +
+    `fi; ` +
+    `if printf '%s\\n' "$status_output" | grep -Eqi 'invalid namespace|unknown flag|no such file'; then ` +
+    `echo "Unable to read PGVector network-check Job status due to an invalid oc request (oc exit code $get_exit_code)." >&2; ` +
+    `exit 3; ` +
+    `fi; ` +
+    `if printf '%s\\n' "$status_output" | grep -Eqi 'not found|the server could not find'; then ` +
+    `if [ "$status_error_count" -ge 2 ]; then ` +
+    `echo "PGVector network-check Job was not found after repeated status reads." >&2; ` +
+    `exit 3; ` +
+    `fi; ` +
+    `sleep ${PGVECTOR_NETWORK_CHECK_POLL_INTERVAL_SECONDS}; ` +
+    `continue; ` +
+    `fi; ` +
+    `if [ "$status_error_count" -ge ${PGVECTOR_NETWORK_STATUS_ERROR_RETRIES} ]; then ` +
+    `echo "Unable to read PGVector network-check Job status after repeated errors (oc exit code $get_exit_code)." >&2; ` +
+    `exit 3; ` +
+    `fi; ` +
+    `sleep ${PGVECTOR_NETWORK_CHECK_POLL_INTERVAL_SECONDS}; ` +
+    `continue; ` +
+    `fi; ` +
+    `status_error_count=0; ` +
+    `if printf '%s\\n' "$status_output" | grep -qx 'Complete=True'; then exit 0; fi; ` +
+    `if printf '%s\\n' "$status_output" | grep -qx 'Failed=True'; then exit 2; fi; ` +
+    `sleep ${PGVECTOR_NETWORK_CHECK_POLL_INTERVAL_SECONDS}; ` +
+    `done; exit 124`;
 
   cy.step('Verify same-namespace AutoRAG pipeline connectivity to PGVector');
   return cy
     .exec(waitForJob, {
       failOnNonZeroExit: false,
-      timeout: (PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS + 10) * 1000,
+      timeout: (PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS + 20) * 1000,
       log: false,
     })
     .then((waitResult) => {
