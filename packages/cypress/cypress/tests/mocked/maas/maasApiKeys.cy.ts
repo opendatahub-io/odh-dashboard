@@ -32,6 +32,9 @@ describe('API Keys Page', () => {
     );
 
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: true } });
+    cy.interceptOdh('GET /maas/api/v1/user', {
+      data: { userId: 'test-user', clusterAdmin: false },
+    });
     cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
 
     cy.interceptOdh(

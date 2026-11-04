@@ -38,6 +38,9 @@ const setupCommonIntercepts = () => {
   cy.interceptOdh('GET /maas/api/v1/whoami', {
     data: { sub: 'test-user', isAdmin: false },
   });
+  cy.interceptOdh('GET /maas/api/v1/user', {
+    data: { userId: 'test-user', clusterAdmin: false },
+  });
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: TEST_PROJECT })]),
