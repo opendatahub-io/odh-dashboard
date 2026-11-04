@@ -324,7 +324,7 @@ job, in [`pre-review.sh`](../../scripts/pre-review.sh), after the PR-state and
 skip-author checks:
 
 - **Credentials.** The shim composes `FULLSEND_GITHUB_RUNNER_SECRETS` from the
-  `CODERABBIT_API_KEY`, `JIRA_USERNAME` and `JIRA_API_TOKEN` secrets, and
+  `CODERABBIT_API_KEY`, `JIRA_URL`, `JIRA_USERNAME` and `JIRA_API_TOKEN` secrets, and
   [`harness/review.yaml`](../../harness/review.yaml) references
   them in `env.runner` (Fullsend ADR 0136). Every name is always sent: an
   unset secret goes as the placeholder `odh-adapter-credential-unset`, because
@@ -335,11 +335,11 @@ skip-author checks:
   `host.credentials`, under the generic `FULLSEND_ADAPTER_*` names. None of
   them reaches the sandbox. `env.runner` also reaches `post-review.sh`, which
   unsets them first, and the validation loop, which does not read them.
-- **Jira base URL.** The reusable workflow sets `JIRA_BASE_URL` on the run step
-  from the shim's `jira_base_url` input (`vars.JIRA_BASE_URL`). Host scripts
-  inherit it and `run_adapter` forwards it to every adapter, so
-  [`fetch-jira-context.sh`](../../scripts/fetch-jira-context.sh) builds its
-  request and browse URLs from it. [`post-review.sh`](../../scripts/post-review.sh)
+- **Jira URLs.** The review harness sets public `JIRA_BASE_URL` to the Jira site
+  URL for browse links. `JIRA_URL` is passed only to the Jira adapter for REST
+  requests when it is an Atlassian API gateway URL. Without that URL, the Jira
+  snapshot reports `jira-api-url-unset`; it does not request from the site URL.
+  The gateway does not appear in review links. [`post-review.sh`](../../scripts/post-review.sh)
   resolves each Product ask label from its own `.run/jira.json` snapshot rather
   than the section's `key`/`url`.
 - **Order and cost.** `fullsend run` posts the review start-status comment
