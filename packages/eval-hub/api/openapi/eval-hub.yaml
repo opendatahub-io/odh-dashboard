@@ -1468,10 +1468,12 @@ components:
           description: >-
             Name of a Kubernetes Secret (in the request namespace) whose "api-key"
             data field contains the authentication credential. If the Secret also
-            contains a "ca_cert" PEM bundle, its CA certificates are trusted for
-            this connection probe. Non-CA certificates are ignored. Mutually
-            exclusive with secret_value; secret_name takes precedence when both
-            are provided.
+            contains a "ca_cert" PEM bundle with at least one valid CA certificate,
+            those CA certificates are trusted for this connection probe and
+            non-CA certificates are ignored. Invalid PEM data, non-certificate
+            PEM blocks, invalid certificates, or a bundle with no CA certificate
+            result in a 400 response. Mutually exclusive with secret_value;
+            secret_name takes precedence when both are provided.
           example: 'my-api-key-secret'
         secret_value:
           type: string

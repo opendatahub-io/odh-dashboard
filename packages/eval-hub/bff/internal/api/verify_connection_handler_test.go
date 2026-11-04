@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"io"
 	"log/slog"
@@ -15,14 +16,24 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/opendatahub-io/eval-hub/bff/internal/config"
+	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/connectionprobe"
+	ehmocks "github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub/ehmocks"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
+	"github.com/opendatahub-io/eval-hub/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // testCertificateAuthority creates a separate CA so each trust-pool case has a known signer.
@@ -169,6 +180,83 @@ func TestConnectionProbeWithSecretCA(t *testing.T) {
 	assert.True(t, response.Success)
 	require.NotNil(t, response.OpenAICompat)
 	assert.True(t, *response.OpenAICompat)
+}
+
+func TestVerifyConnectionHandler_UsesSecretCA(t *testing.T) {
+	ca, caKey, caPEM := testCertificateAuthority(t, "handler test CA")
+	serverCertificate, _ := testServerCertificate(t, ca, caKey)
+	endpoint := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"chatcmpl-123","choices":[{"message":{"role":"assistant","content":"ok"}}]}`))
+	}))
+	endpoint.TLS = &tls.Config{Certificates: []tls.Certificate{serverCertificate}}
+	endpoint.StartTLS()
+	defer endpoint.Close()
+
+	secretRequested := atomic.Bool{}
+	kubeAPIServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v1/namespaces/test-ns/secrets/test-secret" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Header.Get("Authorization") != "Bearer test-token" {
+			http.Error(w, "unexpected authorization header", http.StatusUnauthorized)
+			return
+		}
+		secretRequested.Store(true)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(&corev1.Secret{
+			TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
+			ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: "test-ns"},
+			Data: map[string][]byte{
+				"api-key": []byte("test-api-key"),
+				"ca_cert": caPEM,
+			},
+		})
+	}))
+	defer kubeAPIServer.Close()
+
+	kubeconfigPath := filepath.Join(t.TempDir(), "kubeconfig")
+	kubeconfig := clientcmdapi.Config{
+		Clusters: map[string]*clientcmdapi.Cluster{
+			"test": {Server: kubeAPIServer.URL},
+		},
+		AuthInfos: map[string]*clientcmdapi.AuthInfo{"test": {}},
+		Contexts: map[string]*clientcmdapi.Context{
+			"test": {Cluster: "test", AuthInfo: "test"},
+		},
+		CurrentContext: "test",
+	}
+	require.NoError(t, clientcmd.WriteToFile(kubeconfig, kubeconfigPath))
+	t.Setenv("KUBECONFIG", kubeconfigPath)
+
+	app := &App{
+		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, DevMode: true},
+		logger:                  testLogger,
+		kubernetesClientFactory: &testK8sFactory{},
+		evalHubClientFactory:    ehmocks.NewMockClientFactory(),
+		repositories:            repositories.NewRepositories(),
+	}
+	requestBody, err := json.Marshal(models.VerifyConnectionRequest{
+		SourceType: "model",
+		BaseURL:    endpoint.URL + "/v1",
+		SecretName: "test-secret",
+		ModelID:    "test-model",
+	})
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodPost, VerifyConnectionPath+"?namespace=test-ns", bytes.NewReader(requestBody))
+	request.Header.Set(constants.KubeflowUserIDHeader, "user@example.com")
+	response := httptest.NewRecorder()
+
+	app.Routes().ServeHTTP(response, request)
+
+	assert.Equal(t, http.StatusOK, response.Code, response.Body.String())
+	assert.True(t, secretRequested.Load(), "handler should resolve the Secret using the caller token")
+	var result struct {
+		Data models.VerifyConnectionResponse `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
+	assert.True(t, result.Data.Success)
 }
 
 func TestVerifyConnectionHandler_MissingBaseURL(t *testing.T) {
