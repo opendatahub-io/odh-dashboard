@@ -64,7 +64,7 @@ Collect the ports already in use and pick the next free value in each range. The
 2. **BFF local dev port** (range **4000–4099**). Ports are inline in Makefile recipes and package scripts (`PORT=…` / `PROXY_PORT=…`), not Makefile variables:
 
    ```bash
-   grep -hoE '(PROXY_)?PORT=40[0-9]{2}' packages/*/Makefile packages/*/package.json 2>/dev/null | grep -oE '[0-9]+' | sort -n | uniq
+   grep -hoE '(PROXY_)?PORT=40[0-9]{2}' packages/*/Makefile packages/*/package.json distributions/*/Makefile distributions/*/package.json 2>/dev/null | grep -oE '[0-9]+' | sort -n | uniq
    ```
 
    Avoid `4000` (used by data-registry/model-serving and by default dev setups) and `4010` (the dashboard shell).

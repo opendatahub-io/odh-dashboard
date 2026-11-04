@@ -120,6 +120,51 @@ describe('parseModuleRegistryContent', () => {
     assert.deepEqual(errors, ['unsupported moduleRegistry entry form: modelRegistryKey: {']);
   });
 
+  it('parses space-indented entries, so their duplicate ports are still checked', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      registry([
+        '\t"a": {',
+        '\t\tPort: 8043,',
+        '\t},',
+        '    "b": {',
+        '        Port: 8043,',
+        '    },',
+      ]),
+    );
+    assert.deepEqual(errors, []);
+    assert.deepEqual(
+      entries.map((e) => e.name),
+      ['a', 'b'],
+    );
+    assert.equal(validateProductionPorts({ entries, errors }), true);
+  });
+
+  it('parses single-line entries', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      registry(['\t"a": {Name: "a", Port: 8043},', '\t"b": {', '\t\tPort: 8143,', '\t},']),
+    );
+    assert.deepEqual(errors, []);
+    assert.deepEqual(entries, [
+      { name: 'a', port: 8043 },
+      { name: 'b', port: 8143 },
+    ]);
+  });
+
+  it('ignores Port fields nested deeper than the entry', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      registry([
+        '\t"a": {',
+        '\t\tInterBFFDeps: []interBFFDependency{{',
+        '\t\t\tPort: 9999,',
+        '\t\t}},',
+        '\t\tPort: 8043,',
+        '\t},',
+      ]),
+    );
+    assert.deepEqual(errors, []);
+    assert.deepEqual(entries, [{ name: 'a', port: 8043 }]);
+  });
+
   it('ignores comments between entries', () => {
     const { entries, errors } = parseModuleRegistryContent(
       registry(['\t// first module', '\t"a": {', '\t\tPort: 8043,', '\t},']),

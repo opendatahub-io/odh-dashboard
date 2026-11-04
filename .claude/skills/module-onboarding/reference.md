@@ -47,7 +47,7 @@ Given a kebab-case module name (e.g., `my-module`):
 pnpm run validate:ports
 
 # BFF ports
-grep -hoE '(PROXY_)?PORT=40[0-9]{2}' packages/*/Makefile packages/*/package.json 2>/dev/null | grep -oE '[0-9]+' | sort -n | uniq
+grep -hoE '(PROXY_)?PORT=40[0-9]{2}' packages/*/Makefile packages/*/package.json distributions/*/Makefile distributions/*/package.json 2>/dev/null | grep -oE '[0-9]+' | sort -n | uniq
 
 # Production service ports (operator registry)
 grep -E '^[[:space:]]+Port:[[:space:]]+[0-9]+' dashboard-operator/internal/controller/modules.go | grep -oE '[0-9]+' | sort -n
