@@ -132,6 +132,7 @@ describe('ModelAccessSubscriptionPage', () => {
     expect(await screen.findByText('Granite 3 8B Instruct')).toBeVisible();
     expect(screen.getByText('Flan T5 Small')).toBeVisible();
     expect(screen.queryByRole('columnheader', { name: 'Status' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Project' })).not.toBeInTheDocument();
   });
 
   it('should link back to the Model Access page', async () => {
