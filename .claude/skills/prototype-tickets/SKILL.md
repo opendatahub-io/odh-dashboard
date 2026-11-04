@@ -10,12 +10,12 @@ Reads a designer's fork diff, identifies features and interactive flows, generat
 ## Arguments
 
 ```text
-/prototype-tickets <url> --fork <ssh-url> [--project RHOAIENG] [--parent RHAISTRAT-XXXXX | RHOAIENG-XXXXX] [--base 3.5]
+/prototype-tickets <url> --fork <ssh-url> [--project RHAI] [--parent RHAISTRAT-XXXXX | RHAI-XXXXX | RHOAIENG-XXXXX] [--base 3.5]
 ```
 
 - `<url>` — deployed prototype URL
 - `--fork <ssh-url>` — designer's forked repo SSH clone URL
-- `--project <key>` — Jira project key (default: `RHOAIENG`)
+- `--project <key>` — Jira project key for **new** tickets (default: `RHAI`). `RHOAIENG` is the legacy project and is **not accepted** here: new issues are always created in `RHAI`. Legacy `RHOAIENG` keys remain valid for `--parent`.
 - `--parent <key>` — parent ticket for context:
   - **Epic** → link children under it (no new Epic)
   - **RHAISTRAT-\* or other** → read for context, create new Epic
@@ -28,10 +28,11 @@ See **Prerequisites** in `.claude/rules/prototype-fork-ops.md`.
 
 ## Step 0: Validate arguments
 
-Parse: URL (`http`), `--fork`, `--project` (default `RHOAIENG`), `--parent`, `--base`. Order doesn't matter.
+Parse: URL (`http`), `--fork`, `--project` (default `RHAI`), `--parent`, `--base`. Order doesn't matter.
 
 - No URL → stop: "Prototype URL required."
 - No `--fork` → stop: "Fork URL required."
+- `--project RHOAIENG` → stop: "New issues are created in `RHAI`. Use `--project RHAI`, or pass a legacy epic with `--parent RHOAIENG-XXXXX`."
 
 ## Steps 1-2: Read parent ticket + clone fork (parallel)
 
@@ -87,18 +88,18 @@ Prioritize: new files → route/page components → modal/form components → sh
 
 ### Re-run protection + Epic discovery
 
-Search for existing tickets referencing this prototype URL:
+Search for existing tickets referencing this prototype URL. Discovery always covers **both** projects so tickets filed before the RHAI migration are still found, even though new tickets are created in `<project>`:
 
 ```text
-searchJiraIssuesUsingJql(cloudId: "redhat.atlassian.net", jql: "project = <project> AND text ~ \"<prototype-url>\" AND statusCategory != Done ORDER BY key ASC")
+searchJiraIssuesUsingJql(cloudId: "redhat.atlassian.net", jql: "project in (RHAI, RHOAIENG) AND text ~ \"<prototype-url>\" AND statusCategory != Done ORDER BY key ASC")
 ```
 
 **Epic(s) found:**
-- **Filter to same project** — ignore Epics from other projects.
+- **Keep Epics in either project** — an Epic from legacy `RHOAIENG` is a valid target; new children are created in `<project>` and linked cross-project.
 - **One Epic** → promote to target Epic (prevents duplicate Epics).
 - **Multiple Epics** → list them, ask which to use.
 - Read children for sibling dedup.
-- Tell user: "Found existing Epic `[KEY]`. New tickets will be linked under it."
+- Tell user: "Found existing Epic `[KEY]` (in `RHAI` or `RHOAIENG`). New tickets will be linked under it."
 
 **Non-Epic tickets found, no Epic:**
 - List them, ask: "Skip duplicates, or create anyway?"
@@ -170,9 +171,9 @@ Link failures are non-critical — report and continue.
 
 ```text
 | # | Key | Type | Summary | Depends on |
-| 0 | RHOAIENG-XXXXX | Epic | [title] | — |
-| 1 | RHOAIENG-XXXXX | Task | [summary] | — |
-| 2 | RHOAIENG-XXXXX | Story | [summary] | #1 |
+| 0 | RHAI-XXXXX | Epic | [title] | — |
+| 1 | RHAI-XXXXX | Task | [summary] | — |
+| 2 | RHAI-XXXXX | Story | [summary] | #1 |
 
-Next step: /prototype-spec <url> --fork <ssh> --ticket RHOAIENG-XXXXX
+Next step: /prototype-spec <url> --fork <ssh> --ticket RHAI-XXXXX
 ```
