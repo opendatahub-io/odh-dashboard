@@ -269,27 +269,54 @@ const verifyVectorDbConnectionSecret = (
         throw new Error('Unable to read the AutoRAG PGVector connection secret.');
       }
 
+      let decodedConnection: {
+        host: string;
+        port: string;
+        db: string;
+        user: string;
+        password: string;
+      };
       try {
         const secret = JSON.parse(result.stdout) as {
           data?: Record<string, string>;
         };
-        const decode = (key: string): string =>
-          Buffer.from(secret.data?.[key] ?? '', 'base64').toString('utf8');
-        const matchesConnection =
-          decode('PGVECTOR_HOST') === connection.host &&
-          decode('PGVECTOR_PORT') === connection.port &&
-          decode('PGVECTOR_DB') === connection.db &&
-          decode('PGVECTOR_USER') === connection.user &&
-          decode('PGVECTOR_PASSWORD') === connection.password;
+        const decode = (key: string): string => {
+          const encoded = secret.data?.[key];
+          if (
+            typeof encoded !== 'string' ||
+            !encoded ||
+            encoded.length % 4 !== 0 ||
+            !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)
+          ) {
+            throw new Error(`Secret field ${key} is missing or not valid base64.`);
+          }
 
-        if (!matchesConnection) {
-          throw new Error('AutoRAG PGVector connection secret does not match the ready database.');
-        }
-      } catch (error) {
-        if (error instanceof Error && error.message.includes('does not match')) {
-          throw error;
-        }
+          const decoded = Buffer.from(encoded, 'base64');
+          if (!decoded.length || decoded.toString('base64') !== encoded) {
+            throw new Error(`Secret field ${key} is missing or not valid base64.`);
+          }
+          return decoded.toString('utf8');
+        };
+        decodedConnection = {
+          host: decode('PGVECTOR_HOST'),
+          port: decode('PGVECTOR_PORT'),
+          db: decode('PGVECTOR_DB'),
+          user: decode('PGVECTOR_USER'),
+          password: decode('PGVECTOR_PASSWORD'),
+        };
+      } catch {
         throw new Error('AutoRAG PGVector connection secret returned invalid data.');
+      }
+
+      const matchesConnection =
+        decodedConnection.host === connection.host &&
+        decodedConnection.port === connection.port &&
+        decodedConnection.db === connection.db &&
+        decodedConnection.user === connection.user &&
+        decodedConnection.password === connection.password;
+
+      if (!matchesConnection) {
+        throw new Error('AutoRAG PGVector connection secret does not match the ready database.');
       }
     }),
   );
