@@ -30,9 +30,11 @@ import { EllipsisVIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternf
 import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link, useLocation } from 'react-router-dom';
-import { createConnection, verifyConnection } from '~/app/api/dch';
+import { createConnection, isConnectionAccessForbidden, verifyConnection } from '~/app/api/dch';
 import ConnectionDeleteModal from '~/app/components/ConnectionDeleteModal';
+import CreateConnectionButton from '~/app/components/CreateConnectionButton';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
@@ -41,6 +43,8 @@ import {
   fireDataConnectHubTrackEvent,
   getConnectionTypeProvider,
 } from '~/app/utilities/tracking';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
+import { getConnectionAccessTooltip } from '~/app/utilities/connectionAccess';
 import {
   hasVerificationOutcome,
   isValidTimestamp,
@@ -65,6 +69,15 @@ export const synchronizeTypeSelection = (
 
 const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = true }) => {
   const { search } = useLocation();
+  const { isAllowed: canVerifyConnection, loaded: verifyAccessLoaded } = useConnectionAccess(
+    namespace,
+    'create',
+  );
+  const { isAllowed: canDeleteConnection, loaded: deleteAccessLoaded } = useConnectionAccess(
+    namespace,
+    'delete',
+  );
+  const isVerifyAccessDisabled = !canVerifyConnection || !verifyAccessLoaded;
   const [connections, loaded, error, refresh] = useConnections(namespace, isActive);
   const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace, isActive);
   const [nameFilter, setNameFilter] = React.useState('');
@@ -143,6 +156,9 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     return null;
   }
   if (error || typesError) {
+    if (isConnectionAccessForbidden(error) || isConnectionAccessForbidden(typesError)) {
+      return <UnauthorizedError accessDomain="connections" />;
+    }
     return (
       <PageSection isFilled hasBodyWrapper={false}>
         <EmptyState
@@ -239,7 +255,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   };
 
   const handleVerify = async (id: string) => {
-    if (verifyingIdsRef.current.has(id)) {
+    if (isVerifyAccessDisabled || verifyingIdsRef.current.has(id)) {
       return;
     }
     verifyingIdsRef.current.add(id);
@@ -368,9 +384,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           )}
           {connections.length > 0 ? (
             <ToolbarItem>
-              <Button variant="primary" onClick={() => handleCreateConnection('connections_tab')}>
-                Create connection
-              </Button>
+              <CreateConnectionButton
+                namespace={namespace}
+                onCreate={() => handleCreateConnection('connections_tab')}
+              />
             </ToolbarItem>
           ) : null}
         </ToolbarContent>
@@ -400,9 +417,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           </EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="primary" onClick={() => handleCreateConnection('empty_state')}>
-                Create connection
-              </Button>
+              <CreateConnectionButton
+                namespace={namespace}
+                onCreate={() => handleCreateConnection('empty_state')}
+              />
             </EmptyStateActions>
           </EmptyStateFooter>
         </EmptyState>
@@ -524,14 +542,34 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                     >
                       <DropdownList>
                         <DropdownItem
-                          isDisabled={verifying.has(connection.metadata.id)}
+                          isAriaDisabled={
+                            isVerifyAccessDisabled || verifying.has(connection.metadata.id)
+                          }
+                          tooltipProps={
+                            isVerifyAccessDisabled
+                              ? {
+                                  content: verifyAccessLoaded
+                                    ? getConnectionAccessTooltip('create')
+                                    : 'Checking access...',
+                                }
+                              : undefined
+                          }
                           onClick={() => void handleVerify(connection.metadata.id)}
                         >
                           Verify connection
                         </DropdownItem>
                         <Divider />
                         <DropdownItem
+                          isAriaDisabled={!canDeleteConnection || !deleteAccessLoaded}
+                          tooltipProps={{
+                            content: deleteAccessLoaded
+                              ? getConnectionAccessTooltip('delete')
+                              : 'Checking access...',
+                          }}
                           onClick={() => {
+                            if (!canDeleteConnection || !deleteAccessLoaded) {
+                              return;
+                            }
                             setActionsFor(undefined);
                             fireDataConnectHubTrackEvent({
                               eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,

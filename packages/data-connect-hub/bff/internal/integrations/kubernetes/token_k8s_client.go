@@ -12,6 +12,9 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -178,13 +181,40 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	dynamicClient, err := dynamic.NewForConfig(kc.restConfig)
 	if err != nil {
-		kc.Logger.Error("user is not allowed to list namespaces or failed to list namespaces")
-		return []corev1.Namespace{}, fmt.Errorf("failed to list namespaces: %w", err)
+		return []corev1.Namespace{}, fmt.Errorf("failed to create dynamic Kubernetes client: %w", err)
 	}
 
-	return nsList.Items, nil
+	projectGVR := schema.GroupVersionResource{
+		Group:    "project.openshift.io",
+		Version:  "v1",
+		Resource: "projects",
+	}
+	projectList, err := dynamicClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to list OpenShift projects", "error", err)
+		return []corev1.Namespace{}, fmt.Errorf("failed to list OpenShift projects: %w", err)
+	}
+
+	return namespacesFromProjects(projectList.Items)
+}
+
+func namespacesFromProjects(projects []unstructured.Unstructured) ([]corev1.Namespace, error) {
+	namespaces := make([]corev1.Namespace, 0, len(projects))
+	for _, project := range projects {
+		name, found, err := unstructured.NestedString(project.Object, "metadata", "name")
+		if err != nil {
+			return nil, fmt.Errorf("failed to read project metadata: %w", err)
+		}
+		if !found || name == "" {
+			return nil, fmt.Errorf("OpenShift project is missing a name")
+		}
+		namespaces = append(namespaces, corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+		})
+	}
+	return namespaces, nil
 }
 
 func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {

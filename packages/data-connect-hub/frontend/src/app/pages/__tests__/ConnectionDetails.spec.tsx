@@ -1,6 +1,6 @@
 import React from 'react';
 import { jest } from '@jest/globals';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import * as ReactRouterDom from 'react-router-dom';
@@ -10,12 +10,14 @@ import ConnectionDetails from '~/app/pages/ConnectionDetails';
 import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import * as trackingUtilities from '~/app/utilities/tracking';
 import type { Connection } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnection');
 jest.mock('~/app/hooks/useConnectionType');
 jest.mock('~/app/hooks/useNamespaces');
+jest.mock('~/app/hooks/useConnectionAccess');
 jest.mock('~/app/utilities/tracking', () => ({
   DATA_CONNECT_HUB_EVENT_NAMES: {
     deleteInitiated: 'Connections Connection Delete Initiated',
@@ -57,6 +59,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 const mockUseConnection = jest.mocked(useConnection);
 const mockUseConnectionType = jest.mocked(useConnectionType);
 const mockUseNamespaces = jest.mocked(useNamespaces);
+const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
 const mockTrackEvent = jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent);
@@ -146,6 +149,7 @@ describe('ConnectionDetails', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
     mockUseNamespaces.mockReturnValue([
       [{ name: 'test-project', displayName: 'Test Project' }],
       true,
@@ -310,6 +314,69 @@ describe('ConnectionDetails', () => {
     });
   });
 
+  it('disables header verification when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue([connection, true, undefined, refresh]);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+
+    renderDetails();
+    await user.click(screen.getByTestId('connection-actions-toggle'));
+    const verifyItem = screen.getByRole('menuitem', { name: 'Verify connection' });
+    expect(verifyItem.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(verifyItem);
+    expect(
+      screen.getByText(
+        'This action requires the create permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(verifyItem);
+    expect(mockVerifyConnection).not.toHaveBeenCalled();
+  });
+
+  it('disables card verification when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue([connection, true, undefined, refresh]);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+
+    renderDetails();
+    const button = screen.getByTestId('connection-verify-button');
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(button);
+    expect(
+      screen.getByText(
+        'This action requires the create permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(button);
+    expect(mockVerifyConnection).not.toHaveBeenCalled();
+  });
+
+  it('disables deleting from connection details when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue([connection, true, undefined, refresh]);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+
+    renderDetails();
+    await user.click(screen.getByTestId('connection-actions-toggle'));
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+    expect(deleteItem.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(deleteItem);
+    expect(
+      screen.getByText(
+        'This action requires the delete permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(deleteItem);
+    expect(screen.queryByTestId('delete-modal')).toBeNull();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
+
   it('shows an error when verification fails', async () => {
     const user = userEvent.setup();
     const verifyRequest = jest.fn(() => Promise.reject(new Error('verification failed')));
@@ -328,7 +395,7 @@ describe('ConnectionDetails', () => {
       );
       expect(refresh).toHaveBeenCalledTimes(1);
     });
-    expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', false);
+    expect(screen.getByTestId('connection-verify-button').getAttribute('aria-disabled')).toBeNull();
   });
 
   it('resets pending verification state when the connection ID changes', async () => {
@@ -352,7 +419,14 @@ describe('ConnectionDetails', () => {
       '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440001?project=test-project',
     );
     await user.click(screen.getByTestId('connection-verify-button'));
-    expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', true);
+    const button = screen.getByTestId('connection-verify-button');
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    await user.hover(button);
+    expect(
+      screen.queryByText(
+        'This action requires the create permission. To request permission, contact your administrator.',
+      ),
+    ).toBeNull();
 
     navigate(
       '/ai-hub/connections/connections/550e8400-e29b-41d4-a716-446655440002?project=test-project',
@@ -361,7 +435,7 @@ describe('ConnectionDetails', () => {
     await waitFor(() => {
       expect(screen.getAllByText('object-store').length).toBeGreaterThan(0);
     });
-    expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', false);
+    expect(screen.getByTestId('connection-verify-button').getAttribute('aria-disabled')).toBeNull();
     expect(screen.queryByText('Verifying')).toBeNull();
 
     rejectVerification(new Error('stale verification failed'));
@@ -501,6 +575,9 @@ describe('ConnectionDetails', () => {
     jest.doMock('~/app/hooks/useConnectionType', () => ({
       useConnectionType: () => [mockConnectionType(), true, undefined],
     }));
+    jest.doMock('~/app/hooks/useConnectionAccess', () => ({
+      useConnectionAccess: () => ({ isAllowed: true, loaded: true }),
+    }));
     jest.doMock('~/app/api/dch', () => ({
       ...jest.requireActual<typeof import('~/app/api/dch')>('~/app/api/dch'),
       deleteConnection: jest.fn(),
@@ -533,7 +610,9 @@ describe('ConnectionDetails', () => {
     expect(readinessRequestStarted).toBe(true);
     await Promise.resolve();
 
-    expect(screen.getByTestId('connection-verify-button')).toHaveProperty('disabled', true);
+    expect(screen.getByTestId('connection-verify-button').getAttribute('aria-disabled')).toBe(
+      'true',
+    );
     expect(connectionRequests).toBe(2);
 
     renderResult?.unmount();

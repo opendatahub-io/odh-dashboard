@@ -1,12 +1,9 @@
-/* eslint-disable no-console */
-
 // Modules -------------------------------------------------------------------->
 
 import React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
-  Button,
   Flex,
   PageSection,
   Skeleton,
@@ -15,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
+import CreateConnectionButton from '~/app/components/CreateConnectionButton';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import {
   ConnectionTypeIcon,
@@ -95,19 +93,17 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
         loaded && !loadError && connectionType ? (
           <Split hasGutter>
             <SplitItem>
-              <Button
-                variant="primary"
-                data-testid="connection-type-details-create-connection"
-                onClick={() => {
+              <CreateConnectionButton
+                namespace={namespace}
+                onCreate={() => {
                   fireDataConnectHubTrackEvent({
                     eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
                     properties: { project: namespace, source: 'connection_type_catalog' },
                   });
                   setIsConnectionWizardOpen(true);
                 }}
-              >
-                Create connection
-              </Button>
+                testId="connection-type-details-create-connection"
+              />
             </SplitItem>
           </Split>
         ) : undefined
