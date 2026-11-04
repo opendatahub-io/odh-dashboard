@@ -20,11 +20,25 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 |-------|------|---------|
 | `managementState` | `Managed\|Removed` | Lifecycle intent from orchestrator |
 | `gateway` | `GatewaySpec` | Ingress domain for Route/Ingress |
+| `legacyRedirects` | `LegacyRedirectsSpec` | Optional lifecycle handoff for legacy dashboard and gateway Route redirects |
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
 | `maasPortal` | `MaaSPortalSpec` | [MaaS Portal](maas-portal.md) (`managementState: Managed`/`Removed`; served below the gateway path) |
 | `modelRegistryOCIBaseImage` | `string` | Optional [OCI upload base image](model-registry-oci-base-image.md) for Model Registry Jobs |
+
+When `legacyRedirects` is omitted, the Dashboard operator leaves the redirect
+resources unmanaged so an older platform Gateway controller can continue to
+own them. `managementState: Managed` hands those resources to the Dashboard
+operator and requires `spec.gateway.domain` plus the explicit
+`legacyRedirects.legacyHostname` compatibility endpoint unless the gateway
+itself already uses the legacy hostname. Keeping that hostname in the CR lets a
+later `Removed` to `Managed` transition recreate the original Route even when
+the gateway uses a different DNS suffix. `managementState: Removed` deletes only
+redirect resources with recognized Dashboard or legacy GatewayConfig ownership.
+Redirect resources are also cleaned up when the top-level
+`spec.managementState` is `Removed` or the OpenShift Route API is unavailable,
+even if `legacyRedirects.managementState` is `Managed`.
 
 ### Status Fields
 

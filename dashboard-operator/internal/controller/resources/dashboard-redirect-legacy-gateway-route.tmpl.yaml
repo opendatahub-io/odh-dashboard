@@ -1,0 +1,22 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{.LegacyRouteName}}
+  namespace: {{.Namespace}}
+  labels:
+    app: {{.Name}}
+    app.kubernetes.io/part-of: dashboard
+  annotations:
+    haproxy.router.openshift.io/hsts_header: max-age=31536000;includeSubDomains;preload
+spec:
+  host: {{.LegacyHostname}}
+  to:
+    kind: Service
+    name: {{.Name}}
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
