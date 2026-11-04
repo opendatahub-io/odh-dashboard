@@ -30,6 +30,7 @@ import {
   LimitNameResourceType,
   resourceTypeLimits,
   translateDisplayNameForK8s,
+  type K8sNameDescriptionFieldUpdateFunction,
 } from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
@@ -222,6 +223,61 @@ export const SubPathField: React.FC<SubPathFieldProps> = ({
   </FormGroup>
 );
 
+type NIMPVCNameFieldProps = {
+  initialName: string;
+  initialK8sName?: string;
+  onNamesChange: (pvcName: string, pvcK8sName: string) => void;
+};
+
+const NIMPVCNameField: React.FC<NIMPVCNameFieldProps> = ({
+  initialName,
+  initialK8sName,
+  onNamesChange,
+}) => {
+  const { data: pvcNameDesc, onDataChange: setPvcNameDesc } = useK8sNameDescriptionFieldData({
+    initialData: {
+      name: initialName,
+      k8sName: initialK8sName,
+    },
+    limitNameResourceType: LimitNameResourceType.PVC,
+    editableK8sName: true,
+  });
+
+  const onPvcNameDescChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>(
+    (key, value) => {
+      setPvcNameDesc(key, value);
+      if (key === 'name') {
+        const nextK8sName = pvcNameDesc.k8sName.state.touched
+          ? pvcNameDesc.k8sName.value
+          : translateDisplayNameForK8s(value, { maxLength: PVC_NAME_MAX_LENGTH });
+        onNamesChange(value, nextK8sName);
+        return;
+      }
+      if (key === 'k8sName') {
+        onNamesChange(pvcNameDesc.name, value);
+      }
+    },
+    [
+      onNamesChange,
+      pvcNameDesc.k8sName.state.touched,
+      pvcNameDesc.k8sName.value,
+      pvcNameDesc.name,
+      setPvcNameDesc,
+    ],
+  );
+
+  return (
+    <K8sNameDescriptionField
+      data={pvcNameDesc}
+      onDataChange={onPvcNameDescChange}
+      dataTestId="nim-pvc-name"
+      nameLabel="Cluster storage name"
+      nameHelperTextAbove="This cluster storage can be reused for future deployments of this NIM image."
+      hideDescription
+    />
+  );
+};
+
 const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
   value,
   onChange,
@@ -237,25 +293,12 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
     [fieldValue, onChange],
   );
 
-  const { data: pvcNameDesc, onDataChange: setPvcNameDesc } = useK8sNameDescriptionFieldData({
-    initialData: {
-      name: fieldValue.pvcName,
-      k8sName: fieldValue.pvcK8sName,
+  const onPvcNamesChange = React.useCallback(
+    (pvcName: string, pvcK8sName: string) => {
+      updateField({ pvcName, pvcK8sName });
     },
-    limitNameResourceType: LimitNameResourceType.PVC,
-    editableK8sName: true,
-  });
-
-  React.useEffect(() => {
-    if (fieldValue.storageMode !== NIMPVCStorageMode.NEW) {
-      return;
-    }
-    const nextDisplayName = pvcNameDesc.name;
-    const nextK8sName = pvcNameDesc.k8sName.value;
-    if (nextDisplayName !== fieldValue.pvcName || nextK8sName !== fieldValue.pvcK8sName) {
-      updateField({ pvcName: nextDisplayName, pvcK8sName: nextK8sName });
-    }
-  }, [fieldValue.pvcK8sName, fieldValue.pvcName, fieldValue.storageMode, pvcNameDesc, updateField]);
+    [updateField],
+  );
 
   const storageClasses = externalData?.data.storageClasses ?? [];
   const defaultStorageClassName = externalData?.data.defaultStorageClassName ?? '';
@@ -316,9 +359,6 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
               val === NIMPVCStorageMode.EXISTING
                 ? NIMPVCStorageMode.EXISTING
                 : NIMPVCStorageMode.NEW;
-            if (mode === NIMPVCStorageMode.NEW) {
-              setPvcNameDesc('name', '');
-            }
             updateField({
               storageMode: mode,
               pvcName: '',
@@ -345,13 +385,10 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
       <div className="pf-v6-u-pl-xl">
         {fieldValue.storageMode === NIMPVCStorageMode.NEW ? (
           <>
-            <K8sNameDescriptionField
-              data={pvcNameDesc}
-              onDataChange={setPvcNameDesc}
-              dataTestId="nim-pvc-name"
-              nameLabel="Cluster storage name"
-              nameHelperTextAbove="This cluster storage can be reused for future deployments of this NIM image."
-              hideDescription
+            <NIMPVCNameField
+              initialName={fieldValue.pvcName}
+              initialK8sName={fieldValue.pvcK8sName}
+              onNamesChange={onPvcNamesChange}
             />
 
             <SubPathField
