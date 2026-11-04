@@ -150,15 +150,8 @@ extract_single_file_patch() {
   local rel_file="$2"
   local output_file="$3"
 
-  awk -v file="$rel_file" '
-    /^diff --git/ {
-      if (in_file) exit
-      in_file = ($0 ~ " b/" file "$" || $0 ~ " b/" file " ")
-      if (in_file) print
-      next
-    }
-    in_file { print }
-  ' "$patch_file" > "$output_file"
+  node "$SCRIPT_DIR/package-subtree-files.cjs" extract "$PACKAGE_JSON" \
+    "$patch_file" "$rel_file" "$output_file"
 }
 
 is_binary_file() {
@@ -517,10 +510,7 @@ handle_apply_conflict() {
       info_msg "Attempting to apply other files from the patch individually..."
       echo ""
 
-      local all_files
-      all_files=$(grep '^diff --git' "$filtered_patch" | sed 's/^diff --git a\/.* b\///' || true)
-
-      while IFS= read -r file; do
+      while IFS= read -r -d '' file; do
         [ -z "$file" ] && continue
 
         local is_failed=false
@@ -543,7 +533,7 @@ handle_apply_conflict() {
             echo -e "  ${RED}✗${NC} $file"
           fi
         fi
-      done <<< "$all_files"
+      done < <(node "$SCRIPT_DIR/package-subtree-files.cjs" paths "$PACKAGE_JSON" "$filtered_patch")
       echo ""
     fi
   fi

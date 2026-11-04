@@ -1,6 +1,6 @@
 /* eslint-env node */
 const assert = require('node:assert/strict');
-const { execFileSync } = require('node:child_process');
+const { execFileSync, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -226,6 +226,7 @@ test('local CLI honors exclusions through bootstrap, conflict resolution and --c
   const upstream = fixture(t, []);
   upstream.write('src/odh/extensions.ts', 'upstream base\n');
   upstream.write('src/included.txt', 'base\n');
+  upstream.write('src/removed.txt', 'imported\n');
   upstream.commit();
   const branch = upstream.git('branch', '--show-current').trim();
   const host = fixture(t, []);
@@ -266,11 +267,16 @@ test('local CLI honors exclusions through bootstrap, conflict resolution and --c
     fs.existsSync(path.join(host.dir, 'packages/fixture/upstream/odh/extensions.ts')),
     false,
   );
+  host.git('rm', 'packages/fixture/upstream/removed.txt');
+  const packageConfig = JSON.parse(fs.readFileSync(packagePath));
+  packageConfig.subtree.exclude.push('removed.txt');
+  fs.writeFileSync(packagePath, JSON.stringify(packageConfig));
   host.write('packages/fixture/upstream/odh/extensions.ts', 'local override\n');
   host.write('packages/fixture/upstream/included.txt', 'local edit\n');
   host.commit();
   upstream.write('src/odh/extensions.ts', 'upstream changed\n');
   upstream.write('src/included.txt', 'upstream changed\n');
+  upstream.write('src/removed.txt', 'modified upstream\n');
   upstream.commit();
   upstream.write('src/after.txt', 'next commit\n');
   upstream.commit();
@@ -291,8 +297,24 @@ test('local CLI honors exclusions through bootstrap, conflict resolution and --c
     'next commit\n',
   );
   const { subtree } = JSON.parse(fs.readFileSync(packagePath));
-  assert.deepEqual(subtree.exclude, ['odh/']);
-  assert.equal(subtree.commit, upstream.git('rev-parse', 'HEAD').trim());
+  assert.deepEqual(subtree.exclude, ['odh/', 'removed.txt']);
+  assert.equal(fs.existsSync(path.join(host.dir, 'packages/fixture/upstream/removed.txt')), false);
+  upstream.git('rm', 'src/removed.txt');
+  upstream.commit();
+  sync();
+  assert.equal(fs.existsSync(path.join(host.dir, 'packages/fixture/upstream/removed.txt')), false);
+  assert.equal(
+    JSON.parse(fs.readFileSync(packagePath)).subtree.commit,
+    upstream.git('rev-parse', 'HEAD').trim(),
+  );
+  upstream.write('src/removed.txt', 'recreated upstream\n');
+  upstream.commit();
+  sync();
+  assert.equal(fs.existsSync(path.join(host.dir, 'packages/fixture/upstream/removed.txt')), false);
+  assert.equal(
+    JSON.parse(fs.readFileSync(packagePath)).subtree.commit,
+    upstream.git('rev-parse', 'HEAD').trim(),
+  );
   assert.equal(host.git('status', '--porcelain').trim(), '');
 });
 
@@ -370,3 +392,114 @@ test('file-to-directory changes cannot replace an excluded local file', (t) => {
   );
   assert.equal(fs.readFileSync(path.join(f.dir, 'destination/item'), 'utf8'), 'local');
 });
+
+test('rejected quoted-path patches produce recovery output and apply unaffected files', (t) => {
+  const f = fixture(t, []);
+  f.write('src/file with spaces.txt', 'before\n');
+  f.write('src/other with spaces.txt', 'before\n');
+  f.commit();
+  const base = f.git('rev-parse', 'HEAD').trim();
+  f.write('src/file with spaces.txt', 'upstream\n');
+  f.write('src/other with spaces.txt', 'upstream\n');
+  f.commit();
+  // Missing base objects force direct application and then script-driven recovery.
+  const patch = f
+    .git('format-patch', '--no-renames', '-1', '--stdout')
+    .replace(/^index [0-9a-f]+\.\./gm, 'index 1111111..');
+  const input = path.join(f.dir, 'input.patch');
+  const output = path.join(f.dir, 'output.patch');
+  fs.writeFileSync(input, patch);
+  f.run('filter', input, 'src', output);
+  f.git('restore', '--source', base, '--staged', '--worktree', 'src');
+  fs.mkdirSync(path.join(f.dir, 'workspace'));
+  fs.renameSync(path.join(f.dir, 'src'), path.join(f.dir, 'workspace/target'));
+  f.write('workspace/target/file with spaces.txt', 'local change\n');
+  f.git('add', '-A');
+  const result = spawnSync(
+    'bash',
+    [
+      '-c',
+      `
+    set -e
+    source "$COMMON"
+    SCRIPT_DIR="$SCRIPTS"
+    PACKAGE_JSON="$CONFIG"
+    MONOREPO_ROOT="$PWD"
+    WORKSPACE_LOCATION=workspace
+    TARGET_RELATIVE=target
+    PACKAGE_NAME=fixture
+    TMP_DIR="$PWD"
+    if ! git apply --directory=workspace/target --3way --index "$PATCH" 2>apply_error.log; then
+      handle_apply_conflict 1 1 abc123 fixture "$PATCH" 'sync --continue' upstream
+    fi
+  `,
+    ],
+    {
+      cwd: f.dir,
+      encoding: 'utf8',
+      env: {
+        ...Object.fromEntries(
+          Object.entries(process.env).filter(([key]) => key !== 'npm_config_user_agent'),
+        ),
+        COMMON: common,
+        SCRIPTS: scriptDir,
+        CONFIG: f.config,
+        PATCH: output,
+      },
+    },
+  );
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(
+    result.stdout,
+    /Patch was completely rejected/,
+    fs.readFileSync(path.join(f.dir, 'apply_error.log'), 'utf8'),
+  );
+  assert.equal(
+    fs.readFileSync(path.join(f.dir, 'workspace/target/other with spaces.txt'), 'utf8'),
+    'upstream\n',
+  );
+  const conflictFile = path.join(f.dir, 'workspace/target/file with spaces.txt');
+  if (fs.existsSync(`${conflictFile}.patch`)) {
+    const sidecar = fs.readFileSync(`${conflictFile}.patch`, 'utf8');
+    assert.match(sidecar, /\+upstream/);
+    assert.equal(sidecar.includes('other with spaces.txt'), false);
+    assert.ok(fs.existsSync(`${conflictFile}.patch-info.txt`));
+  } else {
+    assert.match(fs.readFileSync(conflictFile, 'utf8'), /<<<<<<< PATCH FAILED TO APPLY/);
+  }
+  const recovered = path.join(f.dir, 'recovered.patch');
+  f.run('extract', output, 'file with spaces.txt', recovered);
+  assert.ok(fs.statSync(recovered).size > 0);
+  assert.deepEqual(f.run('bases', output).toString().split('\0').filter(Boolean), [
+    'file with spaces.txt',
+    '1111111',
+    '100644',
+    'other with spaces.txt',
+    '1111111',
+    '100644',
+  ]);
+  assert.deepEqual(f.run('paths', output).toString().split('\0').filter(Boolean), [
+    'file with spaces.txt',
+    'other with spaces.txt',
+  ]);
+});
+
+for (const exclude of [undefined, []]) {
+  test(`initial copies skip nested Git metadata with exclusions ${JSON.stringify(
+    exclude,
+  )}`, (t) => {
+    const f = fixture(t, exclude);
+    f.write('source/vendor/component/.git/config', 'git metadata');
+    f.write('source/vendor/component/README.md', 'component sources');
+    f.write('source/vendor/submodule/.git', 'gitdir: ../../.git/modules/submodule\n');
+    f.write('source/vendor/submodule/main.txt', 'submodule sources');
+    f.run('copy', path.join(f.dir, 'source'), path.join(f.dir, 'destination'));
+    assert.equal(fs.existsSync(path.join(f.dir, 'destination/vendor/component/.git')), false);
+    assert.equal(fs.existsSync(path.join(f.dir, 'destination/vendor/submodule/.git')), false);
+    f.git('add', 'destination');
+    assert.deepEqual(f.git('ls-files', 'destination').trim().split('\n'), [
+      'destination/vendor/component/README.md',
+      'destination/vendor/submodule/main.txt',
+    ]);
+  });
+}

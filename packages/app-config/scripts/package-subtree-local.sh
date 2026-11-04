@@ -20,41 +20,26 @@ cleanup_temp_remote() {
 ensure_base_blobs_in_index() {
   local patch_file="$1"
   local target_dir="$2"
-  local current_file=""
+  local current_file old_hash mode
 
-  while IFS= read -r line; do
-    if [[ "$line" =~ ^diff\ --git\ a/(.*)\ b/(.*) ]]; then
-      current_file="${BASH_REMATCH[2]}"
+  while IFS= read -r -d '' current_file && IFS= read -r -d '' old_hash && IFS= read -r -d '' mode; do
+    local full_path="$target_dir/$current_file"
+
+    if git ls-files --error-unmatch "$full_path" >/dev/null 2>&1; then
       continue
     fi
 
-    if [ -z "$current_file" ]; then
+    if [[ "$old_hash" =~ ^0+$ ]]; then
       continue
     fi
 
-    if [[ "$line" =~ ^index\ ([0-9a-f]+)\.\.([0-9a-f]+)(\ ([0-9]+))? ]]; then
-      local old_hash="${BASH_REMATCH[1]}"
-      local mode="${BASH_REMATCH[4]:-100644}"
-      local full_path="$target_dir/$current_file"
+    local full_old_hash
+    full_old_hash=$(git rev-parse "$old_hash" 2>/dev/null || echo "")
 
-      current_file=""
-
-      if git ls-files --error-unmatch "$full_path" >/dev/null 2>&1; then
-        continue
-      fi
-
-      if [ "$old_hash" = "0000000" ] || [ "$old_hash" = "00000000" ]; then
-        continue
-      fi
-
-      local full_old_hash
-      full_old_hash=$(git rev-parse "$old_hash" 2>/dev/null || echo "")
-
-      if [ -n "$full_old_hash" ] && git cat-file -e "$full_old_hash" 2>/dev/null; then
-        git update-index --add --cacheinfo "$mode,$full_old_hash,$full_path" 2>/dev/null || true
-      fi
+    if [ -n "$full_old_hash" ] && git cat-file -e "$full_old_hash" 2>/dev/null; then
+      git update-index --add --cacheinfo "$mode,$full_old_hash,$full_path" 2>/dev/null || true
     fi
-  done < "$patch_file"
+  done < <(node "$SCRIPT_DIR/package-subtree-files.cjs" bases "$PACKAGE_JSON" "$patch_file")
 }
 
 show_do_not_merge_warning() {

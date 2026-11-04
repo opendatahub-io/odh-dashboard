@@ -33,13 +33,10 @@ const excluded = (name, directory = false) =>
       : !directory && name === entry,
   );
 
-if (mode === 'filter') {
-  const [input, subdir, output] = args;
+// Keep byte-preserving blocks paired with the paths decoded by Git for every consumer.
+const readPatch = (input) => {
   const patch = fs.readFileSync(input);
-  if (!/^diff --git /m.test(patch.toString('latin1'))) {
-    fs.writeFileSync(output, '');
-    process.exit(0);
-  }
+  if (!/^diff --git /m.test(patch.toString('latin1'))) return [];
   // Git decodes quoted paths, spaces and binary patches for us. Patches use --no-renames.
   const records = execFileSync('git', ['apply', '--numstat', '-z'], {
     input: patch,
@@ -53,10 +50,32 @@ if (mode === 'filter') {
     .split(/(?=^diff --git )/m)
     .filter((block) => block.startsWith('diff --git '));
   if (records.length !== blocks.length) throw new Error('Unable to identify subtree patch paths');
+  return blocks.map((block, index) => ({
+    name: records[index].replace(/^[^\t]*\t[^\t]*\t/, ''),
+    block,
+  }));
+};
+
+if (mode === 'paths' || mode === 'extract' || mode === 'bases') {
+  const [input, filename, output] = args;
+  const entries = readPatch(input);
+  if (mode === 'paths') {
+    for (const { name } of entries) process.stdout.write(`${name}\0`);
+  } else if (mode === 'bases') {
+    for (const { name, block } of entries) {
+      const match = /^index ([0-9a-f]+)\.\.[0-9a-f]+(?: ([0-9]+))?/m.exec(block);
+      if (match) process.stdout.write(`${name}\0${match[1]}\0${match[2] ?? '100644'}\0`);
+    }
+  } else {
+    const entry = entries.find(({ name }) => name === filename);
+    fs.writeFileSync(output, Buffer.from(entry?.block ?? '', 'latin1'));
+  }
+} else if (mode === 'filter') {
+  const [input, subdir, output] = args;
+  const entries = readPatch(input);
   const prefix = subdir ? `${subdir.replace(/\/$/, '')}/` : '';
-  const result = blocks
-    .flatMap((block, index) => {
-      const original = records[index].replace(/^[^\t]*\t[^\t]*\t/, '');
+  const result = entries
+    .flatMap(({ name: original, block }) => {
       if (!original.startsWith(prefix)) return [];
       const relative = original.slice(prefix.length);
       if (excluded(relative)) return [];
@@ -88,7 +107,7 @@ if (mode === 'filter') {
 } else if (mode === 'copy') {
   const [source, destination] = args;
   const visit = (relative) => {
-    if (relative === '.git' || relative.startsWith('.git/')) return;
+    if (path.basename(relative) === '.git') return;
     const from = path.join(source, relative);
     const to = path.join(destination, relative);
     const stat = fs.lstatSync(from);
@@ -122,7 +141,7 @@ if (mode === 'filter') {
     }
   };
   const prune = (relative) => {
-    if (relative === '.git') return;
+    if (path.basename(relative) === '.git') return;
     const to = path.join(destination, relative);
     const stat = fs.lstatSync(to);
     if (excluded(relative, stat.isDirectory())) return;
