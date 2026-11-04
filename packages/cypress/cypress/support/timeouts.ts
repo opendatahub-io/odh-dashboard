@@ -9,7 +9,11 @@ export const AUTOML_RUN_TIMEOUT = Number(Cypress.env('AUTOML_RUN_TIMEOUT') ?? 12
 
 const readPositiveTimeout = (name: string, defaultValue: number): number => {
   const configuredValue = Cypress.env(name);
-  if (configuredValue === undefined) {
+  if (
+    configuredValue === undefined ||
+    configuredValue === null ||
+    (typeof configuredValue === 'string' && !configuredValue.trim())
+  ) {
     return defaultValue;
   }
 

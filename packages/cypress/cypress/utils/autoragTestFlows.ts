@@ -139,13 +139,31 @@ const isMaaSModel = (value: unknown): value is MaaSModel =>
 const isValidAutoragS3Configuration = (
   testData: Pick<AutoragTestData, 'awsBucket' | 's3SecretName'>,
 ): boolean => {
-  const bucket = AWS_BUCKETS[testData.awsBucket];
+  const configuredBuckets: unknown = AWS_BUCKETS;
+  if (configuredBuckets === null || typeof configuredBuckets !== 'object') {
+    return false;
+  }
+
+  const buckets = configuredBuckets as Record<string, unknown>;
+  const bucket = (
+    buckets as Record<string, { NAME?: unknown; REGION?: unknown; ENDPOINT?: unknown } | undefined>
+  )[String(testData.awsBucket)];
+  const { s3SecretName } = testData as { s3SecretName: unknown };
+  const accessKeyId = buckets.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = buckets.AWS_SECRET_ACCESS_KEY;
   if (
-    !testData.s3SecretName.trim() ||
+    !bucket ||
+    typeof s3SecretName !== 'string' ||
+    typeof bucket.NAME !== 'string' ||
+    typeof bucket.REGION !== 'string' ||
+    typeof bucket.ENDPOINT !== 'string' ||
+    typeof accessKeyId !== 'string' ||
+    typeof secretAccessKey !== 'string' ||
+    !s3SecretName.trim() ||
     !bucket.NAME.trim() ||
     !bucket.REGION.trim() ||
-    !AWS_BUCKETS.AWS_ACCESS_KEY_ID.trim() ||
-    !AWS_BUCKETS.AWS_SECRET_ACCESS_KEY.trim()
+    !accessKeyId.trim() ||
+    !secretAccessKey.trim()
   ) {
     return false;
   }

@@ -31,11 +31,15 @@ type DeploymentList = { items?: DeploymentResource[] };
 const pgvectorPasswords = new Map<string, string>();
 const pgvectorOwners = new Map<string, string>();
 
-const createPgvectorPassword = (): string =>
-  `autorag-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+const createRandomToken = (): string => {
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
 
-const createPgvectorOwner = (): string =>
-  `autorag-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+const createPgvectorPassword = (): string => `autorag-${createRandomToken()}`;
+
+const createPgvectorOwner = (): string => `autorag-${createRandomToken()}`;
 
 const commandOutput = (result: CommandLineResult): string =>
   maskSensitiveInfo(result.stderr || result.stdout)
