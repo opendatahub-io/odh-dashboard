@@ -160,6 +160,37 @@ describe('parseModuleRegistryContent', () => {
     ]);
   });
 
+  it('ignores braces inside block comments, so later duplicates are still checked', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      registry([
+        '\t"a": {',
+        '\t\tPort: 8043,',
+        '\t},',
+        '\t/* } closing brace in a comment */',
+        '\t/*',
+        '\t}',
+        '\t*/',
+        '\t"b": {',
+        '\t\tPort: 8043, // trailing } comment',
+        '\t\tName: "has } and /* in a string",',
+        '\t},',
+      ]),
+    );
+    assert.deepEqual(errors, []);
+    assert.deepEqual(
+      entries.map((e) => e.name),
+      ['a', 'b'],
+    );
+    assert.equal(validateProductionPorts({ entries, errors }), true);
+  });
+
+  it('fails on an unterminated block comment', () => {
+    const { errors } = parseModuleRegistryContent(
+      registry(['\t"a": {', '\t\tPort: 8043,', '\t},', '\t/* never closed']),
+    );
+    assert.deepEqual(errors, ['moduleRegistry contains an unterminated block comment']);
+  });
+
   it('ignores Port fields nested deeper than the entry', () => {
     const { entries, errors } = parseModuleRegistryContent(
       registry([

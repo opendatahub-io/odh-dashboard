@@ -66,6 +66,49 @@ const MODULE_REGISTRY_PATH = '../dashboard-operator/internal/controller/modules.
 const MODULE_REGISTRY_DECL = 'var moduleRegistry = map[string]ModuleDefinition{';
 
 /**
+ * Removes Go comments (line and block) outside string literals, keeping newlines so line
+ * structure is preserved. Returns null when a block comment is left unterminated.
+ */
+function stripGoComments(source) {
+  let out = '';
+  let i = 0;
+  while (i < source.length) {
+    const ch = source[i];
+    const next = source[i + 1];
+    if (ch === '"' || ch === '`' || ch === "'") {
+      // Copy a string/rune literal verbatim; only interpreted strings support escapes.
+      let j = i + 1;
+      while (j < source.length && source[j] !== ch) {
+        if (ch !== '`' && source[j] === '\\') {
+          j++;
+        }
+        if (ch !== '`' && source[j] === '\n') {
+          break;
+        }
+        j++;
+      }
+      out += source.slice(i, j + 1);
+      i = j + 1;
+    } else if (ch === '/' && next === '/') {
+      while (i < source.length && source[i] !== '\n') {
+        i++;
+      }
+    } else if (ch === '/' && next === '*') {
+      const end = source.indexOf('*/', i + 2);
+      if (end === -1) {
+        return null;
+      }
+      out += source.slice(i, end + 2).replace(/[^\n]/g, ' ');
+      i = end + 2;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out;
+}
+
+/**
  * Parses the source of the dashboard-operator moduleRegistry (modules.go) and extracts each
  * module's production service port. Fails closed: returns { entries, errors } where `errors`
  * is non-empty whenever the registry is missing, unrecognized, empty, or has an entry whose
@@ -103,7 +146,11 @@ function parseModuleRegistryContent(content) {
     return (code.match(/{/g) || []).length - (code.match(/}/g) || []).length;
   };
   let depth = 1;
-  for (const line of content.slice(registryStart).split('\n').slice(1)) {
+  const registrySource = stripGoComments(content.slice(registryStart));
+  if (registrySource === null) {
+    return { entries, errors: ['moduleRegistry contains an unterminated block comment'] };
+  }
+  for (const line of registrySource.split('\n').slice(1)) {
     const trimmed = line.trim();
     const depthBefore = depth;
     depth += braceDelta(line);
