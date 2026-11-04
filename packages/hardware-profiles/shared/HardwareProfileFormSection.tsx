@@ -174,7 +174,11 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               claimTemplateNames={claimTemplateNames}
               selectionIndicator={
                 isLocalQueueMissing ? (
-                  <Popover alertSeverityVariant="warning" bodyContent={LOCAL_QUEUE_MISSING_BODY}>
+                  <Popover
+                    alertSeverityVariant="warning"
+                    headerContent="Invalid hardware profile"
+                    bodyContent={LOCAL_QUEUE_MISSING_BODY}
+                  >
                     <Button
                       variant="plain"
                       aria-label="Invalid hardware profile"

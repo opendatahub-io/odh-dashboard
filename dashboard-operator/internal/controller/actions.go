@@ -289,8 +289,16 @@ func extractDashboardURL(ctx context.Context, reader client.Reader, dashboard *v
 		return "", fmt.Errorf("failed to list routes: %w", err)
 	}
 
-	if len(rl.Items) == 1 && len(rl.Items[0].Status.Ingress) > 0 {
-		ingress := rl.Items[0].Status.Ingress[0]
+	routes := rl.Items[:0]
+	for i := range rl.Items {
+		if rl.Items[i].Labels["app"] == dashboardRedirectName {
+			continue
+		}
+		routes = append(routes, rl.Items[i])
+	}
+
+	if len(routes) == 1 && len(routes[0].Status.Ingress) > 0 {
+		ingress := routes[0].Status.Ingress[0]
 
 		admitted := false
 		for _, cond := range ingress.Conditions {

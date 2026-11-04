@@ -9,7 +9,7 @@ export type MaaSUserSettings = UserSettings & {
   isAdmin: boolean;
 };
 
-export const useGridSettings = (): {
+export const useMaaSSettings = (): {
   configSettings: ConfigSettings | null;
   userSettings: MaaSUserSettings | null;
   loaded: boolean;

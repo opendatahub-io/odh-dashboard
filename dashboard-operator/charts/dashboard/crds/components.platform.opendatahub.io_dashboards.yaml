@@ -94,6 +94,32 @@ spec:
                 required:
                 - domain
                 type: object
+              legacyRedirects:
+                description: |-
+                  LegacyRedirects configures redirects from the legacy dashboard and gateway
+                  Routes. When omitted, the Dashboard operator does not manage redirect
+                  resources; this is the compatibility state used before platform ownership
+                  is explicitly handed over.
+                properties:
+                  legacyHostname:
+                    description: |-
+                      LegacyHostname is the externally visible hostname of the pre-Gateway
+                      data-science-gateway Route. The orchestrator projects this value so the
+                      Dashboard operator can recreate the same compatibility endpoint after the
+                      redirect resources have been removed.
+                    maxLength: 253
+                    pattern: ^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$
+                    type: string
+                  managementState:
+                    default: Managed
+                    description: |-
+                      ManagementState controls whether the operator actively manages the
+                      component (Managed) or removes it (Removed).
+                    enum:
+                    - Managed
+                    - Removed
+                    type: string
+                type: object
               maasConsumerPortal:
                 description: |-
                   MaaSConsumerPortal is the pre-DSC-v3 spelling. It is accepted for
