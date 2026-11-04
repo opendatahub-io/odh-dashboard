@@ -684,7 +684,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
       });
     });
 
-    it('should track disaggregated decode replicas and selected routing on deployment', () => {
+    it('should submit a disaggregated deployment with custom routing and report its replica count', () => {
       initIntercepts();
       initDeployIntercepts('tracked-disaggregated');
       modelServingGlobal.visit('test-project');
