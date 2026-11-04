@@ -30,11 +30,11 @@ import { EllipsisVIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternf
 import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link, useLocation } from 'react-router-dom';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { createConnection, isConnectionAccessForbidden, verifyConnection } from '~/app/api/dch';
 import ConnectionDeleteModal from '~/app/components/ConnectionDeleteModal';
 import CreateConnectionButton from '~/app/components/CreateConnectionButton';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
-import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
