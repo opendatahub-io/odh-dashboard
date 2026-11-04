@@ -27,6 +27,7 @@ const {
   sameValue,
   satisfies,
   snapshotName,
+  snapshotVersion,
   stable,
   uniqueChanges,
 } = require(SCRIPT);
@@ -106,6 +107,13 @@ test('snapshotName strips version and peer suffix', () => {
     '@babel/helper-define-polyfill-provider',
   );
   assert.equal(snapshotName('1.2.3'), '');
+});
+
+test('snapshotVersion extracts the resolved version from a graph key', () => {
+  assert.equal(snapshotVersion('foo@1.2.3'), '1.2.3');
+  assert.equal(snapshotVersion('/@scope/pkg@1.2.3'), '1.2.3');
+  assert.equal(snapshotVersion('@scope/pkg@1.2.3(react@18.3.1)'), '1.2.3');
+  assert.equal(snapshotVersion('1.2.3'), '');
 });
 
 // ── unit: go.mod parsing ─────────────────────────────────────────────────
@@ -548,6 +556,34 @@ integration('npm: a new importer in the lockfile is refused', () => {
   const { eligible, output } = run(dir, base, head, 'npm-patch');
   assert.equal(eligible, false, output);
   assert.match(output, /importers added or removed/);
+});
+
+integration('npm: tampering with another version of the bumped package is refused', () => {
+  // The package name is part of the update, but this entry is a different
+  // resolved version, so the bump does not explain it.
+  const before = '  foo@0.9.0:\n    resolution: {integrity: sha512-OLD}\n';
+  const after = '  foo@0.9.0:\n    resolution: {integrity: sha512-EVIL}\n';
+  const snapshots = '  foo@0.9.0: {}\n';
+  const { dir, base } = makeRepo({
+    'package.json': rootManifest,
+    'packages/a/package.json': workspaceManifest,
+    'pnpm-lock.yaml': lock({ extraPackages: before, extraSnapshots: snapshots }),
+  });
+  const head = commitFiles(
+    dir,
+    {
+      'pnpm-lock.yaml': lock({
+        root: '1.0.2',
+        workspace: '1.0.2',
+        extraPackages: after,
+        extraSnapshots: snapshots,
+      }),
+    },
+    'tamper older foo',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, false, output);
+  assert.match(output, /packages\['foo@0\.9\.0'\] changed/);
 });
 
 integration('npm: an unknown top-level lockfile key is refused', () => {

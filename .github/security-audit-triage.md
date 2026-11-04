@@ -42,7 +42,7 @@ Renovate (`.github/renovate.json5`, self-hosted via `.github/workflows/renovate.
 
 **When things happen**
 
-- Runs daily at 02:00 UTC. New PRs are only opened on **Monday before 04:00 UTC**; other runs rebase/refresh existing PRs and close superseded ones.
+- Runs daily at 02:00 UTC, with a second Monday attempt at 03:30 UTC so one dropped run does not cost a week. New PRs are only opened inside **Monday before 04:00 UTC**; other runs rebase/refresh existing PRs and close superseded ones.
 - At most 10 Renovate PRs are open at once. Patch tiers are created first.
 - *Run workflow* → `force_updates` opens PRs immediately; `dry_run` writes nothing. Every run uploads a full debug log (`renovate-log` artifact).
 

@@ -249,6 +249,15 @@ const snapshotName = (key) => {
   return m ? m.groups.name.trim() : '';
 };
 
+/** Version from a pnpm graph key, for binding an entry to a specific bump. */
+const snapshotVersion = (key) => {
+  const name = snapshotName(key);
+  if (!name) {
+    return '';
+  }
+  const rest = String(key).replace(/^\/?/, '').slice(name.length);
+  return rest.replace(/^@/, '').split('(')[0];
+};
 /**
  * Renovate only ever resolves packages from the npm registry. A new or altered
  * non-registry entry (tarball URL, git repo, local directory) is tampering, not
@@ -306,7 +315,7 @@ const attributableSnapshot = (before = {}, after = {}, changedNames) => {
  * Newly added entries are allowed (a bump legitimately pulls new transitive
  * versions); removals are allowed (pnpm prunes what is no longer reachable).
  */
-const checkAttributable = (baseLock, headLock, changedNames) => {
+const checkAttributable = (baseLock, headLock, changedNames, changedVersions) => {
   LOCK_GRAPH_SECTIONS.forEach((section) => {
     const before = baseLock[section] ?? {};
     Object.entries(headLock[section] ?? {}).forEach(([key, info]) => {
@@ -315,7 +324,14 @@ const checkAttributable = (baseLock, headLock, changedNames) => {
       }
       const name = snapshotName(key);
       if (name && changedNames.has(name)) {
-        return;
+        // Only the version this update resolves to is explained by the bump.
+        // Any other version of the same package must be byte-equal, so a
+        // tampered or unrelated copy cannot ride along.
+        const allowed = changedVersions.get(name);
+        const version = snapshotVersion(key);
+        if (allowed && version && allowed.has(version)) {
+          return;
+        }
       }
       const original = before[key];
       if (sameValue(original, info)) {
@@ -444,8 +460,15 @@ const checkNpm = (base, head, files, max) => {
   }
   changes = uniqueChanges(changes);
   const changedNames = new Set(changes.map(([name]) => name));
+  const changedVersions = new Map();
+  changes.forEach(([name, , to]) => {
+    if (!changedVersions.has(name)) {
+      changedVersions.set(name, new Set());
+    }
+    changedVersions.get(name).add(to);
+  });
   if (baseLock && headLock) {
-    checkAttributable(baseLock, headLock, changedNames);
+    checkAttributable(baseLock, headLock, changedNames, changedVersions);
   }
 
   files
@@ -730,6 +753,7 @@ module.exports = {
   sameValue,
   satisfies,
   snapshotName,
+  snapshotVersion,
   stable,
   uniqueChanges,
 };
