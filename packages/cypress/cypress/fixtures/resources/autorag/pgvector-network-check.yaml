@@ -39,16 +39,73 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: autorag-pgvector-credentials
+                  key: password
+            - name: PGCONNECT_TIMEOUT
+              value: '2'
           command: ['/bin/sh', '-c']
           args:
             - |
               i=0
-              while [ "$i" -lt 140 ]; do
-                if pg_isready -h "autorag-pgvector.${POD_NAMESPACE}.svc.cluster.local" \
-                  -p 5432 -U autorag_test_user -d autorag_test_db; then
+              last_exit_code=1
+              last_error_category='connection or query failure'
+              error_file=/tmp/autorag-pgvector-probe-error
+              report_failure() {
+                sanitized_error=$(sed -E \
+                  -e 's/autorag-pgvector\.[^[:space:]]+/<pgvector-host>/g' \
+                  -e 's/autorag_test_user/<pgvector-user>/g' \
+                  -e 's/autorag_test_db/<pgvector-database>/g' \
+                  -e 's/(password|passwd|PGPASSWORD)[[:space:]]*[:=]?[[:space:]]*[^[:space:]]*/\1=<redacted>/Ig' \
+                  "$error_file" | tr '\n' ' ' | cut -c1-240)
+                rm -f "$error_file"
+                if [ -n "$sanitized_error" ]; then
+                  echo "Authenticated PGVector probe failed (${last_error_category}; psql exit code ${last_exit_code}; details: ${sanitized_error})." >&2
+                else
+                  echo "Authenticated PGVector probe failed (${last_error_category}; psql exit code ${last_exit_code})." >&2
+                fi
+                exit "$last_exit_code"
+              }
+              while [ "$i" -lt 70 ]; do
+                last_error_category='connection or query failure'
+                psql -h "autorag-pgvector.${POD_NAMESPACE}.svc.cluster.local" \
+                  -p 5432 -U autorag_test_user -d autorag_test_db \
+                  -tAc 'SELECT 1' >/dev/null 2>"$error_file"
+                last_exit_code=$?
+                if [ "$last_exit_code" -eq 0 ]; then
+                  rm -f "$error_file"
                   exit 0
                 fi
+                if grep -Eqi 'password authentication failed|no password supplied' "$error_file"; then
+                  last_error_category='authentication failure'
+                elif grep -Eqi 'could not translate host name|name or service not known' "$error_file"; then
+                  last_error_category='DNS resolution failure'
+                elif grep -Eqi 'timeout expired|connection timed out' "$error_file"; then
+                  last_error_category='connection timeout'
+                elif grep -Eqi 'connection refused|no route to host|could not connect to server' "$error_file"; then
+                  last_error_category='network connection failure'
+                elif grep -Eqi 'no pg_hba.conf entry' "$error_file"; then
+                  last_error_category='PostgreSQL access policy failure'
+                elif grep -Eqi 'SSL error|certificate verify failed|TLS' "$error_file"; then
+                  last_error_category='TLS failure'
+                elif grep -Eqi 'database .* does not exist' "$error_file"; then
+                  last_error_category='database configuration failure'
+                elif grep -Eqi 'role .* does not exist' "$error_file"; then
+                  last_error_category='user configuration failure'
+                elif grep -Eqi 'server closed the connection unexpectedly' "$error_file"; then
+                  last_error_category='database connection failure'
+                fi
+                case "$last_error_category" in
+                  'authentication failure'|'PostgreSQL access policy failure'|'TLS failure'|'database configuration failure'|'user configuration failure')
+                    report_failure
+                    ;;
+                esac
                 i=$((i + 1))
-                sleep 2
+                if [ "$i" -lt 70 ]; then
+                  rm -f "$error_file"
+                  sleep 2
+                fi
               done
-              exit 1
+              report_failure
