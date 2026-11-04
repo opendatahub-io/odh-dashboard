@@ -561,11 +561,15 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                         <Divider />
                         <DropdownItem
                           isAriaDisabled={!canDeleteConnection || !deleteAccessLoaded}
-                          tooltipProps={{
-                            content: deleteAccessLoaded
-                              ? getConnectionAccessTooltip('delete')
-                              : 'Checking access...',
-                          }}
+                          tooltipProps={
+                            !canDeleteConnection || !deleteAccessLoaded
+                              ? {
+                                  content: deleteAccessLoaded
+                                    ? getConnectionAccessTooltip('delete')
+                                    : 'Checking access...',
+                                }
+                              : undefined
+                          }
                           onClick={() => {
                             if (!canDeleteConnection || !deleteAccessLoaded) {
                               return;

@@ -500,7 +500,14 @@ describe('ConnectionsTab', () => {
     renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+    await user.hover(deleteItem);
+    expect(
+      screen.queryByText(
+        'This action requires the delete permission. To request permission, contact your administrator.',
+      ),
+    ).toBeNull();
+    await user.click(deleteItem);
     await user.click(screen.getByTestId('delete-confirm'));
 
     await waitFor(() => expect(refresh).toHaveBeenCalled());

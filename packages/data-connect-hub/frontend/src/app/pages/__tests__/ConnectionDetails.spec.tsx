@@ -297,7 +297,14 @@ describe('ConnectionDetails', () => {
 
     renderDetails();
     await user.click(screen.getByTestId('connection-actions-toggle'));
-    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+    await user.hover(deleteItem);
+    expect(
+      screen.queryByText(
+        'This action requires the delete permission. To request permission, contact your administrator.',
+      ),
+    ).toBeNull();
+    await user.click(deleteItem);
     expect(mockTrackEvent).toHaveBeenCalledWith({
       eventName: 'Connections Connection Delete Initiated',
       properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
