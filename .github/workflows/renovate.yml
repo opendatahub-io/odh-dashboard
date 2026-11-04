@@ -45,7 +45,10 @@ on:  # yamllint disable-line rule:truthy
         options: [debug, info, warn, error, fatal]
         default: info
   schedule:
+    # Daily refresh, plus a second Monday attempt inside the creation window
+    # ("before 4am on Monday"), so one dropped run does not wait a week.
     - cron: '0 2 * * *'
+    - cron: '30 3 * * 1'
 
 concurrency:
   group: renovate

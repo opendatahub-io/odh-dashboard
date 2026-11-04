@@ -58,6 +58,10 @@ env:
          or (.author_association // "") == "COLLABORATOR")
        and ((.body // "") | test("(^|\n)[[:space:]]*(/lgtm[[:space:]]+cancel|/remove-lgtm)[[:space:]]*($|\n)"; "i")))
      | .created_at] | max // ""
+  # A person removing lgtm directly (not via a command) is a withdrawal too.
+  HUMAN_WITHDRAWAL_QUERY: |
+    [.[] | select(.event == "unlabeled" and .label.name == "lgtm"
+        and (((.actor.login // "") | endswith("[bot]")) | not)) | .created_at] | max // ""
 
 jobs:
   auto-merge:
@@ -100,11 +104,18 @@ jobs:
           comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
           last_push=$(jq -r "$LAST_PUSH_QUERY" <<<"$timeline")
           last_cancel=$(jq -r "$CANCEL_QUERY" <<<"$comments")
+          last_human_removal=$(jq -r "$HUMAN_WITHDRAWAL_QUERY" <<<"$timeline")
+          # The newest authorized withdrawal, whether it arrived as a command or
+          # as a direct label removal by a person.
+          withdrawn_at="$last_cancel"
+          if [[ "$last_human_removal" > "$withdrawn_at" ]]; then
+            withdrawn_at="$last_human_removal"
+          fi
           # A withdrawal newer than the last push is respected for EVERY event
           # type. A queued synchronize, reopened or tier-label run could
           # otherwise restore labels on the same revision after a maintainer
-          # cancelled, because only the unlabeled path used to consult this.
-          if [ -n "$last_cancel" ] && [[ "$last_cancel" > "$last_push" ]]; then
+          # withdrew approval, because only the unlabeled path used to look.
+          if [ -n "$withdrawn_at" ] && [[ "$withdrawn_at" > "$last_push" ]]; then
             echo "approval withdrawn after the last push, respecting it"
             echo "run=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -153,7 +164,7 @@ jobs:
         run: |
           set -euo pipefail
           # Current renovate/* labels with the actor that most recently added each.
-          labels=$(gh api "repos/$REPO/issues/$PR_NUMBER/labels" --jq '[.[].name | select(startswith("renovate/"))]')
+          labels=$(gh api "repos/$REPO/issues/$PR_NUMBER/labels" | jq -c '[.[].name | select(startswith("renovate/"))]')
           count=$(jq 'length' <<<"$labels")
           if [ "$count" -ne 1 ]; then
             echo "Not eligible: expected exactly one renovate/<tier> label, found $count: $labels"
@@ -192,8 +203,8 @@ jobs:
           #   3. The committer is the app or GitHub's `web-flow`. This is what
           #      stops a forged app author combined with a personal signature.
           # Anything else fails closed and the PR is left for a human.
-          rows=$(gh api "repos/$REPO/pulls/$PR_NUMBER/commits" --paginate \
-            --jq '.[] | [(.author.login // ""), (.committer.login // ""), ((.commit.verification.verified // false) | tostring), .sha] | @tsv')
+          commits=$(gh api "repos/$REPO/pulls/$PR_NUMBER/commits" --paginate | jq -s 'add // []')
+          rows=$(jq -r '.[] | [(.author.login // ""), (.committer.login // ""), ((.commit.verification.verified // false) | tostring), .sha] | @tsv' <<<"$commits")
           if [ -z "$rows" ]; then
             echo "Not eligible: no commits returned for the PR"
             echo "provenance=false" >> "$GITHUB_OUTPUT"
@@ -277,22 +288,36 @@ jobs:
           ELIGIBLE: ${{ steps.check.outputs.eligible }}
           MOVED: ${{ steps.head.outputs.moved }}
           TIER: ${{ steps.tier.outputs.tier }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           if [ "$MOVED" = "true" ]; then
             echo "Head moved during validation — leaving labels for the new head's run"
             exit 0
           fi
-          # Validation takes time; a withdrawal can arrive while it runs. Check
-          # once more immediately before granting anything.
+          # Validation takes time. Resolve every withdrawal FIRST, then re-read
+          # the live head LAST, so a push cannot land between the check and the
+          # grant while these paginated reads are still running.
           if [ "$ELIGIBLE" = "true" ]; then
             comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
             timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s 'add // []')
-            last_cancel=$(jq -r "$CANCEL_QUERY" <<<"$comments")
             last_push=$(jq -r "$LAST_PUSH_QUERY" <<<"$timeline")
-            if [ -n "$last_cancel" ] && [[ "$last_cancel" > "$last_push" ]]; then
+            last_cancel=$(jq -r "$CANCEL_QUERY" <<<"$comments")
+            last_human_removal=$(jq -r "$HUMAN_WITHDRAWAL_QUERY" <<<"$timeline")
+            withdrawn_at="$last_cancel"
+            if [[ "$last_human_removal" > "$withdrawn_at" ]]; then
+              withdrawn_at="$last_human_removal"
+            fi
+            if [ -n "$withdrawn_at" ] && [[ "$withdrawn_at" > "$last_push" ]]; then
               echo "Approval was withdrawn after the last push — not applying labels"
               ELIGIBLE=false
+            fi
+          fi
+          if [ "$ELIGIBLE" = "true" ]; then
+            live=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq .head.sha)
+            if [ "$live" != "$HEAD_SHA" ]; then
+              echo "Head moved during validation ($HEAD_SHA -> $live) — deferring to the run for the new head"
+              exit 0
             fi
           fi
           if [ "$ELIGIBLE" = "true" ] && [ "$MOVED" = "false" ]; then
