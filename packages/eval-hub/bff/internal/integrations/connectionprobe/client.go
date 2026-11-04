@@ -160,10 +160,10 @@ func NewConnectionProbeClient(
 	}
 
 	var transport http.RoundTripper
-	if opts.SkipTLSVerification || internal {
+	if opts.SkipTLSVerification {
 		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, //nolint:gosec // cluster-local services use self-signed certs
+				InsecureSkipVerify: true, //nolint:gosec // explicitly enabled by the insecure-skip-verify setting
 				MinVersion:         tls.VersionTLS12,
 			},
 		}
