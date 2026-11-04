@@ -8,84 +8,79 @@ This guide outlines the steps to create and onboard a new modular architecture m
 - pnpm 11.22.0 (the version pinned in the repository root).
 - Access to the ODH Dashboard repository.
 
-> **Recommended**: Use the `/module-onboarding` Claude Code skill to automate this entire process, including standalone manifest creation and dashboard-operator registration. After module scaffolding, use `/konflux-onboarding` for CI/CD pipeline setup. These skills are the recommended method for onboarding new modules.
+> **Recommended**: Use the `/module-onboarding` Claude Code skill to automate this entire process (port allocation, scaffolding, host registration and verification). After module scaffolding, use `/konflux-onboarding` for CI/CD pipeline setup, standalone manifests and dashboard-operator registration. These skills are the recommended method for onboarding new modules.
 
 ## Steps
 
-### 1. Navigate to the Packages Directory
+### 1. Pick Unique Ports
 
-Open your terminal and navigate to the `packages` folder within the repository:
-
-```bash
-cd packages
-```
-
-### 2. Initialize the Module
-
-Start a new modular architecture project using the installer. Replace `<your-module-name>` with the desired name for your module.
+Each module needs **unique** ports so that multiple federated modules can run simultaneously. From the repository root, list the ports already in use:
 
 ```bash
-pnpm dlx mod-arch-installer -n <your-module-name>
-```
-
-### 3. Configure the Port
-
-Each module needs a **unique** local dev port so that multiple federated modules can run simultaneously. To see which ports are already in use, run the validation script:
-
-```bash
-# Return to the repository root before running root workspace scripts
-cd ..
 pnpm run validate:ports
 ```
 
-This prints a complete list of all current port assignments, sourced directly from the workspace `package.json` files and `federation-configmap.yaml`.
+This prints every `module-federation.local.port` in the workspace (including `distributions/`) and every production service port registered in the dashboard-operator (`dashboard-operator/internal/controller/modules.go`).
 
-> **Convention**: Frontend federation ports use the 9100–9399 range. BFF ports use the 4000–4099 range. Pick the next available number in the appropriate range.
+> **Convention**: Frontend federation ports use the 9100–9399 range. BFF (local dev) ports use the 4000–4099 range. Production service ports step by 100 (`8043`, `8143`, …). Pick the next available number in each range.
 
-Pick an unused port and update both `Makefile` and `package.json`:
+### 2. Initialize the Module
 
-1. **Update `Makefile`**:
-   Open `packages/<your-module-name>/Makefile` and find the `dev-frontend-federated` target. Update the `PORT` variable:
+From the `packages` folder, scaffold the module with the installer, passing the ports you picked. Replace `<your-module-name>` with the kebab-case module name:
 
-   ```makefile
-   dev-frontend-federated:
-       cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=<your-port> pnpm run start:dev
-   ```
+```bash
+cd packages
+pnpm dlx mod-arch-installer@latest -n <your-module-name> --port <frontend-port> --bff-port <bff-port> --service-port <service-port>
+cd ..
+```
 
-2. **Update `package.json`**:
-   Open `packages/<your-module-name>/package.json` and update the `module-federation` configuration:
+The installer writes the ports into the module's `package.json`, `Makefile` and frontend scripts, uses `OdhFederationPlugin` for Module Federation, and `workspace:*` for internal `@odh-dashboard/*` dependencies.
 
-   ```json
-   "module-federation": {
-     "local": {
-       "port": <your-port>
-     }
-   }
-   ```
+### 3. Register the Module in the Workspace
 
-3. **Validate uniqueness**:
-   Run the port validation script to confirm there are no conflicts:
+Add the module frontend to the root `pnpm-workspace.yaml` (`packages/*` does not match nested packages):
 
-   ```bash
-   node scripts/validate-module-ports.js
-   ```
+```yaml
+packages:
+  # ...
+  - packages/<your-module-name>/frontend
+```
 
-   This check also runs automatically in CI and the pre-commit hook.
+Then install from the repository root and validate:
 
-### 4. Add Feature Flag
+```bash
+pnpm install
+pnpm run validate:ports
+pnpm run validate:cypress-mock
+```
 
-To enable your module in the main dashboard, you need to add a feature flag.
+`validate:ports` also runs automatically in CI and the pre-commit hook.
 
-1. Open `frontend/src/concepts/areas/const.ts` in the root of the repository.
-2. Search for existing flags (e.g., search for `disable` or `techPreviewFlags`).
-3. Add your new feature flag to the appropriate group (e.g., `techPreviewFlags`):
+### 4. Add the Area and Feature Flag
+
+To enable your module in the main dashboard, register a `SupportedArea` and a feature flag:
+
+1. `packages/plugin-core/src/areas/types.ts` — add `PLUGIN_<YOUR_MODULE> = 'plugin-<your-module-name>'` under `/* Plugins */`.
+2. `packages/k8s-core/src/k8sTypes.ts` — add `<yourModuleName>?: boolean;` to `DashboardCommonConfig`.
+3. `frontend/src/concepts/areas/const.ts` — add the flag default to `techPreviewFlags` and an entry to `SupportedAreasStateMap`:
 
    ```typescript
    export const techPreviewFlags = {
      // ... existing flags
-     // yourModuleName: true, // Set to true to enable by default in tech preview, or false otherwise
+     yourModuleName: false,
    } satisfies Partial<DashboardCommonConfig>;
+
+   export const SupportedAreasStateMap: SupportedAreasState = {
+     // ... existing entries
+     [SupportedArea.PLUGIN_YOUR_MODULE]: {
+       featureFlags: ['yourModuleName'],
+     },
+   };
    ```
+
+4. `manifests/base/crd/odhdashboardconfigs.opendatahub.io.crd.yaml` — add the flag as a `boolean` property under `dashboardConfig` so it can be set on a cluster.
+
+The scaffolded `frontend/src/odh/extensions.ts` already references `SupportedArea.PLUGIN_<YOUR_MODULE>` and the `yourModuleName` flag.
 
 ### 5. Run the Application
 
@@ -158,6 +153,10 @@ type ModuleDefinition struct {
     RequiredDSCComponents   []string // DSC components that must be present (e.g., ["modelregistry"])
     InterModuleDependencies []string // Other modules this module depends on (e.g., ["genAi"])
     ManifestSlug            string   // Directory name under manifests/modules/ (e.g., "gen-ai")
+    TLS                     bool     // Serve the module over TLS (true for all current modules)
+    ProxyPaths              []proxyRoute         // Optional; defaults to /<ManifestSlug>/api -> /api
+    InterBFFDeps            []interBFFDependency // Optional; service-discovery env vars for calling other BFFs
+    RequiredByMaaSPortal    bool     // Required when the MaaS Portal operand is managed independently
 }
 ```
 
@@ -199,5 +198,6 @@ When creating manifests for a new module, reference an existing module (e.g., `m
 - [Inter-BFF Communication](./inter-bff-communication.md) - How BFF services communicate with each other
 - [Dashboard Operator Architecture](./dashboard-operator.md) - Full details on the operator controller
 - [Architecture Overview](./architecture.md) - Overall system architecture
-- `/module-onboarding` skill -- Automated scaffolding, operator registration, and manifest creation
+- `/module-onboarding` skill -- Automated port allocation, scaffolding, host registration and verification
+- `/konflux-onboarding` skill -- CI/CD pipelines, standalone manifests and dashboard-operator registration
 - `/konflux-onboarding` skill -- CI/CD pipeline setup (Dockerfiles, Konflux, OpenShift CI)

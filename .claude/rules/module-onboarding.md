@@ -13,7 +13,7 @@ paths:
 > - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy, rspack setup
 > - [docs/extensibility.md](../../docs/extensibility.md) — extension points, code refs, feature gating
 
-The quickstart in `docs/onboard-modular-architecture.md` uses `pnpm dlx mod-arch-installer -n <name>` to scaffold a new module. This rule provides the full manual reference and checklist beyond what the installer covers.
+The quickstart in `docs/onboard-modular-architecture.md` uses `pnpm dlx mod-arch-installer -n <name> --port <port> --bff-port <bff-port> --service-port <service-port>` to scaffold a new module (the `/module-onboarding` skill automates it end to end). This rule provides the full manual reference and checklist beyond what the installer covers. `packages/data-connect-hub/` is the golden example for a federated module with a BFF.
 
 ## Template
 
@@ -49,15 +49,17 @@ Required fields:
     "./extensions": "./extensions.ts"
   },
   "dependencies": {
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "workspace:*"
   },
   "devDependencies": {
-    "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
+    "@odh-dashboard/tsconfig": "workspace:*"
   }
 }
 ```
+
+Internal packages always use the pnpm workspace protocol (`workspace:*`). The `exports` field is only needed for simple (non-federated) plugins that the host imports directly; federated remotes expose their extensions through Module Federation instead.
 
 For federated modules (with their own dev server and/or BFF), add `module-federation` — see [docs/module-federation.md § Configuration Properties](../../docs/module-federation.md#configuration-properties) for the full schema:
 
@@ -67,11 +69,16 @@ For federated modules (with their own dev server and/or BFF), add `module-federa
   "remoteEntry": "/remoteEntry.js",
   "authorize": true,
   "tls": false,
-  "proxy": [{ "path": "/<name>/api", "pathRewrite": "/api" }],
+  "proxy": [
+    { "path": "/<name>/api", "pathRewrite": "/api" },
+    { "path": "/<name>/healthcheck", "pathRewrite": "/healthcheck" }
+  ],
   "local": { "host": "localhost", "port": <unique-port> },
-  "service": { "name": "odh-dashboard", "port": 8043 }
+  "service": { "name": "odh-dashboard-<name>-ui", "port": <unique-service-port> }
 }
 ```
+
+Federated module frontends (`packages/<name>/frontend`) must also be listed explicitly in the root `pnpm-workspace.yaml` — `packages/*` does not match nested packages.
 
 Do not add a package-local install script. First-party frontends are members of the root pnpm workspace; run `pnpm install` from the repository root so the shared lockfile remains authoritative. Upstream subtree frontends are the exception and retain their own npm lockfiles.
 
@@ -79,7 +86,7 @@ If the new remote participates in dashboard Cypress mock tests, add `cypress:moc
 
 ### 3. Configure the port
 
-Each package needs a unique port. See [docs/onboard-modular-architecture.md § Configure the Port](../../docs/onboard-modular-architecture.md#3-configure-the-port) for where to update it (both `Makefile` and `package.json`).
+Each package needs a unique port. See [docs/onboard-modular-architecture.md § Pick Unique Ports](../../docs/onboard-modular-architecture.md#1-pick-unique-ports). Pass the ports to the installer (`--port`, `--bff-port`, `--service-port`); it updates both `Makefile` and `package.json`.
 
 To see current port assignments and detect conflicts, run:
 
@@ -90,7 +97,7 @@ pnpm run validate:ports
 The source of truth for each package is:
 - **Frontend port**: `module-federation.local.port` in the package's `package.json`
 - **BFF port (local dev/E2E)**: the package's development script or Makefile (not currently conflict-checked by the validator)
-- **Production service port**: `service.port` in `federation-configmap.yaml` (validated by the conflict-check script)
+- **Production service port**: `Port` in the dashboard-operator `moduleRegistry` (`dashboard-operator/internal/controller/modules.go`), mirrored in `module-federation.service.port` (validated by the conflict-check script)
 
 ### 4. Directory structure
 
@@ -179,9 +186,13 @@ export default extensions;
 
 ### 6. Register the SupportedArea (if new)
 
-Add the area to `frontend/src/concepts/areas/types.ts` and configure it in `frontend/src/concepts/areas/const.ts` with feature flags, required DSC components, and reliant areas.
+Add the area to `packages/plugin-core/src/areas/types.ts` (under `/* Plugins */`) and configure it in `frontend/src/concepts/areas/const.ts` with feature flags, required DSC components, and reliant areas. A new feature flag also needs:
 
-See [docs/onboard-modular-architecture.md § Add Feature Flag](../../docs/onboard-modular-architecture.md#4-add-feature-flag) for the feature flag setup.
+- the type in `DashboardCommonConfig` (`packages/k8s-core/src/k8sTypes.ts`)
+- a default in `techPreviewFlags` (or `devTemporaryFeatureFlags` for dev-only switches) in `const.ts`
+- a property in `manifests/base/crd/odhdashboardconfigs.opendatahub.io.crd.yaml`
+
+See [docs/onboard-modular-architecture.md § Add the Area and Feature Flag](../../docs/onboard-modular-architecture.md#4-add-the-area-and-feature-flag) for the feature flag setup.
 
 ### 7. Rspack config (federated modules)
 
@@ -228,7 +239,8 @@ Follow patterns from existing BFFs (gen-ai, maas, automl). See the [bff-go rule]
 ### 9. Run `pnpm install` and verify
 
 ```bash
-pnpm install          # picks up new workspace package
+pnpm install          # picks up new workspace package (after adding it to pnpm-workspace.yaml)
+pnpm run validate:ports && pnpm run validate:cypress-mock
 pnpm run dev          # start host (backend + frontend)
 # In another terminal:
 cd packages/<name> && make dev-start-federated
@@ -248,11 +260,14 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 
 ## Checklist
 
-- [ ] `package.json` with `name`, `exports["./extensions"]`
-- [ ] `module-federation` config (if federated)
-- [ ] Unique port assigned and configured in `Makefile` + `package.json`
+- [ ] `package.json` with `name` and `workspace:*` internal deps (`exports["./extensions"]` for simple plugins only)
+- [ ] `module-federation` config incl. healthcheck proxy and `odh-dashboard-<name>-ui` service (if federated)
+- [ ] Frontend listed in `pnpm-workspace.yaml` (if federated)
+- [ ] Unique ports assigned and configured in `Makefile` + `package.json`
+- [ ] `cypress:mock:*` scripts and `pnpm run validate:cypress-mock` passes (if federated)
 - [ ] `extensions.ts` with area, nav, and route extensions
-- [ ] `SupportedArea` enum entry + area config
+- [ ] `SupportedArea` enum entry + area config + flag type/default/CRD property
+- [ ] `OWNERS` / `OWNERS_ALIASES` entries and dependabot `gomod` directory (if BFF)
 - [ ] Rspack config with `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (if federated)
 - [ ] BFF with `/healthcheck` and OpenAPI spec (if applicable)
 - [ ] Unit tests in `__tests__/`

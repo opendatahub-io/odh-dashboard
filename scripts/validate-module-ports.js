@@ -6,8 +6,9 @@
  * 1. Local dev ports (package.json "module-federation.local.port")
  *    Must be unique so multiple federated modules can run simultaneously.
  *
- * 2. Production service ports (federation-configmap.yaml "service.port")
- *    Must be unique across all module services.
+ * 2. Production service ports (dashboard-operator moduleRegistry "Port")
+ *    Must be unique across all module services. The dashboard-operator generates the
+ *    federation-config ConfigMap from this registry, so it is the source of truth.
  */
 
 const { execSync } = require('child_process');
@@ -61,57 +62,48 @@ function extractName(mfConfig) {
   return mfConfig.name ?? 'unknown';
 }
 
-const CONFIGMAP_PATHS = [
-  '../manifests/modular-architecture/federation-configmap.yaml',
-  '../manifests/rhoai/shared/base/federation-configmap.yaml',
-];
+const MODULE_REGISTRY_PATH = '../dashboard-operator/internal/controller/modules.go';
 
 /**
- * Parses a federation-configmap.yaml to extract production service ports.
- * The configmap contains a JSON array embedded in YAML under
- * data."module-federation-config.json".
+ * Parses the dashboard-operator moduleRegistry (modules.go) to extract each module's
+ * production service port. Returns an array of { name, port } or null if the file is absent.
  */
-function parseFederationConfigMap(relativePath) {
-  const configMapPath = path.resolve(__dirname, relativePath);
+function parseModuleRegistry(relativePath) {
+  const registryPath = path.resolve(__dirname, relativePath);
 
-  if (!fs.existsSync(configMapPath)) {
+  if (!fs.existsSync(registryPath)) {
     return null;
   }
 
-  const content = fs.readFileSync(configMapPath, 'utf8');
-
-  const jsonMatch = content.match(/module-federation-config\.json:\s*\|\s*\n([\s\S]+)/);
-  if (!jsonMatch) {
-    return null;
-  }
-
-  const lines = jsonMatch[1].split('\n');
-  const indent = lines.find((l) => l.trim())?.match(/^(\s*)/)?.[1].length ?? 0;
-
-  // Stop capturing when indentation drops back to or below the data key level,
-  // so we don't accidentally include subsequent YAML keys.
-  const jsonLines = [];
-  for (const line of lines) {
-    if (line.trim() === '') {
-      jsonLines.push('');
-      continue;
-    }
-    const lineIndent = line.match(/^(\s*)/)?.[1].length ?? 0;
-    if (lineIndent < indent) {
-      break;
-    }
-    jsonLines.push(indent > 0 ? line.slice(indent) : line);
-  }
-  const rawJson = jsonLines.join('\n').trim();
-
-  try {
-    return JSON.parse(rawJson);
-  } catch {
+  const content = fs.readFileSync(registryPath, 'utf8');
+  const registryStart = content.indexOf('var moduleRegistry = map[string]ModuleDefinition{');
+  if (registryStart === -1) {
     console.warn(
-      `${colors.yellow}⚠ Could not parse JSON from ${path.basename(configMapPath)}${colors.reset}`,
+      `${colors.yellow}⚠ Could not find moduleRegistry in ${path.basename(registryPath)}${
+        colors.reset
+      }`,
     );
     return null;
   }
+
+  const entries = [];
+  let current = null;
+  for (const line of content.slice(registryStart).split('\n').slice(1)) {
+    if (/^}/.test(line)) {
+      break;
+    }
+    const keyMatch = line.match(/^\t"([^"]+)":\s*{/);
+    if (keyMatch) {
+      [, current] = keyMatch;
+      continue;
+    }
+    const portMatch = line.match(/^\t\tPort:\s*(\d+),/);
+    if (current && portMatch) {
+      entries.push({ name: current, port: Number(portMatch[1]) });
+      current = null;
+    }
+  }
+  return entries;
 }
 
 /**
@@ -191,66 +183,41 @@ function validate() {
     console.error(`See docs/onboard-modular-architecture.md for port conventions.\n`);
   }
 
-  // --- 2. Validate production service ports from federation-configmap.yaml files ---
-  for (const configMapRelPath of CONFIGMAP_PATHS) {
-    const configMapEntries = parseFederationConfigMap(configMapRelPath);
-    const configMapLabel = `${path.basename(
-      path.dirname(configMapRelPath),
-    )}/federation-configmap.yaml`;
-
-    if (!configMapEntries) {
-      continue;
-    }
-
+  // --- 2. Validate production service ports from the dashboard-operator module registry ---
+  const registryEntries = parseModuleRegistry(MODULE_REGISTRY_PATH);
+  if (registryEntries && registryEntries.length > 0) {
     const servicePortMap = new Map();
-
-    for (const entry of configMapEntries) {
-      const name = entry.name ?? 'unknown';
-
-      if (entry.service?.port != null) {
-        if (!servicePortMap.has(entry.service.port)) {
-          servicePortMap.set(entry.service.port, []);
-        }
-        servicePortMap.get(entry.service.port).push({ name: `${name} [service]` });
+    for (const { name, port } of registryEntries) {
+      if (!servicePortMap.has(port)) {
+        servicePortMap.set(port, []);
       }
-
-      if (Array.isArray(entry.proxyService)) {
-        for (const proxy of entry.proxyService) {
-          if (proxy.service?.port != null) {
-            if (!servicePortMap.has(proxy.service.port)) {
-              servicePortMap.set(proxy.service.port, []);
-            }
-            servicePortMap.get(proxy.service.port).push({ name: `${name} [proxyService]` });
-          }
-        }
-      }
+      servicePortMap.get(port).push({ name: `${name} [moduleRegistry]` });
     }
 
-    if (servicePortMap.size > 0) {
-      console.log(`${colors.cyan}Production Service Ports (${configMapLabel})${colors.reset}`);
-      console.log('─'.repeat(60));
-      const serviceConflicts = checkPortMap(servicePortMap);
-      console.log('─'.repeat(60));
-      console.log(
-        `  ${configMapEntries.length} module(s), ${servicePortMap.size} unique port(s)\n`,
-      );
+    console.log(
+      `${colors.cyan}Production Service Ports (dashboard-operator modules.go)${colors.reset}`,
+    );
+    console.log('─'.repeat(60));
+    const serviceConflicts = checkPortMap(servicePortMap);
+    console.log('─'.repeat(60));
+    console.log(`  ${registryEntries.length} module(s), ${servicePortMap.size} unique port(s)\n`);
 
-      if (serviceConflicts.length > 0) {
-        hasErrors = true;
-        console.error(
-          `${colors.red}✗ Production service port conflicts in ${configMapLabel}:${colors.reset}\n`,
-        );
-        for (const { port, owners } of serviceConflicts) {
-          const names = owners.map((o) => o.name).join(', ');
-          console.error(`  Port ${port} is used by: ${names}`);
-        }
-        console.error(
-          `\nEach module must have a unique "service.port" in federation-configmap.yaml.`,
-        );
-        console.error(
-          `Ports must also match in deployment.yaml, service.yaml, and networkpolicy.yaml.\n`,
-        );
+    if (serviceConflicts.length > 0) {
+      hasErrors = true;
+      console.error(
+        `${colors.red}✗ Production service port conflicts in modules.go:${colors.reset}\n`,
+      );
+      for (const { port, owners } of serviceConflicts) {
+        const names = owners.map((o) => o.name).join(', ');
+        console.error(`  Port ${port} is used by: ${names}`);
       }
+      console.error(
+        `\nEach module must have a unique "Port" in the dashboard-operator moduleRegistry.`,
+      );
+      console.error(
+        `Ports must also match module-federation.service.port in the package.json and the ` +
+          `manifests/modules/<slug>/ deployment, service and networkpolicy.\n`,
+      );
     }
   }
 

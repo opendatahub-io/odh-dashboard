@@ -68,12 +68,13 @@ Parse from `$ARGUMENTS`:
    [ -d "packages/${COMPONENT_NAME}" ] && echo "  Package: OK" || echo "  Package: MISSING"
 
    # Check 2: Feature flag registered
-   CAMEL_CASE=$(echo "$COMPONENT_NAME" | sed -E 's/-([a-z])/\U\1/g')
-   grep -q "${CAMEL_CASE}" frontend/src/k8sTypes.ts 2>/dev/null && echo "  Feature flag: OK" || echo "  Feature flag: MISSING"
+   # Portable camelCase (BSD sed on macOS has no \U)
+   CAMEL_CASE=$(echo "$COMPONENT_NAME" | awk -F- '{printf "%s", $1; for (i = 2; i <= NF; i++) printf "%s", toupper(substr($i, 1, 1)) substr($i, 2)}')
+   grep -q "${CAMEL_CASE}?: boolean" packages/k8s-core/src/k8sTypes.ts 2>/dev/null && echo "  Feature flag: OK" || echo "  Feature flag: MISSING"
 
    # Check 3: SupportedArea registered
    UPPER_SNAKE=$(echo "$COMPONENT_NAME" | tr '[:lower:]-' '[:upper:]_')
-   grep -q "PLUGIN_${UPPER_SNAKE}" frontend/src/concepts/areas/types.ts 2>/dev/null && echo "  SupportedArea: OK" || echo "  SupportedArea: MISSING"
+   grep -q "PLUGIN_${UPPER_SNAKE}" packages/plugin-core/src/areas/types.ts 2>/dev/null && echo "  SupportedArea: OK" || echo "  SupportedArea: MISSING"
 
    ```
 
@@ -333,7 +334,11 @@ For Type A packages, check if `manifests/modules/<name>/` exists. If not, scaffo
 - `kustomization.yaml` — Kustomize entry referencing all resources
 - `params.env` — Kustomize parameter defaults (image reference)
 
-Reference existing modules in `manifests/modules/` (e.g., `gen-ai/`, `model-registry/`) for the exact patterns and field values.
+Reference existing modules in `manifests/modules/` (e.g., `data-connect-hub/`, `gen-ai/`) for the exact patterns and field values. The container/Service port is `module-federation.service.port` from `packages/<name>/package.json`.
+
+Then register the directory in `manifests/modules/kustomization.yaml` (`resources` list).
+
+If the module's ClusterRole (or any Role it ships) grants verbs/resources the dashboard-operator itself does not hold, Kubernetes RBAC escalation prevention will reject it when the operator applies it. Widen the operator's RBAC in both `dashboard-operator/charts/dashboard/templates/rbac.yaml` and `dashboard-operator/config/rbac/role.yaml` in the same PR.
 
 ## Phase 5: OpenShift CI
 
@@ -509,15 +514,23 @@ Read the file and find the `moduleRegistry` map. Add a new entry with all requir
     Port:                    <production-service-port>,
     ImageEnvVar:             "RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE",
     ManifestSlug:            "<name>",
+    TLS:                     true,
+    ProxyPaths: []proxyRoute{
+        {Path: "/<name>/api", PathRewrite: "/api"},
+        {Path: "/<name>/healthcheck", PathRewrite: "/healthcheck"},
+    },
     RequiredDSCComponents:   []string{<dsc-components>},
     InterModuleDependencies: []string{<dependencies>},
 },
 ```
 
+`TLS: true` is set by every current module. The `ProxyPaths` above match the scaffolded `module-federation.proxy` (API + healthcheck); omit the field only if the module proxies just `/<name>/api`.
+
 The production service port is in `packages/<name>/package.json` at `module-federation.service.port`. If `RequiredDSCComponents` or `InterModuleDependencies` are empty, omit them entirely.
 
 Optional fields (only needed for non-standard modules):
-- `ProxyPaths`: set if the module uses a non-standard proxy path (not `/<ManifestSlug>/api` → `/api`)
+- `ProxyPaths`: defaults to `/<ManifestSlug>/api` → `/api` when nil
+- `RequiredByMaaSPortal`: set if the MaaS Portal operand needs this module
 - `InterBFFDeps`: set if this module's BFF needs to call another module's BFF service
 
 **No changes needed** to `module_deploy.go` (proxy paths read from `ModuleDefinition`) or `support.go` (image map auto-generated from registry).
@@ -526,9 +539,12 @@ Optional fields (only needed for non-standard modules):
 
 Read the file and update:
 
-1. `TestModuleRegistry` — increment the `assert.Len` count by 1 (e.g., from `8` to `9`)
+1. `TestModuleRegistry` — increment the `assert.Len` count by 1 (count the current entries in `moduleRegistry`; it was `11` after data-connect-hub)
 2. `TestModuleNames` — add `"<camelCase>"` to the expected sorted name list in the correct alphabetical position
-3. `TestResolveModuleStatuses` — update `wantLen` values: increment the standard case by 1 and the unknown-module case by 1
+3. `TestResolveModuleStatuses` — increment **every** `wantLen` value by 1 (each case resolves all registry modules)
+4. `TestProxyPathsFor` — add a case if the entry sets custom `ProxyPaths`
+
+Also add the slug to the module slug list in `dashboard-operator/internal/controller/federation_integration_test.go`.
 
 ### Step 4: Helm chart related images — `dashboard-operator/charts/dashboard/values.yaml`
 
@@ -538,7 +554,7 @@ Read the file and find the `relatedImages:` section. Add an entry for the new mo
 RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""
 ```
 
-Place it alphabetically among the existing `RELATED_IMAGE_ODH_MOD_ARCH_*` entries.
+Append it after the last `RELATED_IMAGE_ODH_MOD_ARCH_*` entry (the list is in onboarding order, not alphabetical).
 
 ### Step 5: Verify operator changes
 
