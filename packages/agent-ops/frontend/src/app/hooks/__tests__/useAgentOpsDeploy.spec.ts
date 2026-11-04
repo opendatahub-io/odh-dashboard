@@ -18,7 +18,6 @@ const areaStatus = (status: boolean) => ({
   reliantAreas: null,
   requiredComponents: null,
   requiredCapabilities: null,
-  customCondition: () => status,
 });
 
 describe('useAgentOpsDeploy', () => {

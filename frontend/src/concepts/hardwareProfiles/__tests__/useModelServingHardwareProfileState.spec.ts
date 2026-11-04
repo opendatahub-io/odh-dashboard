@@ -54,7 +54,6 @@ describe('useModelServingHardwareProfileState', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
 
     mockUseAppContext.mockReturnValue({

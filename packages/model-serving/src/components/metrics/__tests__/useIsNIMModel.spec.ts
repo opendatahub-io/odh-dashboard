@@ -23,7 +23,6 @@ const setNIMEnabled = (status: boolean) =>
     reliantAreas: null,
     requiredCapabilities: null,
     requiredComponents: null,
-    customCondition: () => false,
   });
 const notNIM = { isNIMModel: false, loading: false, error: undefined };
 
