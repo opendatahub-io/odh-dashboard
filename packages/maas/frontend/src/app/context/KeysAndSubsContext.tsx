@@ -2,10 +2,12 @@ import { APIOptions, FetchStateCallbackPromise, POLL_INTERVAL, useFetchState } f
 import React from 'react';
 import { UserSubscription } from '~/app/types/subscriptions';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
+import { getIsMaasAdmin } from '~/app/api/k8s';
 import { searchTenantApiKeys } from '~/app/api/api-keys';
 import { useAppContext } from '~/app/context/AppContext';
 import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 import { useMaaSGatewayUrl } from '~/app/hooks/useMaaSGatewayUrl';
+import { isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const KeysAndSubsContext = React.createContext({} as KeysAndSubsContextType);
@@ -42,7 +44,10 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
   );
 
   const isMaasAdminCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
-    () => Promise.resolve(Boolean(user.isAdmin)),
+    (opts: APIOptions) =>
+      isMaaSPortalHost()
+        ? Promise.resolve(Boolean(user.isAdmin))
+        : getIsMaasAdmin()(opts).then((result) => result.allowed),
     [user.isAdmin],
   );
 
