@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"log/slog"
@@ -23,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newInternalTLSTestServer(t *testing.T, hostname string) (*httptest.Server, []byte) {
+func newTLSTestServer(t *testing.T, hostname string) *httptest.Server {
 	t.Helper()
 
 	caPublicKey, caPrivateKey, err := ed25519.GenerateKey(rand.Reader)
@@ -64,8 +63,7 @@ func newInternalTLSTestServer(t *testing.T, hostname string) (*httptest.Server, 
 	server.StartTLS()
 	t.Cleanup(server.Close)
 
-	caPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER})
-	return server, caPEM
+	return server
 }
 
 func setProbeDialTarget(t *testing.T, client *ConnectionProbeClient, server *httptest.Server) {
@@ -182,54 +180,52 @@ func TestNewConnectionProbeClient_InternalHost(t *testing.T) {
 	assert.True(t, client.skipSSRFValidation)
 }
 
-func TestNewConnectionProbeClient_InternalHTTPSVerifiesSecretCA(t *testing.T) {
+func TestNewConnectionProbeClient_InternalHTTPSKeepsTLSBypass(t *testing.T) {
 	const hostname = "model.ns.svc.cluster.local"
-	server, caPEM := newInternalTLSTestServer(t, hostname)
+	server := newTLSTestServer(t, hostname)
 	port := server.Listener.Addr().(*net.TCPAddr).Port
 	baseURL := "https://" + net.JoinHostPort(hostname, fmt.Sprint(port)) + "/v1"
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	request := models.VerifyConnectionRequest{ModelID: "test-model"}
 
-	newClient := func(roots *x509.CertPool, skipTLSVerification bool) *ConnectionProbeClient {
-		client, err := NewConnectionProbeClient(
-			logger,
-			baseURL,
-			"test-api-key",
-			"model",
-			&ClientOptions{
-				SkipSSRFValidation:  true,
-				SkipTLSVerification: skipTLSVerification,
-				RootCAs:             roots,
-			},
-		)
-		require.NoError(t, err)
-		setProbeDialTarget(t, client, server)
-		return client
-	}
+	client, err := NewConnectionProbeClient(
+		logger,
+		baseURL,
+		"test-api-key",
+		"model",
+		&ClientOptions{SkipSSRFValidation: true, RootCAs: x509.NewCertPool()},
+	)
+	require.NoError(t, err)
+	setProbeDialTarget(t, client, server)
 
-	t.Run("rejects an internal endpoint when its CA is not trusted", func(t *testing.T) {
-		client := newClient(x509.NewCertPool(), false)
-		_, err := client.Probe(context.Background(), request)
-		require.Error(t, err)
-	})
+	response, err := client.Probe(context.Background(), request)
+	require.NoError(t, err, "internal endpoints retain the original TLS verification bypass")
+	assert.True(t, response.Success)
+}
 
-	t.Run("accepts an internal endpoint signed by the Secret CA", func(t *testing.T) {
-		roots := x509.NewCertPool()
-		require.True(t, roots.AppendCertsFromPEM(caPEM))
-		client := newClient(roots, false)
+func TestNewConnectionProbeClient_ExplicitTLSVerificationBypass(t *testing.T) {
+	const hostname = "api.example.com"
+	server := newTLSTestServer(t, hostname)
+	port := server.Listener.Addr().(*net.TCPAddr).Port
+	baseURL := "https://" + net.JoinHostPort(hostname, fmt.Sprint(port)) + "/v1"
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	client, err := NewConnectionProbeClient(
+		logger,
+		baseURL,
+		"test-api-key",
+		"model",
+		&ClientOptions{
+			SkipSSRFValidation:  true,
+			SkipTLSVerification: true,
+			RootCAs:             x509.NewCertPool(),
+		},
+	)
+	require.NoError(t, err)
+	setProbeDialTarget(t, client, server)
 
-		response, err := client.Probe(context.Background(), request)
-		require.NoError(t, err)
-		assert.True(t, response.Success)
-	})
-
-	t.Run("honors the explicit TLS verification bypass", func(t *testing.T) {
-		client := newClient(x509.NewCertPool(), true)
-
-		response, err := client.Probe(context.Background(), request)
-		require.NoError(t, err)
-		assert.True(t, response.Success)
-	})
+	response, err := client.Probe(context.Background(), models.VerifyConnectionRequest{ModelID: "test-model"})
+	require.NoError(t, err)
+	assert.True(t, response.Success)
 }
 
 func TestNewConnectionProbeClient_ExternalHost(t *testing.T) {
