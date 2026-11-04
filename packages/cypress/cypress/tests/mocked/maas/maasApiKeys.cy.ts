@@ -32,6 +32,7 @@ describe('API Keys Page', () => {
     );
 
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: true } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
@@ -103,6 +104,7 @@ describe('API Keys Page', () => {
     const revokedKeys = mockAPIKeys().filter((k) => k.status === 'revoked');
     asProjectAdminUser();
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
 
     // Existence check (no status filter) returns the revoked key;
     // filtered search (status: active) returns nothing.
@@ -150,6 +152,7 @@ describe('API Keys Page', () => {
   it('should display empty state when no keys are present', () => {
     asProjectAdminUser();
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse([])).as(
       'emptySearch',
     );
@@ -373,6 +376,7 @@ describe('API Keys Page', () => {
   it('should not show View in MaaS governance for non-admin users', () => {
     asProjectAdminUser();
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     cy.interceptOdh(
       'POST /maas/api/v1/api-keys/search/tenant',
       mockSearchResponse(
@@ -452,6 +456,7 @@ describe('API Keys Page', () => {
   it('should not display the username filter for non-MaaS admins', () => {
     asProjectAdminUser();
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     apiKeysPage.visit();
     cy.wait('@initialSearch');
     apiKeysPage.findFilterInput().should('not.exist');
@@ -461,6 +466,7 @@ describe('API Keys Page', () => {
   it('should not display the username column for non-MaaS admins', () => {
     asProjectAdminUser();
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     apiKeysPage.visit();
     cy.wait('@initialSearch');
     apiKeysPage.findTable().should('not.contain.text', 'Owner');
@@ -616,6 +622,7 @@ describe('API Keys Page', () => {
 
   it('should revoke all my API keys', () => {
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     apiKeysPage.visit();
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');

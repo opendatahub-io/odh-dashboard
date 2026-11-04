@@ -26,6 +26,7 @@ describe('MaaS failure tracking', () => {
     asProjectAdminUser();
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
@@ -101,6 +102,7 @@ describe('MaaS failure tracking', () => {
   it('should keep administrator bulk revoke diagnostics out of telemetry', () => {
     asProductAdminUser();
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: true } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.intercept('POST', '/maas/api/v1/api-keys/bulk-revoke', failure()).as('failure');
     apiKeysPage.visit();
     apiKeysPage.findActionsToggle().click();

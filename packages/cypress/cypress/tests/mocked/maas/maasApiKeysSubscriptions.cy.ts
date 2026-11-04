@@ -29,6 +29,7 @@ describe('API keys - Subscription Tab', () => {
     );
 
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: true } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
