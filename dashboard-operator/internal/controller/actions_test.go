@@ -214,6 +214,58 @@ func TestExtractDashboardURL(t *testing.T) {
 			wantURL: "https://dashboard.apps.example.com",
 		},
 		{
+			name:      "legacy redirect route is excluded",
+			dashboard: &v1alpha1.Dashboard{},
+			platform:  cluster.OpenDataHub,
+			routes: []routev1.Route{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      dashboardRouteNameODH,
+						Namespace: namespace,
+						Labels: map[string]string{
+							labels.PlatformPartOf: "dashboard",
+							"app":                 dashboardRedirectName,
+						},
+					},
+					Status: routev1.RouteStatus{Ingress: []routev1.RouteIngress{{
+						Host:       "odh-dashboard.apps.example.com",
+						Conditions: []routev1.RouteIngressCondition{{Type: routev1.RouteAdmitted, Status: "True"}},
+					}}},
+				},
+			},
+			wantErr:   ErrDashboardRouteNotReady,
+			wantErrIs: true,
+		},
+		{
+			name:      "legacy redirect route does not mask dashboard route",
+			dashboard: &v1alpha1.Dashboard{},
+			platform:  cluster.OpenDataHub,
+			routes: []routev1.Route{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
+					Status: routev1.RouteStatus{Ingress: []routev1.RouteIngress{{
+						Host:       "dashboard.apps.example.com",
+						Conditions: []routev1.RouteIngressCondition{{Type: routev1.RouteAdmitted, Status: "True"}},
+					}}},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      legacyGatewayRouteName,
+						Namespace: namespace,
+						Labels: map[string]string{
+							labels.PlatformPartOf: "dashboard",
+							"app":                 dashboardRedirectName,
+						},
+					},
+					Status: routev1.RouteStatus{Ingress: []routev1.RouteIngress{{
+						Host:       "data-science-gateway.apps.example.com",
+						Conditions: []routev1.RouteIngressCondition{{Type: routev1.RouteAdmitted, Status: "True"}},
+					}}},
+				},
+			},
+			wantURL: "https://dashboard.apps.example.com",
+		},
+		{
 			name:      "route with non-admitted ingress",
 			dashboard: &v1alpha1.Dashboard{},
 			platform:  cluster.SelfManagedRhoai,
