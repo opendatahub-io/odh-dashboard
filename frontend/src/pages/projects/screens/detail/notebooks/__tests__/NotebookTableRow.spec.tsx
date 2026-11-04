@@ -4,9 +4,13 @@ import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
+import { useIsDRAHardwareProfileEnabled } from '@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import NotebookTableRow from '#~/pages/projects/screens/detail/notebooks/NotebookTableRow';
+import NotebookSizeDetails from '#~/pages/projects/screens/detail/notebooks/NotebookSizeDetails';
+import { useNotebookHardwareProfile } from '#~/concepts/notebooks/utils';
 import {
   ProjectDetailsContext,
   ProjectDetailsContextType,
@@ -64,6 +68,10 @@ jest.mock('#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureSto
   useWorkbenchFeatureStores: jest.fn(() => ({ featureStores: [], loaded: true })),
 }));
 
+jest.mock('@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled', () => ({
+  useIsDRAHardwareProfileEnabled: jest.fn(() => false),
+}));
+
 jest.mock('#~/concepts/areas', () => ({
   ...jest.requireActual('#~/concepts/areas'),
   useIsAreaAvailable: jest.fn(() => ({ status: false })),
@@ -105,7 +113,7 @@ jest.mock('#~/pages/projects/screens/detail/notebooks/NotebookStorageBars', () =
 
 jest.mock('#~/pages/projects/screens/detail/notebooks/NotebookSizeDetails', () => ({
   __esModule: true,
-  default: () => <div>size-details</div>,
+  default: jest.fn(() => <div>size-details</div>),
 }));
 
 jest.mock('#~/pages/projects/screens/detail/notebooks/NotebookFeatureStoreList', () => ({
@@ -115,6 +123,9 @@ jest.mock('#~/pages/projects/screens/detail/notebooks/NotebookFeatureStoreList',
 
 const mockUseKueueConfiguration = jest.mocked(useKueueConfiguration);
 const mockUseHardwareProfileBindingState = jest.mocked(useHardwareProfileBindingState);
+const mockUseIsDRAHardwareProfileEnabled = jest.mocked(useIsDRAHardwareProfileEnabled);
+const mockUseNotebookHardwareProfile = jest.mocked(useNotebookHardwareProfile);
+const mockNotebookSizeDetails = jest.mocked(NotebookSizeDetails);
 
 const kueueEnabledConfig = {
   isKueueDisabled: false,
@@ -257,6 +268,11 @@ describe('NotebookTableRow — DRA claim template', () => {
 
   beforeEach(() => {
     mockUseKueueConfiguration.mockReturnValue(kueueDisabledConfig);
+    mockUseIsDRAHardwareProfileEnabled.mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    mockUseIsDRAHardwareProfileEnabled.mockReturnValue(false);
   });
 
   it('should show the template name of the bound DRA hardware profile', async () => {
@@ -299,6 +315,19 @@ describe('NotebookTableRow — DRA claim template', () => {
     expect(screen.getByTestId('hardware-profile-dra-template')).toHaveTextContent('single-gpu');
   });
 
+  it('should not show DRA details for a bound DRA hardware profile when DRA hardware profiles are disabled', async () => {
+    mockUseIsDRAHardwareProfileEnabled.mockReturnValue(false);
+    mockBoundProfile({
+      [descriptionAnnotation]: 'Requests one partitioned GPU device for the workload.',
+    });
+    await renderExpandedRow();
+
+    expect(screen.queryByTestId('hardware-profile-dra-details')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Claim template/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Tech Preview')).not.toBeInTheDocument();
+    expect(screen.getByText('size-details')).toBeInTheDocument();
+  });
+
   it('should not show DRA details for a non-DRA hardware profile', async () => {
     mockBoundProfile({ [descriptionAnnotation]: 'Ignored without spec.dra' }, false);
     await renderExpandedRow();
@@ -321,5 +350,43 @@ describe('NotebookTableRow — DRA claim template', () => {
 
     expect(screen.queryByTestId('hardware-profile-dra-details')).not.toBeInTheDocument();
     expect(screen.getByText('size-details')).toBeInTheDocument();
+  });
+});
+
+describe('NotebookTableRow — size details', () => {
+  const defaultUseNotebookHardwareProfile = mockUseNotebookHardwareProfile.getMockImplementation();
+
+  beforeEach(() => {
+    mockUseKueueConfiguration.mockReturnValue(kueueDisabledConfig);
+    mockUseIsDRAHardwareProfileEnabled.mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    mockUseIsDRAHardwareProfileEnabled.mockReturnValue(false);
+    mockUseNotebookHardwareProfile.mockImplementation(defaultUseNotebookHardwareProfile);
+  });
+
+  it("should request the workbench's own resources and show them as its size", async () => {
+    const resources = {
+      requests: { cpu: '2', memory: '8Gi' },
+      limits: { cpu: '4', memory: '16Gi' },
+    };
+    const notebook = mockNotebookK8sResource({
+      resources,
+      hardwareProfileName: 'dra-profile',
+      hardwareProfileNamespace: 'opendatahub',
+    });
+    mockUseNotebookHardwareProfile.mockReturnValue(
+      mockUseAssignHardwareProfileResult({ resources }),
+    );
+    renderRow(notebook);
+    await userEvent.click(
+      within(screen.getByTestId('notebook-table-expand-cell')).getByRole('button'),
+    );
+
+    expect(mockUseNotebookHardwareProfile).toHaveBeenCalledWith(notebook);
+    expect(mockNotebookSizeDetails.mock.lastCall?.[0]).toEqual({
+      notebookContainerSize: resources,
+    });
   });
 });

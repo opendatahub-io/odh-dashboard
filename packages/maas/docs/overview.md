@@ -8,6 +8,7 @@
 ## Design Intent
 
 - **BFF**: Authenticates; resolves current user (Kubernetes RBAC or forwarded token in federated mode); proxies upstream MaaS REST API (`MAAS_API_URL`); reads Kubernetes for `MaaSSubscription`, `MaaSAuthPolicy`, `MaaSModelRef`, OpenShift `Group`, and core `Namespace`.
+- **MaaS Portal usage dashboards**: The BFF uses the shared `/whoami` calculation, including its subscription fallback, and its usage dashboard repository returns an allowlist of Perses definitions through `/api/v1/usage-dashboards`. The portal-specific authorization and namespaced RBAC flow is documented in the [MaaS Portal guide](../../../docs/maas-portal.md#observability).
 - **Local dev without cluster**: `cmd/main.go` supports `--mock-k8s-client` and `--mock-http-client`; `GET /healthcheck` for probes and contract tests.
 - **Federated mode**:
   - Module Federation remote **`maas`**: **`./extensions`** (ODH registrations), **`./extension-points`** (host contracts).

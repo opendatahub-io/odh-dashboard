@@ -72,8 +72,40 @@ type App struct {
 	dataRegistryDiscoveryCancel context.CancelFunc
 }
 
+func configureBFFClientTLS(bffConfig *bffclient.BFFClientConfig, devMode, allowInsecureHTTP bool) bool {
+	if !devMode || !allowInsecureHTTP {
+		return false
+	}
+
+	for _, target := range []bffclient.BFFTarget{
+		bffclient.BFFTargetMaaS,
+		bffclient.BFFTargetGenAI,
+		bffclient.BFFTargetModelRegistry,
+		bffclient.BFFTargetMLflow,
+	} {
+		if serviceConfig := bffConfig.GetServiceConfig(target); serviceConfig != nil {
+			serviceConfig.TLSEnabled = false
+		}
+	}
+	return true
+}
+
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	logger.Debug("Initializing app with config", slog.Any("config", cfg))
+	// Log only non-sensitive configuration metadata. URL overrides and filesystem paths are
+	// intentionally omitted because they may contain credentials or other sensitive values.
+	logger.Debug("Initializing app",
+		slog.Int("port", cfg.Port),
+		slog.String("deployment_mode", cfg.DeploymentMode.String()),
+		slog.String("log_level", cfg.LogLevel.String()),
+		slog.Bool("dev_mode", cfg.DevMode),
+		slog.Bool("mock_k8_client", cfg.MockK8Client),
+		slog.Bool("mock_http_client", cfg.MockHTTPClient),
+		slog.Bool("mock_bff_clients", cfg.MockBFFClients),
+		slog.Bool("bff_clients_allow_insecure_http", cfg.BFFClientsAllowInsecureHTTP),
+		slog.Bool("data_registry_api_url_configured", cfg.DataRegistryAPIURL != ""),
+		slog.Bool("dch_enabled", cfg.BFFDCHServiceName != ""),
+		slog.Int("bundle_path_count", len(cfg.BundlePaths)),
+	)
 	var k8sFactory k8s.KubernetesClientFactory
 	var err error
 	// used only on mocked k8s client
@@ -143,6 +175,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	bffConfig := bffclient.NewDefaultBFFClientConfig()
 	bffConfig.MockBFFClients = cfg.MockBFFClients
 	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
+	if configureBFFClientTLS(bffConfig, cfg.DevMode, cfg.BFFClientsAllowInsecureHTTP) {
+		logger.Warn("SECURITY WARNING: inter-BFF bearer tokens will be sent over plaintext HTTP")
+	}
 
 	if cfg.BFFDCHServiceName != "" {
 		bffConfig.ServiceConfigs[bffclient.BFFTargetDCH] = &bffclient.BFFServiceConfig{

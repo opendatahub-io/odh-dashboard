@@ -16,6 +16,7 @@ type MockHardwareProfileOptionsConfig = {
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   paths?: CrPathConfig;
+  existingBinding?: { name?: string; namespace?: string };
 };
 
 export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>({
@@ -33,6 +34,7 @@ export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>(
   tolerations = [],
   nodeSelector = {},
   paths = INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  existingBinding,
 }: MockHardwareProfileOptionsConfig = {}): UseAssignHardwareProfileResult<T> => {
   const formData = {
     selectedProfile: selectedHardwareProfile,
@@ -45,6 +47,8 @@ export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>(
       hardwareProfile: {
         formData,
         initialHardwareProfile: selectedHardwareProfile,
+        existingBinding: existingBinding ?? {},
+        excludeDRAProfiles: true,
         isFormDataValid: true,
         setFormData: () => {
           // Mock function
@@ -63,7 +67,7 @@ export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>(
       },
     },
     applyToResource: <R extends T>(resource: R): R => {
-      return applyHardwareProfileConfig(resource, formData, paths);
+      return applyHardwareProfileConfig(resource, formData, paths, existingBinding);
     },
     validateHardwareProfileForm: () => true,
     loaded: true,

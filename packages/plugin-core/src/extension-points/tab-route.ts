@@ -36,6 +36,8 @@ export type TabRoutePageExtension = Extension<
      * Used with TitleWithIcon to render a page-level title above the tabs.
      */
     objectType?: string;
+    /** Optional descriptive text rendered beneath the page title. */
+    description?: string;
     /** When true, renders the tab bar even if only one tab is registered. */
     alwaysShowTabBar?: boolean;
     /** Relative path prefixes where the generic page title should be hidden. */

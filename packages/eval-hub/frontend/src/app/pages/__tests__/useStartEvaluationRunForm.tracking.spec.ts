@@ -1,15 +1,13 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import type {
   FlatBenchmark,
   Collection,
@@ -32,9 +30,8 @@ let mockHardwareProfileCompatibilityError: Error | undefined;
 let mockKueueAvailabilityError: Error | undefined;
 const mockNotificationError = jest.fn();
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -78,8 +75,11 @@ jest.mock('~/app/hooks/useKueueAvailability', () => ({
   }),
 }));
 
-const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
-const mockFireForm = jest.mocked(fireFormTrackingEvent);
+const mockTrack = jest.mocked(trackEvalHubEvent);
+
+const expectTracked = (eventName: string, properties: unknown): void => {
+  expect(mockTrack).toHaveBeenCalledWith(eventName, properties, expect.any(Object));
+};
 const mockCreateEvaluationJob = jest.mocked(createEvaluationJob);
 const mockGetHardwareProfiles = jest.mocked(getHardwareProfiles);
 
@@ -132,6 +132,7 @@ const reconfigureValues: ReconfigureFormData = {
   sourceName: '',
   datasetUrl: '',
   accessToken: '',
+  testDataRef: { ...testDataRefDefaultValues },
   benchmark: mockBenchmark,
   collection: undefined,
   isCollectionFlow: false,
@@ -141,6 +142,22 @@ const reconfigureValues: ReconfigureFormData = {
   experimentName: 'EvalHub',
   hardwareProfile: mockCompatibleHardwareProfile.name,
   queue: mockCompatibleHardwareProfile.local_queue_name,
+};
+
+const collectionReconfigureValues: ReconfigureFormData = {
+  ...reconfigureValues,
+  benchmark: undefined,
+  collection: mockCollection,
+  isCollectionFlow: true,
+  // Hydrated from a collection benchmark; the empty secret ref fails
+  // single-benchmark form validation.
+  testDataRef: {
+    ...testDataRefDefaultValues,
+    source: 's3',
+    bucket: 'legacy-bucket',
+    key: 'data.jsonl',
+    secretRef: '',
+  },
 };
 
 const defaultFormParams = {
@@ -233,7 +250,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleSourceModeChange('model');
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, {
         sourceType: 'model',
       });
     });
@@ -245,7 +262,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleSourceModeChange('agent');
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, {
         sourceType: 'agent',
       });
     });
@@ -257,7 +274,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleSourceModeChange('prerecorded');
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED, {
         sourceType: 'prerecorded',
       });
     });
@@ -269,7 +286,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleSourceModeChange('agent');
       });
 
-      const sourceSelectedCalls = mockFireMisc.mock.calls.filter(
+      const sourceSelectedCalls = mockTrack.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_SOURCE_SELECTED,
       );
       expect(sourceSelectedCalls).toHaveLength(1);
@@ -284,7 +301,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, {
         selectedModel: 'model-a',
         isExternal: false,
       });
@@ -300,7 +317,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         );
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_MODEL_SELECTED, {
         selectedModel: 'Other (External endpoint)',
         isExternal: true,
       });
@@ -313,7 +330,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleModelDropdownSelect(undefined, mockInferenceServices);
       });
 
-      const modelSelectedCalls = mockFireMisc.mock.calls.filter(
+      const modelSelectedCalls = mockTrack.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_MODEL_SELECTED,
       );
       expect(modelSelectedCalls).toHaveLength(0);
@@ -328,7 +345,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleThresholdChange(85);
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, {
         thresholdValue: 85,
         benchmarkName: 'ARC Easy',
       });
@@ -344,7 +361,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleThresholdChange(60);
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED, {
         thresholdValue: 60,
         benchmarkName: 'My Collection',
       });
@@ -360,7 +377,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleThresholdChange(75);
       });
 
-      const thresholdCalls = mockFireMisc.mock.calls.filter(
+      const thresholdCalls = mockTrack.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_THRESHOLD_CHANGED,
       );
       expect(thresholdCalls).toHaveLength(2);
@@ -377,7 +394,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handlePrimaryMetricChange('accuracy');
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, {
         metricName: 'accuracy',
         isDefault: true,
         benchmarkName: 'ARC Easy',
@@ -404,7 +421,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handlePrimaryMetricChange('f1_score');
       });
 
-      expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, {
+      expectTracked(EVAL_HUB_EVENTS.RUN_METRIC_SELECTED, {
         metricName: 'f1_score',
         isDefault: false,
         benchmarkName: 'ARC Easy',
@@ -470,7 +487,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         await renderResult.result.current.handleSubmit();
       });
 
-      const paramCalls = mockFireMisc.mock.calls.filter(
+      const paramCalls = mockTrack.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED,
       );
       expect(paramCalls).toHaveLength(2);
@@ -501,7 +518,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         await renderResult.result.current.handleSubmit();
       });
 
-      const paramCalls = mockFireMisc.mock.calls.filter(
+      const paramCalls = mockTrack.mock.calls.filter(
         ([event]) => event === EVAL_HUB_EVENTS.RUN_PARAMETER_CHANGED,
       );
       expect(paramCalls).toHaveLength(0);
@@ -545,7 +562,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         renderResult.result.current.handleCancel();
       });
 
-      expect(mockFireForm).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
+      expectTracked(EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED, {
         source: 'copy_suite',
         evaluationName: 'Copied suite evaluation',
         sourceType: 'model',
@@ -559,6 +576,145 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
   });
 
   describe('Evaluation run submission', () => {
+    it.each([
+      ['http://model-a.svc:8080', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080/', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080/v1', 'http://model-a.svc:8080/v1'],
+      ['http://model-a.svc:8080?key=value', 'http://model-a.svc:8080/v1?key=value'],
+      ['http://model-a.svc:8080/#section', 'http://model-a.svc:8080/v1#section'],
+      [
+        'http://model-a.svc:8080/v1/?key=value#section',
+        'http://model-a.svc:8080/v1?key=value#section',
+      ],
+      [
+        'http://model-a.svc:8080/api/?key=value#section',
+        'http://model-a.svc:8080/api/v1?key=value#section',
+      ],
+      ['', ''],
+    ])('should submit cluster model URL %s as %s', async (serviceUrl, expectedUrl) => {
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', [
+          { ...mockInferenceServices[0], url: serviceUrl },
+        ]);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+        '',
+        'test-ns',
+        expect.objectContaining({ model: expect.objectContaining({ url: expectedUrl }) }),
+      );
+    });
+
+    it('should report an invalid cluster URL and allow a retry', async () => {
+      mockHardwareProfiles = [mockCompatibleHardwareProfile];
+      mockKueueAvailability = mockKueueEnabled;
+      const onRunFailure = jest.fn();
+      const renderResult = renderForm({
+        collection: mockCollection,
+        isCollectionFlow: true,
+        onRunFailure,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', [
+          { ...mockInferenceServices[0], url: 'not-a-url' },
+        ]);
+        renderResult.result.current.setExperimentMode('new');
+        renderResult.result.current.setNewExperimentName('EvalHub');
+        renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
+      });
+
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+      // The URL parse error must fire before hardware-profile verification, which sends
+      // its own request and would mask the parse failure when it errors.
+      expect(mockGetHardwareProfiles).not.toHaveBeenCalled();
+      expect(onRunFailure).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'The selected model endpoint URL is invalid.' }),
+        mockCollection,
+      );
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Invalid request',
+        'The selected model endpoint URL is invalid.',
+      );
+      expect(renderResult.result.current.isSubmitting).toBe(false);
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reject a cluster endpoint URL with an unsupported protocol', async () => {
+      const onRunFailure = jest.fn();
+      const renderResult = renderForm({
+        collection: mockCollection,
+        isCollectionFlow: true,
+        onRunFailure,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', [
+          { ...mockInferenceServices[0], url: 'ftp://model-a.svc:21' },
+        ]);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+      expect(onRunFailure).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'The selected model endpoint URL is invalid.' }),
+        mockCollection,
+      );
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Invalid request',
+        'The selected model endpoint URL is invalid.',
+      );
+      expect(renderResult.result.current.isSubmitting).toBe(false);
+    });
+
+    it('should preserve a manually entered external endpoint URL', async () => {
+      const renderResult = renderForm();
+      const externalUrl = 'https://external.example.com/custom/openai?key=value#section';
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect(
+          EXTERNAL_ENDPOINT_VALUE,
+          mockInferenceServices,
+        );
+        renderResult.result.current.setModelName('external-model');
+        renderResult.result.current.setEndpointUrl(externalUrl);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+        '',
+        'test-ns',
+        expect.objectContaining({ model: expect.objectContaining({ url: externalUrl }) }),
+      );
+    });
+
     it('should notify the parent and track the configured source after a successful submission', async () => {
       const onSuccess = jest.fn();
       const renderResult = renderForm({ trackingSource: 'copy_suite', onSuccess });
@@ -572,7 +728,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       });
 
       expect(onSuccess).toHaveBeenCalledTimes(1);
-      expect(mockFireForm).toHaveBeenCalledWith(
+      expectTracked(
         EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
         expect.objectContaining({
           source: 'copy_suite',
@@ -581,6 +737,42 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
         }),
       );
       expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('should derive submission tracking context from the collection resolved at submit', async () => {
+      const systemCollection: Collection = {
+        ...mockCollection,
+        resource: { id: 'col-1', read_only: true },
+      };
+      const copiedCollection: Collection = {
+        ...mockCollection,
+        resource: { id: 'col-2', read_only: false },
+      };
+      const renderResult = renderForm({
+        benchmark: undefined,
+        collection: systemCollection,
+        isCollectionFlow: true,
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      });
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit({
+          collection: copiedCollection,
+          collectionWasCreated: true,
+        });
+      });
+
+      const runStartedCalls = mockTrack.mock.calls.filter(
+        ([event]) => event === EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
+      );
+      expect(runStartedCalls).toHaveLength(1);
+      expect(runStartedCalls[0][2]).toEqual({
+        collectionType: 'custom',
+        providerType: 'lm_harness',
+      });
     });
 
     it('should submit when advisory compatibility fails and a collection omits provider IDs', async () => {
@@ -645,6 +837,30 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       expect(renderResult.result.current.hardwareProfile).toBeUndefined();
     });
 
+    it('should stay valid when a collection reconfigure hydrates a test-data ref that fails single-benchmark validation', async () => {
+      const renderResult = renderForm({
+        benchmark: undefined,
+        collection: mockCollection,
+        isCollectionFlow: true,
+        initialValues: collectionReconfigureValues,
+      });
+
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+      expect(renderResult.result.current.testDataRefErrors).toBeUndefined();
+    });
+
+    it('should stay invalid when a single-benchmark reconfigure hydrates the same failing test-data ref', async () => {
+      const renderResult = renderForm({
+        initialValues: {
+          ...reconfigureValues,
+          testDataRef: collectionReconfigureValues.testDataRef,
+        },
+      });
+
+      await waitFor(() => expect(renderResult.result.current.testDataRefErrors).toBeDefined());
+      expect(renderResult.result.current.isValid).toBe(false);
+    });
+
     it('should stop submission when the selected profile disappears after loading', async () => {
       mockKueueAvailability = mockKueueEnabled;
       mockHardwareProfiles = [mockCompatibleHardwareProfile];
@@ -696,8 +912,7 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
     it('should not fire any tracking events on initial render', () => {
       renderForm();
 
-      expect(mockFireMisc).not.toHaveBeenCalled();
-      expect(mockFireForm).not.toHaveBeenCalled();
+      expect(mockTrack).not.toHaveBeenCalled();
     });
   });
 });

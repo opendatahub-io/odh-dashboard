@@ -18,6 +18,17 @@ func TestHybridCandidateLimit(t *testing.T) {
 	assert.Equal(t, maxHybridCandidates, hybridCandidateLimit(math.MaxInt))
 }
 
+func TestPgvectorSearchRejectsUnsupportedRankersBeforeQuery(t *testing.T) {
+	db := &pgvectorDB{}
+	for _, options := range []SearchOptions{
+		{TopK: 5, Ranker: "weighted", Alpha: 0.5},
+		{TopK: 5, Ranker: "rrf", RankerK: 42},
+	} {
+		_, err := db.Search(context.Background(), "documents", nil, "query", options)
+		require.ErrorIs(t, err, ErrUnsupportedSearch)
+	}
+}
+
 func TestHybridSearchSQLCandidateLimits(t *testing.T) {
 	sql := pgvectorHybridSearchSQL("documents")
 	vectorCandidatesStart := strings.Index(sql, "vector_candidates")

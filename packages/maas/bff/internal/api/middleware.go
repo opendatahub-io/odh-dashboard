@@ -40,6 +40,12 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 
 		identity, error := app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
 		if error != nil {
+			if r.URL.Path == constants.UsageDashboardsPath || r.URL.Path == PathPrefix+constants.UsageDashboardsPath {
+				app.errorResponse(w, r, &HTTPError{StatusCode: http.StatusUnauthorized, Error: ErrorPayload{
+					Code: "401", Message: "Authentication required",
+				}})
+				return
+			}
 			app.badRequestResponse(w, r, error)
 			return
 		}

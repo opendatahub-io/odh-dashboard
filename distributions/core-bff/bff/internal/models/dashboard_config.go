@@ -101,7 +101,7 @@ type DashboardFeatureFlags struct {
 	PromptManagement             bool `json:"promptManagement"`
 	MySubscriptions              bool `json:"mySubscriptions"`
 	ModelCapabilities            bool `json:"modelCapabilities"`
-	Grid                         bool `json:"grid"`
+	HardwareProfileDRA           bool `json:"hardwareProfileDRA"`
 }
 
 type NotebookController struct {
@@ -202,7 +202,7 @@ var BlankDashboardCR = DashboardConfig{
 			PromptManagement:             false,
 			MySubscriptions:              false,
 			ModelCapabilities:            false,
-			Grid:                         false,
+			HardwareProfileDRA:           false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

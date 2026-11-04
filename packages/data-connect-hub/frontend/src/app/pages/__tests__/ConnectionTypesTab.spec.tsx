@@ -3,16 +3,26 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
+import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import ConnectionTypesTab from '~/app/pages/ConnectionTypesTab';
 
 jest.mock('~/app/hooks/useConnectionTypes');
+jest.mock('~/app/utilities/tracking', () => ({
+  DATA_CONNECT_HUB_EVENT_NAMES: {
+    typeSelected: 'Connections Type Selected',
+  },
+  isGlobalConnectionType: (connectionType: { metadata: { tenant_id?: string } }) =>
+    !connectionType.metadata.tenant_id,
+  fireDataConnectHubTrackEvent: jest.fn(),
+}));
 jest.mock('@odh-dashboard/ui-core/components/TruncatedText', () => ({
   __esModule: true,
   default: ({ content }: { content?: string | null }) => <>{content}</>,
 }));
 
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
+const mockTrackEvent = jest.fn();
 const connectionTypes = [
   mockConnectionType(),
   mockConnectionType({
@@ -50,6 +60,7 @@ const renderTab = () =>
 describe('ConnectionTypesTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
   });
 
@@ -83,6 +94,14 @@ describe('ConnectionTypesTab', () => {
     expect(screen.getByTestId('location').textContent).toBe(
       '/connection-types/550e8400-e29b-41d4-a716-446655440007?project=test-project',
     );
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Type Selected',
+      properties: {
+        connectionTypeProvider: 'postgresql',
+        isGlobalType: false,
+        project: 'test-project',
+      },
+    });
   });
 
   it('should filter connection types by name or description', async () => {

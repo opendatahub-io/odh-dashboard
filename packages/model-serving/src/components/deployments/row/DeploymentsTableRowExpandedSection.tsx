@@ -12,12 +12,22 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { formatMemory } from '@odh-dashboard/ui-core/utilities';
-import type { SupportedModelFormats, ContainerResources } from '@odh-dashboard/k8s-core';
+import type {
+  SupportedModelFormats,
+  ContainerResources,
+  HardwareProfileKind,
+} from '@odh-dashboard/k8s-core';
 import type { CrPathConfig } from '@odh-dashboard/hardware-profiles/shared';
 import {
   useAssignHardwareProfile,
   MODEL_SERVING_VISIBILITY,
 } from '@odh-dashboard/hardware-profiles/shared';
+import {
+  getDRAHardwareProfileDetails,
+  getExistingPodSpec,
+} from '@odh-dashboard/hardware-profiles/shared/utils';
+import DRAHardwareProfileDetailsSection from '@odh-dashboard/hardware-profiles/shared/DRAHardwareProfileDetailsSection';
+import { useIsDRAHardwareProfileEnabled } from '@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled';
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { TokensDescriptionItem } from '../../../shared/components';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
@@ -195,11 +205,20 @@ export const DeploymentRowExpandedSection: React.FC<{
   deployment: Deployment;
   isVisible: boolean;
   hardwareProfilePaths: CrPathConfig;
-}> = ({ deployment, isVisible, hardwareProfilePaths }) => {
+  hardwareProfile?: HardwareProfileKind;
+}> = ({ deployment, isVisible, hardwareProfilePaths, hardwareProfile }) => {
   const hardwareProfileOptions = useAssignHardwareProfile(deployment.model, {
     visibleIn: MODEL_SERVING_VISIBILITY,
     paths: hardwareProfilePaths,
   });
+  const isDRAEnabled = useIsDRAHardwareProfileEnabled();
+  const draDetails =
+    isDRAEnabled && hardwareProfile
+      ? getDRAHardwareProfileDetails(
+          hardwareProfile,
+          getExistingPodSpec(deployment.model, hardwareProfilePaths),
+        )
+      : undefined;
   const [formDataExtension] = useResolvedDeploymentExtension(
     isModelServingDeploymentFormDataExtension,
     deployment,
@@ -249,6 +268,13 @@ export const DeploymentRowExpandedSection: React.FC<{
             <ModelSizeItem
               resources={hardwareProfileOptions.podSpecOptionsState.podSpecOptions.resources}
             />
+            {draDetails && (
+              <DRAHardwareProfileDetailsSection
+                details={draDetails}
+                isHorizontal
+                horizontalTermWidthModifier={{ default: '250px' }}
+              />
+            )}
             <HardwareProfileNameValue
               project={deployment.model.metadata.namespace}
               hardwareProfile={hardwareProfileOptions}

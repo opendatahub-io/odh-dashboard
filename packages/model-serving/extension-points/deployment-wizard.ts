@@ -78,6 +78,10 @@ export type DeploymentAssemblyResources<D extends Deployment = Deployment> = {
   server?: D['server'];
 };
 
+export type DeployMethodActivationInput = Pick<WizardFormData['state'], 'deploymentMethod'> & {
+  modelLocationData: Pick<WizardFormData['state']['modelLocationData'], 'data'>;
+};
+
 export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
   'model-serving.deployment/deploy',
   {
@@ -85,13 +89,14 @@ export type ModelServingDeploy<D extends Deployment = Deployment> = Extension<
     isActive:
       | CodeRef<
           (
-            wizardData: WizardFormData['state'],
+            wizardData: DeployMethodActivationInput,
             resources?: DeploymentAssemblyResources<D>,
           ) => boolean
         >
       | true;
     priority: number | 0;
     supportsOverwrite?: boolean;
+    supportsDRAHardwareProfiles?: boolean;
     deploy: CodeRef<
       (
         wizardData: WizardFormData['state'],

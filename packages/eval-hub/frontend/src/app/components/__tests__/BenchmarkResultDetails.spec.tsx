@@ -116,5 +116,44 @@ describe('BenchmarkResultDetails', () => {
     );
     expect(screen.getByTestId('about-result-default-benchmark-0')).toBeInTheDocument();
   });
+
+  it('should render a fail label for a failed benchmark run without test results', () => {
+    renderDetails({
+      resultBenchmarks: [{ id: 'default-benchmark', provider_id: 'lighteval', benchmark_index: 0 }],
+      benchmarkStatuses: [{ id: 'default-benchmark', benchmark_index: 0, status: 'failed' }],
+    });
+
+    expect(screen.getByTestId('details-pass-label-default-benchmark-0')).toHaveTextContent('Fail');
+  });
+
+  it('should render the failure reason for a failed benchmark run', () => {
+    renderDetails({
+      resultBenchmarks: [{ id: 'default-benchmark', provider_id: 'lighteval', benchmark_index: 0 }],
+      benchmarkStatuses: [
+        {
+          id: 'default-benchmark',
+          benchmark_index: 0,
+          status: 'failed',
+          error_message: { message: 'inspect eval failed (exit 1)', message_code: 'unknown' },
+        },
+      ],
+    });
+
+    expect(screen.getByTestId('benchmark-fail-reason-default-benchmark-0')).toHaveTextContent(
+      'inspect eval failed (exit 1)',
+    );
+  });
+
+  it('should render no pass/fail label when a benchmark without test results did not fail', () => {
+    renderDetails({
+      resultBenchmarks: [{ id: 'default-benchmark', provider_id: 'lighteval', benchmark_index: 0 }],
+      benchmarkStatuses: [{ id: 'default-benchmark', benchmark_index: 0, status: 'completed' }],
+    });
+
+    expect(screen.queryByTestId('details-pass-label-default-benchmark-0')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('benchmark-fail-reason-default-benchmark-0'),
+    ).not.toBeInTheDocument();
+  });
 });
 /* eslint-enable camelcase */

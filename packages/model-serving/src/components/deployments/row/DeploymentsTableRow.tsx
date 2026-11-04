@@ -247,6 +247,7 @@ export const DeploymentRow: React.FC<{
                 stoppedStates={deployment.status?.stoppedStates}
                 kueueStatus={deployment.status?.kueueStatus}
                 onClick={openStatusModal}
+                isCompact
               />
             </FlexItem>
             {statusSubtitle != null && (
@@ -298,6 +299,7 @@ export const DeploymentRow: React.FC<{
           deployment={deployment}
           isVisible={isExpanded}
           hardwareProfilePaths={hardwareProfilePaths}
+          hardwareProfile={hardwareProfile}
         />
       )}
       {isOpenConfirm && startStopActionExtension && (

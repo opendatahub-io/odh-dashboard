@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"log/slog"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -81,24 +82,37 @@ func (f *connectionBFFFactory) CreateClient(_ bffclient.BFFTarget, token string)
 }
 
 func TestConnectionsSourcePolicy(t *testing.T) {
+	const (
+		connectionsResponse     = `{"data":[{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440000","tenant_id":"project-a"},"resource":{"name":"DCH connection","data_connection_type_id":"s3"}}]}`
+		connectionTypesResponse = `{"data":[{"metadata":{"id":"s3"},"resource":{"provider":"s3"}}]}`
+	)
+
 	for _, tt := range []struct {
-		name                string
-		upstreamErr         error
-		disabled, empty     bool
-		secretErr           error
-		status, secretCalls int
-		connectionType      string
+		name                    string
+		upstreamErr             error
+		connectionsErr          error
+		connectionTypesErr      error
+		connectionTypesResponse string
+		disabled, empty         bool
+		secretErr               error
+		status, secretCalls     int
+		connectionType          string
+		wantDCHFallbackWarning  bool
 	}{
 		{name: "unconfigured uses secrets", disabled: true, status: 200, secretCalls: 1, connectionType: "secret"},
 		{name: "DCH success loads RHOAI display details", status: 200, secretCalls: 1, connectionType: "dch"},
 		{name: "empty DCH loads RHOAI display details", empty: true, status: 200, secretCalls: 1},
 		{name: "RHOAI display lookup failure preserves DCH results", secretErr: errors.New("RHOAI lookup failed"), status: 200, secretCalls: 1, connectionType: "dch"},
-		{name: "network fallback", upstreamErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "private upstream detail"), status: 200, secretCalls: 1, connectionType: "secret"},
-		{name: "timeout fallback", upstreamErr: bffclient.NewTimeoutError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, connectionType: "secret"},
-		{name: "5xx fallback", upstreamErr: bffclient.NewServerUnavailableError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, connectionType: "secret"},
+		{name: "network fallback", upstreamErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "private upstream detail"), status: 200, secretCalls: 1, connectionType: "secret", wantDCHFallbackWarning: true},
+		{name: "timeout fallback", upstreamErr: bffclient.NewTimeoutError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, connectionType: "secret", wantDCHFallbackWarning: true},
+		{name: "5xx fallback", upstreamErr: bffclient.NewServerUnavailableError(bffclient.BFFTargetDCH), status: 200, secretCalls: 1, connectionType: "secret", wantDCHFallbackWarning: true},
+		{name: "connections endpoint 404 falls back", connectionsErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "private upstream detail"), status: 200, secretCalls: 1, connectionType: "secret", wantDCHFallbackWarning: true},
+		{name: "connection types endpoint 404 falls back", connectionTypesErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "private upstream detail"), status: 200, secretCalls: 1, connectionType: "secret", wantDCHFallbackWarning: true},
+		{name: "authorization denial takes precedence over connections 404", connectionsErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "not found"), connectionTypesErr: bffclient.NewForbiddenError(bffclient.BFFTargetDCH, "denied"), status: 403},
+		{name: "invalid response takes precedence over connections 404", connectionsErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "not found"), connectionTypesResponse: `{"data":null}`, status: 502},
 		{name: "unauthorized", upstreamErr: bffclient.NewUnauthorizedError(bffclient.BFFTargetDCH, "private upstream detail"), status: 401},
 		{name: "forbidden", upstreamErr: bffclient.NewForbiddenError(bffclient.BFFTargetDCH, "private upstream detail"), status: 403},
-		{name: "other 4xx", upstreamErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "private upstream detail"), status: 502},
+		{name: "other 4xx", upstreamErr: bffclient.NewBadRequestError(bffclient.BFFTargetDCH, "private upstream detail"), status: 502},
 		{name: "malformed is not upstream 5xx", upstreamErr: bffclient.NewInvalidResponseError(bffclient.BFFTargetDCH, "private upstream detail"), status: 502},
 		{name: "fallback also fails", upstreamErr: bffclient.NewServerUnavailableError(bffclient.BFFTargetDCH), secretErr: errors.New("secret unavailable"), status: 500, secretCalls: 1},
 		{name: "secret permission denied", disabled: true, secretErr: k8serrors.NewForbidden(schema.GroupResource{Resource: "secrets"}, "", errors.New("denied")), status: 403, secretCalls: 1},
@@ -110,12 +124,27 @@ func TestConnectionsSourcePolicy(t *testing.T) {
 			factory := &connectionBFFFactory{}
 			if !tt.disabled {
 				client := bffmocks.NewMockBFFClient(bffclient.BFFTargetDCH)
-				if tt.upstreamErr != nil || tt.empty {
-					client.CallHandler = func(_ context.Context, _, _ string, _ interface{}, response interface{}) error {
+				if tt.upstreamErr != nil || tt.connectionsErr != nil || tt.connectionTypesErr != nil || tt.connectionTypesResponse != "" || tt.empty {
+					client.CallHandler = func(_ context.Context, _, path string, _ interface{}, response interface{}) error {
 						if tt.upstreamErr != nil {
 							return tt.upstreamErr
 						}
-						return json.Unmarshal([]byte(`{"data":[]}`), response)
+						payload := connectionsResponse
+						if strings.HasPrefix(path, "/connection-types?") {
+							if tt.connectionTypesErr != nil {
+								return tt.connectionTypesErr
+							}
+							payload = connectionTypesResponse
+							if tt.connectionTypesResponse != "" {
+								payload = tt.connectionTypesResponse
+							}
+						} else if strings.HasPrefix(path, "/connections?") && tt.connectionsErr != nil {
+							return tt.connectionsErr
+						}
+						if tt.empty {
+							payload = `{"data":[]}`
+						}
+						return json.Unmarshal([]byte(payload), response)
 					}
 				}
 				factory.client = client
@@ -150,7 +179,15 @@ func TestConnectionsSourcePolicy(t *testing.T) {
 					require.NotNil(t, envelope.Metadata)
 					require.Empty(t, envelope.Metadata.Warnings)
 				}
-				if !tt.disabled && tt.upstreamErr == nil {
+				if tt.wantDCHFallbackWarning {
+					require.NotNil(t, envelope.Metadata)
+					warningCodes := make([]string, 0, len(envelope.Metadata.Warnings))
+					for _, warning := range envelope.Metadata.Warnings {
+						warningCodes = append(warningCodes, warning.Code)
+					}
+					require.Contains(t, warningCodes, "DCH_FALLBACK")
+				}
+				if !tt.disabled && tt.upstreamErr == nil && !tt.wantDCHFallbackWarning {
 					require.NotNil(t, envelope.Metadata)
 					if tt.secretErr == nil {
 						require.Len(t, envelope.Metadata.RhaiConnections, 1)

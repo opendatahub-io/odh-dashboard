@@ -19,8 +19,9 @@ type InputMessage struct {
 }
 
 type RankingOptions struct {
-	Ranker string   `json:"ranker,omitempty"`
-	Alpha  *float64 `json:"alpha,omitempty"`
+	Ranker  string   `json:"ranker,omitempty"`
+	Alpha   *float64 `json:"alpha,omitempty"`
+	RankerK *float64 `json:"ranker_k,omitempty"`
 }
 
 // UnmarshalJSON rejects ranking fields that the AutoRAG BFF cannot honor.

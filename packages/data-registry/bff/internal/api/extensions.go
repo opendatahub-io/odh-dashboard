@@ -7,10 +7,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// HandlerID is a unique identifier for a handler that can be overridden by downstream code.
+// HandlerID identifies an entry in the handler override registry. The current App.Routes
+// implementation does not consult this registry.
 type HandlerID string
 
-// Pre-defined handler IDs for starter endpoints (can be overridden by downstream).
+// Pre-defined IDs retained for source compatibility with downstream code.
 const (
 	HandlerUserID       HandlerID = "user:get"
 	HandlerNamespacesID HandlerID = "namespaces:list"
@@ -29,19 +30,10 @@ var (
 	handlerOverrides  = map[HandlerID]HandlerFactory{}
 )
 
-// RegisterHandlerOverride registers a handler override for the given HandlerID.
-// This should be called from an init() function in the downstream code.
-// The factory function receives the App instance and a function to build the default handler.
+// RegisterHandlerOverride stores a handler factory for the given ID.
 //
-// Example usage in downstream code:
-//
-//	func init() {
-//	    api.RegisterHandlerOverride(api.HandlerUserID, func(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
-//	        return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-//	            // Custom implementation
-//	        }
-//	    })
-//	}
+// Deprecated: App.Routes does not consult the override registry, so registering a factory has no
+// effect on the handlers served by the current BFF.
 func RegisterHandlerOverride(id HandlerID, factory HandlerFactory) { //nolint:unused
 	handlerOverrideMu.Lock()
 	defer handlerOverrideMu.Unlock()
@@ -56,9 +48,8 @@ func getHandlerOverride(id HandlerID) HandlerFactory {
 	return handlerOverrides[id]
 }
 
-// handlerWithOverride returns the handler for the given HandlerID.
-// If an override is registered, it uses the override factory.
-// Otherwise, it uses the default handler from buildDefault.
+// handlerWithOverride applies a registered factory when route code explicitly calls it. The
+// current App.Routes implementation does not call this helper.
 func (app *App) handlerWithOverride(id HandlerID, buildDefault func() httprouter.Handle) httprouter.Handle {
 	if override := getHandlerOverride(id); override != nil {
 		app.logHandlerOverride(id)

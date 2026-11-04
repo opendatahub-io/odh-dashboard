@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"strings"
@@ -39,6 +40,8 @@ func TestGetDCHConnections(t *testing.T) {
 		{name: "missing provider", connections: dchConnectionsFixture, types: strings.ReplaceAll(dchTypesFixture, `"provider":"s3"`, `"provider":""`), wantError: true},
 		{name: "missing type envelope", connections: dchConnectionsFixture, types: `{}`, wantError: true},
 		{name: "type request unavailable", connections: dchConnectionsFixture, typeErr: bffclient.NewServerUnavailableError(bffclient.BFFTargetDCH), wantError: true, wantFallback: true},
+		{name: "connection list endpoint not found", connections: dchConnectionsFixture, connectionErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "not found"), types: dchTypesFixture, wantError: true, wantFallback: true},
+		{name: "connection type list endpoint not found", connections: dchConnectionsFixture, types: dchTypesFixture, typeErr: bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "not found"), wantError: true, wantFallback: true},
 		{name: "connection request timeout", connectionErr: bffclient.NewTimeoutError(bffclient.BFFTargetDCH), types: dchTypesFixture, wantError: true, wantFallback: true},
 		{name: "denial wins over transient failure", connectionErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "offline"), typeErr: bffclient.NewForbiddenError(bffclient.BFFTargetDCH, "denied"), wantError: true},
 		{name: "contract error wins over transient failure", connectionErr: bffclient.NewConnectionError(bffclient.BFFTargetDCH, "offline"), types: `{}`, wantError: true},
@@ -86,4 +89,16 @@ func TestGetDCHConnections(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReclassifyDCHListNotFoundPreservesCause(t *testing.T) {
+	original := bffclient.NewNotFoundError(bffclient.BFFTargetDCH, "private upstream detail")
+	classified := reclassifyDCHListNotFound(original)
+
+	var upstream *bffclient.BFFClientError
+	require.ErrorAs(t, classified, &upstream)
+	require.Equal(t, errCodeDCHListEndpointNotFound, upstream.Code)
+	require.Same(t, original, errors.Unwrap(classified))
+	require.True(t, DCHFallbackAllowed(classified))
+	require.NotContains(t, classified.Error(), "private upstream detail")
 }

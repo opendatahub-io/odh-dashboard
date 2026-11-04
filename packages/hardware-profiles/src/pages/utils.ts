@@ -51,6 +51,11 @@ export const determineIdentifierUnit = (nodeResource: Identifier): UnitOption[] 
   return OTHER;
 };
 
+const DRA_SELECTABLE_VISIBILITY = [
+  HardwareProfileFeatureVisibility.WORKBENCH,
+  HardwareProfileFeatureVisibility.MODEL_SERVING,
+];
+
 const generateWarningTitle = (
   hasEnabled: boolean,
   allInvalid: boolean,
@@ -77,9 +82,13 @@ const generateWarningMessage = (
   allInvalid: boolean,
   hasInvalid: boolean,
   allIncompleteCPUorMemory: boolean,
+  onlyDRAProfiles: boolean,
 ): string => {
   if (allInvalid) {
     return 'You must have at least one valid hardware profile enabled for users to create workbenches or deploy models. Take the appropriate actions below to re-validate your profiles.';
+  }
+  if (!hasEnabled && onlyDRAProfiles) {
+    return 'You must have at least one valid hardware profile enabled for users to create workbenches or deploy models. Hardware profiles that use dynamic resource allocation (DRA) can only be enabled by updating the HardwareProfile resource directly.';
   }
   if (!hasEnabled) {
     return 'You must have at least one hardware profile enabled for users to create workbenches or deploy models. Enable one or more profiles in the table below.';
@@ -95,21 +104,32 @@ const generateWarningMessage = (
 
 export const generateWarningForHardwareProfiles = (
   hardwareProfiles: HardwareProfileKind[],
+  isDRASelectionAvailable: boolean,
 ): WarningNotification | undefined => {
-  const selectableProfiles = hardwareProfiles.filter((profile) => !isDRAHardwareProfile(profile));
-  const hasInvalid = selectableProfiles.some((profile) => {
+  const regularProfiles = hardwareProfiles.filter((profile) => !isDRAHardwareProfile(profile));
+  const hasInvalid = regularProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  // DRA profiles cannot be enabled from the dashboard, so only regular profiles count here.
-  const hasEnabled =
-    selectableProfiles.length === 0 ||
-    selectableProfiles.some((profile) => isHardwareProfileEnabled(profile));
+  const hasUsableDRAProfile =
+    isDRASelectionAvailable &&
+    hardwareProfiles.some(
+      (profile) =>
+        isDRAHardwareProfile(profile) &&
+        isHardwareProfileEnabled(profile) &&
+        isHardwareProfileValid(profile) &&
+        isHardwareProfileVisibleIn(profile, DRA_SELECTABLE_VISIBILITY),
+    );
+  const hasEnabled = isDRASelectionAvailable
+    ? hasUsableDRAProfile || regularProfiles.some((profile) => isHardwareProfileEnabled(profile))
+    : regularProfiles.length === 0 ||
+      regularProfiles.some((profile) => isHardwareProfileEnabled(profile));
   const allInvalid =
-    selectableProfiles.length > 0 &&
-    selectableProfiles.every((profile) => {
+    !hasUsableDRAProfile &&
+    regularProfiles.length > 0 &&
+    regularProfiles.every((profile) => {
       const warnings = validateProfileWarning(profile);
       return warnings.some(
         (warning) =>
@@ -117,8 +137,9 @@ export const generateWarningForHardwareProfiles = (
       );
     });
   const allIncompleteCPUorMemory =
-    selectableProfiles.length > 0 &&
-    selectableProfiles.every((profile) => {
+    !hasUsableDRAProfile &&
+    regularProfiles.length > 0 &&
+    regularProfiles.every((profile) => {
       const warnings = validateProfileWarning(profile);
       return warnings.some(
         (warning) =>
@@ -126,7 +147,7 @@ export const generateWarningForHardwareProfiles = (
       );
     });
 
-  const someIncompleteCPUorMemory = selectableProfiles.some((profile) => {
+  const someIncompleteCPUorMemory = regularProfiles.some((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
       (warning) => warning.type === HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
@@ -139,7 +160,13 @@ export const generateWarningForHardwareProfiles = (
 
   return {
     title: generateWarningTitle(hasEnabled, allInvalid, hasInvalid, allIncompleteCPUorMemory),
-    message: generateWarningMessage(hasEnabled, allInvalid, hasInvalid, allIncompleteCPUorMemory),
+    message: generateWarningMessage(
+      hasEnabled,
+      allInvalid,
+      hasInvalid,
+      allIncompleteCPUorMemory,
+      regularProfiles.length === 0,
+    ),
   };
 };
 
@@ -285,6 +312,28 @@ export const orderHardwareProfiles = (
   return alphaSortHardwareProfilesByName(profiles);
 };
 
+export const mergeHardwareProfileOrder = (
+  currentOrder: string[],
+  visibleOrder: string[],
+  hiddenNames: string[],
+): string[] => {
+  const hidden = new Set(hiddenNames);
+  const visible = new Set(visibleOrder);
+  let nextVisibleIndex = 0;
+  const merged = currentOrder.flatMap((name) => {
+    if (hidden.has(name)) {
+      return [name];
+    }
+    if (visible.has(name) && nextVisibleIndex < visibleOrder.length) {
+      const replacement = visibleOrder[nextVisibleIndex];
+      nextVisibleIndex += 1;
+      return [replacement];
+    }
+    return [];
+  });
+  return [...merged, ...visibleOrder.slice(nextVisibleIndex)];
+};
+
 export const prioritizeHardwareProfiles = (
   profiles: HardwareProfileKind[],
   isPreferred: (profile: HardwareProfileKind) => boolean,
@@ -317,4 +366,29 @@ export const filterRecognizedVisibility = (
 ): HardwareProfileFeatureVisibility[] => {
   const recognized: string[] = Object.values(HardwareProfileFeatureVisibility);
   return visibleIn.filter((v): v is HardwareProfileFeatureVisibility => recognized.includes(v));
+};
+
+export const isHardwareProfileVisibleIn = (
+  profile: HardwareProfileKind,
+  visibility?: HardwareProfileFeatureVisibility[],
+): boolean => {
+  try {
+    if (!profile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']) {
+      return true;
+    }
+
+    const visibleIn: string[] = JSON.parse(
+      profile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
+    );
+
+    const recognized = filterRecognizedVisibility(visibleIn);
+
+    if (recognized.length === 0) {
+      return true;
+    }
+
+    return visibility ? visibility.some((a) => recognized.includes(a)) : true;
+  } catch (error) {
+    return true;
+  }
 };

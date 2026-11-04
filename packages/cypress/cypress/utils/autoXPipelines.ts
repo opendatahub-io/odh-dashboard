@@ -1,6 +1,7 @@
+import { assertAutoXDataConnectionEndpoint, resolveAutoXS3Endpoint } from './autoXS3';
 import { createDataConnection } from './oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from './oc_commands/dspa';
-import { AWS_BUCKETS } from './s3Buckets';
+import { AWS_BUCKETS, parseS3Endpoint } from './s3Buckets';
 import { createCleanProject } from './projectChecker';
 import type {
   DataConnectionReplacements,
@@ -14,23 +15,10 @@ type AutoXDspaReplacements = DspaReplacements & {
 };
 
 /**
- * Parse an S3 endpoint URL into host and scheme components.
- * e.g. "https://s3.us-west.cloud-object-storage.appdomain.cloud/" → { host: "s3.us-west...", scheme: "https" }
- */
-const parseS3Endpoint = (endpoint: string): { host: string; scheme: string } => {
-  try {
-    const url = new URL(endpoint);
-    return { host: url.host, scheme: url.protocol.replace(':', '') };
-  } catch {
-    return { host: endpoint.replace(/\/+$/, ''), scheme: 'https' };
-  }
-};
-
-/**
  * Provision a Project for AutoML/AutoRAG pipelines.
  *
  * Uses a custom DSPA template (autox_dspa.yaml) that:
- * - Derives host and scheme from the bucket ENDPOINT in test-variables.yml
+ * - Derives host and scheme from the resolved AutoX S3 endpoint
  * - Sets podToPodTLS: true
  *
  * @param projectName Project Name
@@ -43,11 +31,11 @@ export const provisionProjectForAutoX = (
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
 ): void => {
   const bucketConfig = AWS_BUCKETS[bucketKey];
-  // Use DSPA_S3_ENDPOINT env var for in-cluster DSPA connectivity (disconnected clusters),
+  // Use DSPA_S3_ENDPOINT for in-cluster AutoX connectivity (disconnected clusters),
   // falling back to the external ENDPOINT (connected clusters / CI).
   // Must use full FQDN: CYPRESS_DSPA_S3_ENDPOINT=http://minio.ns.svc.cluster.local:9000
-  const dspaEndpoint = Cypress.env('DSPA_S3_ENDPOINT') as string | undefined;
-  const { host, scheme } = parseS3Endpoint(dspaEndpoint ?? bucketConfig.ENDPOINT);
+  const s3Endpoint = resolveAutoXS3Endpoint(bucketConfig.ENDPOINT);
+  const { host, scheme } = parseS3Endpoint(s3Endpoint);
 
   createCleanProject(projectName);
 
@@ -56,10 +44,12 @@ export const provisionProjectForAutoX = (
     AWS_ACCESS_KEY_ID: Buffer.from(AWS_BUCKETS.AWS_ACCESS_KEY_ID).toString('base64'),
     AWS_DEFAULT_REGION: Buffer.from(bucketConfig.REGION).toString('base64'),
     AWS_S3_BUCKET: Buffer.from(bucketConfig.NAME).toString('base64'),
-    AWS_S3_ENDPOINT: Buffer.from(bucketConfig.ENDPOINT).toString('base64'),
+    AWS_S3_ENDPOINT: Buffer.from(s3Endpoint).toString('base64'),
     AWS_SECRET_ACCESS_KEY: Buffer.from(AWS_BUCKETS.AWS_SECRET_ACCESS_KEY).toString('base64'),
   };
-  createDataConnection(dataConnectionReplacements);
+  createDataConnection(dataConnectionReplacements).then(() =>
+    assertAutoXDataConnectionEndpoint(projectName, s3Endpoint),
+  );
 
   const dspaSecretReplacements: DspaSecretReplacements = {
     DSPA_SECRET_NAME: dspaSecretName,

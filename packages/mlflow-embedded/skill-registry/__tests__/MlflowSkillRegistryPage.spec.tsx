@@ -229,6 +229,7 @@ describe('MlflowSkillRegistryPage', () => {
     mockUseIsMlflowCRAvailable.mockReturnValue({ available: false, loaded: true, error: false });
     render(<MlflowSkillRegistryPage />);
     expect(capturedPageProps?.empty).toBe(true);
+    expect(capturedPageProps?.headerAction).toBeUndefined();
 
     render(<>{capturedPageProps?.emptyStatePage}</>);
 

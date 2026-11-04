@@ -5,7 +5,8 @@ import {
   type APIOptions,
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
-import { listAllGroups, listAllMaasModels, listSubscriptions } from '~/app/api/subscriptions';
+import { listAllGroups, listAllMaasModels, listSubscriptionsFrom } from '~/app/api/subscriptions';
+import type { SubscriptionsEndpoint } from '~/app/api/subscriptions';
 import { listAuthPolicies } from '~/app/api/auth-policies';
 import type {
   MaaSAuthPolicy,
@@ -47,40 +48,60 @@ export const MaaSGovernanceContext = React.createContext({} as MaaSGovernanceCon
 
 type MaaSGovernanceProviderProps = {
   children: React.ReactNode;
+  /**
+   * Which subscriptions endpoint backs the context. Defaults to `all-subscriptions`
+   * (the MaaS governance page). Read-only consumers such as the Model Access page
+   * pass `admin-subscriptions`.
+   */
+  subscriptionsEndpoint?: SubscriptionsEndpoint;
+  /**
+   * Fetch subscriptions only. Auth policies, model refs, and groups are Kubernetes-backed
+   * (maasauthpolicies / maasmodelrefs / groups lists) and are skipped for read-only consumers
+   * that never render them, such as the Model Access page in the portal. Skipped fetches are
+   * reported as loaded with empty data, so dependent derived state stays defined.
+   */
+  subscriptionsOnly?: boolean;
 };
 
-export const MaaSGovernanceProvider: React.FC<MaaSGovernanceProviderProps> = ({ children }) => {
+export const MaaSGovernanceProvider: React.FC<MaaSGovernanceProviderProps> = ({
+  children,
+  subscriptionsEndpoint = 'all-subscriptions',
+  subscriptionsOnly = false,
+}) => {
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<MaaSSubscription[]>>(
-    (opts: APIOptions) => listSubscriptions()(opts),
-    [],
+    (opts: APIOptions) => listSubscriptionsFrom(subscriptionsEndpoint)(opts),
+    [subscriptionsEndpoint],
   );
   const policiesCallback = React.useCallback<FetchStateCallbackPromise<MaaSAuthPolicy[]>>(
-    (opts: APIOptions) => listAuthPolicies()(opts),
-    [],
+    (opts: APIOptions) => (subscriptionsOnly ? Promise.resolve([]) : listAuthPolicies()(opts)),
+    [subscriptionsOnly],
   );
   const modelRefsCallback = React.useCallback<FetchStateCallbackPromise<MaaSModelRefSummary[]>>(
-    (opts: APIOptions) => listAllMaasModels()(opts),
-    [],
+    (opts: APIOptions) => (subscriptionsOnly ? Promise.resolve([]) : listAllMaasModels()(opts)),
+    [subscriptionsOnly],
   );
   const groupsCallback = React.useCallback<FetchStateCallbackPromise<string[]>>(
-    (opts: APIOptions) => listAllGroups()(opts),
-    [],
+    (opts: APIOptions) => (subscriptionsOnly ? Promise.resolve([]) : listAllGroups()(opts)),
+    [subscriptionsOnly],
   );
+
+  // Skipped fetches resolve immediately, so there is nothing to poll for.
+  const skippedRefreshRate = subscriptionsOnly ? 0 : POLL_INTERVAL;
 
   const [subscriptions, subscriptionsLoaded, subscriptionsError, refreshSubscriptions] =
     useFetchState(subscriptionsCallback, [], { refreshRate: POLL_INTERVAL });
   const [policies, policiesLoaded, policiesError, refreshPolicies] = useFetchState(
     policiesCallback,
     [],
-    { refreshRate: POLL_INTERVAL },
+    { refreshRate: skippedRefreshRate },
   );
   const [modelRefs, modelRefsLoaded, modelRefsError, refreshModelRefs] = useFetchState(
     modelRefsCallback,
     [],
-    { refreshRate: POLL_INTERVAL },
+    { refreshRate: skippedRefreshRate },
   );
   const [baseGroups, groupsLoaded, groupsError, refreshGroups] = useFetchState(groupsCallback, [], {
-    refreshRate: POLL_INTERVAL,
+    refreshRate: skippedRefreshRate,
   });
 
   const groups = React.useMemo(

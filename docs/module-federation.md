@@ -403,6 +403,31 @@ module.exports = {
 };
 ```
 
+### Production Minimizer Options
+
+Production rspack configs must pass the shared LightningCSS minimizer options to `LightningCssMinimizerRspackPlugin`:
+
+```javascript
+// packages/my-module/frontend/config/rspack.prod.js (minimizer excerpt)
+const { rspack } = require('@rspack/core');
+const { lightningCssMinimizerOptions } = require('@odh-dashboard/app-config/rspack');
+
+module.exports = {
+  // ...
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: lightningCssMinimizerOptions,
+      }),
+    ],
+  },
+};
+```
+
+The options exclude logical-property lowering. rspack's minimizer defaults to a `fully supports es6` browser baseline that lacks CSS logical properties, so without the exclusion it rewrites `padding-inline-*` and friends into physical properties with `:lang()` RTL fallback pairs — the extra specificity beats PatternFly's contextual overrides (card titles regain 24px of padding in production builds only; dev builds do not run the minimizer). PR Build Validation scans for this: the ODH host build's emitted CSS, each changed module image's `/static` output, and model-serving's standalone build when it changes; the RHOAI-mode image is built but not scanned, since its frontend shares the ODH build's production config. The scan fails on lowered `:lang(ae...)` fallback selectors in either form, and the guard's fixture suite runs with the unit tests (`test:css-guard`). See [KONFLUX_BUILD_SIMULATION.md](./KONFLUX_BUILD_SIMULATION.md).
+
 ## Development Workflow
 
 ### Creating a New Federated Module
@@ -411,8 +436,9 @@ module.exports = {
 2. Add `@module-federation/enhanced` to the frontend `package.json` `devDependencies`
 3. Add `@odh-dashboard/app-config` to the parent `package.json` `devDependencies` (requires Node.js 22.18.0+; no separate app-config build)
 4. Create a `moduleFederation.js` using `OdhFederationPlugin` from `@odh-dashboard/app-config/rspack` (`isHost: process.env.DEPLOYMENT_MODE === 'standalone'`)
-5. Create extensions and extension-points files under `src/odh/`
-6. Build and serve your module locally
+5. Create a `rspack.prod.js` that passes `lightningCssMinimizerOptions` from `@odh-dashboard/app-config/rspack` to `rspack.LightningCssMinimizerRspackPlugin` (see [Production Minimizer Options](#production-minimizer-options))
+6. Create extensions and extension-points files under `src/odh/`
+7. Build and serve your module locally
 
 ### Local Development
 

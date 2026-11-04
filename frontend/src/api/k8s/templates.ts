@@ -13,6 +13,7 @@ import {
   ServingRuntimePlatform,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
 import { TemplateModel } from '#~/api/models';
@@ -25,6 +26,7 @@ export const assembleServingRuntimeTemplate = (
   namespace: string,
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
   modelTypes: ServingRuntimeModelType[],
+  installedFromCatalog?: boolean,
   templateName?: string,
 ): TemplateKind & { objects: ServingRuntimeKind[] } => {
   const servingRuntime: ServingRuntimeKind = YAML.parse(body);
@@ -50,6 +52,9 @@ export const assembleServingRuntimeTemplate = (
           'opendatahub.io/model-type': JSON.stringify(modelTypes),
         }),
         ...(apiProtocol && { 'opendatahub.io/apiProtocol': apiProtocol }),
+        ...(installedFromCatalog && {
+          [MetadataAnnotation.InstalledFromCatalog]: 'true',
+        }),
       },
     },
     objects: [servingRuntime],

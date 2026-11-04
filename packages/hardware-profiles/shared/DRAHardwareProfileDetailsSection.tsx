@@ -3,6 +3,7 @@ import {
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
+  type DescriptionListProps,
   DescriptionListTerm,
   Label,
   Truncate,
@@ -14,12 +15,18 @@ import type { DRAHardwareProfileDetails } from './types';
 
 type DRAHardwareProfileDetailsSectionProps = {
   details: DRAHardwareProfileDetails;
-};
+} & Pick<DescriptionListProps, 'isHorizontal' | 'horizontalTermWidthModifier'>;
 
 const DRAHardwareProfileDetailsSection: React.FC<DRAHardwareProfileDetailsSectionProps> = ({
   details,
+  isHorizontal,
+  horizontalTermWidthModifier,
 }) => (
-  <DescriptionList data-testid="hardware-profile-dra-details">
+  <DescriptionList
+    data-testid="hardware-profile-dra-details"
+    isHorizontal={isHorizontal}
+    horizontalTermWidthModifier={horizontalTermWidthModifier}
+  >
     <DescriptionListGroup>
       <DescriptionListTerm>
         Claim template{' '}

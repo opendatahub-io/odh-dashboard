@@ -36,8 +36,12 @@ export type AutoRAGResponsesTemplate = Omit<
     vector_store_ids: string[];
     max_num_results: number;
     ranking_options?: {
-      ranker: 'rrf';
-      alpha: number;
+      ranker: 'rrf' | 'weighted';
+      alpha?: number;
+      ranker_k?: number;
+      /** Accepted only when normalizing persisted pipeline artifacts. */
+      ranker_strategy?: string;
+      impact_factor?: number;
     };
   }>;
   tool_choice: { type: 'file_search' };
@@ -81,6 +85,7 @@ export type AutoragPatternSettingsV1 = {
     number_of_chunks: number;
     search_mode?: string;
     ranker_strategy?: string;
+    ranker_k?: number;
   };
   generation: {
     model_id: string;
@@ -172,6 +177,7 @@ export type AutoragPatternSettings = {
     search_mode?: string;
     ranker_strategy?: string;
     ranker_alpha?: number;
+    ranker_k?: number;
   };
   generation: {
     model_id: string;

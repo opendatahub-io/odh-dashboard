@@ -24,6 +24,8 @@ func TestEvaluationJobsHandler(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 	assert.Len(t, result.Data, 6)
+	assert.Equal(t, 6, result.Metadata.TotalCount)
+	assert.False(t, result.Metadata.Truncated)
 	assert.Equal(t, "eval-job-001", result.Data[0].Resource.ID)
 	assert.Equal(t, "running", result.Data[0].Status.State)
 	assert.Equal(t, "gpt-4-turbo", result.Data[0].Model.Name)
@@ -191,6 +193,39 @@ func TestCreateEvaluationJobHandlerRequiresBenchmarksOrCollection(t *testing.T) 
 				Collection: &evalhub.JobCollectionID{
 					ID:         "collection-001",
 					Benchmarks: []evalhub.JobBenchmark{{ID: " \t"}},
+				},
+			},
+		},
+		{
+			name: "benchmark with test data ref with no variant",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:       baseRequest.Name,
+				Model:      baseRequest.Model,
+				Benchmarks: []evalhub.JobBenchmark{{ID: "arc_challenge", TestDataRef: &evalhub.TestDataRef{}}},
+			},
+		},
+		{
+			name: "benchmark with git test data ref with embedded credentials",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:  baseRequest.Name,
+				Model: baseRequest.Model,
+				Benchmarks: []evalhub.JobBenchmark{{
+					ID:          "arc_challenge",
+					TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{URL: "https://user:pass@example.com/repo.git"}},
+				}},
+			},
+		},
+		{
+			name: "collection benchmark with git test data ref with secret over http",
+			body: evalhub.CreateEvaluationJobRequest{
+				Name:  baseRequest.Name,
+				Model: baseRequest.Model,
+				Collection: &evalhub.JobCollectionID{
+					ID: "collection-001",
+					Benchmarks: []evalhub.JobBenchmark{{
+						ID:          "arc_challenge",
+						TestDataRef: &evalhub.TestDataRef{Git: &evalhub.TestDataRefGit{URL: "http://example.com/repo.git", SecretRef: "my-secret"}},
+					}},
 				},
 			},
 		},

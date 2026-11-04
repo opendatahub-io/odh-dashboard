@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"log/slog"
@@ -153,6 +154,67 @@ func TestDataRegistryProxy_ListNamespaces_ForwardsPathAndAuth(t *testing.T) {
 	assert.Equal(t, http.MethodGet, captured.Method)
 	assert.Equal(t, "/v1/my-project/namespaces", captured.Path)
 	assert.Equal(t, "Bearer user-token-123", captured.Header.Get("Authorization"))
+}
+
+func TestDataRegistryProxy_VerifiesUpstreamTLS(t *testing.T) {
+	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/v1/my-project/namespaces", r.URL.Path)
+		assert.Equal(t, "Bearer user-token-123", r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"namespaces":[["default"]]}`))
+	}))
+	defer upstream.Close()
+
+	rootCAs := x509.NewCertPool()
+	rootCAs.AddCert(upstream.Certificate())
+
+	for _, tc := range []struct {
+		name       string
+		rootCAs    *x509.CertPool
+		targetURL  string
+		wantStatus int
+	}{
+		{
+			name:       "trusts configured CA",
+			rootCAs:    rootCAs,
+			targetURL:  upstream.URL,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "rejects untrusted certificate with system roots",
+			targetURL:  upstream.URL,
+			wantStatus: http.StatusServiceUnavailable,
+		},
+		{
+			name:       "rejects untrusted certificate with configured roots",
+			rootCAs:    x509.NewCertPool(),
+			targetURL:  upstream.URL,
+			wantStatus: http.StatusServiceUnavailable,
+		},
+		{
+			name:       "rejects hostname mismatch even with trusted CA",
+			rootCAs:    rootCAs,
+			targetURL:  strings.Replace(upstream.URL, "127.0.0.1", "localhost", 1),
+			wantStatus: http.StatusServiceUnavailable,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app := newRegistryProxyTestApp(tc.targetURL)
+			app.rootCAs = tc.rootCAs
+
+			res := doRegistryProxyRequest(t, app, http.MethodGet, "http://bff.example/api/v1/my-project/namespaces", nil, "user-token-123")
+			defer res.Body.Close()
+
+			assert.Equal(t, tc.wantStatus, res.StatusCode)
+			body, err := io.ReadAll(res.Body)
+			require.NoError(t, err)
+			if tc.wantStatus == http.StatusOK {
+				assert.JSONEq(t, `{"namespaces":[["default"]]}`, string(body))
+			} else {
+				assert.JSONEq(t, `{"error":{"code":"503","message":"the upstream service is unavailable"}}`, string(body))
+			}
+		})
+	}
 }
 
 // TestDataRegistryProxy_StripsCallerAssertedIdentityHeaders guards against attribution

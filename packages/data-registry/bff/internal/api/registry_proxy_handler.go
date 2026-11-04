@@ -58,6 +58,7 @@ func (app *App) DataRegistryReverseProxy() http.Handler {
 			}
 			return identity.UserID
 		},
+		RootCAs:            app.rootCAs,
 		InsecureSkipVerify: app.config.InsecureSkipVerify,
 		Logger:             app.logger,
 	})

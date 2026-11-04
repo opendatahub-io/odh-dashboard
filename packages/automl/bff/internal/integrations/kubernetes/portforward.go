@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,15 +10,35 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/singleflight"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
+
+const portForwardStartupTimeout = 30 * time.Second
+
+// portForwardRetryCooldown bounds how quickly a new forward for the same key
+// may be attempted after a failed startup. A stalled SPDY upgrade keeps its
+// negotiation goroutine alive until the peer eventually responds, so repeated
+// requests against an unresponsive target would otherwise accumulate one
+// abandoned connection and goroutine per attempt.
+const portForwardRetryCooldown = 5 * time.Second
+
+// maxOutstandingAbandonedNegotiations caps how many abandoned SPDY upgrade
+// negotiations may linger at once for a single forward key. The retry cooldown
+// only paces new attempts; a peer that never completes the upgrade leaves each
+// abandoned negotiation — and its connection — alive until it responds, so
+// without a cap a persistent stall would accumulate them without bound for the
+// life of the process. The cap is per key so a single unresponsive target
+// throttles only itself and cannot block forwards to every other service.
+const maxOutstandingAbandonedNegotiations = 8
 
 // PortForwardManager manages on-demand port-forwards to in-cluster services.
 //
@@ -30,12 +51,25 @@ import (
 // If a forward dies (pod restart, network blip), the next call to ForwardURL
 // detects the failure and re-establishes the forward transparently.
 type PortForwardManager struct {
-	mu         sync.Mutex
-	forwards   map[string]*activeForward
-	sfGroup    singleflight.Group
-	restConfig *rest.Config
-	clientset  kubernetes.Interface
-	logger     *slog.Logger
+	mu             sync.Mutex
+	forwards       map[string]*activeForward
+	recentFailures map[string]time.Time
+	sfGroup        singleflight.Group
+	restConfig     *rest.Config
+	clientset      kubernetes.Interface
+	logger         *slog.Logger
+	closeOnce      sync.Once
+	// abandonedNegotiations counts, per forward key, SPDY upgrade negotiations
+	// abandoned by a startup deadline or shutdown that are still blocked reading
+	// the peer's response. Their connections cannot be closed from the outside
+	// (see contextDialer.Dial), so they linger until the peer responds; the
+	// per-key counts back the maxOutstandingAbandonedNegotiations cap.
+	abandonedNegotiations map[string]int
+	// closed is shut by Close to abort SPDY upgrades still stalled in their
+	// (uninterruptible) response wait. It is nil when the manager was built
+	// via a struct literal (tests) — receiving from a nil channel simply
+	// never fires.
+	closed chan struct{}
 }
 
 type activeForward struct {
@@ -44,15 +78,110 @@ type activeForward struct {
 	errChan   chan error
 }
 
+// contextDialer preserves cancellation and startup deadlines while the Kubernetes
+// SPDY dialer upgrades the port-forward connection.
+type contextDialer struct {
+	ctx      context.Context
+	shutdown <-chan struct{}
+	upgrader spdy.Upgrader
+	client   *http.Client
+	method   string
+	url      *url.URL
+	// onAbandoned fires when the negotiation is abandoned while still blocked
+	// on the peer; onSettled fires when it finally terminates. The pair lets
+	// the manager cap how many abandoned negotiations linger at once. Both are
+	// nil for dialers constructed directly in tests.
+	onAbandoned func()
+	onSettled   func()
+}
+
+// negotiationResult carries the outcome of an SPDY upgrade attempt that may
+// still be in flight when Dial has already given up on it.
+type negotiationResult struct {
+	conn     httpstream.Connection
+	protocol string
+	err      error
+}
+
+// Dial upgrades the port-forward connection, racing the negotiation against
+// the startup deadline and manager shutdown.
+//
+// spdy.Negotiate reads the upgrade response via a plain (non-context-aware)
+// http.ReadResponse, so a server that accepts the connection but never sends
+// response headers would block the negotiation — and with it the whole
+// port-forward worker — indefinitely. When the deadline or shutdown fires
+// first, Dial returns promptly and hands the still-running negotiation to a
+// watcher that closes the tunnel if the peer ever completes it.
+//
+// The stalled connection itself cannot be closed from the outside: client-go's
+// SPDY round tripper keeps the upgrade connection private until the response
+// has been read, and the only construction hook that dials through custom code
+// (RoundTripperConfig's UpgradeTransport) drops the proxy support that
+// RoundTripperFor provides. The blocked negotiation goroutine and its watcher
+// therefore linger until the peer responds; the retry cooldown paces new
+// attempts and the outstanding-negotiation cap bounds how many may linger
+// at once per target.
+func (d *contextDialer) Dial(protocols ...string) (httpstream.Connection, string, error) {
+	req, err := http.NewRequestWithContext(d.ctx, d.method, d.url.String(), nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("creating port-forward request: %w", err)
+	}
+
+	result := make(chan negotiationResult, 1)
+	go func() {
+		conn, protocol, err := spdy.Negotiate(d.upgrader, d.client, req, protocols...)
+		result <- negotiationResult{conn: conn, protocol: protocol, err: err}
+	}()
+
+	select {
+	case r := <-result:
+		return r.conn, r.protocol, r.err
+	case <-d.ctx.Done():
+		d.abandon(result)
+		// ctx.Err() is reported with %v rather than wrapped: the caller
+		// already surfaces the cancellation cause, and keeping this error
+		// free of it preserves the abandonment notice as a distinct
+		// startup diagnostic.
+		return nil, "", fmt.Errorf("abandoning stalled port-forward upgrade negotiation (%v); the API server did not complete the SPDY upgrade", d.ctx.Err())
+	case <-d.shutdown:
+		d.abandon(result)
+		return nil, "", errors.New("abandoning stalled port-forward upgrade negotiation: port-forward manager is closed")
+	}
+}
+
+// abandon watches an already-abandoned negotiation so a tunnel the peer
+// completes late is closed instead of lingering. The buffered result channel
+// guarantees the negotiation goroutine never blocks sending to it. The
+// negotiation — and its connection — stay live until the peer responds; the
+// tracking hooks let the manager cap how many abandoned attempts linger.
+func (d *contextDialer) abandon(result <-chan negotiationResult) {
+	if d.onAbandoned != nil {
+		d.onAbandoned()
+	}
+	go func() {
+		defer func() {
+			if d.onSettled != nil {
+				d.onSettled()
+			}
+		}()
+		if r := <-result; r.conn != nil {
+			r.conn.Close()
+		}
+	}()
+}
+
 // NewPortForwardManager creates a manager using the provided rest.Config and clientset.
 // These should be the BFF's own credentials (not per-request user tokens), since
 // port-forwards are long-lived and shared across requests.
 func NewPortForwardManager(restConfig *rest.Config, clientset kubernetes.Interface, logger *slog.Logger) *PortForwardManager {
 	return &PortForwardManager{
-		forwards:   make(map[string]*activeForward),
-		restConfig: restConfig,
-		clientset:  clientset,
-		logger:     logger,
+		forwards:              make(map[string]*activeForward),
+		recentFailures:        make(map[string]time.Time),
+		abandonedNegotiations: make(map[string]int),
+		closed:                make(chan struct{}),
+		restConfig:            restConfig,
+		clientset:             clientset,
+		logger:                logger,
 	}
 }
 
@@ -123,7 +252,11 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 	m.mu.Unlock()
 
 	// Slow path: create forward, deduplicated across concurrent callers.
-	val, err, _ := m.sfGroup.Do(key, func() (interface{}, error) {
+	// DoChan (rather than Do) lets each caller stop waiting on its own context
+	// without canceling the shared startup: the closure runs with the first
+	// caller's context, and a blocking Do would hand one caller's cancellation
+	// error to every coalesced caller and arm the cooldown for all of them.
+	resultCh := m.sfGroup.DoChan(key, func() (interface{}, error) {
 		// Re-check cache — another caller in the singleflight group may have
 		// populated it between our cache miss and winning the Do race.
 		m.mu.Lock()
@@ -131,32 +264,136 @@ func (m *PortForwardManager) getOrCreateForward(ctx context.Context, namespace, 
 			m.mu.Unlock()
 			return fwd.localPort, nil
 		}
+		// Pace retries after a failed startup: a stalled SPDY negotiation
+		// outlives its deadline, and back-to-back attempts would accumulate
+		// abandoned connections and goroutines.
+		if lastFailed, failed := m.recentFailures[key]; failed && time.Since(lastFailed) < portForwardRetryCooldown {
+			m.mu.Unlock()
+			return nil, fmt.Errorf("port-forward %s failed to start recently; retrying after a %s cooldown", key, portForwardRetryCooldown)
+		}
+		// The cooldown paces retries but does not cap how many abandoned
+		// negotiations linger; reject new startups for this key while too many
+		// of its negotiations are still blocked on a peer that never completes
+		// the upgrade. The cap is per key: a stalled target throttles only
+		// itself, never forwards to other services.
+		if outstanding := m.abandonedNegotiations[key]; outstanding >= maxOutstandingAbandonedNegotiations {
+			m.mu.Unlock()
+			return nil, fmt.Errorf("port-forward %s cannot start: %d abandoned upgrade negotiations are still outstanding for this target; retry once the unresponsive peer completes or restart the dev server", key, outstanding)
+		}
 		m.mu.Unlock()
 
 		m.logger.Info("establishing port-forward", "key", key)
 
-		podName, err := m.resolvePod(ctx, namespace, serviceName)
+		// Bound the whole startup path: a forward that never becomes ready must
+		// not hang this request — and every request coalesced behind it — forever.
+		// The startup context is detached from the caller's request: the forward
+		// is shared, so one caller disconnecting must not cancel the startup for
+		// every caller coalesced behind it. Close() still aborts a stalled
+		// upgrade through the manager's shutdown channel.
+		startupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), portForwardStartupTimeout)
+		defer cancel()
+
+		podName, err := m.resolvePod(startupCtx, namespace, serviceName)
 		if err != nil {
+			m.noteForwardFailure(key)
 			return nil, fmt.Errorf("resolving pod for %s/%s: %w", namespace, serviceName, err)
 		}
 
-		fwd, err := m.createForward(namespace, podName, remotePort)
+		fwd, err := m.createForward(startupCtx, key, namespace, podName, remotePort)
 		if err != nil {
+			m.noteForwardFailure(key)
 			return nil, fmt.Errorf("creating port-forward %s: %w", key, err)
 		}
 
-		m.mu.Lock()
-		m.forwards[key] = fwd
-		m.mu.Unlock()
+		if err := m.cacheForward(key, fwd); err != nil {
+			return nil, err
+		}
 
 		m.logger.Info("port-forward established",
 			"key", key, "localPort", fwd.localPort)
 		return fwd.localPort, nil
 	})
-	if err != nil {
-		return 0, err
+	select {
+	case <-ctx.Done():
+		// This caller gave up on waiting. The shared startup keeps running
+		// detached, so a success is still cached for later callers and a
+		// genuine failure still arms the cooldown — but this caller's own
+		// cancellation aborts nothing and throttles no one.
+		return 0, ctx.Err()
+	case res := <-resultCh:
+		if res.Err != nil {
+			return 0, res.Err
+		}
+		return res.Val.(uint16), nil
 	}
-	return val.(uint16), nil
+}
+
+// cacheForward publishes a newly established forward under its key, unless the
+// manager has shut down underneath the startup: Close() has already drained the
+// cache and fired closeOnce, so nothing would ever stop a forward stored here —
+// its listener, tunnel, and ForwardPorts goroutine would leak. A late forward
+// is stopped and rejected instead. Mirrors autorag's runCreation closed check.
+// Safe on a nil closed channel (struct-literal managers in tests) — a nil
+// channel simply never fires.
+func (m *PortForwardManager) cacheForward(key string, fwd *activeForward) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	select {
+	case <-m.closed:
+		close(fwd.stopChan)
+		return errors.New("port-forward manager is closed")
+	default:
+	}
+	m.forwards[key] = fwd
+	delete(m.recentFailures, key)
+	return nil
+}
+
+// noteForwardFailure arms the retry cooldown for a key after a failed startup
+// attempt, pacing retries against a target whose SPDY upgrade stalls. Safe on
+// a nil map (lazy initialization) and a nil closed channel (struct-literal
+// managers in tests) — a nil channel simply never fires.
+func (m *PortForwardManager) noteForwardFailure(key string) {
+	// A startup aborted by manager shutdown is not a target failure, and the
+	// closed manager rejects every caller anyway — do not arm the cooldown.
+	select {
+	case <-m.closed:
+		return
+	default:
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.recentFailures == nil {
+		m.recentFailures = make(map[string]time.Time)
+	}
+	m.recentFailures[key] = time.Now()
+}
+
+// noteAbandonedNegotiation records an upgrade negotiation abandoned while
+// still blocked reading the peer's response; noteNegotiationSettled records
+// its eventual termination. The pair backs the per-key outstanding-negotiation
+// cap. Safe on a nil map (lazy initialization) for managers built via struct
+// literal in tests.
+func (m *PortForwardManager) noteAbandonedNegotiation(key string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.abandonedNegotiations == nil {
+		m.abandonedNegotiations = make(map[string]int)
+	}
+	m.abandonedNegotiations[key]++
+}
+
+// noteNegotiationSettled releases a slot under the per-key outstanding-
+// negotiation cap once an abandoned negotiation has finally terminated, and
+// drops the key's entry entirely so the map does not retain settled keys.
+func (m *PortForwardManager) noteNegotiationSettled(key string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.abandonedNegotiations[key] > 1 {
+		m.abandonedNegotiations[key]--
+	} else {
+		delete(m.abandonedNegotiations, key)
+	}
 }
 
 // resolvePod finds a ready pod backing the given service.
@@ -178,7 +415,10 @@ func (m *PortForwardManager) resolvePod(ctx context.Context, namespace, serviceN
 }
 
 // createForward establishes a port-forward to a pod and waits for it to be ready.
-func (m *PortForwardManager) createForward(namespace, podName string, remotePort int) (*activeForward, error) {
+// The context bounds startup only — once ready, the forward runs until stopped.
+// key identifies the forward for per-key resource accounting; it is not part of
+// the cluster-side target (namespace, podName, remotePort).
+func (m *PortForwardManager) createForward(ctx context.Context, key, namespace, podName string, remotePort int) (*activeForward, error) {
 	reqURL := m.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(namespace).
@@ -191,7 +431,23 @@ func (m *PortForwardManager) createForward(namespace, podName string, remotePort
 		return nil, fmt.Errorf("creating SPDY round tripper: %w", err)
 	}
 
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, reqURL)
+	client := &http.Client{Transport: transport, Timeout: portForwardStartupTimeout}
+	if deadline, ok := ctx.Deadline(); ok {
+		client.Timeout = time.Until(deadline)
+	}
+	dialer := &contextDialer{
+		ctx:      ctx,
+		shutdown: m.closed,
+		upgrader: upgrader,
+		client:   client,
+		method:   http.MethodPost,
+		url:      reqURL,
+		// Track the negotiation per key so the manager can cap how many
+		// abandoned attempts linger against a peer that never completes the
+		// upgrade without throttling other targets.
+		onAbandoned: func() { m.noteAbandonedNegotiation(key) },
+		onSettled:   func() { m.noteNegotiationSettled(key) },
+	}
 
 	stopChan := make(chan struct{})
 	readyChan := make(chan struct{})
@@ -209,7 +465,15 @@ func (m *PortForwardManager) createForward(namespace, podName string, remotePort
 	}()
 
 	select {
+	case <-ctx.Done():
+		close(stopChan)
+		return nil, fmt.Errorf("waiting for port-forward startup: %w", ctx.Err())
+
 	case <-readyChan:
+		if err := ctx.Err(); err != nil {
+			close(stopChan)
+			return nil, fmt.Errorf("waiting for port-forward startup: %w", err)
+		}
 		forwardedPorts, err := fw.GetPorts()
 		if err != nil || len(forwardedPorts) == 0 {
 			close(stopChan)
@@ -229,12 +493,20 @@ func (m *PortForwardManager) createForward(namespace, podName string, remotePort
 
 // Close tears down all active port-forwards. Call on BFF shutdown.
 func (m *PortForwardManager) Close() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.closeOnce.Do(func() {
+		m.mu.Lock()
+		defer m.mu.Unlock()
 
-	for key, fwd := range m.forwards {
-		close(fwd.stopChan)
-		m.logger.Debug("closed port-forward", "key", key)
-	}
-	m.forwards = make(map[string]*activeForward)
+		// Abort SPDY upgrades still stalled in their response wait so the
+		// pending workers unwind instead of lingering until the peer responds.
+		if m.closed != nil {
+			close(m.closed)
+		}
+
+		for key, fwd := range m.forwards {
+			close(fwd.stopChan)
+			m.logger.Debug("closed port-forward", "key", key)
+		}
+		m.forwards = make(map[string]*activeForward)
+	})
 }

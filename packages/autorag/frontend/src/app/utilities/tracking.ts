@@ -646,12 +646,11 @@ export const fireAutoragPatternDetailsDownloadInitiated = (): void => {
 export type CodeSnippetAction = 'viewed' | 'copied';
 
 /**
- * Where the "View code" modal was opened from: the Playground drawer's "View Code" button
- * (`'playground'`), a results-table row's "View code" kebab action (`'resultsTable'`), or the
- * pattern details modal's "View code" dropdown item (`'patternDetails'`). `'other'` is a
- * defensive catch-all for any future entry point added before this taxonomy is updated.
+ * Where the "View code" modal was opened from: a results-table row's "View code" kebab action
+ * (`'resultsTable'`) or the pattern details modal's "View code" dropdown item (`'patternDetails'`).
+ * `'other'` is a defensive catch-all for any future entry point added before this taxonomy is updated.
  */
-export type ViewCodeEntrySource = 'playground' | 'resultsTable' | 'patternDetails' | 'other';
+export type ViewCodeEntrySource = 'resultsTable' | 'patternDetails' | 'other';
 
 /**
  * Fires with `action: 'viewed'` and an `entrySource` when the "View code" modal is opened. Fires

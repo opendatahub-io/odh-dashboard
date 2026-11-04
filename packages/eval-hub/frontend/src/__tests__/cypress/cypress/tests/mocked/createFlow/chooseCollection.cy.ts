@@ -68,6 +68,7 @@ const trustworthinessSuite = mockCollection({
   category: 'Trustworthiness',
   description: 'Trustworthiness evaluation collection.',
   benchmarkIds: ['truthfulqa_mc1'],
+  judgeModel: true,
 });
 
 const tenantTrustworthinessSuite = mockCollection({
@@ -172,7 +173,7 @@ describe('Choose Collection Page - curated prerequisites', () => {
 
     chooseCollectionPage
       .findCollectionDrawerPanel()
-      .should('contain.text', 'Requires a judge model.')
+      .should('contain.text', 'Requires a judge model in addition to the model you are evaluating.')
       .findByTestId('use-benchmark-suite-button')
       .should('not.exist');
     chooseCollectionPage

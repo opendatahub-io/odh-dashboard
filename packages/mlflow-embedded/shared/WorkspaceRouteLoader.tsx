@@ -6,6 +6,8 @@ import { byName } from '@odh-dashboard/k8s-core';
 import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector';
 import { WORKSPACE_QUERY_PARAM } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import NoProjectsEmptyState from './NoProjectsEmptyState';
@@ -33,7 +35,13 @@ const WorkspaceRouteLoader: React.FC<WorkspaceRouteLoaderProps> = ({
   const [searchParams] = useSearchParams();
   const namespace = searchParams.get(WORKSPACE_QUERY_PARAM);
   const { projects, preferredProject, loaded } = React.useContext(ProjectsContext);
+  const { available: mlflowAvailable, loaded: mlflowLoaded } = useIsMlflowCRAvailable();
   const storedProject = getStoredPreferredProject(projects);
+
+  // Show MLflow setup guidance before asking users to create a project.
+  if (loaded && projects.length === 0 && mlflowLoaded && !mlflowAvailable) {
+    return <PageComponent />;
+  }
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
 
@@ -66,7 +74,7 @@ const WorkspaceRouteLoader: React.FC<WorkspaceRouteLoaderProps> = ({
     <ApplicationsPage
       title={title}
       {...renderStateProps}
-      loaded={loaded}
+      loaded={loaded && (projects.length > 0 || mlflowLoaded)}
       headerContent={
         <PipelineCoreProjectSelector
           getRedirectPath={getRedirectPath}

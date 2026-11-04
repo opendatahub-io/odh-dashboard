@@ -3,7 +3,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Label, LabelGroup } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource, MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
 import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import LlmAcceleratorConfigEnabledToggle from './LlmAcceleratorConfigEnabledToggle';
@@ -59,6 +59,11 @@ const LlmAcceleratorConfigTableRow: React.FC<LlmAcceleratorConfigTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup numLabels={5}>
           {preInstalled && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
+          {config.metadata.annotations?.[MetadataAnnotation.InstalledFromCatalog] === 'true' && (
+            <Label color="purple" data-testid="from-library-label">
+              From library
+            </Label>
+          )}
           {renderDeploymentResourceVersionLabels(config)}
         </LabelGroup>
       </Td>

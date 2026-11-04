@@ -90,6 +90,11 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             <Label data-testid="image-tier-label" color={getImageTierColor(tier)}>
               {upperFirst(tier)}
             </Label>
+            {obj.deprecated ? (
+              <Label data-testid="deprecated-image-label" color="yellow">
+                Deprecated
+              </Label>
+            ) : null}
           </LabelGroup>
         </Td>
         <Td dataLabel="Enable" modifier="nowrap">

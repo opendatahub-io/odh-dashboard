@@ -31,12 +31,14 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,
 } from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
 import {
+  ResourceClaimTemplateModel,
   RoleBindingModel,
   RoleModel,
   SecretModel,
@@ -67,10 +69,12 @@ const initIntercepts = ({
   modelType,
   rejectAddSupportServingPlatformProject = false,
   vLLMDeploymentOnMaaS = false,
+  hardwareProfileDRA = false,
 }: {
   modelType?: ServingRuntimeModelType;
   rejectAddSupportServingPlatformProject?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  hardwareProfileDRA?: boolean;
 }) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -91,6 +95,7 @@ const initIntercepts = ({
       deploymentWizardYAMLViewer: true,
       vLLMDeploymentOnMaaS,
       genAiStudio: true,
+      hardwareProfileDRA,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -836,6 +841,66 @@ describe('Model Serving Deploy Wizard', () => {
     cy.get('@createServingRuntime.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
+  });
+
+  it('Block deploying with a newly selected project-scoped DRA hardware profile once its claim template is removed', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE, hardwareProfileDRA: true });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockHardwareProfile({
+          name: 'project-dra-profile',
+          displayName: 'Project DRA Profile',
+          namespace: 'test-project',
+          dra: { resourceClaimTemplateName: 'single-gpu' },
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: ResourceClaimTemplateModel, ns: 'test-project' },
+      mockK8sResourceList([mockResourceClaimTemplate({ name: 'single-gpu' })]),
+    ).as('resourceClaimTemplates');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
+    modelServingWizard.findExistingConnectionSelect().click();
+    modelServingWizard.findExistingConnectionSelectOption('Test URI Secret').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').click();
+    cy.wait('@resourceClaimTemplates');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    hardwareProfileSection.selectProjectScopedProfile(/Project DRA Profile/);
+    hardwareProfileSection.findClaimTemplateMissingError().should('not.exist');
+    modelServingWizard.findNextButton().should('be.enabled');
+
+    cy.wsK8s(
+      'DELETED',
+      ResourceClaimTemplateModel,
+      mockResourceClaimTemplate({ name: 'single-gpu' }),
+    );
+
+    hardwareProfileSection
+      .findClaimTemplateMissingError()
+      .should(
+        'contain.text',
+        'The claim template single-gpu does not exist in this project. Ask your administrator to create it, or select a different hardware profile.',
+      );
+    modelServingWizard.findNextButton().should('be.disabled');
+    cy.testA11y();
   });
 
   it('Do not deploy KServe model when user cannot edit namespace (only one serving platform enabled)', () => {

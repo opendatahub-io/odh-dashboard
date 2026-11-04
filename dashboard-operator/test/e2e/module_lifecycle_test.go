@@ -77,6 +77,10 @@ func TestE2EModuleLifecycle(t *testing.T) {
 		{name: "TS2_05_unmanaged_component", components: components("modelregistry", "Unmanaged"), want: present("modelRegistry")},
 		{name: "TS2_06_override_wins_over_component", modules: disabledModules("modelRegistry"), components: components("modelregistry", "Managed"), want: disabled("modelRegistry")},
 		{name: "TS2_07_nil_components_recovers", components: components("modelregistry", "Removed"), want: unavailable("modelRegistry"), recover: true},
+		{name: "TS2_08_data_registry_managed_feature_store_removed", components: components("dataRegistry", "Managed", "featureStore", "Removed"), want: present("dataRegistry")},
+		{name: "TS2_09_data_registry_removed_feature_store_managed", components: components("dataRegistry", "Removed", "featureStore", "Managed"), want: unavailable("dataRegistry")},
+		{name: "TS2_10_both_data_children_removed", components: components("dataRegistry", "Removed", "featureStore", "Removed"), want: unavailable("dataRegistry")},
+		{name: "TS2_11_both_data_children_managed", components: components("dataRegistry", "Managed", "featureStore", "Managed"), want: present("dataRegistry")},
 
 		// TS3: inter-module and DSC dependencies.
 		{name: "TS3_01_genai_disable_cascades_to_autorag", modules: disabledModules("genAi"), want: mergeExpectations(disabled("genAi"), map[string]lifecycleExpectation{"autorag": {dashboardv1alpha1.ModulePhaseDisabled, "DependencyNotMet"}})},

@@ -669,8 +669,12 @@ describe('mergePatchUpdateNotebook', () => {
     expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(existingNotebook);
   });
-  it('should keep the node selector of a workbench on a DRA hardware profile', () => {
-    const existingNotebook = mockNotebookK8sResource({ uid });
+  it('should keep the node selector and resource version of a workbench that keeps its DRA hardware profile', () => {
+    const existingNotebook = mockNotebookK8sResource({
+      uid,
+      hardwareProfileName: 'dra-profile',
+      hardwareProfileNamespace: 'opendatahub',
+    });
     existingNotebook.spec.template.spec.nodeSelector = { 'nvidia.com/gpu.present': 'true' };
     const startNotebookData = {
       ...mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
@@ -680,6 +684,75 @@ describe('mergePatchUpdateNotebook', () => {
           name: 'dra-profile',
           dra: { resourceClaimTemplateName: 'single-gpu' },
         }),
+        existingBinding: { name: 'dra-profile', namespace: 'opendatahub' },
+      }),
+    };
+    k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
+
+    void mergePatchUpdateNotebook(existingNotebook, startNotebookData, username);
+
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
+    const { resource } = k8sMergePatchResourceMock.mock.calls[0][0];
+    expect(resource.spec.template.spec.nodeSelector).toBeUndefined();
+    expect(resource.metadata.annotations).toMatchObject({
+      'opendatahub.io/hardware-profile-name': 'dra-profile',
+      'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+    });
+    expect(resource.metadata.annotations).not.toHaveProperty(
+      'opendatahub.io/hardware-profile-resource-version',
+    );
+  });
+
+  it('should keep the node selector and resource version of a workbench bound to its DRA hardware profile by name only', () => {
+    const existingNotebook = mockNotebookK8sResource({
+      uid,
+      hardwareProfileName: 'dra-profile',
+    });
+    existingNotebook.spec.template.spec.nodeSelector = { 'nvidia.com/gpu.present': 'true' };
+    const startNotebookData = {
+      ...mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
+      hardwareProfileOptions: mockUseAssignHardwareProfileResult<NotebookKind>({
+        paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+        selectedHardwareProfile: mockHardwareProfile({
+          name: 'dra-profile',
+          namespace: 'test-project',
+          dra: { resourceClaimTemplateName: 'single-gpu' },
+        }),
+        existingBinding: { name: 'dra-profile', namespace: 'test-project' },
+      }),
+    };
+    k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
+
+    void mergePatchUpdateNotebook(existingNotebook, startNotebookData, username);
+
+    expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
+    const { resource } = k8sMergePatchResourceMock.mock.calls[0][0];
+    expect(resource.spec.template.spec.nodeSelector).toBeUndefined();
+    expect(resource.metadata.annotations).toMatchObject({
+      'opendatahub.io/hardware-profile-name': 'dra-profile',
+      'opendatahub.io/hardware-profile-namespace': 'test-project',
+    });
+    expect(resource.metadata.annotations).not.toHaveProperty(
+      'opendatahub.io/hardware-profile-resource-version',
+    );
+  });
+
+  it('should remove the old node selector when a workbench switches to a DRA hardware profile', () => {
+    const existingNotebook = mockNotebookK8sResource({
+      uid,
+      hardwareProfileName: 'regular-profile',
+      hardwareProfileNamespace: 'opendatahub',
+    });
+    existingNotebook.spec.template.spec.nodeSelector = { 'nvidia.com/gpu.present': 'true' };
+    const startNotebookData = {
+      ...mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
+      hardwareProfileOptions: mockUseAssignHardwareProfileResult<NotebookKind>({
+        paths: NOTEBOOK_HARDWARE_PROFILE_PATHS,
+        selectedHardwareProfile: mockHardwareProfile({
+          name: 'dra-profile',
+          dra: { resourceClaimTemplateName: 'single-gpu' },
+        }),
+        existingBinding: { name: 'regular-profile', namespace: 'opendatahub' },
       }),
     };
     k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
@@ -687,7 +760,12 @@ describe('mergePatchUpdateNotebook', () => {
     void mergePatchUpdateNotebook(existingNotebook, startNotebookData, username);
 
     const { resource } = k8sMergePatchResourceMock.mock.calls[0][0];
-    expect(resource.spec.template.spec.nodeSelector).toBeUndefined();
+    expect(resource.spec.template.spec.nodeSelector).toEqual({ 'nvidia.com/gpu.present': null });
+    expect(resource.metadata.annotations).toMatchObject({
+      'opendatahub.io/hardware-profile-name': 'dra-profile',
+      'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+      'opendatahub.io/hardware-profile-resource-version': '1309350',
+    });
   });
 
   it('should handle errors and rethrow', async () => {

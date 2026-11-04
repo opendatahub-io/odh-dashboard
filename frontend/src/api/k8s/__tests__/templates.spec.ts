@@ -3,6 +3,7 @@ import YAML from 'yaml';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { genRandomChars } from '@odh-dashboard/foundation';
 import type { K8sDSGResource, TemplateKind } from '@odh-dashboard/k8s-core';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { groupVersionKind } from '@odh-dashboard/k8s-core/api/k8sUtils';
 import {
   ServingRuntimeAPIProtocol,
@@ -68,6 +69,7 @@ describe('assembleServingRuntimeTemplate', () => {
       namespace,
       ServingRuntimeAPIProtocol.REST,
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
+      undefined,
       'template-1',
     );
     expect(result).toStrictEqual(servingRuntimeTemplatesMock);
@@ -109,6 +111,51 @@ describe('assembleServingRuntimeTemplate', () => {
       }),
     );
     expect(result.objects[0]).toEqual(source.objects[0]);
+  });
+
+  it('should include installed-from-catalog annotation when installedFromCatalog is true', () => {
+    genRandomCharsMock.mockReturnValue('456');
+    const servingRuntimeMock = JSON.stringify(createServingRuntime('template-456'));
+
+    const result = assembleServingRuntimeTemplate(
+      servingRuntimeMock,
+      namespace,
+      ServingRuntimeAPIProtocol.REST,
+      [ServingRuntimeModelType.PREDICTIVE],
+      true,
+    );
+    expect(result.metadata.annotations).toEqual(
+      expect.objectContaining({
+        [MetadataAnnotation.InstalledFromCatalog]: 'true',
+      }),
+    );
+  });
+
+  it('should not include installed-from-catalog annotation when installedFromCatalog is false', () => {
+    genRandomCharsMock.mockReturnValue('789');
+    const servingRuntimeMock = JSON.stringify(createServingRuntime('template-789'));
+
+    const result = assembleServingRuntimeTemplate(
+      servingRuntimeMock,
+      namespace,
+      ServingRuntimeAPIProtocol.REST,
+      [ServingRuntimeModelType.PREDICTIVE],
+      false,
+    );
+    expect(result.metadata.annotations).not.toHaveProperty(MetadataAnnotation.InstalledFromCatalog);
+  });
+
+  it('should not include installed-from-catalog annotation when installedFromCatalog is omitted', () => {
+    genRandomCharsMock.mockReturnValue('abc');
+    const servingRuntimeMock = JSON.stringify(createServingRuntime('template-abc'));
+
+    const result = assembleServingRuntimeTemplate(
+      servingRuntimeMock,
+      namespace,
+      ServingRuntimeAPIProtocol.REST,
+      [ServingRuntimeModelType.PREDICTIVE],
+    );
+    expect(result.metadata.annotations).not.toHaveProperty(MetadataAnnotation.InstalledFromCatalog);
   });
 
   it('should throw an error when servingRuntime name doesnt exist', () => {

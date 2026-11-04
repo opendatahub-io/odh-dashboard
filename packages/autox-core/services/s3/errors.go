@@ -12,6 +12,13 @@ var (
 	// Use errors.Is to classify client creation failures.
 	ErrEndpointValidation = errors.New("endpoint validation failed")
 
+	// ErrChecksumConfiguration is returned when S3 upload checksum settings conflict.
+	ErrChecksumConfiguration = errors.New("invalid S3 upload checksum configuration")
+
+	// ErrUploadChecksumRejected is returned when an S3-compatible endpoint rejects
+	// an upload's optional streaming checksum trailer.
+	ErrUploadChecksumRejected = errors.New("S3 endpoint rejected upload checksum trailer")
+
 	// ErrObjectAlreadyExists is returned by UploadObject when the object key already exists.
 	// Uploads use S3 conditional create (If-None-Match: *): 412 Precondition Failed or 409 ConditionalRequestConflict.
 	ErrObjectAlreadyExists = errors.New("s3 object already exists at key")
@@ -33,6 +40,10 @@ var (
 	// (null bytes, path traversal patterns, or control characters).
 	ErrInvalidKey = errors.New("invalid S3 object key")
 )
+
+// UploadChecksumRejectedMessage explains how to disable optional checksum
+// trailers when an S3-compatible endpoint does not support them.
+const UploadChecksumRejectedMessage = "The S3 endpoint rejected the upload's streaming checksum trailer. To disable optional streaming checksum trailers on an endpoint that does not support them (including affected NetApp ONTAP versions), set AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true on the data connection Secret. If AWS_S3_UPLOAD_CHECKSUM_ALGORITHM is set, remove it first because it cannot be combined with the disable flag."
 
 // IsConnectivityError reports whether err is a pre-request network failure reaching the S3
 // endpoint: context deadline exceeded, DNS failure, dial timeout, connection refused, or

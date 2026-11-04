@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	milvusclient "github.com/milvus-io/milvus/client/v2/milvusclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,6 +41,15 @@ func TestNewFromSecretData_DispatchesToPgvector(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "literal IP")
+}
+
+func TestNewFromSecretData_DispatchesToNeo4j(t *testing.T) {
+	_, err := NewFromSecretData(context.Background(), map[string][]byte{
+		"NEO4J_URI":      []byte("neo4j://neo4j.example.com:7687"),
+		"NEO4J_PASSWORD": []byte("password"),
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "neo4j external endpoints must use neo4j+s or bolt+s")
 }
 
 func TestNewFromSecretData_PgvectorWithMilvusLegacyKeysDispatchesToPgvector(t *testing.T) {
@@ -88,6 +98,26 @@ func TestNewFromSecretDataWithForwarderValidatesOriginalBeforeCallingForwarder(t
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported credentials, query, fragment, or path")
 	assert.False(t, called)
+}
+
+func TestNewFromSecretDataWithForwarderTreatsPortlessExternalNoOpAsUnforwarded(t *testing.T) {
+	var clientConfig *milvusclient.ClientConfig
+	_, err := newFromSecretDataWithClient(
+		context.Background(),
+		map[string][]byte{"MILVUS_URI": []byte("https://milvus.example.com")},
+		func(_ context.Context, rawURL string) (string, error) {
+			assert.Equal(t, "https://milvus.example.com", rawURL)
+			return rawURL, nil
+		},
+		func(_ context.Context, cfg *milvusclient.ClientConfig) (milvusClient, error) {
+			clientConfig = cfg
+			return &captureMilvusClient{}, nil
+		},
+	)
+
+	require.NoError(t, err)
+	require.NotNil(t, clientConfig)
+	assert.Equal(t, "milvus.example.com:19530", clientConfig.Address)
 }
 
 func TestNewFromSecretDataWithForwarderRejectsUntrustedDestinations(t *testing.T) {

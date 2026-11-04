@@ -34,6 +34,7 @@ export const getNotebookResourcesPath = (
 
 export const useNotebookHardwareProfile = <T extends NotebookKind | Notebook>(
   notebook: T | null | undefined,
+  options?: { allowDRAProfiles?: boolean; project?: string },
 ): UseAssignHardwareProfileResult<T> => {
   const paths = React.useMemo(
     () => ({
@@ -46,5 +47,7 @@ export const useNotebookHardwareProfile = <T extends NotebookKind | Notebook>(
   return useAssignHardwareProfile(notebook, {
     visibleIn: [HardwareProfileFeatureVisibility.WORKBENCH],
     paths,
+    allowDRAProfiles: options?.allowDRAProfiles,
+    project: options?.project,
   });
 };

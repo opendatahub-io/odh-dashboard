@@ -428,6 +428,12 @@ describe('transformStageMapNodesToTree', () => {
     const firstBranchNodes = nodes.filter(
       (node) => node.id.includes('__step__') && node.id.includes('__branch-'),
     );
+    expect(
+      firstBranchNodes
+        .filter((node) => node.id.endsWith('__branch-0'))
+        .map((node) => node.data.label),
+    ).toEqual(['Engineer features', 'Train model', 'Stack predictions', 'Evaluate results']);
+    expect(firstBranchNodes.every((node) => node.data.hideLabel)).toBe(true);
     const firstBranchXValues = firstBranchNodes
       .map((node) => node.x)
       .filter((x): x is number => x !== undefined);

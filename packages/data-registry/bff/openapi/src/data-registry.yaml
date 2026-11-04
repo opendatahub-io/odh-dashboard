@@ -121,11 +121,12 @@ paths:
       description: |
         Calls the DCH BFF connections and connection-types endpoints using the current
         user's token. Resolves connector type IDs to provider labels. Returns DCH connections
-        only on success, including an empty list. Falls back to RHOAI Secrets only
-        when DCH is unconfigured, unreachable, times out, or returns an upstream 5xx.
-        Authorization errors, other 4xx responses and invalid response contracts do
-        not trigger fallback. Unresolved type IDs omit the affected connections and
-        produce an UNRESOLVED_CONNECTION_TYPE warning. When a configured DCH lookup
+        only on success, including an empty list. Falls back to RHOAI Secrets when DCH is
+        unconfigured, unreachable, times out, returns an upstream 5xx, or returns 404 from either
+        collection endpoint (treated as an unavailable DCH backend). Authorization errors, other
+        4xx responses (excluding these collection-endpoint 404s), and invalid response contracts
+        do not trigger fallback. Unresolved type IDs omit the affected connections and produce an
+        UNRESOLVED_CONNECTION_TYPE warning. When a configured DCH lookup
         fails and the RHOAI fallback succeeds, metadata.warnings includes DCH_FALLBACK.
         When DCH lookup succeeds, metadata.rhaiConnections includes current RHOAI
         connection details for resolving saved RHOAI asset references; those entries

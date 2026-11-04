@@ -287,7 +287,7 @@ func TestIntegration_MaaSPortalURLMigrationOnEarlyFailure(t *testing.T) {
 	_, err := r.Reconcile(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
 	})
-	require.ErrorContains(t, err, "failed to reconcile MaaS Portal-required modules")
+	require.ErrorContains(t, err, "failed to render manifests for module maas")
 
 	fetched := getDashboard(t)
 	assert.Equal(t, "ModuleDeployFailed", conditionReason(fetched, string(common.ConditionTypeProvisioningSucceeded)))
@@ -501,6 +501,7 @@ func newManifestReconciler(manifests string) *ctrlpkg.DashboardReconciler {
 func newReconcilerWithClient(cli client.Client, manifests string) *ctrlpkg.DashboardReconciler {
 	return &ctrlpkg.DashboardReconciler{
 		Client:                cli,
+		APIReader:             cli,
 		Scheme:                cli.Scheme(),
 		ManifestsBasePath:     manifests,
 		Platform:              cluster.OpenDataHub,
@@ -558,6 +559,7 @@ func TestIntegration_StandaloneEnableModule(t *testing.T) {
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
+		APIReader:             k8sClient,
 		Scheme:                k8sClient.Scheme(),
 		ManifestsBasePath:     manifests,
 		Platform:              cluster.OpenDataHub,
@@ -627,6 +629,7 @@ func TestIntegration_PlatformContractConformance(t *testing.T) {
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
+		APIReader:             k8sClient,
 		Scheme:                k8sClient.Scheme(),
 		ManifestsBasePath:     manifests,
 		Platform:              cluster.OpenDataHub,
@@ -677,6 +680,7 @@ func TestIntegration_StandaloneDisableModule(t *testing.T) {
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
+		APIReader:             k8sClient,
 		Scheme:                k8sClient.Scheme(),
 		ManifestsBasePath:     manifests,
 		Platform:              cluster.OpenDataHub,
@@ -737,6 +741,7 @@ func TestIntegration_InterModuleDependency(t *testing.T) {
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
+		APIReader:             k8sClient,
 		Scheme:                k8sClient.Scheme(),
 		ManifestsBasePath:     manifests,
 		Platform:              cluster.OpenDataHub,
@@ -808,6 +813,7 @@ func TestIntegration_DSCComponentGate(t *testing.T) {
 
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                k8sClient,
+		APIReader:             k8sClient,
 		Scheme:                k8sClient.Scheme(),
 		ManifestsBasePath:     manifests,
 		Platform:              cluster.OpenDataHub,

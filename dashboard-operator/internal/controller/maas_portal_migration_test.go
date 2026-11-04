@@ -275,6 +275,20 @@ func TestMaaSPortalTeardownWaitsForLegacyFinalizers(t *testing.T) {
 	}
 }
 
+// isServiceAccountDelete reports whether a delete target is a ServiceAccount,
+// whether supplied as a typed object or as the PartialObjectMetadata the
+// metadata-only cache sweep produces.
+func isServiceAccountDelete(obj client.Object) bool {
+	switch o := obj.(type) {
+	case *corev1.ServiceAccount:
+		return true
+	case *metav1.PartialObjectMetadata:
+		return o.GroupVersionKind().Kind == "ServiceAccount"
+	default:
+		return false
+	}
+}
+
 func TestMaaSPortalTeardownRetriesServiceAccountDeletion(t *testing.T) {
 	tests := []struct {
 		lifecycle   string
@@ -304,7 +318,9 @@ func TestMaaSPortalTeardownRetriesServiceAccountDeletion(t *testing.T) {
 			denyDelete := true
 			cli := fake.NewClientBuilder().WithScheme(maasPortalScheme(t)).WithObjects(dashboard, portalSA, sharedSA).WithInterceptorFuncs(interceptor.Funcs{
 				Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
-					if _, isSA := obj.(*corev1.ServiceAccount); isSA && obj.GetName() == portalSA.Name && denyDelete {
+					// ServiceAccounts are swept via the metadata informer, so the
+					// delete target is a PartialObjectMetadata, not a typed ServiceAccount.
+					if isServiceAccountDelete(obj) && obj.GetName() == portalSA.Name && denyDelete {
 						return deletionErr
 					}
 					return delegate.Delete(ctx, obj, opts...)

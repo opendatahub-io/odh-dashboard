@@ -246,6 +246,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         dashboardNamespace,
                         selectedAPIProtocol,
                         selectedModelTypes,
+                        isInstall,
                       );
                 const selectedModelTypesStr = selectedModelTypes.join(',');
                 onClickFunc

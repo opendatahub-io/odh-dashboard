@@ -9,7 +9,6 @@ type ChatbotSourceUploadPanelProps = {
   successAlert?: React.ReactElement;
   errorAlert?: React.ReactElement;
   handleSourceDrop: (event: DropEvent, sources: File[]) => void | Promise<void>;
-  removeUploadedSource: (sourceName: string) => void;
   filesWithSettings: FileWithSettings[];
   uploadedFilesCount?: number;
   maxFilesAllowed?: number;
@@ -21,7 +20,6 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   successAlert,
   errorAlert,
   handleSourceDrop,
-  removeUploadedSource,
   filesWithSettings,
   uploadedFilesCount = 0,
   maxFilesAllowed = FILE_UPLOAD_CONFIG.MAX_FILES_IN_VECTOR_STORE,
@@ -134,29 +132,15 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
         </div>
       </div>
 
-      {filesWithSettings.map((fileWithSettings) => {
-        const progress =
-          fileWithSettings.status === 'uploaded'
-            ? 100
-            : fileWithSettings.status === 'failed'
-              ? 100
-              : fileWithSettings.status === 'uploading'
-                ? 50 // Show 50% progress during upload since we don't have real progress
-                : 0;
-
-        return (
-          <UploadedFileItem
-            key={fileWithSettings.id}
-            id={fileWithSettings.id}
-            file={fileWithSettings.file}
-            progress={progress}
-            status={fileWithSettings.status}
-            onRemove={(fileName) => {
-              removeUploadedSource(fileName);
-            }}
-          />
-        );
-      })}
+      {filesWithSettings.map((fileWithSettings) => (
+        <UploadedFileItem
+          key={fileWithSettings.id}
+          id={fileWithSettings.id}
+          file={fileWithSettings.file}
+          progress={fileWithSettings.status === 'uploading' ? 50 : 0}
+          status={fileWithSettings.status}
+        />
+      ))}
     </>
   );
 };

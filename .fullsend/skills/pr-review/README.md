@@ -188,6 +188,18 @@ Host blocking: severity `medium` and above, except categories excluded in
 | `fail` | `request-changes`; refuse approve |
 | `could-not-verify` | Refuse approve; `comment` → `requires-manual-review`; also caps high confidence via incompleteness |
 
+### Adapters
+
+| Adapter `status` | Host disposition |
+| --- | --- |
+| `ok`, `skipped`, `none` | No effect on `action` |
+| `error` | Refuse approve; `comment` → `requires-manual-review`; caps high confidence; Status headline names producer(s) + reason |
+
+An adapter with `status: ok` and empty `findings` is a successful empty
+review — it can ride with `approve`. An adapter with `status: error` means
+the pipeline did not complete (e.g. rate limit, CLI failure); the host
+refuses approve regardless of findings.
+
 #### Test impact vs PR description (Evidence)
 
 | Check | Role |
@@ -235,8 +247,8 @@ projects onto the result. For `section:*`, if omitted, default to the name after
 ### Registry inventory
 
 Keep this table aligned with [`.fullsend/dimensions.json`](../../dimensions.json).
-**Stock** = shipped in [fullsend-ai/agents `skills/pr-review`](https://github.com/fullsend-ai/agents/tree/ce2eedd097dcccf17e29f4a7cd337ec4d95d7194/skills/pr-review)
-at harness pin `ce2eedd`. Everything else is an ODH overlay producer.
+**Stock** = shipped in [fullsend-ai/agents `skills/pr-review`](https://github.com/fullsend-ai/agents/tree/2da538b8b62ad6d7b91c43d8cf139f4738cfbf51/skills/pr-review)
+at harness pin `2da538b` (v0.48.1). Everything else is an ODH overlay producer.
 
 | id | label | output | source | definition / runner |
 | --- | --- | --- | --- | --- |
@@ -312,8 +324,8 @@ job, in [`pre-review.sh`](../../scripts/pre-review.sh), after the PR-state and
 skip-author checks:
 
 - **Credentials.** The shim composes `FULLSEND_GITHUB_RUNNER_SECRETS` from the
-  `CODERABBIT_API_KEY`, `JIRA_URL`, `JIRA_USERNAME` and `JIRA_API_TOKEN`
-  secrets, and [`harness/review.yaml`](../../harness/review.yaml) references
+  `CODERABBIT_API_KEY`, `JIRA_URL`, `JIRA_USERNAME` and `JIRA_API_TOKEN` secrets, and
+  [`harness/review.yaml`](../../harness/review.yaml) references
   them in `env.runner` (Fullsend ADR 0136). Every name is always sent: an
   unset secret goes as the placeholder `odh-adapter-credential-unset`, because
   `fullsend run` refuses an unset reference and an empty value alike, and
@@ -323,6 +335,13 @@ skip-author checks:
   `host.credentials`, under the generic `FULLSEND_ADAPTER_*` names. None of
   them reaches the sandbox. `env.runner` also reaches `post-review.sh`, which
   unsets them first, and the validation loop, which does not read them.
+- **Jira URLs.** The review harness sets public `JIRA_BASE_URL` to the Jira site
+  URL for browse links. `JIRA_URL` is passed only to the Jira adapter for REST
+  requests when it is an Atlassian API gateway URL. Without that URL, the Jira
+  snapshot reports `jira-api-url-unset`; it does not request from the site URL.
+  The gateway does not appear in review links. [`post-review.sh`](../../scripts/post-review.sh)
+  resolves each Product ask label from its own `.run/jira.json` snapshot rather
+  than the section's `key`/`url`.
 - **Order and cost.** `fullsend run` posts the review start-status comment
   before it runs the pre-script, so it is up before any adapter work. A closed PR or a
   skipped author exits before the adapters, so it buys no CodeRabbit run.
@@ -341,6 +360,15 @@ skip-author checks:
   this one. If a run is not cancelled, its adapter context still describes the
   head the sandbox reviewed. Fullsend's steer and coalesce work (fullsend#7689
   follow-ups) can change this; recheck it when that lands.
+- **Jira key selection.** [`fetch-jira-context.sh`](../../scripts/fetch-jira-context.sh)
+  collects keys from the PR preamble (before the first Markdown heading),
+  after stripping HTML comments so template placeholders in `<!-- ... -->`
+  are ignored; if the preamble has none, it falls back to the
+  comment-stripped title. Keys are deduplicated in encounter order and capped
+  at 10 (`omitted_keys` records the rest). Fetches land in `issues[]` next to
+  the backward-compatible top-level fields (first successful issue).
+  `post-review.sh` surfaces failed keys/reasons and `omitted_keys` as an
+  evaluation-limit notice under Product ask when that section is rendered.
 - **Adding a credential.** Add the secret to the shim's `format(...)`
   expression with the same placeholder fallback, reference it in
   `env.runner`, add it to `post-review.sh`'s unset line, and name it in the
@@ -395,34 +423,43 @@ For dispatched LLM producers, compose the kind contract after
 ## Upstream sync
 
 Stock files track [fullsend-ai/agents](https://github.com/fullsend-ai/agents)
-at `ce2eedd` (2026-10-06). The harness base in
-[`harness/review.yaml`](../../harness/review.yaml) and the reusable workflow in
-[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) move together: the
-base names built-in providers that releases before v0.45.0 do not resolve. The
-sandbox image is on Fullsend v0.48.1, the first release line that passes
-declared secrets to host-side scripts (ADR 0136). The workflow is pinned to
+at `2da538b` (v0.48.1, 2026-10-17). The harness base in
+[`harness/review.yaml`](../../harness/review.yaml) and the sandbox image are on
+v0.48.1. The reusable workflow in
+[`fullsend.yaml`](../../../.github/workflows/fullsend.yaml) is pinned to
 fullsend `main` at `af8cd47`, just past v0.48.1, for the review-findings marker
-fix (fullsend#8544); move it to v0.48.2 or later once that is released. From v0.48 the
-runner refuses `host_files` under `/sandbox/workspace/.fullsend`, so the
-registry and the adapter output reach the sandbox under
+fix (fullsend#8544); move it to v0.48.2 or later once that is released. The
+three move together. v0.48 is the first release line that passes declared
+secrets to host-side scripts (ADR 0136), keys skills on their declared
+`SKILL.md` name, and refuses `host_files` under `/sandbox/workspace/.fullsend`,
+so the registry and the adapter output reach the sandbox under
 `/sandbox/workspace/odh-review/`.
+
+Review models are named per persona under `agents[].subagents` in
+[`config.yaml`](../../config.yaml), with the orchestrator on the agent's
+`model:`. There are no `models.aliases`: v0.48 deprecates aliases that resolve
+outside the Claude family, and they would also remap `opus`/`sonnet` for the
+Claude Code roles.
 
 | Path | State |
 | --- | --- |
-| `sub-agents/{challenger,correctness,cross-repo-contracts,docs-currency,intent-coherence,security,security-triage,style-conventions}.md` | Same text as upstream |
+| `sub-agents/{challenger,correctness,cross-repo-contracts,docs-currency,intent-coherence,security,security-triage,style-conventions}.md` | Same text as upstream. `intent-coherence` brings the `scope-bundling` category, which its registry row lists |
 | [`github/SKILL.md`](github/SKILL.md) | Same text as upstream. `SKILL.md` reads its commands by path; the base harness also loads it as the `pr-review-github` skill |
 | [`references/re-review.md`](references/re-review.md) | Upstream text; categories map to dimensions through the registry instead of a fixed table |
-| [`../issue-labels/SKILL.md`](../issue-labels/SKILL.md) | Same text as upstream `skills/issue-labels/github/SKILL.md`. Listed in the harness under its own name: the base's copy shares the basename `github` with `pr-review/github` and is dropped when the harness is composed |
-| [`SKILL.md`](SKILL.md) | Local orchestrator. Carries upstream's time budget, runtime-aware dispatch, PR-head materialisation, challenger accounting and re-review contract, expressed through the registry |
-| `scripts/pre-review.sh` | Rebased onto upstream's `ce2eedd` bundle. Local additions (host-adapter registry and runner, dispatch normalisation, skip signal, registry-driven prior-review validation, self-test) sit on top; its header lists them |
-| `scripts/post-review.sh` | Local script, derived from `bb167e2` (the last upstream revision before the multi-forge rewrite), plus four changes from `ce2eedd`: the prior-findings projection, `label_actions` hardening, the PR file-list retry, and a failed job when the result is a `failure` |
+| `issue-labels` | Not vendored. The base's `skills/issue-labels/github` loads: v0.48 keys skills on their declared name, so it no longer collides with `pr-review/github` |
+| [`SKILL.md`](SKILL.md) | Local orchestrator. Carries upstream's time budget, runtime-aware dispatch, PR-head materialisation, commit-message and same-repository issue context for intent-coherence, challenger accounting and re-review contract, expressed through the registry |
+| `scripts/pre-review.sh` | Rebased onto upstream's `2da538b` bundle; the bundled forge libraries are upstream text. Local additions (host-adapter registry and runner, dispatch normalisation, skip signal, registry-driven prior-review validation, self-test) sit on top; its header lists them |
+| `scripts/post-review.sh` | Local script, derived from `bb167e2` (the last upstream revision before the multi-forge rewrite), plus four changes from `ce2eedd`: the prior-findings projection, `label_actions` hardening, the PR file-list retry, and a failed job when the result is a `failure`. Nothing later is carried; see below |
 
 Not carried from that revision:
 
 | Upstream change | Here |
 | --- | --- |
-| GitLab support (`pr-review/gitlab`) | GitHub only. `pre-review.sh` carries upstream's GitLab library as bundled, but its local steps call `gh`. |
-| `risk-assessment` sub-agent, `pr-risk-assessment` skill, `risk_assessment` result field | Switched off in the harness. `risk` / `confidence` come from the `signal:*` row and `rating-policy.json`. |
+| GitLab support (`pr-review/gitlab`, nested GitLab paths in `repo`) | GitHub only. `pre-review.sh` carries upstream's GitLab library as bundled, but its local steps call `gh`. |
+| `risk-assessment` sub-agent, `pr-risk-assessment` skill, `risk_assessment` result field, the risk verdict gate (`REVIEW_RISK_VERDICT_THRESHOLD`) | Switched off in the harness. `risk` / `confidence` come from the `signal:*` row and `rating-policy.json`. |
+| Finding-id ledger: `id` on findings, `dispositions`, minting ids for legacy markers, human dismissals from resolved review threads, `### Earlier findings`, original finding links | The host writes no ids and posts no inline threads, so the projection stays severity, category, file and line. The bundled forge helpers for it are unused. |
+| Re-review severity gate (new low/info findings never start a fix; prior high/critical stay blocking; legacy or `reject` priors held for a human) | The host computes the action from `rating-policy.json`, where low/info never block. Carrying prior blockers forward needs the ledger. |
+| A `protected-path` finding refuses approval even when `REVIEW_PROTECTED_PATHS` is empty | The host keeps a `protected-path` finding only when a changed file matches `REVIEW_PROTECTED_PATHS`, and routes it to human judgement. |
 | Verdict keyed on `actionable` findings; review body formatting rules | The host computes the action and renders the body. |
 | Per-dimension `pr_head` manifest subsets | The shared context file carries the full manifest for every reviewer. |
 | A `low` finding when the time budget skips the challenger | `result.producers` records the skip and the host renders it. |
@@ -459,7 +496,6 @@ first review.
 | [`SKILL.md`](SKILL.md) | Orchestrator runbook (kind dispatch) |
 | [`github/SKILL.md`](github/SKILL.md) | GitHub commands the runbook runs (fetch, materialise PR head, compare) |
 | [`references/re-review.md`](references/re-review.md) | Prior-findings and remediation-candidate rules |
-| [`../issue-labels/SKILL.md`](../issue-labels/SKILL.md) | Contextual label recommendations (step 7b) |
 | [`.fullsend/dimensions.json`](../../dimensions.json) | Producer registry |
 | [`.fullsend/rating-policy.json`](../../rating-policy.json) | Host risk/confidence floors and blocking severity |
 | [`.fullsend/scripts/post-review.sh`](../../scripts/post-review.sh) | Action, sticky, labels, self-tests |

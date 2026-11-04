@@ -31,9 +31,14 @@ import {
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import type { ColumnManagementModalColumn } from '@patternfly/react-component-groups';
-import { RunInProgress } from '@odh-dashboard/autox-core/ui/components/feature';
+import {
+  ExecutorLogsTearsheet,
+  RunInProgress,
+} from '@odh-dashboard/autox-core/ui/components/feature';
 import { ManageColumnsModal } from '@odh-dashboard/autox-core/ui/components/primitive';
+import { findFirstFailedTaskKey, useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
 import { useAutomlResultsContext, type AutomlModel } from '~/app/context/AutomlResultsContext';
+import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import emptyStateImage from '~/app/bgimages/empty-state.svg';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
@@ -433,6 +438,7 @@ function AutomlLeaderboard({
     pipelineRun,
     pipelineRunLoading,
     bestModelKey,
+    componentStageMap,
   } = useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
   // this as an actual parameter passed to the pipeline
@@ -446,6 +452,31 @@ function AutomlLeaderboard({
 
   // Check if pipeline is still running
   const pipelineRunning = isRunInProgress(pipelineRun?.state);
+
+  // The failed-run empty state opens the executor log of the first failed
+  // task (the step where the pipeline stopped) in a tearsheet.
+  const isRunFailed =
+    pipelineRun?.state === RuntimeStateKF.FAILED || pipelineRun?.state === RuntimeStateKF.CANCELED;
+  const { rootDir } = useAutomlOutputDir(pipelineRun);
+  const failedRunTaskKey = React.useMemo(
+    () =>
+      isRunFailed && Object.keys(models).length === 0
+        ? findFirstFailedTaskKey(
+            pipelineRun.run_details?.task_details ?? [],
+            componentStageMap?.components.map((component) => component.id) ?? [],
+            rootDir,
+          )
+        : undefined,
+    [componentStageMap, isRunFailed, models, pipelineRun, rootDir],
+  );
+  const runExecutorError = useTaskExecutorError({
+    namespace,
+    runId,
+    pipelineRun,
+    taskKey: failedRunTaskKey,
+    rootDir,
+  });
+  const [isRunLogsTearsheetOpen, setIsRunLogsTearsheetOpen] = React.useState(false);
 
   // Determine the optimized metric (prefer the user's choice, fall back to task-type default)
   const optimizedMetric = resolveEvalMetric(parameters?.eval_metric, taskType);
@@ -916,9 +947,6 @@ function AutomlLeaderboard({
   // Show empty state when no models were produced
   if (Object.keys(models).length === 0) {
     const isRunSucceeded = pipelineRun?.state === RuntimeStateKF.SUCCEEDED;
-    const isRunFailed =
-      pipelineRun?.state === RuntimeStateKF.FAILED ||
-      pipelineRun?.state === RuntimeStateKF.CANCELED;
 
     // Helper to render message with pipeline run link (falls back to plain text when route params are missing)
     const messageWithLink = (before: string, linkText: string, after = '.') =>
@@ -947,11 +975,37 @@ function AutomlLeaderboard({
         'pipeline configuration and logs',
       );
     } else if (isRunFailed) {
-      messageContent = messageWithLink(
-        'The pipeline run did not complete successfully. Please check the',
-        'pipeline configuration and logs',
-        ' for errors.',
-      );
+      messageContent =
+        namespace && runId ? (
+          <>
+            <span>The pipeline run did not complete successfully. Please check the </span>
+            {runExecutorError.logText ? (
+              <Button
+                variant="link"
+                isInline
+                onClick={() => setIsRunLogsTearsheetOpen(true)}
+                data-testid="leaderboard-failed-run-logs-link"
+              >
+                log
+              </Button>
+            ) : (
+              'log'
+            )}
+            <span> for errors or </span>
+            <Button
+              variant="link"
+              isInline
+              component={(props) => (
+                <Link {...props} to={`/develop-train/pipelines/runs/${namespace}/runs/${runId}`} />
+              )}
+            >
+              pipeline configuration
+            </Button>
+            <span> for more advanced details.</span>
+          </>
+        ) : (
+          'The pipeline run did not complete successfully. Please check the log for errors or pipeline configuration for more advanced details.'
+        );
     } else if (isRunSucceeded) {
       messageContent = messageWithLink(
         'The pipeline run completed but did not generate any models. Please check the',
@@ -966,16 +1020,25 @@ function AutomlLeaderboard({
     }
 
     return (
-      <Bullseye>
-        <EmptyState
-          headingLevel="h2"
-          titleText="No models produced"
-          variant={EmptyStateVariant.sm}
-          data-testid="leaderboard-empty"
-        >
-          <EmptyStateBody>{messageContent}</EmptyStateBody>
-        </EmptyState>
-      </Bullseye>
+      <>
+        <Bullseye>
+          <EmptyState
+            headingLevel="h2"
+            titleText="No models produced"
+            variant={EmptyStateVariant.sm}
+            data-testid="leaderboard-empty"
+          >
+            <EmptyStateBody>{messageContent}</EmptyStateBody>
+          </EmptyState>
+        </Bullseye>
+        {runExecutorError.logText ? (
+          <ExecutorLogsTearsheet
+            logText={runExecutorError.logText}
+            isOpen={isRunLogsTearsheetOpen}
+            onClose={() => setIsRunLogsTearsheetOpen(false)}
+          />
+        ) : null}
+      </>
     );
   }
 

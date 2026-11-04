@@ -226,6 +226,14 @@ class TrainingJobTableRow extends TableRow {
     return this.find().find('[data-label="Ray cluster"]');
   }
 
+  findRayClusterLink() {
+    return this.find().findByTestId('ray-cluster-link');
+  }
+
+  findRayClusterExternalLinkIcon() {
+    return this.find().findByTestId('ray-cluster-external-link-icon');
+  }
+
   findPauseResumeToggle() {
     return this.find().findByTestId('state-action-toggle');
   }

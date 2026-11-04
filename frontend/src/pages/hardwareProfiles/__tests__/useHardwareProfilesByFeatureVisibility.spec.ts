@@ -23,7 +23,7 @@ describe('filterHardwareProfileByFeatureVisibility', () => {
     expect(result.map((profile) => profile.metadata.name)).toEqual(['regular-profile']);
   });
 
-  it('should keep DRA profiles, including ones without identifiers, when includeDRA is set', () => {
+  it('should keep only valid DRA profiles when dra is "valid"', () => {
     const draProfile = mockHardwareProfile({
       name: 'dra-profile',
       dra: { resourceClaimTemplateName: 'single-gpu' },
@@ -38,7 +38,31 @@ describe('filterHardwareProfileByFeatureVisibility', () => {
     const result = filterHardwareProfileByFeatureVisibility(
       [draProfile, draOnlyProfile, regularProfile],
       undefined,
-      true,
+      'valid',
+    );
+
+    expect(result.map((profile) => profile.metadata.name)).toEqual([
+      'dra-profile',
+      'regular-profile',
+    ]);
+  });
+
+  it('should keep DRA profiles, including ones without identifiers, when dra is "all"', () => {
+    const draProfile = mockHardwareProfile({
+      name: 'dra-profile',
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const draOnlyProfile = mockHardwareProfile({
+      name: 'dra-only-profile',
+      identifiers: [],
+      dra: { resourceClaimTemplateName: 'single-gpu' },
+    });
+    const regularProfile = mockHardwareProfile({ name: 'regular-profile' });
+
+    const result = filterHardwareProfileByFeatureVisibility(
+      [draProfile, draOnlyProfile, regularProfile],
+      undefined,
+      'all',
     );
 
     expect(result.map((profile) => profile.metadata.name)).toEqual([

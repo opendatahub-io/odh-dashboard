@@ -31,6 +31,7 @@ import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
 import SourceModelFields from '~/app/components/SourceModelFields';
 import SourcePrerecordedFields from '~/app/components/SourcePrerecordedFields';
+import BenchmarkTestDataRefFields from '~/app/components/BenchmarkTestDataRefFields';
 import HardwareProfileField from '~/app/components/HardwareProfileField';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import {
@@ -39,6 +40,8 @@ import {
   useStartEvaluationRunForm,
 } from '~/app/pages/useStartEvaluationRunForm';
 import type { Collection, CollectionResolution, FlatBenchmark, SourceMode } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
 import './StartEvaluationRunModal.scss';
 
@@ -89,6 +92,25 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   const isStartInFlightRef = React.useRef(false);
   const cloneAbortControllerRef = React.useRef<AbortController | null>(null);
   const clonePendingChangeRef = React.useRef(onClonePendingChange);
+  const wasOpenRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
+        { surface: trackingSource ?? 'unknown' },
+        {
+          collectionType: collection
+            ? collection.resource.read_only
+              ? 'system'
+              : 'custom'
+            : 'unknown',
+          providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+        },
+      );
+    }
+    wasOpenRef.current = isOpen;
+  }, [benchmark, collection, isOpen, trackingSource]);
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',
@@ -414,8 +436,21 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                   accessToken={form.accessToken}
                   onAccessTokenChange={form.setAccessToken}
                   datasetUrlError={form.datasetUrlError}
+                  accessTokenError={form.accessTokenError}
                   touched={form.touched}
                   markTouched={form.markTouched}
+                />
+              ) : null}
+
+              {!isCollectionFlow && form.sourceMode === 'model' ? (
+                <BenchmarkTestDataRefFields
+                  value={form.testDataRef}
+                  idPrefix="start-evaluation-run-modal"
+                  testIdPrefix="start-evaluation-run-modal-test-data-ref"
+                  isDisabled={isCloning}
+                  isRequired={form.testDataRefRequired}
+                  errors={form.testDataRefErrors}
+                  onChange={form.setTestDataRef}
                 />
               ) : null}
 

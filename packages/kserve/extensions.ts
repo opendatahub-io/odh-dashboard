@@ -317,6 +317,7 @@ const extensions: (
       isActive: true,
       priority: 0,
       supportsOverwrite: true,
+      supportsDRAHardwareProfiles: true,
       deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
     },
     flags: {

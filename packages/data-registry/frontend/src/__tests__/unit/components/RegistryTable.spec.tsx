@@ -99,6 +99,14 @@ describe('RegistryTable', () => {
     expect(screen.getByText('Unstructured')).toBeTruthy();
   });
 
+  it('should left-align format values', () => {
+    renderTable();
+
+    const formatContent = screen.getByText('Apache Parquet').closest('.pf-v6-l-flex');
+    expect(formatContent).toHaveClass('pf-v6-u-display-inline-flex', 'pf-m-align-items-flex-start');
+    expect(formatContent?.parentElement).toHaveClass('pf-m-align-items-flex-start');
+  });
+
   it('should explain the asset location column', () => {
     renderTable();
 

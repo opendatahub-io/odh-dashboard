@@ -484,6 +484,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
               onClose={imageUploadState.uploading ? undefined : onRemoveImage}
               hasTruncation
               variant="outline"
+              className="pf-chatbot__file-label pf-v6-u-w-100 gen-ai-chatbot-image-file-label"
               data-testid="vision-file-preview"
             />
           )}

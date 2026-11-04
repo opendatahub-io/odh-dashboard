@@ -11,7 +11,22 @@ jest.mock('#~/redux/selectors', () => ({
 jest.mock('#~/pages/BYONImages/ImageStatusToggle', () => () => null);
 jest.mock('#~/pages/BYONImages/BYONImageHardwareProfiles', () => () => null);
 
-describe('BYONImagesTableRow tier label', () => {
+const renderTableRow = (image: ReturnType<typeof mapImageStreamToBYONImage>) =>
+  render(
+    <table>
+      <BYONImagesTableRow
+        obj={image}
+        images={[image]}
+        rowIndex={0}
+        hardwareProfiles={[[], true, undefined]}
+        onEditImage={jest.fn()}
+        onDeleteImage={jest.fn()}
+        claimSessionToggleIndex={jest.fn()}
+      />
+    </table>,
+  );
+
+describe('BYONImagesTableRow labels', () => {
   it.each([
     ['secure', 'Secure', 'blue'],
     ['Secure', 'Secure', 'blue'],
@@ -28,19 +43,7 @@ describe('BYONImagesTableRow tier label', () => {
           opts: { metadata: { annotations: { [ImageStreamAnnotation.NOTEBOOK_TIER]: tier } } },
         }),
       );
-      render(
-        <table>
-          <BYONImagesTableRow
-            obj={image}
-            images={[image]}
-            rowIndex={0}
-            hardwareProfiles={[[], true, undefined]}
-            onEditImage={jest.fn()}
-            onDeleteImage={jest.fn()}
-            claimSessionToggleIndex={jest.fn()}
-          />
-        </table>,
-      );
+      renderTableRow(image);
 
       const nameCell = screen.getByRole('cell', { name: /Test Image/ });
       expect(within(nameCell).getByTestId('pre-installed-label')).toBeVisible();
@@ -59,21 +62,38 @@ describe('BYONImagesTableRow tier label', () => {
         opts: { metadata: { labels: { 'app.kubernetes.io/created-by': 'byon' } } },
       }),
     );
-    render(
-      <table>
-        <BYONImagesTableRow
-          obj={image}
-          images={[image]}
-          rowIndex={0}
-          hardwareProfiles={[[], true, undefined]}
-          onEditImage={jest.fn()}
-          onDeleteImage={jest.fn()}
-          claimSessionToggleIndex={jest.fn()}
-        />
-      </table>,
-    );
+    renderTableRow(image);
 
     expect(screen.queryByTestId('pre-installed-label')).not.toBeInTheDocument();
     expect(screen.getByTestId('image-tier-label')).toHaveTextContent('Custom');
+  });
+
+  it.each([
+    ['true', true],
+    ['false', false],
+    [undefined, false],
+  ])('should display the Deprecated label only when the annotation is %s', (annotation, shown) => {
+    const image = mapImageStreamToBYONImage(
+      mockImageStreamK8sResource({
+        opts: {
+          metadata: {
+            annotations:
+              annotation === undefined
+                ? undefined
+                : { [ImageStreamAnnotation.DEPRECATED]: annotation },
+          },
+        },
+      }),
+    );
+    renderTableRow(image);
+
+    const deprecatedLabel = screen.queryByTestId('deprecated-image-label');
+    if (shown) {
+      expect(deprecatedLabel).toBeVisible();
+      expect(deprecatedLabel).toHaveTextContent('Deprecated');
+      expect(deprecatedLabel).toHaveClass('pf-m-yellow');
+    } else {
+      expect(deprecatedLabel).not.toBeInTheDocument();
+    }
   });
 });

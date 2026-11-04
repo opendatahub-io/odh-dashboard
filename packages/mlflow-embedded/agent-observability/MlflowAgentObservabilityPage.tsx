@@ -7,6 +7,7 @@ import { agentObservabilityBaseRoute, agentObservabilityPath } from '../shared/r
 const MlflowAgentObservabilityPage: React.FC = () => (
   <MlflowExperimentsPage
     pageTitle={AGENT_OBSERVABILITY_PAGE_TITLE}
+    setupFeatureName="agent observability"
     objectType={ProjectObjectType.agentObservability}
     basePath={agentObservabilityPath}
     getRedirectPath={agentObservabilityBaseRoute}

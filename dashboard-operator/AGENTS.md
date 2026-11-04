@@ -169,6 +169,8 @@ Container images are resolved from environment variables following the `RELATED_
 | `images-jobs-async-upload` | `RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE` |
 | `kube-rbac-proxy` | `RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE` |
 
+The Model Registry OCI upload base image is an intentional exception: administrators configure it through `Dashboard.spec.modelRegistryOCIBaseImage`, and the controller owns the resulting `model-registry-ui-config.data.images-oci-base-image` value. Do not add `images-oci-base-image` to `imagesMap` or introduce a `RELATED_IMAGE_*` mapping for it. The async-upload Job container image still follows the related-image convention above. See the [administrator guide](../docs/model-registry-oci-base-image.md) for configuration and fallback behavior.
+
 ## CLI Flags
 
 | Flag | Env Var | Default | Purpose |

@@ -1,10 +1,12 @@
 import {
+  ADMISSION_METRIC_IDS,
   admissionMetricResponsePredicate,
   buildAdmissionLeadTimeQuery,
   buildAdmissionRateQuery,
   buildLabelSelector,
   mapAdmissionMetricSeries,
   mapAdmissionLeadTimeSeries,
+  getAdmissionChartGridLeft,
 } from '../admissionMetrics';
 import { getWindowConfig } from '../../hooks/useWorkloadAdmissionMetrics';
 import {
@@ -16,6 +18,20 @@ import {
   getAdmissionMetricYInterval,
   getAdmissionTickInterval,
 } from '../workloadAdmissions';
+
+describe('getAdmissionChartGridLeft', () => {
+  it.each([
+    { metricId: ADMISSION_METRIC_IDS.rate, labelWidth: 6, expected: 45 },
+    { metricId: ADMISSION_METRIC_IDS.rate, labelWidth: 5, expected: 35 },
+    { metricId: ADMISSION_METRIC_IDS.leadTime, labelWidth: 5, expected: 50 },
+    { metricId: ADMISSION_METRIC_IDS.leadTime, labelWidth: 4, expected: 30 },
+    { metricId: ADMISSION_METRIC_IDS.waiting, labelWidth: 10, expected: 78 },
+    { metricId: ADMISSION_METRIC_IDS.waiting, labelWidth: 3, expected: 29 },
+    { metricId: ADMISSION_METRIC_IDS.active, labelWidth: 4, expected: 36 },
+  ])('returns expected grid-left for %#', ({ metricId, labelWidth, expected }) => {
+    expect(getAdmissionChartGridLeft(metricId, labelWidth)).toBe(expected);
+  });
+});
 
 const PROMETHEUS_CLUSTER_QUEUE_LABEL = 'cluster_queue';
 const ESCAPED_CLUSTER_QUEUE_SELECTOR =
@@ -213,13 +229,13 @@ describe('formatAdmissionTimestamp', () => {
       expected: 'Oct 15',
     },
     {
-      name: 'shorter ranges crossing midnight with date and time',
+      name: '1-hour ranges crossing midnight with time-only labels',
       timeWindow: '1h',
       domain: [new Date(2026, 9, 15, 23, 0).getTime(), new Date(2026, 9, 16, 1, 0).getTime()] as [
         number,
         number,
       ],
-      expected: 'Oct 15, 10:00 PM',
+      expected: '10:00 PM',
     },
     {
       name: '24-hour ranges crossing midnight with time-only labels',

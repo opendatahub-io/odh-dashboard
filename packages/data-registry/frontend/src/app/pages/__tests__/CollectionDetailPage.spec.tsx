@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useParams } from 'react-router-dom';
 import * as useCollectionDetailHook from '~/app/hooks/useCollectionDetail';
 import * as useAssetsHook from '~/app/hooks/useAssets';
 import * as useCollectionsHook from '~/app/hooks/useCollections';
@@ -17,7 +17,7 @@ jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useLabels');
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ project: 'demo-user-1', collection: 'default' }),
+  useParams: jest.fn(() => ({ project: 'demo-user-1', collection: 'default' })),
   useNavigate: () => jest.fn(),
 }));
 
@@ -35,6 +35,7 @@ const mockCollectionDetail: CollectionDetail = {
 describe('CollectionDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(useParams).mockReturnValue({ project: 'demo-user-1', collection: 'default' });
 
     jest
       .mocked(useCollectionDetailHook.useCollectionDetail)
@@ -98,6 +99,25 @@ describe('CollectionDetailPage', () => {
     expect(screen.getByTestId('collection-action-manage-collections')).toBeInTheDocument();
   });
 
+  it('should place the dangerous delete action last with a divider above it', () => {
+    render(
+      <BrowserRouter>
+        <CollectionDetailPage />
+      </BrowserRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('collection-actions-toggle'));
+
+    const menu = screen.getByRole('menu');
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent.trim()),
+    ).toEqual(['Register data', 'Manage collections', 'Delete collection']);
+    expect(screen.getByTestId('collection-action-delete')).toHaveClass('pf-m-danger');
+    expect(menu.querySelector('.pf-v6-c-divider')).toBeInTheDocument();
+  });
+
   it('should disable delete action when collection has assets', () => {
     render(
       <BrowserRouter>
@@ -111,8 +131,37 @@ describe('CollectionDetailPage', () => {
     expect(deleteAction).toHaveClass('pf-m-aria-disabled');
   });
 
-  it('should enable delete action when collection is empty', () => {
-    const emptyCollectionDetail: CollectionDetail = {
+  it('should explain that assets must be removed before deleting a non-default collection', async () => {
+    const user = userEvent.setup();
+    const nonDefaultCollection: CollectionDetail = {
+      ...mockCollectionDetail,
+      name: 'analytics',
+    };
+
+    jest
+      .mocked(useCollectionDetailHook.useCollectionDetail)
+      .mockReturnValue([nonDefaultCollection, true, undefined, jest.fn()]);
+    jest.mocked(useParams).mockReturnValue({ project: 'demo-user-1', collection: 'analytics' });
+
+    render(
+      <BrowserRouter>
+        <CollectionDetailPage />
+      </BrowserRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('collection-actions-toggle'));
+
+    const deleteAction = screen.getByTestId('collection-action-delete');
+    expect(deleteAction).toHaveClass('pf-m-aria-disabled');
+    await user.hover(deleteAction);
+    expect(
+      await screen.findByText('Remove all associated assets to delete this collection'),
+    ).toBeInTheDocument();
+  });
+
+  it('should disable the default collection delete action with an explanation', async () => {
+    const user = userEvent.setup();
+    const emptyDefaultCollection: CollectionDetail = {
       ...mockCollectionDetail,
       assets: [],
       structuredCount: 0,
@@ -121,7 +170,37 @@ describe('CollectionDetailPage', () => {
 
     jest
       .mocked(useCollectionDetailHook.useCollectionDetail)
+      .mockReturnValue([emptyDefaultCollection, true, undefined, jest.fn()]);
+
+    render(
+      <BrowserRouter>
+        <CollectionDetailPage />
+      </BrowserRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('collection-actions-toggle'));
+
+    const deleteAction = screen.getByTestId('collection-action-delete');
+    expect(deleteAction).toHaveClass('pf-m-aria-disabled');
+    await user.hover(deleteAction);
+    expect(
+      await screen.findByText('The default collection cannot be deleted.'),
+    ).toBeInTheDocument();
+  });
+
+  it('should enable delete action when collection is empty', () => {
+    const emptyCollectionDetail: CollectionDetail = {
+      ...mockCollectionDetail,
+      name: 'analytics',
+      assets: [],
+      structuredCount: 0,
+      unstructuredCount: 0,
+    };
+
+    jest
+      .mocked(useCollectionDetailHook.useCollectionDetail)
       .mockReturnValue([emptyCollectionDetail, true, undefined, jest.fn()]);
+    jest.mocked(useParams).mockReturnValue({ project: 'demo-user-1', collection: 'analytics' });
 
     render(
       <BrowserRouter>
@@ -199,15 +278,17 @@ describe('CollectionDetailPage', () => {
     expect(screen.getByTestId('collection-empty-register-data-button')).toBeDisabled();
   });
 
-  it('should render overview tab by default', () => {
+  it('should render collection details without an overview tab', () => {
     render(
       <BrowserRouter>
         <CollectionDetailPage />
       </BrowserRouter>,
     );
 
-    expect(screen.getByTestId('detail-tabs')).toBeInTheDocument();
-    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.queryByTestId('detail-tabs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Overview')).not.toBeInTheDocument();
+    expect(screen.getByTestId('data-assets-card')).toBeInTheDocument();
+    expect(screen.getByTestId('collection-details-card')).toBeInTheDocument();
   });
 
   it('should display loading state', () => {

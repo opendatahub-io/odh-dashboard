@@ -1,17 +1,24 @@
 import React from 'react';
 import type { StatusProviderHook } from '@odh-dashboard/plugin-core/extension-points';
-import { useWatchHardwareProfiles } from '@odh-dashboard/internal/utilities/useWatchHardwareProfiles';
+import { useWatchHardwareProfiles } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors';
 import {
   generateWarningForHardwareProfiles,
   HardwareProfileBannerWarningTitles,
 } from './pages/utils';
+import { useIsDRAHardwareProfileEnabled } from '../shared/useIsDRAHardwareProfileEnabled';
+import { filterHardwareProfilesByDRAAvailability } from '../shared/utils';
 
 export const useHardwareProfilesStatusProvider: StatusProviderHook = () => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [hardwareProfiles] = useWatchHardwareProfiles(dashboardNamespace);
+  const [allHardwareProfiles] = useWatchHardwareProfiles(dashboardNamespace);
+  const isDRAEnabled = useIsDRAHardwareProfileEnabled();
+  const hardwareProfiles = React.useMemo(
+    () => filterHardwareProfilesByDRAAvailability(allHardwareProfiles, isDRAEnabled),
+    [allHardwareProfiles, isDRAEnabled],
+  );
 
-  const warning = generateWarningForHardwareProfiles(hardwareProfiles);
+  const warning = generateWarningForHardwareProfiles(hardwareProfiles, isDRAEnabled);
   const warningMessage =
     warning?.title === HardwareProfileBannerWarningTitles.ALL_INVALID ? warning.title : undefined;
 

@@ -31,6 +31,21 @@ spec:
             matchLabels:
               network.openshift.io/policy-group: ingress
   egress:
+    # The Data Registry Service exposes HTTPS on 443 and forwards to the
+    # kube-rbac-proxy sidecar on pod port 8443.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: rhoai-data-registry
+          podSelector:
+            matchLabels:
+              feast.dev/name: data-registry
+              feast.dev/service-type: data-registry
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8443
     - to:
         - podSelector:
             matchLabels:

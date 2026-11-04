@@ -19,6 +19,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
 import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
@@ -61,6 +62,7 @@ const TopologyConfigurationCreateEditInner: React.FC<{
   sourceConfig?: LLMInferenceServiceConfigKind;
   isDuplicate: boolean;
 }> = ({ sourceConfig, isDuplicate }) => {
+  const trackEvent = useTrackEvent();
   const listPath = TOPOLOGY_CONFIGS_TAB_PATH;
   const { topologyType, configName } = useParams<{
     topologyType?: string;
@@ -264,14 +266,14 @@ const TopologyConfigurationCreateEditInner: React.FC<{
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
-        fireTopologyConfigUpdated({
+        fireTopologyConfigUpdated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           topologyType: resolvedTopologyType,
         });
       } else {
         await createLLMInferenceServiceConfig(newConfig);
-        fireTopologyConfigCreated({
+        fireTopologyConfigCreated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           mode: isDuplicate ? 'duplicate' : 'create',
@@ -288,13 +290,13 @@ const TopologyConfigurationCreateEditInner: React.FC<{
         err.message,
       );
       if (isEditMode) {
-        fireTopologyConfigUpdated({
+        fireTopologyConfigUpdated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
           topologyType: resolvedTopologyType,
         });
       } else {
-        fireTopologyConfigCreated({
+        fireTopologyConfigCreated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
           mode: isDuplicate ? 'duplicate' : 'create',
@@ -389,9 +391,9 @@ const TopologyConfigurationCreateEditInner: React.FC<{
             isDisabled={loading}
             onClick={() => {
               if (isEditMode) {
-                fireTopologyConfigUpdated({ outcome: TrackingOutcome.cancel });
+                fireTopologyConfigUpdated(trackEvent, { outcome: TrackingOutcome.cancel });
               } else {
-                fireTopologyConfigCreated({
+                fireTopologyConfigCreated(trackEvent, {
                   outcome: TrackingOutcome.cancel,
                   mode: isDuplicate ? 'duplicate' : 'create',
                 });

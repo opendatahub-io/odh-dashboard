@@ -26,6 +26,7 @@ export type DashboardViewProps = {
   projects: NamespaceOption[];
   projectsLoaded: boolean;
   projectsLoadError?: Error;
+  requireProjectsForNamespaceDashboards?: boolean;
   projectsLoadErrorPage?: React.ReactNode;
   projectsForbiddenErrorPage?: React.ReactNode;
   persesProxyBasePath?: string;
@@ -44,6 +45,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   projects,
   projectsLoaded,
   projectsLoadError,
+  requireProjectsForNamespaceDashboards = true,
   projectsLoadErrorPage,
   projectsForbiddenErrorPage,
   persesProxyBasePath,
@@ -54,8 +56,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   const hasProjects = projects.length > 0;
   const viewableDashboards = React.useMemo(
     () =>
-      hasProjects ? dashboards : dashboards.filter((dashboard) => !hasNamespaceVariable(dashboard)),
-    [dashboards, hasProjects],
+      hasProjects || !requireProjectsForNamespaceDashboards
+        ? dashboards
+        : dashboards.filter((dashboard) => !hasNamespaceVariable(dashboard)),
+    [dashboards, hasProjects, requireProjectsForNamespaceDashboards],
   );
 
   if (dashboardsError || projectsLoadError) {

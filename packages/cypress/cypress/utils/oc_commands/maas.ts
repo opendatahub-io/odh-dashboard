@@ -1238,19 +1238,11 @@ export const checkMaaSSubscriptionState = (
   )} -o json`;
 
   if (options.expectDeleted === true) {
-    cy.log(`Checking MaaSSubscription is absent: ${name} in namespace ${ns}`);
-    return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-      if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
-        cy.log(`✅ MaaSSubscription ${name} is absent from namespace ${ns}`);
-        return cy.wrap(result);
-      }
-      if (result.exitCode === 0) {
-        throw new Error(`MaaSSubscription ${name} still exists in namespace ${ns}`);
-      }
-      throw new Error(
-        `Unexpected oc error while verifying MaaSSubscription deletion: ${result.stderr}`,
-      );
-    });
+    return assertMaaSResourceDeleted(
+      `MaaSSubscription ${name} in namespace ${ns}`,
+      ocCommand,
+      options,
+    );
   }
   cy.log(`Checking MaaSSubscription exists: ${name} in namespace ${ns}`);
   const resourceLabel = `MaaSSubscription ${name} in namespace ${ns}`;

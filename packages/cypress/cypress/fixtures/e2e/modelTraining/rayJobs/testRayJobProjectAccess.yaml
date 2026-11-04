@@ -1,6 +1,7 @@
 projectName: rayjob-access-test
 rayJobName: test-ray-job
 rayImage: rayproject/ray:2.9.0
+rayImageArm64: rayproject/ray:2.9.0-py310-cpu-aarch64
 flavorName: default-flavor
 clusterQueueName: default
 localQueueName: default

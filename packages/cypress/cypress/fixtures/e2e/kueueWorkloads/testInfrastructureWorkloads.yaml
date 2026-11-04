@@ -1,0 +1,17 @@
+managedProjectName: 'workloads-managed'
+nonKueueProjectName: 'workloads-non-kueue'
+emptyProjectName: 'workloads-empty'
+trainJobName: 'workloads-trainjob'
+trainingRuntimeName: 'workloads-runtime'
+managedProjectWorkbenchName: 'managed-workbench'
+nonKueueProjectWorkbenchName: 'non-kueue-workbench'
+resourceFlavorName: 'workloads-flavor'
+clusterQueueName: 'workloads-cluster-queue'
+localQueueName: 'workloads-local-queue'
+initialCpuQuota: 0
+memoryQuota: 4
+notebookImage: 'code-server-notebook'
+hardwareProfileName: 'workloads-non-kueue-profile'
+nonKueueLabel: 'Non-Kueue'
+priorityClassColumnLabel: 'Priority class'
+expectedQueuePosition: 1

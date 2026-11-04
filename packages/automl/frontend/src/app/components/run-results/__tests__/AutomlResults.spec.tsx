@@ -88,6 +88,7 @@ jest.mock('~/app/utilities/utils', () => ({
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useFetchS3File: jest.fn(() => mockFetchS3File),
+  useTaskExecutorError: jest.fn(() => ({ isLoading: false, isError: false })),
 }));
 
 const mockPipelineRun: PipelineRun = {

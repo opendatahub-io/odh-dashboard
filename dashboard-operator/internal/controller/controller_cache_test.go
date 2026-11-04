@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -26,13 +27,15 @@ func TestManagerCacheOptions(t *testing.T) {
 	const applicationsNamespace = "applications"
 	mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{
 		gatewayv1.SchemeGroupVersion,
+		routev1.SchemeGroupVersion,
 		consoleLinkGVK.GroupVersion(),
 	})
 	mapper.Add(gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute"), meta.RESTScopeNamespace)
+	mapper.Add(routev1.SchemeGroupVersion.WithKind("Route"), meta.RESTScopeNamespace)
 	mapper.Add(consoleLinkGVK, meta.RESTScopeRoot)
 	options, err := ManagerCacheOptions(applicationsNamespace, mapper)
 	require.NoError(t, err)
-	require.Len(t, options.ByObject, 11)
+	assert.True(t, options.ReaderFailOnMissingInformer)
 
 	for _, object := range []client.Object{
 		&appsv1.Deployment{},
@@ -40,6 +43,7 @@ func TestManagerCacheOptions(t *testing.T) {
 		&corev1.ServiceAccount{},
 		&policyv1.PodDisruptionBudget{},
 		&gatewayv1.HTTPRoute{},
+		&routev1.Route{},
 	} {
 		configuration := requireCacheConfiguration(t, options.ByObject, object)
 		assert.Equal(t, map[string]cache.Config{applicationsNamespace: {}}, configuration.Namespaces)
@@ -72,9 +76,10 @@ func TestManagerCacheOptions(t *testing.T) {
 func TestManagerCacheOptionsWithoutOptionalAPIs(t *testing.T) {
 	options, err := ManagerCacheOptions("applications", meta.NewDefaultRESTMapper(nil))
 	require.NoError(t, err)
-	assert.Len(t, options.ByObject, 9)
+	assert.True(t, options.ReaderFailOnMissingInformer)
 	for object := range options.ByObject {
 		assert.NotEqual(t, reflect.TypeOf(&gatewayv1.HTTPRoute{}), reflect.TypeOf(object))
+		assert.NotEqual(t, reflect.TypeOf(&routev1.Route{}), reflect.TypeOf(object))
 		_, unstructuredObject := object.(*unstructured.Unstructured)
 		assert.False(t, unstructuredObject)
 	}

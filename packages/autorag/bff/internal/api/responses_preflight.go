@@ -111,7 +111,7 @@ func isAllowedResponseProperty(path []string, key string) bool {
 	case "tool_choice":
 		return key == "type"
 	case "ranking_options":
-		return key == "ranker" || key == "alpha"
+		return key == "ranker" || key == "alpha" || key == "ranker_k"
 	case "metadata":
 		return true
 	default:

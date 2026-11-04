@@ -51,16 +51,6 @@ describe('isReusableCollectionCopy', () => {
     expect(isReusableCollectionCopy(sourceCollection, unchangedCopy)).toBe(true);
   });
 
-  it('should support legacy nested lineage metadata', () => {
-    expect(
-      isReusableCollectionCopy(sourceCollection, {
-        ...unchangedCopy,
-        derived_from: undefined,
-        state: { derived_from: 'curated-suite', run_count: 2, pinned_order: 3 },
-      }),
-    ).toBe(true);
-  });
-
   it('should reject a child with a different parent', () => {
     expect(
       isReusableCollectionCopy(sourceCollection, {
@@ -98,7 +88,7 @@ describe('getAllTenantCollections', () => {
     const firstPage = Array.from({ length: 100 }, (_, index) => ({
       ...sourceCollection,
       resource: { id: `other-suite-${index}` },
-      state: { derived_from: `other-parent-${index}` },
+      derived_from: `other-parent-${index}`,
     }));
     const secondPage = [unchangedCopy];
     const firstRequest = jest.fn().mockResolvedValue({

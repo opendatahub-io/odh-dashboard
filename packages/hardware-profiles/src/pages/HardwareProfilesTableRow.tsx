@@ -178,6 +178,20 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
             resource={hardwareProfile}
             truncateDescriptionLines={2}
             wrapResourceTitle={false}
+            label={
+              isDRAHardwareProfile(hardwareProfile) ? (
+                <div>
+                  <Label
+                    color="orange"
+                    variant="outline"
+                    isCompact
+                    data-testid="hardware-profile-tech-preview-label"
+                  >
+                    Tech Preview
+                  </Label>
+                </div>
+              ) : undefined
+            }
             titleIcon={
               hardwareProfileWarnings.length > 0 && (
                 <Popover

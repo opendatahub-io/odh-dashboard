@@ -37,7 +37,7 @@ metadata:
   name: data-registry
   namespace: <registry-namespace>
   annotations:
-    opendatahub.io/data-registry-enabled: "true"
+    opendatahub.io/data-registry-enabled: 'true'
 spec:
   feastProject: data-registry
   authz:
@@ -85,13 +85,13 @@ credentials.
 
 ## 2. Forward the Registry API
 
-For local dashboard development, forward the Data Registry service's TLS port
-`8443`:
+For local dashboard development, forward local port `8443` to the Data Registry
+service's HTTPS port `443`:
 
 ```bash
 REGISTRY_NAMESPACE=<registry-namespace>
 oc port-forward -n "$REGISTRY_NAMESPACE" \
-  service/feast-data-registry 8443:8443
+  service/feast-data-registry-data-registry 8443:443
 ```
 
 Verify the API before starting the dashboard:
@@ -107,9 +107,11 @@ This uses the in-cluster `kube-rbac-proxy`, so requests require the developer's
 OpenShift token. `--insecure` is limited to the local port-forward because the
 development certificate is not normally trusted by the host.
 
-> **Security follow-up:** This local workflow currently disables TLS certificate
-> verification for the port-forward. CA-bundle support for the Data Registry BFF
-> reverse proxy will be addressed in a follow-up security issue.
+The BFF reverse proxy supports CA bundles configured through `--bundle-paths`.
+The local command below explicitly sets `--insecure-skip-verify=true` because
+the port-forward URL uses `127.0.0.1`, which does not match the service
+certificate's hostname. Operator-managed deployments use the service hostname
+and configured service CA with certificate verification enabled.
 
 ## 3. Start the Local Services
 

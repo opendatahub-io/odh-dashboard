@@ -47,6 +47,16 @@ func responsesRequestWithNamespace(method, url, body, namespace string) *http.Re
 	return req
 }
 
+type trackingReader struct {
+	io.Reader
+	read bool
+}
+
+func (r *trackingReader) Read(p []byte) (int, error) {
+	r.read = true
+	return r.Reader.Read(p)
+}
+
 type failingSSEWriter struct {
 	*httptest.ResponseRecorder
 	failAt   int
@@ -219,7 +229,7 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 		},
 		{
 			name:           "unsupported ranking field returns 400",
-			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","ranker_k":60}}]`, 1),
+			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","ranker_strategy":"rrf"}}]`, 1),
 			wantStatusCode: http.StatusBadRequest,
 			wantBodySubstr: "invalid request body",
 		},
@@ -234,6 +244,12 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"alpha":0.5}}]`, 1),
 			wantStatusCode: http.StatusBadRequest,
 			wantBodySubstr: "requires ranking_options.ranker",
+		},
+		{
+			name:           "ranker k at Milvus maximum returns 400 without calling repository",
+			body:           strings.Replace(validResponsesBody, `"vector_store_ids":["col1"]}]`, `"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","ranker_k":16384}}]`, 1),
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "greater than 0 and less than",
 		},
 		{
 			name:           "missing embedding model returns 400 without calling repository",
@@ -325,6 +341,13 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			wantBodySubstr: "vector database is unavailable",
 		},
 		{
+			name:           "vector database query rejection returns 502 with safe message",
+			body:           validResponsesBody,
+			repoErr:        fmt.Errorf("search: %w: raw server rejection detail", vectordb.ErrDatabaseQueryFailed),
+			wantStatusCode: http.StatusBadGateway,
+			wantBodySubstr: "vector database rejected the search",
+		},
+		{
 			name:           "unsupported vector search returns 400",
 			body:           validResponsesBody,
 			repoResult:     nil,
@@ -353,6 +376,72 @@ func TestHandleResponsesEndpoint_NonStreaming(t *testing.T) {
 			if tt.name == "vector database timeout returns 503 with safe message" {
 				assert.NotContains(t, rr.Body.String(), "raw endpoint and credentials")
 			}
+			repo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestHandleResponsesEndpoint_AllowsValidLowerRRFK(t *testing.T) {
+	h, repo := newTestResponsesHandler()
+	repo.On("HandleResponses", mock.Anything, validParams, mock.Anything).
+		Return(&models.RAGResponse{Answer: "the answer"}, nil)
+
+	body := strings.Replace(
+		validResponsesBody,
+		`"vector_store_ids":["col1"]}]`,
+		`"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","ranker_k":0.001}}]`,
+		1,
+	)
+	req := responsesRequestWithNamespace(
+		http.MethodPost,
+		"/api/v1/responses?dbSecretName=milvus&maasSecretName=maas-secret",
+		body,
+		"test-ns",
+	)
+	rr := httptest.NewRecorder()
+	h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	repo.AssertExpectations(t)
+}
+
+func TestHandleResponsesEndpoint_ContentType(t *testing.T) {
+	url := "/api/v1/responses?dbSecretName=milvus&maasSecretName=maas-secret"
+	tests := []struct {
+		name        string
+		contentType string
+		wantStatus  int
+		wantRead    bool
+	}{
+		{name: "application/json", contentType: "application/json", wantStatus: http.StatusOK, wantRead: true},
+		{name: "application/json with charset", contentType: "application/json; charset=utf-8", wantStatus: http.StatusOK, wantRead: true},
+		{name: "missing", wantStatus: http.StatusBadRequest},
+		{name: "text/plain", contentType: "text/plain", wantStatus: http.StatusBadRequest},
+		{name: "malformed", contentType: "application/json; charset", wantStatus: http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, repo := newTestResponsesHandler()
+			if tt.wantRead {
+				repo.On("HandleResponses", mock.Anything, validParams, mock.Anything).
+					Return(&models.RAGResponse{Answer: "the answer"}, nil)
+			}
+
+			req := responsesRequestWithNamespace(http.MethodPost, url, validResponsesBody, "test-ns")
+			if tt.contentType == "" {
+				req.Header.Del("Content-Type")
+			} else {
+				req.Header.Set("Content-Type", tt.contentType)
+			}
+			body := &trackingReader{Reader: req.Body}
+			req.Body = io.NopCloser(body)
+			rr := httptest.NewRecorder()
+
+			h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+			assert.Equal(t, tt.wantStatus, rr.Code)
+			assert.Equal(t, tt.wantRead, body.read)
 			repo.AssertExpectations(t)
 		})
 	}
@@ -567,6 +656,28 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 		repo.AssertExpectations(t)
 	})
 
+	t.Run("database query rejection emits classified safe error event then DONE", func(t *testing.T) {
+		var logs bytes.Buffer
+		repo := new(mockResponsesRepo)
+		h := &ResponsesHandler{logger: slog.New(slog.NewTextHandler(&logs, nil)), repo: repo}
+
+		repo.On("HandleResponsesStream", mock.Anything, validParams, mock.Anything, mock.AnythingOfType("func(string)")).
+			Return(nil, fmt.Errorf("neo4j search: %w: raw server rejection detail", vectordb.ErrDatabaseQueryFailed))
+		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).Return(nil)
+
+		req := responsesRequestWithNamespace(http.MethodPost, url, streamingResponsesBody, ns)
+		rr := httptest.NewRecorder()
+		h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		body := rr.Body.String()
+		assert.Contains(t, body, `"code":"vector_database_query_failed"`)
+		assert.Contains(t, body, `"message":"The vector database rejected the search."`)
+		assert.NotContains(t, body, "raw server rejection detail")
+		assert.Contains(t, body, "[DONE]")
+		repo.AssertExpectations(t)
+	})
+
 	t.Run("unsupported streaming search returns 400 before SSE headers", func(t *testing.T) {
 		h, repo := newTestResponsesHandler()
 		repo.On("ValidateResponses", mock.Anything, validParams, mock.Anything).
@@ -586,6 +697,27 @@ func TestHandleResponsesEndpoint_Streaming(t *testing.T) {
 		assert.NotContains(t, rr.Body.String(), "response.created")
 		repo.AssertExpectations(t)
 	})
+
+	for _, rankerK := range []float64{0, 16384} {
+		t.Run(fmt.Sprintf("invalid RRF ranker k %v returns 400 before SSE headers", rankerK), func(t *testing.T) {
+			h, repo := newTestResponsesHandler()
+
+			req := responsesRequestWithNamespace(http.MethodPost, url, strings.Replace(
+				streamingResponsesBody,
+				`"vector_store_ids":["col1"]}]`,
+				fmt.Sprintf(`"vector_store_ids":["col1"],"ranking_options":{"ranker":"rrf","ranker_k":%v}}]`, rankerK),
+				1,
+			), ns)
+			rr := httptest.NewRecorder()
+			h.HandleResponsesEndpoint(rr, req, httprouter.Params{})
+
+			assert.Equal(t, http.StatusBadRequest, rr.Code)
+			assert.NotEqual(t, "text/event-stream", rr.Header().Get("Content-Type"))
+			assert.NotContains(t, rr.Body.String(), "response.created")
+			repo.AssertNotCalled(t, "ValidateResponses", mock.Anything, mock.Anything, mock.Anything)
+			repo.AssertNotCalled(t, "HandleResponsesStream", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		})
+	}
 
 	t.Run("unsupported dense vector DB returns 400 before SSE headers", func(t *testing.T) {
 		h, repo := newTestResponsesHandler()

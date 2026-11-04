@@ -14,6 +14,8 @@
 export { default as DeleteRunModal } from './DeleteRunModal';
 export { default as EmptyExperimentsState } from './EmptyExperimentsState';
 export { default as EnableManagedPipelinesModal } from './EnableManagedPipelinesModal';
+export { default as ExecutorLogsTearsheet } from './ExecutorLogsTearsheet';
+export type { ExecutorLogsTearsheetProps } from './ExecutorLogsTearsheet';
 export { default as InvalidExperiment } from './InvalidExperiment';
 export { default as InvalidPipelineRun } from './InvalidPipelineRun';
 export { default as NoProjects } from './NoProjects';

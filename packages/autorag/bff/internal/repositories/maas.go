@@ -15,13 +15,23 @@ import (
 var ErrMaaSCredentialValidation = errors.New("MaaS credential validation failed")
 
 type MaaSRepository struct {
-	maasClient maas.MaaSClientInterface
-	k8sService kubernetes.Service
-	logger     *slog.Logger
+	maasClient      maas.MaaSClientInterface
+	k8sService      kubernetes.Service
+	logger          *slog.Logger
+	gatewayResolver maas.GatewayHostResolver
 }
 
-func NewMaaSRepository(logger *slog.Logger, maasClient maas.MaaSClientInterface, k8sService kubernetes.Service) *MaaSRepository {
-	return &MaaSRepository{maasClient: maasClient, k8sService: k8sService, logger: logger}
+func NewMaaSRepository(logger *slog.Logger, maasClient maas.MaaSClientInterface, k8sService kubernetes.Service, resolvers ...maas.GatewayHostResolver) *MaaSRepository {
+	var gatewayResolver maas.GatewayHostResolver
+	if len(resolvers) > 0 {
+		gatewayResolver = resolvers[0]
+	}
+	return &MaaSRepository{
+		maasClient:      maasClient,
+		k8sService:      k8sService,
+		logger:          logger,
+		gatewayResolver: gatewayResolver,
+	}
 }
 
 func (r *MaaSRepository) GetMaaSModels(ctx context.Context, namespace, secretName string) (*models.MaaSModelsData, error) {
@@ -43,6 +53,7 @@ func (r *MaaSRepository) GetMaaSModels(ctx context.Context, namespace, secretNam
 		return nil, fmt.Errorf("invalid MaaS base URL: %w", err)
 	}
 
+	ctx = trustedMaaSContext(ctx, validatedURL, r.gatewayResolver, r.logger)
 	nativeModels, err := r.maasClient.ListModels(ctx, validatedURL.String(), apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list MaaS models: %w", err)

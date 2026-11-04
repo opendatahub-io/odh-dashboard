@@ -42,7 +42,7 @@ const (
 
 	// Cache-Control is applied selectively. Console also sends Pragma: no-cache
 	// and no-store on every response.
-	CacheControlNoStore                       = "no-cache, no-store, must-revalidate"
+	CacheControlNoStore                       = "no-cache, no-store, private, max-age=0, must-revalidate"
 	ReferrerPolicyStrictOriginWhenCrossOrigin = "strict-origin-when-cross-origin"
 	XContentTypeOptionsNoSniff                = "nosniff"
 	CrossOriginOpenerPolicySameOrigin         = "same-origin"

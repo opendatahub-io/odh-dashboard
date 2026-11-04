@@ -1,0 +1,26 @@
+// Tearsheet body: make the code block fill the sheet and scroll inside it.
+.autox-executor-logs__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.autox-executor-logs__block {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+
+  // PF's CodeBlock wraps the <pre> in a .pf-v6-c-code-block__content div —
+  // it must pass the bounded height through and own the scrolling, or the log
+  // overflows the code block and the whole tearsheet body scrolls instead.
+  .pf-v6-c-code-block__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+}
+
+.autox-executor-logs__content {
+  margin: 0;
+}

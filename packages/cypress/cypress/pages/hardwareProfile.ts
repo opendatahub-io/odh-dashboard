@@ -56,6 +56,10 @@ class HardwareProfileRow extends TableRow {
     return this.find().findByTestId('dra-enable-switch-help');
   }
 
+  findTechPreviewLabel() {
+    return this.find().findByTestId('hardware-profile-tech-preview-label');
+  }
+
   findAllFeaturesText() {
     return this.find().findByTestId('feature-visibility-all');
   }

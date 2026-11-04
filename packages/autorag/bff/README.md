@@ -73,8 +73,19 @@ make run LOG_LEVEL=DEBUG
 | `-cert-file`                    | `CERT_FILE`                    | TLS certificate path (enables TLS when paired with key)                                                            |
 | `-key-file`                     | `KEY_FILE`                     | TLS key path                                                                                                       |
 | `-insecure-skip-verify`         | `INSECURE_SKIP_VERIFY`         | Skip upstream TLS verify (dev only)                                                                                |
+| `-gateway-domain`               | `GATEWAY_DOMAIN`               | Dashboard gateway domain; enables router CA synchronization                                                        |
+| `-pod-namespace`                | `POD_NAMESPACE`                | Namespace used for in-cluster MaaS BFF discovery and router CA synchronization                                   |
+| `-bff-maas-service-name`        | `BFF_MAAS_SERVICE_NAME`        | In-cluster MaaS BFF Service name (default `odh-dashboard-maas-ui`)                                               |
+| `-bff-maas-service-port`        | `BFF_MAAS_SERVICE_PORT`        | In-cluster MaaS BFF Service port (default `8243`)                                                                 |
+| `-bff-maas-tls-enabled`         | `BFF_MAAS_TLS_ENABLED`         | Use TLS for in-cluster MaaS BFF discovery (default `true`)                                                        |
+| `-bff-maas-auth-token-header`   | `BFF_MAAS_AUTH_TOKEN_HEADER`   | Header used to forward the authenticated user token to MaaS BFF                                                  |
+| `-bff-maas-auth-token-prefix`   | `BFF_MAAS_AUTH_TOKEN_PREFIX`   | Optional prefix for the forwarded user token                                                                      |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ## Running the linter locally
 
@@ -128,6 +139,10 @@ Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 - **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
 - **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true`). Useful for local testing. **Not recommended for production.**
 - Mock MaaS model discovery is enabled with `MOCK_MAAS_CLIENT=true`; fully mocked Makefile targets set this automatically so fake MaaS credentials never reach an external service.
+- In production, AutoRAG asks the in-cluster MaaS BFF for the discovered `maas-default-gateway` URL. The returned exact HTTPS origin is cached for five minutes and is used only to permit that origin's private ingress address; the selected Secret's `MAAS_BASE_URL` and `MAAS_API_KEY` remain the direct data-plane credentials.
+- If MaaS BFF discovery is unavailable, public MaaS endpoints continue under normal SSRF validation, while private destinations remain blocked. Development modes without a bearer token skip discovery safely.
+- Router CA synchronization is asynchronous and bounded so BFF startup is never blocked; private MaaS calls may remain unavailable briefly while the initial trust bundle is loaded, then the bundle is refreshed periodically.
+- AutoRAG synchronizes only the public `tls.crt` from `openshift-ingress-operator/router-ca` into `autorag-router-ca-bundle`; private keys are not used, copied, persisted, or logged. Optimization/indexing runtime pods are outside this BFF contract and require separate runtime-image validation.
 
 ### Sample local calls
 
@@ -155,10 +170,10 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 | Parameter | Description |
 |---|---|
 | `namespace` | Kubernetes namespace where the secrets live |
-| `dbSecretName` | Name of the K8s secret with database credentials (auto-detected: Milvus or pgvector) |
+| `dbSecretName` | Name of the K8s secret with database credentials (auto-detected: Milvus, pgvector, or Neo4j) |
 | `maasSecretName` | Name of the K8s secret with MaaS credentials (`MAAS_BASE_URL`, `MAAS_API_KEY`) |
 
-**Request body** — OpenAI Responses API format. The `ranking_options` shown below requests hybrid RRF, which is supported by the pgvector adapter only:
+**Request body** — OpenAI Responses API format. The `ranking_options` shown below requests hybrid RRF against pgvector:
 
 ```json
 {
@@ -190,7 +205,11 @@ Executes a RAG query and streams the answer back as [OpenAI Responses API](https
 
 - `input` — conversation history; the last `user` message is the question; an optional `system` message is injected into the chat prompt
 - `tools[].vector_store_ids[0]` — logical vector DB collection name. IDs may contain only letters, numbers, `_`, `-`, and `.`; `-` and `.` are canonicalized to `_` before adapter lookup. Logical names that canonicalize to the same ID cannot coexist (for example, `my-store` and `my.store`).
-- `tools[].ranking_options` — optional supported fields are `ranker: "rrf"` and `alpha` from 0 through 1. Omit the object for dense search; include it for pgvector hybrid RRF search. Milvus rejects hybrid requests because sparse hybrid retrieval is not implemented. `search_mode`, `ranker_strategy`, `ranker_k`, and other ranking fields are rejected rather than ignored.
+- `tools[].ranking_options` — omit for dense search. `ranker: "rrf"` selects hybrid RRF on Milvus or pgvector. Milvus hybrid retrieval requires Milvus 2.5 or newer and a collection with `content` text, `vector` dense, and `sparse` BM25 fields, a BM25 function, indexes on both vector fields, and a loaded collection. It accepts optional `ranker_k` (default 60, strictly between 0 and 16384), but not `alpha` with RRF. Pgvector accepts optional `alpha` (default 0.5) to weight the dense and full-text RRF ranks; its RRF constant is fixed at 60. Milvus also supports `ranker: "weighted"` with `alpha` (default 0.5) as the dense weight. Weighted ranking is unsupported by pgvector. Neo4j always uses the collection-scoped graph retrieval query (vector index plus entity/relationship expansion) and rejects `ranking_options`. `search_mode`, `ranker_strategy`, and other ranking fields are rejected rather than ignored.
+
+Neo4j connections are auto-detected from `NEO4J_URI` and `NEO4J_PASSWORD`. Optional keys are `NEO4J_USERNAME` (default `neo4j`), `NEO4J_DATABASE` (default `neo4j`), and `NEO4J_CA_CERT` (PEM). A `neo4j+s://`/`bolt+s://` URI enables TLS; a plain `neo4j://`/`bolt://` URI is promoted to TLS when `NEO4J_CA_CERT` is present, which is how the RAG DB tooling writes external secrets. External Neo4j endpoints without a CA bundle must use a TLS scheme. Graph retrieval uses the variable-scope `CALL (node) { ... }` subquery syntax, which requires Neo4j 5.23 or newer; older servers reject the retrieval query.
+
+> Automated tests validate hybrid request construction and parameter validation, but they do not replace a live smoke test against a pipeline-created Milvus hybrid collection. Before release, verify the collection schema, BM25 function, indexes, load state, and both RRF and weighted retrieval against the deployed Milvus version.
 - `metadata.embedding_model` — required; model used for query embedding
 - `metadata.context_template_text` — optional; template for each retrieved chunk (`{document}`, `{doc_number}` placeholders)
 - `metadata.user_message_text` — optional; wraps context + question (`{reference_documents}`, `{question}` placeholders)
@@ -226,8 +245,17 @@ Vector database destinations are restricted to either a cluster-local DNS name e
 `.cluster.local` (plaintext is allowed for the in-cluster adapter contract; resolved loopback,
 link-local, multicast, unspecified, and NAT64-translated addresses are still rejected) or a
 public DNS name using TLS. Userinfo, queries, fragments, unsafe paths, and literal
-IP addresses are rejected. External DNS results are checked again at connection time and private,
-loopback, link-local, multicast, unspecified, and metadata-style addresses are not dialed.
+IP addresses are rejected. How that endpoint policy is enforced differs by adapter:
+
+- Milvus and pgvector install a dial-time validator (`vectorSafeDialContext`) that resolves
+  and re-validates addresses on every connection and dials the validated IPs directly.
+- Neo4j validates resolved addresses before the driver is created: private, loopback,
+  link-local, multicast, unspecified, and metadata-style addresses are rejected. Plaintext
+  endpoints are then pinned to the validated literal IPs on every dial, so later DNS changes
+  cannot redirect the connection. TLS endpoints keep the hostname in the driver URI — the
+  Neo4j driver derives the TLS server name from the dialed address, so pinning would break
+  certificate hostname validation — leaving a narrow DNS-rebinding window between validation
+  and the driver's own resolution, which `VerifyConnectivity` triggers immediately.
 
 **Sample call (streaming):**
 

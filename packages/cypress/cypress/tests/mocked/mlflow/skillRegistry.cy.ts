@@ -4,7 +4,11 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '../../../utils/models';
-import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
+import {
+  asClusterAdminUser,
+  asProductAdminUser,
+  asProjectEditUser,
+} from '../../../utils/mockUsers';
 import {
   interceptMlflowEmbeddedRemoteFailure,
   interceptMlflowStatus,
@@ -159,11 +163,15 @@ describe('Skills page', () => {
     });
 
     it('should show admin not-configured empty state when MLflow BFF reports unconfigured', () => {
-      initIntercepts({ mlflowConfigured: false });
+      initIntercepts({ mlflowConfigured: false, userSetup: asClusterAdminUser });
       skillRegistry.visit(PROJECT_A);
-      skillRegistry.findNotConfiguredAdminEmptyState().should('be.visible');
+      skillRegistry
+        .findNotConfiguredAdminEmptyState()
+        .should('be.visible')
+        .and('contain', 'Enable skills');
       skillRegistry.findNotConfiguredEmptyState().should('not.exist');
       skillRegistry.findMlflowUnavailableState().should('not.exist');
+      skillRegistry.findLaunchMlflowButton().should('not.exist');
     });
 
     it('should show non-admin not-configured empty state when MLflow BFF reports unconfigured', () => {
@@ -171,6 +179,13 @@ describe('Skills page', () => {
       skillRegistry.visit(PROJECT_A);
       skillRegistry.findNotConfiguredEmptyState().should('be.visible');
       skillRegistry.findNotConfiguredAdminLink().should('be.visible');
+      skillRegistry.findNotConfiguredAdminEmptyState().should('not.exist');
+    });
+
+    it('should show user guidance to a dashboard admin without MLflow CR access', () => {
+      initIntercepts({ mlflowConfigured: false });
+      skillRegistry.visit(PROJECT_A);
+      skillRegistry.findNotConfiguredEmptyState().should('be.visible');
       skillRegistry.findNotConfiguredAdminEmptyState().should('not.exist');
     });
 

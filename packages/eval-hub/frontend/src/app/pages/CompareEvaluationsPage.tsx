@@ -1,15 +1,23 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { BreadcrumbItem } from '@patternfly/react-core';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
-import { evaluationsBaseRoute } from '~/app/routes';
+import { evaluationsBaseRoute, projectHomeRoute } from '~/app/routes';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import MlflowCompareRuns from '~/app/components/MlflowCompareRuns';
 import { parseMlflowArrayParam } from '~/app/utilities/compareEvaluationsUtils';
+import { createEvalHubTrackingScope } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const CompareEvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const [searchParams] = useSearchParams();
+  const projectDisplayName = useProjectDisplayName(namespace);
+  const trackingScope = React.useRef(createEvalHubTrackingScope()).current;
+
+  React.useEffect(() => () => trackingScope.clear(), [trackingScope]);
 
   const {
     config: { deploymentMode },
@@ -32,6 +40,21 @@ const CompareEvaluationsPage: React.FC = () => {
 
   const showCompare = deploymentMode === DeploymentMode.Federated && hasValidParams;
 
+  // Emitted only from a confirmed remote render — a compare view that is still
+  // loading or fell back to the unavailable state is not a successful render.
+  const handleRemoteReady = React.useCallback(
+    (available: boolean) => {
+      if (available) {
+        trackingScope.trackEventOnce(
+          EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED,
+          `${namespace ?? ''}:${runUuids.join(',')}:${experimentIds.join(',')}`,
+          { surface: 'comparison_view', countOfRuns: runUuids.length },
+        );
+      }
+    },
+    [experimentIds, namespace, runUuids, trackingScope],
+  );
+
   const title = React.useMemo(() => {
     if (evaluationNames.length < 2) {
       return 'Compare runs';
@@ -48,12 +71,14 @@ const CompareEvaluationsPage: React.FC = () => {
     <ApplicationsPage
       title={title}
       breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem
-            render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-          />
+        <ContextBreadcrumb
+          pageName="Evaluations"
+          projectDisplayName={projectDisplayName}
+          homePath={evaluationsBaseRoute(namespace)}
+          projectHomePath={projectHomeRoute(namespace)}
+        >
           <BreadcrumbItem isActive>Compare evaluations</BreadcrumbItem>
-        </Breadcrumb>
+        </ContextBreadcrumb>
       }
       loaded
       empty={!hasValidParams}
@@ -66,6 +91,7 @@ const CompareEvaluationsPage: React.FC = () => {
           experimentIds={experimentIds}
           runUuids={runUuids}
           workspace={namespace}
+          onRemoteReady={handleRemoteReady}
         />
       ) : null}
     </ApplicationsPage>

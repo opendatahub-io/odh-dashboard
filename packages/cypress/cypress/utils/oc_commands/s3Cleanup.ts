@@ -1,4 +1,5 @@
 import { applyOpenShiftYaml } from './baseCommands';
+import { getFeastS3Config, getS3CaBundle } from './feastS3';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import type { AWSS3Buckets } from '../../types';
 import { AWS_BUCKETS } from '../s3Buckets';
@@ -6,8 +7,13 @@ import { AWS_BUCKETS } from '../s3Buckets';
 /** Shell-escape a value by wrapping in single quotes (handles embedded quotes). */
 const shQuote = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
 
-/** Pinned AWS CLI image so the cleanup pod cannot drift to a mutated :latest tag. */
-const AWS_CLI_IMAGE =
+const S3_CA_MOUNT_DIR = '/tmp/s3-ca';
+const S3_CA_FILE = 'ca.pem';
+const S3_CA_PATH = `${S3_CA_MOUNT_DIR}/${S3_CA_FILE}`;
+const S3_CA_SECRET_KEY = 'AWS_CA_BUNDLE_PEM';
+
+/** Pinned fallback image for clusters that can pull from the public registry. */
+const DEFAULT_AWS_CLI_IMAGE =
   'amazon/aws-cli:2.27.50@sha256:48c3d4212e2f5b0e24bdc6af7708f9412ce65425a79575e0f78b8f8c0dcd70ab';
 
 const K8S_DNS_LABEL = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
@@ -20,6 +26,9 @@ const assertK8sDnsLabel = (kind: string, value: string): void => {
 
 const getAwsPipelines = (): AWSS3Buckets =>
   (Cypress.env('AWS_PIPELINES') as AWSS3Buckets | undefined) ?? AWS_BUCKETS;
+
+const getAwsCliImage = (): string =>
+  (Cypress.env('AWS_CLI_IMAGE') as string | undefined) || DEFAULT_AWS_CLI_IMAGE;
 
 type AwsCliPodOptions = {
   namespace: string;
@@ -45,7 +54,7 @@ export const runAwsCliInCluster = ({
   awsCliArgs,
   failOnNonZeroExit = false,
   timeout = 120000,
-}: AwsCliPodOptions): void => {
+}: AwsCliPodOptions): Cypress.Chainable<Cypress.Exec> => {
   assertK8sDnsLabel('namespace', namespace);
   assertK8sDnsLabel('pod name', podName);
 
@@ -53,6 +62,18 @@ export const runAwsCliInCluster = ({
   assertK8sDnsLabel('secret name', secretName);
 
   const buckets = getAwsPipelines();
+  const awsCliImage = getAwsCliImage();
+  const caBundle = getS3CaBundle();
+
+  const secretStringData: Record<string, string> = {
+    AWS_ACCESS_KEY_ID: buckets.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: buckets.AWS_SECRET_ACCESS_KEY,
+    AWS_DEFAULT_REGION: region,
+  };
+  if (caBundle) {
+    secretStringData[S3_CA_SECRET_KEY] = caBundle;
+  }
+
   const secretManifest = JSON.stringify({
     apiVersion: 'v1',
     kind: 'Secret',
@@ -60,11 +81,7 @@ export const runAwsCliInCluster = ({
       name: secretName,
       namespace,
     },
-    stringData: {
-      AWS_ACCESS_KEY_ID: buckets.AWS_ACCESS_KEY_ID,
-      AWS_SECRET_ACCESS_KEY: buckets.AWS_SECRET_ACCESS_KEY,
-      AWS_DEFAULT_REGION: region,
-    },
+    stringData: secretStringData,
   });
 
   const deleteCredentials = () =>
@@ -73,35 +90,52 @@ export const runAwsCliInCluster = ({
       log: false,
     });
 
+  const container: Record<string, unknown> = {
+    name: podName,
+    image: awsCliImage,
+    args: awsCliArgs,
+    envFrom: [{ secretRef: { name: secretName } }],
+    securityContext: {
+      runAsUser: 1001,
+      runAsGroup: 1001,
+      runAsNonRoot: true,
+      allowPrivilegeEscalation: false,
+      seccompProfile: { type: 'RuntimeDefault' },
+      capabilities: { drop: ['ALL'] },
+    },
+  };
+  if (caBundle) {
+    container.env = [{ name: 'AWS_CA_BUNDLE', value: S3_CA_PATH }];
+    container.volumeMounts = [{ name: 's3-ca', mountPath: S3_CA_MOUNT_DIR, readOnly: true }];
+  }
+
   // `--overrides` replaces `spec.containers` wholesale, so it must carry image and args.
   const podOverrides = JSON.stringify({
     spec: {
-      containers: [
-        {
-          name: podName,
-          image: AWS_CLI_IMAGE,
-          args: awsCliArgs,
-          envFrom: [{ secretRef: { name: secretName } }],
-          securityContext: {
-            runAsUser: 1001,
-            runAsGroup: 1001,
-            runAsNonRoot: true,
-            allowPrivilegeEscalation: false,
-            seccompProfile: { type: 'RuntimeDefault' },
-            capabilities: { drop: ['ALL'] },
-          },
-        },
-      ],
+      containers: [container],
+      ...(caBundle
+        ? {
+            volumes: [
+              {
+                name: 's3-ca',
+                secret: {
+                  secretName,
+                  items: [{ key: S3_CA_SECRET_KEY, path: S3_CA_FILE }],
+                },
+              },
+            ],
+          }
+        : {}),
     },
   });
 
-  applyOpenShiftYaml(secretManifest).then(() => {
+  return applyOpenShiftYaml(secretManifest).then(() => {
     // failOnNonZeroExit must be false so Cypress still runs Secret cleanup after a
     // non-zero oc run. Re-throw after deletion when the caller asked to fail.
     return cy
       .exec(
         `oc run ${shQuote(podName)} -n ${shQuote(namespace)} ` +
-          `--image=${shQuote(AWS_CLI_IMAGE)} ` +
+          `--image=${shQuote(awsCliImage)} ` +
           `--restart=Never --rm --attach --tty=false ` +
           `--overrides=${shQuote(podOverrides)}`,
         { failOnNonZeroExit: false, log: false, timeout },
@@ -109,7 +143,7 @@ export const runAwsCliInCluster = ({
       .then((result) =>
         deleteCredentials().then(() => {
           if (result.exitCode === 0) {
-            return;
+            return cy.wrap(result, { log: false });
           }
           const maskedStderr = maskSensitiveInfo(result.stderr);
           if (failOnNonZeroExit) {
@@ -121,6 +155,7 @@ export const runAwsCliInCluster = ({
             `WARNING: AWS CLI pod ${podName} exited with code ${result.exitCode}; ` +
               `S3 objects may have been left behind: ${maskedStderr}`,
           );
+          return cy.wrap(result, { log: false });
         }),
       );
   });
@@ -183,22 +218,16 @@ const assertValidNamespace = (namespace: string): void => {
   }
 };
 
-const requireBucket1 = (): AWSS3Buckets => {
-  const buckets = getAwsPipelines();
-  if (!buckets.BUCKET_1.NAME) {
-    throw new Error(
-      'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml (S3.BUCKET_1) before running E2E.',
-    );
-  }
-  return buckets;
-};
-
 const endpointArgs = (endpoint: string): string[] => (endpoint ? ['--endpoint-url', endpoint] : []);
 
 /**
- * Creates an empty S3 prefix for the namespace-scoped Feast registry.
+ * Prepares the S3 location for the namespace-scoped Feast registry.
  *
  * Path: `s3://<bucket>/feast-test/<namespace>/credit_scoring_local/`
+ *
+ * Uses `S3.BUCKET_1` from the test config. On disconnected clusters the pipeline
+ * rewrites that endpoint (and `S3.AWS_CA_BUNDLE`) to the injected MinIO, so the
+ * same AWS CLI pod targets MinIO without any test-side branching.
  *
  * Does not seed registry.pb — the FeatureStore CR (`feast.yaml`) creates the
  * registry object, and later test steps (e.g. saved dataset) write into it.
@@ -210,28 +239,28 @@ const endpointArgs = (endpoint: string): string[] => (endpoint ? ['--endpoint-ur
 export const createRegistryStep = (namespace: string): void => {
   assertValidNamespace(namespace);
 
-  const buckets = requireBucket1();
-  const bucketConfig = buckets.BUCKET_1;
+  const config = getFeastS3Config();
   const podName = `feast-s3-create-${Date.now()}`;
   const prefixKey = `feast-test/${namespace}/credit_scoring_local/`;
 
-  cy.step(`Create Feast registry folder: s3://${bucketConfig.NAME}/${prefixKey}`);
+  cy.step(`Create Feast registry folder: s3://${config.bucket}/${prefixKey}`);
   runAwsCliInCluster({
     namespace,
     podName,
-    region: bucketConfig.REGION,
+    region: config.region,
     awsCliArgs: [
       's3api',
       'put-object',
       '--bucket',
-      bucketConfig.NAME,
+      config.bucket,
       '--key',
       prefixKey,
-      ...endpointArgs(bucketConfig.ENDPOINT),
+      ...endpointArgs(config.endpoint),
     ],
     failOnNonZeroExit: true,
+  }).then(() => {
+    cy.log(`Created Feast registry folder s3://${config.bucket}/${prefixKey}`);
   });
-  cy.log(`Created Feast registry folder s3://${bucketConfig.NAME}/${prefixKey}`);
 };
 
 /**

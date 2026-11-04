@@ -3,7 +3,6 @@ import { Stack } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
-import { CURATED_COLLECTION_PREREQUISITES } from '~/app/curatedSuiteConfig';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
@@ -11,6 +10,8 @@ import {
 } from '~/app/routes';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import type { Collection } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 type GalleryTabProps = {
   namespace: string;
@@ -34,13 +35,28 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
     });
   }, [navigate, namespace]);
 
+  const trackCustomizeCollection = React.useCallback((collection: Collection) => {
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      {
+        collectionName: collection.name,
+        surface: 'curated_gallery',
+      },
+      {
+        collectionType: collection.resource.read_only ? 'system' : 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
+  }, []);
+
   const handleCustomizeCollection = React.useCallback(
     (collection: Collection) => {
+      trackCustomizeCollection(collection);
       navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
         state: evaluationGalleryNavigationState,
       });
     },
-    [navigate, namespace],
+    [navigate, namespace, trackCustomizeCollection],
   );
 
   const handleRunCollection = React.useCallback((collection: Collection) => {
@@ -72,7 +88,7 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
         showPaginationControls={false}
         showCreateSuiteCard={false}
         showContextualActions={false}
-        prerequisites={CURATED_COLLECTION_PREREQUISITES}
+        trackingSurface="collection_gallery"
         primaryActionLabel="Run"
         primaryActionVariant="secondary"
         dropdownActionLabel="Customize"
@@ -83,7 +99,7 @@ const GalleryTab: React.FC<GalleryTabProps> = ({
         dropdownActionState={evaluationGalleryNavigationState}
         onCreateSuite={handleCreateSuite}
         onPrimaryAction={handleRunCollection}
-        onDropdownAction={handleCustomizeCollection}
+        onDropdownAction={trackCustomizeCollection}
         onDuplicateCollection={handleCustomizeCollection}
         onSelectCollection={onSelectCollection}
         createSuiteRoute={evaluationCreateSuiteRoute(namespace)}

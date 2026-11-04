@@ -77,8 +77,10 @@ paths:
   /api/v1/responses:
     summary: Execute an AutoRAG Responses API query
     description: >-
-      Executes retrieval against a Milvus or pgvector database and generates an answer through
-      MaaS. Neo4j/GraphRAG runs are not supported by this endpoint.
+      Executes retrieval against a Milvus, pgvector, or Neo4j database and generates an answer
+      through MaaS. Neo4j collections use graph retrieval; the vector index and knowledge graph
+      are read from the collection named by the file_search vector_store_id. Neo4j graph
+      retrieval uses variable-scope CALL subqueries and requires Neo4j 5.23 or newer.
     post:
       summary: Create an AutoRAG response
       tags:
@@ -95,7 +97,7 @@ paths:
         - name: dbSecretName
           in: query
           required: true
-          description: Kubernetes Secret containing Milvus or pgvector credentials
+          description: Kubernetes Secret containing Milvus, pgvector, or Neo4j credentials
           schema:
             type: string
             pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
@@ -138,9 +140,12 @@ paths:
                   Retrieval results in the `file_search_call` item contain `text`, `score`, and
                   `file_id` when available. On an unrelated streaming failure, an `error` event with
                   `sequence_number` and the safe message `The response could not be completed.` is emitted.
-                  Milvus connection failures and operation timeouts use the same error event with
-                  `code` values `vector_database_unavailable` or `vector_database_timeout` and safe
-                  messages. The stream always terminates with `[DONE]`.
+                  Vector database connection failures and operation timeouts (Milvus, pgvector, or
+                  Neo4j) use the same error event with `code` values `vector_database_unavailable`
+                  or `vector_database_timeout` and safe messages. A database server rejecting the
+                  search itself (for example a Neo4j query or index configuration error) emits
+                  `vector_database_query_failed`. The stream always terminates with
+                  `[DONE]`.
                   The stream terminates with the literal `data: [DONE]` line, which has no
                   sequence number.
                 example: |
@@ -492,6 +497,15 @@ paths:
         The request must include a multipart form with a file part (e.g. "file").
         The secret must contain valid S3 credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
         AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
+        The secret may contain `AWS_S3_UPLOAD_CHECKSUM_ALGORITHM` (CRC32, CRC32C, SHA1,
+        SHA256, or SHA512; case-insensitive) to select a checksum explicitly, or
+        `AWS_S3_DISABLE_UPLOAD_CHECKSUM_TRAILERS=true` for endpoints that reject optional
+        streaming trailers, including affected NetApp ONTAP S3. When no algorithm is
+        selected and the disable flag is absent or false, uploads retain the AWS SDK's
+        default checksum behavior. This preserves existing connections and buckets that
+        require upload checksums. Enabling the disable flag and setting an explicit
+        algorithm are mutually exclusive. Disabling optional checksums does not satisfy
+        bucket-level checksum requirements.
         Chunked transfer encoding is supported. When Content-Length is set, it must not exceed
         32 MiB plus allowance for multipart framing (~64 MiB) or the request is rejected with 413.
         The file part is streamed via http.MaxBytesReader (32 MiB max); larger file parts fail with 413.
@@ -1619,7 +1633,7 @@ components:
           minLength: 1
           maxLength: 250
           description: Human-readable name for the indexing run
-          example: 'Index build - Pattern1'
+          example: "Index build - Pattern\u00A0A"
         description:
           type: string
           maxLength: 255
@@ -2058,17 +2072,29 @@ components:
                 maximum: 100
               ranking_options:
                 type: object
-                maxProperties: 2
+                description: >-
+                  Omit for dense search. Milvus supports RRF (optional ranker_k, default 60)
+                  and weighted ranking (alpha is the dense weight, default 0.5) over its
+                  dense vector and BM25 sparse fields. Pgvector supports RRF with an
+                  optional alpha weight; its RRF constant is fixed at 60.
+                  Milvus RRF does not accept alpha. Weighted ranking requires Milvus.
+                maxProperties: 3
                 additionalProperties: false
                 properties:
                   ranker:
                     type: string
                     maxLength: 1048576
-                    enum: [rrf]
+                    enum: [rrf, weighted]
                   alpha:
                     type: number
                     minimum: 0
                     maximum: 1
+                  ranker_k:
+                    type: number
+                    minimum: 0
+                    exclusiveMinimum: true
+                    maximum: 16384
+                    exclusiveMaximum: true
         tool_choice:
           type: object
           maxProperties: 1

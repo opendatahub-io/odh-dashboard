@@ -504,7 +504,7 @@ describe('PatternDetailsModal', () => {
       render(<PatternDetailsModal {...twoPatternProps} onPatternChange={onPatternChange} />);
 
       await user.click(screen.getByTestId('pattern-selector-dropdown'));
-      await user.click(screen.getByText('pattern 1'));
+      await user.click(screen.getByText('Pattern A'));
 
       expect(onPatternChange).toHaveBeenCalledWith(1);
     });

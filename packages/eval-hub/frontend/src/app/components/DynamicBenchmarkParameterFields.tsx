@@ -1,12 +1,17 @@
 import * as React from 'react';
 import {
   FormGroup,
+  FormHelperText,
   Grid,
   GridItem,
+  HelperText,
+  HelperTextItem,
   TextInput,
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
+import type { CuratedCollectionParameterConfig } from '~/app/curatedSuiteConfig';
+import { getBenchmarkParameterLabel } from '~/app/components/benchmarkUtils';
 import type {
   CopySuiteBenchmarkParameter,
   CopySuiteBenchmarkParameterType,
@@ -16,29 +21,39 @@ type DynamicBenchmarkParameterFieldsProps = {
   parameters: CopySuiteBenchmarkParameter[];
   itemId: string;
   isDisabled?: boolean;
+  parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
+  parameterErrors?: Record<string, string>;
   onChange: (key: string, value: string | boolean) => void;
 };
 
 const parameterTypeToInputType = (type: CopySuiteBenchmarkParameterType): 'number' | 'text' =>
   type === 'number' ? 'number' : 'text';
 
-export const getBenchmarkParameterLabel = (key: string): string => {
-  const words = key
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .trim();
-  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : key;
-};
-
 const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsProps> = ({
   parameters,
   itemId,
   isDisabled = false,
+  parameterConfig,
+  parameterErrors,
   onChange,
 }) => {
+  const [interactedKeys, setInteractedKeys] = React.useState<ReadonlySet<string>>(() => new Set());
+
   if (parameters.length === 0) {
     return null;
   }
+
+  const handleChange = (key: string, value: string | boolean) => {
+    setInteractedKeys((prev) => {
+      if (prev.has(key)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+    onChange(key, value);
+  };
 
   const sortedParameters = parameters.toSorted((left, right) => left.key.localeCompare(right.key));
 
@@ -48,10 +63,18 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
         const fieldId = `${itemId}-parameter-${parameter.key}`;
         const value = parameter.value == null ? '' : String(parameter.value);
         const inputType = parameterTypeToInputType(parameter.type);
+        const config = parameterConfig?.[parameter.key];
+        const error = interactedKeys.has(parameter.key)
+          ? parameterErrors?.[parameter.key]
+          : undefined;
 
         return (
           <GridItem span={6} key={parameter.key}>
-            <FormGroup label={getBenchmarkParameterLabel(parameter.key)} fieldId={fieldId}>
+            <FormGroup
+              label={getBenchmarkParameterLabel(parameter.key)}
+              fieldId={fieldId}
+              isRequired={config?.required ?? false}
+            >
               {parameter.type === 'boolean' ? (
                 <ToggleGroup
                   aria-label={getBenchmarkParameterLabel(parameter.key)}
@@ -63,7 +86,7 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
                     data-testid={`${itemId}-parameter-input-${parameter.key}-true`}
                     isSelected={parameter.value === true}
                     isDisabled={isDisabled}
-                    onChange={() => onChange(parameter.key, true)}
+                    onChange={() => handleChange(parameter.key, true)}
                   />
                   <ToggleGroupItem
                     text="False"
@@ -71,7 +94,7 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
                     data-testid={`${itemId}-parameter-input-${parameter.key}-false`}
                     isSelected={parameter.value === false}
                     isDisabled={isDisabled}
-                    onChange={() => onChange(parameter.key, false)}
+                    onChange={() => handleChange(parameter.key, false)}
                   />
                 </ToggleGroup>
               ) : (
@@ -81,9 +104,28 @@ const DynamicBenchmarkParameterFields: React.FC<DynamicBenchmarkParameterFieldsP
                   type={inputType}
                   value={value}
                   isDisabled={isDisabled}
-                  onChange={(_event, nextValue) => onChange(parameter.key, nextValue)}
+                  validated={error ? 'error' : 'default'}
+                  onChange={(_event, nextValue) => handleChange(parameter.key, nextValue)}
                 />
               )}
+              {error || config?.description ? (
+                <FormHelperText>
+                  <HelperText>
+                    {error ? (
+                      <HelperTextItem
+                        variant="error"
+                        data-testid={`${itemId}-parameter-error-${parameter.key}`}
+                      >
+                        {error}
+                      </HelperTextItem>
+                    ) : (
+                      <HelperTextItem data-testid={`${itemId}-parameter-help-${parameter.key}`}>
+                        {config?.description}
+                      </HelperTextItem>
+                    )}
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
             </FormGroup>
           </GridItem>
         );

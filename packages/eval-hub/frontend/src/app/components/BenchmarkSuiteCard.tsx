@@ -40,6 +40,8 @@ import {
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
+import { trackEvalHubEvent, type EvalHubCollectionSurface } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { isCollectionCategory, type CollectionCategory } from '~/app/pages/const';
 import {
   formatCategory,
@@ -163,6 +165,8 @@ type BenchmarkSuiteCardButton = {
   href?: string;
   state?: unknown;
   variant?: 'primary' | 'secondary' | 'tertiary';
+  /** Whether the button represents selecting a run; set false for actions like Customize. */
+  tracksRunSelection?: boolean;
 };
 
 type BenchmarkSuiteCardProps = {
@@ -173,7 +177,8 @@ type BenchmarkSuiteCardProps = {
   showRunCount?: boolean;
   dropdownAction?: BenchmarkSuiteCardButton;
   contextualActions?: BenchmarkSuiteCardAction[];
-  onSelect?: (collection: Collection) => void;
+  trackingSurface?: EvalHubCollectionSurface;
+  onSelect?: (collection: Collection) => boolean | void;
   reservePopularHeader?: boolean;
 };
 
@@ -314,6 +319,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   showRunCount = false,
   dropdownAction,
   contextualActions,
+  trackingSurface = 'collection_gallery',
   onSelect,
   reservePopularHeader = false,
 }) => {
@@ -397,14 +403,56 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       </List>
     </div>
   );
-  const runCount = collection.state?.run_count ?? 0;
+  const runCount = collection.status?.run_count ?? 0;
   const runCountTooltip = 'Run Count: Number of successful executions of this collection';
+  const trackRunSelected = React.useCallback(() => {
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: collection.name,
+        benchmarkTypes: JSON.stringify(
+          (collection.benchmarks ?? []).map((benchmark) => benchmark.id),
+        ),
+        countOfBenchmarks: collection.benchmarks?.length ?? 0,
+      },
+      {
+        collectionType: collection.resource.read_only ? 'system' : 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
+  }, [collection]);
+  const handlePrimaryAction = React.useCallback(() => {
+    if (primaryAction.tracksRunSelection !== false) {
+      trackRunSelected();
+    }
+    primaryAction.onClick();
+  }, [primaryAction, trackRunSelected]);
+  // Opens the details drawer. Wired to the card title and body regions so the whole
+  // content area is clickable; nested controls stop propagation to keep their own actions.
+  const handleOpenDetails = React.useCallback(() => {
+    const didOpenDrawer = onSelect?.(collection);
+    if (didOpenDrawer === true) {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
+        {
+          collectionName: collection.name,
+          surface: trackingSurface,
+        },
+        {
+          collectionType: collection.resource.read_only ? 'system' : 'custom',
+          providerType: collection.benchmarks?.[0]?.provider_id,
+        },
+      );
+    }
+  }, [onSelect, collection, trackingSurface]);
   const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
     action.href ? (
       <Button
         variant={action.variant ?? 'secondary'}
         isInline
         component={(props) => <Link {...props} to={action.href!} state={action.state} />}
+        onClick={handlePrimaryAction}
         data-testid={`benchmark-suite-card-${actionName}-action-${collection.resource.id}`}
       >
         {action.label}
@@ -413,7 +461,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
       <Button
         variant={action.variant ?? 'secondary'}
         isInline
-        onClick={action.onClick}
+        onClick={handlePrimaryAction}
         data-testid={`benchmark-suite-card-${actionName}-action-${collection.resource.id}`}
       >
         {action.label}
@@ -424,7 +472,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
     <MenuToggleAction
       key="primary-action"
       aria-label={primaryAction.label}
-      onClick={primaryAction.onClick}
+      onClick={handlePrimaryAction}
       data-testid={`benchmark-suite-card-primary-action-${collection.resource.id}`}
     >
       {primaryAction.label}
@@ -458,9 +506,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             : {})}
           onClick={() => {
             setIsActionMenuOpen(false);
-            if (!dropdownAction.href) {
-              dropdownAction.onClick();
-            }
+            dropdownAction.onClick();
           }}
           data-testid={`benchmark-suite-card-dropdown-action-${collection.resource.id}`}
         >
@@ -483,7 +529,10 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
           className="evalhub-benchmark-suite-card__contextual-actions"
           isExpanded={isMenuOpen}
           aria-label={`Actions for ${collection.name}`}
-          onClick={() => setIsMenuOpen((open) => !open)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMenuOpen((open) => !open);
+          }}
           data-testid={`benchmark-suite-card-menu-${collection.resource.id}`}
         >
           <EllipsisVIcon />
@@ -497,7 +546,8 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             value={action.id}
             isDanger={action.isDanger}
             isDisabled={action.isDisabled}
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (action.isDisabled) {
                 return;
               }
@@ -515,7 +565,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
 
   return (
     <Card
-      className="evalhub-benchmark-suite-card"
+      className={`evalhub-benchmark-suite-card${onSelect ? ' m-clickable' : ''}`}
       isFullHeight
       data-testid={`benchmark-suite-card-${collection.resource.id}`}
     >
@@ -557,7 +607,11 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
           </Flex>
         </CardHeader>
       )}
-      <CardTitle className="evalhub-benchmark-suite-card__title">
+      <CardTitle
+        className="evalhub-benchmark-suite-card__title"
+        onClick={onSelect ? handleOpenDetails : undefined}
+        data-testid={`benchmark-suite-card-title-region-${collection.resource.id}`}
+      >
         <div className="evalhub-benchmark-suite-card__title-content">
           <DomainIconStack collectionId={collection.resource.id} domains={resolvedDomains} />
           {contextualActionsMenu}
@@ -567,7 +621,11 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
             variant="link"
             isInline
             className="evalhub-benchmark-suite-card__title-button"
-            onClick={() => onSelect(collection)}
+            onClick={(e) => {
+              // The title region also opens the drawer; keep this click from double-firing.
+              e.stopPropagation();
+              handleOpenDetails();
+            }}
             data-testid={`benchmark-suite-card-name-${collection.resource.id}`}
           >
             <span className="evalhub-benchmark-suite-card__title-name">{collection.name}</span>
@@ -576,7 +634,11 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
           <span className="evalhub-benchmark-suite-card__title-name">{collection.name}</span>
         )}
       </CardTitle>
-      <CardBody className="evalhub-benchmark-suite-card__body">
+      <CardBody
+        className="evalhub-benchmark-suite-card__body"
+        onClick={onSelect ? handleOpenDetails : undefined}
+        data-testid={`benchmark-suite-card-body-region-${collection.resource.id}`}
+      >
         <div className="evalhub-benchmark-suite-card__metadata">
           {evaluationTargetNames.length > 1 ? (
             <Tooltip content={evaluationTargetsTooltip}>
@@ -585,6 +647,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
                 className="evalhub-benchmark-suite-card__metadata-button"
                 data-testid={`benchmark-suite-card-evaluation-targets-${collection.resource.id}`}
                 aria-label={evaluationTargetsSummaryLabel}
+                onClick={(e) => e.stopPropagation()}
               >
                 {evaluationTargetLabel}
               </button>
@@ -601,6 +664,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
               className="evalhub-benchmark-suite-card__metadata-button"
               data-testid={`benchmark-suite-card-benchmarks-${collection.resource.id}`}
               aria-label={benchmarksSummaryLabel}
+              onClick={(e) => e.stopPropagation()}
             >
               {benchmarkCount} {benchmarkCount === 1 ? 'benchmark' : 'benchmarks'}
             </button>

@@ -89,7 +89,7 @@ export const FORMAT_OPTIONS: FormatOption[] = [
 
 export const DEFAULT_FORMATS: Record<string, string> = {
   unstructured: 'other',
-  structured: 'iceberg',
+  structured: 'other',
 };
 
 export const isStructuredFormat = (format: string): format is StructuredFormat =>

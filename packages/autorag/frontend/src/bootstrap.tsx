@@ -20,6 +20,9 @@ import { rootPathname } from '~/app/utilities/routes';
 import App from '~/app/App';
 import { PluginStoreContextProvider } from '~/odh/PluginStoreContextProvider';
 import { ProductProvider } from '~/odh/ProductProvider';
+import { registerGenAiRemote } from '~/odh/registerGenAiRemote';
+
+registerGenAiRemote();
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 

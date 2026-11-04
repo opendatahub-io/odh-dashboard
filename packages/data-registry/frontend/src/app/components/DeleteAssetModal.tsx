@@ -53,16 +53,19 @@ const DeleteAssetModal: React.FC<DeleteAssetModalProps> = ({ assetName, onDelete
             <FormGroup
               label={
                 <>
-                  Type <strong>{assetName}</strong> to confirm deletion:
+                  To confirm deletion, type <strong>{assetName}</strong>&#58;
+                  <span aria-hidden="true" className="pf-v6-u-text-color-status-danger">
+                    *
+                  </span>
                 </>
               }
-              isRequired
               fieldId="delete-asset-confirmation"
             >
               <TextInput
                 id="delete-asset-confirmation"
                 value={confirmation}
                 onChange={(_event, value) => setConfirmation(value)}
+                aria-label={`To confirm deletion, type ${assetName}:`}
                 isRequired
                 isDisabled={isDeleting}
                 data-testid="delete-asset-confirmation"

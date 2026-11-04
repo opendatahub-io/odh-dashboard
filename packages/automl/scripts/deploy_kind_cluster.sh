@@ -28,7 +28,7 @@ fi
 echo "Editing kustomize image..."
 pushd ./manifests/base > /dev/null || { echo "Error: manifests/base directory not found"; exit 1; }
 kustomize edit set image mod-arch-ui=${IMG_UI_STANDALONE}
-popd > /dev/null
+popd > /dev/null || { echo "Error: popd failed"; exit 1; }
 
 pushd ./manifests/overlays/standalone > /dev/null || { echo "Error: manifests/overlays/standalone directory not found"; exit 1; }
 
@@ -39,7 +39,7 @@ kubectl apply -n kubeflow -k .
 # Wait for deployment to be available
 echo "Waiting Mod Arch UI to be available..."
 kubectl wait --for=condition=available -n kubeflow deployment/mod-arch-ui --timeout=1m
-popd > /dev/null
+popd > /dev/null || { echo "Error: popd failed"; exit 1; }
 
 # Step 5: Port-forward the service
 echo "Port-forwarding Mod Arch UI..."

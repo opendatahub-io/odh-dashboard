@@ -182,7 +182,10 @@ func newPgvectorFromSecretWithConnector(
 	return &pgvectorDB{conn: conn}, nil
 }
 
-func (p *pgvectorDB) Search(ctx context.Context, collection string, queryVec []float32, query string, topK int, alpha float32, hybrid bool) ([]SearchResult, error) {
+func (p *pgvectorDB) Search(ctx context.Context, collection string, queryVec []float32, query string, options SearchOptions) ([]SearchResult, error) {
+	if options.Ranker == "weighted" || (options.Ranker == "rrf" && options.RankerK != 60) {
+		return nil, fmt.Errorf("%w: pgvector supports only RRF with ranker_k 60", ErrUnsupportedSearch)
+	}
 	// Sanitize table name — only allow alphanumeric and underscore.
 	table := sanitizeIdentifier(collection)
 
@@ -191,12 +194,12 @@ func (p *pgvectorDB) Search(ctx context.Context, collection string, queryVec []f
 	var rows pgx.Rows
 	var err error
 
-	if hybrid {
+	if options.Ranker != "" {
 		// RRF combining cosine similarity and pre-computed tokenized_content tsvector.
 		// Each sub-rank uses RRF formula: 1/(k + rank). k=60 is standard.
 		sql := pgvectorHybridSearchSQL(table)
 
-		rows, err = p.conn.Query(ctx, sql, vec, query, alpha, 1-alpha, MaxVectorResultBytes, hybridCandidateLimit(topK), topK)
+		rows, err = p.conn.Query(ctx, sql, vec, query, options.Alpha, 1-options.Alpha, MaxVectorResultBytes, hybridCandidateLimit(options.TopK), options.TopK)
 	} else {
 		sql := fmt.Sprintf(`
 SELECT id, content_text, 1 - (embedding <=> $1) AS score
@@ -205,7 +208,7 @@ WHERE octet_length(content_text) <= $3
 ORDER BY embedding <=> $1
 LIMIT $2`, table)
 
-		rows, err = p.conn.Query(ctx, sql, vec, topK, MaxVectorResultBytes)
+		rows, err = p.conn.Query(ctx, sql, vec, options.TopK, MaxVectorResultBytes)
 	}
 
 	if err != nil {

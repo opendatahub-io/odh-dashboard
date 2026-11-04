@@ -45,23 +45,27 @@ make run LOG_LEVEL=DEBUG
 
 ## Flags / Environment Variables
 
-| Flag | Env Var | Description |
-|------|---------|-------------|
-| `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
-| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
-| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
-| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
-| `-auth-method` | `AUTH_METHOD` | `internal` (mock) or `user_token` |
-| `-auth-header` | `AUTH_HEADER` | Header to read bearer token from (default Authorization) |
-| `-auth-prefix` | `AUTH_PREFIX` | Expected value prefix (default Bearer) |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
-| `-key-file` | `KEY_FILE` | TLS key path |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
+| Flag                    | Env Var                | Description                                              |
+| ----------------------- | ---------------------- | -------------------------------------------------------- |
+| `-port`                 | `PORT`                 | Listen port (default 4000)                               |
+| `-deployment-mode`      | `DEPLOYMENT_MODE`      | `standalone` or `integrated` (default `standalone`)      |
+| `-dev-mode`             | `DEV_MODE`             | Enables relaxed behaviors (namespaces listing, etc.)     |
+| `-mock-k8s-client`      | `MOCK_K8S_CLIENT`      | Use in‑memory stub for namespace/user resolution         |
+| `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve single‑page frontend assets           |
+| `-log-level`            | `LOG_LEVEL`            | ERROR, WARN, INFO, DEBUG (default INFO)                  |
+| `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma separated CORS origins                             |
+| `-auth-method`          | `AUTH_METHOD`          | `internal` (mock) or `user_token`                        |
+| `-auth-header`          | `AUTH_HEADER`          | Header to read bearer token from (default Authorization) |
+| `-auth-prefix`          | `AUTH_PREFIX`          | Expected value prefix (default Bearer)                   |
+| `-cert-file`            | `CERT_FILE`            | TLS certificate path (enables TLS when paired with key)  |
+| `-key-file`             | `KEY_FILE`             | TLS key path                                             |
+| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)                      |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ## Running the linter locally
 
@@ -179,66 +183,7 @@ Examples:
 ./bff --allowed-origins="http://my-domain.com,http://my-other-domain.com"
 ```
 
-## Inter-BFF Communication (Eval-Hub → Model-Catalog)
-
-> **General Documentation**: For architecture overview, implementation patterns, and how to add inter-BFF to other modules, see [Inter-BFF Communication Guide](../../../docs/inter-bff-communication.md).
-
-The Eval-Hub BFF calls the Model-Catalog BFF (in the model-registry package) to fetch security artifacts for models.
-
-### Quick Start
-
-**Run with Model-Catalog BFF locally (dedicated inter-BFF target):**
-
-```bash
-# Terminal 1: Start Model-Registry (includes model-catalog BFF on port 4000)
-cd packages/model-registry/upstream && make dev-start
-
-# Terminal 2: Start Eval-Hub BFF with inter-BFF communication to Model-Catalog
-cd packages/eval-hub && make dev-bff-inter-bff
-```
-
-**Run with mock BFF clients (no model-registry needed):**
-
-```bash
-cd packages/eval-hub && MOCK_BFF_CLIENTS=true make dev-start
-```
-
-### Eval-Hub Inter-BFF Environment Variables
-
-| Variable | Description | Default |
-| -------- | ----------- | ------- |
-| `MOCK_BFF_CLIENTS` | Enable mock BFF clients | `false` |
-| `BFF_MODEL_CATALOG_DEV_URL` | Dev override URL (e.g., `http://localhost:4000/api/v1`) | - |
-| `BFF_MODEL_CATALOG_SERVICE_NAME` | K8s service name | `odh-dashboard` |
-| `BFF_MODEL_CATALOG_SERVICE_PORT` | Model-Catalog BFF port | `8043` |
-| `BFF_MODEL_CATALOG_TLS_ENABLED` | Enable HTTPS | `false` (local) / `true` (prod) |
-| `BFF_MODEL_CATALOG_AUTH_METHOD` | Auth method | `user_token` |
-| `BFF_MODEL_CATALOG_AUTH_TOKEN_HEADER` | Token header | `x-forwarded-access-token` |
-| `BFF_MODEL_CATALOG_AUTH_TOKEN_PREFIX` | Token prefix | `` (empty) |
-
-### Inter-BFF Endpoints
-
-**Fetch security artifacts for a model:**
-
-```bash
-# Mock mode (namespace=kubeflow — used by mock K8s client)
-curl -s -H "kubeflow-userid: test@example.com" \
-  "http://localhost:4002/api/v1/catalog/sources/sample-source/security_artifacts/granite-8b?namespace=kubeflow" \
-  | python3 -m json.tool
-```
-
-> **Note:** The `namespace` parameter tells the model-catalog BFF which namespace to use for AI Hub service discovery. In mock mode this is `kubeflow`; in production it is typically `rhoai-model-registries` (wherever the ModelRegistry CR is deployed).
-
-### Implementation Files
-
-| File | Purpose |
-| ---- | ------- |
-| `internal/integrations/bffclient/` | Reusable BFF client package (client, factory, config, errors, middleware) |
-| `internal/integrations/bffclient/bffmocks/` | Mock BFF client for local development |
-| `internal/api/catalog_security_artifacts_handler.go` | Security artifacts endpoint handler |
-| `internal/models/catalog_security_artifacts.go` | DTOs for security artifact responses |
-
-### Disabling TLS verification (development only)
+## Disabling TLS verification (development only)
 
 For local Kubeflow installations with self-signed certificates, you may need to disable TLS certificate verification.
 
@@ -247,7 +192,7 @@ For local Kubeflow installations with self-signed certificates, you may need to 
 ```yaml
 env:
   - name: INSECURE_SKIP_VERIFY
-    value: "true"
+    value: 'true'
 ```
 
 **Local development:**

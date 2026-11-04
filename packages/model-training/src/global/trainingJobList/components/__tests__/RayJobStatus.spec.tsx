@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { mockRayJobK8sResource } from '@odh-dashboard/model-training/__mocks__/mockRayJobK8sResource';
 import RayJobStatus from '../RayJobStatus';
@@ -102,5 +102,31 @@ describe('RayJobStatus', () => {
 
     expect(screen.getByTestId('ray-job-status-loading')).toBeInTheDocument();
     expect(screen.queryByTestId('ray-job-status')).not.toBeInTheDocument();
+  });
+
+  it('should use the outlined variant when it is not clickable', () => {
+    const job = mockRayJobK8sResource({
+      jobStatus: RayJobStatusValue.RUNNING,
+      jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+    });
+
+    render(<RayJobStatus job={job} />);
+
+    expect(screen.getByTestId('ray-job-status')).toHaveClass('pf-m-outline');
+  });
+
+  it('should use the filled variant and invoke the handler when it is clickable', () => {
+    const job = mockRayJobK8sResource({
+      jobStatus: RayJobStatusValue.RUNNING,
+      jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+    });
+    const onClick = jest.fn();
+
+    render(<RayJobStatus job={job} onClick={onClick} />);
+
+    const statusLabel = screen.getByTestId('ray-job-status');
+    expect(statusLabel).not.toHaveClass('pf-m-outline');
+    fireEvent.click(within(statusLabel).getByRole('button'));
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

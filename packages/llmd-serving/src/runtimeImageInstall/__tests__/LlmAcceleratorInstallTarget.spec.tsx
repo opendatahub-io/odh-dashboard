@@ -4,15 +4,20 @@ import '@testing-library/jest-dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import YAML from 'yaml';
 import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import {
   createLLMInferenceServiceConfig,
   updateLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
 import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { fireLlmAcceleratorConfigCreated } from '../../tracking/llmdTrackingConstants';
+import { LlmAcceleratorConfigTrackingEvent } from '../../tracking/llmdTrackingConstants';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../settings/llmAcceleratorConfigs/paths';
 import LlmAcceleratorInstallTarget from '../LlmAcceleratorInstallTarget';
+import { createHostApiWrapper } from '../../__tests__/hostApiTestUtils';
+
+const mockTrackEvent = jest.fn();
+const wrapper = createHostApiWrapper(mockTrackEvent);
 
 jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed', () => ({
   useAccessAllowed: jest.fn(),
@@ -23,10 +28,6 @@ jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
 jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
   createLLMInferenceServiceConfig: jest.fn(),
   updateLLMInferenceServiceConfig: jest.fn(),
-}));
-jest.mock('../../tracking/llmdTrackingConstants', () => ({
-  fireLlmAcceleratorConfigCreated: jest.fn(),
-  fireLlmAcceleratorConfigUpdated: jest.fn(),
 }));
 jest.mock('../../settings/ConfigYAMLEditor', () => ({
   __esModule: true,
@@ -41,7 +42,6 @@ jest.mock('../../settings/ConfigYAMLEditor', () => ({
 }));
 
 const createMock = jest.mocked(createLLMInferenceServiceConfig);
-const trackingMock = jest.mocked(fireLlmAcceleratorConfigCreated);
 const returnRoute = '/runtime-image-detail';
 const back = jest.fn();
 const source = () =>
@@ -73,6 +73,7 @@ const renderTarget = (data = JSON.stringify(source())) =>
         />
       </Routes>
     </MemoryRouter>,
+    { wrapper },
   );
 
 describe('LlmAcceleratorInstallTarget', () => {
@@ -96,13 +97,18 @@ describe('LlmAcceleratorInstallTarget', () => {
       metadata: {
         ...config.metadata,
         namespace: 'opendatahub',
+        annotations: {
+          ...config.metadata.annotations,
+          [MetadataAnnotation.InstalledFromCatalog]: 'true',
+        },
       },
     });
     expect(updateLLMInferenceServiceConfig).not.toHaveBeenCalled();
-    expect(trackingMock).toHaveBeenCalledWith({
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.submit,
       success: true,
-      mode: 'install',
+      mode: 'create',
+      source: 'install',
     });
   });
 
@@ -153,6 +159,7 @@ describe('LlmAcceleratorInstallTarget', () => {
           annotations: {
             'openshift.io/display-name': 'Edited config',
             'opendatahub.io/runtime-version': '1.0.0',
+            [MetadataAnnotation.InstalledFromCatalog]: 'true',
           },
         }),
       }),
@@ -173,6 +180,7 @@ describe('LlmAcceleratorInstallTarget', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
     expect(createMock.mock.calls[0][0].metadata.annotations).toEqual({
       'openshift.io/display-name': 'library-config',
+      [MetadataAnnotation.InstalledFromCatalog]: 'true',
     });
   });
 
@@ -181,12 +189,13 @@ describe('LlmAcceleratorInstallTarget', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(back).toHaveBeenCalledTimes(1);
     expect(createMock).not.toHaveBeenCalled();
-    expect(trackingMock).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId('cancel-button'));
     expect(screen.getByText('Runtime image detail')).toBeInTheDocument();
-    expect(trackingMock).toHaveBeenCalledWith({
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.cancel,
-      mode: 'install',
+      mode: 'create',
+      source: 'install',
     });
   });
 
@@ -203,9 +212,10 @@ describe('LlmAcceleratorInstallTarget', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(screen.getByText('Runtime image detail')).toBeInTheDocument();
       expect(createMock).not.toHaveBeenCalled();
-      expect(trackingMock).toHaveBeenCalledWith({
+      expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
         outcome: TrackingOutcome.cancel,
-        mode: 'install',
+        mode: 'create',
+        source: 'install',
       });
     },
   );
@@ -223,15 +233,20 @@ describe('LlmAcceleratorInstallTarget', () => {
       screen.getByText('YAML must represent a valid kubernetes resource object'),
     ).toBeInTheDocument();
     expect(createMock).not.toHaveBeenCalled();
-    expect(trackingMock).toHaveBeenCalledWith({
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.submit,
       success: false,
-      mode: 'install',
+      mode: 'create',
+      source: 'install',
     });
     fireEvent.change(screen.getByTestId('yaml-editor-mock'), { target: { value: 'metadata: [' } });
     fireEvent.click(screen.getByTestId('submit-button'));
     expect(createMock).not.toHaveBeenCalled();
-    expect(trackingMock).toHaveBeenCalledTimes(2);
+    expect(
+      mockTrackEvent.mock.calls.filter(
+        ([event]) => event === LlmAcceleratorConfigTrackingEvent.CREATED,
+      ),
+    ).toHaveLength(2);
   });
 
   it('should show creation errors and allow retry', async () => {
@@ -242,10 +257,11 @@ describe('LlmAcceleratorInstallTarget', () => {
     fireEvent.click(screen.getByTestId('submit-button'));
     expect(await screen.findByText('Config already exists')).toBeInTheDocument();
     expect(screen.getByTestId('submit-button')).toBeEnabled();
-    expect(trackingMock).toHaveBeenCalledWith({
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.submit,
       success: false,
-      mode: 'install',
+      mode: 'create',
+      source: 'install',
     });
     fireEvent.click(screen.getByTestId('submit-button'));
     expect(await screen.findByText('Accelerator configs list')).toBeInTheDocument();

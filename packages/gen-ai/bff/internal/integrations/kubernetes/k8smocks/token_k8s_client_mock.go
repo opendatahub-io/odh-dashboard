@@ -867,6 +867,11 @@ func (m *TokenKubernetesClientMock) GetInferenceServiceURL(_ context.Context, _ 
 	return "", nil
 }
 
+// GetServingModelDetails delegates to the real implementation for testing.
+func (m *TokenKubernetesClientMock) GetServingModelDetails(ctx context.Context, namespace string, modelRef string) (string, string, error) {
+	return m.TokenKubernetesClient.GetServingModelDetails(ctx, namespace, modelRef)
+}
+
 // ListAgentProfiles lists mock AgentProfile ConfigMaps for testing
 func (m *TokenKubernetesClientMock) ListAgentProfiles(ctx context.Context, namespace string) (*models.AgentProfileListResponse, error) {
 	// Use the embedded TokenKubernetesClient which will use m.Client (the fake client)

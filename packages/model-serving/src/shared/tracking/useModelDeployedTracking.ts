@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { RecursivePartial } from '@odh-dashboard/foundation';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
@@ -38,6 +39,8 @@ export const getBaseModelDeployedTrackingProperties = (
     'platform.opendatahub.io/part-of'
   ]
     ? 'preinstalled'
+    : template?.metadata?.annotations?.[MetadataAnnotation.InstalledFromCatalog] === 'true'
+    ? 'created-from-catalog'
     : undefined;
   return {
     modelType: formState.modelType.data?.type,

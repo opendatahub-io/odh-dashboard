@@ -112,7 +112,6 @@ const defaultProps = {
   patterns: mockPatterns,
   onClose: jest.fn(),
   onSelectPattern: jest.fn(),
-  onViewCode: jest.fn(),
 };
 
 const renderInDrawer = (props = defaultProps) =>
@@ -163,7 +162,6 @@ describe('PlaygroundDrawerPanel', () => {
     );
 
     expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
       'The database connection is unavailable for this historical run.',
     );
@@ -186,7 +184,6 @@ describe('PlaygroundDrawerPanel', () => {
     );
 
     expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('playground-maas-unavailable')).toHaveTextContent(
       'A MaaS connection is required to use the playground.',
     );
@@ -204,7 +201,6 @@ describe('PlaygroundDrawerPanel', () => {
     );
 
     expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
       'The database connection is unavailable for this historical run.',
     );
@@ -222,7 +218,6 @@ describe('PlaygroundDrawerPanel', () => {
     );
 
     expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('playground-vector-db-unavailable')).toHaveTextContent(
       'The database connection is unavailable for this historical run.',
     );
@@ -235,18 +230,20 @@ describe('PlaygroundDrawerPanel', () => {
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onViewCode when View Code button is clicked', () => {
+  it('should not expose a View Code button', () => {
     renderInDrawer();
 
-    fireEvent.click(screen.getByTestId('playground-view-code-button'));
-    expect(defaultProps.onViewCode).toHaveBeenCalledWith('pattern_a');
+    expect(screen.queryByRole('button', { name: 'View Code' })).not.toBeInTheDocument();
   });
 
-  it('should disable playground and View Code for Neo4j patterns', () => {
+  it('should enable the playground for Neo4j patterns', () => {
     const neo4jPattern = {
       ...mockPatterns.pattern_a,
       name: 'neo4j-pattern',
-      settings: { ...mockPatternSettings, store_binding: { provider_type: 'neo4j' } },
+      settings: {
+        ...mockPatternSettings,
+        store_binding: { provider_type: 'neo4j', collection_name: 'vs-1' },
+      },
     } as AutoragPattern;
     render(
       <AutoragResultsContext.Provider
@@ -267,11 +264,7 @@ describe('PlaygroundDrawerPanel', () => {
       </AutoragResultsContext.Provider>,
     );
 
-    expect(screen.queryByTestId('mock-embedded-playground')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('playground-view-code-button')).not.toBeInTheDocument();
-    expect(screen.getByTestId('playground-neo4j-unavailable')).toHaveTextContent(
-      'GraphRAG runs using Neo4j are not supported',
-    );
+    expect(screen.getByTestId('mock-embedded-playground')).toBeInTheDocument();
   });
 
   it('should render the pattern select toggle', () => {

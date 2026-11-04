@@ -45,6 +45,8 @@ type AutoragPipelineVisualizationProps = {
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
   showStageMapUnavailableNotice?: boolean;
+  /** Namespace of the run — forwarded to the step details panel. */
+  namespace?: string;
 };
 
 const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> = ({
@@ -55,6 +57,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
   componentStageMap,
   pipelineRun,
   showStageMapUnavailableNotice,
+  namespace,
 }) => {
   const statusFilter = React.useMemo((): PipelineStatusFilter => {
     if (treeLoadingMode === 'preparing' || !runState) {
@@ -208,6 +211,7 @@ const AutoragPipelineVisualization: React.FC<AutoragPipelineVisualizationProps> 
                   componentStageMap={componentStageMap}
                   pipelineRun={pipelineRun}
                   showStageMapUnavailableNotice={showStageMapUnavailableNotice}
+                  namespace={namespace}
                   onClose={handleCloseDetails}
                 />
               </DrawerPanelContent>

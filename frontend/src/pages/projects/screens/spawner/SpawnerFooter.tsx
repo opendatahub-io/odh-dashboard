@@ -60,6 +60,8 @@ type SpawnerFooterProps = {
   /** Present when editing; prefer this over looking up the notebook from context. */
   existingNotebook?: NotebookKind;
   existingSecretsData: UseExistingSecretsResult;
+  /** Whether the default storage class has finished loading. */
+  defaultStorageClassLoaded?: boolean;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -73,6 +75,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   featureStoresLoading = false,
   existingNotebook,
   existingSecretsData,
+  defaultStorageClassLoaded = true,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -118,6 +121,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     hasDeletedOrMissingRefs ||
     !isHardwareProfileValid ||
     featureStoresLoading ||
+    (!editNotebook && !defaultStorageClassLoaded) ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 

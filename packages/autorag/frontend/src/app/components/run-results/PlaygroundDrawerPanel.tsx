@@ -1,6 +1,5 @@
 import {
   Bullseye,
-  Button,
   Card,
   CardBody,
   Content,
@@ -25,7 +24,7 @@ import {
   SelectOption,
   Spinner,
 } from '@patternfly/react-core';
-import { CodeIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import type { AutoRAGResponsesTemplate } from '~/app/types/autoragPattern';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
@@ -57,7 +56,6 @@ type PlaygroundDrawerPanelProps = {
   patternInfo: PlaygroundPatternInfo;
   onClose: () => void;
   onSelectPattern: (patternName: string) => void;
-  onViewCode: (patternName: string) => void;
 };
 
 const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
@@ -66,7 +64,6 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   patternInfo,
   onClose,
   onSelectPattern,
-  onViewCode,
 }) => {
   const { parameters, patterns } = useAutoragResultsContext();
   const secretName = resolveMaaSSecretName(parameters) ?? '';
@@ -150,23 +147,6 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               </SelectList>
             </Select>
           </FlexItem>
-          <FlexItem>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              spaceItems={{ default: 'spaceItemsSm' }}
-            >
-              {responsesReady ? (
-                <Button
-                  variant="secondary"
-                  icon={<CodeIcon />}
-                  onClick={() => onViewCode(patternInfo.patternName)}
-                  data-testid="playground-view-code-button"
-                >
-                  View Code
-                </Button>
-              ) : null}
-            </Flex>
-          </FlexItem>
         </Flex>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} data-testid="playground-drawer-close" />
@@ -241,7 +221,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               <EmptyState
                 data-testid={
                   unavailableReason === 'unsupported-provider'
-                    ? 'playground-neo4j-unavailable'
+                    ? 'playground-unsupported-provider'
                     : unavailableReason === 'database-secret' || unavailableReason === 'collection'
                       ? 'playground-vector-db-unavailable'
                       : unavailableReason === 'maas-secret'
@@ -252,7 +232,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
                 icon={ExclamationCircleIcon}
                 titleText={
                   unavailableReason === 'unsupported-provider'
-                    ? 'GraphRAG playground unavailable'
+                    ? 'Playground unavailable'
                     : unavailableReason === 'database-secret'
                       ? 'Playground unavailable'
                       : unavailableReason === 'maas-secret'
@@ -268,9 +248,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               >
                 <EmptyStateBody>
                   {unavailableReason === 'unsupported-provider'
-                    ? provider === 'neo4j'
-                      ? 'GraphRAG runs using Neo4j are not supported by the Responses playground. Use the run results and pattern details instead.'
-                      : 'This vector store provider is not supported by the Responses playground. Use the run results and pattern details instead.'
+                    ? 'This vector store provider is not supported by the Responses playground. Use the run results and pattern details instead.'
                     : unavailableReason === 'database-secret'
                       ? 'The database connection is unavailable for this historical run. Rerun or configure the run with its database connection to use the playground.'
                       : unavailableReason === 'maas-secret'

@@ -2,9 +2,9 @@ import type { SortableData } from '@odh-dashboard/ui-core';
 import type { QuotaUsageAcceleratorRow } from './types';
 import type { InfrastructureWorkloadRow } from './types/infrastructureWorkloads';
 
-export const INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE = 'No workloads yet';
+export const INFRASTRUCTURE_WORKLOADS_EMPTY_TITLE = 'No recent workloads';
 export const INFRASTRUCTURE_WORKLOADS_EMPTY_BODY =
-  'When workloads are admitted or waiting in this project, the workload overview shows status and admission metrics, and the workloads table lists workload details.';
+  'Details about recent workloads in this project will appear here.';
 export const INFRASTRUCTURE_WORKLOADS_PARTIAL_FAILURE_TITLE = 'Some workload data unavailable';
 export const INFRASTRUCTURE_WORKLOAD_NON_KUEUE_LABEL = 'Non-Kueue';
 

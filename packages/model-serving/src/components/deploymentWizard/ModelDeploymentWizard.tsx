@@ -101,6 +101,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   const { onSave, onOverwrite, isLoading, submitError, clearSubmitError } =
     useModelDeploymentSubmit(
       wizardFormData.state,
+      wizardFormData.deployMethodActivationInput,
       finalResources,
       validation,
       externalData,

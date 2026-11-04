@@ -159,6 +159,9 @@ spec:
                     modelAsService:
                       type: boolean
                       description: 'When true, enables Model-as-a-Service (MaaS) features for managed model deployments.'
+                    inferencePriorityField:
+                      type: boolean
+                      description: 'When true, enables inference priority field in the MaaS subscription creation form.'
                     maasAuthPolicies:
                       type: boolean
                       description: 'DEPRECATED: This field is no longer used and will be removed in a future version.'
@@ -246,6 +249,9 @@ spec:
                     llmGatewayField:
                       type: boolean
                       description: 'When true, shows the LLM gateway configuration field for generative AI model deployments that support gateway selections.'
+                    hardwareProfileDRA:
+                      type: boolean
+                      description: 'When true, enables selecting hardware profiles that use dynamic resource allocation (DRA) for workbenches and model deployments. Tech Preview.'
                     gpuaas:
                       type: boolean
                       description: 'When true, enables the GPUaaS Infrastructure page for cluster capacity and accelerator utilization monitoring.'

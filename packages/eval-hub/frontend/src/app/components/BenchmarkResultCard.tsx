@@ -11,7 +11,11 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon, TimesCircleIcon } from '@patternfly/react-icons';
 import { EvaluationJob } from '~/app/types';
-import { getBenchmarkDisplayName, getBenchmarkResultScore } from '~/app/utilities/evaluationUtils';
+import {
+  getBenchmarkDisplayName,
+  getBenchmarkResultScore,
+  isBenchmarkFailed,
+} from '~/app/utilities/evaluationUtils';
 import './BenchmarkResultCard.scss';
 
 type BenchmarkResultCardProps = {
@@ -37,6 +41,9 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
   );
   const score = getBenchmarkResultScore(job, benchmarkId, resolvedIndex);
   const passStatus = result?.test?.pass;
+  // Failed benchmark runs never produce test results — derive the fail mark from the job's
+  // per-benchmark status so the card still shows a failure indicator.
+  const benchmarkFailed = passStatus == null && isBenchmarkFailed(job, benchmarkId, resolvedIndex);
   const cardKey = `${benchmarkId}-${resolvedIndex}`;
 
   return (
@@ -89,7 +96,7 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
               </Content>
             </FlexItem>
           )}
-          {passStatus != null && (
+          {passStatus != null || benchmarkFailed ? (
             <FlexItem>
               <Label
                 variant="outline"
@@ -106,7 +113,7 @@ const BenchmarkResultCard: React.FC<BenchmarkResultCardProps> = ({
                 {passStatus ? 'Pass' : 'Fail'}
               </Label>
             </FlexItem>
-          )}
+          ) : null}
         </Flex>
       </CardBody>
     </Card>

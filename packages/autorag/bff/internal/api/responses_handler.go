@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -59,7 +60,7 @@ const (
 	maxResponsesContentFields      = 2
 	maxResponsesToolFields         = 5
 	maxResponsesToolChoiceFields   = 1
-	maxResponsesRankingFields      = 2
+	maxResponsesRankingFields      = 3
 )
 
 const genericStreamingErrorMessage = "The response could not be completed."
@@ -67,14 +68,22 @@ const genericStreamingErrorMessage = "The response could not be completed."
 const (
 	vectorDBUnavailableMessage = "The vector database is unavailable."
 	vectorDBTimeoutMessage     = "The vector database request timed out."
+	vectorDBQueryFailedMessage = "The vector database rejected the search."
 	vectorDBUnavailableCode    = "vector_database_unavailable"
 	vectorDBTimeoutCode        = "vector_database_timeout"
+	vectorDBQueryFailedCode    = "vector_database_query_failed"
 )
 
 // ResponsesHandler handles POST /api/v1/responses.
 func (h *ResponsesHandler) HandleResponsesEndpoint(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	params, ok := h.extractParams(w, r)
 	if !ok {
+		return
+	}
+
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		badRequestResponse(h.logger, w, r, "invalid request content type: expected application/json")
 		return
 	}
 
@@ -253,11 +262,19 @@ func validateResponsesRequest(req *models.ResponsesRequest) error {
 		if tool.RankingOptions.Alpha != nil && (math.IsNaN(*tool.RankingOptions.Alpha) || math.IsInf(*tool.RankingOptions.Alpha, 0) || *tool.RankingOptions.Alpha < 0 || *tool.RankingOptions.Alpha > 1) {
 			return fmt.Errorf("file_search ranking_options.alpha must be between 0 and 1")
 		}
-		if tool.RankingOptions.Ranker != "" && tool.RankingOptions.Ranker != "rrf" {
-			return fmt.Errorf("file_search ranking_options.ranker %q is unsupported; only rrf is supported for hybrid search", tool.RankingOptions.Ranker)
+		if tool.RankingOptions.Ranker != "" && tool.RankingOptions.Ranker != "rrf" && tool.RankingOptions.Ranker != "weighted" {
+			return fmt.Errorf("file_search ranking_options.ranker %q is unsupported; only rrf and weighted are supported for hybrid search", tool.RankingOptions.Ranker)
 		}
 		if tool.RankingOptions.Alpha != nil && tool.RankingOptions.Ranker == "" {
 			return fmt.Errorf("file_search ranking_options.alpha requires ranking_options.ranker")
+		}
+		if tool.RankingOptions.RankerK != nil {
+			if tool.RankingOptions.Ranker != "rrf" {
+				return fmt.Errorf("file_search ranking_options.ranker_k requires rrf ranking")
+			}
+			if !vectordb.ValidMilvusRRFK(*tool.RankingOptions.RankerK) {
+				return fmt.Errorf("file_search ranking_options.ranker_k must be greater than 0 and less than %d", vectordb.MaxMilvusRRFK)
+			}
 		}
 	}
 	return nil
@@ -444,7 +461,9 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 
 	if err != nil {
 		deadline := errors.Is(err, context.DeadlineExceeded) || errors.Is(streamCtx.Err(), context.DeadlineExceeded)
-		vectorDBError := errors.Is(err, vectordb.ErrDatabaseTimeout) || errors.Is(err, vectordb.ErrDatabaseUnavailable)
+		vectorDBError := errors.Is(err, vectordb.ErrDatabaseTimeout) ||
+			errors.Is(err, vectordb.ErrDatabaseUnavailable) ||
+			errors.Is(err, vectordb.ErrDatabaseQueryFailed)
 		if vectorDBError {
 			h.logger.Error("RAG streaming response failed",
 				"namespace", params.Namespace,
@@ -471,6 +490,9 @@ func (h *ResponsesHandler) handleStreamingResponse(w http.ResponseWriter, r *htt
 		} else if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
 			errorEvent["code"] = vectorDBUnavailableCode
 			errorEvent["message"] = vectorDBUnavailableMessage
+		} else if errors.Is(err, vectordb.ErrDatabaseQueryFailed) {
+			errorEvent["code"] = vectorDBQueryFailedCode
+			errorEvent["message"] = vectorDBQueryFailedMessage
 		}
 		if deadline {
 			_ = sseData(w, flusher, errorEvent)
@@ -599,6 +621,13 @@ func (h *ResponsesHandler) mapError(w http.ResponseWriter, r *http.Request, err 
 	}
 	if errors.Is(err, vectordb.ErrDatabaseUnavailable) {
 		serviceUnavailableResponseWithMessage(h.logger, w, r, err, vectorDBUnavailableMessage)
+		return
+	}
+	if errors.Is(err, vectordb.ErrDatabaseQueryFailed) {
+		// The database server rejected the query or its configuration (invalid
+		// query, missing index): not an availability problem, so answer 502
+		// rather than the 503 used for unreachable/timing-out databases.
+		badGatewayResponseWithMessage(h.logger, w, r, err, vectorDBQueryFailedMessage)
 		return
 	}
 	var maaSErr *maas.MaaSError

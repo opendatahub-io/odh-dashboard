@@ -6,6 +6,17 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import EvaluationStatusModal from '~/app/components/EvaluationStatusModal';
 import { getEvaluationJobLogs, getEvaluationJobBenchmarkLogs, LogFetchError } from '~/app/api/k8s';
 import { EvaluationJob } from '~/app/types';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+const mockTrackEvalHubEvent = jest.fn();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({
+    trackEventOnce: jest.fn(),
+    clear: jest.fn(),
+  }),
+  trackEvalHubEvent: (...args: unknown[]) => mockTrackEvalHubEvent(...args),
+}));
 
 jest.mock('~/app/api/k8s', () => ({
   ...jest.requireActual('~/app/api/k8s'),
@@ -117,6 +128,63 @@ describe('EvaluationStatusModal tab defaults', () => {
     switchToEventsLog();
     expect(screen.getByTestId('evaluation-status-modal')).toHaveClass(
       'evalhub-status-modal--full-height',
+    );
+  });
+
+  it('should track status tab and log views', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    renderModal(job);
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
+      expect.objectContaining({ tab: 'events_log' }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
+      expect.objectContaining({ source: 'status_tab' }),
+    );
+  });
+
+  it('should not re-emit tab telemetry when re-selecting the active tab', () => {
+    renderModal(mockEvaluationJob({ state: 'running' }));
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+    mockTrackEvalHubEvent.mockClear();
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('progress-tab'));
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
+      expect.objectContaining({ tab: 'progress' }),
+    );
+  });
+
+  it('should track general logs when re-selecting Events log from a benchmark log view', () => {
+    const job = mockEvaluationJob({ state: 'running' });
+    const polledJob = mockEvaluationJob({ state: 'running' });
+    polledJob.status.benchmarks = makeBenchmarks([
+      { id: 'mmlu', status: 'completed', benchmark_index: 0 },
+    ]);
+
+    renderModal(job, polledJob);
+
+    fireEvent.click(screen.getByTestId('progress-view-logs-0'));
+    mockTrackEvalHubEvent.mockClear();
+
+    fireEvent.click(screen.getByTestId('events-log-tab'));
+
+    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_STATUS_TAB_SELECTED,
+      expect.anything(),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
+      expect.objectContaining({ source: 'status_tab' }),
     );
   });
 
@@ -874,13 +942,26 @@ describe('EvaluationStatusModal failure summary alert', () => {
       const alert = screen.getByTestId('failure-summary-alert');
       expect(alert).toHaveTextContent('bm-a: err-a');
 
+      // Collapsed text is clamped; expanded text is capped, scrollable, and
+      // keyboard-focusable so the modal height stays stable (RHAI-10244).
+      const summaryText = screen.getByTestId('failure-summary-text');
+      expect(summaryText).toHaveClass('evalhub-status-modal__failure-summary');
+      expect(summaryText).toHaveClass('m-clamped');
+      expect(summaryText).not.toHaveAttribute('tabindex');
+
       fireEvent.click(toggle);
       expect(toggle).toHaveTextContent('Show less');
       expect(alert).toHaveTextContent('bm-a: err-a');
+      expect(summaryText).toHaveClass('m-expanded');
+      expect(summaryText).toHaveAttribute('tabindex', '0');
+      expect(summaryText).toHaveAttribute('role', 'region');
+      expect(summaryText).toHaveAttribute('aria-label', 'Failure summary');
 
       fireEvent.click(toggle);
       expect(toggle).toHaveTextContent('Show more');
       expect(alert).toHaveTextContent('bm-a: err-a');
+      expect(summaryText).toHaveClass('m-clamped');
+      expect(summaryText).not.toHaveAttribute('tabindex');
     } finally {
       if (origScrollHeight) {
         Object.defineProperty(Element.prototype, 'scrollHeight', origScrollHeight);
@@ -1000,6 +1081,10 @@ describe('EvaluationStatusModal view benchmark logs', () => {
     fireEvent.click(screen.getByTestId('progress-view-logs-0'));
 
     expect(screen.getByTestId('events-log-tab')).toHaveAttribute('aria-selected', 'true');
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_LOGS_VIEWED,
+      expect.objectContaining({ benchmarkIndex: 0, source: 'progress_benchmark' }),
+    );
   });
 });
 
@@ -1530,6 +1615,17 @@ describe('EvaluationStatusModal reconfigure button', () => {
     expect(screen.queryByTestId('status-modal-reconfigure-button')).not.toBeInTheDocument();
   });
 
+  it('should track viewing results from the status modal', () => {
+    renderModalWithReconfigure({ state: 'completed' });
+
+    fireEvent.click(screen.getByTestId('status-modal-view-results-button'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_RESULTS_VIEWED,
+      expect.objectContaining({ evaluationName: expect.any(String) }),
+    );
+  });
+
   it('should show view results button for completed jobs without onRequestReconfigure', () => {
     const job = mockEvaluationJob({ state: 'completed' });
     render(
@@ -1566,5 +1662,9 @@ describe('EvaluationStatusModal reconfigure button', () => {
 
     fireEvent.click(screen.getByTestId('status-modal-reconfigure-button'));
     expect(mockOnReconfigure).toHaveBeenCalledWith(job);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.EVALUATION_RECONFIGURE_SELECTED,
+      expect.objectContaining({ previousState: 'failed' }),
+    );
   });
 });

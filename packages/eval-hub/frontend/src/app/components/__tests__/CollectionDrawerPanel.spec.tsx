@@ -6,6 +6,14 @@ import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
 import { Collection } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 jest.mock('~/app/components/benchmarkUtils', () => ({
   getCategoryColor: () => 'blue',
@@ -104,6 +112,19 @@ describe('CollectionDrawerPanel', () => {
 
     expect(onRunCollection).toHaveBeenCalledWith(collection, true);
     expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: 'Test Collection',
+        benchmarkTypes: '[]',
+        countOfBenchmarks: 0,
+      },
+      {
+        collectionType: 'custom',
+        providerType: undefined,
+      },
+    );
   });
 
   it('should show prerequisites, metadata sections, and customize only for mapped collections', () => {
@@ -141,9 +162,6 @@ describe('CollectionDrawerPanel', () => {
               onRunCollection={onRunCollection}
               onCustomizeCollection={onCustomizeCollection}
               isSystemCollection
-              prerequisites={{
-                'tool-use-v1': 'Requires a model that supports multiple tool/function calls.',
-              }}
             />
           }
         >
@@ -153,7 +171,7 @@ describe('CollectionDrawerPanel', () => {
     );
 
     expect(screen.getByTestId('collection-drawer-prerequisite')).toHaveTextContent(
-      'Requires a model that supports multiple tool/function calls.',
+      'The model you are evaluating must support multiple tool/function calls.',
     );
     expect(screen.getByTestId('collection-drawer-prerequisite')).toHaveClass('pf-m-info');
     expect(screen.getByTestId('collection-drawer-prerequisite')).not.toHaveClass('pf-m-warning');
@@ -221,9 +239,6 @@ describe('CollectionDrawerPanel', () => {
               onClose={jest.fn()}
               onRunCollection={onRunCollection}
               onCustomizeCollection={onCustomizeCollection}
-              prerequisites={{
-                'tool-use-v1': 'Requires a model that supports multiple tool/function calls.',
-              }}
             />
           }
         >
@@ -446,7 +461,7 @@ describe('CollectionDrawerPanel', () => {
 
     renderPanel({ collection, benchmarkDetailsMap: detailsMap });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
 
     expect(screen.getByText('0.85')).toBeInTheDocument();
     expect(screen.queryByText('30%')).not.toBeInTheDocument();
@@ -478,12 +493,48 @@ describe('CollectionDrawerPanel', () => {
 
     renderPanel({ collection, benchmarkDetailsMap: detailsMap });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
 
     expect(screen.getByText('0.3')).toBeInTheDocument();
     expect(screen.getByText('provider_metric')).toBeInTheDocument();
 
     const datasetLink = screen.getByRole('link', { name: /View benchmark dataset/i });
     expect(datasetLink).toHaveAttribute('href', 'https://provider.example.com/toxigen');
+  });
+
+  it('should render a benchmark test_data_ref definition inside its card', () => {
+    const detailsMap = new Map<string, BenchmarkWithProvider>([
+      ['lm_evaluation_harness:toxigen', makeBenchmark('toxigen', 'lm_evaluation_harness')],
+    ]);
+
+    const collection = makeCollection({
+      resource: { id: 'safety-suite' },
+      name: 'Safety Suite',
+      benchmarks: [
+        {
+          id: 'toxigen',
+          provider_id: 'lm_evaluation_harness',
+          test_data_ref: {
+            git: {
+              url: 'https://example.com/data.git',
+              ref: 'main',
+              secret_ref: 'git-auth',
+            },
+          },
+        },
+      ],
+    });
+
+    renderPanel({ collection, benchmarkDetailsMap: detailsMap });
+
+    expect(screen.queryByText('Test data')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Expand/ }));
+
+    const testDataSection = screen.getByTestId('benchmark-test-data-ref');
+    expect(within(testDataSection).getByText('Git repository')).toBeInTheDocument();
+    expect(within(testDataSection).getByText('https://example.com/data.git')).toBeInTheDocument();
+    expect(within(testDataSection).getByText('main')).toBeInTheDocument();
+    expect(within(testDataSection).getByText('git-auth')).toBeInTheDocument();
   });
 });

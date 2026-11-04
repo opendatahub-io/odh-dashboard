@@ -17,10 +17,6 @@ import {
   Label,
   MenuToggle,
   Divider,
-  Tab,
-  Tabs,
-  TabContent,
-  TabTitleText,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
@@ -363,22 +359,16 @@ const TableDetailPage: React.FC = () => {
       provideChildrenPadding
       removeChildrenTopPadding
     >
-      <Tabs defaultActiveKey={0} data-testid="detail-tabs">
-        <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>}>
-          <TabContent id="overview-tab">
-            {asset ? (
-              <TableDetailView
-                asset={asset}
-                project={project}
-                connections={connectionDisplayData}
-                connectionsLoaded={connectionsLoaded}
-                connectionsError={connectionsError}
-                connectionWarnings={visibleConnectionWarnings}
-              />
-            ) : null}
-          </TabContent>
-        </Tab>
-      </Tabs>
+      {asset ? (
+        <TableDetailView
+          asset={asset}
+          project={project}
+          connections={connectionDisplayData}
+          connectionsLoaded={connectionsLoaded}
+          connectionsError={connectionsError}
+          connectionWarnings={visibleConnectionWarnings}
+        />
+      ) : null}
     </ApplicationsPage>
   );
 };

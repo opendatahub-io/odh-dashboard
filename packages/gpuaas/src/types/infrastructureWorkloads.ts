@@ -46,6 +46,7 @@ export type InfrastructureWorkloadRow = {
   status: InfrastructureWorkloadStatus;
   jobStatus?: JobDisplayState;
   kueueStatus?: KueueWorkloadStatus;
+  clusterQueueName?: string;
   deploymentStatus?: DeploymentStatus;
   queuePosition?: string;
   priority?: string;

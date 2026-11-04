@@ -19,7 +19,7 @@ export const ADMISSION_TIME_WINDOW_OPTIONS: SimpleSelectOption[] = [
 ];
 
 const ADMISSION_DATE_ONLY_WINDOWS = new Set(['7d', '30d']);
-const ADMISSION_TIME_ONLY_WINDOWS = new Set(['24h']);
+const ADMISSION_TIME_ONLY_WINDOWS = new Set(['1h', '24h']);
 const ADMISSION_TICK_INTERVALS: Record<string, number> = {
   '1h': 15 * 60 * 1000,
   '24h': 5 * 60 * 60 * 1000,

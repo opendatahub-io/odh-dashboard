@@ -76,6 +76,10 @@ spec:
             items:
               - key: odh-ca-bundle.crt
                 path: odh-ca-bundle.crt
+        - name: autorag-router-ca-bundle
+          configMap:
+            name: autorag-router-ca-bundle
+            optional: true
       containers:
         - name: autorag-ui
           image: autorag-ui-image
@@ -137,6 +141,9 @@ spec:
             - name: modules-sa-token
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
+            - name: autorag-router-ca-bundle
+              mountPath: /etc/autorag/router-ca
+              readOnly: true
           args:
             - '--deployment-mode=federated'
             - '--auth-method=user_token'
@@ -147,6 +154,22 @@ spec:
             - '--key-file=/etc/tls/private/tls.key'
             - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
           env:
+            - name: GATEWAY_DOMAIN
+              value: gateway-domain
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: BFF_MAAS_SERVICE_NAME
+              value: "odh-dashboard-maas-ui"
+            - name: BFF_MAAS_SERVICE_PORT
+              value: "8243"
+            - name: BFF_MAAS_TLS_ENABLED
+              value: "true"
+            - name: BFF_MAAS_AUTH_TOKEN_HEADER
+              value: "x-forwarded-access-token"
+            - name: BFF_MAAS_AUTH_TOKEN_PREFIX
+              value: ""
             - name: RELATED_IMAGE_ODH_AUTORAG_IMAGE
               value: autorag-pipeline-runtime-image
           securityContext:

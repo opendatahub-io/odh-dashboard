@@ -75,7 +75,11 @@ const MlflowSkillRegistryPage: React.FC = () => {
       empty={mlflowLoaded && !mlflowAvailable}
       emptyStatePage={
         <PageSection hasBodyWrapper={false} isFilled>
-          {mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
+          {mlflowStatusError ? (
+            <MLflowUnavailable />
+          ) : (
+            <MLflowNotConfigured featureName={SKILL_REGISTRY_PAGE_TITLE.toLowerCase()} />
+          )}
         </PageSection>
       }
       noHeader={!isTopLevel}
@@ -122,7 +126,7 @@ const MlflowSkillRegistryPage: React.FC = () => {
         ) : undefined
       }
       headerAction={
-        isTopLevel ? (
+        isTopLevel && mlflowAvailable ? (
           <LaunchMlflowButton
             testId="mlflow-skills-jump-link"
             section="skill-registry-page"

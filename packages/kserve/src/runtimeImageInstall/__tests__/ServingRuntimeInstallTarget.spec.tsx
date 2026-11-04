@@ -105,6 +105,7 @@ describe('ServingRuntimeInstallTarget', () => {
       'opendatahub',
       ServingRuntimeAPIProtocol.REST,
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
+      true,
     );
     expect(await screen.findByText('Serving runtime templates list')).toBeInTheDocument();
     expect(trackingMock).toHaveBeenCalledWith(

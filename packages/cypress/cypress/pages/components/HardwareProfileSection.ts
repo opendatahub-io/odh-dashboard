@@ -4,6 +4,10 @@ import { Contextual } from './Contextual';
 class HardwareProfileGroup extends Contextual<HTMLElement> {}
 
 export class HardwareProfileSection {
+  findSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-section');
+  }
+
   findSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-select');
   }
@@ -58,6 +62,24 @@ export class HardwareProfileSection {
 
   findKueueFilteringInfo(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('kueue-filtering-info');
+  }
+
+  findProfileList(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('listbox');
+  }
+
+  findProfileOption(name: string | RegExp): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('option', { name });
+  }
+
+  findProfileOptionClaimTemplateMissingIcon(
+    name: string | RegExp,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findProfileOption(name).findByTestId('claim-template-missing-icon');
+  }
+
+  findTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('tooltip');
   }
 
   findCustomizeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -179,6 +201,10 @@ export class HardwareProfileSection {
         cy.findByText(errorMessage).should('exist');
       }
     });
+  }
+
+  findClaimTemplateMissingError(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('hardware-profile-claim-template-missing');
   }
 
   findDRALockedMessage(): Cypress.Chainable<JQuery<HTMLElement>> {

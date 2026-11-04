@@ -151,6 +151,9 @@ func (r *DashboardReconciler) deployModuleManifests(
 		params := readExistingParams(filepath.Join(modulePath, "params.env"))
 		maps.Copy(params, computed)
 		addInterBFFParams(params, name, statuses, r.Platform)
+		if name == "maas" {
+			params["perses-namespace"] = r.maasPortalPersesNamespace(dashboard)
+		}
 		if err := writeParamsEnv(modulePath, params); err != nil {
 			return fmt.Errorf("failed to write params.env for module %s: %w", name, err)
 		}
@@ -167,6 +170,9 @@ func (r *DashboardReconciler) deployModuleManifests(
 			if err := preserveLegacyMaaSPortalNetworkAccess(ctx, r.apiReader(), rendered, r.ApplicationsNamespace); err != nil {
 				return err
 			}
+		}
+		if err := revertServicePortDrift(ctx, r.apiReader(), r.Client, rendered); err != nil {
+			return fmt.Errorf("repairing Service port drift for module %s: %w", name, err)
 		}
 
 		deployer := deploy.NewDeployer(
@@ -235,7 +241,7 @@ func (r *DashboardReconciler) deleteModuleResources(
 		}
 
 		var configMaps corev1.ConfigMapList
-		if err := r.List(ctx, &configMaps, matchLabels, inNamespace); err != nil {
+		if err := r.apiReader().List(ctx, &configMaps, matchLabels, inNamespace); err != nil {
 			errs = append(errs, fmt.Errorf("listing configmaps for module %s: %w", name, err))
 		} else {
 			for i := range configMaps.Items {
@@ -260,8 +266,10 @@ func (r *DashboardReconciler) deleteModuleResources(
 			}
 		}
 
-		var serviceAccounts corev1.ServiceAccountList
-		if err := r.List(ctx, &serviceAccounts, matchLabels, inNamespace); err != nil {
+		// ServiceAccounts are cached as metadata-only; list them via the metadata
+		// informer to avoid starting a second full-object informer.
+		serviceAccounts := newMetadataList(serviceAccountListGVK)
+		if err := r.List(ctx, serviceAccounts, matchLabels, inNamespace); err != nil {
 			errs = append(errs, fmt.Errorf("listing serviceaccounts for module %s: %w", name, err))
 		} else {
 			for i := range serviceAccounts.Items {
@@ -370,7 +378,7 @@ func (r *DashboardReconciler) buildFederationConfigMap(
 ) (*corev1.ConfigMap, error) {
 	dashboardEntries := r.dashboardFederationEntries(statuses, dashboard)
 
-	communityEntries, err := communityFederationEntries(ctx, r.Client)
+	communityEntries, err := communityFederationEntries(ctx, r.apiReader())
 	if err != nil {
 		// The community source is optional. Retain its last-known-good entries so
 		// a read failure cannot block Dashboard federation updates or cause a
@@ -532,7 +540,7 @@ func (r *DashboardReconciler) deployFederationConfigMap(
 // an absent ConfigMap does not prevent a first installation from starting.
 func (r *DashboardReconciler) preservePersesFederationEntry(ctx context.Context, desired *corev1.ConfigMap) error {
 	existing := &corev1.ConfigMap{}
-	if err := r.Get(ctx, client.ObjectKeyFromObject(desired), existing); err != nil {
+	if err := r.apiReader().Get(ctx, client.ObjectKeyFromObject(desired), existing); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}

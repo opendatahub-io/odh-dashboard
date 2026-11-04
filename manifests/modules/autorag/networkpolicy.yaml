@@ -31,7 +31,7 @@ spec:
             matchLabels:
               network.openshift.io/policy-group: ingress
   # autorag needs DNS, K8s API, broad in-cluster egress (user-provided Milvus/pgvector
-  # URIs on arbitrary ports — see below), and external HTTP(S) for S3-compatible storage.
+  # and S3-compatible services on arbitrary ports — see below), and external HTTP(S) for S3-compatible storage.
   egress:
     - to:
         - namespaceSelector:
@@ -52,10 +52,10 @@ spec:
           protocol: TCP
     # KNOWN LIMITATION (RHOAIENG-93715): AutoRAG egress can no longer be scoped to a
     # fixed set of peers/ports. As of PR #9695 the AutoRAG BFF connects to USER-PROVIDED
-    # Milvus and pgvector URIs (plus DSPA / MinIO / MaaS), and those services expose
-    # arbitrary ports depending on how they were deployed (19530 for Milvus and 5432 for
-    # pgvector are common but not guaranteed). Restricting egress to a fixed port set would
-    # break valid in-cluster endpoints. Allow broad in-cluster egress as a documented
+    # Milvus and pgvector URIs (plus DSPA / MinIO / MaaS / S3-compatible storage), and those
+    # services expose arbitrary ports depending on how they were deployed (19530 for Milvus
+    # and 5432 for pgvector are common but not guaranteed). Restricting egress to a fixed port
+    # set would break valid in-cluster endpoints. Allow broad in-cluster egress as a documented
     # reduced-posture exception per operand contract R5 (RHOAIENG-90747). A platform-team
     # exception has been requested for this case (see PR #9766 discussion).
     # TODO(autorag): tighten once user-endpoint destinations are constrained

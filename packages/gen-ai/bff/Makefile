@@ -38,7 +38,7 @@ BFF_MAAS_AUTH_TOKEN_PREFIX ?= ""
 BFF_MLFLOW_DEV_URL ?= ""
 
 # MLflow configuration
-MLFLOW_VERSION ?= 3.15.1
+MLFLOW_VERSION ?= 3.17.0
 MLFLOW_DIR ?= testdata/mlflow
 MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow

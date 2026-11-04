@@ -9,7 +9,7 @@ type UseCollectionDrawerResult = {
   selectedCollection: Collection | undefined;
   benchmarkDetailsMap: Map<string, BenchmarkWithProvider>;
   benchmarkNameMap: BenchmarkNameMap;
-  selectCollection: (collection: Collection) => void;
+  selectCollection: (collection: Collection) => boolean;
   closeDrawer: () => void;
 };
 
@@ -32,11 +32,16 @@ export const useCollectionDrawer = (namespace: string): UseCollectionDrawerResul
   }, [providers]);
   const benchmarkNameMap = React.useMemo(() => getBenchmarkNameMap(providers), [providers]);
 
-  const selectCollection = React.useCallback((collection: Collection) => {
-    setSelectedCollection((current) =>
-      current?.resource.id === collection.resource.id ? undefined : collection,
-    );
-  }, []);
+  const selectCollection = React.useCallback(
+    (collection: Collection): boolean => {
+      const opensDrawer = selectedCollection?.resource.id !== collection.resource.id;
+      setSelectedCollection((current) =>
+        current?.resource.id === collection.resource.id ? undefined : collection,
+      );
+      return opensDrawer;
+    },
+    [selectedCollection],
+  );
 
   const closeDrawer = React.useCallback(() => {
     setSelectedCollection(undefined);

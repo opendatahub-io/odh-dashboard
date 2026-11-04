@@ -53,7 +53,7 @@ export const getPatternEmbeddingModel = (pattern?: AutoragPattern): string | und
 };
 
 export const isResponsesProvider = (provider?: AutoragProviderType): boolean =>
-  provider === 'milvus' || provider === 'pgvector';
+  provider === 'milvus' || provider === 'pgvector' || provider === 'neo4j';
 
 export type ResponsesUnavailableReason =
   'database-secret' | 'maas-secret' | 'unsupported-provider' | 'collection' | 'embedding-model';

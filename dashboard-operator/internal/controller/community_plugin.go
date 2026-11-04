@@ -240,7 +240,7 @@ func communityFederationEntries(
 func (r *DashboardReconciler) lastKnownGoodCommunityFederationEntries(ctx context.Context) ([]federationEntry, error) {
 	existing := &corev1.ConfigMap{}
 	key := client.ObjectKey{Name: federationConfigMapName, Namespace: r.ApplicationsNamespace}
-	if err := r.Get(ctx, key, existing); err != nil {
+	if err := r.apiReader().Get(ctx, key, existing); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}

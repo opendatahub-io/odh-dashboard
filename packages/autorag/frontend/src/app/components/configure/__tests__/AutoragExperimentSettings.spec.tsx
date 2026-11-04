@@ -122,9 +122,30 @@ describe('AutoragExperimentSettings', () => {
       expect(screen.getByTestId('experiment-settings-modal')).toBeInTheDocument();
     });
 
-    it('should render the modal header with correct title', () => {
+    it('should render the modal header with the model selection title and description', () => {
       renderComponent();
-      expect(screen.getByText('Model configuration')).toBeInTheDocument();
+      expect(screen.getByText('Select foundation and embedding models')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Choose at least 1 foundation model and 1 embedding model. A single model cannot act as both a foundation and embedding model in the same run.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('experiment-settings-modal')).toHaveAttribute(
+        'aria-labelledby',
+        'autorag-model-selection-modal-title',
+      );
+      expect(screen.getByTestId('experiment-settings-modal')).toHaveAttribute(
+        'aria-describedby',
+        'autorag-model-selection-modal-description',
+      );
+      expect(
+        screen.getByRole('heading', { name: 'Select foundation and embedding models' }),
+      ).toHaveAttribute('id', 'autorag-model-selection-modal-title');
+      expect(
+        screen.getByText(
+          'Choose at least 1 foundation model and 1 embedding model. A single model cannot act as both a foundation and embedding model in the same run.',
+        ),
+      ).toHaveAttribute('id', 'autorag-model-selection-modal-description');
     });
 
     it('should render the model selection section', () => {

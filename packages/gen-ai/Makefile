@@ -17,6 +17,8 @@ include ${ENV_FILE}
 export $(shell sed 's/=.*//' ${ENV_FILE})
 endif
 
+DISTRIBUTION_NAME ?= rh
+
 MLFLOW_BFF_MOCK_PORT ?= 4020
 MLFLOW_MOCK_BFF_ARGS := MOCK_MLFLOW_CLIENT=true MLFLOW_URL=http://localhost:5001 BFF_MLFLOW_DEV_URL="http://localhost:$(MLFLOW_BFF_MOCK_PORT)/api/v1"
 ifeq ($(MOCK_MLFLOW_CLIENT),true)
@@ -157,7 +159,7 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
 	@mkdir -p "$(GOTMPDIR)"
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) GATEWAY_DOMAIN=$(GATEWAY_DOMAIN) NEMO_GUARDRAILS_URL=$(NEMO_GUARDRAILS_URL) BFF_MAAS_DEV_URL=$(BFF_MAAS_DEV_URL) BFF_MAAS_AUTH_TOKEN_HEADER=Authorization BFF_MAAS_AUTH_TOKEN_PREFIX="Bearer " MLFLOW_URL="$(MLFLOW_URL)" DISTRIBUTION_NAME="rh"
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_LS_CLIENT=false MOCK_K8S_CLIENT=false MOCK_MCP_CLIENT=false MOCK_MLFLOW_CLIENT=false AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " LLAMA_STACK_URL=$(LLAMA_STACK_URL) ASR_MODEL_URL=$(ASR_MODEL_URL) GATEWAY_DOMAIN=$(GATEWAY_DOMAIN) NEMO_GUARDRAILS_URL=$(NEMO_GUARDRAILS_URL) BFF_MAAS_DEV_URL=$(BFF_MAAS_DEV_URL) BFF_MAAS_AUTH_TOKEN_HEADER=Authorization BFF_MAAS_AUTH_TOKEN_PREFIX="Bearer " MLFLOW_URL="$(MLFLOW_URL)" DISTRIBUTION_NAME="$(DISTRIBUTION_NAME)"
 
 .PHONY: dev-start-mock-debug
 dev-start-mock-debug: ## Run frontend, gen-ai BFF (mocks + debugger), and MLflow BFF with real inter-BFF

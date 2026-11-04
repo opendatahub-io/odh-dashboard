@@ -34,6 +34,7 @@ export type AWSS3BucketDetails = {
 export type AWSS3Buckets = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
+  AWS_CA_BUNDLE?: string;
   BUCKET_1: AWSS3BucketDetails;
   BUCKET_2: AWSS3BucketDetails;
   BUCKET_3: AWSS3BucketDetails;
@@ -160,6 +161,26 @@ export type KueueQuotaUsageNavigationTestData = {
   clusterQueueTypeLabel: string;
 };
 
+export type InfrastructureWorkloadsTestData = {
+  managedProjectName: string;
+  nonKueueProjectName: string;
+  emptyProjectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  managedProjectWorkbenchName: string;
+  nonKueueProjectWorkbenchName: string;
+  resourceFlavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  initialCpuQuota: number;
+  memoryQuota: number;
+  notebookImage: string;
+  hardwareProfileName: string;
+  nonKueueLabel: string;
+  priorityClassColumnLabel: string;
+  expectedQueuePosition: number;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
@@ -240,6 +261,9 @@ export type WBStatusTestData = {
   wbStatusTestDescription: string;
   notebookImage: string;
   hardwareProfileName: string;
+  createdContainerEventPattern: string;
+  startedContainerEventPattern: string;
+  pulledImageEventText: string;
 };
 
 export type WBStorageClassesTestData = {
@@ -303,6 +327,7 @@ export type TestConfig = {
   TEST_USER_5: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
+  AWS_CLI_IMAGE?: string;
   APPLICATIONS_NAMESPACE: NamespaceConfig;
   ODH_DASHBOARD_PROJECT_NAME: string;
   PIP_INDEX_URL: string;
@@ -360,6 +385,7 @@ export type DataScienceProjectData = {
   resourceApiVersion: string;
   existingImage: string;
   replaceImage: string;
+  replaceImageArm64?: string;
   serviceAccountName1: string;
   serviceAccountName2: string;
   connectionNameSuffix: string;
@@ -370,6 +396,7 @@ export type DataScienceProjectData = {
   userSubjectKind: string;
   groupSubjectKind: string;
   yamlEditorModelName: string;
+  yamlEditorModelPathArm64?: string;
   legacyServingRuntime?: string;
   legacyModelLocationURI?: string;
   legacyHardwareProfileName?: string;
@@ -540,7 +567,7 @@ export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };
 
-enum OOTBConnectionTypes {
+export enum OOTBConnectionTypes {
   s3 = 'S3 compatible object storage - v1',
   uri = 'URI - v1',
   oci = 'OCI compliant registry - v1',
@@ -642,6 +669,8 @@ export type ModelRegistryTestData = {
   servingRuntime: string;
   servingRuntimeS390x: string;
   servingRuntimeX86: string;
+  servingRuntimeArm64: string;
+  servingRuntimeArm64YamlPath: string;
   // New version registration (Versions view)
   version2Name: string;
   version2Description: string;
@@ -826,6 +855,9 @@ export type GenAiTestData = {
   inferenceServiceName: string;
   modelType: string;
   servingRuntime: string;
+  servingRuntimeArm64: string;
+  servingRuntimeYamlPath: string;
+  servingRuntimeArm64YamlPath: string;
   testMessage: string;
   cpuRequested: number;
   cpuLimit: number;
@@ -958,6 +990,10 @@ export type EvalHubTestData = {
   mlflowInstanceResourceYamlPath: string;
   /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
   benchmarkCardTitle: string;
+  /** Provider ID of the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkProviderId: string;
+  /** Benchmark ID of the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkId: string;
   /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
   inferenceModelName: string;
   /** MLflow experiment name entered when starting an evaluation. */
@@ -974,7 +1010,10 @@ export type EvalHubTestData = {
   hardwareProfileResourceYamlPath: string;
 };
 
-export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
+export type EvalHubBenchmarkSuiteTestData = Omit<
+  EvalHubTestData,
+  'benchmarkCardTitle' | 'benchmarkProviderId' | 'benchmarkId'
+> & {
   /** Base name for the tenant suite created by this spec. */
   suiteName: string;
   /** Category IDs assigned to suites created from this fixture. */
@@ -1008,7 +1047,6 @@ export type ModelAsAServiceTestData = {
   singleModelName: string;
   singleModelDescription: string;
   llmInferenceServiceConfigName: string;
-  llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
   llmInferenceServiceFixturePath: string;
   hardwareProfileName: string;
@@ -1126,6 +1164,7 @@ export type RayJobE2eTestData = {
   gpuQuota: number;
   workerGroupName: string;
   rayImage: string;
+  rayImageArm64: string;
   rayVersion: string;
 };
 
@@ -1133,6 +1172,7 @@ export type RayJobTestData = {
   projectName: string;
   rayJobName: string;
   rayImage: string;
+  rayImageArm64: string;
   flavorName: string;
   clusterQueueName: string;
   localQueueName: string;

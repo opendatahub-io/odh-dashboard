@@ -488,8 +488,7 @@ describe('Ray cluster column URL behavior', () => {
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.attr', 'href')
       .and('include', 'rh-ai.apps.example.com');
@@ -534,8 +533,7 @@ describe('Ray cluster column URL behavior', () => {
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
     rayRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'ray-data-processing-raycluster')
       .and('have.attr', 'href')
       .and(
@@ -544,7 +542,7 @@ describe('Ray cluster column URL behavior', () => {
       );
   });
 
-  it('should show Ray cluster name as plain text when Gateway is unavailable', () => {
+  it('should show a disabled Ray cluster link when Gateway is unavailable', () => {
     cy.interceptK8s(
       { model: GatewayModel, name: 'data-science-gateway', ns: 'openshift-ingress' },
       { statusCode: 404, body: mock404Error({}) },
@@ -554,8 +552,13 @@ describe('Ray cluster column URL behavior', () => {
     trainingJobTable.findTable().should('be.visible');
 
     const rayRow = trainingJobTable.getTableRow('ray-data-processing');
-    rayRow.findRayCluster().should('contain', 'ray-data-processing-raycluster');
-    rayRow.findRayCluster().find('a').should('not.exist');
+    rayRow
+      .findRayClusterLink()
+      .should('contain', 'ray-data-processing-raycluster')
+      .and('have.class', 'pf-m-disabled')
+      .and('have.attr', 'aria-disabled', 'true')
+      .and('not.have.attr', 'href');
+    rayRow.findRayClusterExternalLinkIcon().should('exist');
   });
 
   it('should show workspace cluster name from clusterSelector in the Ray cluster column', () => {
@@ -574,8 +577,7 @@ describe('Ray cluster column URL behavior', () => {
     trainingJobTable.filterByName('ray-workspace-job');
     const workspaceRow = trainingJobTable.getTableRow('ray-workspace-job');
     workspaceRow
-      .findRayCluster()
-      .find('a')
+      .findRayClusterLink()
       .should('contain', 'shared-ray-cluster')
       .and('have.attr', 'target', '_blank');
   });
@@ -607,7 +609,7 @@ describe('RayJob Status Modal', () => {
     rayJobStatusModal.findStatusLabel().should('be.visible');
   });
 
-  it('should display "Running" status label in the modal header for a running RayJob', () => {
+  it('should display "Running" status label and no description for a running RayJob', () => {
     modelTrainingGlobal.visit(projectName);
 
     trainingJobTable.filterByName('ray-data-processing');
@@ -615,9 +617,13 @@ describe('RayJob Status Modal', () => {
 
     rayJobStatusModal.shouldBeOpen();
     rayJobStatusModal.getRayJobStatus('Running');
+    rayJobStatusModal.findAlertDescription().should('not.exist');
+    rayJobStatusModal
+      .find()
+      .should('not.contain', 'No additional status information is available for this job.');
   });
 
-  it('should display "Complete" status label for a succeeded RayJob', () => {
+  it('should display "Complete" status label and no description for a succeeded RayJob', () => {
     modelTrainingGlobal.visit(projectName);
 
     trainingJobTable.filterByName('ray-completed-job');
@@ -625,6 +631,8 @@ describe('RayJob Status Modal', () => {
 
     rayJobStatusModal.shouldBeOpen();
     rayJobStatusModal.getRayJobStatus('Complete');
+    rayJobStatusModal.findAlertDescription().should('not.exist');
+    rayJobStatusModal.find().should('not.contain', 'The job completed successfully.');
   });
 
   it('should display "Failed" status and danger alert for a failed RayJob', () => {
@@ -639,6 +647,34 @@ describe('RayJob Status Modal', () => {
     rayJobStatusModal
       .findAlertDescription()
       .should('contain', 'Ray job failed due to application error.');
+  });
+
+  it('should show the backend status message for a pending RayJob', () => {
+    cy.interceptK8sList(
+      { model: RayJobModel, ns: projectName },
+      mockK8sResourceList(
+        mockRayJobK8sResourceList([
+          {
+            name: 'ray-pending-with-message',
+            namespace: projectName,
+            jobDeploymentStatus: RayJobDeploymentStatus.INITIALIZING,
+            jobStatus: undefined,
+            message: 'Waiting for the Ray cluster to become ready.',
+          },
+        ]),
+      ),
+    );
+    modelTrainingGlobal.visit(projectName);
+
+    trainingJobTable.filterByName('ray-pending-with-message');
+    trainingJobTable.getTableRow('ray-pending-with-message').findStatus().click();
+
+    rayJobStatusModal.shouldBeOpen();
+    rayJobStatusModal.getRayJobStatus('Pending');
+    rayJobStatusModal.findAlert('info').should('exist');
+    rayJobStatusModal
+      .findAlertDescription()
+      .should('contain', 'Waiting for the Ray cluster to become ready.');
   });
 
   it('should show Pause job button for a running RayJob', () => {

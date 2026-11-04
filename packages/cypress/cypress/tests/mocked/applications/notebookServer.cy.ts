@@ -8,12 +8,14 @@ import { mockAllowedUsers } from '@odh-dashboard/internal/__mocks__/mockAllowedU
 import { mockStartNotebookData } from '@odh-dashboard/internal/__mocks__/mockStartNotebookData';
 import {
   mockGlobalScopedHardwareProfiles,
+  mockHardwareProfile,
   mockProjectScopedHardwareProfiles,
 } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import type { NotebookData } from '@odh-dashboard/internal/types';
 import { mockConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConfigMap';
 import { mockImageStreamK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { notebookServer } from '../../../pages/notebookServer';
+import { hardwareProfileSection } from '../../../pages/components/HardwareProfileSection';
 import { asClusterAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
 import { notebookController, stopNotebookModal } from '../../../pages/administration';
 import { homePage } from '../../../pages/home/home';
@@ -324,6 +326,42 @@ describe('NotebookServer', () => {
         },
       ]);
     });
+  });
+
+  it('should not offer DRA hardware profiles even when DRA hardware profile selection is enabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableStorageClasses: false,
+        hardwareProfileDRA: true,
+      }),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        ...mockGlobalScopedHardwareProfiles,
+        mockHardwareProfile({
+          name: 'dra-profile',
+          displayName: 'DRA Profile',
+          dra: { resourceClaimTemplateName: 'single-gpu' },
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList(mockProjectScopedHardwareProfiles),
+    );
+
+    notebookServer.visit();
+    notebookServer.findHardwareProfileSelect().should('contain', 'Small Profile');
+    notebookServer.findHardwareProfileSelect().click();
+    notebookServer
+      .findHardwareProfileSelectOptionValues()
+      .should('satisfy', (arr: string[]) => arr.some((item) => item.includes('Large Profile')))
+      .and('not.satisfy', (arr: string[]) => arr.some((item) => item.includes('DRA Profile')));
+    notebookServer.findHardwareProfileSelect().click();
+    hardwareProfileSection.findProfileList().should('not.exist');
+    cy.testA11y();
   });
 
   it('should stop a workbench', () => {

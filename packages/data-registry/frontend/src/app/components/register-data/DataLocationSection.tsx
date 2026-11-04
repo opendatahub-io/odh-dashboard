@@ -24,6 +24,7 @@ import {
   getConnectionKey,
   shouldDisplayConnectionWarning,
 } from '~/app/utilities/connectionUtils';
+import styles from './RegistrationForm.module.scss';
 
 type DataLocationSectionProps = {
   project?: string;
@@ -85,7 +86,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
   };
 
   return (
-    <FormSection title="Asset location" titleElement="h2">
+    <FormSection title="Asset location" titleElement="h2" className={styles.assetLocationSection}>
       <Content component="p">Specify where the data is stored within a connection.</Content>
 
       {connectionsError ? (
@@ -127,7 +128,12 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
         name="connection"
         control={control}
         render={({ field }) => (
-          <FormGroup label="Connection" fieldId="data-connection" isStack>
+          <FormGroup
+            label="Connection"
+            fieldId="data-connection"
+            isStack
+            className={`${styles.describedGroup} ${styles.connectionGroup}`}
+          >
             <Content component="p">
               Select the connection in this project where the data is located.
             </Content>
@@ -153,7 +159,7 @@ const DataLocationSection: React.FC<DataLocationSectionProps> = (props) => {
                   isExpanded={isConnectionOpen}
                   isFullWidth
                   isDisabled={!connectionsLoaded || !!connectionsError || isConnectionDisabled}
-                  className="odh-data-registry-registration-form__connection-toggle"
+                  className={styles.connectionToggle}
                   data-testid="data-connection-toggle"
                 >
                   {!connectionsLoaded && !connectionsError && !field.value ? (

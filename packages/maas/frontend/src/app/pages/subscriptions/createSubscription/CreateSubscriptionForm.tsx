@@ -26,6 +26,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { getSectionUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
@@ -54,6 +55,7 @@ import {
   SubscriptionUpdatedSuccessProperties,
 } from '~/app/types/event-tracking';
 import SystemAuthenticatedWarning from '~/app/shared/SystemAuthenticatedWarning';
+import { hasInternalModelKind } from '~/app/utilities/subscriptions';
 import EditRateLimitsModal from './EditRateLimitsModal';
 
 type CreateSubscriptionFormProps = {
@@ -129,6 +131,10 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const { refresh } = useMaaSGovernanceContext();
   const isEditing = !!subscriptionInfo;
   const subscription = subscriptionInfo?.subscription;
+
+  const isInferencePriorityFieldEnabled = useIsAreaAvailable(
+    SupportedArea.INFERENCE_PRIORITY_FIELD,
+  ).status;
 
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     subscription
@@ -242,13 +248,22 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     [subscriptions, subscription, isEditing],
   );
 
+  const hasInternalModel = hasInternalModelKind(models.map((m) => m.modelRefSummary));
+  const effectiveInferencePriority = hasInternalModel ? inferencePriority : undefined;
+
+  const clearInferencePriorityIfNoInternalModels = (remaining: SubscriptionModelEntry[]) => {
+    if (!hasInternalModelKind(remaining.map((m) => m.modelRefSummary))) {
+      setInferencePriority(undefined);
+    }
+  };
+
   const zodFormData: SubscriptionFormData = React.useMemo(
     () => ({
-      inferencePriority,
+      inferencePriority: effectiveInferencePriority,
       groups: selectedGroupNames,
       models,
     }),
-    [inferencePriority, selectedGroupNames, models],
+    [effectiveInferencePriority, selectedGroupNames, models],
   );
 
   const { getFieldValidation } = useZodFormValidation(zodFormData, subscriptionFormSchema);
@@ -280,7 +295,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           description: nameDescData.description.trim() || undefined,
           owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
           modelRefs: modelRefsPayload,
-          inferencePriority,
+          inferencePriority: effectiveInferencePriority,
           resourceVersion: subscription.resourceVersion,
         };
         await updateSubscription()(apiOpts, subscription.name, request);
@@ -290,7 +305,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           groupCount: selectedGroupNames.length,
           modelCount: models.length,
           hasDescription: nameDescData.description.trim() !== '',
-          priority: inferencePriority,
+          priority: effectiveInferencePriority,
           editSource,
         } satisfies SubscriptionUpdatedSuccessProperties);
       } else {
@@ -300,7 +315,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           description: nameDescData.description.trim() || undefined,
           owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
           modelRefs: modelRefsPayload,
-          inferencePriority,
+          inferencePriority: effectiveInferencePriority,
           createAuthPolicy,
         };
         await createSubscription()(apiOpts, request);
@@ -312,7 +327,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           hasDescription: nameDescData.description.trim() !== '',
           modelCountAvailable: modelRefs.length,
           hasMatchingPolicy: createAuthPolicy,
-          priority: inferencePriority,
+          priority: effectiveInferencePriority,
           prefillSource,
         } satisfies SubscriptionCreatedSuccessProperties);
       }
@@ -353,26 +368,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           onDataChange={onNameDescChange}
           dataTestId="subscription-name-desc"
         />
-
-        <FormGroup label="Inference Priority" fieldId="subscription-inference-priority">
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant="default">
-                Higher numbers indicate higher priority.
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
-          <NumberInputWrapper
-            id="subscription-inference-priority"
-            data-testid="subscription-inference-priority"
-            value={
-              inferencePriority == null || Number.isNaN(inferencePriority) ? '' : inferencePriority
-            }
-            min={MIN_PRIORITY}
-            max={MAX_PRIORITY}
-            onChange={(newValue) => setInferencePriority(newValue)}
-          />
-        </FormGroup>
 
         <FormGroup label="Groups" fieldId="subscription-groups" isRequired>
           <FormHelperText>
@@ -420,28 +415,56 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             and create a MaaSModelRef.
           </Alert>
         ) : (
-          <MaasModelsSection
-            modelRefSummaries={models.map((m) => m.modelRefSummary)}
-            modelRefsWithRateLimits={models.map((m) => ({
-              name: m.modelRefSummary.name,
-              namespace: m.modelRefSummary.namespace,
-              tokenRateLimits: m.tokenRateLimits,
-            }))}
-            hideColumns={['status', 'flowControlStatus']}
-            editable
-            onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
-            onEditLimits={(index) => setEditLimitsTarget(index)}
-            onRemoveModel={(index) => {
-              setModelsTouched(true);
-              handleRemoveModel(index);
-            }}
-            validationError={
-              modelsTouched && getFieldValidation(['models'], true).length > 0
-                ? getFieldValidation(['models'], true)[0].message
-                : undefined
-            }
-            resourceType="subscription"
-          />
+          <>
+            <MaasModelsSection
+              modelRefSummaries={models.map((m) => m.modelRefSummary)}
+              modelRefsWithRateLimits={models.map((m) => ({
+                name: m.modelRefSummary.name,
+                namespace: m.modelRefSummary.namespace,
+                tokenRateLimits: m.tokenRateLimits,
+              }))}
+              hideColumns={['status']}
+              editable
+              onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
+              onEditLimits={(index) => setEditLimitsTarget(index)}
+              onRemoveModel={(index) => {
+                setModelsTouched(true);
+                clearInferencePriorityIfNoInternalModels(models.filter((_, i) => i !== index));
+                handleRemoveModel(index);
+              }}
+              validationError={
+                modelsTouched && getFieldValidation(['models'], true).length > 0
+                  ? getFieldValidation(['models'], true)[0].message
+                  : undefined
+              }
+              resourceType="subscription"
+            />
+            {hasInternalModel && isInferencePriorityFieldEnabled && (
+              <FormGroup label="Inference priority" fieldId="subscription-inference-priority">
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="default">
+                      This value determines the scheduling order of inference requests for all
+                      internal models in this subscription. Requests with a higher priority value
+                      are scheduled first. If not specified, the default value of 0 is used.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+                <NumberInputWrapper
+                  id="subscription-inference-priority"
+                  data-testid="subscription-inference-priority"
+                  value={
+                    inferencePriority == null || Number.isNaN(inferencePriority)
+                      ? ''
+                      : inferencePriority
+                  }
+                  min={MIN_PRIORITY}
+                  max={MAX_PRIORITY}
+                  onChange={(newValue) => setInferencePriority(newValue)}
+                />
+              </FormGroup>
+            )}
+          </>
         )}
 
         {isAddModelsModalOpen && canAddModels && (
@@ -457,6 +480,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             }}
             onRemove={(refs) => {
               setModelsTouched(true);
+              const keysToRemove = new Set(refs.map((r) => `${r.namespace}/${r.name}`));
+              clearInferencePriorityIfNoInternalModels(
+                models.filter(
+                  (m) =>
+                    !keysToRemove.has(`${m.modelRefSummary.namespace}/${m.modelRefSummary.name}`),
+                ),
+              );
               handleRemoveModelsByRef(refs);
             }}
             onClose={() => setIsAddModelsModalOpen(false)}

@@ -102,6 +102,9 @@ interface S3FileExplorerProps {
   /** The file selection mode: "radio" for single selection, "checkbox" for multi-select. Defaults to "radio". */
   selection?: 'radio' | 'checkbox';
 
+  /** Optional custom description shown below the file explorer modal title. */
+  modalDescription?: React.ReactNode;
+
   /** Absolute folder paths that should be disabled (unselectable and unnavigable). Keys represent the paths and values represent the reason that should be rendered. Example: `{ "/pipeline-output": "System folder" }` disables the `pipeline-output` folder at the bucket root with a useful message to users. */
   disabledPaths?: Record<string, string>;
 }
@@ -119,6 +122,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   unselectableReason,
   rootPath,
   selection: selectionProp = 'radio',
+  modalDescription,
   disabledPaths,
 }) => {
   const effectiveRoot = rootPath && rootPath !== '/' ? rootPath : '/';
@@ -542,6 +546,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       hasNextPage={hasNextPage}
       unselectableReason={unselectableReason}
       selection={selectionProp}
+      modalDescription={modalDescription}
       isOpen={isOpen}
       onClose={onClose}
       onSelectFile={handleSelectFile}

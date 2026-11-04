@@ -36,6 +36,11 @@ describe('AutoRAG API Contract Tests', () => {
       const properties = responsesRequest.properties as Record<string, unknown>;
       const input = properties.input as Record<string, unknown>;
       const inputVariants = input.anyOf as Array<Record<string, unknown>>;
+      const tools = properties.tools as Record<string, unknown>;
+      const toolItem = tools.items as Record<string, unknown>;
+      const toolProperties = toolItem.properties as Record<string, unknown>;
+      const rankingOptions = toolProperties.ranking_options as Record<string, unknown>;
+      const rankingProperties = rankingOptions.properties as Record<string, unknown>;
 
       expect(inputVariants).toHaveLength(2);
       expect(inputVariants).toEqual(
@@ -55,6 +60,15 @@ describe('AutoRAG API Contract Tests', () => {
       );
       expect((properties.metadata as { required: string[] }).required).toContain('embedding_model');
       expect((properties.tools as { minItems: number }).minItems).toBe(1);
+      expect(rankingProperties.ranker_k).toEqual(
+        expect.objectContaining({
+          type: 'number',
+          minimum: 0,
+          exclusiveMinimum: true,
+          maximum: 16384,
+          exclusiveMaximum: true,
+        }),
+      );
 
       const modelSchemaValidator = new ContractSchemaValidator();
       modelSchemaValidator.loadSchema(
@@ -104,7 +118,10 @@ describe('AutoRAG API Contract Tests', () => {
       expect(result.error?.status).toBe(400);
       expect(result.error?.data).toEqual(
         expect.objectContaining({
-          error: expect.objectContaining({ code: '400', message: expect.any(String) }),
+          error: expect.objectContaining({
+            code: '400',
+            message: expect.any(String),
+          }),
         }),
       );
     });

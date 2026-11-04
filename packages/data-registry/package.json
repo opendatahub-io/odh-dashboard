@@ -26,12 +26,6 @@
   "exports": {
     "./extensions": "./extensions.ts"
   },
-  "bffConfig": {
-    "enabled": true,
-    "port": 8080,
-    "healthEndpoint": "/healthcheck",
-    "startCommand": "make dev-bff-e2e-mock"
-  },
   "scripts": {
     "test:contract": "BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token' odh-ct-bff-consumer --bff-dir bff",
     "cypress:mock:build": "pnpm run cypress:server:build",

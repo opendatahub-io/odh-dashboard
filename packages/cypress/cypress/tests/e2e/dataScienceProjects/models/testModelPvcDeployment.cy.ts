@@ -25,7 +25,7 @@ import type { DataScienceProjectData, PVCLoaderPodReplacements } from '../../../
 import { clusterStorage, addClusterStorageModal } from '../../../../pages/clusterStorage';
 import { createS3LoaderPod } from '../../../../utils/oc_commands/pvcLoaderPod';
 import { waitForPodCompletion } from '../../../../utils/oc_commands/baseCommands';
-import { skipSuiteIfBYOIDC, isBYOIDCCluster } from '../../../../utils/skipUtils';
+import { skipSuiteIfBYOIDC, isBYOIDCCluster, skipOnArm } from '../../../../utils/skipUtils';
 import { stubClipboard, verifyClipboardContent } from '../../../../utils/clipboardUtils';
 
 let testData: DataScienceProjectData;
@@ -50,6 +50,7 @@ const uuid = generateTestUUID();
 
 describe('Verify a contributor can deploy a model from a PVC', () => {
   skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
+  skipOnArm();
 
   retryableBefore(() => {
     return loadDSPFixture('e2e/dataScienceProjects/testModelPvcDeployment.yaml').then(
@@ -75,6 +76,9 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
     );
   });
   after(() => {
+    if (!projectName) {
+      return;
+    }
     if (isBYOIDCCluster()) {
       cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
       return;

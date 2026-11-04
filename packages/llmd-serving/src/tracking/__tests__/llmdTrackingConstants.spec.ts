@@ -1,7 +1,3 @@
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { TopologyType } from '../../types';
 import {
@@ -20,31 +16,25 @@ import {
   fireRoutingConfigDeleted,
 } from '../llmdTrackingConstants';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvent = jest.fn();
 
 describe('LLM accelerator config tracking', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should fire the Created event with mode via fireFormTrackingEvent', () => {
-    fireLlmAcceleratorConfigCreated({
+  it('should fire the Created event with mode through the supplied tracking callback', () => {
+    fireLlmAcceleratorConfigCreated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      LlmAcceleratorConfigTrackingEvent.CREATED,
-      { outcome: TrackingOutcome.submit, success: true, mode: 'create' },
-    );
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: 'create',
+    });
   });
 
   it.each([
@@ -52,68 +42,75 @@ describe('LLM accelerator config tracking', () => {
     { outcome: TrackingOutcome.submit, success: false },
     { outcome: TrackingOutcome.cancel },
   ])('should retain install attribution for $outcome/$success', (properties) => {
-    fireLlmAcceleratorConfigCreated({ ...properties, mode: 'install' });
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      LlmAcceleratorConfigTrackingEvent.CREATED,
-      { ...properties, mode: 'create', source: 'install' },
-    );
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    fireLlmAcceleratorConfigCreated(mockTrackEvent, { ...properties, mode: 'install' });
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
+      ...properties,
+      mode: 'create',
+      source: 'install',
+    });
   });
 
   it('should normalize Add form mode to the existing create analytics value', () => {
-    fireLlmAcceleratorConfigCreated({
+    fireLlmAcceleratorConfigCreated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'add',
     });
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      LlmAcceleratorConfigTrackingEvent.CREATED,
-      { outcome: TrackingOutcome.submit, success: true, mode: 'create' },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: 'create',
+    });
   });
 
   it('should fire the Created event with cancel outcome', () => {
-    fireLlmAcceleratorConfigCreated({ outcome: TrackingOutcome.cancel, mode: 'duplicate' });
+    fireLlmAcceleratorConfigCreated(mockTrackEvent, {
+      outcome: TrackingOutcome.cancel,
+      mode: 'duplicate',
+    });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      LlmAcceleratorConfigTrackingEvent.CREATED,
-      { outcome: TrackingOutcome.cancel, mode: 'duplicate' },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
+      outcome: TrackingOutcome.cancel,
+      mode: 'duplicate',
+    });
   });
 
   it('should fire the Updated event', () => {
-    fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: true });
+    fireLlmAcceleratorConfigUpdated(mockTrackEvent, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      LlmAcceleratorConfigTrackingEvent.UPDATED,
-      { outcome: TrackingOutcome.submit, success: true },
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.UPDATED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
   });
 
   it('should fire the Deleted event on submit and on cancel', () => {
-    fireLlmAcceleratorConfigDeleted({ outcome: TrackingOutcome.submit, success: true });
-    fireLlmAcceleratorConfigDeleted({ outcome: TrackingOutcome.cancel });
+    fireLlmAcceleratorConfigDeleted(mockTrackEvent, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+    fireLlmAcceleratorConfigDeleted(mockTrackEvent, { outcome: TrackingOutcome.cancel });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
-      1,
-      LlmAcceleratorConfigTrackingEvent.DELETED,
-      { outcome: TrackingOutcome.submit, success: true },
-    );
-    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
-      2,
-      LlmAcceleratorConfigTrackingEvent.DELETED,
-      { outcome: TrackingOutcome.cancel },
-    );
+    expect(mockTrackEvent).toHaveBeenNthCalledWith(1, LlmAcceleratorConfigTrackingEvent.DELETED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+    expect(mockTrackEvent).toHaveBeenNthCalledWith(2, LlmAcceleratorConfigTrackingEvent.DELETED, {
+      outcome: TrackingOutcome.cancel,
+    });
   });
 
   it('should fire the Enablement Changed event with the new enabled state', () => {
-    fireLlmAcceleratorConfigEnablementChanged({
+    fireLlmAcceleratorConfigEnablementChanged(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       enabled: true,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       LlmAcceleratorConfigTrackingEvent.ENABLEMENT_CHANGED,
       { outcome: TrackingOutcome.submit, success: true, enabled: true },
     );
@@ -126,7 +123,7 @@ describe('llm-d topology config tracking', () => {
   });
 
   it('should fire the Created event with mode, configSource, and topologyType', () => {
-    fireTopologyConfigCreated({
+    fireTopologyConfigCreated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
@@ -134,7 +131,7 @@ describe('llm-d topology config tracking', () => {
       topologyType: TopologyType.MULTI_NODE,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(TopologyConfigTrackingEvent.CREATED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(TopologyConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
@@ -144,34 +141,29 @@ describe('llm-d topology config tracking', () => {
   });
 
   it('should fire the Updated event with topologyType', () => {
-    fireTopologyConfigUpdated({
+    fireTopologyConfigUpdated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       topologyType: TopologyType.SINGLE_NODE,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       TopologyConfigTrackingEvent.UPDATED,
       expect.objectContaining({ topologyType: TopologyType.SINGLE_NODE }),
     );
   });
 
   it('should fire the Deleted event on submit and on cancel', () => {
-    fireTopologyConfigDeleted({ outcome: TrackingOutcome.submit, success: true });
-    fireTopologyConfigDeleted({ outcome: TrackingOutcome.cancel });
+    fireTopologyConfigDeleted(mockTrackEvent, { outcome: TrackingOutcome.submit, success: true });
+    fireTopologyConfigDeleted(mockTrackEvent, { outcome: TrackingOutcome.cancel });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
-      1,
-      TopologyConfigTrackingEvent.DELETED,
-      { outcome: TrackingOutcome.submit, success: true },
-    );
-    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
-      2,
-      TopologyConfigTrackingEvent.DELETED,
-      {
-        outcome: TrackingOutcome.cancel,
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenNthCalledWith(1, TopologyConfigTrackingEvent.DELETED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+    expect(mockTrackEvent).toHaveBeenNthCalledWith(2, TopologyConfigTrackingEvent.DELETED, {
+      outcome: TrackingOutcome.cancel,
+    });
   });
 });
 
@@ -181,7 +173,7 @@ describe('llm-d routing config tracking', () => {
   });
 
   it('should fire the Created event with mode, configSource, and topologyType', () => {
-    fireRoutingConfigCreated({
+    fireRoutingConfigCreated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
@@ -189,7 +181,7 @@ describe('llm-d routing config tracking', () => {
       topologyType: TopologyType.SINGLE_NODE_DISAGGREGATED,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(RoutingConfigTrackingEvent.CREATED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(RoutingConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
@@ -199,36 +191,28 @@ describe('llm-d routing config tracking', () => {
   });
 
   it('should fire the Updated event with topologyType', () => {
-    fireRoutingConfigUpdated({
+    fireRoutingConfigUpdated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       topologyType: TopologyType.MULTI_NODE_DISAGGREGATED,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       RoutingConfigTrackingEvent.UPDATED,
       expect.objectContaining({ topologyType: TopologyType.MULTI_NODE_DISAGGREGATED }),
     );
   });
 
   it('should fire the Deleted event on submit and on cancel', () => {
-    fireRoutingConfigDeleted({ outcome: TrackingOutcome.submit, success: true });
-    fireRoutingConfigDeleted({ outcome: TrackingOutcome.cancel });
+    fireRoutingConfigDeleted(mockTrackEvent, { outcome: TrackingOutcome.submit, success: true });
+    fireRoutingConfigDeleted(mockTrackEvent, { outcome: TrackingOutcome.cancel });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
-      1,
-      RoutingConfigTrackingEvent.DELETED,
-      {
-        outcome: TrackingOutcome.submit,
-        success: true,
-      },
-    );
-    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
-      2,
-      RoutingConfigTrackingEvent.DELETED,
-      {
-        outcome: TrackingOutcome.cancel,
-      },
-    );
+    expect(mockTrackEvent).toHaveBeenNthCalledWith(1, RoutingConfigTrackingEvent.DELETED, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
+    expect(mockTrackEvent).toHaveBeenNthCalledWith(2, RoutingConfigTrackingEvent.DELETED, {
+      outcome: TrackingOutcome.cancel,
+    });
   });
 });

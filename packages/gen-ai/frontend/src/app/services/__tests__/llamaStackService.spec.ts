@@ -1916,11 +1916,11 @@ describe('llamaStackService', () => {
         mockBody,
         jest.fn(),
         undefined,
-        '/autorag/api/v1/responses?dbSecretName=db&maasSecretName=maas',
+        '/autorag/api/v1/responses?namespace=ns&dbSecretName=db&maasSecretName=maas',
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3FdbSecretName%3Ddb%26maasSecretName%3Dmaas',
+        '/gen-ai/api/v1/lsd/responses/relay?target=%2Fautorag%2Fapi%2Fv1%2Fresponses%3Fnamespace%3Dns%26dbSecretName%3Ddb%26maasSecretName%3Dmaas',
         expect.objectContaining({ method: 'POST' }),
       );
     });

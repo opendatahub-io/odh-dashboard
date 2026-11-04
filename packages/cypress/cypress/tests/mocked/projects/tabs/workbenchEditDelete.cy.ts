@@ -1,3 +1,4 @@
+import type { ContainerResources } from '@odh-dashboard/k8s-core';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
@@ -7,8 +8,13 @@ import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sRe
 import { mockNotebookK8sResource } from '@odh-dashboard/internal/__mocks__';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
 import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
-import { ConfigMapModel, SecretModel } from '@odh-dashboard/k8s-core/api/models';
+import {
+  ConfigMapModel,
+  ResourceClaimTemplateModel,
+  SecretModel,
+} from '@odh-dashboard/k8s-core/api/models';
 import { initIntercepts } from './workbenchTestUtils';
 import { AccessMode } from '../../../../types';
 import {
@@ -639,15 +645,16 @@ describe('Workbench page', () => {
     const draResources = {
       requests: { cpu: '8', memory: '16Gi' },
       limits: { cpu: '8', memory: '16Gi' },
-      claims: [{ name: 'gpu' }],
+      claims: [{ name: 'hwp-dra' }],
     };
+    const draResourceClaims = [{ name: 'hwp-dra', resourceClaimTemplateName: 'single-gpu' }];
 
-    const draProfile = (namespace: string) =>
+    const draProfile = (namespace: string, withIdentifiers = false) =>
       mockHardwareProfile({
         name: 'dra-profile',
         displayName: 'DRA Profile',
         namespace,
-        identifiers: [],
+        ...(!withIdentifiers && { identifiers: [] }),
         dra: { resourceClaimTemplateName: 'single-gpu' },
       });
 
@@ -658,20 +665,34 @@ describe('Workbench page', () => {
     });
 
     const initDRAIntercepts = ({
+      profileName = 'dra-profile',
       profileNamespace = 'opendatahub',
       nodeSelector,
-    }: { profileNamespace?: string; nodeSelector?: Record<string, string> } = {}) => {
+      draWithIdentifiers = false,
+      hardwareProfileDRA = true,
+      resources = draResources,
+    }: {
+      profileName?: string;
+      profileNamespace?: string;
+      nodeSelector?: Record<string, string>;
+      draWithIdentifiers?: boolean;
+      hardwareProfileDRA?: boolean;
+      resources?: ContainerResources;
+    } = {}) => {
       const isProjectScoped = profileNamespace === 'test-project';
       initIntercepts({
         disableProjectScoped: !isProjectScoped,
+        hardwareProfileDRA,
         hardwareProfiles: {
-          global: isProjectScoped ? [regularProfile] : [draProfile('opendatahub'), regularProfile],
+          global: isProjectScoped
+            ? [regularProfile]
+            : [draProfile('opendatahub', draWithIdentifiers), regularProfile],
           project: isProjectScoped ? [draProfile('test-project')] : [],
         },
         notebooks: [
           mockNotebookK8sResource({
             lastImageSelection: 'test-imagestream:1.2',
-            resources: draResources,
+            resources,
             opts: {
               metadata: {
                 name: 'test-notebook',
@@ -680,12 +701,19 @@ describe('Workbench page', () => {
                 },
                 annotations: {
                   'opendatahub.io/image-display-name': 'Test image',
-                  'opendatahub.io/hardware-profile-name': 'dra-profile',
+                  'opendatahub.io/hardware-profile-name': profileName,
                   'opendatahub.io/hardware-profile-namespace': profileNamespace,
                   'opendatahub.io/hardware-profile-resource-version': '1',
                 },
               },
-              ...(nodeSelector && { spec: { template: { spec: { nodeSelector } } } }),
+              spec: {
+                template: {
+                  spec: {
+                    resourceClaims: draResourceClaims,
+                    ...(nodeSelector && { nodeSelector }),
+                  },
+                },
+              },
             },
           }),
         ],
@@ -694,9 +722,16 @@ describe('Workbench page', () => {
         PVCModel,
         mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
       );
+      cy.interceptK8sList(
+        { model: ResourceClaimTemplateModel, ns: 'test-project' },
+        mockK8sResourceList([mockResourceClaimTemplate({ name: 'single-gpu' })]),
+      );
     };
 
-    const submitAndVerifyDRABindingKept = (profileNamespace = 'opendatahub') => {
+    const submitAndVerifyDRABindingKept = (
+      profileNamespace = 'opendatahub',
+      expectedResources: ContainerResources = draResources,
+    ) => {
       cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
       cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
 
@@ -714,7 +749,7 @@ describe('Workbench page', () => {
           spec: {
             template: {
               spec: {
-                containers: [{ name: 'test-notebook', resources: draResources }],
+                containers: [{ name: 'test-notebook', resources: expectedResources }],
               },
             },
           },
@@ -722,6 +757,7 @@ describe('Workbench page', () => {
         expect(interception.request.body.metadata.annotations).not.to.have.property(
           'opendatahub.io/hardware-profile-resource-version',
         );
+        expect(interception.request.body.spec.template.spec).not.to.have.property('resourceClaims');
       });
     };
 
@@ -734,15 +770,97 @@ describe('Workbench page', () => {
       submitAndVerifyDRABindingKept();
     });
 
+    it('Saving a workbench with a locked DRA hardware profile keeps its binding and all of its existing resources', () => {
+      const lockedResources = {
+        requests: { cpu: '8', memory: '16Gi', 'nvidia.com/gpu': '1' },
+        limits: { cpu: '8', memory: '16Gi', 'nvidia.com/gpu': '1' },
+        claims: [{ name: 'hwp-dra' }],
+      };
+      initDRAIntercepts({
+        hardwareProfileDRA: false,
+        draWithIdentifiers: true,
+        resources: lockedResources,
+      });
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
+      hardwareProfileSection.findDRALockedMessage().should('exist');
+      editSpawnerPage.k8sNameDescription.findDescriptionInput().fill('Updated description');
+      cy.testA11y();
+
+      submitAndVerifyDRABindingKept('opendatahub', lockedResources);
+    });
+
     it('Re-selecting the assigned DRA hardware profile keeps its binding and resources', () => {
       initDRAIntercepts();
       editSpawnerPage.visit('test-notebook');
       hardwareProfileSection.findSelect().click();
       hardwareProfileSection.selectProfileContaining('DRA Profile');
       hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
-      hardwareProfileSection.findDRALockedMessage().should('exist');
+      cy.testA11y();
 
       submitAndVerifyDRABindingKept();
+    });
+
+    it('Switching away from the assigned DRA hardware profile and back keeps its binding and resources', () => {
+      initDRAIntercepts();
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.selectProfileContaining('Regular Profile');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.selectProfileContaining('DRA Profile');
+      hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
+      cy.testA11y();
+
+      submitAndVerifyDRABindingKept();
+    });
+
+    it('Selecting a DRA hardware profile for a workbench with a regular one writes the DRA binding and passes the existing claims through', () => {
+      initDRAIntercepts({
+        profileName: 'regular-profile',
+        nodeSelector: { 'regular-node': 'true' },
+        draWithIdentifiers: true,
+      });
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'Regular Profile');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.selectProfileContaining('DRA Profile');
+      hardwareProfileSection.findSelect().should('contain.text', 'DRA Profile');
+      cy.testA11y();
+
+      cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+      cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
+      editSpawnerPage.findSubmitButton().click();
+
+      cy.wait('@editWorkbenchDryRun');
+      cy.wait('@editWorkbench').then((interception) => {
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            annotations: {
+              'opendatahub.io/hardware-profile-name': 'dra-profile',
+              'opendatahub.io/hardware-profile-namespace': 'opendatahub',
+              'opendatahub.io/hardware-profile-resource-version': '1309350',
+            },
+          },
+          spec: {
+            template: {
+              spec: {
+                containers: [
+                  {
+                    name: 'test-notebook',
+                    resources: {
+                      requests: { cpu: '1', memory: '2Gi' },
+                      limits: { cpu: '1', memory: '2Gi' },
+                      claims: draResources.claims,
+                    },
+                  },
+                ],
+                nodeSelector: { 'regular-node': null },
+              },
+            },
+          },
+        });
+      });
     });
 
     it('Re-selecting the assigned project-scoped DRA hardware profile keeps its binding and resources', () => {
@@ -751,17 +869,18 @@ describe('Workbench page', () => {
       hardwareProfileSection.findHardwareProfileSearchSelector().click();
       hardwareProfileSection.selectProjectScopedProfile(/DRA Profile/);
       hardwareProfileSection.findProjectScopedLabel().should('exist');
-      hardwareProfileSection.findDRALockedMessage().should('exist');
+      cy.testA11y();
 
       submitAndVerifyDRABindingKept('test-project');
     });
 
-    it('Switching from a DRA hardware profile to a regular one applies the regular profile', () => {
+    it('Switching from a DRA hardware profile to a regular one applies the regular profile and passes the existing claims through', () => {
       initDRAIntercepts({ nodeSelector: { 'dra-node': 'true' } });
       editSpawnerPage.visit('test-notebook');
       hardwareProfileSection.findSelect().click();
       hardwareProfileSection.selectProfileContaining('Regular Profile');
-      hardwareProfileSection.findDRALockedMessage().should('not.exist');
+      hardwareProfileSection.findSelect().should('contain.text', 'Regular Profile');
+      cy.testA11y();
 
       cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
       cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
@@ -787,6 +906,7 @@ describe('Workbench page', () => {
                     resources: {
                       requests: { cpu: '1', memory: '2Gi' },
                       limits: { cpu: '1', memory: '2Gi' },
+                      claims: draResources.claims,
                     },
                   },
                 ],

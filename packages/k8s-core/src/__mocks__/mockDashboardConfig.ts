@@ -47,6 +47,7 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
+  inferencePriorityField?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   genAiAgentDeployment?: boolean;
@@ -76,8 +77,11 @@ export type MockDashboardConfigType = {
   agentsCatalog?: boolean;
   roleManagement?: boolean;
   gpuaas?: boolean;
+  hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
   globalMLflowNamespaces?: string[];
+  isLLMdDefault?: boolean;
+  deploymentStrategy?: string;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -102,6 +106,7 @@ export const mockDashboardConfig = ({
   automl = true,
   autorag = true,
   modelAsService = true,
+  inferencePriorityField = false,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
   disableUserManagement = false,
@@ -144,7 +149,7 @@ export const mockDashboardConfig = ({
   agentConfigManagement = false,
   genAiAgentDeployment = false,
   vLLMDeploymentOnMaaS = false,
-  llmGatewayField = false,
+  llmGatewayField = true,
   promptManagement = true,
   globalProjectPrompts = false,
   nimWizard = true,
@@ -154,9 +159,12 @@ export const mockDashboardConfig = ({
   agentsCatalog = false,
   roleManagement = true,
   gpuaas = true,
+  hardwareProfileDRA = false,
   modelCapabilities = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
+  isLLMdDefault,
+  deploymentStrategy,
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
       externalProviders: false,
@@ -314,6 +322,7 @@ export const mockDashboardConfig = ({
       autorag,
       modelAsService,
       aiAssetCustomEndpoints,
+      inferencePriorityField,
       disableKServeAuth,
       disableKServeMetrics,
       disableKServeRaw,
@@ -355,6 +364,7 @@ export const mockDashboardConfig = ({
       agentsCatalog,
       roleManagement,
       gpuaas,
+      hardwareProfileDRA,
       modelCapabilities,
     },
     notebookController: {
@@ -372,5 +382,13 @@ export const mockDashboardConfig = ({
     hardwareProfileOrder,
     globalMLflowNamespaces,
     genAiStudioConfig,
+    ...(isLLMdDefault !== undefined || deploymentStrategy !== undefined
+      ? {
+          modelServing: {
+            ...(isLLMdDefault !== undefined ? { isLLMdDefault } : {}),
+            ...(deploymentStrategy !== undefined ? { deploymentStrategy } : {}),
+          },
+        }
+      : {}),
   },
 });

@@ -4,6 +4,7 @@ import {
   getCopySuiteSchema,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
 const validValues = (): CopySuiteFormValues => ({
   ...copySuiteDefaultValues,
@@ -17,6 +18,7 @@ const validValues = (): CopySuiteFormValues => ({
       parameters: [],
       threshold: 70,
       availableMetrics: ['accuracy'],
+      testDataRef: { ...testDataRefDefaultValues },
     },
   ],
 });
@@ -155,6 +157,242 @@ describe('copySuiteSchema', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  describe('getCopySuiteSchema required parameters', () => {
+    const requiredKeys = new Set(['judge_model']);
+
+    it('should reject missing and empty required parameter values', () => {
+      const missing = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [
+              { key: 'judge_model', type: 'text' },
+              { key: 'other', type: 'text' },
+            ],
+          },
+        ],
+      });
+      const empty = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'judge_model', type: 'text', value: '' }],
+          },
+        ],
+      });
+
+      expect(missing.success).toBe(false);
+      expect(empty.success).toBe(false);
+
+      if (!missing.success) {
+        expect(missing.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'parameters', 0, 'value'],
+              message: 'Judge model is required.',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should reject whitespace-only required parameter values', () => {
+      const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'judge_model', type: 'text', value: '   ' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'parameters', 0, 'value'],
+              message: 'Judge model is required.',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should accept falsy but meaningful required parameter values', () => {
+      const result = getCopySuiteSchema(
+        undefined,
+        new Set(['judge_model', 'num', 'flag']),
+      ).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [
+              { key: 'judge_model', type: 'text', value: 'gpt-4o' },
+              { key: 'num', type: 'number', value: 0 },
+              { key: 'flag', type: 'boolean', value: false },
+            ],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept a benchmark that omits a required parameter key entirely', () => {
+      const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'other', type: 'text' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept filled required parameter values', () => {
+      const result = getCopySuiteSchema(undefined, requiredKeys).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'judge_model', type: 'text', value: 'gpt-4o' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should not require parameters when no required keys are configured', () => {
+      const result = getCopySuiteSchema(undefined).safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            parameters: [{ key: 'judge_model', type: 'text' }],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('testDataRef', () => {
+    it('should accept a benchmark with no test data source', () => {
+      const result = copySuiteSchema.safeParse(validValues());
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject a benchmark with an incomplete test data ref', () => {
+      const result = copySuiteSchema.safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 's3',
+              bucket: 'eval-data',
+              key: '',
+              secretRef: '',
+            },
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'testDataRef', 'key'],
+              message: 'Key is required.',
+            }),
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'testDataRef', 'secretRef'],
+              message: 'Secret is required.',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should accept a benchmark with a complete test data ref', () => {
+      const result = copySuiteSchema.safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 'git',
+              url: 'https://github.com/org/datasets.git',
+              ref: 'main',
+            },
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject a required-test-data benchmark with no test data source', () => {
+      const result = copySuiteSchema.safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            id: 'ragas_rag_default',
+            providerId: 'ragas',
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['benchmarks', 0, 'testDataRef', 'source'],
+              message: 'Test data source is required for this benchmark.',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should accept a required-test-data benchmark with a complete test data ref', () => {
+      const result = copySuiteSchema.safeParse({
+        ...validValues(),
+        benchmarks: [
+          {
+            ...validValues().benchmarks[0],
+            id: 'ragas_rag_default',
+            providerId: 'ragas',
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 's3',
+              bucket: 'eval-data',
+              key: 'ragas',
+              secretRef: 's3-secret',
+            },
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+    });
   });
 
   it('should reject malformed and non-object advanced parameters', () => {

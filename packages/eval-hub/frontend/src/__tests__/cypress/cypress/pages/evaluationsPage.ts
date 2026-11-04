@@ -127,6 +127,14 @@ class EvaluationsPage {
     return cy.findByTestId(`benchmark-suite-card-name-${collectionId}`);
   }
 
+  findBenchmarkSuiteCardTitleRegion(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-title-region-${collectionId}`);
+  }
+
+  findBenchmarkSuiteCardBodyRegion(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-body-region-${collectionId}`);
+  }
+
   findCollectionDrawerPanel() {
     return cy.findByTestId('collection-drawer-panel');
   }
@@ -244,10 +252,13 @@ class EvaluationsPage {
       .findByTestId(`benchmark-suites-${filter}-filter-option-${value}`);
   }
 
-  findBenchmarkSuitesSummary() {
-    return cy.findByTestId('benchmark-suites-summary');
+  findBenchmarkSuitesViewAllButton() {
+    return cy.findByTestId('benchmark-suites-view-all');
   }
 
+  // TEMP: The curated suite categories section is hidden from the Evaluate tab until EvalHub
+  // supports more evaluation_targets. Keep these selectors for the tests asserting it stays
+  // hidden, and restore findCuratedSuiteCategoryCard usage when the section returns.
   findCuratedSuiteCategories() {
     return cy.findByTestId('curated-suite-categories');
   }
@@ -355,6 +366,22 @@ class EvaluationsPage {
 
   findStatusModalBadge(state: string) {
     return this.findStatusModal().findByTestId(`status-label-${state}`);
+  }
+
+  findFailureSummaryText() {
+    return this.findStatusModal().findByTestId('failure-summary-text');
+  }
+
+  findFailureSummaryToggle() {
+    return this.findStatusModal().findByTestId('failure-summary-toggle');
+  }
+
+  findStatusModalBody() {
+    return this.findStatusModal().findByTestId('status-modal-body');
+  }
+
+  findStatusModalTabContent() {
+    return this.findStatusModal().findByTestId('status-modal-tab-content');
   }
 
   findStatusDetailHeader() {

@@ -137,7 +137,9 @@ export const useModelDeploymentWizardValidation = (
       state.project.initialProjectName ?? state.project.projectName ?? undefined,
     ) &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
-    (hwpHidden || Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0) &&
+    (hwpHidden ||
+      (Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&
+        !state.hardwareProfileConfig.claimTemplateMissingText)) &&
     modelDeploymentStepValidation.getFieldValidation(undefined, true).length === 0;
   const isAdvancedSettingsStepValid =
     advancedOptionsValidation.getFieldValidation(undefined, true).length === 0;

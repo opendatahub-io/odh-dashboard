@@ -66,22 +66,25 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 }
 
 func (app *App) EnableCORS(next http.Handler) http.Handler {
-	if len(app.config.AllowedOrigins) == 0 {
-		// CORS is disabled, this middleware becomes a noop.
-		return next
-	}
-
-	c := cors.New(cors.Options{
-		AllowedOrigins:   app.config.AllowedOrigins,
-		AllowCredentials: true,
-		AllowedMethods:   []string{"GET", "PUT", "POST", "PATCH", "DELETE", "HEAD"},
+	options := cors.Options{
+		AllowedMethods: []string{"GET", "PUT", "POST", "PATCH", "DELETE", "HEAD"},
 		AllowedHeaders: []string{
 			"Authorization",
 			"Content-Type",
 		},
 		Debug:              app.config.LogLevel == slog.LevelDebug,
 		OptionsPassthrough: false,
-	})
+	}
+	if len(app.config.AllowedOrigins) == 0 {
+		// rs/cors treats an empty AllowedOrigins list as allowing every origin.
+		// Explicitly deny CORS grants unless origins are configured.
+		options.AllowOriginFunc = func(string) bool { return false }
+	} else {
+		options.AllowedOrigins = app.config.AllowedOrigins
+		options.AllowCredentials = true
+	}
+
+	c := cors.New(options)
 
 	return c.Handler(next)
 }
@@ -97,7 +100,10 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 			traceLogger := app.logger.With(slog.String("trace_id", traceId))
 			ctx = context.WithValue(ctx, constants.TraceLoggerKey, traceLogger)
 
-			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helper.RequestLogValuer{Request: r}))
+			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helper.RequestLogValuer{
+				Request:          r,
+				SensitiveHeaders: []string{app.config.AuthTokenHeader},
+			}))
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

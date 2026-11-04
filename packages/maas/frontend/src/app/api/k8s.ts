@@ -19,7 +19,6 @@ export const getUser =
       }
       throw new Error('Invalid response format');
     });
-
 export const getNamespaces =
   (hostPath: string) =>
   (opts: APIOptions): Promise<NamespaceKind[]> =>

@@ -13,7 +13,7 @@ export const X_CONTENT_TYPE_OPTIONS = 'nosniff';
 export const CROSS_ORIGIN_OPENER_POLICY = 'same-origin';
 export const X_FRAME_OPTIONS = 'DENY';
 export const X_DNS_PREFETCH_CONTROL = 'off';
-export const CACHE_CONTROL_NO_STORE = 'no-cache, no-store, must-revalidate';
+export const CACHE_CONTROL_NO_STORE = 'no-cache, no-store, private, max-age=0, must-revalidate';
 
 const COMMON_SECURITY_HEADERS: ReadonlyArray<[string, string]> = [
   ['X-Content-Type-Options', X_CONTENT_TYPE_OPTIONS],

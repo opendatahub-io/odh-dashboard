@@ -4,7 +4,6 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import {
-  deleteTrainingRuntime,
   setupTrainingResources,
   verifyTrainJobDeleted,
   verifyTrainJobPodsCompleted,
@@ -57,7 +56,7 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
 
           projectName = `${testData.projectName}-${uuid}`;
           trainJobName = `${testData.trainJobName}-${uuid}`;
-          trainingRuntimeName = `${testData.trainingRuntimeName}-${uuid}`;
+          trainingRuntimeName = testData.trainingRuntimeName;
           flavorName = `${testData.flavorName}-${uuid}`;
           clusterQueueName = `${testData.clusterQueueName}-${uuid}`;
           localQueueName = `${testData.localQueueName}-${uuid}`;
@@ -72,7 +71,7 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
           createCleanProject(projectName);
         })
         .then(() => {
-          cy.step('Setup training resources (Kueue, TrainingRuntime, TrainJob)');
+          cy.step('Setup training resources (Kueue and TrainJob)');
           setupTrainingResources({
             namespace: projectName,
             trainJobName,
@@ -106,9 +105,6 @@ describe('Verify user can monitor a training job through its lifecycle', () => {
 
     cy.step('Delete project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-
-    cy.step('Delete TrainingRuntime');
-    deleteTrainingRuntime(trainingRuntimeName, projectName, { ignoreNotFound: true });
 
     cy.step('Delete Kueue resources');
     deleteKueueResources(localQueueName, clusterQueueName, flavorName, projectName, {

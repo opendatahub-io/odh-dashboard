@@ -29,6 +29,9 @@ import {
 } from '@patternfly/react-core';
 import { ChartLineIcon, SearchIcon } from '@patternfly/react-icons';
 import { Collection, ProviderAgentMetadata, ProviderBenchmark } from '~/app/types';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import BenchmarkDrawerTileContent from './BenchmarkDrawerTileContent';
 import SearchableMultiSelectFilter from './SearchableMultiSelectFilter';
 import { formatCollectionMetadataValue, getMetricDisplayName } from './benchmarkUtils';
@@ -46,7 +49,6 @@ type CollectionDrawerPanelProps = {
   onCustomizeCollection?: (c: Collection) => void;
   isSystemCollection?: boolean;
   primaryActionLabel?: string;
-  prerequisites?: Record<string, string>;
 };
 
 type CollectionLabelSectionProps = {
@@ -205,7 +207,8 @@ const CollectionBenchmarksSection: React.FC<CollectionBenchmarksSectionProps> = 
                   <Card isCompact>
                     <CardBody>
                       {/* Collection benchmarks can override provider defaults for
-                         primary_score, pass_criteria, and url. */}
+                         primary_score, pass_criteria, and url, and can carry their own
+                         test_data_ref. */}
                       <BenchmarkDrawerTileContent
                         name={details?.name ?? b.id}
                         id={b.id}
@@ -215,6 +218,8 @@ const CollectionBenchmarksSection: React.FC<CollectionBenchmarksSectionProps> = 
                         providerAgent={details?.providerAgent}
                         primaryScore={b.primary_score ?? details?.primary_score}
                         passCriteria={b.pass_criteria ?? details?.pass_criteria}
+                        testDataRef={b.test_data_ref}
+                        providerId={b.provider_id}
                         url={b.url ?? details?.url}
                         trackingSurface="collection_drawer"
                         isCompact
@@ -254,7 +259,6 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
   onCustomizeCollection,
   isSystemCollection = false,
   primaryActionLabel = 'Select collection',
-  prerequisites,
 }) => {
   const availableMetrics = React.useMemo(() => {
     const metricSet = new Set<string>();
@@ -267,6 +271,29 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
       compareAlphabetically(getMetricDisplayName(a), getMetricDisplayName(b)),
     );
   }, [collection?.benchmarks, benchmarkDetailsMap]);
+
+  const handleRunCollection = React.useCallback(() => {
+    if (!collection) {
+      return;
+    }
+
+    trackEvalHubEvent(
+      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+      {
+        runType: 'collection',
+        collectionName: collection.name,
+        benchmarkTypes: JSON.stringify(
+          (collection.benchmarks ?? []).map((benchmark) => benchmark.id),
+        ),
+        countOfBenchmarks: collection.benchmarks?.length ?? 0,
+      },
+      {
+        collectionType: collection.resource.read_only ? 'system' : 'custom',
+        providerType: collection.benchmarks?.[0]?.provider_id,
+      },
+    );
+    onRunCollection(collection, isSystemCollection);
+  }, [collection, isSystemCollection, onRunCollection]);
 
   const metadataSections = [
     {
@@ -299,7 +326,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
 
   const prerequisite = collection.resource.tenant
     ? undefined
-    : prerequisites?.[collection.resource.id];
+    : getCuratedCollectionConfig(collection)?.prerequisite.long;
   const showCustomize = Boolean(onCustomizeCollection && (isSystemCollection || prerequisite));
 
   return (
@@ -358,7 +385,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
               <Button
                 variant="primary"
                 data-testid="use-benchmark-suite-button"
-                onClick={() => onRunCollection(collection, isSystemCollection)}
+                onClick={handleRunCollection}
               >
                 {primaryActionLabel}
               </Button>

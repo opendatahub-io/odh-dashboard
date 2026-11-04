@@ -1,8 +1,12 @@
+import { getTrainJobPodStartupStatus, type TrainJobPodList } from './trainingJobSetup';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const K8S_NAME_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 const MAX_K8S_NAME_LENGTH = 253;
+const TRAIN_JOB_POD_POLL_INTERVAL_MS = 2000;
+const TRAIN_JOB_IMAGE_PULL_TIMEOUT_MS = 120000;
+const TRAIN_JOB_POD_START_TIMEOUT_MS = 240000;
 
 const assertValidK8sName = (value: string, label: string): void => {
   if (!value || value.length > MAX_K8S_NAME_LENGTH || !K8S_NAME_REGEX.test(value)) {
@@ -28,6 +32,112 @@ const parseGoDurationToSeconds = (duration: string): number => {
   const minutes = parseInt(match[2] || '0', 10);
   const seconds = parseInt(match[3] || '0', 10);
   return hours * 3600 + minutes * 60 + seconds;
+};
+
+/**
+ * Verifies that the product-managed CPU runtime required by the E2E fixture is installed.
+ * The TrainJob references this runtime directly so its image remains owned and updated by RHOAI.
+ */
+export const verifyClusterTrainingRuntimeAvailable = (
+  trainingRuntimeName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  assertValidK8sName(trainingRuntimeName, 'trainingRuntimeName');
+
+  return cy
+    .exec(`oc get clustertrainingruntime.trainer.kubeflow.org ${trainingRuntimeName} -o name`, {
+      failOnNonZeroExit: false,
+      timeout: 30000,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Training setup failed: required operator-managed ClusterTrainingRuntime ${trainingRuntimeName} is unavailable: ${maskSensitiveInfo(
+            result.stderr,
+          )}. Verify that the Trainer component is Managed and its default runtimes are installed.`,
+        );
+      }
+      cy.log(`Using operator-managed ClusterTrainingRuntime ${trainingRuntimeName}`);
+      return cy.wrap(result, { log: false });
+    });
+};
+
+/**
+ * Waits for every TrainJob worker pod to start and reports persistent image pull failures.
+ * This keeps disconnected-registry failures in resource setup instead of surfacing later
+ * as a generic timeout while the UI waits for the TrainJob to complete.
+ */
+const waitForTrainJobWorkerStart = (
+  trainJobName: string,
+  namespace: string,
+): Cypress.Chainable<CommandLineResult> => {
+  assertValidK8sName(trainJobName, 'trainJobName');
+  assertValidK8sName(namespace, 'namespace');
+
+  const command = `oc get pods -n ${namespace} -l jobset.sigs.k8s.io/jobset-name=${trainJobName} -o json`;
+  const startedAt = Date.now();
+  let lastImagePullError: string | undefined;
+  let imagePullErrorStartedAt: number | undefined;
+
+  const poll = (): Cypress.Chainable<CommandLineResult> =>
+    cy.exec(command, { failOnNonZeroExit: false, timeout: 30000 }).then((result) => {
+      let summary = maskSensitiveInfo(result.stderr) || 'unable to query worker pods';
+
+      if (result.exitCode === 0) {
+        let podList: TrainJobPodList;
+        try {
+          podList = JSON.parse(result.stdout) as TrainJobPodList;
+        } catch {
+          throw new Error(
+            `Training setup failed: received invalid pod status data for TrainJob ${trainJobName}.`,
+          );
+        }
+
+        const startupStatus = getTrainJobPodStartupStatus(podList);
+        summary = startupStatus.summary;
+
+        if (startupStatus.fatalError) {
+          throw new Error(maskSensitiveInfo(startupStatus.fatalError));
+        }
+        if (startupStatus.imagePullError) {
+          lastImagePullError = maskSensitiveInfo(startupStatus.imagePullError);
+          imagePullErrorStartedAt ??= Date.now();
+        } else {
+          lastImagePullError = undefined;
+          imagePullErrorStartedAt = undefined;
+        }
+        if (startupStatus.started) {
+          cy.log(`TrainJob worker started: ${summary}`);
+          return cy.wrap(result);
+        }
+      }
+
+      const now = Date.now();
+      const elapsedMs = now - startedAt;
+      if (
+        lastImagePullError &&
+        imagePullErrorStartedAt !== undefined &&
+        now - imagePullErrorStartedAt >= TRAIN_JOB_IMAGE_PULL_TIMEOUT_MS
+      ) {
+        throw new Error(lastImagePullError);
+      }
+      if (elapsedMs >= TRAIN_JOB_POD_START_TIMEOUT_MS) {
+        if (lastImagePullError) {
+          throw new Error(lastImagePullError);
+        }
+        throw new Error(
+          `Training setup failed: worker pods for TrainJob ${trainJobName} did not start within ${Math.ceil(
+            elapsedMs / 1000,
+          )} seconds. Last observed state: ${summary}`,
+        );
+      }
+
+      cy.log(`Waiting for TrainJob workers to start: ${summary}`);
+      // Polling is required because the Trainer and Kueue controllers create and admit the pod asynchronously.
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      return cy.wait(TRAIN_JOB_POD_POLL_INTERVAL_MS, { log: false }).then(() => poll());
+    });
+
+  return poll();
 };
 
 /**
@@ -104,43 +214,11 @@ export const createTrainingKueueResources = (
 };
 
 /**
- * Creates a TrainingRuntime resource by applying a YAML template.
- *
- * @param namespace - The namespace in which to create the TrainingRuntime.
- * @param trainingRuntimeName - The name for the TrainingRuntime resource.
- */
-export const createTrainingRuntime = (namespace: string, trainingRuntimeName: string): void => {
-  cy.fixture('resources/yaml/training-runtime.yaml').then((yamlTemplate) => {
-    // Replace placeholders
-    let yamlContent = yamlTemplate.replace(/\$\{namespace\}/g, namespace);
-    yamlContent = yamlContent.replace(/\$\{trainingRuntimeName\}/g, trainingRuntimeName);
-
-    cy.log(`Creating TrainingRuntime ${trainingRuntimeName} in namespace: ${namespace}`);
-
-    // Write to temp file and apply
-    const tempFile = `/tmp/training-runtime-${Date.now()}.yaml`;
-    cy.writeFile(tempFile, yamlContent);
-    cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false, timeout: 30000 }).then(
-      (result) => {
-        // Always cleanup temp file first, then check result
-        cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
-          if (result.exitCode !== 0) {
-            const maskedStderr = maskSensitiveInfo(result.stderr);
-            throw new Error(`Failed to create TrainingRuntime: ${maskedStderr}`);
-          }
-          cy.log(`TrainingRuntime created: ${result.stdout}`);
-        });
-      },
-    );
-  });
-};
-
-/**
  * Creates a TrainJob resource by applying a YAML template.
  *
  * @param namespace - The namespace in which to create the TrainJob.
  * @param trainJobName - The name for the TrainJob resource.
- * @param trainingRuntimeName - The name of the TrainingRuntime to reference.
+ * @param trainingRuntimeName - The name of the ClusterTrainingRuntime to reference.
  */
 export const createTrainJob = (
   namespace: string,
@@ -172,35 +250,6 @@ export const createTrainJob = (
         });
       },
     );
-  });
-};
-
-/**
- * Deletes a TrainingRuntime resource.
- *
- * @param trainingRuntimeName - The name of the TrainingRuntime to delete.
- * @param namespace - The namespace in which the TrainingRuntime exists.
- * @param options - Configuration options for the deletion operation.
- * @param options.ignoreNotFound - Whether to ignore errors when the resource is not found (default: false).
- * @returns A Cypress chainable resolving with the result of the deletion command.
- */
-export const deleteTrainingRuntime = (
-  trainingRuntimeName: string,
-  namespace: string,
-  options: { ignoreNotFound?: boolean } = {},
-): Cypress.Chainable<CommandLineResult> => {
-  const { ignoreNotFound = false } = options;
-
-  const ocCommand = `oc delete TrainingRuntime ${trainingRuntimeName} -n ${namespace} --ignore-not-found=${ignoreNotFound} --wait=false`;
-
-  cy.log(`Deleting TrainingRuntime: ${trainingRuntimeName}`);
-
-  return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 120000 }).then((result) => {
-    if (result.exitCode !== 0 && !ignoreNotFound) {
-      const maskedStderr = maskSensitiveInfo(result.stderr);
-      cy.log(`ERROR deleting TrainingRuntime: ${maskedStderr}`);
-    }
-    return cy.wrap(result);
   });
 };
 
@@ -344,7 +393,7 @@ export interface TrainingResourcesConfig {
 }
 
 /**
- * Sets up all training resources: Kueue resources, TrainingRuntime, and TrainJob.
+ * Sets up all training resources: Kueue resources and TrainJob.
  * This is a convenience function that combines multiple setup steps.
  *
  * @param config - Configuration object containing all required parameters.
@@ -364,6 +413,9 @@ export const setupTrainingResources = (config: TrainingResourcesConfig): void =>
 
   cy.log(`Setting up training resources in namespace: ${namespace}`);
 
+  // Fail before creating resources if the product-managed CPU runtime is unavailable.
+  verifyClusterTrainingRuntimeAvailable(trainingRuntimeName);
+
   // Create Kueue resources
   createTrainingKueueResources(
     flavorName,
@@ -374,9 +426,6 @@ export const setupTrainingResources = (config: TrainingResourcesConfig): void =>
     memoryQuota,
     gpuQuota,
   );
-
-  // Create TrainingRuntime
-  createTrainingRuntime(namespace, trainingRuntimeName);
 
   // Create TrainJob
   createTrainJob(namespace, trainJobName, trainingRuntimeName, localQueueName);
@@ -391,6 +440,9 @@ export const setupTrainingResources = (config: TrainingResourcesConfig): void =>
       cy.log(`TrainJob verification failed: ${maskedStderr}`);
       throw new Error(`TrainJob ${trainJobName} was not created: ${maskedStderr}`);
     }
-    cy.log(`TrainJob ${trainJobName} exists - setup complete`);
+    cy.log(`TrainJob ${trainJobName} exists - waiting for its worker pod to start`);
+    return waitForTrainJobWorkerStart(trainJobName, namespace).then(() => {
+      cy.log(`TrainJob ${trainJobName} worker started - setup complete`);
+    });
   });
 };

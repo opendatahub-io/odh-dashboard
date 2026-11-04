@@ -8,7 +8,10 @@ import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidatio
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
 import { Deployment } from '../../../../extension-points';
-import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
+import {
+  DeploymentAssemblyResources,
+  DeployMethodActivationInput,
+} from '../../../../extension-points/deployment-wizard';
 import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
@@ -22,6 +25,7 @@ import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeplo
  */
 export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
+  deployMethodActivationInput: DeployMethodActivationInput,
   resources: DeploymentAssemblyResources<Deployment>,
   validation: ModelDeploymentWizardValidation,
   externalData: ExternalDataMap,
@@ -39,7 +43,10 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
-  const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
+  const { deployMethod, deployMethodLoaded } = useDeployMethod(
+    deployMethodActivationInput,
+    resources,
+  );
   const { fireModelDeployedTracking } = useModelDeployedTracking(
     formState,
     initialWizardData,

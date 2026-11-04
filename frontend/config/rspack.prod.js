@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
+const { lightningCssMinimizerOptions } = require('@odh-dashboard/app-config/rspack');
 const { rimrafSync } = require('rimraf');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
@@ -51,10 +52,7 @@ module.exports = merge(
       minimizer: [
         new rspack.SwcJsMinimizerRspackPlugin(),
         new rspack.LightningCssMinimizerRspackPlugin({
-          minimizerOptions: {
-            // Keep logical properties from being lowered into :lang() fallbacks.
-            exclude: { logicalProperties: true },
-          },
+          minimizerOptions: lightningCssMinimizerOptions,
         }),
       ],
     },
