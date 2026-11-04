@@ -262,9 +262,10 @@ func k8sServiceHost(baseURL string) (service string, namespace string, podLabel 
 // backend port is the EndpointSlice's published port for the selected Service port
 // for ClusterIP Services (direct dialing bypasses the VIP's port translation, and
 // the slice's port is what actually routes) and the URL's port for headless Services,
-// whose DNS already points at Pod IPs. Dial candidates prefer ready endpoints and
-// fall back to serving endpoints only when no ready endpoint exists, mirroring
-// service routing; non-running Pods are excluded from dial candidates rather than
+// whose DNS already points at Pod IPs. Dial candidates prefer ready endpoints and,
+// for ClusterIP Services only, fall back to serving (terminating) endpoints when no
+// ready endpoint exists — the VIP keeps routing to them while headless DNS does not
+// publish them; non-running Pods are excluded from dial candidates rather than
 // rejecting the whole Service, and pod-specific DNS names restrict candidates to
 // the endpoint whose hostname matches the pod label.
 func resolveTrustedHost(
@@ -331,8 +332,9 @@ func resolveTrustedHost(
 	// number for UDP with a different targetPort.
 	backendPort := ""
 	resolveFromSlice := false
+	isHeadless := svc.Spec.ClusterIP == corev1.ClusterIPNone
 	var svcPort corev1.ServicePort
-	if svc.Spec.ClusterIP != corev1.ClusterIPNone {
+	if !isHeadless {
 		urlPortNum, err := strconv.ParseInt(urlPort, 10, 32)
 		if err != nil {
 			return false, nil, nil
@@ -453,10 +455,18 @@ func resolveTrustedHost(
 				target := net.JoinHostPort(address, sliceBackendPort)
 				if endpoint.Conditions.Ready == nil || *endpoint.Conditions.Ready {
 					readyTargets = append(readyTargets, target)
-				} else if endpoint.Conditions.Serving != nil && *endpoint.Conditions.Serving {
-					// Terminating-endpoint fallback: only explicitly serving
-					// endpoints are eligible; an absent Serving condition defers
-					// to Ready, which is false here.
+				} else if svc.Spec.PublishNotReadyAddresses {
+					// The Service explicitly publishes not-ready addresses (e.g. a
+					// headless Service whose DNS must list every Pod), so they are
+					// legitimate destinations.
+					readyTargets = append(readyTargets, target)
+				} else if !isHeadless && endpoint.Conditions.Serving != nil && *endpoint.Conditions.Serving {
+					// Terminating-endpoint fallback, ClusterIP only: the VIP keeps
+					// routing to terminating-but-serving endpoints, but headless DNS
+					// does not publish them, so pinning their addresses would verify
+					// a URL normal DNS cannot resolve. Only explicitly serving
+					// endpoints are eligible; an absent Serving condition defers to
+					// Ready, which is false here.
 					servingTargets = append(servingTargets, target)
 				}
 			}

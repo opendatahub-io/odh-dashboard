@@ -127,8 +127,8 @@ var _ = Describe("AttachOGXClient", func() {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "missing namespace in context")
 	})
 
 	It("should return error when RequestIdentity is missing from context", func() {
@@ -439,7 +439,7 @@ var _ = Describe("AttachOGXClientFromSecret", func() {
 		assert.True(t, handlerCalled)
 	})
 
-	It("should return server error when namespace is missing from context", func() {
+	It("should return bad request when namespace is missing from context", func() {
 		t := GinkgoT()
 		app := App{
 			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
@@ -453,8 +453,8 @@ var _ = Describe("AttachOGXClientFromSecret", func() {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "missing namespace")
 	})
 
 	It("should return error when RequestIdentity is missing from context", func() {
