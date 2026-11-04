@@ -68,7 +68,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       returnRoute,
       cancelReturnRoute,
       isEdit: !!existingDeployment,
-      deploymentMethod: wizardFormData.state.deploymentMethod?.method,
+      formData: wizardFormData,
     });
   const shouldShowPreconfigureStep = calcShouldShowPreconfigureStep(project, existingData);
 
