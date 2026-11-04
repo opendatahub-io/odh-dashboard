@@ -218,4 +218,97 @@ describe('production runtime audit', () => {
     expect(markdown).toContain('frontend/src/legacy.ts');
     expect(markdown).toContain('browser/network validation');
   });
+
+  describe('importer path examples', () => {
+    const externalModule = (index = 0) => ({
+      identifier: `external "https://example.test/remote-${index}.js"`,
+      moduleType: 'javascript/dynamic',
+      chunks: [2],
+      reasons: importedBy('distributions/rhaii/src/index.tsx'),
+    });
+    const referenceModule = (index = 0) => ({
+      identifier: `consume shared module (default) @odh-dashboard/kserve/ref-${index}@*`,
+      moduleType: 'consume-shared-module',
+      chunks: [2],
+      reasons: importedBy('distributions/rhaii/src/index.tsx'),
+    });
+    const exampleSection = (report) => renderReport(report).split('## Importer Path Examples\n')[1];
+    const exampleNames = (report) =>
+      [...exampleSection(report).matchAll(/^- `(.+)`$/gm)].map((match) => match[1]);
+
+    it.each([
+      ['external', externalModule],
+      ['reference-only', referenceModule],
+    ])('should include %s violations without boundary edges', (_name, createModule) => {
+      const module = createModule();
+      const report = audit(stats([entry(), module]));
+      expect(report.boundaryEdges).toEqual([]);
+      expect(exampleNames(report)).toEqual([module.identifier]);
+      expect(exampleSection(report)).toContain(
+        `\`distributions/rhaii/src/index.tsx\` → \`${module.identifier}\``,
+      );
+    });
+
+    it.each(['external', 'reference', 'boundary'])(
+      'should retain all categories within ten examples when %s violations dominate',
+      (dominantCategory) => {
+        const count = (category) => (category === dominantCategory ? 11 : 1);
+        const report = audit(
+          stats([
+            entry(),
+            ...Array.from({ length: count('external') }, (_, index) => externalModule(index)),
+            ...Array.from({ length: count('reference') }, (_, index) => referenceModule(index)),
+            ...Array.from({ length: count('boundary') }, (_, index) =>
+              source(
+                `frontend/src/legacy-${index}.ts`,
+                [2],
+                importedBy('distributions/rhaii/src/index.tsx'),
+              ),
+            ),
+          ]),
+        );
+        const names = exampleNames(report);
+        const categories = names.map((name) => {
+          if (name.startsWith('external ')) return 'external';
+          if (name.startsWith('consume shared module ')) return 'reference';
+          return 'boundary';
+        });
+        expect(names).toHaveLength(10);
+        expect(new Set(names).size).toBe(10);
+        expect(categories).toEqual(expect.arrayContaining(['external', 'reference', 'boundary']));
+        expect(categories.indexOf('reference')).toBeGreaterThan(categories.lastIndexOf('external'));
+        expect(categories.indexOf('boundary')).toBeGreaterThan(categories.lastIndexOf('reference'));
+      },
+    );
+
+    it('should show a violation only once when multiple boundary edges reach it', () => {
+      const first = 'packages/llmd-serving/first.ts';
+      const second = 'packages/llmd-serving/second.ts';
+      const report = audit(
+        stats([
+          entry(),
+          source(first, [2], importedBy('distributions/rhaii/src/index.tsx')),
+          source(second, [2], importedBy('distributions/rhaii/src/index.tsx')),
+          source('frontend/src/legacy.ts', [2], [...importedBy(first), ...importedBy(second)]),
+        ]),
+      );
+      expect(report.boundaryEdges).toHaveLength(2);
+      expect(exampleNames(report)).toEqual(['frontend/src/legacy.ts']);
+    });
+
+    it('should include emitted violations with no active importer path', () => {
+      const report = audit(stats([entry(), source('frontend/src/legacy.ts', [2])]));
+      expect(report.boundaryEdges).toEqual([]);
+      expect(exampleNames(report)).toEqual(['frontend/src/legacy.ts']);
+      expect(exampleSection(report)).toContain(
+        'No active entry path recorded; chunk membership still proves emission.',
+      );
+    });
+
+    it('should leave the examples empty when the boundary passes', () => {
+      const report = audit(stats());
+      expect(report.boundaryPassed).toBe(true);
+      expect(exampleNames(report)).toEqual([]);
+    });
+  });
 });

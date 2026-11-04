@@ -280,14 +280,31 @@ const renderReport = (report) => {
     lines.push(`| \`${edge.importer}\` | \`${edge.module}\` |`);
   }
   lines.push('', '## Importer Path Examples', '');
-  const examples = [
-    ...new Set(
-      report.boundaryEdges
-        .map((edge) => report.violations.find((module) => module.name === edge.module))
-        .filter(Boolean),
+  const exampleGroups = [
+    report.violations.filter((module) => module.reason === 'unverified-external-runtime'),
+    report.violations.filter(
+      (module) => module.reason === 'forbidden-runtime' && !forbiddenOwner(module.owner),
     ),
-  ].slice(0, 10);
-  for (const violation of examples) {
+    report.boundaryEdges
+      .map((edge) => report.violations.find((module) => module.name === edge.module))
+      .filter(Boolean),
+  ].filter((group) => group.length);
+  const examples = new Map();
+  const exampleLimit = 10;
+  for (const [index, group] of exampleGroups.entries()) {
+    // Leave one slot for every later category, even when earlier groups exceed the cap.
+    const groupLimit = exampleLimit - (exampleGroups.length - index - 1);
+    for (const violation of group) {
+      if (examples.size >= groupLimit) break;
+      examples.set(violation.identifier, violation);
+    }
+  }
+  // Also explain emitted violations for which no boundary edge was recorded.
+  for (const violation of report.violations) {
+    if (examples.size >= exampleLimit) break;
+    examples.set(violation.identifier, violation);
+  }
+  for (const violation of examples.values()) {
     lines.push(
       `- \`${violation.name}\``,
       `  - ${
