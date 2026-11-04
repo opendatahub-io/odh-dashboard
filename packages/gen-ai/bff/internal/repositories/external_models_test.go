@@ -281,6 +281,32 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantAddresses: []string{"127.0.0.1:8443"},
 		},
 		{
+			name:     "pod-specific DNS name on a ClusterIP Service dials the URL port, not the Service's translated port",
+			baseURL:  "https://pod-a.my-model.my-ns.svc.cluster.local:8443/v1",
+			want:     true,
+			wantName: "my-model",
+			// CoreDNS resolves endpoint-specific names directly to endpoint
+			// addresses even for ClusterIP Services, so the URL's port must be
+			// retained instead of being translated to the slice's published
+			// backend port (9443).
+			service:       selectorSvc("", intstr.FromInt32(9443)),
+			slices:        []discoveryv1.EndpointSlice{withSlicePort(namedSlice(), "https", 9443)},
+			pod:           runningPodWithIPs("my-ns", "127.0.0.1", "127.0.0.2"),
+			wantAddresses: []string{"127.0.0.1:8443"},
+		},
+		{
+			name:    "pod-specific DNS name on a ClusterIP Service with only terminating endpoints fails closed",
+			baseURL: "https://pod-a.my-model.my-ns.svc.cluster.local:8443/v1",
+			// Endpoint DNS does not publish terminating endpoints, so the
+			// ClusterIP terminating-endpoint fallback must not apply to a
+			// pod-specific name.
+			service: selectorSvc("", intstr.FromInt32(8443)),
+			slices: []discoveryv1.EndpointSlice{withSlicePort(sliceWith("my-ns", "my-model-pod-term", false,
+				ep("127.0.0.1", boolPtr(false), boolPtr(true), "pod-a", podRefAt("my-ns", "my-model-pod"))), "https", 8443)},
+			pod:      runningPod("my-ns", "127.0.0.1"),
+			wantName: "my-model",
+		},
+		{
 			name:    "extra intermediate labels are NOT a valid service DNS name",
 			baseURL: "https://pod-a.extra.my-model.my-ns.svc.cluster.local:8443/v1",
 			service: selectorSvc(corev1.ClusterIPNone, intstr.FromInt32(8443)),

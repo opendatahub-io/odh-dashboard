@@ -254,16 +254,17 @@ func k8sServiceHost(baseURL string) (service string, namespace string, podLabel 
 // A namespace user can point an in-namespace Service DNS name at an arbitrary
 // target, so trust is only granted after verification through the Kubernetes API:
 // ExternalName and selectorless Services are rejected, and for selector-backed
-// Services (headless or not) every endpoint must reference a running,
+// Services (headless or not) every endpoint must reference a
 // non-host-network Pod in the caller's namespace whose PodIPs contain the
 // endpoint's addresses — which is all the EndpointSlice controller itself ever
 // produces. Lookups fail closed; a Forbidden lookup returns an error so the caller
 // learns the missing permission instead of a misleading connectivity failure. The
 // backend port is the EndpointSlice's published port for the selected Service port
 // for ClusterIP Services (direct dialing bypasses the VIP's port translation, and
-// the slice's port is what actually routes) and the URL's port for headless Services,
-// whose DNS already points at Pod IPs. Dial candidates prefer ready endpoints and,
-// for ClusterIP Services only, fall back to serving (terminating) endpoints when no
+// the slice's port is what actually routes) and the URL's port for headless Services
+// and pod-specific DNS names, whose DNS already points at endpoint addresses. Dial
+// candidates prefer ready endpoints and, for ClusterIP Service names only, fall back
+// to serving (terminating) endpoints when no
 // ready endpoint exists — the VIP keeps routing to them while headless DNS does not
 // publish them; non-running Pods are excluded from dial candidates rather than
 // rejecting the whole Service, and pod-specific DNS names restrict candidates to
@@ -320,8 +321,9 @@ func resolveTrustedHost(
 	if len(svc.Spec.Selector) == 0 {
 		return false, nil, nil
 	}
-	// Resolve the backend port. Headless Services resolve to Pod IPs directly, so
-	// the URL's port is the backend port. ClusterIP Services translate the Service
+	// Resolve the backend port. Headless Services and pod-specific DNS names
+	// resolve to Pod IPs directly, so the URL's port is the backend port. ClusterIP
+	// Services translate the Service
 	// port to the targetPort at the VIP, which direct dialing bypasses, so the
 	// port actually routed must be resolved per EndpointSlice: each slice
 	// publishes the resolved targetPort (numeric or named) for the ports it
@@ -333,8 +335,13 @@ func resolveTrustedHost(
 	backendPort := ""
 	resolveFromSlice := false
 	isHeadless := svc.Spec.ClusterIP == corev1.ClusterIPNone
+	// Pod-specific DNS names resolve directly to endpoint addresses even for
+	// ClusterIP Services (CoreDNS answers endpoint queries for them), so they share
+	// headless semantics: the URL's port is the backend port, and only endpoints the
+	// DNS would publish are dial candidates.
+	directEndpoint := isHeadless || podLabel != ""
 	var svcPort corev1.ServicePort
-	if !isHeadless {
+	if !directEndpoint {
 		urlPortNum, err := strconv.ParseInt(urlPort, 10, 32)
 		if err != nil {
 			return false, nil, nil
@@ -460,10 +467,11 @@ func resolveTrustedHost(
 					// headless Service whose DNS must list every Pod), so they are
 					// legitimate destinations.
 					readyTargets = append(readyTargets, target)
-				} else if !isHeadless && endpoint.Conditions.Serving != nil && *endpoint.Conditions.Serving {
-					// Terminating-endpoint fallback, ClusterIP only: the VIP keeps
-					// routing to terminating-but-serving endpoints, but headless DNS
-					// does not publish them, so pinning their addresses would verify
+				} else if !directEndpoint && endpoint.Conditions.Serving != nil && *endpoint.Conditions.Serving {
+					// Terminating-endpoint fallback, ClusterIP Service-name only:
+					// the VIP keeps routing to terminating-but-serving endpoints, but
+					// endpoint DNS (headless or pod-specific) does not
+					// publish them, so pinning their addresses would verify
 					// a URL normal DNS cannot resolve. Only explicitly serving
 					// endpoints are eligible; an absent Serving condition defers to
 					// Ready, which is false here.
