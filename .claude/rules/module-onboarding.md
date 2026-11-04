@@ -13,7 +13,7 @@ paths:
 > - [docs/module-federation.md](../../docs/module-federation.md) — MF config properties, shared deps, proxy, rspack setup
 > - [docs/extensibility.md](../../docs/extensibility.md) — extension points, code refs, feature gating
 
-The quickstart in `docs/onboard-modular-architecture.md` uses `pnpm dlx mod-arch-installer -n <name> --port <port> --bff-port <bff-port> --service-port <service-port>` to scaffold a new module (the `/module-onboarding` skill automates it end to end). This rule provides the full manual reference and checklist beyond what the installer covers. `packages/data-connect-hub/` is the golden example for a federated module with a BFF.
+The quickstart in `docs/onboard-modular-architecture.md` uses `pnpm dlx mod-arch-installer@1.23.0 -n <name> --port <port> --bff-port <bff-port> --service-port <service-port>` to scaffold a new module (the `/module-onboarding` skill automates it end to end). This rule provides the full manual reference and checklist beyond what the installer covers. `packages/data-connect-hub/` is the golden example for a federated module with a BFF.
 
 ## Template
 
@@ -97,7 +97,7 @@ pnpm run validate:ports
 The source of truth for each package is:
 - **Frontend port**: `module-federation.local.port` in the package's `package.json`
 - **BFF port (local dev/E2E)**: the package's development script or Makefile (not currently conflict-checked by the validator)
-- **Production service port**: `Port` in the dashboard-operator `moduleRegistry` (`dashboard-operator/internal/controller/modules.go`), mirrored in `module-federation.service.port` (validated by the conflict-check script)
+- **Production service port**: `Port` in the dashboard-operator `moduleRegistry` (`dashboard-operator/internal/controller/modules.go`), mirrored in `module-federation.service.port` (`validate:ports` checks registry uniqueness only; verify the mirror manually)
 
 ### 4. Directory structure
 

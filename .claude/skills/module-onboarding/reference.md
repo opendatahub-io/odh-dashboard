@@ -48,7 +48,7 @@ pnpm run validate:ports
 grep -hoE '(PROXY_)?PORT=40[0-9]{2}' packages/*/Makefile packages/*/package.json 2>/dev/null | grep -oE '[0-9]+' | sort -n | uniq
 
 # Production service ports (operator registry)
-grep -E '^\s+Port:\s+[0-9]+' dashboard-operator/internal/controller/modules.go | grep -oE '[0-9]+' | sort -n
+grep -E '^[[:space:]]+Port:[[:space:]]+[0-9]+' dashboard-operator/internal/controller/modules.go | grep -oE '[0-9]+' | sort -n
 ```
 
 Pass the chosen ports to the installer (`--port`, `--bff-port`, `--service-port`); it rewrites `package.json`, the `Makefile` and the frontend scripts.
@@ -268,7 +268,7 @@ Pass `isHost: process.env.DEPLOYMENT_MODE === 'standalone'` so standalone builds
 
 **Symptom**: `pnpm dlx mod-arch-installer` fails, or `--help` has no `--service-port` flag (versions before 1.23.0 still scaffold webpack/npm/ESLint 9 output).
 
-**Fix**: Use `pnpm dlx mod-arch-installer@latest`. If the published version is still outdated, fall back to manual scaffolding from `packages/data-connect-hub/`.
+**Fix**: Use the pinned `pnpm dlx mod-arch-installer@1.23.0` (bump the pin deliberately, after reviewing a new release, in every onboarding doc at once). If the published version is still outdated, fall back to manual scaffolding from `packages/data-connect-hub/`.
 
 ### pnpm install does not pick up the module
 

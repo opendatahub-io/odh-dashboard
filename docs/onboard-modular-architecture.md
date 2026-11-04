@@ -36,7 +36,7 @@ From the `packages` folder, scaffold the module with the installer, passing the 
 
 ```bash
 cd packages
-pnpm dlx mod-arch-installer@latest -n <your-module-name> --port <frontend-port> --bff-port <bff-port> --service-port <service-port>
+pnpm dlx mod-arch-installer@1.23.0 -n <your-module-name> --port <frontend-port> --bff-port <bff-port> --service-port <service-port>
 cd ..
 ```
 
@@ -206,4 +206,3 @@ When creating manifests for a new module, reference an existing module (e.g., `m
 - [Architecture Overview](./architecture.md) - Overall system architecture
 - `/module-onboarding` skill -- Automated port allocation, scaffolding, host registration and verification
 - `/konflux-onboarding` skill -- CI/CD pipelines, standalone manifests and dashboard-operator registration
-- `/konflux-onboarding` skill -- CI/CD pipeline setup (Dockerfiles, Konflux, OpenShift CI)

@@ -72,7 +72,7 @@ Collect the ports already in use and pick the next free value in each range. The
 3. **Production service port** (the container/Service port the operator deploys; `module-federation.service.port`). The operator registry is the source of truth and is the second table printed by `pnpm run validate:ports`:
 
    ```bash
-   grep -E '^\s+Port:\s+[0-9]+' dashboard-operator/internal/controller/modules.go | grep -oE '[0-9]+' | sort -n
+   grep -E '^[[:space:]]+Port:[[:space:]]+[0-9]+' dashboard-operator/internal/controller/modules.go | grep -oE '[0-9]+' | sort -n
    ```
 
    Existing ports step by 100 (`8043, 8143, … 9243`). Pick the next step above the highest (e.g. `9343`).
@@ -84,13 +84,13 @@ Collect the ports already in use and pick the next free value in each range. The
 ### Step 1: Run the installer
 
 ```bash
-cd packages && pnpm dlx mod-arch-installer@latest -n <name> --port <port> --bff-port <bff-port> --service-port <service-port>
+cd packages && pnpm dlx mod-arch-installer@1.23.0 -n <name> --port <port> --bff-port <bff-port> --service-port <service-port>
 ```
 
 The `--port`/`--bff-port`/`--service-port` flags need mod-arch-installer **>= 1.23.0**. Check before trusting the output:
 
 ```bash
-pnpm dlx mod-arch-installer@latest --help | grep -q -- '--service-port' && echo OK || echo "OUTDATED installer"
+pnpm dlx mod-arch-installer@1.23.0 --help | grep -q -- '--service-port' && echo OK || echo "OUTDATED installer"
 ```
 
 If the installer is outdated or fails, fall back to **manual scaffolding**: copy `packages/data-connect-hub/` (excluding `node_modules`, `bff/static*`, `frontend/public-cypress`, `frontend/dist`, `contract-tests/`), and replace every name/port reference (see reference.md § Name Transformation Rules). Do not copy from `packages/plugin-template/` — its `Dockerfile.workspace` is model-registry specific.
