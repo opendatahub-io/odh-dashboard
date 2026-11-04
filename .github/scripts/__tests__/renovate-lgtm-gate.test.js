@@ -47,6 +47,10 @@ after(() => {
 
 const GATE_QUERY = '.jobs["auto-merge"].steps[] | select(.id == "gate") | .run';
 
+/** Workflow-level env, which the step inherits in Actions. */
+const workflowEnv = () =>
+  JSON.parse(execFileSync('yq', ['-o=json', '.', WORKFLOW], { encoding: 'utf8' })).env ?? {};
+
 /** The gate's shell, straight from the workflow, so tests cannot drift from it. */
 const gateScript = () =>
   // yq emits a JSON string; parse it to recover the shell, newlines included.
@@ -90,6 +94,7 @@ const runGate = (fixture, overrides = {}) => {
     encoding: 'utf8',
     env: {
       ...process.env,
+      ...workflowEnv(),
       PATH: `${bin}:${process.env.PATH}`,
       TIMELINE: timelineFile,
       COMMENTS: commentsFile,
@@ -216,6 +221,30 @@ integration('respects its own label cleanup', () => {
       created_at: '2026-10-27T10:06:00Z',
     },
   ]);
+  assert.equal(decision(out), 'false', out);
+});
+
+integration('respects a cancellation on a queued synchronize run', () => {
+  // A maintainer cancels after the push; a queued synchronize run must not
+  // restore labels on the same revision.
+  const out = runGate(
+    {
+      timeline: [pushed],
+      comments: [comment('/lgtm cancel', 'MEMBER', '2026-10-27T10:03:00Z')],
+    },
+    { ACTION: 'synchronize', LABEL: '', LABEL_NAME: '' },
+  );
+  assert.equal(decision(out), 'false', out);
+});
+
+integration('respects a cancellation when a tier label is re-applied', () => {
+  const out = runGate(
+    {
+      timeline: [pushed],
+      comments: [comment('/remove-lgtm', 'OWNER', '2026-10-27T10:03:00Z')],
+    },
+    { ACTION: 'labeled', LABEL: 'renovate/npm-patch' },
+  );
   assert.equal(decision(out), 'false', out);
 });
 

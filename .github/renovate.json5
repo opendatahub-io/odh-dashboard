@@ -153,6 +153,9 @@
       "groupSlug": "docker-base-images",
       "addLabels": ["renovate/docker"],
       "minimumReleaseAge": "7 days",
+      // Registries do not always expose a tag's publish date. Without this the
+      // update would stay pending forever instead of being reviewed.
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
       "prPriority": 2
     },
 

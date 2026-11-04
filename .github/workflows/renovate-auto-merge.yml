@@ -47,6 +47,18 @@ env:
   # sets the RENOVATE_APP_LOGIN repo variable to that token's login.
   RENOVATE_APP_LOGIN: ${{ github.repository == 'opendatahub-io/odh-dashboard' && 'odh-dashboard-agent[bot]' || vars.RENOVATE_APP_LOGIN || 'odh-dashboard-agent[bot]' }}
 
+  # Shared jq programs so the gate and the final label step agree on what
+  # counts as a withdrawal and where the last push was.
+  LAST_PUSH_QUERY: |
+    [.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""
+  CANCEL_QUERY: |
+    [.[]
+     | select(((.author_association // "") == "OWNER"
+         or (.author_association // "") == "MEMBER"
+         or (.author_association // "") == "COLLABORATOR")
+       and ((.body // "") | test("(^|\n)[[:space:]]*(/lgtm[[:space:]]+cancel|/remove-lgtm)[[:space:]]*($|\n)"; "i")))
+     | .created_at] | max // ""
+
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
@@ -81,46 +93,41 @@ jobs:
           LABEL: ${{ github.event.label.name }}
         run: |
           set -euo pipefail
-          if [ "$ACTION" != "unlabeled" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          # Removing a tier label revokes eligibility: re-evaluate and withdraw
-          # whatever this workflow added, even if no push happened.
-          if [[ "$LABEL" == renovate/* ]]; then
-            echo "tier label $LABEL removed — re-evaluating eligibility"
-            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          # Attribute the removal instead of comparing label and push times. A
-          # delayed Prow removal can land AFTER this workflow re-applied lgtm,
-          # which a timestamp comparison reads as a human cancel. But the actor
-          # alone is not enough either: Prow also removes lgtm as a bot when a
-          # maintainer runs `/lgtm cancel`.
-          #   1. A `/lgtm cancel` newer than the last push is a deliberate
-          #      withdrawal for the current revision: respect it.
-          #   2. Otherwise a bot removal is Prow invalidating a stale review
-          #      after a push: revalidate the current head.
-          #   3. Anything else, including our own cleanup: respect it.
           # `gh api --paginate` emits one array per page, so flatten the pages
           # before selecting; a bare `jq -s '.'` would leave an array of arrays
           # and every selector below would match nothing.
           timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s 'add // []')
           comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
-          last_push=$(jq -r '[.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""' <<<"$timeline")
-          # Only a standalone command from someone with write access withdraws
-          # approval. Matching the text anywhere would let ordinary prose, or a
-          # commenter with no authority, suppress revalidation.
-          last_cancel=$(jq -r '[.[] | select(
-              ((.author_association // "") == "OWNER"
-                or (.author_association // "") == "MEMBER"
-                or (.author_association // "") == "COLLABORATOR")
-              and ((.body // "") | test("(^|\n)[[:space:]]*(/lgtm[[:space:]]+cancel|/remove-lgtm)[[:space:]]*($|\n)"; "i"))
-            ) | .created_at] | max // ""' <<<"$comments")
-          remover=$(jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""' <<<"$timeline")
+          last_push=$(jq -r "$LAST_PUSH_QUERY" <<<"$timeline")
+          last_cancel=$(jq -r "$CANCEL_QUERY" <<<"$comments")
+          # A withdrawal newer than the last push is respected for EVERY event
+          # type. A queued synchronize, reopened or tier-label run could
+          # otherwise restore labels on the same revision after a maintainer
+          # cancelled, because only the unlabeled path used to consult this.
           if [ -n "$last_cancel" ] && [[ "$last_cancel" > "$last_push" ]]; then
-            echo "lgtm cancelled by command after the last push, respecting it"
+            echo "approval withdrawn after the last push, respecting it"
             echo "run=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # Removing a tier label revokes eligibility: re-evaluate and withdraw
+          # whatever this workflow added, even if no push happened.
+          if [ "$ACTION" = "unlabeled" ] && [[ "$LABEL" == renovate/* ]]; then
+            echo "tier label $LABEL removed — re-evaluating eligibility"
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$ACTION" != "unlabeled" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Attribute the removal instead of comparing label and push times. A
+          # delayed Prow removal can land AFTER this workflow re-applied lgtm,
+          # which a timestamp comparison reads as a human cancel. The actor
+          # alone is not enough either: Prow also removes lgtm as a bot when a
+          # maintainer runs `/lgtm cancel` or `/remove-lgtm`.
+          #   1. A cancellation newer than the last push was respected above.
+          #   2. Otherwise a bot removal is Prow invalidating a stale review
+          #      after a push: revalidate the current head.
+          #   3. Anything else, including our own cleanup: respect it.
+          remover=$(jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""' <<<"$timeline")
           case "$remover" in
             "github-actions[bot]")
               echo "lgtm removed by this workflow, respecting it"
@@ -275,6 +282,18 @@ jobs:
           if [ "$MOVED" = "true" ]; then
             echo "Head moved during validation — leaving labels for the new head's run"
             exit 0
+          fi
+          # Validation takes time; a withdrawal can arrive while it runs. Check
+          # once more immediately before granting anything.
+          if [ "$ELIGIBLE" = "true" ]; then
+            comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
+            timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s 'add // []')
+            last_cancel=$(jq -r "$CANCEL_QUERY" <<<"$comments")
+            last_push=$(jq -r "$LAST_PUSH_QUERY" <<<"$timeline")
+            if [ -n "$last_cancel" ] && [[ "$last_cancel" > "$last_push" ]]; then
+              echo "Approval was withdrawn after the last push — not applying labels"
+              ELIGIBLE=false
+            fi
           fi
           if [ "$ELIGIBLE" = "true" ] && [ "$MOVED" = "false" ]; then
             gh pr edit "$PR_URL" --add-label "lgtm,approved"
