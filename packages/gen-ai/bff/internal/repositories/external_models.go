@@ -259,8 +259,9 @@ func k8sServiceHost(baseURL string) (service string, namespace string, podLabel 
 // endpoint's addresses — which is all the EndpointSlice controller itself ever
 // produces. Lookups fail closed; a Forbidden lookup returns an error so the caller
 // learns the missing permission instead of a misleading connectivity failure. The
-// backend port is the Service's targetPort for ClusterIP Services (direct dialing
-// bypasses the VIP's port translation) and the URL's port for headless Services,
+// backend port is the EndpointSlice's published port for the selected Service port
+// for ClusterIP Services (direct dialing bypasses the VIP's port translation, and
+// the slice's port is what actually routes) and the URL's port for headless Services,
 // whose DNS already points at Pod IPs. Dial candidates prefer ready endpoints and
 // fall back to serving endpoints only when no ready endpoint exists, mirroring
 // service routing; non-running Pods are excluded from dial candidates rather than
@@ -321,11 +322,15 @@ func resolveTrustedHost(
 	// Resolve the backend port. Headless Services resolve to Pod IPs directly, so
 	// the URL's port is the backend port. ClusterIP Services translate the Service
 	// port to the targetPort at the VIP, which direct dialing bypasses, so the
-	// targetPort must be resolved here: numeric targetPorts directly, named ones
-	// per EndpointSlice (slice port names match Service port names). Only TCP
-	// Service ports are candidates — the verification connection is TCP, and a
-	// Service may expose the same port number for UDP with a different targetPort.
+	// port actually routed must be resolved per EndpointSlice: each slice
+	// publishes the resolved targetPort (numeric or named) for the ports it
+	// serves, and Kubernetes routes through those published endpoint ports — even
+	// for numeric targetPorts, a recently changed Service targetPort may not yet
+	// be reflected in existing slices. Only TCP Service ports are candidates —
+	// the verification connection is TCP, and a Service may expose the same port
+	// number for UDP with a different targetPort.
 	backendPort := ""
+	resolveFromSlice := false
 	var svcPort corev1.ServicePort
 	if svc.Spec.ClusterIP != corev1.ClusterIPNone {
 		urlPortNum, err := strconv.ParseInt(urlPort, 10, 32)
@@ -344,9 +349,7 @@ func resolveTrustedHost(
 			// matches it.
 			return false, nil, nil
 		}
-		if svcPort.TargetPort.IntValue() > 0 {
-			backendPort = strconv.Itoa(svcPort.TargetPort.IntValue())
-		}
+		resolveFromSlice = true
 	} else {
 		backendPort = urlPort
 	}
@@ -381,11 +384,23 @@ func resolveTrustedHost(
 	for i := range slices {
 		slice := &slices[i]
 		sliceBackendPort := backendPort
-		if sliceBackendPort == "" {
-			// Named targetPort: resolve it against this slice's ports, whose names
-			// correspond to Service port names.
+		if resolveFromSlice {
+			// Resolve the selected Service port against this slice's ports: slice
+			// port names correspond to Service port names, and the published port
+			// is the concrete backend port Kubernetes actually routes to.
+			sliceBackendPort = ""
 			for _, p := range slice.Ports {
-				if p.Port == nil || p.Name == nil || *p.Name != svcPort.Name {
+				if p.Port == nil {
+					continue
+				}
+				portName := ""
+				if p.Name != nil {
+					portName = *p.Name
+				}
+				if portName != svcPort.Name {
+					continue
+				}
+				if p.Protocol != nil && *p.Protocol != corev1.ProtocolTCP {
 					continue
 				}
 				sliceBackendPort = strconv.Itoa(int(*p.Port))
@@ -393,9 +408,10 @@ func resolveTrustedHost(
 			}
 			if sliceBackendPort == "" {
 				// This slice does not expose the selected Service port (slices can
-				// carry different port sets, e.g. during mixed-version rollouts), so
-				// it supplies no backends for it; skip it without discarding the
-				// other slices' validated targets.
+				// carry different port sets, e.g. during mixed-version rollouts or
+				// while reconciling a targetPort change), so it supplies no backends
+				// for it; skip it without discarding the other slices' validated
+				// targets.
 				continue
 			}
 		}
