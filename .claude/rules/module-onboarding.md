@@ -97,7 +97,7 @@ pnpm run validate:ports
 The source of truth for each package is:
 - **Frontend port**: `module-federation.local.port` in the package's `package.json`
 - **BFF port (local dev/E2E)**: the package's development script or Makefile (not currently conflict-checked by the validator)
-- **Production service port**: `Port` in the dashboard-operator `moduleRegistry` (`dashboard-operator/internal/controller/modules.go`), mirrored in `module-federation.service.port` (`validate:ports` checks registry uniqueness only; verify the mirror manually)
+- **Production service port**: `Port` in the dashboard-operator `moduleRegistry` (`dashboard-operator/internal/controller/modules.go`), mirrored in `module-federation.service.port` (`validate:ports` fails on unparseable registry ports and checks they are unique; verify the mirror manually)
 
 ### 4. Directory structure
 

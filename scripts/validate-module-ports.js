@@ -119,7 +119,12 @@ function parseModuleRegistryContent(content) {
       }
       // Accept both the shorthand `"name": {` and the explicitly typed `"name": ModuleDefinition{`.
       const keyMatch = trimmed.match(/^"([^"]+)":\s*(?:ModuleDefinition\s*)?{/);
-      if (keyMatch) {
+      const keysOnLine = (trimmed.match(/"[^"]+":\s*(?:ModuleDefinition\s*)?{/g) || []).length;
+      if (keyMatch && keysOnLine > 1) {
+        // Several entries on one line would hide all but the first; reject rather than guess.
+        finishEntry();
+        errors.push(`multiple moduleRegistry entries on one line: ${trimmed}`);
+      } else if (keyMatch) {
         finishEntry();
         [, current] = keyMatch;
       } else {

@@ -150,6 +150,16 @@ describe('parseModuleRegistryContent', () => {
     ]);
   });
 
+  it('fails when several entries share one line', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      registry(['\t"a": {Port: 8043}, "b": {Port: 8043},', '\t"c": {', '\t\tPort: 8143,', '\t},']),
+    );
+    assert.deepEqual(entries, [{ name: 'c', port: 8143 }]);
+    assert.deepEqual(errors, [
+      'multiple moduleRegistry entries on one line: "a": {Port: 8043}, "b": {Port: 8043},',
+    ]);
+  });
+
   it('ignores Port fields nested deeper than the entry', () => {
     const { entries, errors } = parseModuleRegistryContent(
       registry([
