@@ -420,6 +420,15 @@ policy that cannot be proven to match the cluster. A nil/empty profile resolves 
 Mozilla Intermediate defaults (TLS 1.2), and on a non-OpenShift cluster (the API
 group is absent) the manager likewise uses Intermediate defaults.
 
+The one exception to fail-closed is a **transient** read error at startup (service
+unavailable, timeout, server timeout, too-many-requests, or the 10s resolve deadline
+expiring). Rather than crash-loop through an API brownout, the manager starts with
+Intermediate defaults (TLS 1.2) and records the profile as `Intermediate`. Until the
+`ProfileWatcher` (below) reads the real profile, the metrics and webhook listeners can
+therefore briefly serve TLS 1.2 even if the cluster requires `Modern`; once the read
+succeeds and the profile differs, the watcher restarts the manager onto the real policy.
+This mirrors the startup leniency of the BFF and notebooks listeners.
+
 Unlike the BFF listeners (which reconfigure in-process), the operator does not
 hot-swap TLS on a running listener. A `ProfileWatcher` watches
 `apiservers/cluster`; when the profile changes it cancels the manager's context so
