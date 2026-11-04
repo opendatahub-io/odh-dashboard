@@ -7,9 +7,10 @@
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest
 ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.26
 ARG RUNTIME_BASE_IMAGE=registry.access.redhat.com/ubi9/ubi-minimal:latest
+ARG BUILDPLATFORM
 
 # ── Stage 1: UI Builder ──────────────────────────────────────────────────────
-FROM ${NODE_BASE_IMAGE} AS ui-builder
+FROM --platform=$BUILDPLATFORM ${NODE_BASE_IMAGE} AS ui-builder
 
 WORKDIR /usr/src/workspace
 
