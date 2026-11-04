@@ -307,6 +307,32 @@ integration('labels: backs off when a cancellation command follows the last push
   assert.doesNotMatch(log, /--add-label/);
 });
 
+integration('labels: withdraws a workflow-added approved on cancellation', () => {
+  // Prow removes lgtm on /lgtm cancel but leaves approved; the cleanup path must
+  // remove the workflow's own approved so the Tide pair cannot be restored by a
+  // later /lgtm without re-validation.
+  const { log } = runStep(
+    labelStep,
+    {
+      timeline: [{ event: 'committed', created_at: '2026-11-04T10:00:00Z' }],
+      comments: [
+        {
+          body: '/lgtm cancel',
+          author_association: 'MEMBER',
+          created_at: '2026-11-04T10:05:00Z',
+        },
+      ],
+      events: [
+        labelEvent('github-actions[bot]', 'lgtm'),
+        labelEvent('github-actions[bot]', 'approved'),
+      ],
+    },
+    eligible,
+  );
+  assert.doesNotMatch(log, /--add-label/);
+  assert.match(log, /--remove-label approved/);
+});
+
 integration('labels: defers when the head moved after the last read', () => {
   const { log } = runStep(
     labelStep,

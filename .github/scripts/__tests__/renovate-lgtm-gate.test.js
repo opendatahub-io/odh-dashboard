@@ -144,20 +144,20 @@ integration('revalidates when Prow removes lgtm after our label (the race)', () 
   assert.equal(decision(out), 'true', out);
 });
 
-integration('respects an authorized /lgtm cancel even though a bot removes the label', () => {
+integration('routes an authorized cancellation to label cleanup', () => {
   const out = runGate({
     timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
     comments: [comment('/lgtm cancel', 'MEMBER', '2026-10-27T10:03:00Z')],
   });
-  assert.equal(decision(out), 'false', out);
+  assert.equal(decision(out), 'true', out);
 });
 
-integration('recognizes /remove-lgtm as a cancellation', () => {
+integration('routes /remove-lgtm to label cleanup', () => {
   const out = runGate({
     timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
     comments: [comment('/remove-lgtm', 'MEMBER', '2026-10-27T10:03:00Z')],
   });
-  assert.equal(decision(out), 'false', out);
+  assert.equal(decision(out), 'true', out);
 });
 
 integration('recognizes the cancellation command regardless of case', () => {
@@ -165,7 +165,7 @@ integration('recognizes the cancellation command regardless of case', () => {
     timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
     comments: [comment('/LGTM CANCEL', 'MEMBER', '2026-10-27T10:03:00Z')],
   });
-  assert.equal(decision(out), 'false', out);
+  assert.equal(decision(out), 'true', out);
 });
 
 integration('ignores /lgtm cancel from someone without write access', () => {
@@ -198,7 +198,7 @@ integration('revalidates when a cancel is older than the latest push', () => {
   assert.equal(decision(out), 'true', out);
 });
 
-integration('respects a human removing lgtm', () => {
+integration('routes a human removal to label cleanup', () => {
   const out = runGate([
     pushed,
     {
@@ -208,7 +208,7 @@ integration('respects a human removing lgtm', () => {
       created_at: '2026-10-27T10:06:00Z',
     },
   ]);
-  assert.equal(decision(out), 'false', out);
+  assert.equal(decision(out), 'true', out);
 });
 
 integration('respects its own label cleanup', () => {
@@ -224,7 +224,7 @@ integration('respects its own label cleanup', () => {
   assert.equal(decision(out), 'false', out);
 });
 
-integration('respects a cancellation on a queued synchronize run', () => {
+integration('routes a queued synchronize cancellation to label cleanup', () => {
   // A maintainer cancels after the push; a queued synchronize run must not
   // restore labels on the same revision.
   const out = runGate(
@@ -232,12 +232,12 @@ integration('respects a cancellation on a queued synchronize run', () => {
       timeline: [pushed],
       comments: [comment('/lgtm cancel', 'MEMBER', '2026-10-27T10:03:00Z')],
     },
-    { ACTION: 'synchronize', LABEL: '', LABEL_NAME: '' },
+    { ACTION: 'synchronize' },
   );
-  assert.equal(decision(out), 'false', out);
+  assert.equal(decision(out), 'true', out);
 });
 
-integration('respects a cancellation when a tier label is re-applied', () => {
+integration('routes a re-applied tier label cancellation to label cleanup', () => {
   const out = runGate(
     {
       timeline: [pushed],
@@ -245,7 +245,7 @@ integration('respects a cancellation when a tier label is re-applied', () => {
     },
     { ACTION: 'labeled', LABEL: 'renovate/npm-patch' },
   );
-  assert.equal(decision(out), 'false', out);
+  assert.equal(decision(out), 'true', out);
 });
 
 integration('re-evaluates when a tier label is removed', () => {

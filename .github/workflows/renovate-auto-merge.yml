@@ -116,8 +116,12 @@ jobs:
           # otherwise restore labels on the same revision after a maintainer
           # withdrew approval, because only the unlabeled path used to look.
           if [ -n "$withdrawn_at" ] && [[ "$withdrawn_at" > "$last_push" ]]; then
-            echo "approval withdrawn after the last push, respecting it"
-            echo "run=false" >> "$GITHUB_OUTPUT"
+            # Route through the label step's cleanup path: it re-checks the
+            # withdrawal and removes only labels this workflow added. Skipping
+            # the run would leave a workflow-added `approved` behind, so a later
+            # /lgtm could restore the Tide pair without re-validation.
+            echo "approval withdrawn after the last push, withdrawing workflow labels"
+            echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           # Removing a tier label revokes eligibility: re-evaluate and withdraw
@@ -141,7 +145,11 @@ jobs:
           remover=$(jq -r '[.[] | select(.event == "unlabeled" and .label.name == "lgtm")] | last | .actor.login // ""' <<<"$timeline")
           case "$remover" in
             "github-actions[bot]")
-              echo "lgtm removed by this workflow, respecting it"
+              echo "lgtm removed by this workflow, nothing to do"
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              ;;
+            "")
+              echo "no lgtm removal event found, nothing to do"
               echo "run=false" >> "$GITHUB_OUTPUT"
               ;;
             *"[bot]")
@@ -149,8 +157,10 @@ jobs:
               echo "run=true" >> "$GITHUB_OUTPUT"
               ;;
             *)
-              echo "lgtm removed by '${remover:-unknown}', respecting it"
-              echo "run=false" >> "$GITHUB_OUTPUT"
+              # A person withdrew: run the cleanup path so a workflow-added
+              # `approved` does not survive the cancellation.
+              echo "lgtm removed by $remover, withdrawing workflow labels"
+              echo "run=true" >> "$GITHUB_OUTPUT"
               ;;
           esac
 
