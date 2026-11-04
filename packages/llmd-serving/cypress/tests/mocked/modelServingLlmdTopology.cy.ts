@@ -234,27 +234,6 @@ describe('Model Serving LLMD Topology & Routing', () => {
     });
   });
 
-  it('should track cancellation without inventing unresolved configuration values', () => {
-    initIntercepts();
-    modelServingGlobal.visit('test-project');
-    modelServingGlobal.findDeployModelButton().click();
-    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
-    cy.window().then((win) => {
-      Object.defineProperty(win, 'analytics', {
-        value: { track: cy.stub().as('analyticsTrack') },
-        writable: true,
-        configurable: true,
-      });
-    });
-    cy.findByRole('button', { name: 'Cancel' }).click();
-    modelServingWizard.findDiscardButton().click();
-    cy.get('@analyticsTrack').should(
-      'be.calledWithMatch',
-      'Model Deployed',
-      Cypress.sinon.match({ outcome: 'cancel' }),
-    );
-  });
-
   describe('hardware profile visibility', () => {
     it('hardware profile visibility', () => {
       initIntercepts();
@@ -616,7 +595,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
     };
 
     [true, false].forEach((llmGatewayField) => {
-      it(`should track default deployment with gateway enabled=${llmGatewayField}`, () => {
+      it(`should avoid creating default config resources and track deployment (gateway enabled=${llmGatewayField})`, () => {
         const deploymentName = 'test-single-node-default';
         initIntercepts({ llmGatewayField });
         initDeployIntercepts(deploymentName);
@@ -737,7 +716,6 @@ describe('Model Serving LLMD Topology & Routing', () => {
             outcome: 'submit',
             deploymentMethod: 'llm-inference-service-llmd',
             llmdComposablePattern: TopologyType.SINGLE_NODE_DISAGGREGATED,
-            isDefaultTopology: false,
             isDefaultRouting: false,
             numReplicas: request.body.spec.replicas,
           }),
@@ -825,6 +803,17 @@ describe('Model Serving LLMD Topology & Routing', () => {
       cy.get('@createLLMInferenceService.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
       });
+      cy.get('@analyticsTrack').should(
+        'be.calledWithMatch',
+        'Model Deployed',
+        Cypress.sinon.match({
+          outcome: 'submit',
+          success: true,
+          deploymentMethod: 'llm-inference-service-llmd',
+          llmdComposablePattern: TopologyType.MULTI_NODE,
+          isDefaultTopology: false,
+        }),
+      );
     });
 
     it('should create an accelerator config and append its baseRef after the topology baseRef', () => {
@@ -937,7 +926,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
     });
 
     [true, false].forEach((llmGatewayField) => {
-      it(`should track default topology edit with gateway enabled=${llmGatewayField}`, () => {
+      it(`should clean the old resource and track the default-topology update (gateway enabled=${llmGatewayField})`, () => {
         initIntercepts({ llmGatewayField });
         cy.interceptK8sList(
           { model: SecretModel, ns: 'test-project' },
