@@ -36,7 +36,7 @@ const excluded = (name, directory = false) =>
 if (mode === 'filter') {
   const [input, subdir, output] = args;
   const patch = fs.readFileSync(input);
-  if (!/^diff --git /m.test(patch.toString('utf8'))) {
+  if (!/^diff --git /m.test(patch.toString('latin1'))) {
     fs.writeFileSync(output, '');
     process.exit(0);
   }
@@ -49,7 +49,7 @@ if (mode === 'filter') {
     .split('\0')
     .filter(Boolean);
   const blocks = patch
-    .toString('utf8')
+    .toString('latin1')
     .split(/(?=^diff --git )/m)
     .filter((block) => block.startsWith('diff --git '));
   if (records.length !== blocks.length) throw new Error('Unable to identify subtree patch paths');
@@ -64,6 +64,8 @@ if (mode === 'filter') {
         /["\\]/.test(name) || [...name].some((char) => char.charCodeAt(0) <= 32)
           ? JSON.stringify(name)
           : name;
+      // Preserve hunk bytes verbatim while keeping rewritten filenames encoded as UTF-8.
+      const raw = (name) => Buffer.from(quote(name), 'utf8').toString('latin1');
       let header = true;
       return [
         block
@@ -71,18 +73,18 @@ if (mode === 'filter') {
           .map((line) => {
             if (line.startsWith('@@') || line === 'GIT binary patch') header = false;
             if (line.startsWith('diff --git '))
-              return `diff --git ${quote(`a/${relative}`)} ${quote(`b/${relative}`)}`;
+              return `diff --git ${raw(`a/${relative}`)} ${raw(`b/${relative}`)}`;
             if (header && line.startsWith('--- ') && line !== '--- /dev/null')
-              return `--- ${quote(`a/${relative}`)}`;
+              return `--- ${raw(`a/${relative}`)}`;
             if (header && line.startsWith('+++ ') && line !== '+++ /dev/null')
-              return `+++ ${quote(`b/${relative}`)}`;
+              return `+++ ${raw(`b/${relative}`)}`;
             return line;
           })
           .join('\n'),
       ];
     })
     .join('');
-  fs.writeFileSync(output, result);
+  fs.writeFileSync(output, Buffer.from(result, 'latin1'));
 } else if (mode === 'copy') {
   const [source, destination] = args;
   const visit = (relative) => {
@@ -91,18 +93,27 @@ if (mode === 'filter') {
     const to = path.join(destination, relative);
     const stat = fs.lstatSync(from);
     if (excluded(relative, stat.isDirectory())) return;
+    const existing = fs.lstatSync(to, { throwIfNoEntry: false });
     if (stat.isDirectory()) {
-      if (
-        fs.existsSync(to) &&
-        (!fs.lstatSync(to).isDirectory() || fs.lstatSync(to).isSymbolicLink())
-      ) {
-        throw new Error(`Cannot copy directory over non-directory: ${to}`);
+      if (existing && !existing.isDirectory()) {
+        if (excluded(relative)) {
+          throw new Error(`Cannot replace excluded file with directory: ${to}`);
+        }
+        fs.rmSync(to, { force: true });
       }
       fs.mkdirSync(to, { recursive: true });
       for (const child of fs.readdirSync(from)) visit(relative ? `${relative}/${child}` : child);
     } else {
       // Do not follow a destination symlink when writing upstream content.
-      fs.rmSync(to, { force: true });
+      if (existing?.isDirectory()) {
+        // Pruning removed included children. A remaining child is excluded and must survive.
+        if (fs.readdirSync(to).length > 0) {
+          throw new Error(`Cannot replace directory containing excluded files: ${to}`);
+        }
+        fs.rmdirSync(to);
+      } else {
+        fs.rmSync(to, { force: true });
+      }
       if (stat.isSymbolicLink()) fs.symlinkSync(fs.readlinkSync(from), to);
       else {
         fs.copyFileSync(from, to);

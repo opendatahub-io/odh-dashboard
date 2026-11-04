@@ -305,3 +305,68 @@ test('a literal file exclusion does not exclude a directory with the same name',
     'upstream',
   );
 });
+
+test('patch filtering preserves non-UTF-8 hunk bytes and UTF-8 filenames', (t) => {
+  const f = fixture(t, ['excluded.txt']);
+  const filename = 'src/café fixture.txt';
+  const before = Buffer.from([0x63, 0x61, 0x66, 0xe9, 0x0a]);
+  const after = Buffer.from([0x63, 0x61, 0x66, 0xe9, 0x20, 0xff, 0x0a]);
+  f.write(filename, before);
+  f.write('src/excluded.txt', before);
+  f.commit();
+  const base = f.git('rev-parse', 'HEAD').trim();
+  f.write(filename, after);
+  f.write('src/excluded.txt', after);
+  f.commit();
+  const input = path.join(f.dir, 'input.patch');
+  const output = path.join(f.dir, 'output.patch');
+  // Capture raw bytes: the fixture's string-returning git helper would corrupt this patch.
+  const patch = execFileSync('git', ['format-patch', '--no-renames', '-1', '--stdout'], {
+    cwd: f.dir,
+  });
+  fs.writeFileSync(input, patch);
+  f.run('filter', input, 'src', output);
+  f.git('restore', '--source', base, '--staged', '--worktree', 'src');
+  fs.renameSync(path.join(f.dir, 'src'), path.join(f.dir, 'target'));
+  f.git('add', '-A');
+  f.git('apply', '--3way', '--index', '--directory=target', output);
+  assert.deepEqual(fs.readFileSync(path.join(f.dir, 'target/café fixture.txt')), after);
+  assert.deepEqual(fs.readFileSync(path.join(f.dir, 'target/excluded.txt')), before);
+});
+
+for (const direction of ['file-to-directory', 'directory-to-file']) {
+  test(`initial copy handles ${direction} changes`, (t) => {
+    const f = fixture(t, ['local/']);
+    const sourcePath = direction === 'file-to-directory' ? 'item/nested/new.txt' : 'item';
+    const destinationPath = direction === 'file-to-directory' ? 'item' : 'item/nested/old.txt';
+    f.write(`source/${sourcePath}`, 'upstream');
+    f.write(`destination/${destinationPath}`, 'old content');
+    f.write('destination/local/keep.txt', 'local');
+    f.run('copy', path.join(f.dir, 'source'), path.join(f.dir, 'destination'));
+    assert.equal(fs.readFileSync(path.join(f.dir, 'destination', sourcePath), 'utf8'), 'upstream');
+    assert.equal(fs.readFileSync(path.join(f.dir, 'destination/local/keep.txt'), 'utf8'), 'local');
+  });
+}
+
+test('directory-to-file changes cannot remove excluded descendants', (t) => {
+  const f = fixture(t, ['item/keep.txt']);
+  f.write('source/item', 'upstream');
+  f.write('destination/item/keep.txt', 'local');
+  f.run('validate');
+  assert.throws(
+    () => f.run('copy', path.join(f.dir, 'source'), path.join(f.dir, 'destination')),
+    /Cannot replace directory containing excluded files/,
+  );
+  assert.equal(fs.readFileSync(path.join(f.dir, 'destination/item/keep.txt'), 'utf8'), 'local');
+});
+
+test('file-to-directory changes cannot replace an excluded local file', (t) => {
+  const f = fixture(t, ['item']);
+  f.write('source/item/new.txt', 'upstream');
+  f.write('destination/item', 'local');
+  assert.throws(
+    () => f.run('copy', path.join(f.dir, 'source'), path.join(f.dir, 'destination')),
+    /Cannot replace excluded file with directory/,
+  );
+  assert.equal(fs.readFileSync(path.join(f.dir, 'destination/item'), 'utf8'), 'local');
+});
