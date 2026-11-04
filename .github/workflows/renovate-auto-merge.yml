@@ -51,12 +51,15 @@ env:
   # counts as a withdrawal and where the last push was.
   LAST_PUSH_QUERY: |
     [.[] | select(.event == "head_ref_force_pushed" or .event == "committed") | (.created_at // .committer.date)] | max // ""
+  # Runs over normalised records: {body, author_association, created_at, is_bot}
+  # drawn from issue comments, review bodies and inline review comments.
   CANCEL_QUERY: |
     [.[]
-     | select(((.author_association // "") == "OWNER"
+     | select((.is_bot | not)
+       and ((.author_association // "") == "OWNER"
          or (.author_association // "") == "MEMBER"
          or (.author_association // "") == "COLLABORATOR")
-       and ((.body // "") | test("(^|\n)[[:space:]]*(/lgtm[[:space:]]+cancel|/remove-lgtm)[[:space:]]*($|\n)"; "i")))
+       and ((.body // "") | test("(^|\n)[[:space:]]*(/lgtm[[:space:]]+cancel|/remove-lgtm|/approve[[:space:]]+cancel|/remove-approve)[[:space:]]*($|\n)"; "i")))
      | .created_at] | max // ""
   # A person removing lgtm directly (not via a command) is a withdrawal too.
   HUMAN_WITHDRAWAL_QUERY: |
@@ -101,7 +104,15 @@ jobs:
           # before selecting; a bare `jq -s '.'` would leave an array of arrays
           # and every selector below would match nothing.
           timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s 'add // []')
-          comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
+          # Withdrawals can arrive as an issue comment, a review body or an
+          # inline review comment. Normalise all three to one shape.
+          issue_comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+            | jq -s 'add // [] | map({body, author_association, created_at, is_bot: (.user.type == "Bot")})')
+          reviews=$(gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" --paginate \
+            | jq -s 'add // [] | map({body, author_association, created_at: .submitted_at, is_bot: (.user.type == "Bot")})')
+          review_comments=$(gh api "repos/$REPO/pulls/$PR_NUMBER/comments" --paginate \
+            | jq -s 'add // [] | map({body, author_association, created_at, is_bot: (.user.type == "Bot")})')
+          comments=$(printf '%s\n%s\n%s' "$issue_comments" "$reviews" "$review_comments" | jq -s 'add')
           last_push=$(jq -r "$LAST_PUSH_QUERY" <<<"$timeline")
           last_cancel=$(jq -r "$CANCEL_QUERY" <<<"$comments")
           last_human_removal=$(jq -r "$HUMAN_WITHDRAWAL_QUERY" <<<"$timeline")
@@ -210,6 +221,7 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           APP_LOGIN: ${{ env.RENOVATE_APP_LOGIN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           # Provenance is what lets the diff checker treat its input as bot
@@ -221,6 +233,13 @@ jobs:
           #      stops a forged app author combined with a personal signature.
           # Anything else fails closed and the PR is left for a human.
           commits=$(gh api "repos/$REPO/pulls/$PR_NUMBER/commits" --paginate | jq -s 'add // []')
+          # The list is mutable; bind it to the revision this run classifies.
+          head_commit=$(jq -r '.[-1].sha // ""' <<<"$commits")
+          if [ "$head_commit" != "$HEAD_SHA" ]; then
+            echo "Not eligible: commit list does not end at the PR head"
+            echo "provenance=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           rows=$(jq -r '.[] | [(.author.login // ""), (.committer.login // ""), ((.commit.verification.verified // false) | tostring), .sha] | @tsv' <<<"$commits")
           if [ -z "$rows" ]; then
             echo "Not eligible: no commits returned for the PR"
@@ -322,7 +341,13 @@ jobs:
           # the live head LAST, so a push cannot land between the check and the
           # grant while these paginated reads are still running.
           if [ "$ELIGIBLE" = "true" ]; then
-            comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate | jq -s 'add // []')
+            issue_comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
+              | jq -s 'add // [] | map({body, author_association, created_at, is_bot: (.user.type == "Bot")})')
+            reviews=$(gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" --paginate \
+              | jq -s 'add // [] | map({body, author_association, created_at: .submitted_at, is_bot: (.user.type == "Bot")})')
+            review_comments=$(gh api "repos/$REPO/pulls/$PR_NUMBER/comments" --paginate \
+              | jq -s 'add // [] | map({body, author_association, created_at, is_bot: (.user.type == "Bot")})')
+            comments=$(printf '%s\n%s\n%s' "$issue_comments" "$reviews" "$review_comments" | jq -s 'add')
             timeline=$(gh api "repos/$REPO/issues/$PR_NUMBER/timeline" --paginate | jq -s 'add // []')
             last_push=$(jq -r "$LAST_PUSH_QUERY" <<<"$timeline")
             last_cancel=$(jq -r "$CANCEL_QUERY" <<<"$comments")

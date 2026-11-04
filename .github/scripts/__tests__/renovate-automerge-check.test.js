@@ -750,6 +750,18 @@ integration('a tier that is not auto-merge eligible is refused', () => {
   assert.match(output, /not auto-merge eligible/);
 });
 
+integration('a tier name inherited from Object.prototype is refused', () => {
+  const { dir, base } = npmRepo();
+  const head = commitFiles(
+    dir,
+    { 'pnpm-lock.yaml': lock({ root: '1.0.2', workspace: '1.0.2' }) },
+    'bump foo',
+  );
+  const { eligible, output } = run(dir, base, head, 'constructor');
+  assert.equal(eligible, false, output);
+  assert.match(output, /not auto-merge eligible/);
+});
+
 integration('an empty diff is refused', () => {
   const { dir, base } = npmRepo();
   const { eligible, output } = run(dir, base, base, 'npm-patch');

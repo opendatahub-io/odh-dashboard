@@ -78,12 +78,16 @@ const runGate = (fixture, overrides = {}) => {
   fs.writeFileSync(timelineFile, JSON.stringify(timeline));
   const commentsFile = path.join(dir, 'comments.json');
   fs.writeFileSync(commentsFile, JSON.stringify(comments));
+  const reviewsFile = path.join(dir, 'reviews.json');
+  fs.writeFileSync(reviewsFile, JSON.stringify(fixture.reviews ?? []));
+  const reviewCommentsFile = path.join(dir, 'review_comments.json');
+  fs.writeFileSync(reviewCommentsFile, JSON.stringify(fixture.review_comments ?? []));
 
   const bin = path.join(dir, 'bin');
   fs.mkdirSync(bin);
   fs.writeFileSync(
     path.join(bin, 'gh'),
-    '#!/usr/bin/env bash\ncase "$*" in\n  *"/comments"*) cat "$COMMENTS" ;;\n  *) cat "$TIMELINE" ;;\nesac\n',
+    '#!/usr/bin/env bash\ncase "$*" in\n  *"/issues/$PR_NUMBER/comments"*) cat "$COMMENTS" ;;\n  *"/pulls/$PR_NUMBER/reviews"*) cat "$REVIEWS" ;;\n  *"/pulls/$PR_NUMBER/comments"*) cat "$REVIEW_COMMENTS" ;;\n  *) cat "$TIMELINE" ;;\nesac\n',
     { mode: 0o755 },
   );
 
@@ -98,6 +102,8 @@ const runGate = (fixture, overrides = {}) => {
       PATH: `${bin}:${process.env.PATH}`,
       TIMELINE: timelineFile,
       COMMENTS: commentsFile,
+      REVIEWS: reviewsFile,
+      REVIEW_COMMENTS: reviewCommentsFile,
       GITHUB_OUTPUT: output,
       REPO: 'opendatahub-io/odh-dashboard',
       PR_NUMBER: '10416',
@@ -134,6 +140,7 @@ const comment = (body, association, at) => ({
   body,
   author_association: association,
   created_at: at,
+  user: { type: 'User' },
 });
 
 integration('revalidates when Prow removes lgtm after our label (the race)', () => {
@@ -245,6 +252,44 @@ integration('routes a re-applied tier label cancellation to label cleanup', () =
     },
     { ACTION: 'labeled', LABEL: 'renovate/npm-patch' },
   );
+  assert.equal(decision(out), 'true', out);
+});
+
+integration('routes a review-body cancellation to label cleanup', () => {
+  const out = runGate({
+    timeline: [pushed],
+    reviews: [
+      {
+        body: '/lgtm cancel',
+        author_association: 'MEMBER',
+        submitted_at: '2026-10-27T10:03:00Z',
+        user: { type: 'User' },
+      },
+    ],
+  });
+  assert.equal(decision(out), 'true', out);
+});
+
+integration('routes /approve cancel to label cleanup', () => {
+  const out = runGate({
+    timeline: [pushed],
+    comments: [comment('/approve cancel', 'MEMBER', '2026-10-27T10:03:00Z')],
+  });
+  assert.equal(decision(out), 'true', out);
+});
+
+integration('routes an inline review-comment cancellation to label cleanup', () => {
+  const out = runGate({
+    timeline: [pushed],
+    review_comments: [
+      {
+        body: '/remove-lgtm',
+        author_association: 'OWNER',
+        created_at: '2026-10-27T10:03:00Z',
+        user: { type: 'User' },
+      },
+    ],
+  });
   assert.equal(decision(out), 'true', out);
 });
 

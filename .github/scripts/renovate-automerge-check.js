@@ -678,7 +678,7 @@ const checkGo = (base, head, files, max) => {
 
 const main = (base, head, tier) => {
   try {
-    const rule = TIERS[tier];
+    const rule = Object.hasOwn(TIERS, tier) ? TIERS[tier] : null;
     if (!rule) {
       throw new Ineligible(`tier '${tier}' is not auto-merge eligible`);
     }

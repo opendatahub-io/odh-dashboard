@@ -63,7 +63,15 @@ const extractStep = (selector) =>
 const workflowEnv = () =>
   JSON.parse(execFileSync('yq', ['-o=json', '.', WORKFLOW], { encoding: 'utf8' })).env ?? {};
 
-const EMPTY = { timeline: [], comments: [], labels: [], events: [], commits: [] };
+const EMPTY = {
+  timeline: [],
+  comments: [],
+  reviews: [],
+  review_comments: [],
+  labels: [],
+  events: [],
+  commits: [],
+};
 
 /**
  * Runs one workflow step with a stubbed `gh`.
@@ -82,6 +90,8 @@ const runStep = (selector, fixtures = {}, overrides = {}) => {
   const file = (name) => path.join(dir, `${name}.json`);
   fs.writeFileSync(file('timeline'), JSON.stringify(data.timeline));
   fs.writeFileSync(file('comments'), JSON.stringify(data.comments));
+  fs.writeFileSync(file('reviews'), JSON.stringify(data.reviews));
+  fs.writeFileSync(file('review_comments'), JSON.stringify(data.review_comments));
   fs.writeFileSync(file('labels'), JSON.stringify(data.labels));
   fs.writeFileSync(file('events'), JSON.stringify(data.events));
   fs.writeFileSync(file('commits'), JSON.stringify(data.commits));
@@ -95,7 +105,9 @@ const runStep = (selector, fixtures = {}, overrides = {}) => {
 set -euo pipefail
 case "$*" in
   "pr edit"*) echo "$*" >> "$GH_LOG" ;;
-  *"/comments"*) cat "$F_COMMENTS" ;;
+  *"/issues/$PR_NUMBER/comments"*) cat "$F_COMMENTS" ;;
+  *"/pulls/$PR_NUMBER/reviews"*) cat "$F_REVIEWS" ;;
+  *"/pulls/$PR_NUMBER/comments"*) cat "$F_REVIEW_COMMENTS" ;;
   *"/timeline"*) cat "$F_TIMELINE" ;;
   *"/labels"*) cat "$F_LABELS" ;;
   *"/events"*) cat "$F_EVENTS" ;;
@@ -122,6 +134,8 @@ esac
       PATH: `${bin}:${process.env.PATH}`,
       F_TIMELINE: file('timeline'),
       F_COMMENTS: file('comments'),
+      F_REVIEWS: file('reviews'),
+      F_REVIEW_COMMENTS: file('review_comments'),
       F_LABELS: file('labels'),
       F_EVENTS: file('events'),
       F_COMMITS: file('commits'),
@@ -219,6 +233,13 @@ integration('provenance: forged app author with a personal signer fails', () => 
   // author=app, committer=attacker, verified by the attacker's own key.
   const { out } = runStep(provenanceStep, {
     commits: [commit({ author: APP, committer: 'attacker', verified: true })],
+  });
+  assert.equal(outputValue(out, 'provenance'), 'false', out);
+});
+
+integration('provenance: refuses a commit list that does not end at the head', () => {
+  const { out } = runStep(provenanceStep, {
+    commits: [{ ...commit({}), sha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' }],
   });
   assert.equal(outputValue(out, 'provenance'), 'false', out);
 });
@@ -353,6 +374,25 @@ integration('labels: withdraws a workflow-added approved on cancellation', () =>
   );
   assert.doesNotMatch(log, /--add-label/);
   assert.match(log, /--remove-label approved/);
+});
+
+integration('labels: backs off for a review-body cancellation', () => {
+  const { log } = runStep(
+    labelStep,
+    {
+      timeline: [{ event: 'committed', created_at: '2026-11-04T10:00:00Z' }],
+      reviews: [
+        {
+          body: '/lgtm cancel',
+          author_association: 'MEMBER',
+          submitted_at: '2026-11-04T10:05:00Z',
+          user: { type: 'User' },
+        },
+      ],
+    },
+    eligible,
+  );
+  assert.doesNotMatch(log, /--add-label/);
 });
 
 integration('labels: defers when the head moved after the last read', () => {
