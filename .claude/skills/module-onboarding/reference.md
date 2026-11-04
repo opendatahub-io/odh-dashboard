@@ -28,6 +28,8 @@ Given a kebab-case module name (e.g., `my-module`):
 | Service name | `odh-dashboard-<kebab>-ui` | `odh-dashboard-my-module-ui` |
 | BFF Go module | `github.com/opendatahub-io/<kebab>/bff` | `github.com/opendatahub-io/my-module/bff` |
 | Nav section ID | `<kebab>` | `my-module` |
+| Nav href / route path | `/<kebab>/main-view`, `/<kebab>/main-view/*` | `/my-module/main-view/*` |
+| Nav title | `<Title Case>` | `My Module` |
 | CSS prefix | `<kebab>-` | `my-module-` |
 
 ## Port Ranges

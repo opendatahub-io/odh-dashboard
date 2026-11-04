@@ -95,6 +95,16 @@ pnpm dlx mod-arch-installer@1.23.0 --help | grep -q -- '--service-port' && echo 
 
 If the installer is outdated or fails, fall back to **manual scaffolding**: copy `packages/data-connect-hub/` (excluding `node_modules`, `bff/static*`, `frontend/public-cypress`, `frontend/dist`, `contract-tests/`), and replace every name/port reference (see reference.md § Name Transformation Rules). Do not copy from `packages/plugin-template/` — its `Dockerfile.workspace` is model-registry specific.
 
+Name substitution alone is not enough in the fallback: Data Connect Hub's routes and navigation (`/ai-hub/connections`, `/ai-hub/connections/*`, the `ai-hub` section, the "Connections" title) survive it, and enabling both modules would produce competing routes and a duplicate Connections nav item. After copying:
+
+1. Rewrite `frontend/src/odh/extensions.ts` to the installer's shape. Add an `app.navigation/section` with id `<kebab>`, then an `app.navigation/href` with `href: '/<kebab>/main-view'`, `section: '<kebab>'`, `path: '/<kebab>/main-view/*'` and `title: '<Title Case>'`, and an `app.route` on `/<kebab>/main-view/*`. All of them are gated on `SupportedArea.PLUGIN_<UPPER_SNAKE>`.
+2. Replace the copied Connections pages with a neutral placeholder page (title and empty state only) that the route renders.
+3. Confirm nothing from Data Connect Hub's UI is left. This should print nothing:
+
+```bash
+grep -rnE 'ai-hub|[Cc]onnections|dataConnectHub|DataConnectHub|DATA_CONNECT_HUB' packages/<name>/frontend/src
+```
+
 ### Step 2: Verify and patch the generated output
 
 Verify the following (compare with `packages/data-connect-hub/`) and patch anything that is off:
