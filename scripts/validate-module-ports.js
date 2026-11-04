@@ -118,98 +118,138 @@ function stripGoComments(source) {
 function parseModuleRegistryContent(content) {
   const errors = [];
   const entries = [];
-  const registryStart = content.indexOf(MODULE_REGISTRY_DECL);
-  if (registryStart === -1) {
+  const declStart = content.indexOf(MODULE_REGISTRY_DECL);
+  if (declStart === -1) {
     return { entries, errors: [`declaration "${MODULE_REGISTRY_DECL}" not found`] };
   }
 
-  let current = null;
-  let currentPort = null;
-  let closed = false;
-  const finishEntry = () => {
-    if (current === null) {
-      return;
-    }
-    if (currentPort === null) {
-      errors.push(`module "${current}" has no numeric Port field`);
-    } else {
-      entries.push({ name: current, port: currentPort });
-    }
-    current = null;
-    currentPort = null;
-  };
-
-  // Track brace depth instead of indentation, so tab- and space-indented sources parse the same:
-  // depth 1 is the registry's top level (one entry per key), depth 2 is an entry's own fields.
-  const braceDelta = (line) => {
-    const code = line.replace(/"(?:[^"\\]|\\.)*"|`[^`]*`/g, '""').replace(/\/\/.*$/, '');
-    return (code.match(/{/g) || []).length - (code.match(/}/g) || []).length;
-  };
-  let depth = 1;
-  const registrySource = stripGoComments(content.slice(registryStart));
-  if (registrySource === null) {
+  // Scan characters rather than lines, so the layout (indentation, entries sharing a line with
+  // the declaration, each other or the closing brace) never changes what is parsed.
+  const src = stripGoComments(content.slice(declStart + MODULE_REGISTRY_DECL.length));
+  if (src === null) {
     return { entries, errors: ['moduleRegistry contains an unterminated block comment'] };
   }
-  for (const line of registrySource.split('\n').slice(1)) {
-    const trimmed = line.trim();
-    const depthBefore = depth;
-    depth += braceDelta(line);
 
-    if (depth <= 0) {
-      finishEntry();
+  let i = 0;
+  const skipString = () => {
+    const quote = src[i];
+    i++;
+    while (i < src.length && src[i] !== quote) {
+      if (quote !== '`' && src[i] === '\\') {
+        i++;
+      }
+      i++;
+    }
+    i++;
+  };
+  // Returns the index just past the `}` matching the `{` at `open`, or -1 if unterminated.
+  const matchBrace = (open) => {
+    let depth = 0;
+    i = open;
+    while (i < src.length) {
+      const ch = src[i];
+      if (ch === '"' || ch === '`' || ch === "'") {
+        skipString();
+        continue;
+      }
+      if (ch === '{') {
+        depth++;
+      } else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          return i + 1;
+        }
+      }
+      i++;
+    }
+    return -1;
+  };
+  // Blanks nested {...} and string contents so only the entry's own fields remain visible.
+  const topLevelFields = (body) => {
+    let out = '';
+    let depth = 0;
+    for (let j = 0; j < body.length; j++) {
+      const ch = body[j];
+      if (ch === '"' || ch === '`' || ch === "'") {
+        let k = j + 1;
+        while (k < body.length && body[k] !== ch) {
+          if (ch !== '`' && body[k] === '\\') {
+            k++;
+          }
+          k++;
+        }
+        out += depth === 0 ? '""' : '';
+        j = k;
+        continue;
+      }
+      if (ch === '{') {
+        depth++;
+      } else if (ch === '}') {
+        depth--;
+      } else if (depth === 0) {
+        out += ch;
+      }
+    }
+    return out;
+  };
+  const readEntry = (name, bodyStart, bodyEnd) => {
+    const fields = topLevelFields(src.slice(bodyStart, bodyEnd));
+    const portMatch = fields.match(/(?:^|[\s,])Port\s*:\s*([^,\n]+)/);
+    if (!portMatch) {
+      errors.push(`module "${name}" has no numeric Port field`);
+      return;
+    }
+    const value = portMatch[1].trim();
+    if (/^\d+$/.test(value)) {
+      entries.push({ name, port: Number(value) });
+    } else {
+      errors.push(`module "${name}" has a non-literal Port value "${value}"`);
+    }
+  };
+
+  const keyPattern = /^"([^"\\]+)"\s*:\s*(?:ModuleDefinition\s*)?{/;
+  let closed = false;
+  while (i < src.length) {
+    const ch = src[i];
+    if (/[\s,]/.test(ch)) {
+      i++;
+      continue;
+    }
+    if (ch === '}') {
       closed = true;
       break;
     }
-    if (depthBefore === 1) {
-      if (trimmed === '' || trimmed.startsWith('//')) {
-        continue;
+    const keyMatch = src.slice(i).match(keyPattern);
+    if (keyMatch) {
+      const open = i + keyMatch[0].length - 1;
+      const end = matchBrace(open);
+      if (end === -1) {
+        break;
       }
-      // Accept both the shorthand `"name": {` and the explicitly typed `"name": ModuleDefinition{`.
-      const keyMatch = trimmed.match(/^"([^"]+)":\s*(?:ModuleDefinition\s*)?{/);
-      const keysOnLine = (trimmed.match(/"[^"]+":\s*(?:ModuleDefinition\s*)?{/g) || []).length;
-      if (keyMatch && keysOnLine > 1) {
-        // Several entries on one line would hide all but the first; reject rather than guess.
-        finishEntry();
-        errors.push(`multiple moduleRegistry entries on one line: ${trimmed}`);
-      } else if (keyMatch) {
-        finishEntry();
-        [, current] = keyMatch;
-      } else {
-        // Any other top-level line is an entry form this parser does not understand; fail
-        // instead of silently skipping it.
-        finishEntry();
-        errors.push(`unsupported moduleRegistry entry form: ${trimmed}`);
-      }
-      if (depth === 1) {
-        // Single-line entry such as `"name": {Port: 8043},` closes on the same line.
-        const inlinePort = trimmed.match(/\bPort:\s*([^,}]+)/);
-        if (current !== null && inlinePort) {
-          const value = inlinePort[1].trim();
-          if (/^\d+$/.test(value)) {
-            currentPort = Number(value);
-          } else {
-            errors.push(`module "${current}" has a non-literal Port value "${value}"`);
-            current = null;
-          }
-        }
-        finishEntry();
-      }
+      readEntry(keyMatch[1], open + 1, end - 1);
+      i = end;
       continue;
     }
-    if (depthBefore === 2) {
-      const portMatch = trimmed.match(/^Port:\s*([^,]+),/);
-      if (current !== null && portMatch) {
-        const value = portMatch[1].trim();
-        if (/^\d+$/.test(value)) {
-          currentPort = Number(value);
-        } else {
-          errors.push(`module "${current}" has a non-literal Port value "${value}"`);
-          current = null;
+    // Anything else at the registry's top level is a form this parser does not understand:
+    // report it and skip past it (including any braces it opens) instead of guessing.
+    const lineEnd = src.indexOf('\n', i);
+    errors.push(
+      `unsupported moduleRegistry entry form: ${src
+        .slice(i, lineEnd === -1 ? undefined : lineEnd)
+        .trim()}`,
+    );
+    while (i < src.length && src[i] !== ',' && src[i] !== '\n') {
+      if (src[i] === '{') {
+        const end = matchBrace(i);
+        if (end === -1) {
+          break;
         }
+        i = end;
+      } else if (src[i] === '"' || src[i] === '`' || src[i] === "'") {
+        skipString();
+      } else {
+        i++;
       }
-    }
-    if (depth === 1) {
-      finishEntry();
     }
   }
 

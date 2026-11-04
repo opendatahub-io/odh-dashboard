@@ -150,14 +150,28 @@ describe('parseModuleRegistryContent', () => {
     ]);
   });
 
-  it('fails when several entries share one line', () => {
+  it('parses several entries sharing one line', () => {
     const { entries, errors } = parseModuleRegistryContent(
       registry(['\t"a": {Port: 8043}, "b": {Port: 8043},', '\t"c": {', '\t\tPort: 8143,', '\t},']),
     );
-    assert.deepEqual(entries, [{ name: 'c', port: 8143 }]);
-    assert.deepEqual(errors, [
-      'multiple moduleRegistry entries on one line: "a": {Port: 8043}, "b": {Port: 8043},',
-    ]);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(
+      entries.map((e) => e.name),
+      ['a', 'b', 'c'],
+    );
+    assert.equal(validateProductionPorts({ entries, errors }), true);
+  });
+
+  it('parses entries on the declaration line and on the closing-brace line', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      'var moduleRegistry = map[string]ModuleDefinition{"a": {Port: 8043},\n"b": {Port: 8143},\n"c": {Port: 8043}}\n',
+    );
+    assert.deepEqual(errors, []);
+    assert.deepEqual(
+      entries.map((e) => e.name),
+      ['a', 'b', 'c'],
+    );
+    assert.equal(validateProductionPorts({ entries, errors }), true);
   });
 
   it('ignores braces inside block comments, so later duplicates are still checked', () => {
