@@ -13,9 +13,11 @@ const useDetectUser = (): void => {
     let cancelled = false;
     dispatch(getUserPending());
     function detectUser(): void {
+      let responseReceived = false;
       axios
         .get('/api/status')
         .then((response) => {
+          responseReceived = true;
           if (cancelled) {
             return;
           }
@@ -23,12 +25,13 @@ const useDetectUser = (): void => {
           hasDetectedUser.current = true;
         })
         .catch((e) => {
-          if (cancelled || (hasDetectedUser.current && !e?.response)) {
+          if (cancelled || (hasDetectedUser.current && !responseReceived && !e?.response)) {
             return;
           }
-          dispatch(
-            getUserRejected(e?.response?.data ?? new Error(e?.message ?? 'Unknown error occurred')),
-          );
+          const error = responseReceived
+            ? new Error('Unable to process user status response')
+            : e?.response?.data ?? new Error(e?.message ?? 'Unknown error occurred');
+          dispatch(getUserRejected(error));
         });
       watchHandle = setTimeout(detectUser, POLL_INTERVAL);
     }

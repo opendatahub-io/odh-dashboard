@@ -182,6 +182,40 @@ describe('useDetectUser', () => {
     }
   });
 
+  it('should reject malformed responses after a successful API call', async () => {
+    const statusResponseMock = createStatusResponse();
+    const rejectedAction = getUserRejected(new Error('Unable to process user status response'));
+    jest
+      .mocked(axios.get)
+      .mockResolvedValueOnce({ data: statusResponseMock })
+      .mockResolvedValueOnce({ data: { kube: null } });
+    useAppDispatchMock.mockReturnValueOnce(dispatchMock);
+    jest.useFakeTimers();
+
+    const { unmount } = renderHook(() => useDetectUser());
+
+    try {
+      await waitFor(() => {
+        expect(dispatchMock).toHaveBeenCalledWith(getUserFulfilled(statusResponseMock));
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(POLL_INTERVAL);
+      });
+
+      await waitFor(() => {
+        expect(axios.get).toHaveBeenCalledTimes(2);
+        expect(dispatchMock).toHaveBeenCalledTimes(3);
+        expect(dispatchMock).toHaveBeenNthCalledWith(1, getUserPending());
+        expect(dispatchMock).toHaveBeenNthCalledWith(2, getUserFulfilled(statusResponseMock));
+        expect(dispatchMock).toHaveBeenNthCalledWith(3, rejectedAction);
+      });
+    } finally {
+      unmount();
+      jest.useRealTimers();
+    }
+  });
+
   it('should cancel the API call when cancelled is true', async () => {
     jest.mocked(axios.get).mockResolvedValueOnce({ data: {} });
     useAppDispatchMock.mockReturnValueOnce(dispatchMock);
