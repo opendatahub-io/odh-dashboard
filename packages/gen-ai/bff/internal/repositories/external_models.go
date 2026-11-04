@@ -268,7 +268,8 @@ func k8sServiceHost(baseURL string) (service string, namespace string, podLabel 
 // ready endpoint exists — the VIP keeps routing to them while headless DNS does not
 // publish them; non-running Pods are excluded from dial candidates rather than
 // rejecting the whole Service, and pod-specific DNS names restrict candidates to
-// the endpoint whose hostname matches the pod label.
+// the endpoint whose hostname matches the pod label or whose CoreDNS default
+// dashed-IP endpoint name (used when the EndpointSlice sets no hostname) does.
 func resolveTrustedHost(
 	ctx context.Context,
 	client kubernetes.KubernetesClientInterface,
@@ -390,6 +391,12 @@ func resolveTrustedHost(
 		podByName[pods[i].Name] = &pods[i]
 	}
 	var readyTargets, servingTargets []string
+	// dashedEndpointName returns CoreDNS's default endpoint name for an
+	// address: dots (and colons, for IPv6) replaced by dashes. EndpointSlices
+	// without a hostname publish this name per endpoint address.
+	dashedEndpointName := func(address string) string {
+		return strings.ReplaceAll(strings.ReplaceAll(address, ".", "-"), ":", "-")
+	}
 	for i := range slices {
 		slice := &slices[i]
 		sliceBackendPort := backendPort
@@ -425,10 +432,27 @@ func resolveTrustedHost(
 			}
 		}
 		for _, endpoint := range slice.Endpoints {
-			if podLabel != "" && (endpoint.Hostname == nil || *endpoint.Hostname != podLabel) {
-				// Pod-specific DNS names only route to the endpoint carrying
-				// that hostname.
-				continue
+			// Pod-specific DNS names only route to the endpoint answering that
+			// name: the one whose hostname matches the pod label or — when the
+			// EndpointSlice sets no hostname — the one carrying an address whose
+			// CoreDNS default dashed-IP name matches it.
+			if podLabel != "" {
+				if endpoint.Hostname != nil {
+					if *endpoint.Hostname != podLabel {
+						continue
+					}
+				} else {
+					answerName := false
+					for _, address := range endpoint.Addresses {
+						if dashedEndpointName(address) == podLabel {
+							answerName = true
+							break
+						}
+					}
+					if !answerName {
+						continue
+					}
+				}
 			}
 			ref := endpoint.TargetRef
 			if ref == nil || ref.Kind != "Pod" || ref.Namespace != namespace || ref.Name == "" {
@@ -458,6 +482,11 @@ func resolveTrustedHost(
 			for _, address := range endpoint.Addresses {
 				if !podIPs[address] {
 					return false, nil, nil
+				}
+				if podLabel != "" && endpoint.Hostname == nil && dashedEndpointName(address) != podLabel {
+					// A hostname-less endpoint answers the pod-specific name only
+					// for the address whose dashed form matches it.
+					continue
 				}
 				target := net.JoinHostPort(address, sliceBackendPort)
 				if endpoint.Conditions.Ready == nil || *endpoint.Conditions.Ready {
