@@ -185,6 +185,16 @@ integration('tier: refuses a tier label a human added', () => {
   assert.equal(outputValue(out, 'tier'), '', out);
 });
 
+integration('tier: refuses a label name that could inject another output', () => {
+  const injected = 'renovate/npm-patch\napproved=1';
+  const { out } = runStep(tierStep, {
+    labels: [{ name: injected }],
+    events: [labelEvent(APP, injected)],
+  });
+  assert.equal(outputValue(out, 'tier'), '', out);
+  assert.doesNotMatch(out, /approved=1/);
+});
+
 // ── commit provenance ────────────────────────────────────────────────────
 
 const provenanceStep = '.id == "provenance"';
@@ -232,6 +242,18 @@ integration('head: reports not moved when the live head matches', () => {
 integration('head: reports moved when the live head changed', () => {
   const { out } = runStep(headStep, { liveHead: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' });
   assert.equal(outputValue(out, 'moved'), 'true', out);
+});
+
+integration('head: refuses a non-SHA value instead of echoing it', () => {
+  const { out, text } = runStep(headStep, { liveHead: 'garbage::warning::pwn' });
+  assert.equal(outputValue(out, 'moved'), 'true', out);
+  assert.doesNotMatch(text, /pwn/);
+});
+
+integration('labels: refuses to act on a non-SHA head', () => {
+  const { log, text } = runStep(labelStep, { liveHead: 'garbage::warning::pwn' }, eligible);
+  assert.doesNotMatch(log, /--add-label/);
+  assert.doesNotMatch(text, /pwn/);
 });
 
 // ── label application and cleanup ────────────────────────────────────────

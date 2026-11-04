@@ -182,6 +182,13 @@ jobs:
             exit 0
           fi
           label=$(jq -r '.[0]' <<<"$labels")
+          # The name is written to $GITHUB_OUTPUT, so a newline or "=" in it could
+          # inject another output. Only the tier names this workflow defines pass.
+          if [[ ! "$label" =~ ^renovate/[a-z0-9-]+$ ]]; then
+            echo "Not eligible: unexpected tier label name"
+            echo "tier=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           # Pass the label as a jq variable. Interpolating it into the filter
           # would let a label name containing quotes rewrite the program.
           actor=$(gh api "repos/$REPO/issues/$PR_NUMBER/events" --paginate \
@@ -279,6 +286,12 @@ jobs:
           # label a head this run never saw. Defer to the run for the new head
           # instead of adding or removing anything.
           live=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq .head.sha)
+          # This value is printed in a ::warning:: line; accept a SHA only.
+          if [[ ! "$live" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Unexpected head SHA from the API; refusing to label"
+            echo "moved=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$live" != "$HEAD_SHA" ]; then
             echo "::warning::PR head moved ($HEAD_SHA -> $live); deferring to the run for the new head"
             echo "moved=true" >> "$GITHUB_OUTPUT"
@@ -325,6 +338,10 @@ jobs:
           fi
           if [ "$ELIGIBLE" = "true" ]; then
             live=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq .head.sha)
+            if [[ ! "$live" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Unexpected head SHA from the API — not applying labels"
+              exit 0
+            fi
             if [ "$live" != "$HEAD_SHA" ]; then
               echo "Head moved during validation ($HEAD_SHA -> $live) — deferring to the run for the new head"
               exit 0
