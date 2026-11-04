@@ -11,17 +11,18 @@
 #     mind.
 #   - GITHUB_TOKEN cannot replace them: PRs created with it do not trigger
 #     CI workflows.
-#   - PRs are opened as odh-dashboard-agent[bot], which openshift-ci trusts
-#     (trusted_apps in openshift/release), and renovate-auto-merge.yml only
-#     acts on PRs from that author.
+#   - PRs are opened as odh-dashboard-agent[bot], which must be in openshift-ci's
+#     trusted_apps (see the runbook prerequisites), and renovate-auto-merge.yml
+#     only acts on PRs from that author.
 #   - Renovate force-pushes renovate/* branches when rebasing, so those
 #     branches must be excluded from any force-push protection.
 #   - Forks skip the token step; set a fork-level RENOVATE_TOKEN secret (and
 #     the RENOVATE_REPOSITORY variable) to rehearse there.
 #
-# Schedule: daily 02:00 UTC. The creation window lives in renovate.json5
-# ("before 4am on Monday"), so only the Monday run opens NEW PRs; every other
-# run rebases and refreshes existing ones. "Run workflow" options:
+# Schedule: daily 02:00 UTC, plus a second Monday run at 03:30 UTC. The creation
+# window lives in renovate.json5 ("before 4am on Monday"), so only the Monday
+# runs open NEW PRs; every other run rebases and refreshes existing ones. "Run
+# workflow" options:
 #   dry_run        — compute everything, write nothing
 #   force_updates  — override the Monday window for this run (--schedule)
 #   log_level      — console log level; a full debug log is always uploaded

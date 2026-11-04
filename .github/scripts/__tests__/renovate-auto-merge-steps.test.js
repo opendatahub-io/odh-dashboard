@@ -403,3 +403,27 @@ integration('labels: defers when the head moved after the last read', () => {
   );
   assert.doesNotMatch(log, /--add-label/);
 });
+
+integration('labels: does not apply when an earlier head check reported a move', () => {
+  const { log, text } = runStep(labelStep, {}, { ...eligible, MOVED: 'true' });
+  assert.doesNotMatch(log, /--add-label/);
+  assert.match(text, /Head moved during validation/);
+});
+
+integration('workflow: label cleanup runs even if the gate step failed', () => {
+  // A crash before `run` is set must still reach cleanup, otherwise labels
+  // from an earlier run survive a push that was never re-validated.
+  const condition = JSON.parse(
+    execFileSync(
+      'yq',
+      [
+        '-o=json',
+        '.jobs["auto-merge"].steps[] | select(.name == "Apply or remove merge labels") | .if',
+        WORKFLOW,
+      ],
+      { encoding: 'utf8' },
+    ),
+  );
+  assert.match(condition, /!cancelled\(\)/);
+  assert.doesNotMatch(condition, /gate\.outputs\.run/);
+});

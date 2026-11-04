@@ -63,7 +63,7 @@ const gateScript = () =>
  *
  * `fixture` is either a timeline array or `{ timeline, comments }`.
  */
-const runGate = (fixture, overrides = {}) => {
+const runGateRaw = (fixture, overrides = {}) => {
   const { timeline, comments } = Array.isArray(fixture)
     ? { timeline: fixture, comments: [] }
     : { comments: [], ...fixture };
@@ -113,9 +113,17 @@ const runGate = (fixture, overrides = {}) => {
     },
   });
   assert.equal(res.status, 0, `gate exited ${res.status}:\n${res.stderr}`);
-  // Read what the step actually wrote, not the console output.
-  return fs.readFileSync(output, 'utf8');
+  return {
+    // Read what the step actually wrote, not the console output.
+    out: fs.readFileSync(output, 'utf8'),
+    // The gate explains which branch it took. Asserting the message keeps a
+    // case from passing through a different branch that also writes run=true.
+    text: `${res.stdout}${res.stderr}`,
+  };
 };
+
+/** Output-only shorthand for cases that do not inspect the decision message. */
+const runGate = (fixture, overrides = {}) => runGateRaw(fixture, overrides).out;
 
 const decision = (output) => {
   const m = /run=(true|false)/.exec(output);
@@ -147,66 +155,76 @@ integration('revalidates when Prow removes lgtm after our label (the race)', () 
   // Push, we re-apply lgtm, then Prow processes the push and removes it. The
   // original timestamp comparison read this as a human cancel and left the PR
   // stuck without lgtm.
-  const out = runGate([pushed, ourLgtm, prowRemoval('2026-10-27T10:02:00Z')]);
+  const { out, text } = runGateRaw([pushed, ourLgtm, prowRemoval('2026-10-27T10:02:00Z')]);
   assert.equal(decision(out), 'true', out);
+  assert.match(text, /stale review/);
 });
 
 integration('routes an authorized cancellation to label cleanup', () => {
-  const out = runGate({
+  const { out, text } = runGateRaw({
     timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
     comments: [comment('/lgtm cancel', 'MEMBER', '2026-10-27T10:03:00Z')],
   });
   assert.equal(decision(out), 'true', out);
+  assert.match(text, /approval withdrawn after the last push/);
 });
 
 integration('routes /remove-lgtm to label cleanup', () => {
-  const out = runGate({
+  const { out, text } = runGateRaw({
     timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
     comments: [comment('/remove-lgtm', 'MEMBER', '2026-10-27T10:03:00Z')],
   });
   assert.equal(decision(out), 'true', out);
+  assert.match(text, /approval withdrawn after the last push/);
 });
 
 integration('recognizes the cancellation command regardless of case', () => {
-  const out = runGate({
+  const { out, text } = runGateRaw({
     timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
     comments: [comment('/LGTM CANCEL', 'MEMBER', '2026-10-27T10:03:00Z')],
   });
   assert.equal(decision(out), 'true', out);
+  assert.match(text, /approval withdrawn after the last push/);
 });
 
 integration('ignores /lgtm cancel from someone without write access', () => {
   // A commenter with no authority must not be able to suppress revalidation.
-  const out = runGate({
+  const { out, text } = runGateRaw({
     timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
     comments: [comment('/lgtm cancel', 'NONE', '2026-10-27T10:03:00Z')],
   });
   assert.equal(decision(out), 'true', out);
+  assert.doesNotMatch(text, /approval withdrawn/);
+  assert.match(text, /stale review/);
 });
 
 integration('ignores prose that merely mentions the cancel command', () => {
   // "Use `/lgtm cancel` to withdraw the review" is discussion, not a command.
-  const out = runGate({
+  const { out, text } = runGateRaw({
     timeline: [pushed, ourLgtm, prowRemoval('2026-10-27T10:04:00Z')],
     comments: [
       comment('Use `/lgtm cancel` to withdraw the review.', 'MEMBER', '2026-10-27T10:03:00Z'),
     ],
   });
   assert.equal(decision(out), 'true', out);
+  assert.doesNotMatch(text, /approval withdrawn/);
+  assert.match(text, /stale review/);
 });
 
 integration('revalidates when a cancel is older than the latest push', () => {
   // The cancellation applied to a previous revision, so the current head is
   // still eligible for evaluation.
-  const out = runGate({
+  const { out, text } = runGateRaw({
     timeline: [pushed, prowRemoval('2026-10-27T10:06:00Z')],
     comments: [comment('/lgtm cancel', 'OWNER', '2026-10-27T09:00:00Z')],
   });
   assert.equal(decision(out), 'true', out);
+  assert.doesNotMatch(text, /approval withdrawn/);
+  assert.match(text, /stale review/);
 });
 
 integration('routes a human removal to label cleanup', () => {
-  const out = runGate([
+  const { out, text } = runGateRaw([
     pushed,
     {
       event: 'unlabeled',
@@ -216,10 +234,14 @@ integration('routes a human removal to label cleanup', () => {
     },
   ]);
   assert.equal(decision(out), 'true', out);
+  // A human removal after the last push is a withdrawal, so the early branch
+  // handles it. The message proves HUMAN_WITHDRAWAL_QUERY matched, which the
+  // decision alone cannot: the case fallback also returns run=true.
+  assert.match(text, /approval withdrawn after the last push/);
 });
 
 integration('respects its own label cleanup', () => {
-  const out = runGate([
+  const { out, text } = runGateRaw([
     pushed,
     {
       event: 'unlabeled',
@@ -229,12 +251,13 @@ integration('respects its own label cleanup', () => {
     },
   ]);
   assert.equal(decision(out), 'false', out);
+  assert.match(text, /lgtm removed by this workflow/);
 });
 
 integration('routes a queued synchronize cancellation to label cleanup', () => {
   // A maintainer cancels after the push; a queued synchronize run must not
   // restore labels on the same revision.
-  const out = runGate(
+  const { out, text } = runGateRaw(
     {
       timeline: [pushed],
       comments: [comment('/lgtm cancel', 'MEMBER', '2026-10-27T10:03:00Z')],
@@ -242,10 +265,11 @@ integration('routes a queued synchronize cancellation to label cleanup', () => {
     { ACTION: 'synchronize' },
   );
   assert.equal(decision(out), 'true', out);
+  assert.match(text, /approval withdrawn after the last push/);
 });
 
 integration('routes a re-applied tier label cancellation to label cleanup', () => {
-  const out = runGate(
+  const { out, text } = runGateRaw(
     {
       timeline: [pushed],
       comments: [comment('/remove-lgtm', 'OWNER', '2026-10-27T10:03:00Z')],
@@ -253,6 +277,7 @@ integration('routes a re-applied tier label cancellation to label cleanup', () =
     { ACTION: 'labeled', LABEL: 'renovate/npm-patch' },
   );
   assert.equal(decision(out), 'true', out);
+  assert.match(text, /approval withdrawn after the last push/);
 });
 
 integration('routes a review-body cancellation to label cleanup', () => {
@@ -294,8 +319,9 @@ integration('routes an inline review-comment cancellation to label cleanup', () 
 });
 
 integration('re-evaluates when a tier label is removed', () => {
-  const out = runGate([pushed, ourLgtm], { LABEL: 'renovate/npm-patch' });
+  const { out, text } = runGateRaw([pushed, ourLgtm], { LABEL: 'renovate/npm-patch' });
   assert.equal(decision(out), 'true', out);
+  assert.match(text, /tier label renovate\/npm-patch removed/);
 });
 
 integration('evaluates on events other than unlabeled', () => {
@@ -304,6 +330,7 @@ integration('evaluates on events other than unlabeled', () => {
 });
 
 integration('handles an empty timeline without iterating null', () => {
-  const out = runGate([]);
+  const { out, text } = runGateRaw([]);
   assert.equal(decision(out), 'false', out);
+  assert.match(text, /no lgtm removal event found/);
 });

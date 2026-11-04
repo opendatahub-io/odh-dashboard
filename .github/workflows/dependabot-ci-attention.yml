@@ -144,12 +144,15 @@ jobs:
             '
           }
 
-          fields=number,title,url,labels,mergeable,mergeStateStatus,isDraft,createdAt,statusCheckRollup
+          fields=number,title,url,headRefName,labels,mergeable,mergeStateStatus,isDraft,createdAt,statusCheckRollup
           # Two assignments, not process substitution: bash does not propagate
           # a `<(...)` exit code under `set -euo pipefail`, so a transient
           # `gh pr list` failure would silently drop one bot's PRs from the scan.
           dep_prs=$(gh pr list --repo "$REPO" --state open --author 'app/dependabot' --limit 50 --json "$fields")
-          ren_prs=$(gh pr list --repo "$REPO" --state open --author 'app/odh-dashboard-agent' --limit 50 --json "$fields")
+          # The App is shared with other automations, so only its renovate/*
+          # branches are dependency updates. Keep every Dependabot PR unchanged.
+          ren_prs=$(gh pr list --repo "$REPO" --state open --author 'app/odh-dashboard-agent' --limit 50 --json "$fields" \
+            | jq '[.[] | select(.headRefName | startswith("renovate/"))]')
           prs_json=$(printf '%s\n%s' "$dep_prs" "$ren_prs" | jq -s 'add')
 
           pr_count=$(echo "$prs_json" | jq 'length')

@@ -258,6 +258,7 @@ const snapshotVersion = (key) => {
   const rest = String(key).replace(/^\/?/, '').slice(name.length);
   return rest.replace(/^@/, '').split('(')[0];
 };
+
 /**
  * Renovate only ever resolves packages from the npm registry. A new or altered
  * non-registry entry (tarball URL, git repo, local directory) is tampering, not
@@ -292,10 +293,11 @@ const LINK_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependencies']
 /**
  * A snapshot entry lists the resolved versions of that package's own
  * dependencies. An unchanged package may follow a bumped transitive dep, but
- * only in those version maps, and only for a dependency that is part of the
- * update. Every other field must be identical.
+ * only in those version maps, only for a dependency that is part of the
+ * update, and only to the version that update resolves to. Every other field
+ * must be identical.
  */
-const attributableSnapshot = (before = {}, after = {}, changedNames) => {
+const attributableSnapshot = (before = {}, after = {}, changedNames, changedVersions) => {
   const fields = union(Object.keys(before), Object.keys(after));
   return fields.every((field) => {
     if (!LINK_FIELDS.includes(field)) {
@@ -303,9 +305,19 @@ const attributableSnapshot = (before = {}, after = {}, changedNames) => {
     }
     const a = before[field] ?? {};
     const b = after[field] ?? {};
-    return union(Object.keys(a), Object.keys(b)).every(
-      (dep) => sameValue(a[dep], b[dep]) || changedNames.has(dep),
-    );
+    return union(Object.keys(a), Object.keys(b)).every((dep) => {
+      if (sameValue(a[dep], b[dep])) {
+        return true;
+      }
+      if (!changedNames.has(dep)) {
+        return false;
+      }
+      const allowed = changedVersions.get(dep);
+      // pnpm appends a peer suffix to a resolved version; the version itself
+      // is what the update has to explain.
+      const resolved = String(b[dep] ?? '').split('(')[0];
+      return Boolean(allowed && resolved && allowed.has(resolved));
+    });
   });
 };
 
@@ -340,7 +352,9 @@ const checkAttributable = (baseLock, headLock, changedNames, changedVersions) =>
       // `packages` holds resolution/integrity metadata: any difference on a
       // package outside the update is unexplained. `snapshots` holds resolved
       // dependency versions, which may legitimately follow a bumped transitive.
-      const allowed = section === 'snapshots' && attributableSnapshot(original, info, changedNames);
+      const allowed =
+        section === 'snapshots' &&
+        attributableSnapshot(original, info, changedNames, changedVersions);
       if (!allowed) {
         throw new Ineligible(
           `pnpm-lock.yaml: ${section}['${key}'] changed, but '${name || key}' is not a ` +

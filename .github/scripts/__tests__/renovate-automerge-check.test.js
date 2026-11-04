@@ -451,6 +451,31 @@ integration('npm-patch: an unchanged package may follow a bumped transitive dep'
   assert.equal(eligible, true, output);
 });
 
+integration('npm: a snapshot may only follow the version the update resolves to', () => {
+  // The link field changes, not the entry: bar still depends on foo, but now
+  // on a major version that the eligible patch bump does not explain.
+  const { dir, base } = makeRepo({
+    'package.json': rootManifest,
+    'packages/a/package.json': workspaceManifest,
+    'pnpm-lock.yaml': lock({ barDeps: { foo: '1.0.1' } }),
+  });
+  const head = commitFiles(
+    dir,
+    {
+      'pnpm-lock.yaml': lock({
+        root: '1.0.2',
+        workspace: '1.0.2',
+        barDeps: { foo: '2.0.0' },
+        extraPackages: '  foo@2.0.0:\n    resolution: {integrity: sha512-MAJOR}\n',
+      }),
+    },
+    'point bar at a major foo',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, false, output);
+  assert.match(output, /snapshots\['bar@2\.0\.0'\] changed/);
+});
+
 integration('npm: a snapshot dependency moving to an unrelated package is refused', () => {
   const { dir, base } = makeRepo({
     'package.json': rootManifest,

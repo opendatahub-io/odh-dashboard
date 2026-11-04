@@ -319,9 +319,11 @@ jobs:
           fi
 
       - name: Apply or remove merge labels
-        # `!cancelled()` so a crash in validation cannot leave stale
-        # lgtm/approved behind: an empty ELIGIBLE already means "not eligible".
-        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' }}
+        # Run cleanup on every event, even when an earlier step failed before
+        # setting an output: a crash in the gate must not leave a previous
+        # run's lgtm/approved behind. Granting still requires a complete run,
+        # because ELIGIBLE is only set when the gate explicitly allowed it.
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
