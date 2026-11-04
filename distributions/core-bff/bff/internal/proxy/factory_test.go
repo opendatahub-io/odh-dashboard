@@ -197,8 +197,8 @@ func TestNewReverseProxy_DefaultErrorHandler(t *testing.T) {
 
 	proxy.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadGateway {
-		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadGateway)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusServiceUnavailable)
 	}
 }
 

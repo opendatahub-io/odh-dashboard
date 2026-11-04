@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -70,6 +71,15 @@ func TestK8sErrorResponse(t *testing.T) {
 
 			assert.Equal(t, tt.wantStatus, rr.Code)
 
+			if tt.wantStatus != 500 {
+				var status metav1.Status
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &status))
+				assert.Equal(t, tt.wantCode, string(status.Reason))
+				assert.Equal(t, tt.wantMessage, status.Message)
+				assert.Equal(t, "Status", status.Kind)
+				assert.NotContains(t, rr.Body.String(), "test-runtime")
+				return
+			}
 			var body HTTPError
 			err := json.Unmarshal(rr.Body.Bytes(), &body)
 			require.NoError(t, err)

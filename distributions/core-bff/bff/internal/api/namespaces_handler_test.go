@@ -178,7 +178,7 @@ func TestNamespacesHandler_EmptyAndErrors(t *testing.T) {
 		{"timeout", context.DeadlineExceeded, 504, "GATEWAY_TIMEOUT"},
 		{"network timeout", fmt.Errorf("list: %w", &url.Error{Op: "Get", URL: "https://k8s.example", Err: &net.DNSError{IsTimeout: true}}), 504, "GATEWAY_TIMEOUT"},
 		{"connection refused", fmt.Errorf("list: %w", &url.Error{Op: "Get", URL: "https://k8s.example", Err: &net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED}}), 503, "SERVICE_UNAVAILABLE"},
-		{"unavailable", k8serrors.NewServiceUnavailable("offline"), 503, "SERVICE_UNAVAILABLE"},
+		{"unavailable", k8serrors.NewServiceUnavailable("offline"), 503, "ServiceUnavailable"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := &namespaceStubClient{listErr: tc.err}
@@ -287,12 +287,12 @@ func TestNamespaceRoute_GetUserError(t *testing.T) {
 		code   string
 	}{
 		{"deadline", context.DeadlineExceeded, http.StatusGatewayTimeout, "GATEWAY_TIMEOUT"},
-		{"timeout", k8serrors.NewTimeoutError("timeout", 1), http.StatusGatewayTimeout, "GATEWAY_TIMEOUT"},
-		{"unavailable", k8serrors.NewServiceUnavailable("offline"), http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"},
+		{"timeout", k8serrors.NewTimeoutError("timeout", 1), http.StatusGatewayTimeout, "Timeout"},
+		{"unavailable", k8serrors.NewServiceUnavailable("offline"), http.StatusServiceUnavailable, "ServiceUnavailable"},
 		{"connection refused", fmt.Errorf("failed to get user identity: %w", &url.Error{Op: "Post", URL: "https://k8s.example", Err: &net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED}}), http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"},
 		{"dns failure", fmt.Errorf("failed to get user identity: %w", &url.Error{Op: "Post", URL: "https://k8s.example", Err: &net.DNSError{Err: "no such host", Name: "k8s.example"}}), http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE"},
 		{"network timeout", fmt.Errorf("failed to get user identity: %w", &url.Error{Op: "Post", URL: "https://k8s.example", Err: &net.DNSError{IsTimeout: true}}), http.StatusGatewayTimeout, "GATEWAY_TIMEOUT"},
-		{"unauthorized", k8serrors.NewUnauthorized("expired"), http.StatusUnauthorized, "UNAUTHORIZED"},
+		{"unauthorized", k8serrors.NewUnauthorized("expired"), http.StatusUnauthorized, "Unauthorized"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			client := &namespacePreflightClient{userErr: tc.err}
@@ -304,12 +304,17 @@ func TestNamespaceRoute_GetUserError(t *testing.T) {
 
 			assert.Equal(t, tc.status, rr.Code)
 			var body struct {
-				Error struct {
+				Reason string `json:"reason"`
+				Error  struct {
 					Code string `json:"code"`
 				} `json:"error"`
 			}
 			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
-			assert.Equal(t, tc.code, body.Error.Code)
+			if body.Reason != "" {
+				assert.Equal(t, tc.code, body.Reason)
+			} else {
+				assert.Equal(t, tc.code, body.Error.Code)
+			}
 			assert.False(t, client.getCalled)
 		})
 	}

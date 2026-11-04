@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
@@ -43,10 +44,13 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to perform cluster-admin SAR", "error", err)
+		kc.Logger.Error("failed to perform cluster-admin SAR", "error_code", httpcontract.SafeErrorCode(err))
 		return false, fmt.Errorf("failed to verify cluster-admin permissions: %w", err)
 	}
 
+	if resp.Status.EvaluationError != "" {
+		return false, fmt.Errorf("access review evaluation failed")
+	}
 	if !resp.Status.Allowed {
 		kc.Logger.Info("user is NOT cluster-admin")
 		return false, nil
@@ -59,13 +63,14 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 func NewKubeconfigKubernetesClient(logger *slog.Logger) (KubernetesClientInterface, error) {
 	cfg, err := helpers.GetKubeconfig()
 	if err != nil {
-		logger.Error("failed to get kubeconfig", "error", err)
+		logger.Error("failed to get kubeconfig", "error_code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
+	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		logger.Error("failed to create kubeconfig-based Kubernetes client", "error", err)
+		logger.Error("failed to create kubeconfig-based Kubernetes client", "error_code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
@@ -83,7 +88,7 @@ func NewKubeconfigKubernetesClient(logger *slog.Logger) (KubernetesClientInterfa
 func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClientInterface, error) {
 	baseConfig, err := helpers.GetKubeconfig()
 	if err != nil {
-		logger.Error("failed to get kubeconfig", "error", err)
+		logger.Error("failed to get kubeconfig", "error_code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
@@ -98,9 +103,10 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 	cfg.ExecProvider = nil
 	cfg.AuthProvider = nil
 
+	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		logger.Error("failed to create token-based Kubernetes client", "error", err)
+		logger.Error("failed to create token-based Kubernetes client", "error_code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
@@ -133,10 +139,13 @@ func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context,
 
 		resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 		if err != nil {
-			kc.Logger.Error("self-SAR failed", "namespace", namespace, "verb", verb, "error", err)
+			kc.Logger.Error("self-SAR failed", "namespace", namespace, "verb", verb, "error_code", httpcontract.SafeErrorCode(err))
 			return false, err
 		}
 
+		if resp.Status.EvaluationError != "" {
+			return false, fmt.Errorf("access review evaluation failed")
+		}
 		if !resp.Status.Allowed {
 			kc.Logger.Warn("self-SAR denied", "namespace", namespace, "verb", verb)
 			return false, nil
@@ -164,8 +173,11 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("self-SAR failed", "service", serviceName, "namespace", namespace, "error", err)
+		kc.Logger.Error("self-SAR failed", "service", serviceName, "namespace", namespace, "error_code", httpcontract.SafeErrorCode(err))
 		return false, err
+	}
+	if resp.Status.EvaluationError != "" {
+		return false, fmt.Errorf("access review evaluation failed")
 	}
 	if !resp.Status.Allowed {
 		kc.Logger.Warn("self-SAR denied", "service", serviceName, "namespace", namespace)
@@ -209,6 +221,9 @@ func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *Request
 	if err != nil {
 		return false, fmt.Errorf("failed to check namespace get access: %w", err)
 	}
+	if resp.Status.EvaluationError != "" {
+		return false, fmt.Errorf("access review evaluation failed")
+	}
 	return resp.Status.Allowed, nil
 }
 
@@ -231,7 +246,7 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity
 
 	resp, err := kc.Client.AuthenticationV1().SelfSubjectReviews().Create(ctx, ssr, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to get user identity from token", "error", err)
+		kc.Logger.Error("failed to get user identity from token", "error_code", httpcontract.SafeErrorCode(err))
 		return "", fmt.Errorf("failed to get user identity: %w", err)
 	}
 
@@ -289,6 +304,9 @@ func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, v
 		return false, fmt.Errorf("failed to perform auth singleton SAR (verb=%s): %w", verb, err)
 	}
 
+	if resp.Status.EvaluationError != "" {
+		return false, fmt.Errorf("access review evaluation failed")
+	}
 	return resp.Status.Allowed, nil
 }
 
@@ -309,14 +327,16 @@ func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIden
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("SSAR check failed", "verb", verb, "group", group, "resource", resource, "namespace", namespace, "error", err)
+		kc.Logger.Error("SSAR check failed", "verb", verb, "group", group, "resource", resource, "namespace", namespace, "error_code", httpcontract.SafeErrorCode(err))
 		return false, fmt.Errorf("failed to check access (verb=%s, resource=%s/%s): %w", verb, group, resource, err)
 	}
 
+	if resp.Status.EvaluationError != "" {
+		return false, fmt.Errorf("access review evaluation failed")
+	}
 	if !resp.Status.Allowed {
 		kc.Logger.Info("SSAR denied", "verb", verb, "group", group, "resource", resource, "namespace", namespace)
 	}
-
 	return resp.Status.Allowed, nil
 }
 

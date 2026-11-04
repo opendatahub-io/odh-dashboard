@@ -354,8 +354,11 @@ describe('Core BFF Infrastructure', () => {
   describe('WebSocket Proxy Path', () => {
     it('should return 400 for non-upgrade HTTP request to WebSocket path', async () => {
       const err = expectError(await apiClient.get('/wss/k8s/api/v1/namespaces'), 400);
-      const body = typeof err.data === 'string' ? err.data : JSON.stringify(err.data);
-      expect(body).toContain('WebSocket upgrade required');
+      expect(err).toMatchContract(apiSchema, {
+        ref: '#/components/responses/BadRequest/content/application~1json/schema',
+        status: 400,
+      });
+      expect((err.data as { error: { code: string } }).error.code).toBe('BAD_REQUEST');
     });
 
     it('should return 401 for unauthenticated WebSocket path request', async () => {

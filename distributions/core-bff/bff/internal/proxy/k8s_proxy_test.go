@@ -308,7 +308,7 @@ func TestK8sProxy_ResponsePassthrough(t *testing.T) {
 	if got := rec.Header().Get("X-Custom-Header"); got != "preserved" {
 		t.Errorf("X-Custom-Header = %q, want %q", got, "preserved")
 	}
-	if got := rec.Body.String(); got != `{"kind":"Status","code":404}` {
+	if got := rec.Body.String(); !strings.Contains(got, `"reason":"NotFound"`) {
 		t.Errorf("body = %q, want %q", got, `{"kind":"Status","code":404}`)
 	}
 }
@@ -335,7 +335,7 @@ func TestK8sProxy_ForbiddenPassthrough(t *testing.T) {
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
-	if got := rec.Body.String(); got != `{"kind":"Status","code":403,"message":"pods is forbidden"}` {
+	if got := rec.Body.String(); !strings.Contains(got, `"reason":"Forbidden"`) || strings.Contains(got, "pods is forbidden") {
 		t.Errorf("body = %q, want K8s forbidden response", got)
 	}
 }

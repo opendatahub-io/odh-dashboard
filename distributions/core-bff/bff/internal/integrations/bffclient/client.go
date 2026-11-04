@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
@@ -159,7 +160,7 @@ func (c *HTTPBFFClient) buildRequest(ctx context.Context, method, path string, b
 
 	authHeader := c.authTokenHeader
 	if authHeader == "" {
-		authHeader = "x-forwarded-access-token"
+		authHeader = config.DefaultAuthTokenHeader
 	}
 	if c.authToken != "" {
 		req.Header.Set(authHeader, c.authTokenPrefix+c.authToken)

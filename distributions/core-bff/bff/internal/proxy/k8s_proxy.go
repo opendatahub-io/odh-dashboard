@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
 )
@@ -22,18 +23,18 @@ const K8sProxyPrefix = "/api/k8s/"
 // is configurable (default: x-forwarded-access-token).
 func SensitiveIngressHeaders(authTokenHeader string) []string {
 	headers := []string{
-		"cookie",
-		"x-forwarded-for",
-		"x-forwarded-host",
-		"x-forwarded-port",
-		"x-forwarded-proto",
-		"x-forwarded-scheme",
-		"x-forwarded-email",
-		"x-forwarded-user",
-		"x-forwarded-preferred-username",
-		"x-forwarded-groups",
-		"x-real-ip",
-		"forwarded",
+		constants.HeaderCookie,
+		constants.HeaderXForwardedFor,
+		constants.HeaderXForwardedHost,
+		constants.HeaderXForwardedPort,
+		constants.HeaderXForwardedProto,
+		constants.HeaderXForwardedScheme,
+		constants.HeaderXForwardedEmail,
+		constants.HeaderXForwardedUser,
+		constants.HeaderXForwardedPreferredUsername,
+		constants.HeaderXForwardedGroups,
+		constants.HeaderXRealIP,
+		constants.HeaderForwarded,
 	}
 	if authTokenHeader != "" {
 		headers = append(headers, authTokenHeader)
@@ -82,16 +83,23 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 	}
 
 	proxy, err := NewReverseProxy(ProxyConfig{
-		TargetURL:            targetURL,
-		RootCAs:              cfg.RootCAs,
-		ClientCerts:          cfg.ClientCerts,
-		InsecureSkipVerify:   cfg.InsecureSkipVerify,
-		AllowHTTP:            cfg.AllowHTTP,
-		SetOutboundHeadersFn: cfg.SetOutboundHeadersFn,
-		StripHeaders:         SensitiveIngressHeaders(cfg.AuthTokenHeader),
-		SSRFValidateTarget:   cfg.SSRFValidateTarget,
-		SSRFAllowedHosts:     []string{targetURL.Hostname()},
-		Logger:               cfg.Logger,
+		TargetURL:          targetURL,
+		RootCAs:            cfg.RootCAs,
+		ClientCerts:        cfg.ClientCerts,
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		AllowHTTP:          cfg.AllowHTTP,
+		SetOutboundHeadersFn: func(in *http.Request, out http.Header) {
+			if cfg.SetOutboundHeadersFn != nil {
+				cfg.SetOutboundHeadersFn(in, out)
+			}
+			// Let Go's transport negotiate/decompress gzip so Status/watch error
+			// sanitization also applies when the browser requests compression.
+			out.Del(constants.HeaderAcceptEncoding)
+		},
+		StripHeaders:       SensitiveIngressHeaders(cfg.AuthTokenHeader),
+		SSRFValidateTarget: cfg.SSRFValidateTarget,
+		SSRFAllowedHosts:   []string{targetURL.Hostname()},
+		Logger:             cfg.Logger,
 		PathRewriteFn: func(r *http.Request) string {
 			return strings.TrimPrefix(r.URL.Path, strings.TrimSuffix(K8sProxyPrefix, "/"))
 		},
@@ -102,7 +110,15 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			}
 			return k8s.BearerTokenPrefix + identity.ResolveToken(cfg.DevFallbackToken)
 		},
-		ModifyResponse: ssrf.NewRedirectValidator(cfg.Logger),
+		ModifyResponse: func(resp *http.Response) error {
+			if err := ssrf.NewRedirectValidator(cfg.Logger)(resp); err != nil {
+				return err
+			}
+			if resp.StatusCode >= 400 {
+				resp.Header.Del(cfg.AuthTokenHeader)
+			}
+			return httpcontract.KubernetesResponse(resp)
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create K8s reverse proxy: %w", err)

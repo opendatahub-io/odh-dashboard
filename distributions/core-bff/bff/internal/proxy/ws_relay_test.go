@@ -1,0 +1,151 @@
+package proxy
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
+	"github.com/stretchr/testify/require"
+)
+
+func TestWsProxy_BidirectionalForwarding(t *testing.T) {
+	k8sWS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			mt, msg, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			_ = conn.WriteMessage(mt, append([]byte("echo:"), msg...))
+		}
+	}))
+	defer k8sWS.Close()
+
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+
+	handler, err := NewWsProxyHandler(testWsConfig(k8sWS.URL, tracker))
+	if err != nil {
+		t.Fatalf("NewWsProxyHandler() error = %v", err)
+	}
+
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := newIdentityContext("token")
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	}))
+	defer proxyServer.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(proxyServer.URL, "http") + "/wss/k8s/api/v1/pods"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial error: %v", err)
+	}
+	defer conn.Close()
+
+	testMsg := "hello k8s"
+	if err := conn.WriteMessage(websocket.TextMessage, []byte(testMsg)); err != nil {
+		t.Fatalf("write error: %v", err)
+	}
+
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read error: %v", err)
+	}
+
+	expected := "echo:" + testMsg
+	if string(msg) != expected {
+		t.Errorf("got %q, want %q", string(msg), expected)
+	}
+}
+
+func TestWsProxy_ConnectionTracking(t *testing.T) {
+	k8sWS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer k8sWS.Close()
+
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+
+	handler, err := NewWsProxyHandler(testWsConfig(k8sWS.URL, tracker))
+	if err != nil {
+		t.Fatalf("NewWsProxyHandler() error = %v", err)
+	}
+
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := newIdentityContext("token")
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	}))
+	defer proxyServer.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(proxyServer.URL, "http") + "/wss/k8s/api/v1/pods"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial error: %v", err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	if count := tracker.ActiveCount(); count != 1 {
+		t.Errorf("active count = %d, want 1", count)
+	}
+
+	conn.Close()
+	time.Sleep(100 * time.Millisecond)
+
+	if count := tracker.ActiveCount(); count != 0 {
+		t.Errorf("after close, active count = %d, want 0", count)
+	}
+}
+
+func TestWebSocketWatchErrorSanitization(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := newUpgrader([]string{"*"})
+		c, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer c.Close()
+		_ = c.WriteMessage(websocket.TextMessage, []byte(`{"type":"ERROR","object":{"kind":"Status","reason":"Expired","code":410,"message":"CANARY"}}`))
+		_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
+		_, _, _ = c.ReadMessage()
+	}))
+	defer backend.Close()
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+	handler, err := NewWsProxyHandler(testWsConfig(backend.URL, tracker))
+	require.NoError(t, err)
+	server := httptest.NewServer(httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(w, r.WithContext(identityContext(r, "token")))
+	})))
+	defer server.Close()
+	c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/wss/k8s/api/v1/pods?watch=true", nil)
+	require.NoError(t, err)
+	defer c.Close()
+	_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_, b, err := c.ReadMessage()
+	require.NoError(t, err)
+	require.NotContains(t, string(b), "CANARY")
+	require.Contains(t, string(b), `"reason":"Expired"`)
+	require.Contains(t, string(b), `"code":410`)
+}

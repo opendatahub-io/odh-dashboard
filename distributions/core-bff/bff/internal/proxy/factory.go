@@ -2,10 +2,13 @@
 package proxy
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -15,6 +18,7 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
 )
 
@@ -101,15 +105,19 @@ func (cfg ProxyConfig) errorHandler() func(http.ResponseWriter, *http.Request, e
 	if cfg.ErrorHandler != nil {
 		return cfg.ErrorHandler
 	}
-	target := cfg.TargetURL
 	return func(w http.ResponseWriter, r *http.Request, err error) {
+		httpcontract.EnsureID(w, r)
+		if errors.Is(err, context.Canceled) || errors.Is(r.Context().Err(), context.Canceled) {
+			httpcontract.Log(cfg.Logger, r).Debug("proxy canceled", "code", "CANCELED")
+			panic(http.ErrAbortHandler)
+		}
 		if errors.Is(err, ssrf.ErrSSRFBlocked) {
-			cfg.Logger.Warn("SSRF blocked", slog.String("target", target.String()), slog.Any("error", err))
-			http.Error(w, "Forbidden", http.StatusForbidden)
+			httpcontract.Log(cfg.Logger, r).Warn("proxy policy rejection", "code", "FORBIDDEN")
+			httpcontract.WriteLocal(w, r, http.StatusForbidden)
 			return
 		}
-		cfg.Logger.Error("proxy error", slog.String("target", target.String()), slog.Any("error", err))
-		http.Error(w, "Bad Gateway", http.StatusBadGateway)
+		httpcontract.Log(cfg.Logger, r).Error("proxy failed", "code", httpcontract.Classify(err, 502).Error.Code)
+		httpcontract.WriteError(w, r, err, http.StatusBadGateway)
 	}
 }
 
@@ -144,7 +152,8 @@ func NewReverseProxy(cfg ProxyConfig) (*httputil.ReverseProxy, error) {
 	// http.Transport does not follow redirects; the upstream response is returned as-is
 	proxy := &httputil.ReverseProxy{
 		Rewrite:        cfg.rewriteFunc(),
-		Transport:      transport,
+		Transport:      httpcontract.Transport{Base: transport, Logger: cfg.Logger},
+		ErrorLog:       log.New(io.Discard, "", 0),
 		ErrorHandler:   cfg.errorHandler(),
 		ModifyResponse: cfg.ModifyResponse,
 	}

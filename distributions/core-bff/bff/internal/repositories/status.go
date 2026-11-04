@@ -7,11 +7,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -46,11 +46,10 @@ func (r *StatusRepository) GetStatus(
 	}
 
 	// Uses SSAR: patch on auths/default-auth.
-	// Errors degrade to false so that transient SAR failures don't break dashboard bootstrap with a 500.
+	// A failed evaluation must not become an empty-success or an implicit grant.
 	isAdmin, err := client.IsUserAdmin(ctx, identity)
 	if err != nil {
-		slog.Warn("admin SAR check failed, defaulting to non-admin", slog.Any("error", err))
-		isAdmin = false
+		return nil, fmt.Errorf("failed to evaluate admin access: %w", err)
 	}
 
 	// Check if Auth CRD is present. When absent, all users are allowed (no group restrictions).
@@ -82,7 +81,7 @@ func (r *StatusRepository) GetStatus(
 // resolveIsAllowed determines if a non-admin user is allowed to access the dashboard.
 // 1. If Auth CRD is absent (discovery error): all users allowed (no group restrictions).
 // 2. If Auth CR has system:authenticated in allowedGroups: all authenticated users allowed.
-// 3. If Auth CR instance missing or error reading it (e.g. 403): fall through to SSAR check.
+// 3. If the Auth instance is missing, fall through to SSAR; other read failures propagate.
 // 4. Otherwise: SSAR for get on auths/default-auth.
 func resolveIsAllowed(
 	ctx context.Context, client k8s.KubernetesClientInterface,
@@ -101,14 +100,13 @@ func resolveIsAllowed(
 		}
 	}
 
-	if authErr != nil {
-		slog.Warn("failed to fetch Auth CR, falling through to SSAR check", slog.Any("error", authErr))
+	if authErr != nil && !k8serrors.IsNotFound(authErr) {
+		return false, fmt.Errorf("failed to read access configuration: %w", authErr)
 	}
 
 	allowed, ssarErr := client.IsUserAllowed(ctx, identity)
 	if ssarErr != nil {
-		slog.Warn("allowed SAR check failed, defaulting to not allowed", slog.Any("error", ssarErr))
-		return false, nil
+		return false, fmt.Errorf("failed to evaluate access: %w", ssarErr)
 	}
 	return allowed, nil
 }

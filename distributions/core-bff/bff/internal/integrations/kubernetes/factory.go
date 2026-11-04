@@ -10,6 +10,7 @@ import (
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 )
 
 // KubernetesClientFactory creates per-request Kubernetes clients and extracts
@@ -58,17 +59,20 @@ func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig) Kubernetes
 func (f *TokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*RequestIdentity, error) {
 	raw := httpHeader.Get(f.Header)
 	if raw == "" {
-		return nil, fmt.Errorf("missing required header: %s", f.Header)
+		return nil, fmt.Errorf("missing required header: %s: %w", f.Header, httpcontract.ErrCredentialsMissing)
 	}
 
 	token := raw
 	if f.Prefix != "" {
 		if !strings.HasPrefix(raw, f.Prefix) {
-			return nil, fmt.Errorf("expected token header %s to start with prefix %q", f.Header, f.Prefix)
+			return nil, fmt.Errorf("malformed credential: %w", httpcontract.ErrCredentialsInvalid)
 		}
 		token = strings.TrimPrefix(raw, f.Prefix)
 	}
 
+	if strings.TrimSpace(token) == "" {
+		return nil, httpcontract.ErrCredentialsInvalid
+	}
 	return &RequestIdentity{
 		Token: NewBearerToken(strings.TrimSpace(token)),
 	}, nil
@@ -99,8 +103,8 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 	}
 
 	if identity.DevFallback {
-		return NewKubeconfigKubernetesClient(f.Logger)
+		return NewKubeconfigKubernetesClient(httpcontract.LogContext(f.Logger, ctx))
 	}
 
-	return f.NewTokenKubernetesClientFn(identity.Token.Raw(), f.Logger)
+	return f.NewTokenKubernetesClientFn(identity.Token.Raw(), httpcontract.LogContext(f.Logger, ctx))
 }

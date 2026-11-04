@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
 
@@ -24,7 +25,7 @@ const (
 func (app *App) Routes() http.Handler {
 	serviceMux := app.newServiceMux()
 	staticHandler := app.newStaticHandler()
-	return app.SetSecurityHeaders(app.newCombinedMux(serviceMux, staticHandler))
+	return httpcontract.Middleware(app.EnableTelemetry(app.RecoverPanic(app.SetSecurityHeaders(app.EnableCORS(app.newCombinedMux(serviceMux, staticHandler))))), app.logger)
 }
 
 // Auth contract: apiRouter routes require a token (InjectRequestIdentity).
@@ -95,7 +96,7 @@ func (app *App) newStaticHandler() http.Handler {
 // newCombinedMux wires public and authenticated routes into the top-level mux.
 // New service prefixes are secure by default - only publicRoute paths skip auth.
 func (app *App) newCombinedMux(serviceMux *http.ServeMux, staticHandler http.Handler) *http.ServeMux {
-	authedHandler := app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(serviceMux))))
+	authedHandler := app.InjectRequestIdentity(serviceMux)
 
 	mux := http.NewServeMux()
 

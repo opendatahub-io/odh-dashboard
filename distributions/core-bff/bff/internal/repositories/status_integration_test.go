@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
@@ -54,5 +55,13 @@ func TestResolveIsAllowed_NoEscapeHatch_FallsToSSAR_Denied(t *testing.T) {
 
 	allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)
 	require.NoError(t, err)
+	assert.False(t, allowed)
+}
+
+func TestResolveIsAllowed_FailedReviewIsNotSuccess(t *testing.T) {
+	authRepo := NewAuthRepository(newFakeDynClientWithAuth([]string{"restricted-group"}))
+	client := &mockUserAllowedClient{allowed: true, err: fmt.Errorf("CANARY review failure")}
+	allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)
+	require.Error(t, err)
 	assert.False(t, allowed)
 }

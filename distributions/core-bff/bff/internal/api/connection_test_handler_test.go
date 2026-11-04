@@ -84,7 +84,7 @@ func TestTestConnection_UnsupportedType_Returns400(t *testing.T) {
 	err := json.Unmarshal(rr.Body.Bytes(), &httpErr)
 	require.NoError(t, err)
 	assert.Equal(t, "UNSUPPORTED_TYPE", httpErr.Error.Code)
-	assert.Contains(t, httpErr.Error.Message, "unknown-type")
+	assert.NotContains(t, httpErr.Error.Message, "unknown-type")
 }
 
 func TestTestConnection_MockMode_S3_Success(t *testing.T) {
@@ -1032,7 +1032,7 @@ func TestTestConnection_ErrorResponse_HasCorrectFormat(t *testing.T) {
 	errObj, ok := resp["error"].(map[string]interface{})
 	assert.True(t, ok, "response must have 'error' object")
 	assert.Equal(t, "UNSUPPORTED_TYPE", errObj["code"])
-	assert.Contains(t, errObj["message"], "unknown-type-xyz")
+	assert.NotContains(t, errObj["message"], "unknown-type-xyz")
 }
 
 func TestTestConnection_SuccessResponse_HasCorrectFormat(t *testing.T) {

@@ -1,0 +1,254 @@
+package api
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/google/uuid"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
+	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
+	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8sclient "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+)
+
+func TestProductionAuthFailureContract(t *testing.T) {
+	spec, err := openapi3.NewLoader().LoadFromFile("../../openapi/src/core-bff.yaml")
+	require.NoError(t, err)
+	for _, status := range []int{401, 403, 429, 500, 503, 504} {
+		t.Run(fmt.Sprint(status), func(t *testing.T) {
+			audit := uuid.NewString()
+			var outboundID string
+			upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, "/apis/authentication.k8s.io/v1/selfsubjectreviews", r.URL.Path)
+				require.Equal(t, "Bearer CANARY_TOKEN", r.Header.Get("Authorization"))
+				outboundID = r.Header.Get(httpcontract.RequestIDHeader)
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set(httpcontract.AuditIDHeader, audit)
+				w.WriteHeader(status)
+				_, _ = fmt.Fprintf(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","code":%d,"message":"CANARY_TOKEN CANARY_SECRET unrelated-user","reason":"%s"}`, status, map[int]string{401: "Unauthorized", 403: "Forbidden", 429: "TooManyRequests", 500: "InternalError", 503: "ServiceUnavailable", 504: "Timeout"}[status])
+			}))
+			defer upstream.Close()
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+			factory := k8s.NewTokenClientFactory(logger, config.EnvConfig{AuthTokenHeader: "X-Custom-Credential"}).(*k8s.TokenClientFactory) //nolint:gosec // G101: header name, not a credential.
+			// The only injected boundary is the upstream location/TLS transport. Identity extraction,
+			// SSR implementation, typed REST decoding and production auth middleware are real.
+			factory.NewTokenKubernetesClientFn = func(token string, l *slog.Logger) (k8s.KubernetesClientInterface, error) {
+				cfg := &rest.Config{Host: upstream.URL, BearerToken: token, Transport: upstream.Client().Transport}
+				cfg.Wrap(httpcontract.WrapTransport)
+				client, err := k8sclient.NewForConfig(cfg)
+				return &k8s.TokenKubernetesClient{SharedClientLogic: k8s.SharedClientLogic{Client: client, Logger: l, RestConfig: cfg}}, err
+			}
+			app := newTestApp(func(a *App) {
+				a.logger = logger
+				a.kubernetesClientFactory = factory
+				a.config.AuthTokenHeader = "X-Custom-Credential"
+				a.config.AuthMethod = config.AuthMethodUser
+			})
+			r := httptest.NewRequest("GET", "/api/v1/user?token=CANARY_QUERY", nil)
+			r.Header.Set("X-Custom-Credential", "CANARY_TOKEN")
+			r.Header.Set("Cookie", "CANARY_COOKIE")
+			r.Header.Set("Sec-WebSocket-Protocol", "CANARY_SUBPROTOCOL")
+			w := httptest.NewRecorder()
+			app.Routes().ServeHTTP(w, r)
+			require.Equal(t, status, w.Code)
+			var s metav1.Status
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &s))
+			require.Equal(t, "Status", s.Kind)
+			operationResponse := spec.Paths.Value("/api/v1/user").Get.Responses.Status(status)
+			require.NotNil(t, operationResponse, "the operation must document the upstream status")
+			var body any
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+			require.NoError(t, operationResponse.Value.Content.Get("application/json").Schema.Value.VisitJSON(body))
+			require.Equal(t, audit, w.Header().Get(httpcontract.AuditIDHeader))
+			require.Equal(t, outboundID, w.Header().Get(httpcontract.RequestIDHeader))
+			require.Contains(t, logs.String(), outboundID)
+			require.NotContains(t, w.Body.String()+logs.String(), "CANARY")
+			require.NotContains(t, w.Body.String()+logs.String(), "unrelated-user")
+		})
+	}
+}
+
+func TestEarlyErrorsAndPanicHaveCorrelation(t *testing.T) {
+	app := newTestApp()
+	for _, path := range []string{"/api", "/core-bff", "/core-bff/api", "/api/unknown", "/core-bff/api/unknown"} {
+		w := httptest.NewRecorder()
+		app.Routes().ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+		require.NotEmpty(t, w.Header().Get(httpcontract.RequestIDHeader))
+		var body HTTPError
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		require.Equal(t, w.Header().Get(httpcontract.RequestIDHeader), body.Error.RequestID)
+	}
+	h := httpcontract.Middleware(app.EnableTelemetry(app.RecoverPanic(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { panic("CANARY") }))))
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	require.Equal(t, 500, w.Code)
+	require.Contains(t, w.Body.String(), w.Header().Get(httpcontract.RequestIDHeader))
+	require.NotContains(t, w.Body.String(), "CANARY")
+}
+
+func TestStreamingPanicAbortsWithoutAppendingJSON(t *testing.T) {
+	app := newTestApp()
+	h := httpcontract.Middleware(app.RecoverPanic(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("event\n")); panic("CANARY") })))
+	w := httptest.NewRecorder()
+	require.PanicsWithValue(t, http.ErrAbortHandler, func() { h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil)) })
+	require.Equal(t, "event\n", w.Body.String())
+	h = httpcontract.Middleware(app.RecoverPanic(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { panic(http.ErrAbortHandler) })))
+	require.PanicsWithValue(t, http.ErrAbortHandler, func() { h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil)) })
+}
+
+func TestCorrelationCORSAndMissingCredentials(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.config.AllowedOrigins = []string{"https://browser.example"}
+		a.config.AuthMethod = config.AuthMethodUser
+	})
+	for _, credential := range []string{"", " ", "\t"} {
+		r := httptest.NewRequest("GET", "/api/config", nil)
+		r.Header.Set("Origin", "https://browser.example")
+		r.Header.Set(app.config.AuthTokenHeader, credential)
+		w := httptest.NewRecorder()
+		app.Routes().ServeHTTP(w, r)
+		require.Equal(t, 401, w.Code)
+		require.Contains(t, w.Header().Get("Access-Control-Expose-Headers"), "X-Request-Id")
+		require.Contains(t, w.Header().Get("Access-Control-Expose-Headers"), "Audit-Id")
+	}
+}
+
+// Keep a real truncated upstream body test separate from recorder-only commitment tests.
+func TestProxyStreamFailureThroughRecovery(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "999")
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = io.WriteString(w, "partial")
+		w.(http.Flusher).Flush()
+	}))
+	defer upstream.Close()
+	app := newTestApp()
+	handler, err := proxy.NewK8sProxyHandler(proxy.K8sProxyConfig{K8sHost: upstream.URL, AllowHTTP: true, Logger: app.logger})
+	require.NoError(t, err)
+	server := httptest.NewServer(httpcontract.Middleware(app.RecoverPanic(handler)))
+	defer server.Close()
+	resp, err := server.Client().Get(server.URL + "/api/k8s/api/v1/pods?watch=true")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+	require.Equal(t, "partial", string(b))
+	require.Equal(t, 200, resp.StatusCode)
+}
+
+func TestRoutineRejectionsLogAtWarn(t *testing.T) {
+	for _, status := range []int{400, 401, 403} {
+		t.Run(fmt.Sprint(status), func(t *testing.T) {
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logs, nil))
+			app := newTestApp(func(a *App) { a.logger = logger })
+			response := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+			err := fmt.Errorf("CANARY_SECRET")
+			switch status {
+			case 400:
+				app.badRequestResponse(response, request, err)
+			case 401:
+				app.unauthorizedResponse(response, request, err)
+			case 403:
+				app.forbiddenResponse(response, request, err)
+			}
+			require.Equal(t, status, response.Code)
+			require.Contains(t, logs.String(), `"level":"WARN"`)
+			require.NotContains(t, logs.String(), `"level":"ERROR"`)
+			require.NotContains(t, logs.String()+response.Body.String(), "CANARY")
+		})
+	}
+}
+
+func TestRequestLogSeverityFollowsCause(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		cause    error
+		canceled bool
+		level    string
+	}{
+		{"upstream denial", k8serrors.NewForbidden(schema.GroupResource{Resource: "secrets"}, "CANARY_NAME", fmt.Errorf("CANARY_SECRET")), false, "WARN"},
+		{"credential failure", httpcontract.ErrCredentialsInvalid, false, "WARN"},
+		{"unexpected", fmt.Errorf("CANARY_SECRET"), false, "ERROR"},
+		{"cancellation", context.Canceled, false, "DEBUG"},
+		{"disconnected request", fmt.Errorf("CANARY_SECRET"), true, "DEBUG"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+			app := newTestApp(func(a *App) { a.logger = logger })
+			request := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+			if tc.canceled {
+				ctx, cancel := context.WithCancel(request.Context())
+				cancel()
+				request = request.WithContext(ctx)
+			}
+			app.LogError(request, tc.cause)
+			require.Contains(t, logs.String(), `"level":"`+tc.level+`"`)
+			require.NotContains(t, logs.String(), "CANARY")
+		})
+	}
+}
+
+func TestPanicDiagnosticsAreBoundedAndSafe(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	app := newTestApp(func(a *App) { a.logger = logger })
+	handler := httpcontract.Middleware(app.RecoverPanic(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { panic("CANARY_SECRET") })), logger)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	require.Equal(t, 500, response.Code)
+	var event struct {
+		Level     string   `json:"level"`
+		Stack     []string `json:"stack_trace"`
+		RequestID string   `json:"request_id"`
+	}
+	require.NoError(t, json.Unmarshal(logs.Bytes(), &event))
+	require.Equal(t, "ERROR", event.Level)
+	require.NotEmpty(t, event.Stack)
+	require.LessOrEqual(t, len(event.Stack), maxPanicStackFrames)
+	require.Contains(t, strings.Join(event.Stack, "\n"), "TestPanicDiagnosticsAreBoundedAndSafe")
+	require.Equal(t, response.Header().Get(httpcontract.RequestIDHeader), event.RequestID)
+	require.NotContains(t, logs.String()+response.Body.String(), "CANARY")
+}
+
+func TestCORSPreflightsCoverPublicAndEarlyErrors(t *testing.T) {
+	app := newTestApp(func(a *App) { a.config.AllowedOrigins = []string{"https://browser.example"} })
+	for _, path := range []string{"/healthcheck", "/core-bff/openapi.json", "/navigation", "/api", "/core-bff", "/core-bff/api"} {
+		t.Run(path, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodOptions, path, nil)
+			request.Header.Set("Origin", "https://browser.example")
+			request.Header.Set("Access-Control-Request-Method", http.MethodGet)
+			response := httptest.NewRecorder()
+			app.Routes().ServeHTTP(response, request)
+			require.Equal(t, http.StatusNoContent, response.Code)
+			require.Equal(t, "https://browser.example", response.Header().Get("Access-Control-Allow-Origin"))
+			require.NotEmpty(t, response.Header().Get(httpcontract.RequestIDHeader))
+		})
+	}
+	app = newTestApp()
+	request := httptest.NewRequest(http.MethodOptions, "/api", nil)
+	request.Header.Set("Origin", "https://browser.example")
+	request.Header.Set("Access-Control-Request-Method", http.MethodGet)
+	response := httptest.NewRecorder()
+	app.Routes().ServeHTTP(response, request)
+	require.Equal(t, http.StatusNotFound, response.Code)
+	require.Empty(t, response.Header().Get("Access-Control-Allow-Origin"))
+}

@@ -1,0 +1,321 @@
+package httpcontract
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"syscall"
+	"testing"
+	"testing/iotest"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+)
+
+func TestFailureClassificationAndRedaction(t *testing.T) {
+	for _, tc := range []struct {
+		name             string
+		err              error
+		fallback, status int
+		code             string
+	}{
+		{"timeout", fmt.Errorf("secret: %w", context.DeadlineExceeded), 502, 504, "GATEWAY_TIMEOUT"},
+		{"refused", &net.OpError{Op: "dial", Err: syscall.ECONNREFUSED}, 502, 503, "SERVICE_UNAVAILABLE"},
+		{"dns", &net.DNSError{Err: "secret", Name: "secret"}, 502, 503, "SERVICE_UNAVAILABLE"},
+		{"protocol", errors.New("secret"), 502, 502, "BAD_GATEWAY"},
+		{"internal", errors.New("secret"), 500, 500, "INTERNAL_SERVER_ERROR"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", "/", nil)
+			WriteError(w, r, tc.err, tc.fallback)
+			require.Equal(t, tc.status, w.Code)
+			var e HTTPError
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &e))
+			require.Equal(t, tc.code, e.Error.Code)
+			require.Equal(t, w.Header().Get(RequestIDHeader), e.Error.RequestID)
+			require.NotContains(t, w.Body.String(), "secret")
+		})
+	}
+	for _, status := range []int{400, 401, 403, 404, 405, 409, 422, 500, 502, 503, 504} {
+		w := httptest.NewRecorder()
+		WriteLocal(w, httptest.NewRequest("GET", "/", nil), status)
+		require.Equal(t, status, w.Code)
+		require.NotEmpty(t, w.Header().Get(RequestIDHeader))
+	}
+}
+
+func TestKubernetesStatusDecodesWithoutLeakingValues(t *testing.T) {
+	errs := []error{
+		k8serrors.NewUnauthorized("CANARY_TOKEN"),
+		k8serrors.NewForbidden(schema.GroupResource{Resource: "secrets"}, "CANARY_NAME", errors.New("CANARY_IDENTITY")),
+		k8serrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "CANARY_NAME"),
+		k8serrors.NewConflict(schema.GroupResource{Resource: "secrets"}, "CANARY_NAME", errors.New("CANARY")),
+		k8serrors.NewInvalid(schema.GroupKind{Kind: "Secret"}, "CANARY_NAME", field.ErrorList{field.Invalid(field.NewPath("data").Key("CANARY_KEY"), "CANARY_VALUE", "CANARY_MESSAGE")}),
+		k8serrors.NewResourceExpired("CANARY"), k8serrors.NewTooManyRequests("CANARY", 7),
+		k8serrors.NewServiceUnavailable("CANARY"), k8serrors.NewTimeoutError("CANARY", 3),
+	}
+	for _, err := range errs {
+		w := httptest.NewRecorder()
+		WriteError(w, httptest.NewRequest("GET", "/", nil), fmt.Errorf("wrapped: %w", err), 500)
+		require.NotContains(t, w.Body.String(), "CANARY")
+		require.NotContains(t, w.Body.String(), `"error":`)
+		var s metav1.Status
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &s))
+		original := err.(k8serrors.APIStatus).Status()
+		require.Equal(t, int(original.Code), w.Code)
+		require.Equal(t, original.Reason, s.Reason)
+		require.Equal(t, "Status", s.Kind)
+		require.Equal(t, "v1", s.APIVersion)
+		decoded := k8serrors.FromObject(&s).(k8serrors.APIStatus).Status()
+		require.Equal(t, original.Reason, decoded.Reason)
+		if s.Reason == metav1.StatusReasonInvalid {
+			require.Equal(t, "data", s.Details.Causes[0].Field)
+			require.Equal(t, metav1.CauseTypeFieldValueInvalid, s.Details.Causes[0].Type)
+		}
+		if s.Reason == metav1.StatusReasonTooManyRequests {
+			require.Equal(t, int32(7), s.Details.RetryAfterSeconds)
+			require.Equal(t, "7", w.Header().Get("Retry-After"))
+		}
+	}
+}
+
+func TestCorrelationTransportAndConcurrentIsolation(t *testing.T) {
+	audit := uuid.NewString()
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Empty(t, r.Header.Get(AuditIDHeader))
+		w.Header().Set(AuditIDHeader, audit)
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte(r.Header.Get(RequestIDHeader))) //nolint:gosec // G705: controlled test server echoes an opaque ID as text/plain.
+	}))
+	defer upstream.Close()
+	client := &http.Client{Transport: Transport{}}
+	h := Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		req, _ := http.NewRequestWithContext(r.Context(), "GET", upstream.URL, nil)
+		req.Header.Set(AuditIDHeader, "untrusted")
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		b, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, RequestID(r.Context()), string(b))
+		WriteLocal(w, r, 403)
+	}))
+	var wg sync.WaitGroup
+	var ids sync.Map
+	for i := 0; i < 12; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			r := httptest.NewRequest("GET", "/", nil)
+			r.Header[RequestIDHeader] = []string{strings.Repeat("CANARY", 1000), "duplicate"}
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, r)
+			id := w.Header().Get(RequestIDHeader)
+			u, err := uuid.Parse(id)
+			require.NoError(t, err)
+			require.Equal(t, uuid.Version(4), u.Version())
+			_, loaded := ids.LoadOrStore(id, true)
+			require.False(t, loaded)
+			require.Equal(t, audit, w.Header().Get(AuditIDHeader))
+			require.Contains(t, w.Body.String(), id)
+		}()
+	}
+	wg.Wait()
+}
+
+func TestInvalidAuditIdentifiersAreNotReflected(t *testing.T) {
+	for _, v := range [][]string{{"CANARY"}, {strings.Repeat("a", 1000)}, {uuid.NewString(), uuid.NewString()}} {
+		h := Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			CaptureAudit(r.Context(), http.Header{AuditIDHeader: v})
+			WriteLocal(w, r, 500)
+		}))
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+		require.Empty(t, w.Header().Get(AuditIDHeader))
+	}
+}
+
+func TestCommittedAndCanceledResponsesNeverAppendJSON(t *testing.T) {
+	h := Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("event\n"))
+		http.NewResponseController(w).Flush()
+		WriteLocal(w, r, 500)
+	}))
+	w := httptest.NewRecorder()
+	require.PanicsWithValue(t, http.ErrAbortHandler, func() { h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil)) })
+	require.Equal(t, "event\n", w.Body.String())
+	require.Equal(t, 200, w.Code)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	w = httptest.NewRecorder()
+	require.PanicsWithValue(t, http.ErrAbortHandler, func() { WriteLocal(w, httptest.NewRequest("GET", "/", nil).WithContext(ctx), 500) })
+	require.Empty(t, w.Body.String())
+}
+
+func TestUpstreamKubernetesErrorBodyBoundAndSanitization(t *testing.T) {
+	for _, body := range []string{`{"kind":"Status","reason":"Forbidden","message":"CANARY","details":{"name":"CANARY"}}`, "CANARY", strings.Repeat("x", maxErrorBody+1)} {
+		resp := &http.Response{StatusCode: 403, Header: http.Header{"Content-Encoding": []string{"gzip"}, "Set-Cookie": []string{"CANARY"}}, Body: io.NopCloser(strings.NewReader(body))}
+		require.NoError(t, KubernetesResponse(resp))
+		b, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.NotContains(t, string(b), "CANARY")
+		require.Contains(t, string(b), `"reason":"Forbidden"`)
+		require.Empty(t, resp.Header.Get("Set-Cookie"))
+		require.Empty(t, resp.Header.Get("Content-Encoding"))
+	}
+}
+
+func TestSafeStructuredErrorLogs(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	h := Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		Log(logger, r).Error("request failed", "code", SafeErrorCode(errors.New("CANARY")))
+		WriteLocal(w, r, 500)
+	}))
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/?token=CANARY", nil))
+	require.Contains(t, buf.String(), w.Header().Get(RequestIDHeader))
+	require.NotContains(t, buf.String(), "CANARY")
+}
+
+func TestWatchErrorsAreSanitizedWithoutChangingResourceEvents(t *testing.T) {
+	success := []byte("{\"type\":\"ADDED\", \"object\":{\"data\":{\"authorized\":\"value\"}}}\n")
+	failure := []byte(`{"type":"ERROR","object":{"kind":"Status","code":410,"reason":"Expired","message":"CANARY"}}` + "\n")
+	require.Equal(t, success, SanitizeWatchEvent(success))
+	clean := SanitizeWatchEvent(failure)
+	require.NotContains(t, string(clean), "CANARY")
+	require.Contains(t, string(clean), `"reason":"Expired"`)
+	for _, body := range []string{string(success) + string(failure), string(success) + strings.TrimSuffix(string(failure), "\n")} {
+		req := httptest.NewRequest("GET", "http://upstream/api/v1/pods?watch=true", nil)
+		resp := &http.Response{StatusCode: 200, Request: req, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(body))}
+		require.NoError(t, KubernetesResponse(resp))
+		result, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.True(t, bytes.HasPrefix(result, success))
+		require.NotContains(t, string(result), "CANARY")
+		require.Contains(t, string(result), `"code":410`)
+	}
+	malformed := SanitizeWatchEvent([]byte(`{"type":"ERROR","object":"CANARY"}`))
+	require.NotContains(t, string(malformed), "CANARY")
+	require.Contains(t, string(malformed), `"code":500`)
+}
+
+func TestSDKCauseSemanticsAndCredentialCategories(t *testing.T) {
+	for _, cause := range []metav1.CauseType{metav1.CauseTypeResourceVersionTooLarge, metav1.CauseTypeFieldManagerConflict, metav1.CauseTypeInternal} {
+		status := SanitizeStatus(metav1.Status{Reason: metav1.StatusReasonTimeout, Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{Type: cause, Message: "CANARY"}}}}, 504)
+		require.Equal(t, cause, status.Details.Causes[0].Type)
+	}
+	for _, tc := range []struct {
+		err  error
+		code string
+	}{{ErrCredentialsMissing, "CREDENTIALS_MISSING"}, {ErrCredentialsInvalid, "CREDENTIALS_INVALID"}, {ErrCredentialsExpired, "CREDENTIALS_EXPIRED"}} {
+		wrapped := fmt.Errorf("wrapped: %w", tc.err)
+		require.Equal(t, tc.code, SafeErrorCode(wrapped))
+		require.Equal(t, 401, Classify(wrapped, 500).StatusCode)
+		require.Equal(t, "UNAUTHORIZED", Classify(wrapped, 500).Error.Code)
+	}
+}
+
+func TestRetryAfterMetadataValidation(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{{"7", "7"}, {"Wed, 21 Oct 2015 07:28:00 GMT", "Wed, 21 Oct 2015 07:28:00 GMT"}, {"CANARY", ""}, {"-1", ""}, {strings.Repeat("9", 100), ""}} {
+		dst := http.Header{}
+		src := http.Header{}
+		src.Set("Retry-After", tc.in)
+		CopyRetryAfter(dst, src)
+		require.Equal(t, tc.want, dst.Get("Retry-After"))
+	}
+}
+
+func TestValidationFieldPathsPreserveArrayPositionsAndRedactMapKeys(t *testing.T) {
+	for _, tc := range []struct{ field, want string }{
+		{"spec.containers[1].image", "spec.containers[1].image"},
+		{"spec.containers[1].env[2].value", "spec.containers[1].env[2].value"},
+		{"data[CANARY_KEY]", "data"},
+		{"data[123]", "data"},
+		{"stringData[123]", "stringData"},
+		{"metadata.annotations[123]", "metadata.annotations"},
+		{"spec.template.metadata.labels[123]", "spec.template.metadata.labels"},
+		{"spec.selector[CANARY_KEY]", "spec.selector"},
+		{"spec.containers[1].env[CANARY_KEY]", "spec.containers[1].env"},
+		{"spec.containers[CANARY", ""},
+		{strings.Repeat("a", 254), ""},
+	} {
+		t.Run(tc.field, func(t *testing.T) {
+			status := SanitizeStatus(metav1.Status{Reason: metav1.StatusReasonInvalid, Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{Type: metav1.CauseTypeFieldValueInvalid, Field: tc.field, Message: "CANARY_VALUE"}}}}, 422)
+			require.Equal(t, tc.want, status.Details.Causes[0].Field)
+			b, err := json.Marshal(status)
+			require.NoError(t, err)
+			require.NotContains(t, string(b), "CANARY")
+		})
+	}
+}
+
+func TestHTTPWatchQuerySemanticsMatchKubernetes(t *testing.T) {
+	event := `{"type":"ERROR","object":{"kind":"Status","code":410,"reason":"Expired","message":"CANARY_SECRET","details":{"name":"CANARY_NAME","causes":[{"reason":"FieldValueInvalid","message":"CANARY_VALUE"}]}}}` + "\n"
+	for _, tc := range []struct {
+		query string
+		watch bool
+	}{
+		{"watch=true", true}, {"watch=1", true}, {"watch=TRUE", true}, {"watch=True", true},
+		{"watch=", true}, {"watch", true}, {"watch=anything", true}, {"watch=true&watch=false", true},
+		{"", false}, {"watch=false", false}, {"watch=FALSE", false}, {"watch=0", false}, {"watch=false&watch=true", false},
+	} {
+		t.Run(tc.query, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "http://upstream/api/v1/pods?"+tc.query, nil)
+			response := &http.Response{StatusCode: 200, Request: request, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(event))}
+			require.NoError(t, KubernetesResponse(response))
+			body, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+			if tc.watch {
+				require.NotContains(t, string(body), "CANARY")
+				require.Contains(t, string(body), `"reason":"Expired"`)
+			} else {
+				require.Equal(t, event, string(body))
+			}
+		})
+	}
+}
+
+func TestStreamCancellationLogsAtDebug(t *testing.T) {
+	for _, canceled := range []bool{false, true} {
+		t.Run(fmt.Sprintf("canceled=%v", canceled), func(t *testing.T) {
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if canceled {
+				cancel()
+			}
+			body := &observedBody{ReadCloser: io.NopCloser(iotest.ErrReader(errors.New("CANARY_RAW_ERROR"))), ctx: ctx, logger: logger}
+			_, err := body.Read(make([]byte, 1))
+			require.Error(t, err)
+			var event struct {
+				Level string `json:"level"`
+				Code  string `json:"code"`
+			}
+			require.NoError(t, json.Unmarshal(logs.Bytes(), &event))
+			if canceled {
+				require.Equal(t, "DEBUG", event.Level)
+				require.Equal(t, "CANCELED", event.Code)
+			} else {
+				require.Equal(t, "ERROR", event.Level)
+				require.Equal(t, "BAD_GATEWAY", event.Code)
+			}
+			require.NotContains(t, logs.String(), "CANARY")
+		})
+	}
+}

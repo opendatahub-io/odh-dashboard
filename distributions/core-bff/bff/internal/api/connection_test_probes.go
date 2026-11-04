@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -494,9 +496,9 @@ func probeOCI(pc ProbeContext) models.ConnectionTestResult {
 	if err != nil {
 		return failedResult("Failed to create probe request")
 	}
-	req.Header.Set("Accept", ociAcceptHeader)
+	req.Header.Set(constants.HeaderAccept, ociAcceptHeader)
 	if basicAuth != "" {
-		req.Header.Set("Authorization", basicAuth)
+		req.Header.Set(constants.HeaderAuthorization, basicAuth)
 	}
 
 	resp, err := httpClient.Do(req)
@@ -517,8 +519,8 @@ func probeOCI(pc ProbeContext) models.ConnectionTestResult {
 		if token, ok := fetchBearerToken(pc.Ctx, httpClient, challenge, basicAuth); ok {
 			retryReq, retryErr := http.NewRequestWithContext(pc.Ctx, http.MethodHead, probeURL, nil)
 			if retryErr == nil {
-				retryReq.Header.Set("Accept", ociAcceptHeader)
-				retryReq.Header.Set("Authorization", "Bearer "+token)
+				retryReq.Header.Set(constants.HeaderAccept, ociAcceptHeader)
+				retryReq.Header.Set(constants.HeaderAuthorization, "Bearer "+token)
 				retryResp, retryDoErr := httpClient.Do(retryReq)
 				if retryDoErr != nil {
 					if pc.Ctx.Err() != nil {
@@ -601,7 +603,7 @@ func fetchBearerToken(ctx context.Context, client *http.Client, challenge, basic
 	if err != nil {
 		return "", false
 	}
-	req.Header.Set("Authorization", basicAuth)
+	req.Header.Set(constants.HeaderAuthorization, basicAuth)
 
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {

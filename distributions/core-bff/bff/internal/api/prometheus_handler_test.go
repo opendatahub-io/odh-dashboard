@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -305,4 +307,24 @@ func TestResolvePrometheusQueryType(t *testing.T) {
 			assert.Equal(t, tt.want, resolvePrometheusQueryType(tt.path))
 		})
 	}
+}
+
+func TestPrometheusUnexpectedFailureKeepsEnvelopeWithoutRawError(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	app := newTestApp(func(a *App) {
+		a.logger = logger
+		a.repositories.Prometheus = repositories.NewPrometheusRepository(repositories.PrometheusConfig{Host: "http://CANARY_SECRET/%zz"})
+	})
+	request := httptest.NewRequest(http.MethodPost, PrometheusQueryPath, strings.NewReader(`{"query":"query=up"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request = reqWithIdentity(request, &k8s.RequestIdentity{Token: k8s.NewBearerToken("CANARY_TOKEN")})
+	response := httptest.NewRecorder()
+	app.PrometheusQueryHandler(response, request, nil)
+	require.Equal(t, http.StatusInternalServerError, response.Code)
+	var body models.PrometheusQueryResponse
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+	require.Equal(t, http.StatusInternalServerError, body.Code)
+	require.JSONEq(t, `"Cannot fetch prometheus data"`, string(body.Response))
+	require.NotContains(t, response.Body.String()+logs.String(), "CANARY")
 }
