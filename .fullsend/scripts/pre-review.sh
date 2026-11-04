@@ -128,7 +128,7 @@ adapter_credential_names() {
     [.dimensions[]
       | select(.kind == "cli-adapter")
       | .host.credentials // {}
-      | .username_env, .token_env
+      | .url_env, .username_env, .token_env
       | select(type == "string" and . != "")]
     | unique[]
   ' "${_SCRIPT_DIR}/../dimensions.json"
@@ -153,7 +153,7 @@ validate_adapter_registry() {
       (.host.setup_runner | type == "string" and
         (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
       all(
-        [(.host.credentials.username_env // ""), (.host.credentials.token_env // "")][];
+        [(.host.credentials.url_env // ""), (.host.credentials.username_env // ""), (.host.credentials.token_env // "")][];
         type == "string" and test("^([A-Z][A-Z0-9_]*)?$")
       )
     )
@@ -258,9 +258,8 @@ adapter_credential() {
 # environment holds the minted review token (REVIEW_TOKEN, GH_TOKEN) and the
 # other host-script variables, and a setup step runs a vendor installer, so
 # neither setup nor runner inherits it: they get these names, plus what
-# run_adapter adds. run_adapter also forwards JIRA_BASE_URL, the public Jira
-# base URL the run step sets, which the adapter uses for its request and
-# browse URLs.
+# run_adapter adds. JIRA_BASE_URL is the public browse URL; the Jira API URL
+# is forwarded only to its adapter as a credential.
 adapter_base_env() {
   local name
   for name in PATH HOME TMPDIR LANG LC_ALL RUNNER_TEMP; do
@@ -274,7 +273,7 @@ adapter_base_env() {
 # reports its missing tool in its own envelope. Setup is skipped when the row
 # needs a token and has none, since the runner then only writes "skipped".
 run_adapter() {
-  local id="$1" runner="$2" setup_runner="$3" username_env="$4" token_env="$5"
+  local id="$1" runner="$2" setup_runner="$3" url_env="$4" username_env="$5" token_env="$6"
   local token env_file entry adapter_bin="" base_env=()
   while IFS= read -r -d '' entry; do
     base_env+=("${entry}")
@@ -294,6 +293,7 @@ run_adapter() {
 
   env -i "${base_env[@]}" \
     JIRA_BASE_URL="${JIRA_BASE_URL:-}" \
+    FULLSEND_ADAPTER_URL="$(adapter_credential "${url_env}")" \
     FULLSEND_ADAPTER_USERNAME="$(adapter_credential "${username_env}")" \
     FULLSEND_ADAPTER_TOKEN="${token}" \
     FULLSEND_ADAPTER_BIN="${adapter_bin}" \
@@ -325,16 +325,16 @@ write_adapter_failure_envelope() {
 
 run_pre_review_adapters() {
   local registry="${_SCRIPT_DIR}/../dimensions.json"
-  local id runner setup_runner username_env token_env output producer_file i log_dir code
+  local id runner setup_runner url_env username_env token_env output producer_file i log_dir code
   local ids=() pids=() outputs=() producer_files=()
   log_dir="$(mktemp -d)"
   # Fields are joined with "|", not @tsv: tab is IFS whitespace, so `read`
   # would merge the empty credential fields and shift the columns. The registry
   # check allows no "|" in any of these values.
-  while IFS='|' read -r id output producer_file runner setup_runner username_env token_env; do
+  while IFS='|' read -r id output producer_file runner setup_runner url_env username_env token_env; do
     [[ -n "${id}" ]] || continue
     rm -f "${_SCRIPT_DIR}/../${producer_file}"
-    run_adapter "${id}" "${runner}" "${setup_runner}" "${username_env}" "${token_env}" \
+    run_adapter "${id}" "${runner}" "${setup_runner}" "${url_env}" "${username_env}" "${token_env}" \
       > "${log_dir}/${id}.log" 2>&1 &
     ids+=("${id}")
     outputs+=("${output}")
@@ -344,7 +344,7 @@ run_pre_review_adapters() {
     .dimensions[]
     | select(.kind == "cli-adapter" and .host.execution == "pre_review")
     | [.id, .output, .producer_file, .runner, (.host.setup_runner // ""),
-       (.host.credentials.username_env // ""), (.host.credentials.token_env // "")]
+       (.host.credentials.url_env // ""), (.host.credentials.username_env // ""), (.host.credentials.token_env // "")]
     | join("|")
   ' "${registry}")
   for ((i = 0; i < ${#ids[@]}; i++)); do
@@ -553,7 +553,7 @@ run_self_test() {
     jq -n '{dimensions: [
       {id: "a", kind: "cli-adapter", output: "context", runner: "scripts/a.sh", producer_file: ".run/a.json",
        host: {execution: "pre_review", setup_runner: "scripts/setup.sh",
-              credentials: {token_env: "ALPHA_TOKEN"}}},
+              credentials: {url_env: "ALPHA_URL", token_env: "ALPHA_TOKEN"}}},
       {id: "b", kind: "cli-adapter", output: "findings", runner: "scripts/b.sh", producer_file: ".run/b.json",
        host: {execution: "pre_review", setup_runner: "",
               credentials: {token_env: "BETA_TOKEN"}}},
@@ -564,14 +564,14 @@ run_self_test() {
        host: {execution: "pre_review", setup_runner: "",
               credentials: {}}}
     ]}' > "${temp_dir}/dimensions.json"
-    export ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
+    export ALPHA_URL="https://api.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
     export REVIEW_TOKEN="review-token-value" GH_TOKEN="gh-token-value"
     export JIRA_BASE_URL="https://jira.example.test"
     # GAMMA's secret is not set, so the shim sends the placeholder.
     export GAMMA_TOKEN="${ADAPTER_CREDENTIAL_UNSET}"
     capture_adapter_credentials || exit 1
     [[ -z "${GAMMA_TOKEN:-}" ]] || exit 1
-    [[ -z "${ALPHA_TOKEN:-}" && -z "${BETA_TOKEN:-}" ]] || exit 1
+    [[ -z "${ALPHA_URL:-}" && -z "${ALPHA_TOKEN:-}" && -z "${BETA_TOKEN:-}" ]] || exit 1
     REPO=o/r PR_BASE_REF=main PR_BASE_SHA="$(printf 'b%.0s' {1..40})" PR_HEAD_SHA="$(printf 'a%.0s' {1..40})" \
       run_pre_review_adapters > /dev/null
     # errexit does not apply inside an `if` condition, so every check exits.
@@ -581,6 +581,7 @@ run_self_test() {
       [[ -f "${_SCRIPT_DIR}/${f}" ]] || exit 1
     done
     expect_line 'FULLSEND_ADAPTER_TOKEN=alpha-token-value' a.env
+    expect_line 'FULLSEND_ADAPTER_URL=https://api.example.test' a.env
     expect_line 'FULLSEND_ADAPTER_BIN=/opt/tool' a.env
     expect_line 'FULLSEND_ADAPTER_REPO=o/r' a.env
     expect_line 'FULLSEND_ADAPTER_BASE_REF=main' a.env
@@ -589,6 +590,7 @@ run_self_test() {
     expect_line 'FULLSEND_ADAPTER_BIN=' b.env
     expect_line 'FULLSEND_ADAPTER_TOKEN=' c.env
     refuse_text 'alpha-token-value' "${_SCRIPT_DIR}/b.env"
+    refuse_text 'api.example.test' "${_SCRIPT_DIR}/b.env"
     refuse_text 'beta-token-value' "${_SCRIPT_DIR}/a.env"
     refuse_text '^(ALPHA_|BETA_|REVIEW_TOKEN|GH_)' "${_SCRIPT_DIR}/a.env" "${_SCRIPT_DIR}/b.env" "${_SCRIPT_DIR}/c.env" "${_SCRIPT_DIR}/setup.env"
     [[ ! -e "${_SCRIPT_DIR}/setup-c.env" ]] || exit 1

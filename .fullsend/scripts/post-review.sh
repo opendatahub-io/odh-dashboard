@@ -68,7 +68,7 @@ set -euo pipefail
 # env.runner in harness/review.yaml gives every host-side script the
 # host-adapter credentials. Only pre-review.sh uses them, so drop them before
 # this script starts any child. Keep the list in step with env.runner.
-unset CODERABBIT_API_KEY JIRA_USERNAME JIRA_API_TOKEN
+unset CODERABBIT_API_KEY JIRA_URL JIRA_USERNAME JIRA_API_TOKEN
 
 REVIEW_STICKY_MARKER='<!-- fullsend:review-agent -->'
 
@@ -1773,11 +1773,11 @@ run_self_test() {
     [[ -n "${cred_name}" ]] || continue
     if [[ " ${unset_line#unset } " != *" ${cred_name} "* ]] \
       || ! grep -qxF "    ${cred_name}: \"\${${cred_name}}\"" <<<"${runner_env}" \
-      || { [[ -f "${shim}" ]] && ! grep -qF "secrets.${cred_name} != '' && toJSON(secrets.${cred_name}) || '\"odh-adapter-credential-unset\"'" "${shim}"; }; then
+      || { [[ -f "${shim}" ]] && ! grep -qF "toJSON(secrets.${cred_name}) || '\"odh-adapter-credential-unset\"'" "${shim}"; }; then
       missing_creds+=" ${cred_name}"
     fi
   done < <(jq -r '[.dimensions[] | select(.kind == "cli-adapter") | .host.credentials // {}
-    | .username_env, .token_env | select(type == "string" and . != "")] | unique[]' \
+    | .url_env, .username_env, .token_env | select(type == "string" and . != "")] | unique[]' \
     "${POST_REVIEW_SCRIPT_DIR}/../dimensions.json")
   if [[ -z "${unset_line}" || -n "${missing_creds}" ]]; then
     echo "FAIL adapter credentials: not unset here, not in env.runner, or no shim placeholder:${missing_creds:- (no unset line)}" >&2
