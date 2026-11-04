@@ -12,12 +12,6 @@ import {
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import type { Toleration, NodeSelector, HardwareProfileKind } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import {
-  getClusterQueueNameFromLocalQueues,
-  getHardwareProfileDescription,
-  getHardwareProfileDisplayName,
-} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import {
   formatToleration,
@@ -29,6 +23,11 @@ import {
 } from './utils';
 import DRAHardwareProfileDetailsSection from './DRAHardwareProfileDetailsSection';
 import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
+import {
+  getClusterQueueNameFromLocalQueues,
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
+} from '../src/pages/utils';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;

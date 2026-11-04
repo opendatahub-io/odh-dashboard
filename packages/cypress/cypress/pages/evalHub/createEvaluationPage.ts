@@ -149,13 +149,11 @@ class CreateEvaluationPage {
     return cy.findByTestId('benchmarks-gallery', options);
   }
 
-  findBenchmarkCardByTitle(displayTitle: string) {
-    const cardRoot = '[data-testid^="benchmark-card-"]';
-    return this.findBenchmarksGallery({ timeout: 30000 })
-      .find(cardRoot, { timeout: 30000 })
-      .contains('button', displayTitle)
-      .parents(cardRoot)
-      .first();
+  findBenchmarkCard(providerId: string, benchmarkId: string) {
+    return this.findBenchmarksGallery({ timeout: 30000 }).find(
+      `[data-testid="benchmark-card-${providerId}-${benchmarkId}"]`,
+      { timeout: 30000 },
+    );
   }
 
   findSelectBenchmarkButton() {

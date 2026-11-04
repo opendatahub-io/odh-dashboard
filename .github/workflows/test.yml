@@ -382,7 +382,7 @@ jobs:
       - name: No Cypress mock tests selected
         if: needs.Get-Test-Groups.outputs.has-tests != 'true'
         run: |
-          echo "Documentation-only change; Cypress mock tests are not required."
+          echo "Non-runtime change; Cypress mock tests are not required."
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         if: needs.Get-Test-Groups.outputs.has-tests == 'true'
         with:
@@ -475,6 +475,16 @@ jobs:
 
   Combine-Results-and-Upload:
     needs: [Unit-Tests, Cypress-Mock-Tests, Get-Test-Groups]
+    # Cypress-Setup is skipped when no mock tests are selected. Without
+    # always(), this job is skipped too and the aggregate Tests gate fails.
+    if: >-
+      ${{
+        always() &&
+        needs.Unit-Tests.result == 'success' &&
+        needs.Get-Test-Groups.result == 'success' &&
+        (needs.Get-Test-Groups.outputs.has-tests != 'true' ||
+        needs.Cypress-Mock-Tests.result == 'success')
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

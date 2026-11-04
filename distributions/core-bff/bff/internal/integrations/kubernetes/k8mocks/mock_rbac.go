@@ -35,6 +35,33 @@ func createClusterAdminRBAC(ctx context.Context, k8sClient k8sclient.Interface, 
 	return nil
 }
 
+// createNamedNamespaceGetRBAC grants exact, cluster-scoped get without list permission.
+func createNamedNamespaceGetRBAC(ctx context.Context, client k8sclient.Interface, username, name string) error {
+	role := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: "named-namespace-get-" + name},
+		Rules: []rbacv1.PolicyRule{{
+			APIGroups:     []string{""},
+			Resources:     []string{"namespaces"},
+			ResourceNames: []string{name},
+			Verbs:         []string{"get"},
+		}},
+	}
+	if _, err := client.RbacV1().ClusterRoles().Create(ctx, role, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+	binding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "named-namespace-get-" + name},
+		Subjects:   []rbacv1.Subject{{Kind: "User", Name: username}},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "ClusterRole",
+			Name:     role.Name,
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+	}
+	_, err := client.RbacV1().ClusterRoleBindings().Create(ctx, binding, metav1.CreateOptions{})
+	return err
+}
+
 func createNamespaceRestrictedRBAC(ctx context.Context, k8sClient k8sclient.Interface, username, namespace string) error {
 	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
