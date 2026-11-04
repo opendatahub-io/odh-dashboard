@@ -232,7 +232,7 @@ Pass `isHost: process.env.DEPLOYMENT_MODE === 'standalone'` so standalone builds
 |---|------|-------|
 | 1 | Unique frontend, BFF and production service ports allocated | `/module-onboarding` Phase 1 |
 | 2 | Package scaffolded under `packages/<name>/` with correct names and ports | Phase 2 |
-| 3 | `package.json`: MF config (incl. healthcheck proxy, service), `cypress:mock:*`, `cypress:server:e2e`, `lint`, `type-check`, `workspace:*` deps | Phase 2 |
+| 3 | `package.json`: MF config (incl. healthcheck proxy, service), `cypress:mock:*` (if participating in dashboard Cypress mock tests), `cypress:server:e2e`, `lint`, `type-check`, `workspace:*` deps | Phase 2 |
 | 4 | `moduleFederation.js` uses `OdhFederationPlugin` | Phase 2 |
 | 5 | Extensions file with area, nav, route using `SupportedArea.PLUGIN_<X>` | Phase 2 |
 | 6 | BFF with unique Go module path, `/healthcheck`, no `go.work` | Phase 2 |

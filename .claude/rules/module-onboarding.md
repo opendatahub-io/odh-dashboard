@@ -45,9 +45,6 @@ Required fields:
   "private": true,
   "name": "@odh-dashboard/<name>",
   "version": "0.0.0",
-  "exports": {
-    "./extensions": "./extensions.ts"
-  },
   "dependencies": {
     "@odh-dashboard/plugin-core": "workspace:*"
   },
@@ -59,7 +56,7 @@ Required fields:
 }
 ```
 
-Internal packages always use the pnpm workspace protocol (`workspace:*`). The `exports` field is only needed for simple (non-federated) plugins that the host imports directly; federated remotes expose their extensions through Module Federation instead.
+Internal packages always use the pnpm workspace protocol (`workspace:*`). Simple (non-federated) plugins that the host imports directly also need `"exports": { "./extensions": "./extensions.ts" }`; federated remotes do not, since they expose their extensions through Module Federation instead.
 
 For federated modules (with their own dev server and/or BFF), add `module-federation` — see [docs/module-federation.md § Configuration Properties](../../docs/module-federation.md#configuration-properties) for the full schema:
 
@@ -264,7 +261,7 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] `module-federation` config incl. healthcheck proxy and `odh-dashboard-<name>-ui` service (if federated)
 - [ ] Frontend listed in `pnpm-workspace.yaml` (if federated)
 - [ ] Unique ports assigned and configured in `Makefile` + `package.json`
-- [ ] `cypress:mock:*` scripts and `pnpm run validate:cypress-mock` passes (if federated)
+- [ ] `cypress:mock:*` scripts and `pnpm run validate:cypress-mock` passes (if federated and participating in dashboard Cypress mock tests — the installer scaffolds them opted in)
 - [ ] `extensions.ts` with area, nav, and route extensions
 - [ ] `SupportedArea` enum entry + area config + flag type/default/CRD property
 - [ ] `OWNERS` / `OWNERS_ALIASES` entries and dependabot `gomod` directory (if BFF)
