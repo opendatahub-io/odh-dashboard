@@ -247,7 +247,7 @@ Given a bug RHOAIENG-12345 ("Widget crashes on save") with severity=null, priori
 {
   "metadata": {
     "generated": "2026-03-25T10:00:00Z",
-    "query": "project = RHOAIENG AND component = \"AI Core Dashboard\" AND issuetype = Bug AND Severity is EMPTY",
+    "query": "project in (RHAI, RHOAIENG) AND component = \"AI Core Dashboard\" AND issuetype = Bug AND Severity is EMPTY",
     "issueCount": 1
   },
   "operations": [
