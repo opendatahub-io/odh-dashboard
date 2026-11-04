@@ -243,13 +243,13 @@ This verifies the extensions file compiles against the new `SupportedArea` entry
 ### Step 4: Frontend build
 
 ```bash
-cd packages/<name>/frontend && DEPLOYMENT_MODE=federated pnpm run build
+(cd packages/<name>/frontend && DEPLOYMENT_MODE=federated pnpm run build)
 ```
 
 ### Step 5: BFF compilation
 
 ```bash
-cd packages/<name>/bff && go build ./... && go test ./... -count=1
+(cd packages/<name>/bff && go build ./... && go test ./... -count=1)
 ```
 
 If it fails, run `go mod tidy` first and retry.

@@ -63,47 +63,82 @@ function extractName(mfConfig) {
 }
 
 const MODULE_REGISTRY_PATH = '../dashboard-operator/internal/controller/modules.go';
+const MODULE_REGISTRY_DECL = 'var moduleRegistry = map[string]ModuleDefinition{';
 
 /**
- * Parses the dashboard-operator moduleRegistry (modules.go) to extract each module's
- * production service port. Returns an array of { name, port } or null if the file is absent.
+ * Parses the source of the dashboard-operator moduleRegistry (modules.go) and extracts each
+ * module's production service port. Fails closed: returns { entries, errors } where `errors`
+ * is non-empty whenever the registry is missing, unrecognized, empty, or has an entry whose
+ * Port cannot be read as a numeric literal, so the caller can fail validation instead of
+ * silently checking a partial list.
  */
-function parseModuleRegistry(relativePath) {
-  const registryPath = path.resolve(__dirname, relativePath);
-
-  if (!fs.existsSync(registryPath)) {
-    return null;
-  }
-
-  const content = fs.readFileSync(registryPath, 'utf8');
-  const registryStart = content.indexOf('var moduleRegistry = map[string]ModuleDefinition{');
-  if (registryStart === -1) {
-    console.warn(
-      `${colors.yellow}⚠ Could not find moduleRegistry in ${path.basename(registryPath)}${
-        colors.reset
-      }`,
-    );
-    return null;
-  }
-
+function parseModuleRegistryContent(content) {
+  const errors = [];
   const entries = [];
+  const registryStart = content.indexOf(MODULE_REGISTRY_DECL);
+  if (registryStart === -1) {
+    return { entries, errors: [`declaration "${MODULE_REGISTRY_DECL}" not found`] };
+  }
+
   let current = null;
+  let currentPort = null;
+  let closed = false;
+  const finishEntry = () => {
+    if (current === null) {
+      return;
+    }
+    if (currentPort === null) {
+      errors.push(`module "${current}" has no numeric Port field`);
+    } else {
+      entries.push({ name: current, port: currentPort });
+    }
+    current = null;
+    currentPort = null;
+  };
+
   for (const line of content.slice(registryStart).split('\n').slice(1)) {
     if (/^}/.test(line)) {
+      finishEntry();
+      closed = true;
       break;
     }
     const keyMatch = line.match(/^\t"([^"]+)":\s*{/);
     if (keyMatch) {
+      finishEntry();
       [, current] = keyMatch;
       continue;
     }
-    const portMatch = line.match(/^\t\tPort:\s*(\d+),/);
-    if (current && portMatch) {
-      entries.push({ name: current, port: Number(portMatch[1]) });
-      current = null;
+    if (/^\t},?\s*$/.test(line)) {
+      finishEntry();
+      continue;
+    }
+    const portMatch = line.match(/^\t\tPort:\s*([^,]+),/);
+    if (current !== null && portMatch) {
+      const value = portMatch[1].trim();
+      if (/^\d+$/.test(value)) {
+        currentPort = Number(value);
+      } else {
+        errors.push(`module "${current}" has a non-literal Port value "${value}"`);
+        current = null;
+      }
     }
   }
-  return entries;
+
+  if (!closed) {
+    errors.push('moduleRegistry literal is not terminated');
+  }
+  if (entries.length === 0 && errors.length === 0) {
+    errors.push('moduleRegistry has no entries');
+  }
+  return { entries, errors };
+}
+
+function parseModuleRegistry(relativePath) {
+  const registryPath = path.resolve(__dirname, relativePath);
+  if (!fs.existsSync(registryPath)) {
+    return { entries: [], errors: [`${registryPath} not found`] };
+  }
+  return parseModuleRegistryContent(fs.readFileSync(registryPath, 'utf8'));
 }
 
 /**
@@ -184,8 +219,22 @@ function validate() {
   }
 
   // --- 2. Validate production service ports from the dashboard-operator module registry ---
-  const registryEntries = parseModuleRegistry(MODULE_REGISTRY_PATH);
-  if (registryEntries && registryEntries.length > 0) {
+  const { entries: registryEntries, errors: registryErrors } =
+    parseModuleRegistry(MODULE_REGISTRY_PATH);
+  if (registryErrors.length > 0) {
+    hasErrors = true;
+    console.error(
+      `${colors.red}✗ Could not read every production port from the dashboard-operator ` +
+        `moduleRegistry (modules.go):${colors.reset}\n`,
+    );
+    for (const error of registryErrors) {
+      console.error(`  ${error}`);
+    }
+    console.error(
+      `\nEach moduleRegistry entry must set "Port" to a numeric literal so it can be validated.\n`,
+    );
+  }
+  if (registryEntries.length > 0) {
     const servicePortMap = new Map();
     for (const { name, port } of registryEntries) {
       if (!servicePortMap.has(port)) {
@@ -227,4 +276,8 @@ function validate() {
   process.exitCode = hasErrors ? 1 : 0;
 }
 
-validate();
+if (require.main === module) {
+  validate();
+}
+
+module.exports = { parseModuleRegistryContent };
