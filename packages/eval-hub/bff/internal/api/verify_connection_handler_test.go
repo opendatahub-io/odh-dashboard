@@ -123,6 +123,10 @@ func TestRootCAsWithSecretCert(t *testing.T) {
 		{"leaf only", leafPEM, "does not contain a CA certificate"},
 		// Text without a PEM block must be rejected.
 		{"invalid PEM", []byte("not PEM"), "invalid PEM data"},
+		// pem.Decode can otherwise skip this malformed prefix and return the valid CA.
+		{"malformed prefix before valid CA", append([]byte("not PEM\n"), secretPEM...), "invalid PEM data"},
+		// A malformed PEM block must not be skipped in favor of a later valid CA.
+		{"malformed block before valid CA", append([]byte("-----BEGIN CERTIFICATE-----\nnot base64!\n-----END CERTIFICATE-----\n"), secretPEM...), "invalid PEM data"},
 		// A certificate block with invalid DER must be rejected.
 		{"invalid certificate", pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: []byte("bad")}), "invalid certificate"},
 		// A PEM block of another type must not be treated as a certificate.
@@ -184,6 +188,7 @@ func TestConnectionProbeWithSecretCA(t *testing.T) {
 
 func TestVerifyConnectionHandler_UsesSecretCA(t *testing.T) {
 	ca, caKey, caPEM := testCertificateAuthority(t, "handler test CA")
+	secretCAData := caPEM
 	serverCertificate, _ := testServerCertificate(t, ca, caKey)
 	endpoint := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -210,7 +215,7 @@ func TestVerifyConnectionHandler_UsesSecretCA(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: "test-ns"},
 			Data: map[string][]byte{
 				"api-key": []byte("test-api-key"),
-				"ca_cert": caPEM,
+				"ca_cert": secretCAData,
 			},
 		})
 	}))
@@ -237,26 +242,50 @@ func TestVerifyConnectionHandler_UsesSecretCA(t *testing.T) {
 		evalHubClientFactory:    ehmocks.NewMockClientFactory(),
 		repositories:            repositories.NewRepositories(),
 	}
-	requestBody, err := json.Marshal(models.VerifyConnectionRequest{
-		SourceType: "model",
-		BaseURL:    endpoint.URL + "/v1",
-		SecretName: "test-secret",
-		ModelID:    "test-model",
-	})
-	require.NoError(t, err)
-	request := httptest.NewRequest(http.MethodPost, VerifyConnectionPath+"?namespace=test-ns", bytes.NewReader(requestBody))
-	request.Header.Set(constants.KubeflowUserIDHeader, "user@example.com")
-	response := httptest.NewRecorder()
-
-	app.Routes().ServeHTTP(response, request)
-
-	assert.Equal(t, http.StatusOK, response.Code, response.Body.String())
-	assert.True(t, secretRequested.Load(), "handler should resolve the Secret using the caller token")
-	var result struct {
-		Data models.VerifyConnectionResponse `json:"data"`
+	tests := []struct {
+		name             string
+		caCert           []byte
+		status           int
+		responseContains string
+	}{
+		{name: "uses Secret CA", caCert: caPEM, status: http.StatusOK},
+		{
+			name:             "rejects malformed ca_cert with HTTP 400",
+			caCert:           append([]byte("not PEM\n"), caPEM...),
+			status:           http.StatusBadRequest,
+			responseContains: "invalid ca_cert",
+		},
 	}
-	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
-	assert.True(t, result.Data.Success)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			secretCAData = tc.caCert
+			secretRequested.Store(false)
+			requestBody, err := json.Marshal(models.VerifyConnectionRequest{
+				SourceType: "model",
+				BaseURL:    endpoint.URL + "/v1",
+				SecretName: "test-secret",
+				ModelID:    "test-model",
+			})
+			require.NoError(t, err)
+			request := httptest.NewRequest(http.MethodPost, VerifyConnectionPath+"?namespace=test-ns", bytes.NewReader(requestBody))
+			request.Header.Set(constants.KubeflowUserIDHeader, "user@example.com")
+			response := httptest.NewRecorder()
+
+			app.Routes().ServeHTTP(response, request)
+
+			assert.Equal(t, tc.status, response.Code, response.Body.String())
+			assert.True(t, secretRequested.Load(), "handler should resolve the Secret using the caller token")
+			if tc.status != http.StatusOK {
+				assert.Contains(t, response.Body.String(), tc.responseContains)
+				return
+			}
+			var result struct {
+				Data models.VerifyConnectionResponse `json:"data"`
+			}
+			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
+			assert.True(t, result.Data.Success)
+		})
+	}
 }
 
 func TestVerifyConnectionHandler_MissingBaseURL(t *testing.T) {

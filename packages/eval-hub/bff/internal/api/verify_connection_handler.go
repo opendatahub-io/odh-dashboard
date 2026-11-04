@@ -99,11 +99,25 @@ func rootCAsWithSecretCert(configured *x509.CertPool, caCert []byte) (*x509.Cert
 	}
 	addedCA := false
 	for len(bytes.TrimSpace(caCert)) > 0 {
-		block, remaining := pem.Decode(caCert)
-		if block == nil {
+		caCert = bytes.TrimSpace(caCert)
+		const beginMarker = "-----BEGIN "
+		if !bytes.HasPrefix(caCert, []byte(beginMarker)) {
 			return nil, fmt.Errorf("ca_cert contains invalid PEM data")
 		}
-		caCert = remaining
+
+		// Decode one block at a time. pem.Decode searches forward for a valid block,
+		// so bound its input at the next BEGIN marker and reject skipped content.
+		blockEnd := bytes.Index(caCert[len(beginMarker):], []byte(beginMarker))
+		if blockEnd < 0 {
+			blockEnd = len(caCert)
+		} else {
+			blockEnd += len(beginMarker)
+		}
+		block, remaining := pem.Decode(caCert[:blockEnd])
+		if block == nil || len(bytes.TrimSpace(remaining)) > 0 {
+			return nil, fmt.Errorf("ca_cert contains invalid PEM data")
+		}
+		caCert = caCert[blockEnd:]
 		if block.Type != "CERTIFICATE" {
 			return nil, fmt.Errorf("ca_cert contains a non-certificate PEM block")
 		}
