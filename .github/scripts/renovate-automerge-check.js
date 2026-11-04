@@ -239,6 +239,48 @@ const lockDirectDeps = (text) => {
 };
 
 /**
+ * A pnpm importer is `{ <section>: { <dep>: { specifier, version } } }`. A
+ * version update may change only `specifier` and `version`; every other part of
+ * the importer describes the workspace, not the change, so it must be identical.
+ * Without this, metadata could ride along inside an otherwise eligible bump.
+ */
+const checkImporterShape = (baseImporters, headImporters) => {
+  if (!sameKeys(baseImporters, headImporters)) {
+    throw new Ineligible('pnpm-lock.yaml: importers added or removed');
+  }
+  Object.entries(headImporters).forEach(([importer, sections]) => {
+    const before = baseImporters[importer] ?? {};
+    if (!sameKeys(before, sections ?? {})) {
+      throw new Ineligible(`pnpm-lock.yaml: sections changed for importer '${importer}'`);
+    }
+    Object.entries(sections ?? {}).forEach(([section, entries]) => {
+      if (!LOCK_DEP_SECTIONS.includes(section)) {
+        if (!sameValue(before[section], entries)) {
+          throw new Ineligible(`pnpm-lock.yaml: '${section}' changed for importer '${importer}'`);
+        }
+        return;
+      }
+      Object.entries(entries ?? {}).forEach(([dep, info]) => {
+        // Pre-existing metadata is tolerated; adding or changing a field other
+        // than `specifier`/`version` is not part of a version update.
+        const extra = (entry) =>
+          Object.fromEntries(
+            Object.entries(entry ?? {}).filter(([key]) => key !== 'specifier' && key !== 'version'),
+          );
+        const beforeExtra = extra(before[section]?.[dep]);
+        const afterExtra = extra(info);
+        if (!sameValue(beforeExtra, afterExtra)) {
+          const changed = union(Object.keys(beforeExtra), Object.keys(afterExtra));
+          throw new Ineligible(
+            `pnpm-lock.yaml: unexpected ${changed.join(', ')} on ${dep} (importer '${importer}')`,
+          );
+        }
+      });
+    });
+  });
+};
+
+/**
  * Package name from a pnpm graph key.
  *   /foo@1.2.3             -> foo
  *   /@scope/pkg@1.2.3(a@1) -> @scope/pkg
@@ -441,18 +483,10 @@ const checkNpm = (base, head, files, max) => {
           throw new Ineligible(`pnpm-lock.yaml: '${key}' changed`);
         }
       });
-    // Importers and their sections are the shape of the workspace, not part of
-    // a version update, so a bump cannot add, remove or reshape one.
-    if (!sameKeys(baseLock.importers ?? {}, headLock.importers ?? {})) {
-      throw new Ineligible('pnpm-lock.yaml: importers added or removed');
-    }
-    Object.keys(headLock.importers ?? {}).forEach((importer) => {
-      if (!sameKeys(baseLock.importers[importer] ?? {}, headLock.importers[importer] ?? {})) {
-        throw new Ineligible(
-          `pnpm-lock.yaml: dependency sections changed for importer '${importer}'`,
-        );
-      }
-    });
+    // Importers are the shape of the workspace, not part of a version update,
+    // so a bump may only move an entry's `specifier`/`version`. Section names,
+    // non-dependency sections and any extra entry field must be identical.
+    checkImporterShape(baseLock.importers ?? {}, headLock.importers ?? {});
     checkResolutions(baseLock, headLock);
 
     const added = Object.keys(after).filter((k) => !Object.hasOwn(before, k));

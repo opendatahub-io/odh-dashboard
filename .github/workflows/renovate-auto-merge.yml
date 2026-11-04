@@ -61,9 +61,11 @@ env:
          or (.author_association // "") == "COLLABORATOR")
        and ((.body // "") | test("(^|\n)[[:space:]]*(/lgtm[[:space:]]+cancel|/remove-lgtm|/approve[[:space:]]+cancel|/remove-approve)[[:space:]]*($|\n)"; "i")))
      | .created_at] | max // ""
-  # A person removing lgtm directly (not via a command) is a withdrawal too.
+  # A person removing either merge label directly (not via a command) is a
+  # withdrawal too. Removing `approved` must mean the same as `/approve cancel`,
+  # otherwise a later event restores both labels on the same revision.
   HUMAN_WITHDRAWAL_QUERY: |
-    [.[] | select(.event == "unlabeled" and .label.name == "lgtm"
+    [.[] | select(.event == "unlabeled" and (.label.name == "lgtm" or .label.name == "approved")
         and (((.actor.login // "") | endswith("[bot]")) | not)) | .created_at] | max // ""
 
 jobs:
@@ -84,11 +86,13 @@ jobs:
     if: >-
       github.event.pull_request.user.login == (github.repository == 'opendatahub-io/odh-dashboard' && 'odh-dashboard-agent[bot]' || vars.RENOVATE_APP_LOGIN || 'odh-dashboard-agent[bot]') &&
       github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false &&
       startsWith(github.event.pull_request.head.ref, 'renovate/') &&
       (github.event.action != 'labeled' || startsWith(github.event.label.name, 'renovate/')) &&
       (github.event.action != 'unlabeled' ||
         startsWith(github.event.label.name, 'renovate/') ||
-        github.event.label.name == 'lgtm')
+        github.event.label.name == 'lgtm' ||
+        github.event.label.name == 'approved')
     steps:
       - name: Decide whether an lgtm removal needs action
         id: gate
@@ -184,8 +188,11 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          # Current renovate/* labels with the actor that most recently added each.
-          labels=$(gh api "repos/$REPO/issues/$PR_NUMBER/labels" | jq -c '[.[].name | select(startswith("renovate/"))]')
+          # Current renovate/* labels. Paginated and flattened like every other
+          # read here: an API page holds 30 labels by default, and a tier label
+          # outside page 1 would otherwise make an eligible PR look unlabeled.
+          labels=$(gh api "repos/$REPO/issues/$PR_NUMBER/labels" --paginate \
+            | jq -s -c 'add // [] | [.[].name | select(startswith("renovate/"))]')
           count=$(jq 'length' <<<"$labels")
           if [ "$count" -ne 1 ]; then
             echo "Not eligible: expected exactly one renovate/<tier> label, found $count: $labels"
@@ -307,8 +314,12 @@ jobs:
           live=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq .head.sha)
           # This value is printed in a ::warning:: line; accept a SHA only.
           if [[ ! "$live" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Unexpected head SHA from the API; refusing to label"
-            echo "moved=true" >> "$GITHUB_OUTPUT"
+            # An unreadable head cannot be verified, but it is not proof that
+            # the head moved either. Mark it distinct from "moved" so the label
+            # step re-reads the head and, if it is still unreadable, fails
+            # closed by withdrawing workflow labels instead of leaving them.
+            echo "::error::Unexpected head SHA from the API; re-checking before any label change"
+            echo "moved=unknown" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ "$live" != "$HEAD_SHA" ]; then
@@ -336,12 +347,16 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$MOVED" = "true" ]; then
+            # A known move defers to the run for the new head. `moved=unknown`
+            # (the head could not be read) deliberately falls through so the
+            # checks below re-read it and fail closed if it is still unreadable.
             echo "Head moved during validation — leaving labels for the new head's run"
             exit 0
           fi
           # Validation takes time. Resolve every withdrawal FIRST, then re-read
-          # the live head LAST, so a push cannot land between the check and the
-          # grant while these paginated reads are still running.
+          # the live head and the tier labels immediately before granting, so a
+          # push or a label change cannot land unseen while these paginated
+          # reads are still running.
           if [ "$ELIGIBLE" = "true" ]; then
             issue_comments=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --paginate \
               | jq -s 'add // [] | map({body, author_association, created_at, is_bot: (.user.type == "Bot")})')
@@ -366,15 +381,39 @@ jobs:
           if [ "$ELIGIBLE" = "true" ]; then
             live=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq .head.sha)
             if [[ ! "$live" =~ ^[0-9a-f]{40}$ ]]; then
-              echo "Unexpected head SHA from the API — not applying labels"
-              exit 0
-            fi
-            if [ "$live" != "$HEAD_SHA" ]; then
+              # An unreadable head cannot be verified, so fail closed: fall
+              # through to cleanup instead of leaving a previous run's pair.
+              echo "::error::Unexpected head SHA from the API — withdrawing workflow labels"
+              ELIGIBLE=false
+            elif [ "$live" != "$HEAD_SHA" ]; then
               echo "Head moved during validation ($HEAD_SHA -> $live) — deferring to the run for the new head"
               exit 0
             fi
           fi
-          if [ "$ELIGIBLE" = "true" ] && [ "$MOVED" = "false" ]; then
+          # Eligibility was decided before the head was re-read. Tier labels are
+          # mutable independently of the head, and a revocation run queues behind
+          # this one (cancel-in-progress: false), so re-read them and their
+          # attribution immediately before granting. Anything other than the
+          # exact app-applied tier that was validated withdraws instead.
+          if [ "$ELIGIBLE" = "true" ]; then
+            live_tiers=$(gh api "repos/$REPO/issues/$PR_NUMBER/labels" --paginate \
+              | jq -s -c 'add // [] | [.[].name | select(startswith("renovate/"))]')
+            if [ "$live_tiers" != "[\"renovate/$TIER\"]" ]; then
+              echo "Tier labels changed during validation ($live_tiers) — withdrawing workflow labels"
+              ELIGIBLE=false
+            else
+              # A label with the right name is not enough: confirm the app was
+              # the last to add it, so a same-named human re-add confers nothing.
+              live_actor=$(gh api "repos/$REPO/issues/$PR_NUMBER/events" --paginate \
+                | jq -r --arg l "renovate/$TIER" '.[] | select(.event == "labeled" and .label.name == $l) | .actor.login' \
+                | tail -n 1)
+              if [ "$live_actor" != "$RENOVATE_APP_LOGIN" ]; then
+                echo "Tier label renovate/$TIER was last added by '$live_actor', not $RENOVATE_APP_LOGIN — withdrawing workflow labels"
+                ELIGIBLE=false
+              fi
+            fi
+          fi
+          if [ "$ELIGIBLE" = "true" ]; then
             gh pr edit "$PR_URL" --add-label "lgtm,approved"
             echo "### ✅ Auto-merge labels applied (tier: $TIER)" >> "$GITHUB_STEP_SUMMARY"
           else

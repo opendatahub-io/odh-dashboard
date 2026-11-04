@@ -216,6 +216,18 @@
 
     // ── Policy exclusions (enabled:false, so they cannot add labels) ────────
     {
+      // A prerelease specifier cannot be classified by the patch/minor tiers.
+      // The resolved version can already be stable (e.g. `^0.54.0-beta.2`
+      // resolves 0.54.0), which Renovate reports as a `patch` while
+      // renovate-automerge-check.js correctly refuses it as "not a
+      // stable-release change". One such dependency would mark its whole
+      // grouped patch PR ineligible. Upgrade prerelease pins by hand.
+      "description": "Prerelease-track npm dependencies: upgrade by hand",
+      "matchManagers": ["npm"],
+      "matchCurrentValue": "/-/",
+      "enabled": false
+    },
+    {
       // Root pnpm-workspace.yaml `overrides` are hand-maintained pins (CVE
       // fixes, PatternFly/MUI alignment, transitive selectors like
       // `a>b`). Bumping them silently changes what every package resolves.

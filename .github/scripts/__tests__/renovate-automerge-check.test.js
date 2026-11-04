@@ -218,6 +218,7 @@ const lock = ({
   rootSpec = '^1.0.0',
   workspaceSpec = '^1.0.0',
   extraImporters = '',
+  workspaceExtra = '',
   barDeps = { foo: '1.0.1' },
   extraPackages = '',
   extraSnapshots = '',
@@ -248,7 +249,7 @@ importers:
       foo:
         specifier: ${workspaceSpec}
         version: ${workspace}
-${extraImporters}
+${workspaceExtra}${extraImporters}
 packages:
   foo@1.0.1:
     resolution: {integrity: sha512-AAA}
@@ -425,6 +426,64 @@ integration('npm: changing an unrelated package.json field is refused', () => {
   const { eligible, output } = run(dir, base, head, 'npm-patch');
   assert.equal(eligible, false, output);
   assert.match(output, /'scripts' changed/);
+});
+
+integration('npm: a non-dependency importer section cannot change', () => {
+  // Importers describe the workspace; only an entry's specifier/version may
+  // move with a bump. A metadata section must not ride along.
+  const { dir, base } = makeRepo({
+    'package.json': rootManifest,
+    'packages/a/package.json': workspaceManifest,
+    'pnpm-lock.yaml': lock({ workspaceExtra: '    specifiers:\n      foo: ^1.0.0\n' }),
+  });
+  const head = commitFiles(
+    dir,
+    {
+      'pnpm-lock.yaml': lock({
+        root: '1.0.2',
+        workspace: '1.0.2',
+        workspaceExtra: '    specifiers:\n      foo: ^2.0.0\n',
+      }),
+    },
+    'bump foo and tweak importer metadata',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, false, output);
+  assert.match(output, /'specifiers' changed for importer 'packages\/a'/);
+});
+
+integration('npm: an extra field on a dependency entry is refused', () => {
+  const { dir, base } = npmRepo();
+  const tampered = lock({ root: '1.0.2', workspace: '1.0.2' }).replace(
+    '      foo:\n        specifier: ^1.0.0\n        version: 1.0.2',
+    '      foo:\n        specifier: ^1.0.0\n        version: 1.0.2\n        integrity: sha512-EVIL',
+  );
+  const head = commitFiles(dir, { 'pnpm-lock.yaml': tampered }, 'bump foo with metadata');
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, false, output);
+  assert.match(output, /unexpected integrity on foo \(importer '\.'\)/);
+});
+
+integration('npm: pre-existing dependency-entry metadata may stay unchanged', () => {
+  // The check rejects metadata that appears or changes with the bump; it must
+  // not refuse a repo where pnpm already writes that field on both revisions.
+  const withMeta = (version) =>
+    lock({ root: version, workspace: version }).replace(
+      `      foo:\n        specifier: ^1.0.0\n        version: ${version}`,
+      `      foo:\n        specifier: ^1.0.0\n        version: ${version}\n        integrity: sha512-OLD`,
+    );
+  const { dir, base } = makeRepo({
+    'package.json': rootManifest,
+    'packages/a/package.json': workspaceManifest,
+    'pnpm-lock.yaml': withMeta('1.0.1'),
+  });
+  const head = commitFiles(
+    dir,
+    { 'pnpm-lock.yaml': withMeta('1.0.2') },
+    'bump foo keeping existing metadata',
+  );
+  const { eligible, output } = run(dir, base, head, 'npm-patch');
+  assert.equal(eligible, true, output);
 });
 
 integration('npm-patch: an unchanged package may follow a bumped transitive dep', () => {

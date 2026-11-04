@@ -240,6 +240,44 @@ integration('routes a human removal to label cleanup', () => {
   assert.match(text, /approval withdrawn after the last push/);
 });
 
+integration('routes a human removal of approved to label cleanup', () => {
+  // Removing `approved` directly is the same withdrawal as `/approve cancel`,
+  // otherwise a later event on the same head restores the Tide pair.
+  const { out, text } = runGateRaw(
+    [
+      pushed,
+      {
+        event: 'unlabeled',
+        label: { name: 'approved' },
+        actor: { login: 'jessiehuff' },
+        created_at: '2026-10-27T10:06:00Z',
+      },
+    ],
+    { LABEL: 'approved' },
+  );
+  assert.equal(decision(out), 'true', out);
+  assert.match(text, /approval withdrawn after the last push/);
+});
+
+integration('ignores a bot removal of approved', () => {
+  // Prow does not remove approved, but a bot doing so must not be read as a
+  // human withdrawal that permanently refuses to re-label.
+  const { out, text } = runGateRaw(
+    [
+      pushed,
+      {
+        event: 'unlabeled',
+        label: { name: 'approved' },
+        actor: { login: 'openshift-ci[bot]' },
+        created_at: '2026-10-27T10:06:00Z',
+      },
+    ],
+    { LABEL: 'approved' },
+  );
+  assert.equal(decision(out), 'false', out);
+  assert.doesNotMatch(text, /approval withdrawn/);
+});
+
 integration('respects its own label cleanup', () => {
   const { out, text } = runGateRaw([
     pushed,

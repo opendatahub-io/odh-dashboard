@@ -33,7 +33,7 @@ Upstream-synced trees (`packages/model-registry/upstream/`, `packages/notebooks/
 
 ## Renovate
 
-Renovate (`.github/renovate.json5`, self-hosted via `.github/workflows/renovate.yml`, app `odh-dashboard-agent`) owns **version updates** for npm, Go modules, GitHub Actions and Dockerfile base images. Dependabot keeps **security updates** only (`open-pull-requests-limit: 0` in `.github/dependabot.yml`), so the two bots never propose the same change.
+Renovate (`.github/renovate.json5`, self-hosted via `.github/workflows/renovate.yml`, app `odh-dashboard-agent`) owns **version updates** for npm, Go modules, GitHub Actions and Dockerfile base images. Dependabot keeps **security updates** only (`open-pull-requests-limit: 0` in `.github/dependabot.yml`), so Renovate owns routine version bumps. That split does not guarantee the two never touch the same change: a security fix is a normal version bump too, so an open Renovate PR can already move a package past an advisory. If a Dependabot security PR you expected is missing, check open Renovate PRs before treating it as a failure.
 
 **Go-live prerequisites** (outside this repo)
 

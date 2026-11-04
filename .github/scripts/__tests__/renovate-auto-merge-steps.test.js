@@ -63,13 +63,16 @@ const extractStep = (selector) =>
 const workflowEnv = () =>
   JSON.parse(execFileSync('yq', ['-o=json', '.', WORKFLOW], { encoding: 'utf8' })).env ?? {};
 
+// Default to the state an eligible run sees: the app-applied tier label is
+// present in both `/labels` and `/events`, so the label-step rechecks pass
+// unless a case deliberately overrides them.
 const EMPTY = {
   timeline: [],
   comments: [],
   reviews: [],
   review_comments: [],
-  labels: [],
-  events: [],
+  labels: [{ name: 'renovate/npm-patch' }],
+  events: [{ event: 'labeled', label: { name: 'renovate/npm-patch' }, actor: { login: APP } }],
   commits: [],
 };
 
@@ -265,15 +268,30 @@ integration('head: reports moved when the live head changed', () => {
   assert.equal(outputValue(out, 'moved'), 'true', out);
 });
 
-integration('head: refuses a non-SHA value instead of echoing it', () => {
+integration('head: reports unknown for a non-SHA value instead of echoing it', () => {
   const { out, text } = runStep(headStep, { liveHead: 'garbage::warning::pwn' });
-  assert.equal(outputValue(out, 'moved'), 'true', out);
+  // Not "moved": an unreadable head is unverified, so the label step must
+  // re-read it and fail closed rather than defer with labels left standing.
+  assert.equal(outputValue(out, 'moved'), 'unknown', out);
   assert.doesNotMatch(text, /pwn/);
 });
 
-integration('labels: refuses to act on a non-SHA head', () => {
-  const { log, text } = runStep(labelStep, { liveHead: 'garbage::warning::pwn' }, eligible);
+integration('labels: withdraws workflow labels when the head is unreadable', () => {
+  const { log, text } = runStep(
+    labelStep,
+    {
+      liveHead: 'garbage::warning::pwn',
+      events: [
+        labelEvent('github-actions[bot]', 'lgtm'),
+        labelEvent('github-actions[bot]', 'approved'),
+      ],
+    },
+    eligible,
+  );
   assert.doesNotMatch(log, /--add-label/);
+  assert.match(log, /--remove-label lgtm/);
+  assert.match(log, /--remove-label approved/);
+  assert.match(text, /withdrawing workflow labels/);
   assert.doesNotMatch(text, /pwn/);
 });
 
@@ -285,6 +303,75 @@ const eligible = { ELIGIBLE: 'true', MOVED: 'false', TIER: 'npm-patch' };
 integration('labels: applies lgtm and approved to an eligible, unmoved head', () => {
   const { log } = runStep(labelStep, {}, eligible);
   assert.match(log, /--add-label lgtm,approved/);
+});
+
+integration('labels: withdraws when the tier label is revoked during validation', () => {
+  // A revocation run queues behind this one, so the tier label can disappear
+  // after the diff was validated but before the labels are applied.
+  const { log, text } = runStep(
+    labelStep,
+    {
+      labels: [],
+      events: [
+        labelEvent('github-actions[bot]', 'lgtm'),
+        labelEvent('github-actions[bot]', 'approved'),
+      ],
+    },
+    eligible,
+  );
+  assert.doesNotMatch(log, /--add-label/);
+  assert.match(log, /--remove-label lgtm/);
+  assert.match(log, /--remove-label approved/);
+  assert.match(text, /Tier labels changed during validation/);
+});
+
+integration('labels: withdraws when the tier label was re-added by a human', () => {
+  const { log, text } = runStep(
+    labelStep,
+    {
+      events: [
+        labelEvent(APP),
+        labelEvent('jessiehuff'),
+        labelEvent('github-actions[bot]', 'lgtm'),
+        labelEvent('github-actions[bot]', 'approved'),
+      ],
+    },
+    eligible,
+  );
+  assert.doesNotMatch(log, /--add-label/);
+  assert.match(log, /--remove-label lgtm/);
+  assert.match(text, /was last added by 'jessiehuff'/);
+});
+
+integration('labels: cleanup removes workflow labels when eligibility was never set', () => {
+  // A crash before `eligible` is written must still withdraw this workflow's
+  // labels; the behaviour, not just the step condition, is asserted here.
+  const { log } = runStep(
+    labelStep,
+    {
+      events: [
+        labelEvent('github-actions[bot]', 'lgtm'),
+        labelEvent('github-actions[bot]', 'approved'),
+      ],
+    },
+    { ELIGIBLE: '', MOVED: '', TIER: '' },
+  );
+  assert.doesNotMatch(log, /--add-label/);
+  assert.match(log, /--remove-label lgtm/);
+  assert.match(log, /--remove-label approved/);
+});
+
+integration('labels: cleanup keeps a human label when eligibility was never set', () => {
+  const { log } = runStep(
+    labelStep,
+    {
+      events: [labelEvent('github-actions[bot]', 'lgtm'), labelEvent('jessiehuff', 'approved')],
+    },
+    { ELIGIBLE: '', MOVED: '', TIER: '' },
+  );
+  assert.doesNotMatch(log, /--add-label/);
+  assert.match(log, /--remove-label lgtm/);
+  assert.doesNotMatch(log, /--remove-label approved/);
 });
 
 integration('labels: does not apply when the diff is ineligible', () => {
