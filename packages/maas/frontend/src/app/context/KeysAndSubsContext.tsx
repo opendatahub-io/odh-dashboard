@@ -3,11 +3,11 @@ import React from 'react';
 import { UserSubscription } from '~/app/types/subscriptions';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
-import { searchApiKeys, searchTenantApiKeys } from '~/app/api/api-keys';
+import { searchTenantApiKeys } from '~/app/api/api-keys';
 import { useAppContext } from '~/app/context/AppContext';
 import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 import { useMaaSGatewayUrl } from '~/app/hooks/useMaaSGatewayUrl';
-import { useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
+import { isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const KeysAndSubsContext = React.createContext({} as KeysAndSubsContextType);
@@ -36,7 +36,6 @@ type KeysAndSubsProviderProps = {
 };
 
 export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ children }) => {
-  const isGridEnabled = useGridFeatureFlag();
   const { user } = useAppContext();
 
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
@@ -46,18 +45,18 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
 
   const isMaasAdminCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
     (opts: APIOptions) =>
-      isGridEnabled
+      isMaaSPortalHost()
         ? Promise.resolve(Boolean(user.isAdmin))
         : getIsMaasAdmin()(opts).then((result) => result.allowed),
-    [isGridEnabled, user.isAdmin],
+    [user.isAdmin],
   );
 
   const hasAnyApiKeysCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
     (opts: APIOptions) =>
-      (isGridEnabled ? searchTenantApiKeys() : searchApiKeys())(opts, {
+      searchTenantApiKeys()(opts, {
         pagination: { limit: 1 },
       }).then((result) => result.data.length > 0),
-    [isGridEnabled],
+    [],
   );
 
   const [subscriptions, subscriptionsLoaded, subscriptionsError, refreshSubscriptions] =

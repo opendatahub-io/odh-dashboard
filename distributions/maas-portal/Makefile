@@ -117,5 +117,5 @@ grid-start-federated grid-start-mock:
 	fi
 
 grid-logs:
-	@test -f .local-bffs/portal.log || { echo 'No logs yet. Start a grid setup first.' >&2; exit 1; }
+	@test -f .local-bffs/portal.log || { echo 'No logs yet. Start a portal setup first.' >&2; exit 1; }
 	@tail -n +1 -F .local-bffs/maas.log .local-bffs/genai.log .local-bffs/portal.log
