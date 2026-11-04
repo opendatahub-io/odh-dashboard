@@ -70,7 +70,27 @@ describe('parseModuleRegistryContent', () => {
       ]),
     );
     assert.deepEqual(entries, [{ name: 'b', port: 8143 }]);
-    assert.deepEqual(errors, ['module "a" has a non-literal Port value "servicePort"']);
+    assert.deepEqual(errors, [
+      'module "a" has a Port value "servicePort" that is not a plain decimal literal',
+    ]);
+  });
+
+  it('rejects Go integer literals that are not plain decimal', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      registry([
+        '\t"a": {Port: 017553},',
+        '\t"b": {Port: 8043},',
+        '\t"c": {Port: 0x1F6B},',
+        '\t"d": {Port: 8_143},',
+      ]),
+    );
+    assert.deepEqual(entries, [{ name: 'b', port: 8043 }]);
+    assert.deepEqual(errors, [
+      'module "a" has a Port value "017553" that is not a plain decimal literal',
+      'module "c" has a Port value "0x1F6B" that is not a plain decimal literal',
+      'module "d" has a Port value "8_143" that is not a plain decimal literal',
+    ]);
+    assert.equal(validateProductionPorts({ entries, errors }), true);
   });
 
   it('fails when an entry has no Port field', () => {

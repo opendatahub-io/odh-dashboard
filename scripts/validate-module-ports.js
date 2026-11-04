@@ -200,10 +200,14 @@ function parseModuleRegistryContent(content) {
       return;
     }
     const value = portMatch[1].trim();
-    if (/^\d+$/.test(value)) {
+    // Only plain decimal literals: Go reads a leading 0 as octal (017553 === 8043), and 0x/0o/0b
+    // prefixes or `_` separators would also be misread, so anything else fails closed.
+    if (/^[1-9]\d*$/.test(value)) {
       entries.push({ name, port: Number(value) });
     } else {
-      errors.push(`module "${name}" has a non-literal Port value "${value}"`);
+      errors.push(
+        `module "${name}" has a Port value "${value}" that is not a plain decimal literal`,
+      );
     }
   };
 
