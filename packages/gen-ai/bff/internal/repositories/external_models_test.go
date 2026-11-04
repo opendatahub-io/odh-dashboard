@@ -313,8 +313,8 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantName: "my-model",
 			// CoreDNS names a hostname-less endpoint after its address with dots
 			// replaced by dashes, so such names must resolve to that endpoint.
-			service:       selectorSvc(corev1.ClusterIPNone, intstr.FromInt32(8443)),
-			slices:        []discoveryv1.EndpointSlice{withSlicePort(sliceWith("my-ns", "my-model-dashed", false,
+			service: selectorSvc(corev1.ClusterIPNone, intstr.FromInt32(8443)),
+			slices: []discoveryv1.EndpointSlice{withSlicePort(sliceWith("my-ns", "my-model-dashed", false,
 				ep("10.0.0.10", boolPtr(true), nil, "", podRefAt("my-ns", "my-model-pod"))), "https", 8443)},
 			pod:           runningPod("my-ns", "10.0.0.10"),
 			wantAddresses: []string{"10.0.0.10:8443"},
