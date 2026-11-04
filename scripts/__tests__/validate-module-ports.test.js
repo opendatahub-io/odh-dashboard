@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseModuleRegistryContent } = require('../validate-module-ports');
+const { parseModuleRegistryContent, validateProductionPorts } = require('../validate-module-ports');
 
 const registry = (body) =>
   [
@@ -85,5 +85,96 @@ describe('parseModuleRegistryContent', () => {
       'var moduleRegistry = map[string]ModuleDefinition{\n\t"a": {\n\t\tPort: 8043,\n',
     );
     assert.ok(errors.includes('moduleRegistry literal is not terminated'));
+  });
+
+  it('parses explicitly typed entries, so their duplicate ports are still checked', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      registry([
+        '\t"a": {',
+        '\t\tPort: 8043,',
+        '\t},',
+        '\t"b": ModuleDefinition{',
+        '\t\tPort: 8043,',
+        '\t},',
+      ]),
+    );
+    assert.deepEqual(errors, []);
+    assert.deepEqual(entries, [
+      { name: 'a', port: 8043 },
+      { name: 'b', port: 8043 },
+    ]);
+    assert.equal(validateProductionPorts({ entries, errors }), true);
+  });
+
+  it('fails on top-level entry forms it does not understand', () => {
+    const { errors } = parseModuleRegistryContent(
+      registry([
+        '\tmodelRegistryKey: {',
+        '\t\tPort: 8043,',
+        '\t},',
+        '\t"b": {',
+        '\t\tPort: 8143,',
+        '\t},',
+      ]),
+    );
+    assert.deepEqual(errors, ['unsupported moduleRegistry entry form: modelRegistryKey: {']);
+  });
+
+  it('ignores comments between entries', () => {
+    const { entries, errors } = parseModuleRegistryContent(
+      registry(['\t// first module', '\t"a": {', '\t\tPort: 8043,', '\t},']),
+    );
+    assert.deepEqual(errors, []);
+    assert.deepEqual(entries, [{ name: 'a', port: 8043 }]);
+  });
+});
+
+describe('validateProductionPorts', () => {
+  const quiet = (fn) => {
+    const { log, error } = console;
+    console.log = () => undefined;
+    console.error = () => undefined;
+    try {
+      return fn();
+    } finally {
+      console.log = log;
+      console.error = error;
+    }
+  };
+
+  it('passes for unique ports with no parse errors', () => {
+    const result = quiet(() =>
+      validateProductionPorts({
+        entries: [
+          { name: 'a', port: 8043 },
+          { name: 'b', port: 8143 },
+        ],
+        errors: [],
+      }),
+    );
+    assert.equal(result, false);
+  });
+
+  it('fails on duplicate production ports', () => {
+    const result = quiet(() =>
+      validateProductionPorts({
+        entries: [
+          { name: 'a', port: 8043 },
+          { name: 'b', port: 8043 },
+        ],
+        errors: [],
+      }),
+    );
+    assert.equal(result, true);
+  });
+
+  it('fails when the registry could not be fully read', () => {
+    const result = quiet(() =>
+      validateProductionPorts({
+        entries: [{ name: 'b', port: 8143 }],
+        errors: ['module "a" has no numeric Port field'],
+      }),
+    );
+    assert.equal(result, true);
   });
 });

@@ -22,13 +22,13 @@ pnpm run validate:ports
 
 This prints every `module-federation.local.port` in the workspace (including `distributions/`) and every production service port registered in the dashboard-operator (`dashboard-operator/internal/controller/modules.go`).
 
-`validate:ports` does not cover BFF ports. List the BFF ports already in use separately, and pick a BFF port that does not appear in this list:
+`validate:ports` does not cover BFF ports. List the BFF ports already in use separately, and pick a BFF port that does not appear in this list. Ports `4000` (the dashboard backend and the default dev setup) and `4010` (the dashboard shell) are always reserved, even if the list does not show them:
 
 ```bash
 grep -hoE '(PROXY_)?PORT=40[0-9]{2}' packages/*/Makefile packages/*/package.json 2>/dev/null | grep -oE '[0-9]+' | sort -n | uniq
 ```
 
-> **Convention**: Frontend federation ports use the 9100–9399 range. BFF (local dev) ports use the 4000–4099 range. Production service ports step by 100 (`8043`, `8143`, …). Pick the next available number in each range.
+> **Convention**: Frontend federation ports use the 9100–9399 range. BFF (local dev) ports use the 4000–4099 range, excluding the reserved `4000` and `4010`. Production service ports step by 100 (`8043`, `8143`, …). Pick the next available number in each range.
 
 ### 2. Initialize the Module
 

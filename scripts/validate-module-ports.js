@@ -102,7 +102,8 @@ function parseModuleRegistryContent(content) {
       closed = true;
       break;
     }
-    const keyMatch = line.match(/^\t"([^"]+)":\s*{/);
+    // Accept both the shorthand `"name": {` and the explicitly typed `"name": ModuleDefinition{`.
+    const keyMatch = line.match(/^\t"([^"]+)":\s*(?:ModuleDefinition\s*)?{/);
     if (keyMatch) {
       finishEntry();
       [, current] = keyMatch;
@@ -111,6 +112,12 @@ function parseModuleRegistryContent(content) {
     if (/^\t},?\s*$/.test(line)) {
       finishEntry();
       continue;
+    }
+    // Any other top-level (single-tab) line that is not blank or a comment is an entry form this
+    // parser does not understand; fail instead of silently skipping it.
+    if (/^\t\S/.test(line) && !/^\t\/\//.test(line)) {
+      finishEntry();
+      errors.push(`unsupported moduleRegistry entry form: ${line.trim()}`);
     }
     const portMatch = line.match(/^\t\tPort:\s*([^,]+),/);
     if (current !== null && portMatch) {
@@ -163,6 +170,64 @@ function checkPortMap(portMap) {
   }
 
   return conflicts;
+}
+
+/**
+ * Validates production service ports parsed from the dashboard-operator moduleRegistry.
+ * Returns true when there are errors: unreadable registry entries or duplicate ports.
+ */
+function validateProductionPorts({ entries: registryEntries, errors: registryErrors }) {
+  let hasErrors = false;
+  if (registryErrors.length > 0) {
+    hasErrors = true;
+    console.error(
+      `${colors.red}✗ Could not read every production port from the dashboard-operator ` +
+        `moduleRegistry (modules.go):${colors.reset}\n`,
+    );
+    for (const error of registryErrors) {
+      console.error(`  ${error}`);
+    }
+    console.error(
+      `\nEach moduleRegistry entry must set "Port" to a numeric literal so it can be validated.\n`,
+    );
+  }
+  if (registryEntries.length > 0) {
+    const servicePortMap = new Map();
+    for (const { name, port } of registryEntries) {
+      if (!servicePortMap.has(port)) {
+        servicePortMap.set(port, []);
+      }
+      servicePortMap.get(port).push({ name: `${name} [moduleRegistry]` });
+    }
+
+    console.log(
+      `${colors.cyan}Production Service Ports (dashboard-operator modules.go)${colors.reset}`,
+    );
+    console.log('─'.repeat(60));
+    const serviceConflicts = checkPortMap(servicePortMap);
+    console.log('─'.repeat(60));
+    console.log(`  ${registryEntries.length} module(s), ${servicePortMap.size} unique port(s)\n`);
+
+    if (serviceConflicts.length > 0) {
+      hasErrors = true;
+      console.error(
+        `${colors.red}✗ Production service port conflicts in modules.go:${colors.reset}\n`,
+      );
+      for (const { port, owners } of serviceConflicts) {
+        const names = owners.map((o) => o.name).join(', ');
+        console.error(`  Port ${port} is used by: ${names}`);
+      }
+      console.error(
+        `\nEach module must have a unique "Port" in the dashboard-operator moduleRegistry.`,
+      );
+      console.error(
+        `Ports must also match module-federation.service.port in the package.json and the ` +
+          `manifests/modules/<slug>/ deployment, service and networkpolicy.\n`,
+      );
+    }
+  }
+
+  return hasErrors;
 }
 
 function validate() {
@@ -219,55 +284,8 @@ function validate() {
   }
 
   // --- 2. Validate production service ports from the dashboard-operator module registry ---
-  const { entries: registryEntries, errors: registryErrors } =
-    parseModuleRegistry(MODULE_REGISTRY_PATH);
-  if (registryErrors.length > 0) {
+  if (validateProductionPorts(parseModuleRegistry(MODULE_REGISTRY_PATH))) {
     hasErrors = true;
-    console.error(
-      `${colors.red}✗ Could not read every production port from the dashboard-operator ` +
-        `moduleRegistry (modules.go):${colors.reset}\n`,
-    );
-    for (const error of registryErrors) {
-      console.error(`  ${error}`);
-    }
-    console.error(
-      `\nEach moduleRegistry entry must set "Port" to a numeric literal so it can be validated.\n`,
-    );
-  }
-  if (registryEntries.length > 0) {
-    const servicePortMap = new Map();
-    for (const { name, port } of registryEntries) {
-      if (!servicePortMap.has(port)) {
-        servicePortMap.set(port, []);
-      }
-      servicePortMap.get(port).push({ name: `${name} [moduleRegistry]` });
-    }
-
-    console.log(
-      `${colors.cyan}Production Service Ports (dashboard-operator modules.go)${colors.reset}`,
-    );
-    console.log('─'.repeat(60));
-    const serviceConflicts = checkPortMap(servicePortMap);
-    console.log('─'.repeat(60));
-    console.log(`  ${registryEntries.length} module(s), ${servicePortMap.size} unique port(s)\n`);
-
-    if (serviceConflicts.length > 0) {
-      hasErrors = true;
-      console.error(
-        `${colors.red}✗ Production service port conflicts in modules.go:${colors.reset}\n`,
-      );
-      for (const { port, owners } of serviceConflicts) {
-        const names = owners.map((o) => o.name).join(', ');
-        console.error(`  Port ${port} is used by: ${names}`);
-      }
-      console.error(
-        `\nEach module must have a unique "Port" in the dashboard-operator moduleRegistry.`,
-      );
-      console.error(
-        `Ports must also match module-federation.service.port in the package.json and the ` +
-          `manifests/modules/<slug>/ deployment, service and networkpolicy.\n`,
-      );
-    }
   }
 
   if (!hasErrors) {
@@ -280,4 +298,4 @@ if (require.main === module) {
   validate();
 }
 
-module.exports = { parseModuleRegistryContent };
+module.exports = { parseModuleRegistryContent, validateProductionPorts };
