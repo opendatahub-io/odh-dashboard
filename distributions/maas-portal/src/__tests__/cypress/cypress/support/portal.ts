@@ -8,10 +8,10 @@ export const portalPath = (pathname = '/'): string => `/maas-portal${pathname}`;
 export const maasApi = (pathname: string): string => portalPath(`/maas/api/v1${pathname}`);
 
 export const setupPortalMocks = ({ isMaaSAdmin = false }: { isMaaSAdmin?: boolean } = {}): void => {
-  cy.intercept('GET', portalPath('/api/config'), { spec: { dashboardConfig: { grid: true } } });
   cy.intercept('GET', maasApi('/user'), {
     data: { userId: 'portal-user', clusterAdmin: false },
   });
+  cy.intercept('GET', maasApi('/namespaces'), { data: [] });
   cy.intercept('GET', maasApi('/whoami'), {
     data: { sub: 'portal-user', isAdmin: isMaaSAdmin },
   }).as('whoami');
