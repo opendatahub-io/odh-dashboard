@@ -423,10 +423,13 @@ group is absent) the manager likewise uses Intermediate defaults.
 The one exception to fail-closed is a **transient** read error at startup (service
 unavailable, timeout, server timeout, too-many-requests, or the 10s resolve deadline
 expiring). Rather than crash-loop through an API brownout, the manager starts with
-Intermediate defaults (TLS 1.2) and records the profile as `Intermediate`. Until the
-`ProfileWatcher` (below) reads the real profile, the metrics and webhook listeners can
-therefore briefly serve TLS 1.2 even if the cluster requires `Modern`; once the read
-succeeds and the profile differs, the watcher restarts the manager onto the real policy.
+Intermediate defaults (TLS 1.2) and records the profile as `Intermediate`. The metrics
+and webhook listeners therefore serve TLS 1.2, even if the cluster requires `Modern`,
+**until the `ProfileWatcher` (below) successfully reads the real profile**. The 10s
+deadline bounds only the initial resolve; the watcher retries failed reads with no
+application-level limit, so a prolonged API outage keeps the listeners on TLS 1.2 for as
+long as it lasts. Once the read succeeds and the profile differs, the watcher restarts
+the manager onto the real policy.
 This mirrors the startup leniency of the BFF and notebooks listeners.
 
 Unlike the BFF listeners (which reconfigure in-process), the operator does not
