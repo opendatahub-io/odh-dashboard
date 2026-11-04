@@ -27,7 +27,7 @@ export class NIMWizardFields extends SubComponentBase {
   }
 
   findPVCNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findScope().findByTestId('nim-pvc-name-input');
+    return this.findScope().findByTestId('nim-pvc-name-name');
   }
 
   findSubPathInput(): Cypress.Chainable<JQuery<HTMLElement>> {

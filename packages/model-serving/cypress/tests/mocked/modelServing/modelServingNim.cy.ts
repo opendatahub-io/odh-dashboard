@@ -650,8 +650,11 @@ describe('NIM Models Deployments', () => {
     cy.interceptK8sList(
       { model: PVCModel, ns: 'test-project' },
       mockK8sResourceList([
-        mockNimModelPVC({ name: 'my-nim-wizard-pvc' }),
-        mockNimModelPVC({ name: 'updated-nim-wizard-pvc' }),
+        mockNimModelPVC({ name: 'my-nim-wizard-pvc', displayName: 'my-nim-wizard-pvc' }),
+        mockNimModelPVC({
+          name: 'updated-nim-wizard-pvc',
+          displayName: 'updated-nim-wizard-pvc',
+        }),
       ]),
     );
     cy.interceptK8s(
