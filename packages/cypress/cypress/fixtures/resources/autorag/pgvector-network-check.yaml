@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: autorag-pgvector-network-check
+  labels:
+    app.kubernetes.io/name: autorag-pgvector-network-check
+    app.kubernetes.io/part-of: autorag-e2e
+    odh-dashboard.io/e2e-owner: __PGVECTOR_OWNER__
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autorag-pgvector-network-check
+        app.kubernetes.io/part-of: autorag-e2e
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      containers:
+        - name: network-check
+          image: '__PGVECTOR_IMAGE__'
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ['ALL']
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command: ['/bin/sh', '-c']
+          args:
+            - |
+              i=0
+              while [ "$i" -lt 140 ]; do
+                if pg_isready -h "autorag-pgvector.${POD_NAMESPACE}.svc.cluster.local" \
+                  -p 5432 -U autorag_test_user -d autorag_test_db; then
+                  exit 0
+                fi
+                i=$((i + 1))
+                sleep 2
+              done
+              exit 1

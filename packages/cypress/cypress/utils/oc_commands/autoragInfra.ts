@@ -3,6 +3,7 @@ import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const PGVECTOR_RESOURCE_FIXTURE = 'resources/autorag/pgvector.yaml';
+const PGVECTOR_NETWORK_CHECK_FIXTURE = 'resources/autorag/pgvector-network-check.yaml';
 const PGVECTOR_DEPLOYMENT = 'autorag-pgvector';
 const PGVECTOR_SERVICE = 'autorag-pgvector';
 const PGVECTOR_DATABASE = 'autorag_test_db';
@@ -208,6 +209,26 @@ export const getVectorDatabaseConnection = (
   };
 };
 
+const applyAutoragPgvectorNetworkCheck = (
+  namespace: string,
+  image: string,
+  owner: string,
+): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture(PGVECTOR_NETWORK_CHECK_FIXTURE, 'utf8').then((template: string) => {
+    const rendered = template
+      .replaceAll('__PGVECTOR_IMAGE__', image)
+      .replaceAll('__PGVECTOR_OWNER__', owner);
+    return applyOpenShiftYaml(rendered, namespace).then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to provision the temporary AutoRAG PGVector network check in ${namespace}: ${commandOutput(
+            result,
+          )}`,
+        );
+      }
+    });
+  });
+
 /**
  * Create the temporary project-scoped PGVector instance and verify both readiness and
  * same-namespace network reachability before an AutoRAG connection is created.
@@ -267,6 +288,7 @@ export const provisionAutoragPgvector = (namespace: string): Cypress.Chainable<u
           pollIntervalMs: 2000,
         });
       })
+      .then(() => applyAutoragPgvectorNetworkCheck(namespace, image, owner))
       .then(() => verifyAutoragPgvectorNetwork(namespace))
       .then(() => undefined);
   }) as unknown as Cypress.Chainable<unknown>;
