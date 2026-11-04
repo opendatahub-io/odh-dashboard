@@ -100,6 +100,10 @@ describe('Application', () => {
         }),
       ]),
     );
+    cy.intercept('GET', 'https://example.com/logo.svg', {
+      headers: { 'content-type': 'image/svg+xml' },
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>',
+    });
     cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     interceptMlflowStatus();
