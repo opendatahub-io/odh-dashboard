@@ -2,7 +2,6 @@ package httpcontract
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -18,7 +17,11 @@ var errWatchEventTooLarge = errors.New("watch event exceeds buffering limit")
 // bookmarks and non-watch/subprotocol messages retain their bytes, including whitespace.
 func SanitizeWatchEvent(b []byte) []byte {
 	var event map[string]json.RawMessage
-	if json.Unmarshal(b, &event) != nil || !bytes.Equal(event["type"], []byte(`"ERROR"`)) {
+	if json.Unmarshal(b, &event) != nil {
+		return b
+	}
+	var eventType string
+	if json.Unmarshal(event["type"], &eventType) != nil || eventType != "ERROR" {
 		return b
 	}
 	var status metav1.Status

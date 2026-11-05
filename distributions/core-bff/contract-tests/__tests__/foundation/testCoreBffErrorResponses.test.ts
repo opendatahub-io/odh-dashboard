@@ -134,19 +134,54 @@ describe('Core BFF error response components', () => {
   });
 
   describe.each(['/api/k8s', '/core-bff/api/k8s'])('HTTP watches through %s', (prefix) => {
-    it.each(['watch=true', 'watch=1', 'watch=TRUE', 'watch=', 'watch', 'watch=anything'])(
-      'should sanitize ERROR events for %s',
-      async (query) => {
-        const { response } = expectSuccess(await fixtureClient.get(`${prefix}/watch?${query}`));
-        expect(response.status).toBe(200);
-        expect(response.data).toMatchObject({
-          type: 'ERROR',
-          object: { kind: 'Status', code: 410, reason: 'Expired' },
-        });
-        expect(JSON.stringify(response.data)).not.toContain('CANARY');
-      },
-    );
+    it.each([
+      'watch=true',
+      'watch=1',
+      'watch=TRUE',
+      'watch=',
+      'watch',
+      'watch=anything',
+      'watch=true&escaped=true',
+    ])('should sanitize ERROR events for %s', async (query) => {
+      const { response } = expectSuccess(await fixtureClient.get(`${prefix}/watch?${query}`));
+      expect(response.status).toBe(200);
+      expect(response.data).toMatchObject({
+        type: 'ERROR',
+        object: { kind: 'Status', code: 410, reason: 'Expired' },
+      });
+      expect(JSON.stringify(response.data)).not.toContain('CANARY');
+    });
   });
+
+  describe.each(['get', 'post', 'put', 'delete', 'patch'] as const)(
+    'Model serving %s failures',
+    (method) => {
+      it.each([
+        { cause: 'unavailable', status: 503, response: 'K8sUnavailable' },
+        { cause: 'timeout', status: 504, response: 'K8sTimeout' },
+      ])('should document and validate $status', async ({ cause, status, response }) => {
+        const error = expectError(
+          await fixtureClient[method](`/api/service/model-serving/transport/${cause}`),
+          status,
+        );
+        expect(apiSchema).toHaveProperty(
+          [
+            'paths',
+            '/api/service/model-serving/{path}',
+            method,
+            'responses',
+            String(status),
+            '$ref',
+          ],
+          `#/components/responses/${response}`,
+        );
+        expect(error).toMatchContract(apiSchema, {
+          ref: `#/components/responses/${response}/content/application~1json/schema`,
+          status,
+        });
+      });
+    },
+  );
 
   it.each([
     { cause: 'bad-gateway', status: 502, response: 'BadGateway', code: 'BAD_GATEWAY' },

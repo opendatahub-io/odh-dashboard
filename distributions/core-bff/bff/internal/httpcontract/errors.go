@@ -23,11 +23,14 @@ var (
 	ErrCredentialsExpired = errors.New("credentials expired")
 )
 
+// ErrorPayload contains the stable code, safe message and request correlation for a BFF failure.
 type ErrorPayload struct {
 	Code      string `json:"code"`
 	Message   string `json:"message"`
 	RequestID string `json:"requestId"`
 }
+
+// HTTPError pairs a BFF error envelope with its HTTP response status.
 type HTTPError struct {
 	StatusCode int          `json:"-"`
 	Error      ErrorPayload `json:"error"`
@@ -79,6 +82,7 @@ func Classify(err error, fallback int) *HTTPError {
 	}
 }
 
+// WriteLocal writes a correlated BFF failure using the safe message catalog.
 func WriteLocal(w http.ResponseWriter, r *http.Request, status int) {
 	e := Local(status)
 	e.Error.RequestID = EnsureID(w, r)
@@ -103,6 +107,7 @@ func WriteBFF(w http.ResponseWriter, r *http.Request, e *HTTPError) {
 	writeJSON(w, r, safe.StatusCode, safe)
 }
 
+// WriteError preserves wrapped Kubernetes Status failures or classifies a local failure.
 func WriteError(w http.ResponseWriter, r *http.Request, err error, fallback int) {
 	var s k8serrors.APIStatus
 	if errors.As(err, &s) {
@@ -117,6 +122,7 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error, fallback int)
 	WriteLocal(w, r, Classify(err, fallback).StatusCode)
 }
 
+// WriteStatus writes a sanitized Kubernetes Status and applicable retry metadata.
 func WriteStatus(w http.ResponseWriter, r *http.Request, code int, status metav1.Status) {
 	EnsureID(w, r)
 	s := SanitizeStatus(status, code)
@@ -149,11 +155,13 @@ var bracketKey = regexp.MustCompile(`\[[^\]]*\]`)
 var arrayIndex = regexp.MustCompile(`^\[[0-9]{1,10}\]$`)
 var fieldPath = regexp.MustCompile(`^[a-zA-Z0-9_.\-/]+(\[[0-9]{1,10}\][a-zA-Z0-9_.\-/]*)*$`)
 var sensitiveMapKey = regexp.MustCompile(`(^|\.)(data|stringData|annotations|labels)\[[^\]]*\]`)
+var sensitiveDottedMapKey = regexp.MustCompile(`(^|\.)(data|stringData|annotations|labels)\..*$`)
 
 func safeFieldPath(path string) string {
 	// Kubernetes formats both map keys and array positions in brackets. Numeric
 	// Secret data keys are still map keys and must not be retained as positions.
 	path = sensitiveMapKey.ReplaceAllString(path, "${1}${2}")
+	path = sensitiveDottedMapKey.ReplaceAllString(path, "${1}${2}")
 	path = bracketKey.ReplaceAllStringFunc(path, func(segment string) string {
 		if arrayIndex.MatchString(segment) {
 			return segment
@@ -235,10 +243,16 @@ func reasonForCode(code int) metav1.StatusReason {
 		return metav1.StatusReasonNotFound
 	case 405:
 		return metav1.StatusReasonMethodNotAllowed
+	case 406:
+		return metav1.StatusReasonNotAcceptable
 	case 409:
 		return metav1.StatusReasonConflict
 	case 410:
 		return metav1.StatusReasonGone
+	case 413:
+		return metav1.StatusReasonRequestEntityTooLarge
+	case 415:
+		return metav1.StatusReasonUnsupportedMediaType
 	case 422:
 		return metav1.StatusReasonInvalid
 	case 429:

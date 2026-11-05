@@ -13,7 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// RequestIDHeader exposes the BFF-generated request UUID.
 const RequestIDHeader = "X-Request-ID"
+
+// AuditIDHeader carries a separately validated upstream Kubernetes audit UUID.
 const AuditIDHeader = "Audit-ID"
 
 type stateKey struct{}
@@ -23,12 +26,15 @@ type state struct {
 	audit string
 }
 
+// RequestID returns the BFF request identifier installed in ctx.
 func RequestID(ctx context.Context) string {
 	if s, ok := ctx.Value(stateKey{}).(*state); ok {
 		return s.id
 	}
 	return ""
 }
+
+// AuditID returns the latest valid upstream audit identifier captured for ctx.
 func AuditID(ctx context.Context) string {
 	if s, ok := ctx.Value(stateKey{}).(*state); ok {
 		s.mu.Lock()
@@ -37,6 +43,8 @@ func AuditID(ctx context.Context) string {
 	}
 	return ""
 }
+
+// CaptureAudit retains a single canonical upstream audit UUID and removes invalid header values.
 func CaptureAudit(ctx context.Context, h http.Header) {
 	values := h.Values(AuditIDHeader)
 	if len(values) != 1 || len(values[0]) != 36 {
@@ -54,6 +62,8 @@ func CaptureAudit(ctx context.Context, h http.Header) {
 		s.mu.Unlock()
 	}
 }
+
+// EnsureID returns the request UUID, creating it when absent, and sets its response header.
 func EnsureID(w http.ResponseWriter, r *http.Request) string {
 	id := RequestID(r.Context())
 	if id == "" {
@@ -63,7 +73,11 @@ func EnsureID(w http.ResponseWriter, r *http.Request) string {
 	w.Header().Set(RequestIDHeader, id)
 	return id
 }
+
+// Log attaches the request's current correlation values to logger.
 func Log(logger *slog.Logger, r *http.Request) *slog.Logger { return LogContext(logger, r.Context()) }
+
+// LogContext attaches current correlation values; call it at the log site after upstream calls.
 func LogContext(logger *slog.Logger, ctx context.Context) *slog.Logger {
 	if logger == nil {
 		logger = slog.Default()
@@ -136,6 +150,8 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	}
 	return c, b, e
 }
+
+// Committed reports whether a tracked writer or an unwrapped writer has started its response.
 func Committed(w http.ResponseWriter) bool {
 	if x, ok := w.(*responseWriter); ok {
 		return x.committed
@@ -146,6 +162,7 @@ func Committed(w http.ResponseWriter) bool {
 	return false
 }
 
+// Transport propagates request correlation, captures upstream audit IDs and observes body read failures.
 type Transport struct {
 	Base   http.RoundTripper
 	Logger *slog.Logger
@@ -172,6 +189,8 @@ func (t Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 	return resp, err
 }
+
+// WrapTransport adds request and audit correlation to an existing HTTP transport.
 func WrapTransport(base http.RoundTripper) http.RoundTripper { return Transport{Base: base} }
 
 type observedBody struct {

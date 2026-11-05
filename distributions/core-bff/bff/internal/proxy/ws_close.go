@@ -67,8 +67,8 @@ func closeReason(code int) string {
 	}
 }
 
-func sendCloseMessageForShutdown(conn *websocket.Conn) {
+func sendCloseMessageForShutdown(conn *websocket.Conn, deadline time.Time) {
 	if conn != nil {
-		_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, "server shutting down"), time.Now().Add(writeControlTimeout))
+		_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, "server shutting down"), deadline)
 	}
 }

@@ -27,7 +27,7 @@ Missing/malformed credentials are detected locally. Trusted credential causes ar
 logs as `CREDENTIALS_MISSING`, `CREDENTIALS_INVALID` or `CREDENTIALS_EXPIRED`; all use 401 UNAUTHORIZED
 on the wire. A future authentication strategy can supply the trusted invalid/expired cause.
 An upstream 401 does not prove expiry. A denied review differs from a failed review evaluation;
-neither produces an implicit grant or a successful empty namespace list.
+neither produces an implicit grant or a successful empty namespace list. An affirmative access review remains a grant even when accompanied by an evaluation diagnostic. A successful SelfSubjectReview without a username is an unexpected internal failure (500), not evidence that credentials are invalid.
 
 Kubernetes failures preserve their upstream HTTP status and a Kubernetes `v1/Status` representation,
 including reason and applicable details. They are never wrapped in the BFF envelope. This applies
@@ -52,7 +52,7 @@ outside the Kubernetes sanitization policy.
 
 Kubernetes error messages are replaced by safe reason-based text. Omit metadata, UID and object name;
 retain bounded schema-like group/kind, standard reason, retry delay and validation cause types/field
-paths. Preserve array positions, redact bracketed map keys in field paths, and replace cause messages.
+paths. Preserve array positions, redact bracketed map keys and dotted descendants of sensitive data/annotation/label maps in field paths, and replace cause messages.
 Unknown reason/type strings use safe fallbacks. Invalid/non-JSON Kubernetes error bodies become
 sanitized Status with the same HTTP status; error bodies are read with a 1 MiB bound. This bounds
 ordinary error inspection only. JSON HTTP watch events have the separate 4 MiB buffering limit described above; other successful response sizes and transport policies are unchanged.
@@ -97,7 +97,7 @@ BFF contract. After upgrade, send valid upstream close codes with fixed safe rea
 normal closure, 1008 for policy rejection, 1011 for upstream/internal failure and 1001 for shutdown.
 Do not send reserved/invalid codes. Reasons use fixed UTF-8 catalog text below the 123-byte protocol
 limit; upstream and peer free text is discarded. Shutdown notification is implemented by the existing
-connection tracker; process draining/timing remains with the lifecycle task. Other heartbeat, message-size and lifetime limits remain with proxy hardening.
+connection tracker, which removes tracked connections under its lock before closing them and shares one absolute deadline across shutdown close-frame writes; process draining/timing remains with the lifecycle task. Other heartbeat, message-size and lifetime limits remain with proxy hardening.
 
 Native BFF 400/401/403 rejections and native Kubernetes 4xx failures log at Warn. Native request
 failures, HTTP proxy transport failures and tracked stream reads/writes log cancellation at Debug;

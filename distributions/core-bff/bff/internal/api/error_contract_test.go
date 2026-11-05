@@ -29,8 +29,22 @@ import (
 func TestProductionAuthFailureContract(t *testing.T) {
 	spec, err := openapi3.NewLoader().LoadFromFile("../../openapi/src/core-bff.yaml")
 	require.NoError(t, err)
-	for _, status := range []int{401, 403, 429, 500, 503, 504} {
-		t.Run(fmt.Sprint(status), func(t *testing.T) {
+	for _, tc := range []struct {
+		path                           string
+		upstreamStatus, responseStatus int
+	}{
+		{"/api/v1/user", 401, 401},
+		{"/api/v1/user", 403, 403},
+		{"/api/v1/user", 429, 429},
+		{"/api/v1/user", 500, 500},
+		{"/api/v1/user", 503, 503},
+		{"/api/v1/user", 504, 504},
+		{"/api/components", 403, 403},
+		{"/api/components", 429, 429},
+		{"/api/v1/user", 201, 500},
+	} {
+		t.Run(fmt.Sprintf("%s/upstream=%d", tc.path, tc.upstreamStatus), func(t *testing.T) {
+			status := tc.upstreamStatus
 			audit := uuid.NewString()
 			var outboundID string
 			upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +54,10 @@ func TestProductionAuthFailureContract(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set(httpcontract.AuditIDHeader, audit)
 				w.WriteHeader(status)
+				if status == http.StatusCreated {
+					_, _ = w.Write([]byte(`{"apiVersion":"authentication.k8s.io/v1","kind":"SelfSubjectReview","status":{"userInfo":{"groups":["CANARY_GROUP"]}}}`))
+					return
+				}
 				_, _ = fmt.Fprintf(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","code":%d,"message":"CANARY_TOKEN CANARY_SECRET unrelated-user","reason":"%s"}`, status, map[int]string{401: "Unauthorized", 403: "Forbidden", 429: "TooManyRequests", 500: "InternalError", 503: "ServiceUnavailable", 504: "Timeout"}[status])
 			}))
 			defer upstream.Close()
@@ -60,17 +78,24 @@ func TestProductionAuthFailureContract(t *testing.T) {
 				a.config.AuthTokenHeader = "X-Custom-Credential"
 				a.config.AuthMethod = config.AuthMethodUser
 			})
-			r := httptest.NewRequest("GET", "/api/v1/user?token=CANARY_QUERY", nil)
+			r := httptest.NewRequest("GET", tc.path+"?token=CANARY_QUERY", nil)
 			r.Header.Set("X-Custom-Credential", "CANARY_TOKEN")
 			r.Header.Set("Cookie", "CANARY_COOKIE")
 			r.Header.Set("Sec-WebSocket-Protocol", "CANARY_SUBPROTOCOL")
 			w := httptest.NewRecorder()
 			app.Routes().ServeHTTP(w, r)
-			require.Equal(t, status, w.Code)
-			var s metav1.Status
-			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &s))
-			require.Equal(t, "Status", s.Kind)
-			operationResponse := spec.Paths.Value("/api/v1/user").Get.Responses.Status(status)
+			require.Equal(t, tc.responseStatus, w.Code)
+			if status == http.StatusCreated {
+				// A successful SSR with no username is malformed upstream data, not proof of invalid credentials.
+				var failure HTTPError
+				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &failure))
+				require.Equal(t, "INTERNAL_SERVER_ERROR", failure.Error.Code)
+			} else {
+				var s metav1.Status
+				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &s))
+				require.Equal(t, "Status", s.Kind)
+			}
+			operationResponse := spec.Paths.Value(tc.path).Get.Responses.Status(tc.responseStatus)
 			require.NotNil(t, operationResponse, "the operation must document the upstream status")
 			var body any
 			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))

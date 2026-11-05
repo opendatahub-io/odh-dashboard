@@ -141,19 +141,21 @@ func (ct *ConnectionTracker) stop() {
 	ct.wg.Wait()
 
 	ct.mu.Lock()
-	defer ct.mu.Unlock()
+	connections := ct.connections
+	ct.connections = make(map[string]*trackedConnection)
+	ct.mu.Unlock()
 
-	for id, tc := range ct.connections {
+	deadline := time.Now().Add(writeControlTimeout)
+	for id, tc := range connections {
 		ct.logger.Info("WebSocket shutdown", "id", id, "request_id", tc.requestID)
-		sendCloseMessageForShutdown(tc.client)
-		sendCloseMessageForShutdown(tc.target)
+		sendCloseMessageForShutdown(tc.client, deadline)
+		sendCloseMessageForShutdown(tc.target, deadline)
 		if tc.client != nil {
 			tc.client.Close()
 		}
 		if tc.target != nil {
 			tc.target.Close()
 		}
-		delete(ct.connections, id)
 	}
 	ct.logger.Info("ConnectionTracker stopped, all connections closed")
 }

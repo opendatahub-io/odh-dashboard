@@ -1,10 +1,17 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"syscall"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
 	"github.com/stretchr/testify/assert"
@@ -74,4 +81,42 @@ func TestModelServingProxy_MockMode(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Contains(t, rr.Body.String(), `"mock":true`)
+}
+
+func TestModelServingProxyTransportFailureContract(t *testing.T) {
+	spec, err := openapi3.NewLoader().LoadFromFile("../../openapi/src/core-bff.yaml")
+	require.NoError(t, err)
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch} {
+		for _, tc := range []struct {
+			name   string
+			cause  error
+			status int
+		}{
+			{"unavailable", &net.OpError{Op: "dial", Err: syscall.ECONNREFUSED}, http.StatusServiceUnavailable},
+			{"timeout", context.DeadlineExceeded, http.StatusGatewayTimeout},
+		} {
+			t.Run(method+"/"+tc.name, func(t *testing.T) {
+				app := newTestApp(func(a *App) {
+					a.config.ModelServingServiceHost = "http://upstream.invalid"
+					a.config.DevMode = true
+					a.config.MockK8Client = false
+				})
+				require.NoError(t, app.initModelServingProxy())
+				// Fail only dialing: route wiring, request identity, transport and error handling remain real.
+				transport := app.modelServingProxy.(*httputil.ReverseProxy).Transport.(httpcontract.Transport).Base.(*http.Transport)
+				transport.DialContext = func(context.Context, string, string) (net.Conn, error) { return nil, tc.cause }
+				request := httptest.NewRequest(method, modelServingPathPrefix+"/v1/models", nil)
+				request.Header.Set(app.config.AuthTokenHeader, k8mocks.DefaultTestUsers[0].Token)
+				response := httptest.NewRecorder()
+				app.Routes().ServeHTTP(response, request)
+				require.Equal(t, tc.status, response.Code)
+				operation := spec.Paths.Value("/api/service/model-serving/{path}").GetOperation(method)
+				documented := operation.Responses.Status(tc.status)
+				require.NotNil(t, documented)
+				var body any
+				require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+				require.NoError(t, documented.Value.Content.Get("application/json").Schema.Value.VisitJSON(body))
+			})
+		}
+	}
 }

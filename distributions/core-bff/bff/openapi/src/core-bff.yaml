@@ -539,8 +539,14 @@ paths:
           $ref: '#/components/responses/ComponentsResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -574,8 +580,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -612,8 +622,12 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '404':
           $ref: '#/components/responses/BFFNotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -673,10 +687,16 @@ paths:
           $ref: '#/components/responses/OperatorSubscriptionStatusResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/BFFNotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -712,8 +732,12 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '404':
           $ref: '#/components/responses/BFFNotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -752,8 +776,12 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '404':
           $ref: '#/components/responses/BFFNotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -776,8 +804,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -808,8 +840,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -867,8 +903,14 @@ paths:
                       requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           description: Probe queue full, or Kubernetes API unavailable during authentication.
           headers:
@@ -911,8 +953,14 @@ paths:
           $ref: '#/components/responses/ConnectionTypesResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -940,8 +988,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -968,10 +1020,16 @@ paths:
                 type: object
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/BFFNotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -999,8 +1057,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -1039,8 +1101,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -1063,8 +1129,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -1114,8 +1184,12 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '409':
           $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -1192,6 +1266,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '502':
           $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     post:
       tags:
         - Model Serving Proxy
@@ -1213,6 +1291,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '502':
           $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     put:
       tags:
         - Model Serving Proxy
@@ -1234,6 +1316,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '502':
           $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     delete:
       tags:
         - Model Serving Proxy
@@ -1250,6 +1336,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '502':
           $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
     patch:
       tags:
         - Model Serving Proxy
@@ -1271,6 +1361,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '502':
           $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
 
   # =============================================================================
   # PROMETHEUS ENDPOINTS (OpenShift-only)
@@ -1416,8 +1510,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -1485,8 +1583,12 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '404':
           $ref: '#/components/responses/BFFNotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':
@@ -1512,8 +1614,12 @@ paths:
           $ref: '#/components/responses/BFFForbidden'
         '404':
           $ref: '#/components/responses/BFFNotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
         '503':
           $ref: '#/components/responses/K8sUnavailable'
         '504':

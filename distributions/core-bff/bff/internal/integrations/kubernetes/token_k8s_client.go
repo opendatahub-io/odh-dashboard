@@ -48,7 +48,7 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 		return false, fmt.Errorf("failed to verify cluster-admin permissions: %w", err)
 	}
 
-	if resp.Status.EvaluationError != "" {
+	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
 		return false, fmt.Errorf("access review evaluation failed")
 	}
 	if !resp.Status.Allowed {
@@ -143,7 +143,7 @@ func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context,
 			return false, err
 		}
 
-		if resp.Status.EvaluationError != "" {
+		if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
 			return false, fmt.Errorf("access review evaluation failed")
 		}
 		if !resp.Status.Allowed {
@@ -176,7 +176,7 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 		httpcontract.LogContext(kc.Logger, ctx).Error("self-SAR failed", "service", serviceName, "namespace", namespace, "error_code", httpcontract.SafeErrorCode(err))
 		return false, err
 	}
-	if resp.Status.EvaluationError != "" {
+	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
 		return false, fmt.Errorf("access review evaluation failed")
 	}
 	if !resp.Status.Allowed {
@@ -221,7 +221,7 @@ func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *Request
 	if err != nil {
 		return false, fmt.Errorf("failed to check namespace get access: %w", err)
 	}
-	if resp.Status.EvaluationError != "" {
+	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
 		return false, fmt.Errorf("access review evaluation failed")
 	}
 	return resp.Status.Allowed, nil
@@ -304,7 +304,7 @@ func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, v
 		return false, fmt.Errorf("failed to perform auth singleton SAR (verb=%s): %w", verb, err)
 	}
 
-	if resp.Status.EvaluationError != "" {
+	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
 		return false, fmt.Errorf("access review evaluation failed")
 	}
 	return resp.Status.Allowed, nil
@@ -331,7 +331,7 @@ func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIden
 		return false, fmt.Errorf("failed to check access (verb=%s, resource=%s/%s): %w", verb, group, resource, err)
 	}
 
-	if resp.Status.EvaluationError != "" {
+	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
 		return false, fmt.Errorf("access review evaluation failed")
 	}
 	if !resp.Status.Allowed {

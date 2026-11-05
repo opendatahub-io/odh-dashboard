@@ -119,33 +119,37 @@ func TestWsProxy_ConnectionTracking(t *testing.T) {
 }
 
 func TestWebSocketWatchErrorSanitization(t *testing.T) {
-	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		upgrader := newUpgrader([]string{"*"})
-		c, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			return
-		}
-		defer c.Close()
-		_ = c.WriteMessage(websocket.TextMessage, []byte(`{"type":"ERROR","object":{"kind":"Status","reason":"Expired","code":410,"message":"CANARY"}}`))
-		_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
-		_, _, _ = c.ReadMessage()
-	}))
-	defer backend.Close()
-	tracker := NewConnectionTracker(testLogger())
-	defer tracker.Stop()
-	handler, err := NewWsProxyHandler(testWsConfig(backend.URL, tracker))
-	require.NoError(t, err)
-	server := httptest.NewServer(httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handler.ServeHTTP(w, r.WithContext(identityContext(r, "token")))
-	})))
-	defer server.Close()
-	c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/wss/k8s/api/v1/pods?watch=true", nil)
-	require.NoError(t, err)
-	defer c.Close()
-	_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
-	_, b, err := c.ReadMessage()
-	require.NoError(t, err)
-	require.NotContains(t, string(b), "CANARY")
-	require.Contains(t, string(b), `"reason":"Expired"`)
-	require.Contains(t, string(b), `"code":410`)
+	for _, eventType := range []string{`ERROR`, `\u0045RROR`} {
+		t.Run(eventType, func(t *testing.T) {
+			backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				upgrader := newUpgrader([]string{"*"})
+				c, err := upgrader.Upgrade(w, r, nil)
+				if err != nil {
+					return
+				}
+				defer c.Close()
+				_ = c.WriteMessage(websocket.TextMessage, []byte(`{"type":"`+eventType+`","object":{"kind":"Status","reason":"Expired","code":410,"message":"CANARY"}}`))
+				_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
+				_, _, _ = c.ReadMessage()
+			}))
+			defer backend.Close()
+			tracker := NewConnectionTracker(testLogger())
+			defer tracker.Stop()
+			handler, err := NewWsProxyHandler(testWsConfig(backend.URL, tracker))
+			require.NoError(t, err)
+			server := httptest.NewServer(httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler.ServeHTTP(w, r.WithContext(identityContext(r, "token")))
+			})))
+			defer server.Close()
+			c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/wss/k8s/api/v1/pods?watch=true", nil)
+			require.NoError(t, err)
+			defer c.Close()
+			_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
+			_, b, err := c.ReadMessage()
+			require.NoError(t, err)
+			require.NotContains(t, string(b), "CANARY")
+			require.Contains(t, string(b), `"reason":"Expired"`)
+			require.Contains(t, string(b), `"code":410`)
+		})
+	}
 }

@@ -2,11 +2,15 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -231,4 +235,90 @@ func TestConnectionTrackerLogCloseRetainsCorrelationAfterUntrack(t *testing.T) {
 	require.Equal(t, requestID, event.RequestID)
 	require.Equal(t, websocket.CloseNormalClosure, event.CloseCode)
 	require.NotContains(t, logs.String(), "CANARY")
+}
+
+type shutdownTestConn struct {
+	net.Conn
+	observe   atomic.Bool
+	deadlines chan time.Time
+	writes    chan struct{}
+	release   <-chan struct{}
+}
+
+func (c *shutdownTestConn) SetWriteDeadline(deadline time.Time) error {
+	if c.observe.Load() {
+		c.deadlines <- deadline
+	}
+	return c.Conn.SetWriteDeadline(deadline)
+}
+
+func (c *shutdownTestConn) Write(b []byte) (int, error) {
+	if c.observe.Load() {
+		c.writes <- struct{}{}
+		<-c.release
+	}
+	return c.Conn.Write(b)
+}
+
+func TestConnectionTrackerShutdownReleasesLockAndSharesDeadline(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := newUpgrader([]string{"*"})
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer server.Close()
+	release := make(chan struct{})
+	releaseWrites := sync.OnceFunc(func() { close(release) })
+	defer releaseWrites()
+	deadlines := make(chan time.Time, 2)
+	writes := make(chan struct{}, 2)
+	dialer := websocket.Dialer{NetDialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+		conn, err := (&net.Dialer{}).DialContext(ctx, network, address)
+		if err != nil {
+			return nil, err
+		}
+		return &shutdownTestConn{Conn: conn, deadlines: deadlines, writes: writes, release: release}, nil
+	}}
+	var peers []*websocket.Conn
+	for range 2 {
+		conn, _, err := dialer.Dial("ws"+strings.TrimPrefix(server.URL, "http"), nil)
+		require.NoError(t, err)
+		defer conn.Close()
+		conn.UnderlyingConn().(*shutdownTestConn).observe.Store(true)
+		peers = append(peers, conn)
+	}
+	tracker := NewConnectionTracker(testLogger())
+	tracker.Track(peers[0], peers[1])
+	stopped := make(chan struct{})
+	go func() { tracker.Stop(); close(stopped) }()
+	select {
+	case <-writes:
+	case <-time.After(2 * time.Second):
+		t.Fatal("shutdown did not attempt a close frame")
+	}
+	count := make(chan int, 1)
+	go func() { count <- tracker.ActiveCount() }()
+	select {
+	case active := <-count:
+		require.Zero(t, active)
+	case <-time.After(time.Second):
+		t.Fatal("shutdown holds tracker lock during network I/O")
+	}
+	releaseWrites()
+	select {
+	case <-stopped:
+	case <-time.After(2 * time.Second):
+		t.Fatal("shutdown did not finish")
+	}
+	first, second := <-deadlines, <-deadlines
+	require.False(t, first.IsZero())
+	require.Equal(t, first, second, "all shutdown notifications must share one deadline")
 }

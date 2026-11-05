@@ -249,6 +249,10 @@ func TestValidationFieldPathsPreserveArrayPositionsAndRedactMapKeys(t *testing.T
 		{"spec.containers[1].image", "spec.containers[1].image"},
 		{"spec.containers[1].env[2].value", "spec.containers[1].env[2].value"},
 		{"data[CANARY_KEY]", "data"},
+		{".data.CANARY_KEY", ".data"},
+		{".stringData.CANARY_KEY", ".stringData"},
+		{".metadata.annotations.CANARY_KEY", ".metadata.annotations"},
+		{".spec.template.metadata.labels.CANARY_KEY", ".spec.template.metadata.labels"},
 		{"data[123]", "data"},
 		{"stringData[123]", "stringData"},
 		{"metadata.annotations[123]", "metadata.annotations"},
@@ -259,7 +263,11 @@ func TestValidationFieldPathsPreserveArrayPositionsAndRedactMapKeys(t *testing.T
 		{strings.Repeat("a", 254), ""},
 	} {
 		t.Run(tc.field, func(t *testing.T) {
-			status := SanitizeStatus(metav1.Status{Reason: metav1.StatusReasonInvalid, Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{Type: metav1.CauseTypeFieldValueInvalid, Field: tc.field, Message: "CANARY_VALUE"}}}}, 422)
+			causeType := metav1.CauseTypeFieldValueInvalid
+			if strings.HasPrefix(tc.field, ".") {
+				causeType = metav1.CauseTypeFieldManagerConflict
+			}
+			status := SanitizeStatus(metav1.Status{Reason: metav1.StatusReasonInvalid, Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{Type: causeType, Field: tc.field, Message: "CANARY_VALUE"}}}}, 422)
 			require.Equal(t, tc.want, status.Details.Causes[0].Field)
 			b, err := json.Marshal(status)
 			require.NoError(t, err)
@@ -376,4 +384,44 @@ func TestTransportPreservesUpgradeBodiesAndObservesOrdinaryResponses(t *testing.
 		require.Equal(t, websocket.TextMessage, kind)
 		require.Equal(t, "upgrade relay", string(body))
 	})
+}
+
+func TestKubernetesFallbackReasons(t *testing.T) {
+	for _, tc := range []struct {
+		status int
+		reason metav1.StatusReason
+	}{
+		{http.StatusNotAcceptable, metav1.StatusReasonNotAcceptable},
+		{http.StatusRequestEntityTooLarge, metav1.StatusReasonRequestEntityTooLarge},
+		{http.StatusUnsupportedMediaType, metav1.StatusReasonUnsupportedMediaType},
+	} {
+		t.Run(string(tc.reason), func(t *testing.T) {
+			for _, body := range []string{"CANARY_NON_JSON", `{"kind":"Status","message":"CANARY"}`} {
+				response := &http.Response{StatusCode: tc.status, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body))}
+				require.NoError(t, KubernetesResponse(response))
+				var status metav1.Status
+				require.NoError(t, json.NewDecoder(response.Body).Decode(&status))
+				require.Equal(t, tc.status, int(status.Code))
+				require.Equal(t, tc.reason, status.Reason)
+				require.NotContains(t, status.Message, "CANARY")
+				require.Equal(t, reasonMessages[tc.reason], status.Message)
+			}
+		})
+	}
+}
+
+func TestEscapedWatchEventTypes(t *testing.T) {
+	for _, eventType := range []string{`ERROR`, `\u0045RROR`} {
+		t.Run(eventType, func(t *testing.T) {
+			event := fmt.Sprintf(`{"type":"%s","object":{"kind":"Status","code":410,"reason":"Expired","message":"CANARY","details":{"name":"CANARY","causes":[{"reason":"FieldValueInvalid","message":"CANARY"}]}}}`+"\n", eventType)
+			response := &http.Response{StatusCode: 200, Request: httptest.NewRequest(http.MethodGet, "/api/v1/pods?watch=true", nil), Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(event))}
+			require.NoError(t, KubernetesResponse(response))
+			body, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+			require.NotContains(t, string(body), "CANARY")
+			require.Contains(t, string(body), `"reason":"Expired"`)
+		})
+	}
+	event := []byte(`{"type":"\u0041DDED", "object":{"data":{"authorized":"value"}}}`)
+	require.Equal(t, event, SanitizeWatchEvent(event))
 }

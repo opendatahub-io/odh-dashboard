@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -41,12 +42,24 @@ func TestContractFixtureServer(t *testing.T) {
 	cfg.AuthTokenHeader = "X-Test-Auth"
 	handler, err := NewK8sProxyHandler(cfg)
 	require.NoError(t, err)
-	reverse := handler.(*httputil.ReverseProxy)
-	correlationTransport := reverse.Transport.(httpcontract.Transport)
-	transport := correlationTransport.Base.(*http.Transport)
-	t.Cleanup(transport.CloseIdleConnections)
-	correlationTransport.Base = contractFixtureTransport{base: transport}
-	reverse.Transport = correlationTransport
+	injectFailures := func(reverse *httputil.ReverseProxy) {
+		correlationTransport := reverse.Transport.(httpcontract.Transport)
+		transport := correlationTransport.Base.(*http.Transport)
+		t.Cleanup(transport.CloseIdleConnections)
+		correlationTransport.Base = contractFixtureTransport{base: transport}
+		reverse.Transport = correlationTransport
+	}
+	injectFailures(handler.(*httputil.ReverseProxy))
+	target, err := url.Parse(upstream.URL)
+	require.NoError(t, err)
+	modelServing, err := NewReverseProxy(ProxyConfig{
+		TargetURL: target, AllowHTTP: true, Logger: logger,
+		PathRewriteFn: func(r *http.Request) string {
+			return strings.TrimPrefix(r.URL.Path, "/api/service/model-serving")
+		},
+	})
+	require.NoError(t, err)
+	injectFailures(modelServing)
 	tracker := NewConnectionTracker(logger)
 	t.Cleanup(tracker.Stop)
 	wsCfg := testWsConfig(upstream.URL, tracker)
@@ -54,6 +67,7 @@ func TestContractFixtureServer(t *testing.T) {
 	ws, err := NewWsProxyHandler(wsCfg)
 	require.NoError(t, err)
 	mux := http.NewServeMux()
+	mux.Handle("/api/service/model-serving/", modelServing)
 	mux.Handle("/api/k8s/", handler)
 	mux.Handle("/core-bff/api/k8s/", http.StripPrefix("/core-bff", handler))
 	mux.Handle("/wss/k8s/", ws)
@@ -92,7 +106,11 @@ func (t contractFixtureTransport) RoundTrip(r *http.Request) (*http.Response, er
 func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/watch" {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"type":"ERROR","object":{"kind":"Status","apiVersion":"v1","code":410,"reason":"Expired","message":"CANARY_SECRET","details":{"name":"CANARY_NAME","causes":[{"reason":"FieldValueInvalid","message":"CANARY_VALUE"}]}}}`+"\n")
+		eventType := "ERROR"
+		if r.URL.Query().Get("escaped") == "true" {
+			eventType = `\u0045RROR`
+		}
+		_, _ = io.WriteString(w, `{"type":"`+eventType+`","object":{"kind":"Status","apiVersion":"v1","code":410,"reason":"Expired","message":"CANARY_SECRET","details":{"name":"CANARY_NAME","causes":[{"reason":"FieldValueInvalid","message":"CANARY_VALUE"}]}}}`+"\n")
 		return
 	}
 	code, err := strconv.ParseInt(strings.TrimPrefix(r.URL.Path, "/status/"), 10, 32)
