@@ -112,10 +112,7 @@ describe('Verify vLLM model deployment - Playground Integration', { testIsolatio
     },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin(
-        '/?devFeatureFlags=genAiStudio=true,modelAsService=false',
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
+      cy.visitWithLogin('/?devFeatureFlags=modelAsService=false', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
