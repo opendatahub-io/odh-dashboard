@@ -5,7 +5,11 @@ const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
 
-const { buildDependencyIndex, isDocumentationOnly, normalizePath } = require('./mock-test-impact');
+const {
+  buildDependencyIndex,
+  isCypressIrrelevantChange,
+  normalizePath,
+} = require('./mock-test-impact');
 const { listWorkspacePackagesFromManifest } = require('../../query-workspace-packages');
 
 const DEFAULT_ROOT = path.resolve(__dirname, '../../..');
@@ -359,7 +363,7 @@ const isCypressTestFile = (file) => /(^|\/)cypress\/tests\//.test(normalizePath(
 
 const isCypressSupportFile = (file) => {
   const normalized = normalizePath(file);
-  if (isDocumentationOnly(normalized)) {
+  if (isCypressIrrelevantChange(normalized)) {
     return false;
   }
   if (normalized === `${DEFAULT_SPEC_ROOT}/non-ci-specs.json`) {
