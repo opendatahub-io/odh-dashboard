@@ -1,5 +1,7 @@
 const path = require('path');
 
+const MODEL_SERVING_REMOTE_ENTRY = '/_mf/modelServing/remoteEntry.js';
+
 // Keep the complete graph: defaults hide orphaned/concatenated modules and reasons.
 const STATS_OPTIONS = {
   all: false,
@@ -38,12 +40,14 @@ const STATS_OPTIONS = {
 const slash = (value) => value.replace(/\\/g, '/');
 
 const getOwner = (resource) => {
+  // Also recognize workspace packages resolved through a node_modules symlink.
+  // The innermost package owns the module, including dependencies nested under
+  // the legacy frontend or a workspace with resolve.symlinks disabled.
+  const installed = resource.match(/(?:^|\/)node_modules\/(@[^/]+\/[^/]+|[^/]+)/g);
+  if (installed) return installed.at(-1).replace(/^.*node_modules\//, '');
   if (/^frontend\//.test(resource)) return '@odh-dashboard/internal';
   const workspace = resource.match(/^(packages|distributions)\/([^/]+)\//);
   if (workspace) return `${workspace[1]}/${workspace[2]}`;
-  // Also recognize workspace packages resolved through a node_modules symlink.
-  const installed = resource.match(/(?:^|\/)node_modules\/(@[^/]+\/[^/]+|[^/]+)/g);
-  if (installed) return installed.at(-1).replace(/^.*node_modules\//, '');
   return resource ? '(repository/other)' : '(bundler runtime)';
 };
 
@@ -57,7 +61,7 @@ const assertComplete = (value) => {
 };
 
 /** Audit only modules assigned to emitted chunks, including nested concatenated modules. */
-const auditRuntime = (stats, { repoRoot, context, metadata = {} }) => {
+const auditRuntime = (stats, { repoRoot, context, metadata = {}, verifiedExternals = [] }) => {
   const root = slash(path.resolve(repoRoot));
   const buildContext = slash(path.resolve(context));
   const display = (value) => slash(value).split(`${root}/`).join('');
@@ -129,7 +133,7 @@ const auditRuntime = (stats, { repoRoot, context, metadata = {} }) => {
         if (parent) record.importers.add(parent);
         for (const reason of item.reasons ?? []) {
           if (reason.active === false) continue;
-          if (reason.type === 'entry') roots.add(id);
+          if (reason.type === 'entry' || reason.type === 'container entry') roots.add(id);
           const importer = reason.resolvedModuleIdentifier || reason.moduleIdentifier;
           if (importer) record.importers.add(`${scope}:${importer}`);
           if (reason.userRequest) record.references.add(reason.userRequest);
@@ -189,10 +193,12 @@ const auditRuntime = (stats, { repoRoot, context, metadata = {} }) => {
     };
     runtimeModules.push(module);
     const referenceText = [record.id, ...record.references].join('\n');
-    const forbiddenReference = /@odh-dashboard\/(internal|kserve)(?:[/@\s"']|$)/.test(
-      referenceText,
-    );
-    const { external } = record;
+    // Synthetic federation modules have no resource. Match their requested
+    // package, rather than a forbidden ancestor of an allowed fallback package.
+    const forbiddenReference =
+      !record.resource &&
+      /(?:^|[\s"'(])@odh-dashboard\/(internal|kserve)(?:[/@\s"']|$)/.test(referenceText);
+    const external = record.external && !verifiedExternals.includes(record.id);
     if (forbiddenOwner(record.owner) || forbiddenReference || external) {
       const importerPath = (paths.get(record.id) ?? []).map((id) => modules.get(id).name);
       violations.push({
@@ -245,6 +251,51 @@ const auditRuntime = (stats, { repoRoot, context, metadata = {} }) => {
   };
 };
 
+/** Include the two production builds shipped together in the RHAII image. */
+const auditProductionBuilds = (hostStats, remoteStats, options) => {
+  if (!remoteStats?.assets?.some((asset) => asset.name === 'remoteEntry.js')) {
+    throw new Error('Model Serving production statistics must include remoteEntry.js');
+  }
+  // Only this exact binding is backed by the remote compilation below. Unknown
+  // URLs, remotes, and externals in the remote itself continue to fail closed.
+  const externalIdentifiers = [`external script "modelServing@${MODEL_SERVING_REMOTE_ENTRY}"`];
+  const inputs = [
+    { name: 'host', stats: hostStats, context: 'distributions/rhaii' },
+    { name: 'model-serving', stats: remoteStats, context: 'packages/model-serving/frontend' },
+  ];
+  const builds = inputs.map(({ name, stats, context }, index) => {
+    const report = auditRuntime(stats, {
+      ...options,
+      context: path.join(options.repoRoot, context),
+      verifiedExternals: index === 0 ? externalIdentifiers.map((id) => `main:${id}`) : [],
+    });
+    return {
+      name,
+      scope: `main.${index}`,
+      buildConfig: `${context}/config/rspack.prod.js`,
+      buildHash: report.buildHash,
+      rspackVersion: report.rspackVersion,
+      summary: report.summary,
+      statsPath: `${name}/stats.json`,
+      assetsPath: `${name}/assets/`,
+    };
+  });
+  return auditRuntime(
+    {
+      errors: [],
+      modules: [],
+      chunks: [],
+      children: [hostStats, remoteStats],
+    },
+    {
+      ...options,
+      context: options.repoRoot,
+      verifiedExternals: externalIdentifiers.map((id) => `main.0:${id}`),
+      metadata: { ...options.metadata, builds, modelServingRemote: MODEL_SERVING_REMOTE_ENTRY },
+    },
+  );
+};
+
 const renderReport = (report) => {
   const lines = [
     '# RHAII Production Runtime Audit',
@@ -254,7 +305,23 @@ const renderReport = (report) => {
     `Source revision: ${report.sourceRevision ?? 'unknown'}; working tree dirty: ${
       report.workingTreeDirty ?? 'unknown'
     }.`,
-    `Build hash: ${report.buildHash}; Rspack: ${report.rspackVersion}.`,
+  ];
+  if (report.builds) {
+    lines.push(
+      '',
+      '| Production build | Build hash | Rspack | Runtime modules | Violations |',
+      '| --- | --- | --- | ---: | ---: |',
+    );
+    for (const build of report.builds) {
+      lines.push(
+        `| ${build.name} | ${build.buildHash} | ${build.rspackVersion} | ${build.summary.runtimeModules} | ${build.summary.violations} |`,
+      );
+    }
+    lines.push('', `Audited same-origin Model Serving remote: \`${report.modelServingRemote}\`.`);
+  } else {
+    lines.push(`Build hash: ${report.buildHash}; Rspack: ${report.rspackVersion}.`);
+  }
+  lines.push(
     '',
     `${report.summary.runtimeModules} runtime modules; ${report.summary.initialChunks} initial chunks; ${report.summary.lazyChunks} lazy chunks; ${report.summary.violations} violations.`,
     `${report.summary.excludedModules} modules without emitted chunk membership excluded.`,
@@ -263,7 +330,7 @@ const renderReport = (report) => {
     '',
     '| Owner | Modules | Initial | Lazy only |',
     '| --- | ---: | ---: | ---: |',
-  ];
+  );
   for (const owner of [...new Set(report.violations.map((module) => module.owner))].toSorted()) {
     const matches = report.violations.filter((module) => module.owner === owner);
     const initial = matches.filter((module) => module.initial).length;
@@ -324,4 +391,10 @@ const renderReport = (report) => {
   return lines.join('\n');
 };
 
-module.exports = { STATS_OPTIONS, auditRuntime, renderReport };
+module.exports = {
+  STATS_OPTIONS,
+  auditRuntime,
+  auditProductionBuilds,
+  renderReport,
+  MODEL_SERVING_REMOTE_ENTRY,
+};

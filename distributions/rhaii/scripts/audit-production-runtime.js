@@ -1,15 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { rspack } = require('@rspack/core');
-const { STATS_OPTIONS, auditRuntime, renderReport } = require('./runtime-audit');
+const { auditProductionBuilds, renderReport } = require('./runtime-audit');
+const { productionTargets, MODEL_SERVING_REMOTE_ENTRY } = require('./production-build');
 
 const distributionRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(distributionRoot, '../..');
 const outputDir = path.join(distributionRoot, 'dist/runtime-audit');
 
-const main = async () => {
-  const args = process.argv.slice(2);
+const main = async (args = process.argv.slice(2)) => {
   if (args.some((arg) => arg !== '--check'))
     throw new Error('Usage: audit-production-runtime.js [--check]');
   fs.mkdirSync(outputDir, { recursive: true });
@@ -19,9 +18,12 @@ const main = async () => {
   if (process.env.RHAII_TILT_FIXTURES === 'true') {
     throw new Error('Disable RHAII_TILT_FIXTURES for the production runtime audit');
   }
-  if (process.env.MODEL_SERVING_REMOTE_ENTRY) {
+  if (
+    process.env.MODEL_SERVING_REMOTE_ENTRY &&
+    process.env.MODEL_SERVING_REMOTE_ENTRY !== MODEL_SERVING_REMOTE_ENTRY
+  ) {
     throw new Error(
-      'Unset MODEL_SERVING_REMOTE_ENTRY: remote code cannot be verified by a local build audit',
+      `Only the image's locally built remote can be audited: ${MODEL_SERVING_REMOTE_ENTRY}`,
     );
   }
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -29,34 +31,27 @@ const main = async () => {
     encoding: 'utf8',
   }).trim();
   const workingTreeDirty = Boolean(
-    execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], {
+    execFileSync('git', ['status', '--porcelain', '--untracked-files=normal'], {
       cwd: repoRoot,
       encoding: 'utf8',
     }).trim(),
   );
-  const config = require('../config/rspack.prod');
-  const compiler = rspack({
-    ...config,
-    context: distributionRoot,
-    output: { ...config.output, path: path.join(outputDir, 'assets'), clean: true },
-  });
-  let data;
-  try {
-    const stats = await new Promise((resolve, reject) => {
-      compiler.run((error, result) => (error ? reject(error) : resolve(result)));
-    });
-    if (!stats) throw new Error('Production compilation returned no statistics');
-    data = stats.toJson(STATS_OPTIONS);
-    fs.writeFileSync(path.join(outputDir, 'stats.json'), JSON.stringify(data));
-    if (stats.hasErrors()) {
-      throw new Error(stats.toString({ all: false, errors: true }));
-    }
-  } finally {
-    await new Promise((resolve, reject) => {
-      compiler.close((error) => (error ? reject(error) : resolve()));
-    });
+  // Clear both inputs before building, so a failed host build cannot leave old
+  // remote statistics alongside the current attempt.
+  for (const name of Object.keys(productionTargets)) {
+    fs.rmSync(path.join(outputDir, name, 'stats.json'), { force: true });
   }
-  const report = auditRuntime(data, {
+  const builds = Object.entries(productionTargets).map(([name, target]) => {
+    execFileSync(process.execPath, [path.join(__dirname, 'production-build.js'), name], {
+      cwd: path.join(repoRoot, target.workspace),
+      stdio: 'inherit',
+    });
+    return JSON.parse(fs.readFileSync(path.join(outputDir, name, 'stats.json'), 'utf8'));
+  });
+  if (!fs.existsSync(path.join(outputDir, 'model-serving/assets/remoteEntry.js'))) {
+    throw new Error('Model Serving build did not emit remoteEntry.js');
+  }
+  const report = auditProductionBuilds(builds[0], builds[1], {
     repoRoot,
     context: distributionRoot,
     metadata: {
@@ -65,9 +60,8 @@ const main = async () => {
       buildCommand: args.includes('--check')
         ? 'pnpm run check:runtime-boundary'
         : 'pnpm run audit:runtime',
-      buildConfig: 'distributions/rhaii/config/rspack.prod.js',
       tiltFixtures: false,
-      modelServingRemote: false,
+      modelServingRemote: MODEL_SERVING_REMOTE_ENTRY,
     },
   });
   fs.writeFileSync(path.join(outputDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
@@ -80,7 +74,11 @@ const main = async () => {
   if (args.includes('--check') && !report.boundaryPassed) process.exitCode = 1;
 };
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { main };

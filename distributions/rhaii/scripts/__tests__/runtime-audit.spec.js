@@ -1,5 +1,10 @@
 /** @jest-environment node */
-const { auditRuntime, renderReport } = require('../runtime-audit');
+const {
+  auditRuntime,
+  auditProductionBuilds,
+  renderReport,
+  MODEL_SERVING_REMOTE_ENTRY,
+} = require('../runtime-audit');
 
 const root = '/repo';
 const context = '/repo/distributions/rhaii';
@@ -25,6 +30,72 @@ const stats = (modules = [entry()]) => ({
   ],
 });
 const audit = (input) => auditRuntime(input, { repoRoot: root, context });
+
+describe('shipped production builds', () => {
+  const remote = (modules = []) => ({
+    ...stats([
+      source('packages/model-serving/frontend/src/index.ts', [1], [{ type: 'entry' }]),
+      ...modules,
+    ]),
+    assets: [{ name: 'remoteEntry.js' }],
+  });
+  const external = (entryUrl) => ({
+    identifier: `external script "modelServing@${entryUrl}"`,
+    moduleType: 'javascript/dynamic',
+    chunks: [2],
+    reasons: importedBy('distributions/rhaii/src/index.tsx'),
+  });
+  const auditBuilds = (hostStats, remoteStats) =>
+    auditProductionBuilds(hostStats, remoteStats, { repoRoot: root, context });
+
+  it('should audit the local remote while verifying only its exact host binding', () => {
+    const report = auditBuilds(
+      stats([entry(), external(MODEL_SERVING_REMOTE_ENTRY)]),
+      remote([source('frontend/src/remote-legacy.ts', [2])]),
+    );
+    expect(report.boundaryPassed).toBe(false);
+    expect(report.violations).toHaveLength(1);
+    expect(report.violations[0]).toMatchObject({
+      name: 'frontend/src/remote-legacy.ts',
+      chunks: ['main.1:2'],
+    });
+    expect(report.builds.map((build) => [build.name, build.summary.violations])).toEqual([
+      ['host', 0],
+      ['model-serving', 1],
+    ]);
+    expect(renderReport(report)).toContain('Audited same-origin Model Serving remote:');
+  });
+
+  it('should retain separate module instances and chunks when both bundles contain the same source', () => {
+    const report = auditBuilds(
+      stats([entry(), source('frontend/src/legacy.ts', [2])]),
+      remote([source('frontend/src/legacy.ts', [2])]),
+    );
+    expect(report.violations).toHaveLength(2);
+    expect(report.violations.map((module) => module.chunks)).toEqual([['main.0:2'], ['main.1:2']]);
+  });
+
+  it('should fail unknown host externals and references to the remote from its own bundle', () => {
+    const report = auditBuilds(
+      stats([entry(), external('https://example.test/remoteEntry.js')]),
+      remote([external(MODEL_SERVING_REMOTE_ENTRY)]),
+    );
+    expect(report.violations).toHaveLength(2);
+    expect(
+      report.violations.every((module) => module.reason === 'unverified-external-runtime'),
+    ).toBe(true);
+  });
+
+  it.each([
+    undefined,
+    { ...remote(), assets: [] },
+    { ...remote(), errors: [{ message: 'Remote compilation failed' }] },
+    { ...remote(), modules: [] },
+    { ...remote(), filteredModules: 1 },
+  ])('should reject missing, failed, empty, or truncated remote evidence', (remoteStats) => {
+    expect(() => auditBuilds(stats(), remoteStats)).toThrow();
+  });
+});
 
 describe('production runtime audit', () => {
   it('should report forbidden initial and lazy modules with transitive importer paths', () => {
@@ -120,6 +191,58 @@ describe('production runtime audit', () => {
     );
     expect(report.violations).toHaveLength(1);
     expect(report.violations[0].owner).toBe('@odh-dashboard/internal');
+  });
+
+  it('should classify symlinked modules by their innermost package and allow nested shared dependencies', () => {
+    const legacy =
+      'packages/model-serving/frontend/node_modules/@odh-dashboard/internal/api/index.ts';
+    const allowed =
+      'node_modules/@odh-dashboard/internal/node_modules/@odh-dashboard/ui-core/node_modules/@patternfly/react-icons/icon.js';
+    const report = audit(
+      stats([
+        entry(),
+        source(legacy, [2]),
+        source(allowed, [2]),
+        {
+          identifier: `consume shared module (default) @patternfly/react-icons@* (fallback: /repo/${allowed})`,
+          moduleType: 'consume-shared-module',
+          chunks: [2],
+          reasons: [],
+        },
+        {
+          identifier: `provide shared module (default) @patternfly/react-icons@1.0 = /repo/${allowed}`,
+          moduleType: 'provide-module',
+          chunks: [2],
+          reasons: [],
+        },
+      ]),
+    );
+    expect(report.violations).toHaveLength(1);
+    expect(report.violations[0]).toMatchObject({
+      resource: legacy,
+      owner: '@odh-dashboard/internal',
+    });
+    expect(report.runtimeModules.find((module) => module.resource === allowed).owner).toBe(
+      '@patternfly/react-icons',
+    );
+  });
+
+  it('should trace imports from a federated container entry', () => {
+    const container = {
+      identifier: 'container entry (default)',
+      chunks: [1],
+      reasons: [{ type: 'container entry' }],
+    };
+    const legacy = source(
+      'frontend/src/legacy.ts',
+      [2],
+      [{ moduleIdentifier: container.identifier }],
+    );
+    const report = audit(stats([container, legacy]));
+    expect(report.violations[0].importerPath).toEqual([
+      'container entry (default)',
+      'frontend/src/legacy.ts',
+    ]);
   });
 
   it('should detect forbidden federation references and unverified external runtime modules', () => {
