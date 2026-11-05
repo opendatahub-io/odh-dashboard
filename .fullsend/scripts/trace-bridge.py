@@ -32,6 +32,7 @@ import datetime
 import glob
 import hashlib
 import http.client
+import math
 import json
 import os
 import re
@@ -180,26 +181,46 @@ def span(trace_id, sid, parent, name, start, end, a, error=False):
     return s
 
 
-def sanitize_value(v, sensitive=False):
-    """Redact an OTLP AnyValue recursively. Text under a sensitive key is dropped."""
-    v = v if isinstance(v, dict) else {}
+def _list(v, field):
+    vals = (v.get(field) or {}).get("values") if isinstance(v.get(field), dict) else None
+    return vals if isinstance(vals, list) else []
+
+
+def sanitize_value(v, sensitive=False, depth=0):
+    """Redact an OTLP AnyValue recursively. Text under a sensitive key is dropped; numbers
+    must be valid (finite doubles, int64 ints, real booleans) or the value is dropped (None)."""
+    if not isinstance(v, dict) or depth > 8:
+        return None
     if "stringValue" in v:
         return {"stringValue": "[REDACTED]" if sensitive else clean(v["stringValue"])}
     if "arrayValue" in v:
-        return {"arrayValue": {"values": [sanitize_value(x, sensitive)
-                                          for x in (v["arrayValue"].get("values") or [])]}}
+        vals = (sanitize_value(x, sensitive, depth + 1) for x in _list(v, "arrayValue")[:100])
+        return {"arrayValue": {"values": [x for x in vals if x is not None]}}
     if "kvlistValue" in v:
-        return {"kvlistValue": {"values": [sanitize_attr(x, sensitive)
-                                           for x in (v["kvlistValue"].get("values") or [])]}}
-    for k in ("intValue", "doubleValue", "boolValue"):
-        if k in v:
-            return {k: v[k]}
+        vals = (sanitize_attr(x, sensitive, depth + 1) for x in _list(v, "kvlistValue")[:100])
+        return {"kvlistValue": {"values": [x for x in vals if x is not None]}}
+    if "intValue" in v:
+        try:
+            i = int(v["intValue"]) if not isinstance(v["intValue"], (bool, float)) else None
+        except (TypeError, ValueError):
+            i = None
+        return {"intValue": str(i)} if i is not None and -2**63 <= i < 2**63 else None
+    if "doubleValue" in v:
+        d = v["doubleValue"]
+        ok = isinstance(d, (int, float)) and not isinstance(d, bool) and math.isfinite(d)
+        return {"doubleValue": float(d)} if ok else None
+    if "boolValue" in v:
+        return {"boolValue": v["boolValue"]} if isinstance(v["boolValue"], bool) else None
     return {"stringValue": "[REDACTED]"}  # bytesValue or unknown
 
 
-def sanitize_attr(a, sensitive=False):
+def sanitize_attr(a, sensitive=False, depth=0):
+    """A redacted OTLP KeyValue, or None if it isn't one or its value is invalid."""
+    if not isinstance(a, dict):
+        return None
     key = str(a.get("key", ""))[:200]
-    return {"key": key, "value": sanitize_value(a.get("value"), sensitive or bool(SENSITIVE_KEY_RE.search(key)))}
+    val = sanitize_value(a.get("value"), sensitive or bool(SENSITIVE_KEY_RE.search(key)), depth)
+    return {"key": key, "value": val} if val is not None else None
 
 
 def sanitize_base_span(s):
@@ -218,7 +239,8 @@ def sanitize_base_span(s):
         if k in out and not (isinstance(out[k], int) and not isinstance(out[k], bool) and 0 <= out[k] < 2**32):
             del out[k]
     out["name"] = clean(out.get("name", ""))[:200]
-    out["attributes"] = [sanitize_attr(x) for x in s.get("attributes") or [] if isinstance(x, dict)]
+    attrs_in = s.get("attributes") if isinstance(s.get("attributes"), list) else []
+    out["attributes"] = [x for x in (sanitize_attr(a) for a in attrs_in[:200]) if x is not None]
     code = (s.get("status") or {}).get("code")
     if code in (0, 1, 2):
         out["status"] = {"code": code}
@@ -642,7 +664,9 @@ def check_endpoint(endpoint):
 
 
 def post(payload, endpoint, headers):
-    req = urllib.request.Request(endpoint, data=json.dumps(payload).encode(), headers=headers, method="POST")
+    # allow_nan=False: OTLP JSON has no Infinity/NaN tokens; fail loudly rather than send them.
+    req = urllib.request.Request(endpoint, data=json.dumps(payload, allow_nan=False).encode(),
+                                 headers=headers, method="POST")
     with _OPENER.open(req, timeout=60) as r:
         return r.status
 
@@ -789,6 +813,12 @@ def self_test():
                       "attributes": [{"key": "cmd", "value": {"stringValue": "--api-key s3cr3tvalue1"}},
                                      {"key": "fullsend.mint.token", "value": {"stringValue": "plainValue9x"}},
                                      {"key": "gen_ai.usage.input_tokens", "value": {"intValue": "42"}},
+                                     {"key": "bad.double", "value": {"doubleValue": float("nan")}},
+                                     {"key": "bad.int", "value": {"intValue": [1, 2]}},
+                                     {"key": "bad.bool", "value": {"boolValue": "yes"}},
+                                     {"key": "ok.double", "value": {"doubleValue": 1.5}},
+                                     {"key": "deep", "value": {"arrayValue": {"values": [
+                                         {"doubleValue": float("inf")}, {"intValue": "7"}, "junk"]}}},
                                      {"key": "nested", "value": {"kvlistValue": {"values": [
                                          {"key": "password", "value": {"stringValue": "nestedPw77"}}]}}}],
                       "events": [{"name": "e", "attributes": [{"key": "x", "value": {"stringValue": "eventLeak5"}}]}],
@@ -905,6 +935,10 @@ def self_test():
         ("Fullsend span with an infinite end is normalized, one with a NaN start is dropped",
          any(x["name"] == "sandbox_create" and x["endTimeUnixNano"] == "1500000000" and "kind" not in x
              for x in spans) and not any(x["name"] == "bad_start" for x in spans)),
+        ("invalid numbers on Fullsend spans are dropped, valid ones kept",
+         not any(k in base_attrs for k in ("bad.double", "bad.int", "bad.bool"))
+         and base_attrs.get("ok.double") == {"doubleValue": 1.5}
+         and base_attrs.get("deep") == {"arrayValue": {"values": [{"intValue": "7"}]}}),
         ("payload serializes as strict JSON (no Infinity/NaN)",
          bool(json.dumps(payload, allow_nan=False))),
         ("every span time stays within the OTLP range",
