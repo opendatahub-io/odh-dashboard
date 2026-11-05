@@ -7,10 +7,6 @@ import {
 } from '@odh-dashboard/k8s-core';
 import { DisplayNameAnnotation } from '@odh-dashboard/internal/types';
 import {
-  HardwareProfileWarningType,
-  WarningNotification,
-} from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,
   OTHER,
@@ -25,6 +21,7 @@ import {
 import { DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/utils';
 import { createHardwareProfileWarningSchema } from './manage/validationUtils';
+import { HardwareProfileWarningType, type WarningNotification } from '../../shared/types';
 import { isDRAHardwareProfile } from '../../shared/utils';
 
 export enum HardwareProfileBannerWarningTitles {
