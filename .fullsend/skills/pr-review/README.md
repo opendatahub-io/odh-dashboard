@@ -115,8 +115,10 @@ only. Host warns if `challenger.removed` ≠ audit list length.
 `### Justified (N)` (after the severity groups), not in the Challenger
 removed audit. Each shows the original severity, description, and
 `removal_reason` labeled as a justification. A fixed disclaimer notes
-these do not block disposition. The section is wrapped in HTML markers
-(`<!-- fullsend:justified-findings -->`) for downstream tooling.
+these do not block disposition. The section is delimited by the
+`### Justified (N)` heading; do not wrap it in an HTML comment.
+`fullsend post-review` escapes comment openers in agent-authored bodies,
+so a wrapper would show as visible text in the sticky.
 
 ### Author rebuttals (Justifications vs Evidence)
 
