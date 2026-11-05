@@ -83,6 +83,14 @@ class EvaluationsPage {
     );
   }
 
+  findBenchmarkSuiteMenu(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`);
+  }
+
+  findBenchmarkSuiteAction(action: string, collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-action-${action}-${collectionId}`).find('button');
+  }
+
   findEvaluationsTable(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('evaluations-table', options);
   }

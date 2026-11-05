@@ -16,6 +16,7 @@ import {
 import { evaluationsPage } from '../pages/evalHub/evaluationsPage';
 import { createEvaluationPage } from '../pages/evalHub/createEvaluationPage';
 import { evaluationResultsPage } from '../pages/evalHub/evaluationResultsPage';
+import type { EvalHubBenchmarkSuiteTestData } from '../types';
 
 // EvalHub API cleanup helpers
 const EVAL_HUB_API_MAX_ATTEMPTS = 6;
@@ -477,7 +478,16 @@ const configureEvaluationHardwareProfile = (profileName?: string, modalId?: stri
     .should('contain.text', 'Only hardware profiles configured with a local queue are shown');
 };
 
-/** Confirms that run-specific options are present in the job request. */
+/** Checks that a benchmark's submitted parameters contain all expected keys and values. */
+const assertBenchmarkParametersIncluded = (
+  actualParameters: Record<string, unknown> | undefined,
+  expectedParameters: Record<string, unknown>,
+  context: string,
+): void => {
+  expect(actualParameters, `${context} parameters`).to.deep.include(expectedParameters);
+};
+
+/** Confirms hardware selection and optional benchmark overrides in the create-job request. */
 const assertEvaluationJobOptions = (
   profileName?: string,
   benchmarkParameterOverrides?: Record<string, unknown>,
@@ -503,8 +513,12 @@ const assertEvaluationJobOptions = (
         collectionBenchmarks,
         'collection benchmarks in job request',
       ).to.have.length.greaterThan(0);
-      collectionBenchmarks?.forEach(({ parameters }) => {
-        expect(parameters).to.deep.include(benchmarkParameterOverrides);
+      collectionBenchmarks?.forEach(({ parameters }, index) => {
+        assertBenchmarkParametersIncluded(
+          parameters,
+          benchmarkParameterOverrides,
+          `collection benchmark ${index + 1}`,
+        );
       });
     }
   });
@@ -587,7 +601,58 @@ export const navigateToEvaluationsPage = (
   });
 };
 
-//Curated collection customization flow
+// Collection copy flow helpers
+/** Names a copied collection and advances the wizard to benchmark configuration. */
+const advanceCopyCollectionWizard = (
+  collectionName: string,
+  navigationTimeout: Partial<Cypress.Timeoutable>,
+): void => {
+  createEvaluationPage.findSuiteNameInput().should('be.visible').clear().type(collectionName);
+  createEvaluationPage.findCopySuiteNextButton().should('be.enabled').click();
+  createEvaluationPage.findCopySuiteNextSelectBenchmarksButton().should('be.enabled').click();
+  createEvaluationPage.findCopySuiteStepBenchmarks(navigationTimeout).should('be.visible');
+};
+
+/** Saves a copied collection without starting an evaluation run. */
+const saveCopiedCollectionOnly = (): void => {
+  createEvaluationPage.findCopySuiteSaveOnlyButton().should('be.enabled').click();
+};
+
+/** Confirms the copy flow returned to collections and the named copies appear under Evaluate. */
+const verifyCopiedCollectionsVisible = (
+  evaluationTenantProject: string,
+  collectionNames: string[],
+  navigationTimeout: Partial<Cypress.Timeoutable>,
+): void => {
+  cy.location('pathname', navigationTimeout).should(
+    'eq',
+    `/evaluation/${evaluationTenantProject}/collections`,
+  );
+  navigateToEvaluationsPage(evaluationTenantProject);
+  collectionNames.forEach((collectionName) => {
+    evaluationsPage
+      .findBenchmarkSuiteCardByName(collectionName, navigationTimeout)
+      .should('be.visible');
+  });
+};
+
+/** Sets and verifies one benchmark's dedicated Num examples field. */
+const setBenchmarkNumExamples = (
+  index: number,
+  numExamples: number,
+  stepDescription: string,
+): void => {
+  cy.step(stepDescription);
+  createEvaluationPage
+    .findBenchmarkParameterInput(index, 'num_examples')
+    .scrollIntoView()
+    .should('be.visible')
+    .clear()
+    .type(String(numExamples))
+    .should('have.value', String(numExamples));
+};
+
+// Curated collection customization flow
 export const customizeCuratedCollection = (
   evaluationTenantProject: string,
   collectionId: string,
@@ -617,12 +682,8 @@ export const customizeCuratedCollection = (
   createEvaluationPage
     .findCopySuitePrerequisiteAlert()
     .should('contain.text', 'multiple tool/function calls');
-  createEvaluationPage.findSuiteNameInput().clear().type(customizedCollectionName);
-  createEvaluationPage.findCopySuiteNextButton().should('be.enabled').click();
-
-  cy.step('Keep the curated benchmark selection and open its configuration');
-  createEvaluationPage.findCopySuiteNextSelectBenchmarksButton().should('be.enabled').click();
-  createEvaluationPage.findCopySuiteStepBenchmarks(navigationTimeout).should('be.visible');
+  cy.step('Name the collection and keep the curated benchmarks selected');
+  advanceCopyCollectionWizard(customizedCollectionName, navigationTimeout);
   createEvaluationPage.findBenchmarkParameterInput(0, 'judge_model').should('not.exist');
   cy.step('Limit each benchmark to five examples');
   createEvaluationPage
@@ -630,15 +691,8 @@ export const customizeCuratedCollection = (
     .its('length')
     .then((benchmarkCount) => {
       Array.from({ length: benchmarkCount }, (_value, index) => index).forEach((index) => {
-        cy.step(`Set benchmark ${index + 1} to five examples`);
         createEvaluationPage.findBenchmarkJumpLink(index).should('be.visible').click();
-        createEvaluationPage
-          .findBenchmarkParameterInput(index, 'num_examples')
-          .scrollIntoView()
-          .should('be.visible')
-          .clear()
-          .type('5')
-          .should('have.value', '5');
+        setBenchmarkNumExamples(index, 5, `Set benchmark ${index + 1} to five examples`);
 
         cy.step(`Use Chat Completions for benchmark ${index + 1}`);
         createEvaluationPage
@@ -668,17 +722,103 @@ export const customizeCuratedCollection = (
       });
     });
   // Save the customized collection without launching it; the spec verifies the run separately.
-  createEvaluationPage.findCopySuiteSaveOnlyButton().should('be.enabled').click();
-  cy.location('pathname', navigationTimeout).should(
-    'eq',
-    `/evaluation/${evaluationTenantProject}/collections`,
+  saveCopiedCollectionOnly();
+  cy.step('Verify the customized collection is available under Evaluate');
+  verifyCopiedCollectionsVisible(
+    evaluationTenantProject,
+    [customizedCollectionName],
+    navigationTimeout,
+  );
+};
+
+/** Duplicates a saved tenant collection and verifies the copy is saved to My collections. */
+export const duplicateSavedBenchmarkCollection = (
+  evaluationTenantProject: string,
+  sourceCollectionName: string,
+  duplicatedCollectionName: string,
+  expectedBenchmarks: EvalHubBenchmarkSuiteTestData['benchmarks'],
+  expectedBenchmarkParameters: Record<string, unknown>,
+): void => {
+  const navigationTimeout = { timeout: 120000 };
+
+  navigateToEvaluationsPage(evaluationTenantProject);
+  cy.step(`Open the saved collection actions: ${sourceCollectionName}`);
+  findEvalHubCollectionIdByName(evaluationTenantProject, sourceCollectionName).then(
+    (sourceCollectionId) => {
+      evaluationsPage.findBenchmarkSuiteMenu(sourceCollectionId).should('be.visible').click();
+      evaluationsPage
+        .findBenchmarkSuiteAction('duplicate', sourceCollectionId)
+        .should('be.visible')
+        .click();
+      cy.location('pathname', navigationTimeout).should(
+        'eq',
+        `/evaluation/${evaluationTenantProject}/create/collections/${sourceCollectionId}/copy`,
+      );
+    },
   );
 
-  cy.step('Verify the customized collection is available under Evaluate');
-  navigateToEvaluationsPage(evaluationTenantProject);
-  evaluationsPage
-    .findBenchmarkSuiteCardByName(customizedCollectionName, navigationTimeout)
-    .should('be.visible');
+  cy.step('Name the duplicate and keep the source benchmarks selected');
+  advanceCopyCollectionWizard(duplicatedCollectionName, navigationTimeout);
+
+  cy.step('Verify the duplicate retains its sample counts and tokenizer');
+  createEvaluationPage.findBenchmarkSections().should('have.length', expectedBenchmarks.length);
+  expectedBenchmarks.forEach(({ numExamples }, index) => {
+    createEvaluationPage
+      .findBenchmarkParameterInput(index, 'num_examples')
+      .should('have.value', String(numExamples));
+    // Provider-declared parameters such as tokenizer render as dedicated fields, not advanced JSON.
+    Object.entries(expectedBenchmarkParameters).forEach(([parameterKey, parameterValue]) => {
+      createEvaluationPage
+        .findBenchmarkParameterInput(index, parameterKey)
+        .should('have.value', String(parameterValue));
+    });
+  });
+
+  cy.step('Add the duplicate to My collections');
+  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/collections/*/clones*').as(
+    'cloneEvalHubCollection',
+  );
+  saveCopiedCollectionOnly();
+  cy.wait('@cloneEvalHubCollection', { timeout: 120000 }).then(({ request, response }) => {
+    expect(response?.statusCode).to.equal(201);
+    expect(request.body).to.have.property('name', duplicatedCollectionName);
+    const clonedBenchmarks = (
+      request.body as {
+        benchmarks?: Array<{
+          id: string;
+          parameters?: Record<string, unknown>;
+        }>;
+      }
+    ).benchmarks;
+    expect(clonedBenchmarks, 'benchmarks in duplicate request').to.have.length(
+      expectedBenchmarks.length,
+    );
+    clonedBenchmarks?.forEach((benchmark, index) => {
+      expect(benchmark.id).to.equal(expectedBenchmarks[index].id);
+      assertBenchmarkParametersIncluded(
+        benchmark.parameters,
+        {
+          // eslint-disable-next-line camelcase
+          num_examples: expectedBenchmarks[index].numExamples,
+          ...expectedBenchmarkParameters,
+        },
+        `cloned benchmark ${benchmark.id}`,
+      );
+    });
+  });
+  verifyCopiedCollectionsVisible(
+    evaluationTenantProject,
+    [sourceCollectionName, duplicatedCollectionName],
+    navigationTimeout,
+  );
+  findEvalHubCollectionIdByName(evaluationTenantProject, duplicatedCollectionName).then(
+    (duplicatedCollectionId) =>
+      findEvalHubCollectionIdByName(evaluationTenantProject, sourceCollectionName).then(
+        (sourceCollectionId) => {
+          expect(duplicatedCollectionId).not.to.equal(sourceCollectionId);
+        },
+      ),
+  );
 };
 
 /** Removes stale EvalHub runs left by an earlier attempt using the same E2E tenant. */
@@ -808,11 +948,11 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
 
   benchmarks.forEach(({ name, numExamples }, index) => {
     if (numExamples !== undefined) {
-      cy.step(`Set the dedicated Num examples parameter for ${name}`);
-      createEvaluationPage
-        .findBenchmarkParameterInput(index, 'num_examples')
-        .clear()
-        .type(String(numExamples));
+      setBenchmarkNumExamples(
+        index,
+        numExamples,
+        `Set the dedicated Num examples parameter for ${name}`,
+      );
     }
 
     if (additionalBenchmarkParams?.trim()) {

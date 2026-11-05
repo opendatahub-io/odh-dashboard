@@ -37,15 +37,19 @@ export type BenchmarkSuiteScenarioKey =
   | 'save-and-run'
   | 'gallery'
   | 'curated-customize'
-  | 'curated-run';
+  | 'curated-run'
+  | 'duplicate';
 
 export type EvalHubBenchmarkSuiteScenario = {
   setup: () => void;
   cleanup: () => void;
   run: () => void;
+  createSavedCollection: () => void;
   runSavedCollection: (suiteName: string, evaluationRunName: string) => void;
   runCuratedCollection: () => void;
   getTenantProject: () => string;
+  getCreatedSuiteName: () => string;
+  getTestData: () => EvalHubBenchmarkSuiteTestData;
 };
 
 const getScenarioFixturePath = (key: BenchmarkSuiteScenarioKey): string => {
@@ -54,6 +58,8 @@ const getScenarioFixturePath = (key: BenchmarkSuiteScenarioKey): string => {
       return 'e2e/eval-hub/testEvalHubCuratedCollectionCustomize.yaml';
     case 'curated-run':
       return 'e2e/eval-hub/testEvalHubCuratedCollectionRun.yaml';
+    case 'duplicate':
+      return 'e2e/eval-hub/testEvalHubBenchmarkSuiteDuplicate.yaml';
     case 'save-and-run':
     case 'gallery':
       return 'e2e/eval-hub/testEvalHubBenchmarkSuite.yaml';
@@ -66,6 +72,7 @@ const getScenarioUuid = (key: BenchmarkSuiteScenarioKey): string => {
     gallery: 'EVAL_HUB_SUITE_GALLERY_UUID',
     'curated-customize': 'EVAL_HUB_CURATED_CUSTOMIZE_UUID',
     'curated-run': 'EVAL_HUB_CURATED_RUN_UUID',
+    duplicate: 'EVAL_HUB_SUITE_DUPLICATE_UUID',
   };
   const envKey = envKeys[key];
   const uuid = Cypress.env(envKey) || generateTestUUID();
@@ -222,6 +229,18 @@ export const createEvalHubBenchmarkSuiteScenario = (
     verifyEvaluationCompletedAndViewResults(evaluationRunName, testData.expectedBenchmarkIds);
   };
 
+  const createSavedCollection = (): void => {
+    cy.step('[Setup] Create a saved collection to use as the duplicate source');
+    createBenchmarkSuite({
+      suiteName: createdSuiteName,
+      suiteDomains: testData.suiteDomains,
+      benchmarkProviderId: testData.benchmarkProviderId,
+      benchmarks: testData.benchmarks,
+      additionalBenchmarkParams: testData.additionalBenchmarkParams,
+    });
+    trackCreatedCollectionId();
+  };
+
   const runSavedCollection = (suiteName: string, evaluationRunName: string): void => {
     submitBenchmarkSuiteEvaluation({
       suiteName,
@@ -273,8 +292,11 @@ export const createEvalHubBenchmarkSuiteScenario = (
     setup,
     cleanup,
     run,
+    createSavedCollection,
     runSavedCollection,
     runCuratedCollection,
     getTenantProject: () => evaluationTenantProject,
+    getCreatedSuiteName: () => createdSuiteName,
+    getTestData: () => testData,
   };
 };
