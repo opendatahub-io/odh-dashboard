@@ -1,10 +1,13 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForAutoXDspaReady } from './oc_commands/autoX';
 import { waitForAutoragManagedPipelines } from './autoXPipelines';
-import { getVectorDatabaseConnection, resetAutoragConnections } from './oc_commands/autoragInfra';
+import {
+  getVectorDatabaseConnection,
+  resetAutoragConnections,
+  verifyAutoragVectorDatabaseConnectionSecret,
+} from './oc_commands/autoragInfra';
 import { AWS_BUCKETS } from './s3Buckets';
 import { resolveAutoXS3Endpoint } from './autoXS3';
-import { pollUntilSuccess } from './oc_commands/baseCommands';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
@@ -15,8 +18,6 @@ import {
 } from '../support/timeouts';
 
 const RESOURCES_PATH = 'resources/autorag';
-
-const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
 
 type MaaSModel = { id?: unknown; ready?: unknown };
 
@@ -270,78 +271,10 @@ const createMaaSConnection = (testData: AutoragTestData, maasFixture: AutoragMaa
   autoragConfigurePage.findMaasConnectionSubmitButton().click();
 };
 
-const verifyVectorDbConnectionSecret = (
+const createVectorDbConnection = (
   testData: AutoragTestData,
   projectName: string,
-  connection: ReturnType<typeof getVectorDatabaseConnection>,
-): void => {
-  const secretRef = `${shellQuote(testData.vectorDbSecretName)} -n ${shellQuote(projectName)}`;
-  const existsCommand = `oc get secret ${secretRef} -o name`;
-  const secretCommand = `oc get secret ${secretRef} -o json`;
-
-  pollUntilSuccess(existsCommand, 'AutoRAG PGVector connection secret', {
-    maxAttempts: 30,
-    pollIntervalMs: 1000,
-  }).then(() =>
-    cy.exec(secretCommand, { failOnNonZeroExit: false, log: false }).then((result) => {
-      if (result.exitCode !== 0) {
-        throw new Error('Unable to read the AutoRAG PGVector connection secret.');
-      }
-
-      let decodedConnection: {
-        host: string;
-        port: string;
-        db: string;
-        user: string;
-        password: string;
-      };
-      try {
-        const secret = JSON.parse(result.stdout) as {
-          data?: Record<string, string>;
-        };
-        const decode = (key: string): string => {
-          const encoded = secret.data?.[key];
-          if (
-            typeof encoded !== 'string' ||
-            !encoded ||
-            encoded.length % 4 !== 0 ||
-            !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)
-          ) {
-            throw new Error(`Secret field ${key} is missing or not valid base64.`);
-          }
-
-          const decoded = Buffer.from(encoded, 'base64');
-          if (!decoded.length || decoded.toString('base64') !== encoded) {
-            throw new Error(`Secret field ${key} is missing or not valid base64.`);
-          }
-          return decoded.toString('utf8');
-        };
-        decodedConnection = {
-          host: decode('PGVECTOR_HOST'),
-          port: decode('PGVECTOR_PORT'),
-          db: decode('PGVECTOR_DB'),
-          user: decode('PGVECTOR_USER'),
-          password: decode('PGVECTOR_PASSWORD'),
-        };
-      } catch {
-        throw new Error('AutoRAG PGVector connection secret returned invalid data.');
-      }
-
-      const matchesConnection =
-        decodedConnection.host === connection.host &&
-        decodedConnection.port === connection.port &&
-        decodedConnection.db === connection.db &&
-        decodedConnection.user === connection.user &&
-        decodedConnection.password === connection.password;
-
-      if (!matchesConnection) {
-        throw new Error('AutoRAG PGVector connection secret does not match the ready database.');
-      }
-    }),
-  );
-};
-
-const createVectorDbConnection = (testData: AutoragTestData, projectName: string): void => {
+): Cypress.Chainable<void> => {
   autoragConfigurePage.findAddDatabaseDropdownToggle().click();
   autoragConfigurePage.findAddPgvectorConnectionOption().click();
   const connection = getVectorDatabaseConnection(projectName);
@@ -352,7 +285,11 @@ const createVectorDbConnection = (testData: AutoragTestData, projectName: string
   autoragConfigurePage.findPgvectorInput('user').type(connection.user);
   autoragConfigurePage.findPgvectorInput('password').type(connection.password, { log: false });
   autoragConfigurePage.findPgvectorConnectionSubmitButton().click();
-  verifyVectorDbConnectionSecret(testData, projectName, connection);
+  return verifyAutoragVectorDatabaseConnectionSecret(
+    testData.vectorDbSecretName,
+    projectName,
+    connection,
+  );
 };
 
 /** Create and select project-scoped connections without probing existing secrets. */
