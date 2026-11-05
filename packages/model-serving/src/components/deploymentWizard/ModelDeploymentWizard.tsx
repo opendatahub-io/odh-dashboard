@@ -177,6 +177,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               isYamlEmpty={!yaml?.yaml}
               viewMode={viewMode}
               yamlErrors={yamlToFormErrors}
+              canUpdateFormFromYaml={!!initialDataFromYaml?.formData}
               switchToForm={(updateFormWithYaml = true) => {
                 if (
                   updateFormWithYaml &&
