@@ -10,7 +10,7 @@ import (
 
 const wsHeartbeatInterval = 15 * time.Second
 
-func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string, target, client *websocket.Conn, cleanup func()) {
+func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string, target, client *websocket.Conn, cleanup func(), watch bool) {
 	defer cleanup()
 	for {
 		msgType, msg, err := target.ReadMessage()
@@ -20,8 +20,11 @@ func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string,
 			return
 		}
 		tracker.updateMetricsReceived(connID)
-		trackBookmark(tracker, connID, msg)
-		if writeErr := client.WriteMessage(msgType, httpcontract.SanitizeWatchEvent(msg)); writeErr != nil {
+		if watch {
+			trackBookmark(tracker, connID, msg)
+			msg = httpcontract.SanitizeWatchEvent(msg)
+		}
+		if writeErr := client.WriteMessage(msgType, msg); writeErr != nil {
 			tracker.logClose(connID, requestID, writeErr)
 			sendCloseMessage(target, writeErr)
 			return
@@ -68,7 +71,7 @@ func runHeartbeat(tracker *ConnectionTracker, connID, requestID string, target *
 	}
 }
 
-func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn, requestID string) {
+func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn, requestID string, watch bool) {
 	// Override gorilla's default close handler, which otherwise echoes untrusted peer text.
 	for _, conn := range []*websocket.Conn{clientConn, targetConn} {
 		conn.SetCloseHandler(func(code int, _ string) error {
@@ -90,7 +93,7 @@ func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *webso
 		})
 	}
 
-	go forwardTargetToClient(tracker, connID, requestID, targetConn, clientConn, cleanup)
+	go forwardTargetToClient(tracker, connID, requestID, targetConn, clientConn, cleanup, watch)
 	go forwardClientToTarget(tracker, connID, requestID, clientConn, targetConn, cleanup)
 	go runHeartbeat(tracker, connID, requestID, targetConn, heartbeat, done, cleanup, clientConn)
 }

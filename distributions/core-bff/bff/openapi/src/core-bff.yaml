@@ -1652,7 +1652,9 @@ paths:
     description: >-
       Proxies WebSocket connections to the Kubernetes API server for watch
       operations. Strips the /wss/k8s prefix and forwards the remaining path
-      to the upstream K8s API via a WebSocket relay. Authentication is required
+      to the upstream K8s API via a WebSocket relay. Watch ERROR messages are sanitized
+      only on query-based or legacy watch requests; non-watch message bytes are preserved.
+      Authentication is required
       via bearer token in the x-forwarded-access-token header (same as API routes).
       OpenAPI 3.0.3 has no native WebSocket support; this path entry documents
       the endpoint's existence and auth model. The actual protocol is a WebSocket
@@ -2724,14 +2726,14 @@ components:
             status: Failure
             code: 422
             reason: Invalid
-            message: request validation failed
+            message: 'request validation failed: spec.model.uri: required field'
             details:
               group: serving.kserve.io
               kind: LLMInferenceService
               causes:
                 - reason: FieldValueRequired
                   field: spec.model.uri
-                  message: invalid field value
+                  message: required field
 
     TooManyRequests:
       description: The upstream Kubernetes API throttled the request; honor available retry metadata.

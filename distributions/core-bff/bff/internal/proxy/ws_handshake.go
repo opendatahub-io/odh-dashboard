@@ -68,8 +68,12 @@ func sameOriginCheck(r *http.Request) bool {
 	return strings.EqualFold(u.Host, r.Host)
 }
 
+func kubernetesWebSocketPath(r *http.Request) string {
+	return strings.TrimPrefix(r.URL.Path, strings.TrimSuffix(WssProxyPrefix, "/"))
+}
+
 func buildTargetWSURL(wsScheme, host string, r *http.Request) string {
-	kubeURI := strings.TrimPrefix(r.URL.Path, strings.TrimSuffix(WssProxyPrefix, "/"))
+	kubeURI := kubernetesWebSocketPath(r)
 	targetWSURL := fmt.Sprintf("%s://%s%s", wsScheme, host, kubeURI)
 	if r.URL.RawQuery != "" {
 		targetWSURL += "?" + r.URL.RawQuery

@@ -79,6 +79,9 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	token := identity.ResolveToken(p.devFallbackToken)
 
 	targetWSURL := buildTargetWSURL(p.wsScheme, p.targetURL.Host, r)
+	upstreamRequest := r.Clone(r.Context())
+	upstreamRequest.URL.Path = kubernetesWebSocketPath(r)
+	watch := httpcontract.IsWatchRequest(upstreamRequest)
 	clientSubprotocols := websocket.Subprotocols(r)
 
 	targetConn, resp, dialErr := dialK8sWebSocket(targetWSURL, p.tlsConfig, token, p.targetURL, p.netDialContext, clientSubprotocols, httpcontract.RequestID(r.Context()))
@@ -96,7 +99,7 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpcontract.Log(p.logger, r).Info("WebSocket connected")
-	bridgeConnections(p.tracker, clientConn, targetConn, httpcontract.RequestID(r.Context()))
+	bridgeConnections(p.tracker, clientConn, targetConn, httpcontract.RequestID(r.Context()), watch)
 }
 
 func (p *wsProxy) handleDialError(w http.ResponseWriter, r *http.Request, resp *http.Response, err error) {

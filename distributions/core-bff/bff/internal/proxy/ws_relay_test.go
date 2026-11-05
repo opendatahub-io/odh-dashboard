@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/stretchr/testify/require"
 )
@@ -119,37 +121,79 @@ func TestWsProxy_ConnectionTracking(t *testing.T) {
 }
 
 func TestWebSocketWatchErrorSanitization(t *testing.T) {
-	for _, eventType := range []string{`ERROR`, `\u0045RROR`} {
-		t.Run(eventType, func(t *testing.T) {
-			backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				upgrader := newUpgrader([]string{"*"})
-				c, err := upgrader.Upgrade(w, r, nil)
-				if err != nil {
-					return
-				}
-				defer c.Close()
-				_ = c.WriteMessage(websocket.TextMessage, []byte(`{"type":"`+eventType+`","object":{"kind":"Status","reason":"Expired","code":410,"message":"CANARY"}}`))
-				_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
-				_, _, _ = c.ReadMessage()
-			}))
-			defer backend.Close()
-			tracker := NewConnectionTracker(testLogger())
-			defer tracker.Stop()
-			handler, err := NewWsProxyHandler(testWsConfig(backend.URL, tracker))
-			require.NoError(t, err)
-			server := httptest.NewServer(httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				handler.ServeHTTP(w, r.WithContext(identityContext(r, "token")))
-			})))
-			defer server.Close()
-			c, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/wss/k8s/api/v1/pods?watch=true", nil)
-			require.NoError(t, err)
-			defer c.Close()
-			_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
-			_, b, err := c.ReadMessage()
-			require.NoError(t, err)
-			require.NotContains(t, string(b), "CANARY")
-			require.Contains(t, string(b), `"reason":"Expired"`)
-			require.Contains(t, string(b), `"code":410`)
-		})
+	for _, prefix := range []string{"", constants.BFFPathPrefix} {
+		for _, path := range []string{
+			"/api/v1/pods?watch=true",
+			"/api/v1/pods?watch=1",
+			"/api/v1/pods?watch",
+			"/api/v1/watch/namespaces/project/pods",
+			"/apis/apps/v1/watch/namespaces/project/deployments?watch=false",
+		} {
+			for _, eventType := range []string{`ERROR`, `\u0045RROR`} {
+				t.Run(prefix+path+"/"+eventType, func(t *testing.T) {
+					event := `{"type":"` + eventType + `","object":{"kind":"Status","reason":"Expired","code":410,"message":"CANARY"}}`
+					messageType, body := readProxiedWebSocketMessage(t, prefix, path, websocket.TextMessage, []byte(event))
+					require.Equal(t, websocket.TextMessage, messageType)
+					require.NotContains(t, string(body), "CANARY")
+					require.Contains(t, string(body), `"reason":"Expired"`)
+					require.Contains(t, string(body), `"code":410`)
+				})
+			}
+		}
 	}
+}
+
+func TestWebSocketNonWatchMessagesRemainOpaque(t *testing.T) {
+	event := []byte(` {"type":"ERROR","object":{"kind":"ApplicationData","message":"application-owned text"}} `)
+	for _, prefix := range []string{"", constants.BFFPathPrefix} {
+		for _, path := range []string{
+			"/api/v1/pods",
+			"/api/v1/pods?watch=false",
+			"/api/v1/pods?watch=0",
+			"/api/v1/namespaces/watch/pods",
+		} {
+			for _, messageType := range []int{websocket.TextMessage, websocket.BinaryMessage} {
+				t.Run(fmt.Sprintf("%s%s/type=%d", prefix, path, messageType), func(t *testing.T) {
+					gotType, body := readProxiedWebSocketMessage(t, prefix, path, messageType, event)
+					require.Equal(t, messageType, gotType)
+					require.Equal(t, event, body)
+				})
+			}
+		}
+	}
+}
+
+func readProxiedWebSocketMessage(t *testing.T, prefix, path string, messageType int, message []byte) (int, []byte) {
+	t.Helper()
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := newUpgrader([]string{"*"})
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Errorf("upgrade failed: %v", err)
+			return
+		}
+		defer conn.Close()
+		require.NoError(t, conn.WriteMessage(messageType, message))
+		_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+		_, _, _ = conn.ReadMessage()
+	}))
+	defer backend.Close()
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+	handler, err := NewWsProxyHandler(testWsConfig(backend.URL, tracker))
+	require.NoError(t, err)
+	if prefix != "" {
+		handler = http.StripPrefix(prefix, handler)
+	}
+	server := httptest.NewServer(httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(w, r.WithContext(identityContext(r, "token")))
+	})))
+	defer server.Close()
+	conn, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+prefix+strings.TrimSuffix(WssProxyPrefix, "/")+path, nil)
+	require.NoError(t, err)
+	defer conn.Close()
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	gotType, body, err := conn.ReadMessage()
+	require.NoError(t, err)
+	return gotType, body
 }
