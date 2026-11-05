@@ -79,9 +79,41 @@ const renderNodeTestSummary = (totals, details = {}) => {
   ].join('\n');
 };
 
+const renderNodeTestMarkdown = (totals, details = {}) => {
+  const failures = (totals.fail ?? 0) + (totals.cancelled ?? 0);
+  const duration =
+    details.durationMs === undefined ? '' : ` in ${(details.durationMs / 1000).toFixed(2)} seconds`;
+  return [
+    '## Test-selection code checks (Node)',
+    '',
+    'These tests protect the code that selects browser tests and checks their results. ' +
+      'They catch omitted specs, incorrect tag filtering, and missing or empty reports.',
+    '',
+    `**${failures > 0 ? 'FAIL' : 'PASS'}: ${totals.pass}/${
+      totals.tests
+    } checks passed${duration}.**`,
+    `Failed: ${failures}. Skipped: ${totals.skipped}. TODO: ${totals.todo ?? 0}.`,
+    '',
+    'Dashboard browser tests run separately in the **Browser E2E** jobs.',
+    '',
+    ...(details.failedTests?.length > 0
+      ? ['### Failed checks', '', ...details.failedTests.map((name) => `- ${name}`), '']
+      : []),
+    '<details>',
+    '<summary>Individual check results</summary>',
+    '',
+    '```text',
+    ...(details.testOutcomes ?? []),
+    '```',
+    '',
+    '</details>',
+  ].join('\n');
+};
+
 module.exports = {
   parseNodeTestTapDetails,
   parseNodeTestTapTotals,
   renderNodeTestSummary,
+  renderNodeTestMarkdown,
   validateNodeTestTapTotals,
 };

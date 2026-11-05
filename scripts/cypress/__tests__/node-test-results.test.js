@@ -7,6 +7,7 @@ const {
   parseNodeTestTapDetails,
   parseNodeTestTapTotals,
   renderNodeTestSummary,
+  renderNodeTestMarkdown,
   validateNodeTestTapTotals,
 } = require('../lib/node-test-results');
 
@@ -87,6 +88,24 @@ describe('Node test result summaries', () => {
       validateNodeTestTapTotals({ tests: 0, pass: 0, fail: 0, skipped: 0 }),
       /contains no tests/,
     );
+  });
+
+  it('renders a readable job summary with individual results and failure names', () => {
+    const markdown = renderNodeTestMarkdown(
+      { tests: 2, pass: 1, fail: 1, skipped: 0, todo: 0 },
+      {
+        durationMs: 500,
+        failedTests: ['rejects empty jobs'],
+        testOutcomes: ['PASS: selects changed specs', 'FAIL: rejects empty jobs'],
+      },
+    );
+    assert.match(markdown, /\*\*FAIL: 1\/2 checks passed in 0.50 seconds\.\*\*/);
+    assert.match(markdown, /### Failed checks\n\n- rejects empty jobs/);
+    assert.match(markdown, /<summary>Individual check results<\/summary>/);
+    assert.match(markdown, /PASS: selects changed specs/);
+    assert.match(markdown, /Browser E2E/);
+    assert.ok(!markdown.includes('.tap'));
+    assert.ok(!markdown.includes('/home/runner/'));
   });
 
   it('prints a concise human-readable summary from the CLI', async (test) => {

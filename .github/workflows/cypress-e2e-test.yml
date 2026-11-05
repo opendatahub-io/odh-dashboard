@@ -120,14 +120,6 @@ jobs:
       - name: Test CI machinery (Node; no browser or cluster)
         run: node scripts/cypress/run-e2e-contracts.js
 
-      - name: Upload Node contract report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: e2e-contract-results
-          path: ${{ runner.temp }}/e2e-selection-contracts.tap
-          if-no-files-found: warn
-
   # ---------------------------------------------------------------------------
   # Cluster Selection - Health check with automatic failover
   # ---------------------------------------------------------------------------

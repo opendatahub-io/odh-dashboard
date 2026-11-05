@@ -194,10 +194,11 @@ journeys. Run the same checks locally with:
 node scripts/cypress/run-e2e-contracts.js
 ```
 
-The runner writes TAP, groups named test outcomes in the log, and prints pass,
-failure, skipped, todo, total, pass-rate, and duration counts, including failed-test
-names. Both workflows upload the TAP report. A passing Node summary verifies the CI
-machinery; browser E2E outcomes are reported separately.
+The runner prints the result and groups individual check outcomes in the log.
+The job summary explains the purpose, shows pass/failure counts, and includes
+expandable individual results and failed-check names. No artifact download is
+needed. A passing Node summary verifies the selection and reporting code; browser
+E2E outcomes are reported separately.
 
 The **Plan browser E2E coverage and explain selection** job prints and publishes
 why each browser job runs, its tags or explicit specs, and its planned test count.
@@ -211,9 +212,12 @@ not execute tests. **Browser E2E** jobs run the selected dashboard journeys, and
 Referenced behaviors must exist in
 `scripts/cypress/e2e-coverage-inventory.json` and declare a terminal-state assertion.
 Selected tags must exist in `scripts/cypress/e2e-environment-capabilities.json`,
-which records ODH/RHOAI, FIPS, connected/disconnected, operator, RBAC, image-contract,
-and performance capabilities. Unsupported environments are reported as explicit
-coverage gaps rather than silently becoming a default-only run. See
+which declares intended product compatibility, cluster modes, and coverage areas.
+These declarations are validation metadata, not an environment matrix or evidence
+that additional checks ran. Supporting-check declarations in the path map do not
+schedule jobs. They remain in the JSON audit data, while the human report shows
+the actual browser-job plan. Unsupported declared requirements are reported as
+explicit coverage gaps rather than silently becoming a default-only run. See
 `packages/cypress/cypress/tests/e2e/README.md` for the full contract.
 
 ### Mocked Tests

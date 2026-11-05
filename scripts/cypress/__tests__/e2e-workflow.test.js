@@ -41,8 +41,11 @@ describe('Cypress E2E workflow', () => {
     const runner = fs.readFileSync(path.join(__dirname, '../run-e2e-contracts.js'), 'utf8');
     assert.ok(runner.includes('--test-reporter=tap'));
     assert.ok(runner.includes('No browser, dashboard, or cluster is started.'));
+    assert.ok(runner.includes('renderNodeTestMarkdown'));
+    assert.ok(!runner.includes('Full TAP report:'));
+    assert.ok(!workflow.includes('name: Upload Node contract report'));
     assert.ok(runner.includes('e2e-runtime.test.js'));
-    assert.ok(runner.includes('Historical simulations'));
+    assert.ok(runner.includes('e2e-historical-impact.test.js'));
   });
 
   it('uses protected revisions for automatic validator jobs', () => {
@@ -129,6 +132,7 @@ describe('Cypress E2E workflow', () => {
     assert.ok(job.includes('persist-credentials: false'));
     assert.ok(job.includes('github.event.pull_request.head.sha || github.sha'));
     assert.ok(job.includes('run: node scripts/cypress/run-e2e-contracts.js'));
+    assert.ok(!job.includes('name: Upload Node contract report'));
     assert.ok(!job.includes('secrets.'));
     assert.ok(!job.includes('self-hosted'));
   });

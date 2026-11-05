@@ -230,7 +230,7 @@ describe('historical E2E impact simulations', () => {
     assert.equal(result.valid, true);
     assert.equal(result.summary.matchedMappings[0].mappingId, 'ci-and-selection-config');
     assert.deepEqual(result.summary.pathImpactTags, ['@ci-dashboard-regression-tags']);
-    assert.ok(result.summary.supportingChecks.includes('selection-contract-tests'));
+    assert.ok(result.summary.declaredSupportingChecks.includes('selection-contract-tests'));
   });
 
   it('uses full canonical coverage only when Cypress support code is deleted', () => {

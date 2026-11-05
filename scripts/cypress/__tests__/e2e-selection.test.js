@@ -483,7 +483,7 @@ describe('buildSelectionPlan', () => {
         coverageInventoryIds: ['deployment-manifests'],
       },
     ]);
-    assert.deepEqual(result.summary.selectedEnvironments, [
+    assert.deepEqual(result.summary.declaredCoverageRequirements, [
       'connected',
       'image-contract',
       'odh',
@@ -504,7 +504,7 @@ describe('buildSelectionPlan', () => {
 
     assert.equal(result.valid, true);
     assert.equal(result.summary.matchedMappings[0].mappingId, 'dashboard-operator');
-    assert.deepEqual(result.summary.supportingChecks, [
+    assert.deepEqual(result.summary.declaredSupportingChecks, [
       'dashboard-operator-tests',
       'manifest-validation',
     ]);
@@ -682,8 +682,8 @@ describe('buildSelectionPlan', () => {
       coverageInventory: { schemaVersion: 1, behaviors: [] },
     });
     assert.equal(result.valid, true, result.errors.join('\n'));
-    assert.deepEqual(result.summary.selectedEnvironments, []);
-    assert.deepEqual(result.summary.supportingChecks, []);
+    assert.deepEqual(result.summary.declaredCoverageRequirements, []);
+    assert.deepEqual(result.summary.declaredSupportingChecks, []);
     assert.deepEqual(result.summary.matchedMappings[0].environments, []);
     assert.deepEqual(result.summary.matchedMappings[0].supportingChecks, []);
   });
@@ -1279,6 +1279,12 @@ describe('selection summaries', () => {
     assert.match(markdown, /full-coverage-01: 6 planned test execution/);
     assert.match(markdown, /Tags: @SmokeSet1/);
     assert.match(markdown, /Node contract checks are separate/);
+    assert.ok(!markdown.includes('## Selected environments'));
+    assert.ok(!markdown.includes('## Supporting checks'));
+    assert.ok(!Object.hasOwn(result.summary, 'selectedEnvironments'));
+    assert.ok(!Object.hasOwn(result.summary, 'supportingChecks'));
+    assert.ok(Array.isArray(result.summary.declaredCoverageRequirements));
+    assert.ok(Array.isArray(result.summary.declaredSupportingChecks));
     assert.equal(
       result.summary.jobs.reduce((sum, job) => sum + job.plannedTestCount, 0),
       result.summary.plannedTestCount,

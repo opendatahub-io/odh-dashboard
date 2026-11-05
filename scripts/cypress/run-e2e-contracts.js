@@ -1,89 +1,73 @@
 'use strict';
 
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const {
   parseNodeTestTapDetails,
   parseNodeTestTapTotals,
   renderNodeTestSummary,
+  renderNodeTestMarkdown,
   validateNodeTestTapTotals,
 } = require('./lib/node-test-results');
 
-const groups = [
-  [
-    'e2e-selection.test.js',
-    'Selection rules',
-    'changed specs, tags, dependency impact, and coverage gaps',
-  ],
-  [
-    'e2e-runtime.test.js',
-    'Runtime filtering',
-    'real Mocha registration and JUnit counts agree with the planner',
-  ],
-  [
-    'e2e-results.test.js',
-    'Cypress result validation',
-    'missing reports, skipped tests, and per-job planned counts',
-  ],
-  [
-    'e2e-workflow.test.js',
-    'Workflow wiring',
-    'CLI arguments, protected validators, and PR-head contract checks',
-  ],
-  [
-    'e2e-historical-impact.test.js',
-    'Historical simulations',
-    'past changed-file lists select the expected coverage; no cluster replay',
-  ],
-  [
-    'node-test-results.test.js',
-    'Node summary reporting',
-    'TAP totals, failed-test names, and empty-run rejection',
-  ],
+const testFiles = [
+  'e2e-selection.test.js',
+  'e2e-runtime.test.js',
+  'e2e-results.test.js',
+  'e2e-workflow.test.js',
+  'e2e-historical-impact.test.js',
+  'node-test-results.test.js',
 ];
 
-console.log('Testing the E2E planner, runtime filtering, and result validation in Node.');
-console.log('These are CI machinery checks. No browser, dashboard, or cluster is started.');
-for (const [file, label, purpose] of groups) {
-  console.log(`- ${label}: ${purpose} (${file})`);
-}
-
-const directory =
-  process.env.RUNNER_TEMP || fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-contracts-'));
-const tapFile = path.join(directory, 'e2e-selection-contracts.tap');
+console.log('Checking the code that selects browser tests and validates their results.');
+console.log(
+  'These tests catch omitted specs, incorrect tag filtering, and empty or incomplete results.',
+);
+console.log(
+  'No browser, dashboard, or cluster is started. Browser results are in the Browser E2E jobs.',
+);
 const result = spawnSync(
   process.execPath,
   [
     '--test',
     '--test-reporter=tap',
-    ...groups.map(([file]) => path.join(__dirname, '__tests__', file)),
+    ...testFiles.map((file) => path.join(__dirname, '__tests__', file)),
   ],
   { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 },
 );
 const tap = result.stdout || '';
-fs.writeFileSync(tapFile, tap);
-console.log('::group::Node contract test names and outcomes');
-console.log(
-  tap
-    .split('\n')
-    .filter((line) => /^\s*(?:not )?ok \d+ - /.test(line))
-    .join('\n'),
-);
+const testOutcomes = tap
+  .split('\n')
+  .filter((line) => /^\s*(?:not )?ok \d+ - /.test(line))
+  .map((line) =>
+    line.replace(/^(\s*)(not )?ok \d+ - /, (_, indent, failed) => {
+      let outcome = failed ? 'FAIL' : 'PASS';
+      if (/\s# TODO\b/i.test(line)) {
+        outcome = 'TODO';
+      } else if (/\s# SKIP\b/i.test(line)) {
+        outcome = 'SKIP';
+      }
+      return `${indent}${outcome}: `;
+    }),
+  );
+console.log('::group::Individual Node check results');
+console.log(testOutcomes.join('\n'));
 console.log('::endgroup::');
 if (result.stderr) {
   process.stderr.write(result.stderr);
 }
 const totals = parseNodeTestTapTotals(tap);
 const validationError = validateNodeTestTapTotals(totals);
-const summary = validationError || renderNodeTestSummary(totals, parseNodeTestTapDetails(tap));
+const details = { ...parseNodeTestTapDetails(tap), testOutcomes };
+const summary = validationError || renderNodeTestSummary(totals, details);
 console.log(summary);
-console.log(`Full TAP report: ${tapFile}`);
 if (process.env.GITHUB_STEP_SUMMARY) {
   fs.appendFileSync(
     process.env.GITHUB_STEP_SUMMARY,
-    `### E2E CI machinery checks (Node)\n\n${summary}\n`,
+    validationError
+      ? `## Test-selection code checks (Node)\n\n**FAIL:** ${validationError}\n`
+      : `${renderNodeTestMarkdown(totals, details)}\n`,
   );
 }
 if (

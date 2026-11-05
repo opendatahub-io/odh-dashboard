@@ -267,16 +267,19 @@ connected/disconnected, operator, RBAC, image-contract, and performance
 capabilities. Unsupported required environments are explicit coverage gaps.
 
 The workflow uploads a machine-readable and human-readable selection summary with
-changed paths, matched mappings, selected suites and environments, supporting checks,
-coverage gaps, and unmatched impactful paths. After execution, it also uploads a
-results summary with executed, failed, and skipped test counts. A green run with no
+changed paths, matched mappings, browser jobs with selection reasons and planned
+counts, coverage gaps, and unmatched impactful paths. Declared compatibility and
+supporting-check metadata remain in JSON for auditing; they do not identify actual
+run environments, schedule supporting jobs, or prove those checks ran. After
+execution, it also uploads a results summary with executed, failed, and skipped test counts. A green run with no
 executed tests is rejected.
 
 Node contract checks test the planner and reporting machinery separately from
 browser E2E journeys. The Test workflow checks the PR revision without cluster
 credentials; automatic E2E validation uses protected default-branch code. The
-shared runner writes TAP, groups named test outcomes, prints summary counts and
-failed-test names, and uploads the TAP report. Historical simulations feed past
+shared runner groups individual check outcomes in the log and publishes a readable
+job summary with counts, failed-check names, and expandable individual results.
+No artifact download is needed. Historical simulations feed past
 changed-file lists into the planner; they do not replay those journeys on a cluster.
 See [the testing guide](../../../../../docs/testing.md#selective-e2e-tests) for job names,
 report interpretation, and the local contract command.

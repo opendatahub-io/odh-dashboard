@@ -1481,8 +1481,8 @@ const buildSelectionPlan = ({
       pathImpactTags: pathImpact.tags,
       derivedPathImpactTags: pathImpact.derivedTags,
       matchedMappings: pathImpact.matchedMappings,
-      selectedEnvironments: pathImpact.selectedEnvironments,
-      supportingChecks: pathImpact.supportingChecks,
+      declaredCoverageRequirements: pathImpact.selectedEnvironments,
+      declaredSupportingChecks: pathImpact.supportingChecks,
       coverageGaps: pathImpact.coverageGaps,
       unmatchedImpactfulPaths: pathImpact.unmatchedImpactfulPaths,
       selectedSuites: effectiveSelectedTags,
@@ -1543,16 +1543,6 @@ const renderSelectionMarkdown = (summary) =>
     '## Selected tags',
     ...(summary.selectedTags.length > 0
       ? summary.selectedTags.map((tag) => `- ${tag}`)
-      : ['- None']),
-    '',
-    '## Selected environments',
-    ...(summary.selectedEnvironments.length > 0
-      ? summary.selectedEnvironments.map((environment) => `- ${environment}`)
-      : ['- None']),
-    '',
-    '## Supporting checks',
-    ...(summary.supportingChecks.length > 0
-      ? summary.supportingChecks.map((check) => `- ${check}`)
       : ['- None']),
     '',
     '## Resolved tags',
