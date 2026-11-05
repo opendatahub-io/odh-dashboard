@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 # The fork runs the same workflows for smoke tests, so the repository comes
 # from the run rather than being fixed here.
@@ -21,10 +22,14 @@ JIRA_PROJECT = "RHOAIENG"
 JIRA_BROWSE_URL = "https://redhat.atlassian.net/browse/"
 # launch dispatches seconds after the poll; anything older is a replay.
 MAX_POLL_AGE = timedelta(hours=2)
+# Waits between dispatch attempts. The poller has already committed the
+# Jira checkpoint by now, so a record whose dispatch fails is not picked up
+# again by a later poll (a Fullsend limitation for GitHub targets).
+DISPATCH_RETRY_DELAYS = (5, 15)
 
 
-def launch(records, run_id, attempt, api):
-    """Attempt every checkpointed record, even if an earlier API call fails."""
+def launch(records, run_id, attempt, api, sleep=time.sleep):
+    """Attempt every checkpointed record, retrying each dispatch a few times."""
     failures = []
     for index, _ in enumerate(records):
         payload = {
@@ -35,16 +40,24 @@ def launch(records, run_id, attempt, api):
                 "record_index": str(index),
             },
         }
-        try:
-            api(
-                f"repos/{REPOSITORY}/actions/workflows/{CODE_WORKFLOW}/dispatches",
-                payload,
-            )
-        except subprocess.CalledProcessError:
-            failures.append(index)
+        for delay in (*DISPATCH_RETRY_DELAYS, None):
+            try:
+                api(
+                    f"repos/{REPOSITORY}/actions/workflows/{CODE_WORKFLOW}/dispatches",
+                    payload,
+                )
+                break
+            except subprocess.CalledProcessError:
+                if delay is None:
+                    failures.append(index)
+                else:
+                    sleep(delay)
     if failures:
         raise RuntimeError(
-            f"Failed to dispatch records {failures}; inspect poll artifact and retry with /fs-code"
+            f"Failed to dispatch records {failures}. Within 2 hours, start "
+            f"{CODE_WORKFLOW} on main with poll_run_id={run_id}, "
+            f"poll_attempt={attempt} and each record_index; later, comment "
+            "/fs-code on the issue again."
         )
 
 

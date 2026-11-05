@@ -13,7 +13,10 @@ name: Fullsend Jira code poll
 #
 # A label set when the issue is created doesn't count, and the poller looks
 # back only 24 hours: comment /fs-code instead. Polling isn't exactly-once, so
-# check for an existing PR before retrying.
+# check for an existing PR before retrying. The poller saves its Jira
+# checkpoint before the launch step starts each run, so if a launch still
+# fails after its retries, the job log says how to start that run by hand
+# (within 2 hours), or comment /fs-code again.
 #
 # One run per record (fullsend-code-jira.yaml) works around fullsend#8961:
 # same-agent records in one matrix collide on the fullsend-<agent> artifact.

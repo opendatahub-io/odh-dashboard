@@ -73,17 +73,31 @@ class LaunchTests(unittest.TestCase):
                 {"poll_run_id": "42", "poll_attempt": "1", "record_index": str(index)},
             )
 
-    def test_failed_launch_does_not_skip_later_records(self):
-        attempted = []
+    def test_failed_launch_retries_then_does_not_skip_later_records(self):
+        attempted, slept = [], []
 
         def api(endpoint, payload):
             attempted.append(payload["inputs"]["record_index"])
             if payload["inputs"]["record_index"] == "0":
                 raise subprocess.CalledProcessError(1, "gh")
 
-        with self.assertRaisesRegex(RuntimeError, r"records \[0\]"):
-            dispatch.launch(self.records, 42, 1, api)
-        self.assertEqual(attempted, ["0", "1"])
+        with self.assertRaisesRegex(
+            RuntimeError, r"records \[0\].*poll_run_id=42, poll_attempt=1"
+        ):
+            dispatch.launch(self.records, 42, 1, api, sleep=slept.append)
+        self.assertEqual(attempted, ["0", "0", "0", "1"])
+        self.assertEqual(slept, list(dispatch.DISPATCH_RETRY_DELAYS))
+
+    def test_transient_dispatch_error_is_retried(self):
+        calls = []
+
+        def api(endpoint, payload):
+            calls.append(payload["inputs"]["record_index"])
+            if len(calls) == 1:
+                raise subprocess.CalledProcessError(1, "gh")
+
+        dispatch.launch(self.records[:1], 42, 1, api, sleep=lambda _: None)
+        self.assertEqual(calls, ["0", "0"])
 
     def test_empty_poll_launches_nothing(self):
         dispatch.launch([], 42, 1, lambda *_: self.fail("unexpected dispatch"))
