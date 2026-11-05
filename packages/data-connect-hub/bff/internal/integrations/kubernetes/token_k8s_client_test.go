@@ -110,47 +110,91 @@ func TestTokenKubernetesClientGetNamespacesUsesCoreNamespaces(t *testing.T) {
 }
 
 func TestTokenKubernetesClientGetNamespacesFallsBackToProjects(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/v1/namespaces":
-			http.Error(w, "forbidden", http.StatusForbidden)
-		case "/apis/project.openshift.io/v1/projects":
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"apiVersion": "project.openshift.io/v1",
-				"kind":       "ProjectList",
-				"items": []map[string]any{
-					{
-						"apiVersion": "project.openshift.io/v1",
-						"kind":       "Project",
-						"metadata": map[string]any{
-							"name": "tenant-a",
-							"annotations": map[string]any{
-								"openshift.io/display-name": "Tenant A",
-							},
-						},
-					},
-				},
-			})
-		default:
-			t.Errorf("unexpected Kubernetes request: %s", r.URL.Path)
-			http.Error(w, "unexpected request", http.StatusInternalServerError)
-		}
-	}))
-	defer server.Close()
-
-	cfg := &rest.Config{Host: server.URL, BearerToken: "user-token"}
-	clientset, err := kubernetes.NewForConfig(cfg)
-	require.NoError(t, err)
-	kc := &TokenKubernetesClient{
-		SharedClientLogic: SharedClientLogic{Client: clientset, Logger: slog.Default()},
-		restConfig:        cfg,
+	tests := []struct {
+		name            string
+		namespaceStatus int
+		projectsStatus  int
+		wantErr         bool
+		wantNames       []string
+	}{
+		{
+			name:            "falls back to accessible projects",
+			namespaceStatus: http.StatusForbidden,
+			wantNames:       []string{"tenant-a"},
+		},
+		{
+			name:            "returns an error for a non-forbidden namespace failure",
+			namespaceStatus: http.StatusInternalServerError,
+			wantErr:         true,
+		},
+		{
+			name:            "returns an error when the projects request fails",
+			namespaceStatus: http.StatusForbidden,
+			projectsStatus:  http.StatusInternalServerError,
+			wantErr:         true,
+		},
 	}
 
-	namespaces, err := kc.GetNamespaces(context.Background(), nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if authorization := r.Header.Get("Authorization"); authorization != "Bearer user-token" {
+					t.Errorf("Authorization header = %q, want %q", authorization, "Bearer user-token")
+				}
+				switch r.URL.Path {
+				case "/api/v1/namespaces":
+					http.Error(w, "namespace request failed", tt.namespaceStatus)
+				case "/apis/project.openshift.io/v1/projects":
+					if tt.projectsStatus != 0 {
+						http.Error(w, "projects request failed", tt.projectsStatus)
+						return
+					}
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(map[string]any{
+						"apiVersion": "project.openshift.io/v1",
+						"kind":       "ProjectList",
+						"items": []map[string]any{
+							{
+								"apiVersion": "project.openshift.io/v1",
+								"kind":       "Project",
+								"metadata": map[string]any{
+									"name": "tenant-a",
+									"annotations": map[string]any{
+										"openshift.io/display-name": "Tenant A",
+									},
+								},
+							},
+						},
+					})
+				default:
+					t.Errorf("unexpected Kubernetes request: %s", r.URL.Path)
+					http.Error(w, "unexpected request", http.StatusInternalServerError)
+				}
+			}))
+			defer server.Close()
 
-	require.NoError(t, err)
-	require.Len(t, namespaces, 1)
-	assert.Equal(t, "tenant-a", namespaces[0].Name)
-	assert.Equal(t, "Tenant A", namespaces[0].Annotations["openshift.io/display-name"])
+			cfg := &rest.Config{Host: server.URL, BearerToken: "user-token"}
+			clientset, err := kubernetes.NewForConfig(cfg)
+			require.NoError(t, err)
+			kc := &TokenKubernetesClient{
+				SharedClientLogic: SharedClientLogic{Client: clientset, Logger: slog.Default()},
+				restConfig:        cfg,
+			}
+
+			namespaces, err := kc.GetNamespaces(context.Background(), nil)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, namespaces, len(tt.wantNames))
+			for index, wantName := range tt.wantNames {
+				assert.Equal(t, wantName, namespaces[index].Name)
+			}
+			if len(namespaces) > 0 {
+				assert.Equal(t, "Tenant A", namespaces[0].Annotations["openshift.io/display-name"])
+			}
+		})
+	}
 }
