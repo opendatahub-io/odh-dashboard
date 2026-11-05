@@ -230,6 +230,26 @@ class SelectRecordTests(unittest.TestCase):
                 dispatch.select_record([bad], 0)
 
 
+class KeysTests(unittest.TestCase):
+    def test_keys_mode_names_only_the_issues_and_fails(self):
+        records = [record("RHOAIENG-123"), {"event_payload": "not json"}]
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "dispatches.json").write_text(json.dumps(records))
+            cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                with mock.patch("sys.argv", ["jira_dispatch.py", "keys"]), self.assertRaises(
+                    RuntimeError
+                ) as raised:
+                    dispatch.main()
+            finally:
+                os.chdir(cwd)
+        message = str(raised.exception)
+        self.assertIn("RHOAIENG-123, <unreadable record>", message)
+        self.assertIn("/fs-code", message)
+        self.assertNotIn("redhat.atlassian.net", message)
+
+
 class ApiTests(unittest.TestCase):
     def test_failed_gh_call_logs_its_error_and_raises(self):
         err = subprocess.CalledProcessError(1, "gh", stderr="HTTP 404: Not Found\n")
@@ -296,9 +316,25 @@ class WorkflowContractTests(unittest.TestCase):
 
     def test_records_are_kept_and_launched_after_a_failed_poll(self):
         steps = {s.get("name"): s for s in workflow("fullsend-poll-jira.yaml")["jobs"]["poll"]["steps"]}
-        cond = "${{ !cancelled() && hashFiles('dispatches.json') != '' }}"
-        self.assertEqual(steps["Save poll records"]["if"], cond)
-        self.assertEqual(steps["Launch one workflow run per record"]["if"], cond)
+        save = steps["Save poll records"]
+        self.assertEqual(save["if"], "${{ !cancelled() && hashFiles('dispatches.json') != '' }}")
+        self.assertTrue(save["continue-on-error"])
+        retry = steps["Save poll records (retry)"]
+        self.assertEqual(retry["if"], "${{ !cancelled() && steps.save.outcome == 'failure' }}")
+        self.assertEqual(retry["with"]["name"], save["with"]["name"])
+
+    def test_launch_needs_a_saved_artifact(self):
+        steps = {s.get("name"): s for s in workflow("fullsend-poll-jira.yaml")["jobs"]["poll"]["steps"]}
+        self.assertEqual(
+            steps["Launch one workflow run per record"]["if"],
+            "${{ !cancelled() && (steps.save.outcome == 'success' || steps.save-retry.outcome == 'success') }}",
+        )
+        lost = steps["List issues that were not launched"]
+        self.assertEqual(
+            lost["if"],
+            "${{ !cancelled() && steps.save.outcome == 'failure' && steps.save-retry.outcome != 'success' }}",
+        )
+        self.assertIn("jira_dispatch.py keys", lost["run"])
 
     def test_poll_and_code_run_share_one_fullsend_pin(self):
         poll = (ROOT / ".github/workflows/fullsend-poll-jira.yaml").read_text()

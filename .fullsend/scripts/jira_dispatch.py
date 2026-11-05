@@ -1,7 +1,8 @@
 """Fan out Jira poll records, one run each, and check where they came from.
 
 Modes: launch (one run per record), validate (the records come from the
-main-branch poller), select (one record as a one-entry matrix). Works around
+main-branch poller), select (one record as a one-entry matrix), keys (name the
+issues of records that could not be saved, then fail). Works around
 fullsend#8961; delete with fullsend-code-jira.yaml once fullsend#9003 ships.
 """
 
@@ -101,6 +102,17 @@ def select_record(records, index):
     return {"include": [record]}
 
 
+def issue_keys(records):
+    """Jira keys of the records, for a log line; never the event content."""
+    keys = []
+    for record in records:
+        try:
+            keys.append(json.loads(record["event_payload"])["_normalized_event"]["entity"]["key"])
+        except (KeyError, TypeError, ValueError):
+            keys.append("<unreadable record>")
+    return keys
+
+
 def api(endpoint, payload=None):
     args = ["gh", "api", endpoint]
     if payload is not None:
@@ -140,6 +152,12 @@ def main():
                 os.environ["GITHUB_RUN_ID"],
                 os.environ["GITHUB_RUN_ATTEMPT"],
                 api,
+            )
+        elif mode == "keys":
+            raise RuntimeError(
+                "Could not save the poll records, so no run was started for: "
+                + ", ".join(issue_keys(records))
+                + ". Their checkpoints are saved; comment /fs-code on each again."
             )
         elif mode == "select":
             matrix = select_record(records, os.environ["RECORD_INDEX"])
