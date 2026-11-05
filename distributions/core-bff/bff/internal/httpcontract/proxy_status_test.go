@@ -5,12 +5,106 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
+
+func TestKnownCredentialNames(t *testing.T) {
+	for _, name := range []string{
+		"password", "DB_PASSWORD", "OPENAI_API_KEY", "X-Forwarded-Access-Token", "AWS_SECRET_ACCESS_KEY",
+		"ProxyAuthorization", "PROXY_AUTHORIZATION", "api__KEY", "t_o_k_e_n", "PREFIX-PRIVATE_KEY",
+		strings.Repeat("a_", 4000) + "CLIENT_SECRET",
+	} {
+		require.True(t, isKnownCredentialName(name), name)
+	}
+	for _, name := range []string{
+		"", "password_policy", "api_key_format", "token_endpoint", "nottoken", "token_suffix",
+		strings.Repeat("a_", 4000), strings.Repeat("a", 8000),
+	} {
+		require.False(t, isKnownCredentialName(name), name)
+	}
+}
+
+func BenchmarkProxyDiagnosticsSeparatorHeavyAssignment(b *testing.B) {
+	redact := proxyDiagnosticRedactor(httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil))
+	for _, size := range []int{1000, 2000, 4000, 8000} {
+		assignment := strings.Repeat("a_", (size-2)/2) + "=x"
+		b.Run(strconv.Itoa(size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				_ = redact(assignment)
+			}
+		})
+	}
+}
+
+func TestProxyStatusPreservesCredentialValidationDiagnostics(t *testing.T) {
+	path := field.NewPath("spec", "token")
+	for _, validation := range []*field.Error{
+		field.Required(field.NewPath("spec", "apiKey"), ""),
+		field.Invalid(path, "x", "must be 16 bytes"),
+		field.Invalid(path, "SHORT secret, with spaces", "must be 16 bytes"),
+		field.Invalid(path, map[string]string{"nested": "OBJECT_CANARY secret"}, "must be a string"),
+		field.TypeInvalid(path, []string{"ARRAY_CANARY"}, "must be a string"),
+		field.Invalid(path, 17, "must be 16"),
+		field.NotSupported(path, "UNSUPPORTED_CANARY", []string{"opaque", "jwt"}),
+		field.Duplicate(path, "DUPLICATE_CANARY"),
+		field.NotFound(path, "MISSING_CANARY"),
+		field.Forbidden(path, "policy forbids this field"),
+		field.TooLong(path, "ignored", 16),
+		field.TooMany(path, 17, 16),
+	} {
+		t.Run(validation.Error(), func(t *testing.T) {
+			in := k8serrors.NewInvalid(schema.GroupKind{Group: "example.io", Kind: "Widget"}, "example", field.ErrorList{validation}).Status()
+			in.Kind = "Status"
+			request := httptest.NewRequest(http.MethodPost, "/apis/example.io/v1/widgets", nil)
+			out := ProxyStatus(in, http.StatusUnprocessableEntity, request)
+			require.Contains(t, out.Message, validation.Field)
+			require.Equal(t, validation.Field, out.Details.Causes[0].Field)
+			for _, message := range []string{out.Message, out.Details.Causes[0].Message} {
+				require.Contains(t, message, validation.Type.String())
+				if validation.Detail != "" {
+					require.Contains(t, message, validation.Detail)
+				}
+				switch validation.Type {
+				case field.ErrorTypeRequired, field.ErrorTypeForbidden, field.ErrorTypeTooLong, field.ErrorTypeTooMany:
+					require.Contains(t, message, validation.ErrorBody())
+				default:
+					encoded, err := json.Marshal(validation.BadValue)
+					require.NoError(t, err)
+					require.NotContains(t, message, string(encoded))
+					require.Contains(t, message, redactionPlaceholder)
+				}
+			}
+			require.Equal(t, out, ProxyStatus(out, http.StatusUnprocessableEntity, request))
+		})
+	}
+}
+
+func TestValidationDiagnosticsDoNotBypassAssignmentRedaction(t *testing.T) {
+	redact := proxyDiagnosticRedactor(httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil))
+	for _, assignment := range []string{
+		`password="Required value: CANARY"`, `password="Invalid value: CANARY"`,
+		`{"spec.token":"Invalid value: CANARY"}`, `token=CANARY`,
+		`spec.token: Invalid value: "CANARY": must be 16 bytes; password=CANARY`,
+		`spec.token: Invalid value: 12CANARY: must be 16 bytes`,
+	} {
+		result := redact(assignment)
+		require.NotContains(t, result, "CANARY")
+		require.Equal(t, result, redact(result))
+	}
+	require.Equal(t, "spec.apiKey: Required value", redact("spec.apiKey: Required value"))
+	require.Equal(t, "spec.token: Invalid value: "+redactionPlaceholder+": must be 16 bytes", redact(`spec.token: Invalid value: "x": must be 16 bytes`))
+	require.Equal(t, "[spec.apiKey: Required value, spec.token: Invalid value: "+redactionPlaceholder+": must be 16 bytes]",
+		redact(`[spec.apiKey: Required value, spec.token: Invalid value: "x": must be 16 bytes]`))
+}
 
 func TestProxyStatusPreservesConsumerDiagnostics(t *testing.T) {
 	for _, tc := range []struct {

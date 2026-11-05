@@ -2,6 +2,7 @@ package httpcontract
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"regexp"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const (
@@ -45,6 +47,12 @@ func ProxyStatus(in metav1.Status, code int, r *http.Request) metav1.Status {
 		out.Details.Group = safeSchemaName(redact(out.Details.Group))
 		out.Details.Kind = safeSchemaName(redact(out.Details.Kind))
 		for i, cause := range in.Details.Causes {
+			if len(cause.Message) <= maxProxyDiagnosticBytes && isKnownCredentialName(cause.Field[strings.LastIndex(cause.Field, ".")+1:]) {
+				if start, ok := credentialValidationValueStart(cause.Message); ok && start > 0 {
+					end := credentialValidationValueEnd(cause.Message, start)
+					cause.Message = cause.Message[:start] + redactionPlaceholder + cause.Message[end:]
+				}
+			}
 			if message := redact(cause.Message); message != "" {
 				out.Details.Causes[i].Message = message
 			}
@@ -148,20 +156,67 @@ func proxyDiagnosticRedactor(r *http.Request) func(string) string {
 
 // isKnownCredentialName recognizes explicit credential contexts; it is not a complete secret detector.
 func isKnownCredentialName(name string) bool {
-	for {
-		normalized := strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(name), "_", ""), "-", "")
-		switch normalized {
+	// The assignment matcher admits ASCII names. Bound normalization to the
+	// longest known name instead of repeatedly copying every service prefix.
+	var suffix [len("proxyauthorization")]byte
+	start := len(suffix)
+	for i := len(name) - 1; i >= -1; i-- {
+		if i >= 0 && name[i] != '_' && name[i] != '-' {
+			if start == 0 {
+				return false
+			}
+			start--
+			suffix[start] = name[i]
+			if suffix[start] >= 'A' && suffix[start] <= 'Z' {
+				suffix[start] += 'a' - 'A'
+			}
+			continue
+		}
+		// Check only whole names or suffixes following a service-prefix separator.
+		switch string(suffix[start:]) {
 		case "authorization", "proxyauthorization", "token", "accesstoken", "refreshtoken", "clientsecret", "password", "apikey",
 			"secret", "secretkey", "secretaccesskey", "privatekey", "session", "sessionid", "sessiontoken", "sessionkey":
 			return true
 		}
-		// Credential names also occur with service prefixes, such as DB_PASSWORD.
-		separator := strings.IndexAny(name, "_-")
-		if separator < 0 {
-			return false
-		}
-		name = name[separator+1:]
 	}
+	return false
+}
+
+// A zero offset identifies a diagnostic without an echoed credential value.
+func credentialValidationValueStart(message string) (int, bool) {
+	for _, kind := range []field.ErrorType{
+		field.ErrorTypeRequired, field.ErrorTypeForbidden, field.ErrorTypeTooLong, field.ErrorTypeInternal,
+		field.ErrorTypeTooMany, field.ErrorTypeInvalid, field.ErrorTypeNotSupported, field.ErrorTypeNotFound, field.ErrorTypeDuplicate,
+	} {
+		rest, ok := strings.CutPrefix(message, kind.String())
+		if !ok || rest != "" && !strings.ContainsRune(":,]", rune(rest[0])) {
+			continue
+		}
+		switch kind {
+		case field.ErrorTypeRequired, field.ErrorTypeForbidden, field.ErrorTypeTooLong, field.ErrorTypeInternal, field.ErrorTypeTooMany:
+			return 0, true
+		}
+		if strings.HasPrefix(rest, ": ") {
+			return len(message) - len(rest) + 2, true
+		}
+		return 0, true
+	}
+	return 0, false
+}
+
+func credentialValidationValueEnd(value string, start int) int {
+	if strings.HasPrefix(value[start:], redactionPlaceholder) {
+		return start + len(redactionPlaceholder)
+	}
+	decoder := json.NewDecoder(strings.NewReader(value[start:]))
+	var raw json.RawMessage
+	if decoder.Decode(&raw) == nil {
+		end := start + int(decoder.InputOffset())
+		if end == len(value) || strings.ContainsRune(":,]", rune(value[end])) {
+			return end
+		}
+	}
+	return credentialValueEnd(value, start)
 }
 
 func redactCredentialAssignments(value string) string {
@@ -173,6 +228,20 @@ func redactCredentialAssignments(value string) string {
 		}
 		if strings.HasPrefix(value[match[1]:], redactionPlaceholder) {
 			continue
+		}
+		// Kubernetes field diagnostics use an unquoted name followed by a colon.
+		if match[3] < len(value) && value[match[3]] == ':' {
+			if start, ok := credentialValidationValueStart(value[match[1]:]); ok {
+				if start == 0 {
+					continue
+				}
+				start += match[1]
+				end := credentialValidationValueEnd(value, start)
+				out.WriteString(value[cursor:start])
+				out.WriteString(redactionPlaceholder)
+				cursor = end
+				continue
+			}
 		}
 		end := credentialValueEnd(value, match[1])
 		if end == match[1] {
