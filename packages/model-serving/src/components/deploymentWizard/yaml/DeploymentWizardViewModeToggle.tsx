@@ -18,6 +18,7 @@ type DeploymentWizardViewModeToggleProps = {
   switchToForm: (updateFormWithYaml: boolean) => void;
   switchToYaml: () => void;
   yamlErrors: Error[];
+  canUpdateFormFromYaml: boolean;
 };
 
 export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeToggleProps> = ({
@@ -26,6 +27,7 @@ export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeTo
   switchToForm,
   switchToYaml,
   yamlErrors,
+  canUpdateFormFromYaml,
 }) => {
   const [isBidirectionalYamlWizardGaEnabled] = useFeatureFlag('bidirectionalYamlWizardGa');
   const [isYamlErrorsModalOpen, setIsYamlErrorsModalOpen] = React.useState(false);
@@ -75,7 +77,11 @@ export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeTo
           titleIconVariant="warning"
           variant="small"
           onClose={() => setIsYamlErrorsModalOpen(false)}
-          description="Continue with the inputs that could be read from YAML, or use your saved form inputs."
+          description={
+            canUpdateFormFromYaml
+              ? 'Continue with the inputs that could be read from YAML, or use your saved form inputs.'
+              : 'The inputs could not be read from this YAML. Use your saved form inputs or stay in YAML mode.'
+          }
           contents={
             <List>
               {yamlErrors.map((error, index) => (
@@ -84,15 +90,19 @@ export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeTo
             </List>
           }
           buttonActions={[
-            {
-              label: 'Force continue',
-              variant: 'danger',
-              dataTestId: 'force-continue-to-form',
-              onClick: () => {
-                setIsYamlErrorsModalOpen(false);
-                switchToForm(true);
-              },
-            },
+            ...(canUpdateFormFromYaml
+              ? [
+                  {
+                    label: 'Force continue',
+                    variant: 'danger' as const,
+                    dataTestId: 'force-continue-to-form',
+                    onClick: () => {
+                      setIsYamlErrorsModalOpen(false);
+                      switchToForm(true);
+                    },
+                  },
+                ]
+              : []),
             {
               label: 'Use saved form inputs',
               variant: 'secondary',

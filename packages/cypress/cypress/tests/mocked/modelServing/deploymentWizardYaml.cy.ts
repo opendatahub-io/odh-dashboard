@@ -293,7 +293,9 @@ spec: {}
 
     modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
     modelServingWizard.yaml.findYamlErrorsModal().should('exist');
-    modelServingWizard.yaml.findForceContinueToFormButton().click();
+    // No form data could be extracted, so force continue is not offered
+    modelServingWizard.yaml.findForceContinueToFormButton().should('not.exist');
+    modelServingWizard.yaml.findUseSavedFormInputsButton().click();
     // The wizard is still usable instead of being replaced by a runtime error
     modelServingWizard.findModelDeploymentNameInput().should('exist');
   });
