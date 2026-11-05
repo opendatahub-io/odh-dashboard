@@ -490,19 +490,21 @@ func resolveTrustedHost(
 				}
 				target := net.JoinHostPort(address, sliceBackendPort)
 				if endpoint.Conditions.Ready == nil || *endpoint.Conditions.Ready {
+					// The published Ready condition is authoritative even for
+					// publishNotReadyAddresses Services: the endpoint controller
+					// marks their endpoints Ready, so an unreconciled Ready=false
+					// slice must not be dialed.
 					readyTargets = append(readyTargets, target)
-				} else if svc.Spec.PublishNotReadyAddresses {
-					// The Service explicitly publishes not-ready addresses (e.g. a
-					// headless Service whose DNS must list every Pod), so they are
-					// legitimate destinations.
-					readyTargets = append(readyTargets, target)
-				} else if !directEndpoint && endpoint.Conditions.Serving != nil && *endpoint.Conditions.Serving {
+				} else if !directEndpoint && endpoint.Conditions.Serving != nil && *endpoint.Conditions.Serving &&
+					endpoint.Conditions.Terminating != nil && *endpoint.Conditions.Terminating {
 					// Terminating-endpoint fallback, ClusterIP Service-name only:
 					// the VIP keeps routing to terminating-but-serving endpoints, but
 					// endpoint DNS (headless or pod-specific) does not
 					// publish them, so pinning their addresses would verify
-					// a URL normal DNS cannot resolve. Only explicitly serving
-					// endpoints are eligible; an absent Serving condition defers to
+					// a URL normal DNS cannot resolve. kube-proxy's fallback
+					// selects only endpoints that are both serving and explicitly
+					// terminating, so an absent or false Terminating condition is
+					// not eligible; likewise an absent Serving condition defers to
 					// Ready, which is false here.
 					servingTargets = append(servingTargets, target)
 				}
