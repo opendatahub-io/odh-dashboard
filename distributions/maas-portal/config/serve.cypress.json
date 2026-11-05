@@ -1,0 +1,3 @@
+{
+  "rewrites": [{ "source": "/maas-portal/**", "destination": "/maas-portal/index.html" }]
+}

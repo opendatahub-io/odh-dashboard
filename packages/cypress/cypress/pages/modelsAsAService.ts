@@ -134,6 +134,10 @@ class APIKeysPage {
     return cy.findByTestId('username-filter-tooltip');
   }
 
+  findRevokeMenuItem(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: /^Revoke$/ });
+  }
+
   findRevokeActionsButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.getRow(rowName).findKebabAction('Revoke');
   }
@@ -196,6 +200,10 @@ class MySubscriptionsPage {
 }
 
 class APIKeyTableRow extends TableRow {
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: 'Kebab toggle' });
+  }
+
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-name');
   }
@@ -681,6 +689,10 @@ class SubscriptionsPage {
     return this.getRow(rowName).findKebabAction('Edit');
   }
 
+  findDeleteMenuItem(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Delete' });
+  }
+
   findDeleteButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.getRow(rowName).findKebabAction('Delete');
   }
@@ -885,9 +897,17 @@ class CreateSubscriptionPage {
     return cy.findByTestId('subscription-groups');
   }
 
+  findGroupOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('option', { name });
+  }
+
+  findGroupsInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return this.findGroupsSelect().find('input');
+  }
+
   selectGroup(name: string): void {
     this.findGroupsSelect().click();
-    cy.findByRole('option', { name }).click();
+    this.findGroupOption(name).click();
     this.findGroupsSelect().closeSelectMenu();
   }
 
