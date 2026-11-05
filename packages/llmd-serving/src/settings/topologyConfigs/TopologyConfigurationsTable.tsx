@@ -10,8 +10,7 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
-import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
+import DeleteModal from '@odh-dashboard/ui-core/components/DeleteModal';
 import { Table, SortableData, useNotification } from '@odh-dashboard/ui-core';
 import { useNavigate } from 'react-router';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
