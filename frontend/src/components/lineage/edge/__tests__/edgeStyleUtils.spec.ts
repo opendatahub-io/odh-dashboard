@@ -46,6 +46,22 @@ describe('getEdgeStyleConfig', () => {
     expect(linkClassName).toContain(getEdgeStyleClassModifier(EdgeStyle.dashed));
   });
 
+  it('uses elementEdgeStyle when edgeStyle is not provided', () => {
+    const { linkClassName } = getEdgeStyleConfig({ elementEdgeStyle: EdgeStyle.dotted });
+
+    expect(linkClassName).toContain(getEdgeStyleClassModifier(EdgeStyle.dotted));
+  });
+
+  it('prefers edgeStyle when both are provided', () => {
+    const { linkClassName } = getEdgeStyleConfig({
+      edgeStyle: EdgeStyle.dashed,
+      elementEdgeStyle: EdgeStyle.dotted,
+    });
+
+    expect(linkClassName).toContain(getEdgeStyleClassModifier(EdgeStyle.dashed));
+    expect(linkClassName).not.toContain(getEdgeStyleClassModifier(EdgeStyle.dotted));
+  });
+
   it('returns a non-empty string for the default link class name', () => {
     const { linkClassName } = getEdgeStyleConfig({});
 
