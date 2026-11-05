@@ -138,7 +138,9 @@ func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *webso
 	for _, conn := range []*websocket.Conn{clientConn, targetConn} {
 		conn.SetCloseHandler(func(code int, _ string) error {
 			safe := normalizeReceivedCloseCode(code)
-			return conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(safe, closeReason(safe)), time.Now().Add(writeControlTimeout))
+			// A best-effort echo must not replace Gorilla's peer CloseError.
+			_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(safe, closeReason(safe)), time.Now().Add(writeControlTimeout))
+			return nil
 		})
 	}
 	connID := tracker.Track(clientConn, targetConn, requestID)

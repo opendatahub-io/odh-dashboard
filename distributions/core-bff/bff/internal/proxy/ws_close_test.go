@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -192,4 +193,39 @@ func TestStatuslessWebSocketCloseIsNormal(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestWebSocketCloseEchoFailurePreservesPeerCode(t *testing.T) {
+	closeNow := make(chan struct{})
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
+		c, err := upgrader.Upgrade(w, r, nil)
+		require.NoError(t, err)
+		defer c.Close()
+		<-closeNow
+		require.NoError(t, c.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.ClosePolicyViolation, ""), time.Now().Add(time.Second)))
+	}))
+	defer backend.Close()
+	target, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(backend.URL, "http"), nil)
+	require.NoError(t, err)
+	defer target.Close()
+	tracker := NewConnectionTracker(testLogger())
+	defer tracker.Stop()
+	front := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
+		client, err := upgrader.Upgrade(w, r, nil)
+		require.NoError(t, err)
+		// Keep reads working while forcing the close acknowledgement write to fail.
+		require.NoError(t, target.UnderlyingConn().(*net.TCPConn).CloseWrite())
+		bridgeConnections(tracker, client, target, "review", false, nil)
+		close(closeNow)
+	}))
+	defer front.Close()
+	browser, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(front.URL, "http"), nil)
+	require.NoError(t, err)
+	defer browser.Close()
+	_ = browser.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, _, err = browser.ReadMessage()
+	require.True(t, websocket.IsCloseError(err, websocket.ClosePolicyViolation), "got %v", err)
+
 }

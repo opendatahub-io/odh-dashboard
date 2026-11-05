@@ -15,6 +15,7 @@ const (
 	maxProxyDiagnosticBytes = 8192
 	// Short values are ambiguous in prose. Redact them only in credential contexts.
 	minOpaqueCredentialBytes = 16
+	redactionPlaceholder     = "[redacted credential]"
 )
 
 var credentialText = regexp.MustCompile(`(?i)\b(?:bearer|basic)\s+[a-z0-9._~+/=-]+`)
@@ -132,11 +133,11 @@ func proxyDiagnosticRedactor(r *http.Request) func(string) string {
 					len(token) >= minOpaqueCredentialBytes && (strings.HasPrefix(token, "eyJ") && strings.Count(token, ".") == 2 || strings.ContainsAny(token, "0123456789"))
 			}
 			if credential {
-				return "[redacted credential]" + strings.TrimPrefix(parts[1], token)
+				return redactionPlaceholder + strings.TrimPrefix(parts[1], token)
 			}
 			return match
 		})
-		value = bearerSubprotocolText.ReplaceAllString(value, "[redacted credential]")
+		value = bearerSubprotocolText.ReplaceAllString(value, redactionPlaceholder)
 		value = redactCredentialAssignments(value)
 		if len(value) > maxProxyDiagnosticBytes {
 			return ""
@@ -175,12 +176,15 @@ func redactCredentialAssignments(value string) string {
 		if match[0] < cursor || !isKnownCredentialName(value[match[2]:match[3]]) {
 			continue
 		}
+		if strings.HasPrefix(value[match[1]:], redactionPlaceholder) {
+			continue
+		}
 		end := credentialValueEnd(value, match[1])
 		if end == match[1] {
 			continue
 		}
 		out.WriteString(value[cursor:match[0]])
-		out.WriteString("[redacted credential]")
+		out.WriteString(redactionPlaceholder)
 		cursor = end
 	}
 	out.WriteString(value[cursor:])

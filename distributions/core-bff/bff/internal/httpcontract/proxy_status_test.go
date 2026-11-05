@@ -196,6 +196,23 @@ func TestProxyDiagnosticsRedactShortCredentialsInContext(t *testing.T) {
 	}
 }
 
+func TestProxyDiagnosticsPreserveCredentialPlaceholders(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil)
+	request.Header.Set("Authorization", "Bearer test")
+	redact := proxyDiagnosticRedactor(request)
+	for _, tc := range []struct{ input, want string }{
+		{"Authorization: [redacted credential]", "Authorization: [redacted credential]"},
+		{"password=[redacted credential]; spec.replicas must be positive", "password=[redacted credential]; spec.replicas must be positive"},
+		{"Authorization: Bearer test.", "Authorization: [redacted credential]."},
+		{"Proxy-Authorization: Basic dTpw", "Proxy-Authorization: [redacted credential]"},
+		{`password="[redacted credential] SHORT secret"`, "[redacted credential]"},
+	} {
+		out := redact(tc.input)
+		require.Equal(t, tc.want, out)
+		require.Equal(t, out, redact(out))
+	}
+}
+
 func TestKnownCredentialRedactionDoesNotChangeLargerWords(t *testing.T) {
 	const token = "OPAQUE_CREDENTIAL_123456" //nolint:gosec // G101: synthetic value used only to test credential redaction.
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil)
