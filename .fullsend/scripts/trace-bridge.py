@@ -73,12 +73,27 @@ OTLP_ID_RE = {"traceId": re.compile(r"[0-9a-f]{32}"), "spanId": re.compile(r"[0-
 BASE_SPAN_FIELDS = ("traceId", "spanId", "parentSpanId", "name", "kind", "startTimeUnixNano",
                     "endTimeUnixNano", "flags")
 BRIDGE_VERSION = "2"
+VERDICTS = ("approve", "request-changes", "comment")
+LOOKUP_TIMEOUT = 30
 
 
 # ---------- helpers ----------
 
 def span_id(trace_id, *parts):
     return hashlib.sha256("/".join((trace_id,) + parts).encode()).hexdigest()[:16]
+
+
+def num(v):
+    """A finite, non-negative number from untrusted JSON, else None (lists, strings,
+    booleans and NaN would otherwise be multiplied or exported as-is)."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    return v if v == v and 0 <= v < 1e15 else None
+
+
+def text(v):
+    """A short, redacted string from untrusted JSON, else None."""
+    return clean(v)[:200] if isinstance(v, str) and v else None
 
 
 def ns(ts):
@@ -405,8 +420,11 @@ def build(args):
                    key=lambda p: int(re.sub(r"\D", "", os.path.basename(p)) or 0))
     last = iters[-1] if iters else run_dir
     result = load_json(os.path.join(last, "output", "agent-result.json"), {}) or {}
-    pr = result.get("pr_number")
-    repo = result.get("repo")
+    result = result if isinstance(result, dict) else {}
+    # agent-result.json is written in the sandbox: keep only well-formed values.
+    pr = result.get("pr_number") if isinstance(result.get("pr_number"), int) else None
+    repo = result.get("repo") if isinstance(result.get("repo"), str) \
+        and re.fullmatch(r"[\w.-]{1,100}/[\w.-]{1,100}", result["repo"]) else None
     if not pr:
         shared = os.path.join(last, "output", "context", "shared.md")
         try:
@@ -430,7 +448,8 @@ def build(args):
         agent = agent_by_iter.get(it) or (agent_by_iter.get(max(agent_by_iter)) if agent_by_iter else None)
         agent_sid = agent["spanId"] if agent else run_sid
         usage = {u.get("seq"): u for u in read_jsonl(
-            next(iter(glob.glob(os.path.join(it_dir, "transcripts", "*subagents-usage.jsonl"))), ""))}
+            next(iter(glob.glob(os.path.join(it_dir, "transcripts", "*subagents-usage.jsonl"))), ""))
+            if isinstance(u, dict) and isinstance(u.get("seq"), int)}
         for t in sorted(glob.glob(os.path.join(it_dir, "transcripts", "review*.jsonl"))):
             if "usage" in os.path.basename(t):
                 continue
@@ -438,7 +457,9 @@ def build(args):
             seq, persona = persona_of(t, entries)
             u = usage.get(seq, {}) if seq is not None else {}
             calls = tool_calls(entries)
-            key = f"it{it}/{persona}/{seq}"
+            # The file name keeps IDs unique when an iteration has several transcripts with
+            # the same persona and seq (e.g. two orchestrator sessions after a restart).
+            key = f"it{it}/{persona}/{seq}/{os.path.basename(t)}"
             if seq is None:
                 parent_sid = agent_sid  # orchestrator tools hang off the agent span
             else:
@@ -461,19 +482,21 @@ def build(args):
                 continue
             start = ns(u.get("startedAt")) or min((c["start"] for c in calls if c["start"]), default=None) \
                 or int(run_span["startTimeUnixNano"])
-            end = start + int(u.get("durationMs", 0) * 1_000_000) if u.get("durationMs") else \
+            dur = num(u.get("durationMs"))
+            end = start + int(dur * 1_000_000) if dur else \
                 max((c["end"] for c in calls if c["end"]), default=start)
-            us = u.get("usage") or {}
+            us = u.get("usage") if isinstance(u.get("usage"), dict) else {}
             a = {
                 "gen_ai.operation.name": "invoke_agent", "gen_ai.agent.name": persona,
-                "gen_ai.request.model": u.get("model"), "fullsend.persona": persona,
-                "fullsend.persona.seq": seq, "fullsend.persona.description": u.get("description"),
+                "gen_ai.request.model": text(u.get("model")), "fullsend.persona": persona,
+                "fullsend.persona.seq": seq, "fullsend.persona.description": text(u.get("description")),
                 "fullsend.persona.named_in_usage": bool(u.get("persona")),
-                "fullsend.iteration": it, "fullsend.cost_usd": us.get("cost"),
-                "fullsend.usage.input_tokens": us.get("input"), "fullsend.usage.output_tokens": us.get("output"),
-                "fullsend.usage.cache_read_tokens": us.get("cacheRead"),
-                "fullsend.usage.cache_write_tokens": us.get("cacheWrite"),
-                "fullsend.stop_reason": u.get("stopReason"), "fullsend.tool_calls": len(calls),
+                "fullsend.iteration": it, "fullsend.cost_usd": num(us.get("cost")),
+                "fullsend.usage.input_tokens": num(us.get("input")),
+                "fullsend.usage.output_tokens": num(us.get("output")),
+                "fullsend.usage.cache_read_tokens": num(us.get("cacheRead")),
+                "fullsend.usage.cache_write_tokens": num(us.get("cacheWrite")),
+                "fullsend.stop_reason": text(u.get("stopReason")), "fullsend.tool_calls": len(calls),
                 "fullsend.tool_counts": dict(counts), "fullsend.reads_by_category": dict(cats),
                 "fullsend.files_read": sorted(set(reads)),
                 "fullsend.guidance.read": sorted(got),
@@ -481,8 +504,8 @@ def build(args):
             }
             a.update(common)
             spans.append(span(trace_id, parent_sid, agent_sid, f"persona {persona}", start, end, a,
-                              bool(u.get("isError"))))
-            persona_rows.append((persona, us.get("cost") or 0.0))
+                              u.get("isError") is True))
+            persona_rows.append((persona, num(us.get("cost")) or 0.0))
 
     run_start, run_end = int(run_span["startTimeUnixNano"]), int(run_span["endTimeUnixNano"])
 
@@ -504,11 +527,15 @@ def build(args):
     dim = collections.Counter(f.get("dimension", "?") for f in findings)
     prod = result.get("producers") or {}
     risk, conf = result.get("risk") or {}, result.get("confidence") or {}
-    verdict = result.get("action") or args.verdict
+
+    def level(v):
+        v = v.get("level") if isinstance(v, dict) else v
+        return v if v in ("low", "medium", "high", "critical") else None
+    verdict = result.get("action") if result.get("action") in VERDICTS else None
+    verdict = verdict or (args.verdict if args.verdict in VERDICTS else None)
     rr = {"fullsend.verdict": verdict, "fullsend.findings.count": len(findings),
           "fullsend.findings.by_severity": dict(sev), "fullsend.findings.by_dimension": dict(dim),
-          "fullsend.risk": risk.get("level") if isinstance(risk, dict) else risk,
-          "fullsend.confidence": conf.get("level") if isinstance(conf, dict) else conf,
+          "fullsend.risk": level(risk), "fullsend.confidence": level(conf),
           "fullsend.producers.dispatched": prod.get("dispatched"),
           "fullsend.producers.skipped": [s.get("id") for s in prod.get("skipped") or []],
           "fullsend.adapters": {a.get("id"): a.get("status") for a in prod.get("adapters") or []},
@@ -543,13 +570,14 @@ def build(args):
     # MLflow trace tags: filterable and sortable in the trace table. MLflow's own cost
     # column prices tokens without cache discounts, so the real cost goes here too.
     tags = {"fullsend.pr": f"{repo}#{pr}" if pr else None, "fullsend.verdict": verdict,
-            "fullsend.cost_usd": metrics.get("total_cost_usd"),
+            "fullsend.cost_usd": num(metrics.get("total_cost_usd")),
             "fullsend.guidance.coverage": cov["fullsend.guidance.coverage"],
             "fullsend.guidance.missed_count": len(cov["fullsend.guidance.missed"]) if applicable else None,
             "fullsend.findings.count": len(findings), "fullsend.risk": rr["fullsend.risk"],
             "fullsend.personas": len(persona_rows), "fullsend.run_url": args.run_url,
             "fullsend.bridge.version": BRIDGE_VERSION}
-    summary["tags"] = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in tags.items() if v is not None}
+    summary["tags"] = {k: (round(v, 4) if isinstance(v, float) else v if isinstance(v, int) else clean(v)[:500])
+                       for k, v in tags.items() if v is not None}
     return out, summary
 
 
@@ -589,13 +617,13 @@ def mlflow_trace_state(endpoint, headers, trace_id):
     base = re.sub(r"/v1/traces/?$", "", endpoint)
     req = urllib.request.Request(f"{base}/api/3.0/mlflow/traces/tr-{trace_id}", headers=headers)
     try:
-        with _OPENER.open(req, timeout=30) as r:
+        with _OPENER.open(req, timeout=LOOKUP_TIMEOUT) as r:
             info = (json.load(r).get("trace") or {}).get("trace_info") or {}
     except urllib.error.HTTPError as e:
         if e.code != 404:
             print(f"warning: trace lookup returned HTTP {e.code}; treating the trace as new", file=sys.stderr)
         return False, False
-    except (urllib.error.URLError, ValueError) as e:
+    except (urllib.error.URLError, ValueError, OSError) as e:  # OSError covers read timeouts
         print(f"warning: trace lookup failed ({e}); treating the trace as new", file=sys.stderr)
         return False, False
     tags = info.get("tags") or {}
@@ -609,7 +637,7 @@ def set_mlflow_tags(endpoint, headers, trace_id, tags):
     url = f"{base}/api/2.0/mlflow/traces/tr-{trace_id}/tags"
     failed = 0
     for k, v in tags.items():
-        body = json.dumps({"key": k, "value": str(v)}).encode()
+        body = json.dumps({"key": k, "value": clean(v)[:500]}).encode()
         try:
             _OPENER.open(urllib.request.Request(url, data=body, headers=headers, method="PATCH"),
                          timeout=30).close()
@@ -645,16 +673,29 @@ def _self_test_network():
                 self._send(200, json.dumps({"trace": {"trace_info": {"tags": tags[tid]}}}).encode())
             elif tid == "e" * 32:
                 self._send(500)
+            elif tid == "f" * 32:
+                import time
+                self.send_response(200)
+                self.send_header("Content-Length", "100")
+                self.end_headers()
+                time.sleep(1.5)
             else:
                 self._send(404)
 
         def do_POST(self):
             self._send(302, extra={"Location": "http://example.invalid/steal"})
 
-    srv = http.server.HTTPServer(("127.0.0.1", 0), H)
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     ep = f"http://127.0.0.1:{srv.server_address[1]}/v1/traces"
     states = [mlflow_trace_state(ep, {}, t) for t in ("a" * 32, "b" * 32, "c" * 32, "e" * 32)]
+    global LOOKUP_TIMEOUT
+    saved, LOOKUP_TIMEOUT = LOOKUP_TIMEOUT, 0.3
+    try:
+        timeout_state = mlflow_trace_state(ep, {}, "f" * 32)
+    except Exception:  # noqa: BLE001 - the check is that nothing escapes
+        timeout_state = "raised"
+    LOOKUP_TIMEOUT = saved
     try:
         post({}, ep, {})
         redirect_blocked = False
@@ -678,7 +719,7 @@ def _self_test_network():
         bad_id_rejected = False
     except SystemExit:
         bad_id_rejected = True
-    return {"states": states, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
+    return {"states": states, "timeout_state": timeout_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
 
@@ -722,6 +763,9 @@ def self_test():
                             "2026-11-03T00:00:01Z", "durationMs": 1000, "usage": {"cost": 0.01}}) + "\n")
         f.write(json.dumps({"seq": 2, "model": "m", "startedAt": "2026-11-03T00:00:01Z",
                             "durationMs": 1000, "usage": {"cost": 0.02}}) + "\n")
+        f.write(json.dumps({"seq": 3, "persona": "hostile", "durationMs": [1] * 1000,
+                            "usage": {"cost": "9" * 50, "input": [1]}, "model": {"x": 1}}) + "\n")
+        f.write(json.dumps(["not", "a", "row"]) + "\n")
 
     def msg(role, content=None, **kw):
         return json.dumps({"type": "message", "timestamp": "2026-11-03T00:00:01Z",
@@ -745,6 +789,13 @@ def self_test():
     with open(os.path.join(tr, "review-sub2-2026-11-03T00-00-01Z_b.jsonl"), "w") as f:
         f.write(msg("user", [{"type": "text", "text": "Read /x/sub-agents/test-impact-review/SKILL.md first"}]))
         f.write(msg("assistant", [call("d1", "read", {"path": "/sandbox/workspace/pr-head/./docs/adr/0009-x.md"})]))
+    with open(os.path.join(tr, "review-sub3-hostile-2026-11-03T00-00-01Z_h.jsonl"), "w") as f:
+        f.write(msg("assistant", [call("h1", "read", {"path": "/sandbox/workspace/target-repo/x.ts"})]))
+        f.write(msg("toolResult", toolCallId="h1", durationMs=5, timestamp=1793664001900))
+    for name in ("review-2026-11-03T00-00-00Z_o2.jsonl", "review-2026-11-03T00-10-00Z_o3.jsonl"):
+        with open(os.path.join(tr, name), "w") as f:  # two orchestrator sessions in one iteration
+            f.write(msg("assistant", [call("p1", "read", {"path": "/sandbox/workspace/target-repo/y.ts"})]))
+            f.write(msg("toolResult", toolCallId="p1", durationMs=5, timestamp=1793664001950))
     with open(os.path.join(tr, "review-2026-11-03T00-00-00Z_o.jsonl"), "w") as f:
         f.write(msg("assistant", [call("o1", "Agent", {"description": "style",
                                                        "prompt": "Apply docs/adr/0009-x.md"})]))
@@ -771,7 +822,27 @@ def self_test():
     t0 = datetime.datetime.now()
     redact("--" * 50000 + "token" + "-a" * 50000)
     redact_secs = (datetime.datetime.now() - t0).total_seconds()
+    hostile = by.get("persona hostile")
+    sc_read = next(x for x in spans if x["name"] == "execute_tool read"
+                   and get(x, "fullsend.persona") == "style-conventions")
+    import shutil
+    bad_result = tempfile.mkdtemp(prefix="trace-bridge-result-")
+    shutil.copytree(tmp, bad_result, dirs_exist_ok=True)
+    json.dump({"action": "<x>" * 5000, "pr_number": "7; rm", "repo": "a/b c" * 100,
+               "risk": {"level": ["high"]}, "confidence": "token=abcdefgh123"},
+              open(os.path.join(bad_result, "fs-rev-x", "iteration-1", "output", "agent-result.json"), "w"))
+    _, bad_summary = build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict="<y>")))
     checks = [
+        ("hostile usage row: no crash, persona kept, bad numbers dropped",
+         hostile is not None and get(hostile, "fullsend.cost_usd") is None
+         and get(hostile, "fullsend.usage.input_tokens") is None and get(hostile, "gen_ai.request.model") is None
+         and int(hostile["endTimeUnixNano"]) >= int(hostile["startTimeUnixNano"])),
+        ("two orchestrator transcripts in one iteration keep distinct span ids",
+         sum(1 for x in spans if get(x, "fullsend.tool.path") == "y.ts") == 2),
+        ("hostile agent-result: no verdict, risk, PR or repo in tags",
+         not any(k in bad_summary["tags"] for k in ("fullsend.verdict", "fullsend.risk", "fullsend.pr"))
+         and bad_summary["pr"] is None),
+        ("lookup timeout treated as a new trace", net["timeout_state"] == (False, False)),
         ("host run dir chosen over sandbox-written decoy", base_run["spanId"] == run_sid and summary["trace_id"] == tid),
         ("text under a sensitive key in Fullsend's spans redacted", "plainValue9x" not in blob),
         ("token counts under token-named keys kept", base_attrs.get("gen_ai.usage.input_tokens") == {"intValue": "42"}),
@@ -796,9 +867,9 @@ def self_test():
         ("secret in Fullsend's own span redacted", "s3cr3tvalue1" not in blob),
         ("unnamed persona recovered from prompt", "persona test-impact-review" in by),
         ("persona parented to agent span", by["persona style-conventions"].get("parentSpanId") == agent_sid),
-        ("pr-head path counted as a rule", get(by["execute_tool read"], "fullsend.file.category") == "rule"),
+        ("pr-head path counted as a rule", get(sc_read, "fullsend.file.category") == "rule"),
         ("tool start from toolResult duration",
-         int(by["execute_tool read"]["startTimeUnixNano"]) == 1793664001500 * 1_000_000 - 250_000_000),
+         int(sc_read["startTimeUnixNano"]) == 1793664001500 * 1_000_000 - 250_000_000),
         ("tool error status", by["execute_tool bash"]["status"]["code"] == 2),
         ("secret redacted", "abcdefghijklmnop" not in get(by["execute_tool bash"], "fullsend.tool.command")),
         ("coverage is 1 of 2", summary["coverage"] == 0.5 and summary["missed"] == ["docs/adr/0009-x.md"]),
