@@ -32,17 +32,23 @@ import { ensureMlflowCrReady } from './oc_commands/mlflow';
 import { addUserToProject } from './oc_commands/project';
 import type { EvalHubBenchmarkSuiteTestData } from '../types';
 
-export type BenchmarkSuiteScenarioKey = 'save-and-run' | 'gallery';
+export type BenchmarkSuiteScenarioKey = 'save-and-run' | 'gallery' | 'curated-customize';
 
 export type EvalHubBenchmarkSuiteScenario = {
   setup: () => void;
   cleanup: () => void;
   run: () => void;
+  runSavedCollection: (suiteName: string, evaluationRunName: string) => void;
+  getTenantProject: () => string;
 };
 
 const getScenarioUuid = (key: BenchmarkSuiteScenarioKey): string => {
-  const envKey =
-    key === 'save-and-run' ? 'EVAL_HUB_SUITE_SAVE_AND_RUN_UUID' : 'EVAL_HUB_SUITE_GALLERY_UUID';
+  const envKeys: Record<BenchmarkSuiteScenarioKey, string> = {
+    'save-and-run': 'EVAL_HUB_SUITE_SAVE_AND_RUN_UUID',
+    gallery: 'EVAL_HUB_SUITE_GALLERY_UUID',
+    'curated-customize': 'EVAL_HUB_CURATED_CUSTOMIZE_UUID',
+  };
+  const envKey = envKeys[key];
   const uuid = Cypress.env(envKey) || generateTestUUID();
   Cypress.env(envKey, uuid);
   return uuid;
@@ -58,6 +64,10 @@ export const createEvalHubBenchmarkSuiteScenario = (
   let testData: EvalHubBenchmarkSuiteTestData;
   const scenarioUuid = getScenarioUuid(key);
   const runAfterSave = key === 'save-and-run';
+  const fixturePath =
+    key === 'curated-customize'
+      ? 'e2e/eval-hub/testEvalHubCuratedCollectionCustomize.yaml'
+      : 'e2e/eval-hub/testEvalHubBenchmarkSuite.yaml';
   let evaluationTenantProject = '';
   let hardwareProfileName = '';
   let inferenceServiceName = '';
@@ -76,15 +86,13 @@ export const createEvalHubBenchmarkSuiteScenario = (
 
   const setup = (): void => {
     ensureAdminOcSession();
-    cy.fixture('e2e/eval-hub/testEvalHubBenchmarkSuite.yaml', 'utf8').then(
-      (yamlContent: string) => {
-        testData = yaml.load(yamlContent) as EvalHubBenchmarkSuiteTestData;
-        hardwareProfileName = getEvalHubHardwareProfileName(scenarioUuid);
-        evaluationTenantProject = `${testData.projectNamePrefix}-${scenarioUuid}`;
-        createdSuiteName = `${testData.suiteName}-${scenarioUuid}`;
-        inferenceServiceName = testData.inferenceServiceName;
-      },
-    );
+    cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+      testData = yaml.load(yamlContent) as EvalHubBenchmarkSuiteTestData;
+      hardwareProfileName = getEvalHubHardwareProfileName(scenarioUuid);
+      evaluationTenantProject = `${testData.projectNamePrefix}-${scenarioUuid}`;
+      createdSuiteName = `${testData.suiteName}-${scenarioUuid}`;
+      inferenceServiceName = testData.inferenceServiceName;
+    });
 
     cy.then(() => {
       cy.step('[Setup] Provision MLflow instance');
@@ -142,7 +150,10 @@ export const createEvalHubBenchmarkSuiteScenario = (
       // Establish the browser/BFF session before calling the EvalHub cleanup APIs. This works
       // with both the local E2E proxy and direct-cluster Cypress configurations.
       cy.step('[Setup] Open EvalHub and remove stale runs and collections');
-      navigateToEvaluationsPage(evaluationTenantProject);
+      navigateToEvaluationsPage(
+        evaluationTenantProject,
+        key === 'curated-customize' ? 'gallery' : 'evaluate',
+      );
       clearEvalHubEvaluationJobs(evaluationTenantProject);
       deleteEvalHubTenantCollections(evaluationTenantProject);
     });
@@ -195,5 +206,23 @@ export const createEvalHubBenchmarkSuiteScenario = (
     verifyEvaluationCompletedAndViewResults(evaluationRunName, testData.expectedBenchmarkIds);
   };
 
-  return { setup, cleanup, run };
+  const runSavedCollection = (suiteName: string, evaluationRunName: string): void => {
+    submitBenchmarkSuiteEvaluation({
+      suiteName,
+      evaluationRunName,
+      inferenceServiceName,
+      mlflowExperimentName: experimentName,
+    });
+    verifyEvaluationProgressModal(evaluationRunName);
+    waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
+    verifyEvaluationCompletedAndViewResults(evaluationRunName);
+  };
+
+  return {
+    setup,
+    cleanup,
+    run,
+    runSavedCollection,
+    getTenantProject: () => evaluationTenantProject,
+  };
 };

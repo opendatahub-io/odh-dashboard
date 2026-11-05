@@ -15,6 +15,14 @@ class EvaluationsPage {
     return cy.findByTestId('evaluate-tab', options);
   }
 
+  findGalleryTab(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('gallery-tab', options);
+  }
+
+  findGalleryTabContent(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('gallery-tab-content', options);
+  }
+
   findEvaluateTabContent(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('evaluate-tab-content', options);
   }
@@ -27,6 +35,13 @@ class EvaluationsPage {
     // Scope to the Evaluate tab content — mountOnEnter keeps the Gallery tab's gallery in the
     // DOM with the same test ID, so an unscoped query matches both galleries.
     return this.findEvaluateTabContent(options).findByTestId('benchmark-suites-gallery', options);
+  }
+
+  findGalleryBenchmarkSuiteName(collectionId: string, options?: Partial<Cypress.Timeoutable>) {
+    return this.findGalleryTabContent(options).findByTestId(
+      `benchmark-suite-card-name-${collectionId}`,
+      options,
+    );
   }
 
   findCreateSuiteButton(options?: Partial<Cypress.Timeoutable>) {

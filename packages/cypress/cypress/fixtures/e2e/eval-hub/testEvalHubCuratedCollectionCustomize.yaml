@@ -1,0 +1,31 @@
+# EvalHub curated collection Customize test: deploy Qwen2.5 with tool calling enabled.
+projectNamePrefix: eval-hub-tool-e2e
+evalHubCrName: evalhub
+evalHubInstanceResourceYamlPath: resources/eval-hub/evalhub-instance.yaml
+mlflowInstanceResourceYamlPath: resources/mlflow/mlflow-instance-minimal.yaml
+modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:qwen2.5-0.5b-instruct
+inferenceServiceName: evalhub-toolcall-llm
+servingRuntimeYamlPath: resources/eval-hub/vllm_cpu_amd64_qwen_tool_calling_runtime.yaml
+hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
+suiteName: EvalHub Cypress tool calling suite
+suiteDomains:
+  - knowledge_and_reasoning
+  - trustworthiness
+benchmarkProviderId: lm_evaluation_harness
+benchmarks:
+  - id: arc_easy
+    name: Basic science Q&A
+    numExamples: 2
+  - id: toxigen
+    name: Toxigen
+    numExamples: 2
+expectedBenchmarkIds:
+  - arc_easy
+  - toxigen
+inferenceModelName: evalhub-toolcall-llm
+mlflowExperimentName: Cy-Evalhub
+additionalBenchmarkParams: |
+  {
+    "limit": 2,
+    "tokenizer": "Qwen/Qwen2.5-0.5B-Instruct"
+  }

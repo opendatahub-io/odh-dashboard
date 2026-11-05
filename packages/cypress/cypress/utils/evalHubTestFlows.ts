@@ -504,7 +504,10 @@ const assertEvaluationHardwareConfig = (profileName?: string): void => {
  */
 let dashboardSessionEstablished = false;
 
-export const navigateToEvaluationsPage = (evaluationTenantProject: string): void => {
+export const navigateToEvaluationsPage = (
+  evaluationTenantProject: string,
+  initialTab: 'gallery' | 'evaluate' = 'evaluate',
+): void => {
   cy.step('Log into the application and open Evaluations page');
   cy.visitWithLogin(
     evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject),
@@ -515,14 +518,112 @@ export const navigateToEvaluationsPage = (evaluationTenantProject: string): void
     .findPageTitle({ timeout: 30000 })
     .should('be.visible')
     .and('contain.text', 'Evaluations');
-  cy.step('Open the Benchmark collections tab');
-  evaluationsPage.findEvaluateTab({ timeout: 30000 }).should('be.visible').click();
+  if (initialTab === 'evaluate') {
+    cy.step('Open the Benchmark collections tab');
+    evaluationsPage.findEvaluateTab({ timeout: 30000 }).should('be.visible').click();
+    evaluationsPage.findEvaluateTabContent({ timeout: 30000 }).should('be.visible');
+  } else {
+    cy.step('Stay on the Gallery tab');
+    evaluationsPage.findGalleryTab({ timeout: 30000 }).should('have.attr', 'aria-selected', 'true');
+    evaluationsPage.findGalleryTabContent({ timeout: 30000 }).should('be.visible');
+  }
+  cy.then(() => {
+    dashboardSessionEstablished = true;
+  });
+};
+
+//Curated collection customization flow
+export const customizeCuratedCollection = (
+  evaluationTenantProject: string,
+  collectionId: string,
+  customizedCollectionName: string,
+): void => {
+  const navigationTimeout = { timeout: 120000 };
+
+  cy.step(`Select curated collection from the Gallery tab: ${collectionId}`);
   evaluationsPage
-    .findEvaluateTabContent({ timeout: 30000 })
+    .findGalleryTab({ timeout: navigationTimeout.timeout })
+    .should('have.attr', 'aria-selected', 'true');
+  evaluationsPage
+    .findGalleryBenchmarkSuiteName(collectionId, navigationTimeout)
     .should('be.visible')
-    .then(() => {
-      dashboardSessionEstablished = true;
+    .click();
+  createEvaluationPage.findCollectionDrawerPanel().should('be.visible');
+  createEvaluationPage
+    .findCollectionDrawerPrerequisite()
+    .should('contain.text', 'multiple tool/function calls');
+
+  cy.step('Customize the curated collection');
+  createEvaluationPage.findCustomizeBenchmarkSuiteButton().should('be.visible').click();
+  cy.location('pathname', navigationTimeout).should(
+    'eq',
+    `/evaluation/${evaluationTenantProject}/create/collections/${collectionId}/copy`,
+  );
+  createEvaluationPage
+    .findCopySuitePrerequisiteAlert()
+    .should('contain.text', 'multiple tool/function calls');
+  createEvaluationPage.findSuiteNameInput().clear().type(customizedCollectionName);
+  createEvaluationPage.findCopySuiteNextButton().should('be.enabled').click();
+
+  cy.step('Keep the curated benchmark selection and open its configuration');
+  createEvaluationPage.findCopySuiteNextSelectBenchmarksButton().should('be.enabled').click();
+  createEvaluationPage.findCopySuiteStepBenchmarks(navigationTimeout).should('be.visible');
+  createEvaluationPage.findBenchmarkParameterInput(0, 'judge_model').should('not.exist');
+  cy.step('Limit each benchmark to five examples');
+  createEvaluationPage
+    .findBenchmarkSections()
+    .its('length')
+    .then((benchmarkCount) => {
+      Array.from({ length: benchmarkCount }, (_value, index) => index).forEach((index) => {
+        cy.step(`Set benchmark ${index + 1} to five examples`);
+        createEvaluationPage.findBenchmarkJumpLink(index).should('be.visible').click();
+        createEvaluationPage
+          .findBenchmarkParameterInput(index, 'num_examples')
+          .scrollIntoView()
+          .should('be.visible')
+          .clear()
+          .type('5')
+          .should('have.value', '5');
+
+        cy.step(`Use Chat Completions for benchmark ${index + 1}`);
+        createEvaluationPage
+          .findBenchmarkAdditionalParameters(index)
+          .scrollIntoView()
+          .should('be.visible')
+          .invoke('val')
+          .then((value) => {
+            const parameters = JSON.parse(String(value)) as Record<string, unknown>;
+            const modelArgs =
+              isRecord(parameters.model_args) && !Array.isArray(parameters.model_args)
+                ? parameters.model_args
+                : {};
+            const updatedParameters = JSON.stringify({
+              ...parameters,
+              // The vLLM fixture serves Chat Completions, so disable Inspect's Responses API.
+              // eslint-disable-next-line camelcase
+              model_args: { ...modelArgs, responses_api: false },
+            });
+
+            createEvaluationPage
+              .findBenchmarkAdditionalParameters(index)
+              .clear()
+              .type(updatedParameters, { parseSpecialCharSequences: false })
+              .should('have.value', updatedParameters);
+          });
+      });
     });
+  // Save the customized collection without launching it; the spec verifies the run separately.
+  createEvaluationPage.findCopySuiteSaveOnlyButton().should('be.enabled').click();
+  cy.location('pathname', navigationTimeout).should(
+    'eq',
+    `/evaluation/${evaluationTenantProject}/collections`,
+  );
+
+  cy.step('Verify the customized collection is available under Evaluate');
+  navigateToEvaluationsPage(evaluationTenantProject);
+  evaluationsPage
+    .findBenchmarkSuiteCardByName(customizedCollectionName, navigationTimeout)
+    .should('be.visible');
 };
 
 /** Removes stale EvalHub runs left by an earlier attempt using the same E2E tenant. */

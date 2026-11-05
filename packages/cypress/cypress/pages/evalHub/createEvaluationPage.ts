@@ -93,6 +93,16 @@ class CreateEvaluationPage {
     return cy.findByTestId(`benchmark-${index}-parameter-input-${parameterKey}`);
   }
 
+  findBenchmarkSections() {
+    return cy
+      .findByTestId('copy-suite-benchmark-sections')
+      .find('section[data-testid^="benchmark-section-"]');
+  }
+
+  findBenchmarkJumpLink(index: number) {
+    return cy.findByTestId(`benchmark-jump-link-${index}`).findByRole('link');
+  }
+
   findCopySuiteSaveOnlyButton() {
     return cy.findByTestId('copy-suite-save-only');
   }
@@ -131,6 +141,30 @@ class CreateEvaluationPage {
 
   findCollectionsGallery(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('collections-gallery', options);
+  }
+
+  findCuratedBenchmarkSuitesPage(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('curated-benchmark-suites-page', options);
+  }
+
+  findCuratedBenchmarkSuiteName(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-name-${collectionId}`);
+  }
+
+  findCollectionDrawerPanel() {
+    return cy.findByTestId('collection-drawer-panel');
+  }
+
+  findCollectionDrawerPrerequisite() {
+    return cy.findByTestId('collection-drawer-prerequisite');
+  }
+
+  findCustomizeBenchmarkSuiteButton() {
+    return cy.findByTestId('customize-benchmark-suite-button');
+  }
+
+  findCopySuitePrerequisiteAlert() {
+    return cy.findByTestId('copy-suite-prerequisite-alert');
   }
 
   findCollectionCard(collectionId: string) {
