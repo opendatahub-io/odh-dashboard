@@ -130,7 +130,7 @@ additional_fields={
 }
 ```
 
-### Step 1b: Create All 8 Subtasks
+### Step 1b: Create All 9 Subtasks
 
 Create the following subtasks under the new epic.
 
@@ -148,6 +148,7 @@ Create the following subtasks under the new epic.
 | 6 | `<name>: Create Standalone Module Manifests` | Major | Create standalone deployment manifests in `manifests/modules/<name>/`. Partially automated by `/konflux-onboarding` Phase 4 (Type A only). |
 | 7 | `<name>: Onboard Module in Operator` | Major | Register the module in `dashboard-operator/internal/controller/modules.go` with all fields and update test assertions in `modules_test.go` and `charts/dashboard/values.yaml`. Proxy paths and imagesMap entries are read from the registry (single source of truth). The **opendatahub-operator** also needs a one-line addition to `relatedImages()` in `internal/controller/modules/dashboard/support.go` — open a PR and request review in `#ai-core-platform-requests` Slack channel. |
 | 8 | `<name>: Track & Verify RHOAI Konflux Onboarding` | Major | Track RHOAI Konflux component onboarding (downstream Quay, release pipeline, Renovate). Automated by DevOps CI. |
+| 9 | `<name>: Register image as a ProdSec pscomponent` | Major | Register `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B) with ProdSec before the first release, so CVE `SecurityTracking` tickets are generated for it. Not done by the DevOps automation. See Phase 6 § ProdSec registration. |
 
 For each subtask:
 
@@ -230,22 +231,50 @@ Skip if: `--skip-downstream` flag.
 
 Generate `Dockerfile.konflux.<name>` content for the `red-hat-data-services/odh-dashboard` repo root.
 
+### Base images (all types)
+
+Take base images from a module that already ships on the target branch, not from a fresh `:latest` lookup. MintMaker keeps the downstream digests current, including security rebuilds of UBI (for example the eMudhra CA remediation, RHSB-2026-012):
+
+```bash
+git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:Dockerfile.konflux.data-connect-hub" | grep -E '^ARG .*_BASE_IMAGE='
+```
+
+- Builders: `registry.access.redhat.com/ubi9/nodejs-22@sha256:…` and `registry.access.redhat.com/ubi9/go-toolset:<go>@sha256:…`
+- Runtime: `registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:…`. Every shipped dashboard image uses the PQC variant; do not use plain `ubi9-minimal` downstream.
+- Never use Docker Hub, `gcr.io/distroless` or unpinned tags downstream.
+- If the target branch has no module yet, resolve the same repositories with `skopeo inspect` (see [references/dockerfile-templates.md](references/dockerfile-templates.md) § SHA Digest Management).
+
 ### Type A
 
-Based on the upstream `Dockerfile.workspace`, generate a downstream variant with:
-- SHA-pinned base images (use `skopeo inspect` to get current digests, or use placeholder `@sha256:<digest>`)
-- Red Hat labels on the final stage
-- Same FIPS flags as upstream (already uses `CGO_ENABLED=1 -tags strictfipsruntime`)
+Start from the current `Dockerfile.konflux.data-connect-hub` on the target branch and change only the module name and labels. Do not rebuild it from the upstream `Dockerfile.workspace`: the downstream file carries Hermeto/offline install flags, `pkg/tls` and shared-package `COPY` lines that the upstream variant can lag behind.
+
+- `ARG MODULE_NAME=<name>`
+- Base images as above
+- Labels use the image name, not the bare module name:
+
+  ```dockerfile
+  LABEL com.redhat.component="odh-mod-arch-<name>-container" \
+        name="managed-open-data-hub/odh-mod-arch-<name>-rhel9" \
+        description="odh-mod-arch-<name>" \
+        summary="odh-mod-arch-<name>" \
+        maintainer="['managed-open-data-hub@redhat.com']" \
+        io.openshift.expose-services="" \
+        io.k8s.display-name="odh-mod-arch-<name>" \
+        io.k8s.description="odh-mod-arch-<name>" \
+        com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
+  ```
+
+The `name` label (`odh-mod-arch-<name>-rhel9`) is the image ProdSec registers as `pscomponent:rhoai/odh-mod-arch-<name>-rhel9` in Phase 6.
 
 See [references/dockerfile-templates.md](references/dockerfile-templates.md) § Downstream Type A.
 
 ### Type B
 
 Generate from the upstream Dockerfile with these changes:
-- Builder: `registry.redhat.io/ubi9/go-toolset:<version>@sha256:<digest>` (not Docker Hub `golang:`)
+- Builder: `registry.access.redhat.com/ubi9/go-toolset:<version>@sha256:<digest>` (not Docker Hub `golang:`)
 - Add `USER root` after FROM in builder stage (go-toolset runs non-root by default)
 - Build flags: `CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntime`
-- Runtime: `registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest>` (SHA-pinned)
+- Runtime: `registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:<digest>` (SHA-pinned, same digest as the other dashboard images on the branch)
 - Red Hat labels on final stage:
 
   ```dockerfile
@@ -608,6 +637,19 @@ This phase does **not** run the DevOps skill inline — the user should run it s
 
 2. **Collect key details** the user will need for the DevOps skill runs and print them together for easy reference.
 
+### ProdSec registration
+
+The DevOps automation builds and releases the image but does not register it with ProdSec. CVE `SecurityTracking` tickets are only generated for images registered as a `pscomponent`, so an unregistered image silently misses CVE and security-bulletin work. This happened to `data-connect-hub` and `data-registry` during the eMudhra remediation.
+
+1. Tell the user to request registration of `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B) in ProdSec's product definitions, through `#forum-aipcc`, before the first release that ships the image. Record the request on subtask 9.
+2. After the first downstream build, verify registration. Once ProdSec processes a CVE affecting the image, tracking tickets carry the label, so this JQL returns results:
+
+   ```text
+   labels = "pscomponent:rhoai/odh-mod-arch-<name>-rhel9"
+   ```
+
+   An empty result while sibling images (for example `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for the same CVE means the image is not registered. Raise it in `#forum-aipcc`.
+
 Read [references/devops-integration.md](references/devops-integration.md) for the full integration guide including Q&A flow, schema validation, and troubleshooting.
 
 ## Phase 7: Jira Updates & Verification Report
@@ -625,6 +667,7 @@ If a tracking epic was created in Phase 1 (or provided via `--jira`), update eac
 - **Subtask 5** (OpenShift CI): Link to the `openshift/release` PR
 - **Subtask 6** (Standalone module manifests): Note whether manifests were created in `manifests/modules/<name>/` (Type A) or N/A (Type B)
 - **Subtask 7** (Operator): Link to the PR if operator registration was done in Phase 5a; note the opendatahub-operator change requires a separate PR reviewed via `#ai-core-platform-requests`
+- **Subtask 9** (ProdSec): Add the pscomponent name to request and the verification JQL from Phase 6
 
 For subtasks covered by DevOps automation (2, 4, 8), add a comment noting they will be tracked via the DevOps onboarding flow after the user runs `/create-component-onboarding-jira`.
 
@@ -651,6 +694,7 @@ Print a final report:
 - [ ] Standalone module manifests (`manifests/modules/<name>/`): created/already existed/skipped/N/A
 - [ ] OpenShift CI: PR created/skipped
 - [ ] Dashboard-operator registration: done/already registered/skipped/N/A
+- [ ] ProdSec pscomponent registration: requested/verified/pending
 - [ ] Jira subtasks updated: yes/skipped
 
 ### Files Created/Modified
@@ -666,4 +710,5 @@ Print a final report:
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
 8. Open a PR against `opendatahub-io/opendatahub-operator` adding `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `relatedImages()` in `internal/controller/modules/dashboard/support.go`, then request review in `#ai-core-platform-requests` Slack channel
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
+10. Request ProdSec `pscomponent` registration for `rhoai/odh-mod-arch-<name>-rhel9` in `#forum-aipcc` and verify it with the Phase 6 JQL before the first release
 ```

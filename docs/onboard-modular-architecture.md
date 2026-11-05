@@ -198,6 +198,13 @@ When creating manifests for a new module, reference an existing module (e.g., `m
 - **ClusterRole** should include only the RBAC permissions your module actually needs
 - **Environment variables** in the deployment should include `POD_NAMESPACE` (via downward API) and any inter-BFF service discovery variables
 
+## Release and Security Readiness
+
+These steps happen after scaffolding, through `/konflux-onboarding`, but a module must not ship without them:
+
+- **Downstream base images**: `Dockerfile.konflux.<name>` in `red-hat-data-services/odh-dashboard` is copied from a module that already ships on the target branch, so it starts with the base-image digests MintMaker keeps current (including security rebuilds such as the eMudhra CA remediation, RHSB-2026-012). The runtime is `registry.redhat.io/ubi9/ubi-minimal-pqc`. Review and merge the digest-update PRs MintMaker opens.
+- **ProdSec registration**: the image (`rhoai/odh-mod-arch-<name>-rhel9`) must be registered as a ProdSec `pscomponent` before its first release. Request it in `#forum-aipcc`. CVE tracking tickets are only generated for registered images; verify with the Jira query `labels = "pscomponent:rhoai/odh-mod-arch-<name>-rhel9"` once a CVE has been processed.
+
 ## Related Documentation
 
 - [Module Federation](./module-federation.md) - How Module Federation connects the frontend modules

@@ -288,3 +288,4 @@ Summarize the completed onboarding:
    - Run locally: `pnpm run dev:backend` and `pnpm run dev:frontend` from the root, then `cd packages/<name> && make dev-start-federated`
    - Enable the feature locally: set `<camelCase>: true` in the dashboard config
    - **Run `/konflux-onboarding`** for CI/CD: Dockerfiles, Konflux component, OpenShift CI, standalone manifests (`manifests/modules/<name>/`), dashboard-operator registration, and the `RELATED_IMAGE` entry in the opendatahub-operator
+   - **Before the first release**, get the image `rhoai/odh-mod-arch-<name>-rhel9` registered as a ProdSec `pscomponent` (requested in `#forum-aipcc`; `/konflux-onboarding` Phase 6 has the steps and the verification query). Without it the image gets no CVE tracking tickets, which is how `data-connect-hub` and `data-registry` were missed during the eMudhra remediation.

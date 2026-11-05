@@ -272,3 +272,5 @@ The `modular-arch-quality-gates.yml` CI workflow checks that modules have:
 - [ ] Contract tests (if BFF)
 - [ ] `Dockerfile.workspace` for container builds
 - [ ] `pnpm install` from repo root succeeds
+- [ ] Downstream `Dockerfile.konflux.<name>` copied from a shipped module on the target branch (current digests, `ubi-minimal-pqc` runtime, `odh-mod-arch-<name>` labels) — `/konflux-onboarding`
+- [ ] Image `rhoai/odh-mod-arch-<name>-rhel9` registered as a ProdSec `pscomponent` before the first release, verified with `labels = "pscomponent:rhoai/odh-mod-arch-<name>-rhel9"` — `/konflux-onboarding` Phase 6
