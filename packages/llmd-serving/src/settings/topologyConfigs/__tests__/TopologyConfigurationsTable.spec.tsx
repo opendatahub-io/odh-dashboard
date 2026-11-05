@@ -2,28 +2,20 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNavigate } from 'react-router';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
-import { deleteLlmInferenceServiceConfigIfUnreferenced } from '../../../api/LLMInferenceServiceConfigs';
+import {
+  deleteLlmInferenceServiceConfigIfUnreferenced,
+  patchLLMInferenceServiceConfig,
+} from '../../../api/LLMInferenceServiceConfigs';
 import { CONFIG_DELETION_PENDING_MESSAGE, CONFIG_IN_USE_ERROR_MESSAGE } from '../../../utils';
 import { TopologyType } from '../../../types';
 import TopologyConfigurationsTable from '../TopologyConfigurationsTable';
-import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
+const { notification, wrapper } = createTestProviders();
 
 jest.mock('react-router', () => ({
   useNavigate: jest.fn(),
-}));
-
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
-}));
-
-jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
-  __esModule: true,
-  default: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/userSSAR', () => {
@@ -63,21 +55,28 @@ jest.mock('@odh-dashboard/internal/pages/projects/components/DeleteModal', () =>
 const mockDeleteLlmInferenceServiceConfigIfUnreferenced = jest.mocked(
   deleteLlmInferenceServiceConfigIfUnreferenced,
 );
-const mockUseNotification = jest.mocked(useNotification);
 
 describe('TopologyConfigurationsTable', () => {
-  const mockNotification = {
-    error: jest.fn(),
-    success: jest.fn(),
-    info: jest.fn(),
-    warning: jest.fn(),
-  };
   const mockNavigate = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
-    mockUseNotification.mockReturnValue(mockNotification as ReturnType<typeof useNotification>);
+  });
+
+  it('should deliver toggle failures to the host notification provider', async () => {
+    jest.mocked(patchLLMInferenceServiceConfig).mockRejectedValue(new Error('Update denied'));
+    const config = mockLLMInferenceServiceConfigK8sResource({});
+    render(<TopologyConfigurationsTable configs={[config]} />, { wrapper });
+
+    fireEvent.click(screen.getByRole('switch'));
+
+    await waitFor(() => {
+      expect(notification.error).toHaveBeenCalledWith(
+        'Error disabling configuration',
+        'Update denied',
+      );
+    });
   });
 
   const openDeleteModal = () => {
@@ -156,7 +155,7 @@ describe('TopologyConfigurationsTable', () => {
     });
 
     expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
-    expect(mockNotification.warning).not.toHaveBeenCalled();
+    expect(notification.warning).not.toHaveBeenCalled();
   });
 
   it('should show an inline error when delete request fails', async () => {

@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import * as ReactRouterDom from 'react-router-dom';
+import { Language } from '@patternfly/react-code-editor';
 import { deleteConnection, verifyConnection } from '~/app/api/dch';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import ConnectionDetails from '~/app/pages/ConnectionDetails';
@@ -12,12 +13,25 @@ import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import * as trackingUtilities from '~/app/utilities/tracking';
+import * as snippets from '~/app/utilities/dchSnippets';
 import type { Connection } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnection');
 jest.mock('~/app/hooks/useConnectionType');
 jest.mock('~/app/hooks/useNamespaces');
 jest.mock('~/app/hooks/useConnectionAccess');
+jest.mock('monaco-editor', () => ({ __esModule: true, editor: {} }), { virtual: true });
+jest.mock('@monaco-editor/react', () => ({ loader: { config: jest.fn() } }));
+jest.mock('@patternfly/react-code-editor', () => ({
+  ...jest.requireActual<typeof import('@patternfly/react-code-editor')>(
+    '@patternfly/react-code-editor',
+  ),
+  CodeEditor: ({ code, language }: { code: string; language: string }) => (
+    <pre data-testid="ingestion-code" data-language={language}>
+      {code}
+    </pre>
+  ),
+}));
 jest.mock('~/app/utilities/tracking', () => ({
   DATA_CONNECT_HUB_EVENT_NAMES: {
     deleteInitiated: 'Connections Connection Delete Initiated',
@@ -191,6 +205,93 @@ describe('ConnectionDetails', () => {
     expect(screen.getByText('us-east-1')).toBeTruthy();
     expect(screen.getByText('bucket')).toBeTruthy();
     expect(screen.getByText('warehouse-data')).toBeTruthy();
+  });
+
+  it.each([true, false])(
+    'should show ingestion code only for ingestion-enabled types (flight_ready=%s)',
+    (flightReady) => {
+      mockUseConnection.mockReturnValue([connection, true, undefined, refresh]);
+      mockUseConnectionType.mockReturnValue([
+        mockConnectionType({ status: { flight_ready: flightReady } }),
+        true,
+        undefined,
+      ]);
+
+      renderDetails();
+
+      if (flightReady) {
+        expect(screen.getByTestId('connection-ingestion-card')).toBeTruthy();
+        expect(screen.getByText('Ingestion integration code')).toBeTruthy();
+      } else {
+        expect(screen.queryByTestId('connection-ingestion-card')).toBeNull();
+        expect(screen.queryByTestId('ingestion-code')).toBeNull();
+      }
+    },
+  );
+
+  it('should keep the Python example selected and REST disabled for tabular connections', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue([connection, true, undefined, refresh]);
+
+    renderDetails();
+
+    await screen.findByTestId('ingestion-code');
+    const pythonToggle = screen.getByRole('button', { name: 'Python' });
+    const restToggle = screen.getByRole('button', { name: 'REST API (cURL)' });
+    expect(pythonToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(restToggle).toHaveProperty('disabled', true);
+
+    await user.click(restToggle);
+
+    expect(restToggle.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByTestId('ingestion-code').getAttribute('data-language')).toBe(
+      Language.python,
+    );
+    expect(screen.getByTestId('ingestion-code').textContent).toBe(
+      snippets.python('test-project', connection.metadata.id),
+    );
+  });
+
+  it('should switch binary ingestion examples using the current namespace and connection ID', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue([
+      { ...otherConnection, resource: { ...otherConnection.resource, format: 'binary' } },
+      true,
+      undefined,
+      refresh,
+    ]);
+
+    renderDetails(
+      `/ai-hub/connections/connections/${otherConnection.metadata.id}?project=analysis-project`,
+    );
+
+    await screen.findByTestId('ingestion-code');
+    const pythonToggle = screen.getByRole('button', { name: 'Python' });
+    const restToggle = screen.getByRole('button', { name: 'REST API (cURL)' });
+    expect(restToggle).toHaveProperty('disabled', false);
+    expect(screen.getByTestId('ingestion-code').textContent).toBe(
+      snippets.python('analysis-project', otherConnection.metadata.id),
+    );
+
+    await user.click(restToggle);
+
+    expect(restToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(pythonToggle.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByTestId('ingestion-code').getAttribute('data-language')).toBe(Language.shell);
+    expect(screen.getByTestId('ingestion-code').textContent).toBe(
+      snippets.bash('analysis-project', otherConnection.metadata.id),
+    );
+
+    await user.click(pythonToggle);
+
+    expect(pythonToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(restToggle.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByTestId('ingestion-code').getAttribute('data-language')).toBe(
+      Language.python,
+    );
+    expect(screen.getByTestId('ingestion-code').textContent).toBe(
+      snippets.python('analysis-project', otherConnection.metadata.id),
+    );
   });
 
   it('uses path-relative navigation in standalone mode', () => {

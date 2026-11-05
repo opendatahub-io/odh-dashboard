@@ -5,10 +5,9 @@ import type { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import DeleteLlmAcceleratorConfigModal from '../DeleteLlmAcceleratorConfigModal';
 import { deleteLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
-import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
+const { wrapper } = createTestProviders();
 
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   deleteLLMInferenceServiceConfig: jest.fn(),

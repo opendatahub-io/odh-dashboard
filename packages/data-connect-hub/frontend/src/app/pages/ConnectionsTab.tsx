@@ -35,6 +35,7 @@ import { createConnection, isConnectionAccessForbidden, verifyConnection } from 
 import ConnectionDeleteModal from '~/app/components/ConnectionDeleteModal';
 import CreateConnectionButton from '~/app/components/CreateConnectionButton';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
+import { ConnectionTypeLabel } from '~/app/components/ConnectionType';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
@@ -113,7 +114,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     },
     [],
   );
-  const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
+  const connectionTypesMap = new Map(connectionTypes.map((type) => [type.metadata.id, type]));
   const typeIds = React.useMemo(
     () =>
       Array.from(
@@ -185,7 +186,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     );
   }
 
-  const getTypeName = (id: string) => typeNames.get(id) ?? id;
+  const getType = (id: string) => connectionTypesMap.get(id);
 
   const filtered = connections.filter(
     (connection) =>
@@ -198,13 +199,15 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       sortColumn === 'name'
         ? left.resource.name
         : sortColumn === 'type'
-          ? getTypeName(left.resource.data_connection_type_id)
+          ? (getType(left.resource.data_connection_type_id)?.resource.name ??
+            left.resource.data_connection_type_id)
           : left.status.state;
     const rightValue =
       sortColumn === 'name'
         ? right.resource.name
         : sortColumn === 'type'
-          ? getTypeName(right.resource.data_connection_type_id)
+          ? (getType(right.resource.data_connection_type_id)?.resource.name ??
+            right.resource.data_connection_type_id)
           : right.status.state;
     const result = leftValue.localeCompare(rightValue);
     return sortDirection === 'asc' ? result : -result;
@@ -363,7 +366,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                               toggleType(id);
                             }}
                           >
-                            {getTypeName(id)}
+                            {getType(id)?.resource.name ?? id}
                           </DropdownItem>
                         ))}
                       </DropdownList>
@@ -397,7 +400,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
               <LabelGroup categoryName="Type" data-testid="connections-type-filter-labels">
                 {selectedTypeIds.map((id) => (
                   <Label key={id} variant="outline" onClose={() => toggleType(id)}>
-                    {getTypeName(id)}
+                    {getType(id)?.resource.name ?? id}
                   </Label>
                 ))}
               </LabelGroup>
@@ -469,136 +472,147 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                 </Td>
               </Tr>
             ) : (
-              sorted.map((connection) => (
-                <Tr key={connection.metadata.id}>
-                  <Td dataLabel="Name">
-                    <Link
-                      className="pf-v6-u-font-weight-bold"
-                      to={{ pathname: encodeURIComponent(connection.metadata.id), search }}
-                    >
-                      {connection.resource.name}
-                    </Link>
-                  </Td>
-                  <Td dataLabel="Type">
-                    {getTypeName(connection.resource.data_connection_type_id)}
-                  </Td>
-                  <Td dataLabel="Verification status">
-                    {verifying.has(connection.metadata.id) ? (
-                      <Label
-                        color="blue"
-                        variant="outline"
-                        icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
+              sorted.map((connection) => {
+                const connectionTypeId = connection.resource.data_connection_type_id;
+                const connectionType = getType(connectionTypeId);
+
+                return (
+                  <Tr key={connection.metadata.id}>
+                    <Td dataLabel="Name">
+                      <Link
+                        className="pf-v6-u-font-weight-bold"
+                        to={{ pathname: encodeURIComponent(connection.metadata.id), search }}
                       >
-                        Verifying
-                      </Label>
-                    ) : isValidTimestamp(connection.status.updated_at) &&
-                      hasVerificationOutcome(connection) ? (
-                      <>
-                        <Label variant="outline" status={statusVariant[connection.status.state]}>
-                          {connection.status.state === 'ready' ? 'Verified' : 'Failed'}
+                        {connection.resource.name}
+                      </Link>
+                    </Td>
+                    <Td dataLabel="Type">
+                      {connectionType?.resource.name ?? connectionTypeId}
+                      {connectionType && connectionType?.status?.flight_ready && (
+                        <ConnectionTypeLabel
+                          className="pf-v6-u-ml-sm"
+                          connectionType={connectionType}
+                        />
+                      )}
+                    </Td>
+                    <Td dataLabel="Verification status">
+                      {verifying.has(connection.metadata.id) ? (
+                        <Label
+                          color="blue"
+                          variant="outline"
+                          icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
+                        >
+                          Verifying
                         </Label>
+                      ) : isValidTimestamp(connection.status.updated_at) &&
+                        hasVerificationOutcome(connection) ? (
+                        <>
+                          <Label variant="outline" status={statusVariant[connection.status.state]}>
+                            {connection.status.state === 'ready' ? 'Verified' : 'Failed'}
+                          </Label>
+                          <HelperText>
+                            <HelperTextItem>
+                              Last tested {new Date(connection.status.updated_at).toLocaleString()}
+                            </HelperTextItem>
+                          </HelperText>
+                        </>
+                      ) : (
+                        <Label variant="outline" color="grey">
+                          Unverified
+                        </Label>
+                      )}
+                      {verificationErrors.has(connection.metadata.id) && (
                         <HelperText>
-                          <HelperTextItem>
-                            Last tested {new Date(connection.status.updated_at).toLocaleString()}
+                          <HelperTextItem variant="error">
+                            {verificationErrors.get(connection.metadata.id)?.message}
                           </HelperTextItem>
                         </HelperText>
-                      </>
-                    ) : (
-                      <Label variant="outline" color="grey">
-                        Unverified
-                      </Label>
-                    )}
-                    {verificationErrors.has(connection.metadata.id) && (
-                      <HelperText>
-                        <HelperTextItem variant="error">
-                          {verificationErrors.get(connection.metadata.id)?.message}
-                        </HelperTextItem>
-                      </HelperText>
-                    )}
-                  </Td>
-                  <Td isActionCell>
-                    <Dropdown
-                      isOpen={actionsFor === connection.metadata.id}
-                      onOpenChange={(open) =>
-                        setActionsFor(open ? connection.metadata.id : undefined)
-                      }
-                      popperProps={{ placement: 'bottom-end' }}
-                      toggle={(ref) => (
-                        <MenuToggle
-                          ref={ref}
-                          variant="plain"
-                          aria-label={`Actions for ${connection.resource.name}`}
-                          onClick={() =>
-                            setActionsFor(
-                              actionsFor === connection.metadata.id
-                                ? undefined
-                                : connection.metadata.id,
-                            )
-                          }
-                        >
-                          <EllipsisVIcon />
-                        </MenuToggle>
                       )}
-                    >
-                      <DropdownList>
-                        <DropdownItem
-                          isAriaDisabled={
-                            isVerifyAccessDisabled || verifying.has(connection.metadata.id)
-                          }
-                          tooltipProps={
-                            isVerifyAccessDisabled
-                              ? {
-                                  content: verifyAccessLoaded
-                                    ? getConnectionAccessTooltip('create')
-                                    : 'Checking access...',
-                                }
-                              : undefined
-                          }
-                          onClick={() => void handleVerify(connection.metadata.id)}
-                        >
-                          Verify connection
-                        </DropdownItem>
-                        <Divider />
-                        <DropdownItem
-                          isAriaDisabled={!canDeleteConnection || !deleteAccessLoaded}
-                          tooltipProps={
-                            !canDeleteConnection || !deleteAccessLoaded
-                              ? {
-                                  content: deleteAccessLoaded
-                                    ? getConnectionAccessTooltip('delete')
-                                    : 'Checking access...',
-                                }
-                              : undefined
-                          }
-                          onClick={() => {
-                            if (!canDeleteConnection || !deleteAccessLoaded) {
-                              return;
+                    </Td>
+                    <Td isActionCell>
+                      <Dropdown
+                        isOpen={actionsFor === connection.metadata.id}
+                        onOpenChange={(open) =>
+                          setActionsFor(open ? connection.metadata.id : undefined)
+                        }
+                        popperProps={{ placement: 'bottom-end' }}
+                        toggle={(ref) => (
+                          <MenuToggle
+                            ref={ref}
+                            variant="plain"
+                            aria-label={`Actions for ${connection.resource.name}`}
+                            onClick={() =>
+                              setActionsFor(
+                                actionsFor === connection.metadata.id
+                                  ? undefined
+                                  : connection.metadata.id,
+                              )
                             }
-                            setActionsFor(undefined);
-                            fireDataConnectHubTrackEvent({
-                              eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
-                              properties: {
-                                project: namespace,
-                                connectionTypeProvider:
-                                  getConnectionTypeProvider(
-                                    connectionTypes.find(
-                                      (type) =>
-                                        type.metadata.id ===
-                                        connection.resource.data_connection_type_id,
-                                    ),
-                                  ) ?? 'unknown',
-                              },
-                            });
-                            setDeleteTarget(connection);
-                          }}
-                        >
-                          Delete
-                        </DropdownItem>
-                      </DropdownList>
-                    </Dropdown>
-                  </Td>
-                </Tr>
-              ))
+                          >
+                            <EllipsisVIcon />
+                          </MenuToggle>
+                        )}
+                      >
+                        <DropdownList>
+                          <DropdownItem
+                            isAriaDisabled={
+                              isVerifyAccessDisabled || verifying.has(connection.metadata.id)
+                            }
+                            tooltipProps={
+                              isVerifyAccessDisabled
+                                ? {
+                                    content: verifyAccessLoaded
+                                      ? getConnectionAccessTooltip('create')
+                                      : 'Checking access...',
+                                  }
+                                : undefined
+                            }
+                            onClick={() => void handleVerify(connection.metadata.id)}
+                          >
+                            Verify connection
+                          </DropdownItem>
+                          <Divider />
+                          <DropdownItem
+                            isAriaDisabled={!canDeleteConnection || !deleteAccessLoaded}
+                            tooltipProps={
+                              !canDeleteConnection || !deleteAccessLoaded
+                                ? {
+                                    content: deleteAccessLoaded
+                                      ? getConnectionAccessTooltip('delete')
+                                      : 'Checking access...',
+                                  }
+                                : undefined
+                            }
+                            onClick={() => {
+                              if (!canDeleteConnection || !deleteAccessLoaded) {
+                                return;
+                              }
+                              setActionsFor(undefined);
+                              fireDataConnectHubTrackEvent({
+                                eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
+                                properties: {
+                                  project: namespace,
+                                  connectionTypeProvider:
+                                    getConnectionTypeProvider(
+                                      connectionTypes.find(
+                                        (type) =>
+                                          type.metadata.id ===
+                                          connection.resource.data_connection_type_id,
+                                      ),
+                                    ) ?? 'unknown',
+                                },
+                              });
+                              setDeleteTarget(connection);
+                            }}
+                          >
+                            Delete
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </Td>
+                  </Tr>
+                );
+              })
             )}
           </Tbody>
         </Table>

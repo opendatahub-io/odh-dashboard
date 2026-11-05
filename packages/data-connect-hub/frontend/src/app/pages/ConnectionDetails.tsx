@@ -26,6 +26,8 @@ import {
   Skeleton,
   Stack,
   StackItem,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, InProgressIcon } from '@patternfly/react-icons';
@@ -59,6 +61,11 @@ import {
   isValidTimestamp,
   statusVariant,
 } from '~/app/utilities/connectionStatus';
+import * as snippets from '~/app/utilities/dchSnippets';
+import { ConnectionTypeLabel } from '~/app/components/ConnectionType.tsx';
+import useDarkMode from '~/app/hooks/useDarkMode';
+
+const DCHCodeEditor = React.lazy(() => import('~/app/components/DCHCodeEditor'));
 
 type ConnectionDetailsContentProps = {
   namespace: string;
@@ -82,6 +89,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
   const [verificationError, setVerificationError] = React.useState<Error>();
   const [actionsOpen, setActionsOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [ingestionExample, setIngestionExample] = React.useState<'python' | 'rest'>('python');
   const verificationOperationRef = React.useRef(0);
   const navigate = useNavigate();
   const connectionsPath = { pathname: '..', search };
@@ -113,6 +121,8 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
       Verify connection
     </Button>
   );
+  const dataIngestionCode = snippets.python(namespace, connectionId);
+  const restIngestionCode = snippets.bash(namespace, connectionId);
 
   React.useEffect(
     () => () => {
@@ -120,6 +130,8 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
     },
     [],
   );
+
+  const isDarkMode = useDarkMode();
 
   const handleVerify = async () => {
     if (isVerifyAccessDisabled || !connection || verifying) {
@@ -161,6 +173,11 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
               Connection
             </Label>
           </FlexItem>
+          {connectionType && (
+            <FlexItem>
+              <ConnectionTypeLabel connectionType={connectionType} />
+            </FlexItem>
+          )}
         </Flex>
       }
       breadcrumb={
@@ -298,6 +315,65 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                           </DescriptionListGroup>
                         ))}
                       </DescriptionList>
+                    </CardBody>
+                  </Card>
+                </StackItem>
+              )}
+              {connectionType?.isFullIntegration() && (
+                <StackItem>
+                  <Card data-testid="connection-ingestion-card">
+                    <CardTitle>Ingestion integration code</CardTitle>
+                    <CardBody>
+                      <Stack hasGutter>
+                        <StackItem>
+                          <DescriptionList
+                            columnModifier={{ default: '2Col' }}
+                            isCompact
+                            isFillColumns
+                          >
+                            <DescriptionListGroup>
+                              <DescriptionListTerm>Format</DescriptionListTerm>
+                              <DescriptionListDescription>
+                                {connection?.resource.format}
+                              </DescriptionListDescription>
+                            </DescriptionListGroup>
+                          </DescriptionList>
+                        </StackItem>
+                        <StackItem>
+                          <ToggleGroup aria-label="Data ingestion example language">
+                            <ToggleGroupItem
+                              text="Python"
+                              buttonId="ingestion-example-python"
+                              data-testid="ingestion-example-python"
+                              isSelected={ingestionExample === 'python'}
+                              onChange={() => setIngestionExample('python')}
+                            />
+                            <ToggleGroupItem
+                              text="REST API (cURL)"
+                              buttonId="ingestion-example-rest"
+                              data-testid="ingestion-example-rest"
+                              isSelected={ingestionExample === 'rest'}
+                              isDisabled={connection?.resource.format === 'tabular'}
+                              onChange={() => setIngestionExample('rest')}
+                            />
+                          </ToggleGroup>
+                        </StackItem>
+                        <StackItem>
+                          <React.Suspense
+                            fallback={<Skeleton screenreaderText="Loading ingestion example" />}
+                          >
+                            <DCHCodeEditor
+                              code={
+                                ingestionExample === 'python'
+                                  ? dataIngestionCode
+                                  : restIngestionCode
+                              }
+                              example={ingestionExample}
+                              isDarkTheme={isDarkMode}
+                            />
+                          </React.Suspense>
+                        </StackItem>
+                      </Stack>
                     </CardBody>
                   </Card>
                 </StackItem>

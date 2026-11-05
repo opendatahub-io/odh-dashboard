@@ -10,6 +10,7 @@ import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { ConnectionApiError, deleteConnection, verifyConnection } from '~/app/api/dch';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType.tsx';
 
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
@@ -102,7 +103,7 @@ const connections = [
 ];
 
 const connectionTypes = [
-  {
+  new ConnectionTypeInstance({
     metadata: {
       id: '550e8400-e29b-41d4-a716-446655440003',
       created_at: '2026-09-08T16:00:00Z',
@@ -117,8 +118,8 @@ const connectionTypes = [
       ],
     },
     status: { flight_ready: true },
-  },
-  {
+  }),
+  new ConnectionTypeInstance({
     metadata: {
       id: '550e8400-e29b-41d4-a716-446655440004',
       created_at: '2026-09-08T16:00:00Z',
@@ -126,7 +127,7 @@ const connectionTypes = [
     },
     resource: { name: 'S3', provider: 's3', credentials_fields: [] },
     status: { flight_ready: true },
-  },
+  }),
 ];
 
 const newConnection = {
@@ -140,14 +141,14 @@ const newConnection = {
   status: { state: 'ready' as const },
 };
 
-const newConnectionType = {
+const newConnectionType = new ConnectionTypeInstance({
   metadata: {
     id: '550e8400-e29b-41d4-a716-446655440006',
     created_at: '2026-09-08T16:00:00Z',
     updated_at: '2026-09-08T16:00:00Z',
   },
   resource: { name: 'Snowflake', provider: 'snowflake', credentials_fields: [] },
-};
+});
 
 describe('ConnectionsTab', () => {
   beforeEach(() => {

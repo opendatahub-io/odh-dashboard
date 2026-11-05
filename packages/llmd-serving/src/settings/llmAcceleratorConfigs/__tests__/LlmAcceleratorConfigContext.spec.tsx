@@ -6,10 +6,9 @@ import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-se
 import LlmAcceleratorConfigContextProvider from '../LlmAcceleratorConfigContext';
 import { useWatchLLMInferenceServiceConfigs } from '../../../api/LLMInferenceServiceConfigs';
 import { ConfigType } from '../../../types';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: jest.fn(),
-}));
+const { wrapper } = createTestProviders();
 
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   useWatchLLMInferenceServiceConfigs: jest.fn(),
@@ -19,25 +18,19 @@ jest.mock('react-router-dom', () => ({
   Outlet: jest.fn(() => <div data-testid="outlet">Outlet Content</div>),
 }));
 
-const mockUseDashboardNamespace = jest.mocked(
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require('@odh-dashboard/internal/redux/selectors/project').useDashboardNamespace,
-);
-
 const mockUseWatchLLMInferenceServiceConfigs = jest.mocked(useWatchLLMInferenceServiceConfigs);
 const MockedOutlet = jest.mocked(Outlet);
 
 describe('LlmAcceleratorConfigContextProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'opendatahub' });
   });
 
   it('should render EmptyState with danger status when there is an error', () => {
     const error = new Error('Failed to load configurations');
     mockUseWatchLLMInferenceServiceConfigs.mockReturnValue([[], false, error]);
 
-    render(<LlmAcceleratorConfigContextProvider />);
+    render(<LlmAcceleratorConfigContextProvider />, { wrapper });
 
     expect(screen.getByText('Problem loading LLM accelerator configurations')).toBeInTheDocument();
     expect(screen.getByText('Failed to load configurations')).toBeInTheDocument();
@@ -47,7 +40,7 @@ describe('LlmAcceleratorConfigContextProvider', () => {
   it('should render Spinner when loading', () => {
     mockUseWatchLLMInferenceServiceConfigs.mockReturnValue([[], false, undefined]);
 
-    render(<LlmAcceleratorConfigContextProvider />);
+    render(<LlmAcceleratorConfigContextProvider />, { wrapper });
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(screen.queryByTestId('outlet')).not.toBeInTheDocument();
@@ -58,7 +51,7 @@ describe('LlmAcceleratorConfigContextProvider', () => {
 
     mockUseWatchLLMInferenceServiceConfigs.mockReturnValue([mockConfigs, true, undefined]);
 
-    render(<LlmAcceleratorConfigContextProvider />);
+    render(<LlmAcceleratorConfigContextProvider />, { wrapper });
 
     expect(MockedOutlet).toHaveBeenCalled();
     expect(screen.getByTestId('outlet')).toBeInTheDocument();
@@ -68,7 +61,7 @@ describe('LlmAcceleratorConfigContextProvider', () => {
   it('should call useWatchLLMInferenceServiceConfigs with correct parameters', () => {
     mockUseWatchLLMInferenceServiceConfigs.mockReturnValue([[], true, undefined]);
 
-    render(<LlmAcceleratorConfigContextProvider />);
+    render(<LlmAcceleratorConfigContextProvider />, { wrapper });
 
     expect(mockUseWatchLLMInferenceServiceConfigs).toHaveBeenCalledWith('opendatahub', {
       'opendatahub.io/config-type': ConfigType.ACCELERATOR,
