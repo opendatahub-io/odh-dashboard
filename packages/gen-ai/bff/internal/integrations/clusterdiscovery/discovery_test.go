@@ -58,6 +58,46 @@ func TestDiscoverCollectors(t *testing.T) {
 	}
 }
 
+func TestDiscoverCollectorsDuplicateNames(t *testing.T) {
+	collector := func(name, namespace string) unstructured.Unstructured {
+		return unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "opentelemetry.io/v1beta1", "kind": "OpenTelemetryCollector",
+			"metadata": map[string]any{"name": name, "namespace": namespace},
+		}}
+	}
+	for _, name := range []string{constants.PlatformCollectorName, constants.GenAICollectorName} {
+		for _, namespaces := range [][]string{{"monitoring", "other"}, {"other", "monitoring"}, {"monitoring", "monitoring"}} {
+			t.Run(name+"/"+namespaces[0]+"-then-"+namespaces[1], func(t *testing.T) {
+				otherName := constants.PlatformCollectorName
+				want := Collectors{PlatformNamespace: "valid", GenAINamespace: namespaces[0]}
+				if name == constants.PlatformCollectorName {
+					otherName = constants.GenAICollectorName
+					want = Collectors{PlatformNamespace: namespaces[0], GenAINamespace: "valid"}
+				}
+				client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+					map[schema.GroupVersionResource]string{constants.OTelCollectorGVR: "OpenTelemetryCollectorList"})
+				client.PrependReactor("list", "opentelemetrycollectors", func(k8stesting.Action) (bool, runtime.Object, error) {
+					// Preserve list order and allow repeated same-namespace entries.
+					// Seed the other collector to verify ambiguity discards partial results.
+					return true, &unstructured.UnstructuredList{Items: []unstructured.Unstructured{
+						collector(otherName, "valid"), collector(name, namespaces[0]), collector(name, namespaces[1]),
+					}}, nil
+				})
+				got, err := DiscoverCollectors(context.Background(), client)
+				if namespaces[0] != namespaces[1] {
+					require.ErrorContains(t, err, "ambiguous "+name+" collector")
+					assert.Contains(t, err.Error(), namespaces[0])
+					assert.Contains(t, err.Error(), namespaces[1])
+					assert.Empty(t, got)
+				} else {
+					require.NoError(t, err)
+					assert.Equal(t, want, got)
+				}
+			})
+		}
+	}
+}
+
 func TestDiscoverCollectorsListError(t *testing.T) {
 	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
 		map[schema.GroupVersionResource]string{constants.OTelCollectorGVR: "OpenTelemetryCollectorList"})

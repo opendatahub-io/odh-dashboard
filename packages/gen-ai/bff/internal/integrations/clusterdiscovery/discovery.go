@@ -50,7 +50,8 @@ type Collectors struct {
 
 // DiscoverCollectors lists collector CRs once, bounded by both the caller's
 // context and the discovery timeout. Missing collectors are represented by
-// empty namespaces so each caller can apply its own readiness policy.
+// empty namespaces so each caller can apply its own readiness policy. A known
+// collector name in multiple namespaces is ambiguous and fails discovery.
 func DiscoverCollectors(ctx context.Context, dynClient dynamic.Interface) (Collectors, error) {
 	ctx, cancel := context.WithTimeout(ctx, discoveryTimeout)
 	defer cancel()
@@ -64,13 +65,17 @@ func DiscoverCollectors(ctx context.Context, dynClient dynamic.Interface) (Colle
 	for _, item := range list.Items {
 		switch item.GetName() {
 		case constants.PlatformCollectorName:
-			if result.PlatformNamespace == "" {
-				result.PlatformNamespace = item.GetNamespace()
+			if result.PlatformNamespace != "" && result.PlatformNamespace != item.GetNamespace() {
+				return Collectors{}, fmt.Errorf("ambiguous %s collector: found in namespaces %q and %q",
+					constants.PlatformCollectorName, result.PlatformNamespace, item.GetNamespace())
 			}
+			result.PlatformNamespace = item.GetNamespace()
 		case constants.GenAICollectorName:
-			if result.GenAINamespace == "" {
-				result.GenAINamespace = item.GetNamespace()
+			if result.GenAINamespace != "" && result.GenAINamespace != item.GetNamespace() {
+				return Collectors{}, fmt.Errorf("ambiguous %s collector: found in namespaces %q and %q",
+					constants.GenAICollectorName, result.GenAINamespace, item.GetNamespace())
 			}
+			result.GenAINamespace = item.GetNamespace()
 		}
 	}
 	return result, nil
