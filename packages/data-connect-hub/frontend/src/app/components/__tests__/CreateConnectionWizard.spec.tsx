@@ -357,6 +357,45 @@ describe('CreateConnectionWizard', () => {
     expect(onCreate.mock.results[0]?.value).resolves.toBe(createdConnection);
   });
 
+  it('waits for accessible projects before resolving the initial step', async () => {
+    mockUseNamespaces.mockReturnValue([
+      [{ name: 'test-project', displayName: 'Test Project' }],
+      true,
+      undefined,
+    ]);
+    mockUseCreateConnectionNamespaces.mockReturnValue([
+      [{ name: 'test-project', displayName: 'Test Project' }],
+      false,
+      undefined,
+    ]);
+
+    const props = {
+      isOpen: true,
+      namespace: 'test-project',
+      onClose: jest.fn(),
+      initialFormData: {
+        name: 'existing-connection',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        credentials: {
+          secret: 'existing-connection',
+          properties: { URI: 'postgres://example' },
+        },
+      },
+    };
+    const { rerender } = render(<CreateConnectionWizard {...props} />);
+
+    expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
+
+    mockUseCreateConnectionNamespaces.mockReturnValue([
+      [{ name: 'test-project', displayName: 'Test Project' }],
+      true,
+      undefined,
+    ]);
+    rerender(<CreateConnectionWizard {...props} />);
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
+  });
+
   it('tracks successful connection creation', async () => {
     const user = userEvent.setup();
     const onCreate = jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => void>();
@@ -1172,7 +1211,7 @@ describe('CreateConnectionWizard', () => {
     await user.click(screen.getByTestId('connection-project-access-popover-link'));
     expect(
       await screen.findByText(
-        'Only projects where you have permission to create connections are shown. To request permission, contact your administrator.',
+        'This list includes only projects in which you have permission to create connections. To request changes to your permissions, contact your administrator.',
       ),
     ).toBeTruthy();
   });
