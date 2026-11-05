@@ -11,7 +11,11 @@ import {
   PageSidebar,
   PageSidebarBody,
 } from '@patternfly/react-core';
-import { useExtensions } from '@odh-dashboard/plugin-core';
+import {
+  compareNavItemGroups,
+  getTopLevelExtensions,
+  useExtensions,
+} from '@odh-dashboard/plugin-core';
 import {
   isNavExtension,
   isHrefNavItemExtension,
@@ -21,64 +25,12 @@ import {
   type NavExtension,
   type HrefNavItemExtension,
   type NavSectionExtension,
-  type NavItemProperties,
   type TabRoutePageExtension,
   type TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
-
-// TODO: Dedup — compareNavItemGroups and getTopLevelExtensions are copied from
-// frontend/src/app/navigation/utils.ts. Move to plugin-core when consolidating.
-const DEFAULT_GROUP = '5_default';
+import type { LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 
 type AnyNavExtension = NavExtension | TabRoutePageExtension;
-type NavLikeExtension = Extension<string, NavItemProperties>;
-
-const compareNavItemGroups = <T extends NavLikeExtension>(a: T, b: T): number =>
-  (a.properties.group || DEFAULT_GROUP).localeCompare(b.properties.group || DEFAULT_GROUP);
-
-const getTopLevelExtensions = <E extends NavLikeExtension>(extensions: E[]): E[] => {
-  const existingSectionIds = new Set(
-    extensions.filter((e) => isNavSectionExtension(e)).map((e) => e.properties.id),
-  );
-
-  const seenSectionIds = new Set<string>();
-  const topLevel = extensions
-    .filter((e) => !e.properties.section)
-    .toSorted(compareNavItemGroups)
-    .filter((e) => {
-      if (isNavSectionExtension(e)) {
-        if (seenSectionIds.has(e.properties.id)) {
-          return false;
-        }
-        seenSectionIds.add(e.properties.id);
-      }
-      return true;
-    });
-
-  const orphanedExtensions = extensions.filter(
-    (e) => e.properties.section && !existingSectionIds.has(e.properties.section),
-  );
-
-  const orphanedBySection = new Map<string, E[]>();
-  orphanedExtensions.forEach((ext) => {
-    const sectionId = ext.properties.section;
-    if (sectionId) {
-      let sections = orphanedBySection.get(sectionId);
-      if (!sections) {
-        sections = [];
-        orphanedBySection.set(sectionId, sections);
-      }
-      sections.push(ext);
-    }
-  });
-
-  const sortedOrphaned = Array.from(orphanedBySection.values())
-    .map((group) => group.toSorted(compareNavItemGroups))
-    .flat();
-
-  return [...topLevel, ...sortedOrphaned];
-};
 
 const NavItemContent: React.FC<{ title: string; label?: string }> = ({ title, label }) => {
   if (!label) {
