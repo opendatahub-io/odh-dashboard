@@ -24,18 +24,12 @@ const mockModel: ModelResourceType = {
     name: 'test-model',
     namespace: 'test-ns',
   },
+  spec: { model: { uri: 'hf://test/model' } },
 };
 
 const mockDeployment: Deployment = {
   modelServingPlatformId: 'test-platform',
-  model: {
-    apiVersion: 'serving.kserve.io/v1alpha2',
-    kind: 'LLMInferenceService',
-    metadata: {
-      name: 'test-model',
-      namespace: 'test-ns',
-    },
-  },
+  model: mockModel,
 };
 
 const mockFormData: WizardFormData = mockDeploymentWizardState();
