@@ -1308,19 +1308,24 @@ const buildSelectionPlan = ({
 
 const renderSelectionMarkdown = (summary) =>
   [
-    '# Cypress E2E browser-test plan',
+    '# Cypress E2E CI selection for this PR',
     '',
-    `Selected ${(summary.jobs ?? []).length} browser job(s), ${
+    'This summary lists the Cypress E2E CI tags and specs selected for the PR under test, ' +
+      'including the default regression checks when enabled.',
+    '',
+    '**This is a limited CI check, not a comprehensive test plan or full feature/release validation.**',
+    '',
+    `Selected ${(summary.jobs ?? []).length} Cypress E2E CI job(s), ${
       summary.plannedTestCount
-    } planned test executions.`,
+    } expected test executions.`,
     'Counts are per-job executions and may overlap across jobs.',
     '',
-    '## Why this coverage runs',
+    '## Why these Cypress E2E CI checks were selected',
     ...(summary.details ?? []).map((detail) => `- ${detail}`),
     '',
-    '## Browser jobs',
+    '## Selected Cypress E2E CI jobs',
     ...(summary.jobs ?? []).flatMap((job) => [
-      `- ${job.name}: ${job.plannedTestCount} planned test execution(s) — ${job.reason}`,
+      `- ${job.name}: ${job.plannedTestCount} expected test execution(s) — ${job.reason}`,
       ...(job.tags.length > 0 ? [`  - Tags: ${job.tags.join(' ')}`] : []),
       ...job.specs.map((spec) => `  - Spec: ${spec}`),
     ]),
@@ -1352,12 +1357,12 @@ const renderSelectionMarkdown = (summary) =>
         )
       : ['- None']),
     '',
-    '## Selected tags',
+    '## Selected Cypress E2E CI tags',
     ...(summary.selectedTags.length > 0
       ? summary.selectedTags.map((tag) => `- ${tag}`)
       : ['- None']),
     '',
-    '## Resolved tags',
+    '## Tests matching the selected CI tags',
     ...(Object.keys(summary.resolvedTags).length > 0
       ? Object.entries(summary.resolvedTags).map(
           ([tag, value]) =>
@@ -1365,7 +1370,7 @@ const renderSelectionMarkdown = (summary) =>
         )
       : ['- None']),
     '',
-    `Planned executable test count: ${summary.plannedTestCount}`,
+    `Expected Cypress E2E CI test executions: ${summary.plannedTestCount}`,
     '',
     ...(summary.errors?.length > 0
       ? ['## Validation errors', ...summary.errors.map((error) => `- ${error}`), '']

@@ -415,7 +415,7 @@ jobs:
   # Tag Resolution - Build test matrix from defaults + PR labels/input + path impact
   # ---------------------------------------------------------------------------
   get-test-tags:
-    name: Plan browser E2E coverage and explain selection
+    name: Select Cypress E2E CI tags and specs for this PR
     needs: [select-cluster, cleanup-old-resources]
     runs-on: ubuntu-latest
     outputs:
@@ -505,7 +505,7 @@ jobs:
             echo "⚠️ Could not find PR number for SHA ${{ github.event.workflow_run.head_sha }}"
           fi
 
-      - name: Plan E2E selection
+      - name: Select Cypress E2E CI tags and specs
         id: plan
         env:
           INPUT_ADDITIONAL_TAGS: ${{ inputs.additional_tags }}
@@ -527,7 +527,7 @@ jobs:
           echo "matrix=$(cat "$RUNNER_TEMP/e2e-matrix.json")" >> "$GITHUB_OUTPUT"
           echo "source=$(cat "$RUNNER_TEMP/e2e-source.txt")" >> "$GITHUB_OUTPUT"
 
-      - name: Upload selection summary
+      - name: Upload Cypress E2E CI selection summary
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -636,7 +636,7 @@ jobs:
           const env = process.env;
           console.log('This job runs Cypress browser journeys against the dashboard.');
           console.log(`Reason: ${env.MATRIX_SELECTION_REASON}`);
-          console.log(`Planned test executions: ${env.MATRIX_PLANNED_TEST_COUNT}`);
+          console.log(`Expected Cypress E2E CI test executions: ${env.MATRIX_PLANNED_TEST_COUNT}`);
           console.log(`Selection mode: ${env.MATRIX_RUN_MODE}`);
           if (env.MATRIX_RUN_MODE === 'spec') {
             console.log('Explicit specs:');

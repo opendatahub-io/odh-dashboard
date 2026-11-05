@@ -181,8 +181,11 @@ run. Dashboard base and RHOAI network-policy changes run
 the Pipelines, Workbenches, and Feature Store suites because those flows exercise
 dashboard egress to the pipeline server, Thanos, and Feast.
 
-The **Plan browser E2E coverage and explain selection** job prints and publishes
-why each browser job runs, its tags or explicit specs, and its planned test count.
+The **Select Cypress E2E CI tags and specs for this PR** job publishes
+**Cypress E2E CI selection for this PR**: the CI tags and specs selected for the PR
+under test, their selection reasons, and expected executions. The summary includes
+default regression checks when enabled. It describes a limited automated CI check,
+not a comprehensive test plan or full feature/release validation.
 Global support changes can affect most CI-runnable specs and trigger broad
 Smoke/Sanity coverage when package CI tags cannot cover the impact. Any remaining
 specs run explicitly. Counts are per-job test executions and can overlap across

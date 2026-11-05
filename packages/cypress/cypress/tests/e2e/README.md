@@ -271,7 +271,10 @@ regression. Model Registry currently declares `@ModelRegistryCI` and `@ModelCata
 so a Model Registry-only change runs both suites plus dashboard regression.
 `skip_default` on a manual run removes the default job, not the package's own tags.
 
-The browser selection report explains each job's reason, tags or explicit specs,
+The **Cypress E2E CI selection for this PR** summary is limited to the CI tags and
+specs selected for the PR under test, including default regression when enabled.
+It is not a comprehensive test plan or full feature/release validation.
+The report explains each CI job's reason, tags or explicit specs,
 and planned executions, including why broad support changes need Smoke/Sanity
 coverage and additional impacted specs. Counts may overlap across jobs. Build jobs
 prepare application assets and do not execute tests.
