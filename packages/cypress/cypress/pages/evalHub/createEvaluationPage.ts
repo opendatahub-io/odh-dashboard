@@ -131,8 +131,12 @@ class CreateEvaluationPage {
     return toggle.filter(':visible').first().find('button').first();
   }
 
-  findStartEvaluationRunCollectionName() {
-    return cy.findByTestId('start-evaluation-run-collection-name');
+  findStartEvaluationRunCollectionName(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).findByTestId(
+          'start-evaluation-run-collection-name',
+        )
+      : cy.findByTestId('start-evaluation-run-collection-name');
   }
 
   findEvaluationCollectionsCard() {

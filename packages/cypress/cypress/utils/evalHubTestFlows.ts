@@ -477,8 +477,11 @@ const configureEvaluationHardwareProfile = (profileName?: string, modalId?: stri
     .should('contain.text', 'Only hardware profiles configured with a local queue are shown');
 };
 
-/** Confirms that the selected profile is actually sent to EvalHub, not only displayed. */
-const assertEvaluationHardwareConfig = (profileName?: string): void => {
+/** Confirms that run-specific options are present in the job request. */
+const assertEvaluationJobOptions = (
+  profileName?: string,
+  benchmarkParameterOverrides?: Record<string, unknown>,
+): void => {
   cy.wait('@createEvalHubJob', { timeout: 120000 }).then(({ request }) => {
     if (profileName) {
       expect(request.body).to.have.nested.property(
@@ -488,7 +491,59 @@ const assertEvaluationHardwareConfig = (profileName?: string): void => {
     } else {
       expect(request.body).not.to.have.property('hardware_config');
     }
+
+    if (benchmarkParameterOverrides) {
+      const jobRequest = request.body as {
+        collection?: {
+          benchmarks?: { parameters?: Record<string, unknown> }[];
+        };
+      };
+      const collectionBenchmarks = jobRequest.collection?.benchmarks;
+      expect(
+        collectionBenchmarks,
+        'collection benchmarks in job request',
+      ).to.have.length.greaterThan(0);
+      collectionBenchmarks?.forEach(({ parameters }) => {
+        expect(parameters).to.deep.include(benchmarkParameterOverrides);
+      });
+    }
   });
+};
+
+/** Applies test-only parameters to each benchmark in a collection's create-job request. */
+const overrideCollectionBenchmarkParameters = (
+  requestBody: unknown,
+  parameterOverrides: Record<string, unknown>,
+): Record<string, unknown> => {
+  if (!isRecord(requestBody)) {
+    throw new Error('Expected a collection in the evaluation job request.');
+  }
+
+  const { collection } = requestBody;
+  if (!isRecord(collection)) {
+    throw new Error('Expected a collection in the evaluation job request.');
+  }
+
+  const collectionBenchmarks = collection.benchmarks;
+  if (!Array.isArray(collectionBenchmarks) || collectionBenchmarks.length === 0) {
+    throw new Error('Expected collection benchmarks in the evaluation job request.');
+  }
+
+  const benchmarks = collectionBenchmarks.map((benchmark) => {
+    if (!isRecord(benchmark)) {
+      throw new Error(
+        'Expected each collection benchmark in the evaluation job request to be an object.',
+      );
+    }
+
+    const parameters = isRecord(benchmark.parameters) ? benchmark.parameters : {};
+    return {
+      ...benchmark,
+      parameters: { ...parameters, ...parameterOverrides },
+    };
+  });
+
+  return { ...requestBody, collection: { ...collection, benchmarks } };
 };
 
 // Navigation and test setup
@@ -697,7 +752,7 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
   const usesOfflineData = interceptEvalHubOfflineDataRequest();
   cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
-  assertEvaluationHardwareConfig(hardwareProfileName);
+  assertEvaluationJobOptions(hardwareProfileName);
   if (usesOfflineData) {
     assertEvalHubOfflineDataRequest();
   }
@@ -784,27 +839,37 @@ export const createBenchmarkSuite = (opts: BenchmarkSuiteCreationOptions): void 
   cy.location('pathname', { timeout: 120000 }).should('match', /\/evaluation\/[^/]+\/collections$/);
 };
 
-type BenchmarkSuiteRunConfigurationOptions = BenchmarkSuiteEvaluationOptions & {
+type CollectionRunConfigurationOptions = Omit<BenchmarkSuiteEvaluationOptions, 'suiteName'> & {
   modalId: string;
+  collectionName?: string;
+  benchmarkParameterOverrides?: Record<string, unknown>;
 };
 
 const configureAndSubmitBenchmarkSuiteEvaluation = ({
   modalId,
-  suiteName,
+  collectionName,
   evaluationRunName,
   inferenceServiceName,
   mlflowExperimentName,
   hardwareProfileName,
-}: BenchmarkSuiteRunConfigurationOptions): void => {
+  benchmarkParameterOverrides,
+}: CollectionRunConfigurationOptions): void => {
   createEvaluationPage
     .findStartEvaluationRunModal(modalId, { timeout: 120000 })
     .should('be.visible');
+  createEvaluationPage
+    .findStartEvaluationForm({ timeout: 120000 })
+    .should('have.attr', 'aria-busy', 'false');
 
   createEvaluationPage.findAdvancedConfigurationToggle(modalId).click();
   selectNewMlflowExperiment(mlflowExperimentName, modalId);
 
   cy.step('Enter evaluation name');
-  createEvaluationPage.findStartEvaluationRunCollectionName().should('contain.text', suiteName);
+  if (collectionName) {
+    createEvaluationPage
+      .findStartEvaluationRunCollectionName(modalId)
+      .should('contain.text', collectionName);
+  }
   createEvaluationPage.findEvaluationNameInput(modalId).clear().type(evaluationRunName);
 
   cy.step('Select deployed model from cluster picker');
@@ -821,9 +886,18 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
 
   cy.step('Submit evaluation and confirm it appears in the list');
   const usesOfflineData = interceptEvalHubOfflineDataRequest();
-  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
+  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*', (request) => {
+    const interceptedRequest = request;
+    if (benchmarkParameterOverrides) {
+      interceptedRequest.body = overrideCollectionBenchmarkParameters(
+        interceptedRequest.body,
+        benchmarkParameterOverrides,
+      );
+    }
+    interceptedRequest.continue();
+  }).as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled').click();
-  assertEvaluationHardwareConfig(hardwareProfileName);
+  assertEvaluationJobOptions(hardwareProfileName, benchmarkParameterOverrides);
   if (usesOfflineData) {
     assertEvalHubOfflineDataRequest();
   }
@@ -832,24 +906,69 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
 };
 
 export const submitBenchmarkSuiteEvaluation = (opts: BenchmarkSuiteEvaluationOptions): void => {
-  const { suiteName } = opts;
+  const { suiteName, ...runConfiguration } = opts;
 
   cy.step(`Find the newly created collection on the Evaluate tab: ${suiteName}`);
   const suiteLookupTimeout = { timeout: 120000 };
   evaluationsPage.findBenchmarkSuiteCardByName(suiteName, suiteLookupTimeout).should('be.visible');
   evaluationsPage.findBenchmarkSuitePrimaryActionByName(suiteName, suiteLookupTimeout).click();
   configureAndSubmitBenchmarkSuiteEvaluation({
-    ...opts,
+    ...runConfiguration,
+    collectionName: suiteName,
     modalId: 'evaluations-page-start-evaluation-run-modal',
   });
+};
+
+export const submitCuratedCollectionEvaluation = (
+  opts: Omit<BenchmarkSuiteEvaluationOptions, 'suiteName'> & {
+    collectionId: string;
+    benchmarkParameterOverrides?: Record<string, unknown>;
+  },
+): void => {
+  const { collectionId, benchmarkParameterOverrides, ...runConfiguration } = opts;
+  const navigationTimeout = { timeout: 120000 };
+
+  if (benchmarkParameterOverrides) {
+    cy.step(
+      `Apply benchmark parameter overrides to the run request: ${JSON.stringify(
+        benchmarkParameterOverrides,
+      )}`,
+    );
+  }
+
+  cy.step(`Select curated collection from the Gallery tab: ${collectionId}`);
+  evaluationsPage
+    .findGalleryTab({ timeout: navigationTimeout.timeout })
+    .should('have.attr', 'aria-selected', 'true');
+  evaluationsPage.findGalleryTabContent(navigationTimeout).should('be.visible');
+  evaluationsPage
+    .findGalleryBenchmarkSuiteName(collectionId, navigationTimeout)
+    .should('be.visible')
+    .invoke('text')
+    .then((collectionName) => {
+      evaluationsPage
+        .findGalleryBenchmarkSuitePrimaryAction(collectionId, navigationTimeout)
+        .scrollIntoView()
+        .should('be.visible')
+        .click();
+
+      configureAndSubmitBenchmarkSuiteEvaluation({
+        ...runConfiguration,
+        benchmarkParameterOverrides,
+        collectionName: collectionName.trim(),
+        modalId: 'curated-suite-start-evaluation-run-modal',
+      });
+    });
 };
 
 export const submitCreatedBenchmarkSuiteEvaluation = (
   opts: BenchmarkSuiteEvaluationOptions,
 ): void => {
+  const { suiteName, ...runConfiguration } = opts;
   cy.step(`Configure the newly created collection evaluation: ${opts.suiteName}`);
   configureAndSubmitBenchmarkSuiteEvaluation({
-    ...opts,
+    ...runConfiguration,
+    collectionName: suiteName,
     modalId: 'create-suite-run-evaluation-modal',
   });
 };
@@ -970,7 +1089,7 @@ export function stopAndReconfigureEvaluation(
   configureEvaluationHardwareProfile();
   cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
   createEvaluationPage.findStartEvaluationSubmitButton().should('be.enabled').click();
-  assertEvaluationHardwareConfig();
+  assertEvaluationJobOptions();
   assertEvalHubOfflineDataRequest();
   cy.url({ timeout: 120000 }).should('not.include', '/reconfigure');
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');

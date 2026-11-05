@@ -9,6 +9,7 @@ import {
   findEvalHubCollectionIdByName,
   getEvalHubExperimentSuffix,
   navigateToEvaluationsPage,
+  submitCuratedCollectionEvaluation,
   submitBenchmarkSuiteEvaluation,
   submitCreatedBenchmarkSuiteEvaluation,
   verifyEvaluationCompletedAndViewResults,
@@ -32,14 +33,31 @@ import { ensureMlflowCrReady } from './oc_commands/mlflow';
 import { addUserToProject } from './oc_commands/project';
 import type { EvalHubBenchmarkSuiteTestData } from '../types';
 
-export type BenchmarkSuiteScenarioKey = 'save-and-run' | 'gallery' | 'curated-customize';
+export type BenchmarkSuiteScenarioKey =
+  | 'save-and-run'
+  | 'gallery'
+  | 'curated-customize'
+  | 'curated-run';
 
 export type EvalHubBenchmarkSuiteScenario = {
   setup: () => void;
   cleanup: () => void;
   run: () => void;
   runSavedCollection: (suiteName: string, evaluationRunName: string) => void;
+  runCuratedCollection: () => void;
   getTenantProject: () => string;
+};
+
+const getScenarioFixturePath = (key: BenchmarkSuiteScenarioKey): string => {
+  switch (key) {
+    case 'curated-customize':
+      return 'e2e/eval-hub/testEvalHubCuratedCollectionCustomize.yaml';
+    case 'curated-run':
+      return 'e2e/eval-hub/testEvalHubCuratedCollectionRun.yaml';
+    case 'save-and-run':
+    case 'gallery':
+      return 'e2e/eval-hub/testEvalHubBenchmarkSuite.yaml';
+  }
 };
 
 const getScenarioUuid = (key: BenchmarkSuiteScenarioKey): string => {
@@ -47,6 +65,7 @@ const getScenarioUuid = (key: BenchmarkSuiteScenarioKey): string => {
     'save-and-run': 'EVAL_HUB_SUITE_SAVE_AND_RUN_UUID',
     gallery: 'EVAL_HUB_SUITE_GALLERY_UUID',
     'curated-customize': 'EVAL_HUB_CURATED_CUSTOMIZE_UUID',
+    'curated-run': 'EVAL_HUB_CURATED_RUN_UUID',
   };
   const envKey = envKeys[key];
   const uuid = Cypress.env(envKey) || generateTestUUID();
@@ -64,10 +83,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
   let testData: EvalHubBenchmarkSuiteTestData;
   const scenarioUuid = getScenarioUuid(key);
   const runAfterSave = key === 'save-and-run';
-  const fixturePath =
-    key === 'curated-customize'
-      ? 'e2e/eval-hub/testEvalHubCuratedCollectionCustomize.yaml'
-      : 'e2e/eval-hub/testEvalHubBenchmarkSuite.yaml';
+  const fixturePath = getScenarioFixturePath(key);
   let evaluationTenantProject = '';
   let hardwareProfileName = '';
   let inferenceServiceName = '';
@@ -152,7 +168,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
       cy.step('[Setup] Open EvalHub and remove stale runs and collections');
       navigateToEvaluationsPage(
         evaluationTenantProject,
-        key === 'curated-customize' ? 'gallery' : 'evaluate',
+        key === 'curated-customize' || key === 'curated-run' ? 'gallery' : 'evaluate',
       );
       clearEvalHubEvaluationJobs(evaluationTenantProject);
       deleteEvalHubTenantCollections(evaluationTenantProject);
@@ -218,11 +234,47 @@ export const createEvalHubBenchmarkSuiteScenario = (
     verifyEvaluationCompletedAndViewResults(evaluationRunName);
   };
 
+  const runCuratedCollection = (): void => {
+    const collectionId = testData.curatedCollectionId;
+    if (!collectionId) {
+      throw new Error('The curated-run scenario fixture must provide a curated collection ID.');
+    }
+    const numExamples = testData.curatedRunNumExamples;
+    if (!Number.isInteger(numExamples) || numExamples === undefined || numExamples < 1) {
+      throw new Error(
+        'The curated-run scenario fixture must provide a positive num_examples value.',
+      );
+    }
+    const { tokenizer } = JSON.parse(testData.additionalBenchmarkParams) as Record<string, unknown>;
+    if (typeof tokenizer !== 'string' || !tokenizer.trim()) {
+      throw new Error(
+        'The curated-run scenario fixture must provide an accessible tokenizer in additionalBenchmarkParams.',
+      );
+    }
+
+    const evaluationRunName = `e2e-curated-run-${evaluationTenantProject}`;
+    submitCuratedCollectionEvaluation({
+      collectionId,
+      benchmarkParameterOverrides: {
+        // eslint-disable-next-line camelcase
+        num_examples: numExamples,
+        tokenizer: tokenizer.trim(),
+      },
+      evaluationRunName,
+      inferenceServiceName,
+      mlflowExperimentName: experimentName,
+    });
+    verifyEvaluationProgressModal(evaluationRunName);
+    waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
+    verifyEvaluationCompletedAndViewResults(evaluationRunName);
+  };
+
   return {
     setup,
     cleanup,
     run,
     runSavedCollection,
+    runCuratedCollection,
     getTenantProject: () => evaluationTenantProject,
   };
 };

@@ -44,6 +44,16 @@ class EvaluationsPage {
     );
   }
 
+  findGalleryBenchmarkSuitePrimaryAction(
+    collectionId: string,
+    options?: Partial<Cypress.Timeoutable>,
+  ) {
+    return this.findGalleryTabContent(options).findByTestId(
+      `benchmark-suite-card-primary-action-${collectionId}`,
+      options,
+    );
+  }
+
   findCreateSuiteButton(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('create-suite-button', options);
   }
