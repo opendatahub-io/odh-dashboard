@@ -3,6 +3,8 @@
 package proxy
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -25,6 +27,8 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 const contractFixtureAuditID = "2895b0a0-7694-47d0-8cb4-869b93fe68be"
@@ -129,7 +133,7 @@ func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if r.URL.Path == "/watch" {
+	if r.URL.Path == "/watch" || strings.HasPrefix(r.URL.Path, "/api/v1/watch/") || strings.HasPrefix(r.URL.Path, "/apis/apps/v1/watch/") {
 		if r.Header.Get(constants.HeaderAccept) != constants.ContentTypeJSON {
 			http.Error(w, "expected JSON negotiation", http.StatusBadRequest)
 			return
@@ -176,13 +180,40 @@ func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
 		status.Details.RetryAfterSeconds = 7
 		w.Header().Set("Retry-After", "7")
 	}
-	w.Header().Set("Content-Type", "application/json")
+	contentType := constants.ContentTypeJSON
+	var body []byte
+	if r.Header.Get(constants.HeaderAccept) == runtime.ContentTypeProtobuf {
+		contentType = runtime.ContentTypeProtobuf
+		if code == http.StatusConflict {
+			status.Reason = metav1.StatusReasonAlreadyExists
+		}
+		serializer, _ := runtime.SerializerInfoForMediaType(scheme.Codecs.SupportedMediaTypes(), contentType)
+		body, err = runtime.Encode(serializer.Serializer, &status)
+	} else {
+		body, err = json.Marshal(status)
+	}
+	if err != nil {
+		http.Error(w, "fixture encoding failed", http.StatusInternalServerError)
+		return
+	}
+	if r.URL.Query().Get("gzip") == "true" {
+		var compressed bytes.Buffer
+		writer := gzip.NewWriter(&compressed)
+		_, err = writer.Write(body)
+		if err != nil || writer.Close() != nil {
+			http.Error(w, "fixture compression failed", http.StatusInternalServerError)
+			return
+		}
+		body = compressed.Bytes()
+		w.Header().Set(constants.HeaderContentEncoding, "gzip")
+	}
+	w.Header().Set(constants.HeaderContentType, contentType)
 	w.Header().Set(httpcontract.AuditIDHeader, contractFixtureAuditID)
 	w.Header().Set("X-Upstream-Request-ID", r.Header.Get(httpcontract.RequestIDHeader))
 	w.Header().Set("X-Test-Auth", "CANARY_TOKEN")
 	w.Header().Set("Set-Cookie", "CANARY_COOKIE")
 	w.WriteHeader(int(code))
-	if err := json.NewEncoder(w).Encode(status); err != nil && !errors.Is(err, context.Canceled) {
+	if _, err := w.Write(body); err != nil && !errors.Is(err, context.Canceled) {
 		slog.Error("fixture response failed", "error", err)
 	}
 }

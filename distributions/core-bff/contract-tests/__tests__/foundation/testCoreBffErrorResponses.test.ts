@@ -196,6 +196,21 @@ describe('Core BFF error response components', () => {
       expect(JSON.stringify(response.data)).not.toContain('CANARY');
     });
 
+    it.each([
+      '/api/v1/watch/namespaces/project/pods',
+      '/apis/apps/v1/watch/namespaces/project/deployments',
+      '/api/v1/watch/namespaces/project/pods?watch=false',
+      '/apis/apps/v1/watch/namespaces/project/deployments?watch=false',
+    ])('should sanitize legacy watch ERROR events at %s', async (path) => {
+      const { response } = expectSuccess(await fixtureClient.get(`${prefix}${path}`));
+      expect(response.status).toBe(200);
+      expect(response.data).toMatchObject({
+        type: 'ERROR',
+        object: { kind: 'Status', code: 410, reason: 'Expired' },
+      });
+      expect(JSON.stringify(response.data)).not.toContain('CANARY');
+    });
+
     it('should reject an unexpected protobuf watch response before streaming', async () => {
       const error = expectError(
         await fixtureClient.get(`${prefix}/watch?watch=true&media=protobuf`, {
@@ -213,6 +228,43 @@ describe('Core BFF error response components', () => {
         details: { causes: [{ reason: 'BAD_GATEWAY' }] },
       });
       expect(JSON.stringify(error.data)).not.toContain('CANARY');
+    });
+  });
+
+  describe.each(['/api/k8s', '/core-bff/api/k8s'])('Protobuf failures through %s', (prefix) => {
+    it.each([
+      { status: 409, reason: 'AlreadyExists', gzip: false },
+      { status: 409, reason: 'AlreadyExists', gzip: true },
+      { status: 422, reason: 'Invalid', gzip: false },
+      { status: 422, reason: 'Invalid', gzip: true },
+      { status: 429, reason: 'TooManyRequests', gzip: false },
+      { status: 429, reason: 'TooManyRequests', gzip: true },
+    ])('should preserve $status semantics with gzip=$gzip', async ({ status, reason, gzip }) => {
+      const error = expectError(
+        await fixtureClient.get(`${prefix}/status/${status}?gzip=${gzip}`, {
+          headers: { Accept: 'application/vnd.kubernetes.protobuf', 'Accept-Encoding': 'gzip' },
+        }),
+        status,
+      );
+      expect(error).toMatchContract(apiSchema, {
+        ref: '#/components/responses/K8sProxyFailure/content/application~1json/schema',
+        status,
+      });
+      const body = error.data as KubernetesFailure;
+      expect(body).toMatchObject({ kind: 'Status', code: status, reason });
+      expect(JSON.stringify(body)).not.toContain('CANARY');
+      expect(error.headers?.['content-encoding']).toBeUndefined();
+      if (status === 422) {
+        expect(body.details?.causes?.[1]).toMatchObject({
+          reason: 'FieldValueInvalid',
+          field: 'spec.containers[1].image',
+          message: 'invalid field value',
+        });
+      }
+      if (status === 429) {
+        expect(body.details?.retryAfterSeconds).toBe(7);
+        expect(error.headers?.['retry-after']).toBe('7');
+      }
     });
   });
 

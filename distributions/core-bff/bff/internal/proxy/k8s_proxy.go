@@ -94,10 +94,9 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			}
 			if httpcontract.IsWatchRequest(in) {
 				out.Set(constants.HeaderAccept, constants.ContentTypeJSON)
+				// Let Go decompress watches before event sanitization.
+				out.Del(constants.HeaderAcceptEncoding)
 			}
-			// Let Go's transport negotiate/decompress gzip so Status/watch error
-			// sanitization also applies when the browser requests compression.
-			out.Del(constants.HeaderAcceptEncoding)
 		},
 		StripHeaders:       SensitiveIngressHeaders(cfg.AuthTokenHeader),
 		SSRFValidateTarget: cfg.SSRFValidateTarget,
@@ -114,6 +113,9 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			return k8s.BearerTokenPrefix + identity.ResolveToken(cfg.DevFallbackToken)
 		},
 		ModifyResponse: func(resp *http.Response) error {
+			if resp.StatusCode == http.StatusSwitchingProtocols {
+				return fmt.Errorf("protocol upgrades require the Kubernetes WebSocket endpoint")
+			}
 			if err := ssrf.NewRedirectValidator(cfg.Logger)(resp); err != nil {
 				return err
 			}

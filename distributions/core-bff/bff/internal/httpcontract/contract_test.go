@@ -458,3 +458,18 @@ func TestKubernetesProxyFailureFormatSurvivesPathRewrite(t *testing.T) {
 	require.Equal(t, metav1.StatusReason("DashboardProxyError"), body.Reason)
 	require.Equal(t, "BAD_GATEWAY", string(body.Details.Causes[0].Type))
 }
+
+func TestLegacyWatchDetection(t *testing.T) {
+	for _, prefix := range []string{"", "/api/k8s", "/core-bff/api/k8s"} {
+		for _, path := range []string{"/api/v1/watch/pods", "/api/v1/watch/namespaces/project/pods", "/apis/apps/v1/watch/deployments", "/apis/apps/v1/watch/namespaces/project/deployments"} {
+			for _, query := range []string{"", "?watch=false"} {
+				request := httptest.NewRequest(http.MethodGet, prefix+path+query, nil)
+				require.True(t, IsWatchRequest(request), request.URL.String())
+			}
+		}
+	}
+	for _, path := range []string{"/api/v1/watch", "/apis/apps/v1/watch", "/api/v1/namespaces/watch/pods", "/apis/watch/v1/deployments", "/api/v1/pods/watch", "/api/k8sapi/v1/watch/pods", "/core-bffapi/v1/watch/pods"} {
+		require.False(t, IsWatchRequest(httptest.NewRequest(http.MethodGet, path, nil)), path)
+	}
+	require.False(t, IsWatchRequest(nil))
+}

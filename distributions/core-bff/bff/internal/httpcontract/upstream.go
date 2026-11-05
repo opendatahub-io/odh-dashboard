@@ -8,9 +8,9 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -42,15 +42,7 @@ func KubernetesResponse(resp *http.Response) error {
 		}
 		return nil
 	}
-	var s metav1.Status
-	if resp.Body != nil {
-		b, err := io.ReadAll(io.LimitReader(resp.Body, maxErrorBody+1))
-		_ = resp.Body.Close()
-		if err == nil && len(b) <= maxErrorBody {
-			_ = json.Unmarshal(b, &s)
-		}
-	}
-	s = SanitizeStatus(s, resp.StatusCode)
+	s := SanitizeStatus(readKubernetesStatus(resp), resp.StatusCode)
 	b, err := json.Marshal(s)
 	if err != nil {
 		return fmt.Errorf("could not encode Kubernetes status")
@@ -69,10 +61,23 @@ func KubernetesResponse(resp *http.Response) error {
 	return nil
 }
 
-// IsWatchRequest matches Kubernetes query conversion for the watch parameter.
+// IsWatchRequest recognizes Kubernetes query-based and legacy watch routes.
 func IsWatchRequest(r *http.Request) bool {
 	if r == nil {
 		return false
+	}
+	path := r.URL.Path
+	for _, prefix := range []string{constants.BFFPathPrefix + "/", constants.K8sProxyPrefix} {
+		if rest, ok := strings.CutPrefix(path, prefix); ok {
+			path = "/" + rest
+		}
+	}
+	segments := strings.Split(strings.TrimPrefix(path, "/"), "/")
+	if len(segments) >= 4 && segments[0] == "api" && segments[1] != "" && segments[2] == "watch" && segments[3] != "" {
+		return true
+	}
+	if len(segments) >= 5 && segments[0] == "apis" && segments[1] != "" && segments[2] != "" && segments[3] == "watch" && segments[4] != "" {
+		return true
 	}
 	values := r.URL.Query()["watch"]
 	var watch bool

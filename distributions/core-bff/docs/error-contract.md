@@ -41,25 +41,22 @@ JSON HTTP watches buffer one newline-delimited event at a time; HTTP and WS watc
 retain their Status semantics with the same sanitization as ordinary failure responses.
 HTTP watches negotiate `Accept: application/json`; an unexpected response media type fails before commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`. Malformed JSON events and incomplete events ending in a transport error are discarded and terminate the stream without appending JSON. A complete final JSON event without a newline is accepted.
 The upstream JSON encoding of each HTTP watch event is limited to 4 MiB, including its newline when present. An oversized event is discarded, logs a safe correlated read failure, and causes the proxy to terminate the stream without appending JSON. Events within the limit retain their existing sanitization and byte-preservation behavior; this cap does not apply to WebSocket messages.
-HTTP watch detection uses Kubernetes' query conversion, including `watch=1`, `watch=TRUE`, empty
-values and bare `watch`; absent parameters, `watch=0` and case-insensitive `watch=false` disable it.
-The proxy removes the caller's `Accept-Encoding` so its transport can negotiate and decompress
-responses. A successful JSON watch that still has a non-empty `Content-Encoding` fails closed before
-commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`, preventing an encoded stream from bypassing ERROR-event sanitization.
+HTTP watch detection recognizes legacy `/api/<version>/watch/...` and `/apis/<group>/<version>/watch/...` routes before and after proxy path rewriting, including both BFF aliases. Legacy watch paths remain watches even with `watch=false`. Other paths use Kubernetes' query conversion, including `watch=1`, `watch=TRUE`, empty values and bare `watch`; absent parameters, `watch=0` and case-insensitive `watch=false` disable it.
+For HTTP watches, the proxy removes the caller's `Accept-Encoding` so its transport can negotiate and decompress responses. Non-watch successful responses retain the caller's negotiated compression. A successful JSON watch that still has a non-empty `Content-Encoding` fails closed before commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`, preventing an encoded stream from bypassing ERROR-event sanitization.
 
 The native `/api/prometheus/*` query family retains its existing `{code, response}` format and
 Prometheus-specific status/body semantics. BFF-generated unexpected query failures use a fixed safe
 message inside that format. Upstream Prometheus error bodies retain their service contract and are
 outside the Kubernetes sanitization policy.
 
+The HTTP Kubernetes proxy rejects upstream protocol upgrades before commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`. WebSocket clients use `/wss/k8s/*` (or its `/core-bff` alias), where the dedicated relay sanitizes ERROR messages and enforces the WebSocket policy.
+
 ## Sanitization
 
 Kubernetes diagnostic messages are generated from the reason, known validation cause types and sanitized schema-like field paths. Never forward arbitrary upstream `message` or cause text, even when it contains values absent from the request. Validation errors identify the affected field and whether it is required, invalid, unsupported, duplicated, forbidden or managed by another client. Summaries include at most three field diagnostics and remain below 1 KiB; the complete structured cause list remains available. Opaque webhook/admission failures without safe structured causes use the reason-based fallback. This preserves the SDK failure contract and useful field diagnostics while excluding Secret values; verbatim upstream text is not preserved.
 
 Omit metadata, UID and object name; retain bounded schema-like group/kind, standard reason and retry delay. Preserve array positions and redact bracketed map keys and dotted descendants of sensitive data/annotation/label maps in field paths.
-Unknown reason/type strings use safe fallbacks. Invalid/non-JSON Kubernetes error bodies become
-sanitized Status with the same HTTP status; error bodies are read with a 1 MiB bound. This bounds
-ordinary error inspection only. JSON HTTP watch events have the separate 4 MiB buffering limit described above; other successful response sizes and transport policies are unchanged.
+Unknown reason/type strings use safe fallbacks. JSON and Kubernetes protobuf Status representations are decoded before sanitization. Error bodies are bounded to 1 MiB on the wire and after decompression; gzip is supported, while unsupported encodings, malformed bodies and limit violations use the safe status-based fallback with the original HTTP status. These bounds apply to ordinary error inspection only. JSON HTTP watch events have the separate 4 MiB buffering limit described above; other successful response sizes and transport policies are unchanged.
 
 BFF-generated errors and WebSocket close reasons use fixed safe text. Kubernetes failures add only sanitized field paths and known cause descriptions. Raw errors, submitted Secret values, credentials, cookies and bearer subprotocols are excluded.
 Non-Kubernetes service response bodies retain their own contracts and are not sanitized by the

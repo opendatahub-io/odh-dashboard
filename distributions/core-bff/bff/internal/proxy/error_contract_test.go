@@ -22,7 +22,10 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 func TestWebSocketHandshakeFailurePreservesKubernetesStatus(t *testing.T) {
@@ -292,4 +295,166 @@ func TestNonWatchAcceptHeaderIsPreserved(t *testing.T) {
 	httpcontract.Middleware(handler, slog.Default()).ServeHTTP(response, request)
 	require.Equal(t, http.StatusOK, response.Code)
 	require.Equal(t, "resource bytes", response.Body.String())
+}
+
+func TestHTTPProxyRejectsProtocolUpgrades(t *testing.T) {
+	for _, prefix := range []string{"", constants.BFFPathPrefix} {
+		t.Run(prefix, func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				upgrader := websocket.Upgrader{}
+				conn, err := upgrader.Upgrade(w, r, nil)
+				if err != nil {
+					t.Errorf("upgrade: %v", err)
+					return
+				}
+				defer conn.Close()
+				_ = conn.WriteMessage(websocket.TextMessage, []byte(`{"type":"ERROR","object":{"code":410,"message":"CANARY_UPSTREAM_ONLY_SECRET"}}`))
+			}))
+			defer upstream.Close()
+			handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+			require.NoError(t, err)
+			if prefix != "" {
+				handler = http.StripPrefix(prefix, handler)
+			}
+			server := httptest.NewServer(httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler.ServeHTTP(w, r.WithContext(identityContext(r, "test-token")))
+			})))
+			defer server.Close()
+			conn, response, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+prefix+"/api/k8s/api/v1/pods?watch=true", nil)
+			require.Error(t, err)
+			require.Nil(t, conn)
+			require.NotNil(t, response)
+			defer response.Body.Close()
+			require.Equal(t, http.StatusBadGateway, response.StatusCode)
+			body, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+			var status metav1.Status
+			require.NoError(t, json.Unmarshal(body, &status))
+			require.Equal(t, metav1.StatusReason("DashboardProxyError"), status.Reason)
+			require.Equal(t, metav1.CauseType("BAD_GATEWAY"), status.Details.Causes[0].Type)
+			require.NotContains(t, string(body), "CANARY")
+			require.NotEmpty(t, response.Header.Get(httpcontract.RequestIDHeader))
+		})
+	}
+}
+
+func TestLegacyHTTPWatchSanitization(t *testing.T) {
+	for _, prefix := range []string{"", constants.BFFPathPrefix} {
+		for _, path := range []string{"/api/v1/watch/namespaces/project/pods", "/apis/apps/v1/watch/namespaces/project/deployments"} {
+			t.Run(prefix+path, func(t *testing.T) {
+				upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					require.Equal(t, constants.ContentTypeJSON, r.Header.Get(constants.HeaderAccept))
+					_, _ = io.WriteString(w, `{"type":"ERROR","object":{"code":410,"reason":"Expired","message":"CANARY_UPSTREAM_ONLY_SECRET"}}`+"\n")
+				}))
+				defer upstream.Close()
+				handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+				require.NoError(t, err)
+				if prefix != "" {
+					handler = http.StripPrefix(prefix, handler)
+				}
+				request := httptest.NewRequest(http.MethodGet, prefix+"/api/k8s"+path, nil)
+				response := httptest.NewRecorder()
+				handler.ServeHTTP(response, request.WithContext(identityContext(request, "test-token")))
+				require.Equal(t, http.StatusOK, response.Code)
+				require.Contains(t, response.Body.String(), `"reason":"Expired"`)
+				require.NotContains(t, response.Body.String(), "CANARY")
+			})
+		}
+	}
+}
+
+func TestKubernetesProxyErrorRepresentations(t *testing.T) {
+	for _, code := range []int32{409, 422, 429} {
+		for _, protobuf := range []bool{false, true} {
+			for _, compressed := range []bool{false, true} {
+				t.Run(fmt.Sprintf("status=%d/protobuf=%v/gzip=%v", code, protobuf, compressed), func(t *testing.T) {
+					reason := map[int32]metav1.StatusReason{409: metav1.StatusReasonAlreadyExists, 422: metav1.StatusReasonInvalid, 429: metav1.StatusReasonTooManyRequests}[code]
+					status := &metav1.Status{
+						TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Status"},
+						Code:     code, Reason: reason, Message: "CANARY_SECRET",
+						Details: &metav1.StatusDetails{
+							RetryAfterSeconds: 7,
+							Causes:            []metav1.StatusCause{{Type: metav1.CauseTypeFieldValueInvalid, Field: "spec.replicas", Message: "CANARY_CAUSE"}},
+						},
+					}
+					contentType := constants.ContentTypeJSON
+					body, err := json.Marshal(status)
+					require.NoError(t, err)
+					if protobuf {
+						contentType = runtime.ContentTypeProtobuf
+						info, ok := runtime.SerializerInfoForMediaType(scheme.Codecs.SupportedMediaTypes(), contentType)
+						require.True(t, ok)
+						body, err = runtime.Encode(info.Serializer, status)
+						require.NoError(t, err)
+					}
+					if compressed {
+						var encoded bytes.Buffer
+						writer := gzip.NewWriter(&encoded)
+						_, err = writer.Write(body)
+						require.NoError(t, err)
+						require.NoError(t, writer.Close())
+						body = encoded.Bytes()
+					}
+					upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						require.Equal(t, contentType, r.Header.Get(constants.HeaderAccept))
+						require.Equal(t, "gzip", r.Header.Get(constants.HeaderAcceptEncoding))
+						w.Header().Set(constants.HeaderContentType, contentType)
+						w.Header().Set(constants.HeaderRetryAfter, "7")
+						if compressed {
+							w.Header().Set(constants.HeaderContentEncoding, "gzip")
+						}
+						w.WriteHeader(int(code))
+						_, _ = w.Write(body)
+					}))
+					defer upstream.Close()
+					handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+					require.NoError(t, err)
+					request := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil)
+					request.Header.Set(constants.HeaderAccept, contentType)
+					request.Header.Set(constants.HeaderAcceptEncoding, "gzip")
+					response := httptest.NewRecorder()
+					handler.ServeHTTP(response, request.WithContext(identityContext(request, "test-token")))
+					require.Equal(t, int(code), response.Code)
+					var got metav1.Status
+					require.NoError(t, json.Unmarshal(response.Body.Bytes(), &got))
+					require.Equal(t, reason, got.Reason)
+					require.NotNil(t, got.Details)
+					require.Equal(t, int32(7), got.Details.RetryAfterSeconds)
+					require.Equal(t, "spec.replicas", got.Details.Causes[0].Field)
+					require.Equal(t, metav1.CauseTypeFieldValueInvalid, got.Details.Causes[0].Type)
+					require.Equal(t, "7", response.Header().Get(constants.HeaderRetryAfter))
+					require.Empty(t, response.Header().Get(constants.HeaderContentEncoding))
+					require.NotContains(t, response.Body.String(), "CANARY")
+					if code == 409 {
+						require.True(t, k8serrors.IsAlreadyExists(&k8serrors.StatusError{ErrStatus: got}))
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestNonWatchSuccessPreservesCompression(t *testing.T) {
+	var encoded bytes.Buffer
+	writer := gzip.NewWriter(&encoded)
+	_, err := io.WriteString(writer, `{"kind":"PodList","items":[]}`)
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "gzip", r.Header.Get(constants.HeaderAcceptEncoding))
+		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
+		w.Header().Set(constants.HeaderContentEncoding, "gzip")
+		_, _ = w.Write(encoded.Bytes())
+	}))
+	defer upstream.Close()
+	handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods?watch=false", nil)
+	request.Header.Set(constants.HeaderAcceptEncoding, "gzip")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request.WithContext(identityContext(request, "test-token")))
+	require.Equal(t, http.StatusOK, response.Code)
+	require.Equal(t, "gzip", response.Header().Get(constants.HeaderContentEncoding))
+	require.Equal(t, encoded.Bytes(), response.Body.Bytes())
 }

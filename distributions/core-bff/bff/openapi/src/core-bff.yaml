@@ -220,8 +220,10 @@ paths:
       Local failures have reason DashboardProxyError and a stable BFF code in details.causes[].reason; X-Request-ID provides correlation.
       Status codes distinguish 401 authentication, 403 policy, 502 transport, 503 unavailable and 504 timeout.
       Upstream Kubernetes failures preserve status and KubernetesStatus semantics with sanitized free text; successful responses and watch events are streamed.
-      HTTP watches negotiate application/json; unexpected media types or content encodings fail before commitment with 502.
+      Non-watch requests preserve negotiated success compression; JSON and Kubernetes protobuf error bodies, including gzip, are decoded with bounded inspection before sanitization.
+      Query-based and legacy core/grouped HTTP watch paths negotiate application/json; unexpected media types or content encodings fail before commitment with 502.
       Malformed, truncated or oversized watch events terminate the stream without forwarding the invalid event or appending JSON.
+      This HTTP endpoint rejects upstream protocol upgrades with 502; WebSocket clients use /wss/k8s/*.
       Note: /wss/k8s/* WebSocket proxy is not documented here (OpenAPI 3.0.3 has no native WebSocket support).
     parameters:
       - name: path
