@@ -248,8 +248,18 @@ func filterAndRemapDataConnectHubGatewayRBAC(resources []unstructured.Unstructur
 }
 
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
+	return applyKustomizeParamsWithOverrides(dashboard, manifests, platform, nil)
+}
+
+func applyKustomizeParamsWithOverrides(
+	dashboard *v1alpha1.Dashboard,
+	manifests []render.ManifestInfo,
+	platform cluster.Platform,
+	overrides map[string]string,
+) error {
 	computed := computeKustomizeVariables(dashboard, platform)
 	renderParams := maps.Clone(computed)
+	maps.Copy(renderParams, overrides)
 	maps.Copy(computed, resolveImageParams())
 	// The operator applies the upload ConfigMap separately after validating the
 	// CR value. Render a safe placeholder, including after a previous reconcile.

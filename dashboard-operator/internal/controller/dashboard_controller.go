@@ -95,6 +95,7 @@ func operatorOwnedResources() map[string]bool {
 		"ClusterRole/" + base + "-role":                   true,
 		"ClusterRoleBinding/" + base + "-rolebinding":     true,
 		"NetworkPolicy/" + base + "-metrics":              true, // charts/.../networkpolicy.yaml (protects the running controller pod)
+		"Certificate/" + base + "-webhook-cert":           true, // charts/.../webhook-cert-manager.yaml
 	}
 }
 
@@ -859,6 +860,19 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		record(err)
 	}
 
+	// Certificates are optional because cert-manager is not installed on every
+	// supported platform. When present, delete dashboard-owned Certificates so
+	// their issued credentials do not survive operand removal. The operator's
+	// webhook Certificate has the same common label and is excluded by
+	// operatorOwnedResources.
+	certificates := &unstructured.UnstructuredList{}
+	certificates.SetGroupVersionKind(schema.GroupVersionKind{
+		Group: "cert-manager.io", Version: "v1", Kind: "CertificateList",
+	})
+	if err := deleteTyped(r.apiReader(), certificates, "Certificate", matchLabels, inNamespace); err != nil && !meta.IsNoMatchError(err) {
+		record(err)
+	}
+
 	var pdbs policyv1.PodDisruptionBudgetList
 	record(deleteTyped(r, &pdbs, "PodDisruptionBudget", matchLabels, inNamespace))
 
@@ -877,6 +891,17 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 
 	var secrets corev1.SecretList
 	record(deleteTyped(r.apiReader(), &secrets, "Secret", matchLabels, inNamespace))
+	if r.Platform == cluster.XKS {
+		// cert-manager does not label a Certificate's output Secret by default,
+		// so the label sweep above cannot select the XKS serving credential.
+		xksTLSSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
+			Name:      "rhaii-dashboard-tls",
+			Namespace: r.ApplicationsNamespace,
+		}}
+		if err := r.Delete(ctx, xksTLSSecret); client.IgnoreNotFound(err) != nil {
+			record(fmt.Errorf("deleting XKS dashboard TLS Secret: %w", err))
+		}
+	}
 
 	// NetworkPolicies are protective controls. Retain them until an
 	// authoritative read confirms that every workload selected for deletion has

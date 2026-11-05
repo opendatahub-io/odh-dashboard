@@ -1233,7 +1233,13 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 	}
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
-		WithObjects(dashboard).
+		WithObjects(dashboard, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-config", Namespace: testNamespace},
+			Data: map[string]string{
+				"CERT_MANAGER_ISSUER_REF_NAME": "test-ca-issuer",
+				"CERT_MANAGER_ISSUER_REF_KIND": "ClusterIssuer",
+			},
+		}).
 		WithStatusSubresource(dashboard).
 		Build()
 	r := &ctrlpkg.DashboardReconciler{

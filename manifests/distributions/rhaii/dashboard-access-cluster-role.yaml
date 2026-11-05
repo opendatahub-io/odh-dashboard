@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  # This is intentionally unbound. The xKS installer or platform administrator
+  # grants Dashboard entry to selected identities by binding this role.
+  name: rhaii-dashboard-access
+rules:
+  # This pseudo-resource is evaluated only by kube-rbac-proxy's
+  # SubjectAccessReview; it does not correspond to a served Kubernetes API.
+  - apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - rhaii-dashboard-access
+    verbs:
+      - list

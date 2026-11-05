@@ -64,7 +64,18 @@ func (l xksDashboardLifecycle) reconcileRHAIIDashboard(
 ) (ctrl.Result, error) {
 	r := l.reconciler
 	manifests := []render.ManifestInfo{rhaiiManifestInfo(r.ManifestsBasePath)}
-	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
+	certManagerConfig, err := readCertManagerConfig(ctx, r.apiReader(), r.ApplicationsNamespace)
+	if err != nil {
+		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
+			conditions.WithReason("CertManagerConfigUnavailable"),
+			conditions.WithError(err))
+		return ctrl.Result{}, fmt.Errorf("reading xKS cert-manager configuration: %w", err)
+	}
+	if err := applyKustomizeParamsWithOverrides(dashboard, manifests, r.Platform, map[string]string{
+		"certificate-issuer-name": certManagerConfig.IssuerRefName,
+		"certificate-issuer-kind": certManagerConfig.IssuerRefKind,
+		"rhaii-dashboard-namespace": r.ApplicationsNamespace,
+	}); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 			conditions.WithReason("KustomizeParamsFailed"),
 			conditions.WithError(err))

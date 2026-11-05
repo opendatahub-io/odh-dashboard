@@ -80,6 +80,56 @@ func TestReadDistributionConfigUsesOneSnapshot(t *testing.T) {
 	assert.Equal(t, "3.5.0", got.PlatformVersion)
 }
 
+func TestReadCertManagerConfig(t *testing.T) {
+	tests := []struct {
+		name      string
+		configMap *corev1.ConfigMap
+		want      certManagerConfig
+		wantErr   string
+	}{
+		{
+			name: "reads platform managed issuer reference",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-applications"},
+				Data: map[string]string{
+					certManagerIssuerRefNameKey: "platform-ca-issuer",
+					certManagerIssuerRefKindKey: "ClusterIssuer",
+				},
+			},
+			want: certManagerConfig{IssuerRefName: "platform-ca-issuer", IssuerRefKind: "ClusterIssuer"},
+		},
+		{
+			name:    "configmap missing",
+			wantErr: "reading xKS platform ConfigMap",
+		},
+		{
+			name: "issuer keys missing",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-applications"},
+				Data:       map[string]string{certManagerIssuerRefNameKey: "platform-ca-issuer"},
+			},
+			wantErr: "is missing CERT_MANAGER_ISSUER_REF_NAME or CERT_MANAGER_ISSUER_REF_KIND",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := fake.NewClientBuilder().WithScheme(configTestScheme(t))
+			if tt.configMap != nil {
+				builder = builder.WithObjects(tt.configMap)
+			}
+
+			got, err := readCertManagerConfig(context.Background(), builder.Build(), "test-applications")
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestReadDistributionConfig(t *testing.T) {
 	tests := []struct {
 		name      string
