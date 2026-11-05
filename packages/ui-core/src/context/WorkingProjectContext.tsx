@@ -36,6 +36,8 @@ export type WorkingProjectContextType = {
   activeProject: ProjectIdentity | null;
   selectProject: (project: ProjectIdentity) => void;
   registerProjectNavigation?: (navigate: WorkingProjectNavigation) => () => void;
+  /** Mark a route that writes its URL project into the preference. */
+  registerProjectRouteSync?: () => () => void;
   cancelProjectNavigation?: () => void;
   /** Register the mounted unsaved-change blocker's reset, without sharing route shapes. */
   registerProjectNavigationBlocker?: (reset: () => void) => () => void;
@@ -47,6 +49,7 @@ export type WorkingProjectProviderProps = {
   activeProject: ProjectIdentity | null;
   onProjectChange: (project: ProjectIdentity) => void;
   registerProjectNavigation?: (navigate: WorkingProjectNavigation) => () => void;
+  registerProjectRouteSync?: () => () => void;
   cancelProjectNavigation?: () => void;
   registerProjectNavigationBlocker?: (reset: () => void) => () => void;
   /** Omit for a successfully listed source; only a host adapter knows its lifecycle. */
@@ -68,6 +71,7 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
   activeProject,
   onProjectChange,
   registerProjectNavigation,
+  registerProjectRouteSync,
   cancelProjectNavigation,
   registerProjectNavigationBlocker,
   status: sourceStatus = 'listed',
@@ -101,6 +105,7 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
       activeProject: knownActiveProject,
       selectProject,
       ...(registerProjectNavigation && { registerProjectNavigation }),
+      ...(registerProjectRouteSync && { registerProjectRouteSync }),
       ...(cancelProjectNavigation && { cancelProjectNavigation }),
       ...(registerProjectNavigationBlocker && { registerProjectNavigationBlocker }),
     }),
@@ -110,6 +115,7 @@ export const WorkingProjectProvider: React.FC<WorkingProjectProviderProps> = ({
       knownActiveProject,
       selectProject,
       registerProjectNavigation,
+      registerProjectRouteSync,
       cancelProjectNavigation,
       registerProjectNavigationBlocker,
     ],

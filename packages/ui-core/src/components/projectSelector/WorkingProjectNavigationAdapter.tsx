@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  createPath,
+  resolvePath,
+  useLocation,
+  useNavigate,
+  useResolvedPath,
+} from 'react-router-dom';
 import {
   useWorkingProject,
   type WorkingProjectNavigationTransaction,
@@ -16,13 +22,14 @@ const WorkingProjectNavigationAdapter: React.FC<WorkingProjectNavigationAdapterP
   const { registerProjectNavigation } = useWorkingProject();
   const navigate = useNavigate();
   const location = useLocation();
-  const latest = React.useRef({ getRedirectPath, location, navigate });
+  const routeBase = useResolvedPath('.').pathname;
+  const latest = React.useRef({ getRedirectPath, location, navigate, routeBase });
   const pending = React.useRef<{
     target: string;
     transaction: WorkingProjectNavigationTransaction;
   } | null>(null);
   React.useLayoutEffect(() => {
-    latest.current = { getRedirectPath, location, navigate };
+    latest.current = { getRedirectPath, location, navigate, routeBase };
   });
 
   React.useLayoutEffect(() => {
@@ -53,7 +60,15 @@ const WorkingProjectNavigationAdapter: React.FC<WorkingProjectNavigationAdapterP
         pending.current?.transaction.cancel();
         // Only the surface knows which query, hash, and detail state survive a switch.
         try {
-          const target = current.getRedirectPath(project.name);
+          const destination = current.getRedirectPath(project.name);
+          const target = createPath(
+            resolvePath(
+              destination,
+              destination.startsWith('?') || destination.startsWith('#')
+                ? current.location.pathname
+                : current.routeBase,
+            ),
+          );
           if (
             supersedesNavigation ||
             target !==
@@ -61,7 +76,7 @@ const WorkingProjectNavigationAdapter: React.FC<WorkingProjectNavigationAdapterP
           ) {
             // A same-location navigation still aborts a superseded loader/lazy transition.
             pending.current = { target, transaction };
-            const result = current.navigate(target, { replace: true });
+            const result = current.navigate(destination, { replace: true });
             if (result) {
               void result.catch(() => {
                 if (pending.current?.transaction === transaction) {

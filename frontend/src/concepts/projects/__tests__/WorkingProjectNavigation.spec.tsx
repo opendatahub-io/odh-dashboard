@@ -49,6 +49,12 @@ const Observer: React.FC = () => {
   return null;
 };
 
+const TabObserver: React.FC<{ label: string }> = ({ label }) => {
+  const { pathname } = useLocation();
+  const { activeProject } = useWorkingProject();
+  return <span data-testid={label}>{`${pathname}:${activeProject?.name ?? 'none'}`}</span>;
+};
+
 const Surface: React.FC<{ query?: boolean; viewed?: boolean; withoutAdapter?: boolean }> = ({
   query,
   viewed,
@@ -381,6 +387,34 @@ describe('working-project external navigation', () => {
     act(() => working.selectProject({ name: 'b' }));
     expect(location.pathname).toBe('/legacy/a');
     expect(working.activeProject?.name).toBe('a');
+  });
+
+  it('should not ping-pong storage between two detail tabs without navigation adapters', () => {
+    render(
+      <>
+        {(['a', 'b'] as const).map((name) => (
+          <MemoryRouter key={name} initialEntries={[`/legacy/${name}`]}>
+            <ProjectsContextProvider>
+              <TabObserver label={`tab-${name}`} />
+              <Routes>
+                <Route path="/legacy/:namespace" element={<Surface withoutAdapter />} />
+              </Routes>
+            </ProjectsContextProvider>
+          </MemoryRouter>
+        ))}
+      </>,
+    );
+    const assertTabs = () => {
+      expect(screen.getByTestId('tab-a')).toHaveTextContent('/legacy/a:a');
+      expect(screen.getByTestId('tab-b')).toHaveTextContent('/legacy/b:b');
+    };
+    assertTabs();
+    synchronize('a');
+    assertTabs();
+    expect(localStorage.getItem(key)).toBe('"a"');
+    synchronize('b');
+    assertTabs();
+    expect(localStorage.getItem(key)).toBe('"b"');
   });
 
   it('should give the entry URL precedence over conflicting storage', () => {

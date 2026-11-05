@@ -1,11 +1,14 @@
 import * as React from 'react';
 import type { RouteProjectInput } from '@odh-dashboard/foundation';
-import type { ProjectIdentity, WorkingProjectStatus } from '../context/WorkingProjectContext';
-import { PREFERRED_NAMESPACE_STORAGE_KEY } from '../context/getStoredPreferredProject';
+import type {
+  ProjectIdentity,
+  WorkingProjectStatus,
+} from '@odh-dashboard/ui-core/context/WorkingProjectContext';
+import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import {
   parseStoredWorkingProjectName,
   readStoredWorkingProjectName,
-} from '../context/workingProjectStorage';
+} from '@odh-dashboard/ui-core/context/workingProjectStorage';
 
 export type WorkingProjectChangeSource = 'selection' | 'route' | 'stored' | 'storage';
 

@@ -24,6 +24,13 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
     React.useContext(ProjectsContext);
   const available = loaded && !loadError;
   const navigation = React.useRef(new Map<symbol, WorkingProjectNavigation>());
+  const routeSyncCount = React.useRef(0);
+  const registerProjectRouteSync = React.useCallback(() => {
+    routeSyncCount.current += 1;
+    return () => {
+      routeSyncCount.current -= 1;
+    };
+  }, []);
   const pendingNavigation = React.useRef<{ token: symbol; owner: symbol } | null>(null);
   const navigationBlockers = React.useRef(new Set<() => void>());
   const registerProjectNavigationBlocker = React.useCallback((reset: () => void) => {
@@ -100,6 +107,12 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
       const source = projectByName.get(identity.name);
       if (source) {
         const registration = Array.from(navigation.current.entries()).pop();
+        if (change?.source === 'storage' && !registration && routeSyncCount.current > 0) {
+          // A route that syncs its URL project cannot follow an external selection
+          // without navigation. Do not let it write its old project back to storage.
+          cancelProjectNavigation();
+          return;
+        }
         if (change?.source === 'storage' && change.replace && registration) {
           const [owner, navigate] = registration;
           cancelProjectNavigation();
@@ -149,6 +162,7 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
       activeProject={resolution.activeProject}
       onProjectChange={selectProject}
       registerProjectNavigation={registerProjectNavigation}
+      registerProjectRouteSync={registerProjectRouteSync}
       cancelProjectNavigation={cancelProjectNavigation}
       registerProjectNavigationBlocker={registerProjectNavigationBlocker}
     >

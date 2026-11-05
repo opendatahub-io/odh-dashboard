@@ -1,13 +1,18 @@
 import * as React from 'react';
 import { act, render } from '@testing-library/react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useResolvedPath } from 'react-router-dom';
 import {
   useWorkingProject,
   type WorkingProjectNavigation,
 } from '../../../context/WorkingProjectContext';
 import WorkingProjectNavigationAdapter from '../WorkingProjectNavigationAdapter';
 
-jest.mock('react-router-dom', () => ({ useLocation: jest.fn(), useNavigate: jest.fn() }));
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useLocation: jest.fn(),
+  useNavigate: jest.fn(),
+  useResolvedPath: jest.fn(),
+}));
 jest.mock('../../../context/WorkingProjectContext', () => ({ useWorkingProject: jest.fn() }));
 
 describe('WorkingProjectNavigationAdapter', () => {
@@ -20,10 +25,10 @@ describe('WorkingProjectNavigationAdapter', () => {
   });
   const getRedirectPath = jest.fn((name: string) => `/models/${name}`);
   const transaction = () => ({ commit: jest.fn(), cancel: jest.fn() });
-  const at = (pathname: string) =>
+  const at = (pathname: string, search = '', hash = '') =>
     jest
       .mocked(useLocation)
-      .mockReturnValue({ pathname, search: '', hash: '', state: null, key: pathname });
+      .mockReturnValue({ pathname, search, hash, state: null, key: `${pathname}${search}${hash}` });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -31,6 +36,7 @@ describe('WorkingProjectNavigationAdapter', () => {
     getRedirectPath.mockReset().mockImplementation((name) => `/models/${name}`);
     at('/models/a');
     jest.mocked(useNavigate).mockReturnValue(navigate);
+    jest.mocked(useResolvedPath).mockReturnValue({ pathname: '/models/a', search: '', hash: '' });
     jest.mocked(useWorkingProject).mockReturnValue({
       status: 'listed',
       projects: [{ name: 'a' }, { name: 'b' }],
@@ -120,6 +126,33 @@ describe('WorkingProjectNavigationAdapter', () => {
     expect(navigate).not.toHaveBeenCalled();
     expect(current.commit).toHaveBeenCalledTimes(1);
     expect(current.cancel).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { from: '/models/a', search: '', hash: '', to: 'b', destination: '/models/a/b' },
+    { from: '/models/a/details', search: '', hash: '', to: 'b', destination: '/models/a/b' },
+    {
+      from: '/models/a',
+      search: '?old=1',
+      hash: '#results',
+      to: '?tab=details',
+      destination: '/models/a?tab=details',
+    },
+  ])('should commit a resolved destination for $to', ({ from, search, hash, to, destination }) => {
+    at(from, search, hash);
+    getRedirectPath.mockReturnValueOnce(to);
+    const { rerender } = render(
+      <WorkingProjectNavigationAdapter getRedirectPath={getRedirectPath} />,
+    );
+    const request = transaction();
+    act(() => onNavigate({ name: 'b' }, request));
+    expect(navigate).toHaveBeenCalledWith(to, { replace: true });
+    expect(request.commit).not.toHaveBeenCalled();
+    const { pathname, search: destinationSearch } = new URL(destination, 'http://localhost');
+    at(pathname, destinationSearch);
+    rerender(<WorkingProjectNavigationAdapter getRedirectPath={getRedirectPath} />);
+    expect(request.commit).toHaveBeenCalledTimes(1);
+    expect(request.cancel).not.toHaveBeenCalled();
   });
 
   it('should replace the displayed URL before committing when superseding pending navigation', () => {
