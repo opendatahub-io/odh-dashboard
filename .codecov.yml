@@ -28,6 +28,12 @@ flags:
       - frontend/src/
       - packages/
     carryforward: true
+  cypress-mock-maas-portal:
+    paths:
+      - frontend/src/
+      - packages/
+      - distributions/
+    carryforward: true
 
 ignore:
   - '**/types.ts'

@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
+import { mockAAModels } from '~/__mocks__/genAiFixtures';
 import type { AAModelResponse } from '~/app/types';
 import {
   mockNamespace,
   mockNamespaces,
-  mockAAModels,
   mockEmptyList,
   mockStatus,
 } from '~/__tests__/cypress/cypress/__mocks__';
