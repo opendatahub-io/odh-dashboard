@@ -31,6 +31,7 @@ import collections
 import datetime
 import glob
 import hashlib
+import http.client
 import json
 import os
 import re
@@ -96,13 +97,34 @@ def text(v):
     return clean(v)[:200] if isinstance(v, str) and v else None
 
 
-def ns(ts):
-    """ISO string or epoch ms -> epoch ns."""
-    if ts is None:
+MAX_NS = 2**63 - 1  # OTLP timestamps are fixed64; stay in the signed range receivers accept
+
+
+def clamp_ns(v):
+    return min(max(int(v), 0), MAX_NS)
+
+
+def otlp_ns(v):
+    """An OTLP timestamp string/number -> int ns, or None if malformed."""
+    try:
+        v = int(v)
+    except (TypeError, ValueError):
         return None
-    if isinstance(ts, (int, float)):
-        return int(ts * 1_000_000)
-    return int(datetime.datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp() * 1e9)
+    return v if 0 < v <= MAX_NS else None
+
+
+def ns(ts):
+    """ISO string or epoch ms -> epoch ns; None for anything malformed or out of range."""
+    try:
+        if isinstance(ts, (int, float)) and not isinstance(ts, bool):
+            v = int(ts * 1_000_000)
+        elif isinstance(ts, str):
+            v = int(datetime.datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp() * 1e9)
+        else:
+            return None
+    except (ValueError, OverflowError, OSError):
+        return None
+    return v if 0 < v <= MAX_NS else None
 
 
 def redact(s):
@@ -150,7 +172,7 @@ def attrs(d):
 def span(trace_id, sid, parent, name, start, end, a, error=False):
     s = {
         "traceId": trace_id, "spanId": sid, "name": name, "kind": 1,
-        "startTimeUnixNano": str(start), "endTimeUnixNano": str(max(end, start)),
+        "startTimeUnixNano": str(clamp_ns(start)), "endTimeUnixNano": str(clamp_ns(max(end, start))),
         "attributes": attrs(a), "status": {"code": 2 if error else 1},
     }
     if parent:
@@ -406,6 +428,11 @@ def build(args):
     if not run_span:
         sys.exit("run-telemetry.jsonl has no run span; cannot attach")
     trace_id, run_sid = run_span["traceId"], run_span["spanId"]
+    run_start = otlp_ns(run_span.get("startTimeUnixNano"))
+    run_end = otlp_ns(run_span.get("endTimeUnixNano"))
+    if run_start is None:
+        sys.exit("run span has a malformed start time; refusing to export")
+    run_end = run_end if run_end and run_end >= run_start else run_start
     if not (OTLP_ID_RE["traceId"].fullmatch(str(trace_id)) and OTLP_ID_RE["spanId"].fullmatch(str(run_sid))):
         sys.exit("run span has a malformed traceId/spanId; refusing to export")
     agent_by_iter = {}
@@ -474,14 +501,14 @@ def build(args):
                         reads.append(a["fullsend.tool.path"])
                 got |= guidance_opened(c)
                 a.update({"fullsend.persona": persona, "fullsend.iteration": it})
-                start = c["start"] or ns(u.get("startedAt")) or int(run_span["startTimeUnixNano"])
+                start = c["start"] or ns(u.get("startedAt")) or run_start
                 spans.append(span(trace_id, span_id(trace_id, key, "tool", str(i)), parent_sid,
                                   f"execute_tool {c['name']}", start, c["end"] or start, a, c.get("error")))
             read_all |= got
             if seq is None:
                 continue
             start = ns(u.get("startedAt")) or min((c["start"] for c in calls if c["start"]), default=None) \
-                or int(run_span["startTimeUnixNano"])
+                or run_start
             dur = num(u.get("durationMs"))
             end = start + int(dur * 1_000_000) if dur else \
                 max((c["end"] for c in calls if c["end"]), default=start)
@@ -507,7 +534,6 @@ def build(args):
                               u.get("isError") is True))
             persona_rows.append((persona, num(us.get("cost")) or 0.0))
 
-    run_start, run_end = int(run_span["startTimeUnixNano"]), int(run_span["endTimeUnixNano"])
 
     # context coverage
     hit = applicable & read_all
@@ -623,7 +649,8 @@ def mlflow_trace_state(endpoint, headers, trace_id):
         if e.code != 404:
             print(f"warning: trace lookup returned HTTP {e.code}; treating the trace as new", file=sys.stderr)
         return False, False
-    except (urllib.error.URLError, ValueError, OSError) as e:  # OSError covers read timeouts
+    except (urllib.error.URLError, ValueError, OSError, http.client.HTTPException) as e:
+        # OSError covers read timeouts; HTTPException covers IncompleteRead and bad status lines
         print(f"warning: trace lookup failed ({e}); treating the trace as new", file=sys.stderr)
         return False, False
     tags = info.get("tags") or {}
@@ -673,6 +700,12 @@ def _self_test_network():
                 self._send(200, json.dumps({"trace": {"trace_info": {"tags": tags[tid]}}}).encode())
             elif tid == "e" * 32:
                 self._send(500)
+            elif tid == "d" * 32:  # declares more body than it sends, then closes
+                self.send_response(200)
+                self.send_header("Content-Length", "1000")
+                self.end_headers()
+                self.wfile.write(b'{"trace": ')
+                self.close_connection = True
             elif tid == "f" * 32:
                 import time
                 self.send_response(200)
@@ -689,6 +722,10 @@ def _self_test_network():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     ep = f"http://127.0.0.1:{srv.server_address[1]}/v1/traces"
     states = [mlflow_trace_state(ep, {}, t) for t in ("a" * 32, "b" * 32, "c" * 32, "e" * 32)]
+    try:
+        truncated_state = mlflow_trace_state(ep, {}, "d" * 32)
+    except Exception:  # noqa: BLE001 - the check is that nothing escapes
+        truncated_state = "raised"
     global LOOKUP_TIMEOUT
     saved, LOOKUP_TIMEOUT = LOOKUP_TIMEOUT, 0.3
     try:
@@ -719,7 +756,7 @@ def _self_test_network():
         bad_id_rejected = False
     except SystemExit:
         bad_id_rejected = True
-    return {"states": states, "timeout_state": timeout_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
+    return {"states": states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
 
@@ -763,7 +800,7 @@ def self_test():
                             "2026-11-03T00:00:01Z", "durationMs": 1000, "usage": {"cost": 0.01}}) + "\n")
         f.write(json.dumps({"seq": 2, "model": "m", "startedAt": "2026-11-03T00:00:01Z",
                             "durationMs": 1000, "usage": {"cost": 0.02}}) + "\n")
-        f.write(json.dumps({"seq": 3, "persona": "hostile", "durationMs": [1] * 1000,
+        f.write(json.dumps({"seq": 3, "persona": "hostile", "durationMs": [1] * 1000, "startedAt": "not-a-date",
                             "usage": {"cost": "9" * 50, "input": [1]}, "model": {"x": 1}}) + "\n")
         f.write(json.dumps(["not", "a", "row"]) + "\n")
 
@@ -791,7 +828,9 @@ def self_test():
         f.write(msg("assistant", [call("d1", "read", {"path": "/sandbox/workspace/pr-head/./docs/adr/0009-x.md"})]))
     with open(os.path.join(tr, "review-sub3-hostile-2026-11-03T00-00-01Z_h.jsonl"), "w") as f:
         f.write(msg("assistant", [call("h1", "read", {"path": "/sandbox/workspace/target-repo/x.ts"})]))
-        f.write(msg("toolResult", toolCallId="h1", durationMs=5, timestamp=1793664001900))
+        f.write(msg("toolResult", toolCallId="h1", durationMs=5, timestamp="garbage"))
+        f.write(msg("assistant", [call("h2", "read", {"path": "/sandbox/workspace/target-repo/z.ts"})]))
+        f.write(msg("toolResult", toolCallId="h2", durationMs=1e300, timestamp=10**30))
     for name in ("review-2026-11-03T00-00-00Z_o2.jsonl", "review-2026-11-03T00-10-00Z_o3.jsonl"):
         with open(os.path.join(tr, name), "w") as f:  # two orchestrator sessions in one iteration
             f.write(msg("assistant", [call("p1", "read", {"path": "/sandbox/workspace/target-repo/y.ts"})]))
@@ -843,6 +882,13 @@ def self_test():
          not any(k in bad_summary["tags"] for k in ("fullsend.verdict", "fullsend.risk", "fullsend.pr"))
          and bad_summary["pr"] is None),
         ("lookup timeout treated as a new trace", net["timeout_state"] == (False, False)),
+        ("truncated lookup response treated as a new trace", net["truncated_state"] == (False, False)),
+        ("malformed and out-of-range timestamps are rejected",
+         ns("garbage") is None and ns(True) is None and ns([1]) is None and ns(1e300) is None
+         and ns("2026-11-03T00:00:01Z") is not None),
+        ("every span time stays within the OTLP range",
+         all(0 <= int(x[k]) <= MAX_NS for x in spans for k in ("startTimeUnixNano", "endTimeUnixNano"))
+         and int(span(tid, "1" * 16, None, "x", 5, 10**30, {})["endTimeUnixNano"]) == MAX_NS),
         ("host run dir chosen over sandbox-written decoy", base_run["spanId"] == run_sid and summary["trace_id"] == tid),
         ("text under a sensitive key in Fullsend's spans redacted", "plainValue9x" not in blob),
         ("token counts under token-named keys kept", base_attrs.get("gen_ai.usage.input_tokens") == {"intValue": "42"}),
