@@ -38,6 +38,29 @@ const mockDeployment: Deployment = {
 const mockFormData: WizardFormData = mockDeploymentWizardState();
 
 describe('useFormYamlResources', () => {
+  it('should remove managedFields from form-derived YAML', () => {
+    const resources: DeploymentAssemblyResources = {
+      model: {
+        ...mockModel,
+        metadata: { ...mockModel.metadata, managedFields: [{ manager: 'kubectl' }] },
+      },
+    };
+    const renderResult = testHook(useFormYamlResources)(resources);
+
+    expect(renderResult.result.current.yaml).toBe(stringify(mockModel));
+  });
+
+  it('should remove managedFields from the initial editor YAML', () => {
+    const resources: DeploymentAssemblyResources = { model: mockModel };
+    const initialModel = {
+      ...mockModel,
+      metadata: { ...mockModel.metadata, managedFields: [{ manager: 'kubectl' }] },
+    };
+    const renderResult = testHook(useFormYamlResources)(resources, initialModel);
+
+    expect(renderResult.result.current.yaml).toBe(stringify(mockModel));
+  });
+
   it('should return form-derived yaml string by default', () => {
     const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
