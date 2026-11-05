@@ -17,13 +17,13 @@ the two diverge. This page is the source of truth for that comparison.
 
 ## Pins and drift
 
-As of 2026-11-04.
+As of 2026-11-05.
 
 | Piece | Ours | Upstream latest release | Upstream `main` |
 | --- | --- | --- | --- |
-| `fullsend` reusable workflow / CLI | `af8cd47` (v0.48.1 + fullsend#8544) | v0.54.0 (`90b7310ff`, 2026-11-03) | 840 commits ahead of ours |
-| `agents` review harness `base:` | `2da538b` (v0.48.1) | v0.54.0 (`87a43fcb`) | 339 commits ahead of ours |
-| Sandbox image | v0.48.1 digest, Pi 1.3.0 | v0.54.0, Pi 1.3.0 | Pi 1.5.0 proposed (fullsend#9000) |
+| `fullsend` reusable workflow / CLI | `af8cd47` (v0.48.1 + fullsend#8544) | v0.54.0 (`90b7310ff`, 2026-11-03) | 890 commits ahead of ours |
+| `agents` review harness `base:` | `2da538b` (v0.48.1) | v0.54.0 (`87a43fcb`) | 361 commits ahead of ours |
+| Sandbox image | v0.48.1 digest, Pi 1.3.0 | v0.54.0, Pi 1.3.0 | Pi 1.5.0 (merged, fullsend#9106, undici crash fix) |
 
 Our vendored stock personas track v0.54.0; the three pins above still sit at
 v0.48.1 and move together next.
@@ -153,7 +153,7 @@ ours upstream, or **Keep** ours behind a named upstream customisation point.
 | D5 | Challenger and `## Justifications` | Challenger is `role: synthesis`, no author rebuttal input | Challenger reads PR `## Justifications`, marks findings `justified` | Propose | Upstream issue: author justification channel for synthesis |
 | D6 | Risk and approval gate | `risk-assessment` sub-agent and risk verdict gate; per-tier sub-scores proposed ([agents#1879](https://github.com/fullsend-ai/agents/issues/1879)) | `rating` signal plus `rating-policy.json`; upstream risk-assessment switched off | Keep (open decision O3) | `risk-assessment` is a `role: synthesis` persona on `main`, so `rating` could replace it through an overlay if synthesis output can carry risk and confidence; otherwise adopt upstream's risk gate |
 | D7 | ODH reviewer skills | Personas may only emit the closed category enum (72 values) | style-review, rbac-review, product-ask, test-impact, pr-description with registry categories and section/check outputs | Keep | Added personas via `source:` work for findings only; needs an extensible category namespace (D9) |
-| D8 | Credentialed context (Jira, CodeRabbit) | No review context-provider hook planned; ADR 0141 snapshot is forge-only and unimplemented | Adapters in our `pre-review.sh`, secrets via `FULLSEND_GITHUB_RUNNER_SECRETS` (ADR 0136), output via `host_files` | Keep, propose hook | ADR 0136/0145 is the supported path and we are compatible. Upstream uses `JIRA_TOKEN`/`JIRA_USER_EMAIL`/`JIRA_API_URL`; we use `JIRA_USERNAME`/`JIRA_API_TOKEN` |
+| D8 | Credentialed context (Jira, CodeRabbit) | No review context-provider hook planned; ADR 0141 snapshot is forge-only and unimplemented | Adapters in our `pre-review.sh`, secrets via `FULLSEND_GITHUB_RUNNER_SECRETS` (ADR 0136), output via `host_files` | Keep, propose hook | ADR 0136/0145 is the supported path and we are compatible. Our [#10560](https://github.com/opendatahub-io/odh-dashboard/pull/10560) (merged 2026-11-04) now requires the scoped Atlassian gateway (`JIRA_URL` = `https://api.atlassian.com/ex/jira/<id>`) for REST, `JIRA_BASE_URL` for browse links; upstream's own scoped Jira client landed the same week (D19) |
 | D9 | Result schema | Closed `category` enum, optional `dimension`; auto-merge fields proposed ([agents#1790](https://github.com/fullsend-ai/agents/issues/1790)) | Own schema: `product_ask`, `checks`, `producers`, risk, confidence | Propose | Extensible categories and producer outputs; align field names with #1790 |
 | D10 | Result rendering | Stock `post-review.sh` (2,230 → 2,725 lines since our pin): inline threads, ledger, threshold notice ([agents#1827](https://github.com/fullsend-ai/agents/pull/1827)) | Own ~3.9k-line `post-review.sh` forked from `bb167e2`: one sticky summary, host verdict | Keep (open decision O4) | Largest fork cost. Port small fixes; decide whether to converge |
 | D11 | Outcome labels | Clears `ready-for-merge` at review start ([agents#1719](https://github.com/fullsend-ai/agents/pull/1719)) | Clears stale labels only at post time | Adopt | Port into our `pre-review.sh` |
@@ -192,6 +192,9 @@ it. Noise (GitLab, GHES, scribe, signed commits, retry fixes) is left out.
 | Finding ids stay on their stamped review threads | [2de650b](https://github.com/fullsend-ai/agents/commit/2de650b) | v0.54.0 | D12 (not carried) |
 | Dependency scoping for stacked PRs | [39f7acb](https://github.com/fullsend-ai/agents/commit/39f7acb) … [6544323](https://github.com/fullsend-ai/agents/commit/6544323) | v0.54.0 | D17 |
 | Config `create_issues` replaced by `tracker` mappings; retro/triage honor allowed targets; `repos install` migrates legacy config | [agents#1881](https://github.com/fullsend-ai/agents/pull/1888) and follow-ups | `main` (post-v0.54.0) | P5 only; review config has no `create_issues`. Pilot [#111](https://github.com/Gkrumbach07/odh-dashboard/pull/111) config migrates on its next pin bump |
+| Fix agent updates a stale PR/MR title and body when scope changes | [306d678](https://github.com/fullsend-ai/agents/commit/306d678) (#519) | `main` | Fix/coder agent (we run it); fix-result schema, not review-result |
+| Drop the duplicate risk-assessment marker from the comment body | [f8dbd5b](https://github.com/fullsend-ai/agents/commit/f8dbd5b) (#1885) | `main` | Stock `post-review.sh`; not carried (we fork post-review and do not run risk-assessment) |
+| Proposed: add `.fullsend/` (per-repo harness overlays and config) to the default `REVIEW_PROTECTED_PATHS` | [agents#1893](https://github.com/fullsend-ai/agents/issues/1893) | open proposal | Our `rating-policy.json` already excludes `protected-path`; watch for the default-list change |
 
 ### fullsend-ai/fullsend (`af8cd47`..`main`)
 
@@ -203,7 +206,8 @@ removed. The changes that matter are behavioural.
 | --- | --- | --- | --- |
 | Review-findings marker fix we pin past (#8544) | [cb06ac392](https://github.com/fullsend-ai/fullsend/commit/cb06ac392) | v0.49.0 | Our pin can move to a release tag |
 | `pi`, `node` and `python3` must come from agent-unwritable PATH dirs; Pi children start through the pinned node; `#!/usr/bin/env` shebangs other than `node` refused; Pi runs without recorded hook settings refused (ADR 0152) | [540deae43](https://github.com/fullsend-ai/fullsend/commit/540deae43), [50ef6254a](https://github.com/fullsend-ai/fullsend/commit/50ef6254a), [976dd85cc](https://github.com/fullsend-ai/fullsend/commit/976dd85cc) | v0.49.0–v0.53.0 | `runtime: pi` and the `image:` pin: move the image with the CLI |
-| `validation_loop.preflight_check` runs in an allowlisted minimal env; path-shaped values are lint errors | [48ced5579](https://github.com/fullsend-ai/fullsend/commit/48ced5579), [59b7d19e2](https://github.com/fullsend-ai/fullsend/commit/59b7d19e2) | v0.51.0–v0.52.0 | Our inherited `python3 -c "import jsonschema"` probe |
+| `validation_loop.preflight_check` runs in an allowlisted minimal env; path-shaped values are lint errors; a top-level `preflight_check` is proposed ([#8833](https://github.com/fullsend-ai/fullsend/pull/8833)) | [48ced5579](https://github.com/fullsend-ai/fullsend/commit/48ced5579), [59b7d19e2](https://github.com/fullsend-ai/fullsend/commit/59b7d19e2) | v0.51.0–v0.52.0 / proposed | Our inherited `python3 -c "import jsonschema"` probe |
+| Config loader warnings/robustness: warn when a repo config still uses the removed `roles:` gate with no `agents:` key ([#9096](https://github.com/fullsend-ai/fullsend/issues/9096)); fall back to defaults on per-repo parse errors ([#9098](https://github.com/fullsend-ai/fullsend/issues/9098)); harness secret guard refuses shadowed `.event`/`.runtime` ([#9107](https://github.com/fullsend-ai/fullsend/pull/9107)) | — | open / `main` | D14 — our `config.yaml` still uses `roles:`, so the bump warns and `roles:` stops gating |
 | Sandbox `.env` parsed as data, not sourced | [eeadc03d0](https://github.com/fullsend-ai/fullsend/commit/eeadc03d0) | v0.49.0 | None (we never write `.env`) |
 | `roles:` no longer gates; our shim `if:` is what keeps triage, retro and prioritize off | [#7786](https://github.com/fullsend-ai/fullsend/pull/7786) | v0.51.0 | D14 |
 | `action.yml` `exec`s `fullsend run`, so cancel sends SIGTERM to the CLI | [66b444a36](https://github.com/fullsend-ai/fullsend/commit/66b444a36) | v0.49.0 | Whether our `post_script` runs on cancel (unverified) |
@@ -212,7 +216,7 @@ removed. The changes that matter are behavioural.
 | Skill file overrides from a `base:` harness: add/replace/disable single `pr-review` files; `personas.json` manifest written; `FULLSEND_PERSONAS_FILE` reserved | [#6158](https://github.com/fullsend-ai/fullsend/pull/6158)/[#8970](https://github.com/fullsend-ai/fullsend/pull/8970), [83af920c5](https://github.com/fullsend-ai/fullsend/commit/83af920c5) | v0.54.0 | D1, O2 — the customization point to retire our vendored skill; our list-form `skills:` is unaffected |
 | CEL `agents[].trigger` dispatch denies non-label events from bots not registered with the mint (Dependabot, Renovate); own bots' `/fs-` comments now reach triggers | [#8414](https://github.com/fullsend-ai/fullsend/pull/8414)!, [e7565147a](https://github.com/fullsend-ai/fullsend/commit/e7565147a) | v0.54.0 | D13 — when we move the shim `if:` into `agents[].trigger`, Renovate/Dependabot PRs need a `ready-for-review` label |
 | `base:` lock drift fails until `fullsend lock --update`; equal duplicate overrides treated as agreement | [#8979](https://github.com/fullsend-ai/fullsend/pull/8979)!, [#8981](https://github.com/fullsend-ai/fullsend/pull/8981)! | v0.54.0 | None unless we adopt `fullsend lock` / overlays |
-| Jira API URL separated from the site URL so Atlassian service accounts work (ADR 0156) | [#9024](https://github.com/fullsend-ai/fullsend/pull/9024), [#9033](https://github.com/fullsend-ai/fullsend/pull/9033) (draft), [agents#1878](https://github.com/fullsend-ai/agents/pull/1878) | proposed / `main` | D8, D19 — upstream converging on our [#10560](https://github.com/opendatahub-io/odh-dashboard/pull/10560) gateway split |
+| Jira API URL separated from the site URL so Atlassian service accounts work (ADR 0156); shared scoped Jira client for service-account/bot tokens now **merged** | [#9024](https://github.com/fullsend-ai/fullsend/pull/9024), [#9007](https://github.com/fullsend-ai/fullsend/pull/9115) (`9743a92bc`), repo-secrets-through-workflows [#9079](https://github.com/fullsend-ai/fullsend/issues/9079), [agents#1878](https://github.com/fullsend-ai/agents/pull/1878)/[#1900](https://github.com/fullsend-ai/agents/issues/1900) | `main` | D8, D19 — upstream landed the same scoped-token gateway split as our [#10560](https://github.com/opendatahub-io/odh-dashboard/pull/10560); converging |
 | ADR 0158: a matching overlay may grant runtime fetch (`allowed_remote_resources`, `allow_runtime_fetch`) within the config allowlist | [#9086](https://github.com/fullsend-ai/fullsend/pull/9086) | `main` (decided, not implemented) | D1 — overlay capability we would use to adopt overlays |
 | ADRs 0144–0159 on `main`; 0151 plans a harness `human_min_role` (not in code). ADR 0155 (subagents source/enabled) still open, `ready-for-merge` | `docs/ADRs` | v0.53.0 / `main` | 0145, 0151, 0152 touch us; 0155–0158 are the overlay/Jira path |
 
@@ -230,7 +234,7 @@ Planned changes on our side, and how each meets upstream.
 | P2 | Deterministic checks (BFF config, flag defaults, operator RBAC) as producers | Pilot branch | Same direction as upstream's move from prose to scripts ([agents#1803](https://github.com/fullsend-ai/agents/issues/1803)); needs a `check` role |
 | P3 | Soft-block until an area OWNER took part | [RHOAIENG-102089](https://redhat.atlassian.net/browse/RHOAIENG-102089) | Host policy; upstream has no OWNERS concept |
 | P4 | Only critical/high block; medium goes to human judgement | [odh-dashboard#10539](https://github.com/opendatahub-io/odh-dashboard/pull/10539) | Local `rating-policy.json` |
-| P5 | Jira-driven `/fs-code` on RHOAIENG | [Fork #111](https://github.com/Gkrumbach07/odh-dashboard/pull/111) | Upstream is moving Jira config under `tracking.jira` and `fullsend repos` ([fullsend#8906](https://github.com/fullsend-ai/fullsend/issues/8906)); authorization lists in [fullsend#8892](https://github.com/fullsend-ai/fullsend/pull/8892) (main); multi-record collision [fullsend#8961](https://github.com/fullsend-ai/fullsend/issues/8961) open. Overlaps jira-autofix |
+| P5 | Jira-driven `/fs-code` on RHOAIENG (ODH-repos pilot, [AISDLC-606](https://redhat.atlassian.net/browse/AISDLC-606), targeting Fri 2026-11-06) | [Fork #111](https://github.com/Gkrumbach07/odh-dashboard/pull/111) | Jira config moving under `tracker.jira`/`fullsend repos` ([fullsend#8906](https://github.com/fullsend-ai/fullsend/issues/8906), contract merged #9035/#9091), authorization lists ([#8892](https://github.com/fullsend-ai/fullsend/pull/8892)), repo-secrets-through-workflows ([#9079](https://github.com/fullsend-ai/fullsend/issues/9079)). **Public-repo data boundary:** upstream now has config to quiet the live progress log ([#9123](https://github.com/fullsend-ai/fullsend/issues/9123)) and stop publishing agent transcripts in the run artifact ([#9122](https://github.com/fullsend-ai/fullsend/issues/9122)), plus a problem doc on private context in public workflows ([#8944](https://github.com/fullsend-ai/fullsend/pull/8944)) — relevant to the Jira→public-GitHub boundary Gage raised. Overlaps jira-autofix |
 | P6 | Open upstream proposals, then shrink the vendored skill | [RHOAIENG-100805](https://redhat.atlassian.net/browse/RHOAIENG-100805), [RHOAIENG-100806](https://redhat.atlassian.net/browse/RHOAIENG-100806) | D1, D2, D5, D9, D16, D19 |
 | P7 | Weekly docs and guidance consistency agent | [RHOAIENG-100808](https://redhat.atlassian.net/browse/RHOAIENG-100808) | Could run as an upstream scheduled agent |
 
@@ -270,7 +274,7 @@ Orange: ours. Dashed blue: needs an upstream change we propose.
 | O2 | Move our finding personas to the `base:`-harness file overrides (shipped in v0.54.0, #6158) now, or keep the forked skill until the config-level ADR 0155 form lands | Monarch | Now actionable (harness override released) |
 | O3 | Keep the `rating` signal, or adopt upstream's risk-assessment gate | Christian, Gage | With O2 |
 | O4 | Keep our sticky renderer, or converge on stock `post-review.sh` with a policy hook | Christian | With O2 |
-| O5 | Meet Eder on carrying our review ideas upstream and the Jira→code rollout ([thread](https://redhat-internal.slack.com/archives/C0AL1K8E7MX/p1793653336518279)) | Gage, Christian | Open |
+| O5 | Carry our review ideas upstream and run the Jira→code rollout — now formalized as [AISDLC-606](https://redhat.atlassian.net/browse/AISDLC-606) (ODH-repos pilot, owners in the [#forum-fullsend-ai thread](https://redhat-internal.slack.com/archives/C0AL1K8E7MX/p1793836860951589), Fri 2026-11-06 target); notebooks/workbenches onboarding queued ([AISDLC-602](https://redhat.atlassian.net/browse/AISDLC-602)/[603](https://redhat.atlassian.net/browse/AISDLC-603)) | Gage, Christian | In progress |
 
 ## Bump plan
 
@@ -289,7 +293,9 @@ dependency-scope section, which references a script we do not vendor).
    tag commit (`90b7310ff`), the harness `base:` (SHA and `#sha256=`) to
    agents v0.54.0 (`87a43fcb`) and the sandbox image digest to v0.54.0.
    With it:
-   - Disable unused agents with `agents[].enabled: false` (D14).
+   - Disable unused agents with `agents[].enabled: false` (D14). Our `config.yaml`
+     still carries `roles:`, which stops gating and now triggers a config warning
+     ([#9096](https://github.com/fullsend-ai/fullsend/issues/9096)); drop it.
    - Diff our shim against upstream's `shim-per-repo.yaml` template
      (bot `/fs-` comments now pass) and keep `id-token: write` on `dispatch`.
    - Rebase our `pre-review.sh` edits onto the v0.54.0 bundle; re-test
