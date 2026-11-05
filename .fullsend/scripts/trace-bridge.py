@@ -207,8 +207,13 @@ def sanitize_value(v, sensitive=False, depth=0):
         return {"intValue": str(i)} if i is not None and -2**63 <= i < 2**63 else None
     if "doubleValue" in v:
         d = v["doubleValue"]
-        ok = isinstance(d, (int, float)) and not isinstance(d, bool) and math.isfinite(d)
-        return {"doubleValue": float(d)} if ok else None
+        if not isinstance(d, (int, float)) or isinstance(d, bool):
+            return None
+        try:
+            d = float(d)  # a huge JSON integer raises OverflowError here
+        except OverflowError:
+            return None
+        return {"doubleValue": d} if math.isfinite(d) else None
     if "boolValue" in v:
         return {"boolValue": v["boolValue"]} if isinstance(v["boolValue"], bool) else None
     return {"stringValue": "[REDACTED]"}  # bytesValue or unknown
@@ -816,6 +821,7 @@ def self_test():
                                      {"key": "bad.double", "value": {"doubleValue": float("nan")}},
                                      {"key": "bad.int", "value": {"intValue": [1, 2]}},
                                      {"key": "bad.bool", "value": {"boolValue": "yes"}},
+                                     {"key": "bad.huge", "value": {"doubleValue": 10**400}},
                                      {"key": "ok.double", "value": {"doubleValue": 1.5}},
                                      {"key": "deep", "value": {"arrayValue": {"values": [
                                          {"doubleValue": float("inf")}, {"intValue": "7"}, "junk"]}}},
@@ -936,7 +942,7 @@ def self_test():
          any(x["name"] == "sandbox_create" and x["endTimeUnixNano"] == "1500000000" and "kind" not in x
              for x in spans) and not any(x["name"] == "bad_start" for x in spans)),
         ("invalid numbers on Fullsend spans are dropped, valid ones kept",
-         not any(k in base_attrs for k in ("bad.double", "bad.int", "bad.bool"))
+         not any(k in base_attrs for k in ("bad.double", "bad.int", "bad.bool", "bad.huge"))
          and base_attrs.get("ok.double") == {"doubleValue": 1.5}
          and base_attrs.get("deep") == {"arrayValue": {"values": [{"intValue": "7"}]}}),
         ("payload serializes as strict JSON (no Infinity/NaN)",
