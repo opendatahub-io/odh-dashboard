@@ -125,6 +125,8 @@ func TestProxyDiagnosticsPreserveProseWithShortCredentials(t *testing.T) {
 				"the basic configuration is invalid: spec.replicas must be a positive integer",
 				"bearer permissions require administrator approval",
 				"the basic configurationrequirements are invalid",
+				"the private key and session configuration require a secret reference",
+				"session_timeout=30, private_key_format=PEM, secret_reference=app",
 			} {
 				require.Equal(t, message, redact(message))
 			}
@@ -145,6 +147,14 @@ func TestProxyDiagnosticsRedactShortCredentialsInContext(t *testing.T) {
 		"Cookie: session=test",
 		"password=test",
 		"token=test",
+		"AWS_SECRET_ACCESS_KEY=test",
+		"secret=test",
+		"secret_access_key='test'",
+		"privateKey: test",
+		"TLS_PRIVATE_KEY=\"test\"",
+		"session: test",
+		"session_id=test",
+		"AWS_SESSION_TOKEN=test",
 		"base64url.bearer.authorization.k8s.io.dGVzdA",
 	} {
 		out := redact(message)

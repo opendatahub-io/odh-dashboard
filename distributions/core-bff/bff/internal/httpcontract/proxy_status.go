@@ -19,7 +19,7 @@ const (
 
 var credentialText = regexp.MustCompile(`(?i)\b(?:bearer|basic)\s+[a-z0-9._~+/=-]+`)
 var bearerSubprotocolText = regexp.MustCompile(`(?i)base64url\.bearer\.authorization\.k8s\.io\.[a-z0-9_-]+`)
-var credentialAssignment = regexp.MustCompile(`(?i)\b(?:authorization|proxy-authorization|token|access[_-]?token|refresh[_-]?token|client[_-]?secret|password|api[_-]?key)\s*[:=]\s*(?:(?:bearer|basic)\s+)?(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)`)
+var credentialAssignment = regexp.MustCompile(`(?i)\b(?:authorization|proxy-authorization|token|access[_-]?token|refresh[_-]?token|client[_-]?secret|password|api[_-]?key|(?:[a-z0-9]+[_-])*(?:secret(?:[_-]?(?:access[_-]?)?key)?|private[_-]?key|session(?:[_-]?(?:id|token|key))?))\s*[:=]\s*(?:(?:bearer|basic)\s+)?(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)`)
 
 // ProxyStatus preserves diagnostics that Kubernetes returned using the caller's
 // credentials. Native handlers must use SanitizeStatus instead: their upstream
