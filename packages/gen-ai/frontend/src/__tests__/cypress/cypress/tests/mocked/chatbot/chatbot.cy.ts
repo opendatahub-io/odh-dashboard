@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { chatbotPage } from '~/__tests__/cypress/cypress/pages/chatbotPage';
-import { mockAAModel, mockAAModels } from '~/__tests__/cypress/cypress/__mocks__/mockAAModels';
+import { mockAAModel, mockAAModels } from '~/__mocks__/genAiFixtures';
 
 // Use mock-test-namespace-2 which has LSD configured and ready in the BFF
 const TEST_NAMESPACE = 'mock-test-namespace-2';

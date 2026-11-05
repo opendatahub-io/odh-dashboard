@@ -405,7 +405,13 @@ The ValidatingWebhookConfiguration uses cert-manager's `inject-ca-from` annotati
 
 ### Metrics TLS
 
-The metrics endpoint binds to port 8443 with HTTPS enabled by default (`--secure-metrics=true`). Certificates are mounted from the metrics-tls secret at `/tmp/k8s-metrics-server/serving-certs`. HTTP/2 is disabled (via TLS NextProtos) to mitigate CVE-2023-44487 (HTTP/2 rapid reset attack).
+The metrics endpoint binds to port 8443 with HTTPS enabled by default (`--secure-metrics=true`). Certificates are mounted from the metrics-tls secret at `/tmp/k8s-metrics-server/serving-certs`.
+
+HTTP/2 is **enabled** on both the metrics and webhook listeners: the resolved TLS options
+(`internal/tls`) advertise ALPN `h2` and `http/1.1`, and the manager does not add a
+disable-HTTP/2 option. CVE-2023-44487 (HTTP/2 rapid reset) is mitigated by the Go HTTP/2
+server itself (fixed in Go 1.21.3 / 1.20.10, which bound concurrent stream handlers), not by
+turning HTTP/2 off.
 
 ### Certificate DNS Names
 
@@ -427,6 +433,18 @@ the manager logs the error and exits (`os.Exit(1)`) rather than serving a weaker
 policy that cannot be proven to match the cluster. A nil/empty profile resolves to
 Mozilla Intermediate defaults (TLS 1.2), and on a non-OpenShift cluster (the API
 group is absent) the manager likewise uses Intermediate defaults.
+
+The one exception to fail-closed is a **transient** read error at startup (service
+unavailable, timeout, server timeout, too-many-requests, or the 10s resolve deadline
+expiring). Rather than crash-loop through an API brownout, the manager starts with
+Intermediate defaults (TLS 1.2) and records the profile as `Intermediate`. The metrics
+and webhook listeners therefore serve TLS 1.2, even if the cluster requires `Modern`,
+**until the `ProfileWatcher` (below) successfully reads the real profile**. The 10s
+deadline bounds only the initial resolve; the watcher retries failed reads with no
+application-level limit, so a prolonged API outage keeps the listeners on TLS 1.2 for as
+long as it lasts. Once the read succeeds and the profile differs, the watcher restarts
+the manager onto the real policy.
+This mirrors the startup leniency of the BFF and notebooks listeners.
 
 Unlike the BFF listeners (which reconfigure in-process), the operator does not
 hot-swap TLS on a running listener. A `ProfileWatcher` watches
