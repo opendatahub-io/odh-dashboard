@@ -575,6 +575,17 @@ describe('isAreaAvailable', () => {
       expect(isAvailable.status).toBe(true);
     });
 
+    it('should be unavailable when the DSC status is null', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.DS_PIPELINES_ARGO_INVALID,
+        mockDashboardConfig({ disablePipelines: false }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+    });
+
     it.each(['True', 'Unknown'])(
       'should be unavailable when the Argo condition is %s',
       (status) => {

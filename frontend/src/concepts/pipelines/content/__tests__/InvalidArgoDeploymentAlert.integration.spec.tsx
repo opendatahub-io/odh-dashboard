@@ -63,6 +63,17 @@ describe('InvalidArgoDeploymentAlert area wiring', () => {
     expect(screen.getByTestId('invalid-argo-alert')).toBeInTheDocument();
   });
 
+  it('should show the alert when aipipelines is absent', () => {
+    renderWithRealArea(
+      mockDscStatus({
+        components: {},
+        conditions: [{ type: 'CapabilityDSPv2Argo', status: 'False' }],
+      }),
+    );
+
+    expect(screen.getByTestId('invalid-argo-alert')).toBeInTheDocument();
+  });
+
   it('should not show the alert when the DSC has no Argo condition', () => {
     renderWithRealArea(mockDscStatus({ conditions: [] }));
 
