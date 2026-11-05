@@ -1,6 +1,9 @@
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { ensureAdminOcSession, hasNvidiaGpus } from '../../../utils/oc_commands/baseCommands';
-import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
+import {
+  cleanupHardwareProfile,
+  cleanupHardwareProfiles,
+} from '../../../utils/oc_commands/hardwareProfiles';
 import { createCustomResource } from '../../../utils/oc_commands/customResources';
 
 /**
@@ -36,6 +39,15 @@ describe('GPU HardwareProfile lifecycle', () => {
         }
 
         return cleanupHardwareProfiles(hardwareProfileName)
+          .then((cleanupResult) => {
+            if (cleanupResult.exitCode !== 0) {
+              throw new Error(
+                `Failed to clean up stale HardwareProfile before creation: ${
+                  cleanupResult.stderr || cleanupResult.stdout
+                }`,
+              );
+            }
+          })
           .then(() =>
             createCustomResource(
               Cypress.env('APPLICATIONS_NAMESPACE'),
@@ -60,7 +72,7 @@ describe('GPU HardwareProfile lifecycle', () => {
       return;
     }
     return ensureAdminOcSession()
-      .then(() => cleanupHardwareProfiles(hardwareProfileName))
+      .then(() => cleanupHardwareProfile(hardwareProfileName))
       .then((result) => {
         if (result.exitCode !== 0) {
           cy.log(
