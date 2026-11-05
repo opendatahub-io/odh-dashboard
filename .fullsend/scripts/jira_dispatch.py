@@ -9,6 +9,7 @@ fullsend#8961; delete with fullsend-code-jira.yaml once fullsend#9003 ships.
 from datetime import datetime, timedelta, timezone
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -126,8 +127,14 @@ def api(endpoint, payload=None):
             check=True,
         )
     except subprocess.CalledProcessError as err:
-        # Keep gh's error message in the job log; callers still see the raise.
-        print(f"gh api {endpoint} failed: {err.stderr.strip()}", file=sys.stderr)
+        # Log only the endpoint, exit code and HTTP status: gh's error text can
+        # echo response content, which does not belong in a public job log.
+        status = re.search(r"HTTP (\d{3})", err.stderr or "")
+        print(
+            f"gh api {endpoint} failed (exit {err.returncode}, "
+            f"HTTP {status.group(1) if status else 'unknown'})",
+            file=sys.stderr,
+        )
         raise
     return json.loads(result.stdout) if result.stdout.strip() else None
 

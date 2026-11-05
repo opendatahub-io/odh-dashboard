@@ -251,14 +251,26 @@ class KeysTests(unittest.TestCase):
 
 
 class ApiTests(unittest.TestCase):
-    def test_failed_gh_call_logs_its_error_and_raises(self):
-        err = subprocess.CalledProcessError(1, "gh", stderr="HTTP 404: Not Found\n")
+    def _logged_failure(self, stderr_text):
+        err = subprocess.CalledProcessError(1, "gh", stderr=stderr_text)
         with mock.patch.object(dispatch.subprocess, "run", side_effect=err), mock.patch(
             "sys.stderr"
         ) as stderr, self.assertRaises(subprocess.CalledProcessError):
             dispatch.api("repos/x/y/actions/runs/1")
-        logged = "".join(call.args[0] for call in stderr.write.call_args_list)
-        self.assertIn("gh api repos/x/y/actions/runs/1 failed: HTTP 404: Not Found", logged)
+        return "".join(call.args[0] for call in stderr.write.call_args_list)
+
+    def test_failed_gh_call_logs_status_only_and_raises(self):
+        logged = self._logged_failure(
+            'gh: Not Found (HTTP 404)\n{"message":"Not Found","secret_hint":"s3cr3t-value"}\n'
+        )
+        self.assertIn("gh api repos/x/y/actions/runs/1 failed (exit 1, HTTP 404)", logged)
+        self.assertNotIn("s3cr3t-value", logged)
+        self.assertNotIn("Not Found", logged)
+
+    def test_failed_gh_call_without_status_says_unknown(self):
+        logged = self._logged_failure("connection reset by peer token=abc123\n")
+        self.assertIn("(exit 1, HTTP unknown)", logged)
+        self.assertNotIn("abc123", logged)
 
 
 class WorkflowContractTests(unittest.TestCase):
