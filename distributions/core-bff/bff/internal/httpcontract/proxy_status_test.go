@@ -112,6 +112,7 @@ func TestProxyStatusRedactsQuotedCredentialAssignments(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil)
 	for _, assignment := range []string{
 		`{"password":"SHORT secret, with spaces","client_secret":"SECOND secret"}`,
+		`{"DB_PASSWORD":"SHORT secret","OPENAI_API_KEY":"SECOND secret","X-Forwarded-Access-Token":"THIRD secret"}`,
 		`{'token': 'SHORT secret, with spaces', 'AWS_SECRET_ACCESS_KEY': 'SECOND secret'}`,
 		`password="SHORT secret, with spaces"; token='SECOND secret'`,
 		`{"password":"SHORT \"quoted\" secret","client_secret":"SECOND secret\\"}`,
@@ -125,6 +126,7 @@ func TestProxyStatusRedactsQuotedCredentialAssignments(t *testing.T) {
 				for _, text := range []string{out.Message, out.Details.Causes[0].Message} {
 					require.NotContains(t, text, "SHORT")
 					require.NotContains(t, text, "SECOND")
+					require.NotContains(t, text, "THIRD")
 					require.NotContains(t, text, "secret")
 					require.Contains(t, text, "[redacted credential]")
 					require.Contains(t, text, "spec.replicas must be positive")
@@ -157,6 +159,7 @@ func TestProxyDiagnosticsPreserveProseWithShortCredentials(t *testing.T) {
 				"the basic configurationrequirements are invalid",
 				"the private key and session configuration require a secret reference",
 				"session_timeout=30, private_key_format=PEM, secret_reference=app",
+				"password_policy=strong, api_key_format=opaque, token_endpoint=service",
 			} {
 				require.Equal(t, message, redact(message))
 			}
@@ -177,6 +180,9 @@ func TestProxyDiagnosticsRedactShortCredentialsInContext(t *testing.T) {
 		"Cookie: session=test",
 		"password=test",
 		"token=test",
+		"DB_PASSWORD=test",
+		"OPENAI_API_KEY=test",
+		"X-Forwarded-Access-Token=test",
 		"AWS_SECRET_ACCESS_KEY=test",
 		"secret=test",
 		"secret_access_key='test'",

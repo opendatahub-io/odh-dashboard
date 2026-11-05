@@ -148,24 +148,19 @@ func proxyDiagnosticRedactor(r *http.Request) func(string) string {
 
 // isKnownCredentialName recognizes explicit credential contexts; it is not a complete secret detector.
 func isKnownCredentialName(name string) bool {
-	prefixed := false
 	for {
 		normalized := strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(name), "_", ""), "-", "")
 		switch normalized {
-		case "authorization", "proxyauthorization", "token", "accesstoken", "refreshtoken", "clientsecret", "password", "apikey":
-			if !prefixed {
-				return true
-			}
-		case "secret", "secretkey", "secretaccesskey", "privatekey", "session", "sessionid", "sessiontoken", "sessionkey":
+		case "authorization", "proxyauthorization", "token", "accesstoken", "refreshtoken", "clientsecret", "password", "apikey",
+			"secret", "secretkey", "secretaccesskey", "privatekey", "session", "sessionid", "sessiontoken", "sessionkey":
 			return true
 		}
-		// These secret names also occur with service prefixes, such as AWS_SECRET_ACCESS_KEY.
+		// Credential names also occur with service prefixes, such as DB_PASSWORD.
 		separator := strings.IndexAny(name, "_-")
 		if separator < 0 {
 			return false
 		}
 		name = name[separator+1:]
-		prefixed = true
 	}
 }
 
