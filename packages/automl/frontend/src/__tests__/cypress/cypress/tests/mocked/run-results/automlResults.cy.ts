@@ -51,6 +51,10 @@ describe('AutoML Results Page', () => {
         });
       });
 
+      automlResultsPage.findReconfigureButton().should('have.class', 'pf-m-link');
+      automlResultsPage.findRunNotebookDownloadButton().should('have.class', 'pf-m-link');
+      automlResultsPage.findRunDetailsButton().should('have.class', 'pf-m-link');
+
       // At a narrower viewport the actions stay reachable without page-level
       // horizontal overflow.
       cy.viewport(900, 660);

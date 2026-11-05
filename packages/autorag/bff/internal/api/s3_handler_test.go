@@ -746,6 +746,13 @@ func TestHandleS3RepoError(t *testing.T) {
 			wantBodyContains: "already exists",
 		},
 		{
+			name:             "s3 ErrUploadChecksumRejected",
+			err:              fmt.Errorf("wrapped: %w", s3.ErrUploadChecksumRejected),
+			key:              "file.csv",
+			wantStatusCode:   http.StatusBadRequest,
+			wantBodyContains: s3.UploadChecksumRejectedMessage,
+		},
+		{
 			name:             "repositories ErrDSPAConfiguration",
 			err:              fmt.Errorf("DSPA problem: %w", repositories.ErrDSPAConfiguration),
 			key:              "",

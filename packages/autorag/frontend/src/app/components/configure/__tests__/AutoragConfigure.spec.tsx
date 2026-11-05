@@ -1146,10 +1146,10 @@ describe('AutoragConfigure', () => {
       expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
       expect(screen.getByTestId('selected-models-warning')).toHaveClass('pf-v6-c-alert');
       expect(screen.queryByRole('heading', { name: 'Selected models' })).not.toBeInTheDocument();
-      expect(screen.getByText('Selected models')).toHaveClass('pf-v6-c-alert__title');
+      expect(screen.getByText('No models selected')).toHaveClass('pf-v6-c-alert__title');
       expect(
         screen.getByText(
-          'No models selected. Select chat and embedding models to run the experiment.',
+          'To run the experiment, select a foundation model and an embedding model.',
         ),
       ).toBeInTheDocument();
       expect(screen.queryByText('No foundation models selected')).not.toBeInTheDocument();

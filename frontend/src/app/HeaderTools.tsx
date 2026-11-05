@@ -23,6 +23,7 @@ import { updateImpersonateSettings } from '#~/services/impersonateService';
 import { AppNotification } from '#~/redux/types';
 import { useAppSelector } from '#~/redux/hooks';
 import AboutDialog from '#~/app/AboutDialog';
+import { useIsGuidedTourAvailable } from '#~/concepts/whatsNew/useIsGuidedTourAvailable';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';
@@ -47,7 +48,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const { dashboardConfig } = useAppContext();
   const { theme, setAllThemes } = useThemeContext();
   const notification = useNotification();
-  const isGuidedTourAvailable = useIsAreaAvailable(SupportedArea.GUIDED_TOUR).status;
+  const isGuidedTourAvailable = useIsGuidedTourAvailable();
   const unifiedProjectSelectorEnabled = useIsAreaAvailable(
     SupportedArea.UNIFIED_PROJECT_SELECTOR,
   ).status;

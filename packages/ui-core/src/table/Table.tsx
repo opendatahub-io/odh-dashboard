@@ -7,11 +7,15 @@ import useTableColumnSort from './useTableColumnSort';
 type TableProps<DataType> = Omit<
   React.ComponentProps<typeof TableBase<DataType>>,
   'itemCount' | 'onPerPageSelect' | 'onSetPage' | 'page' | 'perPage'
-> &
-  EitherNotBoth<
+> & {
+  onSort?: (columnIndex: number, direction: 'asc' | 'desc') => void;
+  onPagination?: (action: 'first' | 'previous' | 'next' | 'last', currentPage: number) => void;
+} & EitherNotBoth<
     { disableRowRenderSupport?: boolean },
     { tbodyProps?: TbodyProps & { ref?: React.Ref<HTMLTableSectionElement> } }
   >;
+
+type PaginationAction = 'first' | 'previous' | 'next' | 'last';
 
 const Table = <T,>({
   data: allData,
@@ -19,12 +23,22 @@ const Table = <T,>({
   subColumns,
   enablePagination,
   defaultSortColumn = 0,
+  onSort,
+  onPagination,
   truncateRenderingAt = 0,
   ...props
 }: TableProps<T>): React.ReactElement => {
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(MIN_PAGE_SIZE);
-  const sort = useTableColumnSort<T>(columns, subColumns || [], defaultSortColumn);
+  const createPaginationHandler = React.useCallback(
+    (action: PaginationAction) =>
+      (_event: React.SyntheticEvent<HTMLButtonElement>, newPage: number) => {
+        setPage(newPage);
+        onPagination?.(action, newPage);
+      },
+    [onPagination],
+  );
+  const sort = useTableColumnSort<T>(columns, subColumns || [], defaultSortColumn, false, onSort);
   const sortedData = sort.transformData(allData);
 
   let data: T[];
@@ -52,12 +66,16 @@ const Table = <T,>({
       itemCount={allData.length}
       perPage={pageSize}
       page={page}
-      onSetPage={(e, newPage) => setPage(newPage)}
+      onSetPage={(_event, newPage) => setPage(newPage)}
       onPerPageSelect={(e, newSize, newPage) => {
         setPageSize(newSize);
         setPage(newPage);
       }}
       getColumnSort={sort.getColumnSort}
+      onFirstClick={createPaginationHandler('first')}
+      onPreviousClick={createPaginationHandler('previous')}
+      onNextClick={createPaginationHandler('next')}
+      onLastClick={createPaginationHandler('last')}
       {...props}
     />
   );

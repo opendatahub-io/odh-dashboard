@@ -23,6 +23,10 @@ import {
 } from '~/app/components/ConnectionType.tsx';
 import { createConnection } from '~/app/api/dch.ts';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard.tsx';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+} from '~/app/utilities/tracking';
 
 // Types ---------------------------------------------------------------------->
 
@@ -94,7 +98,13 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
               <Button
                 variant="primary"
                 data-testid="connection-type-details-create-connection"
-                onClick={() => setIsConnectionWizardOpen(true)}
+                onClick={() => {
+                  fireDataConnectHubTrackEvent({
+                    eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
+                    properties: { project: namespace, source: 'connection_type_catalog' },
+                  });
+                  setIsConnectionWizardOpen(true);
+                }}
               >
                 Create connection
               </Button>
@@ -118,9 +128,9 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
             isOpen={isConnectionWizardOpen}
             namespace={namespace}
             onClose={() => setIsConnectionWizardOpen(false)}
-            onCreate={async (data, selectedNamespace) => {
-              await createConnection('')({}, selectedNamespace, data);
-            }}
+            onCreate={(data, selectedNamespace) =>
+              createConnection('')({}, selectedNamespace, data)
+            }
             initialFormData={initialFormData}
           />
         )}

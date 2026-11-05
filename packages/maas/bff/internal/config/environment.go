@@ -125,4 +125,6 @@ type EnvConfig struct {
 	MaasApiInternalUrl        string
 	MaasApiNamespace          string
 	MaaSSubscriptionNamespace string
+	// PersesNamespace is the namespace containing the approved MaaS usage dashboards.
+	PersesNamespace string
 }

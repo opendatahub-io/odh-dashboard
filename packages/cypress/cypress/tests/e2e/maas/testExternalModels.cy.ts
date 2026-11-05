@@ -252,11 +252,11 @@ describe('An admin can create, edit and delete External Models and Providers and
         providerConfigPair.value,
       );
       addProviderReferenceWizard.findNextButton().should('be.enabled').click();
-      addProviderReferenceWizard.selectAnthropicFormat();
+      addProviderReferenceWizard.selectOpenAIFormat();
       addProviderReferenceWizard.findTargetModelInput().clear().type(targetModel);
-      addProviderReferenceWizard.findPathInput().type(Path.MESSAGES);
+      addProviderReferenceWizard.findPathInput().type(Path.OPENAI_CHAT);
       addProviderReferenceWizard.findResetPathButton().click();
-      addProviderReferenceWizard.findPathInput().should('have.value', Path.MESSAGES);
+      addProviderReferenceWizard.findPathInput().should('have.value', Path.OPENAI_CHAT);
       addProviderReferenceWizard
         .findPathInput()
         .type(`{${pathPlaceholderKey}}`, { parseSpecialCharSequences: false });
@@ -298,6 +298,7 @@ describe('An admin can create, edit and delete External Models and Providers and
       });
 
       cy.step('Verify external model details');
+      cy.reload();
       const row = externalModelsPage.getRow(externalModelName);
       row.findName().should('contain.text', externalModelName);
       row.findPhaseLabel().should('contain.text', PhaseStatus.READY);
@@ -310,7 +311,7 @@ describe('An admin can create, edit and delete External Models and Providers and
       externalModelProviderUrlModal.findInputValue().should('have.value', providerEndpoint);
       externalModelProviderUrlModal.findCloseButton().click();
       row.findExpandedViewPathButton(providerRef.displayName).click();
-      pathModal.findInputValue().should('have.value', `${Path.MESSAGES}{${pathPlaceholderKey}}`);
+      pathModal.findInputValue().should('have.value', `${Path.OPENAI_CHAT}{${pathPlaceholderKey}}`);
       pathModal.findCloseButton().click();
       row
         .findExpandedProviderStatus(externalProviderName)

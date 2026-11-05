@@ -6,13 +6,52 @@ const CODE_FILE_PATTERN = /\.[cm]?[jt]sx?$/;
 
 const normalizePath = (value) => value.split(path.sep).join('/').replace(/^\.\//, '');
 
-const isDocumentationOnly = (file) => {
+const NON_RUNTIME_ROOT_FILES = new Set([
+  '.codecov.yml',
+  '.coderabbit.yaml',
+  '.dockerignore',
+  '.editorconfig',
+  '.env.local.example',
+  '.eslintrc.js',
+  '.gitattributes',
+  '.gitignore',
+  '.gitleaks.toml',
+  '.gitleaksignore',
+  '.gitmodules',
+  '.prettierrc',
+  'Dockerfile',
+  'LICENSE',
+  'Makefile',
+  'OWNERS',
+  'OWNERS_ALIASES',
+  'babel.config.js',
+  'semgrep.yaml',
+]);
+
+const isCypressIrrelevantChange = (file) => {
   const normalized = normalizePath(file);
   return (
-    (/(^|\/)docs\//i.test(normalized) && /\.(md|mdx|adoc|rst)$/i.test(normalized)) ||
-    /^[^/]+\.(md|mdx|adoc|rst)$/i.test(normalized) ||
-    /(^|\/)(README|CONTRIBUTING|AGENTS|CLAUDE)\.(md|mdx|adoc|rst)$/i.test(normalized) ||
-    /^\.github\/(ISSUE_TEMPLATE\/.*|PULL_REQUEST_TEMPLATE\.md)$/i.test(normalized)
+    normalized.startsWith('docs/') ||
+    /\.(md|mdx|adoc|rst)$/i.test(normalized) ||
+    normalized.startsWith('.agentic-ci/') ||
+    normalized.startsWith('.claude/') ||
+    normalized.startsWith('.cursor/') ||
+    normalized.startsWith('.fullsend/') ||
+    normalized.startsWith('.husky/') ||
+    normalized.startsWith('.tekton/') ||
+    normalized.startsWith('.vscode/') ||
+    normalized.startsWith('backend/') ||
+    normalized.startsWith('chaos/') ||
+    normalized.startsWith('dashboard-operator/') ||
+    normalized.startsWith('data/') ||
+    normalized.startsWith('hack/') ||
+    normalized.startsWith('install/') ||
+    normalized.startsWith('manifests/') ||
+    normalized.startsWith('pkg/') ||
+    normalized.startsWith('prefetch/') ||
+    normalized.startsWith('.github/pr-build-simulation/') ||
+    normalized === '.github/workflows/pr-build-validation.yml' ||
+    NON_RUNTIME_ROOT_FILES.has(normalized)
   );
 };
 
@@ -65,19 +104,6 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
     return fullPlan(groups, changes, 'No usable Git changes were found.');
   }
 
-  if (changes.every((change) => isDocumentationOnly(change.path))) {
-    return {
-      mode: 'select',
-      scope: 'none',
-      changedFiles: changes.map((change) => change.path),
-      selectedGroups: [],
-      excludedGroups: groups.map((group) => group.name).toSorted(),
-      reason: 'Every changed file is validated non-runtime documentation.',
-      details: [],
-      safety: 'CI skips Cypress mock tests for this documentation-only change.',
-    };
-  }
-
   if (changes.some((change) => change.status !== 'M' && change.status !== 'A')) {
     return fullPlan(
       groups,
@@ -86,7 +112,20 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
     );
   }
 
-  const runtimeChanges = changes.filter((change) => !isDocumentationOnly(change.path));
+  if (changes.every((change) => isCypressIrrelevantChange(change.path))) {
+    return {
+      mode: 'select',
+      scope: 'none',
+      changedFiles: changes.map((change) => change.path),
+      selectedGroups: [],
+      excludedGroups: groups.map((group) => group.name).toSorted(),
+      reason: 'Every changed file is documentation or known non-runtime metadata.',
+      details: [],
+      safety: 'CI skips Cypress mock tests for this non-runtime change.',
+    };
+  }
+
+  const runtimeChanges = changes.filter((change) => !isCypressIrrelevantChange(change.path));
   const infrastructure = runtimeChanges.find((change) => isSelectorInfrastructure(change.path));
   if (infrastructure) {
     return fullPlan(
@@ -296,7 +335,7 @@ const buildDependencyIndex = ({ root, specs, supportFile = SUPPORT_FILE }) => {
 
 module.exports = {
   buildDependencyIndex,
-  isDocumentationOnly,
+  isCypressIrrelevantChange,
   isCypressTestInput,
   isSelectorInfrastructure,
   normalizePath,

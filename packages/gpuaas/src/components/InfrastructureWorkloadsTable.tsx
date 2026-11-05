@@ -22,6 +22,7 @@ import { useNotebookStatus } from '@odh-dashboard/internal/utilities/notebookCon
 import { EventStatus } from '@odh-dashboard/internal/types';
 import { startNotebook, stopNotebook } from '@odh-dashboard/internal/api';
 import { fireWorkbenchStatusModalAction } from '@odh-dashboard/internal/concepts/kueue/workbenchTracking';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { isRayJob, isTrainJob } from '@odh-dashboard/model-training/types';
 import InfrastructureWorkloadsToolbar from './InfrastructureWorkloadsToolbar';
 import { HardwareProfileCell, StatusCell } from './InfrastructureWorkloadComponents';
@@ -41,9 +42,17 @@ import {
   getInfrastructureWorkloadFilterValues,
 } from '../utils/infrastructureWorkloads';
 import { getHardwareProfileRefFromAnnotations } from '../utils/hardwareModels';
+import {
+  getWorkloadsSearchTrackingProperties,
+  getWorkloadsFilterClearTrackingProperties,
+  GPUAAS_EVENTS,
+  shouldTrackWorkloadsSearch,
+} from '../tracking/gpuaasTrackingConstants';
 
 type FilterValues = InfrastructureWorkloadsFilterValues;
 type LocalFilterValues = Omit<FilterValues, 'status'>;
+
+const filterTypes: InfrastructureWorkloadsFilterType[] = ['type', 'status', 'hardwareProfile'];
 
 const getNextFilterValues = (
   current: LocalFilterValues,
@@ -200,7 +209,8 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
   const [searchValue, setSearchValue] = React.useState('');
-  const [filterType, setFilterType] = React.useState<InfrastructureWorkloadsFilterType>('status');
+  const searchTrackingTimeoutRef = React.useRef<number>();
+  const [filterType, setFilterType] = React.useState<InfrastructureWorkloadsFilterType>('type');
   const [filterValues, setFilterValues] = React.useState<LocalFilterValues>({
     type: [],
     hardwareProfile: [],
@@ -277,13 +287,12 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
       ...filterValues,
     };
 
-    return filterInfrastructureWorkloads(
+    return filterTypes.reduce(
+      (rows, type) =>
+        filterInfrastructureWorkloads(rows, searchValue, type, selectedFilterValues[type]),
       workloadsWithWorkbenchStatus,
-      searchValue,
-      filterType,
-      selectedFilterValues[filterType],
     );
-  }, [filterType, filterValues, overviewStatusFilters, searchValue, workloadsWithWorkbenchStatus]);
+  }, [filterValues, overviewStatusFilters, searchValue, workloadsWithWorkbenchStatus]);
 
   const availableFilterValues = React.useMemo<FilterValues>(
     () => ({
@@ -297,7 +306,12 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
     [workloadsWithWorkbenchStatus],
   );
 
-  const toggleFilterValue = React.useCallback(
+  const selectedFilterValues: FilterValues = React.useMemo(
+    () => ({ status: overviewStatusFilters, ...filterValues }),
+    [filterValues, overviewStatusFilters],
+  );
+
+  const updateFilterValue = React.useCallback(
     (type: InfrastructureWorkloadsFilterType, value: string) => {
       if (type === 'status') {
         onOverviewStatusFiltersChange((current) =>
@@ -314,19 +328,83 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
   );
 
   const clearFilters = React.useCallback(() => {
+    window.clearTimeout(searchTrackingTimeoutRef.current);
+    const filterCount = Object.values(selectedFilterValues).reduce(
+      (count, values) => count + values.length,
+      0,
+    );
+    fireMiscTrackingEvent(
+      GPUAAS_EVENTS.WORKLOADS_TAB_FILTERS_CLEARED,
+      getWorkloadsFilterClearTrackingProperties(filterCount, 0),
+    );
     setSearchValue('');
     setFilterValues({ type: [], hardwareProfile: [] });
     onOverviewStatusFiltersChange([]);
-  }, [onOverviewStatusFiltersChange]);
+  }, [onOverviewStatusFiltersChange, selectedFilterValues]);
 
-  const selectedFilterValues: FilterValues = React.useMemo(
-    () => ({ status: overviewStatusFilters, ...filterValues }),
-    [filterValues, overviewStatusFilters],
+  React.useEffect(() => () => window.clearTimeout(searchTrackingTimeoutRef.current), []);
+
+  const handleSearchChange = React.useCallback((value: string) => {
+    setSearchValue(value);
+    window.clearTimeout(searchTrackingTimeoutRef.current);
+    if (shouldTrackWorkloadsSearch(value)) {
+      searchTrackingTimeoutRef.current = window.setTimeout(() => {
+        fireMiscTrackingEvent(
+          GPUAAS_EVENTS.WORKLOADS_TAB_WORKLOAD_SEARCH_USED,
+          getWorkloadsSearchTrackingProperties(value),
+        );
+      }, 500);
+    }
+  }, []);
+
+  const clearFilterChip = React.useCallback(
+    (type: InfrastructureWorkloadsFilterType, value: string) => {
+      const filterCount = Object.values(selectedFilterValues).reduce(
+        (count, values) => count + values.length,
+        0,
+      );
+      fireMiscTrackingEvent(
+        GPUAAS_EVENTS.WORKLOADS_TAB_FILTERS_CLEARED,
+        getWorkloadsFilterClearTrackingProperties(
+          filterCount,
+          filterCount - (selectedFilterValues[type].includes(value) ? 1 : 0),
+        ),
+      );
+      updateFilterValue(type, value);
+    },
+    [selectedFilterValues, updateFilterValue],
   );
 
   const columns = React.useMemo(
     () => getInfrastructureWorkloadsTableColumns(kueueEnabled),
     [kueueEnabled],
+  );
+
+  const toggleFilterValue = React.useCallback(
+    (type: InfrastructureWorkloadsFilterType, value: string) => {
+      if (selectedFilterValues[type].includes(value)) {
+        clearFilterChip(type, value);
+        return;
+      }
+
+      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ATTRIBUTE_FILTER_APPLIED, {
+        filterType: type,
+        filterValue: value,
+      });
+      updateFilterValue(type, value);
+    },
+    [clearFilterChip, selectedFilterValues, updateFilterValue],
+  );
+
+  const handleSort = React.useCallback(
+    (columnIndex: number, direction: 'asc' | 'desc') => {
+      const column = columns[columnIndex];
+      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_COLUMN_SORTED, {
+        columnName: column.label,
+        direction,
+      });
+    },
+    [columns],
   );
 
   return (
@@ -335,7 +413,13 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
         <ExpandableSection
           className="gpuaas-workloads-table"
           isExpanded={isExpanded}
-          onToggle={(_event, nextExpanded) => setIsExpanded(nextExpanded)}
+          onToggle={(_event, nextExpanded) => {
+            setIsExpanded(nextExpanded);
+            fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
+              sectionName: 'workloads',
+              action: nextExpanded ? 'expand' : 'collapse',
+            });
+          }}
           toggleContent={
             <Title headingLevel="h4" size="md" className="gpuaas-workloads-table__toggle-content">
               Workloads
@@ -366,10 +450,11 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
               filterType={filterType}
               availableFilterValues={availableFilterValues}
               selectedFilterValues={selectedFilterValues}
-              onSearchChange={setSearchValue}
+              onSearchChange={handleSearchChange}
               onFilterTypeChange={setFilterType}
               onFilterValueChange={toggleFilterValue}
               onClearFilters={clearFilters}
+              onFilterChipClose={clearFilterChip}
             />
             {filteredWorkloads.length === 0 ? (
               <DashboardEmptyTableView
@@ -383,6 +468,13 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
                 aria-label="Infrastructure workloads table"
                 data={filteredWorkloads}
                 columns={columns}
+                onSort={handleSort}
+                onPagination={(action, currentPage) =>
+                  fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_PAGINATION_USED, {
+                    action,
+                    currentPage,
+                  })
+                }
                 enablePagination="compact"
                 rowRenderer={(workload) => (
                   <InfrastructureWorkloadTableRow
@@ -391,7 +483,18 @@ const InfrastructureWorkloadsTable: React.FC<InfrastructureWorkloadsTableProps> 
                     notebookStates={notebookStates}
                     kueueEnabled={kueueEnabled}
                     hardwareProfilesLoading={hardwareProfilesLoading}
-                    onStatusClick={() => setSelectedWorkload(workload)}
+                    onStatusClick={() => {
+                      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_LABEL_CLICKED, {
+                        workloadStatus: workload.status.label,
+                        workloadType: workload.type,
+                      });
+                      fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_WORKLOAD_DETAILS_OPENED, {
+                        workloadStatus: workload.status.label,
+                        workloadType: workload.type,
+                        source: 'status-label',
+                      });
+                      setSelectedWorkload(workload);
+                    }}
                   />
                 )}
               />

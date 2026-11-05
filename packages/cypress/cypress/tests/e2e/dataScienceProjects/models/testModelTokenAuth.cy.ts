@@ -21,6 +21,7 @@ import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
 import { createCustomResource } from '../../../../utils/oc_commands/customResources';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
+import { skipOnArm } from '../../../../utils/skipUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -34,6 +35,8 @@ let awsBucket: 'BUCKET_1' | 'BUCKET_3';
 const uuid = generateTestUUID();
 
 describe('A model can be deployed with token auth', () => {
+  skipOnArm();
+
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then((fixtureData) => {

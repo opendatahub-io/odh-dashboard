@@ -230,6 +230,8 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
       const evaluationRunName = `e2e-kueue-${uuid}`;
       submitSingleBenchmarkEvaluation({
         benchmarkCardTitle: testData.benchmarkCardTitle,
+        benchmarkProviderId: testData.benchmarkProviderId,
+        benchmarkId: testData.benchmarkId,
         evaluationRunName,
         inferenceServiceName: testData.inferenceServiceName,
         mlflowExperimentName,

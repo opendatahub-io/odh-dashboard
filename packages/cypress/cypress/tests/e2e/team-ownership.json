@@ -28,7 +28,8 @@
         "modelCatalog/",
         "mcpCatalog/",
         "agentsCatalog/",
-        "data-registry/"
+        "data-registry/",
+        "promptManagement/"
       ],
       "slack_handle": "@openshift-ai-dashboard-razzmatazz-scrum",
       "slack_group_id": "S06FFRUSFH8",
@@ -36,14 +37,13 @@
     },
     {
       "name": "Zaffre",
-      "ci_tags": ["KServeCI", "NIMServingCI", "ModelServingCI", "LLMDServingCI", "MaaSCI"],
+      "ci_tags": ["KServeCI", "NIMServingCI", "ModelServingCI", "LLMDServingCI"],
       "path_patterns": [
         "modelServing/",
         "nim/",
         "dataScienceProjects/models/",
         "dataScienceProjects/connections/",
-        "settings/servingRuntimes/",
-        "maas/"
+        "settings/servingRuntimes/"
       ],
       "slack_handle": "@openshift-ai-dashboard-zaffre-scrum",
       "slack_group_id": "S07CFUVMXBM",
@@ -59,8 +59,8 @@
     },
     {
       "name": "Crimson",
-      "ci_tags": ["GenAICI"],
-      "path_patterns": ["gen-ai/", "promptManagement/"],
+      "ci_tags": ["GenAICI", "MaaSCI"],
+      "path_patterns": ["gen-ai/", "maas/"],
       "slack_handle": "@openshift-ai-dashboard-crimson-scrum",
       "slack_group_id": "S09A6NJHBU1",
       "emoji": ":crimson:"

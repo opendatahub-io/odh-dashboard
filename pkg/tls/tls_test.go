@@ -112,14 +112,12 @@ func TestResolveProfileSpecCustom(t *testing.T) {
 }
 
 func TestResolveProfileSpecUnknownType(t *testing.T) {
+	// Unknown profile types fail closed rather than silently substituting
+	// Intermediate, which could serve a weaker policy than the cluster intends.
 	profile := &tlsSecurityProfile{Type: "FutureType"}
-	spec, err := resolveProfileSpec(profile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	// Should fall back to Intermediate
-	if spec.MinTLSVersion != "VersionTLS12" {
-		t.Errorf("expected VersionTLS12 (Intermediate fallback), got %s", spec.MinTLSVersion)
+	_, err := resolveProfileSpec(profile)
+	if err == nil {
+		t.Fatal("expected error for unknown TLS profile type")
 	}
 }
 
@@ -135,6 +133,48 @@ func TestResolveCiphers(t *testing.T) {
 	}
 	if len(dropped) != 1 || dropped[0] != "UNKNOWN-CIPHER" {
 		t.Errorf("expected [UNKNOWN-CIPHER] dropped, got %v", dropped)
+	}
+}
+
+func TestResolveCiphersMixedTLS13And12Exact(t *testing.T) {
+	// A profile naming both TLS 1.3 and TLS 1.2 suites must skip the (Go-managed)
+	// TLS 1.3 names and resolve the TLS 1.2 names to the exact IDs, in order.
+	names := []string{
+		"TLS_AES_128_GCM_SHA256",        // TLS 1.3 - skipped (Go-managed)
+		"ECDHE-RSA-AES128-GCM-SHA256",   // TLS 1.2
+		"TLS_CHACHA20_POLY1305_SHA256",  // TLS 1.3 - skipped
+		"ECDHE-ECDSA-AES256-GCM-SHA384", // TLS 1.2
+	}
+	codes, dropped := resolveCiphers(names)
+	if len(dropped) != 0 {
+		t.Errorf("expected no dropped ciphers, got %v", dropped)
+	}
+	want := []uint16{
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	}
+	if len(codes) != len(want) {
+		t.Fatalf("expected %d resolved ciphers, got %d (%v)", len(want), len(codes), codes)
+	}
+	for i, c := range want {
+		if codes[i] != c {
+			t.Errorf("cipher[%d] = 0x%x, want 0x%x", i, codes[i], c)
+		}
+	}
+}
+
+func TestResolveCiphersChaChaSHA256Aliases(t *testing.T) {
+	// Cross-resolver parity: the OpenSSL CHACHA20-POLY1305-SHA256 aliases (used by
+	// the operator and notebooks maps) must also resolve here.
+	codes, dropped := resolveCiphers([]string{
+		"ECDHE-ECDSA-CHACHA20-POLY1305-SHA256",
+		"ECDHE-RSA-CHACHA20-POLY1305-SHA256",
+	})
+	if len(dropped) != 0 {
+		t.Errorf("expected no dropped ciphers, got %v", dropped)
+	}
+	if len(codes) != 2 {
+		t.Errorf("expected 2 resolved ciphers, got %d (%v)", len(codes), codes)
 	}
 }
 
@@ -156,6 +196,41 @@ func TestResolveCiphersDHEDropped(t *testing.T) {
 		if d != "DHE-RSA-AES128-GCM-SHA256" && d != "DHE-RSA-AES256-GCM-SHA384" {
 			t.Errorf("unexpected dropped cipher: %s", d)
 		}
+	}
+}
+
+// TestResolveCiphersDropsRuntimeUnavailable exercises the filter that drops a
+// cipher which is mapped in openSSLToGo but that the running Go runtime can no
+// longer negotiate (e.g. a future Go release removing it). Such a suite must be
+// reported as dropped, not silently handed to crypto/tls where it would be ignored.
+func TestResolveCiphersDropsRuntimeUnavailable(t *testing.T) {
+	const name = "ECDHE-RSA-AES128-GCM-SHA256"
+	id, ok := openSSLToGo[name]
+	if !ok {
+		t.Fatalf("precondition: %s must be mapped in openSSLToGo", name)
+	}
+	// Baseline: the suite resolves normally on this runtime.
+	if codes, dropped := resolveCiphers([]string{name}); len(codes) != 1 || len(dropped) != 0 {
+		t.Fatalf("baseline: expected %s to resolve, got codes=%v dropped=%v", name, codes, dropped)
+	}
+
+	// Simulate a runtime that no longer negotiates this suite by removing it from
+	// the negotiable set for the duration of the test.
+	orig := goNegotiableCiphers
+	swapped := make(map[uint16]bool, len(orig))
+	for k, v := range orig {
+		swapped[k] = v
+	}
+	delete(swapped, id)
+	goNegotiableCiphers = swapped
+	t.Cleanup(func() { goNegotiableCiphers = orig })
+
+	codes, dropped := resolveCiphers([]string{name})
+	if len(codes) != 0 {
+		t.Errorf("expected no resolved codes when the suite is runtime-unavailable, got %v", codes)
+	}
+	if len(dropped) != 1 || dropped[0] != name {
+		t.Errorf("expected %s dropped as runtime-unavailable, got %v", name, dropped)
 	}
 }
 
@@ -261,6 +336,25 @@ func TestTLSConfigFromCustomAllUnsupportedCiphers(t *testing.T) {
 	}
 }
 
+func TestTLSConfigFromCustomEmptyCiphersTLS12FailsClosed(t *testing.T) {
+	// A sub-TLS-1.3 Custom profile with no ciphers must fail closed rather than
+	// fall back to Go's default cipher set (which would broaden policy).
+	profile := &tlsSecurityProfile{
+		Type: "Custom",
+		Custom: &struct {
+			tlsProfileSpec
+		}{
+			tlsProfileSpec: tlsProfileSpec{
+				MinTLSVersion: "VersionTLS12",
+				Ciphers:       []string{},
+			},
+		},
+	}
+	if _, err := tlsConfigFromProfile(profile, testLogger()); err == nil {
+		t.Fatal("expected error for TLS 1.2 Custom profile with no ciphers")
+	}
+}
+
 func TestTLSConfigFromOldProfile(t *testing.T) {
 	profile := &tlsSecurityProfile{Type: "Old"}
 	cfg, err := tlsConfigFromProfile(profile, testLogger())
@@ -316,7 +410,7 @@ func TestServerTLSConfigFromRESTBuildsClient(t *testing.T) {
 
 	// Intentionally leave NegotiatedSerializer unset, mirroring InClusterConfig.
 	cfg := &rest.Config{Host: srv.URL}
-	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger())
+	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -334,13 +428,93 @@ func TestServerTLSConfigFromRESTNotFoundFailsOpen(t *testing.T) {
 	defer srv.Close()
 
 	cfg := &rest.Config{Host: srv.URL}
-	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger())
+	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if tlsCfg.MinVersion != tls.VersionTLS12 || len(tlsCfg.CipherSuites) != 6 {
 		t.Errorf("expected Intermediate defaults on 404, got MinVersion %d with %d ciphers",
 			tlsCfg.MinVersion, len(tlsCfg.CipherSuites))
+	}
+}
+
+// TestServerTLSConfigFromRESTForbiddenFailsClosed verifies that a 403 reading the
+// APIServer profile fails closed (returns an error) rather than silently serving
+// weaker Intermediate defaults.
+func TestServerTLSConfigFromRESTForbiddenFailsClosed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"Forbidden","code":403}`, http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false); err == nil {
+		t.Fatal("expected error on 403 (fail-closed), got nil")
+	}
+}
+
+// TestServerTLSConfigFromRESTUnauthorizedFailsClosed verifies the same for 401.
+func TestServerTLSConfigFromRESTUnauthorizedFailsClosed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"Unauthorized","code":401}`, http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false); err == nil {
+		t.Fatal("expected error on 401 (fail-closed), got nil")
+	}
+}
+
+// TestServerTLSConfigFromRESTTransientLenientFailsOpen verifies that at startup
+// (lenient) a 503 falls back to Intermediate defaults.
+func TestServerTLSConfigFromRESTTransientLenientFailsOpen(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"ServiceUnavailable","code":503}`, http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), false)
+	if err != nil {
+		t.Fatalf("unexpected error (lenient should fail open on 503): %v", err)
+	}
+	if tlsCfg.MinVersion != tls.VersionTLS12 {
+		t.Errorf("expected Intermediate defaults on transient error, got MinVersion %d", tlsCfg.MinVersion)
+	}
+}
+
+// TestServerTLSConfigFromRESTTransientStrictFailsClosed verifies that during
+// reload polling (strict) a 503 returns an error so the caller keeps the running
+// policy rather than downgrading to Intermediate.
+func TestServerTLSConfigFromRESTTransientStrictFailsClosed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"ServiceUnavailable","code":503}`, http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	if _, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), true); err == nil {
+		t.Fatal("expected error on 503 when strict (reload must keep current config), got nil")
+	}
+}
+
+// TestServerTLSConfigFromRESTNotFoundStrictStillFailsOpen verifies that a
+// genuinely non-OpenShift cluster (NotFound) resolves to Intermediate even in
+// strict mode, so reload polling on such clusters is stable.
+func TestServerTLSConfigFromRESTNotFoundStrictStillFailsOpen(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","reason":"NotFound","code":404}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	cfg := &rest.Config{Host: srv.URL}
+	tlsCfg, err := serverTLSConfigFromREST(context.Background(), cfg, testLogger(), true)
+	if err != nil {
+		t.Fatalf("unexpected error (NotFound should fail open even when strict): %v", err)
+	}
+	if tlsCfg.MinVersion != tls.VersionTLS12 {
+		t.Errorf("expected Intermediate defaults on NotFound, got MinVersion %d", tlsCfg.MinVersion)
 	}
 }
 
@@ -355,6 +529,23 @@ func TestResolveGroups(t *testing.T) {
 	}
 	if curves[0] != tls.X25519 || curves[1] != tls.CurveP256 {
 		t.Errorf("groups not mapped in order: %v", curves)
+	}
+}
+
+func TestResolveGroupsCanonicalOpenShiftNames(t *testing.T) {
+	// OpenShift TLSSecurityProfile uses secp256r1/secp384r1/secp521r1 (not P-256 etc.).
+	curves, dropped := resolveGroups([]string{"secp256r1", "secp384r1", "secp521r1"})
+	if len(dropped) != 0 {
+		t.Fatalf("expected no dropped groups, got %v", dropped)
+	}
+	want := []tls.CurveID{tls.CurveP256, tls.CurveP384, tls.CurveP521}
+	if len(curves) != len(want) {
+		t.Fatalf("expected %d curves, got %d", len(want), len(curves))
+	}
+	for i, c := range want {
+		if curves[i] != c {
+			t.Errorf("curve[%d] = %d, want %d", i, curves[i], c)
+		}
 	}
 }
 
@@ -425,14 +616,11 @@ func TestTLSConfigFromCustomAllUnsupportedGroups(t *testing.T) {
 	}
 }
 
-func TestTLSConfigFromUnknownProfileLogs(t *testing.T) {
-	// Unknown profile type should not error but should fall back to Intermediate.
+func TestTLSConfigFromUnknownProfileFailsClosed(t *testing.T) {
+	// Unknown profile type must fail closed rather than fall back to Intermediate.
 	profile := &tlsSecurityProfile{Type: "FutureProfile"}
-	cfg, err := tlsConfigFromProfile(profile, testLogger())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.MinVersion != tls.VersionTLS12 {
-		t.Errorf("expected TLS 1.2 (Intermediate fallback), got %d", cfg.MinVersion)
+	_, err := tlsConfigFromProfile(profile, testLogger())
+	if err == nil {
+		t.Fatal("expected error for unknown TLS profile type")
 	}
 }

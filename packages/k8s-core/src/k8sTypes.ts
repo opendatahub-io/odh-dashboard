@@ -364,7 +364,6 @@ export type DashboardCommonConfig = {
   gpuaas?: boolean;
   hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
-  grid?: boolean;
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;
@@ -479,6 +478,7 @@ export type EventKind = K8sResourceCommon & {
     name: string;
     uid?: string;
     kind?: string;
+    fieldPath?: string;
   };
   lastTimestamp?: string;
   eventTime: string;

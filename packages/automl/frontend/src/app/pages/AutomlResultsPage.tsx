@@ -327,7 +327,7 @@ function AutomlResultsPage(): React.JSX.Element {
           <SplitItem>
             {runTerminatable && !stopInitiated && (
               <Button
-                variant="secondary"
+                variant="link"
                 icon={<StopCircleIcon />}
                 onClick={() => setIsStopModalOpen(true)}
                 isDisabled={isTerminating || isStopModalOpen}
@@ -340,7 +340,7 @@ function AutomlResultsPage(): React.JSX.Element {
             )}
             {runRetryable && (
               <Button
-                variant="secondary"
+                variant="link"
                 icon={<RedoIcon />}
                 onClick={() => void handleRetry().catch(() => undefined)}
                 isDisabled={isRetrying}
@@ -355,7 +355,7 @@ function AutomlResultsPage(): React.JSX.Element {
         ) : null}
         <SplitItem>
           <Button
-            variant="secondary"
+            variant="link"
             icon={<CogIcon />}
             component={ReconfigureLink}
             data-testid="reconfigure-run-button"
@@ -369,7 +369,7 @@ function AutomlResultsPage(): React.JSX.Element {
             trigger={runNotebookDisabled ? 'mouseenter focus' : ''}
           >
             <Button
-              variant="secondary"
+              variant="link"
               icon={<DownloadIcon />}
               onClick={() => void handleDownloadRunNotebook()}
               isAriaDisabled={runNotebookDisabled}

@@ -3,7 +3,7 @@ import type { ComponentStageMap, ComponentStageMapStage } from '~/app/hooks/useC
 import type { PipelineRun } from '~/app/types';
 import { dedupePreservingOrder } from '~/app/topology/stageMapConstants';
 import type { StepDetail } from '~/app/topology/tree-view/stepMetadata';
-import { formatDurationBetween } from '~/app/utilities/utils';
+import { formatDurationBetween, formatPatternName } from '~/app/utilities/utils';
 import { DEFAULT_OPTIMIZATION_METRIC } from '~/app/utilities/const';
 import { metricLabel } from '~/app/utilities/metricUtils';
 
@@ -100,7 +100,7 @@ function resolveWinningPatternDisplay(
   if (!bestPatternKey || !Object.hasOwn(patterns, bestPatternKey)) {
     return undefined;
   }
-  return patterns[bestPatternKey].name || bestPatternKey;
+  return formatPatternName(patterns[bestPatternKey].name || bestPatternKey);
 }
 
 /** Pipeline-level summary shown in the step drawer when no node is selected. */

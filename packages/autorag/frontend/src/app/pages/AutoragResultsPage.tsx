@@ -48,6 +48,7 @@ import { isRunInTerminalState } from '~/app/types/pipeline';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import {
   downloadBlob,
+  formatPatternName,
   isRunCompleted,
   isRunRetryable,
   isRunTerminatable,
@@ -124,8 +125,9 @@ export const buildResponsesTemplate = (
   const { generation, retrieval } = pattern.settings;
   const collectionName = getPatternCollectionName(pattern);
   const embeddingModel = getPatternEmbeddingModel(pattern);
-  const isHybrid = retrieval.search_mode === 'hybrid';
   const provider = getPatternStoreProvider(pattern);
+  // Neo4j collections use graph retrieval and do not support hybrid ranking.
+  const isHybrid = retrieval.search_mode === 'hybrid' && provider !== 'neo4j';
   /* eslint-disable camelcase */
   let rankingOptions:
     | { ranker: 'rrf'; alpha: number }
@@ -206,6 +208,9 @@ export const normalizeResponsesTemplate = (
       ...(runId?.trim() ? { autorag_run_id: runId.trim() } : {}),
     },
     tools: template.tools.map((tool) => {
+      if (provider === 'neo4j') {
+        return { ...tool, ranking_options: undefined };
+      }
       if (!tool.ranking_options) {
         return tool;
       }
@@ -561,7 +566,7 @@ function AutoragResultsPage(): React.JSX.Element {
       const total = failedPatterns.length + Object.keys(patterns).length;
       notification.warning(
         `${failedPatterns.length} of ${total} patterns could not be loaded`,
-        `The following patterns failed to load: ${failedPatterns.join(', ')}`,
+        `The following patterns failed to load: ${failedPatterns.map(formatPatternName).join(', ')}`,
       );
     }
   }, [failedPatterns, patterns, notification, patternsLoading]);
@@ -596,7 +601,7 @@ function AutoragResultsPage(): React.JSX.Element {
           <SplitItem>
             {runTerminatable && (
               <Button
-                variant="secondary"
+                variant="link"
                 icon={<StopCircleIcon />}
                 onClick={() => setIsStopModalOpen(true)}
                 isDisabled={isTerminating || isStopModalOpen}
@@ -609,7 +614,7 @@ function AutoragResultsPage(): React.JSX.Element {
             )}
             {runRetryable && (
               <Button
-                variant="secondary"
+                variant="link"
                 icon={<RedoIcon />}
                 onClick={() => void handleRetry().catch(() => undefined)}
                 isDisabled={isRetrying}
@@ -624,7 +629,7 @@ function AutoragResultsPage(): React.JSX.Element {
         ) : null}
         <SplitItem>
           <Button
-            variant="secondary"
+            variant="link"
             icon={<CogIcon />}
             component={ReconfigureLink}
             data-testid="reconfigure-run-button"
@@ -638,7 +643,7 @@ function AutoragResultsPage(): React.JSX.Element {
             trigger={starterKitDisabled ? 'mouseenter focus' : ''}
           >
             <Button
-              variant="secondary"
+              variant="link"
               icon={<DownloadIcon />}
               onClick={() => void handleDownloadStarterKit()}
               isAriaDisabled={starterKitDisabled}

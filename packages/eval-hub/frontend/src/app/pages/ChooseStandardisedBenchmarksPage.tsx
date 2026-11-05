@@ -163,7 +163,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     },
     [trackBenchmarkCatalogFilter],
   );
-  const searchInputTrackingProps = useSearchInputTracking(handleSearchCommit);
+  const searchInputTrackingProps = useSearchInputTracking(
+    handleSearchCommit,
+    filterData[BenchmarkFilterOptions.name],
+  );
 
   const onClearFilters = React.useCallback(() => {
     setFilterData(initialBenchmarkFilterData);
@@ -311,7 +314,6 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                     [BenchmarkFilterOptions.name]: value,
                                   }));
                                 }}
-                                onSearch={searchInputTrackingProps.onSearch}
                                 inputProps={searchInputTrackingProps.inputProps}
                                 onClear={() => {
                                   setFilterData((prev) => ({

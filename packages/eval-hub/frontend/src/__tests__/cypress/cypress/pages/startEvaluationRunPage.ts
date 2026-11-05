@@ -13,6 +13,22 @@ class StartEvaluationRunPage {
     return cy.findByTestId('start-evaluation-form');
   }
 
+  findTestDataRefSourceToggle() {
+    return cy.findByTestId('start-evaluation-test-data-ref-source-toggle');
+  }
+
+  findTestDataRefOption(optionLabel: string) {
+    return cy.findByRole('option', { name: optionLabel });
+  }
+
+  findTestDataRefField(field: string) {
+    return cy.findByTestId(`start-evaluation-test-data-ref-${field}`);
+  }
+
+  findTestDataRefFieldError(field: string) {
+    return cy.findByTestId(`start-evaluation-test-data-ref-${field}-error`);
+  }
+
   findBenchmarkNameDisplay() {
     return cy.findByTestId('benchmark-name-display');
   }

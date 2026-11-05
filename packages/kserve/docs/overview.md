@@ -11,34 +11,34 @@
 - **Deployment flow:**
   - `model-serving` collects wizard data and calls `deployKServeDeployment` (via the `model-serving.deployment/deploy` extension).
   - Orchestration creates or patches `ServingRuntime` and `InferenceService`, then optional token-auth resources.
-  - After deploy, `useWatchDeployments` watches `InferenceService`, `ServingRuntime`, and labeled `Pod` resources and merges them into `KServeDeployment` objects.
+  - After deploy, `useWatchDeployments` watches `InferenceService` resources first, then watches matching `ServingRuntime` and labeled `Pod` resources only when inference services remain after exclusion and caller filtering; the results are merged into `KServeDeployment` objects.
 - **No package Module Federation remote:** `model-serving` consumes this package as a TypeScript dependency; `extensions.ts` exports the extension manifest registered by the parent.
   - Notable exports: `@odh-dashboard/kserve/extensions`, `@odh-dashboard/kserve/deployUtils` (shared helpers for other packages).
 - **Feature gating:** `OdhDashboardConfig` (`disableKServe`, `disableKServeMetrics`) and `SupportedArea` values (`K_SERVE`, `K_SERVE_METRICS`) in `extensions.ts` via `flags.required`.
 
 ## Key Concepts
 
-| Term | Definition |
-|------|-----------|
-| **InferenceService** | Core KServe CRD (`serving.kserve.io/v1beta1`): model, runtime, storage, replicas, scaling for one deployment. |
-| **ServingRuntime** | Namespace-scoped KServe CRD; template for the model server container. Each KServe deployment creates its own alongside the `InferenceService`. |
-| **KServeDeployment** | TypeScript type combining `InferenceService`, optional `ServingRuntime`, status, and endpoints. |
-| **Predictor** | `spec.predictor` on `InferenceService`: model URI, runtime ref, resources, replicas, deployment strategy. |
-| **Token auth** | Optional bearer protection via `ServiceAccount`, `Role`, `RoleBinding`, `Secret`; `security.opendatahub.io/enable-auth` annotation. |
-| **External route** | Inference exposed outside cluster via `networking.kserve.io/visibility: exposed` on `InferenceService`. |
-| **Deployment strategy** | `RollingUpdate` or `Recreate` in `spec.predictor.deploymentStrategy`. |
-| **AI asset** | `InferenceService` tagged `opendatahub.io/genai-asset: true` for Gen AI; optional `opendatahub.io/genai-use-case`. |
-| **KSERVE_ID** | Platform id `'kserve'` in extension registrations and `modelServingPlatformId`. |
+| Term                    | Definition                                                                                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **InferenceService**    | Core KServe CRD (`serving.kserve.io/v1beta1`): model, runtime, storage, replicas, scaling for one deployment.                                  |
+| **ServingRuntime**      | Namespace-scoped KServe CRD; template for the model server container. Each KServe deployment creates its own alongside the `InferenceService`. |
+| **KServeDeployment**    | TypeScript type combining `InferenceService`, optional `ServingRuntime`, status, and endpoints.                                                |
+| **Predictor**           | `spec.predictor` on `InferenceService`: model URI, runtime ref, resources, replicas, deployment strategy.                                      |
+| **Token auth**          | Optional bearer protection via `ServiceAccount`, `Role`, `RoleBinding`, `Secret`; `security.opendatahub.io/enable-auth` annotation.            |
+| **External route**      | Inference exposed outside cluster via `networking.kserve.io/visibility: exposed` on `InferenceService`.                                        |
+| **Deployment strategy** | `RollingUpdate` or `Recreate` in `spec.predictor.deploymentStrategy`.                                                                          |
+| **AI asset**            | `InferenceService` tagged `opendatahub.io/genai-asset: true` for Gen AI; optional `opendatahub.io/genai-use-case`.                             |
+| **KSERVE_ID**           | Platform id `'kserve'` in extension registrations and `modelServingPlatformId`.                                                                |
 
 ## Interactions
 
-| Dependency | Type | Details |
-|-----------|------|---------|
-| `@odh-dashboard/model-serving` | Parent package | Registers KServe extensions; wizard, types, auth utilities |
-| `@odh-dashboard/internal` | Shared library | K8s types, API helpers, feature flags, RBAC |
-| Main dashboard backend (`/api/k8s/`) | HTTP proxy | All cluster API traffic from the browser |
-| `@odh-dashboard/model-registry` | Sibling package | Pre-filled deploy wizard data for registered model versions |
-| `InferenceService`, `ServingRuntime`, `Pod`, `Secret`, `ServiceAccount`, `Role`, `RoleBinding` | Kubernetes API | CRUD / watch as described in Design Intent |
+| Dependency                                                                                     | Type            | Details                                                     |
+| ---------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------- |
+| `@odh-dashboard/model-serving`                                                                 | Parent package  | Registers KServe extensions; wizard, types, auth utilities  |
+| `@odh-dashboard/internal`                                                                      | Shared library  | K8s types, API helpers, feature flags, RBAC                 |
+| Main dashboard backend (`/api/k8s/`)                                                           | HTTP proxy      | All cluster API traffic from the browser                    |
+| `@odh-dashboard/model-registry`                                                                | Sibling package | Pre-filled deploy wizard data for registered model versions |
+| `InferenceService`, `ServingRuntime`, `Pod`, `Secret`, `ServiceAccount`, `Role`, `RoleBinding` | Kubernetes API  | CRUD / watch as described in Design Intent                  |
 
 ## Known Issues / Gotchas
 

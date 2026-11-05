@@ -6,6 +6,7 @@ import {
   CardBody,
   Content,
   ExpandableSection,
+  ExpandableSectionToggle,
   EmptyState,
   EmptyStateBody,
   Flex,
@@ -21,6 +22,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import SimpleSelect from '@odh-dashboard/ui-core/components/SimpleSelect';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   t_chart_color_blue_300 as chartBlue,
   t_chart_color_green_300 as chartGreen,
@@ -31,6 +33,11 @@ import {
 import useWorkloadAdmissionMetrics from '../hooks/useWorkloadAdmissionMetrics';
 import { ADMISSION_TIME_WINDOW_OPTIONS } from '../utils/workloadAdmissions';
 import {
+  GPUAAS_EVENTS,
+  WORKLOADS_POPOVER_CLOSE_METHODS,
+  type WorkloadsTabStatusOverviewPopoverClosedProperties,
+} from '../tracking/gpuaasTrackingConstants';
+import {
   calculateWorkloadOverviewPercentages,
   overviewBuckets,
   summarizeOverview,
@@ -38,6 +45,8 @@ import {
   type WorkloadOverviewRow,
 } from '../utils/workloadOverview';
 import './InfrastructureWorkloadsSection.scss';
+
+type PopoverCloseMethod = WorkloadsTabStatusOverviewPopoverClosedProperties['closeMethod'];
 
 type WorkloadOverviewProps = {
   workloads: WorkloadOverviewRow[];
@@ -50,6 +59,9 @@ type WorkloadOverviewProps = {
   error?: Error;
   refreshTrigger?: number;
   onViewInTable?: (bucket: OverviewBucket) => void;
+  onViewInTableClicked?: (bucket: OverviewBucket) => void;
+  onStatusOverviewSegmentClick?: (bucket: OverviewBucket) => void;
+  onPopoverClosed?: (bucket: OverviewBucket, method: PopoverCloseMethod) => void;
 };
 
 const WorkloadAdmissionsTab = React.lazy(() => import('./WorkloadAdmissionsTab'));
@@ -89,7 +101,9 @@ type WorkloadStatusPopoverProps = {
   visible: boolean;
   onOpen: () => void;
   onClose: () => void;
+  onPopoverClosed: (method: PopoverCloseMethod) => void;
   onViewInTable?: () => void;
+  onViewInTableClicked?: () => void;
   children: React.ReactElement;
 };
 
@@ -101,6 +115,8 @@ type WorkloadStatusControlProps = {
   onPopoverOpen: (bucket: OverviewBucket, source: 'count' | 'chart') => void;
   onPopoverClose: () => void;
   onViewInTable?: (bucket: OverviewBucket) => void;
+  onViewInTableClicked?: (bucket: OverviewBucket) => void;
+  onPopoverClosed?: (method: PopoverCloseMethod) => void;
   children: React.ReactElement;
 };
 
@@ -110,6 +126,9 @@ type WorkloadStatusCountsProps = Pick<
 > & {
   counts: Record<OverviewBucket, number>;
   details: Record<OverviewBucket, Record<string, number>>;
+  onStatusOverviewSegmentClick?: (bucket: OverviewBucket) => void;
+  onViewInTableClicked?: (bucket: OverviewBucket) => void;
+  onPopoverClosed?: (bucket: OverviewBucket, method: PopoverCloseMethod) => void;
 };
 
 type WorkloadStatusTabProps = {
@@ -120,13 +139,16 @@ type WorkloadStatusTabProps = {
   onPopoverOpen: (bucket: OverviewBucket, source: 'count' | 'chart') => void;
   onPopoverClose: () => void;
   onViewInTable?: (bucket: OverviewBucket) => void;
+  onStatusOverviewSegmentClick?: (bucket: OverviewBucket) => void;
+  onViewInTableClicked?: (bucket: OverviewBucket) => void;
+  onPopoverClosed?: (bucket: OverviewBucket, method: PopoverCloseMethod) => void;
 };
 
 const labels: Record<OverviewBucket, string> = {
-  completed: 'Completed',
+  completed: 'Complete',
   active: 'Active',
   waiting: 'Waiting',
-  blockers: 'Blockers',
+  blockers: 'Blocked',
   failed: 'Failed',
 };
 
@@ -138,13 +160,38 @@ const colors: Record<OverviewBucket, string> = {
   failed: chartRed.var,
 };
 
+const getPopoverCloseMethod = (
+  event: MouseEvent | KeyboardEvent,
+): PopoverCloseMethod | undefined => {
+  if (event instanceof KeyboardEvent && event.key === 'Escape') {
+    return WORKLOADS_POPOVER_CLOSE_METHODS.escape;
+  }
+
+  const { target, type } = event;
+  if (type !== 'click') {
+    return undefined;
+  }
+
+  const element = target instanceof Element ? target : null;
+  if (element?.closest('[data-workload-status-trigger]')) {
+    return undefined;
+  }
+  if (element?.closest('[aria-label="Close workload status overview"]')) {
+    return WORKLOADS_POPOVER_CLOSE_METHODS.closeButton;
+  }
+
+  return WORKLOADS_POPOVER_CLOSE_METHODS.outsideClick;
+};
+
 const WorkloadStatusPopover: React.FC<WorkloadStatusPopoverProps> = ({
   bucket,
   details,
   visible,
   onOpen,
   onClose,
+  onPopoverClosed,
   onViewInTable,
+  onViewInTableClicked,
   children,
 }) => (
   <Popover
@@ -163,12 +210,31 @@ const WorkloadStatusPopover: React.FC<WorkloadStatusPopoverProps> = ({
       </Flex>
     }
     isVisible={visible}
+    showClose
+    closeBtnAriaLabel="Close workload status overview"
     shouldOpen={onOpen}
-    shouldClose={onClose}
+    shouldClose={(event) => {
+      if (!visible) {
+        return;
+      }
+      const closeMethod = getPopoverCloseMethod(event);
+      if (closeMethod) {
+        onPopoverClosed(closeMethod);
+      }
+      onClose();
+    }}
     bodyContent={
       <>
         {onViewInTable && (
-          <Button variant="link" isInline className="pf-v6-u-mb-sm" onClick={onViewInTable}>
+          <Button
+            variant="link"
+            isInline
+            className="pf-v6-u-mb-sm"
+            onClick={() => {
+              onViewInTableClicked?.();
+              onViewInTable();
+            }}
+          >
             View in table
           </Button>
         )}
@@ -194,6 +260,8 @@ const WorkloadStatusControl: React.FC<WorkloadStatusControlProps> = ({
   onPopoverOpen,
   onPopoverClose,
   onViewInTable,
+  onViewInTableClicked,
+  onPopoverClosed,
   children,
 }) => {
   if (!onViewInTable) {
@@ -207,8 +275,10 @@ const WorkloadStatusControl: React.FC<WorkloadStatusControlProps> = ({
       visible={visiblePopover?.bucket === bucket && visiblePopover.source === source}
       onOpen={() => onPopoverOpen(bucket, source)}
       onClose={onPopoverClose}
+      onPopoverClosed={onPopoverClosed ?? (() => undefined)}
       onViewInTable={() => {
         onPopoverClose();
+        onViewInTableClicked?.(bucket);
         onViewInTable(bucket);
       }}
     >
@@ -224,6 +294,9 @@ const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
   onPopoverOpen,
   onPopoverClose,
   onViewInTable,
+  onStatusOverviewSegmentClick,
+  onViewInTableClicked,
+  onPopoverClosed,
 }) => (
   <>
     {overviewBuckets.map((bucket) => (
@@ -236,9 +309,17 @@ const WorkloadStatusCounts: React.FC<WorkloadStatusCountsProps> = ({
           onPopoverOpen={onPopoverOpen}
           onPopoverClose={onPopoverClose}
           onViewInTable={counts[bucket] > 0 ? onViewInTable : undefined}
+          onViewInTableClicked={onViewInTableClicked}
+          onPopoverClosed={(method) => onPopoverClosed?.(bucket, method)}
         >
           {counts[bucket] > 0 ? (
-            <Button variant="plain" isInline data-testid={`workload-count-${bucket}`}>
+            <Button
+              variant="plain"
+              isInline
+              data-testid={`workload-count-${bucket}`}
+              data-workload-status-trigger
+              onClick={() => onStatusOverviewSegmentClick?.(bucket)}
+            >
               <Flex
                 className="pf-v6-u-w-100"
                 direction={{ default: 'column' }}
@@ -284,6 +365,9 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
   onPopoverOpen,
   onPopoverClose,
   onViewInTable,
+  onStatusOverviewSegmentClick,
+  onViewInTableClicked,
+  onPopoverClosed,
 }) => {
   const workloadOverviewPercentages = calculateWorkloadOverviewPercentages(counts, total);
 
@@ -311,6 +395,9 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
           onPopoverOpen={onPopoverOpen}
           onPopoverClose={onPopoverClose}
           onViewInTable={onViewInTable}
+          onPopoverClosed={onPopoverClosed}
+          onStatusOverviewSegmentClick={onStatusOverviewSegmentClick}
+          onViewInTableClicked={onViewInTableClicked}
         />
       </Flex>
       <div className="gpuaas-workload-overview__bar" role="group" aria-label="Workloads by status">
@@ -332,14 +419,20 @@ const WorkloadStatusTab: React.FC<WorkloadStatusTabProps> = ({
                   onPopoverOpen={onPopoverOpen}
                   onPopoverClose={onPopoverClose}
                   onViewInTable={onViewInTable}
+                  onViewInTableClicked={onViewInTableClicked}
+                  onPopoverClosed={
+                    onPopoverClosed ? (method) => onPopoverClosed(bucket, method) : undefined
+                  }
                 >
                   <button
                     type="button"
                     data-testid={`workload-segment-${bucket}`}
+                    data-workload-status-trigger
                     className="gpuaas-workload-overview__segment"
                     style={{ backgroundColor: colors[bucket] }}
                     data-status={bucket}
                     aria-label={`${labels[bucket]}: ${counts[bucket]} of ${total} workloads (${bucketPercentage}%)`}
+                    onClick={() => onStatusOverviewSegmentClick?.(bucket)}
                   >
                     {bucketPercentage >= 6 ? `${bucketPercentage}%` : null}
                   </button>
@@ -374,6 +467,9 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   error,
   refreshTrigger = 0,
   onViewInTable,
+  onStatusOverviewSegmentClick,
+  onViewInTableClicked,
+  onPopoverClosed,
 }) => {
   const [expanded, setExpanded] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState<string | number>(WorkloadOverviewTab.Status);
@@ -393,16 +489,56 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
   return (
     <Card data-testid="workload-overview">
       <CardBody>
-        <ExpandableSection
-          className="gpuaas-workload-overview"
-          isExpanded={expanded}
-          onToggle={(_event, nextExpanded) => setExpanded(nextExpanded)}
-          toggleContent={
+        <Flex
+          className="gpuaas-workload-overview__header"
+          alignItems={{ default: 'alignItemsCenter' }}
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+        >
+          <ExpandableSectionToggle
+            isDetached
+            isExpanded={expanded}
+            onToggle={(nextExpanded) => {
+              setExpanded(nextExpanded);
+              fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
+                sectionName: 'workload-overview',
+                action: nextExpanded ? 'expand' : 'collapse',
+              });
+            }}
+            toggleId="workload-overview-toggle"
+            contentId="workload-overview-content"
+            className="gpuaas-workload-overview__detached-toggle"
+            data-testid="workload-overview-toggle"
+            toggleWrapper="h4"
+          >
             <Title headingLevel="h4" size="md">
               Workload overview
             </Title>
-          }
-          toggleWrapper="h4"
+          </ExpandableSectionToggle>
+          {expanded && activeTab === WorkloadOverviewTab.Admissions && (
+            <SimpleSelect
+              options={ADMISSION_TIME_WINDOW_OPTIONS}
+              value={timeWindow}
+              onChange={(timeRange) => {
+                setTimeWindow(timeRange);
+                fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_ADMISSION_TIME_RANGE_CHANGED, {
+                  timeRange,
+                });
+              }}
+              ariaLabel="Admission time window"
+              dataTestId="admission-time-window"
+              toggleProps={{
+                className: 'gpuaas-workload-overview__admission-time-window-toggle',
+              }}
+              popperProps={{ maxWidth: undefined }}
+            />
+          )}
+        </Flex>
+        <ExpandableSection
+          className="gpuaas-workload-overview"
+          isDetached
+          isExpanded={expanded}
+          contentId="workload-overview-content"
+          toggleId="workload-overview-toggle"
         >
           {dataUnavailable ? (
             <EmptyState titleText="Workload data not connected" headingLevel="h3">
@@ -430,7 +566,16 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                   <FlexItem flex={{ default: 'flex_1' }}>
                     <Tabs
                       activeKey={activeTab}
-                      onSelect={(_event, eventKey) => setActiveTab(eventKey)}
+                      onSelect={(_, key) => {
+                        const tab =
+                          key === WorkloadOverviewTab.Admissions
+                            ? WorkloadOverviewTab.Admissions
+                            : WorkloadOverviewTab.Status;
+                        setActiveTab(tab);
+                        fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_OVERVIEW_TAB_SELECTED, {
+                          tabName: tab === WorkloadOverviewTab.Admissions ? 'admission' : 'status',
+                        });
+                      }}
                       aria-label="Workload overview tabs"
                     >
                       <Tab
@@ -451,21 +596,6 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                       )}
                     </Tabs>
                   </FlexItem>
-                  {activeTab === WorkloadOverviewTab.Admissions && (
-                    <FlexItem>
-                      <SimpleSelect
-                        options={ADMISSION_TIME_WINDOW_OPTIONS}
-                        value={timeWindow}
-                        onChange={setTimeWindow}
-                        ariaLabel="Admission time window"
-                        dataTestId="admission-time-window"
-                        toggleProps={{
-                          className: 'gpuaas-workload-overview__admission-time-window-toggle',
-                        }}
-                        popperProps={{ maxWidth: undefined }}
-                      />
-                    </FlexItem>
-                  )}
                 </Flex>
                 <TabContent
                   id="workload-status-panel"
@@ -484,6 +614,9 @@ const WorkloadOverview: React.FC<WorkloadOverviewProps> = ({
                       onPopoverOpen={(bucket, source) => setVisiblePopover({ bucket, source })}
                       onPopoverClose={() => setVisiblePopover(undefined)}
                       onViewInTable={onViewInTable}
+                      onStatusOverviewSegmentClick={onStatusOverviewSegmentClick}
+                      onViewInTableClicked={onViewInTableClicked}
+                      onPopoverClosed={onPopoverClosed}
                     />
                   )}
                 </TabContent>

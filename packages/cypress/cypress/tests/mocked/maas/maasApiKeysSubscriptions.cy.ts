@@ -28,10 +28,11 @@ describe('API keys - Subscription Tab', () => {
       }),
     );
 
+    cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: true } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
-    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
 
     cy.interceptOdh(
@@ -44,7 +45,7 @@ describe('API keys - Subscription Tab', () => {
       }),
     );
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
       const subscriptionFilter = req.body?.data?.filters?.subscription as string | undefined;
       const keys = mockAPIKeys().filter(
         (key) =>
@@ -302,7 +303,7 @@ describe('API keys - Subscription Tab', () => {
         new Date(a.expirationDate ?? 0).getTime() - new Date(b.expirationDate ?? 0).getTime(),
     );
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
       req.reply(mockSearchResponse(nameAsc));
     }).as('sortNameAsc');
     mySubscriptionsPage.findColumnSortButton('Name').click();
@@ -321,7 +322,7 @@ describe('API keys - Subscription Tab', () => {
       .eq(1)
       .should('contain.text', 'production-backend');
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
       req.reply(mockSearchResponse(expiresAsc));
     }).as('sortExpiresAsc');
     mySubscriptionsPage.findColumnSortButton('Expires').click();
@@ -342,7 +343,7 @@ describe('API keys - Subscription Tab', () => {
 
     const mockReply = () => mockSearchResponse(premiumKeys);
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
       req.reply(mockReply());
     }).as('sortCreated');
     mySubscriptionsPage.findColumnSortButton('Created').click();
@@ -350,7 +351,7 @@ describe('API keys - Subscription Tab', () => {
       expect(interception.request.body.data).to.have.nested.property('sort.by', 'created_at');
     });
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
       req.reply(mockReply());
     }).as('sortLastUsed');
     mySubscriptionsPage.findColumnSortButton('Last used').click();

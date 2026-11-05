@@ -12,6 +12,14 @@ class AutoragRunResultsPage {
     return cy.findByTestId('run-details-button');
   }
 
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
+  findStarterKitDownloadButton() {
+    return cy.findByTestId('starter-kit-download-button');
+  }
+
   findLeaderboardTable() {
     return cy.findByTestId('leaderboard-table');
   }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigTableRow from '../LlmAcceleratorConfigTableRow';
 
@@ -74,6 +75,39 @@ describe('LlmAcceleratorConfigTableRow', () => {
     );
 
     expect(screen.queryByTestId('pre-installed-label')).not.toBeInTheDocument();
+  });
+
+  it('should show a purple From library label when the origin annotation is present', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({});
+    config.metadata.annotations = {
+      ...config.metadata.annotations,
+      [MetadataAnnotation.InstalledFromCatalog]: 'true',
+    };
+
+    render(
+      <table>
+        <tbody>
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
+        </tbody>
+      </table>,
+    );
+
+    expect(screen.getByTestId('from-library-label')).toHaveTextContent('From library');
+    expect(screen.queryByTestId('pre-installed-label')).not.toBeInTheDocument();
+  });
+
+  it('should not show From library label without the origin annotation', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({});
+
+    render(
+      <table>
+        <tbody>
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
+        </tbody>
+      </table>,
+    );
+
+    expect(screen.queryByTestId('from-library-label')).not.toBeInTheDocument();
   });
 
   it('should show Limited support label for unsupported configs', () => {

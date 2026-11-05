@@ -97,6 +97,14 @@ class AutomlResultsPage {
     return cy.findByTestId('run-details-button');
   }
 
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
+  findRunNotebookDownloadButton() {
+    return cy.findByTestId('run-notebook-download-button');
+  }
+
   findRunDetailsDrawerPanel() {
     return cy.findByTestId('run-details-drawer-panel');
   }

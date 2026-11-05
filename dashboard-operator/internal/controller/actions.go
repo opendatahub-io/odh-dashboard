@@ -140,6 +140,32 @@ func remapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, appli
 	}
 }
 
+// setMaaSUsageDashboardRoleBindingNamespace binds the MaaS BFF service account
+// from the operator's configured applications namespace, not a fixed platform namespace.
+func setMaaSUsageDashboardRoleBindingNamespace(resources []unstructured.Unstructured, applicationsNamespace string) error {
+	for i := range resources {
+		resource := &resources[i]
+		if resource.GetKind() != "RoleBinding" || resource.GetName() != "odh-dashboard-maas-usage-dashboards" {
+			continue
+		}
+		subjects, found, err := unstructured.NestedSlice(resource.Object, "subjects")
+		if err != nil {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding has invalid subjects: %w", err)
+		}
+		if !found || len(subjects) != 1 {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding must have one subject")
+		}
+		subject, ok := subjects[0].(map[string]interface{})
+		if !ok || subject["kind"] != "ServiceAccount" || subject["name"] != "odh-dashboard-maas" {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding has unexpected subject")
+		}
+		subject["namespace"] = applicationsNamespace
+		return unstructured.SetNestedSlice(resource.Object, subjects, "subjects")
+	}
+	// Some test and custom observability overlays contain no MaaS RBAC.
+	return nil
+}
+
 func dataConnectHubGatewayRBACForPlatform(platform cluster.Platform) (string, string) {
 	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
 		return dchRhoaiGatewayRBACName, dataScienceGatewayNamespace
@@ -230,6 +256,9 @@ func manifestSets(basePath string, platform cluster.Platform) []render.ManifestI
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
 	computed := computeKustomizeVariables(dashboard, platform)
 	maps.Copy(computed, resolveImageParams())
+	// The operator applies the upload ConfigMap separately after validating the
+	// CR value. Render a safe placeholder, including after a previous reconcile.
+	computed[ociBaseImageParam] = ""
 
 	for _, m := range manifests {
 		manifestPath := m.String()
@@ -260,8 +289,16 @@ func extractDashboardURL(ctx context.Context, reader client.Reader, dashboard *v
 		return "", fmt.Errorf("failed to list routes: %w", err)
 	}
 
-	if len(rl.Items) == 1 && len(rl.Items[0].Status.Ingress) > 0 {
-		ingress := rl.Items[0].Status.Ingress[0]
+	routes := rl.Items[:0]
+	for i := range rl.Items {
+		if rl.Items[i].Labels["app"] == dashboardRedirectName {
+			continue
+		}
+		routes = append(routes, rl.Items[i])
+	}
+
+	if len(routes) == 1 && len(routes[0].Status.Ingress) > 0 {
+		ingress := routes[0].Status.Ingress[0]
 
 		admitted := false
 		for _, cond := range ingress.Conditions {
@@ -324,6 +361,9 @@ func deployObservabilityManifests(
 	}
 
 	if maasPortalSupportedPlatform(platform) {
+		if err := setMaaSUsageDashboardRoleBindingNamespace(rendered, applicationsNamespace); err != nil {
+			return err
+		}
 		if err := setMaaSPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
 			return err
 		}
@@ -333,6 +373,9 @@ func deployObservabilityManifests(
 	}
 
 	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))
+	if err := revertServicePortDrift(ctx, reader, cli, rendered); err != nil {
+		return fmt.Errorf("repairing observability Service port drift: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),

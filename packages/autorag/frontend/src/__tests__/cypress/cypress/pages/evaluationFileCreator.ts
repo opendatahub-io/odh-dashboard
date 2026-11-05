@@ -116,6 +116,34 @@ class AutoragConfigurePage {
     return cy.findByTestId('configure-step-subtitle');
   }
 
+  findSelectModelsButton() {
+    return cy.findByTestId('select-models-button');
+  }
+
+  findModelSelectionModal() {
+    return cy.findByTestId('experiment-settings-modal');
+  }
+
+  findModelTab(modelType: 'foundation' | 'embedding') {
+    return cy.findByTestId(`${modelType}-models-tab`);
+  }
+
+  findModelCheckbox(modelType: 'llm' | 'embedding', modelId: string) {
+    return cy.findByTestId(`${modelType}-model-checkbox-${modelId}`);
+  }
+
+  findDisabledModelTooltip(modelType: 'llm' | 'embedding', modelId: string) {
+    return cy.findByTestId(`${modelType}-disabled-model-tooltip-${modelId}`);
+  }
+
+  findDisabledModelTooltipContent(modelType: 'llm' | 'embedding', modelId: string) {
+    return cy.findByTestId(`${modelType}-disabled-model-tooltip-${modelId}-content`);
+  }
+
+  findTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
   findMaaSSecretSelector(options?: { timeout?: number }) {
     return cy.findByTestId('maas-secret-selector', options);
   }

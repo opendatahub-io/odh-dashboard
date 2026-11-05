@@ -8,6 +8,9 @@ import type {
   HrefNavItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
+// Keep in sync with PORTAL_MODEL_ACCESS_PATH in ./portalPaths.ts (value imports are disallowed here).
+const PORTAL_MODEL_ACCESS_PATH = '/maas/model-access';
+
 const extensions: Extension[] = [
   // Root redirect
   {
@@ -56,6 +59,25 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
+  // Gen AI routes are not exposed by the MaaS Portal, including direct URLs.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.route',
+      targetId: 'gen-ai-routes',
+    },
+  } satisfies SuppressExtension,
+
+  // The portal exposes the dedicated Model Access page instead of the
+  // legacy MaaS governance navigation item.
+  {
+    type: 'app.suppress',
+    properties: {
+      targetType: 'app.navigation/href',
+      targetId: 'maas-governance-view',
+    },
+  } satisfies SuppressExtension,
+
   // Hide the MCP servers tab in the MaaS Portal.
   {
     type: 'app.suppress',
@@ -65,7 +87,7 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
-  // Suppression is unconditional, so restore AAE below only when grid is disabled.
+  // AI asset endpoints are not part of the MaaS Portal navigation.
   {
     type: 'app.suppress',
     properties: {
@@ -73,17 +95,6 @@ const extensions: Extension[] = [
       targetId: 'ai-assets',
     },
   } satisfies SuppressExtension,
-
-  {
-    type: 'app.navigation/href',
-    flags: { required: ['plugin-gen-ai'], disallowed: ['grid'] },
-    properties: {
-      id: 'ai-assets',
-      title: 'AI asset endpoints',
-      href: '/gen-ai-studio/assets',
-      path: '/gen-ai-studio/assets/*',
-    },
-  } satisfies HrefNavItemExtension,
 
   // Hide the Playground navigation item in the MaaS Portal.
   {
@@ -123,6 +134,16 @@ const extensions: Extension[] = [
     },
   },
   {
+    type: 'app.navigation/href',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    properties: {
+      id: 'maas-model-access-portal',
+      title: 'Model Access',
+      href: PORTAL_MODEL_ACCESS_PATH,
+      path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
+    },
+  } satisfies HrefNavItemExtension,
+  {
     type: 'app.patch',
     properties: {
       targetType: 'app.navigation/href',
@@ -130,9 +151,28 @@ const extensions: Extension[] = [
       patch: { section: null, group: '5_maas_governance' },
     },
   } satisfies PatchExtension<NavPatch>,
+
+  // Read-only model access viewer: the MaaS governance subscriptions table
+  // (Subscription / Groups / Models, with the Groups and Models sub-tables)
+  // without Status, row actions, or create/delete affordances.
   {
     type: 'app.route',
-    flags: { required: ['grid'] },
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    properties: {
+      path: `${PORTAL_MODEL_ACCESS_PATH}/view/:subscriptionName`,
+      component: () => import('@odh-dashboard/maas/ModelAccessSubscriptionPage'),
+    },
+  } satisfies RouteExtension,
+  {
+    type: 'app.route',
+    flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
+    properties: {
+      path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
+      component: () => import('@odh-dashboard/maas/ModelAccessPage'),
+    },
+  } satisfies RouteExtension,
+  {
+    type: 'app.route',
     properties: {
       path: '/maas/models/*',
       component: () => import('@odh-dashboard/gen-ai/MaaSModelsPageProvider'),
@@ -140,10 +180,9 @@ const extensions: Extension[] = [
   } satisfies RouteExtension,
   {
     type: 'app.navigation/href',
-    flags: { required: ['grid'] },
     properties: {
       id: 'maas-models',
-      title: 'Models endpoints',
+      title: 'Model endpoints',
       href: '/maas/models',
       path: '/maas/models/*',
       group: '1_models',

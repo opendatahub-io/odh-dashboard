@@ -25,10 +25,11 @@ describe('MaaS failure tracking', () => {
   beforeEach(() => {
     asProjectAdminUser();
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
+    cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
-    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
     cy.interceptOdh(
       'GET /api/dsc/status',
@@ -38,7 +39,7 @@ describe('MaaS failure tracking', () => {
       }),
     );
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search',
+      'POST /maas/api/v1/api-keys/search/tenant',
       mockSearchResponse(
         mockAPIKeys().filter((key) => key.status === 'active'),
         mockSubscriptionDetails,
@@ -100,6 +101,7 @@ describe('MaaS failure tracking', () => {
 
   it('should keep administrator bulk revoke diagnostics out of telemetry', () => {
     asProductAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: true } });
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.intercept('POST', '/maas/api/v1/api-keys/bulk-revoke', failure()).as('failure');
     apiKeysPage.visit();

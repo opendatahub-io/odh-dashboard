@@ -12,12 +12,6 @@ import {
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import type { Toleration, NodeSelector, HardwareProfileKind } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import {
-  getClusterQueueNameFromLocalQueues,
-  getHardwareProfileDescription,
-  getHardwareProfileDisplayName,
-} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import {
   formatToleration,
@@ -29,6 +23,12 @@ import {
 } from './utils';
 import DRAHardwareProfileDetailsSection from './DRAHardwareProfileDetailsSection';
 import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
+import type { ResourceType } from './types';
+import {
+  getClusterQueueNameFromLocalQueues,
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
+} from '../src/pages/utils';
 
 type HardwareProfileDetailsPopoverProps = {
   localQueueName?: string;
@@ -37,7 +37,7 @@ type HardwareProfileDetailsPopoverProps = {
   nodeSelector?: NodeSelector;
   hardwareProfile?: HardwareProfileKind;
   tableView?: boolean;
-  onExpandRow?: () => void;
+  resourceType?: ResourceType;
 };
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
@@ -47,7 +47,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   nodeSelector,
   hardwareProfile,
   tableView = false,
-  onExpandRow,
+  resourceType = 'workbench',
 }) => {
   const { localQueues } = React.useContext(LocalQueuesContext);
   const isDRAEnabled = useIsDRAHardwareProfileEnabled();
@@ -100,11 +100,12 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   };
 
   const noHpTableView = tableView && !hardwareProfile;
+  const noHardwareProfileMessage = `This ${resourceType} isn't using a hardware profile. Edit the ${resourceType} to assign one.`;
 
   const headerContent = hardwareProfile
     ? `${getHardwareProfileDisplayName(hardwareProfile)} details`
     : noHpTableView
-    ? 'No hardware profile defined'
+    ? 'No hardware profile'
     : 'Existing settings';
 
   const triggerLabel =
@@ -150,10 +151,7 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
               )}
             </>
           ) : noHpTableView ? (
-            <StackItem>
-              No hardware profile is defined for this workbench. It&apos;s using its current
-              resource settings, so default, minimum, and maximum values aren&apos;t available.
-            </StackItem>
+            <StackItem>{noHardwareProfileMessage}</StackItem>
           ) : !localQueueName ? (
             <StackItem>
               No matching hardware profile found, using existing settings. Default, min, and max
@@ -183,20 +181,6 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
             </StackItem>
           )}
         </Stack>
-      }
-      footerContent={
-        noHpTableView && onExpandRow ? (
-          <Button
-            variant="link"
-            isInline
-            onClick={() => {
-              onExpandRow();
-              setIsPopoverVisible(false);
-            }}
-          >
-            Expand row
-          </Button>
-        ) : undefined
       }
     >
       <Button

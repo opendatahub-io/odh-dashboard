@@ -9,6 +9,7 @@ import {
 } from '../../../utils/catalogHuggingFace';
 import {
   verifyModelCatalogBackend,
+  waitForModelCatalogDeployment,
   deleteHuggingFaceCatalogSource,
   waitForModelCatalogCards,
 } from '../../../utils/oc_commands/modelCatalog';
@@ -41,6 +42,7 @@ describe('Verify Hugging Face catalog source add, validate, and preview', () => 
         ensureAdminOcSession();
         deleteHuggingFaceCatalogSource(sourceId);
         deleteHuggingFaceCatalogSource(privateSourceId);
+        waitForModelCatalogDeployment();
       });
   });
 

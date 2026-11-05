@@ -1,31 +1,9 @@
 import React from 'react';
 import { usePluginStore } from '@openshift/dynamic-plugin-sdk';
+import { getMaaSWhoAmI } from '@odh-dashboard/maas/api/whoami';
 
 const ADMIN_USER_FLAG = 'ADMIN_USER';
-const MAAS_ADMIN_ENDPOINT = `${process.env.BASE_PATH || ''}/maas/api/v1/is-maas-admin`;
-
-const isMaaSAdminResponse = (value: unknown): value is { data: { allowed: boolean } } =>
-  typeof value === 'object' &&
-  value !== null &&
-  'data' in value &&
-  typeof value.data === 'object' &&
-  value.data !== null &&
-  'allowed' in value.data &&
-  typeof value.data.allowed === 'boolean';
-
-const getMaaSAdminAccess = async (): Promise<boolean> => {
-  try {
-    const response = await fetch(MAAS_ADMIN_ENDPOINT);
-    if (!response.ok) {
-      return false;
-    }
-
-    const responseBody: unknown = await response.json();
-    return isMaaSAdminResponse(responseBody) && responseBody.data.allowed;
-  } catch {
-    return false;
-  }
-};
+const MODEL_ACCESS_ADMIN_FLAG = 'MAAS_MODEL_ACCESS_ADMIN';
 
 type MaaSAuthzProviderProps = {
   children: React.ReactNode;
@@ -36,15 +14,16 @@ const MaaSAuthzProvider: React.FC<MaaSAuthzProviderProps> = ({ children }) => {
 
   React.useEffect(() => {
     let isCurrent = true;
-    pluginStore.setFeatureFlags({ [ADMIN_USER_FLAG]: false });
+    pluginStore.setFeatureFlags({ [ADMIN_USER_FLAG]: false, [MODEL_ACCESS_ADMIN_FLAG]: false });
 
-    if (window.__MAAS_CONSUMER_PORTAL_GRID__ !== true) {
-      void getMaaSAdminAccess().then((allowed) => {
+    void getMaaSWhoAmI()({})
+      .then(({ isAdmin }) => {
         if (isCurrent) {
-          pluginStore.setFeatureFlags({ [ADMIN_USER_FLAG]: allowed });
+          pluginStore.setFeatureFlags({ [ADMIN_USER_FLAG]: isAdmin });
+          pluginStore.setFeatureFlags({ [MODEL_ACCESS_ADMIN_FLAG]: isAdmin });
         }
-      });
-    }
+      })
+      .catch(() => undefined);
 
     return () => {
       isCurrent = false;

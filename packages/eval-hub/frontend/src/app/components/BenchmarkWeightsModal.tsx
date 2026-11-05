@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Button,
   Content,
+  Form,
   FormGroup,
   Modal,
   ModalBody,
@@ -155,38 +156,40 @@ const BenchmarkWeightsModal: React.FC<BenchmarkWeightsModalProps> = ({
           <Content component="p" className="evalhub-benchmark-weights-modal__inputs-description">
             Use relative values (for example, 2 counts twice as much as 1).
           </Content>
-          <div className="evalhub-benchmark-weights-modal__input-grid">
-            {segments.map((segment, index) => (
-              <FormGroup
-                key={`${segment.label}-${index}`}
-                label={
-                  <span
-                    className="evalhub-benchmark-weights-modal__input-label"
-                    title={segment.label}
-                  >
-                    {segment.label}
-                  </span>
-                }
-                fieldId={`benchmark-weight-${index}`}
-              >
-                <TextInput
-                  id={`benchmark-weight-${index}`}
-                  data-testid={`benchmark-weight-input-${index}`}
-                  type="number"
-                  min={1}
-                  max={Number.MAX_SAFE_INTEGER}
-                  step={1}
-                  inputMode="numeric"
-                  value={draftRatios[index] ?? ''}
-                  onChange={(_event, value) => handleRatioChange(index, value)}
-                  onKeyDown={handleRatioKeyDown}
-                  isRequired
-                  validated={isPositiveIntegerRatio(draftRatios[index]) ? 'default' : 'error'}
-                  aria-label={`${segment.label} weight ratio`}
-                />
-              </FormGroup>
-            ))}
-          </div>
+          <Form onSubmit={(event) => event.preventDefault()}>
+            <div className="evalhub-benchmark-weights-modal__input-grid">
+              {segments.map((segment, index) => (
+                <FormGroup
+                  key={`${segment.label}-${index}`}
+                  label={
+                    <span
+                      className="evalhub-benchmark-weights-modal__input-label"
+                      title={segment.label}
+                    >
+                      {segment.label}
+                    </span>
+                  }
+                  fieldId={`benchmark-weight-${index}`}
+                >
+                  <TextInput
+                    id={`benchmark-weight-${index}`}
+                    data-testid={`benchmark-weight-input-${index}`}
+                    type="number"
+                    min={1}
+                    max={Number.MAX_SAFE_INTEGER}
+                    step={1}
+                    inputMode="numeric"
+                    value={draftRatios[index] ?? ''}
+                    onChange={(_event, value) => handleRatioChange(index, value)}
+                    onKeyDown={handleRatioKeyDown}
+                    isRequired
+                    validated={isPositiveIntegerRatio(draftRatios[index]) ? 'default' : 'error'}
+                    aria-label={`${segment.label} weight ratio`}
+                  />
+                </FormGroup>
+              ))}
+            </div>
+          </Form>
         </div>
       </ModalBody>
       <ModalFooter>

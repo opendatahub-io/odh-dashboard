@@ -20,7 +20,7 @@ const MaaSModelsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Models endpoints"
+      title="Model endpoints"
       description="Browse the Models-as-a-Service endpoints available through your subscriptions."
       loaded
       empty={false}

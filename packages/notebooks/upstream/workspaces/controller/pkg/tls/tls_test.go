@@ -78,12 +78,12 @@ func TestParseProfile(t *testing.T) {
 			wantCiphers:    nil,
 		},
 		{
-			name: "Old returns TLS 1.0 with nil ciphers",
+			name: "Old returns TLS 1.0 with the resolved Old cipher set",
 			apiServer: newAPIServer(map[string]any{
 				fieldType: profileTypeOld,
 			}),
 			wantMinVersion: tls.VersionTLS10,
-			wantCiphers:    nil,
+			wantCiphers:    resolveCipherNames(oldCipherNames),
 		},
 		{
 			name: "Custom with valid ciphers",
@@ -155,7 +155,7 @@ func TestParseProfile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotMinVersion, gotCiphers := parseProfile(tt.apiServer)
+			gotMinVersion, gotCiphers, _, _ := parseProfile(tt.apiServer)
 
 			if gotMinVersion != tt.wantMinVersion {
 				t.Errorf("parseProfile() minVersion = %d, want %d", gotMinVersion, tt.wantMinVersion)
@@ -237,6 +237,17 @@ func TestResolve_TransientError_SetsAPIAvailable(t *testing.T) {
 	if !result.APIAvailable {
 		t.Error("expected APIAvailable = true on transient error")
 	}
+	// A transient read is unreadable (so reload retains the running config and
+	// retries) AND transient (so startup can be lenient and self-heal).
+	if !result.Degraded {
+		t.Error("expected Degraded = true on transient error")
+	}
+	if !result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = true on transient error (reload must retain/retry)")
+	}
+	if !result.Transient {
+		t.Error("expected Transient = true on transient error (startup may be lenient)")
+	}
 }
 
 func TestResolve_Forbidden_SetsAPIAvailable(t *testing.T) {
@@ -282,7 +293,11 @@ func TestResolve_FatalError_Returns(t *testing.T) {
 	}
 }
 
-func TestResolve_UnsupportedCiphers_FailsClosed(t *testing.T) {
+func TestResolve_UnsupportedCiphers_MarksDegradedReadable(t *testing.T) {
+	// An all-unsupported Custom cipher set is a clean read with an inapplicable
+	// profile: it must be flagged Degraded (so a Strict consumer rejects it) but NOT
+	// PolicyUnreadable (so a Legacy consumer can keep its own config) and NOT a hard
+	// error (which would crash Legacy notebooks startup).
 	apiServer := newAPIServer(map[string]any{
 		fieldType: profileTypeCustom,
 		fieldCustom: map[string]any{
@@ -292,9 +307,18 @@ func TestResolve_UnsupportedCiphers_FailsClosed(t *testing.T) {
 	})
 	s := testScheme()
 	fc := fake.NewClientBuilder().WithScheme(s).WithObjects(apiServer).Build()
-	_, err := resolve(context.Background(), fc)
-	if err == nil {
-		t.Fatal("expected fail-closed error for all-unsupported ciphers")
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v; inapplicable profile should be degraded, not a hard error", err)
+	}
+	if !result.Degraded {
+		t.Error("expected Degraded = true for all-unsupported ciphers")
+	}
+	if result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = false (the policy was read cleanly)")
+	}
+	if !result.ProfileUnusable {
+		t.Error("expected ProfileUnusable = true so the controller rejects the profile")
 	}
 }
 
@@ -307,8 +331,9 @@ func TestProfileWatcher_DetectsChange(t *testing.T) {
 	w := &ProfileWatcher{
 		Client:         fc,
 		InitialProfile: map[string]any{fieldType: profileTypeIntermediate},
-		OnProfileChange: func(_ context.Context) {
+		OnProfileChange: func(_ context.Context) error {
 			changed = true
+			return nil
 		},
 	}
 	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
@@ -330,7 +355,7 @@ func TestProfileWatcher_IgnoresNonCluster(t *testing.T) {
 	called := false
 	w := &ProfileWatcher{
 		Client:          fc,
-		OnProfileChange: func(_ context.Context) { called = true },
+		OnProfileChange: func(_ context.Context) error { called = true; return nil },
 	}
 	_, err := w.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: client.ObjectKey{Name: "not-cluster"},
@@ -353,8 +378,9 @@ func TestProfileWatcher_NoChangeNoCallback(t *testing.T) {
 	w := &ProfileWatcher{
 		Client:         fc,
 		InitialProfile: profile,
-		OnProfileChange: func(_ context.Context) {
+		OnProfileChange: func(_ context.Context) error {
 			called = true
+			return nil
 		},
 	}
 	w.lastProfile = profile
@@ -381,8 +407,9 @@ func TestProfileWatcher_NilProfileTreatedAsIntermediate(t *testing.T) {
 	w := &ProfileWatcher{
 		Client:         fc,
 		InitialProfile: map[string]any{fieldType: profileTypeIntermediate},
-		OnProfileChange: func(_ context.Context) {
+		OnProfileChange: func(_ context.Context) error {
 			called = true
+			return nil
 		},
 	}
 	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
@@ -395,6 +422,363 @@ func TestProfileWatcher_NilProfileTreatedAsIntermediate(t *testing.T) {
 	}
 	if called {
 		t.Error("should NOT restart when nil profile matches Intermediate")
+	}
+}
+
+func TestResolve_ForbiddenMarksDegraded(t *testing.T) {
+	gr := schema.GroupResource{Group: "config.openshift.io", Resource: "apiservers"}
+	fc := &errorClient{err: apierrors.NewForbidden(gr, apiServerName, nil)}
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (controller stays fail-open)", err)
+	}
+	// Controller stays fail-open (APIAvailable true), but the result is flagged
+	// degraded AND PolicyUnreadable so fail-closed consumers (the backend listener)
+	// reject it — a denied read is a persistent misconfiguration, not a brownout.
+	if !result.Degraded {
+		t.Error("expected Degraded = true on Forbidden read")
+	}
+	if !result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = true on Forbidden read (denied, not transient)")
+	}
+	if result.Transient {
+		t.Error("expected Transient = false on Forbidden read (persistent misconfiguration, fail closed at startup)")
+	}
+}
+
+func TestResolve_UnknownTypeMarksDegraded(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{fieldType: "SuperSecure"})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (controller stays fail-open)", err)
+	}
+	if !result.Degraded {
+		t.Error("expected Degraded = true for unknown profile type")
+	}
+}
+
+func TestResolve_SuccessNotDegraded(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{fieldType: profileTypeModern})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	if result.Degraded {
+		t.Error("expected Degraded = false for a cleanly resolved profile")
+	}
+}
+
+func TestResolve_CustomGroupsAppliedToCurvePreferences(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName12,
+			fieldCiphers:       []any{openSSLCipherECDHEECDSAAES128GCMSHA256},
+			fieldGroups:        []any{"P-384", "P-256", "BOGUS"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	if len(cfg.CurvePreferences) != 2 {
+		t.Fatalf("expected 2 curve preferences (BOGUS dropped), got %d", len(cfg.CurvePreferences))
+	}
+	if cfg.CurvePreferences[0] != tls.CurveP384 || cfg.CurvePreferences[1] != tls.CurveP256 {
+		t.Errorf("curve preferences not honored in order: %v", cfg.CurvePreferences)
+	}
+}
+
+func TestResolve_CustomCanonicalGroupNames(t *testing.T) {
+	// OpenShift uses secp256r1/secp384r1/secp521r1; these valid names must resolve
+	// (regression: previously only P-256/P-384 were recognized).
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName13,
+			fieldGroups:        []any{"secp384r1", "secp256r1", "secp521r1"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (canonical group names must resolve)", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	want := []tls.CurveID{tls.CurveP384, tls.CurveP256, tls.CurveP521}
+	if len(cfg.CurvePreferences) != len(want) {
+		t.Fatalf("expected %d curves, got %d", len(want), len(cfg.CurvePreferences))
+	}
+	for i, c := range want {
+		if cfg.CurvePreferences[i] != c {
+			t.Errorf("curve[%d] = %d, want %d", i, cfg.CurvePreferences[i], c)
+		}
+	}
+}
+
+func TestResolve_CustomAllUnsupportedGroupsMarksDegradedReadable(t *testing.T) {
+	// All-unsupported groups: a clean read with an inapplicable restriction → degraded
+	// (Strict consumer rejects) but readable (Legacy consumer keeps its config), no error.
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName12,
+			fieldCiphers:       []any{openSSLCipherECDHEECDSAAES128GCMSHA256},
+			fieldGroups:        []any{"BOGUS-1", "BOGUS-2"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v; inapplicable groups should be degraded, not a hard error", err)
+	}
+	if !result.Degraded {
+		t.Error("expected Degraded = true for all-unsupported groups")
+	}
+	if result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = false (policy read cleanly)")
+	}
+	if !result.ProfileUnusable {
+		t.Error("expected ProfileUnusable = true so the controller rejects the profile")
+	}
+}
+
+func TestResolve_MalformedAdherenceMarksUnreadable(t *testing.T) {
+	// A non-string spec.tlsAdherence means the adherence decision cannot be trusted:
+	// the result must be PolicyUnreadable so adherence-keyed consumers fail closed
+	// rather than silently treating it as unset/Legacy.
+	apiServer := newAPIServerWithAdherence(map[string]any{fieldType: profileTypeIntermediate}, "")
+	// Overwrite adherence with a non-string value.
+	spec, _, _ := unstructured.NestedMap(apiServer.Object, fieldSpec)
+	spec[fieldTLSAdherence] = int64(7)
+	apiServer.Object[fieldSpec] = spec
+
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	if !result.PolicyUnreadable {
+		t.Error("expected PolicyUnreadable = true for a malformed adherence field")
+	}
+	if result.Adherence != "" {
+		t.Errorf("expected empty Adherence on malformed read, got %q", result.Adherence)
+	}
+}
+
+func TestResolve_CustomRSACiphersSupported(t *testing.T) {
+	// Parity with pkg/tls and the operator: an RSA GCM cipher the other resolvers
+	// accept must also resolve here (regression for the incomplete cipher map).
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName12,
+			fieldCiphers:       []any{"AES128-GCM-SHA256", "ECDHE-RSA-AES128-SHA256"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (RSA/CBC ciphers should be supported)", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	want := []uint16{tls.TLS_RSA_WITH_AES_128_GCM_SHA256, tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256}
+	if len(cfg.CipherSuites) != len(want) {
+		t.Fatalf("expected %d cipher suites, got %d (%v)", len(want), len(cfg.CipherSuites), cfg.CipherSuites)
+	}
+	for i, c := range want {
+		if cfg.CipherSuites[i] != c {
+			t.Errorf("cipher[%d] = %d, want %d", i, cfg.CipherSuites[i], c)
+		}
+	}
+}
+
+func TestResolve_CustomTLS13CiphersResolve(t *testing.T) {
+	// A TLS 1.3 Custom profile listing only TLS 1.3 cipher names must resolve
+	// (they are Go-managed/skipped), not fail closed as "no usable ciphers".
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName13,
+			fieldCiphers:       []any{"TLS_AES_128_GCM_SHA256"},
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v (TLS 1.3 custom profile should resolve)", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	if cfg.MinVersion != tls.VersionTLS13 {
+		t.Errorf("expected TLS 1.3, got %d", cfg.MinVersion)
+	}
+}
+
+func newAPIServerWithAdherence(profile map[string]any, adherence string) *unstructured.Unstructured {
+	obj := newAPIServer(profile)
+	spec, _, _ := unstructured.NestedMap(obj.Object, fieldSpec)
+	if spec == nil {
+		spec = map[string]any{}
+	}
+	spec[fieldTLSAdherence] = adherence
+	obj.Object[fieldSpec] = spec
+	return obj
+}
+
+func TestResolve_OldProfileAppliesCiphers(t *testing.T) {
+	// The Old profile must install the runtime-supported Old cipher set (parity with
+	// the shared BFF and operator resolvers), not leave Go defaults.
+	apiServer := newAPIServer(map[string]any{fieldType: profileTypeOld})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	cfg := &tls.Config{}
+	for _, fn := range result.TLSOpts {
+		fn(cfg)
+	}
+	if cfg.MinVersion != tls.VersionTLS10 {
+		t.Errorf("expected TLS 1.0, got %d", cfg.MinVersion)
+	}
+	if len(cfg.CipherSuites) == 0 {
+		t.Error("expected the Old profile to install a non-empty cipher set, got none")
+	}
+}
+
+func TestResolve_MalformedGroupsMarksDegraded(t *testing.T) {
+	// A groups field of the wrong shape (not a string array) must surface as degraded
+	// so a strict consumer rejects it rather than silently serving default curves.
+	apiServer := newAPIServer(map[string]any{
+		fieldType: profileTypeCustom,
+		fieldCustom: map[string]any{
+			fieldMinTLSVersion: tlsVersionName12,
+			fieldCiphers:       []any{openSSLCipherECDHEECDSAAES128GCMSHA256},
+			fieldGroups:        "not-a-string-array",
+		},
+	})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	if !result.Degraded {
+		t.Error("expected Degraded = true for a malformed groups field")
+	}
+}
+
+func TestResolve_PopulatesAdherence(t *testing.T) {
+	apiServer := newAPIServerWithAdherence(map[string]any{fieldType: profileTypeIntermediate}, AdherenceStrict)
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+	result, err := resolve(context.Background(), fc)
+	if err != nil {
+		t.Fatalf("resolve() error = %v", err)
+	}
+	if result.Adherence != AdherenceStrict {
+		t.Errorf("expected Adherence = %q, got %q", AdherenceStrict, result.Adherence)
+	}
+}
+
+func TestProfileWatcher_DetectsAdherenceChange(t *testing.T) {
+	// Same profile, but adherence changes Legacy -> Strict: must fire the callback.
+	apiServer := newAPIServerWithAdherence(map[string]any{fieldType: profileTypeIntermediate}, AdherenceStrict)
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+
+	fired := false
+	w := &ProfileWatcher{
+		Client:           fc,
+		InitialProfile:   map[string]any{fieldType: profileTypeIntermediate},
+		InitialAdherence: AdherenceLegacy,
+		OnProfileChange:  func(_ context.Context) error { fired = true; return nil },
+	}
+	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
+	w.lastAdherence = AdherenceLegacy
+
+	if _, err := w.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: client.ObjectKey{Name: apiServerName},
+	}); err != nil {
+		t.Fatalf("Reconcile() error = %v", err)
+	}
+	if !fired {
+		t.Error("expected OnProfileChange to fire on adherence change")
+	}
+}
+
+func TestProfileWatcher_FiresOnMalformedAdherence(t *testing.T) {
+	// A non-string adherence coerces to "" and would compare equal to the previous
+	// unset value; the watcher must still fire so the callback re-resolves (and flags
+	// it PolicyUnreadable) rather than silently ignoring the malformed update.
+	apiServer := newAPIServerWithAdherence(map[string]any{fieldType: profileTypeIntermediate}, "")
+	spec, _, _ := unstructured.NestedMap(apiServer.Object, fieldSpec)
+	spec[fieldTLSAdherence] = int64(7) // non-string
+	apiServer.Object[fieldSpec] = spec
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+
+	fired := false
+	w := &ProfileWatcher{
+		Client:           fc,
+		InitialProfile:   map[string]any{fieldType: profileTypeIntermediate},
+		InitialAdherence: "",
+		OnProfileChange:  func(_ context.Context) error { fired = true; return nil },
+	}
+	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
+	w.lastAdherence = ""
+
+	if _, err := w.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: client.ObjectKey{Name: apiServerName},
+	}); err != nil {
+		t.Fatalf("Reconcile() error = %v", err)
+	}
+	if !fired {
+		t.Error("expected OnProfileChange to fire on malformed adherence (not silently ignored)")
+	}
+}
+
+func TestProfileWatcher_CallbackErrorDoesNotAdvanceLastProfile(t *testing.T) {
+	apiServer := newAPIServer(map[string]any{fieldType: profileTypeModern})
+	fc := fake.NewClientBuilder().WithScheme(testScheme()).WithObjects(apiServer).Build()
+
+	calls := 0
+	w := &ProfileWatcher{
+		Client:         fc,
+		InitialProfile: map[string]any{fieldType: profileTypeIntermediate},
+		OnProfileChange: func(_ context.Context) error {
+			calls++
+			return context.DeadlineExceeded // simulate a failed re-resolve
+		},
+	}
+	w.lastProfile = map[string]any{fieldType: profileTypeIntermediate}
+
+	// First reconcile: callback fails, so the request is requeued (error) and
+	// lastProfile must NOT advance.
+	if _, err := w.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: client.ObjectKey{Name: apiServerName},
+	}); err == nil {
+		t.Fatal("expected Reconcile to return the callback error for requeue")
+	}
+	// Second reconcile (the retry): the change is still pending, so the callback
+	// fires again rather than being lost.
+	_, _ = w.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: client.ObjectKey{Name: apiServerName},
+	})
+	if calls < 2 {
+		t.Errorf("expected callback retried after failure, got %d calls", calls)
 	}
 }
 

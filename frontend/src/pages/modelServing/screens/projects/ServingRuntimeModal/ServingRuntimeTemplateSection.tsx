@@ -13,6 +13,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
+import { isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type {
   CreatingServingRuntimeObject,
@@ -34,7 +35,6 @@ import {
 } from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
 import type { UpdateObjectAtPropAndValue } from '@odh-dashboard/ui-core';
-import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { CustomWatchK8sResult } from '#~/types';
 import { ScopedType, SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 

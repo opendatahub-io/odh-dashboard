@@ -10,6 +10,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -45,6 +46,11 @@ import RelativeTimestamp from '~/app/components/RelativeTimestamp';
 import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  getConnectionTypeProvider,
+} from '~/app/utilities/tracking';
 import {
   hasVerificationOutcome,
   isValidTimestamp,
@@ -177,9 +183,18 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
               >
                 Verify connection
               </DropdownItem>
+              <Divider />
               <DropdownItem
                 onClick={() => {
                   setActionsOpen(false);
+                  fireDataConnectHubTrackEvent({
+                    eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
+                    properties: {
+                      project: namespace,
+                      connectionTypeProvider:
+                        getConnectionTypeProvider(connectionType) ?? 'unknown',
+                    },
+                  });
                   setDeleteOpen(true);
                 }}
               >
@@ -265,9 +280,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                           variant="outline"
                           status={statusVariant[testedConnection.status.state]}
                         >
-                          {testedConnection.status.state === 'ready'
-                            ? 'Verified'
-                            : 'Verification failed'}
+                          {testedConnection.status.state === 'ready' ? 'Verified' : 'Failed'}
                         </Label>
                       ) : (
                         <Label variant="outline" color="grey">

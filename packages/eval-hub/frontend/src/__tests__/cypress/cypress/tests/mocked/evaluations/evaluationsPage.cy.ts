@@ -301,6 +301,21 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Run');
   });
 
+  it('should open the suite details drawer when clicking the card title or body', () => {
+    initIntercepts({ collections: mockBenchmarkSuiteCollections() });
+
+    evaluationsPage.visitEvaluate(NAMESPACE);
+
+    evaluationsPage.findBenchmarkSuiteCardTitleRegion('model-suite-2').click();
+    evaluationsPage.findCollectionDrawerPanel().should('be.visible');
+    evaluationsPage.findCollectionDrawerCloseFooter().click();
+    evaluationsPage.findCollectionDrawerPanel().should('not.exist');
+
+    evaluationsPage.findBenchmarkSuiteCardBodyRegion('model-suite-2').click();
+    evaluationsPage.findCollectionDrawerPanel().should('be.visible');
+    evaluationsPage.findCollectionDrawerPanel().should('contain.text', 'Model suite 2');
+  });
+
   it('should hide Red Hat validated collections until more evaluation targets are available', () => {
     initIntercepts({ collections: mockBenchmarkSuiteCollections() });
 

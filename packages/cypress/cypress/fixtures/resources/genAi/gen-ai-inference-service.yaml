@@ -13,5 +13,5 @@ spec:
     model:
       modelFormat:
         name: vLLM
-      runtime: vllm-cpu-runtime-amd64
+      runtime: __RUNTIME_NAME__
       storageUri: __MODEL_URI__

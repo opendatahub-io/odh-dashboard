@@ -93,7 +93,7 @@ export const searchApiKeys =
       throw new Error('Invalid response format');
     });
 
-/** POST /api/v1/api-keys/search/tenant - Search caller-scoped API keys without K8s enrichment */
+/** POST /api/v1/api-keys/search/tenant - Search MaaS-scoped API keys without K8s enrichment */
 export const searchTenantApiKeys =
   (hostPath = '') =>
   (opts: APIOptions, request: APIKeySearchRequest = {}): Promise<APIKeyListResponse> =>

@@ -153,7 +153,7 @@ validate_adapter_registry() {
       (.host.setup_runner | type == "string" and
         (. == "" or test("^scripts/[A-Za-z0-9._/-]+\\.sh$"))) and
       all(
-        [.host.credentials.url_env, .host.credentials.username_env, .host.credentials.token_env][];
+        [(.host.credentials.url_env // ""), (.host.credentials.username_env // ""), (.host.credentials.token_env // "")][];
         type == "string" and test("^([A-Z][A-Z0-9_]*)?$")
       )
     )
@@ -258,7 +258,8 @@ adapter_credential() {
 # environment holds the minted review token (REVIEW_TOKEN, GH_TOKEN) and the
 # other host-script variables, and a setup step runs a vendor installer, so
 # neither setup nor runner inherits it: they get these names, plus what
-# run_adapter adds.
+# run_adapter adds. JIRA_BASE_URL is the public browse URL; the Jira API URL
+# is forwarded only to its adapter as a credential.
 adapter_base_env() {
   local name
   for name in PATH HOME TMPDIR LANG LC_ALL RUNNER_TEMP; do
@@ -291,6 +292,7 @@ run_adapter() {
   fi
 
   env -i "${base_env[@]}" \
+    JIRA_BASE_URL="${JIRA_BASE_URL:-}" \
     FULLSEND_ADAPTER_URL="$(adapter_credential "${url_env}")" \
     FULLSEND_ADAPTER_USERNAME="$(adapter_credential "${username_env}")" \
     FULLSEND_ADAPTER_TOKEN="${token}" \
@@ -342,8 +344,7 @@ run_pre_review_adapters() {
     .dimensions[]
     | select(.kind == "cli-adapter" and .host.execution == "pre_review")
     | [.id, .output, .producer_file, .runner, (.host.setup_runner // ""),
-       (.host.credentials.url_env // ""), (.host.credentials.username_env // ""),
-       (.host.credentials.token_env // "")]
+       (.host.credentials.url_env // ""), (.host.credentials.username_env // ""), (.host.credentials.token_env // "")]
     | join("|")
   ' "${registry}")
   for ((i = 0; i < ${#ids[@]}; i++)); do
@@ -541,7 +542,7 @@ run_self_test() {
     _SCRIPT_DIR="${temp_dir}/scripts"
     mkdir -p "${_SCRIPT_DIR}" "${temp_dir}/.run"
     printf '%s\n' '#!/usr/bin/env bash' \
-      'env | grep -E "^(FULLSEND_ADAPTER_|ALPHA_|BETA_|REVIEW_|GH_)" | sort > "${0%.sh}.env"' > "${_SCRIPT_DIR}/a.sh"
+      'env | grep -E "^(FULLSEND_ADAPTER_|JIRA_BASE_URL|ALPHA_|BETA_|REVIEW_|GH_)" | sort > "${0%.sh}.env"' > "${_SCRIPT_DIR}/a.sh"
     cp "${_SCRIPT_DIR}/a.sh" "${_SCRIPT_DIR}/b.sh"
     cp "${_SCRIPT_DIR}/a.sh" "${_SCRIPT_DIR}/c.sh"
     printf '%s\n' '#!/usr/bin/env bash' \
@@ -552,19 +553,20 @@ run_self_test() {
     jq -n '{dimensions: [
       {id: "a", kind: "cli-adapter", output: "context", runner: "scripts/a.sh", producer_file: ".run/a.json",
        host: {execution: "pre_review", setup_runner: "scripts/setup.sh",
-              credentials: {url_env: "ALPHA_URL", username_env: "", token_env: "ALPHA_TOKEN"}}},
+              credentials: {url_env: "ALPHA_URL", token_env: "ALPHA_TOKEN"}}},
       {id: "b", kind: "cli-adapter", output: "findings", runner: "scripts/b.sh", producer_file: ".run/b.json",
        host: {execution: "pre_review", setup_runner: "",
-              credentials: {url_env: "", username_env: "", token_env: "BETA_TOKEN"}}},
+              credentials: {token_env: "BETA_TOKEN"}}},
       {id: "c", kind: "cli-adapter", output: "findings", runner: "scripts/c.sh", producer_file: ".run/c.json",
        host: {execution: "pre_review", setup_runner: "scripts/setup-c.sh",
-              credentials: {url_env: "", username_env: "", token_env: "GAMMA_TOKEN"}}},
+              credentials: {token_env: "GAMMA_TOKEN"}}},
       {id: "d", kind: "cli-adapter", output: "findings", runner: "scripts/d.sh", producer_file: ".run/d.json",
        host: {execution: "pre_review", setup_runner: "",
-              credentials: {url_env: "", username_env: "", token_env: ""}}}
+              credentials: {}}}
     ]}' > "${temp_dir}/dimensions.json"
-    export ALPHA_URL="https://alpha.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
+    export ALPHA_URL="https://api.example.test" ALPHA_TOKEN="alpha-token-value" BETA_TOKEN="beta-token-value"
     export REVIEW_TOKEN="review-token-value" GH_TOKEN="gh-token-value"
+    export JIRA_BASE_URL="https://jira.example.test"
     # GAMMA's secret is not set, so the shim sends the placeholder.
     export GAMMA_TOKEN="${ADAPTER_CREDENTIAL_UNSET}"
     capture_adapter_credentials || exit 1
@@ -579,14 +581,16 @@ run_self_test() {
       [[ -f "${_SCRIPT_DIR}/${f}" ]] || exit 1
     done
     expect_line 'FULLSEND_ADAPTER_TOKEN=alpha-token-value' a.env
-    expect_line 'FULLSEND_ADAPTER_URL=https://alpha.example.test' a.env
+    expect_line 'FULLSEND_ADAPTER_URL=https://api.example.test' a.env
     expect_line 'FULLSEND_ADAPTER_BIN=/opt/tool' a.env
     expect_line 'FULLSEND_ADAPTER_REPO=o/r' a.env
     expect_line 'FULLSEND_ADAPTER_BASE_REF=main' a.env
+    expect_line 'JIRA_BASE_URL=https://jira.example.test' a.env
     expect_line 'FULLSEND_ADAPTER_TOKEN=beta-token-value' b.env
     expect_line 'FULLSEND_ADAPTER_BIN=' b.env
     expect_line 'FULLSEND_ADAPTER_TOKEN=' c.env
     refuse_text 'alpha-token-value' "${_SCRIPT_DIR}/b.env"
+    refuse_text 'api.example.test' "${_SCRIPT_DIR}/b.env"
     refuse_text 'beta-token-value' "${_SCRIPT_DIR}/a.env"
     refuse_text '^(ALPHA_|BETA_|REVIEW_TOKEN|GH_)' "${_SCRIPT_DIR}/a.env" "${_SCRIPT_DIR}/b.env" "${_SCRIPT_DIR}/c.env" "${_SCRIPT_DIR}/setup.env"
     [[ ! -e "${_SCRIPT_DIR}/setup-c.env" ]] || exit 1

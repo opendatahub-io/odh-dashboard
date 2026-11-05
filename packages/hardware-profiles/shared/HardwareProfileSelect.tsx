@@ -28,13 +28,6 @@ import {
   ProjectScopedSearchDropdown,
 } from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '@odh-dashboard/ui-core/components/searchSelector/ProjectScopedToggleContent';
-import {
-  getHardwareProfileDescription,
-  getHardwareProfileDisplayName,
-  isHardwareProfileEnabled,
-  orderHardwareProfiles,
-  prioritizeHardwareProfiles,
-} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
 import { CurrentProjectContext } from '@odh-dashboard/ui-core/context/CurrentProjectContext';
 import { LocalQueuesContext } from '@odh-dashboard/ui-core/context/LocalQueuesContext';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
@@ -59,6 +52,13 @@ import {
 } from './useResourceClaimTemplateNames';
 import { useIsDRAHardwareProfileEnabled } from './useIsDRAHardwareProfileEnabled';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
+import {
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
+  isHardwareProfileEnabled,
+  orderHardwareProfiles,
+  prioritizeHardwareProfiles,
+} from '../src/pages/utils';
 
 const getIdentifiersText = (
   identifiers: HardwareProfileKind['spec']['identifiers'],
@@ -518,8 +518,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             }
             data-testid="kueue-filtering-info"
           >
-            Only hardware profiles configured with a local queue are shown because this project uses
-            Kueue for workload scheduling.
+            This project uses the local queue workload allocation strategy. Only hardware profiles
+            with a local queue are available in the dropdown.
           </HelperTextItem>
         </HelperText>
       </FormHelperText>

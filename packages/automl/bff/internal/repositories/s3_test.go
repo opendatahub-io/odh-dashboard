@@ -192,8 +192,32 @@ func TestExtractAWSS3ConnectionOptions(t *testing.T) {
 		if opts.Region != "us-east-1" || opts.BaseEndpoint != "https://s3.example.com" {
 			t.Errorf("region/endpoint: %+v", opts)
 		}
+		if opts.ChecksumAlgorithm != "" {
+			t.Errorf("ChecksumAlgorithm = %q, want empty by default", opts.ChecksumAlgorithm)
+		}
 		if bucket != "my-bucket" {
 			t.Errorf("bucket = %q", bucket)
+		}
+	})
+
+	t.Run("parses optional checksum algorithm", func(t *testing.T) {
+		data := standardSecretData()
+		data[s3.ChecksumAlgorithmSecretKey] = []byte("crc32c")
+		algorithm, disabled, err := parseS3UploadChecksumOptions(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if algorithm != "CRC32C" || disabled {
+			t.Errorf("checksum options = (%q, %t), want (CRC32C, false)", algorithm, disabled)
+		}
+	})
+
+	t.Run("rejects unsupported checksum algorithm", func(t *testing.T) {
+		data := standardSecretData()
+		data[s3.ChecksumAlgorithmSecretKey] = []byte("invalid")
+		_, _, err := parseS3UploadChecksumOptions(data)
+		if err == nil || !strings.Contains(err.Error(), s3.ChecksumAlgorithmSecretKey) {
+			t.Errorf("expected checksum configuration error, got %v", err)
 		}
 	})
 
@@ -401,8 +425,9 @@ func TestResolveFromDSPA(t *testing.T) {
 		k8s := &mockK8sService{
 			getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 				return makeK8sSecret("dspa-secret", "ns", map[string][]byte{
-					"access_key": []byte("dspa-ak"),
-					"secret_key": []byte("dspa-sk"),
+					"access_key":                  []byte("dspa-ak"),
+					"secret_key":                  []byte("dspa-sk"),
+					s3.ChecksumAlgorithmSecretKey: []byte("SHA256"),
 				}), nil
 			},
 		}
@@ -417,7 +442,7 @@ func TestResolveFromDSPA(t *testing.T) {
 		}
 		repo := NewS3Repository(slog.Default(), nil, k8s, pip)
 
-		opts, bucket, err := repo.resolveCredsAndBucket(context.Background(), S3RequestContext{
+		opts, bucket, err := repo.resolveUploadCredsAndBucket(context.Background(), S3RequestContext{
 			Namespace: "ns",
 		})
 		if err != nil {
@@ -428,6 +453,9 @@ func TestResolveFromDSPA(t *testing.T) {
 		}
 		if opts.Region != "us-west-2" {
 			t.Errorf("Region = %q", opts.Region)
+		}
+		if opts.ChecksumAlgorithm != "SHA256" {
+			t.Errorf("ChecksumAlgorithm = %q, want SHA256", opts.ChecksumAlgorithm)
 		}
 		if opts.BaseEndpoint != "https://minio.ns.svc:9000" {
 			t.Errorf("BaseEndpoint = %q", opts.BaseEndpoint)
@@ -599,6 +627,82 @@ func TestResolveFromDSPA(t *testing.T) {
 	})
 }
 
+func TestS3Repository_InvalidUploadChecksumDoesNotBlockReads(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		req        S3RequestContext
+		wantBucket string
+		wantError  error
+	}{
+		{
+			name:       "explicit secret",
+			req:        S3RequestContext{Namespace: "ns", SecretName: "connection"},
+			wantBucket: "my-bucket",
+			wantError:  ErrS3Configuration,
+		},
+		{
+			name:       "DSPA secret",
+			req:        S3RequestContext{Namespace: "ns"},
+			wantBucket: "pipeline-bucket",
+			wantError:  ErrDSPAConfiguration,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			secretData := standardSecretData()
+			if tc.req.SecretName == "" {
+				secretData = map[string][]byte{"access_key": []byte("ak"), "secret_key": []byte("sk")}
+			}
+			secretData[s3.ChecksumAlgorithmSecretKey] = []byte("CRC64NVME")
+			k8s := &mockK8sService{
+				getSecretFn: func(_ context.Context, namespace, secretName string) (*v1.Secret, error) {
+					return makeK8sSecret(secretName, namespace, secretData), nil
+				},
+			}
+			pip := &mockPipelinesServiceForS3{
+				discoverReadyDSPAFn: func(_ context.Context, namespace string) (*pipelines.DiscoveredDSPA, error) {
+					return &pipelines.DiscoveredDSPA{
+						Name: "dspa", Namespace: namespace,
+						ObjectStorage: &pipelines.DSPAObjectStorageSpec{
+							SecretName: "dspa-secret", AccessKeyField: "access_key", SecretKeyField: "secret_key",
+							EndpointURL: "https://s3.example.com", Bucket: "pipeline-bucket",
+						},
+					}, nil
+				},
+			}
+			readCalled := false
+			uploadCalled := false
+			s3svc := &mockS3Service{
+				listObjectsFn: func(_ context.Context, opts s3.ConnectionOptions, query s3.ListObjectsQuery) (*s3.ListObjectsResponse, error) {
+					readCalled = true
+					if opts.ChecksumAlgorithm != "" || query.Bucket != tc.wantBucket {
+						t.Errorf("read options = %+v, query = %+v", opts, query)
+					}
+					return &s3.ListObjectsResponse{}, nil
+				},
+				uploadObjectFn: func(_ context.Context, _ s3.ConnectionOptions, _ s3.UploadObjectInput) error {
+					uploadCalled = true
+					return nil
+				},
+			}
+			repo := NewS3Repository(slog.Default(), s3svc, k8s, pip)
+
+			if _, err := repo.ListObjects(context.Background(), tc.req, s3.ListObjectsOptions{}); err != nil {
+				t.Fatalf("read failed because of upload-only setting: %v", err)
+			}
+			if !readCalled {
+				t.Error("expected list request to reach S3")
+			}
+			err := repo.UploadObject(context.Background(), tc.req, "file.csv", strings.NewReader("data"), "text/csv")
+			if err == nil || !errors.Is(err, tc.wantError) || !strings.Contains(err.Error(), s3.ChecksumAlgorithmSecretKey) {
+				t.Errorf("upload error = %v, want %v mentioning %s", err, tc.wantError, s3.ChecksumAlgorithmSecretKey)
+			}
+			if uploadCalled {
+				t.Error("upload reached S3 with an invalid checksum setting")
+			}
+		})
+	}
+}
+
 // === S3Repository operations ===
 
 func TestS3Repository_GetObject(t *testing.T) {
@@ -640,13 +744,14 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 				return makeK8sSecret("s", "ns", standardSecretData()), nil
 			},
 		}
-		var uploadedKey string
+		var uploadedKey, uploadedChecksum string
 		s3svc := &mockS3Service{
 			resolveNonCollidingKeyFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.ResolveNonCollidingKeyInput) (string, error) {
 				return input.Key, nil
 			},
 			uploadObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.UploadObjectInput) error {
 				uploadedKey = input.Key
+				uploadedChecksum = string(opts.ChecksumAlgorithm)
 				return nil
 			},
 		}
@@ -660,6 +765,40 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 		}
 		if key != "data/file.csv" || uploadedKey != "data/file.csv" {
 			t.Errorf("key = %q, uploaded = %q", key, uploadedKey)
+		}
+		if uploadedChecksum != "" {
+			t.Errorf("ChecksumAlgorithm = %q, want empty for default connection", uploadedChecksum)
+		}
+	})
+
+	t.Run("passes configured checksum to upload", func(t *testing.T) {
+		secretData := standardSecretData()
+		secretData[s3.ChecksumAlgorithmSecretKey] = []byte("CRC32")
+		k8s := &mockK8sService{
+			getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+				return makeK8sSecret("s", "ns", secretData), nil
+			},
+		}
+		var uploadedChecksum string
+		s3svc := &mockS3Service{
+			resolveNonCollidingKeyFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.ResolveNonCollidingKeyInput) (string, error) {
+				return input.Key, nil
+			},
+			uploadObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.UploadObjectInput) error {
+				uploadedChecksum = string(opts.ChecksumAlgorithm)
+				return nil
+			},
+		}
+		repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+
+		_, err := repo.UploadCSVFile(context.Background(),
+			S3RequestContext{Namespace: "ns", SecretName: "s"},
+			"data/file.csv", strings.NewReader("csv-data"), "text/csv", "file.csv", 5)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if uploadedChecksum != "CRC32" {
+			t.Errorf("ChecksumAlgorithm = %q, want CRC32", uploadedChecksum)
 		}
 	})
 
@@ -724,6 +863,32 @@ func TestS3Repository_UploadCSVFile(t *testing.T) {
 	})
 }
 
+func TestS3Repository_UploadObjectPassesConfiguredChecksum(t *testing.T) {
+	secretData := standardSecretData()
+	secretData[s3.ChecksumAlgorithmSecretKey] = []byte("SHA1")
+	k8s := &mockK8sService{
+		getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+			return makeK8sSecret("s", "ns", secretData), nil
+		},
+	}
+	var uploadedChecksum string
+	s3svc := &mockS3Service{
+		uploadObjectFn: func(ctx context.Context, opts s3.ConnectionOptions, input s3.UploadObjectInput) error {
+			uploadedChecksum = string(opts.ChecksumAlgorithm)
+			return nil
+		},
+	}
+	repo := NewS3Repository(slog.Default(), s3svc, k8s, nil)
+
+	if err := repo.UploadObject(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"},
+		"data/file.txt", strings.NewReader("data"), "text/plain"); err != nil {
+		t.Fatal(err)
+	}
+	if uploadedChecksum != "SHA1" {
+		t.Errorf("ChecksumAlgorithm = %q, want SHA1", uploadedChecksum)
+	}
+}
+
 func TestS3Repository_GetCSVSchema(t *testing.T) {
 	t.Run("rejects non-csv key", func(t *testing.T) {
 		repo := NewS3Repository(slog.Default(), nil, nil, nil)
@@ -758,4 +923,96 @@ func TestS3Repository_GetCSVSchema(t *testing.T) {
 			t.Errorf("Range = %q, want %q", gotRange, csvSchemaRange)
 		}
 	})
+}
+
+func TestResolveUploadChecksumOptionsFromSecretSources(t *testing.T) {
+	tests := []struct {
+		name           string
+		algorithm      string
+		disable        string
+		wantAlgorithm  s3.ChecksumAlgorithm
+		wantDisabled   bool
+		wantErrorField []string
+	}{
+		{name: "absent options"},
+		{name: "false flag", disable: "false"},
+		{name: "true flag", disable: "true", wantDisabled: true},
+		{name: "invalid flag", disable: "sometimes", wantErrorField: []string{s3.DisableUploadChecksumTrailersSecretKey}},
+		{name: "invalid algorithm", algorithm: "CRC64NVME", wantErrorField: []string{s3.ChecksumAlgorithmSecretKey}},
+		{name: "conflicting algorithm and flag", algorithm: "SHA256", disable: "true", wantErrorField: []string{s3.DisableUploadChecksumTrailersSecretKey, s3.ChecksumAlgorithmSecretKey}},
+	}
+
+	addChecksumValues := func(data map[string][]byte, tc struct {
+		name           string
+		algorithm      string
+		disable        string
+		wantAlgorithm  s3.ChecksumAlgorithm
+		wantDisabled   bool
+		wantErrorField []string
+	}) {
+		if tc.algorithm != "" {
+			data[s3.ChecksumAlgorithmSecretKey] = []byte(tc.algorithm)
+		}
+		if tc.disable != "" {
+			data[s3.DisableUploadChecksumTrailersSecretKey] = []byte(tc.disable)
+		}
+	}
+
+	for _, source := range []string{"explicit secret", "DSPA secret"} {
+		t.Run(source, func(t *testing.T) {
+			for _, tc := range tests {
+				t.Run(tc.name, func(t *testing.T) {
+					data := standardSecretData()
+					addChecksumValues(data, tc)
+					k8s := &mockK8sService{
+						getSecretFn: func(context.Context, string, string) (*v1.Secret, error) {
+							if source == "DSPA secret" {
+								return makeK8sSecret("dspa-secret", "ns", map[string][]byte{
+									"access_key": []byte("ak"), "secret_key": []byte("sk"),
+									s3.ChecksumAlgorithmSecretKey:             data[s3.ChecksumAlgorithmSecretKey],
+									s3.DisableUploadChecksumTrailersSecretKey: data[s3.DisableUploadChecksumTrailersSecretKey],
+								}), nil
+							}
+							return makeK8sSecret("s", "ns", data), nil
+						},
+					}
+					var pipelinesService *mockPipelinesServiceForS3
+					req := S3RequestContext{Namespace: "ns", SecretName: "s"}
+					if source == "DSPA secret" {
+						req.SecretName = ""
+						pipelinesService = &mockPipelinesServiceForS3{
+							discoverReadyDSPAFn: func(context.Context, string) (*pipelines.DiscoveredDSPA, error) {
+								return &pipelines.DiscoveredDSPA{
+									Name: "dspa1", Namespace: "ns",
+									ObjectStorage: &pipelines.DSPAObjectStorageSpec{
+										SecretName: "dspa-secret", AccessKeyField: "access_key", SecretKeyField: "secret_key",
+										EndpointURL: "https://minio.ns.svc:9000", Bucket: "pipeline-bucket",
+									},
+								}, nil
+							},
+						}
+					}
+					repo := NewS3Repository(slog.Default(), nil, k8s, pipelinesService)
+					opts, _, err := repo.resolveUploadCredsAndBucket(context.Background(), req)
+					if len(tc.wantErrorField) > 0 {
+						if err == nil {
+							t.Fatal("expected invalid checksum options to fail")
+						}
+						for _, field := range tc.wantErrorField {
+							if !strings.Contains(err.Error(), field) {
+								t.Errorf("error %q does not mention %s", err, field)
+							}
+						}
+						return
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+					if opts.ChecksumAlgorithm != tc.wantAlgorithm || opts.DisableUploadChecksumTrailers != tc.wantDisabled {
+						t.Errorf("resolved checksum options = (%q, %t), want (%q, %t)", opts.ChecksumAlgorithm, opts.DisableUploadChecksumTrailers, tc.wantAlgorithm, tc.wantDisabled)
+					}
+				})
+			}
+		})
+	}
 }

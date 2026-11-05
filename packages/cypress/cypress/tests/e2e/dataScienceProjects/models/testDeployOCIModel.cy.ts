@@ -20,11 +20,11 @@ import { createCustomResource } from '../../../../utils/oc_commands/customResour
 import type { DeployOCIModelData } from '../../../../types';
 import { loadDeployOCIModelFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
+import { skipOnArm } from '../../../../utils/skipUtils';
 
 let projectName: string;
 let resourceName: string;
 let connectionName: string;
-let secretDetailsFile: string;
 let ociRegistryHost: string;
 let modelDeploymentURI: string;
 let modelDeploymentName: string;
@@ -32,24 +32,19 @@ let modelFormat: string;
 let servingRuntime: string;
 let isS390x: boolean;
 const uuid = generateTestUUID();
+let secretDetailsFile: string;
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
 
-const updateSecretDetailsFile = (
-  secretValue: string,
-  fixtureRelativePath: string,
-  fixtureFullPath: string,
-  registryHost: string,
-) => {
-  return cy.fixture(fixtureRelativePath).then((templateContent) => {
-    const updatedContent = {
-      ...templateContent,
-      auths: {
-        [registryHost]: {
-          auth: secretValue,
-        },
+const updateSecretDetailsFile = (secretValue: string, registryHost: string) => {
+  const updatedContent = {
+    auths: {
+      [registryHost]: {
+        auth: secretValue,
       },
-    };
-    return cy.writeFile(fixtureFullPath, updatedContent);
+    },
+  };
+  return cy.task<string>('createOCISecretFile', updatedContent, { log: false }).then((filePath) => {
+    secretDetailsFile = filePath;
   });
 };
 
@@ -58,6 +53,8 @@ describe(
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
+
+    skipOnArm();
 
     retryableBefore(() => {
       cy.log('Loading test data');
@@ -70,17 +67,10 @@ describe(
           if (isS390x) {
             cy.clearCookies();
           }
-          // Load fixture file and update with actual secret value
           ociRegistryHost = testData.ociRegistryHost;
+          // Build pull-secret from env value and write to temp file (removed in after hook)
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
-          const secretDetailsFixture = 'resources/json/oci-data-connection-secret.json';
-          secretDetailsFile = `cypress/fixtures/${secretDetailsFixture}`;
-          updateSecretDetailsFile(
-            secretValue,
-            secretDetailsFixture,
-            secretDetailsFile,
-            ociRegistryHost,
-          );
+          updateSecretDetailsFile(secretValue, ociRegistryHost);
           modelDeploymentURI = testData.modelOciUri ?? (Cypress.env('OCI_MODEL_URI') as string);
           modelDeploymentName = testData.modelDeploymentName;
           modelFormat = testData.modelFormat;
@@ -106,6 +96,12 @@ describe(
     });
 
     after(() => {
+      if (secretDetailsFile) {
+        cy.task('deleteOCISecretFile', secretDetailsFile, { log: false });
+      }
+      if (!projectName) {
+        return;
+      }
       if (isS390x && testData.servingRuntimeName) {
         cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
         cleanupTemplates(testData.servingRuntimeName);

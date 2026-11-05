@@ -47,7 +47,6 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  grid?: boolean;
   inferencePriorityField?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
@@ -81,6 +80,8 @@ export type MockDashboardConfigType = {
   hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
   globalMLflowNamespaces?: string[];
+  isLLMdDefault?: boolean;
+  deploymentStrategy?: string;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -105,7 +106,6 @@ export const mockDashboardConfig = ({
   automl = true,
   autorag = true,
   modelAsService = true,
-  grid = false,
   inferencePriorityField = false,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
@@ -163,6 +163,8 @@ export const mockDashboardConfig = ({
   modelCapabilities = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   globalMLflowNamespaces = [],
+  isLLMdDefault,
+  deploymentStrategy,
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
       externalProviders: false,
@@ -319,7 +321,6 @@ export const mockDashboardConfig = ({
       automl,
       autorag,
       modelAsService,
-      grid,
       aiAssetCustomEndpoints,
       inferencePriorityField,
       disableKServeAuth,
@@ -381,5 +382,13 @@ export const mockDashboardConfig = ({
     hardwareProfileOrder,
     globalMLflowNamespaces,
     genAiStudioConfig,
+    ...(isLLMdDefault !== undefined || deploymentStrategy !== undefined
+      ? {
+          modelServing: {
+            ...(isLLMdDefault !== undefined ? { isLLMdDefault } : {}),
+            ...(deploymentStrategy !== undefined ? { deploymentStrategy } : {}),
+          },
+        }
+      : {}),
   },
 });

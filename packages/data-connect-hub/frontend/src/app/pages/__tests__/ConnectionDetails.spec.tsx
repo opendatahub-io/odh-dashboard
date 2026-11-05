@@ -10,11 +10,20 @@ import ConnectionDetails from '~/app/pages/ConnectionDetails';
 import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import * as trackingUtilities from '~/app/utilities/tracking';
 import type { Connection } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnection');
 jest.mock('~/app/hooks/useConnectionType');
 jest.mock('~/app/hooks/useNamespaces');
+jest.mock('~/app/utilities/tracking', () => ({
+  DATA_CONNECT_HUB_EVENT_NAMES: {
+    deleteInitiated: 'Connections Connection Delete Initiated',
+  },
+  getConnectionTypeProvider: (connectionType?: { resource: { provider: string } }) =>
+    connectionType?.resource.provider,
+  fireDataConnectHubTrackEvent: jest.fn(),
+}));
 jest.mock('~/app/api/dch', () => ({
   deleteConnection: jest.fn(),
   verifyConnection: jest.fn(),
@@ -50,6 +59,7 @@ const mockUseConnectionType = jest.mocked(useConnectionType);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
+const mockTrackEvent = jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent);
 const refresh = jest.fn(() => Promise.resolve(undefined));
 
 const connection: Connection = {
@@ -284,6 +294,10 @@ describe('ConnectionDetails', () => {
     renderDetails();
     await user.click(screen.getByTestId('connection-actions-toggle'));
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(mockTrackEvent).toHaveBeenCalledWith({
+      eventName: 'Connections Connection Delete Initiated',
+      properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
+    });
     await user.click(screen.getByTestId('delete-confirm'));
 
     await waitFor(() => {
