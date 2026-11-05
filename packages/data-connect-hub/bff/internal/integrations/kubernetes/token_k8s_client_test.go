@@ -1,9 +1,20 @@
 package kubernetes
 
 import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 func TestNamespacesFromProjects(t *testing.T) {
@@ -63,4 +74,83 @@ func TestNamespacesFromProjects(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTokenKubernetesClientGetNamespacesUsesCoreNamespaces(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/namespaces" {
+			t.Errorf("unexpected Kubernetes request: %s", r.URL.Path)
+			http.Error(w, "unexpected request", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(corev1.NamespaceList{
+			TypeMeta: metav1.TypeMeta{Kind: "NamespaceList", APIVersion: "v1"},
+			Items: []corev1.Namespace{{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster-namespace"},
+			}},
+		})
+	}))
+	defer server.Close()
+
+	cfg := &rest.Config{Host: server.URL, BearerToken: "user-token"}
+	clientset, err := kubernetes.NewForConfig(cfg)
+	require.NoError(t, err)
+	kc := &TokenKubernetesClient{
+		SharedClientLogic: SharedClientLogic{Client: clientset, Logger: slog.Default()},
+		restConfig:        cfg,
+	}
+
+	namespaces, err := kc.GetNamespaces(context.Background(), nil)
+
+	require.NoError(t, err)
+	require.Len(t, namespaces, 1)
+	assert.Equal(t, "cluster-namespace", namespaces[0].Name)
+}
+
+func TestTokenKubernetesClientGetNamespacesFallsBackToProjects(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/namespaces":
+			http.Error(w, "forbidden", http.StatusForbidden)
+		case "/apis/project.openshift.io/v1/projects":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"apiVersion": "project.openshift.io/v1",
+				"kind":       "ProjectList",
+				"items": []map[string]any{
+					{
+						"apiVersion": "project.openshift.io/v1",
+						"kind":       "Project",
+						"metadata": map[string]any{
+							"name": "tenant-a",
+							"annotations": map[string]any{
+								"openshift.io/display-name": "Tenant A",
+							},
+						},
+					},
+				},
+			})
+		default:
+			t.Errorf("unexpected Kubernetes request: %s", r.URL.Path)
+			http.Error(w, "unexpected request", http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	cfg := &rest.Config{Host: server.URL, BearerToken: "user-token"}
+	clientset, err := kubernetes.NewForConfig(cfg)
+	require.NoError(t, err)
+	kc := &TokenKubernetesClient{
+		SharedClientLogic: SharedClientLogic{Client: clientset, Logger: slog.Default()},
+		restConfig:        cfg,
+	}
+
+	namespaces, err := kc.GetNamespaces(context.Background(), nil)
+
+	require.NoError(t, err)
+	require.Len(t, namespaces, 1)
+	assert.Equal(t, "tenant-a", namespaces[0].Name)
+	assert.Equal(t, "Tenant A", namespaces[0].Annotations["openshift.io/display-name"])
 }

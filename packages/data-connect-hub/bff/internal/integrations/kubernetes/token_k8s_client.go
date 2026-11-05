@@ -11,6 +11,7 @@ import (
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -175,15 +176,33 @@ func (kc *TokenKubernetesClient) CanAccessResource(ctx context.Context, _ *Reque
 	return response.Status.Allowed, nil
 }
 
-// RequestIdentity is unused because the token already represents the user identity.
-// This endpoint is used only on dev mode that is why is safe to ignore permissions errors
+// GetNamespaces returns namespaces accessible to the user.
+// For cluster admins, returns all namespaces via the core Namespaces API.
+// For regular users, falls back to the OpenShift Projects API which returns
+// only projects the user has access to.
 func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestIdentity) ([]corev1.Namespace, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	nsList, err := kc.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err == nil {
+		kc.Logger.Debug("user can list namespaces cluster-wide", "count", len(nsList.Items))
+		return nsList.Items, nil
+	}
+
+	if !k8serrors.IsForbidden(err) {
+		kc.Logger.Error("failed to list namespaces", "error", err)
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+	}
+
+	kc.Logger.Debug(
+		"cluster-wide namespace list forbidden, falling back to OpenShift Projects API",
+		"error", err,
+	)
+
 	dynamicClient, err := dynamic.NewForConfig(kc.restConfig)
 	if err != nil {
-		return []corev1.Namespace{}, fmt.Errorf("failed to create dynamic Kubernetes client: %w", err)
+		return nil, fmt.Errorf("failed to create dynamic Kubernetes client: %w", err)
 	}
 
 	projectGVR := schema.GroupVersionResource{
@@ -194,24 +213,30 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	projectList, err := dynamicClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		kc.Logger.Error("failed to list OpenShift projects", "error", err)
-		return []corev1.Namespace{}, fmt.Errorf("failed to list OpenShift projects: %w", err)
+		return nil, fmt.Errorf("failed to list OpenShift projects: %w", err)
 	}
 
-	return namespacesFromProjects(projectList.Items)
+	namespaces, err := namespacesFromProjects(projectList.Items)
+	if err != nil {
+		return nil, err
+	}
+
+	kc.Logger.Debug("listed namespaces via OpenShift Projects API", "count", len(namespaces))
+	return namespaces, nil
 }
 
 func namespacesFromProjects(projects []unstructured.Unstructured) ([]corev1.Namespace, error) {
 	namespaces := make([]corev1.Namespace, 0, len(projects))
 	for _, project := range projects {
-		name, found, err := unstructured.NestedString(project.Object, "metadata", "name")
-		if err != nil {
-			return nil, fmt.Errorf("failed to read project metadata: %w", err)
-		}
-		if !found || name == "" {
+		if project.GetName() == "" {
 			return nil, fmt.Errorf("OpenShift project is missing a name")
 		}
 		namespaces = append(namespaces, corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        project.GetName(),
+				Annotations: project.GetAnnotations(),
+				Labels:      project.GetLabels(),
+			},
 		})
 	}
 	return namespaces, nil
