@@ -59,9 +59,9 @@ func Local(status int) *HTTPError {
 	case 502:
 		code, message = "BAD_GATEWAY", "upstream connection failed"
 	case 503:
-		code, message = "SERVICE_UNAVAILABLE", "the Kubernetes API is temporarily unavailable"
+		code, message = "SERVICE_UNAVAILABLE", "the upstream service is temporarily unavailable"
 	case 504:
-		code, message = "GATEWAY_TIMEOUT", "the Kubernetes request timed out"
+		code, message = "GATEWAY_TIMEOUT", "the upstream request timed out"
 	}
 	return &HTTPError{StatusCode: status, Error: ErrorPayload{Code: code, Message: message}}
 }

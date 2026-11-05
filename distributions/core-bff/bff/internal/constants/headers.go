@@ -11,6 +11,7 @@ const (
 	HeaderHost                        = "Host"
 	HeaderLocation                    = "Location"
 	HeaderConnection                  = "Connection"
+	HeaderUpgrade                     = "Upgrade"
 	HeaderRetryAfter                  = "Retry-After"
 	HeaderTrailer                     = "Trailer"
 	HeaderCacheControl                = "Cache-Control"

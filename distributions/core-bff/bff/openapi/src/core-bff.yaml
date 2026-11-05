@@ -222,9 +222,9 @@ paths:
       Status codes distinguish 401 authentication, 403 policy, 502 transport, 503 unavailable and 504 timeout.
       Upstream Kubernetes failures preserve status and KubernetesStatus semantics with sanitized free text; successful responses and watch events are streamed.
       Non-watch requests preserve negotiated success compression; JSON and Kubernetes protobuf error bodies, including gzip, are decoded with bounded inspection before sanitization.
-      Query-based and legacy core/grouped HTTP watch paths negotiate application/json; unexpected media types or content encodings fail before commitment with 502.
+      Query-based and legacy core/grouped HTTP watch paths retain application/json Accept entries and their representation parameters, falling back to plain application/json when none remain; unexpected response media types or content encodings fail before commitment with 502.
       Malformed, truncated or oversized watch events terminate the stream without forwarding the invalid event or appending JSON.
-      This HTTP endpoint rejects upstream protocol upgrades with 502; WebSocket clients use /wss/k8s/*.
+      This HTTP endpoint strips outbound Connection and Upgrade headers and rejects unsolicited upstream protocol upgrades with 502; WebSocket clients use /wss/k8s/*.
       Note: /wss/k8s/* WebSocket proxy is not documented here (OpenAPI 3.0.3 has no native WebSocket support).
     parameters:
       - name: path
@@ -955,7 +955,7 @@ paths:
                   value:
                     error:
                       code: 'SERVICE_UNAVAILABLE'
-                      message: 'the Kubernetes API is temporarily unavailable'
+                      message: 'the upstream service is temporarily unavailable'
                       requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
         '504':
           $ref: '#/components/responses/K8sTimeout'
@@ -2369,7 +2369,7 @@ components:
           example:
             error:
               code: 'GATEWAY_TIMEOUT'
-              message: 'the Kubernetes request timed out'
+              message: 'the upstream request timed out'
               requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
 
     K8sUnavailable:
@@ -2390,7 +2390,7 @@ components:
           example:
             error:
               code: 'SERVICE_UNAVAILABLE'
-              message: 'the Kubernetes API is temporarily unavailable'
+              message: 'the upstream service is temporarily unavailable'
               requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
 
     StatusResponse:
@@ -2603,13 +2603,13 @@ components:
               value:
                 error:
                   code: 'SERVICE_UNAVAILABLE'
-                  message: 'the Kubernetes API is temporarily unavailable'
+                  message: 'the upstream service is temporarily unavailable'
                   requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
             localTimeout:
               value:
                 error:
                   code: 'GATEWAY_TIMEOUT'
-                  message: 'the Kubernetes request timed out'
+                  message: 'the upstream request timed out'
                   requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
             upstream:
               value:

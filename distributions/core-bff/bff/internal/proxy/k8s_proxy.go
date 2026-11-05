@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -92,8 +93,10 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			if cfg.SetOutboundHeadersFn != nil {
 				cfg.SetOutboundHeadersFn(in, out)
 			}
+			out.Del(constants.HeaderConnection)
+			out.Del(constants.HeaderUpgrade)
 			if httpcontract.IsWatchRequest(in) {
-				out.Set(constants.HeaderAccept, constants.ContentTypeJSON)
+				out.Set(constants.HeaderAccept, jsonWatchAccept(out.Values(constants.HeaderAccept)))
 				// Let Go decompress watches before event sanitization.
 				out.Del(constants.HeaderAcceptEncoding)
 			}
@@ -130,4 +133,35 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 	}
 
 	return proxy, nil
+}
+
+// jsonWatchAccept keeps JSON representations and their parameters while excluding binary encodings.
+func jsonWatchAccept(values []string) string {
+	var entries []string
+	for _, value := range values {
+		start := 0
+		quoted, escaped := false, false
+		// Quoted parameters may contain commas; the appended comma flushes the final entry.
+		for i, c := range value + "," {
+			switch {
+			case escaped:
+				escaped = false
+			case quoted && c == '\\':
+				escaped = true
+			case c == '"':
+				quoted = !quoted
+			case c == ',' && !quoted:
+				entry := strings.TrimSpace(value[start:i])
+				mediaType, _, err := mime.ParseMediaType(entry)
+				if err == nil && mediaType == constants.ContentTypeJSON {
+					entries = append(entries, entry)
+				}
+				start = i + 1
+			}
+		}
+	}
+	if len(entries) == 0 {
+		return constants.ContentTypeJSON
+	}
+	return strings.Join(entries, ",")
 }

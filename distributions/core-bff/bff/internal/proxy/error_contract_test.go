@@ -297,18 +297,70 @@ func TestNonWatchAcceptHeaderIsPreserved(t *testing.T) {
 	require.Equal(t, "resource bytes", response.Body.String())
 }
 
+func TestHTTPWatchPreservesJSONRepresentations(t *testing.T) {
+	const metadata = "application/json;as=PartialObjectMetadata;g=meta.k8s.io;v=v1"
+	const protobuf = "application/vnd.kubernetes.protobuf"
+	const resourceEvent = `{"type":"ADDED","object":{"apiVersion":"meta.k8s.io/v1","kind":"PartialObjectMetadata","metadata":{"name":"pod"}}}` + "\n"
+	for _, tc := range []struct {
+		name   string
+		accept []string
+		want   string
+	}{
+		{"absent", nil, constants.ContentTypeJSON},
+		{"protobuf", []string{protobuf}, constants.ContentTypeJSON},
+		{"metadata", []string{metadata}, metadata},
+		{"mixed", []string{protobuf + "," + metadata + ";q=0.9,application/json;q=0.8"}, metadata + ";q=0.9,application/json;q=0.8"},
+		{"multiple headers", []string{protobuf, metadata, "application/json;q=0.5"}, metadata + ",application/json;q=0.5"},
+		{"quoted comma", []string{`application/json;profile="a,b",` + protobuf}, `application/json;profile="a,b"`},
+		{"escaped quote", []string{`application/json;profile="a\"b,c",` + protobuf}, `application/json;profile="a\"b,c"`},
+		{"invalid entry", []string{`application/json;as,` + metadata}, metadata},
+		{"wildcard", []string{"*/*"}, constants.ContentTypeJSON},
+		{"quality zero", []string{"application/json;q=0"}, "application/json;q=0"},
+		{"stream parameter", []string{"application/json;stream=watch"}, "application/json;stream=watch"},
+	} {
+		for _, prefix := range []string{"", constants.BFFPathPrefix} {
+			t.Run(tc.name+prefix, func(t *testing.T) {
+				upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					require.Equal(t, tc.want, r.Header.Get(constants.HeaderAccept))
+					require.Equal(t, "gzip", r.Header.Get(constants.HeaderAcceptEncoding))
+					w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
+					_, _ = io.WriteString(w, resourceEvent+`{"type":"ERROR","object":{"code":410,"reason":"Expired","message":"CANARY_SECRET"}}`+"\n")
+				}))
+				defer upstream.Close()
+				handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+				require.NoError(t, err)
+				if prefix != "" {
+					handler = http.StripPrefix(prefix, handler)
+				}
+				request := httptest.NewRequest(http.MethodGet, prefix+"/api/k8s/api/v1/pods?watch=true", nil)
+				for _, value := range tc.accept {
+					request.Header.Add(constants.HeaderAccept, value)
+				}
+				request.Header.Set(constants.HeaderAcceptEncoding, "br")
+				request = request.WithContext(identityContext(request, "test-token"))
+				response := httptest.NewRecorder()
+				httpcontract.Middleware(handler).ServeHTTP(response, request)
+				require.Equal(t, http.StatusOK, response.Code)
+				require.True(t, strings.HasPrefix(response.Body.String(), resourceEvent))
+				require.Contains(t, response.Body.String(), `"reason":"Expired"`)
+				require.NotContains(t, response.Body.String(), "CANARY")
+			})
+		}
+	}
+}
+
 func TestHTTPProxyRejectsProtocolUpgrades(t *testing.T) {
 	for _, prefix := range []string{"", constants.BFFPathPrefix} {
 		t.Run(prefix, func(t *testing.T) {
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				upgrader := websocket.Upgrader{}
-				conn, err := upgrader.Upgrade(w, r, nil)
-				if err != nil {
-					t.Errorf("upgrade: %v", err)
-					return
-				}
+				require.Empty(t, r.Header.Get(constants.HeaderConnection))
+				require.Empty(t, r.Header.Get(constants.HeaderUpgrade))
+				// Send an unsolicited switch to retain coverage of the defensive response guard.
+				conn, rw, err := w.(http.Hijacker).Hijack()
+				require.NoError(t, err)
 				defer conn.Close()
-				_ = conn.WriteMessage(websocket.TextMessage, []byte(`{"type":"ERROR","object":{"code":410,"message":"CANARY_UPSTREAM_ONLY_SECRET"}}`))
+				_, _ = fmt.Fprintf(rw, "HTTP/1.1 101 Switching Protocols\r\n%s: upgrade\r\n%s: websocket\r\n\r\nCANARY_UPSTREAM_ONLY_SECRET", constants.HeaderConnection, constants.HeaderUpgrade)
+				require.NoError(t, rw.Flush())
 			}))
 			defer upstream.Close()
 			handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))

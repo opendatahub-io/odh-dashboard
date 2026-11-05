@@ -272,13 +272,24 @@ describe('Core BFF error response components', () => {
     'Model serving %s failures',
     (method) => {
       it.each([
-        { cause: 'unavailable', status: 503, response: 'K8sUnavailable' },
-        { cause: 'timeout', status: 504, response: 'K8sTimeout' },
-      ])('should document and validate $status', async ({ cause, status, response }) => {
+        {
+          cause: 'unavailable',
+          status: 503,
+          response: 'K8sUnavailable',
+          message: 'the upstream service is temporarily unavailable',
+        },
+        {
+          cause: 'timeout',
+          status: 504,
+          response: 'K8sTimeout',
+          message: 'the upstream request timed out',
+        },
+      ])('should document and validate $status', async ({ cause, status, response, message }) => {
         const error = expectError(
           await fixtureClient[method](`/api/service/model-serving/transport/${cause}`, undefined),
           status,
         );
+        expect(error.data).toMatchObject({ error: { message } });
         expect(apiSchema).toHaveProperty(
           [
             'paths',
