@@ -141,7 +141,7 @@ const ConnectionTypeDetails: React.FC = () => {
   const namespace = searchParams.get('project');
 
   if (namespace) {
-    return <ConnectionTypeDetailsContent namespace={namespace} />;
+    return <ConnectionTypeDetailsContent key={namespace} namespace={namespace} />;
   }
 
   return <Navigate to={{ pathname: '..', search }} relative="path" replace />;
