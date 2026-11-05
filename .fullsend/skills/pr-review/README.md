@@ -175,10 +175,11 @@ Control labels that must not appear in agent `label_actions`:
 
 ### Findings
 
-Host blocking: severity `medium` and above, except categories excluded in
-[`.fullsend/rating-policy.json`](../../rating-policy.json) (today:
-`protected-path` → needs judgment / `comment`, not author `request-changes`).
-`low` / `info` can ride with `approve`. Category `approach-rejected` → `reject`.
+Host blocking: the severities in `blocking_finding_severities`, except
+categories excluded in [`.fullsend/rating-policy.json`](../../rating-policy.json).
+`human_judgment_finding_severities` do not block but yield `comment` / needs
+judgment; `low` / `info` can ride with `approve`. Category `approach-rejected`
+→ `reject`.
 
 ### Checks
 
@@ -220,7 +221,7 @@ mismatch or incomplete checks; it does not invent risk.
 Closed recipe after the report is assembled (kind/status-driven, not producer-id
 branches). Prefer `{category,text}` objects:
 
-1. `findings` — blocking findings → remediation / location pointers
+1. `findings` — findings that block or need judgment → remediation / location pointers
 2. `checks` — check `fail` → that check’s summary
 3. `judgement` — check `could-not-verify`, refuse-approve levels from `rating-policy.json`, section `needs_human` → concrete follow-ups
 4. `nits` — one bullet per `low`/`info` finding with `actionable: true` (whenever
