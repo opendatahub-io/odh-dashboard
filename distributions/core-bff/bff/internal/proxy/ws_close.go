@@ -19,9 +19,17 @@ const (
 func closeCodeFromError(err error) int {
 	var ce *websocket.CloseError
 	if errors.As(err, &ce) {
-		return sanitizeCloseCode(ce.Code)
+		return normalizeReceivedCloseCode(ce.Code)
 	}
 	return sanitizeCloseCode(websocket.CloseInternalServerErr)
+}
+
+// Gorilla reports a valid empty close frame using an internal-only status code.
+func normalizeReceivedCloseCode(code int) int {
+	if code == websocket.CloseNoStatusReceived {
+		return websocket.CloseNormalClosure
+	}
+	return sanitizeCloseCode(code)
 }
 
 func sendCloseMessage(conn *websocket.Conn, err error) {

@@ -75,7 +75,7 @@ func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *webso
 	// Override gorilla's default close handler, which otherwise echoes untrusted peer text.
 	for _, conn := range []*websocket.Conn{clientConn, targetConn} {
 		conn.SetCloseHandler(func(code int, _ string) error {
-			safe := sanitizeCloseCode(code)
+			safe := normalizeReceivedCloseCode(code)
 			return conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(safe, closeReason(safe)), time.Now().Add(writeControlTimeout))
 		})
 	}

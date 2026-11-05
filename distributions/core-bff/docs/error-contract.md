@@ -93,7 +93,7 @@ abort panics through recovery middleware so partial responses cannot appear succ
 Before WS upgrade, preserve upstream rejection status and safe Status body; local rejections use the
 BFF contract. After upgrade, send valid upstream close codes with fixed safe reasons. Use 1000 for
 normal closure, 1008 for policy rejection, 1011 for upstream/internal failure and 1001 for shutdown.
-Do not send reserved/invalid codes. Reasons use fixed UTF-8 catalog text below the 123-byte protocol
+A valid empty close frame is treated as normal closure (1000), including its acknowledgement and relay to the other peer. Gorilla's internal no-status sentinel (1005) is not a wire code; reserved/invalid wire codes remain rejected. Reasons use fixed UTF-8 catalog text below the 123-byte protocol
 limit; upstream and peer free text is discarded. Shutdown notification is implemented by the existing
 connection tracker, which removes tracked connections under its lock before closing them and shares one absolute deadline across shutdown close-frame writes; process draining/timing remains with the lifecycle task. Other heartbeat, message-size and lifetime limits remain with proxy hardening.
 

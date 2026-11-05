@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/stretchr/testify/require"
 )
@@ -48,9 +49,9 @@ func TestCloseCodeFromError(t *testing.T) {
 			want: websocket.CloseNormalClosure,
 		},
 		{
-			name: "reserved code 1005 sanitized",
-			err:  &websocket.CloseError{Code: 1005},
-			want: 1011,
+			name: "status-less close is normal",
+			err:  &websocket.CloseError{Code: websocket.CloseNoStatusReceived},
+			want: websocket.CloseNormalClosure,
 		},
 		{
 			name: "non-close error defaults to internal server error",
@@ -132,5 +133,63 @@ func TestWebSocketCloseContract(t *testing.T) {
 	}
 	for _, invalid := range []int{0, 999, 1004, 1005, 1006, 1015, 2000, 5000} {
 		require.Equal(t, 1011, sanitizeCloseCode(invalid))
+	}
+}
+
+func TestStatuslessWebSocketCloseIsNormal(t *testing.T) {
+	for _, initiator := range []string{"upstream", "client"} {
+		for _, prefix := range []string{"", constants.BFFPathPrefix} {
+			t.Run(initiator+prefix, func(t *testing.T) {
+				upstreamClose := make(chan error, 1)
+				backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					upgrader := newUpgrader([]string{"*"})
+					conn, err := upgrader.Upgrade(w, r, nil)
+					if err != nil {
+						t.Errorf("upgrade failed: %v", err)
+						return
+					}
+					defer conn.Close()
+					if initiator == "upstream" {
+						require.NoError(t, conn.WriteControl(websocket.CloseMessage, nil, time.Now().Add(time.Second)))
+					}
+					_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+					_, _, err = conn.ReadMessage()
+					upstreamClose <- err
+				}))
+				defer backend.Close()
+				tracker := NewConnectionTracker(testLogger())
+				defer tracker.Stop()
+				handler, err := NewWsProxyHandler(testWsConfig(backend.URL, tracker))
+				require.NoError(t, err)
+				if prefix != "" {
+					handler = http.StripPrefix(prefix, handler)
+				}
+				server := httptest.NewServer(httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					handler.ServeHTTP(w, r.WithContext(identityContext(r, "token")))
+				})))
+				defer server.Close()
+				conn, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+prefix+WssProxyPrefix+"api/v1/pods", nil)
+				require.NoError(t, err)
+				defer conn.Close()
+				if initiator == "client" {
+					require.NoError(t, conn.WriteControl(websocket.CloseMessage, nil, time.Now().Add(time.Second)))
+				}
+				_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+				_, _, err = conn.ReadMessage()
+				var closeError *websocket.CloseError
+				require.ErrorAs(t, err, &closeError)
+				require.Equal(t, websocket.CloseNormalClosure, closeError.Code)
+				require.Equal(t, "normal closure", closeError.Text)
+				select {
+				case err := <-upstreamClose:
+					require.ErrorAs(t, err, &closeError)
+					require.Equal(t, websocket.CloseNormalClosure, closeError.Code)
+					require.Equal(t, "normal closure", closeError.Text)
+				case <-time.After(5 * time.Second):
+					t.Fatal("upstream did not receive a normal close")
+				}
+				require.Eventually(t, func() bool { return tracker.ActiveCount() == 0 }, time.Second, time.Millisecond)
+			})
+		}
 	}
 }

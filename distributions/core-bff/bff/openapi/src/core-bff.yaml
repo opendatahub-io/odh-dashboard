@@ -19,6 +19,7 @@ info:
     errors are never appended. WebSocket pre-upgrade failures use the HTTP
     contract. Post-upgrade closure uses valid upstream codes with fixed safe
     reasons, or 1000 normal, 1008 policy, 1011 upstream/internal, 1001 shutdown.
+    A valid close frame without a status is normalized to 1000; reserved status codes are never sent on the wire.
     Missing/malformed and trusted invalid/expired credential causes are distinguished
     in logs; all use 401 UNAUTHORIZED on the wire. An upstream 401 alone does not establish expiry.
   license:
