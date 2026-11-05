@@ -645,10 +645,13 @@ The DevOps automation builds and releases the image but does not register it wit
 2. After the first downstream build, verify registration. Once ProdSec processes a CVE affecting the image, tracking tickets carry the label, so this JQL returns results:
 
    ```text
+   # Type A
    labels = "pscomponent:rhoai/odh-mod-arch-<name>-rhel9"
+   # Type B
+   labels = "pscomponent:rhoai/odh-<name>-rhel9"
    ```
 
-   An empty result while sibling images (for example `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for the same CVE means the image is not registered. Raise it in `#forum-aipcc`.
+   Use the label matching the image's `name` label. An empty result while sibling images (for example `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for the same CVE means the image is not registered. Raise it in `#forum-aipcc`.
 
 Read [references/devops-integration.md](references/devops-integration.md) for the full integration guide including Q&A flow, schema validation, and troubleshooting.
 
