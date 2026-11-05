@@ -443,10 +443,10 @@ Organize tests into groups using tags for parallel execution:
 
 ```typescript
 // Group 1
-it('test 1', { tags: ['@SmokeSet1'] }, () => { ... });
+it('test 1', { tags: ['@SmokeSet1'] }, () => undefined);
 
 // Group 2
-it('test 2', { tags: ['@SmokeSet2'] }, () => { ... });
+it('test 2', { tags: ['@SmokeSet2'] }, () => undefined);
 ```
 
 Define parallel stages from Test Tags list (e.g., "SmokeSet1,SmokeSet2")
@@ -539,6 +539,11 @@ Tests filtered by tags use Mocha's `this.skip()` in `beforeEach()`, marking them
 - ⏸️ **Skipped**: Test was intentionally skipped (not executed)
 
 **Benefits**: Skipped tests don't count as failures, remain visible in reports, and CI/CD can distinguish skipped vs failed tests.
+
+The E2E result validator compares each matrix job's total JUnit testcase count with its planned
+test count. Runtime skips can reduce the executed count, but skipped testcases remain part of the
+total, so missing planned coverage is still detected. Jobs with no testcases, failed tests, or
+every test skipped still fail validation.
 
 ---
 
@@ -792,9 +797,11 @@ pnpm run cypress:open
 
 ```tsx
 // Change this:
-<Button data-testid="create-project" ...>
-// To this:
-<Button data-testid="create-new-project" ...>
+<>
+  <Button data-testid="create-project">Save</Button>
+  {/* To this: */}
+  <Button data-testid="create-new-project">Save</Button>
+</>
 ```
 
 2. Dev server hot reloads → rerun test in Cypress → **test fails** (can't find element)

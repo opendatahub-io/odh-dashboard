@@ -230,6 +230,60 @@ Tests are parameterized using tags and applied to the 'it' block:
 it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }, () => {})
 ```
 
+### CI Test Selection
+
+The GitHub Actions E2E workflow always schedules added, modified, and renamed
+Cypress specs in addition to the selected tag suites. Changes to page objects,
+fixtures, utilities, commands, support hooks, and other Cypress support code run
+their executable reverse-impact specs. Path impact is defined by the ordered,
+versioned mappings in `scripts/cypress/e2e-path-impact.json`; the first matching
+mapping wins. Patterns support exact paths plus `**`, `*`, and `?`. Package paths
+derive `e2eCiTags`, module network policies derive tags from their owning module,
+and frontend areas derive tags from `.github/frontend-ci-tags.json`. Turbo is not
+used as the E2E selector. New packages are discovered from the pnpm workspace; their
+`e2eCiTags` and matching tagged tests determine selection. Package-owned specs need a
+`cypress.e2e` pattern. No per-package workflow entry or central tag allowlist is
+needed. A declared tag must resolve to executable tests; packages without CI tags
+use the regression fallback.
+
+Dashboard base and RHOAI network-policy changes run the Pipelines, Workbenches, and
+Feature Store suites because those flows exercise dashboard egress to the pipeline
+server, Thanos, and Feast. Small impact sets run as explicit specs; larger sets use
+the narrowest available package CI tags. Deleting Cypress support code, or
+encountering a broad impact set that cannot be mapped to package CI tags, falls back
+to the canonical `@SmokeSet1`–`@SmokeSet5` and `@SanitySet1`–`@SanitySet5` tag
+groups.
+
+Every selected tag must resolve to at least one executable test before the
+workflow starts. A selection fails when a required spec cannot be scheduled, a
+tag resolves to zero tests, or every selected test is skipped. Added, modified,
+and renamed specs must carry a CI-selectable tag or be listed in
+`non-ci-specs.json` with an owner and reason. Deleting or renaming a spec cannot
+remove the only remaining executable coverage for one of its CI tags.
+
+Every impactful path must match a mapping. The workflow uploads selection and
+results summaries with actual jobs, selection reasons, planned executions, and
+executed/failed/skipped counts. It rejects jobs with missing reports, no executed
+tests, or a reported testcase total that differs from the plan.
+
+Package tags and tags from dependent packages are additive to default dashboard
+regression. Model Registry currently declares `@ModelRegistryCI` and `@ModelCatalogCI`,
+so a Model Registry-only change runs both suites plus dashboard regression.
+`skip_default` on a manual run removes the default job, not the package's own tags.
+
+The **Cypress E2E CI selection for this PR** summary is limited to the CI tags and
+specs selected for the PR under test, including default regression when enabled.
+It is not a comprehensive test plan or full feature/release validation.
+The report explains each CI job's reason, tags or explicit specs,
+and planned executions, including why broad support changes need Smoke/Sanity
+coverage and additional impacted specs. Counts may overlap across jobs. Build jobs
+prepare application assets and do not execute tests.
+
+Selected specs with unresolved test or suite tag expressions fail planning rather
+than receive an unreliable test count. Use literal options or unmodified top-level object constants, and same-file tag
+arrays or constants; imported tags, computed options, and option-object spreads need to be
+made statically resolvable before those specs can run in CI.
+
 ### Test Contents
 
 `cy.step` is used to explain the test behavior in a human-readable format:
