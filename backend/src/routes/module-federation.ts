@@ -36,13 +36,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           headers: backend.headers,
           rewriteHeaders: rewriteStaticProxyCacheHeaders,
           onResponse: staticProxyCacheOnResponse,
-          onError: (reply, error) => {
-            if (
-              'code' in error.error &&
-              error.error.code === 'FST_REPLY_FROM_INTERNAL_SERVER_ERROR' &&
-              'statusCode' in error.error &&
-              error.error.statusCode === 500
-            ) {
+          onError: (reply, { error }) => {
+            if ('code' in error && error.code === 'FST_REPLY_FROM_INTERNAL_SERVER_ERROR') {
               fastify.log.error(`Module federation service '${name}' is unavailable`);
               // Respond with 503 Service Unavailable instead of 500
               reply.code(503).send({
@@ -50,9 +45,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
                 message: `Module federation service '${name}' is currently unavailable`,
                 statusCode: 503,
               });
-            } else {
-              reply.send(error);
+              return;
             }
+            reply.send(error);
           },
         });
       }
