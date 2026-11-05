@@ -1,0 +1,27 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: gen-ai-trace-collector
+  namespace: monitoring
+spec:
+  config:
+    exporters:
+      otlphttp/mlflow-tracing-test:
+        endpoint: https://mlflow.example.com/mlflow
+        headers:
+          X-MLFLOW-WORKSPACE: tracing-test
+          x-mlflow-experiment-id: '42'
+    connectors:
+      routing/traces:
+        table:
+          - context: resource
+            condition: 'attributes["k8s.namespace.name"] == "tracing-test"'
+            pipelines: [traces/tracing-test]
+          - context: span
+            condition: 'attributes["k8s.namespace.name"] == "tracing-test"'
+            pipelines: [traces/tracing-test]
+    service:
+      pipelines:
+        traces/tracing-test:
+          receivers: [routing/traces]
+          exporters: [otlphttp/mlflow-tracing-test]
