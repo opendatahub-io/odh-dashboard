@@ -5,6 +5,7 @@ const resource = {
   apiVersion: 'v1',
   kind: 'ConfigMap',
   metadata: { name: 'test-resource', namespace: 'test-ns' },
+  spec: {},
 };
 
 describe('convertYamlToResources', () => {
@@ -38,8 +39,8 @@ describe('convertYamlToResources', () => {
     expect(convertYamlToResources(stringify(model))).toStrictEqual({ resources: { model } });
   });
 
-  it.each([null, 'not-a-spec', { model: { uri: 42 } }])(
-    'should leave spec validation to extensions: %j',
+  it.each([{ model: { uri: 42 } }, { replicas: 2, args: ['--foo'], extras: null }])(
+    'should leave spec contents validation to extensions: %j',
     (spec) => {
       const model = { ...resource, kind: 'LLMInferenceService', spec };
       expect(convertYamlToResources(stringify(model))).toStrictEqual({ resources: { model } });
@@ -92,6 +93,11 @@ describe('convertYamlToResources', () => {
       'metadata.labels.custom',
       { ...resource, metadata: { ...resource.metadata, labels: { custom: false } } },
     ],
+    ['spec', { ...resource, spec: undefined }],
+    ['spec', { ...resource, spec: null }],
+    ['spec', { ...resource, spec: 'not-a-spec' }],
+    ['spec', { ...resource, spec: 42 }],
+    ['spec', { ...resource, spec: [] }],
   ])('should report invalid %s and return no model', (path, model) => {
     const result = convertYamlToResources(stringify(model));
     expect(result.resources.model).toBeUndefined();

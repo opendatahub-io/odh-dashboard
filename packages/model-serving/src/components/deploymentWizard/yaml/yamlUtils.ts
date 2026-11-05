@@ -15,6 +15,7 @@ const kubernetesResourceSchema = z
         labels: z.record(z.string()).optional(),
       })
       .passthrough(),
+    spec: z.record(z.any()),
   })
   .passthrough();
 
