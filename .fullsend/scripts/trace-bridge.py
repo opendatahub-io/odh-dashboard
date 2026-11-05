@@ -1,0 +1,675 @@
+#!/usr/bin/env python3
+"""Turn a Fullsend review artifact into OTLP spans and send them to an OTLP endpoint (MLflow).
+
+Fullsend on the Pi runtime only exports run / sandbox / agent spans. Everything else
+we want lives in the `fullsend-review` artifact. This script reads it and adds:
+
+  persona <name>        one per review sub-agent: model, cost, tokens, duration, stop reason,
+                        tool counts, files read by category, guidance read and missed
+  execute_tool <name>   one per tool call (path or command, file category, duration, error)
+  context_coverage      applicable guidance for the PR vs. guidance any sub-agent opened
+  review_result         verdict, finding counts, risk, confidence, dispatched / skipped producers
+
+All spans use the run's own trace ID and deterministic span IDs, so a re-run of the
+bridge for the same run overwrites instead of duplicating.
+
+The artifact is untrusted data (the sandbox read PR code). It is only parsed as JSON;
+nothing from it is executed or interpolated into a shell.
+
+Usage:
+  trace-bridge.py --self-test
+  trace-bridge.py --artifact DIR [--pr-files FILE] [--guidance FILE] [--pr-author LOGIN]
+                  [--run-url URL] [--out FILE] [--no-base-spans] [--dry-run]
+
+Environment:
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT   full URL, e.g. https://mlflow.example/v1/traces
+  OTEL_EXPORTER_OTLP_TRACES_HEADERS    "k=v,k2=v2" (URL-encoded values), e.g.
+                                       Authorization=Basic%20...,x-mlflow-experiment-id=3
+"""
+import argparse
+import collections
+import datetime
+import glob
+import hashlib
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+ROOTS = ("/sandbox/workspace/target-repo/", "/sandbox/workspace/pr-head/")
+GUIDANCE_RE = re.compile(
+    r"(\.claude/rules/[\w.-]+\.md|\.claude/skills/[\w.-]+/[\w./-]+\.md"
+    r"|(?:packages/[\w-]+/)?docs/adr/[\w.-]+\.md|(?:[\w./-]*/)?(?:AGENTS|BOOKMARKS)\.md)"
+)
+# Values that look like credentials anywhere in an exported string.
+SECRET_RE = re.compile(
+    r"(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}"
+    r"|AKIA[0-9A-Z]{16}|eyJ[\w-]{8,}\.eyJ[\w-]{8,}\.[\w-]{8,}"
+    r"|-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)"
+    r"|(?i:bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,})"
+)
+SENSITIVE = r"(?:token|passw(?:or)?d|passwd|secret|api[_-]?key|authorization|auth|credentials?" \
+            r"|client[_-]?secret|access[_-]?key|private[_-]?key|cookie|session[_-]?id)"
+# key=value, key: value, "key": "value" (JSON) and --key value / --key=value (CLI flags).
+SECRET_KV_RE = re.compile(
+    r"(?i)((?<![\w-])[\"']?[\w-]*" + SENSITIVE + r"[\w-]*[\"']?\s*[:=]\s*)(\"[^\"]*\"|'[^']*'|[^\s,;&|)}\]]+)")
+SECRET_FLAG_RE = re.compile(r"(?i)(--[\w-]*" + SENSITIVE + r"[\w-]*\s+)(\"[^\"]*\"|'[^']*'|[^\s-][^\s]*)")
+SENSITIVE_KEY_RE = re.compile(r"(?i)" + SENSITIVE)
+# Tool arguments exported as attributes; anything else (file contents for write/edit, prompts) is dropped.
+TOOL_ARG_ALLOWLIST = ("path", "pattern", "glob", "offset", "limit", "description", "subagent_type")
+MAX_STR = 1000
+
+
+# ---------- helpers ----------
+
+def span_id(trace_id, *parts):
+    return hashlib.sha256("/".join((trace_id,) + parts).encode()).hexdigest()[:16]
+
+
+def ns(ts):
+    """ISO string or epoch ms -> epoch ns."""
+    if ts is None:
+        return None
+    if isinstance(ts, (int, float)):
+        return int(ts * 1_000_000)
+    return int(datetime.datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp() * 1e9)
+
+
+def redact(s):
+    s = SECRET_RE.sub("[REDACTED]", str(s))
+    s = SECRET_KV_RE.sub(lambda m: m.group(1) + "[REDACTED]", s)
+    return SECRET_FLAG_RE.sub(lambda m: m.group(1) + "[REDACTED]", s)
+
+
+def redact_obj(v):
+    """Redact a JSON-like value: sensitive keys lose their values, strings are scanned."""
+    if isinstance(v, dict):
+        return {k: "[REDACTED]" if SENSITIVE_KEY_RE.search(str(k)) else redact_obj(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [redact_obj(x) for x in v]
+    return redact(v) if isinstance(v, str) else v
+
+
+def clean(s):
+    s = redact(s)
+    return s if len(s) <= MAX_STR else s[:MAX_STR] + "…"
+
+
+def attr(k, v):
+    if isinstance(v, bool):
+        val = {"boolValue": v}
+    elif isinstance(v, int):
+        val = {"intValue": str(v)}
+    elif isinstance(v, float):
+        val = {"doubleValue": v}
+    elif isinstance(v, (list, tuple)):
+        val = {"arrayValue": {"values": [{"stringValue": clean(x)} for x in v]}}
+    elif isinstance(v, dict):
+        val = {"stringValue": clean(json.dumps(redact_obj(v), sort_keys=True))}
+    else:
+        val = {"stringValue": clean(v)}
+    return {"key": k, "value": val}
+
+
+def attrs(d):
+    return [attr(k, v) for k, v in d.items() if v is not None and v != "" and v != []]
+
+
+def span(trace_id, sid, parent, name, start, end, a, error=False):
+    s = {
+        "traceId": trace_id, "spanId": sid, "name": name, "kind": 1,
+        "startTimeUnixNano": str(start), "endTimeUnixNano": str(max(end, start)),
+        "attributes": attrs(a), "status": {"code": 2 if error else 1},
+    }
+    if parent:
+        s["parentSpanId"] = parent
+    return s
+
+
+def sanitize_attr(a):
+    """Redact a pre-built OTLP attribute (Fullsend's own spans) the same way as ours."""
+    v = a.get("value") or {}
+    if "stringValue" in v:
+        return {"key": a.get("key"), "value": {"stringValue": clean(v["stringValue"])}}
+    if "arrayValue" in v:
+        vals = [{"stringValue": clean(x["stringValue"])} if "stringValue" in x else x
+                for x in (v["arrayValue"].get("values") or [])]
+        return {"key": a.get("key"), "value": {"arrayValue": {"values": vals}}}
+    return a
+
+
+def read_jsonl(path):
+    out = []
+    try:
+        with open(path, errors="replace") as f:
+            for line in f:
+                try:
+                    out.append(json.loads(line))
+                except ValueError:
+                    pass
+    except OSError:
+        pass
+    return out
+
+
+def load_json(path, default=None):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def rel_path(p):
+    """Return (repo-relative path or None, root label)."""
+    for root in ROOTS:
+        if p.startswith(root):
+            return p[len(root):], "pr-head" if "pr-head" in root else "base"
+    if p.startswith("/sandbox/workspace/"):
+        return None, "run-input"
+    if p.startswith("/sandbox/pi-config/skills/"):
+        return None, "pi-skill"
+    return (p, "base") if not p.startswith("/") else (None, "other")
+
+
+def category(p):
+    if p is None:
+        return "run-input"
+    if p.startswith(".fullsend/"):
+        return "fullsend-scaffold"
+    if p.startswith(".claude/rules/"):
+        return "rule"
+    if p.startswith(".claude/skills/"):
+        return "skill"
+    if re.search(r"(^|/)docs/adr/", p):
+        return "adr"
+    if re.search(r"(^|/)(AGENTS|CLAUDE|BOOKMARKS)\.md$", p):
+        return "agents-md"
+    if re.search(r"(__tests__|\.test\.|\.spec\.|(^|/)cypress/)", p):
+        return "test"
+    if re.search(r"(^|/)docs/|README|\.md$", p):
+        return "doc"
+    return "source"
+
+
+def _norm_guidance(p):
+    rel = rel_path(p)[0] if p.startswith("/") else p
+    rel = rel[2:] if rel and rel.startswith("./") else rel
+    return rel if rel and GUIDANCE_RE.fullmatch(rel) else None
+
+
+READ_CMD_RE = re.compile(r"^\s*(?:sudo\s+)?(cat|head|tail|less|more|bat|nl|sed|awk)\b")
+
+
+def guidance_opened(c):
+    """Guidance files whose content this call returned. Failed calls, searches (grep/find/rg),
+    and paths that only appear in prompts do not count."""
+    if c.get("error") or c.get("end") is None:
+        return set()
+    a = c["args"]
+    if c["name"] == "read":
+        g = _norm_guidance(str(a.get("path", "")))
+        return {g} if g else set()
+    if c["name"] == "bash":
+        got = set()
+        for seg in re.split(r"\|\||&&|[;|\n]", str(a.get("command", ""))):
+            if READ_CMD_RE.match(seg):
+                for tok in re.findall(r"[\w@./*-]+\.md", seg):
+                    g = _norm_guidance(tok) if "*" not in tok else None
+                    if g:
+                        got.add(g)
+        return got
+    return set()
+
+
+# ---------- artifact parsing ----------
+
+def find_run_dir(artifact):
+    hits = sorted(glob.glob(os.path.join(artifact, "**", "metrics.json"), recursive=True))
+    return os.path.dirname(hits[0]) if hits else None
+
+
+def base_spans(run_dir):
+    spans = []
+    for doc in read_jsonl(os.path.join(run_dir, "run-telemetry.jsonl")):
+        for rs in doc.get("resourceSpans", []):
+            for ss in rs.get("scopeSpans", []):
+                spans.extend(ss.get("spans", []))
+    return spans
+
+
+def persona_of(transcript, entries):
+    """Persona from the filename, else from the first prompt (sub-agents/<name>/SKILL.md)."""
+    name = os.path.basename(transcript)
+    m = re.match(r"review-sub(\d+)-(.*?)-?\d{4}-\d\d-\d\dT", name)
+    if not m:
+        return None, "orchestrator"
+    seq, persona = int(m.group(1)), m.group(2)
+    if not persona:
+        for e in entries:
+            msg = e.get("message") or {}
+            if msg.get("role") != "user":
+                continue
+            text = json.dumps(msg.get("content"))
+            mm = re.search(r"sub-agents/([\w-]+?)(?:/SKILL)?\.md", text)
+            persona = mm.group(1) if mm else f"sub{seq}"
+            break
+    return seq, persona or f"sub{seq}"
+
+
+def tool_calls(entries):
+    """Yield dicts for each tool call with timing from its matching toolResult."""
+    calls, order = {}, []
+    for e in entries:
+        msg = e.get("message") or {}
+        role = msg.get("role")
+        if role == "assistant":
+            for c in msg.get("content") or []:
+                if isinstance(c, dict) and c.get("type") == "toolCall":
+                    calls[c.get("id")] = {"name": c.get("name"), "args": c.get("arguments") or {},
+                                          "start": ns(e.get("timestamp")), "end": None}
+                    order.append(c.get("id"))
+        elif role == "toolResult":
+            c = calls.get(msg.get("toolCallId"))
+            if c is not None:
+                end = ns(msg.get("timestamp")) or ns(e.get("timestamp"))
+                dur = msg.get("durationMs")
+                c["end"] = end
+                if end and isinstance(dur, (int, float)):
+                    c["start"] = end - int(dur * 1_000_000)
+                c["error"] = bool(msg.get("isError"))
+                c["result_bytes"] = len(json.dumps(msg.get("content") or ""))
+    return [calls[i] for i in order]
+
+
+def describe_call(c):
+    a, name = c["args"], c["name"]
+    out = {"gen_ai.operation.name": "execute_tool", "gen_ai.tool.name": name}
+    target = a.get("path") or a.get("pattern") or a.get("command") or a.get("prompt") or ""
+    if a.get("path"):
+        rel, root = rel_path(a["path"])
+        out.update({"fullsend.tool.path": rel or a["path"], "fullsend.file.root": root,
+                    "fullsend.file.category": category(rel) if root != "pi-skill" else "pi-skill"})
+    if name == "bash":
+        out["fullsend.tool.command"] = a.get("command", "")
+    elif name in ("grep", "find"):
+        out["fullsend.tool.pattern"] = a.get("pattern", "")
+        if a.get("path"):
+            out["fullsend.tool.path"] = rel_path(a["path"])[0] or a["path"]
+    for k in TOOL_ARG_ALLOWLIST:
+        if k not in ("path", "pattern") and isinstance(a.get(k), (str, int, float)):
+            out[f"fullsend.tool.{k}"] = a[k]
+    out["fullsend.tool.result_bytes"] = c.get("result_bytes")
+    return out, target
+
+
+# ---------- main build ----------
+
+def build(args):
+    run_dir = find_run_dir(args.artifact)
+    if not run_dir:
+        sys.exit("no metrics.json under artifact; nothing to trace")
+    base = base_spans(run_dir)
+    run_span = next((s for s in base if s.get("name") == "run"), None)
+    if not run_span:
+        sys.exit("run-telemetry.jsonl has no run span; cannot attach")
+    trace_id, run_sid = run_span["traceId"], run_span["spanId"]
+    agent_by_iter = {}
+    for s in base:
+        if s.get("name") == "agent":
+            it = next((int(a["value"].get("intValue", 1)) for a in s.get("attributes", [])
+                       if a["key"] == "iteration"), 1)
+            agent_by_iter[it] = s
+
+    metrics = load_json(os.path.join(run_dir, "metrics.json"), {})
+    iters = sorted(glob.glob(os.path.join(run_dir, "iteration-*")),
+                   key=lambda p: int(re.sub(r"\D", "", os.path.basename(p)) or 0))
+    last = iters[-1] if iters else run_dir
+    result = load_json(os.path.join(last, "output", "agent-result.json"), {}) or {}
+    pr = result.get("pr_number")
+    repo = result.get("repo")
+    if not pr:
+        shared = os.path.join(last, "output", "context", "shared.md")
+        try:
+            m = re.search(r"PR:\s*([\w.-]+/[\w.-]+)#(\d+)", open(shared).read())
+            repo, pr = (m.group(1), int(m.group(2))) if m else (repo, None)
+        except OSError:
+            pass
+
+    common = {"session.id": f"{repo}#{pr}" if pr else None, "user.id": args.pr_author,
+              "fullsend.repo": repo, "fullsend.pr_number": pr,
+              "fullsend.head_sha": result.get("head_sha")}
+
+    applicable = set()
+    if args.guidance:
+        g = load_json(args.guidance, {}) or {}
+        applicable = {d.get("path") for d in g.get("documents", []) if d.get("path")}
+
+    spans, read_all, persona_rows = [], set(), []
+    for it_dir in iters:
+        it = int(re.sub(r"\D", "", os.path.basename(it_dir)) or 1)
+        agent = agent_by_iter.get(it) or (agent_by_iter.get(max(agent_by_iter)) if agent_by_iter else None)
+        agent_sid = agent["spanId"] if agent else run_sid
+        usage = {u.get("seq"): u for u in read_jsonl(
+            next(iter(glob.glob(os.path.join(it_dir, "transcripts", "*subagents-usage.jsonl"))), ""))}
+        for t in sorted(glob.glob(os.path.join(it_dir, "transcripts", "review*.jsonl"))):
+            if "usage" in os.path.basename(t):
+                continue
+            entries = read_jsonl(t)
+            seq, persona = persona_of(t, entries)
+            u = usage.get(seq, {}) if seq is not None else {}
+            calls = tool_calls(entries)
+            key = f"it{it}/{persona}/{seq}"
+            if seq is None:
+                parent_sid = agent_sid  # orchestrator tools hang off the agent span
+            else:
+                parent_sid = span_id(trace_id, key)
+            counts, cats, reads, got = collections.Counter(), collections.Counter(), [], set()
+            for i, c in enumerate(calls):
+                a, target = describe_call(c)
+                counts[c["name"]] += 1
+                if c["name"] == "read" and "fullsend.file.category" in a:
+                    cats[a["fullsend.file.category"]] += 1
+                    if a["fullsend.file.category"] not in ("run-input", "fullsend-scaffold", "pi-skill"):
+                        reads.append(a["fullsend.tool.path"])
+                got |= guidance_opened(c)
+                a.update({"fullsend.persona": persona, "fullsend.iteration": it})
+                start = c["start"] or ns(u.get("startedAt")) or int(run_span["startTimeUnixNano"])
+                spans.append(span(trace_id, span_id(trace_id, key, "tool", str(i)), parent_sid,
+                                  f"execute_tool {c['name']}", start, c["end"] or start, a, c.get("error")))
+            read_all |= got
+            if seq is None:
+                continue
+            start = ns(u.get("startedAt")) or min((c["start"] for c in calls if c["start"]), default=None) \
+                or int(run_span["startTimeUnixNano"])
+            end = start + int(u.get("durationMs", 0) * 1_000_000) if u.get("durationMs") else \
+                max((c["end"] for c in calls if c["end"]), default=start)
+            us = u.get("usage") or {}
+            a = {
+                "gen_ai.operation.name": "invoke_agent", "gen_ai.agent.name": persona,
+                "gen_ai.request.model": u.get("model"), "fullsend.persona": persona,
+                "fullsend.persona.seq": seq, "fullsend.persona.description": u.get("description"),
+                "fullsend.persona.named_in_usage": bool(u.get("persona")),
+                "fullsend.iteration": it, "fullsend.cost_usd": us.get("cost"),
+                "fullsend.usage.input_tokens": us.get("input"), "fullsend.usage.output_tokens": us.get("output"),
+                "fullsend.usage.cache_read_tokens": us.get("cacheRead"),
+                "fullsend.usage.cache_write_tokens": us.get("cacheWrite"),
+                "fullsend.stop_reason": u.get("stopReason"), "fullsend.tool_calls": len(calls),
+                "fullsend.tool_counts": dict(counts), "fullsend.reads_by_category": dict(cats),
+                "fullsend.files_read": sorted(set(reads)),
+                "fullsend.guidance.read": sorted(got),
+                "fullsend.guidance.missed": sorted(applicable - got) if applicable else None,
+            }
+            a.update(common)
+            spans.append(span(trace_id, parent_sid, agent_sid, f"persona {persona}", start, end, a,
+                              bool(u.get("isError"))))
+            persona_rows.append((persona, us.get("cost") or 0.0))
+
+    run_start, run_end = int(run_span["startTimeUnixNano"]), int(run_span["endTimeUnixNano"])
+
+    # context coverage
+    hit = applicable & read_all
+    cov = {"fullsend.guidance.applicable": sorted(applicable), "fullsend.guidance.read": sorted(read_all),
+           "fullsend.guidance.missed": sorted(applicable - read_all),
+           "fullsend.guidance.extra": sorted(read_all - applicable) if applicable else None,
+           "fullsend.guidance.applicable_count": len(applicable), "fullsend.guidance.hit_count": len(hit),
+           "fullsend.guidance.coverage": round(len(hit) / len(applicable), 3) if applicable else None,
+           "fullsend.pr_files_count": args.pr_files_count}
+    cov.update(common)
+    spans.append(span(trace_id, span_id(trace_id, "context_coverage"), run_sid, "context_coverage",
+                      run_end, run_end, cov))
+
+    # review result
+    findings = result.get("findings") or []
+    sev = collections.Counter(f.get("severity", "?") for f in findings)
+    dim = collections.Counter(f.get("dimension", "?") for f in findings)
+    prod = result.get("producers") or {}
+    risk, conf = result.get("risk") or {}, result.get("confidence") or {}
+    verdict = result.get("action") or args.verdict
+    rr = {"fullsend.verdict": verdict, "fullsend.findings.count": len(findings),
+          "fullsend.findings.by_severity": dict(sev), "fullsend.findings.by_dimension": dict(dim),
+          "fullsend.risk": risk.get("level") if isinstance(risk, dict) else risk,
+          "fullsend.confidence": conf.get("level") if isinstance(conf, dict) else conf,
+          "fullsend.producers.dispatched": prod.get("dispatched"),
+          "fullsend.producers.skipped": [s.get("id") for s in prod.get("skipped") or []],
+          "fullsend.adapters": {a.get("id"): a.get("status") for a in prod.get("adapters") or []},
+          "fullsend.iterations": metrics.get("iterations"), "fullsend.num_turns": metrics.get("num_turns"),
+          "fullsend.total_cost_usd": metrics.get("total_cost_usd"),
+          "fullsend.per_model_cost": {k: v.get("cost_usd") for k, v in (metrics.get("per_model_usage") or {}).items()},
+          "fullsend.persona_cost": {p: round(c, 6) for p, c in persona_rows},
+          "fullsend.run_url": args.run_url}
+    rr.update(common)
+    spans.append(span(trace_id, span_id(trace_id, "review_result"), run_sid, "review_result",
+                      run_end, run_end, rr))
+
+    resource = [attr("service.name", "fullsend-trace-bridge"), attr("service.version", "1")]
+    out = {"resourceSpans": [{"resource": {"attributes": resource},
+                              "scopeSpans": [{"scope": {"name": "odh-dashboard/fullsend-trace-bridge"},
+                                              "spans": spans}]}]}
+    if not args.no_base_spans:
+        for s in base:
+            s = dict(s, attributes=[sanitize_attr(x) for x in s.get("attributes", [])])
+            if s["spanId"] == run_sid:
+                s = dict(s, attributes=s.get("attributes", []) + attrs(common))
+                if args.run_url:
+                    s["attributes"].append(attr("fullsend.run_url", args.run_url))
+            out["resourceSpans"][0]["scopeSpans"][0]["spans"].append(s)
+    summary = {"trace_id": trace_id, "pr": pr, "spans": len(out["resourceSpans"][0]["scopeSpans"][0]["spans"]),
+               "personas": len(persona_rows), "coverage": cov["fullsend.guidance.coverage"],
+               "missed": cov["fullsend.guidance.missed"]}
+    # MLflow trace tags: filterable and sortable in the trace table. MLflow's own cost
+    # column prices tokens without cache discounts, so the real cost goes here too.
+    tags = {"fullsend.pr": f"{repo}#{pr}" if pr else None, "fullsend.verdict": verdict,
+            "fullsend.cost_usd": metrics.get("total_cost_usd"),
+            "fullsend.guidance.coverage": cov["fullsend.guidance.coverage"],
+            "fullsend.guidance.missed_count": len(cov["fullsend.guidance.missed"]) if applicable else None,
+            "fullsend.findings.count": len(findings), "fullsend.risk": rr["fullsend.risk"],
+            "fullsend.personas": len(persona_rows), "fullsend.run_url": args.run_url}
+    summary["tags"] = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in tags.items() if v is not None}
+    return out, summary
+
+
+def parse_headers(headers_env):
+    headers = {"Content-Type": "application/json"}
+    for pair in filter(None, (headers_env or "").split(",")):
+        k, _, v = pair.partition("=")
+        headers[k.strip()] = urllib.parse.unquote(v.strip())
+    return headers
+
+
+def post(payload, endpoint, headers):
+    req = urllib.request.Request(endpoint, data=json.dumps(payload).encode(), headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return r.status
+
+
+def mlflow_trace_exists(endpoint, headers, trace_id):
+    """True if MLflow already has this trace. Re-sending spans would double MLflow's
+    trace-level token and cost totals, so existing traces only get their tags refreshed."""
+    base = re.sub(r"/v1/traces/?$", "", endpoint)
+    req = urllib.request.Request(f"{base}/api/3.0/mlflow/traces/tr-{trace_id}", headers=headers)
+    try:
+        urllib.request.urlopen(req, timeout=30).close()
+        return True
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False
+        raise
+    except urllib.error.URLError:
+        return False
+
+
+def set_mlflow_tags(endpoint, headers, trace_id, tags):
+    """Best effort: PATCH /api/2.0/mlflow/traces/tr-<id>/tags. Never fails the run."""
+    base = re.sub(r"/v1/traces/?$", "", endpoint)
+    url = f"{base}/api/2.0/mlflow/traces/tr-{trace_id}/tags"
+    failed = 0
+    for k, v in tags.items():
+        body = json.dumps({"key": k, "value": str(v)}).encode()
+        try:
+            urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers, method="PATCH"),
+                                   timeout=30).close()
+        except Exception as e:  # noqa: BLE001 - tags are optional
+            failed += 1
+            last = e
+    if failed:
+        print(f"warning: {failed}/{len(tags)} trace tags not set ({last})", file=sys.stderr)
+    return len(tags) - failed
+
+
+def self_test():
+    """Build a small synthetic artifact and check the spans the bridge produces."""
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="trace-bridge-test-")
+    run = os.path.join(tmp, "fs-rev-x")
+    tr = os.path.join(run, "iteration-1", "transcripts")
+    out_dir = os.path.join(run, "iteration-1", "output")
+    os.makedirs(tr)
+    os.makedirs(out_dir)
+    tid, run_sid, agent_sid = "ab" * 16, "1" * 16, "2" * 16
+
+    def otlp(sp):
+        return json.dumps({"resourceSpans": [{"scopeSpans": [{"spans": [sp]}]}]}) + "\n"
+    with open(os.path.join(run, "run-telemetry.jsonl"), "w") as f:
+        f.write(otlp({"traceId": tid, "spanId": run_sid, "name": "run",
+                      "startTimeUnixNano": "1000000000", "endTimeUnixNano": "9000000000",
+                      "attributes": [{"key": "cmd", "value": {"stringValue": "--api-key s3cr3tvalue1"}}]}))
+        f.write(otlp({"traceId": tid, "spanId": agent_sid, "parentSpanId": run_sid, "name": "agent",
+                      "startTimeUnixNano": "2000000000", "endTimeUnixNano": "8000000000",
+                      "attributes": [{"key": "iteration", "value": {"intValue": "1"}}]}))
+    json.dump({"total_cost_usd": 0.5, "iterations": 1}, open(os.path.join(run, "metrics.json"), "w"))
+    json.dump({"action": "request-changes", "pr_number": 7, "repo": "o/r", "risk": {"level": "low"},
+               "findings": [{"severity": "high", "dimension": "correctness"}],
+               "producers": {"dispatched": ["style-conventions", "test-impact-review"]}},
+              open(os.path.join(out_dir, "agent-result.json"), "w"))
+    with open(os.path.join(tr, "review-subagents-usage.jsonl"), "w") as f:
+        f.write(json.dumps({"seq": 1, "persona": "style-conventions", "model": "m", "startedAt":
+                            "2026-11-03T00:00:01Z", "durationMs": 1000, "usage": {"cost": 0.01}}) + "\n")
+        f.write(json.dumps({"seq": 2, "model": "m", "startedAt": "2026-11-03T00:00:01Z",
+                            "durationMs": 1000, "usage": {"cost": 0.02}}) + "\n")
+
+    def msg(role, content=None, **kw):
+        return json.dumps({"type": "message", "timestamp": "2026-11-03T00:00:01Z",
+                           "message": dict(role=role, content=content or [], **kw)}) + "\n"
+    call = lambda i, name, a: {"type": "toolCall", "id": i, "name": name, "arguments": a}
+    with open(os.path.join(tr, "review-sub1-style-conventions-2026-11-03T00-00-01Z_a.jsonl"), "w") as f:
+        f.write(msg("assistant", [call("c1", "read", {"path": "/sandbox/workspace/pr-head/.claude/rules/react.md"}),
+                                  call("c2", "bash", {"command": "curl -H 'Authorization: Bearer abcdefghijklmnop'"})]))
+        f.write(msg("assistant", [
+            call("c3", "read", {"path": "/sandbox/workspace/target-repo/docs/adr/0009-x.md"}),
+            call("c4", "grep", {"pattern": "flag", "path": "/sandbox/workspace/target-repo/docs/adr/0009-x.md"}),
+            call("c5", "bash", {"command": "rg -n flag docs/adr/0009-x.md && cat AGENTS.md | head"}),
+            call("c6", "bash", {"command": 'curl -d \'{"password": "hunter2pass"}\' --token tok3nvalue x'}),
+            call("c7", "write", {"path": "/sandbox/workspace/out.json", "content": "client_secret=leakedvalue"})]))
+        f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
+        f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
+        f.write(msg("toolResult", toolCallId="c3", durationMs=5, timestamp=1793664001700, isError=True))
+        for i in ("c4", "c5", "c6", "c7"):
+            f.write(msg("toolResult", toolCallId=i, durationMs=5, timestamp=1793664001800))
+    with open(os.path.join(tr, "review-sub2-2026-11-03T00-00-01Z_b.jsonl"), "w") as f:
+        f.write(msg("user", [{"type": "text", "text": "Read /x/sub-agents/test-impact-review/SKILL.md first"}]))
+        f.write(msg("assistant", [call("d1", "read", {"path": "/sandbox/workspace/pr-head/./docs/adr/0009-x.md"})]))
+    with open(os.path.join(tr, "review-2026-11-03T00-00-00Z_o.jsonl"), "w") as f:
+        f.write(msg("assistant", [call("o1", "Agent", {"description": "style",
+                                                       "prompt": "Apply docs/adr/0009-x.md"})]))
+        f.write(msg("toolResult", toolCallId="o1", durationMs=5, timestamp=1793664001900))
+    guidance = os.path.join(tmp, "guidance.json")
+    json.dump({"documents": [{"path": ".claude/rules/react.md"}, {"path": "docs/adr/0009-x.md"}]},
+              open(guidance, "w"))
+
+    args = argparse.Namespace(artifact=tmp, guidance=guidance, pr_author="alice", run_url=None,
+                              pr_files_count=3, no_base_spans=False, verdict=None)
+    payload, summary = build(args)
+    spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
+    by = {}
+    for sp in spans:
+        by.setdefault(sp["name"], sp)  # first span of each name, in transcript order
+    get = lambda s, k: next((list(a["value"].values())[0] for a in s["attributes"] if a["key"] == k), None)
+    blob = json.dumps(spans)
+    persona_sc = by["persona style-conventions"]
+    checks = [
+        ("failed read, search, prompt mention and unanswered call don't count as opened",
+         get(persona_sc, "fullsend.guidance.read") is not None
+         and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
+        ("cat in a shell command counts as opened", "AGENTS.md" in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
+        ("JSON credential redacted", "hunter2pass" not in blob),
+        ("CLI flag credential redacted", "tok3nvalue" not in blob),
+        ("write contents and prompts not exported", "leakedvalue" not in blob and "Apply docs" not in blob),
+        ("secret in Fullsend's own span redacted", "s3cr3tvalue1" not in blob),
+        ("unnamed persona recovered from prompt", "persona test-impact-review" in by),
+        ("persona parented to agent span", by["persona style-conventions"].get("parentSpanId") == agent_sid),
+        ("pr-head path counted as a rule", get(by["execute_tool read"], "fullsend.file.category") == "rule"),
+        ("tool start from toolResult duration",
+         int(by["execute_tool read"]["startTimeUnixNano"]) == 1793664001500 * 1_000_000 - 250_000_000),
+        ("tool error status", by["execute_tool bash"]["status"]["code"] == 2),
+        ("secret redacted", "abcdefghijklmnop" not in get(by["execute_tool bash"], "fullsend.tool.command")),
+        ("coverage is 1 of 2", summary["coverage"] == 0.5 and summary["missed"] == ["docs/adr/0009-x.md"]),
+        ("session and user set", get(by["review_result"], "session.id") == "o/r#7"
+         and get(by["review_result"], "user.id") == "alice"),
+        ("tags carry real cost and verdict", summary["tags"].get("fullsend.cost_usd") == 0.5
+         and summary["tags"].get("fullsend.verdict") == "request-changes"),
+        ("single trace, unique span ids", len({s["traceId"] for s in spans}) == 1
+         and len({s["spanId"] for s in spans}) == len(spans)),
+        ("span ids are deterministic", [s["spanId"] for s in build(args)[0]["resourceSpans"][0]
+                                        ["scopeSpans"][0]["spans"]] == [s["spanId"] for s in spans]),
+    ]
+    failed = [name for name, ok in checks if not ok]
+    for name, ok in checks:
+        print(("PASS " if ok else "FAIL ") + name)
+    if failed:
+        sys.exit(f"{len(failed)} trace-bridge self-test(s) failed")
+    print("All trace-bridge self-tests passed")
+
+
+def main():
+    if sys.argv[1:] == ["--self-test"]:
+        return self_test()
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--artifact", required=True, help="downloaded fullsend-review artifact directory")
+    p.add_argument("--guidance", help="output of fetch-guidance-context.sh for the PR's changed files")
+    p.add_argument("--pr-files", help="file with the PR's changed paths, one per line (for counts)")
+    p.add_argument("--pr-author", help="PR author login, used as MLflow user")
+    p.add_argument("--run-url", help="link to the Fullsend workflow run")
+    p.add_argument("--verdict", help="review verdict to use when agent-result.json has no action "
+                                     "(the host post-script decides it after the artifact is captured)")
+    p.add_argument("--out", help="also write the OTLP JSON payload here")
+    p.add_argument("--no-base-spans", action="store_true",
+                   help="do not re-send run/agent spans (use once Fullsend exports them itself)")
+    p.add_argument("--no-tags", action="store_true", help="skip setting MLflow trace tags after export")
+    p.add_argument("--force", action="store_true",
+                   help="send spans even if MLflow already has the trace (doubles MLflow's token totals)")
+    p.add_argument("--dry-run", action="store_true", help="build and print the summary, do not POST")
+    args = p.parse_args()
+    args.pr_files_count = None
+    if args.pr_files:
+        try:
+            args.pr_files_count = sum(1 for line in open(args.pr_files) if line.strip())
+        except OSError:
+            pass
+
+    payload, summary = build(args)
+    if args.out:
+        with open(args.out, "w") as f:
+            json.dump(payload, f, indent=1)
+    print(json.dumps(summary))
+    endpoint = os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+    if args.dry_run or not endpoint:
+        if not endpoint and not args.dry_run:
+            print("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT not set; skipping export", file=sys.stderr)
+        return
+    headers = parse_headers(os.environ.get("OTEL_EXPORTER_OTLP_TRACES_HEADERS"))
+    if not args.force and mlflow_trace_exists(endpoint, headers, summary["trace_id"]):
+        print("trace already in MLflow; skipping span export (use --force to resend)")
+    else:
+        status = post(payload, endpoint, headers)
+        print(f"exported to OTLP endpoint: HTTP {status}")
+    if not args.no_tags:
+        n = set_mlflow_tags(endpoint, headers, summary["trace_id"], summary["tags"])
+        print(f"set {n} MLflow trace tags")
+
+
+if __name__ == "__main__":
+    main()

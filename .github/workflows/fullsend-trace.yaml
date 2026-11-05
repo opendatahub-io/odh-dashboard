@@ -1,0 +1,156 @@
+# Adds Fullsend review detail to MLflow traces after each review finishes.
+#
+# Fullsend on Pi only exports run / sandbox / agent spans. This workflow reads the
+# run's `fullsend-review` artifact and sends extra spans under the same trace ID:
+# one per review sub-agent (model, cost, tokens, files read), one per tool call,
+# guidance coverage for the PR, and the review result. See
+# .fullsend/scripts/trace-bridge.py.
+#
+# It runs after the review, outside it, so a telemetry failure can never break a
+# review. The artifact is untrusted (the sandbox read PR code): it is only parsed
+# as JSON by the script and never executed or interpolated into a shell. No PR
+# code is checked out; the guidance list is computed from the default branch.
+#
+# Setup (both are needed, the workflow is a no-op without the variable):
+#   repo variable  FULLSEND_TRACE_OTLP_ENDPOINT  e.g. https://<mlflow>/v1/traces
+#   repo secret    FULLSEND_TRACE_OTLP_HEADERS   e.g.
+#                  Authorization=Basic%20<b64>,x-mlflow-experiment-id=<id>
+# RHOAI MLflow (3.17+) serves everything under /mlflow: use
+# https://<route>/mlflow/v1/traces, a Bearer token for a service account that can
+# `update` experiments.mlflow.kubeflow.org, and add X-MLFLOW-WORKSPACE=<namespace>.
+# Leave Fullsend's own OTEL_EXPORTER_OTLP_TRACES_ENDPOINT unset: this workflow
+# re-sends the run / agent spans itself. If that variable is set later, add
+# --no-base-spans below.
+#
+# Backfill: run this workflow manually with a past Fullsend run ID (artifacts
+# are kept 90 days).
+name: fullsend-trace
+
+on:
+  workflow_run:
+    workflows: [fullsend]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Fullsend workflow run ID to trace
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: fullsend-trace-${{ github.event.workflow_run.id || inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  trace:
+    if: >-
+      vars.FULLSEND_TRACE_OTLP_ENDPOINT != ''
+      && (github.event_name == 'workflow_dispatch'
+          || github.event.workflow_run.conclusion == 'success'
+          || github.event.workflow_run.conclusion == 'failure')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .claude/rules
+            .fullsend/scripts
+            docs/adr
+            packages/*/docs/adr
+          sparse-checkout-cone-mode: false
+
+      - name: Download review artifact
+        id: artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id must be numeric"; exit 1; }
+          dest="$RUNNER_TEMP/artifact"
+          mkdir -p "$dest"
+          if ! gh run download "$RUN_ID" -R "$REPO" -n fullsend-review -D "$dest" 2>/dev/null; then
+            echo "::notice::Run $RUN_ID has no fullsend-review artifact (not a review run); nothing to trace."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "dir=$dest" >> "$GITHUB_OUTPUT"
+          echo "run_url=https://github.com/$REPO/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve PR files, author and applicable guidance
+        id: pr
+        if: steps.artifact.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ART: ${{ steps.artifact.outputs.dir }}
+        run: |
+          set -euo pipefail
+          result=$(find "$ART" -path '*/output/agent-result.json' | sort | tail -1)
+          pr=""
+          [[ -n "$result" ]] && pr=$(jq -r '.pr_number // empty' "$result")
+          if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
+            echo "::warning::No PR number in the artifact; tracing without guidance coverage."
+            exit 0
+          fi
+          files="$RUNNER_TEMP/pr-files.txt"
+          gh api --paginate "repos/$REPO/pulls/$pr/files" --jq '.[].filename' > "$files"
+          author=$(gh api "repos/$REPO/pulls/$pr" --jq '.user.login')
+          # agent-result.json may lack the verdict: the host post-script decides it after
+          # the artifact is captured. Fall back to the Fullsend bot's review on that commit.
+          head_sha=$(jq -r '.head_sha // empty' "$result")
+          verdict=""
+          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            state=$(gh api --paginate "repos/$REPO/pulls/$pr/reviews" \
+              --jq ".[] | select(.commit_id == \"$head_sha\" and (.user.login | startswith(\"fullsend-ai-review\"))) | .state" | tail -1)
+            case "$state" in
+              APPROVED) verdict=approve ;;
+              CHANGES_REQUESTED) verdict=request-changes ;;
+              COMMENTED) verdict=comment ;;
+            esac
+          fi
+          # Guidance coverage needs the repo-guidance selector; without it the trace
+          # is sent without coverage.
+          selector=.fullsend/scripts/fetch-guidance-context.sh
+          if [[ -f "$selector" ]]; then
+            FULLSEND_ADAPTER_REPO_DIR="$GITHUB_WORKSPACE" FULLSEND_ADAPTER_PR_FILES="$files" \
+              bash "$selector" "$RUNNER_TEMP/guidance.json" \
+              || echo "::warning::Guidance selection failed; tracing without coverage."
+          else
+            echo "::notice::$selector not found; tracing without guidance coverage."
+          fi
+          {
+            echo "files=$files"
+            echo "author=$author"
+            [[ -n "$verdict" ]] && echo "verdict=$verdict"
+            [[ -s "$RUNNER_TEMP/guidance.json" ]] && echo "guidance=$RUNNER_TEMP/guidance.json"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send spans
+        if: steps.artifact.outputs.found == 'true'
+        env:
+          OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${{ vars.FULLSEND_TRACE_OTLP_ENDPOINT }}
+          OTEL_EXPORTER_OTLP_TRACES_HEADERS: ${{ secrets.FULLSEND_TRACE_OTLP_HEADERS }}
+          ART: ${{ steps.artifact.outputs.dir }}
+          RUN_URL: ${{ steps.artifact.outputs.run_url }}
+          PR_FILES: ${{ steps.pr.outputs.files }}
+          PR_AUTHOR: ${{ steps.pr.outputs.author }}
+          GUIDANCE: ${{ steps.pr.outputs.guidance }}
+          VERDICT: ${{ steps.pr.outputs.verdict }}
+        run: |
+          set -euo pipefail
+          args=(--artifact "$ART" --run-url "$RUN_URL")
+          [[ -n "$PR_FILES" ]] && args+=(--pr-files "$PR_FILES")
+          [[ -n "$PR_AUTHOR" ]] && args+=(--pr-author "$PR_AUTHOR")
+          [[ -n "$GUIDANCE" ]] && args+=(--guidance "$GUIDANCE")
+          [[ -n "$VERDICT" ]] && args+=(--verdict "$VERDICT")
+          python3 -I .fullsend/scripts/trace-bridge.py "${args[@]}"

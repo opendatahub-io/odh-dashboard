@@ -489,6 +489,58 @@ unlisted category withholds the whole projection.
 The first re-review of a PR whose sticky comment predates the marker runs as a
 first review.
 
+## Tracing
+
+Fullsend on the Pi runtime exports only `run`, `sandbox_create` and `agent` spans.
+[`fullsend-trace.yaml`](../../../.github/workflows/fullsend-trace.yaml) runs after each
+`fullsend` run completes (`workflow_run`, or a manual dispatch with a past run ID to
+backfill). It downloads that run's `fullsend-review` artifact and
+[`trace-bridge.py`](../../scripts/trace-bridge.py) sends spans to MLflow under the run's own
+trace ID.
+
+**Setup.** Repo variable `FULLSEND_TRACE_OTLP_ENDPOINT` (`<mlflow>/v1/traces`; RHOAI
+MLflow 3.17+ serves it at `<route>/mlflow/v1/traces`) and secret
+`FULLSEND_TRACE_OTLP_HEADERS` (`Authorization=Bearer%20<token>,x-mlflow-experiment-id=<id>`,
+plus `X-MLFLOW-WORKSPACE=<namespace>` for RHOAI). Use a credential that can only write
+traces to one experiment. Without the variable the job is skipped. Leave Fullsend's own
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` unset: the bridge re-sends the run and agent spans
+(`--no-base-spans` stops that once Fullsend exports them itself).
+
+**Exported data.**
+
+| Span | Contents |
+| --- | --- |
+| `persona <name>` | Sub-agent model, cost, tokens, duration, stop reason, tool counts, files read by category, guidance opened and missed |
+| `execute_tool <name>` | Tool name, repo-relative path, search pattern or shell command, duration, result size, error |
+| `context_coverage` | Rules/ADRs that apply to the PR (`fetch-guidance-context.sh`), which were opened, which were missed |
+| `review_result` | Verdict, finding counts, risk, confidence, dispatched/skipped producers, adapter status, real cost |
+
+Trace tags (`fullsend.pr`, `fullsend.verdict`, `fullsend.cost_usd`,
+`fullsend.guidance.coverage`, …) make the MLflow trace table filterable. MLflow's own cost
+column ignores cache discounts; use `fullsend.cost_usd`.
+
+"Opened" means a successful `read`, or a `cat`/`head`/`sed`-style shell read, of the file.
+Searches, failed reads and paths that only appear in prompts do not count. Coverage needs
+`.fullsend/scripts/fetch-guidance-context.sh`; without it the trace is sent without
+`context_coverage` data.
+
+**Trust and retention.** The artifact is untrusted (the sandbox read PR code), so it is only
+parsed as JSON; nothing from it is executed or interpolated into a shell. The job checks
+out the default branch only, without persisted credentials, and its token has `actions`,
+`contents` and `pull-requests` read access. Exported data excludes file contents, model
+messages, prompts and tool results; only paths, search patterns, shell commands and an
+allowlist of tool arguments leave the artifact. Credential-looking values, sensitive
+JSON keys and `--token`-style flags are redacted, including in Fullsend's own spans, and
+strings are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's
+own retention; anyone who can read the experiment can read these traces.
+
+**Failure behavior.** The job runs outside the review, so it cannot change a review's
+outcome. A run without a `fullsend-review` artifact is skipped. If guidance selection fails,
+the trace is sent without coverage. If the endpoint is unreachable, the job fails and the
+review is unaffected; rerun it from the Actions tab. Re-running for a run MLflow already
+has only refreshes tags, because re-sending spans doubles MLflow's token totals
+(`--force` overrides).
+
 ## Related files
 
 | Path | Role |
@@ -502,3 +554,5 @@ first review.
 | [`.fullsend/scripts/pre-review.sh`](../../scripts/pre-review.sh) | Host preflight / adapter prep |
 | [`.fullsend/scripts/validate-dimensions.sh`](../../scripts/validate-dimensions.sh) | Registry contract |
 | [`.github/workflows/fullsend.yaml`](../../../.github/workflows/fullsend.yaml) | Event routing |
+| [`.github/workflows/fullsend-trace.yaml`](../../../.github/workflows/fullsend-trace.yaml) | Post-review trace export to MLflow (see [Tracing](#tracing)) |
+| [`.fullsend/scripts/trace-bridge.py`](../../scripts/trace-bridge.py) | Turns a `fullsend-review` artifact into OTLP spans; `--self-test` |
