@@ -30,27 +30,6 @@ jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   deleteLlmInferenceServiceConfigIfUnreferenced: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/pages/projects/components/DeleteModal', () => {
-  const MockDeleteModal: React.FC<{
-    onDelete: () => void;
-    onClose: () => void;
-    deleteName: string;
-    error?: Error;
-  }> = ({ onDelete, onClose, deleteName, error }) => (
-    <div data-testid="delete-modal">
-      <span data-testid="delete-name">{deleteName}</span>
-      {error && <div data-testid="delete-error">{error.message}</div>}
-      <button data-testid="confirm-delete" onClick={onDelete}>
-        Confirm Delete
-      </button>
-      <button data-testid="cancel-delete" onClick={onClose}>
-        Cancel
-      </button>
-    </div>
-  );
-  return { __esModule: true, default: MockDeleteModal };
-});
-
 const mockDeleteLlmInferenceServiceConfigIfUnreferenced = jest.mocked(
   deleteLlmInferenceServiceConfigIfUnreferenced,
 );
@@ -85,6 +64,37 @@ describe('RoutingConfigurationsTable', () => {
     fireEvent.click(deleteAction);
   };
 
+  it('should require the config display name before deleting', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ displayName: 'Test Config' });
+
+    render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
+
+    openDeleteModal();
+    expect(screen.getByTestId('delete-button')).toBeDisabled();
+
+    const input = screen.getByTestId('delete-modal-input');
+    fireEvent.change(input, { target: { value: 'Wrong Config' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(screen.getByTestId('delete-button')).toBeDisabled();
+    expect(mockDeleteLlmInferenceServiceConfigIfUnreferenced).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: 'Test Config' } });
+    expect(screen.getByTestId('delete-button')).toBeEnabled();
+  });
+
+  it('should close the modal without deleting when cancelled', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ displayName: 'Test Config' });
+
+    render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
+
+    openDeleteModal();
+    fireEvent.click(screen.getByTestId('cancel-button'));
+
+    expect(screen.queryByTestId('delete-modal')).not.toBeInTheDocument();
+    expect(mockDeleteLlmInferenceServiceConfigIfUnreferenced).not.toHaveBeenCalled();
+  });
+
   it('should close the delete modal on successful deletion', async () => {
     mockDeleteLlmInferenceServiceConfigIfUnreferenced.mockResolvedValue('deleted');
 
@@ -96,7 +106,10 @@ describe('RoutingConfigurationsTable', () => {
     render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
-    fireEvent.click(screen.getByTestId('confirm-delete'));
+    fireEvent.change(screen.getByTestId('delete-modal-input'), {
+      target: { value: 'Test Config' },
+    });
+    fireEvent.click(screen.getByTestId('delete-button'));
 
     await waitFor(() => {
       expect(mockDeleteLlmInferenceServiceConfigIfUnreferenced).toHaveBeenCalledWith(
@@ -124,10 +137,15 @@ describe('RoutingConfigurationsTable', () => {
     render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
-    fireEvent.click(screen.getByTestId('confirm-delete'));
+    fireEvent.change(screen.getByTestId('delete-modal-input'), {
+      target: { value: 'Test Config' },
+    });
+    fireEvent.click(screen.getByTestId('delete-button'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('delete-error')).toHaveTextContent(CONFIG_IN_USE_ERROR_MESSAGE);
+      expect(screen.getByTestId('delete-model-error-message-alert')).toHaveTextContent(
+        CONFIG_IN_USE_ERROR_MESSAGE,
+      );
     });
 
     expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
@@ -145,10 +163,15 @@ describe('RoutingConfigurationsTable', () => {
     render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
-    fireEvent.click(screen.getByTestId('confirm-delete'));
+    fireEvent.change(screen.getByTestId('delete-modal-input'), {
+      target: { value: 'Test Config' },
+    });
+    fireEvent.click(screen.getByTestId('delete-button'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('delete-error')).toHaveTextContent(CONFIG_DELETION_PENDING_MESSAGE);
+      expect(screen.getByTestId('delete-model-error-message-alert')).toHaveTextContent(
+        CONFIG_DELETION_PENDING_MESSAGE,
+      );
     });
 
     expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
@@ -166,10 +189,15 @@ describe('RoutingConfigurationsTable', () => {
     render(<RoutingConfigurationsTable configs={[config]} />, { wrapper });
 
     openDeleteModal();
-    fireEvent.click(screen.getByTestId('confirm-delete'));
+    fireEvent.change(screen.getByTestId('delete-modal-input'), {
+      target: { value: 'Test Config' },
+    });
+    fireEvent.click(screen.getByTestId('delete-button'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('delete-error')).toHaveTextContent('Network error');
+      expect(screen.getByTestId('delete-model-error-message-alert')).toHaveTextContent(
+        'Network error',
+      );
     });
 
     expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
