@@ -4,12 +4,12 @@ import {
   type Identifier,
 } from '@odh-dashboard/k8s-core';
 import { mockLocalQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockLocalQueueK8sResource';
-import { HardwareProfileWarningType } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,
   OTHER,
 } from '@odh-dashboard/ui-core/utilities/valueUnits';
+import { HardwareProfileWarningType } from '../../../shared/types';
 import { mockHardwareProfile } from '../../__mocks__/mockHardwareProfile';
 import {
   determineIdentifierUnit,

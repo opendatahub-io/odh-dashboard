@@ -13,7 +13,6 @@ tests/
 **/__mocks__/
 **/__tests__/
 scripts/ci/
-scripts/security-audit/
 
 # Local .env images
 **/.env.development

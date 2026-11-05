@@ -14,9 +14,16 @@
     "build": "rspack --config ./config/rspack.prod.js",
     "build:prod": "rspack --config ./config/rspack.prod.js",
     "test-unit": "jest --silent",
-    "type-check": "tsc --noEmit",
+    "type-check": "pnpm run type-check:app && pnpm run type-check:cypress",
+    "type-check:app": "tsc --noEmit",
+    "type-check:cypress": "tsc --noEmit -p src/__tests__/cypress/tsconfig.json",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "cypress:server:build": "pnpm run build --output-path ./public-cypress/maas-portal",
+    "cypress:server": "serve ./public-cypress -l tcp://127.0.0.1:4021 -c ../config/serve.cypress.json -L",
+    "cypress:open:mock": "cypress open --project src/__tests__/cypress",
+    "cypress:run:mock": "rimraf src/__tests__/cypress/.nyc_output src/__tests__/cypress/results/coverage && cypress run --browser electron --project src/__tests__/cypress",
+    "test:cypress-ci": "pnpm run cypress:server:build && concurrently -P -k -s first \"pnpm run cypress:server\" \"wait-on http-get://127.0.0.1:4021/maas-portal/ && pnpm run cypress:run:mock {@}\" --"
   },
   "dependencies": {
     "@odh-dashboard/base-distribution": "workspace:*",
@@ -45,22 +52,33 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@cypress/code-coverage": "^3.14.7",
+    "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
+    "@odh-dashboard/app-config": "workspace:*",
+    "@odh-dashboard/cypress": "workspace:*",
     "@odh-dashboard/eslint-config": "workspace:*",
     "@odh-dashboard/jest-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*",
     "@rspack/cli": "2.1.10",
     "@rspack/core": "2.2.4",
     "@rspack/dev-server": "^2.1.0",
+    "@testing-library/cypress": "^10.0.1",
+    "concurrently": "^9.2.1",
     "css-loader": "^7.1.4",
+    "cypress": "^15.6.0",
+    "cypress-axe": "^1.5.0",
     "file-loader": "^6.2.0",
     "raw-loader": "^4.0.2",
+    "rimraf": "^3.0.2",
     "rspack-merge": "^1.0.1",
     "sass": "^1.100.0",
     "sass-loader": "^16.0.7",
+    "serve": "^14.2.4",
     "style-loader": "^2.0.0",
     "svg-url-loader": "^6.0.0",
     "ts-checker-rspack-plugin": "^1.5.3",
     "typescript": "^5.9.3",
-    "url-loader": "^4.1.1"
+    "url-loader": "^4.1.1",
+    "wait-on": "^7.2.0"
   }
 }

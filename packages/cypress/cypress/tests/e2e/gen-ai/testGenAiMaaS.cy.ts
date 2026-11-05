@@ -132,11 +132,8 @@ describe('Verify Gen AI Playground inference with a MaaS model', () => {
         maasModelId = alias;
       });
 
-      cy.step('Log in with Gen AI Studio and MaaS enabled');
-      cy.visitWithLogin(
-        '/?devFeatureFlags=genAiStudio=true,modelAsService=true,maasApiKeys=true',
-        HTPASSWD_CLUSTER_ADMIN_USER,
-      );
+      cy.step('Log in with the default feature configuration');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
     });
   });
 

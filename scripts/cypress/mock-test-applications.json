@@ -1,0 +1,16 @@
+[
+  {
+    "application": "dashboard",
+    "workspace": "frontend",
+    "target": "odh-dashboard-frontend",
+    "runner": "dashboard-shards",
+    "results": "packages/cypress/results/mocked"
+  },
+  {
+    "application": "maas-portal",
+    "workspace": "distributions/maas-portal",
+    "target": "@odh-dashboard/maas-portal-distribution",
+    "runner": "standalone-app",
+    "results": "distributions/maas-portal/src/__tests__/cypress/results"
+  }
+]
