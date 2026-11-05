@@ -21,10 +21,10 @@ const AuditIDHeader = "Audit-ID"
 
 type stateKey struct{}
 type state struct {
-	id              string
-	mu              sync.Mutex
-	audit           string
-	kubernetesProxy bool
+	id    string
+	mu    sync.Mutex
+	audit string
+	path  string
 }
 
 // RequestID returns the BFF request identifier installed in ctx.
@@ -69,7 +69,7 @@ func EnsureID(w http.ResponseWriter, r *http.Request) string {
 	id := RequestID(r.Context())
 	if id == "" {
 		id = uuid.NewString()
-		*r = *r.WithContext(context.WithValue(r.Context(), stateKey{}, &state{id: id, kubernetesProxy: isKubernetesProxyRequest(r)}))
+		*r = *r.WithContext(context.WithValue(r.Context(), stateKey{}, &state{id: id, path: r.URL.Path}))
 	}
 	w.Header().Set(RequestIDHeader, id)
 	return id
@@ -97,7 +97,7 @@ func Middleware(next http.Handler, loggers ...*slog.Logger) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		ctx := context.WithValue(r.Context(), stateKey{}, &state{id: uuid.NewString(), kubernetesProxy: isKubernetesProxyRequest(r)})
+		ctx := context.WithValue(r.Context(), stateKey{}, &state{id: uuid.NewString(), path: r.URL.Path})
 		r = r.Clone(ctx)
 		r.Header.Del(RequestIDHeader)
 		r.Header.Del(AuditIDHeader)
@@ -118,7 +118,7 @@ func (w *responseWriter) WriteHeader(code int) {
 	if w.committed {
 		return
 	}
-	if code >= 200 || code == 101 {
+	if code >= http.StatusOK || code == http.StatusSwitchingProtocols {
 		w.committed = true
 	}
 	w.Header().Set(RequestIDHeader, RequestID(w.ctx))
@@ -129,7 +129,7 @@ func (w *responseWriter) WriteHeader(code int) {
 }
 func (w *responseWriter) Write(b []byte) (int, error) {
 	if !w.committed {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 	}
 	n, err := w.ResponseWriter.Write(b)
 	if err != nil {
@@ -140,7 +140,7 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 func (w *responseWriter) Flush() { _ = w.FlushError() }
 func (w *responseWriter) FlushError() error {
 	if !w.committed {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 	}
 	return http.NewResponseController(w.ResponseWriter).Flush()
 }
@@ -210,7 +210,7 @@ func (b *observedBody) Read(p []byte) (int, error) {
 
 func logStreamError(logger *slog.Logger, ctx context.Context, message string, err error) {
 	level := slog.LevelError
-	code := Classify(err, 502).Error.Code
+	code := Classify(err, http.StatusBadGateway).Error.Code
 	if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
 		level, code = slog.LevelDebug, "CANCELED"
 	}

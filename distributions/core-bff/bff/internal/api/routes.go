@@ -18,7 +18,7 @@ const (
 	// APIPathPrefix is the base API path prefix.
 	APIPathPrefix = constants.APIPathPrefix
 	// APIVersion is the API version path segment.
-	APIVersion = "/v1"
+	APIVersion = constants.APIVersion
 )
 
 // Routes builds the full HTTP handler tree: API router, proxies, static files, and middleware.

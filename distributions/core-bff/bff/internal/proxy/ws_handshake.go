@@ -20,6 +20,7 @@ import (
 
 const (
 	bearerSubprotocolPrefix = "base64url.bearer.authorization.k8s.io." //nolint:gosec // G101: public Kubernetes protocol identifier.
+	base64BinarySubprotocol = "base64.binary.k8s.io"
 	wsConnectionTimeout     = 10 * time.Second
 )
 

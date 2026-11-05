@@ -242,7 +242,7 @@ func TestAccessReviewEvaluationDiagnostics(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var logs bytes.Buffer
-			logger := slog.New(slog.NewJSONHandler(&logs, nil))
+			logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				if tc.forbidden {
@@ -281,6 +281,22 @@ func TestAccessReviewEvaluationDiagnostics(t *testing.T) {
 				})
 			}
 			require.NotContains(t, logs.String(), "CANARY")
+			require.NotContains(t, logs.String(), `"error_code":`)
+			if tc.forbidden {
+				require.Contains(t, logs.String(), `"code":"Forbidden"`)
+			}
+			if !tc.forbidden {
+				var diagnostics int
+				for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
+					var entry struct{ Level, Msg string }
+					require.NoError(t, json.Unmarshal([]byte(line), &entry))
+					if entry.Msg == "access review completed with diagnostic" {
+						require.Equal(t, "DEBUG", entry.Level)
+						diagnostics++
+					}
+				}
+				require.Positive(t, diagnostics)
+			}
 		})
 	}
 }

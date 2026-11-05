@@ -283,32 +283,34 @@ describe('Core BFF Infrastructure', () => {
   });
 
   describe('Unmatched API Path', () => {
-    it('should return 404 with ErrorResponse shape for GET /api/nonexistent', async () => {
+    it('should return 404 with displayable messages for GET /api/nonexistent', async () => {
       const result = await apiClient.get('/api/nonexistent-path-12345');
       const err = expectError(result, 404);
       expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
         apiSchema,
         {
-          ref: '#/components/schemas/ErrorResponse',
+          ref: '#/components/schemas/MessageErrorResponse',
           status: 404,
         },
       );
-      const body = err.data as { error: { code: string; message: string } };
-      expect(body.error.code).toBe('NOT_FOUND');
+      const body = err.data as { code: string; message: string; error: string };
+      expect(body.code).toBe('NOT_FOUND');
+      expect(body.error).toBe(body.message);
     });
 
-    it('should return 405 with ErrorResponse shape for wrong method on known path', async () => {
+    it('should return 405 with displayable messages for wrong method on known path', async () => {
       const result = await apiClient.delete('/api/config');
       const err = expectError(result, 405);
       expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
         apiSchema,
         {
-          ref: '#/components/schemas/ErrorResponse',
+          ref: '#/components/schemas/MessageErrorResponse',
           status: 405,
         },
       );
-      const body = err.data as { error: { code: string } };
-      expect(body.error.code).toBe('METHOD_NOT_ALLOWED');
+      const body = err.data as { code: string; message: string; error: string };
+      expect(body.code).toBe('METHOD_NOT_ALLOWED');
+      expect(body.error).toBe(body.message);
     });
 
     it('should return 401 for unauthenticated request to non-existent API path', async () => {

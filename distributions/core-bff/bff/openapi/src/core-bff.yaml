@@ -7,7 +7,9 @@ info:
   description: >-
     REST API for the Core Backend for Frontend (BFF).
     Error Contract: BFF-generated errors use ErrorResponse with a stable code,
-    safe message and requestId on native and service-proxy routes. The Kubernetes HTTP proxy
+    safe message and requestId on versioned native and service-proxy routes. Local failures on
+    unversioned native routes and the Perses proxy use MessageErrorResponse, with top-level
+    message and string error fields for existing consumers. The Kubernetes HTTP proxy
     uses KubernetesStatus for local failures too, with reason DashboardProxyError and a stable
     BFF code in details.causes[].reason, preserving Kubernetes SDK rejection behavior.
     Upstream Kubernetes failures retain sanitized KubernetesStatus
@@ -658,7 +660,11 @@ paths:
         - Status
       operationId: getStatus
       summary: Get user session status
-      description: Returns user identity, admin status, cluster info, and access status.
+      description: >-
+        Returns user identity, admin status, cluster info, and access status.
+        Once identity is authenticated, failed admin or allowed-access reviews degrade to false
+        for the corresponding flag, preserving the Fastify status polling contract.
+        Authentication failures still fail the request; guarded operations enforce their own reviews.
       responses:
         '200':
           $ref: '#/components/responses/StatusResponse'
@@ -1655,6 +1661,10 @@ paths:
       operations. Strips the /wss/k8s prefix and forwards the remaining path
       to the upstream K8s API via a WebSocket relay. Watch ERROR messages are sanitized
       only on query-based or legacy watch requests; non-watch message bytes are preserved.
+      Negotiated base64.binary.k8s.io watches are decoded, sanitized and re-encoded,
+      including events split across messages. Incomplete decoded events buffer at most
+      4 MiB; invalid base64/JSON or an oversized incomplete event closes the connection
+      with code 1011 without forwarding the fragment.
       Authentication is required
       via bearer token in the x-forwarded-access-token header (same as API routes).
       OpenAPI 3.0.3 has no native WebSocket support; this path entry documents
@@ -1886,7 +1896,10 @@ components:
           description: BFF-generated request identifier matching X-Request-ID.
         code:
           type: string
-          description: Stable BFF-generated error code.
+          description: >-
+            Stable error code from the local catalog, selected by HTTP status.
+            Unmapped upstream HTTP statuses use INTERNAL_SERVER_ERROR without changing
+            the upstream HTTP status.
           enum:
             [
               BAD_REQUEST,
@@ -1894,8 +1907,13 @@ components:
               FORBIDDEN,
               NOT_FOUND,
               METHOD_NOT_ALLOWED,
+              NOT_ACCEPTABLE,
               CONFLICT,
+              GONE,
+              REQUEST_ENTITY_TOO_LARGE,
+              UNSUPPORTED_MEDIA_TYPE,
               VALIDATION_FAILED,
+              TOO_MANY_REQUESTS,
               GATEWAY_TIMEOUT,
               SERVICE_UNAVAILABLE,
               BAD_GATEWAY,
@@ -1913,11 +1931,16 @@ components:
     ErrorResponse:
       type: object
       description: >-
-        Standard envelope for BFF-generated native and service-proxy failures.
-        Upstream Kubernetes failures use KubernetesStatus. The Kubernetes HTTP proxy also uses
-        KubernetesStatus for local failures, preserving SDK rejection behavior.
-        Upstream model-serving responses are passed through; locally generated transport and policy
-        failures use this BFF envelope. Prometheus retains its own response format.
+        Standard envelope for BFF-generated versioned native and service-proxy failures,
+        except the Perses proxy, which uses MessageErrorResponse.
+        Upstream Kubernetes failures on versioned native endpoints also use this envelope,
+        preserving the upstream HTTP status and sanitized validation-field diagnostics.
+        Unversioned native endpoints retain KubernetesStatus for upstream Kubernetes failures
+        so existing consumers can read the top-level message.
+        The Kubernetes HTTP and WebSocket proxies use KubernetesStatus, preserving SDK
+        rejection behavior. Upstream model-serving responses are passed through; locally
+        generated transport and policy failures use this BFF envelope. Prometheus retains
+        its own response format.
         See the Error Contract section in info.description.
       required:
         - error
@@ -1925,15 +1948,36 @@ components:
         error:
           $ref: '#/components/schemas/Error'
 
+    MessageErrorResponse:
+      type: object
+      description: >-
+        Safe BFF-generated failure on unversioned native routes and the Perses proxy.
+        Both message and error contain the same catalog message so existing Fastify
+        and Perses consumers can display it. Upstream service responses remain unchanged.
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          required: [error]
+          properties:
+            error:
+              type: string
+      example:
+        code: BAD_REQUEST
+        message: invalid request
+        error: invalid request
+        requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
+
     KubernetesStatus:
       type: object
       description: >-
         Kubernetes-compatible failure Status, never wrapped in ErrorResponse. Local HTTP proxy failures
-        use reason DashboardProxyError with the stable BFF code in details.causes[].reason. Upstream free text,
-        object names, UID and metadata are omitted or replaced with safe text.
-        Validation field paths are retained except map keys. Cause messages come from a fixed catalog;
-        the top-level message summarizes up to three sanitized fields, below 1 KiB.
-        Arbitrary upstream diagnostic text is never forwarded. Retry metadata is retained.
+        use reason DashboardProxyError with the stable BFF code in details.causes[].reason.
+        Caller-token HTTP and WebSocket resource proxies retain upstream messages, validation causes,
+        field paths and resource names, with targeted credential redaction and an 8 KiB bound per
+        diagnostic string. NotFound messages include 404 for existing message-based consumers.
+        Secret operations, unknown routes and native BFF failures use strict generated messages
+        and sanitized field paths; these omit object names and arbitrary upstream diagnostic text.
+        UID and metadata are omitted. Retry metadata is retained.
       required: [apiVersion, kind, status, code, reason, message]
       properties:
         apiVersion:
@@ -1954,6 +1998,9 @@ components:
         details:
           type: object
           properties:
+            name:
+              type: string
+              description: Resource name retained on ordinary caller-token proxy failures.
             group:
               type: string
             kind:
@@ -1976,6 +2023,7 @@ components:
       description: BFF-originated error or sanitized Kubernetes Status, distinguished by shape.
       oneOf:
         - $ref: '#/components/schemas/ErrorResponse'
+        - $ref: '#/components/schemas/MessageErrorResponse'
         - $ref: '#/components/schemas/KubernetesStatus'
 
     DashboardConfig:

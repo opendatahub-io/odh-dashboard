@@ -75,14 +75,14 @@ func (h *OpenAPIHandler) HandleOpenAPIJSON(w http.ResponseWriter, r *http.Reques
 
 	jsonData, err := json.MarshalIndent(&specCopy, "", "  ")
 	if err != nil {
-		h.logger.Error("Failed to marshal OpenAPI spec to JSON", "error_code", httpcontract.SafeErrorCode(err))
+		h.logger.Error("Failed to marshal OpenAPI spec to JSON", "code", httpcontract.SafeErrorCode(err))
 		httpcontract.WriteLocal(w, r, http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(jsonData); err != nil {
-		h.logger.Error("Failed to write JSON response", "error_code", httpcontract.SafeErrorCode(err))
+		h.logger.Error("Failed to write JSON response", "code", httpcontract.SafeErrorCode(err))
 	}
 }
 
@@ -99,7 +99,7 @@ func (h *OpenAPIHandler) HandleOpenAPIYAML(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(h.specYAML); err != nil {
-		h.logger.Error("Failed to write YAML response", "error_code", httpcontract.SafeErrorCode(err))
+		h.logger.Error("Failed to write YAML response", "code", httpcontract.SafeErrorCode(err))
 	}
 }
 
@@ -155,7 +155,7 @@ func (h *OpenAPIHandler) HandleSwaggerUI(w http.ResponseWriter, r *http.Request,
 
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write([]byte(html)); err != nil {
-		h.logger.Error("Failed to write HTML response", "error_code", httpcontract.SafeErrorCode(err))
+		h.logger.Error("Failed to write HTML response", "code", httpcontract.SafeErrorCode(err))
 	}
 }
 

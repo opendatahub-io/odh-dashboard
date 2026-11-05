@@ -57,7 +57,12 @@ func TestNativeContractFixtureServer(t *testing.T) {
 		require.NoError(t, err)
 		_, _, err = scheme.Codecs.UniversalDeserializer().Decode(body, nil, &review)
 		require.NoError(t, err)
-		allowed := token == "allowed" && review.Spec.ResourceAttributes.Verb == "get"
+		if token == "admin-review-failure" && review.Spec.ResourceAttributes.Verb == "patch" {
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`{"apiVersion":"v1","kind":"Status","status":"Failure","code":403,"reason":"Forbidden","message":"CANARY"}`))
+			return
+		}
+		allowed := (token == "allowed" || token == "admin-review-failure") && review.Spec.ResourceAttributes.Verb == "get"
 		_, _ = fmt.Fprintf(w, `{"apiVersion":"authorization.k8s.io/v1","kind":"SelfSubjectAccessReview","status":{"allowed":%t,"evaluationError":"CANARY"}}`, allowed)
 	}))
 	t.Cleanup(upstream.Close)

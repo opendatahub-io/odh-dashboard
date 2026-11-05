@@ -109,6 +109,10 @@ func (t contractFixtureTransport) RoundTrip(r *http.Request) (*http.Response, er
 }
 
 func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/apis/example.io/v1/namespaces/project/widgets/") {
+		contractCompatibilityResponse(w, r)
+		return
+	}
 	if strings.HasPrefix(r.URL.Path, "/upstream-failure/") {
 		code, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/upstream-failure/"))
 		if err != nil || (code != http.StatusServiceUnavailable && code != http.StatusGatewayTimeout) {
@@ -150,7 +154,7 @@ func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	if r.URL.Path == "/watch" || strings.HasPrefix(r.URL.Path, "/api/v1/watch/") || strings.HasPrefix(r.URL.Path, "/apis/apps/v1/watch/") {
+	if r.URL.Path == "/watch" || strings.HasPrefix(r.URL.Path, "/api/v1/watch/") || strings.HasPrefix(r.URL.Path, "/apis/example.io/v1/watch/") {
 		if r.Header.Get(constants.HeaderAccept) != constants.ContentTypeJSON {
 			http.Error(w, "expected JSON negotiation", http.StatusBadRequest)
 			return
@@ -233,4 +237,35 @@ func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(body); err != nil && !errors.Is(err, context.Canceled) {
 		slog.Error("fixture response failed", "error", err)
 	}
+}
+
+func contractCompatibilityResponse(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/apis/example.io/v1/namespaces/project/widgets/")
+	cases := map[string]struct {
+		code    int
+		reason  metav1.StatusReason
+		message string
+	}{
+		"not-found":      {404, metav1.StatusReasonNotFound, `widgets.example.io "example" not found`},
+		"already-exists": {409, metav1.StatusReasonAlreadyExists, `widgets.example.io "example" already exists`},
+		"validation":     {422, metav1.StatusReasonInvalid, "spec.replicas: Invalid value: -1: must be greater than or equal to 0"},
+		"quota":          {403, metav1.StatusReasonForbidden, "exceeded quota: compute, requested: requests.cpu=2, used: requests.cpu=3, limited: requests.cpu=4"},
+		"admission":      {403, metav1.StatusReasonForbidden, `admission webhook "policy.example.io" denied the request: select an approved hardware profile`},
+	}
+	fixture, ok := cases[name]
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(fixture.code)
+	status := metav1.Status{
+		TypeMeta: metav1.TypeMeta{Kind: "Status", APIVersion: "v1"},
+		Status:   metav1.StatusFailure, Code: int32(fixture.code), Reason: fixture.reason, Message: fixture.message,
+		Details: &metav1.StatusDetails{Name: "example", Kind: "widgets", Group: "example.io"},
+	}
+	if name == "validation" {
+		status.Details.Causes = []metav1.StatusCause{{Type: metav1.CauseTypeFieldValueInvalid, Field: "spec.replicas", Message: "must be greater than or equal to 0"}}
+	}
+	_ = json.NewEncoder(w).Encode(status)
 }

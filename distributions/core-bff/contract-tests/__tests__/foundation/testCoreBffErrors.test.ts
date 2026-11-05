@@ -19,10 +19,23 @@ describe('Core BFF shared error contract', () => {
         ref: '#/components/responses/Unauthorized/content/application~1json/schema',
         status: 401,
       });
-      const body = error.data as { error: { code: string; message: string; requestId: string } };
-      expect(body.error.code).toBe('UNAUTHORIZED');
-      expect(body.error.requestId).toMatch(uuidV4);
-      expect(error.headers?.['x-request-id']).toBe(body.error.requestId);
+      const body = error.data as {
+        code: string;
+        message: string;
+        requestId: string;
+        error: string | { code: string; message: string; requestId: string };
+      };
+      const payload = typeof body.error === 'string' ? body : body.error;
+      expect(payload.code).toBe('UNAUTHORIZED');
+      expect(payload.requestId).toMatch(uuidV4);
+      expect(error.headers?.['x-request-id']).toBe(payload.requestId);
+      if (typeof body.error === 'string') {
+        expect(body.error).toBe(body.message);
+        expect(error).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/MessageErrorResponse',
+          status: 401,
+        });
+      }
       expect(JSON.stringify(error.data)).not.toContain('untrusted-correlation');
     },
   );

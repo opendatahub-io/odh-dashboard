@@ -1,6 +1,12 @@
 package proxy
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
 	"sync"
 	"time"
 
@@ -10,8 +16,16 @@ import (
 
 const wsHeartbeatInterval = 15 * time.Second
 
-func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string, target, client *websocket.Conn, cleanup func(), watch bool) {
+const maxBase64WatchPendingBytes = 4 << 20
+
+func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string, target, client *websocket.Conn, cleanup func(), watch bool, diagnosticRequest *http.Request) {
 	defer cleanup()
+	base64Watch := watch && target.Subprotocol() == base64BinarySubprotocol
+	var pending []byte
+	sanitize := func(event []byte) []byte {
+		trackBookmark(tracker, connID, event)
+		return httpcontract.ProxyWatchEvent(event, diagnosticRequest)
+	}
 	for {
 		msgType, msg, err := target.ReadMessage()
 		if err != nil {
@@ -20,9 +34,18 @@ func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string,
 			return
 		}
 		tracker.updateMetricsReceived(connID)
-		if watch {
-			trackBookmark(tracker, connID, msg)
-			msg = httpcontract.SanitizeWatchEvent(msg)
+		if base64Watch {
+			msg, pending, err = proxyBase64WatchMessage(msg, pending, sanitize)
+			if err != nil {
+				tracker.logClose(connID, requestID, err)
+				sendCloseMessage(client, err)
+				return
+			}
+			if len(msg) == 0 && len(pending) > 0 {
+				continue // Never forward an incomplete, unsanitized event.
+			}
+		} else if watch {
+			msg = sanitize(msg)
 		}
 		if writeErr := client.WriteMessage(msgType, msg); writeErr != nil {
 			tracker.logClose(connID, requestID, writeErr)
@@ -30,6 +53,40 @@ func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string,
 			return
 		}
 		tracker.updateMetricsSent(connID)
+	}
+}
+
+// The base64 stream protocol can split or combine JSON events across messages.
+func proxyBase64WatchMessage(message, pending []byte, sanitize func([]byte) []byte) ([]byte, []byte, error) {
+	decoded, err := base64.StdEncoding.DecodeString(string(message))
+	if err != nil {
+		return nil, nil, err
+	}
+	pending = append(pending, decoded...)
+	decoder := json.NewDecoder(bytes.NewReader(pending))
+	var out bytes.Buffer
+	var offset int
+	for {
+		var event json.RawMessage
+		err := decoder.Decode(&event)
+		if errors.Is(err, io.EOF) {
+			out.Write(pending[offset:]) // Preserve trailing whitespace and empty keepalives.
+			return []byte(base64.StdEncoding.EncodeToString(out.Bytes())), nil, nil
+		}
+		if errors.Is(err, io.ErrUnexpectedEOF) {
+			rest := pending[offset:]
+			if len(rest) > maxBase64WatchPendingBytes {
+				return nil, nil, errors.New("incomplete base64 watch event exceeds buffering limit")
+			}
+			return []byte(base64.StdEncoding.EncodeToString(out.Bytes())), rest, nil
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		end := int(decoder.InputOffset())
+		out.Write(pending[offset : end-len(event)]) // Keep stream delimiters outside the sanitized JSON.
+		out.Write(sanitize(event))
+		offset = end
 	}
 }
 
@@ -71,7 +128,7 @@ func runHeartbeat(tracker *ConnectionTracker, connID, requestID string, target *
 	}
 }
 
-func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn, requestID string, watch bool) {
+func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn, requestID string, watch bool, diagnosticRequest *http.Request) {
 	// Override gorilla's default close handler, which otherwise echoes untrusted peer text.
 	for _, conn := range []*websocket.Conn{clientConn, targetConn} {
 		conn.SetCloseHandler(func(code int, _ string) error {
@@ -93,7 +150,7 @@ func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *webso
 		})
 	}
 
-	go forwardTargetToClient(tracker, connID, requestID, targetConn, clientConn, cleanup, watch)
+	go forwardTargetToClient(tracker, connID, requestID, targetConn, clientConn, cleanup, watch, diagnosticRequest)
 	go forwardClientToTarget(tracker, connID, requestID, clientConn, targetConn, cleanup)
 	go runHeartbeat(tracker, connID, requestID, targetConn, heartbeat, done, cleanup, clientConn)
 }

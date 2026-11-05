@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -123,11 +124,11 @@ func TestWsProxy_ConnectionTracking(t *testing.T) {
 func TestWebSocketWatchErrorSanitization(t *testing.T) {
 	for _, prefix := range []string{"", constants.BFFPathPrefix} {
 		for _, path := range []string{
-			"/api/v1/pods?watch=true",
-			"/api/v1/pods?watch=1",
-			"/api/v1/pods?watch",
-			"/api/v1/watch/namespaces/project/pods",
-			"/apis/apps/v1/watch/namespaces/project/deployments?watch=false",
+			"/api/v1/secrets?watch=true",
+			"/api/v1/secrets?watch=1",
+			"/api/v1/secrets?watch",
+			"/api/v1/watch/namespaces/project/secrets",
+			"/apis/example.io/v1/watch/namespaces/project/secrets?watch=false",
 		} {
 			for _, eventType := range []string{`ERROR`, `\u0045RROR`} {
 				t.Run(prefix+path+"/"+eventType, func(t *testing.T) {
@@ -163,17 +164,115 @@ func TestWebSocketNonWatchMessagesRemainOpaque(t *testing.T) {
 	}
 }
 
+func TestWebSocketWatchPreservesCallerDiagnostics(t *testing.T) {
+	for _, prefix := range []string{"", constants.BFFPathPrefix} {
+		for _, path := range []string{"/api/v1/pods?watch=true", "/api/v1/watch/namespaces/project/pods"} {
+			for _, messageType := range []int{websocket.TextMessage, websocket.BinaryMessage} {
+				event := []byte(`{"type":"ERROR","object":{"kind":"Status","code":410,"reason":"Expired","message":"too old resource version: 100 (200); Bearer CANARY_TOKEN"}}`)
+				gotType, body := readProxiedWebSocketMessage(t, prefix, path, messageType, event)
+				require.Equal(t, messageType, gotType)
+				require.Contains(t, string(body), "too old resource version: 100 (200)")
+				require.NotContains(t, string(body), "CANARY_TOKEN")
+			}
+		}
+	}
+}
+
+func TestBase64WebSocketWatchSanitization(t *testing.T) {
+	errorEvent := `{"type":"ERROR","object":{"kind":"Status","code":410,"reason":"Expired","message":"too old resource version; Bearer CANARY_TOKEN"}}`
+	resourceEvent := " {\"type\":\"ADDED\",\"object\":{\"data\":{\"value\":\"authorized resource content\"}}}\n"
+	for _, prefix := range []string{"", constants.BFFPathPrefix} {
+		for _, tc := range []struct {
+			name, path string
+			parts      []string
+			want       string
+		}{
+			{"Secret error", "/api/v1/secrets?watch=true", []string{errorEvent}, ""},
+			{"fragmented Secret error", "/api/v1/secrets?watch=true", []string{errorEvent[:60], errorEvent[60:]}, ""},
+			{"legacy Secret error", "/api/v1/watch/namespaces/project/secrets", []string{errorEvent}, ""},
+			{"caller diagnostics", "/api/v1/pods?watch=true", []string{errorEvent}, "too old resource version"},
+			{"authorized resource", "/api/v1/secrets?watch=true", []string{resourceEvent}, resourceEvent},
+			{"coalesced events", "/api/v1/secrets?watch=true", []string{resourceEvent + errorEvent}, "authorized resource content"},
+			{"non-watch opaque", "/api/v1/secrets?watch=false", []string{errorEvent}, errorEvent},
+		} {
+			t.Run(prefix+tc.name, func(t *testing.T) {
+				messages := make([][]byte, len(tc.parts))
+				for i, part := range tc.parts {
+					messages[i] = []byte(base64.StdEncoding.EncodeToString([]byte(part)))
+				}
+				messageType, body, err := readProxiedWebSocketFrames(t, prefix, tc.path, websocket.TextMessage, messages, base64BinarySubprotocol)
+				require.NoError(t, err)
+				require.Equal(t, websocket.TextMessage, messageType)
+				decoded, err := base64.StdEncoding.DecodeString(string(body))
+				require.NoError(t, err)
+				if tc.name == "non-watch opaque" || tc.name == "authorized resource" {
+					require.Equal(t, tc.want, string(decoded))
+					require.Equal(t, messages[0], body)
+					return
+				}
+				require.NotContains(t, string(decoded), "CANARY_TOKEN")
+				require.Contains(t, string(decoded), `"code":410`)
+				if tc.want != "" {
+					require.Contains(t, string(decoded), tc.want)
+				} else {
+					require.NotContains(t, string(decoded), "too old resource version")
+				}
+				if tc.name == "coalesced events" {
+					require.True(t, strings.HasPrefix(string(decoded), resourceEvent))
+				}
+			})
+		}
+	}
+}
+
+func TestBase64WatchMalformedStreamClosesWithoutPayload(t *testing.T) {
+	for _, messages := range [][][]byte{
+		{[]byte("invalid base64!")},
+		{[]byte(base64.StdEncoding.EncodeToString([]byte(`{"type":!"ERROR","message":"CANARY"}`)))},
+		{[]byte(base64.StdEncoding.EncodeToString([]byte(`{"type":"ERROR","object":{"message":"CANARY`))), []byte("invalid base64!")},
+	} {
+		_, body, err := readProxiedWebSocketFrames(t, "", "/api/v1/secrets?watch=true", websocket.TextMessage, messages, base64BinarySubprotocol)
+		require.True(t, websocket.IsCloseError(err, websocket.CloseInternalServerErr), "got %v", err)
+		require.Empty(t, body)
+	}
+}
+
+func TestBase64WatchRejectsMalformedAndOversizedFragments(t *testing.T) {
+	for _, message := range [][]byte{
+		[]byte("invalid base64!"),
+		[]byte(base64.StdEncoding.EncodeToString([]byte(`{"type":!"ERROR","message":"CANARY"}`))),
+		[]byte(base64.StdEncoding.EncodeToString([]byte(`{"message":"` + strings.Repeat("x", maxBase64WatchPendingBytes)))),
+	} {
+		out, pending, err := proxyBase64WatchMessage(message, nil, func(event []byte) []byte { return event })
+		require.Error(t, err)
+		require.Empty(t, out)
+		require.Empty(t, pending)
+	}
+}
+
 func readProxiedWebSocketMessage(t *testing.T, prefix, path string, messageType int, message []byte) (int, []byte) {
+	t.Helper()
+	gotType, body, err := readProxiedWebSocketFrames(t, prefix, path, messageType, [][]byte{message}, "")
+	require.NoError(t, err)
+	return gotType, body
+}
+
+func readProxiedWebSocketFrames(t *testing.T, prefix, path string, messageType int, messages [][]byte, subprotocol string) (int, []byte, error) {
 	t.Helper()
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upgrader := newUpgrader([]string{"*"})
+		if subprotocol != "" {
+			upgrader.Subprotocols = []string{subprotocol}
+		}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			t.Errorf("upgrade failed: %v", err)
 			return
 		}
 		defer conn.Close()
-		require.NoError(t, conn.WriteMessage(messageType, message))
+		for _, message := range messages {
+			require.NoError(t, conn.WriteMessage(messageType, message))
+		}
 		_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 		_, _, _ = conn.ReadMessage()
 	}))
@@ -189,11 +288,15 @@ func readProxiedWebSocketMessage(t *testing.T, prefix, path string, messageType 
 		handler.ServeHTTP(w, r.WithContext(identityContext(r, "token")))
 	})))
 	defer server.Close()
-	conn, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+prefix+strings.TrimSuffix(WssProxyPrefix, "/")+path, nil)
+	dialer := *websocket.DefaultDialer
+	if subprotocol != "" {
+		dialer.Subprotocols = []string{subprotocol}
+	}
+	conn, _, err := dialer.Dial("ws"+strings.TrimPrefix(server.URL, "http")+prefix+strings.TrimSuffix(WssProxyPrefix, "/")+path, nil)
 	require.NoError(t, err)
 	defer conn.Close()
+	require.Equal(t, subprotocol, conn.Subprotocol())
 	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	gotType, body, err := conn.ReadMessage()
-	require.NoError(t, err)
-	return gotType, body
+	return gotType, body, err
 }

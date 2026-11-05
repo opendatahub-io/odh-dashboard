@@ -175,6 +175,6 @@ func (r *DashboardConfigRepository) autoCreateDashboardCR(
 	}
 
 	httpcontract.LogContext(slog.Default(), ctx).Debug("failed to auto-create OdhDashboardConfig, falling back to defaults",
-		slog.String("namespace", namespace), slog.String("name", name), slog.String("error_code", httpcontract.SafeErrorCode(createErr)))
+		slog.String("namespace", namespace), slog.String("name", name), slog.String("code", httpcontract.SafeErrorCode(createErr)))
 	return blankDefaults()
 }

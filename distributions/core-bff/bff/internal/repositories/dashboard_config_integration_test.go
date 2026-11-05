@@ -210,6 +210,6 @@ func TestConfigBootstrapFailureLogsAreSafeAndCorrelated(t *testing.T) {
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/config", nil))
 	require.NotContains(t, logs.String(), "CANARY_SECRET")
-	require.Contains(t, logs.String(), `"error_code":"Forbidden"`)
+	require.Contains(t, logs.String(), `"code":"Forbidden"`)
 	require.Contains(t, logs.String(), response.Header().Get(httpcontract.RequestIDHeader))
 }

@@ -336,7 +336,7 @@ func TestK8sProxy_ForbiddenPassthrough(t *testing.T) {
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
-	if got := rec.Body.String(); !strings.Contains(got, `"reason":"Forbidden"`) || strings.Contains(got, "pods is forbidden") {
+	if got := rec.Body.String(); !strings.Contains(got, `"reason":"Forbidden"`) || !strings.Contains(got, "pods is forbidden") {
 		t.Errorf("body = %q, want K8s forbidden response", got)
 	}
 }

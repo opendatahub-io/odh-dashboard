@@ -44,12 +44,12 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		httpcontract.LogContext(kc.Logger, ctx).Error("failed to perform cluster-admin SAR", "error_code", httpcontract.SafeErrorCode(err))
+		httpcontract.LogContext(kc.Logger, ctx).Error("failed to perform cluster-admin SAR", "code", httpcontract.SafeErrorCode(err))
 		return false, fmt.Errorf("failed to verify cluster-admin permissions: %w", err)
 	}
 
 	if resp.Status.EvaluationError != "" {
-		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
+		httpcontract.LogContext(kc.Logger, ctx).Debug("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	if !resp.Status.Allowed {
 		httpcontract.LogContext(kc.Logger, ctx).Info("user is NOT cluster-admin")
@@ -63,14 +63,14 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 func NewKubeconfigKubernetesClient(ctx context.Context, logger *slog.Logger) (KubernetesClientInterface, error) {
 	cfg, err := helpers.GetKubeconfig()
 	if err != nil {
-		httpcontract.LogContext(logger, ctx).Error("failed to get kubeconfig", "error_code", httpcontract.SafeErrorCode(err))
+		httpcontract.LogContext(logger, ctx).Error("failed to get kubeconfig", "code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
 	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		httpcontract.LogContext(logger, ctx).Error("failed to create kubeconfig-based Kubernetes client", "error_code", httpcontract.SafeErrorCode(err))
+		httpcontract.LogContext(logger, ctx).Error("failed to create kubeconfig-based Kubernetes client", "code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
@@ -88,7 +88,7 @@ func NewKubeconfigKubernetesClient(ctx context.Context, logger *slog.Logger) (Ku
 func NewTokenKubernetesClient(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
 	baseConfig, err := helpers.GetKubeconfig()
 	if err != nil {
-		httpcontract.LogContext(logger, ctx).Error("failed to get kubeconfig", "error_code", httpcontract.SafeErrorCode(err))
+		httpcontract.LogContext(logger, ctx).Error("failed to get kubeconfig", "code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
@@ -106,7 +106,7 @@ func NewTokenKubernetesClient(ctx context.Context, token string, logger *slog.Lo
 	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		httpcontract.LogContext(logger, ctx).Error("failed to create token-based Kubernetes client", "error_code", httpcontract.SafeErrorCode(err))
+		httpcontract.LogContext(logger, ctx).Error("failed to create token-based Kubernetes client", "code", httpcontract.SafeErrorCode(err))
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
@@ -139,12 +139,12 @@ func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context,
 
 		resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 		if err != nil {
-			httpcontract.LogContext(kc.Logger, ctx).Error("self-SAR failed", "namespace", namespace, "verb", verb, "error_code", httpcontract.SafeErrorCode(err))
+			httpcontract.LogContext(kc.Logger, ctx).Error("self-SAR failed", "namespace", namespace, "verb", verb, "code", httpcontract.SafeErrorCode(err))
 			return false, err
 		}
 
 		if resp.Status.EvaluationError != "" {
-			httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
+			httpcontract.LogContext(kc.Logger, ctx).Debug("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 		}
 		if !resp.Status.Allowed {
 			httpcontract.LogContext(kc.Logger, ctx).Warn("self-SAR denied", "namespace", namespace, "verb", verb)
@@ -173,11 +173,11 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		httpcontract.LogContext(kc.Logger, ctx).Error("self-SAR failed", "service", serviceName, "namespace", namespace, "error_code", httpcontract.SafeErrorCode(err))
+		httpcontract.LogContext(kc.Logger, ctx).Error("self-SAR failed", "service", serviceName, "namespace", namespace, "code", httpcontract.SafeErrorCode(err))
 		return false, err
 	}
 	if resp.Status.EvaluationError != "" {
-		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
+		httpcontract.LogContext(kc.Logger, ctx).Debug("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	if !resp.Status.Allowed {
 		httpcontract.LogContext(kc.Logger, ctx).Warn("self-SAR denied", "service", serviceName, "namespace", namespace)
@@ -222,7 +222,7 @@ func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *Request
 		return false, fmt.Errorf("failed to check namespace get access: %w", err)
 	}
 	if resp.Status.EvaluationError != "" {
-		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
+		httpcontract.LogContext(kc.Logger, ctx).Debug("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	return resp.Status.Allowed, nil
 }
@@ -246,13 +246,13 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity
 
 	resp, err := kc.Client.AuthenticationV1().SelfSubjectReviews().Create(ctx, ssr, metav1.CreateOptions{})
 	if err != nil {
-		httpcontract.LogContext(kc.Logger, ctx).Error("failed to get user identity from token", "error_code", httpcontract.SafeErrorCode(err))
+		httpcontract.LogContext(kc.Logger, ctx).Error("failed to get user identity from token", "code", httpcontract.SafeErrorCode(err))
 		return "", fmt.Errorf("failed to get user identity: %w", err)
 	}
 
 	username := resp.Status.UserInfo.Username
 	if username == "" {
-		httpcontract.LogContext(kc.Logger, ctx).Warn("user identity unresolved", "error_code", "IDENTITY_UNRESOLVED")
+		httpcontract.LogContext(kc.Logger, ctx).Warn("user identity unresolved", "code", "IDENTITY_UNRESOLVED")
 		return "", fmt.Errorf("no username found in SelfSubjectReview: %w", httpcontract.ErrIdentityUnresolved)
 	}
 
@@ -305,7 +305,7 @@ func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, v
 	}
 
 	if resp.Status.EvaluationError != "" {
-		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
+		httpcontract.LogContext(kc.Logger, ctx).Debug("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	return resp.Status.Allowed, nil
 }
@@ -327,12 +327,12 @@ func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIden
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		httpcontract.LogContext(kc.Logger, ctx).Error("SSAR check failed", "verb", verb, "group", group, "resource", resource, "namespace", namespace, "error_code", httpcontract.SafeErrorCode(err))
+		httpcontract.LogContext(kc.Logger, ctx).Error("SSAR check failed", "verb", verb, "group", group, "resource", resource, "namespace", namespace, "code", httpcontract.SafeErrorCode(err))
 		return false, fmt.Errorf("failed to check access (verb=%s, resource=%s/%s): %w", verb, group, resource, err)
 	}
 
 	if resp.Status.EvaluationError != "" {
-		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
+		httpcontract.LogContext(kc.Logger, ctx).Debug("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	if !resp.Status.Allowed {
 		httpcontract.LogContext(kc.Logger, ctx).Info("SSAR denied", "verb", verb, "group", group, "resource", resource, "namespace", namespace)

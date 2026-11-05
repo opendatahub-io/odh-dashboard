@@ -44,7 +44,7 @@ func (cfg ProxyConfig) validate() error {
 	if cfg.TargetURL == nil {
 		return fmt.Errorf("target URL is required")
 	}
-	if cfg.TargetURL.Scheme == "http" && !cfg.AllowHTTP {
+	if cfg.TargetURL.Scheme == constants.SchemeHTTP && !cfg.AllowHTTP {
 		return fmt.Errorf("insecure HTTP target URLs are not allowed")
 	}
 	if cfg.Logger == nil {
@@ -116,7 +116,7 @@ func (cfg ProxyConfig) errorHandler() func(http.ResponseWriter, *http.Request, e
 			httpcontract.WriteLocal(w, r, http.StatusForbidden)
 			return
 		}
-		httpcontract.Log(cfg.Logger, r).Error("proxy failed", "code", httpcontract.Classify(err, 502).Error.Code)
+		httpcontract.Log(cfg.Logger, r).Error("proxy failed", "code", httpcontract.Classify(err, http.StatusBadGateway).Error.Code)
 		httpcontract.WriteError(w, r, err, http.StatusBadGateway)
 	}
 }

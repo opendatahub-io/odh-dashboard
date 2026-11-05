@@ -46,10 +46,12 @@ func (r *StatusRepository) GetStatus(
 	}
 
 	// Uses SSAR: patch on auths/default-auth.
-	// A failed evaluation must not become an empty-success or an implicit grant.
+	// Status is a session probe, not an authorization gate. Match Fastify's
+	// conservative flags on review failures without discarding the authenticated user.
 	isAdmin, err := client.IsUserAdmin(ctx, identity)
 	if err != nil {
-		return nil, fmt.Errorf("failed to evaluate admin access: %w", err)
+		isAdmin = false
+		httpcontract.LogContext(nil, ctx).Warn("admin status review unavailable; reporting non-admin", "code", httpcontract.SafeErrorCode(err))
 	}
 
 	// Check if Auth CRD is present. When absent, all users are allowed (no group restrictions).
@@ -58,7 +60,8 @@ func (r *StatusRepository) GetStatus(
 	if !isAdmin {
 		isAllowed, err = resolveIsAllowed(ctx, client, identity, authRepo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check allowed status: %w", err)
+			isAllowed = false
+			httpcontract.LogContext(nil, ctx).Warn("access status review unavailable; reporting not allowed", "code", httpcontract.SafeErrorCode(err))
 		}
 	}
 

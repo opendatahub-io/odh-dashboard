@@ -20,6 +20,7 @@ import (
 	"testing/iotest"
 	"time"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -62,6 +63,56 @@ func TestFailureClassificationAndRedaction(t *testing.T) {
 	}
 }
 
+func TestLocalErrorConsumerFormatsSurvivePathRewriting(t *testing.T) {
+	spec, err := openapi3.NewLoader().LoadFromFile("../../openapi/src/core-bff.yaml")
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		path string
+		flat bool
+	}{
+		{"/api/config", true},
+		{"/api/cluster-settings", true},
+		{"/api/components/remove", true},
+		{"/perses/api/api/v1/projects", true},
+		{"/api/v1/namespaces", false},
+		{"/api/v1", false},
+		{"/maas/api/v1/whoami", false},
+		{"/gen-ai/api/v1/user", false},
+		{"/api/service/model-serving/api/v1/models", false},
+		{"/perses/api-other/projects", false},
+		{"/api-other/config", false},
+		{"/wss/k8s/api/v1/pods", false},
+	} {
+		for _, prefix := range []string{"", "/core-bff"} {
+			t.Run(prefix+tc.path, func(t *testing.T) {
+				w := httptest.NewRecorder()
+				Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					// Module proxies may rewrite even a non-versioned path to /api/v1/*.
+					r.URL.Path = "/api/v1/upstream"
+					WriteError(w, r, errors.New("CANARY_TOKEN"), http.StatusBadGateway)
+				})).ServeHTTP(w, httptest.NewRequest(http.MethodGet, prefix+tc.path, nil))
+				require.Equal(t, http.StatusBadGateway, w.Code)
+				var body map[string]any
+				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+				payload := body
+				schema := "MessageErrorResponse"
+				if tc.flat {
+					// These are the exact property reads in unchanged Fastify/Perses clients.
+					require.Equal(t, "upstream connection failed", body["message"])
+					require.Equal(t, body["message"], body["error"])
+				} else {
+					payload = body["error"].(map[string]any)
+					schema = "ErrorResponse"
+				}
+				require.Equal(t, "BAD_GATEWAY", payload["code"])
+				require.Equal(t, w.Header().Get(RequestIDHeader), payload["requestId"])
+				require.NoError(t, spec.Components.Schemas[schema].Value.VisitJSON(body))
+				require.NotContains(t, w.Body.String(), "CANARY")
+			})
+		}
+	}
+}
+
 func TestKubernetesStatusDecodesWithoutLeakingValues(t *testing.T) {
 	errs := []error{
 		k8serrors.NewUnauthorized("CANARY_TOKEN"),
@@ -74,7 +125,9 @@ func TestKubernetesStatusDecodesWithoutLeakingValues(t *testing.T) {
 	}
 	for _, err := range errs {
 		w := httptest.NewRecorder()
-		WriteError(w, httptest.NewRequest("GET", "/", nil), fmt.Errorf("wrapped: %w", err), 500)
+		// Kubernetes proxy boundaries must receive a Kubernetes Status.
+		r := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/namespaces/test/pods", nil)
+		WriteError(w, r, fmt.Errorf("wrapped: %w", err), 500)
 		require.NotContains(t, w.Body.String(), "CANARY")
 		require.NotContains(t, w.Body.String(), `"error":`)
 		var s metav1.Status
@@ -95,6 +148,86 @@ func TestKubernetesStatusDecodesWithoutLeakingValues(t *testing.T) {
 			require.Equal(t, "7", w.Header().Get("Retry-After"))
 		}
 	}
+}
+
+func TestNativeUpstreamFailureKeepsEnvelopeAndStatus(t *testing.T) {
+	for _, tc := range []struct {
+		err        error
+		status     int
+		code       string
+		retryAfter string
+	}{
+		{k8serrors.NewUnauthorized("CANARY_TOKEN"), 401, "UNAUTHORIZED", ""},
+		{k8serrors.NewForbidden(schema.GroupResource{Resource: "secrets"}, "CANARY_NAME", errors.New("CANARY_IDENTITY")), 403, "FORBIDDEN", ""},
+		{k8serrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "CANARY_NAME"), 404, "NOT_FOUND", ""},
+		{k8serrors.NewResourceExpired("CANARY"), 410, "GONE", ""},
+		{k8serrors.NewGenericServerResponse(http.StatusNotAcceptable, http.MethodGet, schema.GroupResource{}, "", "CANARY", 0, false), 406, "NOT_ACCEPTABLE", ""},
+		{k8serrors.NewTooManyRequests("CANARY", 7), 429, "TOO_MANY_REQUESTS", "7"},
+		{k8serrors.NewServiceUnavailable("CANARY"), 503, "SERVICE_UNAVAILABLE", ""},
+	} {
+		t.Run(tc.code, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			// Native endpoints keep the BFF envelope so versioned clients parse failures.
+			r := httptest.NewRequest(http.MethodGet, "/api/v1/namespaces", nil)
+			WriteError(w, r, fmt.Errorf("wrapped: %w", tc.err), 500)
+			require.Equal(t, tc.status, w.Code)
+			require.Equal(t, tc.retryAfter, w.Header().Get("Retry-After"))
+			var e HTTPError
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &e))
+			require.Equal(t, tc.code, e.Error.Code)
+			require.Equal(t, w.Header().Get(RequestIDHeader), e.Error.RequestID)
+			// The envelope must not leak upstream identities, names or free text.
+			require.NotContains(t, w.Body.String(), "CANARY")
+			require.NotContains(t, w.Body.String(), "\"kind\":\"Status\"")
+		})
+	}
+}
+
+func TestUnversionedNativeFailuresKeepConsumerFields(t *testing.T) {
+	for _, path := range []string{"/api/components", "/api/components/remove", "/core-bff/api/components", "/core-bff/api/components/remove"} {
+		t.Run(path, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			WriteError(w, httptest.NewRequest(http.MethodGet, path, nil), k8serrors.NewUnauthorized("CANARY"), http.StatusInternalServerError)
+			var body map[string]any
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+			require.Equal(t, http.StatusUnauthorized, w.Code)
+			require.Equal(t, "Status", body["kind"])
+			require.Equal(t, "authentication required", body["message"])
+			// fetchComponents reads message; removeComponent must not receive an
+			// object in error, which its unchanged consumer would stringify.
+			require.NotContains(t, body, "error")
+			require.NotContains(t, w.Body.String(), "CANARY")
+		})
+	}
+}
+
+func TestVersionedNativeErrorCodesMatchSchema(t *testing.T) {
+	spec, err := openapi3.NewLoader().LoadFromFile("../../openapi/src/core-bff.yaml")
+	require.NoError(t, err)
+	for code := int32(http.StatusBadRequest); code <= 599; code++ {
+		w := httptest.NewRecorder()
+		upstream := &k8serrors.StatusError{ErrStatus: metav1.Status{Code: code}}
+		WriteError(w, httptest.NewRequest(http.MethodGet, "/api/v1/namespaces", nil), upstream, http.StatusInternalServerError)
+		var body any
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+		require.Equal(t, int(code), w.Code)
+		require.NoError(t, spec.Components.Schemas["ErrorResponse"].Value.VisitJSON(body), "upstream HTTP %d", code)
+	}
+}
+
+func TestVersionedNativeErrorsKeepSafeValidationDiagnostics(t *testing.T) {
+	upstream := k8serrors.NewInvalid(schema.GroupKind{Kind: "Widget"}, "CANARY_NAME", field.ErrorList{
+		field.Required(field.NewPath("spec", "image"), ""),
+		field.Invalid(field.NewPath("data").Key("CANARY_KEY"), "CANARY_VALUE", "CANARY_MESSAGE"),
+	})
+	w := httptest.NewRecorder()
+	WriteError(w, httptest.NewRequest(http.MethodPost, "/core-bff/api/v1/widgets", nil), upstream, http.StatusInternalServerError)
+	var body HTTPError
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	require.Equal(t, "VALIDATION_FAILED", body.Error.Code)
+	require.Equal(t, "request validation failed: spec.image: required field; data: invalid field value", body.Error.Message)
+	require.NotContains(t, w.Body.String(), "CANARY")
 }
 
 func TestCorrelationTransportAndConcurrentIsolation(t *testing.T) {
@@ -217,7 +350,7 @@ func TestWatchErrorsAreSanitizedWithoutChangingResourceEvents(t *testing.T) {
 	require.NotContains(t, string(clean), "CANARY")
 	require.Contains(t, string(clean), `"reason":"Expired"`)
 	for _, body := range []string{string(success) + string(failure), string(success) + strings.TrimSuffix(string(failure), "\n")} {
-		req := httptest.NewRequest("GET", "http://upstream/api/v1/pods?watch=true", nil)
+		req := httptest.NewRequest("GET", "http://upstream/api/v1/secrets?watch=true", nil)
 		resp := &http.Response{StatusCode: 200, Request: req, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(body))}
 		require.NoError(t, KubernetesResponse(resp))
 		result, err := io.ReadAll(resp.Body)
@@ -300,7 +433,7 @@ func TestHTTPWatchQuerySemanticsMatchKubernetes(t *testing.T) {
 		{"", false}, {"watch=false", false}, {"watch=FALSE", false}, {"watch=0", false}, {"watch=false&watch=true", false},
 	} {
 		t.Run(tc.query, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, "http://upstream/api/v1/pods?"+tc.query, nil)
+			request := httptest.NewRequest(http.MethodGet, "http://upstream/api/v1/secrets?"+tc.query, nil)
 			response := &http.Response{StatusCode: 200, Request: request, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(event))}
 			require.NoError(t, KubernetesResponse(response))
 			body, err := io.ReadAll(response.Body)
@@ -427,7 +560,7 @@ func TestEscapedWatchEventTypes(t *testing.T) {
 	for _, eventType := range []string{`ERROR`, `\u0045RROR`} {
 		t.Run(eventType, func(t *testing.T) {
 			event := fmt.Sprintf(`{"type":"%s","object":{"kind":"Status","code":410,"reason":"Expired","message":"CANARY","details":{"name":"CANARY","causes":[{"reason":"FieldValueInvalid","message":"CANARY"}]}}}`+"\n", eventType)
-			response := &http.Response{StatusCode: 200, Request: httptest.NewRequest(http.MethodGet, "/api/v1/pods?watch=true", nil), Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(event))}
+			response := &http.Response{StatusCode: 200, Request: httptest.NewRequest(http.MethodGet, "/api/v1/secrets?watch=true", nil), Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(event))}
 			require.NoError(t, KubernetesResponse(response))
 			body, err := io.ReadAll(response.Body)
 			require.NoError(t, err)

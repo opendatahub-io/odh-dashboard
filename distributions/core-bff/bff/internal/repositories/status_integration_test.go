@@ -86,14 +86,28 @@ func (m *statusReviewClient) IsUserAdmin(context.Context, *k8s.RequestIdentity) 
 	return false, m.adminErr
 }
 
-func TestGetStatusAdminReviewFailure(t *testing.T) {
-	failure := errors.New("review unavailable")
-	client := &statusReviewClient{adminErr: failure}
-	repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientWithAuth(nil)))
-	status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, nil)
-	require.ErrorIs(t, err, failure)
-	require.Nil(t, status)
-	require.Zero(t, client.calls)
+func TestGetStatusReviewFailuresPreserveAuthenticatedSession(t *testing.T) {
+	for _, tc := range []struct {
+		name                 string
+		adminErr, allowedErr error
+		allowed              bool
+	}{
+		{name: "admin failed, user allowed", adminErr: errors.New("CANARY_ADMIN"), allowed: true},
+		{name: "admin failed, user denied", adminErr: errors.New("CANARY_ADMIN")},
+		{name: "both reviews failed", adminErr: errors.New("CANARY_ADMIN"), allowedErr: errors.New("CANARY_ALLOWED"), allowed: true},
+		{name: "allowed review failed", allowedErr: errors.New("CANARY_ALLOWED"), allowed: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &statusReviewClient{adminErr: tc.adminErr, mockUserAllowedClient: mockUserAllowedClient{allowed: tc.allowed, err: tc.allowedErr}}
+			repo := NewStatusRepository(nil, "test", NewAuthRepository(newFakeDynClientWithAuth(nil)))
+			status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
+			require.NoError(t, err)
+			require.Equal(t, "user", status.Kube.UserName)
+			require.False(t, status.Kube.IsAdmin)
+			require.Equal(t, tc.allowed && tc.allowedErr == nil, status.Kube.IsAllowed)
+			require.Equal(t, 1, client.calls)
+		})
+	}
 }
 
 type statusClusterInfo struct{}
@@ -130,13 +144,8 @@ func TestGetStatusAuthFailureFallsBackToSSAR(t *testing.T) {
 				repo := NewStatusRepository(nil, "test", NewAuthRepository(dynamicClient))
 				status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
 				require.Equal(t, 1, client.calls, "Auth failures must reach the caller's SSAR")
-				if review.failure != nil {
-					require.ErrorIs(t, err, review.failure)
-					require.Nil(t, status)
-					return
-				}
 				require.NoError(t, err)
-				require.Equal(t, review.allowed, status.Kube.IsAllowed)
+				require.Equal(t, review.allowed && review.failure == nil, status.Kube.IsAllowed)
 				require.False(t, status.Kube.IsAdmin)
 			})
 		}

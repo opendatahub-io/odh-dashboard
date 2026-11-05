@@ -384,7 +384,7 @@ func probeURI(pc ProbeContext) models.ConnectionTestResult {
 
 	displayURI := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 
-	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusBadRequest {
 		return successResult(fmt.Sprintf("URI %s is reachable (HTTP %d)", displayURI, resp.StatusCode))
 	}
 

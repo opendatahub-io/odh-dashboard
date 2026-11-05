@@ -15,6 +15,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/uuid"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
@@ -90,10 +91,18 @@ func TestProductionAuthFailureContract(t *testing.T) {
 				var failure HTTPError
 				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &failure))
 				require.Equal(t, "UNAUTHORIZED", failure.Error.Code)
+			} else if strings.HasPrefix(tc.path, constants.VersionedAPIPrefix) {
+				// Versioned endpoints keep the BFF envelope while preserving upstream
+				// status; versioned clients cannot parse a bare Kubernetes Status.
+				var failure HTTPError
+				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &failure))
+				require.Equal(t, map[int]string{401: "UNAUTHORIZED", 403: "FORBIDDEN", 429: "TOO_MANY_REQUESTS", 500: "INTERNAL_SERVER_ERROR", 503: "SERVICE_UNAVAILABLE", 504: "GATEWAY_TIMEOUT"}[status], failure.Error.Code)
+				require.Equal(t, w.Header().Get(httpcontract.RequestIDHeader), failure.Error.RequestID)
 			} else {
-				var s metav1.Status
-				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &s))
-				require.Equal(t, "Status", s.Kind)
+				var failure metav1.Status
+				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &failure))
+				require.Equal(t, "Status", failure.Kind)
+				require.NotEmpty(t, failure.Message)
 			}
 			operationResponse := spec.Paths.Value(tc.path).Get.Responses.Status(tc.responseStatus)
 			require.NotNil(t, operationResponse, "the operation must document the upstream status")
@@ -109,15 +118,85 @@ func TestProductionAuthFailureContract(t *testing.T) {
 	}
 }
 
+func TestPersesProxyFailuresRemainDisplayable(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = io.WriteString(w, `{"error":"upstream Perses denial"}`)
+	}))
+	defer upstream.Close()
+	app := newTestApp()
+	app.moduleProxies = []moduleProxyHandler{{
+		path:    "/perses/api",
+		handler: createTestProxy(t, app, upstream.URL, "/perses/api", "", true, false, nil),
+	}}
+	routes := app.Routes()
+	response := httptest.NewRecorder()
+	routes.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/perses/api/api/v1/projects", nil))
+	require.Equal(t, http.StatusForbidden, response.Code)
+	require.Equal(t, `{"error":"upstream Perses denial"}`, response.Body.String())
+
+	upstream.Close()
+	for _, prefix := range []string{"", PathPrefix} {
+		for _, authenticated := range []bool{true, false} {
+			app.config.AuthMethod = config.AuthMethodDisabled
+			wantStatus := http.StatusServiceUnavailable
+			if !authenticated {
+				app.config.AuthMethod = config.AuthMethodUser
+				wantStatus = http.StatusUnauthorized
+			}
+			response = httptest.NewRecorder()
+			app.Routes().ServeHTTP(response, httptest.NewRequest(http.MethodGet, prefix+"/perses/api/api/v1/projects", nil))
+			require.Equal(t, wantStatus, response.Code)
+			var body map[string]string
+			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+			require.NotEmpty(t, body["error"])
+			require.Equal(t, body["message"], body["error"])
+			require.Equal(t, response.Header().Get(httpcontract.RequestIDHeader), body["requestId"])
+		}
+	}
+}
+
+func TestNativeLocalFailuresRemainDisplayable(t *testing.T) {
+	app := newTestApp()
+	for _, prefix := range []string{"", PathPrefix} {
+		t.Run(prefix+"/api/cluster-settings", func(t *testing.T) {
+			response := httptest.NewRecorder()
+			app.UpdateClusterSettingsHandler(response, httptest.NewRequest(http.MethodPut,
+				prefix+ClusterSettingsPath, strings.NewReader(`{"pvcSize":0}`)), nil)
+			require.Equal(t, http.StatusBadRequest, response.Code)
+			var body map[string]string
+			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+			// updateClusterSettings reads response.data.message without a fallback.
+			require.Equal(t, "invalid request", body["message"])
+			require.Equal(t, response.Header().Get(httpcontract.RequestIDHeader), body["requestId"])
+		})
+		t.Run(prefix+"/api/components/remove", func(t *testing.T) {
+			response := httptest.NewRecorder()
+			app.RemoveComponentHandler(response, httptest.NewRequest(http.MethodGet,
+				prefix+ComponentsRemovePath, nil), nil)
+			require.Equal(t, http.StatusBadRequest, response.Code)
+			var body map[string]string
+			require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+			// removeComponent constructs an Error directly from response.data.error.
+			require.Equal(t, "invalid request", body["error"])
+		})
+	}
+}
+
 func TestEarlyErrorsAndPanicHaveCorrelation(t *testing.T) {
 	app := newTestApp()
 	for _, path := range []string{"/api", "/core-bff", "/core-bff/api", "/api/unknown", "/core-bff/api/unknown"} {
 		w := httptest.NewRecorder()
 		app.Routes().ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		require.NotEmpty(t, w.Header().Get(httpcontract.RequestIDHeader))
-		var body HTTPError
+		var body map[string]any
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-		require.Equal(t, w.Header().Get(httpcontract.RequestIDHeader), body.Error.RequestID)
+		payload := body
+		if nested, ok := body["error"].(map[string]any); ok {
+			payload = nested
+		}
+		require.Equal(t, w.Header().Get(httpcontract.RequestIDHeader), payload["requestId"])
 	}
 	h := httpcontract.Middleware(app.EnableTelemetry(app.RecoverPanic(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { panic("CANARY") }))))
 	w := httptest.NewRecorder()

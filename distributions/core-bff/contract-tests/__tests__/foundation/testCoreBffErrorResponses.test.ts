@@ -5,6 +5,7 @@ import { resolve } from 'path';
 import {
   k8sCreateResource,
   k8sDeleteResource,
+  k8sGetResource,
   k8sUpdateResource,
   setUtilsConfig,
 } from '@openshift/dynamic-plugin-sdk-utils';
@@ -37,6 +38,7 @@ interface KubernetesFailure {
   code: number;
   reason: string;
   details?: {
+    name?: string;
     retryAfterSeconds?: number;
     causes?: { reason: string; field: string; message: string }[];
   };
@@ -197,10 +199,10 @@ describe('Core BFF error response components', () => {
     });
 
     it.each([
-      '/api/v1/watch/namespaces/project/pods',
-      '/apis/apps/v1/watch/namespaces/project/deployments',
-      '/api/v1/watch/namespaces/project/pods?watch=false',
-      '/apis/apps/v1/watch/namespaces/project/deployments?watch=false',
+      '/api/v1/watch/namespaces/project/secrets',
+      '/apis/example.io/v1/watch/namespaces/project/secrets',
+      '/api/v1/watch/namespaces/project/secrets?watch=false',
+      '/apis/example.io/v1/watch/namespaces/project/secrets?watch=false',
     ])('should sanitize legacy watch ERROR events at %s', async (path) => {
       const { response } = expectSuccess(await fixtureClient.get(`${prefix}${path}`));
       expect(response.status).toBe(200);
@@ -454,4 +456,97 @@ describe('Core BFF error response components', () => {
       });
     },
   );
+
+  describe('Compatibility with unchanged Kubernetes proxy consumers', () => {
+    it.each([
+      { name: 'not-found', status: 404, reason: 'NotFound', diagnostic: 'not found' },
+      {
+        name: 'already-exists',
+        status: 409,
+        reason: 'AlreadyExists',
+        diagnostic: '"example" already exists',
+      },
+      {
+        name: 'validation',
+        status: 422,
+        reason: 'Invalid',
+        diagnostic: 'must be greater than or equal to 0',
+      },
+      { name: 'quota', status: 403, reason: 'Forbidden', diagnostic: 'limited: requests.cpu=4' },
+      {
+        name: 'admission',
+        status: 403,
+        reason: 'Forbidden',
+        diagnostic: 'select an approved hardware profile',
+      },
+    ])(
+      'should preserve $name diagnostics through the installed SDK',
+      async ({ name, status, reason, diagnostic }) => {
+        sdkEndpoint = `/apis/example.io/v1/namespaces/project/widgets/${name}`;
+        await expect(
+          k8sGetResource({ model, queryOptions: { name: 'example', ns: 'project' }, fetchOptions }),
+        ).rejects.toMatchObject({
+          message: expect.stringContaining(diagnostic),
+          status: { code: status, reason, details: { name: 'example', kind: 'widgets' } },
+        });
+        if (name === 'not-found') {
+          // KServe checks "404"; notification hooks also recognize "not found".
+          await expect(
+            k8sGetResource({
+              model,
+              queryOptions: { name: 'example', ns: 'project' },
+              fetchOptions,
+            }),
+          ).rejects.toMatchObject({
+            message: expect.stringContaining('404'),
+          });
+        }
+        if (name === 'validation') {
+          await expect(k8sCreateResource({ model, resource, fetchOptions })).rejects.toMatchObject({
+            status: {
+              details: {
+                causes: [
+                  {
+                    reason: 'FieldValueInvalid',
+                    field: 'spec.replicas',
+                    message: 'must be greater than or equal to 0',
+                  },
+                ],
+              },
+            },
+          });
+        }
+      },
+    );
+
+    it.each(['/api/k8s', '/core-bff/api/k8s', '/wss/k8s', '/core-bff/wss/k8s'])(
+      'should preserve admission diagnostics and names at %s',
+      async (prefix) => {
+        const websocket = prefix.includes('/wss/');
+        const result = await fixtureClient.get(
+          `${prefix}/apis/example.io/v1/namespaces/project/widgets/admission`,
+          {
+            headers: websocket
+              ? {
+                  Connection: 'Upgrade',
+                  Upgrade: 'websocket',
+                  'Sec-WebSocket-Version': '13',
+                  'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==',
+                  Origin: 'https://contract.example',
+                }
+              : {},
+          },
+        );
+        const error = expectError(result, 403);
+        expect(error).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/KubernetesStatus',
+          status: 403,
+        });
+        expect(error.data).toMatchObject({
+          message: expect.stringContaining('select an approved hardware profile'),
+          details: { name: 'example' },
+        });
+      },
+    );
+  });
 });

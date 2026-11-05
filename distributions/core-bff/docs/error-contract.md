@@ -5,20 +5,26 @@ failures and WebSocket connections. Route availability and credential policy are
 
 ## Response Sources
 
-Native and service-proxy BFF failures use `{ "error": { "code": "FORBIDDEN", "message": "insufficient permissions for this operation", "requestId": "<UUIDv4>" } }`.
+Versioned native and service-proxy BFF failures use `{ "error": { "code": "FORBIDDEN", "message": "insufficient permissions for this operation", "requestId": "<UUIDv4>" } }`.
 Messages are selected from a safe catalog, never raw errors or submitted values.
 
-| BFF cause                                           | HTTP      | Code                                  |
-| --------------------------------------------------- | --------- | ------------------------------------- |
-| Missing/malformed or rejected credentials           | 401       | UNAUTHORIZED                          |
-| Confirmed policy/access denial                      | 403       | FORBIDDEN                             |
-| Missing route/resource                              | 404       | NOT_FOUND                             |
-| Unsupported method                                  | 405       | METHOD_NOT_ALLOWED                    |
-| Local conflict                                      | 409       | CONFLICT                              |
-| Malformed request / semantic validation             | 400 / 422 | BAD_REQUEST / VALIDATION_FAILED       |
-| Dependency timeout / known unavailable              | 504 / 503 | GATEWAY_TIMEOUT / SERVICE_UNAVAILABLE |
-| Other upstream transport/protocol error             | 502       | BAD_GATEWAY                           |
-| Unexpected local failure                            | 500       | INTERNAL_SERVER_ERROR                 |
+Local failures on unversioned native APIs and the Perses proxy use
+`{ "code": "FORBIDDEN", "message": "insufficient permissions for this operation", "error": "insufficient permissions for this operation", "requestId": "<UUIDv4>" }`.
+Existing Fastify consumers read the top-level `message` or string `error`; the Perses client reads
+`error` first. Keep this response format through proxy path rewriting, including both BFF aliases.
+MaaS and GenAI proxy failures retain the nested envelope. Upstream service responses pass through.
+
+| BFF cause                                 | HTTP      | Code                                  |
+| ----------------------------------------- | --------- | ------------------------------------- |
+| Missing/malformed or rejected credentials | 401       | UNAUTHORIZED                          |
+| Confirmed policy/access denial            | 403       | FORBIDDEN                             |
+| Missing route/resource                    | 404       | NOT_FOUND                             |
+| Unsupported method                        | 405       | METHOD_NOT_ALLOWED                    |
+| Local conflict                            | 409       | CONFLICT                              |
+| Malformed request / semantic validation   | 400 / 422 | BAD_REQUEST / VALIDATION_FAILED       |
+| Dependency timeout / known unavailable    | 504 / 503 | GATEWAY_TIMEOUT / SERVICE_UNAVAILABLE |
+| Other upstream transport/protocol error   | 502       | BAD_GATEWAY                           |
+| Unexpected local failure                  | 500       | INTERNAL_SERVER_ERROR                 |
 
 Existing connection-test codes `INVALID_REQUEST`, `UNSUPPORTED_TYPE` and `PROBE_BUSY` remain stable,
 with fixed safe messages.
@@ -28,20 +34,28 @@ logs as `CREDENTIALS_MISSING`, `CREDENTIALS_INVALID` or `CREDENTIALS_EXPIRED`; a
 on the wire. A future authentication strategy can supply the trusted invalid/expired cause.
 An upstream 401 does not prove expiry. A successful SelfSubjectReview without a username is unresolved identity: return 401 `UNAUTHORIZED` and log `IDENTITY_UNRESOLVED`, without claiming the token is invalid. Other SSR request failures retain their actual cause.
 
-Completed access reviews use `status.allowed`, even when `evaluationError` is present. Diagnostics log only the boolean outcome and a fixed event name, never upstream text. A failed review request propagates its actual error; it must not become an empty-success result or an implicit grant.
+Completed access reviews use `status.allowed`, even when `evaluationError` is present. Diagnostics log only the boolean outcome and a fixed event name, never upstream text. Guarded operations propagate failed reviews and never grant access on a failure. The authenticated `/api/status` probe preserves the session and reports conservative flags when its reviews fail.
 
 The Kubernetes HTTP proxy strips outbound `Connection` and `Upgrade` headers and retains its defensive 502 rejection of upstream protocol switches. WebSocket clients use `/wss/k8s/*`.
 
-The Kubernetes HTTP proxy (`/api/k8s/*`, including its `/core-bff` alias) returns Kubernetes `v1/Status` for every pre-commitment failure, including local authentication, policy and transport failures. This preserves Kubernetes SDK rejection behavior. Local failures use `reason: DashboardProxyError`, the safe catalog message, and the stable BFF code in `details.causes[].reason`; correlation remains in `X-Request-ID`. Keep the inbound response format through outbound path rewriting. Native and service-proxy errors retain the BFF envelope shown above.
+The Kubernetes HTTP proxy (`/api/k8s/*`, including its `/core-bff` alias) returns Kubernetes `v1/Status` for every pre-commitment failure, including local authentication, policy and transport failures. This preserves Kubernetes SDK rejection behavior. Local failures use `reason: DashboardProxyError`, the safe catalog message, and the stable BFF code in `details.causes[].reason`; correlation remains in `X-Request-ID`. Keep the inbound response format through outbound path rewriting.
 
-Kubernetes failures preserve their upstream HTTP status and a Kubernetes `v1/Status` representation,
-including reason and applicable details. They are never wrapped in the BFF envelope. This applies
-to native typed-client failures, HTTP proxy failures and rejected upstream WS handshakes, including
-401/403, 409, 410, 422, 429 and retry metadata. Non-Kubernetes service responses retain their service
+Kubernetes failures at proxy boundaries preserve their upstream HTTP status and a Kubernetes
+`v1/Status` representation, including reason and applicable details; this covers HTTP proxy
+failures and rejected upstream WS handshakes, including 401/403, 409, 410, 422, 429 and retry
+metadata. Versioned native typed-client failures with an upstream Kubernetes cause use the BFF
+envelope, preserving the upstream HTTP status and selecting the code from the local status catalog.
+Unversioned native upstream Kubernetes failures retain sanitized Status with a top-level message.
+Non-Kubernetes service responses retain their service
 contract. Successful resource responses and non-error watch events retain their original bytes.
 JSON HTTP watches buffer one newline-delimited event at a time; HTTP and WS watch `ERROR` objects retain their Status semantics with the same sanitization as ordinary failure responses. WebSocket watch detection uses the rewritten Kubernetes path and original query, including legacy watch paths and both BFF aliases. Non-watch WebSocket messages retain their frame type and bytes, including JSON objects shaped like watch ERROR events.
 HTTP watches retain supported `application/json` Accept entries, including representation parameters and quality weights, and use plain `application/json` when none remain; an unexpected response media type fails before commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`. Malformed JSON events and incomplete events ending in a transport error are discarded and terminate the stream without appending JSON. A complete final JSON event without a newline is accepted.
 The upstream JSON encoding of each HTTP watch event is limited to 4 MiB, including its newline when present. An oversized event is discarded, logs a safe correlated read failure, and causes the proxy to terminate the stream without appending JSON. Events within the limit retain their existing sanitization and byte-preservation behavior; this cap does not apply to WebSocket messages.
+Negotiated `base64.binary.k8s.io` watches decode the stream, sanitize complete JSON events and
+re-encode the output. Events may span messages or share one message; non-error event bytes are
+preserved after decoding. Incomplete decoded events buffer at most 4 MiB. Invalid base64/JSON or
+oversized incomplete events close the connection with code 1011 without forwarding the fragment.
+Non-watch connections retain their original frame types and bytes regardless of subprotocol.
 HTTP watch detection recognizes legacy `/api/<version>/watch/...` and `/apis/<group>/<version>/watch/...` routes before and after proxy path rewriting, including both BFF aliases. Legacy watch paths remain watches even with `watch=false`. Other paths use Kubernetes' query conversion, including `watch=1`, `watch=TRUE`, empty values and bare `watch`; absent parameters, `watch=0` and case-insensitive `watch=false` disable it.
 For HTTP watches, the proxy removes the caller's `Accept-Encoding` so its transport can negotiate and decompress responses. Non-watch successful responses retain the caller's negotiated compression. A successful JSON watch that still has a non-empty `Content-Encoding` fails closed before commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`, preventing an encoded stream from bypassing ERROR-event sanitization.
 
@@ -54,12 +68,28 @@ The HTTP Kubernetes proxy rejects upstream protocol upgrades before commitment w
 
 ## Sanitization
 
-Kubernetes diagnostic messages are generated from the reason, known validation cause types and sanitized schema-like field paths. Never forward arbitrary upstream `message` or cause text, even when it contains values absent from the request. Validation errors identify the affected field and whether it is required, invalid, unsupported, duplicated, forbidden or managed by another client. Summaries include at most three field diagnostics and remain below 1 KiB; the complete structured cause list remains available. Opaque webhook/admission failures without safe structured causes use the reason-based fallback. This preserves the SDK failure contract and useful field diagnostics while excluding Secret values; verbatim upstream text is not preserved.
+Caller-token Kubernetes resource proxies preserve upstream `Status.message`, validation cause text,
+field paths and resource names. Existing consumers use these for not-found detection, duplicate-name
+messages and actionable quota, validation and admission explanations. Apply targeted redaction to
+complete known request credentials, recognized Bearer/Basic credentials, bearer subprotocols and credential assignments. Short credential values are redacted in explicit credential contexts, rather than replaced inside ordinary words. Ordinary subprotocol names are not treated as credentials.
+Diagnostic strings are bounded to 8 KiB; longer strings use the safe fallback. A 404 response includes
+`404` in its message so existing numeric and `not found` checks continue working.
 
-Omit metadata, UID and object name; retain bounded schema-like group/kind, standard reason and retry delay. Preserve array positions and redact bracketed map keys and dotted descendants of sensitive data/annotation/label maps in field paths.
-Unknown reason/type strings use safe fallbacks. JSON and Kubernetes protobuf Status representations are decoded before sanitization. Error bodies are bounded to 1 MiB on the wire and after decompression; gzip is supported, while unsupported encodings, malformed bodies and limit violations use the safe status-based fallback with the original HTTP status. These bounds apply to ordinary error inspection only. JSON HTTP watch events have the separate 4 MiB buffering limit described above; other successful response sizes and transport policies are unchanged.
+Native typed-client failures, Secret resource operations and unrecognized proxy routes retain strict
+sanitization. Native handlers may use service-account credentials, so caller-token diagnostic access
+does not apply there. Generate their messages from standard reasons, known cause types and sanitized
+field paths. Omit resource names, map keys and arbitrary upstream explanations. Summaries include at
+most three field diagnostics below 1 KiB; the complete sanitized cause list remains available.
 
-BFF-generated errors and WebSocket close reasons use fixed safe text. Kubernetes failures add only sanitized field paths and known cause descriptions. Raw errors, submitted Secret values, credentials, cookies and bearer subprotocols are excluded.
+Both policies omit metadata and UID, retain bounded group/kind and retry delay, and decode JSON and
+Kubernetes protobuf Status bodies. Error bodies remain bounded to 1 MiB on the wire and after
+decompression. Unsupported encodings, malformed bodies and limit violations use a safe fallback with
+the original HTTP status. HTTP watch ERROR objects and rejected WS handshakes use the same resource
+boundary. Other successful resource responses and non-error watch events remain unchanged.
+
+This deliberately restores the caller-visible Kubernetes diagnostic contract for ordinary resources.
+Targeted redaction cannot identify every sensitive value in upstream diagnostics. This includes admission explanations and validation echoes of submitted values on non-Secret resources, such as ConfigMaps, pod environment fields and custom resources. Such values can remain when they do not match a credential context; compatibility does not imply universal secret detection. Strict suppression remains the policy for Secret operations. BFF-generated errors, native failures,
+logs and WebSocket close reasons retain fixed safe classifications and text.
 Non-Kubernetes service response bodies retain their own contracts and are not sanitized by the
 Kubernetes response adapter.
 
@@ -72,7 +102,8 @@ identities from upstream error messages are not.
 
 Generate one fresh canonical UUIDv4 per inbound request. Ignore every incoming `X-Request-ID`,
 including duplicate, malformed and oversized values. Return `X-Request-ID` on responses, including
-early errors and WS 101/rejection, and in BFF error `error.requestId`. Forward it to upstreams.
+early errors and WS 101/rejection, and in BFF error `error.requestId` (top-level `requestId` for
+unversioned native and Perses failures). Forward it to upstreams.
 Use `request_id` in structured logs; `trace_id` remains an alias for existing log consumers.
 Connection IDs remain distinct. Expose `X-Request-ID` and `Audit-ID` through configured CORS.
 
@@ -123,28 +154,31 @@ prove fixture behavior, not production rejection. Run BFF tests and both platfor
 
 ## Implementation And Test Coverage
 
-| Area                                                | Implementation and automated evidence                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared classification, Status details and redaction | [httpcontract](../bff/internal/httpcontract/errors.go) and [contract tests](../bff/internal/httpcontract/contract_test.go) and [diagnostic tests](../bff/internal/httpcontract/diagnostics_test.go): safe field summaries, upstream-only secret suppression, wrapped causes, stable codes, SDK decoding, validation and resource-version/field-manager causes, retry delay, canary redaction and bounded error bodies.                                                                                                                                                                                  |
-| Native handlers, authentication and discovery       | [Native errors](../bff/internal/api/errors.go), [namespace handling](../bff/internal/api/namespaces_handler.go), [auth middleware](../bff/internal/api/middleware_auth.go), [status aggregation](../bff/internal/repositories/status.go): failed checks propagate. [Production-path tests](../bff/internal/api/error_contract_test.go) exercise real SSR clients against a controlled TLS API.                                                                         |
-| HTTP proxies and streaming                          | [Shared factory](../bff/internal/proxy/factory.go), [Kubernetes response adapter](../bff/internal/httpcontract/upstream.go), [watch errors](../bff/internal/httpcontract/watch.go): pre-response JSON failures, safe Status, post-commit aborts and correlated read/write failures. Handler integration tests verify a partial stream ends with an incomplete-response error.                                                                                          |
-| WS rejection and closure                            | [WS implementation](../bff/internal/proxy/ws_proxy.go), [tracker shutdown](../bff/internal/proxy/ws_tracker.go), [rejection tests](../bff/internal/proxy/error_contract_test.go), [close tests](../bff/internal/proxy/ws_close_test.go) and [relay tests](../bff/internal/proxy/ws_relay_test.go): upstream rejection status, 1000/1008/1011/1001, safe close reasons, bearer-subprotocol suppression and sanitized watch errors.                                      |
-| Request correlation                                 | [Middleware and transport](../bff/internal/httpcontract/correlation.go), native tests and WS tests: early errors, panic recovery, outbound/header/body equality, separate upstream audit UUIDs, hostile input replacement, CORS and concurrent isolation. Caller and retained service-account Kubernetes clients use the correlation transport.                                                                                                                        |
-| Platform compatibility                              | [Correlation contracts](../contract-tests/__tests__/foundation/testCoreBffErrors.test.ts) and [error response contracts](../contract-tests/__tests__/foundation/testCoreBffErrorResponses.test.ts) run in both OpenShift and xKS suites. Existing native, module/model-serving proxy, successful WS and HTTP proxy tests remain in the BFF suite. Mock impersonation is RBAC evidence; controlled production-code-path SSR tests prove failure handling independently. |
+| Area                                                | Implementation and automated evidence                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared classification, Status details and redaction | [httpcontract](../bff/internal/httpcontract/errors.go) and [contract tests](../bff/internal/httpcontract/contract_test.go) and [diagnostic tests](../bff/internal/httpcontract/diagnostics_test.go): safe field summaries, upstream-only secret suppression, wrapped causes, stable codes, SDK decoding, validation and resource-version/field-manager causes, retry delay, canary redaction and bounded error bodies.                                                    |
+| Native handlers, authentication and discovery       | [Native errors](../bff/internal/api/errors.go), [namespace handling](../bff/internal/api/namespaces_handler.go), [auth middleware](../bff/internal/api/middleware_auth.go), [status aggregation](../bff/internal/repositories/status.go): authenticated probes degrade to conservative flags; guarded operations still reject failed reviews. [Production-path tests](../bff/internal/api/error_contract_test.go) exercise real SSR clients against a controlled TLS API. |
+| HTTP proxies and streaming                          | [Shared factory](../bff/internal/proxy/factory.go), [Kubernetes response adapter](../bff/internal/httpcontract/upstream.go), [watch errors](../bff/internal/httpcontract/watch.go): pre-response JSON failures, safe Status, post-commit aborts and correlated read/write failures. Handler integration tests verify a partial stream ends with an incomplete-response error.                                                                                             |
+| WS rejection and closure                            | [WS implementation](../bff/internal/proxy/ws_proxy.go), [tracker shutdown](../bff/internal/proxy/ws_tracker.go), [rejection tests](../bff/internal/proxy/error_contract_test.go), [close tests](../bff/internal/proxy/ws_close_test.go) and [relay tests](../bff/internal/proxy/ws_relay_test.go): upstream rejection status, 1000/1008/1011/1001, safe close reasons, bearer-subprotocol suppression and sanitized watch errors.                                         |
+| Request correlation                                 | [Middleware and transport](../bff/internal/httpcontract/correlation.go), native tests and WS tests: early errors, panic recovery, outbound/header/body equality, separate upstream audit UUIDs, hostile input replacement, CORS and concurrent isolation. Caller and retained service-account Kubernetes clients use the correlation transport.                                                                                                                           |
+| Platform compatibility                              | [Correlation contracts](../contract-tests/__tests__/foundation/testCoreBffErrors.test.ts) and [error response contracts](../contract-tests/__tests__/foundation/testCoreBffErrorResponses.test.ts) run in both OpenShift and xKS suites. Existing native, module/model-serving proxy, successful WS and HTTP proxy tests remain in the BFF suite. Mock impersonation is RBAC evidence; controlled production-code-path SSR tests prove failure handling independently.    |
 
 Coverage includes native namespace/config/status paths, Kubernetes HTTP/WS and infrastructure errors.
-Completed access-review diagnostics preserve allowed/denied outcomes. Actual review-request failures propagate instead of becoming successful status results.
+Completed access-review diagnostics preserve allowed/denied outcomes. Failed reviews on guarded operations propagate. Status probes preserve the authenticated session with conservative flags.
 
-For `/api/status`, failed admin-review requests propagate. If Auth is inaccessible, missing or malformed, continue to the caller's authoritative SSAR and log a safe configuration-fallback event. Its allowed/denied outcome determines `isAllowed`; only a failed SSAR request fails status aggregation. The absent-CRD and `system:authenticated` shortcuts retain their existing behavior. This avoids adding a per-request service-account Auth read as an admission prerequisite.
+For `/api/status`, failed admin reviews report `isAdmin: false`; failed allowed-access reviews report `isAllowed: false`. If Auth is inaccessible, missing or malformed, continue to the caller's authoritative SSAR and log a safe configuration-fallback event. Its allowed/denied outcome determines `isAllowed`; a failed SSAR reports `isAllowed: false` without discarding the authenticated session. Authentication/identity failures still fail the request. The absent-CRD and `system:authenticated` shortcuts retain their existing behavior. This avoids adding a per-request service-account Auth read as an admission prerequisite.
 
 ## Consumer Compatibility
 
-Native Kubernetes failures now use sanitized `v1/Status` instead of the BFF error envelope.
-Clients that inspect failure bodies must distinguish `Status` from `{error: ...}` and use its
-`reason`, `message` and applicable details. BFF-generated errors retain their stable codes and add
-`error.requestId`; successful response shapes are unchanged.
+Versioned native APIs keep the BFF error envelope for both local and upstream Kubernetes failures,
+so existing versioned clients can parse failures. Preserve the upstream HTTP status, retry metadata
+and sanitized validation-field summary. Error codes come from the fixed catalog by HTTP status;
+unmapped statuses use `INTERNAL_SERVER_ERROR` without changing the upstream HTTP status.
+Unversioned native APIs retain sanitized `v1/Status` for upstream Kubernetes failures, preserving
+the top-level message and avoiding an object in `error` that existing consumers would stringify.
+BFF-generated errors keep their existing envelope. Consumers remain unchanged.
 
-The Kubernetes HTTP proxy returns Status for both upstream and local failures, so SDK create/update/delete calls reject consistently. The SDK uses generated messages for display and retains status, reason and sanitized validation causes for programmatic handling; it does not require Secret values from diagnostic text. The [error response suite](../contract-tests/__tests__/foundation/testCoreBffErrorResponses.test.ts) exercises the installed SDK against Core BFF handlers. The [status suite](../contract-tests/__tests__/foundation/testCoreBffStatus.test.ts) covers completed review diagnostics, Auth fallback, unresolved identity and failed review requests. These tests define Core BFF's own contract without depending on another backend implementation.
+The Kubernetes HTTP proxy returns Status for both upstream and local failures, so SDK calls reject consistently. Consumers remain unchanged. Ordinary caller-token proxy failures retain actionable diagnostics and names; 404 text remains recognizable. Secret operations and native failures use the strict policy described above. The [error response suite](../contract-tests/__tests__/foundation/testCoreBffErrorResponses.test.ts) exercises the installed SDK against Core BFF handlers. The [status suite](../contract-tests/__tests__/foundation/testCoreBffStatus.test.ts) covers completed review diagnostics, Auth fallback, unresolved identity and failed review requests. These tests define Core BFF's own contract without depending on another backend implementation.
 
 ## OpenAPI Error Response Coverage
 

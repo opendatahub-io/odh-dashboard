@@ -93,14 +93,36 @@ describe('Core BFF status failure contract', () => {
     });
   });
 
-  it('should propagate a failed review request instead of a successful status result', async () => {
-    const result = expectError(
+  it.each([
+    { token: 'review-failure', allowed: false },
+    { token: 'admin-review-failure', allowed: true },
+  ])('should preserve the authenticated session for $token', async ({ token, allowed }) => {
+    const result = expectSuccess(
       await nativeClient.get('/api/status', {
-        headers: { 'x-forwarded-access-token': 'review-failure' },
+        headers: { 'x-forwarded-access-token': token },
       }),
+    );
+    expect(result.response.data).toMatchObject({
+      kube: { userName: 'user', isAdmin: false, isAllowed: allowed },
+    });
+    expect(result).toMatchContract(apiSchema, {
+      ref: '#/components/responses/StatusResponse/content/application~1json/schema',
+      status: 200,
+    });
+    expect(JSON.stringify(result.response.data)).not.toContain('CANARY');
+  });
+
+  it('should still reject guarded operations when the admin review fails', async () => {
+    const result = expectError(
+      await nativeClient.patch(
+        '/api/config',
+        {},
+        {
+          headers: { 'x-forwarded-access-token': 'review-failure' },
+        },
+      ),
       403,
     );
-    expect(result.data).toMatchObject({ kind: 'Status', reason: 'Forbidden', code: 403 });
     expect(JSON.stringify(result.data)).not.toContain('CANARY');
   });
 });

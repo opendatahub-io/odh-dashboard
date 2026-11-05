@@ -16,13 +16,14 @@ import (
 
 const maxErrorBody = 1 << 20
 
-// KubernetesResponse preserves error status/semantics while removing untrusted free text.
-// Resource responses remain untouched; JSON watches sanitize only ERROR events, one event at a time.
+// KubernetesResponse preserves caller-visible Kubernetes diagnostics with credential
+// redaction. Secret operations and unknown routes retain strict sanitization.
+// Resource responses remain untouched; JSON watches adapt only ERROR events.
 func KubernetesResponse(resp *http.Response) error {
 	if resp.Request != nil {
 		CaptureAudit(resp.Request.Context(), resp.Header)
 	}
-	if resp.StatusCode < 400 {
+	if resp.StatusCode < http.StatusBadRequest {
 		if resp.StatusCode == http.StatusOK && IsWatchRequest(resp.Request) && resp.Body != nil {
 			mediaType, _, err := mime.ParseMediaType(resp.Header.Get(constants.HeaderContentType))
 			if err != nil || mediaType != constants.ContentTypeJSON {
@@ -33,16 +34,16 @@ func KubernetesResponse(resp *http.Response) error {
 			}
 			if observed, ok := resp.Body.(*observedBody); ok {
 				// Observe parser failures as well as upstream I/O errors, once.
-				observed.ReadCloser = newWatchBody(observed.ReadCloser)
+				observed.ReadCloser = newProxyWatchBody(observed.ReadCloser, resp.Request)
 			} else {
-				resp.Body = newWatchBody(resp.Body)
+				resp.Body = newProxyWatchBody(resp.Body, resp.Request)
 			}
 			resp.ContentLength = -1
 			resp.Header.Del(constants.HeaderContentLength)
 		}
 		return nil
 	}
-	s := SanitizeStatus(readKubernetesStatus(resp), resp.StatusCode)
+	s := ProxyStatus(readKubernetesStatus(resp), resp.StatusCode, resp.Request)
 	b, err := json.Marshal(s)
 	if err != nil {
 		return fmt.Errorf("could not encode Kubernetes status")

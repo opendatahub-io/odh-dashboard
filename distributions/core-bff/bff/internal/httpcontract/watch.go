@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -16,9 +17,14 @@ var (
 	errMalformedWatchEvent = errors.New("invalid watch event JSON")
 )
 
-// SanitizeWatchEvent changes only Kubernetes watch ERROR Status objects. Resource events,
-// bookmarks and non-watch/subprotocol messages retain their bytes, including whitespace.
+// SanitizeWatchEvent applies strict sanitization without a caller-token request.
+// Resource events and bookmarks retain their bytes, including whitespace.
 func SanitizeWatchEvent(b []byte) []byte {
+	return ProxyWatchEvent(b, nil)
+}
+
+// ProxyWatchEvent applies the same caller/Secret boundary as ordinary HTTP failures.
+func ProxyWatchEvent(b []byte, r *http.Request) []byte {
 	var event map[string]json.RawMessage
 	if json.Unmarshal(b, &event) != nil {
 		return b
@@ -30,10 +36,10 @@ func SanitizeWatchEvent(b []byte) []byte {
 	var status metav1.Status
 	_ = json.Unmarshal(event["object"], &status)
 	code := int(status.Code)
-	if code < 400 || code > 599 {
-		code = 500
+	if code < http.StatusBadRequest || code > maxHTTPErrorStatus {
+		code = http.StatusInternalServerError
 	}
-	clean, err := json.Marshal(SanitizeStatus(status, code))
+	clean, err := json.Marshal(ProxyStatus(status, code, r))
 	if err != nil {
 		return b
 	}
@@ -55,6 +61,7 @@ type watchBody struct {
 	reader  *bufio.Reader
 	pending []byte
 	err     error
+	request *http.Request
 }
 
 func (b *watchBody) Read(p []byte) (int, error) {
@@ -77,7 +84,7 @@ func (b *watchBody) Read(p []byte) (int, error) {
 			b.err = errMalformedWatchEvent
 			return 0, b.err
 		}
-		b.pending = SanitizeWatchEvent(line)
+		b.pending = ProxyWatchEvent(line, b.request)
 	}
 	n := copy(p, b.pending)
 	b.pending = b.pending[n:]
@@ -102,5 +109,9 @@ func (b *watchBody) readEvent() ([]byte, error) {
 }
 
 func newWatchBody(body io.ReadCloser) io.ReadCloser {
-	return &watchBody{ReadCloser: body, reader: bufio.NewReader(body)}
+	return newProxyWatchBody(body, nil)
+}
+
+func newProxyWatchBody(body io.ReadCloser, r *http.Request) io.ReadCloser {
+	return &watchBody{ReadCloser: body, reader: bufio.NewReader(body), request: r}
 }

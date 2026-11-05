@@ -20,7 +20,7 @@ import (
 )
 
 // WssProxyPrefix is the URL path prefix for Kubernetes WebSocket proxy requests.
-const WssProxyPrefix = "/wss/k8s/"
+const WssProxyPrefix = constants.WssProxyPrefix
 
 // WsProxyConfig holds the configuration for creating a WebSocket proxy handler.
 type WsProxyConfig struct {
@@ -99,11 +99,13 @@ func (p *wsProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpcontract.Log(p.logger, r).Info("WebSocket connected")
-	bridgeConnections(p.tracker, clientConn, targetConn, httpcontract.RequestID(r.Context()), watch)
+	diagnosticRequest := upstreamRequest.Clone(upstreamRequest.Context())
+	diagnosticRequest.Header.Set(constants.HeaderAuthorization, k8s.BearerTokenPrefix+token)
+	bridgeConnections(p.tracker, clientConn, targetConn, httpcontract.RequestID(r.Context()), watch, diagnosticRequest)
 }
 
 func (p *wsProxy) handleDialError(w http.ResponseWriter, r *http.Request, resp *http.Response, err error) {
-	if resp != nil && resp.StatusCode >= 400 {
+	if resp != nil && resp.StatusCode >= http.StatusBadRequest {
 		httpcontract.CaptureAudit(r.Context(), resp.Header)
 		httpcontract.Log(p.logger, r).Warn("WebSocket handshake rejected", "status", resp.StatusCode)
 		httpcontract.CopyRetryAfter(w.Header(), resp.Header)
@@ -116,13 +118,13 @@ func (p *wsProxy) handleDialError(w http.ResponseWriter, r *http.Request, resp *
 		_ = httpcontract.KubernetesResponse(resp)
 		var status metav1.Status
 		_ = json.NewDecoder(resp.Body).Decode(&status)
-		httpcontract.WriteStatus(w, r, resp.StatusCode, status)
+		httpcontract.WriteProxyStatus(w, r, resp.StatusCode, status)
 	} else {
-		httpcontract.Log(p.logger, r).Error("WebSocket dial failed", "code", httpcontract.Classify(err, 502).Error.Code)
+		httpcontract.Log(p.logger, r).Error("WebSocket dial failed", "code", httpcontract.Classify(err, http.StatusBadGateway).Error.Code)
 		if resp != nil && resp.Body != nil {
 			_ = resp.Body.Close()
 		}
-		httpcontract.WriteError(w, r, err, 502)
+		httpcontract.WriteError(w, r, err, http.StatusBadGateway)
 	}
 }
 
@@ -133,17 +135,17 @@ func NewWsProxyHandler(cfg WsProxyConfig) (http.Handler, error) {
 		return nil, fmt.Errorf("failed to parse K8s API server URL %q: %w", cfg.K8sHost, err)
 	}
 
-	if targetURL.Scheme == "http" && !cfg.AllowHTTP {
+	if targetURL.Scheme == constants.SchemeHTTP && !cfg.AllowHTTP {
 		return nil, fmt.Errorf("insecure HTTP target URLs are not allowed for WebSocket proxy")
 	}
 
-	wsScheme := "wss"
-	if targetURL.Scheme == "http" {
-		wsScheme = "ws"
+	wsScheme := constants.SchemeWSS
+	if targetURL.Scheme == constants.SchemeHTTP {
+		wsScheme = constants.SchemeWS
 	}
 
 	tlsConfig := NewTLSConfig(cfg.RootCAs, cfg.InsecureSkipVerify)
-	tlsConfig.NextProtos = []string{"http/1.1"}
+	tlsConfig.NextProtos = []string{constants.ALPNHTTP11}
 	if len(cfg.ClientCerts) > 0 {
 		tlsConfig.Certificates = cfg.ClientCerts
 	}

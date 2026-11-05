@@ -95,7 +95,7 @@ func (r *PrometheusRepository) Query(ctx context.Context, token, query, queryTyp
 		return nil, fmt.Errorf("cannot fetch prometheus data, failed to read response: %w", err)
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return nil, &models.PrometheusUpstreamError{StatusCode: resp.StatusCode, Body: string(body)}
 	}
 

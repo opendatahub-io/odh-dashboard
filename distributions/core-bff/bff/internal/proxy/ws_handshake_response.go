@@ -19,6 +19,7 @@ type handshakeResponseConn struct {
 	net.Conn
 	reader    io.Reader
 	rejection *http.Response
+	request   *http.Request
 }
 
 func (c *handshakeResponseConn) Read(p []byte) (int, error) {
@@ -32,6 +33,7 @@ func (c *handshakeResponseConn) Read(p []byte) (int, error) {
 			// Closing a raw HTTP body drains it. The connection is closed by Gorilla on
 			// rejection, so use a no-op closer to retain the shared error-body bound.
 			response.Body = io.NopCloser(response.Body)
+			response.Request = c.request
 			if err := httpcontract.KubernetesResponse(response); err != nil {
 				return 0, err
 			}
@@ -43,12 +45,17 @@ func (c *handshakeResponseConn) Read(p []byte) (int, error) {
 }
 
 func dialWithHandshakeResponse(dialer *websocket.Dialer, target string, headers http.Header, serverName string, dialContext func(context.Context, string, string) (net.Conn, error)) (*websocket.Conn, *http.Response, error) {
+	diagnosticRequest, err := http.NewRequest(http.MethodGet, target, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	diagnosticRequest.Header = headers.Clone()
 	if dialContext == nil {
 		dialContext = (&net.Dialer{}).DialContext
 	}
 	var captured *handshakeResponseConn
 	wrap := func(conn net.Conn) net.Conn {
-		captured = &handshakeResponseConn{Conn: conn}
+		captured = &handshakeResponseConn{Conn: conn, request: diagnosticRequest}
 		return captured
 	}
 	dialer.NetDialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {

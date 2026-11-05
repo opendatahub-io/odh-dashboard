@@ -122,7 +122,7 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			if err := ssrf.NewRedirectValidator(cfg.Logger)(resp); err != nil {
 				return err
 			}
-			if resp.StatusCode >= 400 {
+			if resp.StatusCode >= http.StatusBadRequest {
 				resp.Header.Del(cfg.AuthTokenHeader)
 			}
 			return httpcontract.KubernetesResponse(resp)
