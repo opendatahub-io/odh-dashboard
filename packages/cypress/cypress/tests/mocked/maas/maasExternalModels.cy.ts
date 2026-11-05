@@ -35,6 +35,10 @@ const TEST_PROJECT = 'test-project';
 const setupCommonIntercepts = () => {
   asProductAdminUser();
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
+  cy.interceptOdh('GET /maas/api/v1/whoami', {
+    data: { sub: 'test-user', isAdmin: false },
+  });
+  cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
   cy.interceptOdh('GET /maas/api/v1/user', {
     data: { userId: 'test-user', clusterAdmin: false },
   });
@@ -787,6 +791,7 @@ describe('External Models Page', () => {
           },
         ],
       });
+      cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: true } });
       cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
       cy.interceptOdh('POST /maas/api/v1/externalmodel', { data: createdModel }).as(
         'createExternalModel',
@@ -855,6 +860,7 @@ describe('External Models Page', () => {
     });
 
     it('should not include the alert link for non-admins', () => {
+      cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
       cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
       const createdModel = mockExternalModel({
         name: 'gpt-4-turbo',

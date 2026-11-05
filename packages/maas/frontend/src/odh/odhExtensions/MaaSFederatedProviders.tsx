@@ -13,15 +13,14 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import { API_URL_PREFIX } from '~/app/utilities/const';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { AppContext } from '~/app/context/AppContext';
-import { useGridSettings } from '~/app/hooks/useGridSettings';
-import { GRID_MANDATORY_NAMESPACE, useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
+import { useMaaSSettings } from '~/app/hooks/useMaaSSettings';
+import { isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
 
-const getModularArchConfig = (isGridEnabled: boolean): ModularArchConfig => ({
+const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX: API_URL_PREFIX,
   BFF_API_VERSION: 'v1',
-  mandatoryNamespace: isGridEnabled ? GRID_MANDATORY_NAMESPACE : undefined,
-});
+};
 
 type MaaSFederatedProvidersProps = {
   children: React.ReactNode;
@@ -72,30 +71,22 @@ const MaaSFederatedProvidersContent: React.FC<SettingsContentProps> = ({
   );
 };
 
+const MaaSSettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
+  const settings = useMaaSSettings();
+  return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
+};
+
 const LegacySettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
   const settings = useSettings();
   return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
 };
 
-const GridSettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const settings = useGridSettings();
-  return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
-};
-
 const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const isGridEnabled = useGridFeatureFlag();
-  const modularArchConfig = React.useMemo(
-    () => getModularArchConfig(isGridEnabled),
-    [isGridEnabled],
-  );
+  const SettingsLoader = isMaaSPortalHost() ? MaaSSettingsLoader : LegacySettingsLoader;
 
   return (
     <ModularArchContextProvider config={modularArchConfig}>
-      {isGridEnabled ? (
-        <GridSettingsLoader>{children}</GridSettingsLoader>
-      ) : (
-        <LegacySettingsLoader>{children}</LegacySettingsLoader>
-      )}
+      <SettingsLoader>{children}</SettingsLoader>
     </ModularArchContextProvider>
   );
 };

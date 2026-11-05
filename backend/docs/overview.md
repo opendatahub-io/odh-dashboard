@@ -15,35 +15,46 @@
 - **ResourceWatcher** polls selected resources on an interval, keeps results in memory; handlers read the cache synchronously and can force refresh via `Cache-Control: no-cache`
 - **`kube` plugin** runs first and decorates the instance with `fastify.kube` (k8s clients, namespace, cluster metadata); route modules type the instance as `KubeFastifyInstance`
 
+## Outbound TLS trust
+
+`utils/caBundles.ts` assembles the outbound trust set used by service proxies and Node HTTPS clients. It combines:
+
+- Platform and Kubernetes CA bundles from the configured paths, when present. Missing optional bundles are skipped; other read failures emit a warning with the path and error.
+- Node's effective default certificate set, including runtime-selected system roots and `NODE_EXTRA_CA_CERTS`
+
+On Node runtimes that predate `tls.getCACertificates`, the fallback uses `tls.rootCertificates` plus certificates loaded from `NODE_EXTRA_CA_CERTS`.
+
+Both proxy registration paths pass the resulting CA list to undici through `undici.connect.ca`. `server.ts` applies the same trust set to `https.globalAgent.options.ca`. Certificate verification remains enabled in the production server; the `start:dev`, `debug`, and `cypress:server:e2e` scripts explicitly set `NODE_TLS_REJECT_UNAUTHORIZED=0`, so HTTPS checks under those scripts do not exercise certificate verification. If no platform bundles are available, the helpers leave TLS options unset so Node continues using its defaults.
+
 ## Key Concepts
 
-| Term | Definition |
-|------|------------|
-| `KubeFastifyInstance` | Fastify instance decorated with `fastify.kube` (k8s clients, namespace, cluster metadata) |
-| `OauthFastifyRequest` | Request type carrying user context after `getUserInfo` |
-| `secureRoute` | Wraps handler: resolves user, checks access, then runs handler |
-| `secureAdminRoute` | Like `secureRoute` but rejects non-admins with 401 |
-| `devRoute` | Returns 404 outside `APP_ENV=development` |
-| `OdhDashboardConfig` | Feature-flag CR; watcher-backed, refreshable with `Cache-Control: no-cache` on GET |
-| `ResourceWatcher` | In-memory polling cache; synchronous reads, background refresh |
-| `passThroughResource` / `proxyCall` | Forward HTTP to cluster or service URLs with the resolved token and TLS settings |
-| `USER_ACCESS_TOKEN` | Header `x-forwarded-access-token` carrying the user's bearer token from the auth gateway |
-| `KUBE_RBAC_USER_HEADER` | Header `x-auth-request-user` from kube-rbac-proxy |
-| Service-account call | Backend → API server using the dashboard service account (kubeconfig) |
-| Pass-through call | Backend → API server using the end-user bearer token; cluster enforces RBAC |
-| `createSelfSubjectAccessReview` | Permission checks: posts SSAR with the user token (see `authUtils`) |
+| Term                                | Definition                                                                                                                                    |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `KubeFastifyInstance`               | Fastify instance decorated with `fastify.kube` (k8s clients, namespace, cluster metadata)                                                     |
+| `OauthFastifyRequest`               | Request type carrying user context after `getUserInfo`                                                                                        |
+| `secureRoute`                       | Wraps handler: resolves user, checks access, then runs handler                                                                                |
+| `secureAdminRoute`                  | Like `secureRoute` but rejects non-admins with 401                                                                                            |
+| `devRoute`                          | Returns 404 outside `APP_ENV=development`                                                                                                     |
+| `OdhDashboardConfig`                | Feature-flag CR; watcher-backed, refreshable with `Cache-Control: no-cache` on GET                                                            |
+| `ResourceWatcher`                   | In-memory polling cache; synchronous reads, background refresh                                                                                |
+| `passThroughResource` / `proxyCall` | Forward HTTP to cluster or service URLs with the resolved token and shared outbound TLS trust (see [Outbound TLS trust](#outbound-tls-trust)) |
+| `USER_ACCESS_TOKEN`                 | Header `x-forwarded-access-token` carrying the user's bearer token from the auth gateway                                                      |
+| `KUBE_RBAC_USER_HEADER`             | Header `x-auth-request-user` from kube-rbac-proxy                                                                                             |
+| Service-account call                | Backend → API server using the dashboard service account (kubeconfig)                                                                         |
+| Pass-through call                   | Backend → API server using the end-user bearer token; cluster enforces RBAC                                                                   |
+| `createSelfSubjectAccessReview`     | Permission checks: posts SSAR with the user token (see `authUtils`)                                                                           |
 
 ## Response security headers and cache policy
 
 Every normal HTTP reply (HTML, JSON APIs, static files, `/_mf/…` Module Federation proxies) gets browser security headers via an `onSend` hook:
 
-| Header | Value |
-| --- | --- |
-| `X-Content-Type-Options` | `nosniff` |
-| `Cross-Origin-Opener-Policy` | `same-origin` |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `X-Frame-Options` | `DENY` |
-| `X-DNS-Prefetch-Control` | `off` |
+| Header                       | Value                             |
+| ---------------------------- | --------------------------------- |
+| `X-Content-Type-Options`     | `nosniff`                         |
+| `Cross-Origin-Opener-Policy` | `same-origin`                     |
+| `Referrer-Policy`            | `strict-origin-when-cross-origin` |
+| `X-Frame-Options`            | `DENY`                            |
+| `X-DNS-Prefetch-Control`     | `off`                             |
 
 `Cache-Control` is selective (not blanket `no-store`):
 

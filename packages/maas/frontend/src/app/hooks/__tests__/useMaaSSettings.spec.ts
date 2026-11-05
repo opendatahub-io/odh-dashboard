@@ -2,7 +2,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import * as modArchCore from 'mod-arch-core';
 import { getMaaSWhoAmI } from '~/app/api/whoami';
-import { useGridSettings } from '~/app/hooks/useGridSettings';
+import { useMaaSSettings } from '~/app/hooks/useMaaSSettings';
 import { type MaaSWhoAmI } from '~/app/types/whoami';
 
 jest.mock('mod-arch-core', () => ({
@@ -24,7 +24,7 @@ const whoAmI: MaaSWhoAmI = {
   isAdmin: true,
 };
 
-describe('useGridSettings', () => {
+describe('useMaaSSettings', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetMaaSWhoAmI.mockReturnValue(() => Promise.resolve(whoAmI));
@@ -33,7 +33,7 @@ describe('useGridSettings', () => {
   it('should expose a startup failure without retrying', async () => {
     mockFetchConfig.mockRejectedValue(new Error('Network failure'));
 
-    const { result } = renderHook(useGridSettings);
+    const { result } = renderHook(useMaaSSettings);
 
     await waitFor(() => expect(result.current.loadError?.message).toBe('Network failure'));
     expect(result.current.loaded).toBe(false);
@@ -44,7 +44,7 @@ describe('useGridSettings', () => {
   it('should load caller identity and organization admin status', async () => {
     mockFetchConfig.mockResolvedValue(config);
 
-    const { result } = renderHook(useGridSettings);
+    const { result } = renderHook(useMaaSSettings);
 
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.loadError).toBeUndefined();
@@ -68,7 +68,7 @@ describe('useGridSettings', () => {
       }),
     );
 
-    const { result } = renderHook(useGridSettings);
+    const { result } = renderHook(useMaaSSettings);
 
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.userSettings?.isAdmin).toBe(false);

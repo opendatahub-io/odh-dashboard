@@ -31,7 +31,7 @@ report in **Standalone output**, and make no writes or external posts.
 
 The user may provide:
 
-- **A Jira ticket key** (e.g. `RHOAIENG-12345`) — the feature being implemented. Provides context on which resources and operations the code must gate.
+- **A Jira ticket key** (e.g. `RHAI-12345`) — the feature being implemented. Provides context on which resources and operations the code must gate.
 - **No code arguments** — review files changed versus `main` by running `git diff main --name-only -- '*.ts' '*.tsx' '*.go' '*.proto'`, **excluding** `**/upstream/**` and `**/__tests__/**` paths. This ensures frontend, backend, and BFF (Go) surfaces are all scanned for RBAC issues.
 - **A file or directory path** — review only those files.
 - **A PR number (`#N`)** — run `gh pr diff N` to get changed files and review those.
@@ -39,7 +39,7 @@ The user may provide:
 
 ## Phase 0: Gather feature context
 
-If the user provided a Jira ticket key as an argument (e.g. `/rbac-review RHOAIENG-12345`), fetch the full Jira issue (via MCP or CLI). Extract from the response:
+If the user provided a Jira ticket key as an argument (e.g. `/rbac-review RHAI-12345`), fetch the full Jira issue (via MCP or CLI). Extract from the response:
 
 - **Summary** — what feature is being built
 - **Description** — acceptance criteria, referenced resources, API groups, verbs
@@ -132,7 +132,7 @@ applicable finding evidence and severity.
 ## RBAC Review — ODH Dashboard
 
 ### Feature Context (if Jira ticket provided)
-- Ticket: RHOAIENG-XXXXX — <summary>
+- Ticket: RHAI-XXXXX — <summary>
 - Resources: <K8s resources the feature touches>
 - Expected gates: <verb/resource pairs that need SSAR checks>
 - Limited-user behavior: <what should happen when SSAR denies access>
@@ -163,7 +163,7 @@ Omit the "Feature Context" and "Permission model coverage" sections if no Jira t
 ```md
 ---
 
-> **Note:** This review checked for generic RBAC anti-patterns only. For a more targeted review that validates permission coverage against feature requirements, re-run with a Jira ticket: `/rbac-review RHOAIENG-XXXXX`
+> **Note:** This review checked for generic RBAC anti-patterns only. For a more targeted review that validates permission coverage against feature requirements, re-run with a Jira ticket: `/rbac-review RHAI-XXXXX`
 ```
 
 ### Severity classification
