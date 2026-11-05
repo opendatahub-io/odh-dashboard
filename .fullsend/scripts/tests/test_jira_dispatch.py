@@ -252,6 +252,20 @@ class WorkflowContractTests(unittest.TestCase):
         for wf in (poll, code):
             self.assertEqual(wf["permissions"], {})
 
+    def test_ci_runs_this_suite_on_relevant_changes(self):
+        ci = workflow("fullsend-scripts-test.yaml")
+        on = ci.get("on", ci.get(True))
+        paths = on["pull_request"]["paths"]
+        for path in (
+            ".fullsend/scripts/**",
+            ".github/workflows/fullsend-poll-jira.yaml",
+            ".github/workflows/fullsend-code-jira.yaml",
+        ):
+            self.assertIn(path, paths)
+        self.assertEqual(ci["permissions"], {"contents": "read"})
+        runs = [s.get("run", "") for s in ci["jobs"]["test"]["steps"]]
+        self.assertTrue(any(".fullsend/scripts/tests/test_jira_dispatch.py" in r for r in runs))
+
     def test_job_permissions_do_not_grow_silently(self):
         # The code job's set is the union reusable-dispatch.yml (v0.54.0)
         # requires; see the comment in fullsend-code-jira.yaml.
@@ -302,7 +316,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertLess(run.index("sha256sum -c -"), run.index("tar -xzf"))
 
     def test_every_action_is_pinned_by_sha(self):
-        for name in ("fullsend-poll-jira.yaml", "fullsend-code-jira.yaml"):
+        for name in ("fullsend-poll-jira.yaml", "fullsend-code-jira.yaml", "fullsend-scripts-test.yaml"):
             for line in (ROOT / ".github/workflows" / name).read_text().splitlines():
                 if "uses:" in line and not line.lstrip().startswith("#"):
                     ref = line.split("uses:", 1)[1].split("#")[0].strip()
