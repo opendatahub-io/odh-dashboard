@@ -6,6 +6,11 @@
     <meta name="theme-color" content="#ffffff" />
     <title><%= htmlRspackPlugin.options.title %></title>
     <script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script>
+    <script>
+      // PatternFly Felt theme — applied before the app boots so tokens are correct
+      // on first paint. Light/dark composes via .pf-v6-theme-dark (see ThemeContext).
+      document.documentElement.classList.add('pf-v6-theme-felt');
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
