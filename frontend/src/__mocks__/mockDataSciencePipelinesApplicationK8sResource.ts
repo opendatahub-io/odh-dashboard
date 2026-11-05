@@ -11,6 +11,7 @@ type MockResourceConfigType = {
   dspVersion?: string;
   displayName?: string;
   initializing?: boolean;
+  apiServerReady?: boolean;
   message?: string;
   dspaSecretName?: string;
   pipelineStore?: DSPipelineAPIServerStore;
@@ -25,6 +26,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   namespace = 'test-project',
   dspVersion = 'v2',
   initializing = false,
+  apiServerReady = !initializing,
   message = '',
   dspaSecretName = 'aws-connection-testdb',
   pipelineStore,
@@ -88,7 +90,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
         lastTransitionTime: '2023-07-20T16:58:12Z',
         message: '',
         reason: 'MinimumReplicasAvailable',
-        status: initializing ? 'False' : 'True',
+        status: apiServerReady ? 'True' : 'False',
         type: 'APIServerReady',
       },
       {

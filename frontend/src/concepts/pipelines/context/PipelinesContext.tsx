@@ -119,7 +119,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   const isStarting = isResourceLoaded && !isAllLoaded;
 
   const isCRReady = dspaLoaded(state);
-  const serverTimedOut = hasServerTimedOut(state, isCRReady);
+  const serverTimedOut = hasServerTimedOut(state, isAllLoaded);
   const dspaName = pipelineNamespaceCR?.metadata.name;
   const [, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRReady,
