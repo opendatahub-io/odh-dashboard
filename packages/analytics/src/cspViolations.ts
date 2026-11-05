@@ -8,9 +8,10 @@
  * through `fireTrackingEvent` so they carry the same cluster/version context as the
  * dashboard's other events.
  *
- * Reported once per unique violation (effective directive + blocked host), throttled
- * to once per 24 hours per browser. URLs are stripped of query strings, fragments and
- * credentials before transmission. See docs/content-security-policy.md.
+ * Outside development a violation is forwarded once per unique violation (effective
+ * directive + blocked host) per browser per 24 hours; in development every violation is
+ * logged. URLs are stripped of query strings, fragments and credentials before
+ * transmission. See docs/content-security-policy.md.
  */
 
 import { fireTrackingEvent } from './segmentUtils';
@@ -190,9 +191,11 @@ const sendToSegment = (report: CspViolationReport): void => {
  * - Every violation is logged with `console.warn`.
  * - In dev mode an `odh-csp-violation` window event is dispatched once per unique
  *   violation so the UI can show a toast.
- * - Each unique violation is forwarded through `fireTrackingEvent` at most once per
- *   24 hours per browser. When the SDK is unavailable or tracking is disabled, capture
- *   degrades to the console without losing the warning.
+ * - Every violation is forwarded through `fireTrackingEvent`, which logs it in
+ *   development and (when the SDK exists) sends it otherwise. The reporter never
+ *   inspects the SDK itself.
+ * - Outside development the same violation is forwarded at most once per browser per
+ *   24 hours; development logging is never throttled.
  */
 export const installCspViolationReporter = ({
   devMode = false,
@@ -217,19 +220,18 @@ export const installCspViolationReporter = ({
     }
   };
 
-  // Telemetry is additionally throttled per browser.
+  // Development logs instead of sending, so there is nothing to throttle: every
+  // violation reaches `fireTrackingEvent` and therefore the console. Outside development
+  // the same violation is forwarded at most once per browser per 24 hours.
   const sendTelemetry = (report: CspViolationReport, key: string): void => {
-    // Do not start the throttle window before the SDK exists: an early violation
-    // would otherwise be marked as reported and never sent.
-    if (!window.analytics) {
-      return;
+    if (process.env.APP_ENV !== 'development') {
+      const timestamp = now();
+      const throttle = readThrottle(storage, timestamp);
+      if (key in throttle) {
+        return;
+      }
+      writeThrottle(storage, { ...throttle, [key]: timestamp });
     }
-    const timestamp = now();
-    const throttle = readThrottle(storage, timestamp);
-    if (key in throttle) {
-      return;
-    }
-    writeThrottle(storage, { ...throttle, [key]: timestamp });
     sendToSegment(report);
   };
 

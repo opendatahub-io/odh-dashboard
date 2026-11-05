@@ -177,6 +177,37 @@ describe('installCspViolationReporter', () => {
     expect(log).toHaveBeenCalledWith(expect.stringContaining('CSP Violation'));
   });
 
+  it('logs in development even when the Segment SDK is absent', () => {
+    process.env.APP_ENV = 'development';
+    delete window.analytics;
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    install();
+
+    document.dispatchEvent(
+      makeViolation({ effectiveDirective: 'script-src', blockedURI: 'https://evil.example/a.js' }),
+    );
+
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('CSP Violation'));
+  });
+
+  it('does not throttle development logging', () => {
+    process.env.APP_ENV = 'development';
+    delete window.analytics;
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    const storage = memoryStorage();
+    cleanup = installCspViolationReporter({ storage });
+
+    document.dispatchEvent(
+      makeViolation({ effectiveDirective: 'script-src', blockedURI: 'https://evil.example/a.js' }),
+    );
+    document.dispatchEvent(
+      makeViolation({ effectiveDirective: 'script-src', blockedURI: 'https://evil.example/a.js' }),
+    );
+
+    expect(log).toHaveBeenCalledTimes(2);
+    expect(storage.data[CSP_VIOLATION_STORAGE_KEY]).toBeUndefined();
+  });
+
   it('reports a different directive or host separately', () => {
     install();
 

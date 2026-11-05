@@ -157,11 +157,15 @@ the root of the app.
 - Every violation is logged to the console.
 - Each unique violation — effective directive plus blocked host — is forwarded through the
   same tracking pipeline as the rest of the dashboard's telemetry as a `CSP Violation`
-  event. It therefore carries the same cluster and version context, is logged rather than
-  sent when the app runs in development, and is skipped until the analytics SDK exists.
-- Telemetry is throttled to once per unique violation per browser per 24 hours. Throttle
-  state lives in browser storage; unavailable storage degrades to no throttling, never to a
-  lost console warning.
+  event, so it carries the same cluster and version context. `fireTrackingEvent` decides
+  whether to log it (development, with or without a segment key) or send it (when the
+  analytics SDK exists); the reporter never inspects the SDK itself.
+- Outside development each unique violation is forwarded at most once per browser per
+  24 hours. Throttle state lives in browser storage; unavailable storage degrades to no
+  throttling, never to a lost console warning. The window opens at the first occurrence,
+  whether or not the SDK has loaded, so a violation raised before the SDK exists is
+  recorded as reported but never sent. Development logs every violation, since nothing is
+  sent, so a reload always shows the event again.
 - The payload carries the effective directive, blocked host, disposition, page path, source
   file, line, column, sample, referrer, and the full policy string. Query strings,
   fragments, and credentials are stripped from every URL.
