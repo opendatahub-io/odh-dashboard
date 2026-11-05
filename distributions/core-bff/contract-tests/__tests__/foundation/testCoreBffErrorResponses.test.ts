@@ -3,6 +3,12 @@
  */
 import { resolve } from 'path';
 import {
+  k8sCreateResource,
+  k8sDeleteResource,
+  k8sUpdateResource,
+  setUtilsConfig,
+} from '@openshift/dynamic-plugin-sdk-utils';
+import {
   ContractApiClient,
   startGoTestFixture,
   type GoTestFixture,
@@ -40,15 +46,51 @@ interface BffFailure {
   error: { code: string; message: string; requestId: string };
 }
 
+const model = {
+  apiVersion: 'v1',
+  kind: 'ConfigMap',
+  plural: 'configmaps',
+  label: 'ConfigMap',
+  labelPlural: 'ConfigMaps',
+  abbr: 'CM',
+  namespaced: true,
+};
+const resource = {
+  apiVersion: 'v1',
+  kind: 'ConfigMap',
+  metadata: { name: 'example', namespace: 'project' },
+};
+const fetchOptions = { timeout: 0 };
+
 describe('Core BFF error response components', () => {
   let fixtureClient: ContractApiClient;
   let fixture: GoTestFixture | undefined;
+  let sdkEndpoint = '';
 
   beforeAll(async () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: { getItem: () => null },
+      configurable: true,
+    });
     fixture = await startGoTestFixture({
       bffDir: resolve(__dirname, '../../../bff'),
       packagePath: './internal/proxy',
       testName: 'TestContractFixtureServer',
+    });
+    const proxyURL = fixture.url;
+    setUtilsConfig({
+      wsAppSettings: () => ({ host: 'auto' }),
+      appFetch: async (_url, options) => {
+        if (sdkEndpoint === '/missing-credentials') {
+          return fetch(
+            `${
+              process.env.CONTRACT_MOCK_BFF_URL || 'http://localhost:8080'
+            }/api/k8s/api/v1/namespaces`,
+            options,
+          );
+        }
+        return fetch(`${proxyURL}/api/k8s${sdkEndpoint}`, options);
+      },
     });
     fixtureClient = new ContractApiClient({
       baseUrl: fixture.url,
@@ -63,6 +105,7 @@ describe('Core BFF error response components', () => {
   }, 180000);
 
   afterAll(async () => {
+    Reflect.deleteProperty(globalThis, 'localStorage');
     await fixture?.stop();
   });
 
@@ -117,7 +160,7 @@ describe('Core BFF error response components', () => {
         }
         if (status === 422) {
           expect(body.details?.causes).toEqual([
-            { reason: 'FieldValueRequired', field: 'data', message: 'invalid field value' },
+            { reason: 'FieldValueRequired', field: 'data', message: 'required field' },
             {
               reason: 'FieldValueInvalid',
               field: 'spec.containers[1].image',
@@ -195,12 +238,16 @@ describe('Core BFF error response components', () => {
         ref: `#/components/responses/${response}/content/application~1json/schema`,
         status,
       });
-      const body = error.data as BffFailure;
-      expect(body.error.code).toBe(code);
-      expect(body.error.requestId).toMatch(uuidV4);
-      expect(error.headers?.['x-request-id']).toBe(body.error.requestId);
+      const body = error.data as KubernetesFailure;
+      expect(body).toMatchObject({ kind: 'Status', code: status, reason: 'DashboardProxyError' });
+      expect(body.details?.causes?.[0].reason).toBe(code);
+      expect(error.headers?.['x-request-id']).toMatch(uuidV4);
       expect(error.headers?.['audit-id']).toBeUndefined();
-      expect(body).not.toHaveProperty('kind');
+      expect(body).not.toHaveProperty('error');
+      expect(error).toMatchContract(apiSchema, {
+        ref: '#/components/responses/K8sProxyFailure/content/application~1json/schema',
+        status,
+      });
       expect(JSON.stringify(error)).not.toContain('CANARY');
     },
   );
@@ -220,4 +267,82 @@ describe('Core BFF error response components', () => {
     expect(body.error.requestId).toMatch(uuidV4);
     expect(error.headers?.['x-request-id']).toBe(body.error.requestId);
   });
+  describe.each([
+    { cause: 'bad-gateway', status: 502, code: 'BAD_GATEWAY' },
+    { cause: 'unavailable', status: 503, code: 'SERVICE_UNAVAILABLE' },
+    { cause: 'timeout', status: 504, code: 'GATEWAY_TIMEOUT' },
+  ])('$cause', ({ cause, status, code }) => {
+    it.each([
+      { operation: 'create', run: () => k8sCreateResource({ model, resource, fetchOptions }) },
+      { operation: 'update', run: () => k8sUpdateResource({ model, resource, fetchOptions }) },
+      {
+        operation: 'delete',
+        run: () =>
+          k8sDeleteResource({
+            model,
+            queryOptions: { name: 'example', ns: 'project' },
+            fetchOptions,
+          }),
+      },
+    ])('should reject SDK $operation', async ({ run }) => {
+      sdkEndpoint = `/transport/${cause}`;
+      await expect(run()).rejects.toMatchObject({
+        status: {
+          kind: 'Status',
+          status: 'Failure',
+          reason: 'DashboardProxyError',
+          code: status,
+          details: { causes: [{ reason: code }] },
+        },
+      });
+    });
+  });
+  it('should reject a missing-credential failure from the production Core BFF route', async () => {
+    sdkEndpoint = '/missing-credentials';
+    await expect(k8sCreateResource({ model, resource, fetchOptions })).rejects.toMatchObject({
+      status: {
+        kind: 'Status',
+        status: 'Failure',
+        reason: 'DashboardProxyError',
+        code: 401,
+        details: { causes: [{ reason: 'UNAUTHORIZED' }] },
+      },
+    });
+  });
+
+  it.each([
+    {
+      name: 'validation',
+      status: 422,
+      reason: 'Invalid',
+      safeMessage:
+        'request validation failed: spec.replicas: invalid field value; spec.image: required field',
+      causes: [
+        { reason: 'FieldValueInvalid', field: 'spec.replicas', message: 'invalid field value' },
+        { reason: 'FieldValueRequired', field: 'spec.image', message: 'required field' },
+      ],
+    },
+    {
+      name: 'webhook',
+      status: 403,
+      reason: 'Forbidden',
+      safeMessage: 'the requested operation is forbidden',
+      causes: [],
+    },
+  ])(
+    'should preserve $name failure semantics without upstream-only secrets',
+    async ({ name, status, reason, safeMessage, causes }) => {
+      sdkEndpoint = `/diagnostics/${name}`;
+      await expect(k8sCreateResource({ model, resource, fetchOptions })).rejects.toMatchObject({
+        message: safeMessage,
+        status: {
+          kind: 'Status',
+          code: status,
+          reason,
+          message: safeMessage,
+          ...(causes.length ? { details: { causes } } : {}),
+        },
+      });
+    },
+  );
 });

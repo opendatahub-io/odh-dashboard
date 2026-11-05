@@ -36,7 +36,7 @@ func TestK8sErrorResponse(t *testing.T) {
 			err:         k8serrors.NewForbidden(gr, "test-runtime", fmt.Errorf("access denied")),
 			wantStatus:  http.StatusForbidden,
 			wantCode:    "Forbidden",
-			wantMessage: "insufficient permissions for this operation",
+			wantMessage: "the requested operation is forbidden",
 		},
 		{
 			name:        "Conflict returns 409",

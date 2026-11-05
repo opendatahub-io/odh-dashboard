@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8stesting "k8s.io/client-go/testing"
 )
@@ -95,27 +96,50 @@ func TestGetStatusAdminReviewFailure(t *testing.T) {
 	require.Zero(t, client.calls)
 }
 
-func TestGetStatusAuthReadFailure(t *testing.T) {
-	for _, failure := range []error{
-		k8serrors.NewForbidden(models.AuthGVR.GroupResource(), models.AuthInstanceName, errors.New("denied")),
-		k8serrors.NewServiceUnavailable("unavailable"),
+type statusClusterInfo struct{}
+
+func (statusClusterInfo) GetClusterID() string       { return "cluster" }
+func (statusClusterInfo) GetClusterBranding() string { return "test" }
+func (statusClusterInfo) GetServerURL() string       { return "https://cluster.example" }
+func (statusClusterInfo) GetCurrentContext() string  { return "test" }
+
+func TestGetStatusAuthFailureFallsBackToSSAR(t *testing.T) {
+	for _, auth := range []struct {
+		name    string
+		failure error
+	}{
+		{"forbidden", k8serrors.NewForbidden(models.AuthGVR.GroupResource(), models.AuthInstanceName, errors.New("CANARY_AUTH"))},
+		{"unavailable", k8serrors.NewServiceUnavailable("CANARY_AUTH")},
+		{"malformed", nil},
 	} {
-		t.Run(failure.Error(), func(t *testing.T) {
-			dynamicClient := newFakeDynClientWithAuth(nil)
-			dynamicClient.PrependReactor("get", "auths", func(k8stesting.Action) (bool, runtime.Object, error) {
-				return true, nil, failure
+		for _, review := range []struct {
+			name    string
+			allowed bool
+			failure error
+		}{
+			{"allowed", true, nil},
+			{"denied", false, nil},
+			{"failed", false, errors.New("CANARY_REVIEW")},
+		} {
+			t.Run(auth.name+"/"+review.name, func(t *testing.T) {
+				dynamicClient := newFakeDynClientWithAuth(nil)
+				dynamicClient.PrependReactor("get", "auths", func(k8stesting.Action) (bool, runtime.Object, error) {
+					return true, &unstructured.Unstructured{Object: map[string]any{"spec": "invalid"}}, auth.failure
+				})
+				client := &statusReviewClient{mockUserAllowedClient: mockUserAllowedClient{allowed: review.allowed, err: review.failure}}
+				repo := NewStatusRepository(nil, "test", NewAuthRepository(dynamicClient))
+				status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, statusClusterInfo{})
+				require.Equal(t, 1, client.calls, "Auth failures must reach the caller's SSAR")
+				if review.failure != nil {
+					require.ErrorIs(t, err, review.failure)
+					require.Nil(t, status)
+					return
+				}
+				require.NoError(t, err)
+				require.Equal(t, review.allowed, status.Kube.IsAllowed)
+				require.False(t, status.Kube.IsAdmin)
 			})
-			authRepo := NewAuthRepository(dynamicClient)
-			client := &statusReviewClient{mockUserAllowedClient: mockUserAllowedClient{allowed: true}}
-			allowed, err := resolveIsAllowed(context.Background(), client, &k8s.RequestIdentity{}, authRepo)
-			require.ErrorIs(t, err, failure)
-			require.False(t, allowed)
-			repo := NewStatusRepository(nil, "test", authRepo)
-			status, err := repo.GetStatus(context.Background(), client, &k8s.RequestIdentity{}, nil)
-			require.ErrorIs(t, err, failure)
-			require.Nil(t, status)
-			require.Zero(t, client.calls, "Auth read failures must not fall back to SSAR")
-		})
+		}
 	}
 }
 

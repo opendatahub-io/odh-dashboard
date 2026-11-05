@@ -425,3 +425,36 @@ func TestEscapedWatchEventTypes(t *testing.T) {
 	event := []byte(`{"type":"\u0041DDED", "object":{"data":{"authorized":"value"}}}`)
 	require.Equal(t, event, SanitizeWatchEvent(event))
 }
+
+func TestLocalKubernetesProxyFailuresRemainSDKStatus(t *testing.T) {
+	for _, path := range []string{"/api/k8s", "/api/k8s/api/v1/pods", "/core-bff/api/k8s/api/v1/pods"} {
+		for _, status := range []int{400, 401, 403, 404, 405, 500, 502, 503, 504} {
+			t.Run(fmt.Sprintf("%s/%d", path, status), func(t *testing.T) {
+				response := httptest.NewRecorder()
+				WriteLocal(response, httptest.NewRequest(http.MethodGet, path, nil), status)
+				var body metav1.Status
+				require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+				require.Equal(t, "Status", body.Kind)
+				require.Equal(t, metav1.StatusFailure, body.Status)
+				require.Equal(t, status, int(body.Code))
+				require.Equal(t, metav1.StatusReason("DashboardProxyError"), body.Reason)
+				require.Equal(t, Local(status).Error.Code, string(body.Details.Causes[0].Type))
+				require.NotEmpty(t, response.Header().Get(RequestIDHeader))
+				require.NotContains(t, response.Body.String(), `"error"`)
+			})
+		}
+	}
+}
+
+func TestKubernetesProxyFailureFormatSurvivesPathRewrite(t *testing.T) {
+	handler := Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = "/api/v1/pods"
+		WriteError(w, r, io.ErrUnexpectedEOF, http.StatusBadGateway)
+	}))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/core-bff/api/k8s/api/v1/pods", nil))
+	var body metav1.Status
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+	require.Equal(t, metav1.StatusReason("DashboardProxyError"), body.Reason)
+	require.Equal(t, "BAD_GATEWAY", string(body.Details.Causes[0].Type))
+}

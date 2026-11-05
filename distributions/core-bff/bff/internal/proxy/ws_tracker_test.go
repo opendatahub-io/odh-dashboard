@@ -26,8 +26,8 @@ func TestConnectionTracker_TrackUntrack(t *testing.T) {
 		t.Fatalf("initial count = %d, want 0", tracker.ActiveCount())
 	}
 
-	id1 := tracker.Track(nil, nil)
-	id2 := tracker.Track(nil, nil)
+	id1 := tracker.Track(nil, nil, "")
+	id2 := tracker.Track(nil, nil, "")
 
 	if tracker.ActiveCount() != 2 {
 		t.Errorf("after two tracks, count = %d, want 2", tracker.ActiveCount())
@@ -48,7 +48,7 @@ func TestConnectionTracker_StaleCleanup(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
 	defer tracker.Stop()
 
-	tracker.Track(nil, nil)
+	tracker.Track(nil, nil, "")
 
 	tracker.mu.Lock()
 	for _, tc := range tracker.connections {
@@ -67,8 +67,8 @@ func TestConnectionTracker_StaleCleanup(t *testing.T) {
 
 func TestConnectionTracker_Stop(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
-	tracker.Track(nil, nil)
-	tracker.Track(nil, nil)
+	tracker.Track(nil, nil, "")
+	tracker.Track(nil, nil, "")
 	tracker.Stop()
 
 	if tracker.ActiveCount() != 0 {
@@ -80,7 +80,7 @@ func TestConnectionTracker_PingsKeepConnectionAlive(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
 	defer tracker.Stop()
 
-	tracker.Track(nil, nil)
+	tracker.Track(nil, nil, "")
 
 	tracker.mu.Lock()
 	for _, tc := range tracker.connections {
@@ -102,7 +102,7 @@ func TestConnectionTracker_StaleWithNoPings(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
 	defer tracker.Stop()
 
-	tracker.Track(nil, nil)
+	tracker.Track(nil, nil, "")
 
 	tracker.mu.Lock()
 	for _, tc := range tracker.connections {
@@ -124,7 +124,7 @@ func TestTrackBookmark(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
 	defer tracker.Stop()
 
-	id := tracker.Track(nil, nil)
+	id := tracker.Track(nil, nil, "")
 
 	bookmarkMsg := `{"type":"BOOKMARK","object":{"metadata":{"resourceVersion":"12345"}}}`
 	trackBookmark(tracker, id, []byte(bookmarkMsg))
@@ -142,7 +142,7 @@ func TestTrackBookmark_NonBookmarkIgnored(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
 	defer tracker.Stop()
 
-	id := tracker.Track(nil, nil)
+	id := tracker.Track(nil, nil, "")
 
 	addedMsg := `{"type":"ADDED","object":{"metadata":{"resourceVersion":"99999"}}}`
 	trackBookmark(tracker, id, []byte(addedMsg))
@@ -160,7 +160,7 @@ func TestTrackBookmark_InvalidJSON(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
 	defer tracker.Stop()
 
-	id := tracker.Track(nil, nil)
+	id := tracker.Track(nil, nil, "")
 	trackBookmark(tracker, id, []byte("not json"))
 
 	tracker.mu.Lock()
@@ -201,7 +201,7 @@ func TestConnectionTracker_StaleCleanupWithConnections(t *testing.T) {
 	tracker := NewConnectionTracker(testLogger())
 	defer tracker.Stop()
 
-	id := tracker.Track(clientConn, targetConn)
+	id := tracker.Track(clientConn, targetConn, "")
 
 	tracker.mu.Lock()
 	staleTime := time.Now().Add(-(wsStaleConnectionTime + time.Minute))
@@ -296,7 +296,7 @@ func TestConnectionTrackerShutdownReleasesLockAndSharesDeadline(t *testing.T) {
 		peers = append(peers, conn)
 	}
 	tracker := NewConnectionTracker(testLogger())
-	tracker.Track(peers[0], peers[1])
+	tracker.Track(peers[0], peers[1], "")
 	stopped := make(chan struct{})
 	go func() { tracker.Stop(); close(stopped) }()
 	select {

@@ -14,9 +14,9 @@ import (
 
 const (
 	// PathPrefix is the URL prefix for BFF-scoped paths.
-	PathPrefix = "/core-bff"
+	PathPrefix = constants.BFFPathPrefix
 	// APIPathPrefix is the base API path prefix.
-	APIPathPrefix = "/api"
+	APIPathPrefix = constants.APIPathPrefix
 	// APIVersion is the API version path segment.
 	APIVersion = "/v1"
 )

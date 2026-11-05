@@ -104,6 +104,30 @@ func (t contractFixtureTransport) RoundTrip(r *http.Request) (*http.Response, er
 }
 
 func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/diagnostics/webhook" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(metav1.Status{
+			TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Status"},
+			Status:   metav1.StatusFailure, Code: 403, Reason: metav1.StatusReasonForbidden,
+			Message: "webhook denied: CANARY_ONLY_UPSTREAM_SECRET",
+		})
+		return
+	}
+	if r.URL.Path == "/diagnostics/validation" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_ = json.NewEncoder(w).Encode(metav1.Status{
+			TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Status"},
+			Status:   metav1.StatusFailure, Code: 422, Reason: metav1.StatusReasonInvalid,
+			Message: "spec.replicas is invalid: CANARY_ONLY_UPSTREAM_SECRET",
+			Details: &metav1.StatusDetails{Name: "CANARY_NAME", Causes: []metav1.StatusCause{
+				{Type: metav1.CauseTypeFieldValueInvalid, Field: "spec.replicas", Message: "CANARY_ONLY_UPSTREAM_SECRET"},
+				{Type: metav1.CauseTypeFieldValueRequired, Field: "spec.image", Message: "CANARY_ONLY_UPSTREAM_SECRET"},
+			}},
+		})
+		return
+	}
 	if r.URL.Path == "/watch" {
 		w.Header().Set("Content-Type", "application/json")
 		eventType := "ERROR"

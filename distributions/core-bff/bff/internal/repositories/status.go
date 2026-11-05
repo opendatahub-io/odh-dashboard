@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -81,7 +81,7 @@ func (r *StatusRepository) GetStatus(
 // resolveIsAllowed determines if a non-admin user is allowed to access the dashboard.
 // 1. If Auth CRD is absent (discovery error): all users allowed (no group restrictions).
 // 2. If Auth CR has system:authenticated in allowedGroups: all authenticated users allowed.
-// 3. If the Auth instance is missing, fall through to SSAR; other read failures propagate.
+// 3. If Auth cannot be read or parsed, fall through to the caller's authoritative SSAR.
 // 4. Otherwise: SSAR for get on auths/default-auth.
 func resolveIsAllowed(
 	ctx context.Context, client k8s.KubernetesClientInterface,
@@ -100,8 +100,8 @@ func resolveIsAllowed(
 		}
 	}
 
-	if authErr != nil && !k8serrors.IsNotFound(authErr) {
-		return false, fmt.Errorf("failed to read access configuration: %w", authErr)
+	if authErr != nil {
+		httpcontract.LogContext(nil, ctx).Warn("access configuration unavailable; falling back to SSAR", "code", httpcontract.SafeErrorCode(authErr))
 	}
 
 	allowed, ssarErr := client.IsUserAllowed(ctx, identity)

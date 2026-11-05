@@ -48,8 +48,8 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 		return false, fmt.Errorf("failed to verify cluster-admin permissions: %w", err)
 	}
 
-	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
-		return false, fmt.Errorf("access review evaluation failed")
+	if resp.Status.EvaluationError != "" {
+		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	if !resp.Status.Allowed {
 		httpcontract.LogContext(kc.Logger, ctx).Info("user is NOT cluster-admin")
@@ -143,8 +143,8 @@ func (kc *TokenKubernetesClient) CanListServicesInNamespace(ctx context.Context,
 			return false, err
 		}
 
-		if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
-			return false, fmt.Errorf("access review evaluation failed")
+		if resp.Status.EvaluationError != "" {
+			httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 		}
 		if !resp.Status.Allowed {
 			httpcontract.LogContext(kc.Logger, ctx).Warn("self-SAR denied", "namespace", namespace, "verb", verb)
@@ -176,8 +176,8 @@ func (kc *TokenKubernetesClient) CanAccessServiceInNamespace(ctx context.Context
 		httpcontract.LogContext(kc.Logger, ctx).Error("self-SAR failed", "service", serviceName, "namespace", namespace, "error_code", httpcontract.SafeErrorCode(err))
 		return false, err
 	}
-	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
-		return false, fmt.Errorf("access review evaluation failed")
+	if resp.Status.EvaluationError != "" {
+		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	if !resp.Status.Allowed {
 		httpcontract.LogContext(kc.Logger, ctx).Warn("self-SAR denied", "service", serviceName, "namespace", namespace)
@@ -221,8 +221,8 @@ func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *Request
 	if err != nil {
 		return false, fmt.Errorf("failed to check namespace get access: %w", err)
 	}
-	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
-		return false, fmt.Errorf("access review evaluation failed")
+	if resp.Status.EvaluationError != "" {
+		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	return resp.Status.Allowed, nil
 }
@@ -252,8 +252,8 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity
 
 	username := resp.Status.UserInfo.Username
 	if username == "" {
-		httpcontract.LogContext(kc.Logger, ctx).Error("user identity not found in token")
-		return "", fmt.Errorf("no username found in token")
+		httpcontract.LogContext(kc.Logger, ctx).Warn("user identity unresolved", "error_code", "IDENTITY_UNRESOLVED")
+		return "", fmt.Errorf("no username found in SelfSubjectReview: %w", httpcontract.ErrIdentityUnresolved)
 	}
 
 	// If it's a service account, extract the SA name
@@ -304,8 +304,8 @@ func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, v
 		return false, fmt.Errorf("failed to perform auth singleton SAR (verb=%s): %w", verb, err)
 	}
 
-	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
-		return false, fmt.Errorf("access review evaluation failed")
+	if resp.Status.EvaluationError != "" {
+		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	return resp.Status.Allowed, nil
 }
@@ -331,8 +331,8 @@ func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIden
 		return false, fmt.Errorf("failed to check access (verb=%s, resource=%s/%s): %w", verb, group, resource, err)
 	}
 
-	if !resp.Status.Allowed && resp.Status.EvaluationError != "" {
-		return false, fmt.Errorf("access review evaluation failed")
+	if resp.Status.EvaluationError != "" {
+		httpcontract.LogContext(kc.Logger, ctx).Warn("access review completed with diagnostic", "allowed", resp.Status.Allowed)
 	}
 	if !resp.Status.Allowed {
 		httpcontract.LogContext(kc.Logger, ctx).Info("SSAR denied", "verb", verb, "group", group, "resource", resource, "namespace", namespace)

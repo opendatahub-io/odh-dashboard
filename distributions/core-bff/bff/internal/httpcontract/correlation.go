@@ -21,9 +21,10 @@ const AuditIDHeader = "Audit-ID"
 
 type stateKey struct{}
 type state struct {
-	id    string
-	mu    sync.Mutex
-	audit string
+	id              string
+	mu              sync.Mutex
+	audit           string
+	kubernetesProxy bool
 }
 
 // RequestID returns the BFF request identifier installed in ctx.
@@ -68,7 +69,7 @@ func EnsureID(w http.ResponseWriter, r *http.Request) string {
 	id := RequestID(r.Context())
 	if id == "" {
 		id = uuid.NewString()
-		*r = *r.WithContext(context.WithValue(r.Context(), stateKey{}, &state{id: id}))
+		*r = *r.WithContext(context.WithValue(r.Context(), stateKey{}, &state{id: id, kubernetesProxy: isKubernetesProxyRequest(r)}))
 	}
 	w.Header().Set(RequestIDHeader, id)
 	return id
@@ -96,7 +97,7 @@ func Middleware(next http.Handler, loggers ...*slog.Logger) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		ctx := context.WithValue(r.Context(), stateKey{}, &state{id: uuid.NewString()})
+		ctx := context.WithValue(r.Context(), stateKey{}, &state{id: uuid.NewString(), kubernetesProxy: isKubernetesProxyRequest(r)})
 		r = r.Clone(ctx)
 		r.Header.Del(RequestIDHeader)
 		r.Header.Del(AuditIDHeader)

@@ -91,7 +91,7 @@ func NewConnectionTracker(logger *slog.Logger) *ConnectionTracker {
 }
 
 // Track registers a client-target WebSocket pair and returns its connection ID.
-func (ct *ConnectionTracker) Track(client, target *websocket.Conn, requestID ...string) string {
+func (ct *ConnectionTracker) Track(client, target *websocket.Conn, requestID string) string {
 	ct.mu.Lock()
 	defer ct.mu.Unlock()
 
@@ -99,17 +99,15 @@ func (ct *ConnectionTracker) Track(client, target *websocket.Conn, requestID ...
 	id := fmt.Sprintf("ws-%d", ct.nextID)
 	now := time.Now()
 	ct.connections[id] = &trackedConnection{
-		id:     id,
-		client: client,
-		target: target,
+		id:        id,
+		requestID: requestID,
+		client:    client,
+		target:    target,
 		metrics: &connectionMetrics{
 			Created:             now,
 			LastMessageReceived: now,
 			LastMessageSent:     now,
 		},
-	}
-	if len(requestID) > 0 {
-		ct.connections[id].requestID = requestID[0]
 	}
 	ct.logger.Debug("WebSocket connection tracked", slog.String("id", id), slog.String("request_id", ct.connections[id].requestID))
 	return id

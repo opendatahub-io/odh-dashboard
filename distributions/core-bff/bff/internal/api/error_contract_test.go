@@ -41,7 +41,7 @@ func TestProductionAuthFailureContract(t *testing.T) {
 		{"/api/v1/user", 504, 504},
 		{"/api/components", 403, 403},
 		{"/api/components", 429, 429},
-		{"/api/v1/user", 201, 500},
+		{"/api/v1/user", 201, 401},
 	} {
 		t.Run(fmt.Sprintf("%s/upstream=%d", tc.path, tc.upstreamStatus), func(t *testing.T) {
 			status := tc.upstreamStatus
@@ -86,10 +86,10 @@ func TestProductionAuthFailureContract(t *testing.T) {
 			app.Routes().ServeHTTP(w, r)
 			require.Equal(t, tc.responseStatus, w.Code)
 			if status == http.StatusCreated {
-				// A successful SSR with no username is malformed upstream data, not proof of invalid credentials.
+				// Unresolved identity is unauthorized; actual SSR request failures retain their cause.
 				var failure HTTPError
 				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &failure))
-				require.Equal(t, "INTERNAL_SERVER_ERROR", failure.Error.Code)
+				require.Equal(t, "UNAUTHORIZED", failure.Error.Code)
 			} else {
 				var s metav1.Status
 				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &s))

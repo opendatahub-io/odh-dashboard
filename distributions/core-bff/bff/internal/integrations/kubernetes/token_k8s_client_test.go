@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	authnv1 "k8s.io/api/authentication/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -230,16 +231,31 @@ func TestNewTokenKubernetesClient_ForwardsUserTokenOnAPICall(t *testing.T) {
 }
 
 func TestAccessReviewEvaluationDiagnostics(t *testing.T) {
-	for _, granted := range []bool{false, true} {
-		t.Run(fmt.Sprintf("allowed=%v", granted), func(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		granted   bool
+		forbidden bool
+	}{
+		{"allowed with diagnostic", true, false},
+		{"denied with diagnostic", false, false},
+		{"review request forbidden", false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logs, nil))
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = fmt.Fprintf(w, `{"apiVersion":"authorization.k8s.io/v1","kind":"SelfSubjectAccessReview","status":{"allowed":%t,"evaluationError":"CANARY"}}`, granted)
+				if tc.forbidden {
+					w.WriteHeader(http.StatusForbidden)
+					_, _ = w.Write([]byte(`{"apiVersion":"v1","kind":"Status","status":"Failure","code":403,"reason":"Forbidden","message":"CANARY"}`))
+					return
+				}
+				_, _ = fmt.Fprintf(w, `{"apiVersion":"authorization.k8s.io/v1","kind":"SelfSubjectAccessReview","status":{"allowed":%t,"evaluationError":"CANARY"}}`, tc.granted)
 			}))
 			defer server.Close()
 			clientset, err := kubernetes.NewForConfig(&rest.Config{Host: server.URL})
 			require.NoError(t, err)
-			client := &TokenKubernetesClient{SharedClientLogic: SharedClientLogic{Client: clientset, Logger: slog.Default()}}
+			client := &TokenKubernetesClient{SharedClientLogic: SharedClientLogic{Client: clientset, Logger: logger}}
 			for name, check := range map[string]func() (bool, error){
 				"cluster-admin": func() (bool, error) { return client.IsClusterAdmin(context.Background(), nil) },
 				"admin":         func() (bool, error) { return client.IsUserAdmin(context.Background(), nil) },
@@ -255,15 +271,16 @@ func TestAccessReviewEvaluationDiagnostics(t *testing.T) {
 			} {
 				t.Run(name, func(t *testing.T) {
 					allowed, err := check()
-					require.Equal(t, granted, allowed)
-					if granted {
-						require.NoError(t, err)
-					} else {
+					require.Equal(t, tc.granted, allowed)
+					if tc.forbidden {
 						require.Error(t, err)
-						require.NotContains(t, err.Error(), "CANARY")
+						require.True(t, apierrors.IsForbidden(err))
+					} else {
+						require.NoError(t, err)
 					}
 				})
 			}
+			require.NotContains(t, logs.String(), "CANARY")
 		})
 	}
 }

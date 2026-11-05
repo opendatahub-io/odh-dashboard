@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
@@ -16,11 +17,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Credential sentinels carry trusted cause information without credential values.
+// Authentication sentinels carry cause information without credential values.
 var (
 	ErrCredentialsMissing = errors.New("credentials missing")
 	ErrCredentialsInvalid = errors.New("credentials invalid")
 	ErrCredentialsExpired = errors.New("credentials expired")
+	ErrIdentityUnresolved = errors.New("identity unresolved")
 )
 
 // ErrorPayload contains the stable code, safe message and request correlation for a BFF failure.
@@ -69,7 +71,7 @@ func Classify(err error, fallback int) *HTTPError {
 	var ne net.Error
 	var dns *net.DNSError
 	switch {
-	case errors.Is(err, ErrCredentialsMissing), errors.Is(err, ErrCredentialsInvalid), errors.Is(err, ErrCredentialsExpired):
+	case errors.Is(err, ErrCredentialsMissing), errors.Is(err, ErrCredentialsInvalid), errors.Is(err, ErrCredentialsExpired), errors.Is(err, ErrIdentityUnresolved):
 		return Local(401)
 	case errors.Is(err, context.DeadlineExceeded), errors.As(err, &ne) && ne.Timeout():
 		return Local(504)
@@ -84,9 +86,30 @@ func Classify(err error, fallback int) *HTTPError {
 
 // WriteLocal writes a correlated BFF failure using the safe message catalog.
 func WriteLocal(w http.ResponseWriter, r *http.Request, status int) {
+	if status < 400 || status > 599 {
+		status = http.StatusInternalServerError
+	}
 	e := Local(status)
 	e.Error.RequestID = EnsureID(w, r)
+	if isKubernetesProxyRequest(r) {
+		// Kubernetes SDK calls require a failure Status to reject local errors.
+		writeJSON(w, r, status, metav1.Status{
+			TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Status"},
+			Status:   metav1.StatusFailure, Code: int32(status),
+			Reason: "DashboardProxyError", Message: e.Error.Message,
+			Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{Type: metav1.CauseType(e.Error.Code), Message: e.Error.Message}}},
+		})
+		return
+	}
 	writeJSON(w, r, status, e)
+}
+
+func isKubernetesProxyRequest(r *http.Request) bool {
+	if requestState, ok := r.Context().Value(stateKey{}).(*state); ok && requestState.kubernetesProxy {
+		return true
+	}
+	path := strings.TrimPrefix(r.URL.Path, constants.BFFPathPrefix)
+	return path == strings.TrimSuffix(constants.K8sProxyPrefix, "/") || strings.HasPrefix(path, constants.K8sProxyPrefix)
 }
 
 // WriteBFF preserves existing public domain codes while selecting fixed safe text.
@@ -194,16 +217,10 @@ func SanitizeStatus(in metav1.Status, code int) metav1.Status {
 	if in.Details != nil {
 		d := in.Details
 		out.Details = &metav1.StatusDetails{Group: safeSchemaName(d.Group), Kind: safeSchemaName(d.Kind), RetryAfterSeconds: d.RetryAfterSeconds}
-		for _, c := range d.Causes {
-			field := safeFieldPath(c.Field)
-			causeType := c.Type
-			switch causeType {
-			case metav1.CauseTypeFieldValueNotFound, metav1.CauseTypeFieldValueRequired, metav1.CauseTypeFieldValueDuplicate, metav1.CauseTypeFieldValueInvalid, metav1.CauseTypeFieldValueNotSupported, metav1.CauseTypeUnexpectedServerResponse, metav1.CauseTypeForbidden, metav1.CauseTypeTooLong, metav1.CauseTypeTooMany, metav1.CauseTypeTypeInvalid, metav1.CauseTypeInternal, metav1.CauseTypeFieldManagerConflict, metav1.CauseTypeResourceVersionTooLarge:
-			default:
-				causeType = metav1.CauseTypeFieldValueInvalid
-			}
-			out.Details.Causes = append(out.Details.Causes, metav1.StatusCause{Type: causeType, Field: field, Message: "invalid field value"})
+		for _, cause := range d.Causes {
+			out.Details.Causes = append(out.Details.Causes, sanitizeCause(cause))
 		}
+		out.Message = diagnosticSummary(out.Message, out.Details.Causes)
 	}
 	return out
 }
@@ -212,7 +229,7 @@ var reasonMessages = map[metav1.StatusReason]string{
 	metav1.StatusReasonStoreReadError:        "the server encountered an error reading the resource",
 	metav1.StatusReasonUnknown:               "the server encountered an error processing your request",
 	metav1.StatusReasonUnauthorized:          "authentication required",
-	metav1.StatusReasonForbidden:             "insufficient permissions for this operation",
+	metav1.StatusReasonForbidden:             "the requested operation is forbidden",
 	metav1.StatusReasonNotFound:              "the requested resource could not be found",
 	metav1.StatusReasonAlreadyExists:         "the resource already exists",
 	metav1.StatusReasonConflict:              "the resource was modified by another request",
@@ -275,6 +292,8 @@ func SafeErrorCode(err error) string {
 		return "CREDENTIALS_INVALID"
 	case errors.Is(err, ErrCredentialsExpired):
 		return "CREDENTIALS_EXPIRED"
+	case errors.Is(err, ErrIdentityUnresolved):
+		return "IDENTITY_UNRESOLVED"
 	}
 	var s k8serrors.APIStatus
 	if errors.As(err, &s) {

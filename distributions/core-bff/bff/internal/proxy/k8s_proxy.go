@@ -16,7 +16,7 @@ import (
 )
 
 // K8sProxyPrefix is the URL path prefix for Kubernetes API proxy requests.
-const K8sProxyPrefix = "/api/k8s/"
+const K8sProxyPrefix = constants.K8sProxyPrefix
 
 // SensitiveIngressHeaders returns header names that must not leak from the ingress
 // layer to upstream services. authTokenHeader is included dynamically because it
