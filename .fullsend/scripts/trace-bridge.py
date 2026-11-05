@@ -36,6 +36,7 @@ import math
 import json
 import os
 import re
+import shlex
 import sys
 import urllib.error
 import urllib.parse
@@ -74,8 +75,9 @@ OTLP_ID_RE = {"traceId": re.compile(r"[0-9a-f]{32}"), "spanId": re.compile(r"[0-
 # Fields kept from Fullsend's own spans; events, links and status messages are dropped.
 BASE_SPAN_FIELDS = ("traceId", "spanId", "parentSpanId", "name", "kind", "startTimeUnixNano",
                     "endTimeUnixNano", "flags")
-BRIDGE_VERSION = "2"
-VERDICTS = ("approve", "request-changes", "comment")
+BRIDGE_VERSION = "3"
+NAME_RE = re.compile(r"[\w.-]{1,60}")  # persona, tool and program names
+VERDICTS = ("approve", "request-changes", "comment", "reject", "failure")  # review-result.schema.json
 LOOKUP_TIMEOUT = 30
 
 
@@ -154,8 +156,12 @@ def attr(k, v):
     if isinstance(v, bool):
         val = {"boolValue": v}
     elif isinstance(v, int):
+        if not -2**63 <= v < 2**63:
+            return None
         val = {"intValue": str(v)}
     elif isinstance(v, float):
+        if not math.isfinite(v):
+            return None
         val = {"doubleValue": v}
     elif isinstance(v, (list, tuple)):
         val = {"arrayValue": {"values": [{"stringValue": clean(x)} for x in v]}}
@@ -167,12 +173,13 @@ def attr(k, v):
 
 
 def attrs(d):
-    return [attr(k, v) for k, v in d.items() if v is not None and v != "" and v != []]
+    out = (attr(k, v) for k, v in d.items() if v is not None and v != "" and v != [])
+    return [a for a in out if a is not None]
 
 
 def span(trace_id, sid, parent, name, start, end, a, error=False):
     s = {
-        "traceId": trace_id, "spanId": sid, "name": name, "kind": 1,
+        "traceId": trace_id, "spanId": sid, "name": clean(name)[:200], "kind": 1,
         "startTimeUnixNano": str(clamp_ns(start)), "endTimeUnixNano": str(clamp_ns(max(end, start))),
         "attributes": attrs(a), "status": {"code": 2 if error else 1},
     }
@@ -223,9 +230,9 @@ def sanitize_attr(a, sensitive=False, depth=0):
     """A redacted OTLP KeyValue, or None if it isn't one or its value is invalid."""
     if not isinstance(a, dict):
         return None
-    key = str(a.get("key", ""))[:200]
-    val = sanitize_value(a.get("value"), sensitive or bool(SENSITIVE_KEY_RE.search(key)), depth)
-    return {"key": key, "value": val} if val is not None else None
+    raw = str(a.get("key", ""))[:MAX_SCAN]
+    val = sanitize_value(a.get("value"), sensitive or bool(SENSITIVE_KEY_RE.search(raw)), depth)
+    return {"key": clean(raw)[:200], "value": val} if val is not None else None
 
 
 def sanitize_base_span(s):
@@ -312,7 +319,6 @@ def _norm_guidance(p):
     return rel if rel and GUIDANCE_RE.fullmatch(rel) else None
 
 
-READ_CMD_RE = re.compile(r"^\s*(?:sudo\s+)?(cat|head|tail|less|more|bat|nl|sed|awk)\b")
 
 
 def guidance_opened(c):
@@ -321,18 +327,11 @@ def guidance_opened(c):
     if c.get("error") or c.get("end") is None:
         return set()
     a = c["args"]
-    if c["name"] == "read":
-        g = _norm_guidance(str(a.get("path", "")))
+    if c["name"] == "read" and isinstance(a.get("path"), str):
+        g = _norm_guidance(a["path"])
         return {g} if g else set()
-    if c["name"] == "bash":
-        got = set()
-        for seg in re.split(r"\|\||&&|[;|\n]", str(a.get("command", ""))):
-            if READ_CMD_RE.match(seg):
-                for tok in re.findall(r"[\w@./*-]+\.md", seg):
-                    g = _norm_guidance(tok) if "*" not in tok else None
-                    if g:
-                        got.add(g)
-        return got
+    if c["name"] == "bash" and isinstance(a.get("command"), str):
+        return {g for g in (_norm_guidance(t) for t in shell_reads(a["command"])) if g}
     return set()
 
 
@@ -363,95 +362,168 @@ def persona_of(transcript, entries):
     if not m:
         return None, "orchestrator"
     seq, persona = int(m.group(1)), m.group(2)
+    if persona and not NAME_RE.fullmatch(persona):
+        persona = ""
     if not persona:
         for e in entries:
-            msg = e.get("message") or {}
-            if msg.get("role") != "user":
+            msg = e.get("message") if isinstance(e, dict) else None
+            if not isinstance(msg, dict) or msg.get("role") != "user":
                 continue
             text = json.dumps(msg.get("content"))
-            mm = re.search(r"sub-agents/([\w-]+?)(?:/SKILL)?\.md", text)
+            mm = re.search(r"sub-agents/([\w-]{1,60}?)(?:/SKILL)?\.md", text)
             persona = mm.group(1) if mm else f"sub{seq}"
             break
     return seq, persona or f"sub{seq}"
 
 
 def tool_calls(entries):
-    """Yield dicts for each tool call with timing from its matching toolResult."""
+    """Tool calls with timing from their matching toolResult. Entries are sandbox data, so
+    every shape is checked: malformed entries, calls and results are skipped, not fatal."""
     calls, order = {}, []
-    for e in entries:
-        msg = e.get("message") or {}
+    for n, e in enumerate(entries):
+        msg = e.get("message") if isinstance(e, dict) else None
+        if not isinstance(msg, dict):
+            continue
         role = msg.get("role")
+        content = msg.get("content") if isinstance(msg.get("content"), list) else []
         if role == "assistant":
-            for c in msg.get("content") or []:
-                if isinstance(c, dict) and c.get("type") == "toolCall":
-                    calls[c.get("id")] = {"name": c.get("name"), "args": c.get("arguments") or {},
-                                          "start": ns(e.get("timestamp")), "end": None}
-                    order.append(c.get("id"))
+            for c in content:
+                if not (isinstance(c, dict) and c.get("type") == "toolCall"):
+                    continue
+                cid = c.get("id") if isinstance(c.get("id"), str) else f"anon-{n}-{len(order)}"
+                if cid in calls:
+                    continue
+                name = c.get("name") if isinstance(c.get("name"), str) and NAME_RE.fullmatch(c["name"]) else "unknown"
+                args = c.get("arguments") if isinstance(c.get("arguments"), dict) else {}
+                calls[cid] = {"name": name, "args": args, "start": ns(e.get("timestamp")), "end": None}
+                order.append(cid)
         elif role == "toolResult":
-            c = calls.get(msg.get("toolCallId"))
-            if c is not None:
-                end = ns(msg.get("timestamp")) or ns(e.get("timestamp"))
-                dur = msg.get("durationMs")
-                c["end"] = end
-                if end and isinstance(dur, (int, float)):
-                    c["start"] = end - int(dur * 1_000_000)
-                c["error"] = bool(msg.get("isError"))
+            c = calls.get(msg.get("toolCallId")) if isinstance(msg.get("toolCallId"), str) else None
+            if c is None:
+                continue
+            end = ns(msg.get("timestamp")) or ns(e.get("timestamp"))
+            dur = num(msg.get("durationMs"))
+            c["end"] = end
+            if end and dur is not None and end - int(dur * 1_000_000) > 0:
+                c["start"] = end - int(dur * 1_000_000)
+            c["error"] = msg.get("isError") is True
+            try:
                 c["result_bytes"] = len(json.dumps(msg.get("content") or ""))
+            except (TypeError, ValueError):
+                c["result_bytes"] = None
     return [calls[i] for i in order]
 
 
 HEREDOC_RE = re.compile(r"<<-?[ \t]{0,4}(['\"]?)([A-Za-z_][\w]{0,40})\1")
-INLINE_SCRIPT_RE = re.compile(
-    r"\b((?:python[\d.]*|node|deno|ruby|perl|php|bash|sh|zsh|jq|awk)\b[^|;&\n]{0,80}?\s-[a-zA-Z]{0,4}[ce][ \t]{1,8})"
-    r"(\"(?:[^\"\\]|\\.){0,20000}\"|'[^']{0,20000}')")
-LONG_QUOTED_RE = re.compile(r"\"(?:[^\"\\]|\\.){120,20000}\"|'[^']{120,20000}'")
+SHELL_OP_RE = re.compile(r"(\|\||&&|;|\||\n)")
+READ_PROGS = {"cat", "head", "tail", "less", "more", "bat", "nl", "sed", "awk"}
+PATH_TOKEN_RE = re.compile(r"[\w@.+-]*(?:/[\w@.+-]+)+/?|[\w@+-]+\.[A-Za-z0-9]{1,8}")
+REDIRECT_RE = re.compile(r"^(?:\d|&)?>{1,2}|^<<<?$")
 
 
-def minimize_command(cmd):
-    """A shell command without the data it carries: heredoc bodies, inline scripts
-    (python -c, node -e, bash -c, ...) and long quoted strings become placeholders, so a
-    shell write can't export file contents that the write/edit filtering would drop."""
-    lines, out, end = str(cmd)[:20000].split("\n"), [], None
-    skipped = 0
+def shell_segments(cmd):
+    """Split a shell command into (operator-before, tokens) segments. Heredoc bodies are
+    dropped first; tokens come from shlex, falling back to whitespace on bad quoting."""
+    lines, kept, end = str(cmd)[:MAX_SCAN * 5].split("\n"), [], None
     for line in lines:
         if end is not None:
             if line.strip() == end:
-                out.append(f"[heredoc: {skipped} lines]")
-                out.append(line)
-                end, skipped = None, 0
-            else:
-                skipped += 1
+                end = None
             continue
-        out.append(line)
+        kept.append(line)
         m = HEREDOC_RE.search(line)
         if m:
             end = m.group(2)
-    if end is not None:
-        out.append(f"[heredoc: {skipped} lines]")
-    s = "\n".join(out)
-    s = INLINE_SCRIPT_RE.sub(lambda m: f"{m.group(1)}[inline script: {len(m.group(2)) - 2} chars]", s)
-    return LONG_QUOTED_RE.sub(lambda m: f"[quoted: {len(m.group(0)) - 2} chars]", s)
+    parts, segs, op = SHELL_OP_RE.split("\n".join(kept)), [], None
+    for part in parts:
+        if SHELL_OP_RE.fullmatch(part):
+            op = part
+            continue
+        try:
+            toks = shlex.split(part, comments=False, posix=True)
+        except ValueError:
+            toks = part.split()
+        if toks:
+            segs.append((op, toks[:200]))
+    return segs
+
+
+def _program(toks):
+    """Index and basename of the program in a segment, skipping VAR=x prefixes and sudo/env."""
+    for i, t in enumerate(toks):
+        if re.fullmatch(r"[A-Za-z_]\w*=.*", t) or t in ("sudo", "env", "command", "exec", "time"):
+            continue
+        name = os.path.basename(t)
+        return i, (name if NAME_RE.fullmatch(name) else "other")
+    return None, None
+
+
+def shell_summary(cmd):
+    """What a shell command is exported as: the programs it runs and the file paths it
+    names. Arguments, quoted text, heredoc bodies and inline scripts are never exported."""
+    programs, paths = [], []
+    for _op, toks in shell_segments(cmd):
+        i, prog = _program(toks)
+        if prog:
+            programs.append(prog)
+        for t in toks[(i or 0) + 1:]:
+            t = REDIRECT_RE.sub("", t)
+            if t and not t.startswith("-") and PATH_TOKEN_RE.fullmatch(t) and len(t) <= 300:
+                rel = rel_path(t)[0] if t.startswith("/") else t
+                if rel and rel not in paths:
+                    paths.append(rel)
+    return programs[:30], paths[:30]
+
+
+def shell_reads(cmd):
+    """Files whose contents a read program (cat, head, sed, ...) was given. Segments after
+    `||` may not run and are skipped; redirection targets (`> f`) are outputs, not reads."""
+    got = []
+    for op, toks in shell_segments(cmd):
+        if op == "||":
+            continue
+        i, prog = _program(toks)
+        if prog not in READ_PROGS:
+            continue
+        skip_next = False
+        for t in toks[i + 1:]:
+            if skip_next:
+                skip_next = False
+                continue
+            if REDIRECT_RE.match(t):
+                # `> f` / `>> f` / `2> f` write; a bare `<` reads its target.
+                skip_next = not t.startswith("<") and REDIRECT_RE.sub("", t) == ""
+                continue
+            if t.startswith("-") or "*" in t:
+                continue
+            got.append(t)
+    return got
 
 
 def describe_call(c):
     a, name = c["args"], c["name"]
     out = {"gen_ai.operation.name": "execute_tool", "gen_ai.tool.name": name}
-    target = a.get("path") or a.get("pattern") or a.get("command") or a.get("prompt") or ""
-    if a.get("path"):
-        rel, root = rel_path(a["path"])
-        out.update({"fullsend.tool.path": rel or a["path"], "fullsend.file.root": root,
+    path = a.get("path") if isinstance(a.get("path"), str) else None
+    if path:
+        rel, root = rel_path(path)
+        out.update({"fullsend.tool.path": rel or path, "fullsend.file.root": root,
                     "fullsend.file.category": category(rel) if root != "pi-skill" else "pi-skill"})
-    if name == "bash":
-        out["fullsend.tool.command"] = minimize_command(a.get("command", ""))
-    elif name in ("grep", "find"):
-        out["fullsend.tool.pattern"] = a.get("pattern", "")
-        if a.get("path"):
-            out["fullsend.tool.path"] = rel_path(a["path"])[0] or a["path"]
+    if name == "bash" and isinstance(a.get("command"), str):
+        programs, paths = shell_summary(a["command"])
+        out["fullsend.tool.programs"] = programs
+        out["fullsend.tool.paths"] = paths
+    elif name in ("grep", "find") and isinstance(a.get("pattern"), str):
+        out["fullsend.tool.pattern"] = a["pattern"]
     for k in TOOL_ARG_ALLOWLIST:
-        if k not in ("path", "pattern") and isinstance(a.get(k), (str, int, float)):
-            out[f"fullsend.tool.{k}"] = a[k]
+        v = a.get(k)
+        if k in ("path", "pattern"):
+            continue
+        if isinstance(v, str):
+            out[f"fullsend.tool.{k}"] = v
+        elif num(v) is not None:
+            out[f"fullsend.tool.{k}"] = num(v)
     out["fullsend.tool.result_bytes"] = c.get("result_bytes")
-    return out, target
+    return out
 
 
 # ---------- main build ----------
@@ -480,9 +552,12 @@ def build(args):
             agent_by_iter[it] = s
 
     metrics = load_json(os.path.join(run_dir, "metrics.json"), {})
+    metrics = metrics if isinstance(metrics, dict) else {}
     iters = sorted(glob.glob(os.path.join(run_dir, "iteration-*")),
                    key=lambda p: int(re.sub(r"\D", "", os.path.basename(p)) or 0))
-    last = iters[-1] if iters else run_dir
+    # The result comes from the latest iteration that wrote one (a later iteration may not).
+    with_result = [d for d in iters if os.path.isfile(os.path.join(d, "output", "agent-result.json"))]
+    last = (with_result or iters or [run_dir])[-1]
     result = load_json(os.path.join(last, "output", "agent-result.json"), {}) or {}
     result = result if isinstance(result, dict) else {}
     # agent-result.json is written in the sandbox: keep only well-formed values.
@@ -492,14 +567,16 @@ def build(args):
     if not pr:
         shared = os.path.join(last, "output", "context", "shared.md")
         try:
-            m = re.search(r"PR:\s*([\w.-]+/[\w.-]+)#(\d+)", open(shared).read())
+            with open(shared, errors="replace") as f:
+                m = re.search(r"PR:\s*([\w.-]{1,100}/[\w.-]{1,100})#(\d{1,9})", f.read(MAX_SCAN * 25))
             repo, pr = (m.group(1), int(m.group(2))) if m else (repo, None)
         except OSError:
             pass
 
     common = {"session.id": f"{repo}#{pr}" if pr else None, "user.id": args.pr_author,
               "fullsend.repo": repo, "fullsend.pr_number": pr,
-              "fullsend.head_sha": result.get("head_sha")}
+              "fullsend.head_sha": result.get("head_sha") if isinstance(result.get("head_sha"), str)
+              and re.fullmatch(r"[0-9a-f]{40}", result["head_sha"]) else None}
 
     applicable = set()
     if args.guidance:
@@ -530,7 +607,7 @@ def build(args):
                 parent_sid = span_id(trace_id, key)
             counts, cats, reads, got = collections.Counter(), collections.Counter(), [], set()
             for i, c in enumerate(calls):
-                a, target = describe_call(c)
+                a = describe_call(c)
                 counts[c["name"]] += 1
                 if c["name"] == "read" and "fullsend.file.category" in a:
                     cats[a["fullsend.file.category"]] += 1
@@ -569,7 +646,7 @@ def build(args):
             a.update(common)
             spans.append(span(trace_id, parent_sid, agent_sid, f"persona {persona}", start, end, a,
                               u.get("isError") is True))
-            persona_rows.append((persona, num(us.get("cost")) or 0.0))
+            persona_rows.append((persona, it, seq, num(us.get("cost")) or 0.0))
 
 
     # context coverage
@@ -585,27 +662,48 @@ def build(args):
                       run_end, run_end, cov))
 
     # review result
-    findings = result.get("findings") or []
-    sev = collections.Counter(f.get("severity", "?") for f in findings)
-    dim = collections.Counter(f.get("dimension", "?") for f in findings)
-    prod = result.get("producers") or {}
+    findings = [f for f in result.get("findings") or [] if isinstance(f, dict)] \
+        if isinstance(result.get("findings"), list) else []
+    sev = collections.Counter(text(f.get("severity")) or "?" for f in findings)
+    dim = collections.Counter(text(f.get("dimension")) or "?" for f in findings)
+    prod = result.get("producers") if isinstance(result.get("producers"), dict) else {}
+
+    def items(key):
+        v = prod.get(key)
+        return v if isinstance(v, list) else []
+    dispatched = [text(x) for x in items("dispatched") if text(x)]
+    skipped = [text(x.get("id")) for x in items("skipped") if isinstance(x, dict) and text(x.get("id"))]
+    adapters = {text(x.get("id")): text(x.get("status")) for x in items("adapters")
+                if isinstance(x, dict) and text(x.get("id")) and text(x.get("status"))}
+    # Distinct usage records only: one (iteration, seq) is charged once, summed per persona.
+    persona_cost, charged = collections.defaultdict(float), set()
+    for persona, it, seq, cost in persona_rows:
+        if (it, seq) not in charged:
+            charged.add((it, seq))
+            persona_cost[persona] += cost
     risk, conf = result.get("risk") or {}, result.get("confidence") or {}
 
     def level(v):
         v = v.get("level") if isinstance(v, dict) else v
         return v if v in ("low", "medium", "high", "critical") else None
-    verdict = result.get("action") if result.get("action") in VERDICTS else None
-    verdict = verdict or (args.verdict if args.verdict in VERDICTS else None)
+    # An explicit action in the artifact always wins (unknown values export as "other");
+    # the GitHub-review fallback is used only when the artifact has none.
+    action = result.get("action")
+    if action is not None:
+        verdict = action if action in VERDICTS else "other"
+    else:
+        verdict = args.verdict if args.verdict in VERDICTS else None
     rr = {"fullsend.verdict": verdict, "fullsend.findings.count": len(findings),
           "fullsend.findings.by_severity": dict(sev), "fullsend.findings.by_dimension": dict(dim),
           "fullsend.risk": level(risk), "fullsend.confidence": level(conf),
-          "fullsend.producers.dispatched": prod.get("dispatched"),
-          "fullsend.producers.skipped": [s.get("id") for s in prod.get("skipped") or []],
-          "fullsend.adapters": {a.get("id"): a.get("status") for a in prod.get("adapters") or []},
-          "fullsend.iterations": metrics.get("iterations"), "fullsend.num_turns": metrics.get("num_turns"),
-          "fullsend.total_cost_usd": metrics.get("total_cost_usd"),
-          "fullsend.per_model_cost": {k: v.get("cost_usd") for k, v in (metrics.get("per_model_usage") or {}).items()},
-          "fullsend.persona_cost": {p: round(c, 6) for p, c in persona_rows},
+          "fullsend.producers.dispatched": dispatched, "fullsend.producers.skipped": skipped,
+          "fullsend.adapters": adapters,
+          "fullsend.iterations": num(metrics.get("iterations")), "fullsend.num_turns": num(metrics.get("num_turns")),
+          "fullsend.total_cost_usd": num(metrics.get("total_cost_usd")),
+          "fullsend.per_model_cost": {str(k)[:100]: num(v.get("cost_usd")) for k, v in
+                                      (metrics.get("per_model_usage") or {}).items() if isinstance(v, dict)}
+          if isinstance(metrics.get("per_model_usage"), dict) else None,
+          "fullsend.persona_cost": {p: round(c, 6) for p, c in persona_cost.items()},
           "fullsend.run_url": args.run_url}
     rr.update(common)
     spans.append(span(trace_id, span_id(trace_id, "review_result"), run_sid, "review_result",
@@ -823,6 +921,7 @@ def self_test():
                                      {"key": "bad.bool", "value": {"boolValue": "yes"}},
                                      {"key": "bad.huge", "value": {"doubleValue": 10**400}},
                                      {"key": "ok.double", "value": {"doubleValue": 1.5}},
+                                     {"key": "Bearer keyLeakabcdefghij", "value": {"stringValue": "v"}},
                                      {"key": "deep", "value": {"arrayValue": {"values": [
                                          {"doubleValue": float("inf")}, {"intValue": "7"}, "junk"]}}},
                                      {"key": "nested", "value": {"kvlistValue": {"values": [
@@ -867,11 +966,16 @@ def self_test():
             call("c5", "bash", {"command": "rg -n flag docs/adr/0009-x.md && cat AGENTS.md | head"}),
             call("c6", "bash", {"command": 'curl -d \'{"password": "hunter2pass"}\' --token tok3nvalue x'}),
             call("c7", "write", {"path": "/sandbox/workspace/out.json", "content": "client_secret=leakedvalue"}),
-            call("c8", "bash", {"command": "cat > /tmp/x.py <<'EOF'\nheredocBody1 = 1\nEOF\npython3 -c 'inlineBody2()' && ls"})]))
+            call("c8", "bash", {"command": "cat > /tmp/x.py <<'EOF'\nheredocBody1 = 1\nEOF\npython3 -c 'inlineBody2()' && ls"}),
+            call("c9", "bash", {"command": "cat > docs/adr/0009-x.md <<'EOF'\nbody\nEOF"}),
+            call("c10", "bash", {"command": "true || cat docs/adr/0009-x.md"}),
+            call("c11", "bash", {"command": "printf '%s' 'confidential customer information' > /tmp/report.txt"}),
+            call("c12", "bash", {"command": "cat <<< 'hereStringSecret' && wc -l .claude/rules/react.md"}),
+            call("c13", "ghp_QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ", {"x": 1})]))
         f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
         f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
         f.write(msg("toolResult", toolCallId="c3", durationMs=5, timestamp=1793664001700, isError=True))
-        for i in ("c4", "c5", "c6", "c7", "c8"):
+        for i in ("c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11", "c12", "c13"):
             f.write(msg("toolResult", toolCallId=i, durationMs=5, timestamp=1793664001800))
     with open(os.path.join(tr, "review-sub2-2026-11-03T00-00-01Z_b.jsonl"), "w") as f:
         f.write(msg("user", [{"type": "text", "text": "Read /x/sub-agents/test-impact-review/SKILL.md first"}]))
@@ -881,6 +985,11 @@ def self_test():
         f.write(msg("toolResult", toolCallId="h1", durationMs=5, timestamp="garbage"))
         f.write(msg("assistant", [call("h2", "read", {"path": "/sandbox/workspace/target-repo/z.ts"})]))
         f.write(msg("toolResult", toolCallId="h2", durationMs=1e300, timestamp=10**30))
+        f.write("[1, 2]\n" + json.dumps({"message": "str"}) + "\n")
+        f.write(msg("assistant", [{"type": "toolCall", "id": [1], "name": {"n": 1}, "arguments": [1]},
+                                  call("h3", "read", {"path": 5}), call("h4", "read", {"path": "a.ts"})]))
+        f.write(msg("toolResult", toolCallId="h3", durationMs=float("inf"), timestamp=1793664002000))
+        f.write(msg("toolResult", toolCallId="h4", durationMs=float("nan"), timestamp=1793664002000))
     for name in ("review-2026-11-03T00-00-00Z_o2.jsonl", "review-2026-11-03T00-10-00Z_o3.jsonl"):
         with open(os.path.join(tr, name), "w") as f:  # two orchestrator sessions in one iteration
             f.write(msg("assistant", [call("p1", "read", {"path": "/sandbox/workspace/target-repo/y.ts"})]))
@@ -889,6 +998,17 @@ def self_test():
         f.write(msg("assistant", [call("o1", "Agent", {"description": "style",
                                                        "prompt": "Apply docs/adr/0009-x.md"})]))
         f.write(msg("toolResult", toolCallId="o1", durationMs=5, timestamp=1793664001900))
+    with open(os.path.join(tr, "review-sub1-style-conventions-2026-11-03T00-05-00Z_dup.jsonl"), "w") as f:
+        f.write(msg("assistant", []))  # same usage record (iteration 1, seq 1) as the _a transcript
+    with open(os.path.join(tr, "review-sub9-ghp_QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ-2026-11-03T00-00-01Z_g.jsonl"), "w") as f:
+        f.write(msg("assistant", []))
+    tr2 = os.path.join(run, "iteration-2", "transcripts")
+    os.makedirs(tr2)
+    with open(os.path.join(tr2, "review-subagents-usage.jsonl"), "w") as f:
+        f.write(json.dumps({"seq": 1, "persona": "style-conventions", "durationMs": 10,
+                            "startedAt": "2026-11-03T00:10:00Z", "usage": {"cost": 0.04}}) + "\n")
+    with open(os.path.join(tr2, "review-sub1-style-conventions-2026-11-03T00-10-00Z_c.jsonl"), "w") as f:
+        f.write(msg("assistant", []))
     guidance = os.path.join(tmp, "guidance.json")
     json.dump({"documents": [{"path": ".claude/rules/react.md"}, {"path": "docs/adr/0009-x.md"}]},
               open(guidance, "w"))
@@ -905,8 +1025,14 @@ def self_test():
     persona_sc = by["persona style-conventions"]
     base_run = next(x for x in spans if x["name"] == "run")
     base_attrs = {x["key"]: x["value"] for x in base_run["attributes"]}
-    shell = next(get(x, "fullsend.tool.command") for x in spans
-                 if "heredoc" in str(get(x, "fullsend.tool.command") or ""))
+    tool = {}
+    for x in spans:
+        if x["name"].startswith("execute_tool") and get(x, "fullsend.persona") == "style-conventions":
+            tool.setdefault(len(tool), x)
+    shell_progs = [[v["stringValue"] for v in get(x, "fullsend.tool.programs")["values"]]
+                   for x in spans if get(x, "fullsend.tool.programs")]
+    rr_span = next(x for x in spans if x["name"] == "review_result")
+    persona_cost = json.loads(get(rr_span, "fullsend.persona_cost"))
     net = _self_test_network()
     t0 = datetime.datetime.now()
     redact("--" * 50000 + "token" + "-a" * 50000)
@@ -921,6 +1047,21 @@ def self_test():
                "risk": {"level": ["high"]}, "confidence": "token=abcdefgh123"},
               open(os.path.join(bad_result, "fs-rev-x", "iteration-1", "output", "agent-result.json"), "w"))
     _, bad_summary = build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict="<y>")))
+    result_path = os.path.join(bad_result, "fs-rev-x", "iteration-1", "output", "agent-result.json")
+
+    def variant(result, verdict=None):
+        json.dump(result, open(result_path, "w"))
+        return build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict=verdict)))
+    v_failure = variant({"action": "failure"}, "approve")[1]["tags"].get("fullsend.verdict")
+    v_fallback = variant({}, "approve")[1]["tags"].get("fullsend.verdict")
+    v_unknown = variant({"action": "weird"}, "approve")[1]["tags"].get("fullsend.verdict")
+    junk_payload, junk_summary = variant({
+        "findings": ["x", {"severity": float("nan"), "dimension": ["d"]}], "producers": ["a"],
+        "head_sha": float("nan")})
+    junk2_payload, _ = variant({"producers": {"dispatched": "notalist", "skipped": [1, {"id": {"a": 1}}],
+                                              "adapters": [{"id": {"a": 1}, "status": "ok"}, "junk",
+                                                           {"id": "jira", "status": float("inf")}]}})
+    junk_ok = bool(json.dumps(junk_payload, allow_nan=False)) and bool(json.dumps(junk2_payload, allow_nan=False))
     checks = [
         ("hostile usage row: no crash, persona kept, bad numbers dropped",
          hostile is not None and get(hostile, "fullsend.cost_usd") is None
@@ -929,8 +1070,23 @@ def self_test():
         ("two orchestrator transcripts in one iteration keep distinct span ids",
          sum(1 for x in spans if get(x, "fullsend.tool.path") == "y.ts") == 2),
         ("hostile agent-result: no verdict, risk, PR or repo in tags",
-         not any(k in bad_summary["tags"] for k in ("fullsend.verdict", "fullsend.risk", "fullsend.pr"))
-         and bad_summary["pr"] is None),
+         not any(k in bad_summary["tags"] for k in ("fullsend.risk", "fullsend.pr"))
+         and bad_summary["tags"].get("fullsend.verdict") == "other" and bad_summary["pr"] is None),
+        ("explicit artifact action wins (failure kept, unknown is 'other'); fallback only without one",
+         (v_failure, v_unknown, v_fallback) == ("failure", "other", "approve")),
+        ("malformed findings, producers, adapters and head_sha don't break the build or strict JSON",
+         junk_ok and "nan" not in json.dumps(junk_summary).lower()),
+        ("shell write targets, || branches, printf text and here-strings are not reads or exports",
+         "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))
+         and "confidential customer" not in blob and "hereStringSecret" not in blob
+         and ["printf"] in shell_progs and ["cat", "wc"] in shell_progs),
+        ("malformed transcript entries and non-finite tool durations are skipped",
+         any(get(x, "fullsend.tool.path") == "a.ts" and x["startTimeUnixNano"] <= x["endTimeUnixNano"]
+             for x in spans)),
+        ("persona cost sums distinct usage records across iterations",
+         abs(persona_cost.get("style-conventions", 0) - 0.05) < 1e-9),
+        ("credential-shaped tool names, persona names and attribute keys are redacted",
+         "QQQQQQQQQQQQ" not in blob and "keyLeakabcdefghij" not in blob),
         ("lookup timeout treated as a new trace", net["timeout_state"] == (False, False)),
         ("truncated lookup response treated as a new trace", net["truncated_state"] == (False, False)),
         ("malformed and out-of-range timestamps are rejected",
@@ -955,9 +1111,9 @@ def self_test():
         ("token counts under token-named keys kept", base_attrs.get("gen_ai.usage.input_tokens") == {"intValue": "42"}),
         ("nested OTLP values redacted", "nestedPw77" not in blob),
         ("events and status messages dropped", "eventLeak5" not in blob and "statusLeak6" not in blob),
-        ("heredoc body and inline script stripped from commands",
-         "heredocBody1" not in blob and "inlineBody2" not in blob and "[heredoc: 1 lines]" in shell
-         and "ls" in shell),
+        ("shell commands export only programs and paths (no heredoc bodies or inline scripts)",
+         "heredocBody1" not in blob and "inlineBody2" not in blob and ["cat", "python3", "ls"] in shell_progs
+         and "fullsend.tool.command" not in blob),
         ("redaction stays fast on long adversarial input", redact_secs < 2),
         ("malformed trace ids rejected", net["bad_id_rejected"]),
         ("plain http to a remote host rejected", net["http_rejected"]),
@@ -978,7 +1134,7 @@ def self_test():
         ("tool start from toolResult duration",
          int(sc_read["startTimeUnixNano"]) == 1793664001500 * 1_000_000 - 250_000_000),
         ("tool error status", by["execute_tool bash"]["status"]["code"] == 2),
-        ("secret redacted", "abcdefghijklmnop" not in get(by["execute_tool bash"], "fullsend.tool.command")),
+        ("Bearer token in a command never exported", "abcdefghijklmnop" not in blob),
         ("coverage is 1 of 2", summary["coverage"] == 0.5 and summary["missed"] == ["docs/adr/0009-x.md"]),
         ("session and user set", get(by["review_result"], "session.id") == "o/r#7"
          and get(by["review_result"], "user.id") == "alice"),

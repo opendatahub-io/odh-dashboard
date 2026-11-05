@@ -99,6 +99,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           ART: ${{ steps.artifact.outputs.dir }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
         run: |
           set -euo pipefail
           result=$(find "$ART" -path '*/output/agent-result.json' | sort | tail -1)
@@ -122,11 +123,14 @@ jobs:
             echo "::notice::PR head moved past the reviewed commit; tracing without guidance coverage."
           fi
           # agent-result.json may lack the verdict: the host post-script decides it after
-          # the artifact is captured. Fall back to the Fullsend bot's review on that commit.
+          # the artifact is captured. Fall back to the Fullsend bot's review of that commit,
+          # submitted after this run started (an older review of the same commit is not this
+          # run's verdict). The bridge ignores the fallback when the artifact has an action.
           verdict=""
-          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+          started=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.run_started_at // .created_at')
+          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$started" =~ ^[0-9T:Z-]{20}$ ]]; then
             state=$(gh api --paginate "repos/$REPO/pulls/$pr/reviews" \
-              --jq ".[] | select(.commit_id == \"$head_sha\" and .user.type == \"Bot\" and .user.login == \"fullsend-ai-review[bot]\") | .state" | tail -1)
+              --jq ".[] | select(.commit_id == \"$head_sha\" and .user.type == \"Bot\" and .user.login == \"fullsend-ai-review[bot]\" and .submitted_at >= \"$started\") | .state" | tail -1)
             case "$state" in
               APPROVED) verdict=approve ;;
               CHANGES_REQUESTED) verdict=request-changes ;;

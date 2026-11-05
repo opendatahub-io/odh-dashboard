@@ -513,7 +513,7 @@ trace, the bridge adds only its own spans to it.
 | Span | Contents |
 | --- | --- |
 | `persona <name>` | Sub-agent model, cost, tokens, duration, stop reason, tool counts, files read by category, guidance opened and missed |
-| `execute_tool <name>` | Tool name, repo-relative path, search pattern or minimized shell command, duration, result size, error |
+| `execute_tool <name>` | Tool name, repo-relative path, search pattern, or for shell commands the programs run and paths named; duration, result size, error |
 | `context_coverage` | Rules/ADRs that apply to the PR (`fetch-guidance-context.sh`), which were opened, which were missed |
 | `review_result` | Verdict, finding counts, risk, confidence, dispatched/skipped producers, adapter status, real cost |
 
@@ -521,8 +521,9 @@ Trace tags (`fullsend.pr`, `fullsend.verdict`, `fullsend.cost_usd`,
 `fullsend.guidance.coverage`, …) make the MLflow trace table filterable. MLflow's own cost
 column ignores cache discounts; use `fullsend.cost_usd`.
 
-"Opened" means a successful `read`, or a `cat`/`head`/`sed`-style shell read, of the file.
-Searches, failed reads and paths that only appear in prompts do not count. Coverage needs
+"Opened" means a successful `read`, or a file argument to `cat`/`head`/`sed`-style programs
+in a shell command. Searches, failed reads, paths that only appear in prompts, redirection
+targets (`cat > f`), heredoc bodies and commands after `||` do not count. Coverage needs
 `.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
 reviewed commit: when the selector is missing, or the PR head has moved past that commit
 (a later push or a backfill), the trace is sent without `context_coverage` data.
@@ -531,14 +532,17 @@ reviewed commit: when the selector is missing, or the PR head has moved past tha
 parsed as JSON; nothing from it is executed or interpolated into a shell. The job checks
 out the default branch only, without persisted credentials, and its token has `actions`,
 `contents` and `pull-requests` read access. Exported data excludes file contents, model
-messages, prompts and tool results; only paths, search patterns, shell commands and an
-allowlist of tool arguments leave the artifact. Shell commands are minimized first:
-heredoc bodies, inline scripts (`python -c`, `bash -c`, …) and long quoted strings
-become placeholders. Credential-looking values, text under sensitive key names and
-`--token`-style flags are redacted. Fullsend's own spans keep only IDs, name, kind, times,
-status code and redacted attributes (no events, links or status messages), and must sit
-in the host's run directory with well-formed IDs. Strings are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's
-own retention; anyone who can read the experiment can read these traces.
+messages, prompts and tool results; only paths, search patterns and an allowlist of tool
+arguments leave the artifact. Shell command text is never exported: a command becomes the
+list of programs it runs and the file paths it names, so arguments, quoted text, heredoc
+bodies and inline scripts stay behind. Fields from the sandbox (`agent-result.json`,
+transcripts, usage) are checked for shape and dropped when malformed; numbers must be
+finite. Credential-looking values, text under sensitive key names and `--token`-style
+flags are redacted, including in span names and attribute keys. Fullsend's own spans keep
+only IDs, name, kind, times, status code and redacted attributes (no events, links or
+status messages), and must sit in the host's run directory with well-formed IDs. Strings
+are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's own
+retention; anyone who can read the experiment can read these traces.
 
 **Failure behavior.** The job runs outside the review, so it cannot change a review's
 outcome. A run whose artifact list has no `fullsend-review` artifact is skipped; an
