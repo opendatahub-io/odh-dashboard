@@ -92,13 +92,18 @@ def api(endpoint, payload=None):
     args = ["gh", "api", endpoint]
     if payload is not None:
         args.extend(["--method", "POST", "--input", "-"])
-    result = subprocess.run(
-        args,
-        input=json.dumps(payload) if payload is not None else None,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
+    try:
+        result = subprocess.run(
+            args,
+            input=json.dumps(payload) if payload is not None else None,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as err:
+        # Keep gh's error message in the job log; callers still see the raise.
+        print(f"gh api {endpoint} failed: {err.stderr.strip()}", file=sys.stderr)
+        raise
     return json.loads(result.stdout) if result.stdout.strip() else None
 
 

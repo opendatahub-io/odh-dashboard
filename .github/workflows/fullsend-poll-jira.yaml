@@ -36,6 +36,7 @@ jobs:
     if: vars.FULLSEND_JIRA_CODE_ENABLED == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # actions: write is only for starting fullsend-code-jira.yaml runs.
     permissions:
       contents: read
       actions: write

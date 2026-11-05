@@ -62,6 +62,12 @@ jobs:
   code:
     needs: validate
     if: needs.validate.outputs.matrix != ''
+    # The union of what reusable-dispatch.yml's jobs request. GitHub refuses
+    # to start a reusable workflow when any of its jobs, skipped ones
+    # included, asks for more than the caller grants, so none can be dropped.
+    # The job that runs here (harness-run) asks for contents: read; pushes and
+    # PRs use the coder GitHub App token the mint issues, not GITHUB_TOKEN.
+    # test_jira_dispatch.py pins this set.
     permissions:
       actions: write
       id-token: write

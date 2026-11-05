@@ -197,6 +197,15 @@ class SelectRecordTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 dispatch.select_record(records, 0)
 
+    def test_non_jira_source_or_other_event_repo_is_rejected(self):
+        for change in ({"source": {"system": "github"}}, {"repo": "someone/fork"}):
+            bad = record("RHOAIENG-1")
+            event = json.loads(bad["event_payload"])
+            event["_normalized_event"].update(change)
+            bad["event_payload"] = json.dumps(event)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                dispatch.select_record([bad], 0)
+
     def test_other_project_or_tenant_is_rejected(self):
         for bad in (
             record("RHAI-1"),
@@ -205,6 +214,17 @@ class SelectRecordTests(unittest.TestCase):
         ):
             with self.subTest(bad=bad["event_payload"]), self.assertRaises(ValueError):
                 dispatch.select_record([bad], 0)
+
+
+class ApiTests(unittest.TestCase):
+    def test_failed_gh_call_logs_its_error_and_raises(self):
+        err = subprocess.CalledProcessError(1, "gh", stderr="HTTP 404: Not Found\n")
+        with mock.patch.object(dispatch.subprocess, "run", side_effect=err), mock.patch(
+            "sys.stderr"
+        ) as stderr, self.assertRaises(subprocess.CalledProcessError):
+            dispatch.api("repos/x/y/actions/runs/1")
+        logged = "".join(call.args[0] for call in stderr.write.call_args_list)
+        self.assertIn("gh api repos/x/y/actions/runs/1 failed: HTTP 404: Not Found", logged)
 
 
 class WorkflowContractTests(unittest.TestCase):
@@ -217,6 +237,27 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(code["jobs"]["code"]["needs"], "validate")
         for wf in (poll, code):
             self.assertEqual(wf["permissions"], {})
+
+    def test_job_permissions_do_not_grow_silently(self):
+        # The code job's set is the union reusable-dispatch.yml (v0.54.0)
+        # requires; see the comment in fullsend-code-jira.yaml.
+        self.assertEqual(
+            workflow("fullsend-poll-jira.yaml")["jobs"]["poll"]["permissions"],
+            {"contents": "read", "actions": "write"},
+        )
+        code = workflow("fullsend-code-jira.yaml")["jobs"]
+        self.assertEqual(code["validate"]["permissions"], {"contents": "read", "actions": "read"})
+        self.assertEqual(
+            code["code"]["permissions"],
+            {
+                "actions": "write",
+                "id-token": "write",
+                "contents": "write",
+                "issues": "write",
+                "packages": "read",
+                "pull-requests": "write",
+            },
+        )
 
     def test_jql_keeps_unlabeled_issues_and_skips_autofix(self):
         jql = workflow("fullsend-poll-jira.yaml")["jobs"]["poll"]["steps"][2]["env"]["JQL"]
