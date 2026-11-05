@@ -58,9 +58,11 @@ const (
 	SegmentTelemetryOrigin = "https://console.redhat.com"
 
 	// ContentSecurityPolicy is applied to HTML responses only and must stay identical to
-	// the Node value in backend/src/utils/securityHeaders.ts. Both header modes send the
-	// same directive string; only the header name changes. See
-	// docs/content-security-policy.md for the directive rationale.
+	// the shared definition in packages/app-config/src/security-policy.ts, which the Node
+	// backend and the rspack dev server both consume. A parity test in the backend suite
+	// (backend/src/utils/__tests__/securityHeaders.spec.ts) reads this constant and fails
+	// on drift. Both header modes send the same directive string; only the header name
+	// changes. See docs/content-security-policy.md for the directive rationale.
 	ContentSecurityPolicy = "default-src 'self'; " +
 		"base-uri 'self'; " +
 		"object-src 'none'; " +

@@ -51,6 +51,8 @@ func TestSetSecurityHeaders_NonAPIDoesNotForceNoStore(t *testing.T) {
 // httputil.ReverseProxy copies the upstream Content-Type before writing the status
 // line, so the wrapper still classifies the reply as an HTML document.
 func TestSetSecurityHeaders_ProxiedHTMLGetsCSP(t *testing.T) {
+	t.Setenv(constants.CSPModeEnvVar, "enforce")
+
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set(constants.HeaderContentType, "text/html; charset=utf-8")
 		_, _ = io.WriteString(w, "<html></html>")
@@ -88,6 +90,7 @@ func TestSetSecurityHeaders_ProxiedJSONHasNoCSP(t *testing.T) {
 }
 
 func TestSetSecurityHeaders_HTMLGetsCSP(t *testing.T) {
+	t.Setenv(constants.CSPModeEnvVar, "enforce")
 	app := newTestApp()
 
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -209,8 +212,29 @@ func TestSetSecurityHeaders_ReportOnlyMode(t *testing.T) {
 	assertBrowserSecurityHeaders(t, rr.Header())
 }
 
+// TEMPORARY: unset or empty CSP_MODE now defaults to Report-Only
+// so a deployment reports violations instead of blocking them.
+func TestSetSecurityHeaders_DefaultModeIsReportOnly(t *testing.T) {
+	for _, value := range []string{"", "report-only", "REPORT-ONLY"} {
+		t.Run("mode="+value, func(t *testing.T) {
+			t.Setenv(constants.CSPModeEnvVar, value)
+			app := newTestApp()
+
+			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set(constants.HeaderContentType, "text/html; charset=utf-8")
+				w.WriteHeader(http.StatusOK)
+			})
+
+			rr := httptest.NewRecorder()
+			app.SetSecurityHeaders(inner).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/projects", nil))
+
+			assertReportOnlyContentSecurityPolicy(t, rr.Header())
+		})
+	}
+}
+
 func TestSetSecurityHeaders_UnknownModeFailsClosedToEnforce(t *testing.T) {
-	for _, value := range []string{"", "enforce", "ENFORCE", "off", "nonsense"} {
+	for _, value := range []string{"enforce", "ENFORCE", "off", "nonsense"} {
 		t.Run("mode="+value, func(t *testing.T) {
 			t.Setenv(constants.CSPModeEnvVar, value)
 			app := newTestApp()
@@ -231,6 +255,7 @@ func TestSetSecurityHeaders_UnknownModeFailsClosedToEnforce(t *testing.T) {
 
 // Both modes send the same directive string; only the header name changes.
 func TestCSPModesShareTheDirectiveString(t *testing.T) {
+	t.Setenv(constants.CSPModeEnvVar, "enforce")
 	app := newTestApp()
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(constants.HeaderContentType, "text/html; charset=utf-8")

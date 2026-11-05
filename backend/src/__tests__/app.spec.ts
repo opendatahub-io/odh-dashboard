@@ -3,11 +3,13 @@ import * as os from 'os';
 import * as path from 'path';
 import { fastify, FastifyInstance } from 'fastify';
 import {
-  CACHE_CONTROL_NO_STORE,
   CONTENT_SECURITY_POLICY,
+  SEGMENT_TELEMETRY_ORIGIN,
+} from '@odh-dashboard/app-config/security-policy';
+import {
+  CACHE_CONTROL_NO_STORE,
   CROSS_ORIGIN_OPENER_POLICY,
   REFERRER_POLICY,
-  SEGMENT_TELEMETRY_ORIGIN,
   X_CONTENT_TYPE_OPTIONS,
   X_DNS_PREFETCH_CONTROL,
   X_FRAME_OPTIONS,
@@ -111,25 +113,53 @@ describe('app static and view wiring', () => {
       expect(headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
     };
 
-    const expectNoCsp = (headers: Record<string, unknown>): void => {
+    const expectReportOnlyCsp = (headers: Record<string, unknown>): void => {
+      expect(headers['content-security-policy-report-only']).toBe(CONTENT_SECURITY_POLICY);
       expect(headers['content-security-policy']).toBeUndefined();
     };
 
+    const expectNoCsp = (headers: Record<string, unknown>): void => {
+      expect(headers['content-security-policy']).toBeUndefined();
+      expect(headers['content-security-policy-report-only']).toBeUndefined();
+    };
+
     it('should set browser security headers and no-store on HTML', async () => {
+      delete process.env.CSP_MODE;
       const response = await app.inject({ method: 'GET', url: '/projects' });
 
       expect(response.statusCode).toBe(200);
       expectBrowserSecurityHeaders(response.headers);
-      expectEnforcingCsp(response.headers);
+      expectReportOnlyCsp(response.headers);
       expect(response.headers['cache-control']).toBe(CACHE_CONTROL_NO_STORE);
     });
 
-    it('should set the enforcing CSP on the SPA shell', async () => {
+    it('should default to Report-Only on the SPA shell', async () => {
+      delete process.env.CSP_MODE;
       const response = await app.inject({ method: 'GET', url: '/' });
 
       expect(response.statusCode).toBe(200);
-      expectEnforcingCsp(response.headers);
-      expect(response.headers['content-security-policy']).toContain(SEGMENT_TELEMETRY_ORIGIN);
+      expectReportOnlyCsp(response.headers);
+      expect(response.headers['content-security-policy-report-only']).toContain(
+        SEGMENT_TELEMETRY_ORIGIN,
+      );
+    });
+
+    it('should send the enforcing header when CSP_MODE=enforce', async () => {
+      const originalMode = process.env.CSP_MODE;
+      process.env.CSP_MODE = 'enforce';
+      try {
+        const response = await app.inject({ method: 'GET', url: '/projects' });
+
+        expect(response.statusCode).toBe(200);
+        expectEnforcingCsp(response.headers);
+        expect(response.headers['content-security-policy-report-only']).toBeUndefined();
+      } finally {
+        if (originalMode === undefined) {
+          delete process.env.CSP_MODE;
+        } else {
+          process.env.CSP_MODE = originalMode;
+        }
+      }
     });
 
     it('should send the Report-Only header when CSP_MODE=report-only', async () => {

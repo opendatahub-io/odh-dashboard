@@ -1,17 +1,19 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import {
+  CONTENT_SECURITY_POLICY,
+  CONTENT_SECURITY_POLICY_DIRECTIVES,
+  SEGMENT_TELEMETRY_ORIGIN,
+} from '@odh-dashboard/app-config/security-policy';
 import { CACHE_HEADER_IMMUTABLE, CACHE_HEADER_NO_CACHE } from '../cacheHeaders';
 import {
   CACHE_CONTROL_NO_STORE,
-  CONTENT_SECURITY_POLICY,
-  CONTENT_SECURITY_POLICY_DIRECTIVES,
   CSP_HEADER_ENFORCE,
   CSP_HEADER_REPORT_ONLY,
   CSP_MODE_ENV_VAR,
   CROSS_ORIGIN_OPENER_POLICY,
   REFERRER_POLICY,
-  SEGMENT_TELEMETRY_ORIGIN,
   X_CONTENT_TYPE_OPTIONS,
   X_DNS_PREFETCH_CONTROL,
   X_FRAME_OPTIONS,
@@ -131,10 +133,23 @@ describe('isHtmlContentType', () => {
 
 describe('Content-Security-Policy', () => {
   it('sets the enforcing policy on HTML documents', () => {
+    process.env[CSP_MODE_ENV_VAR] = 'enforce';
+    try {
+      const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
+      applySecurityHeaders(mockRequest('/projects'), reply);
+      expect(headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
+      expect(headers['content-security-policy-report-only']).toBeUndefined();
+    } finally {
+      delete process.env[CSP_MODE_ENV_VAR];
+    }
+  });
+
+  it('sends the Report-Only header by default, with the same directive string', () => {
+    delete process.env[CSP_MODE_ENV_VAR];
     const { reply, headers } = mockReply({ 'content-type': 'text/html; charset=utf-8' });
     applySecurityHeaders(mockRequest('/projects'), reply);
-    expect(headers['content-security-policy']).toBe(CONTENT_SECURITY_POLICY);
-    expect(headers['content-security-policy-report-only']).toBeUndefined();
+    expect(headers['content-security-policy-report-only']).toBe(CONTENT_SECURITY_POLICY);
+    expect(headers['content-security-policy']).toBeUndefined();
   });
 
   it('sends the Report-Only header in report-only mode, with the same directive string', () => {
@@ -231,7 +246,11 @@ describe('CSP_MODE', () => {
     expect(resolveCspMode(value)).toBe('report-only');
   });
 
-  it.each([undefined, '', 'enforce', 'ENFORCE', 'off', 'nonsense'])(
+  it.each([undefined, ''])('defaults to report-only for %p', (value) => {
+    expect(resolveCspMode(value)).toBe('report-only');
+  });
+
+  it.each(['enforce', 'ENFORCE', 'off', 'nonsense'])(
     'fails closed to enforcement for %p',
     (value) => {
       expect(resolveCspMode(value)).toBe('enforce');
@@ -242,7 +261,7 @@ describe('CSP_MODE', () => {
     process.env[CSP_MODE_ENV_VAR] = 'report-only';
     expect(getCspMode()).toBe('report-only');
     process.env[CSP_MODE_ENV_VAR] = '';
-    expect(getCspMode()).toBe('enforce');
+    expect(getCspMode()).toBe('report-only');
   });
 
   it('maps modes to header names', () => {
@@ -262,30 +281,33 @@ describe('CSP_MODE', () => {
 describe('CSP parity across the Node backend, the dev server and core-bff', () => {
   const repoRoot = path.resolve(__dirname, '../../../..');
 
-  it('declares a dev delta that only widens directives in the shipped policy', () => {
+  it('serves the shared policy as Report-Only, widening only the declared directives', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const devCsp = require(path.join(repoRoot, 'frontend/config/cspPolicy.js'));
-    const shippedNames = CONTENT_SECURITY_POLICY_DIRECTIVES.map(([name]) => name);
+    const { createDevCspMiddleware } = require(path.join(repoRoot, 'frontend/config/cspPolicy.js'));
 
-    expect(
-      Object.keys(devCsp.buildDevDelta(4010)).every((name) => shippedNames.includes(name)),
-    ).toBe(true);
-  });
-
-  it('merges the dev delta into the shipped policy without widening anything else', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const devCsp = require(path.join(repoRoot, 'frontend/config/cspPolicy.js'));
-    const delta = devCsp.buildDevDelta(4010);
-    const merged = Object.fromEntries(
-      devCsp.applyDevDelta(CONTENT_SECURITY_POLICY_DIRECTIVES, 4010),
+    const served: Record<string, string> = {};
+    createDevCspMiddleware(4010)(
+      { method: 'GET', headers: { accept: 'text/html' } },
+      { setHeader: (name: string, value: string) => (served[name] = value) },
+      () => undefined,
     );
 
-    CONTENT_SECURITY_POLICY_DIRECTIVES.filter(([name]) => !(name in delta)).forEach(
-      ([name, value]) => expect(merged[name]).toBe(value),
+    const dev = new Map(
+      (served['Content-Security-Policy-Report-Only'] ?? '').split('; ').map((part) => {
+        const [name, ...tokens] = part.split(' ');
+        return [name, tokens.join(' ')] as const;
+      }),
     );
-    expect(merged['script-src']).toContain("'unsafe-eval'");
-    expect(merged['connect-src']).toContain('http://localhost:4010');
-    expect(merged['frame-src']).toContain('http://localhost:4010');
+
+    expect([...dev.keys()]).toEqual(CONTENT_SECURITY_POLICY_DIRECTIVES.map(([name]) => name));
+    CONTENT_SECURITY_POLICY_DIRECTIVES.filter(
+      ([name]) => !['script-src', 'connect-src', 'frame-src'].includes(name),
+    ).forEach(([name, value]) => expect(dev.get(name)).toBe(value));
+
+    expect(dev.get('script-src')).toContain("'unsafe-eval'");
+    expect(dev.get('connect-src')).toContain('ws:');
+    expect(dev.get('connect-src')).toContain('http://localhost:4010');
+    expect(dev.get('frame-src')).toContain('http://localhost:4010');
   });
 
   it('matches the Go core-bff constant', () => {

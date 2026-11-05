@@ -11,7 +11,7 @@ const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dot
 setupDotenvFilesForEnv({ env: 'development' });
 const rspackCommon = require('./rspack.common.js');
 const { moduleFederationConfig } = require('./moduleFederation');
-const { createCspResolver, DEFAULT_DEV_PORT } = require('./cspPolicy');
+const { createDevCspMiddleware } = require('./cspPolicy');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -58,144 +58,19 @@ const mfProxies = moduleFederationConfig
   .flat()
   .filter((p) => p);
 
-// The dev server serves its own document, so it takes the CSP from whichever
-// environment serves the rest of the app: the local backend, or the cluster in
-// EXT_CLUSTER mode. The policy is never duplicated here.
-const buildBackendAccess = () => {
-  if (process.env.EXT_CLUSTER) {
-    const devLegacy = process.env.DEV_LEGACY === 'true';
-    let dashboardHost = process.env.ODH_DASHBOARD_HOST;
-    let token;
+const OC_SILENT = { stdio: ['pipe', 'pipe', 'ignore'] };
 
-    try {
-      token = execSync('oc whoami --show-token', { stdio: ['pipe', 'pipe', 'ignore'] })
-        .toString()
-        .trim();
-      const username = execSync('oc whoami', { stdio: ['pipe', 'pipe', 'ignore'] })
-        .toString()
-        .trim();
-      console.info('Logged in as user:', username);
-    } catch (e) {
-      throw new Error('Login with `oc login` prior to starting dev server.');
-    }
+/** Runs an `oc` command and returns its trimmed stdout. */
+const runOc = (command) => execSync(command, OC_SILENT).toString().trim();
 
-    const odhProject = process.env.OC_PROJECT || 'opendatahub';
-    const app = process.env.ODH_APP || 'odh-dashboard';
-    console.info('Using project:', odhProject);
-
-    if (dashboardHost) {
-      console.info('Using explicit ODH_DASHBOARD_HOST:', dashboardHost);
-    }
-
-    try {
-      const httpRouteJson = execSync(`oc get httproutes -n ${odhProject} ${app} -o json`, {
-        stdio: ['pipe', 'pipe', 'ignore'],
-      }).toString();
-      const httpRoute = JSON.parse(httpRouteJson);
-
-      const parentRef = httpRoute?.status?.parents?.[0]?.parentRef;
-      const gatewayName = parentRef?.name;
-      const gatewayNamespace = parentRef?.namespace || odhProject;
-
-      if (gatewayName && gatewayNamespace) {
-        const gatewayJson = execSync(
-          `oc get gateway -n ${gatewayNamespace} ${gatewayName} -o json`,
-          { stdio: ['pipe', 'pipe', 'ignore'] },
-        ).toString();
-        const gateway = JSON.parse(gatewayJson);
-
-        const listeners = gateway?.spec?.listeners || [];
-        const httpsListener = listeners.find((listener) => listener.name === 'https');
-        if (httpsListener && httpsListener.hostname) {
-          dashboardHost = httpsListener.hostname;
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    if (!dashboardHost) {
-      try {
-        const routeJson = execSync(`oc get routes -n ${odhProject} ${app} -o json`, {
-          stdio: ['pipe', 'pipe', 'ignore'],
-        }).toString();
-        const route = JSON.parse(routeJson);
-        if (route?.spec?.to?.name !== 'dashboard-redirect') {
-          dashboardHost = route?.spec?.host;
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    if (!dashboardHost) {
-      const subdomain = devLegacy ? `${app}-${odhProject}` : `rh-ai`;
-      console.info(
-        `Failed to GET dashboard hostname, constructing hostname using subdomain '${subdomain}'.`,
-      );
-      if (!devLegacy) {
-        console.info(`Use DEV_LEGACY=true to override with legacy behavior. eg. DEV_LEGACY=true`);
-      }
-      dashboardHost = new URL(
-        execSync(`oc whoami --show-console`, {
-          stdio: ['pipe', 'pipe', 'ignore'],
-        }).toString(),
-      ).host.replace(/^[^.]+\./, `${subdomain}.`);
-    }
-
-    console.info('Dashboard host:', dashboardHost);
-
-    let shouldFwdAccessToken = false;
-    try {
-      const deploymentJson = execSync(`oc get deployment -n ${odhProject} ${app} -o json`, {
-        stdio: ['pipe', 'pipe', 'ignore'],
-      }).toString();
-      const deployment = JSON.parse(deploymentJson);
-      const containers = deployment?.spec?.template?.spec?.containers || [];
-      shouldFwdAccessToken = containers.some(
-        (container) => container.name === 'oauth-proxy' || container.image?.includes('oauth-proxy'),
-      );
-    } catch (e) {
-      shouldFwdAccessToken = devLegacy;
-      // ignore
-    }
-
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    };
-    if (shouldFwdAccessToken) {
-      console.info('Supplying x-forwarded-access-token header');
-      headers['x-forwarded-access-token'] = token;
-    }
-
-    return {
-      proxy: [
-        {
-          context: ['/api', '/_mf', '/mlflow', ...mfProxies],
-          target: `https://${dashboardHost}`,
-          secure: false,
-          changeOrigin: true,
-          headers,
-        },
-        {
-          context: ['/wss/k8s'],
-          target: `wss://${dashboardHost}`,
-          secure: false,
-          ws: true,
-          changeOrigin: true,
-          headers,
-        },
-      ],
-      // The cluster's document is the only copy of the policy available in this mode.
-      cspSource: {
-        url: `https://${dashboardHost}/`,
-        headers,
-        rejectUnauthorized: false,
-      },
-    };
-  }
-  return {
-    proxy: [
+/**
+ * Dev-server proxy targets: the cluster's dashboard when `EXT_CLUSTER` is set, the local
+ * backend otherwise. In cluster mode the host is taken from an explicit override, then an
+ * HTTPRoute/Gateway, then a Route, and finally derived from the console URL.
+ */
+const buildProxyConfig = () => {
+  if (!process.env.EXT_CLUSTER) {
+    return [
       {
         context: ['/api', '/_mf', '/mlflow', ...mfProxies],
         target: `http://0.0.0.0:${BACKEND_PORT}`,
@@ -205,13 +80,112 @@ const buildBackendAccess = () => {
         target: `ws://0.0.0.0:${BACKEND_PORT}`,
         ws: true,
       },
-    ],
-    // Normal dev runs the local backend, which is the production document server.
-    cspSource: { url: `http://127.0.0.1:${BACKEND_PORT}/` },
-  };
-};
+    ];
+  }
 
-const backendAccess = buildBackendAccess();
+  const devLegacy = process.env.DEV_LEGACY === 'true';
+  let dashboardHost = process.env.ODH_DASHBOARD_HOST;
+  let token;
+
+  try {
+    token = runOc('oc whoami --show-token');
+    console.info('Logged in as user:', runOc('oc whoami'));
+  } catch (e) {
+    throw new Error('Login with `oc login` prior to starting dev server.');
+  }
+
+  const odhProject = process.env.OC_PROJECT || 'opendatahub';
+  const app = process.env.ODH_APP || 'odh-dashboard';
+  console.info('Using project:', odhProject);
+
+  if (dashboardHost) {
+    console.info('Using explicit ODH_DASHBOARD_HOST:', dashboardHost);
+  }
+
+  try {
+    const httpRoute = JSON.parse(runOc(`oc get httproutes -n ${odhProject} ${app} -o json`));
+    const parentRef = httpRoute?.status?.parents?.[0]?.parentRef;
+    const gatewayName = parentRef?.name;
+    const gatewayNamespace = parentRef?.namespace || odhProject;
+
+    if (gatewayName && gatewayNamespace) {
+      const gateway = JSON.parse(
+        runOc(`oc get gateway -n ${gatewayNamespace} ${gatewayName} -o json`),
+      );
+      const httpsListener = (gateway?.spec?.listeners || []).find(
+        (listener) => listener.name === 'https',
+      );
+      if (httpsListener?.hostname) {
+        dashboardHost = httpsListener.hostname;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  if (!dashboardHost) {
+    try {
+      const route = JSON.parse(runOc(`oc get routes -n ${odhProject} ${app} -o json`));
+      if (route?.spec?.to?.name !== 'dashboard-redirect') {
+        dashboardHost = route?.spec?.host;
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  if (!dashboardHost) {
+    const subdomain = devLegacy ? `${app}-${odhProject}` : 'rh-ai';
+    console.info(
+      `Failed to GET dashboard hostname, constructing hostname using subdomain '${subdomain}'.`,
+    );
+    if (!devLegacy) {
+      console.info('Use DEV_LEGACY=true to override with legacy behavior. eg. DEV_LEGACY=true');
+    }
+    dashboardHost = new URL(runOc('oc whoami --show-console')).host.replace(
+      /^[^.]+\./,
+      `${subdomain}.`,
+    );
+  }
+
+  console.info('Dashboard host:', dashboardHost);
+
+  let shouldFwdAccessToken = false;
+  try {
+    const deployment = JSON.parse(runOc(`oc get deployment -n ${odhProject} ${app} -o json`));
+    const containers = deployment?.spec?.template?.spec?.containers || [];
+    shouldFwdAccessToken = containers.some(
+      (container) => container.name === 'oauth-proxy' || container.image?.includes('oauth-proxy'),
+    );
+  } catch (e) {
+    shouldFwdAccessToken = devLegacy;
+    // ignore
+  }
+
+  const headers = { Authorization: `Bearer ${token}` };
+  if (shouldFwdAccessToken) {
+    console.info('Supplying x-forwarded-access-token header');
+    headers['x-forwarded-access-token'] = token;
+  }
+
+  return [
+    {
+      context: ['/api', '/_mf', '/mlflow', ...mfProxies],
+      target: `https://${dashboardHost}`,
+      secure: false,
+      changeOrigin: true,
+      headers,
+    },
+    {
+      context: ['/wss/k8s'],
+      target: `wss://${dashboardHost}`,
+      secure: false,
+      ws: true,
+      changeOrigin: true,
+      headers,
+    },
+  ];
+};
 
 module.exports = merge(
   {
@@ -254,7 +228,7 @@ module.exports = merge(
       historyApiFallback: true,
       hot: true,
       open: false,
-      proxy: backendAccess.proxy,
+      proxy: buildProxyConfig(),
       devMiddleware: {
         stats: 'errors-only',
         writeToDisk: false,
@@ -270,26 +244,8 @@ module.exports = merge(
           return middlewares;
         }
 
-        const resolveDocumentCsp = createCspResolver({
-          source: backendAccess.cspSource,
-          port: Number(PORT) || DEFAULT_DEV_PORT,
-        });
-
-        // Only documents get the policy, matching production where assets carry none.
-        // It is always Report-Only: violations are still reported, but dev-only
-        // requirements (HMR, eval source maps) cannot break the page.
-        middlewares.unshift(async (req, res, next) => {
-          const isDocument =
-            (req.method === 'GET' || req.method === 'HEAD') &&
-            String(req.headers.accept ?? '').includes('text/html');
-          if (isDocument) {
-            const csp = await resolveDocumentCsp();
-            if (csp) {
-              res.setHeader(csp.name, csp.value);
-            }
-          }
-          next();
-        });
+        // Shared policy + declared dev delta, Report-Only, documents only.
+        middlewares.unshift(createDevCspMiddleware(PORT));
 
         // onListening fires when the port opens — before the first compile.
         // Log availability only after a successful compilation so early page

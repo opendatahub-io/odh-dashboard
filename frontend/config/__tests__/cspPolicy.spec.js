@@ -1,132 +1,89 @@
-const {
-  DEFAULT_DEV_PORT,
-  DEV_CSP_HEADER_NAME,
-  applyDevDelta,
-  createCspResolver,
-  parsePolicy,
-  serializePolicy,
-} = require('../cspPolicy');
+const { CONTENT_SECURITY_POLICY } = require('@odh-dashboard/app-config/security-policy');
+const { createDevCspMiddleware } = require('../cspPolicy');
 
-const SERVED_POLICY =
-  "default-src 'self'; object-src 'none'; " +
-  "script-src 'self' https://console.redhat.com; img-src 'self' https: data: blob:; " +
-  "connect-src 'self' https://console.redhat.com; frame-src 'self' https:; " +
-  "form-action 'self'; worker-src 'self' blob:; frame-ancestors 'none'";
+const DEV_HEADER = 'Content-Security-Policy-Report-Only';
+const DOCUMENT_REQUEST = { method: 'GET', headers: { accept: 'text/html,application/xhtml+xml' } };
 
-const asMap = (directives) => Object.fromEntries(directives);
+const parse = (policy) =>
+  Object.fromEntries(
+    policy.split('; ').map((part) => {
+      const [name, ...tokens] = part.split(' ');
+      return [name, tokens.join(' ')];
+    }),
+  );
 
-describe('parsePolicy / serializePolicy', () => {
-  it('round-trips a served policy', () => {
-    expect(serializePolicy(parsePolicy(SERVED_POLICY))).toBe(SERVED_POLICY);
+/** Runs the middleware and returns the headers it set. */
+const serve = (req, port = 4010) => {
+  const headers = {};
+  createDevCspMiddleware(port)(
+    req,
+    { setHeader: (name, value) => (headers[name] = value) },
+    () => undefined,
+  );
+  return headers;
+};
+
+describe('createDevCspMiddleware', () => {
+  it('serves the shared policy as Report-Only on documents', () => {
+    const headers = serve(DOCUMENT_REQUEST);
+
+    expect(Object.keys(headers)).toEqual([DEV_HEADER]);
+    expect(headers[DEV_HEADER]).toBeTruthy();
   });
 
-  it('normalizes whitespace around directives', () => {
-    expect(parsePolicy("  default-src  'self' ;  script-src 'self' ")).toEqual([
-      ['default-src', "'self'"],
-      ['script-src', "'self'"],
-    ]);
-  });
-});
-
-describe('applyDevDelta', () => {
-  it('widens only the declared directives', () => {
-    const merged = asMap(applyDevDelta(parsePolicy(SERVED_POLICY), 4010));
-
-    expect(merged['script-src']).toBe("'self' https://console.redhat.com 'unsafe-eval'");
-    expect(merged['connect-src']).toBe(
-      "'self' https://console.redhat.com ws: http://localhost:4010",
-    );
-    expect(merged['frame-src']).toBe("'self' https: http://localhost:4010");
-    expect(merged['img-src']).toBe("'self' https: data: blob:");
-    expect(merged['frame-ancestors']).toBe("'none'");
-  });
-
-  it('uses the default dev port when none is given', () => {
-    expect(asMap(applyDevDelta(parsePolicy(SERVED_POLICY)))['connect-src']).toContain(
-      `http://localhost:${DEFAULT_DEV_PORT}`,
+  it('keeps every shipped directive, in the shipped order', () => {
+    expect(Object.keys(parse(serve(DOCUMENT_REQUEST)[DEV_HEADER]))).toEqual(
+      Object.keys(parse(CONTENT_SECURITY_POLICY)),
     );
   });
 
-  it('throws when the served policy lacks a directive the delta targets', () => {
-    expect(() => applyDevDelta(parsePolicy("default-src 'self'"))).toThrow(
-      /missing from the served policy: script-src/,
-    );
+  it('widens only the declared directives, and only by appending tokens', () => {
+    const shipped = parse(CONTENT_SECURITY_POLICY);
+    const dev = parse(serve(DOCUMENT_REQUEST)[DEV_HEADER]);
+
+    Object.entries(shipped).forEach(([directive, value]) => {
+      if (directive === 'script-src' || directive === 'connect-src' || directive === 'frame-src') {
+        expect(dev[directive].startsWith(`${value} `)).toBe(true);
+      } else {
+        expect(dev[directive]).toBe(value);
+      }
+    });
   });
-});
 
-describe('createCspResolver', () => {
-  const source = { url: 'http://backend.test/' };
+  it('allows eval source maps, the HMR socket and the local proxies for its port', () => {
+    const dev = parse(serve(DOCUMENT_REQUEST, 9001)[DEV_HEADER]);
 
-  it('sends the fetched policy as Report-Only with the dev delta applied', async () => {
-    const resolver = createCspResolver({
-      source,
-      port: 4010,
-      fetchPolicy: jest.fn().mockResolvedValue({ 'content-security-policy': SERVED_POLICY }),
+    expect(dev['script-src']).toContain("'unsafe-eval'");
+    expect(dev['connect-src']).toContain('ws:');
+    expect(dev['connect-src']).toContain('http://localhost:9001');
+    expect(dev['frame-src']).toContain('http://localhost:9001');
+  });
+
+  it('falls back to the default dev port', () => {
+    expect(serve(DOCUMENT_REQUEST, undefined)[DEV_HEADER]).toContain('http://localhost:4010');
+  });
+
+  it('leaves non-document requests untouched', () => {
+    expect(serve({ method: 'GET', headers: { accept: '*/*' } })).toEqual({});
+    expect(serve({ method: 'POST', headers: { accept: 'text/html' } })).toEqual({});
+    expect(serve({ method: 'GET', headers: {} })).toEqual({});
+  });
+
+  it('fails the dev-server start when the shared policy loses a widened directive', () => {
+    jest.isolateModules(() => {
+      jest.doMock('@odh-dashboard/app-config/security-policy', () => ({
+        CONTENT_SECURITY_POLICY_DIRECTIVES: [['default-src', "'self'"]],
+        serializeContentSecurityPolicy: (directives) =>
+          directives.map(([name, value]) => `${name} ${value}`).join('; '),
+      }));
+
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { createDevCspMiddleware: fresh } = require('../cspPolicy');
+
+      expect(() => fresh(4010)).toThrow(/missing from the served policy: script-src/);
     });
 
-    const csp = await resolver();
-
-    expect(csp.name).toBe(DEV_CSP_HEADER_NAME);
-    expect(csp.name).toBe('Content-Security-Policy-Report-Only');
-    expect(csp.value).toContain("script-src 'self' https://console.redhat.com 'unsafe-eval'");
-  });
-
-  it('accepts a policy the backend already serves as Report-Only', async () => {
-    const resolver = createCspResolver({
-      source,
-      port: 4010,
-      fetchPolicy: jest
-        .fn()
-        .mockResolvedValue({ 'content-security-policy-report-only': SERVED_POLICY }),
-    });
-
-    const csp = await resolver();
-
-    expect(csp.name).toBe(DEV_CSP_HEADER_NAME);
-    expect(csp.value).toContain("connect-src 'self' https://console.redhat.com ws:");
-  });
-
-  it('serves no policy and warns when the response has no CSP header', async () => {
-    const log = { warn: jest.fn() };
-    const resolver = createCspResolver({
-      source,
-      fetchPolicy: jest.fn().mockResolvedValue({}),
-      log,
-    });
-
-    expect(await resolver()).toBeNull();
-    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('no Content-Security-Policy'));
-  });
-
-  it('reuses the last fetched policy when a later fetch fails', async () => {
-    const log = { warn: jest.fn() };
-    const fetchPolicy = jest
-      .fn()
-      .mockResolvedValueOnce({ 'content-security-policy': SERVED_POLICY })
-      .mockRejectedValueOnce(new Error('connect ECONNREFUSED'));
-    const resolver = createCspResolver({ source, port: 4010, fetchPolicy, log });
-
-    const first = await resolver();
-    const second = await resolver();
-
-    expect(second).toEqual(first);
-    expect(log.warn).toHaveBeenCalledTimes(1);
-    expect(log.warn).toHaveBeenCalledWith(
-      expect.stringContaining('reusing the last fetched policy'),
-    );
-  });
-
-  it('rate-limits repeated fetch warnings', async () => {
-    const log = { warn: jest.fn() };
-    const resolver = createCspResolver({
-      source,
-      fetchPolicy: jest.fn().mockRejectedValue(new Error('offline')),
-      log,
-    });
-
-    await resolver();
-    await resolver();
-
-    expect(log.warn).toHaveBeenCalledTimes(1);
+    jest.dontMock('@odh-dashboard/app-config/security-policy');
+    jest.resetModules();
   });
 });

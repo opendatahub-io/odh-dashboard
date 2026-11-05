@@ -159,6 +159,7 @@ func TestRoutes_SPAFallback(t *testing.T) {
 }
 
 func TestRoutes_SecurityHeadersOnRepresentativeRoutes(t *testing.T) {
+	t.Setenv(constants.CSPModeEnvVar, "enforce")
 	ts := newTestServer(t)
 	defer ts.Close()
 

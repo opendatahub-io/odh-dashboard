@@ -1,6 +1,7 @@
 import { FastifyHttpProxyOptions } from '@fastify/http-proxy';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { IncomingHttpHeaders } from 'http';
+import { CONTENT_SECURITY_POLICY } from '@odh-dashboard/app-config/security-policy';
 import { getCacheControlForStaticFile, isStaticAsset } from './cacheHeaders';
 
 /**
@@ -23,53 +24,12 @@ const COMMON_SECURITY_HEADERS: ReadonlyArray<[string, string]> = [
   ['Referrer-Policy', REFERRER_POLICY],
 ];
 
-/**
- * The only third-party origin the dashboard loads from. It mirrors the hardcoded
- * `cdnURL` / `apiHost` in `packages/analytics/src/initSegment.ts` — the Segment SDK
- * is loaded as a remote script from this origin, and events are sent to it. Update
- * all three constants together if the Segment endpoint ever moves.
- *
- * Analytics is initialized only when tracking is enabled
- * (`disableTracking: false` plus a segment key), but the origin is allowlisted
- * unconditionally so enabling tracking never breaks under an enforcing policy.
- */
-export const SEGMENT_TELEMETRY_ORIGIN = 'https://console.redhat.com';
-
-/**
- * `Content-Security-Policy` directives for HTML responses. Each directive and the
- * allowances it makes are explained in `docs/content-security-policy.md`.
- *
- * This list is the source of truth. The dev server does not copy it: it fetches the
- * header from the backend (or the cluster in `EXT_CLUSTER` mode) at runtime. The Go
- * core-bff cannot import TypeScript at runtime, so it keeps one mirror, asserted by
- * `securityHeaders.spec.ts`:
+/*
+ * The policy itself is defined once, in `@odh-dashboard/app-config/security-policy`, so
+ * the backend and the dev server cannot drift. The Go core-bff cannot import TypeScript,
+ * so it keeps one literal mirror asserted by `securityHeaders.spec.ts`:
  * - `distributions/core-bff/bff/internal/constants/headers.go`
  */
-export const CONTENT_SECURITY_POLICY_DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
-  ['default-src', "'self'"],
-  ['base-uri', "'self'"],
-  ['object-src', "'none'"],
-  ['script-src', `'self' ${SEGMENT_TELEMETRY_ORIGIN}`],
-  ['style-src', "'self' 'unsafe-inline'"],
-  ['img-src', "'self' https: data: blob:"],
-  ['font-src', "'self' data:"],
-  ['media-src', "'self' https: data: blob:"],
-  ['connect-src', `'self' ${SEGMENT_TELEMETRY_ORIGIN}`],
-  ['frame-src', "'self' https:"],
-  ['form-action', "'self'"],
-  ['worker-src', "'self' blob:"],
-  ['frame-ancestors', "'none'"],
-];
-
-/** Serializes directives into a header value. */
-export const serializeContentSecurityPolicy = (
-  directives: ReadonlyArray<readonly [string, string]>,
-): string => directives.map(([directive, value]) => `${directive} ${value}`).join('; ');
-
-/** Serialized `Content-Security-Policy` header value. */
-export const CONTENT_SECURITY_POLICY = serializeContentSecurityPolicy(
-  CONTENT_SECURITY_POLICY_DIRECTIVES,
-);
 
 export const CSP_HEADER_ENFORCE = 'Content-Security-Policy';
 export const CSP_HEADER_REPORT_ONLY = 'Content-Security-Policy-Report-Only';
@@ -79,11 +39,18 @@ export const CSP_MODE_ENV_VAR = 'CSP_MODE';
 export type CspMode = 'enforce' | 'report-only';
 
 /**
- * `report-only` sends `Content-Security-Policy-Report-Only`. `enforce`, unset, or
- * empty sends the enforcing header. Unknown values fail closed to enforcement.
+ * `report-only` sends `Content-Security-Policy-Report-Only`; `enforce` sends the
+ * enforcing header; unknown values fail closed to enforcement.
+ *
+ * TEMPORARY: unset or empty now resolves to
+ * `report-only` instead of `enforce`, so a deployment that does not set CSP_MODE
+ * reports violations instead of blocking them. Revert the empty-string branch to
+ * `enforce` once the violation baseline is captured.
  */
-export const resolveCspMode = (raw: string | undefined): CspMode =>
-  (raw ?? '').trim().toLowerCase() === 'report-only' ? 'report-only' : 'enforce';
+export const resolveCspMode = (raw: string | undefined): CspMode => {
+  const value = (raw ?? '').trim().toLowerCase();
+  return value === '' || value === 'report-only' ? 'report-only' : 'enforce';
+};
 
 export const resolveCspHeaderName = (mode: CspMode): string =>
   mode === 'report-only' ? CSP_HEADER_REPORT_ONLY : CSP_HEADER_ENFORCE;

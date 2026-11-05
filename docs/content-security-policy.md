@@ -28,17 +28,27 @@ second one.
 
 ## Modes
 
-| `CSP_MODE` value                                            | Header sent                             |
-| ----------------------------------------------------------- | --------------------------------------- |
-| `report-only` (case-insensitive, surrounding space trimmed) | `Content-Security-Policy-Report-Only`   |
-| `enforce`, unset, empty, or any other value                 | `Content-Security-Policy` (fail closed) |
+| `CSP_MODE` value                                            | Header sent                                       |
+| ----------------------------------------------------------- | ------------------------------------------------- |
+| `report-only` (case-insensitive, surrounding space trimmed) | `Content-Security-Policy-Report-Only`             |
+| `enforce`                                                   | `Content-Security-Policy`                         |
+| unset or empty                                              | `Content-Security-Policy-Report-Only` (temporary) |
+| any other value                                             | `Content-Security-Policy` (fail closed)           |
+
+> **Temporary default.** While the CSP violation baseline is being captured,
+> an unset or empty `CSP_MODE` resolves to `report-only` rather than
+> `enforce`, so a deployment that does not set the variable reports violations
+> instead of blocking them. Explicit `enforce` and unrecognized values still
+> enforce. Restore the unset/empty branch to `enforce` once the baseline exists —
+> the compliance requirement is the enforcing header.
 
 Both serving paths read the same operator-facing environment variable (`CSP_MODE`) and
 resolve it identically. Both modes send the **identical directive string**; only the header name
 changes, so switching a deployment never changes what is allowed — only whether the browser
 blocks it.
 
-An unknown value resolves to enforcement, so a typo cannot silently downgrade a deployment.
+An unknown value resolves to enforcement, so a typo cannot silently downgrade a deployment
+(the unset default above is the one deliberate exception, and it is temporary).
 Report-Only exists as a per-environment escape hatch for a deployment blocked by a broken
 federated module. It is not a substitute for enforcement: product and compliance
 requirements call for the enforcing header.
@@ -101,33 +111,29 @@ revisiting.
 Analytics initializes only when tracking is enabled (a segment key is configured and
 tracking is not disabled), which is off by default. The origin is allowlisted
 unconditionally so enabling tracking never breaks the page. The endpoint is declared in
-three places — the browser analytics client, the Node policy, and the Go policy — and they
-must move together if it ever changes.
+three places — the browser analytics client, the shared policy in `app-config`, and the Go
+policy — and they must move together if it ever changes.
 
 ### Source of truth
 
-The Node backend's directive list is authoritative. The Go core-bff cannot share TypeScript
-at runtime, so it carries an equivalent literal, and an automated comparison of the full
-string and directive order fails the build on drift. Nothing else copies the list: the dev
-server obtains the policy at runtime (see [Development](#development)).
+The directive list is defined once, in `@odh-dashboard/app-config/security-policy`. The Node
+backend re-exports it, the rspack dev server imports it directly, and this document describes
+it. The Go core-bff cannot share TypeScript at runtime, so it carries an equivalent literal,
+and an automated comparison of the full string and directive order fails the build on drift.
 
 ## Development
 
 The dev server renders the shell itself, so the backend's header never applies to the
-document you are looking at. Rather than maintaining a second copy of the policy, the dev
-server asks the environment that would serve the document in production and reuses its
-answer:
+document you are looking at. It imports the same definition the backend serves, from
+`@odh-dashboard/app-config/security-policy`, and applies the declared dev-only delta below.
+There is no second copy of the policy, no fetch, and no dependency on a built document.
 
-- local development asks the local backend;
-- ext-cluster development asks the cluster, using the same credentials as the API proxy.
+The value is served as `Content-Security-Policy-Report-Only`, on document responses only,
+matching production where assets carry no policy. Development therefore reports rather than
+blocks: violations are visible, but hot reload, eval-based source maps, and local API sockets
+cannot be broken by a policy gap.
 
-Only the response header is read, not the HTML. The fetched value is normalized to
-`Content-Security-Policy-Report-Only` and applied to document responses only, matching
-production where assets carry no policy. Development therefore reports rather than blocks:
-violations are visible, but hot reload, eval-based source maps, and local API sockets cannot
-be broken by a policy gap.
-
-Because the fetched policy is the production policy, it lacks tokens that only development
+Because the shared policy is the production policy, it lacks tokens that only development
 needs. A small, explicit set is added so the report reflects real regressions instead of
 expected dev traffic:
 
@@ -137,12 +143,9 @@ expected dev traffic:
 | `connect-src` | `ws:`, `http://localhost:<port>` | HMR socket and the local `/api` `/wss` proxies |
 | `frame-src`   | `http://localhost:<port>`        | Local object-storage previews                  |
 
-If the policy cannot be fetched — backend still starting, cluster unreachable — the dev
-server reuses the last value it saw; before the first success it serves documents without a
-policy and warns. Development never fails because of this lookup.
-
-The tradeoff is explicit: ext-cluster development validates the **deployed cluster's**
-policy, not the local branch's, because the local backend is not running in that mode.
+Development always validates the **local branch's** policy, including in ext-cluster mode:
+the definition is read from source rather than from the cluster. A deployed environment is
+the only place where that environment's own header is exercised.
 
 ## Violation capture
 

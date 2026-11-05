@@ -102,14 +102,19 @@ func applySecurityHeaders(h http.Header, urlPath string) {
 }
 
 // cspHeaderName resolves the CSP header name from CSP_MODE. "report-only" emits the
-// Report-Only header; every other value (including unset and empty) emits the
-// enforcing header, so an unknown value fails closed. Both modes send the same
-// directive string — only the name changes.
+// Report-Only header; "enforce" and any unknown value emit the enforcing header so a
+// typo fails closed. Both modes send the same directive string — only the name changes.
+//
+// TEMPORARY: unset or empty also emits the
+// Report-Only header. Restore it to the enforcing header once the violation baseline
+// is captured.
 func cspHeaderName() string {
-	if strings.EqualFold(strings.TrimSpace(os.Getenv(constants.CSPModeEnvVar)), "report-only") {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(constants.CSPModeEnvVar))) {
+	case "", "report-only":
 		return constants.HeaderCSPReportOnly
+	default:
+		return constants.HeaderContentSecurityPolicy
 	}
-	return constants.HeaderContentSecurityPolicy
 }
 
 // isHTMLResponse reports whether the handler set an HTML document content type.
