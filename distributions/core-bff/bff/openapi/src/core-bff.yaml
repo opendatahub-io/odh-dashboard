@@ -1913,10 +1913,12 @@ components:
     ErrorResponse:
       type: object
       description: >-
-        Standard BFF error envelope for native and service-proxy failures.
-        The Kubernetes HTTP proxy uses KubernetesStatus for local failures too, preserving SDK rejection behavior.
-        Passthrough proxies (K8s, Prometheus, model-serving) return upstream
-        response shapes instead - see the Error Contract section in info.description.
+        Standard envelope for BFF-generated native and service-proxy failures.
+        Upstream Kubernetes failures use KubernetesStatus. The Kubernetes HTTP proxy also uses
+        KubernetesStatus for local failures, preserving SDK rejection behavior.
+        Upstream model-serving responses are passed through; locally generated transport and policy
+        failures use this BFF envelope. Prometheus retains its own response format.
+        See the Error Contract section in info.description.
       required:
         - error
       properties:

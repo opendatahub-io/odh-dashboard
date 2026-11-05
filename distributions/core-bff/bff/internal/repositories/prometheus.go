@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 )
@@ -52,9 +53,9 @@ func NewPrometheusRepository(cfg PrometheusConfig) *PrometheusRepository {
 	return &PrometheusRepository{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
-			Transport: &http.Transport{
+			Transport: httpcontract.WrapTransport(&http.Transport{
 				TLSClientConfig: tlsConfig,
-			},
+			}),
 		},
 		host: host,
 	}
