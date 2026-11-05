@@ -5,6 +5,7 @@ main-branch poller), select (one record as a one-entry matrix). Works around
 fullsend#8961; delete with fullsend-code-jira.yaml once fullsend#9003 ships.
 """
 
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
@@ -18,6 +19,8 @@ POLL_WORKFLOW = ".github/workflows/fullsend-poll-jira.yaml"
 CODE_WORKFLOW = "fullsend-code-jira.yaml"
 JIRA_PROJECT = "RHOAIENG"
 JIRA_BROWSE_URL = "https://redhat.atlassian.net/browse/"
+# launch dispatches seconds after the poll; anything older is a replay.
+MAX_POLL_AGE = timedelta(hours=2)
 
 
 def launch(records, run_id, attempt, api):
@@ -45,16 +48,22 @@ def launch(records, run_id, attempt, api):
         )
 
 
-def validate_run(run, sha, attempt):
-    """Only artifacts produced by the main-branch poller may reach credentials."""
+def validate_run(run, attempt, compare_status, now):
+    """Only recent artifacts from the main-branch poller may reach credentials.
+
+    compare_status is GitHub's compare status from the poll run's commit to
+    this run's commit: "identical", or "ahead" when main moved in between.
+    """
+    created = datetime.fromisoformat(run["created_at"].replace("Z", "+00:00"))
     if (
         run["repository"]["full_name"] != REPOSITORY
         or run["head_repository"]["full_name"] != REPOSITORY
         or run["path"] != POLL_WORKFLOW
         or run["head_branch"] != "main"
         or run["event"] not in ("schedule", "workflow_dispatch")
-        or run["head_sha"] != sha
+        or compare_status not in ("identical", "ahead")
         or run["run_attempt"] != int(attempt)
+        or not timedelta(0) <= now - created <= MAX_POLL_AGE
     ):
         raise ValueError(
             "Untrusted poll run or revision mismatch; inspect run and retry with /fs-code"
@@ -99,7 +108,10 @@ def main():
         run_id = int(os.environ["POLL_RUN_ID"])
         attempt = int(os.environ["POLL_ATTEMPT"])
         run = api(f"repos/{REPOSITORY}/actions/runs/{run_id}")
-        validate_run(run, os.environ["GITHUB_SHA"], attempt)
+        compare = api(
+            f"repos/{REPOSITORY}/compare/{run['head_sha']}...{os.environ['GITHUB_SHA']}"
+        )
+        validate_run(run, attempt, compare["status"], datetime.now(timezone.utc))
     else:
         records = json.loads(Path("dispatches.json").read_text())
         if not isinstance(records, list):

@@ -40,7 +40,7 @@ jobs:
       contents: read
       actions: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
@@ -70,7 +70,7 @@ jobs:
             AND issuetype in (Story, Task, Bug)
             AND (labels = "ready-to-code" OR comment ~ "\"fs-code\"")
             AND updated >= -1d
-            AND labels not in ("opt-in-autofix", "jira-autofix", "jira-autofix-pending", "jira-autofix-review")
+            AND (labels is EMPTY OR labels not in ("opt-in-autofix", "jira-autofix", "jira-autofix-pending", "jira-autofix-review"))
             AND statusCategory != Done
             ORDER BY updated DESC
         shell: bash
@@ -86,9 +86,13 @@ jobs:
             --output dispatches.json \
             --fullsend-dir .fullsend
 
-      # Retain every checkpointed record, including when a dispatch API call fails.
+      # The poller writes dispatches.json before it commits any checkpoint,
+      # so keep and launch the records even when the poll step fails later
+      # (a failed checkpoint commit means that issue may run twice, which
+      # beats dropping a request whose checkpoint did commit).
       - name: Save poll records
-        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && hashFiles('dispatches.json') != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: jira-dispatches-${{ github.run_attempt }}
           path: dispatches.json
@@ -96,6 +100,7 @@ jobs:
           retention-days: 7
 
       - name: Launch one workflow run per record
+        if: ${{ !cancelled() && hashFiles('dispatches.json') != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 .fullsend/scripts/jira_dispatch.py launch

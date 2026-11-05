@@ -47,10 +47,11 @@ area you touch (for example `react.md`, `css-patternfly.md`, `unit-tests.md`,
 `BOOKMARKS.md` indexes the docs for each area.
 
 The repository is a pnpm monorepo. The sandbox has Node 22 but no pnpm on PATH:
-use the version pinned in the root `package.json` (`packageManager`), for
-example `corepack pnpm@11.22.0 install`. Run checks scoped to the packages you
-changed (for example `pnpm --filter <package> run test` and the package's lint
-and type-check scripts) rather than the whole monorepo. If installing
+run every pnpm command through Corepack with the version pinned in the root
+`package.json` (`packageManager`), for example `corepack pnpm@11.22.0 install`.
+Run checks scoped to the packages you changed (for example
+`corepack pnpm@11.22.0 --filter <package> run test`, and the same prefix for the
+package's lint and type-check scripts) rather than the whole monorepo. If installing
 dependencies or running checks fails in the sandbox, say which commands could
 not run in the PR description instead of skipping them silently.
 

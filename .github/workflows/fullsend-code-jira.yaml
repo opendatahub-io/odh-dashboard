@@ -32,13 +32,14 @@ jobs:
     outputs:
       matrix: ${{ steps.record.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Inputs identify an artifact, never an event payload or executable ref.
-      # Require the exact polling revision, including if main moved meanwhile.
+      # The poll run must be a recent main-branch run whose commit is this
+      # run's commit or an ancestor of it (main may move between the two).
       - name: Validate poll provenance and revision
         env:
           GH_TOKEN: ${{ github.token }}
@@ -46,7 +47,7 @@ jobs:
           POLL_ATTEMPT: ${{ inputs.poll_attempt }}
         run: python3 .fullsend/scripts/jira_dispatch.py validate
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: jira-dispatches-${{ inputs.poll_attempt }}
           run-id: ${{ inputs.poll_run_id }}
