@@ -502,16 +502,18 @@ trace ID.
 MLflow 3.17+ serves it at `<route>/mlflow/v1/traces`) and secret
 `FULLSEND_TRACE_OTLP_HEADERS` (`Authorization=Bearer%20<token>,x-mlflow-experiment-id=<id>`,
 plus `X-MLFLOW-WORKSPACE=<namespace>` for RHOAI). Use a credential that can only write
-traces to one experiment. Without the variable the job is skipped. Leave Fullsend's own
-`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` unset: the bridge re-sends the run and agent spans
-(`--no-base-spans` stops that once Fullsend exports them itself).
+traces to one experiment. The endpoint must be `https` (plain `http` only for localhost),
+and redirects are not followed. Without the variable the job is skipped. The bridge
+re-sends Fullsend's run and agent spans, so Fullsend's own
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` can stay unset. If Fullsend has already exported a
+trace, the bridge adds only its own spans to it.
 
 **Exported data.**
 
 | Span | Contents |
 | --- | --- |
 | `persona <name>` | Sub-agent model, cost, tokens, duration, stop reason, tool counts, files read by category, guidance opened and missed |
-| `execute_tool <name>` | Tool name, repo-relative path, search pattern or shell command, duration, result size, error |
+| `execute_tool <name>` | Tool name, repo-relative path, search pattern or minimized shell command, duration, result size, error |
 | `context_coverage` | Rules/ADRs that apply to the PR (`fetch-guidance-context.sh`), which were opened, which were missed |
 | `review_result` | Verdict, finding counts, risk, confidence, dispatched/skipped producers, adapter status, real cost |
 
@@ -521,25 +523,31 @@ column ignores cache discounts; use `fullsend.cost_usd`.
 
 "Opened" means a successful `read`, or a `cat`/`head`/`sed`-style shell read, of the file.
 Searches, failed reads and paths that only appear in prompts do not count. Coverage needs
-`.fullsend/scripts/fetch-guidance-context.sh`; without it the trace is sent without
-`context_coverage` data.
+`.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
+reviewed commit: when the selector is missing, or the PR head has moved past that commit
+(a later push or a backfill), the trace is sent without `context_coverage` data.
 
 **Trust and retention.** The artifact is untrusted (the sandbox read PR code), so it is only
 parsed as JSON; nothing from it is executed or interpolated into a shell. The job checks
 out the default branch only, without persisted credentials, and its token has `actions`,
 `contents` and `pull-requests` read access. Exported data excludes file contents, model
 messages, prompts and tool results; only paths, search patterns, shell commands and an
-allowlist of tool arguments leave the artifact. Credential-looking values, sensitive
-JSON keys and `--token`-style flags are redacted, including in Fullsend's own spans, and
-strings are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's
+allowlist of tool arguments leave the artifact. Shell commands are minimized first:
+heredoc bodies, inline scripts (`python -c`, `bash -c`, …) and long quoted strings
+become placeholders. Credential-looking values, text under sensitive key names and
+`--token`-style flags are redacted. Fullsend's own spans keep only IDs, name, kind, times,
+status code and redacted attributes (no events, links or status messages), and must sit
+in the host's run directory with well-formed IDs. Strings are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's
 own retention; anyone who can read the experiment can read these traces.
 
 **Failure behavior.** The job runs outside the review, so it cannot change a review's
-outcome. A run without a `fullsend-review` artifact is skipped. If guidance selection fails,
-the trace is sent without coverage. If the endpoint is unreachable, the job fails and the
-review is unaffected; rerun it from the Actions tab. Re-running for a run MLflow already
-has only refreshes tags, because re-sending spans doubles MLflow's token totals
-(`--force` overrides).
+outcome. A run whose artifact list has no `fullsend-review` artifact is skipped; an
+artifact API or download error fails the job so it can be rerun. If guidance selection
+fails, the trace is sent without coverage. If the endpoint is unreachable, the job fails
+and the review is unaffected; rerun it from the Actions tab. If the bridge's spans are
+already in MLflow (its `fullsend.bridge.version` tag is set), a rerun only refreshes tags,
+because re-sending spans doubles MLflow's token totals (`--force` overrides). A failed
+lookup is treated as a new trace.
 
 ## Related files
 

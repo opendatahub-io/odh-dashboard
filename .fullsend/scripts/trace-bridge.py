@@ -54,13 +54,25 @@ SECRET_RE = re.compile(
 SENSITIVE = r"(?:token|passw(?:or)?d|passwd|secret|api[_-]?key|authorization|auth|credentials?" \
             r"|client[_-]?secret|access[_-]?key|private[_-]?key|cookie|session[_-]?id)"
 # key=value, key: value, "key": "value" (JSON) and --key value / --key=value (CLI flags).
+# Quantifiers are bounded so redaction stays linear on long, adversarial strings.
 SECRET_KV_RE = re.compile(
-    r"(?i)((?<![\w-])[\"']?[\w-]*" + SENSITIVE + r"[\w-]*[\"']?\s*[:=]\s*)(\"[^\"]*\"|'[^']*'|[^\s,;&|)}\]]+)")
-SECRET_FLAG_RE = re.compile(r"(?i)(--[\w-]*" + SENSITIVE + r"[\w-]*\s+)(\"[^\"]*\"|'[^']*'|[^\s-][^\s]*)")
+    r"(?i)((?<![\w-])[\"']?[\w-]{0,40}" + SENSITIVE + r"[\w-]{0,40}[\"']?[ \t]{0,8}[:=][ \t]{0,8})"
+    r"(\"[^\"]{0,2000}\"|'[^']{0,2000}'|[^\s,;&|)}\]]{1,2000})")
+SECRET_FLAG_RE = re.compile(
+    r"(?i)(--[\w-]{0,40}" + SENSITIVE + r"[\w-]{0,40}[ \t]{1,8})(\"[^\"]{0,2000}\"|'[^']{0,2000}'|[^\s-]\S{0,2000})")
 SENSITIVE_KEY_RE = re.compile(r"(?i)" + SENSITIVE)
 # Tool arguments exported as attributes; anything else (file contents for write/edit, prompts) is dropped.
 TOOL_ARG_ALLOWLIST = ("path", "pattern", "glob", "offset", "limit", "description", "subagent_type")
 MAX_STR = 1000
+# Strings are cut to this before redaction. It is well above MAX_STR, so any secret that
+# could survive the final cut is fully inside the scanned window.
+MAX_SCAN = 4 * MAX_STR
+OTLP_ID_RE = {"traceId": re.compile(r"[0-9a-f]{32}"), "spanId": re.compile(r"[0-9a-f]{16}"),
+              "parentSpanId": re.compile(r"[0-9a-f]{16}")}
+# Fields kept from Fullsend's own spans; events, links and status messages are dropped.
+BASE_SPAN_FIELDS = ("traceId", "spanId", "parentSpanId", "name", "kind", "startTimeUnixNano",
+                    "endTimeUnixNano", "flags")
+BRIDGE_VERSION = "2"
 
 
 # ---------- helpers ----------
@@ -79,7 +91,7 @@ def ns(ts):
 
 
 def redact(s):
-    s = SECRET_RE.sub("[REDACTED]", str(s))
+    s = SECRET_RE.sub("[REDACTED]", str(s)[:MAX_SCAN])
     s = SECRET_KV_RE.sub(lambda m: m.group(1) + "[REDACTED]", s)
     return SECRET_FLAG_RE.sub(lambda m: m.group(1) + "[REDACTED]", s)
 
@@ -87,7 +99,9 @@ def redact(s):
 def redact_obj(v):
     """Redact a JSON-like value: sensitive keys lose their values, strings are scanned."""
     if isinstance(v, dict):
-        return {k: "[REDACTED]" if SENSITIVE_KEY_RE.search(str(k)) else redact_obj(x) for k, x in v.items()}
+        # Numbers under sensitive-looking keys (token counts) are kept; text is not.
+        return {k: "[REDACTED]" if SENSITIVE_KEY_RE.search(str(k)) and not isinstance(x, (int, float, bool))
+                else redact_obj(x) for k, x in v.items()}
     if isinstance(v, list):
         return [redact_obj(x) for x in v]
     return redact(v) if isinstance(v, str) else v
@@ -129,16 +143,39 @@ def span(trace_id, sid, parent, name, start, end, a, error=False):
     return s
 
 
-def sanitize_attr(a):
-    """Redact a pre-built OTLP attribute (Fullsend's own spans) the same way as ours."""
-    v = a.get("value") or {}
+def sanitize_value(v, sensitive=False):
+    """Redact an OTLP AnyValue recursively. Text under a sensitive key is dropped."""
+    v = v if isinstance(v, dict) else {}
     if "stringValue" in v:
-        return {"key": a.get("key"), "value": {"stringValue": clean(v["stringValue"])}}
+        return {"stringValue": "[REDACTED]" if sensitive else clean(v["stringValue"])}
     if "arrayValue" in v:
-        vals = [{"stringValue": clean(x["stringValue"])} if "stringValue" in x else x
-                for x in (v["arrayValue"].get("values") or [])]
-        return {"key": a.get("key"), "value": {"arrayValue": {"values": vals}}}
-    return a
+        return {"arrayValue": {"values": [sanitize_value(x, sensitive)
+                                          for x in (v["arrayValue"].get("values") or [])]}}
+    if "kvlistValue" in v:
+        return {"kvlistValue": {"values": [sanitize_attr(x, sensitive)
+                                           for x in (v["kvlistValue"].get("values") or [])]}}
+    for k in ("intValue", "doubleValue", "boolValue"):
+        if k in v:
+            return {k: v[k]}
+    return {"stringValue": "[REDACTED]"}  # bytesValue or unknown
+
+
+def sanitize_attr(a, sensitive=False):
+    key = str(a.get("key", ""))[:200]
+    return {"key": key, "value": sanitize_value(a.get("value"), sensitive or bool(SENSITIVE_KEY_RE.search(key)))}
+
+
+def sanitize_base_span(s):
+    """Keep only the fields MLflow needs from one of Fullsend's own spans, redacted."""
+    if any(k in s and not OTLP_ID_RE[k].fullmatch(str(s[k])) for k in OTLP_ID_RE):
+        return None
+    out = {k: s[k] for k in BASE_SPAN_FIELDS if k in s}
+    out["name"] = clean(out.get("name", ""))[:200]
+    out["attributes"] = [sanitize_attr(x) for x in s.get("attributes") or [] if isinstance(x, dict)]
+    code = (s.get("status") or {}).get("code")
+    if code in (0, 1, 2):
+        out["status"] = {"code": code}
+    return out
 
 
 def read_jsonl(path):
@@ -228,8 +265,12 @@ def guidance_opened(c):
 # ---------- artifact parsing ----------
 
 def find_run_dir(artifact):
-    hits = sorted(glob.glob(os.path.join(artifact, "**", "metrics.json"), recursive=True))
-    return os.path.dirname(hits[0]) if hits else None
+    """The host's run directory: metrics.json next to run-telemetry.jsonl, outside any
+    iteration-*/ tree (those are written from inside the sandbox). Shallowest wins."""
+    hits = [os.path.dirname(h) for h in glob.glob(os.path.join(artifact, "**", "metrics.json"), recursive=True)]
+    hits = [d for d in hits if os.path.isfile(os.path.join(d, "run-telemetry.jsonl"))
+            and not re.search(r"(^|/)iteration-\d+(/|$)", os.path.relpath(d, artifact))]
+    return min(hits, key=lambda d: (d.count(os.sep), d)) if hits else None
 
 
 def base_spans(run_dir):
@@ -285,6 +326,39 @@ def tool_calls(entries):
     return [calls[i] for i in order]
 
 
+HEREDOC_RE = re.compile(r"<<-?[ \t]{0,4}(['\"]?)([A-Za-z_][\w]{0,40})\1")
+INLINE_SCRIPT_RE = re.compile(
+    r"\b((?:python[\d.]*|node|deno|ruby|perl|php|bash|sh|zsh|jq|awk)\b[^|;&\n]{0,80}?\s-[a-zA-Z]{0,4}[ce][ \t]{1,8})"
+    r"(\"(?:[^\"\\]|\\.){0,20000}\"|'[^']{0,20000}')")
+LONG_QUOTED_RE = re.compile(r"\"(?:[^\"\\]|\\.){120,20000}\"|'[^']{120,20000}'")
+
+
+def minimize_command(cmd):
+    """A shell command without the data it carries: heredoc bodies, inline scripts
+    (python -c, node -e, bash -c, ...) and long quoted strings become placeholders, so a
+    shell write can't export file contents that the write/edit filtering would drop."""
+    lines, out, end = str(cmd)[:20000].split("\n"), [], None
+    skipped = 0
+    for line in lines:
+        if end is not None:
+            if line.strip() == end:
+                out.append(f"[heredoc: {skipped} lines]")
+                out.append(line)
+                end, skipped = None, 0
+            else:
+                skipped += 1
+            continue
+        out.append(line)
+        m = HEREDOC_RE.search(line)
+        if m:
+            end = m.group(2)
+    if end is not None:
+        out.append(f"[heredoc: {skipped} lines]")
+    s = "\n".join(out)
+    s = INLINE_SCRIPT_RE.sub(lambda m: f"{m.group(1)}[inline script: {len(m.group(2)) - 2} chars]", s)
+    return LONG_QUOTED_RE.sub(lambda m: f"[quoted: {len(m.group(0)) - 2} chars]", s)
+
+
 def describe_call(c):
     a, name = c["args"], c["name"]
     out = {"gen_ai.operation.name": "execute_tool", "gen_ai.tool.name": name}
@@ -294,7 +368,7 @@ def describe_call(c):
         out.update({"fullsend.tool.path": rel or a["path"], "fullsend.file.root": root,
                     "fullsend.file.category": category(rel) if root != "pi-skill" else "pi-skill"})
     if name == "bash":
-        out["fullsend.tool.command"] = a.get("command", "")
+        out["fullsend.tool.command"] = minimize_command(a.get("command", ""))
     elif name in ("grep", "find"):
         out["fullsend.tool.pattern"] = a.get("pattern", "")
         if a.get("path"):
@@ -317,6 +391,8 @@ def build(args):
     if not run_span:
         sys.exit("run-telemetry.jsonl has no run span; cannot attach")
     trace_id, run_sid = run_span["traceId"], run_span["spanId"]
+    if not (OTLP_ID_RE["traceId"].fullmatch(str(trace_id)) and OTLP_ID_RE["spanId"].fullmatch(str(run_sid))):
+        sys.exit("run span has a malformed traceId/spanId; refusing to export")
     agent_by_iter = {}
     for s in base:
         if s.get("name") == "agent":
@@ -449,9 +525,13 @@ def build(args):
     out = {"resourceSpans": [{"resource": {"attributes": resource},
                               "scopeSpans": [{"scope": {"name": "odh-dashboard/fullsend-trace-bridge"},
                                               "spans": spans}]}]}
+    base_ids = set()
     if not args.no_base_spans:
         for s in base:
-            s = dict(s, attributes=[sanitize_attr(x) for x in s.get("attributes", [])])
+            s = sanitize_base_span(s)
+            if s is None or s.get("traceId") != trace_id:
+                continue
+            base_ids.add(s["spanId"])
             if s["spanId"] == run_sid:
                 s = dict(s, attributes=s.get("attributes", []) + attrs(common))
                 if args.run_url:
@@ -459,7 +539,7 @@ def build(args):
             out["resourceSpans"][0]["scopeSpans"][0]["spans"].append(s)
     summary = {"trace_id": trace_id, "pr": pr, "spans": len(out["resourceSpans"][0]["scopeSpans"][0]["spans"]),
                "personas": len(persona_rows), "coverage": cov["fullsend.guidance.coverage"],
-               "missed": cov["fullsend.guidance.missed"]}
+               "missed": cov["fullsend.guidance.missed"], "base_span_ids": sorted(base_ids)}
     # MLflow trace tags: filterable and sortable in the trace table. MLflow's own cost
     # column prices tokens without cache discounts, so the real cost goes here too.
     tags = {"fullsend.pr": f"{repo}#{pr}" if pr else None, "fullsend.verdict": verdict,
@@ -467,7 +547,8 @@ def build(args):
             "fullsend.guidance.coverage": cov["fullsend.guidance.coverage"],
             "fullsend.guidance.missed_count": len(cov["fullsend.guidance.missed"]) if applicable else None,
             "fullsend.findings.count": len(findings), "fullsend.risk": rr["fullsend.risk"],
-            "fullsend.personas": len(persona_rows), "fullsend.run_url": args.run_url}
+            "fullsend.personas": len(persona_rows), "fullsend.run_url": args.run_url,
+            "fullsend.bridge.version": BRIDGE_VERSION}
     summary["tags"] = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in tags.items() if v is not None}
     return out, summary
 
@@ -480,26 +561,46 @@ def parse_headers(headers_env):
     return headers
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never follow redirects: they would forward the Authorization header."""
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def check_endpoint(endpoint):
+    u = urllib.parse.urlparse(endpoint)
+    local = u.hostname in ("localhost", "127.0.0.1", "::1")
+    if not u.hostname or not (u.scheme == "https" or (u.scheme == "http" and local)):
+        sys.exit("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT must be an https URL (http only for localhost)")
+
+
 def post(payload, endpoint, headers):
     req = urllib.request.Request(endpoint, data=json.dumps(payload).encode(), headers=headers, method="POST")
-    with urllib.request.urlopen(req, timeout=60) as r:
+    with _OPENER.open(req, timeout=60) as r:
         return r.status
 
 
-def mlflow_trace_exists(endpoint, headers, trace_id):
-    """True if MLflow already has this trace. Re-sending spans would double MLflow's
-    trace-level token and cost totals, so existing traces only get their tags refreshed."""
+def mlflow_trace_state(endpoint, headers, trace_id):
+    """(exists, bridged): whether MLflow has this trace, and whether this bridge already
+    sent its spans to it (its tags are present). Unknown counts as absent."""
     base = re.sub(r"/v1/traces/?$", "", endpoint)
     req = urllib.request.Request(f"{base}/api/3.0/mlflow/traces/tr-{trace_id}", headers=headers)
     try:
-        urllib.request.urlopen(req, timeout=30).close()
-        return True
+        with _OPENER.open(req, timeout=30) as r:
+            info = (json.load(r).get("trace") or {}).get("trace_info") or {}
     except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return False
-        raise
-    except urllib.error.URLError:
-        return False
+        if e.code != 404:
+            print(f"warning: trace lookup returned HTTP {e.code}; treating the trace as new", file=sys.stderr)
+        return False, False
+    except (urllib.error.URLError, ValueError) as e:
+        print(f"warning: trace lookup failed ({e}); treating the trace as new", file=sys.stderr)
+        return False, False
+    tags = info.get("tags") or {}
+    # fullsend.pr marks traces sent by bridge version 1, before fullsend.bridge.version existed.
+    return True, ("fullsend.bridge.version" in tags or "fullsend.pr" in tags)
 
 
 def set_mlflow_tags(endpoint, headers, trace_id, tags):
@@ -510,14 +611,75 @@ def set_mlflow_tags(endpoint, headers, trace_id, tags):
     for k, v in tags.items():
         body = json.dumps({"key": k, "value": str(v)}).encode()
         try:
-            urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers, method="PATCH"),
-                                   timeout=30).close()
+            _OPENER.open(urllib.request.Request(url, data=body, headers=headers, method="PATCH"),
+                         timeout=30).close()
         except Exception as e:  # noqa: BLE001 - tags are optional
             failed += 1
             last = e
     if failed:
         print(f"warning: {failed}/{len(tags)} trace tags not set ({last})", file=sys.stderr)
     return len(tags) - failed
+
+
+def _self_test_network():
+    """Exercise the HTTP paths against a throwaway local server."""
+    import http.server
+    import tempfile
+    import threading
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def _send(self, code, body=b"", extra=None):
+            self.send_response(code)
+            for k, v in (extra or {}).items():
+                self.send_header(k, v)
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            tid = self.path.rsplit("tr-", 1)[-1]
+            tags = {"b" * 32: {"fullsend.bridge.version": "2"}, "c" * 32: {"other": "x"}}
+            if tid in tags:
+                self._send(200, json.dumps({"trace": {"trace_info": {"tags": tags[tid]}}}).encode())
+            elif tid == "e" * 32:
+                self._send(500)
+            else:
+                self._send(404)
+
+        def do_POST(self):
+            self._send(302, extra={"Location": "http://example.invalid/steal"})
+
+    srv = http.server.HTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    ep = f"http://127.0.0.1:{srv.server_address[1]}/v1/traces"
+    states = [mlflow_trace_state(ep, {}, t) for t in ("a" * 32, "b" * 32, "c" * 32, "e" * 32)]
+    try:
+        post({}, ep, {})
+        redirect_blocked = False
+    except urllib.error.HTTPError as e:
+        redirect_blocked = e.code == 302
+    try:
+        check_endpoint("http://mlflow.example.com/v1/traces")
+        http_rejected = False
+    except SystemExit:
+        http_rejected = True
+    srv.shutdown()
+    bad = tempfile.mkdtemp(prefix="trace-bridge-badid-")
+    with open(os.path.join(bad, "metrics.json"), "w") as f:
+        f.write("{}")
+    with open(os.path.join(bad, "run-telemetry.jsonl"), "w") as f:
+        f.write(json.dumps({"resourceSpans": [{"scopeSpans": [{"spans": [
+            {"traceId": "../x", "spanId": "1" * 16, "name": "run"}]}]}]}))
+    try:
+        build(argparse.Namespace(artifact=bad, guidance=None, pr_author=None, run_url=None,
+                                 pr_files_count=None, no_base_spans=False, verdict=None))
+        bad_id_rejected = False
+    except SystemExit:
+        bad_id_rejected = True
+    return {"states": states, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
+            "bad_id_rejected": bad_id_rejected}
 
 
 def self_test():
@@ -536,11 +698,21 @@ def self_test():
     with open(os.path.join(run, "run-telemetry.jsonl"), "w") as f:
         f.write(otlp({"traceId": tid, "spanId": run_sid, "name": "run",
                       "startTimeUnixNano": "1000000000", "endTimeUnixNano": "9000000000",
-                      "attributes": [{"key": "cmd", "value": {"stringValue": "--api-key s3cr3tvalue1"}}]}))
+                      "attributes": [{"key": "cmd", "value": {"stringValue": "--api-key s3cr3tvalue1"}},
+                                     {"key": "fullsend.mint.token", "value": {"stringValue": "plainValue9x"}},
+                                     {"key": "gen_ai.usage.input_tokens", "value": {"intValue": "42"}},
+                                     {"key": "nested", "value": {"kvlistValue": {"values": [
+                                         {"key": "password", "value": {"stringValue": "nestedPw77"}}]}}}],
+                      "events": [{"name": "e", "attributes": [{"key": "x", "value": {"stringValue": "eventLeak5"}}]}],
+                      "status": {"code": 1, "message": "statusLeak6"}}))
         f.write(otlp({"traceId": tid, "spanId": agent_sid, "parentSpanId": run_sid, "name": "agent",
                       "startTimeUnixNano": "2000000000", "endTimeUnixNano": "8000000000",
                       "attributes": [{"key": "iteration", "value": {"intValue": "1"}}]}))
     json.dump({"total_cost_usd": 0.5, "iterations": 1}, open(os.path.join(run, "metrics.json"), "w"))
+    json.dump({}, open(os.path.join(out_dir, "metrics.json"), "w"))
+    with open(os.path.join(out_dir, "run-telemetry.jsonl"), "w") as f:
+        f.write(otlp({"traceId": "../../evil", "spanId": "x", "name": "run",
+                      "startTimeUnixNano": "1", "endTimeUnixNano": "2"}))
     json.dump({"action": "request-changes", "pr_number": 7, "repo": "o/r", "risk": {"level": "low"},
                "findings": [{"severity": "high", "dimension": "correctness"}],
                "producers": {"dispatched": ["style-conventions", "test-impact-review"]}},
@@ -563,11 +735,12 @@ def self_test():
             call("c4", "grep", {"pattern": "flag", "path": "/sandbox/workspace/target-repo/docs/adr/0009-x.md"}),
             call("c5", "bash", {"command": "rg -n flag docs/adr/0009-x.md && cat AGENTS.md | head"}),
             call("c6", "bash", {"command": 'curl -d \'{"password": "hunter2pass"}\' --token tok3nvalue x'}),
-            call("c7", "write", {"path": "/sandbox/workspace/out.json", "content": "client_secret=leakedvalue"})]))
+            call("c7", "write", {"path": "/sandbox/workspace/out.json", "content": "client_secret=leakedvalue"}),
+            call("c8", "bash", {"command": "cat > /tmp/x.py <<'EOF'\nheredocBody1 = 1\nEOF\npython3 -c 'inlineBody2()' && ls"})]))
         f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
         f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
         f.write(msg("toolResult", toolCallId="c3", durationMs=5, timestamp=1793664001700, isError=True))
-        for i in ("c4", "c5", "c6", "c7"):
+        for i in ("c4", "c5", "c6", "c7", "c8"):
             f.write(msg("toolResult", toolCallId=i, durationMs=5, timestamp=1793664001800))
     with open(os.path.join(tr, "review-sub2-2026-11-03T00-00-01Z_b.jsonl"), "w") as f:
         f.write(msg("user", [{"type": "text", "text": "Read /x/sub-agents/test-impact-review/SKILL.md first"}]))
@@ -590,7 +763,29 @@ def self_test():
     get = lambda s, k: next((list(a["value"].values())[0] for a in s["attributes"] if a["key"] == k), None)
     blob = json.dumps(spans)
     persona_sc = by["persona style-conventions"]
+    base_run = next(x for x in spans if x["name"] == "run")
+    base_attrs = {x["key"]: x["value"] for x in base_run["attributes"]}
+    shell = next(get(x, "fullsend.tool.command") for x in spans
+                 if "heredoc" in str(get(x, "fullsend.tool.command") or ""))
+    net = _self_test_network()
+    t0 = datetime.datetime.now()
+    redact("--" * 50000 + "token" + "-a" * 50000)
+    redact_secs = (datetime.datetime.now() - t0).total_seconds()
     checks = [
+        ("host run dir chosen over sandbox-written decoy", base_run["spanId"] == run_sid and summary["trace_id"] == tid),
+        ("text under a sensitive key in Fullsend's spans redacted", "plainValue9x" not in blob),
+        ("token counts under token-named keys kept", base_attrs.get("gen_ai.usage.input_tokens") == {"intValue": "42"}),
+        ("nested OTLP values redacted", "nestedPw77" not in blob),
+        ("events and status messages dropped", "eventLeak5" not in blob and "statusLeak6" not in blob),
+        ("heredoc body and inline script stripped from commands",
+         "heredocBody1" not in blob and "inlineBody2" not in blob and "[heredoc: 1 lines]" in shell
+         and "ls" in shell),
+        ("redaction stays fast on long adversarial input", redact_secs < 2),
+        ("malformed trace ids rejected", net["bad_id_rejected"]),
+        ("plain http to a remote host rejected", net["http_rejected"]),
+        ("redirects are not followed", net["redirect_blocked"]),
+        ("missing trace is new; bridge-tagged trace is bridged; Fullsend-only trace is not",
+         net["states"] == [(False, False), (True, True), (True, False), (False, False)]),
         ("failed read, search, prompt mention and unanswered call don't count as opened",
          get(persona_sc, "fullsend.guidance.read") is not None
          and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
@@ -640,7 +835,7 @@ def main():
                    help="do not re-send run/agent spans (use once Fullsend exports them itself)")
     p.add_argument("--no-tags", action="store_true", help="skip setting MLflow trace tags after export")
     p.add_argument("--force", action="store_true",
-                   help="send spans even if MLflow already has the trace (doubles MLflow's token totals)")
+                   help="send spans even if this bridge already sent them (doubles MLflow's token totals)")
     p.add_argument("--dry-run", action="store_true", help="build and print the summary, do not POST")
     args = p.parse_args()
     args.pr_files_count = None
@@ -654,16 +849,25 @@ def main():
     if args.out:
         with open(args.out, "w") as f:
             json.dump(payload, f, indent=1)
-    print(json.dumps(summary))
+    print(json.dumps({k: v for k, v in summary.items() if k != "base_span_ids"}))
     endpoint = os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
     if args.dry_run or not endpoint:
         if not endpoint and not args.dry_run:
             print("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT not set; skipping export", file=sys.stderr)
         return
+    check_endpoint(endpoint)
     headers = parse_headers(os.environ.get("OTEL_EXPORTER_OTLP_TRACES_HEADERS"))
-    if not args.force and mlflow_trace_exists(endpoint, headers, summary["trace_id"]):
-        print("trace already in MLflow; skipping span export (use --force to resend)")
+    exists, bridged = mlflow_trace_state(endpoint, headers, summary["trace_id"])
+    if bridged and not args.force:
+        print("bridge spans already in MLflow; skipping span export (use --force to resend)")
     else:
+        if exists and not bridged:
+            # Fullsend exported its own spans: add ours without re-sending theirs.
+            drop = set(summary["base_span_ids"])
+            for rs in payload["resourceSpans"]:
+                for ss in rs["scopeSpans"]:
+                    ss["spans"] = [x for x in ss["spans"] if x["spanId"] not in drop]
+            print("trace exists without bridge spans; sending bridge spans only")
         status = post(payload, endpoint, headers)
         print(f"exported to OTLP endpoint: HTTP {status}")
     if not args.no_tags:

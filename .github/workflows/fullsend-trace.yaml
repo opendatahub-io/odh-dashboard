@@ -77,11 +77,17 @@ jobs:
           [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id must be numeric"; exit 1; }
           dest="$RUNNER_TEMP/artifact"
           mkdir -p "$dest"
-          if ! gh run download "$RUN_ID" -R "$REPO" -n fullsend-review -D "$dest" 2>/dev/null; then
+          # Only a confirmed absence is a no-op; API and download errors fail the job so
+          # telemetry is not silently lost.
+          count=$(gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts" --paginate \
+            --jq '[.artifacts[] | select(.name == "fullsend-review" and .expired == false)] | length' \
+            | awk '{n += $1} END {print n + 0}')
+          if [[ "$count" == 0 ]]; then
             echo "::notice::Run $RUN_ID has no fullsend-review artifact (not a review run); nothing to trace."
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          gh run download "$RUN_ID" -R "$REPO" -n fullsend-review -D "$dest"
           echo "found=true" >> "$GITHUB_OUTPUT"
           echo "dir=$dest" >> "$GITHUB_OUTPUT"
           echo "run_url=https://github.com/$REPO/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
@@ -102,16 +108,25 @@ jobs:
             echo "::warning::No PR number in the artifact; tracing without guidance coverage."
             exit 0
           fi
-          files="$RUNNER_TEMP/pr-files.txt"
-          gh api --paginate "repos/$REPO/pulls/$pr/files" --jq '.[].filename' > "$files"
           author=$(gh api "repos/$REPO/pulls/$pr" --jq '.user.login')
+          current_head=$(gh api "repos/$REPO/pulls/$pr" --jq '.head.sha')
+          head_sha=$(jq -r '.head_sha // empty' "$result")
+          # Coverage is scored against the files of the reviewed commit. The PR files API
+          # only shows the current head, so coverage is omitted once the PR has moved on
+          # (a later push, or a backfill of an older review).
+          files=""
+          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$head_sha" == "$current_head" ]]; then
+            files="$RUNNER_TEMP/pr-files.txt"
+            gh api --paginate "repos/$REPO/pulls/$pr/files" --jq '.[].filename' > "$files"
+          else
+            echo "::notice::PR head moved past the reviewed commit; tracing without guidance coverage."
+          fi
           # agent-result.json may lack the verdict: the host post-script decides it after
           # the artifact is captured. Fall back to the Fullsend bot's review on that commit.
-          head_sha=$(jq -r '.head_sha // empty' "$result")
           verdict=""
           if [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]; then
             state=$(gh api --paginate "repos/$REPO/pulls/$pr/reviews" \
-              --jq ".[] | select(.commit_id == \"$head_sha\" and (.user.login | startswith(\"fullsend-ai-review\"))) | .state" | tail -1)
+              --jq ".[] | select(.commit_id == \"$head_sha\" and .user.type == \"Bot\" and .user.login == \"fullsend-ai-review[bot]\") | .state" | tail -1)
             case "$state" in
               APPROVED) verdict=approve ;;
               CHANGES_REQUESTED) verdict=request-changes ;;
@@ -121,19 +136,22 @@ jobs:
           # Guidance coverage needs the repo-guidance selector; without it the trace
           # is sent without coverage.
           selector=.fullsend/scripts/fetch-guidance-context.sh
-          if [[ -f "$selector" ]]; then
+          if [[ -z "$files" ]]; then
+            :
+          elif [[ -f "$selector" ]]; then
             FULLSEND_ADAPTER_REPO_DIR="$GITHUB_WORKSPACE" FULLSEND_ADAPTER_PR_FILES="$files" \
               bash "$selector" "$RUNNER_TEMP/guidance.json" \
               || echo "::warning::Guidance selection failed; tracing without coverage."
           else
             echo "::notice::$selector not found; tracing without guidance coverage."
           fi
-          {
-            echo "files=$files"
-            echo "author=$author"
-            [[ -n "$verdict" ]] && echo "verdict=$verdict"
-            [[ -s "$RUNNER_TEMP/guidance.json" ]] && echo "guidance=$RUNNER_TEMP/guidance.json"
-          } >> "$GITHUB_OUTPUT"
+          # Explicit ifs: an `a && b` as the last command would fail the step when a is false.
+          echo "author=$author" >> "$GITHUB_OUTPUT"
+          if [[ -n "$files" ]]; then echo "files=$files" >> "$GITHUB_OUTPUT"; fi
+          if [[ -n "$verdict" ]]; then echo "verdict=$verdict" >> "$GITHUB_OUTPUT"; fi
+          if [[ -s "$RUNNER_TEMP/guidance.json" ]]; then
+            echo "guidance=$RUNNER_TEMP/guidance.json" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Send spans
         if: steps.artifact.outputs.found == 'true'
