@@ -156,10 +156,11 @@ func TestCorrelationCORSAndMissingCredentials(t *testing.T) {
 
 // Keep a real truncated upstream body test separate from recorder-only commitment tests.
 func TestProxyStreamFailureThroughRecovery(t *testing.T) {
+	first := "{\"type\":\"BOOKMARK\",\"object\":{}}\n"
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", "999")
-		w.Header().Set("Content-Type", "text/event-stream")
-		_, _ = io.WriteString(w, "partial")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, first+`{"type":"ERROR","object":{"message":"CANARY_SECRET"`)
 		w.(http.Flusher).Flush()
 	}))
 	defer upstream.Close()
@@ -173,7 +174,7 @@ func TestProxyStreamFailureThroughRecovery(t *testing.T) {
 	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
-	require.Equal(t, "partial", string(b))
+	require.Equal(t, first, string(b))
 	require.Equal(t, 200, resp.StatusCode)
 }
 

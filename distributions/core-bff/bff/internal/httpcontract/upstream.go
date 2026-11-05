@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +23,11 @@ func KubernetesResponse(resp *http.Response) error {
 		CaptureAudit(resp.Request.Context(), resp.Header)
 	}
 	if resp.StatusCode < 400 {
-		if isWatchRequest(resp.Request) && strings.HasPrefix(resp.Header.Get(constants.HeaderContentType), constants.ContentTypeJSON) && resp.Body != nil {
+		if resp.StatusCode == http.StatusOK && IsWatchRequest(resp.Request) && resp.Body != nil {
+			mediaType, _, err := mime.ParseMediaType(resp.Header.Get(constants.HeaderContentType))
+			if err != nil || mediaType != constants.ContentTypeJSON {
+				return fmt.Errorf("unsupported watch response media type")
+			}
 			if resp.Header.Get(constants.HeaderContentEncoding) != "" {
 				return fmt.Errorf("unsupported watch response encoding")
 			}
@@ -65,7 +69,8 @@ func KubernetesResponse(resp *http.Response) error {
 	return nil
 }
 
-func isWatchRequest(r *http.Request) bool {
+// IsWatchRequest matches Kubernetes query conversion for the watch parameter.
+func IsWatchRequest(r *http.Request) bool {
 	if r == nil {
 		return false
 	}

@@ -92,6 +92,9 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			if cfg.SetOutboundHeadersFn != nil {
 				cfg.SetOutboundHeadersFn(in, out)
 			}
+			if httpcontract.IsWatchRequest(in) {
+				out.Set(constants.HeaderAccept, constants.ContentTypeJSON)
+			}
 			// Let Go's transport negotiate/decompress gzip so Status/watch error
 			// sanitization also applies when the browser requests compression.
 			out.Del(constants.HeaderAcceptEncoding)

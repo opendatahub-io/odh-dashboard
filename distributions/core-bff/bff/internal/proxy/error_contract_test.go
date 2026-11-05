@@ -242,3 +242,54 @@ func TestProxyCancellationIsNotLoggedAsFailure(t *testing.T) {
 	require.Contains(t, logs.String(), `"code":"CANCELED"`)
 	require.NotContains(t, logs.String(), `"level":"ERROR"`)
 }
+
+func TestHTTPWatchNegotiatesJSONAndRejectsUnsupportedMediaTypes(t *testing.T) {
+	const protobuf = "application/vnd.kubernetes.protobuf"
+	for _, contentType := range []string{protobuf, "application/json-seq", "text/plain", "", "application/json; charset=utf-8"} {
+		t.Run(contentType, func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, constants.ContentTypeJSON, r.Header.Get(constants.HeaderAccept))
+				w.Header()[constants.HeaderContentType] = []string{contentType}
+				_, _ = io.WriteString(w, `{"type":"ERROR","object":{"code":410,"message":"CANARY_SECRET"}}`+"\n")
+			}))
+			defer upstream.Close()
+			handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+			require.NoError(t, err)
+			request := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods?watch=true", nil)
+			request.Header.Set(constants.HeaderAccept, protobuf)
+			request = request.WithContext(identityContext(request, "test-token"))
+			response := httptest.NewRecorder()
+			httpcontract.Middleware(handler, slog.Default()).ServeHTTP(response, request)
+			if contentType == "application/json; charset=utf-8" {
+				require.Equal(t, http.StatusOK, response.Code)
+				require.Contains(t, response.Body.String(), `"code":410`)
+			} else {
+				require.Equal(t, http.StatusBadGateway, response.Code)
+				var status metav1.Status
+				require.NoError(t, json.Unmarshal(response.Body.Bytes(), &status))
+				require.Equal(t, metav1.StatusReason("DashboardProxyError"), status.Reason)
+				require.Equal(t, metav1.CauseType("BAD_GATEWAY"), status.Details.Causes[0].Type)
+			}
+			require.NotContains(t, response.Body.String(), "CANARY")
+		})
+	}
+}
+
+func TestNonWatchAcceptHeaderIsPreserved(t *testing.T) {
+	const protobuf = "application/vnd.kubernetes.protobuf"
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, protobuf, r.Header.Get(constants.HeaderAccept))
+		w.Header().Set(constants.HeaderContentType, protobuf)
+		_, _ = io.WriteString(w, "resource bytes")
+	}))
+	defer upstream.Close()
+	handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+	require.NoError(t, err)
+	request := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods?watch=false", nil)
+	request.Header.Set(constants.HeaderAccept, protobuf)
+	request = request.WithContext(identityContext(request, "test-token"))
+	response := httptest.NewRecorder()
+	httpcontract.Middleware(handler, slog.Default()).ServeHTTP(response, request)
+	require.Equal(t, http.StatusOK, response.Code)
+	require.Equal(t, "resource bytes", response.Body.String())
+}

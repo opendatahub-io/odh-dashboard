@@ -94,10 +94,16 @@ describe('startGoTestFixture', () => {
         child.stderr.write('controlled startup failure');
         child.exitCode = 1;
         child.emit('exit', 1, null);
+        queueMicrotask(() => {
+          child.stderr.write(' drained stderr');
+          child.emit('close', 1, null);
+        });
       });
       return child;
     });
-    await expect(startGoTestFixture(options)).rejects.toThrow('controlled startup failure');
+    await expect(startGoTestFixture(options)).rejects.toThrow(
+      'controlled startup failure drained stderr',
+    );
     expect(rm).toHaveBeenCalled();
   });
 
@@ -127,6 +133,70 @@ describe('startGoTestFixture', () => {
     await expect(startGoTestFixture(options)).rejects.toThrow('not ready');
     expect(child.kill).toHaveBeenCalledWith('SIGTERM');
     expect(rm).toHaveBeenCalled();
+  });
+
+  it('should remove the directory when signaling fails', async () => {
+    const fixture = await startGoTestFixture(options);
+    child.kill.mockImplementation(() => {
+      throw new Error('controlled signal failure');
+    });
+    await expect(fixture.stop()).rejects.toThrow('controlled signal failure');
+    expect(rm).toHaveBeenCalled();
+    expect(child.listenerCount('exit')).toBe(0);
+    expect(child.listenerCount('error')).toBe(0);
+  });
+
+  it('should preserve startup and cleanup errors', async () => {
+    const buildError = new Error('controlled build failure');
+    const cleanupError = new Error('controlled cleanup failure');
+    build.mockImplementation((...args: unknown[]) => {
+      const callback = args.at(-1) as (error: Error) => void;
+      callback(buildError);
+    });
+    jest.mocked(rm).mockRejectedValueOnce(cleanupError);
+    await expect(startGoTestFixture(options)).rejects.toMatchObject({
+      errors: [buildError, cleanupError],
+    });
+  });
+
+  it('should bound forced termination and remove the directory if the process never exits', async () => {
+    const fixture = await startGoTestFixture(options);
+    child.kill.mockReturnValue(true);
+    jest.useFakeTimers();
+    try {
+      const stopped = expect(fixture.stop()).rejects.toThrow('did not exit after SIGKILL');
+      await jest.advanceTimersByTimeAsync(4000);
+      await stopped;
+      expect(child.kill).toHaveBeenCalledWith('SIGTERM');
+      expect(child.kill).toHaveBeenCalledWith('SIGKILL');
+      expect(rm).toHaveBeenCalled();
+      expect(child.listenerCount('exit')).toBe(0);
+      expect(child.listenerCount('error')).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should retain the readiness deadline if exit is not followed by close', async () => {
+    jest.useFakeTimers();
+    launch.mockImplementation(() => {
+      queueMicrotask(() => {
+        child.exitCode = 1;
+        child.emit('exit', 1, null);
+      });
+      return child;
+    });
+    try {
+      const started = expect(startGoTestFixture(options)).rejects.toThrow(
+        'did not publish its URL',
+      );
+      await jest.advanceTimersByTimeAsync(15000);
+      await started;
+      expect(rm).toHaveBeenCalled();
+      expect(child.listenerCount('close')).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('should force termination after the graceful shutdown deadline', async () => {

@@ -85,14 +85,56 @@ func TestWatchBodyPreservesUpstreamReadErrors(t *testing.T) {
 	require.Equal(t, event, string(result))
 }
 
-func TestOversizedWatchEventAbortsProxyStreamAndLogsSafely(t *testing.T) {
+func TestWatchBodyDiscardsMalformedOrInterruptedEvents(t *testing.T) {
 	first := "{\"type\":\"BOOKMARK\",\"object\":{}}\n"
-	oversized := resourceWatchEvent(maxWatchEventBytes+1, true)
+	partial := `{"type":"ERROR","object":{"message":"CANARY_SECRET"`
+	for _, tc := range []struct {
+		name      string
+		event     string
+		readError error
+		wantError error
+	}{
+		{name: "truncated EOF", event: partial, wantError: errMalformedWatchEvent},
+		{name: "malformed line", event: partial + "\n", wantError: errMalformedWatchEvent},
+		{name: "interrupted fragment", event: partial, readError: io.ErrUnexpectedEOF, wantError: io.ErrUnexpectedEOF},
+		{name: "interrupted complete JSON without delimiter", event: partial + "}}", readError: io.ErrUnexpectedEOF, wantError: io.ErrUnexpectedEOF},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var source io.Reader = strings.NewReader(first + tc.event)
+			if tc.readError != nil {
+				source = io.MultiReader(source, iotest.ErrReader(tc.readError))
+			}
+			body := newWatchBody(io.NopCloser(source))
+			defer body.Close()
+			result, err := io.ReadAll(body)
+			require.ErrorIs(t, err, tc.wantError)
+			require.Equal(t, first, string(result))
+			_, err = body.Read(make([]byte, 1))
+			require.ErrorIs(t, err, tc.wantError)
+		})
+	}
+}
+
+func TestMalformedWatchEventAbortsProxyStreamAndLogsSafely(t *testing.T) {
+	for _, suffix := range []string{"", "\n"} {
+		t.Run(fmt.Sprintf("suffix=%q", suffix), func(t *testing.T) {
+			testRejectedWatchEvent(t, `{"type":"ERROR","object":{"message":"CANARY_SECRET"`+suffix)
+		})
+	}
+}
+
+func TestOversizedWatchEventAbortsProxyStreamAndLogsSafely(t *testing.T) {
+	testRejectedWatchEvent(t, resourceWatchEvent(maxWatchEventBytes+1, true))
+}
+
+func testRejectedWatchEvent(t *testing.T, rejected string) {
+	t.Helper()
+	first := "{\"type\":\"BOOKMARK\",\"object\":{}}\n"
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
 		_, _ = io.WriteString(w, first)
 		w.(http.Flusher).Flush()
-		_, _ = io.WriteString(w, oversized)
+		_, _ = io.WriteString(w, rejected)
 	}))
 	defer upstream.Close()
 	var logs bytes.Buffer
@@ -112,7 +154,7 @@ func TestOversizedWatchEventAbortsProxyStreamAndLogsSafely(t *testing.T) {
 	server.Close() // Wait for the request's log writes before inspecting the buffer.
 	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 	require.Equal(t, http.StatusOK, response.StatusCode)
-	require.Equal(t, first, string(result), "do not append an oversized event or JSON error")
+	require.Equal(t, first, string(result), "do not append a rejected event or JSON error")
 	var event struct {
 		Code      string `json:"code"`
 		RequestID string `json:"request_id"`

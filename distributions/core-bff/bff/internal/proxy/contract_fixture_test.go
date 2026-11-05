@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -129,7 +130,16 @@ func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/watch" {
-		w.Header().Set("Content-Type", "application/json")
+		if r.Header.Get(constants.HeaderAccept) != constants.ContentTypeJSON {
+			http.Error(w, "expected JSON negotiation", http.StatusBadRequest)
+			return
+		}
+		if r.URL.Query().Get("media") == "protobuf" {
+			w.Header().Set(constants.HeaderContentType, "application/vnd.kubernetes.protobuf")
+			_, _ = io.WriteString(w, "CANARY_UNSUPPORTED_WATCH_BODY")
+			return
+		}
+		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
 		eventType := "ERROR"
 		if r.URL.Query().Get("escaped") == "true" {
 			eventType = `\u0045RROR`

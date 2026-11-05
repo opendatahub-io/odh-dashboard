@@ -78,6 +78,7 @@ func TestK8sProxy_PathStripping(t *testing.T) {
 func TestK8sProxy_QueryParams(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Got-Query", r.URL.RawQuery)
+		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()

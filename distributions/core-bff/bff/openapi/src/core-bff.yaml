@@ -220,6 +220,8 @@ paths:
       Local failures have reason DashboardProxyError and a stable BFF code in details.causes[].reason; X-Request-ID provides correlation.
       Status codes distinguish 401 authentication, 403 policy, 502 transport, 503 unavailable and 504 timeout.
       Upstream Kubernetes failures preserve status and KubernetesStatus semantics with sanitized free text; successful responses and watch events are streamed.
+      HTTP watches negotiate application/json; unexpected media types or content encodings fail before commitment with 502.
+      Malformed, truncated or oversized watch events terminate the stream without forwarding the invalid event or appending JSON.
       Note: /wss/k8s/* WebSocket proxy is not documented here (OpenAPI 3.0.3 has no native WebSocket support).
     parameters:
       - name: path
@@ -241,31 +243,31 @@ paths:
         '200':
           $ref: '#/components/responses/K8sProxySuccess'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/K8sProxyFailure'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/K8sProxyFailure'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/K8sProxyFailure'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/K8sProxyFailure'
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          $ref: '#/components/responses/K8sProxyFailure'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/K8sProxyFailure'
         '410':
-          $ref: '#/components/responses/Gone'
+          $ref: '#/components/responses/K8sProxyFailure'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/K8sProxyFailure'
         '429':
-          $ref: '#/components/responses/TooManyRequests'
+          $ref: '#/components/responses/K8sProxyFailure'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/K8sProxyFailure'
         '502':
-          $ref: '#/components/responses/BadGateway'
+          $ref: '#/components/responses/K8sProxyFailure'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/K8sProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/K8sProxyFailure'
         default:
           $ref: '#/components/responses/K8sProxyFailure'
 
@@ -289,31 +291,31 @@ paths:
               schema:
                 type: object
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/K8sProxyFailure'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/K8sProxyFailure'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/K8sProxyFailure'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/K8sProxyFailure'
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          $ref: '#/components/responses/K8sProxyFailure'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/K8sProxyFailure'
         '410':
-          $ref: '#/components/responses/Gone'
+          $ref: '#/components/responses/K8sProxyFailure'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/K8sProxyFailure'
         '429':
-          $ref: '#/components/responses/TooManyRequests'
+          $ref: '#/components/responses/K8sProxyFailure'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/K8sProxyFailure'
         '502':
-          $ref: '#/components/responses/BadGateway'
+          $ref: '#/components/responses/K8sProxyFailure'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/K8sProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/K8sProxyFailure'
         default:
           $ref: '#/components/responses/K8sProxyFailure'
 
@@ -331,31 +333,31 @@ paths:
         '200':
           $ref: '#/components/responses/K8sProxySuccess'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/K8sProxyFailure'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/K8sProxyFailure'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/K8sProxyFailure'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/K8sProxyFailure'
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          $ref: '#/components/responses/K8sProxyFailure'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/K8sProxyFailure'
         '410':
-          $ref: '#/components/responses/Gone'
+          $ref: '#/components/responses/K8sProxyFailure'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/K8sProxyFailure'
         '429':
-          $ref: '#/components/responses/TooManyRequests'
+          $ref: '#/components/responses/K8sProxyFailure'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/K8sProxyFailure'
         '502':
-          $ref: '#/components/responses/BadGateway'
+          $ref: '#/components/responses/K8sProxyFailure'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/K8sProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/K8sProxyFailure'
         default:
           $ref: '#/components/responses/K8sProxyFailure'
 
@@ -373,31 +375,31 @@ paths:
         '200':
           $ref: '#/components/responses/K8sProxySuccess'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/K8sProxyFailure'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/K8sProxyFailure'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/K8sProxyFailure'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/K8sProxyFailure'
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          $ref: '#/components/responses/K8sProxyFailure'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/K8sProxyFailure'
         '410':
-          $ref: '#/components/responses/Gone'
+          $ref: '#/components/responses/K8sProxyFailure'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/K8sProxyFailure'
         '429':
-          $ref: '#/components/responses/TooManyRequests'
+          $ref: '#/components/responses/K8sProxyFailure'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/K8sProxyFailure'
         '502':
-          $ref: '#/components/responses/BadGateway'
+          $ref: '#/components/responses/K8sProxyFailure'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/K8sProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/K8sProxyFailure'
         default:
           $ref: '#/components/responses/K8sProxyFailure'
 
@@ -410,31 +412,31 @@ paths:
         '200':
           $ref: '#/components/responses/K8sProxySuccess'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/K8sProxyFailure'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/K8sProxyFailure'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/K8sProxyFailure'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/K8sProxyFailure'
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          $ref: '#/components/responses/K8sProxyFailure'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/K8sProxyFailure'
         '410':
-          $ref: '#/components/responses/Gone'
+          $ref: '#/components/responses/K8sProxyFailure'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/K8sProxyFailure'
         '429':
-          $ref: '#/components/responses/TooManyRequests'
+          $ref: '#/components/responses/K8sProxyFailure'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: '#/components/responses/K8sProxyFailure'
         '502':
-          $ref: '#/components/responses/BadGateway'
+          $ref: '#/components/responses/K8sProxyFailure'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/K8sProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/K8sProxyFailure'
         default:
           $ref: '#/components/responses/K8sProxyFailure'
 

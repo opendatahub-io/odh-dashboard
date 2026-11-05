@@ -1,5 +1,4 @@
 import { execFile, spawn, type ChildProcess } from 'child_process';
-import { once } from 'events';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -32,6 +31,29 @@ function isRunning(child: ChildProcess | undefined): child is ChildProcess {
   );
 }
 
+/** Bound each signal attempt and detach listeners even if signaling fails. */
+function terminate(child: ChildProcess, signal: NodeJS.Signals): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const finish = (error?: Error, exited = true): void => {
+      clearTimeout(timer);
+      child.off('exit', onExit);
+      child.off('error', onError);
+      if (error) reject(error);
+      else resolve(exited);
+    };
+    const onExit = (): void => finish();
+    const onError = (error: Error): void => finish(error);
+    const timer = setTimeout(() => finish(undefined, false), shutdownTimeoutMs);
+    child.once('exit', onExit);
+    child.once('error', onError);
+    try {
+      child.kill(signal);
+    } catch (error) {
+      finish(error instanceof Error ? error : new Error('Could not signal Go fixture'));
+    }
+  });
+}
+
 /** Run an opt-in Go test server without adding production entry points or module scripts. */
 export async function startGoTestFixture({
   bffDir,
@@ -44,26 +66,15 @@ export async function startGoTestFixture({
   let diagnostics = '';
 
   const stop = async (): Promise<void> => {
-    if (isRunning(child)) {
-      const exited = once(child, 'exit');
-      child.kill('SIGTERM');
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      try {
-        await Promise.race([
-          exited,
-          new Promise<void>((resolve) => {
-            timer = setTimeout(resolve, shutdownTimeoutMs);
-          }),
-        ]);
-      } finally {
-        clearTimeout(timer);
+    try {
+      if (isRunning(child) && !(await terminate(child, 'SIGTERM')) && isRunning(child)) {
+        if (!(await terminate(child, 'SIGKILL'))) {
+          throw new Error('Go fixture did not exit after SIGKILL');
+        }
       }
-      if (isRunning(child)) {
-        child.kill('SIGKILL');
-        await exited;
-      }
+    } finally {
+      await rm(directory, { recursive: true, force: true });
     }
-    await rm(directory, { recursive: true, force: true });
   };
 
   try {
@@ -85,14 +96,17 @@ export async function startGoTestFixture({
     const url = await new Promise<string>((resolve, reject) => {
       let output = '';
       const timer = setTimeout(
-        () => reject(new Error('Go fixture did not publish its URL')),
+        () => onError(new Error('Go fixture did not publish its URL')),
         readinessTimeoutMs,
       );
       const onError = (error: Error): void => {
         clearTimeout(timer);
+        fixture.stdout.off('data', onData);
+        fixture.off('error', onError);
+        fixture.off('close', onClose);
         reject(error);
       };
-      const onExit = (): void =>
+      const onClose = (): void =>
         onError(new Error(`Go fixture exited before readiness: ${diagnostics}`));
       const onData = (data: Buffer): void => {
         output += data.toString();
@@ -105,7 +119,7 @@ export async function startGoTestFixture({
         clearTimeout(timer);
         fixture.stdout.off('data', onData);
         fixture.off('error', onError);
-        fixture.off('exit', onExit);
+        fixture.off('close', onClose);
         try {
           const published = new URL(output.slice(0, end).trim());
           if (published.protocol !== 'http:' || published.hostname !== '127.0.0.1') {
@@ -117,7 +131,7 @@ export async function startGoTestFixture({
         }
       };
       fixture.once('error', onError);
-      fixture.once('exit', onExit);
+      fixture.once('close', onClose);
       fixture.stdout.on('data', onData);
     });
     const health = await waitForBffHealth(
@@ -127,7 +141,11 @@ export async function startGoTestFixture({
     if (!health.healthy) throw new Error(`Go fixture was not ready: ${diagnostics}`);
     return { url, stop };
   } catch (error) {
-    await stop();
+    try {
+      await stop();
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], 'Go fixture startup and cleanup failed');
+    }
     throw error;
   }
 }

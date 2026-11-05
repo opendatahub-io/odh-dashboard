@@ -11,7 +11,10 @@ import (
 
 const maxWatchEventBytes = 4 << 20 // Includes the newline delimiter, when present.
 
-var errWatchEventTooLarge = errors.New("watch event exceeds buffering limit")
+var (
+	errWatchEventTooLarge  = errors.New("watch event exceeds buffering limit")
+	errMalformedWatchEvent = errors.New("invalid watch event JSON")
+)
 
 // SanitizeWatchEvent changes only Kubernetes watch ERROR Status objects. Resource events,
 // bookmarks and non-watch/subprotocol messages retain their bytes, including whitespace.
@@ -63,8 +66,18 @@ func (b *watchBody) Read(p []byte) (int, error) {
 			return 0, b.err
 		}
 		line, err := b.readEvent()
-		b.pending = SanitizeWatchEvent(line)
 		b.err = err
+		if err != nil && !errors.Is(err, io.EOF) {
+			return 0, err // Never forward a fragment from an interrupted event.
+		}
+		if len(line) == 0 {
+			return 0, err
+		}
+		if !json.Valid(line) {
+			b.err = errMalformedWatchEvent
+			return 0, b.err
+		}
+		b.pending = SanitizeWatchEvent(line)
 	}
 	n := copy(p, b.pending)
 	b.pending = b.pending[n:]

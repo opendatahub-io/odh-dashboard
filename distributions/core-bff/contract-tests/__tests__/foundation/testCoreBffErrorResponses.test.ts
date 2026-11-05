@@ -116,7 +116,7 @@ describe('Core BFF error response components', () => {
     { name: 'prefixed WebSocket handshake', prefix: '/core-bff/wss/k8s', websocket: true },
   ])('$name', ({ prefix, websocket }) => {
     it.each(kubernetesFailures)(
-      'should preserve $status using the $response response component',
+      'should preserve $status Kubernetes failure semantics',
       async ({ status, response, reason }) => {
         const result = await fixtureClient.get(`${prefix}/status/${status}`, {
           headers: websocket
@@ -130,8 +130,9 @@ describe('Core BFF error response components', () => {
             : {},
         });
         const error = expectError(result, status);
+        const responseComponent = websocket ? response : 'K8sProxyFailure';
         expect(error).toMatchContract(apiSchema, {
-          ref: `#/components/responses/${response}/content/application~1json/schema`,
+          ref: `#/components/responses/${responseComponent}/content/application~1json/schema`,
           status,
         });
         expect(apiSchema).toHaveProperty(
@@ -143,7 +144,7 @@ describe('Core BFF error response components', () => {
             String(status),
             '$ref',
           ],
-          `#/components/responses/${response}`,
+          `#/components/responses/${responseComponent}`,
         );
         const body = error.data as KubernetesFailure;
         expect(body).toMatchObject({ kind: 'Status', code: status, reason });
@@ -194,6 +195,25 @@ describe('Core BFF error response components', () => {
       });
       expect(JSON.stringify(response.data)).not.toContain('CANARY');
     });
+
+    it('should reject an unexpected protobuf watch response before streaming', async () => {
+      const error = expectError(
+        await fixtureClient.get(`${prefix}/watch?watch=true&media=protobuf`, {
+          headers: { Accept: 'application/vnd.kubernetes.protobuf' },
+        }),
+        502,
+      );
+      expect(error).toMatchContract(apiSchema, {
+        ref: '#/components/responses/K8sProxyFailure/content/application~1json/schema',
+        status: 502,
+      });
+      expect(error.data).toMatchObject({
+        kind: 'Status',
+        reason: 'DashboardProxyError',
+        details: { causes: [{ reason: 'BAD_GATEWAY' }] },
+      });
+      expect(JSON.stringify(error.data)).not.toContain('CANARY');
+    });
   });
 
   describe.each(['get', 'post', 'put', 'delete', 'patch'] as const)(
@@ -204,7 +224,7 @@ describe('Core BFF error response components', () => {
         { cause: 'timeout', status: 504, response: 'K8sTimeout' },
       ])('should document and validate $status', async ({ cause, status, response }) => {
         const error = expectError(
-          await fixtureClient[method](`/api/service/model-serving/transport/${cause}`),
+          await fixtureClient[method](`/api/service/model-serving/transport/${cause}`, undefined),
           status,
         );
         expect(apiSchema).toHaveProperty(
@@ -227,17 +247,13 @@ describe('Core BFF error response components', () => {
   );
 
   it.each([
-    { cause: 'bad-gateway', status: 502, response: 'BadGateway', code: 'BAD_GATEWAY' },
-    { cause: 'unavailable', status: 503, response: 'K8sUnavailable', code: 'SERVICE_UNAVAILABLE' },
-    { cause: 'timeout', status: 504, response: 'K8sTimeout', code: 'GATEWAY_TIMEOUT' },
+    { cause: 'bad-gateway', status: 502, code: 'BAD_GATEWAY' },
+    { cause: 'unavailable', status: 503, code: 'SERVICE_UNAVAILABLE' },
+    { cause: 'timeout', status: 504, code: 'GATEWAY_TIMEOUT' },
   ])(
-    'should classify $cause as a BFF-generated $status response',
-    async ({ cause, status, response, code }) => {
+    'should classify $cause as a local Kubernetes proxy $status failure',
+    async ({ cause, status, code }) => {
       const error = expectError(await fixtureClient.get(`/api/k8s/transport/${cause}`), status);
-      expect(error).toMatchContract(apiSchema, {
-        ref: `#/components/responses/${response}/content/application~1json/schema`,
-        status,
-      });
       const body = error.data as KubernetesFailure;
       expect(body).toMatchObject({ kind: 'Status', code: status, reason: 'DashboardProxyError' });
       expect(body.details?.causes?.[0].reason).toBe(code);

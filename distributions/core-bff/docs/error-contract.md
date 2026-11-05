@@ -39,6 +39,7 @@ to native typed-client failures, HTTP proxy failures and rejected upstream WS ha
 contract. Successful resource responses and non-error watch events retain their original bytes.
 JSON HTTP watches buffer one newline-delimited event at a time; HTTP and WS watch `ERROR` objects
 retain their Status semantics with the same sanitization as ordinary failure responses.
+HTTP watches negotiate `Accept: application/json`; an unexpected response media type fails before commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`. Malformed JSON events and incomplete events ending in a transport error are discarded and terminate the stream without appending JSON. A complete final JSON event without a newline is accepted.
 The upstream JSON encoding of each HTTP watch event is limited to 4 MiB, including its newline when present. An oversized event is discarded, logs a safe correlated read failure, and causes the proxy to terminate the stream without appending JSON. Events within the limit retain their existing sanitization and byte-preservation behavior; this cap does not apply to WebSocket messages.
 HTTP watch detection uses Kubernetes' query conversion, including `watch=1`, `watch=TRUE`, empty
 values and bare `watch`; absent parameters, `watch=0` and case-insensitive `watch=false` disable it.
