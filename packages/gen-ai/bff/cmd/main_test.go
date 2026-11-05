@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"log/slog"
+	"net"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
@@ -259,4 +262,53 @@ func TestValidateAllowLocalModelEndpoints(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSanitizedHost(t *testing.T) {
+	testCases := []struct {
+		name string
+		host string
+		want string
+	}{
+		{name: "plain hostname is unchanged", host: "localhost", want: "localhost"},
+		{name: "IP literal is unchanged", host: "127.0.0.1", want: "127.0.0.1"},
+		{name: "userinfo credentials are stripped", host: "user:secret-pw@localhost", want: "localhost"},
+		{name: "scheme and userinfo credentials are stripped", host: "https://user:secret-pw@localhost", want: "localhost"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, sanitizedHost(tc.host))
+		})
+	}
+}
+
+// captureDefaultLog redirects the package-level slog default logger for the
+// duration of fn and returns everything it wrote.
+func captureDefaultLog(t *testing.T, fn func()) string {
+	t.Helper()
+	var buf bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	defer slog.SetDefault(previous)
+	fn()
+	return buf.String()
+}
+
+func TestHostValuesAreSanitizedInLogs(t *testing.T) {
+	passwordHost := "user:super-secret-pw@0.0.0.0"
+
+	t.Run("validation error log omits the password", func(t *testing.T) {
+		logs := captureDefaultLog(t, func() {
+			err := validateAllowLocalModelEndpoints(true, true, passwordHost, "")
+			assert.Error(t, err)
+		})
+		assert.Contains(t, logs, "loopback interface")
+		assert.NotContains(t, logs, "super-secret-pw")
+	})
+
+	t.Run("startup addr omits the password", func(t *testing.T) {
+		addr := net.JoinHostPort(sanitizedHost(passwordHost), strconv.Itoa(8080))
+		assert.Equal(t, "0.0.0.0:8080", addr)
+		assert.NotContains(t, addr, "super-secret-pw")
+	})
 }

@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -791,7 +792,14 @@ func (kc *TokenKubernetesClient) GetDashboardConfigMap(ctx context.Context, name
 // equivalent one for every lookup. It falls back to the client's own credentials
 // for local development when no identity is available.
 func (kc *TokenKubernetesClient) callerScopedClient(identity *integrations.RequestIdentity) (client.Client, error) {
-	if identity == nil || identity.Token == "" || kc.Token.Raw() == identity.Token {
+	if identity == nil || identity.Token == "" {
+		return kc.Client, nil
+	}
+	// Constant-time comparison: an early-exit byte comparison could leak how
+	// much of the caller's token matches the client's own token.
+	clientToken := kc.Token.Raw()
+	if len(clientToken) == len(identity.Token) &&
+		subtle.ConstantTimeCompare([]byte(clientToken), []byte(identity.Token)) == 1 {
 		return kc.Client, nil
 	}
 	userConfig := rest.AnonymousClientConfig(kc.Config)

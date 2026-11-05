@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -172,7 +173,7 @@ func main() {
 	serverClosed := make(chan struct{})
 	go func() {
 		defer close(serverClosed)
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled, "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
+		logger.Info("starting server", "addr", net.JoinHostPort(sanitizedHost(cfg.Host), strconv.Itoa(cfg.Port)), "TLS enabled", tlsEnabled, "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
 		if tlsEnabled {
 			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
@@ -269,7 +270,7 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 
 	if !hostResolvesToLoopback(host) {
 		slog.Error("SECURITY: AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface",
-			"host", host,
+			"host", sanitizedHost(host),
 			"fix", "Pass --host localhost (or 127.0.0.1) when using --allow-local-model-endpoints",
 		)
 		return errors.New("AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface (--host)")
@@ -279,6 +280,19 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 		"use_case", "local development only - NEVER use in production",
 	)
 	return nil
+}
+
+// sanitizedHost strips any scheme prefix and userinfo credentials from a
+// configured host before logging, so a password-bearing HOST or --host value
+// never appears in logs.
+func sanitizedHost(host string) string {
+	if scheme := strings.Index(host, "://"); scheme >= 0 {
+		host = host[scheme+3:]
+	}
+	if at := strings.LastIndex(host, "@"); at >= 0 {
+		host = host[at+1:]
+	}
+	return host
 }
 
 // hostResolvesToLoopback reports whether host is an IP literal that is loopback
