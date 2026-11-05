@@ -1,9 +1,5 @@
-import {
-  NavExtension,
-  HrefNavItemExtension,
-  NavSectionExtension,
-} from '@odh-dashboard/plugin-core/extension-points';
-import { compareNavItemGroups, getTopLevelExtensions } from '#~/app/navigation/utils';
+import { NavExtension, HrefNavItemExtension, NavSectionExtension } from '../../extension-points';
+import { compareNavItemGroups, getTopLevelExtensions } from '../navigation';
 
 // Test helpers
 const createNavItem = (id: string, group?: string, section?: string): HrefNavItemExtension => ({

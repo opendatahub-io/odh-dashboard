@@ -6078,6 +6078,9 @@ importers:
 
   packages/plugin-core:
     dependencies:
+      '@module-federation/runtime':
+        specifier: ^0.24.1
+        version: 0.24.1
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../foundation
