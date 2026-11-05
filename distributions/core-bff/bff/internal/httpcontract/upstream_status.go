@@ -32,7 +32,7 @@ func readKubernetesStatus(resp *http.Response) metav1.Status {
 	var reader io.Reader = wire
 	switch strings.ToLower(strings.TrimSpace(resp.Header.Get(constants.HeaderContentEncoding))) {
 	case "", "identity":
-	case "gzip":
+	case constants.ContentEncodingGzip:
 		decoded, err := gzip.NewReader(wire)
 		if err != nil {
 			return metav1.Status{}

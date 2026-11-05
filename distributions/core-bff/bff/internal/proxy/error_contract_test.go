@@ -110,7 +110,7 @@ func TestKubernetesProxyCompatibilityBoundary(t *testing.T) {
 								require.NoError(t, err)
 								require.NoError(t, writer.Close())
 								body = compressed.Bytes()
-								w.Header().Set("Content-Encoding", "gzip")
+								w.Header().Set("Content-Encoding", constants.ContentEncodingGzip)
 							}
 							w.WriteHeader(http.StatusUnprocessableEntity)
 							_, _ = w.Write(body)
@@ -175,9 +175,9 @@ func TestLocalWebSocketRejectionsUseBFFEnvelope(t *testing.T) {
 
 func TestCompressedHTTPWatchErrorsAreSanitized(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Contains(t, r.Header.Get("Accept-Encoding"), "gzip")
+		require.Contains(t, r.Header.Get("Accept-Encoding"), constants.ContentEncodingGzip)
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Encoding", constants.ContentEncodingGzip)
 		body := gzip.NewWriter(w)
 		_, _ = io.WriteString(body, `{"type":"ERROR","object":{"kind":"Status","reason":"Expired","code":410,"message":"CANARY"}}`+"\n")
 		_ = body.Close()
@@ -186,7 +186,7 @@ func TestCompressedHTTPWatchErrorsAreSanitized(t *testing.T) {
 	handler, err := NewK8sProxyHandler(testK8sProxyConfig(backend.URL))
 	require.NoError(t, err)
 	request := httptest.NewRequest("GET", "/api/k8s/api/v1/secrets?watch=true", nil)
-	request.Header.Set("Accept-Encoding", "gzip")
+	request.Header.Set("Accept-Encoding", constants.ContentEncodingGzip)
 	w := httptest.NewRecorder()
 	httpcontract.Middleware(handler).ServeHTTP(w, request)
 	require.Equal(t, 200, w.Code)
@@ -194,6 +194,27 @@ func TestCompressedHTTPWatchErrorsAreSanitized(t *testing.T) {
 	require.NotContains(t, w.Body.String(), "CANARY")
 	require.Contains(t, w.Body.String(), `"code":410`)
 	require.Contains(t, w.Body.String(), `"reason":"Expired"`)
+}
+
+func TestHTTPWatchRejectsInvalidEncoding(t *testing.T) {
+	for _, encoding := range []string{constants.ContentEncodingGzip, "br"} {
+		t.Run(encoding, func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
+				w.Header().Set(constants.HeaderContentEncoding, encoding)
+				_, _ = io.WriteString(w, "CANARY_INVALID_ENCODING")
+			}))
+			defer upstream.Close()
+			handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+			require.NoError(t, err)
+			request := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods?watch=true", nil)
+			response := httptest.NewRecorder()
+			httpcontract.Middleware(handler).ServeHTTP(response, request)
+			require.Equal(t, http.StatusBadGateway, response.Code)
+			require.Contains(t, response.Body.String(), `"reason":"DashboardProxyError"`)
+			require.NotContains(t, response.Body.String(), "CANARY")
+		})
+	}
 }
 
 func TestWebSocketDialFailureContract(t *testing.T) {
@@ -389,7 +410,7 @@ func TestHTTPWatchPreservesJSONRepresentations(t *testing.T) {
 			t.Run(tc.name+prefix, func(t *testing.T) {
 				upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					require.Equal(t, tc.want, r.Header.Get(constants.HeaderAccept))
-					require.Equal(t, "gzip", r.Header.Get(constants.HeaderAcceptEncoding))
+					require.Equal(t, constants.ContentEncodingGzip, r.Header.Get(constants.HeaderAcceptEncoding))
 					w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
 					_, _ = io.WriteString(w, resourceEvent+`{"type":"ERROR","object":{"code":410,"reason":"Expired","message":"CANARY_SECRET"}}`+"\n")
 				}))
@@ -517,11 +538,11 @@ func TestKubernetesProxyErrorRepresentations(t *testing.T) {
 					}
 					upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						require.Equal(t, contentType, r.Header.Get(constants.HeaderAccept))
-						require.Equal(t, "gzip", r.Header.Get(constants.HeaderAcceptEncoding))
+						require.Equal(t, constants.ContentEncodingGzip, r.Header.Get(constants.HeaderAcceptEncoding))
 						w.Header().Set(constants.HeaderContentType, contentType)
 						w.Header().Set(constants.HeaderRetryAfter, "7")
 						if compressed {
-							w.Header().Set(constants.HeaderContentEncoding, "gzip")
+							w.Header().Set(constants.HeaderContentEncoding, constants.ContentEncodingGzip)
 						}
 						w.WriteHeader(int(code))
 						_, _ = w.Write(body)
@@ -531,7 +552,7 @@ func TestKubernetesProxyErrorRepresentations(t *testing.T) {
 					require.NoError(t, err)
 					request := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/secrets", nil)
 					request.Header.Set(constants.HeaderAccept, contentType)
-					request.Header.Set(constants.HeaderAcceptEncoding, "gzip")
+					request.Header.Set(constants.HeaderAcceptEncoding, constants.ContentEncodingGzip)
 					response := httptest.NewRecorder()
 					handler.ServeHTTP(response, request.WithContext(identityContext(request, "test-token")))
 					require.Equal(t, int(code), response.Code)
@@ -561,19 +582,75 @@ func TestNonWatchSuccessPreservesCompression(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, writer.Close())
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "gzip", r.Header.Get(constants.HeaderAcceptEncoding))
+		require.Equal(t, constants.ContentEncodingGzip, r.Header.Get(constants.HeaderAcceptEncoding))
 		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
-		w.Header().Set(constants.HeaderContentEncoding, "gzip")
+		w.Header().Set(constants.HeaderContentEncoding, constants.ContentEncodingGzip)
 		_, _ = w.Write(encoded.Bytes())
 	}))
 	defer upstream.Close()
 	handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
 	require.NoError(t, err)
 	request := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods?watch=false", nil)
-	request.Header.Set(constants.HeaderAcceptEncoding, "gzip")
+	request.Header.Set(constants.HeaderAcceptEncoding, constants.ContentEncodingGzip)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request.WithContext(identityContext(request, "test-token")))
 	require.Equal(t, http.StatusOK, response.Code)
-	require.Equal(t, "gzip", response.Header().Get(constants.HeaderContentEncoding))
+	require.Equal(t, constants.ContentEncodingGzip, response.Header().Get(constants.HeaderContentEncoding))
 	require.Equal(t, encoded.Bytes(), response.Body.Bytes())
+}
+
+func TestKubernetesProxyBoundsCompressedErrorWireBytes(t *testing.T) {
+	const wireLimit = 1 << 20
+	var empty, status bytes.Buffer
+	writer := gzip.NewWriter(&empty)
+	require.NoError(t, writer.Close())
+	writer = gzip.NewWriter(&status)
+	_, err := io.WriteString(writer, `{"kind":"Status","apiVersion":"v1","status":"Failure","code":403,"reason":"Forbidden","message":"wire diagnostic retained"}`)
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+	for _, tc := range []struct {
+		name    string
+		members int
+		allowed bool
+	}{
+		{"small", 0, true},
+		{"below wire limit", (wireLimit - status.Len()) / empty.Len(), true},
+		{"above wire limit", wireLimit/empty.Len() + 1, false},
+	} {
+		for _, watch := range []bool{false, true} {
+			for _, acceptEncoding := range []string{"", constants.ContentEncodingGzip} {
+				t.Run(fmt.Sprintf("%s/watch=%v/accept-encoding=%s", tc.name, watch, acceptEncoding), func(t *testing.T) {
+					payload := append(bytes.Repeat(empty.Bytes(), tc.members), status.Bytes()...)
+					upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						expectedEncoding := acceptEncoding
+						if watch {
+							expectedEncoding = constants.ContentEncodingGzip
+						}
+						require.Equal(t, expectedEncoding, r.Header.Get(constants.HeaderAcceptEncoding))
+						w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
+						w.Header().Set(constants.HeaderContentEncoding, constants.ContentEncodingGzip)
+						w.WriteHeader(http.StatusForbidden)
+						_, _ = w.Write(payload)
+					}))
+					defer upstream.Close()
+					handler, err := NewK8sProxyHandler(testK8sProxyConfig(upstream.URL))
+					require.NoError(t, err)
+					request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/k8s/api/v1/pods?watch=%v", watch), nil)
+					request.Header.Set(constants.HeaderAcceptEncoding, acceptEncoding)
+					response := httptest.NewRecorder()
+					handler.ServeHTTP(response, request.WithContext(identityContext(request, "test-token")))
+					require.Equal(t, http.StatusForbidden, response.Code)
+					require.Empty(t, response.Header().Get(constants.HeaderContentEncoding))
+					if tc.allowed {
+						require.LessOrEqual(t, len(payload), wireLimit)
+						require.Contains(t, response.Body.String(), "wire diagnostic retained")
+					} else {
+						require.Greater(t, len(payload), wireLimit)
+						require.NotContains(t, response.Body.String(), "wire diagnostic retained")
+						require.Contains(t, response.Body.String(), "the requested operation is forbidden")
+					}
+				})
+			}
+		}
+	}
 }

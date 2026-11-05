@@ -2,6 +2,7 @@ package httpcontract
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -116,25 +117,41 @@ func TestWatchBodyDiscardsMalformedOrInterruptedEvents(t *testing.T) {
 }
 
 func TestMalformedWatchEventAbortsProxyStreamAndLogsSafely(t *testing.T) {
-	for _, suffix := range []string{"", "\n"} {
-		t.Run(fmt.Sprintf("suffix=%q", suffix), func(t *testing.T) {
-			testRejectedWatchEvent(t, `{"type":"ERROR","object":{"message":"CANARY_SECRET"`+suffix)
-		})
+	for _, compressed := range []bool{false, true} {
+		for _, suffix := range []string{"", "\n"} {
+			t.Run(fmt.Sprintf("gzip=%v/suffix=%q", compressed, suffix), func(t *testing.T) {
+				testRejectedWatchEvent(t, `{"type":"ERROR","object":{"message":"CANARY_SECRET"`+suffix, compressed)
+			})
+		}
 	}
 }
 
 func TestOversizedWatchEventAbortsProxyStreamAndLogsSafely(t *testing.T) {
-	testRejectedWatchEvent(t, resourceWatchEvent(maxWatchEventBytes+1, true))
+	for _, compressed := range []bool{false, true} {
+		t.Run(fmt.Sprintf("gzip=%v", compressed), func(t *testing.T) {
+			testRejectedWatchEvent(t, resourceWatchEvent(maxWatchEventBytes+1, true), compressed)
+		})
+	}
 }
 
-func testRejectedWatchEvent(t *testing.T, rejected string) {
+func testRejectedWatchEvent(t *testing.T, rejected string, compressed bool) {
 	t.Helper()
 	first := "{\"type\":\"BOOKMARK\",\"object\":{}}\n"
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
-		_, _ = io.WriteString(w, first)
+		var writer io.Writer = w
+		if compressed {
+			w.Header().Set(constants.HeaderContentEncoding, constants.ContentEncodingGzip)
+			encoded := gzip.NewWriter(w)
+			defer encoded.Close()
+			writer = encoded
+		}
+		_, _ = io.WriteString(writer, first)
+		if compressed {
+			require.NoError(t, writer.(*gzip.Writer).Flush())
+		}
 		w.(http.Flusher).Flush()
-		_, _ = io.WriteString(w, rejected)
+		_, _ = io.WriteString(writer, rejected)
 	}))
 	defer upstream.Close()
 	var logs bytes.Buffer
@@ -142,7 +159,7 @@ func testRejectedWatchEvent(t *testing.T, rejected string) {
 	target, err := url.Parse(upstream.URL)
 	require.NoError(t, err)
 	proxy := httputil.NewSingleHostReverseProxy(target)
-	proxy.Transport = Transport{Base: upstream.Client().Transport, Logger: logger}
+	proxy.Transport = Transport{Base: &http.Transport{DisableCompression: true}, Logger: logger}
 	proxy.ModifyResponse = KubernetesResponse
 	proxy.ErrorLog = log.New(io.Discard, "", 0)
 	server := httptest.NewServer(Middleware(proxy, logger))

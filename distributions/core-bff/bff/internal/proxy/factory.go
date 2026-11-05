@@ -29,6 +29,7 @@ type ProxyConfig struct {
 	ClientCerts          []tls.Certificate
 	InsecureSkipVerify   bool
 	AllowHTTP            bool
+	DisableCompression   bool
 	PathRewriteFn        func(*http.Request) string
 	AuthHeaderFn         func(*http.Request) string
 	SetOutboundHeadersFn func(*http.Request, http.Header)
@@ -138,6 +139,7 @@ func NewReverseProxy(cfg ProxyConfig) (*httputil.ReverseProxy, error) {
 		KeepAlive: 30 * time.Second,
 	}
 	transport := &http.Transport{
+		DisableCompression:    cfg.DisableCompression,
 		TLSClientConfig:       tlsConfig,
 		DialContext:           dialer.DialContext,
 		TLSHandshakeTimeout:   10 * time.Second,

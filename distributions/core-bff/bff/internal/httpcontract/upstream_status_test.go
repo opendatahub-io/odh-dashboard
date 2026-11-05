@@ -33,15 +33,15 @@ func TestInvalidErrorRepresentationsUseSafeFallback(t *testing.T) {
 		name, encoding, mediaType string
 		body                      []byte
 	}{
-		{name: "invalid gzip header", encoding: "gzip", body: []byte("CANARY_SECRET")},
-		{name: "truncated gzip", encoding: "gzip", body: validGzip[:len(validGzip)-4]},
-		{name: "invalid gzip checksum", encoding: "gzip", body: corruptGzip},
+		{name: "invalid gzip header", encoding: constants.ContentEncodingGzip, body: []byte("CANARY_SECRET")},
+		{name: "truncated gzip", encoding: constants.ContentEncodingGzip, body: validGzip[:len(validGzip)-4]},
+		{name: "invalid gzip checksum", encoding: constants.ContentEncodingGzip, body: corruptGzip},
 		{name: "unsupported encoding", encoding: "br", body: []byte(status)},
 		{name: "invalid protobuf", mediaType: runtime.ContentTypeProtobuf, body: []byte(status)},
 		{name: "truncated JSON", body: []byte(status[:len(status)-1])},
 		{name: "oversized body", body: []byte(status + strings.Repeat(" ", maxErrorBody))},
-		{name: "oversized decompressed body", encoding: "gzip", body: compress(status+strings.Repeat(" ", maxErrorBody), "")},
-		{name: "oversized wire header", encoding: "gzip", body: compress(status, strings.Repeat("x", maxErrorBody+100))},
+		{name: "oversized decompressed body", encoding: constants.ContentEncodingGzip, body: compress(status+strings.Repeat(" ", maxErrorBody), "")},
+		{name: "oversized wire header", encoding: constants.ContentEncodingGzip, body: compress(status, strings.Repeat("x", maxErrorBody+100))},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			source := &io.LimitedReader{R: bytes.NewReader(tc.body), N: int64(len(tc.body))}

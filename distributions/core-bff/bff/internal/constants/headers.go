@@ -48,6 +48,8 @@ const (
 	ContentTypeYAML = "text/yaml"
 	ContentTypeHTML = "text/html"
 
+	ContentEncodingGzip = "gzip"
+
 	AllowedMethodsReadOnly = "GET, OPTIONS"
 	AllowedOriginAll       = "*"
 

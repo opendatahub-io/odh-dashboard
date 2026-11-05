@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,21 +24,7 @@ func KubernetesResponse(resp *http.Response) error {
 	}
 	if resp.StatusCode < http.StatusBadRequest {
 		if resp.StatusCode == http.StatusOK && IsWatchRequest(resp.Request) && resp.Body != nil {
-			mediaType, _, err := mime.ParseMediaType(resp.Header.Get(constants.HeaderContentType))
-			if err != nil || mediaType != constants.ContentTypeJSON {
-				return fmt.Errorf("unsupported watch response media type")
-			}
-			if resp.Header.Get(constants.HeaderContentEncoding) != "" {
-				return fmt.Errorf("unsupported watch response encoding")
-			}
-			if observed, ok := resp.Body.(*observedBody); ok {
-				// Observe parser failures as well as upstream I/O errors, once.
-				observed.ReadCloser = newProxyWatchBody(observed.ReadCloser, resp.Request)
-			} else {
-				resp.Body = newProxyWatchBody(resp.Body, resp.Request)
-			}
-			resp.ContentLength = -1
-			resp.Header.Del(constants.HeaderContentLength)
+			return prepareWatchResponse(resp)
 		}
 		return nil
 	}

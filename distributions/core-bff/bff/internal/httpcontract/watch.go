@@ -2,11 +2,15 @@ package httpcontract
 
 import (
 	"bufio"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"mime"
 	"net/http"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,6 +20,43 @@ var (
 	errWatchEventTooLarge  = errors.New("watch event exceeds buffering limit")
 	errMalformedWatchEvent = errors.New("invalid watch event JSON")
 )
+
+func prepareWatchResponse(resp *http.Response) error {
+	mediaType, _, err := mime.ParseMediaType(resp.Header.Get(constants.HeaderContentType))
+	if err != nil || mediaType != constants.ContentTypeJSON {
+		return fmt.Errorf("unsupported watch response media type")
+	}
+	body := resp.Body
+	observed, _ := body.(*observedBody)
+	if observed != nil {
+		body = observed.ReadCloser
+	}
+	if resp.Header.Get(constants.HeaderContentEncoding) == constants.ContentEncodingGzip {
+		decoded, err := gzip.NewReader(body)
+		if err != nil {
+			return fmt.Errorf("invalid watch response encoding")
+		}
+		body = struct {
+			io.Reader
+			io.Closer
+		}{decoded, body}
+		resp.Header.Del(constants.HeaderContentEncoding)
+		resp.Uncompressed = true
+	}
+	if resp.Header.Get(constants.HeaderContentEncoding) != "" {
+		return fmt.Errorf("unsupported watch response encoding")
+	}
+	body = newProxyWatchBody(body, resp.Request)
+	if observed != nil {
+		// Observe parser failures as well as upstream I/O errors, once.
+		observed.ReadCloser = body
+	} else {
+		resp.Body = body
+	}
+	resp.ContentLength = -1
+	resp.Header.Del(constants.HeaderContentLength)
+	return nil
+}
 
 // SanitizeWatchEvent applies strict sanitization without a caller-token request.
 // Resource events and bookmarks retain their bytes, including whitespace.

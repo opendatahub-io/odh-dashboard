@@ -226,7 +226,11 @@ func replaceCredentialValue(value, credential string) string {
 		}
 		start := offset + index
 		end := start + len(credential)
-		if (start == 0 || !credentialByte(value[start-1])) && (end == len(value) || !credentialByte(value[end])) {
+		boundary := end
+		for boundary < len(value) && value[boundary] == '.' {
+			boundary++
+		}
+		if (start == 0 || !credentialByte(value[start-1])) && (boundary == len(value) || !credentialByte(value[boundary])) {
 			out.WriteString(value[cursor:start])
 			out.WriteString("[redacted]")
 			cursor = end

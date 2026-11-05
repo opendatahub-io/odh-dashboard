@@ -89,6 +89,8 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 		ClientCerts:        cfg.ClientCerts,
 		InsecureSkipVerify: cfg.InsecureSkipVerify,
 		AllowHTTP:          cfg.AllowHTTP,
+		// Keep compressed error bytes visible to the bounded Status decoder.
+		DisableCompression: true,
 		SetOutboundHeadersFn: func(in *http.Request, out http.Header) {
 			if cfg.SetOutboundHeadersFn != nil {
 				cfg.SetOutboundHeadersFn(in, out)
@@ -97,8 +99,8 @@ func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
 			out.Del(constants.HeaderUpgrade)
 			if httpcontract.IsWatchRequest(in) {
 				out.Set(constants.HeaderAccept, jsonWatchAccept(out.Values(constants.HeaderAccept)))
-				// Let Go decompress watches before event sanitization.
-				out.Del(constants.HeaderAcceptEncoding)
+				// Watch decoding is handled explicitly before event sanitization.
+				out.Set(constants.HeaderAcceptEncoding, constants.ContentEncodingGzip)
 			}
 		},
 		StripHeaders:       SensitiveIngressHeaders(cfg.AuthTokenHeader),

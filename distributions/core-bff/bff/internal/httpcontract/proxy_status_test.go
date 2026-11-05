@@ -246,13 +246,16 @@ func TestProxyDiagnosticsPreserveCredentialPlaceholders(t *testing.T) {
 	}
 }
 
-func TestKnownCredentialRedactionDoesNotChangeLargerWords(t *testing.T) {
+func TestKnownCredentialRedactionRespectsBoundaries(t *testing.T) {
 	const token = "OPAQUE_CREDENTIAL_123456" //nolint:gosec // G101: synthetic value used only to test credential redaction.
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil)
 	request.Header.Set("Authorization", "Bearer "+token)
 	redact := proxyDiagnosticRedactor(request)
 	require.Equal(t, "prefix"+token+"suffix", redact("prefix"+token+"suffix"))
 	require.Equal(t, "[redacted] [redacted]", redact(token+" "+token))
+	for _, suffix := range []string{".", ". Please retry.", "...", ".\nPlease retry.", `.)`, `."`} {
+		require.Equal(t, "authentication failed for [redacted]"+suffix, redact("authentication failed for "+token+suffix))
+	}
 	for _, suffix := range []string{"suffix", ".example", "-suffix", "_suffix"} {
 		require.Equal(t, token+suffix, redact(token+suffix))
 	}
