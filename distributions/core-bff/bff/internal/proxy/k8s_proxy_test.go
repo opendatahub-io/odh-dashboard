@@ -106,19 +106,24 @@ func TestK8sProxy_AuthHeader(t *testing.T) {
 	}))
 	defer backend.Close()
 
-	handler, err := NewK8sProxyHandler(testK8sProxyConfig(backend.URL))
-	if err != nil {
-		t.Fatalf("NewK8sProxyHandler() error = %v", err)
-	}
-
-	req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil)
-	req = req.WithContext(newIdentityContext("my-secret-token"))
-	rec := httptest.NewRecorder()
-
-	handler.ServeHTTP(rec, req)
-
-	if got := rec.Header().Get("X-Got-Auth"); got != "Bearer my-secret-token" {
-		t.Errorf("auth = %q, want %q", got, "Bearer my-secret-token")
+	for _, header := range []string{"X-Forwarded-Access-Token", "Authorization", "X-Custom-Credential"} {
+		t.Run(header, func(t *testing.T) {
+			cfg := testK8sProxyConfig(backend.URL)
+			cfg.AuthTokenHeader = header
+			handler, err := NewK8sProxyHandler(cfg)
+			if err != nil {
+				t.Fatalf("NewK8sProxyHandler() error = %v", err)
+			}
+			req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil)
+			req.Header.Set(header, "untrusted-ingress-value")
+			req.Header.Set(constants.HeaderAuthorization, "Bearer untrusted-token")
+			req = req.WithContext(newIdentityContext("my-secret-token"))
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if got := rec.Header().Get("X-Got-Auth"); got != "Bearer my-secret-token" {
+				t.Errorf("auth = %q, want %q", got, "Bearer my-secret-token")
+			}
+		})
 	}
 }
 

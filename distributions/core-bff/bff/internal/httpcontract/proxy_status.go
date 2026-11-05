@@ -195,9 +195,6 @@ func credentialValueEnd(value string, start int) int {
 		escapes := quoteAt - start
 		slashes := 0
 		for i := quoteAt + 1; i < len(value); i++ {
-			if value[i] == '\r' || value[i] == '\n' {
-				return i
-			}
 			if value[i] == '\\' {
 				slashes++
 				continue
@@ -241,5 +238,6 @@ func replaceCredentialValue(value, credential string) string {
 }
 
 func credentialByte(b byte) bool {
-	return b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || strings.ContainsRune("_.~+/=-", rune(b))
+	// Slashes and equals signs delimit URL components and assignments.
+	return b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || strings.ContainsRune("_.~+-", rune(b))
 }

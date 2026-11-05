@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
 func testLogger() *slog.Logger {
@@ -273,9 +275,10 @@ func TestNewReverseProxy_AuthHeaderStripped(t *testing.T) {
 	defer backend.Close()
 
 	proxy, err := NewReverseProxy(ProxyConfig{
-		TargetURL: mustParseURL(t, backend.URL),
-		AllowHTTP: true,
-		Logger:    testLogger(),
+		TargetURL:    mustParseURL(t, backend.URL),
+		AllowHTTP:    true,
+		Logger:       testLogger(),
+		StripHeaders: []string{constants.HeaderAuthorization},
 		AuthHeaderFn: func(r *http.Request) string {
 			return "Bearer injected-token"
 		},
@@ -303,9 +306,10 @@ func TestNewReverseProxy_ClientAuthStrippedWhenNoIdentity(t *testing.T) {
 	defer backend.Close()
 
 	proxy, err := NewReverseProxy(ProxyConfig{
-		TargetURL: mustParseURL(t, backend.URL),
-		AllowHTTP: true,
-		Logger:    testLogger(),
+		TargetURL:    mustParseURL(t, backend.URL),
+		AllowHTTP:    true,
+		Logger:       testLogger(),
+		StripHeaders: []string{constants.HeaderAuthorization},
 		AuthHeaderFn: func(r *http.Request) string {
 			return ""
 		},

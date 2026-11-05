@@ -167,6 +167,33 @@ func TestProxyDiagnosticsPreserveProseWithShortCredentials(t *testing.T) {
 	}
 }
 
+func TestProxyStatusRedactsMultilineCredentialAssignments(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil)
+	for _, newline := range []string{"\n", "\r\n", "\r"} {
+		for _, quote := range []string{`"`, `'`} {
+			assignment := "private_key=" + quote + "-----BEGIN PRIVATE KEY-----" + newline +
+				"PRIVATE_KEY_CANARY" + newline + "-----END PRIVATE KEY-----" + quote
+			for level := 0; level < 3; level++ {
+				message := assignment + "; spec.replicas must be positive"
+				in := metav1.Status{TypeMeta: metav1.TypeMeta{Kind: "Status"}, Message: message,
+					Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{Message: message}}}}
+				out := ProxyStatus(in, http.StatusForbidden, request)
+				for _, text := range []string{out.Message, out.Details.Causes[0].Message} {
+					require.NotContains(t, text, "PRIVATE_KEY_CANARY")
+					require.Contains(t, text, redactionPlaceholder)
+					require.Contains(t, text, "spec.replicas must be positive")
+				}
+				require.Equal(t, out, ProxyStatus(out, http.StatusForbidden, request))
+				encoded, err := json.Marshal(assignment)
+				require.NoError(t, err)
+				assignment = string(encoded[1 : len(encoded)-1])
+			}
+		}
+	}
+	redact := proxyDiagnosticRedactor(request)
+	require.Equal(t, redactionPlaceholder, redact("private_key=\"first line\nPRIVATE_KEY_CANARY"))
+}
+
 func TestProxyDiagnosticsRedactShortCredentialsInContext(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil)
 	request.Header.Set("Authorization", "Bearer test")
@@ -226,6 +253,35 @@ func TestKnownCredentialRedactionDoesNotChangeLargerWords(t *testing.T) {
 	redact := proxyDiagnosticRedactor(request)
 	require.Equal(t, "prefix"+token+"suffix", redact("prefix"+token+"suffix"))
 	require.Equal(t, "[redacted] [redacted]", redact(token+" "+token))
+	for _, suffix := range []string{"suffix", ".example", "-suffix", "_suffix"} {
+		require.Equal(t, token+suffix, redact(token+suffix))
+	}
+}
+
+func TestProxyStatusRedactsKnownCredentialsInURLs(t *testing.T) {
+	const token = "OPAQUE_CREDENTIAL_123456" //nolint:gosec // G101: synthetic credential for regression coverage.
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil)
+	request.Header.Set("Authorization", "Bearer "+token)
+	for _, url := range []string{
+		"https://" + token + "@example.test/path",
+		"https://user:" + token + "@example.test/path",
+		"https://example.test/" + token,
+		"https://example.test/" + token + "/child",
+		"https://example.test/?value=" + token + "&other=1",
+	} {
+		t.Run(url, func(t *testing.T) {
+			message := "callback " + url + " failed; spec.replicas must be positive"
+			in := metav1.Status{TypeMeta: metav1.TypeMeta{Kind: "Status"}, Message: message,
+				Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{Message: message}}}}
+			out := ProxyStatus(in, http.StatusForbidden, request)
+			for _, text := range []string{out.Message, out.Details.Causes[0].Message} {
+				require.NotContains(t, text, token)
+				require.Contains(t, text, "[redacted]")
+				require.Contains(t, text, "spec.replicas must be positive")
+			}
+			require.Equal(t, out, ProxyStatus(out, http.StatusForbidden, request))
+		})
+	}
 }
 
 func TestProxyWatchDiagnosticsFollowResourceBoundary(t *testing.T) {

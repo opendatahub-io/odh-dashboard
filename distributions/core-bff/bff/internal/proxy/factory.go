@@ -63,9 +63,10 @@ func (cfg ProxyConfig) rewriteFunc() func(*httputil.ProxyRequest) {
 			pr.Out.URL.Path = cfg.PathRewriteFn(pr.In)
 		}
 
-		rewriteAuthHeader(pr, cfg.AuthHeaderFn)
 		stripImpersonationHeaders(pr.Out.Header)
 		stripConfiguredHeaders(pr.Out.Header, cfg.StripHeaders)
+		// Install trusted authentication after stripping caller-provided headers.
+		rewriteAuthHeader(pr, cfg.AuthHeaderFn)
 		// SetOutboundHeadersFn must run after stripImpersonationHeaders so that
 		// mock-mode impersonation headers are not stripped immediately after being set.
 		if cfg.SetOutboundHeadersFn != nil {
