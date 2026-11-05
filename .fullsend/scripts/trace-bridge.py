@@ -108,7 +108,7 @@ def otlp_ns(v):
     """An OTLP timestamp string/number -> int ns, or None if malformed."""
     try:
         v = int(v)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):  # JSON allows Infinity and NaN
         return None
     return v if 0 < v <= MAX_NS else None
 
@@ -884,7 +884,9 @@ def self_test():
         ("lookup timeout treated as a new trace", net["timeout_state"] == (False, False)),
         ("truncated lookup response treated as a new trace", net["truncated_state"] == (False, False)),
         ("malformed and out-of-range timestamps are rejected",
-         ns("garbage") is None and ns(True) is None and ns([1]) is None and ns(1e300) is None
+         otlp_ns(float("inf")) is None and otlp_ns(float("nan")) is None and otlp_ns("x") is None
+         and otlp_ns("1793664001000000000") == 1793664001000000000
+         and ns(float("inf")) is None and ns(float("nan")) is None and ns("garbage") is None and ns(True) is None and ns([1]) is None and ns(1e300) is None
          and ns("2026-11-03T00:00:01Z") is not None),
         ("every span time stays within the OTLP range",
          all(0 <= int(x[k]) <= MAX_NS for x in spans for k in ("startTimeUnixNano", "endTimeUnixNano"))
