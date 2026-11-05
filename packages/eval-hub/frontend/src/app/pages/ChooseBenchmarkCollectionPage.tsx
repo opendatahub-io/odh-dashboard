@@ -132,6 +132,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
 
   const handleRunCollection = React.useCallback(
     (c: Collection) => {
+      const curatedConfig = c.resource.tenant ? undefined : getCuratedCollectionConfig(c);
       trackEvalHubEvent(
         EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
         {
@@ -145,7 +146,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
           providerType: c.benchmarks?.[0]?.provider_id,
         },
       );
-      if (c.resource.read_only && !c.resource.tenant) {
+      if (curatedConfig) {
         setCollectionToRun(c);
       } else {
         navigateToRun(c);
@@ -156,7 +157,8 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
 
   const handleDrawerRunCollection = React.useCallback(
     (c: Collection) => {
-      if (c.resource.read_only && !c.resource.tenant) {
+      const curatedConfig = c.resource.tenant ? undefined : getCuratedCollectionConfig(c);
+      if (curatedConfig) {
         setCollectionToRun(c);
       } else {
         navigateToRun(c);
