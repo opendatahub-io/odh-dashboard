@@ -142,9 +142,22 @@ func TestCorrelationTransportAndConcurrentIsolation(t *testing.T) {
 }
 
 func TestInvalidAuditIdentifiersAreNotReflected(t *testing.T) {
-	for _, v := range [][]string{{"CANARY"}, {strings.Repeat("a", 1000)}, {uuid.NewString(), uuid.NewString()}} {
+	for _, v := range [][]string{
+		{"CANARY"},
+		{strings.Repeat("a", 1000)},
+		{strings.Repeat("x", 36)},
+		{"2895B0A0-7694-47D0-8CB4-869B93FE68BE"},
+		{uuid.NewString(), uuid.NewString()},
+	} {
 		h := Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			CaptureAudit(r.Context(), http.Header{AuditIDHeader: v})
+			header := make(http.Header)
+			for _, value := range v {
+				header.Add(AuditIDHeader, value)
+			}
+			require.Equal(t, v, header.Values(AuditIDHeader))
+			CaptureAudit(r.Context(), header)
+			require.Empty(t, header.Values(AuditIDHeader))
+			require.Empty(t, AuditID(r.Context()))
 			WriteLocal(w, r, 500)
 		}))
 		w := httptest.NewRecorder()

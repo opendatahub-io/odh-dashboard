@@ -25,7 +25,7 @@ const (
 func (app *App) Routes() http.Handler {
 	serviceMux := app.newServiceMux()
 	staticHandler := app.newStaticHandler()
-	return httpcontract.Middleware(app.EnableTelemetry(app.RecoverPanic(app.SetSecurityHeaders(app.EnableCORS(app.newCombinedMux(serviceMux, staticHandler))))), app.logger)
+	return httpcontract.Middleware(app.EnableTelemetry(app.SetSecurityHeaders(app.RecoverPanic(app.EnableCORS(app.newCombinedMux(serviceMux, staticHandler))))), app.logger)
 }
 
 // Auth contract: apiRouter routes require a token (InjectRequestIdentity).
