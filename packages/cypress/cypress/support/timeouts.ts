@@ -17,6 +17,10 @@ const readPositiveTimeout = (name: string, defaultValue: number): number => {
     return defaultValue;
   }
 
+  if (typeof configuredValue !== 'string' && typeof configuredValue !== 'number') {
+    throw new Error(`${name} must be a string or number of milliseconds.`);
+  }
+
   const timeout = Number(configuredValue);
   if (!Number.isFinite(timeout) || timeout <= 0) {
     throw new Error(`${name} must be a finite, positive number of milliseconds.`);

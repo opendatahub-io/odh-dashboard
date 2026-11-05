@@ -9,7 +9,11 @@ const PGVECTOR_SERVICE = 'autorag-pgvector';
 const PGVECTOR_DATABASE = 'autorag_test_db';
 const PGVECTOR_USER = 'autorag_test_user';
 const PGVECTOR_PORT = '5432';
-const PGVECTOR_NETWORK_CHECK_JOB = 'autorag-pgvector-network-check';
+const PGVECTOR_NETWORK_CHECK_JOB_PREFIX = 'autorag-pgvector-check';
+const PGVECTOR_NETWORK_CHECK_BASE_SELECTOR =
+  'app.kubernetes.io/name=autorag-pgvector-network-check,app.kubernetes.io/part-of=autorag-e2e';
+const PGVECTOR_RESOURCE_BASE_SELECTOR =
+  'app.kubernetes.io/name=autorag-pgvector,app.kubernetes.io/part-of=autorag-e2e';
 const PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS = 720;
 const PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT = 1;
 const PGVECTOR_NETWORK_CHECK_CONNECT_TIMEOUT_SECONDS = 2;
@@ -40,11 +44,17 @@ type DeploymentContainer = {
 };
 
 type DeploymentResource = {
-  metadata?: { name?: string; namespace?: string };
+  metadata?: { name?: string; namespace?: string; labels?: Record<string, string> };
   spec?: { template?: { spec?: { containers?: DeploymentContainer[] } } };
 };
 
 type DeploymentList = { items?: DeploymentResource[] };
+
+type JobResource = {
+  metadata?: { name?: string; labels?: Record<string, string> };
+};
+
+type JobList = { items?: JobResource[] };
 
 const pgvectorPasswords = new Map<string, string>();
 const pgvectorOwners = new Map<string, string>();
@@ -65,12 +75,109 @@ const commandOutput = (result: CommandLineResult): string =>
     .slice(0, 500) || 'no output';
 
 const pgvectorResourceSelector = (owner: string): string =>
-  `app.kubernetes.io/name=autorag-pgvector,app.kubernetes.io/part-of=autorag-e2e,${E2E_OWNER_LABEL}=${owner}`;
+  `${PGVECTOR_RESOURCE_BASE_SELECTOR},${E2E_OWNER_LABEL}=${owner}`;
 
-const networkCheckSelector = (owner: string): string =>
-  `app.kubernetes.io/name=autorag-pgvector-network-check,app.kubernetes.io/part-of=autorag-e2e,${E2E_OWNER_LABEL}=${owner}`;
+const pgvectorNetworkCheckSelector = (owner: string): string =>
+  `${PGVECTOR_NETWORK_CHECK_BASE_SELECTOR},${E2E_OWNER_LABEL}=${owner}`;
+
+const pgvectorNetworkCheckJobName = (owner: string): string =>
+  `${PGVECTOR_NETWORK_CHECK_JOB_PREFIX}-${owner}`;
+
+const resolveAutoragPgvectorOwner = (namespace: string): Cypress.Chainable<string | undefined> => {
+  return cy
+    .exec(
+      `oc get deployment ${shellQuote(PGVECTOR_DEPLOYMENT)} -n ${shellQuote(namespace)} -o json`,
+      { failOnNonZeroExit: false, log: false },
+    )
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        if (/not found/i.test(commandOutput(result))) {
+          return cy.wrap<string | undefined>(undefined);
+        }
+        throw new Error(
+          `Unable to resolve AutoRAG PGVector ownership in ${namespace}: ${commandOutput(result)}`,
+        );
+      }
+
+      let deployment: DeploymentResource;
+      try {
+        deployment = JSON.parse(result.stdout) as DeploymentResource;
+      } catch {
+        throw new Error('AutoRAG PGVector deployment lookup returned invalid JSON.');
+      }
+
+      const labels = deployment.metadata?.labels;
+      if (
+        !labels ||
+        labels['app.kubernetes.io/name'] !== 'autorag-pgvector' ||
+        labels['app.kubernetes.io/part-of'] !== 'autorag-e2e'
+      ) {
+        throw new Error(
+          `Existing deployment ${PGVECTOR_DEPLOYMENT} in ${namespace} is not an AutoRAG-owned PGVector resource.`,
+        );
+      }
+
+      const owner = labels[E2E_OWNER_LABEL];
+      if (!owner) {
+        throw new Error(
+          `Existing AutoRAG PGVector deployment in ${namespace} has no ownership label.`,
+        );
+      }
+      return cy.wrap<string | undefined>(owner);
+    });
+};
 
 const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
+
+const ensureNoUnownedAutoragResources = (namespace: string): Cypress.Chainable<void> => {
+  const checkResources = (
+    resourceTypes: string,
+    selector: string,
+    description: string,
+  ): Cypress.Chainable<void> =>
+    cy
+      .exec(
+        `oc get ${resourceTypes} -l ${shellQuote(selector)} -n ${shellQuote(namespace)} -o json`,
+        { failOnNonZeroExit: false, log: false },
+      )
+      .then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `Unable to check for existing AutoRAG PGVector ${description} in ${namespace}: ${commandOutput(
+              result,
+            )}`,
+          );
+        }
+
+        let resourceList: JobList;
+        try {
+          resourceList = JSON.parse(result.stdout) as JobList;
+        } catch {
+          throw new Error(`AutoRAG PGVector ${description} lookup returned invalid JSON.`);
+        }
+
+        const resourceNames = (resourceList.items ?? [])
+          .map((resource) => resource.metadata?.name)
+          .filter((name): name is string => Boolean(name));
+        if (resourceNames.length > 0) {
+          throw new Error(
+            `Cannot provision AutoRAG PGVector in ${namespace} because existing ${description} have no recoverable owner: ${resourceNames.join(
+              ', ',
+            )}.`,
+          );
+        }
+        return cy.wrap(undefined as void);
+      });
+
+  return checkResources('jobs', PGVECTOR_NETWORK_CHECK_BASE_SELECTOR, 'network-check Jobs').then(
+    () =>
+      checkResources(
+        'all,configmap,secret,networkpolicy',
+        PGVECTOR_RESOURCE_BASE_SELECTOR,
+        'resources',
+      ),
+  );
+};
 
 const getOperatorDeployment = (): Cypress.Chainable<{ name: string; namespace: string }> => {
   const configuredNamespace = Cypress.env('OPERATOR_NAMESPACE');
@@ -231,6 +338,22 @@ export const getVectorDatabaseConnection = (
   };
 };
 
+const deleteAutoragPgvectorNetworkCheck = (
+  namespace: string,
+  owner?: string,
+): Cypress.Chainable<Cypress.Exec> => {
+  if (!owner) {
+    return cy.wrap<Cypress.Exec>({ exitCode: 0, stdout: '', stderr: '' });
+  }
+
+  return cy.exec(
+    `oc delete jobs -l ${shellQuote(pgvectorNetworkCheckSelector(owner))} -n ${shellQuote(
+      namespace,
+    )} --ignore-not-found --wait=true`,
+    { failOnNonZeroExit: false, log: false },
+  );
+};
+
 const applyAutoragPgvectorNetworkCheck = (
   namespace: string,
   image: string,
@@ -240,6 +363,7 @@ const applyAutoragPgvectorNetworkCheck = (
     const rendered = template
       .replaceAll('__PGVECTOR_IMAGE__', image)
       .replaceAll('__PGVECTOR_OWNER__', owner)
+      .replaceAll('__PGVECTOR_NETWORK_CHECK_JOB__', pgvectorNetworkCheckJobName(owner))
       .replaceAll(
         '__PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT__',
         String(PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT),
@@ -261,14 +385,23 @@ const applyAutoragPgvectorNetworkCheck = (
         '__PGVECTOR_NETWORK_CHECK_RETRY_INTERVAL_SECONDS__',
         String(PGVECTOR_NETWORK_CHECK_RETRY_INTERVAL_SECONDS),
       );
-    return applyOpenShiftYaml(rendered, namespace).then((result) => {
-      if (result.exitCode !== 0) {
+    return deleteAutoragPgvectorNetworkCheck(namespace, owner).then((deleteResult) => {
+      if (deleteResult.exitCode !== 0) {
         throw new Error(
-          `Failed to provision the temporary AutoRAG PGVector network check in ${namespace}: ${commandOutput(
-            result,
+          `Failed to remove the previous AutoRAG PGVector network check in ${namespace}: ${commandOutput(
+            deleteResult,
           )}`,
         );
       }
+      return applyOpenShiftYaml(rendered, namespace).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `Failed to provision the temporary AutoRAG PGVector network check in ${namespace}: ${commandOutput(
+              result,
+            )}`,
+          );
+        }
+      });
     });
   });
 
@@ -276,81 +409,141 @@ const applyAutoragPgvectorNetworkCheck = (
  * Create the temporary project-scoped PGVector instance and verify both readiness and
  * same-namespace network reachability before an AutoRAG connection is created.
  */
-export const provisionAutoragPgvector = (namespace: string): Cypress.Chainable<unknown> =>
-  getClusterPostgreSQLImage().then((image) => {
-    const password = pgvectorPasswords.get(namespace) ?? createPgvectorPassword();
-    const owner = pgvectorOwners.get(namespace) ?? createPgvectorOwner();
-    pgvectorPasswords.set(namespace, password);
-    pgvectorOwners.set(namespace, owner);
+export const provisionAutoragPgvector = (namespace: string): Cypress.Chainable<unknown> => {
+  let image = '';
+  let owner = '';
 
-    return cy
-      .fixture(PGVECTOR_RESOURCE_FIXTURE, 'utf8')
-      .then((template: string) => {
-        const rendered = template
-          .replaceAll('__PGVECTOR_IMAGE__', image)
-          .replaceAll('__PGVECTOR_PASSWORD__', password)
-          .replaceAll('__PGVECTOR_OWNER__', owner);
-        return applyOpenShiftYaml(rendered, namespace).then((result) => {
+  return getClusterPostgreSQLImage()
+    .then((resolvedImage) => {
+      image = resolvedImage;
+      const inMemoryOwner = pgvectorOwners.get(namespace);
+      const inMemoryPassword = pgvectorPasswords.get(namespace);
+      return resolveAutoragPgvectorOwner(namespace).then((previousOwner) => {
+        const prepareResources = () => {
+          if (previousOwner && (!inMemoryOwner || !inMemoryPassword)) {
+            throw new Error(
+              `Existing AutoRAG PGVector resources in ${namespace} cannot be safely recovered without their in-process ownership and credentials.`,
+            );
+          }
+          if (inMemoryOwner && previousOwner && inMemoryOwner !== previousOwner) {
+            throw new Error(
+              `AutoRAG PGVector ownership changed unexpectedly in ${namespace}; refusing to replace another run's resources.`,
+            );
+          }
+
+          const password = inMemoryPassword ?? createPgvectorPassword();
+          owner = inMemoryOwner ?? createPgvectorOwner();
+          pgvectorPasswords.set(namespace, password);
+          pgvectorOwners.set(namespace, owner);
+
+          return deleteAutoragPgvectorNetworkCheck(namespace, owner)
+            .then((deleteResult) => {
+              if (deleteResult.exitCode !== 0) {
+                throw new Error(
+                  `Failed to remove the previous AutoRAG PGVector network check in ${namespace}: ${commandOutput(
+                    deleteResult,
+                  )}`,
+                );
+              }
+
+              return cy.fixture(PGVECTOR_RESOURCE_FIXTURE, 'utf8').then((template: string) => {
+                const rendered = template
+                  .replaceAll('__PGVECTOR_IMAGE__', image)
+                  .replaceAll('__PGVECTOR_PASSWORD__', password)
+                  .replaceAll('__PGVECTOR_OWNER__', owner);
+                return applyOpenShiftYaml(rendered, namespace).then((result) => {
+                  if (result.exitCode !== 0) {
+                    throw new Error(
+                      `Failed to provision the temporary AutoRAG PGVector instance in ${namespace}: ${commandOutput(
+                        result,
+                      )}`,
+                    );
+                  }
+                });
+              });
+            })
+            .then(() => undefined);
+        };
+
+        if (!previousOwner && !inMemoryOwner) {
+          return ensureNoUnownedAutoragResources(namespace).then(prepareResources);
+        }
+        return prepareResources();
+      });
+    })
+    .then(() => {
+      cy.step('Wait for the temporary AutoRAG PGVector database to be ready');
+      return cy
+        .exec(
+          `oc rollout status ${shellQuote(`deployment/${PGVECTOR_DEPLOYMENT}`)} -n ${shellQuote(
+            namespace,
+          )} --timeout=300s`,
+          { failOnNonZeroExit: false, timeout: 310000 },
+        )
+        .then((result: CommandLineResult) => {
           if (result.exitCode !== 0) {
             throw new Error(
-              `Failed to provision the temporary AutoRAG PGVector instance in ${namespace}: ${commandOutput(
+              `Temporary AutoRAG PGVector deployment did not become ready in ${namespace}: ${commandOutput(
                 result,
               )}`,
             );
           }
         });
-      })
-      .then(() => {
-        cy.step('Wait for the temporary AutoRAG PGVector database to be ready');
-        return cy
-          .exec(
-            `oc rollout status ${shellQuote(`deployment/${PGVECTOR_DEPLOYMENT}`)} -n ${shellQuote(
-              namespace,
-            )} --timeout=300s`,
-            { failOnNonZeroExit: false, timeout: 310000 },
-          )
-          .then((result: CommandLineResult) => {
-            if (result.exitCode !== 0) {
-              throw new Error(
-                `Temporary AutoRAG PGVector deployment did not become ready in ${namespace}: ${commandOutput(
-                  result,
-                )}`,
-              );
-            }
-          });
-      })
-      .then(() => {
-        cy.step('Verify the temporary AutoRAG PGVector extension');
-        const extensionCheck =
-          `oc exec ${shellQuote(`deploy/${PGVECTOR_DEPLOYMENT}`)} -n ${shellQuote(namespace)} -- ` +
-          `psql -U ${shellQuote(PGVECTOR_USER)} -d ${shellQuote(
-            PGVECTOR_DATABASE,
-          )} -tAc "SELECT extname FROM pg_extension WHERE extname = 'vector';" | grep -qx vector`;
-        return pollUntilSuccess(extensionCheck, 'PGVector extension', {
-          maxAttempts: 30,
-          pollIntervalMs: 2000,
-        });
-      })
-      .then(() => applyAutoragPgvectorNetworkCheck(namespace, image, owner))
-      .then(() => verifyAutoragPgvectorNetwork(namespace))
-      .then(() => undefined);
-  }) as unknown as Cypress.Chainable<unknown>;
-
-const cleanupAutoragPgvectorNetworkCheck = (namespace: string): Cypress.Chainable<Cypress.Exec> => {
-  const owner = pgvectorOwners.get(namespace);
-  if (!owner) {
-    return cy.wrap({ exitCode: 0, stdout: '', stderr: '' });
-  }
-  return cy.exec(
-    `oc delete job -l ${shellQuote(networkCheckSelector(owner))} -n ${shellQuote(
-      namespace,
-    )} --ignore-not-found --wait=true`,
-    { failOnNonZeroExit: false, log: false },
-  );
+    })
+    .then(() => {
+      cy.step('Verify the temporary AutoRAG PGVector extension');
+      const extensionCheck =
+        `oc exec ${shellQuote(`deploy/${PGVECTOR_DEPLOYMENT}`)} -n ${shellQuote(namespace)} -- ` +
+        `psql -U ${shellQuote(PGVECTOR_USER)} -d ${shellQuote(
+          PGVECTOR_DATABASE,
+        )} -tAc "SELECT extname FROM pg_extension WHERE extname = 'vector';" | grep -qx vector`;
+      return pollUntilSuccess(extensionCheck, 'PGVector extension', {
+        maxAttempts: 30,
+        pollIntervalMs: 2000,
+      });
+    })
+    .then(() => applyAutoragPgvectorNetworkCheck(namespace, image, owner))
+    .then(() => verifyAutoragPgvectorNetwork(namespace, owner))
+    .then(() => undefined) as unknown as Cypress.Chainable<unknown>;
 };
 
-const getAutoragPgvectorNetworkDiagnostics = (namespace: string): Cypress.Chainable<string> => {
-  const job = shellQuote(`job/${PGVECTOR_NETWORK_CHECK_JOB}`);
+const cleanupAutoragPgvectorNetworkCheck = (
+  namespace: string,
+  owner?: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  deleteAutoragPgvectorNetworkCheck(namespace, owner).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Failed to clean up the AutoRAG PGVector network check in ${namespace}: ${commandOutput(
+          result,
+        )}`,
+      );
+    }
+    return result;
+  });
+
+const cleanupAutoragPgvectorNetworkCheckBestEffort = (
+  namespace: string,
+  owner?: string,
+): Cypress.Chainable<Cypress.Exec> =>
+  !owner
+    ? cy.wrap<Cypress.Exec>({ exitCode: 0, stdout: '', stderr: '' })
+    : deleteAutoragPgvectorNetworkCheck(namespace, owner).then((result) => {
+        if (result.exitCode !== 0) {
+          cy.log(
+            `AutoRAG network-check cleanup was incomplete in ${namespace}: ${commandOutput(
+              result,
+            )}`,
+          );
+        }
+        return result;
+      });
+
+const getAutoragPgvectorNetworkDiagnostics = (
+  namespace: string,
+  owner: string,
+): Cypress.Chainable<string> => {
+  const job = shellQuote(`job/${pgvectorNetworkCheckJobName(owner)}`);
   const jobNamespace = shellQuote(namespace);
   return cy
     .exec(`oc describe ${job} -n ${jobNamespace}`, {
@@ -371,8 +564,11 @@ const getAutoragPgvectorNetworkDiagnostics = (namespace: string): Cypress.Chaina
     );
 };
 
-const verifyAutoragPgvectorNetwork = (namespace: string): Cypress.Chainable<unknown> => {
-  const job = shellQuote(`job/${PGVECTOR_NETWORK_CHECK_JOB}`);
+const verifyAutoragPgvectorNetwork = (
+  namespace: string,
+  owner: string,
+): Cypress.Chainable<unknown> => {
+  const job = shellQuote(`job/${pgvectorNetworkCheckJobName(owner)}`);
   const jobNamespace = shellQuote(namespace);
   const waitForJob =
     `end_time=$(($(date +%s) + ${PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS})); ` +
@@ -421,8 +617,8 @@ const verifyAutoragPgvectorNetwork = (namespace: string): Cypress.Chainable<unkn
     })
     .then((waitResult) => {
       if (waitResult.exitCode !== 0) {
-        return getAutoragPgvectorNetworkDiagnostics(namespace).then((diagnostics) =>
-          cleanupAutoragPgvectorNetworkCheck(namespace).then(() => {
+        return getAutoragPgvectorNetworkDiagnostics(namespace, owner).then((diagnostics) =>
+          cleanupAutoragPgvectorNetworkCheckBestEffort(namespace, owner).then(() => {
             throw new Error(
               `AutoRAG pipeline connectivity to PGVector was not ready in ${namespace}: ${commandOutput(
                 waitResult,
@@ -431,7 +627,7 @@ const verifyAutoragPgvectorNetwork = (namespace: string): Cypress.Chainable<unkn
           }),
         );
       }
-      return cleanupAutoragPgvectorNetworkCheck(namespace);
+      return cleanupAutoragPgvectorNetworkCheck(namespace, owner);
     })
     .then(() => undefined) as unknown as Cypress.Chainable<unknown>;
 };
@@ -443,16 +639,30 @@ const verifyAutoragPgvectorNetwork = (namespace: string): Cypress.Chainable<unkn
 /**
  * Clean up a generated project-scoped secret.
  */
-export const cleanupAutoragSecret = (namespace: string, secretName: string): void => {
+export const cleanupAutoragSecret = (
+  namespace: string,
+  secretName: string,
+): Cypress.Chainable<Cypress.Exec> => {
   cy.log(`Cleaning up AutoRAG secret ${secretName}`);
-  cy.exec(
-    `oc delete secret ${shellQuote(secretName)} -n ${shellQuote(
-      namespace,
-    )} --ignore-not-found --wait=true`,
-    {
-      failOnNonZeroExit: false,
-    },
-  );
+  return cy
+    .exec(
+      `oc delete secret ${shellQuote(secretName)} -n ${shellQuote(
+        namespace,
+      )} --ignore-not-found --wait=true`,
+      {
+        failOnNonZeroExit: false,
+      },
+    )
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        cy.log(
+          `AutoRAG secret cleanup was incomplete for ${secretName} in ${namespace}: ${commandOutput(
+            result,
+          )}`,
+        );
+      }
+      return result;
+    });
 };
 
 /**
@@ -482,26 +692,40 @@ export const cleanupAutoragInfrastructure = (
 ): void => {
   cy.log(`Cleaning up temporary AutoRAG PGVector resources in ${namespace}`);
   const owner = pgvectorOwners.get(namespace);
-  if (owner) {
-    cy.exec(
-      `oc delete all,configmap,secret,networkpolicy -l ${shellQuote(
-        pgvectorResourceSelector(owner),
-      )} -n ${shellQuote(namespace)} --ignore-not-found --wait=true`,
-      { failOnNonZeroExit: false, log: false },
-    );
-    cy.exec(
-      `oc delete job -l ${shellQuote(networkCheckSelector(owner))} -n ${shellQuote(
-        namespace,
-      )} --ignore-not-found --wait=true`,
-      { failOnNonZeroExit: false, log: false },
-    );
-    pgvectorOwners.delete(namespace);
-  }
-  pgvectorPasswords.delete(namespace);
-  if (ownership.maasSecretCreated) {
-    cleanupAutoragSecret(namespace, maasSecretName);
-  }
-  if (ownership.vectorDbSecretCreated) {
-    cleanupAutoragSecret(namespace, vectorDbSecretName);
-  }
+  cleanupAutoragPgvectorNetworkCheckBestEffort(namespace, owner).then((jobResult) => {
+    const resourceResult = owner
+      ? cy.exec(
+          `oc delete all,configmap,secret,networkpolicy -l ${shellQuote(
+            pgvectorResourceSelector(owner),
+          )} -n ${shellQuote(namespace)} --ignore-not-found --wait=true`,
+          { failOnNonZeroExit: false, log: false },
+        )
+      : cy.wrap<Cypress.Exec>({ exitCode: 0, stdout: '', stderr: '' });
+
+    resourceResult.then((result) => {
+      if (result.exitCode !== 0) {
+        cy.log(
+          `AutoRAG PGVector resource cleanup was incomplete in ${namespace}: ${commandOutput(
+            result,
+          )}`,
+        );
+      }
+
+      if (owner && jobResult.exitCode === 0 && result.exitCode === 0) {
+        pgvectorOwners.delete(namespace);
+        pgvectorPasswords.delete(namespace);
+      } else if (owner) {
+        cy.log(
+          `Retaining AutoRAG PGVector ownership state for possible cleanup retry in ${namespace}.`,
+        );
+      }
+
+      if (ownership.maasSecretCreated) {
+        cleanupAutoragSecret(namespace, maasSecretName);
+      }
+      if (ownership.vectorDbSecretCreated) {
+        cleanupAutoragSecret(namespace, vectorDbSecretName);
+      }
+    });
+  });
 };

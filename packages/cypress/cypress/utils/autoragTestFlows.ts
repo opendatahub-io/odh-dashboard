@@ -193,13 +193,14 @@ export const checkAutoragMaaSReadiness = (
   testData: Pick<AutoragTestData, 'awsBucket' | 's3SecretName'>,
 ): Cypress.Chainable<AutoragMaaSFixture> => {
   const fixture = resolveAutoragMaaSFixture();
+  const hasValidS3Configuration = isValidAutoragS3Configuration(testData);
   if (fixture.mode === 'simulator') {
     return cy.wrap<AutoragMaaSFixture>(fixture);
   }
 
   // Completion/results require both live MaaS models and a complete, usable AutoX S3 setup.
   // Keep this boolean-only check free of endpoint, access-key, and secret logging.
-  const supportsCompletionResults = isValidAutoragS3Configuration(testData);
+  const supportsCompletionResults = hasValidS3Configuration;
 
   const serviceRoot = getMaaSServiceRoot(fixture.maasUrl);
 

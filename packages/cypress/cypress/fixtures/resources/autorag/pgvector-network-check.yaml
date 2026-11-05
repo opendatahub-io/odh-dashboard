@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: autorag-pgvector-network-check
+  name: __PGVECTOR_NETWORK_CHECK_JOB__
   labels:
     app.kubernetes.io/name: autorag-pgvector-network-check
     app.kubernetes.io/part-of: autorag-e2e
