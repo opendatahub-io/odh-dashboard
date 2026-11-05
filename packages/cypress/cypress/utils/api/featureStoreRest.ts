@@ -8,7 +8,7 @@ const execRegistryApi = (
 ): Cypress.Chainable<Record<string, unknown>> => {
   const cmd =
     `oc exec -n ${namespace} deploy/${deployName} -c ${container} -- ` +
-    `sh -c 'curl -sk -H "Authorization: Bearer ` +
+    `sh -c 'curl -sk -w "\\n%{http_code}" -H "Authorization: Bearer ` +
     `$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" ` +
     `"https://localhost:6573${apiPath}"'`;
 
@@ -16,7 +16,24 @@ const execRegistryApi = (
     if (result.exitCode !== 0 || !result.stdout.trim()) {
       throw new Error(`Registry API call failed (${apiPath}): ${result.stderr || result.stdout}`);
     }
-    return cy.wrap(JSON.parse(result.stdout.trim()) as Record<string, unknown>);
+    const lines = result.stdout.trim().split('\n');
+    const httpStatus = parseInt(lines[lines.length - 1], 10);
+    const raw = lines.slice(0, -1).join('\n').trim();
+    if (Number.isNaN(httpStatus) || httpStatus < 200 || httpStatus >= 300) {
+      throw new Error(
+        `Registry API returned HTTP ${httpStatus} (${apiPath}): ${raw.slice(0, 500)}`,
+      );
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error(`Registry API returned non-JSON (${apiPath}): ${raw.slice(0, 500)}`);
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error(`Registry API returned unexpected shape (${apiPath}): ${raw.slice(0, 500)}`);
+    }
+    return cy.wrap(parsed as Record<string, unknown>);
   });
 };
 
@@ -37,17 +54,31 @@ export const getMetricsResourceCounts = (
 
   const poll = (attempt: number, maxAttempts: number): Cypress.Chainable<MetricsCounts> =>
     execRegistryApi(target.namespace, target.deployName, target.container, apiPath).then((body) => {
-      const counts = body.counts as Record<string, number> | undefined;
-      if (!counts || typeof counts !== 'object') {
+      const { counts } = body;
+      if (!counts || typeof counts !== 'object' || Array.isArray(counts)) {
         throw new Error(`Unexpected metrics response: ${JSON.stringify(body)}`);
       }
+      const c = counts as Record<string, unknown>;
+      const fields = [
+        'features',
+        'entities',
+        'savedDatasets',
+        'dataSources',
+        'featureViews',
+        'featureServices',
+      ] as const;
+      for (const f of fields) {
+        if (typeof c[f] !== 'number') {
+          throw new Error(`Missing or invalid "${f}" in counts: ${JSON.stringify(counts)}`);
+        }
+      }
       const result: MetricsCounts = {
-        featureCount: counts.features,
-        entityCount: counts.entities,
-        datasetCount: counts.savedDatasets,
-        dataSourceCount: counts.dataSources,
-        featureViewCount: counts.featureViews,
-        featureServiceCount: counts.featureServices,
+        featureCount: c.features as number,
+        entityCount: c.entities as number,
+        datasetCount: c.savedDatasets as number,
+        dataSourceCount: c.dataSources as number,
+        featureViewCount: c.featureViews as number,
+        featureServiceCount: c.featureServices as number,
       };
 
       const pending = [
