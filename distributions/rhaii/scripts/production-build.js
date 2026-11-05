@@ -13,7 +13,11 @@ const productionTargets = {
   'model-serving': {
     workspace: 'packages/model-serving/frontend',
     config: 'packages/model-serving/frontend/config/rspack.prod.js',
-    environment: { DEPLOYMENT_MODE: 'federated', PUBLIC_PATH: '/_mf/modelServing/' },
+    environment: {
+      DEPLOYMENT_MODE: 'federated',
+      PUBLIC_PATH: '/_mf/modelServing/',
+      COVERAGE: 'false',
+    },
   },
 };
 
