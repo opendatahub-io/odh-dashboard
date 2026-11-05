@@ -20,7 +20,7 @@ const parseNodeTestTapDetails = (tap) => {
     .map((line) => line.trim());
   const duration = lines.find((line) => /^# duration_ms /.test(line));
   const failedTests = lines
-    .filter((line) => /^not ok \d+ - /.test(line))
+    .filter((line) => /^not ok \d+ - /.test(line) && !/\s# (?:TODO|SKIP)\b/i.test(line))
     .map((line) => line.replace(/^not ok \d+ - /, ''));
 
   return {
@@ -46,6 +46,10 @@ const validateNodeTestTapTotals = (totals) => {
     return `Node test totals do not add up: ${accounted} accounted tests, ${totals.tests} total`;
   }
 
+  if (totals.tests - totals.skipped - (totals.todo ?? 0) === 0) {
+    return 'Node test summary contains no executed tests';
+  }
+
   return null;
 };
 
@@ -61,7 +65,8 @@ const renderNodeTestSummary = (totals, details = {}) => {
   const failedTests = details.failedTests ?? [];
 
   return [
-    'E2E selection contract summary',
+    'E2E planner and result validation summary (Node)',
+    'These checks test CI machinery; they do not run dashboard E2E journeys.',
     `Result: ${failures === 0 ? 'PASS' : 'FAIL'}`,
     `Tests: ${totals.tests} total, ${totals.pass} passed, ${failures} failed, ` +
       `${totals.skipped} skipped, ${todo} todo`,

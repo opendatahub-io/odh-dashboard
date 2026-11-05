@@ -146,11 +146,11 @@ const main = () => {
 
   writeFile(options['matrix-output'], `${JSON.stringify(plan.matrix)}\n`);
   writeFile(options['source-output'], `${tagSelection.source}\n`);
-  console.log(
-    `Cypress E2E selection: ${plan.matrix.length} job(s), ${
-      plan.summary.plannedTestCount
-    } explicit executable test(s), tags ${tagSelection.selectedTags.join(', ') || 'none'}.`,
-  );
+  const markdown = renderSelectionMarkdown(summaryPayload);
+  console.log(markdown);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${markdown}\n`);
+  }
 };
 
 if (require.main === module) {

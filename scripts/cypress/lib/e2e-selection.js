@@ -479,8 +479,8 @@ const resolvePathImpact = ({
         cypressTags: mappingTags,
         derivedTags: mapping.deriveCypressTags ? mappingTags : [],
         fallbackUsed: usedFallback,
-        environments: mapping.selectionMode === 'none' ? [] : mapping.environments,
-        supportingChecks: mapping.supportingChecks,
+        environments: mapping.selectionMode === 'none' ? [] : mapping.environments ?? [],
+        supportingChecks: mapping.supportingChecks ?? [],
         coverageInventoryIds: mapping.coverageInventoryIds ?? [],
       });
 
@@ -492,10 +492,10 @@ const resolvePathImpact = ({
       for (const tag of mappingTags) {
         tags.add(tag);
       }
-      for (const environment of mapping.environments) {
+      for (const environment of mapping.environments ?? []) {
         environments.add(environment);
       }
-      for (const check of mapping.supportingChecks) {
+      for (const check of mapping.supportingChecks ?? []) {
         supportingChecks.add(check);
       }
 
@@ -522,7 +522,7 @@ const resolvePathImpact = ({
           continue;
         }
         const tagCapabilities = resolveTagCapabilities(capabilities, tag);
-        for (const environment of mapping.environments) {
+        for (const environment of mapping.environments ?? []) {
           if (tagCapabilities[environment] === undefined) {
             errors.push(
               `E2E environment capability matrix has no ${environment} capability for ${tag}`,
@@ -746,9 +746,76 @@ const resolveTagsExpression = (node, initializers, seen = new Set()) => {
   return null;
 };
 
+// Resolve only top-level literal constants used directly as Mocha options.
+// Any other reference could mutate or shadow the object, so fail closed.
+const collectLiteralOptions = (sourceFile, initializers) => {
+  const declarations = new Map();
+  for (const statement of sourceFile.statements) {
+    if (
+      !ts.isVariableStatement(statement) ||
+      !(statement.declarationList.flags & ts.NodeFlags.Const)
+    ) {
+      continue;
+    }
+    for (const declaration of statement.declarationList.declarations) {
+      if (
+        ts.isIdentifier(declaration.name) &&
+        declaration.initializer &&
+        ts.isObjectLiteralExpression(declaration.initializer)
+      ) {
+        declarations.set(declaration.name.text, declaration);
+      }
+    }
+  }
+  const unsafe = new Set();
+  const visit = (node) => {
+    if (ts.isIdentifier(node) && declarations.has(node.text)) {
+      const declaration = declarations.get(node.text);
+      const { parent } = node;
+      const isOptionsArgument =
+        ts.isCallExpression(parent) &&
+        parent.arguments[1] === node &&
+        /^(?:it|test|describe|context)(?:\.(?:only|skip))?$/.test(
+          resolveCallName(parent.expression, initializers) ?? '',
+        );
+      if (node !== declaration.name && !isOptionsArgument) {
+        unsafe.add(node.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return new Map(
+    [...declarations]
+      .filter(([name]) => !unsafe.has(name))
+      .map(([name, declaration]) => [name, declaration.initializer]),
+  );
+};
+
+const resolveOptionsExpression = (node, initializers, seen = new Set()) => {
+  if (!node) {
+    return null;
+  }
+  if (ts.isObjectLiteralExpression(node)) {
+    return node;
+  }
+  if (ts.isIdentifier(node) && !seen.has(node.text)) {
+    return resolveOptionsExpression(
+      initializers.get(node.text),
+      initializers,
+      new Set([...seen, node.text]),
+    );
+  }
+  if (ts.isAsExpression(node) || ts.isParenthesizedExpression(node)) {
+    return resolveOptionsExpression(node.expression, initializers, seen);
+  }
+  return null;
+};
+
 const parseSpecSource = (source) => {
   const sourceFile = ts.createSourceFile('spec.cy.ts', source, ts.ScriptTarget.Latest, true);
   const initializers = collectVariableInitializers(sourceFile);
+  const literalOptions = collectLiteralOptions(sourceFile, initializers);
   const tests = [];
 
   const visit = (
@@ -767,8 +834,11 @@ const parseSpecSource = (source) => {
         if (expressionText.endsWith('.skip')) {
           childSkipped = true;
         }
-        const suiteOptions = node.arguments[1];
-        if (suiteOptions && ts.isObjectLiteralExpression(suiteOptions)) {
+        const suiteOptions = resolveOptionsExpression(node.arguments[1], literalOptions);
+        if (node.arguments.length >= 3 && !suiteOptions) {
+          childTagsResolved = false;
+        }
+        if (suiteOptions) {
           for (const property of suiteOptions.properties) {
             if (
               (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
@@ -782,6 +852,9 @@ const parseSpecSource = (source) => {
               childTags = unique([...childTags, ...(resolvedTags ?? [])]);
             }
           }
+          if (suiteOptions.properties.some((property) => ts.isSpreadAssignment(property))) {
+            childTagsResolved = false;
+          }
         }
       }
       if (
@@ -792,8 +865,11 @@ const parseSpecSource = (source) => {
       ) {
         let tags = [];
         let tagsResolved = true;
-        const options = node.arguments[1];
-        if (options && ts.isObjectLiteralExpression(options)) {
+        const options = resolveOptionsExpression(node.arguments[1], literalOptions);
+        if (node.arguments.length >= 3 && !options) {
+          tagsResolved = false;
+        }
+        if (options) {
           for (const property of options.properties) {
             if (
               (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
@@ -806,6 +882,9 @@ const parseSpecSource = (source) => {
               tagsResolved = resolvedTags !== null;
               tags = resolvedTags ?? [];
             }
+          }
+          if (options.properties.some((property) => ts.isSpreadAssignment(property))) {
+            tagsResolved = false;
           }
         }
         tests.push({
@@ -843,6 +922,7 @@ const buildSpecInventory = ({
       executableTags: unique(executableTests.flatMap((test) => test.tags)),
       executableTestTags: executableTests.map((test) => test.tags),
       intentionallyExcludedTestCount: intentionallyExcludedTests.length,
+      unresolvedTagTestCount: tests.filter((test) => test.tags === null).length,
     };
   }
   return inventory;
@@ -1041,6 +1121,20 @@ const selectImpactTags = (specs, inventory, ciTags) => {
     tags: [...selectedTags].toSorted(),
     uncoveredSpecs: uncoveredSpecs.toSorted(),
   };
+};
+
+const describeJobSelection = (job) => {
+  let reason = 'Selected tag coverage (default regression, requested tags, or path-impact mapping)';
+  if (job.tag_dir.startsWith('changedspec-')) {
+    reason = 'Added, modified, or renamed E2E specs run explicitly';
+  } else if (job.tag_dir.startsWith('full-coverage-')) {
+    reason = 'Broad or deleted support-code impact requires canonical Smoke/Sanity coverage';
+  } else if (job.tag_dir.startsWith('impactedspec-')) {
+    reason = 'Impacted specs have tests not fully covered by the selected tag jobs';
+  } else if (job.tag_dir.startsWith('impacted-tag-')) {
+    reason = 'Package CI tags cover a broad set of specs affected by changed support code';
+  }
+  return reason;
 };
 
 const buildSelectionPlan = ({
@@ -1259,6 +1353,11 @@ const buildSelectionPlan = ({
     const impactTags = selectImpactTags(uncoveredImpactedSpecs, inventory, ciTags);
     if (impactTags.uncoveredSpecs.length > MAX_EXPLICIT_IMPACTED_SPECS) {
       impactMode = 'full-coverage-tags';
+      details.push(
+        `Broad support impact: ${uncoveredImpactedSpecs.length} specs need additional coverage; ` +
+          `${impactTags.uncoveredSpecs.length} cannot be fully covered by package CI tags ` +
+          `(explicit-spec limit: ${MAX_EXPLICIT_IMPACTED_SPECS}). Using canonical Smoke/Sanity sets.`,
+      );
       const fullCoverageTags = resolveAvailableFullCoverageTags(inventory);
       if (fullCoverageTags.length === 0) {
         errors.push('No canonical full-coverage tag sets contain executable tests');
@@ -1321,11 +1420,46 @@ const buildSelectionPlan = ({
     ...createSpecJobs(explicitChangedSpecs, 'ChangedSpec'),
     ...impactedTagJobs,
     ...createSpecJobs(explicitImpactSpecs, 'ImpactedSpec'),
-  ].map((job) => ({ ...job, [plannedTestCountKey]: calculateJobTestCount(job) }));
+  ].map((job) => ({
+    ...job,
+    [plannedTestCountKey]: calculateJobTestCount(job),
+    reason: describeJobSelection(job),
+  }));
+
+  const selectedSpecs = new Set([...changedSpecs, ...impactedSpecs]);
+  for (const job of matrix) {
+    for (const entry of Object.values(inventory)) {
+      if (
+        job.run_mode === 'spec'
+          ? job.specs.includes(entry.path)
+          : (entry.unresolvedTagTestCount ?? 0) > 0 ||
+            entry.executableTags.some((tag) => job.tag.split(' ').includes(tag))
+      ) {
+        selectedSpecs.add(entry.path);
+      }
+    }
+  }
+  for (const spec of selectedSpecs) {
+    if ((inventory[spec]?.unresolvedTagTestCount ?? 0) > 0) {
+      errors.push(
+        `Selected Cypress spec has unresolved test or suite tags: ${spec}. ` +
+          'Use statically resolvable tag arrays and literal options so planned counts are reliable.',
+      );
+    }
+  }
 
   if (matrix.length === 0) {
     errors.push('No Cypress E2E jobs were selected');
   }
+
+  const jobs = matrix.map((job) => ({
+    name: job.tag_dir,
+    runMode: job.run_mode,
+    tags: job.run_mode === 'tag' ? job.tag.split(' ') : [],
+    specs: job.specs ?? [],
+    plannedTestCount: job[plannedTestCountKey],
+    reason: job.reason,
+  }));
 
   const plannedTestCount = matrix.reduce((total, job) => total + job[plannedTestCountKey], 0);
 
@@ -1354,6 +1488,7 @@ const buildSelectionPlan = ({
       selectedSuites: effectiveSelectedTags,
       resolvedTags: tagResolution.resolved,
       plannedTestCount,
+      jobs,
       details,
     },
   };
@@ -1361,7 +1496,22 @@ const buildSelectionPlan = ({
 
 const renderSelectionMarkdown = (summary) =>
   [
-    '# Cypress E2E selection summary',
+    '# Cypress E2E browser-test plan',
+    '',
+    `Selected ${(summary.jobs ?? []).length} browser job(s), ${
+      summary.plannedTestCount
+    } planned test executions.`,
+    'Counts are per-job executions and may overlap across jobs. Node contract checks are separate.',
+    '',
+    '## Why this coverage runs',
+    ...(summary.details ?? []).map((detail) => `- ${detail}`),
+    '',
+    '## Browser jobs',
+    ...(summary.jobs ?? []).flatMap((job) => [
+      `- ${job.name}: ${job.plannedTestCount} planned test execution(s) — ${job.reason}`,
+      ...(job.tags.length > 0 ? [`  - Tags: ${job.tags.join(' ')}`] : []),
+      ...job.specs.map((spec) => `  - Spec: ${spec}`),
+    ]),
     '',
     '## Changed paths',
     ...(summary.changedFiles.length > 0

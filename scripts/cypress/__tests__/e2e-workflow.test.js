@@ -6,6 +6,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 describe('Cypress E2E workflow', () => {
+  it('defines valid YAML for both contract-test workflows', () => {
+    const yaml = require('yaml');
+    for (const file of ['cypress-e2e-test.yml', 'test.yml']) {
+      const workflow = yaml.parse(
+        fs.readFileSync(path.join(__dirname, '../../../.github/workflows', file), 'utf8'),
+      );
+      assert.ok(workflow.jobs);
+    }
+  });
+
   it('passes explicit specs through the Cypress CLI instead of an ignored environment variable', () => {
     const workflow = fs.readFileSync(
       path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
@@ -16,16 +26,23 @@ describe('Cypress E2E workflow', () => {
     assert.ok(!workflow.includes('export CYPRESS_spec='));
   });
 
-  it('prints named test results and a human-readable Node test summary', () => {
+  it('labels Node checks separately and uses the shared contract runner', () => {
     const workflow = fs.readFileSync(
       path.join(__dirname, '../../../.github/workflows/cypress-e2e-test.yml'),
       'utf8',
     );
 
-    assert.ok(workflow.includes('--test-reporter=tap'));
-    assert.ok(workflow.includes('--test-reporter-destination="$tap_file"'));
-    assert.ok(workflow.includes('summarize-node-test-results.js "$tap_file"'));
-    assert.ok(!workflow.includes('--test-reporter=spec'));
+    assert.ok(workflow.includes('name: Test E2E planner and result validation (Node)'));
+    assert.ok(workflow.includes('run: node scripts/cypress/run-e2e-contracts.js'));
+    assert.ok(workflow.includes('name: Browser E2E (${{ matrix.tag_dir }})'));
+    assert.ok(workflow.includes('name: Explain what this browser job runs and why'));
+    assert.ok(workflow.includes('MATRIX_SELECTION_REASON: ${{ matrix.reason }}'));
+    assert.ok(workflow.includes('MATRIX_PLANNED_TEST_COUNT: ${{ matrix.planned_test_count }}'));
+    const runner = fs.readFileSync(path.join(__dirname, '../run-e2e-contracts.js'), 'utf8');
+    assert.ok(runner.includes('--test-reporter=tap'));
+    assert.ok(runner.includes('No browser, dashboard, or cluster is started.'));
+    assert.ok(runner.includes('e2e-runtime.test.js'));
+    assert.ok(runner.includes('Historical simulations'));
   });
 
   it('uses protected revisions for automatic validator jobs', () => {
@@ -87,17 +104,70 @@ describe('Cypress E2E workflow', () => {
     assert.ok(workflow.includes('export CYPRESS_grepTags="$MATRIX_TAG $SKIP_TAGS_GREP"'));
   });
 
-  it('filters excluded tags before Cypress creates testcases', () => {
+  it('records and looks up runtime tags using the full suite and test identity', () => {
     const support = fs.readFileSync(
       path.join(__dirname, '../../../packages/cypress/cypress/support/e2e.ts'),
       'utf8',
     );
+    assert.ok(support.includes('installTestTagFilter(window, shouldSkipTest'));
+    assert.ok(support.includes('Cypress.testTags[test.fullTitle()] = tags'));
+    assert.ok(support.includes('Cypress.testTags[this.currentTest.fullTitle()] ?? []'));
+  });
 
-    assert.ok(support.includes('const grepIncludedTags ='));
-    assert.ok(support.includes('const grepExcludedTags ='));
-    assert.ok(support.includes('return undefined as unknown as Mocha.Test;'));
-    assert.ok(support.includes('return shouldSkip || isExcluded || !shouldRun;'));
-    assert.ok(support.includes('if (grepIncludedTags.length > 0)'));
-    assert.ok(support.includes('grepIncludedTags.some((tag: string)'));
+  it('tests PR-head contracts in an unprivileged pull_request job', () => {
+    const workflow = fs.readFileSync(
+      path.join(__dirname, '../../../.github/workflows/test.yml'),
+      'utf8',
+    );
+    const job = workflow.slice(
+      workflow.indexOf('  E2E-Contracts:'),
+      workflow.indexOf('  Unit-Tests:'),
+    );
+    assert.match(workflow, /on:\s+pull_request:/);
+    assert.ok(job.includes('runs-on: ubuntu-latest'));
+    assert.ok(job.includes('contents: read'));
+    assert.ok(job.includes('persist-credentials: false'));
+    assert.ok(job.includes('github.event.pull_request.head.sha || github.sha'));
+    assert.ok(job.includes('run: node scripts/cypress/run-e2e-contracts.js'));
+    assert.ok(!job.includes('secrets.'));
+    assert.ok(!job.includes('self-hosted'));
+  });
+
+  it('anchors default, relative, and absolute report directories to the Cypress configuration', () => {
+    const vm = require('node:vm');
+    const ts = require('typescript');
+    const configFile = path.join(__dirname, '../../../packages/cypress/cypress.config.ts');
+    const source = ts.createSourceFile(
+      configFile,
+      fs.readFileSync(configFile, 'utf8'),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    let initializer;
+    const visit = (node) => {
+      if (ts.isVariableDeclaration(node) && node.name.getText(source) === 'resultsDir') {
+        initializer = node.initializer.getText(source);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    for (const directory of [
+      undefined,
+      'relative-reports',
+      path.resolve('/tmp/absolute-reports'),
+    ]) {
+      for (const mock of [false, true]) {
+        const value = vm.runInNewContext(initializer, {
+          path,
+          __dirname: path.dirname(configFile),
+          env: { CY_RESULTS_DIR: directory, CY_MOCK: mock },
+        });
+        assert.equal(
+          value,
+          path.resolve(path.dirname(configFile), directory || 'results', mock ? 'mocked' : 'e2e'),
+        );
+        assert.ok(path.isAbsolute(value));
+      }
+    }
   });
 });

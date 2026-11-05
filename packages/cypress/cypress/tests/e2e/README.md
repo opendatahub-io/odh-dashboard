@@ -272,13 +272,24 @@ coverage gaps, and unmatched impactful paths. After execution, it also uploads a
 results summary with executed, failed, and skipped test counts. A green run with no
 executed tests is rejected.
 
-The pre-cluster Node contract job prints each named test with the spec reporter plus
-a TAP-derived final summary with pass, failure, skipped, todo, total, and pass-rate
-counts.
-`scripts/cypress/__tests__/e2e-historical-impact.test.js` replays escaped impact
-classes from the six-month blocker audit, including dashboard network policies,
-changed Model Catalog specs and support code, package-to-CI-tag gaps, explicit
-fallbacks, workflow changes, and deleted support code.
+Node contract checks test the planner and reporting machinery separately from
+browser E2E journeys. The Test workflow checks the PR revision without cluster
+credentials; automatic E2E validation uses protected default-branch code. The
+shared runner writes TAP, groups named test outcomes, prints summary counts and
+failed-test names, and uploads the TAP report. Historical simulations feed past
+changed-file lists into the planner; they do not replay those journeys on a cluster.
+See [the testing guide](../../../../../docs/testing.md#selective-e2e-tests) for job names,
+report interpretation, and the local contract command.
+
+The browser selection report explains each job's reason, tags or explicit specs,
+and planned executions, including why broad support changes need Smoke/Sanity
+coverage and additional impacted specs. Counts may overlap across jobs. Build jobs
+prepare application assets and do not execute tests.
+
+Selected specs with unresolved test or suite tag expressions fail planning rather
+than receive an unreliable test count. Use literal options or unmodified top-level object constants, and same-file tag arrays
+or constants; imported tags, computed options, and option-object spreads need to be
+made statically resolvable before those specs can run in CI.
 
 ### Test Contents
 

@@ -31,7 +31,8 @@ describe('Node test result summaries', () => {
     assert.equal(
       renderNodeTestSummary(totals, { durationMs: 1250, failedTests: ['one', 'two'] }),
       [
-        'E2E selection contract summary',
+        'E2E planner and result validation summary (Node)',
+        'These checks test CI machinery; they do not run dashboard E2E journeys.',
         'Result: FAIL',
         'Tests: 4 total, 2 passed, 2 failed, 0 skipped, 0 todo',
         'Executed: 4',
@@ -51,6 +52,26 @@ describe('Node test result summaries', () => {
     );
 
     assert.deepEqual(details, { durationMs: 250, failedTests: ['fails'] });
+  });
+
+  it('does not list TODO or SKIP test points as failures', () => {
+    const details = parseNodeTestTapDetails(
+      [
+        'not ok 1 - future behavior # TODO implement later',
+        'not ok 2 - disabled # SKIP',
+        'not ok 3 - real failure',
+      ].join('\n'),
+    );
+    assert.deepEqual(details.failedTests, ['real failure']);
+  });
+
+  it('rejects runs where every test is skipped or TODO', () => {
+    for (const totals of [
+      { tests: 1, pass: 0, fail: 0, skipped: 1, todo: 0 },
+      { tests: 1, pass: 0, fail: 0, skipped: 0, todo: 1 },
+    ]) {
+      assert.match(validateNodeTestTapTotals(totals), /no executed tests/);
+    }
   });
 
   it('rejects incomplete or inconsistent totals', () => {

@@ -181,11 +181,32 @@ run. Dashboard base and RHOAI network-policy changes run
 the Pipelines, Workbenches, and Feature Store suites because those flows exercise
 dashboard egress to the pipeline server, Thanos, and Feast.
 
-Before cluster jobs start, the workflow runs the selection contracts in
-`scripts/cypress/__tests__`. The Node test step prints each named test with the spec
-reporter, records machine-readable TAP totals, and prints pass, failure, skipped,
-todo, total, and pass-rate counts. Historical impact simulations replay escaped
-network-policy, changed-spec, support-code, package-tag, and fallback scenarios.
+The **Test PR E2E planner and result validation (Node)** job in the Test workflow
+runs the PR revision on a GitHub-hosted runner with read-only permissions and no
+cluster credentials. The E2E workflow also runs **Test E2E planner and result
+validation (Node)** from protected default-branch code for automatic `workflow_run`
+events. These checks test the CI machinery: selection rules, real Mocha registration
+and JUnit counts, result validation, workflow wiring, historical changed-file
+simulations, and Node summary reporting. They do not start a browser or run dashboard
+journeys. Run the same checks locally with:
+
+```bash
+node scripts/cypress/run-e2e-contracts.js
+```
+
+The runner writes TAP, groups named test outcomes in the log, and prints pass,
+failure, skipped, todo, total, pass-rate, and duration counts, including failed-test
+names. Both workflows upload the TAP report. A passing Node summary verifies the CI
+machinery; browser E2E outcomes are reported separately.
+
+The **Plan browser E2E coverage and explain selection** job prints and publishes
+why each browser job runs, its tags or explicit specs, and its planned test count.
+Global support changes can affect most CI-runnable specs and trigger broad
+Smoke/Sanity coverage when package CI tags cannot cover the impact. Any remaining
+specs run explicitly. Counts are per-job test executions and can overlap across
+jobs. **Build Cypress application assets** jobs prepare code for Cypress; they do
+not execute tests. **Browser E2E** jobs run the selected dashboard journeys, and
+**Validate browser E2E results against the plan** checks each job's reported counts.
 
 Referenced behaviors must exist in
 `scripts/cypress/e2e-coverage-inventory.json` and declare a terminal-state assertion.

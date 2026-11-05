@@ -660,6 +660,86 @@ describe('buildSelectionPlan', () => {
     assert.equal(result.summary.matchedMappings[0].fallbackUsed, false);
   });
 
+  it('defaults optional mapping environments and supporting checks to empty arrays', () => {
+    const pathImpactMap = {
+      schemaVersion: 1,
+      mappings: [
+        {
+          id: 'minimal',
+          description: 'Minimal tag mapping',
+          pathPatterns: ['minimal.txt'],
+          selectionMode: 'tag',
+          cypressTags: ['@ci-dashboard-regression-tags'],
+        },
+      ],
+    };
+    const result = plan([{ status: 'M', path: 'minimal.txt' }], {
+      inventory: {
+        [specPath('default')]: inventoryEntry('default', ['@ci-dashboard-regression-tags']),
+      },
+      selectedTags: [],
+      pathImpactMap,
+      coverageInventory: { schemaVersion: 1, behaviors: [] },
+    });
+    assert.equal(result.valid, true, result.errors.join('\n'));
+    assert.deepEqual(result.summary.selectedEnvironments, []);
+    assert.deepEqual(result.summary.supportingChecks, []);
+    assert.deepEqual(result.summary.matchedMappings[0].environments, []);
+    assert.deepEqual(result.summary.matchedMappings[0].supportingChecks, []);
+  });
+
+  it('rejects unresolved tags in changed, impacted, and tag-selected mixed specs', () => {
+    const mixed = specPath('mixed');
+    const mixedInventory = buildSpecInventory({
+      specs: [mixed],
+      root: repositoryRoot,
+      readFile: () => `
+        import { importedTags } from './tags';
+        it('resolved', {tags: ['@CI']}, () => {});
+        it('unresolved', {tags: importedTags}, () => {});
+      `,
+    });
+    assert.equal(mixedInventory[mixed].unresolvedTagTestCount, 1);
+    for (const changes of [
+      [{ status: 'M', path: mixed }],
+      [{ status: 'M', path: supportPath('pages/shared') }],
+      [],
+    ]) {
+      const result = plan(changes, {
+        inventory: mixedInventory,
+        selectedTags: ['@CI'],
+        ciTags: ['@CI'],
+        dependencyIndex: { consumers: { [supportPath('pages/shared')]: [mixed] } },
+      });
+      assert.equal(result.valid, false);
+      assert.ok(
+        result.errors.some(
+          (error) => error.includes('unresolved test or suite tags') && error.includes(mixed),
+        ),
+      );
+    }
+  });
+
+  it('rejects an unchanged unresolved-only spec that could match a selected tag', () => {
+    const unknown = specPath('unknown');
+    const unknownInventory = buildSpecInventory({
+      specs: [unknown],
+      root: repositoryRoot,
+      readFile: () => `import { tags } from './tags'; it('unknown', {tags}, () => {});`,
+    });
+    const result = plan([], {
+      inventory: { ...inventory, ...unknownInventory },
+      selectedTags: ['@CI'],
+      ciTags: ['@CI'],
+    });
+    assert.equal(result.valid, false);
+    assert.ok(
+      result.errors.some(
+        (error) => error.includes('unresolved test or suite tags') && error.includes(unknown),
+      ),
+    );
+  });
+
   it('fails when an impactful path has no explicit mapping', () => {
     const pathImpactMap = {
       schemaVersion: 1,
@@ -1034,6 +1114,53 @@ describe('parseSpecSource', () => {
     assert.deepEqual(tests, [{ tags: null }]);
   });
 
+  it('resolves same-file literal option constants without hiding intentionally excluded tests', () => {
+    const source = `
+      const SHARED = {testIsolation: false};
+      const OPTIONS = {tags: ['@CI']};
+      describe('suite', SHARED, () => {
+        it('selected', OPTIONS, () => {});
+        it('excluded', {tags: ['@NonConcurrent']}, () => {});
+      });
+    `;
+    const parsed = parseSpecSource(source);
+    assert.deepEqual(parsed, [{ tags: ['@CI'] }, { tags: ['@NonConcurrent'] }]);
+    const entries = buildSpecInventory({
+      specs: [specPath('literal-options')],
+      readFile: () => source,
+      root: repositoryRoot,
+    });
+    assert.equal(entries[specPath('literal-options')].unresolvedTagTestCount, 0);
+    assert.equal(entries[specPath('literal-options')].executableTestCount, 1);
+  });
+
+  it('does not guess mutable or shadowed option bindings', () => {
+    for (const source of [
+      `let opts = {tags: ['@A']}; opts = {tags: ['@B']}; it('test', opts, () => {});`,
+      `const opts = {tags: ['@A']}; opts.tags = ['@B']; it('test', opts, () => {});`,
+      `const opts = {tags: ['@A']}; Object.assign(opts, {tags: ['@B']}); it('test', opts, () => {});`,
+      `describe('one', () => { const opts = {tags: ['@A']}; it('test', opts, () => {}); });
+       describe('two', () => { const opts = {tags: ['@B']}; it('test', opts, () => {}); });`,
+    ]) {
+      assert.ok(parseSpecSource(source).every((entry) => entry.tags === null));
+    }
+  });
+
+  it('marks non-literal options and option spreads as unresolved for tests and suites', () => {
+    for (const options of [
+      'opts',
+      'getOptions()',
+      '{...baseOptions}',
+      "{tags: ['@CI'], ...baseOptions}",
+    ]) {
+      assert.deepEqual(parseSpecSource(`it('test', ${options}, () => {});`), [{ tags: null }]);
+      for (const suite of ['describe', 'context']) {
+        const source = `${suite}('suite', ${options}, () => it('test', {tags: ['@CI']}, () => {}));`;
+        assert.deepEqual(parseSpecSource(source), [{ tags: null }]);
+      }
+    }
+  });
+
   it('excludes tests inside locally aliased skipped suites', () => {
     const tests = parseSpecSource(
       [
@@ -1133,6 +1260,31 @@ describe('buildFixtureConsumers', () => {
 });
 
 describe('selection summaries', () => {
+  it('explains browser jobs, their counts, and broad support fallback in console-ready Markdown', () => {
+    const broadInventory = {};
+    const specs = Array.from({ length: 6 }, (_, index) => specPath(`broad-${index}`));
+    for (const [index, spec] of specs.entries()) {
+      broadInventory[spec] = inventoryEntry(`broad-${index}`, ['@Tag', '@SmokeSet1']);
+    }
+    const result = plan([{ status: 'M', path: supportPath('pages/shared') }], {
+      inventory: broadInventory,
+      selectedTags: [],
+      ciTags: ['@Tag'],
+      dependencyIndex: { consumers: { [supportPath('pages/shared')]: specs } },
+    });
+    assert.equal(result.valid, true);
+    const markdown = renderSelectionMarkdown(result.summary);
+    assert.match(markdown, /Broad support impact: 6 specs/);
+    assert.match(markdown, /cannot be fully covered by package CI tags/);
+    assert.match(markdown, /full-coverage-01: 6 planned test execution/);
+    assert.match(markdown, /Tags: @SmokeSet1/);
+    assert.match(markdown, /Node contract checks are separate/);
+    assert.equal(
+      result.summary.jobs.reduce((sum, job) => sum + job.plannedTestCount, 0),
+      result.summary.plannedTestCount,
+    );
+  });
+
   it('includes validation errors in diagnostic JSON and Markdown output', () => {
     const invalidPlan = plan([{ status: 'A', path: specPath('other') }], {
       selectedTags: [],

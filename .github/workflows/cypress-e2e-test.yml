@@ -94,9 +94,10 @@ env:
 # =============================================================================
 jobs:
   # ---------------------------------------------------------------------------
-  # Selection Validation - Fail before cluster work if planner contracts break
+  # CI Machinery Checks (Node) - Validate selection and reporting before browser selection
   # ---------------------------------------------------------------------------
   validate-selection:
+    name: Test E2E planner and result validation (Node)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -113,21 +114,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           install-dependencies: 'true'
+        env:
+          CYPRESS_INSTALL_BINARY: '0'
 
-      - name: Validate E2E selection and result contracts
-        run: |
-          tap_file="${RUNNER_TEMP}/e2e-selection-contracts.tap"
-          exit_code=0
-          node --test \
-            --test-reporter=tap \
-            --test-reporter-destination="$tap_file" \
-            scripts/cypress/__tests__/e2e-selection.test.js \
-            scripts/cypress/__tests__/e2e-results.test.js \
-            scripts/cypress/__tests__/e2e-workflow.test.js \
-            scripts/cypress/__tests__/e2e-historical-impact.test.js \
-            scripts/cypress/__tests__/node-test-results.test.js || exit_code=$?
-          node scripts/cypress/summarize-node-test-results.js "$tap_file"
-          exit "$exit_code"
+      - name: Test CI machinery (Node; no browser or cluster)
+        run: node scripts/cypress/run-e2e-contracts.js
+
+      - name: Upload Node contract report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-contract-results
+          path: ${{ runner.temp }}/e2e-selection-contracts.tap
+          if-no-files-found: warn
 
   # ---------------------------------------------------------------------------
   # Cluster Selection - Health check with automatic failover
@@ -451,6 +450,7 @@ jobs:
   # Tag Resolution - Build test matrix from defaults + PR labels/input + path impact
   # ---------------------------------------------------------------------------
   get-test-tags:
+    name: Plan browser E2E coverage and explain selection
     needs: [validate-selection, select-cluster, cleanup-old-resources]
     runs-on: ubuntu-latest
     outputs:
@@ -602,6 +602,7 @@ jobs:
   # Build Missing Cypress Packages - Parallel matrix for any missing artifacts
   # ---------------------------------------------------------------------------
   build-missing-cypress:
+    name: Build Cypress application assets (${{ matrix.package.name }})
     needs: [ensure-cypress-builds]
     if: needs.ensure-cypress-builds.outputs.has-rebuilt == 'true'
     runs-on: ubuntu-latest
@@ -637,7 +638,7 @@ jobs:
   # E2E Tests - Run Cypress tests for each tag in parallel
   # ---------------------------------------------------------------------------
   e2e-tests:
-    name: e2e-tests (${{ matrix.tag_dir }})
+    name: Browser E2E (${{ matrix.tag_dir }})
     needs:
       [
         select-cluster,
@@ -661,7 +662,26 @@ jobs:
       MATRIX_TAG_DIR: ${{ matrix.tag_dir }}
       MATRIX_SPECS: ${{ toJson(matrix.specs) }}
       MATRIX_RUN_MODE: ${{ matrix.run_mode }}
+      MATRIX_PLANNED_TEST_COUNT: ${{ matrix.planned_test_count }}
+      MATRIX_SELECTION_REASON: ${{ matrix.reason }}
     steps:
+      - name: Explain what this browser job runs and why
+        run: |
+          node <<'NODE'
+          const env = process.env;
+          console.log('This job runs Cypress browser journeys against the dashboard.');
+          console.log(`Reason: ${env.MATRIX_SELECTION_REASON}`);
+          console.log(`Planned test executions: ${env.MATRIX_PLANNED_TEST_COUNT}`);
+          console.log(`Selection mode: ${env.MATRIX_RUN_MODE}`);
+          if (env.MATRIX_RUN_MODE === 'spec') {
+            console.log('Explicit specs:');
+            for (const spec of JSON.parse(env.MATRIX_SPECS)) console.log(`- ${spec}`);
+          } else {
+            console.log(`Selected tags: ${env.MATRIX_TAG}`);
+          }
+          console.log('This count excludes the separate Node CI machinery checks.');
+          NODE
+
       - name: Register runner proxy URL for log redaction
         env:
           RUNNER_PROXY_MASK: ${{ secrets.ITUP_PROXY_URL }}
@@ -1319,6 +1339,7 @@ jobs:
   # Result Summary - Prove that selected coverage actually executed
   # ---------------------------------------------------------------------------
   summarize-e2e-results:
+    name: Validate browser E2E results against the plan
     needs: [get-test-tags, e2e-tests]
     if: >-
       always() &&
