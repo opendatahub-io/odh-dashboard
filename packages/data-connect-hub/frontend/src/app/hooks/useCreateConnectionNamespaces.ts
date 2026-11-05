@@ -1,7 +1,7 @@
 import React from 'react';
 import { useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
-import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
-import { NamespaceKind } from '~/app/types';
+import { useFetchState, type APIOptions, type FetchStateCallbackPromise } from 'mod-arch-core';
+import type { NamespaceKind } from '~/app/types';
 
 export const useCreateConnectionNamespaces = (
   namespaces: NamespaceKind[],
