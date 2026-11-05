@@ -264,7 +264,7 @@ Start from the current `Dockerfile.konflux.data-connect-hub` on the target branc
         com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
   ```
 
-The `name` label (`odh-mod-arch-<name>-rhel9`) is the image ProdSec registers as `pscomponent:rhoai/odh-mod-arch-<name>-rhel9` in Phase 6.
+The Dockerfile `name` label (`managed-open-data-hub/odh-mod-arch-<name>-rhel9`) and the ProdSec registration key (`rhoai/odh-mod-arch-<name>-rhel9`, Jira label `pscomponent:rhoai/odh-mod-arch-<name>-rhel9`) are different identifiers that share the `odh-mod-arch-<name>-rhel9` image name. Phase 6 uses the registration key.
 
 See [references/dockerfile-templates.md](references/dockerfile-templates.md) § Downstream Type A.
 
@@ -651,7 +651,7 @@ The DevOps automation builds and releases the image but does not register it wit
    labels = "pscomponent:rhoai/odh-<name>-rhel9"
    ```
 
-   Use the label matching the image's `name` label. An empty result while sibling images (for example `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for the same CVE means the image is not registered. Raise it in `#forum-aipcc`.
+   Use the key for the component type (the image name from the Dockerfile `name` label, prefixed with `rhoai/`). An empty result is evidence of missing registration only when the CVE is confirmed to affect this image, for example because the image ships the affected package and sibling images with the same dependency (such as `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for it. In that case raise it in `#forum-aipcc`.
 
 Read [references/devops-integration.md](references/devops-integration.md) for the full integration guide including Q&A flow, schema validation, and troubleshooting.
 
@@ -713,5 +713,5 @@ Print a final report:
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
 8. Open a PR against `opendatahub-io/opendatahub-operator` adding `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `relatedImages()` in `internal/controller/modules/dashboard/support.go`, then request review in `#ai-core-platform-requests` Slack channel
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
-10. Request ProdSec `pscomponent` registration for `rhoai/odh-mod-arch-<name>-rhel9` in `#forum-aipcc` and verify it with the Phase 6 JQL before the first release
+10. Request ProdSec `pscomponent` registration in `#forum-aipcc` for `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B), and verify it with the matching Phase 6 JQL before the first release
 ```

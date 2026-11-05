@@ -92,7 +92,7 @@ Key differences from upstream `Dockerfile.workspace`:
 
 - All base images pinned by SHA digest; runtime is `registry.redhat.io/ubi9/ubi-minimal-pqc`
 - `pnpm install --offline` against the Hermeto-prefetched store, `CYPRESS_INSTALL_BINARY=0`
-- Red Hat labels named after the image (`odh-mod-arch-<name>`), which is also the ProdSec `pscomponent` name
+- Red Hat labels named after the image: `com.redhat.component="odh-mod-arch-<name>-container"` and `name="managed-open-data-hub/odh-mod-arch-<name>-rhel9"`. The ProdSec registration key is a separate identifier, `rhoai/odh-mod-arch-<name>-rhel9` (see SKILL.md Phase 6)
 - `CACHITO_ENV_FILE` support is optional — Konflux Cachi2 injects this file automatically during hermetic builds when prefetch is enabled; no Dockerfile changes are needed unless you opt into sourcing it explicitly
 
 Snapshot from `rhoai-3.7-ea.1` (digests replaced with placeholders):
