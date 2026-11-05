@@ -207,6 +207,16 @@ def sanitize_base_span(s):
     if any(k in s and not OTLP_ID_RE[k].fullmatch(str(s[k])) for k in OTLP_ID_RE):
         return None
     out = {k: s[k] for k in BASE_SPAN_FIELDS if k in s}
+    # Times are re-derived, never copied: JSON allows Infinity/NaN, which OTLP rejects.
+    start = otlp_ns(s.get("startTimeUnixNano"))
+    if start is None:
+        return None
+    end = otlp_ns(s.get("endTimeUnixNano"))
+    out["startTimeUnixNano"] = str(start)
+    out["endTimeUnixNano"] = str(end if end is not None and end >= start else start)
+    for k in ("kind", "flags"):
+        if k in out and not (isinstance(out[k], int) and not isinstance(out[k], bool) and 0 <= out[k] < 2**32):
+            del out[k]
     out["name"] = clean(out.get("name", ""))[:200]
     out["attributes"] = [sanitize_attr(x) for x in s.get("attributes") or [] if isinstance(x, dict)]
     code = (s.get("status") or {}).get("code")
@@ -786,6 +796,10 @@ def self_test():
         f.write(otlp({"traceId": tid, "spanId": agent_sid, "parentSpanId": run_sid, "name": "agent",
                       "startTimeUnixNano": "2000000000", "endTimeUnixNano": "8000000000",
                       "attributes": [{"key": "iteration", "value": {"intValue": "1"}}]}))
+        f.write(otlp({"traceId": tid, "spanId": "3" * 16, "parentSpanId": run_sid, "name": "sandbox_create",
+                      "startTimeUnixNano": "1500000000", "endTimeUnixNano": float("inf"), "kind": "x"}))
+        f.write(otlp({"traceId": tid, "spanId": "4" * 16, "parentSpanId": run_sid, "name": "bad_start",
+                      "startTimeUnixNano": float("nan"), "endTimeUnixNano": "2000000000"}))
     json.dump({"total_cost_usd": 0.5, "iterations": 1}, open(os.path.join(run, "metrics.json"), "w"))
     json.dump({}, open(os.path.join(out_dir, "metrics.json"), "w"))
     with open(os.path.join(out_dir, "run-telemetry.jsonl"), "w") as f:
@@ -888,6 +902,11 @@ def self_test():
          and otlp_ns("1793664001000000000") == 1793664001000000000
          and ns(float("inf")) is None and ns(float("nan")) is None and ns("garbage") is None and ns(True) is None and ns([1]) is None and ns(1e300) is None
          and ns("2026-11-03T00:00:01Z") is not None),
+        ("Fullsend span with an infinite end is normalized, one with a NaN start is dropped",
+         any(x["name"] == "sandbox_create" and x["endTimeUnixNano"] == "1500000000" and "kind" not in x
+             for x in spans) and not any(x["name"] == "bad_start" for x in spans)),
+        ("payload serializes as strict JSON (no Infinity/NaN)",
+         bool(json.dumps(payload, allow_nan=False))),
         ("every span time stays within the OTLP range",
          all(0 <= int(x[k]) <= MAX_NS for x in spans for k in ("startTimeUnixNano", "endTimeUnixNano"))
          and int(span(tid, "1" * 16, None, "x", 5, 10**30, {})["endTimeUnixNano"]) == MAX_NS),
