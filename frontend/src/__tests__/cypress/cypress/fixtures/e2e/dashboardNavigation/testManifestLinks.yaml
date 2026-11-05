@@ -14,3 +14,6 @@ excludedSubstrings:
   - scikit-learn.org/stable/getting_started.html
   - 2Fopentracker
   - 2Ftracker.openbittorrent
+  # Slack's edge/WAF intermittently 403s automated (non-browser) requests to this
+  # URL regardless of headers sent; the link itself works fine for real users.
+  - elasticstack.slack.com
