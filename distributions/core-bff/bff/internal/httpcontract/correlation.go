@@ -167,6 +167,8 @@ func Committed(w http.ResponseWriter) bool {
 type Transport struct {
 	Base   http.RoundTripper
 	Logger *slog.Logger
+	// SkipAuditCapture excludes caller-selected targets from trusted audit correlation.
+	SkipAuditCapture bool
 }
 
 func (t Transport) RoundTrip(r *http.Request) (*http.Response, error) {
@@ -183,7 +185,9 @@ func (t Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 	resp, err := base.RoundTrip(out)
 	if resp != nil {
-		CaptureAudit(r.Context(), resp.Header)
+		if !t.SkipAuditCapture {
+			CaptureAudit(r.Context(), resp.Header)
+		}
 		if resp.Body != nil && resp.StatusCode != http.StatusSwitchingProtocols {
 			resp.Body = &observedBody{ReadCloser: resp.Body, ctx: r.Context(), logger: t.Logger}
 		}

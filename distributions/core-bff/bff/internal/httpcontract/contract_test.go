@@ -274,6 +274,38 @@ func TestCorrelationTransportAndConcurrentIsolation(t *testing.T) {
 	wg.Wait()
 }
 
+func TestTransportSkipAuditCapture(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(AuditIDHeader, uuid.NewString())
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+	client := &http.Client{Transport: Transport{SkipAuditCapture: true}}
+	for _, tc := range []struct{ name, existingAudit string }{
+		{"without-existing-audit", ""},
+		{"with-existing-audit", uuid.NewString()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tc.existingAudit != "" {
+					header := make(http.Header)
+					header.Set(AuditIDHeader, tc.existingAudit)
+					CaptureAudit(r.Context(), header)
+				}
+				req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, upstream.URL, nil)
+				require.NoError(t, err)
+				resp, err := client.Do(req)
+				require.NoError(t, err)
+				defer resp.Body.Close()
+				require.Equal(t, tc.existingAudit, AuditID(r.Context()))
+				w.WriteHeader(http.StatusOK)
+			})).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+			require.Equal(t, tc.existingAudit, w.Header().Get(AuditIDHeader))
+		})
+	}
+}
+
 func TestInvalidAuditIdentifiersAreNotReflected(t *testing.T) {
 	for _, v := range [][]string{
 		{"CANARY"},

@@ -247,7 +247,7 @@ func TestConnectionProbesForwardRequestCorrelation(t *testing.T) {
 			require.NotEqual(t, "untrusted-caller-id", id)
 			require.Equal(t, id, headers.Get(httpcontract.RequestIDHeader))
 			require.Empty(t, headers.Get(httpcontract.AuditIDHeader))
-			require.Equal(t, auditID, response.Header().Get(httpcontract.AuditIDHeader))
+			require.Empty(t, response.Header().Get(httpcontract.AuditIDHeader))
 			if strings.HasPrefix(tc.name, "s3-") {
 				require.True(t, strings.HasPrefix(headers.Get(constants.HeaderAuthorization), "AWS4-HMAC-SHA256 "))
 			}

@@ -131,7 +131,7 @@ func newTLSHTTPClient(rootCAs *x509.CertPool, insecureSkipVerify bool) *http.Cli
 		MaxConnsPerHost:     2,
 	}
 	return &http.Client{
-		Transport: httpcontract.WrapTransport(transport),
+		Transport: httpcontract.Transport{Base: transport, SkipAuditCapture: true},
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
