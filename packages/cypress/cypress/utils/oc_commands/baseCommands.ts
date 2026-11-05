@@ -2,6 +2,19 @@ import type { CommandLineResult, UserAuthConfig } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
+ * Throws a masked error when an `oc` command exited non-zero.
+ *
+ * @param result The result of the `oc` command.
+ * @param context What the command was trying to do, used as the error prefix.
+ */
+export const ensureOcSuccess = (result: CommandLineResult, context: string): void => {
+  if (result.exitCode !== 0) {
+    const output = maskSensitiveInfo(result.stderr || result.stdout);
+    throw new Error(`${context}: ${output}`);
+  }
+};
+
+/**
  * Ensures the oc CLI session is logged in as the cluster admin user.
  * Required before setup/cleanup steps that run oc commands after a test
  * may have switched the oc session to a non-admin user via visitWithLogin.
@@ -146,10 +159,7 @@ export const hasNvidiaGpus = (): Cypress.Chainable<boolean> =>
       { failOnNonZeroExit: false },
     )
     .then((result: CommandLineResult) => {
-      if (result.exitCode !== 0) {
-        const output = maskSensitiveInfo(result.stderr || result.stdout);
-        throw new Error(`Unable to determine NVIDIA GPU availability: ${output}`);
-      }
+      ensureOcSuccess(result, 'Unable to determine NVIDIA GPU availability');
 
       const hasGpus = result.stdout
         .split(/\s+/)
@@ -158,6 +168,44 @@ export const hasNvidiaGpus = (): Cypress.Chainable<boolean> =>
 
       cy.log(`NVIDIA GPUs allocatable: ${hasGpus}`);
       return cy.wrap(hasGpus);
+    });
+
+/**
+ * Finds the node with the highest allocatable NVIDIA GPU count.
+ *
+ * `oc get nodes -o json` returns a `NodeList` object
+ * (`{ apiVersion, kind, metadata, items }`), so the nodes live under `items`.
+ * An empty or missing `items` yields `{ name: 'none', gpuCount: 0 }`.
+ *
+ * Uses allocatable rather than capacity because the former represents resources that the
+ * scheduler can assign to workloads.
+ */
+export const getNodeWithMostAllocatableGpus = (): Cypress.Chainable<{
+  name: string;
+  gpuCount: number;
+}> =>
+  cy
+    .exec('oc get nodes -o json', { failOnNonZeroExit: false })
+    .then((result: CommandLineResult) => {
+      ensureOcSuccess(result, 'Unable to read allocatable NVIDIA GPUs from nodes');
+
+      const { items: nodes = [] } = JSON.parse(result.stdout) as {
+        items?: {
+          metadata: { name: string };
+          status?: { allocatable?: Record<string, string> };
+        }[];
+      };
+
+      const best = nodes.reduce(
+        (acc, node) => {
+          const gpuCount = Number(node.status?.allocatable?.['nvidia.com/gpu'] ?? 0);
+          return gpuCount > acc.gpuCount ? { name: node.metadata.name, gpuCount } : acc;
+        },
+        { name: 'none', gpuCount: 0 },
+      );
+
+      cy.log(`Node with most allocatable NVIDIA GPUs: ${best.name} (${best.gpuCount})`);
+      return cy.wrap(best);
     });
 
 /**
