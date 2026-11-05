@@ -71,6 +71,11 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Output: Saved as an artifact and loaded into the Phase 4 Kind cluster
   - Why: Keeps the simulator independent of the mutable published Core BFF `:main` image
 
+- ✅ **RHAII standalone image build** (`distributions/rhaii/Dockerfile`)
+  - Builds: The RHAII frontend shell, embedded Core BFF, and Model Serving federated remote from the PR checkout
+  - Output: Saved as the `rhaii-dashboard-image` artifact for its dedicated runtime-validation cluster
+  - Why: Validates the release image that RHAII deploys, independently of the ODH dashboard/operator integration scenario
+
 ### Phase 2: Runtime Validation
 - ✅ **Container startup health**
   - Starts container and waits 30 seconds
@@ -98,6 +103,17 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 - ✅ **Non-root user runtime**
   - Container runs as user 1001 (non-root)
   - Catches: Permission denied errors on logs, temp files
+
+#### RHAII standalone runtime validation
+- ✅ **Dedicated Kind cluster deployment**
+  - Loads: The Phase 1 RHAII image artifact into a fresh Kind cluster
+  - Deploys: A CI-only RHAII overlay in the `opendatahub` namespace
+  - Why: Keeps RHAII startup validation isolated from the ODH dashboard and operator integration test
+
+- ✅ **Release-image smoke checks**
+  - Waits: For the RHAII deployment rollout
+  - Tests: `/healthcheck`, the root HTML shell, and the Model Serving `/_mf/modelServing/remoteEntry.js` response
+  - Catches: BFF startup failures, missing static assets, and a broken same-origin federated remote in the image that is actually deployed
 
 ### Phase 3: Module Federation Validation
 - ✅ **remoteEntry.js presence and size**
@@ -267,8 +283,8 @@ Local testing is not yet available. The validation currently only runs in GitHub
 
 ### GitHub Actions (Parallel)
 - Phase 0: 1-2 minutes
-- Phase 1 (ODH + RHOAI + operator): 8-12 minutes (parallel)
-- Phase 2-3 (ODH + RHOAI): 3-5 minutes (parallel, after Phase 1)
+- Phase 1 (ODH + RHOAI + Core BFF + RHAII + operator): 8-12 minutes (parallel)
+- Phase 2-3 (ODH + RHOAI + RHAII): 3-5 minutes (parallel, after Phase 1)
 - Phase 4 (dashboard + operator CRD/CR reconciliation): 6-10 minutes
 - Phase 5 (manifest validation): 1-2 minutes (parallel, independent of Docker build)
 
