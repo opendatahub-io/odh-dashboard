@@ -288,12 +288,42 @@ describe('Core BFF error response components', () => {
             String(status),
             '$ref',
           ],
-          `#/components/responses/${response}`,
+          '#/components/responses/ModelServingProxyFailure',
         );
+        expect(error).toMatchContract(apiSchema, {
+          ref: '#/components/responses/ModelServingProxyFailure/content/application~1json/schema',
+          status,
+        });
         expect(error).toMatchContract(apiSchema, {
           ref: `#/components/responses/${response}/content/application~1json/schema`,
           status,
         });
+      });
+
+      it.each([
+        { status: 503, format: 'json' },
+        { status: 504, format: 'json' },
+        { status: 503, format: 'text' },
+        { status: 504, format: 'text' },
+      ])('should preserve upstream $status $format responses', async ({ status, format }) => {
+        const error = expectError(
+          await fixtureClient[method](
+            `/api/service/model-serving/upstream-failure/${status}?format=${format}`,
+            undefined,
+          ),
+          status,
+        );
+        const mediaType = format === 'json' ? 'application~1json' : '*~1*';
+        expect(error).toMatchContract(apiSchema, {
+          ref: `#/components/responses/ModelServingProxyFailure/content/${mediaType}/schema`,
+          status,
+        });
+        expect(error.headers?.['content-type']).toBe(
+          format === 'json' ? 'application/json' : 'text/plain',
+        );
+        expect(error.data).toEqual(
+          format === 'json' ? { detail: 'upstream service failure' } : 'upstream service failure',
+        );
       });
     },
   );

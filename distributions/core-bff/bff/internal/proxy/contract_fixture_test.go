@@ -109,6 +109,23 @@ func (t contractFixtureTransport) RoundTrip(r *http.Request) (*http.Response, er
 }
 
 func contractUpstreamResponse(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/upstream-failure/") {
+		code, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/upstream-failure/"))
+		if err != nil || (code != http.StatusServiceUnavailable && code != http.StatusGatewayTimeout) {
+			http.NotFound(w, r)
+			return
+		}
+		body := `{"detail":"upstream service failure"}`
+		contentType := constants.ContentTypeJSON
+		if r.URL.Query().Get("format") == "text" {
+			body = "upstream service failure"
+			contentType = "text/plain"
+		}
+		w.Header().Set(constants.HeaderContentType, contentType)
+		w.WriteHeader(code)
+		_, _ = io.WriteString(w, body)
+		return
+	}
 	if r.URL.Path == "/diagnostics/webhook" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)

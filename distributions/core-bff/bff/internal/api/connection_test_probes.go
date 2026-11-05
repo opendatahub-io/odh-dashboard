@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -130,7 +131,7 @@ func newTLSHTTPClient(rootCAs *x509.CertPool, insecureSkipVerify bool) *http.Cli
 		MaxConnsPerHost:     2,
 	}
 	return &http.Client{
-		Transport: transport,
+		Transport: httpcontract.WrapTransport(transport),
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},

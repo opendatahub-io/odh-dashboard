@@ -1286,9 +1286,9 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/ModelServingProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/ModelServingProxyFailure'
     post:
       tags:
         - Model Serving Proxy
@@ -1311,9 +1311,9 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/ModelServingProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/ModelServingProxyFailure'
     put:
       tags:
         - Model Serving Proxy
@@ -1336,9 +1336,9 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/ModelServingProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/ModelServingProxyFailure'
     delete:
       tags:
         - Model Serving Proxy
@@ -1356,9 +1356,9 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/ModelServingProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/ModelServingProxyFailure'
     patch:
       tags:
         - Model Serving Proxy
@@ -1381,9 +1381,9 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
         '503':
-          $ref: '#/components/responses/K8sUnavailable'
+          $ref: '#/components/responses/ModelServingProxyFailure'
         '504':
-          $ref: '#/components/responses/K8sTimeout'
+          $ref: '#/components/responses/ModelServingProxyFailure'
 
   # =============================================================================
   # PROMETHEUS ENDPOINTS (OpenShift-only)
@@ -2578,6 +2578,45 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/KubernetesStatus'
+
+    ModelServingProxyFailure:
+      description: >-
+        Local BFF transport failure (503 unavailable or 504 timeout), or an upstream
+        model-serving response passed through with its original status, content type and body.
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+        Audit-ID:
+          $ref: '#/components/headers/AuditID'
+        Retry-After:
+          description: Retry delay in seconds or an HTTP date, when supplied by the upstream service.
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - description: Upstream model-serving JSON response with no BFF-imposed shape.
+          examples:
+            localUnavailable:
+              value:
+                error:
+                  code: 'SERVICE_UNAVAILABLE'
+                  message: 'the Kubernetes API is temporarily unavailable'
+                  requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
+            localTimeout:
+              value:
+                error:
+                  code: 'GATEWAY_TIMEOUT'
+                  message: 'the Kubernetes request timed out'
+                  requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
+            upstream:
+              value:
+                detail: 'Service temporarily unavailable'
+        '*/*':
+          schema:
+            description: Upstream model-serving response with its original media type and body.
 
     K8sProxySuccess:
       headers:
