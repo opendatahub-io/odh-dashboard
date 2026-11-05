@@ -80,9 +80,14 @@ func NewTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x
 // discovery context from the initial attempt through background retries.
 func newTokenClientFactory(logger *slog.Logger, cfg config.EnvConfig, creator func(context.Context) (*otelConfigManager, error), firstRetryDelay, retryInterval time.Duration) *TokenClientFactory {
 	ctx, cancel := context.WithCancel(context.Background())
-	ocm, err := creator(ctx)
-	if err != nil {
-		logger.Warn("failed to create OTel config manager, tracing route management will be unavailable", "error", err)
+	var ocm *otelConfigManager
+	// In mock mode this real factory serves user lookup only, not tracing.
+	if !cfg.MockK8sClient {
+		var err error
+		ocm, err = creator(ctx)
+		if err != nil {
+			logger.Warn("failed to create OTel config manager, tracing route management will be unavailable", "error", err)
+		}
 	}
 
 	f := &TokenClientFactory{

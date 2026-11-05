@@ -182,9 +182,10 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 		assert.Equal(t, int32(1), attempts.Load())
 	})
 
-	t.Run("mock mode skips background discovery", func(t *testing.T) {
+	t.Run("mock mode skips all tracing discovery", func(t *testing.T) {
 		attempts := &atomic.Int32{}
 		f := newTokenClientFactory(slog.Default(), config.EnvConfig{
+			AuthMethod:    config.AuthMethodUser, // Real user lookup must not initialize tracing.
 			MockK8sClient: true,
 		}, func(context.Context) (*otelConfigManager, error) {
 			attempts.Add(1)
@@ -192,12 +193,18 @@ func TestTokenClientFactoryOTelRetry(t *testing.T) {
 		}, interval, interval)
 		t.Cleanup(f.Stop)
 
+		require.Zero(t, attempts.Load(), "mock mode must not perform synchronous discovery")
 		assert.Never(t, func() bool {
-			return attempts.Load() > 1
-		}, 5*interval, interval, "mock mode must not retry discovery")
-		assert.Equal(t, int32(1), attempts.Load(), "only the initial discovery should run")
+			return attempts.Load() > 0
+		}, 5*interval, interval, "mock mode must not start background discovery")
 		assert.Nil(t, f.getOTelConfigManager())
 		assert.Nil(t, f.SAClient)
+		select {
+		case <-f.otelDone:
+		default:
+			t.Fatal("mock mode must mark discovery complete without starting a worker")
+		}
+		f.Stop()
 	})
 
 	t.Run("stop cancels in-flight discovery and waits for worker exit", func(t *testing.T) {
