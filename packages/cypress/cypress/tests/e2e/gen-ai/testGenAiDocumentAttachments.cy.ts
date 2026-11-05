@@ -106,7 +106,7 @@ describe(
 
         cy.step('Log in and refresh the dashboard configuration');
         cy.visitWithLogin(
-          '/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false',
+          '/?devFeatureFlags=aiAssetCustomEndpoints=true,modelAsService=false',
           HTPASSWD_CLUSTER_ADMIN_USER,
         );
         forceDashboardConfigRefresh();

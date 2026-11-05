@@ -60,9 +60,9 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
       cy.step('Enable MLflow backend');
       enableMlflowBackend();
 
-      cy.step('Log into the application with custom endpoints and MCP enabled');
+      cy.step('Log into the application with custom endpoints enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false`,
+        '/?devFeatureFlags=aiAssetCustomEndpoints=true,modelAsService=false',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -117,7 +117,7 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
 
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
@@ -193,7 +193,7 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
     },
     () => {
       cy.step('Navigate to playground');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      genAiPlayground.navigateToPlaygroundWithCustomEndpoints(projectName);
 
       cy.step(`Select ${testData.displayName} model from dropdown`);
       genAiPlayground.selectModelFromDropdown(testData.displayName);
@@ -247,6 +247,12 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
           );
         }
       });
+
+      cy.step('Verify registered MCP servers stay hidden while the preview flag is disabled');
+      genAiPlayground.navigateToPlaygroundWithCustomEndpoints(projectName);
+      genAiPlayground.openMCPTab();
+      genAiPlayground.findMCPManualSection().should('be.visible');
+      genAiPlayground.findMCPRegisteredSection().should('not.exist');
 
       cy.step('Navigate to playground with registered MCP servers enabled');
       genAiPlayground.navigateToPlaygroundWithMCPRegistry(projectName);
