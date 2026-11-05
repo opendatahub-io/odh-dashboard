@@ -108,6 +108,36 @@ func TestProxyDiagnosticBoundsAndFallback(t *testing.T) {
 	require.Equal(t, reasonMessages[in.Reason], ProxyStatus(in, 422, request).Message)
 }
 
+func TestProxyStatusRedactsQuotedCredentialAssignments(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/pods", nil)
+	for _, assignment := range []string{
+		`{"password":"SHORT secret, with spaces","client_secret":"SECOND secret"}`,
+		`{'token': 'SHORT secret, with spaces', 'AWS_SECRET_ACCESS_KEY': 'SECOND secret'}`,
+		`password="SHORT secret, with spaces"; token='SECOND secret'`,
+		`{"password":"SHORT \"quoted\" secret","client_secret":"SECOND secret\\"}`,
+	} {
+		for level := 0; level < 3; level++ {
+			t.Run(assignment, func(t *testing.T) {
+				message := "admission denied: " + assignment + "; spec.replicas must be positive"
+				in := metav1.Status{TypeMeta: metav1.TypeMeta{Kind: "Status"}, Reason: metav1.StatusReasonForbidden,
+					Message: message, Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{Message: message}}}}
+				out := ProxyStatus(in, http.StatusForbidden, request)
+				for _, text := range []string{out.Message, out.Details.Causes[0].Message} {
+					require.NotContains(t, text, "SHORT")
+					require.NotContains(t, text, "SECOND")
+					require.NotContains(t, text, "secret")
+					require.Contains(t, text, "[redacted credential]")
+					require.Contains(t, text, "spec.replicas must be positive")
+				}
+				require.Equal(t, out, ProxyStatus(out, http.StatusForbidden, request))
+			})
+			encoded, err := json.Marshal(assignment)
+			require.NoError(t, err)
+			assignment = string(encoded[1 : len(encoded)-1])
+		}
+	}
+}
+
 func TestProxyDiagnosticsPreserveProseWithShortCredentials(t *testing.T) {
 	for _, header := range []struct{ name, value string }{
 		{"Cookie", "session=test"},

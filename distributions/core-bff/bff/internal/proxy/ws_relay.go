@@ -16,7 +16,7 @@ import (
 
 const wsHeartbeatInterval = 15 * time.Second
 
-const maxBase64WatchPendingBytes = 4 << 20
+const maxWatchPendingBytes = 4 << 20
 
 func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string, target, client *websocket.Conn, cleanup func(), watch bool, diagnosticRequest *http.Request) {
 	defer cleanup()
@@ -29,13 +29,21 @@ func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string,
 	for {
 		msgType, msg, err := target.ReadMessage()
 		if err != nil {
+			if len(pending) > 0 {
+				err = errors.New("upstream closed with an incomplete watch event")
+			}
 			tracker.logClose(connID, requestID, err)
 			sendCloseMessage(client, err)
 			return
 		}
 		tracker.updateMetricsReceived(connID)
-		if base64Watch {
-			msg, pending, err = proxyBase64WatchMessage(msg, pending, sanitize)
+		if watch {
+			if base64Watch {
+				msg, err = base64.StdEncoding.DecodeString(string(msg))
+			}
+			if err == nil {
+				msg, pending, err = proxyWatchMessage(msg, pending, sanitize)
+			}
 			if err != nil {
 				tracker.logClose(connID, requestID, err)
 				sendCloseMessage(client, err)
@@ -44,8 +52,9 @@ func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string,
 			if len(msg) == 0 && len(pending) > 0 {
 				continue // Never forward an incomplete, unsanitized event.
 			}
-		} else if watch {
-			msg = sanitize(msg)
+			if base64Watch {
+				msg = []byte(base64.StdEncoding.EncodeToString(msg))
+			}
 		}
 		if writeErr := client.WriteMessage(msgType, msg); writeErr != nil {
 			tracker.logClose(connID, requestID, writeErr)
@@ -56,13 +65,9 @@ func forwardTargetToClient(tracker *ConnectionTracker, connID, requestID string,
 	}
 }
 
-// The base64 stream protocol can split or combine JSON events across messages.
-func proxyBase64WatchMessage(message, pending []byte, sanitize func([]byte) []byte) ([]byte, []byte, error) {
-	decoded, err := base64.StdEncoding.DecodeString(string(message))
-	if err != nil {
-		return nil, nil, err
-	}
-	pending = append(pending, decoded...)
+// Watch streams can split or combine JSON events across WebSocket messages.
+func proxyWatchMessage(message, pending []byte, sanitize func([]byte) []byte) ([]byte, []byte, error) {
+	pending = append(pending, message...)
 	decoder := json.NewDecoder(bytes.NewReader(pending))
 	var out bytes.Buffer
 	var offset int
@@ -71,14 +76,14 @@ func proxyBase64WatchMessage(message, pending []byte, sanitize func([]byte) []by
 		err := decoder.Decode(&event)
 		if errors.Is(err, io.EOF) {
 			out.Write(pending[offset:]) // Preserve trailing whitespace and empty keepalives.
-			return []byte(base64.StdEncoding.EncodeToString(out.Bytes())), nil, nil
+			return out.Bytes(), nil, nil
 		}
 		if errors.Is(err, io.ErrUnexpectedEOF) {
 			rest := pending[offset:]
-			if len(rest) > maxBase64WatchPendingBytes {
-				return nil, nil, errors.New("incomplete base64 watch event exceeds buffering limit")
+			if len(rest) > maxWatchPendingBytes {
+				return nil, nil, errors.New("incomplete watch event exceeds buffering limit")
 			}
-			return []byte(base64.StdEncoding.EncodeToString(out.Bytes())), rest, nil
+			return out.Bytes(), rest, nil
 		}
 		if err != nil {
 			return nil, nil, err

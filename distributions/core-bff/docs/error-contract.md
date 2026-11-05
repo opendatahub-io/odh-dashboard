@@ -51,10 +51,11 @@ contract. Successful resource responses and non-error watch events retain their 
 JSON HTTP watches buffer one newline-delimited event at a time; HTTP and WS watch `ERROR` objects retain their Status semantics with the same sanitization as ordinary failure responses. WebSocket watch detection uses the rewritten Kubernetes path and original query, including legacy watch paths and both BFF aliases. Non-watch WebSocket messages retain their frame type and bytes, including JSON objects shaped like watch ERROR events.
 HTTP watches retain supported `application/json` Accept entries, including representation parameters and quality weights, and use plain `application/json` when none remain; an unexpected response media type fails before commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`. Malformed JSON events and incomplete events ending in a transport error are discarded and terminate the stream without appending JSON. A complete final JSON event without a newline is accepted.
 The upstream JSON encoding of each HTTP watch event is limited to 4 MiB, including its newline when present. An oversized event is discarded, logs a safe correlated read failure, and causes the proxy to terminate the stream without appending JSON. Events within the limit retain their existing sanitization and byte-preservation behavior; this cap does not apply to WebSocket messages.
-Negotiated `base64.binary.k8s.io` watches decode the stream, sanitize complete JSON events and
-re-encode the output. Events may span messages or share one message; non-error event bytes are
-preserved after decoding. Incomplete decoded events buffer at most 4 MiB. Invalid base64/JSON or
-oversized incomplete events close the connection with code 1011 without forwarding the fragment.
+Plain and `base64.binary.k8s.io` watches sanitize complete JSON events, buffering events that span
+messages and processing multiple events in one message. Base64 messages are decoded and re-encoded;
+non-error event bytes and stream delimiters are preserved after decoding. Incomplete events buffer
+at most 4 MiB. Invalid base64/JSON, oversized incomplete events, or an upstream close with a pending
+incomplete event closes the connection with code 1011 without forwarding the fragment.
 Non-watch connections retain their original frame types and bytes regardless of subprotocol.
 HTTP watch detection recognizes legacy `/api/<version>/watch/...` and `/apis/<group>/<version>/watch/...` routes before and after proxy path rewriting, including both BFF aliases. Legacy watch paths remain watches even with `watch=false`. Other paths use Kubernetes' query conversion, including `watch=1`, `watch=TRUE`, empty values and bare `watch`; absent parameters, `watch=0` and case-insensitive `watch=false` disable it.
 For HTTP watches, the proxy removes the caller's `Accept-Encoding` so its transport can negotiate and decompress responses. Non-watch successful responses retain the caller's negotiated compression. A successful JSON watch that still has a non-empty `Content-Encoding` fails closed before commitment with a 502 `DashboardProxyError` Status whose cause is `BAD_GATEWAY`, preventing an encoded stream from bypassing ERROR-event sanitization.
@@ -71,7 +72,7 @@ The HTTP Kubernetes proxy rejects upstream protocol upgrades before commitment w
 Caller-token Kubernetes resource proxies preserve upstream `Status.message`, validation cause text,
 field paths and resource names. Existing consumers use these for not-found detection, duplicate-name
 messages and actionable quota, validation and admission explanations. Apply targeted redaction to
-complete known request credentials, recognized Bearer/Basic credentials, bearer subprotocols and credential assignments. Short credential values are redacted in explicit credential contexts, rather than replaced inside ordinary words. Ordinary subprotocol names are not treated as credentials.
+complete known request credentials, recognized Bearer/Basic credentials, bearer subprotocols and credential assignments, including quoted keys and JSON-escaped diagnostic representations. Short credential values are redacted in explicit credential contexts, rather than replaced inside ordinary words. Ordinary subprotocol names are not treated as credentials.
 Diagnostic strings are bounded to 8 KiB; longer strings use the safe fallback. A 404 response includes
 `404` in its message so existing numeric and `not found` checks continue working.
 

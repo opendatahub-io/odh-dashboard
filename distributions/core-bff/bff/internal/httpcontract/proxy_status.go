@@ -19,7 +19,7 @@ const (
 
 var credentialText = regexp.MustCompile(`(?i)\b(?:bearer|basic)\s+[a-z0-9._~+/=-]+`)
 var bearerSubprotocolText = regexp.MustCompile(`(?i)base64url\.bearer\.authorization\.k8s\.io\.[a-z0-9_-]+`)
-var credentialAssignment = regexp.MustCompile(`(?i)\b(?:authorization|proxy-authorization|token|access[_-]?token|refresh[_-]?token|client[_-]?secret|password|api[_-]?key|(?:[a-z0-9]+[_-])*(?:secret(?:[_-]?(?:access[_-]?)?key)?|private[_-]?key|session(?:[_-]?(?:id|token|key))?))\s*[:=]\s*(?:(?:bearer|basic)\s+)?(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)`)
+var credentialAssignment = regexp.MustCompile(`(?i)(?:\\*["'])?\b([a-z0-9_-]+)(?:\\*["'])?\s*[:=]\s*(?:(?:bearer|basic)\s+)?`)
 
 // ProxyStatus preserves diagnostics that Kubernetes returned using the caller's
 // credentials. Native handlers must use SanitizeStatus instead: their upstream
@@ -137,12 +137,86 @@ func proxyDiagnosticRedactor(r *http.Request) func(string) string {
 			return match
 		})
 		value = bearerSubprotocolText.ReplaceAllString(value, "[redacted credential]")
-		value = credentialAssignment.ReplaceAllString(value, "[redacted credential]")
+		value = redactCredentialAssignments(value)
 		if len(value) > maxProxyDiagnosticBytes {
 			return ""
 		}
 		return value
 	}
+}
+
+// isKnownCredentialName recognizes explicit credential contexts; it is not a complete secret detector.
+func isKnownCredentialName(name string) bool {
+	prefixed := false
+	for {
+		normalized := strings.ReplaceAll(strings.ReplaceAll(strings.ToLower(name), "_", ""), "-", "")
+		switch normalized {
+		case "authorization", "proxyauthorization", "token", "accesstoken", "refreshtoken", "clientsecret", "password", "apikey":
+			if !prefixed {
+				return true
+			}
+		case "secret", "secretkey", "secretaccesskey", "privatekey", "session", "sessionid", "sessiontoken", "sessionkey":
+			return true
+		}
+		// These secret names also occur with service prefixes, such as AWS_SECRET_ACCESS_KEY.
+		separator := strings.IndexAny(name, "_-")
+		if separator < 0 {
+			return false
+		}
+		name = name[separator+1:]
+		prefixed = true
+	}
+}
+
+func redactCredentialAssignments(value string) string {
+	var out strings.Builder
+	cursor := 0
+	for _, match := range credentialAssignment.FindAllStringSubmatchIndex(value, -1) {
+		if match[0] < cursor || !isKnownCredentialName(value[match[2]:match[3]]) {
+			continue
+		}
+		end := credentialValueEnd(value, match[1])
+		if end == match[1] {
+			continue
+		}
+		out.WriteString(value[cursor:match[0]])
+		out.WriteString("[redacted credential]")
+		cursor = end
+	}
+	out.WriteString(value[cursor:])
+	return out.String()
+}
+
+func credentialValueEnd(value string, start int) int {
+	quoteAt := start
+	for quoteAt < len(value) && value[quoteAt] == '\\' {
+		quoteAt++
+	}
+	if quoteAt < len(value) && (value[quoteAt] == '"' || value[quoteAt] == '\'') {
+		escapes := quoteAt - start
+		slashes := 0
+		for i := quoteAt + 1; i < len(value); i++ {
+			if value[i] == '\r' || value[i] == '\n' {
+				return i
+			}
+			if value[i] == '\\' {
+				slashes++
+				continue
+			}
+			// JSON encoding turns a quote into \" and doubles existing backslashes.
+			// At each encoding level, escaped inner quotes have a different parity.
+			if value[i] == value[quoteAt] && slashes%(2*(escapes+1)) == escapes {
+				return i + 1
+			}
+			slashes = 0
+		}
+		return len(value)
+	}
+	end := start
+	for end < len(value) && !strings.ContainsRune(" \t\r\n\f,;", rune(value[end])) {
+		end++
+	}
+	return end
 }
 
 // Match a complete credential value, never a substring of a word or resource name.

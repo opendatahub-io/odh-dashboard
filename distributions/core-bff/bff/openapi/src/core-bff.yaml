@@ -1661,10 +1661,11 @@ paths:
       operations. Strips the /wss/k8s prefix and forwards the remaining path
       to the upstream K8s API via a WebSocket relay. Watch ERROR messages are sanitized
       only on query-based or legacy watch requests; non-watch message bytes are preserved.
-      Negotiated base64.binary.k8s.io watches are decoded, sanitized and re-encoded,
-      including events split across messages. Incomplete decoded events buffer at most
-      4 MiB; invalid base64/JSON or an oversized incomplete event closes the connection
-      with code 1011 without forwarding the fragment.
+      Plain and base64.binary.k8s.io watches buffer incomplete JSON events and sanitize
+      each complete event, including split or coalesced messages. Base64 messages are
+      decoded and re-encoded. Incomplete events buffer at most 4 MiB after decoding;
+      invalid base64/JSON, an oversized incomplete event, or closure with an incomplete
+      event closes the connection with code 1011 without forwarding the fragment.
       Authentication is required
       via bearer token in the x-forwarded-access-token header (same as API routes).
       OpenAPI 3.0.3 has no native WebSocket support; this path entry documents
