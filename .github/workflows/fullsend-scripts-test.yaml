@@ -1,0 +1,35 @@
+name: Fullsend scripts test
+
+# Runs the unit tests for the Jira code pilot's dispatch script and workflow
+# contracts (.fullsend/scripts/tests/test_jira_dispatch.py). No network calls,
+# no secrets.
+
+on:
+  pull_request:
+    paths:
+      - ".fullsend/scripts/**"
+      - ".github/workflows/fullsend-poll-jira.yaml"
+      - ".github/workflows/fullsend-code-jira.yaml"
+      - ".github/workflows/fullsend-scripts-test.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: python -m pip install "PyYAML==6.0.3"
+
+      - name: Run Jira dispatch tests
+        run: python .fullsend/scripts/tests/test_jira_dispatch.py -v
