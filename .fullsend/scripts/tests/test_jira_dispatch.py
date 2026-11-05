@@ -290,8 +290,16 @@ class WorkflowContractTests(unittest.TestCase):
         poll = (ROOT / ".github/workflows/fullsend-poll-jira.yaml").read_text()
         code = (ROOT / ".github/workflows/fullsend-code-jira.yaml").read_text()
         pin = code.split("reusable-dispatch.yml@", 1)[1].split()[0]
-        self.assertIn(f"install-fullsend-cli@{pin}", poll)
-        self.assertIn(f"workflow_sha: {pin}", poll)
+        self.assertIn(f"fullsend-ai/fullsend@{pin}", poll)
+
+    def test_poll_cli_archive_is_checksum_pinned(self):
+        steps = {s.get("name"): s for s in workflow("fullsend-poll-jira.yaml")["jobs"]["poll"]["steps"]}
+        install = steps["Install Fullsend v0.54.0"]
+        env = install["env"]
+        self.assertEqual(env["FULLSEND_ARCHIVE"], f"fullsend_{env['FULLSEND_TAG'][1:]}_linux_amd64.tar.gz")
+        self.assertRegex(env["FULLSEND_SHA256"], r"^[0-9a-f]{64}$")
+        run = install["run"]
+        self.assertLess(run.index("sha256sum -c -"), run.index("tar -xzf"))
 
     def test_every_action_is_pinned_by_sha(self):
         for name in ("fullsend-poll-jira.yaml", "fullsend-code-jira.yaml"):

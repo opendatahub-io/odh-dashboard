@@ -49,12 +49,26 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
-      # v0.54.0. Keep in step with fullsend-code-jira.yaml.
-      - uses: fullsend-ai/fullsend/.github/actions/install-fullsend-cli@90b7310ff8751a3c70e5d68214770dc168a1cbe7
-        with:
-          mode: upstream
-          workflow_repository: fullsend-ai/fullsend
-          workflow_sha: 90b7310ff8751a3c70e5d68214770dc168a1cbe7
+      # Fullsend v0.54.0 = fullsend-ai/fullsend@90b7310ff8751a3c70e5d68214770dc168a1cbe7,
+      # the same commit as reusable-dispatch.yml in fullsend-code-jira.yaml.
+      # Release assets can be replaced, so the archive is checked against a
+      # hash pinned here (it matches the release's checksums.txt) before it
+      # runs with the Jira token.
+      - name: Install Fullsend v0.54.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FULLSEND_TAG: v0.54.0
+          FULLSEND_ARCHIVE: fullsend_0.54.0_linux_amd64.tar.gz
+          FULLSEND_SHA256: 71c0d39294e5cea9d84f8799169d9d393780e026b97139d8365e0505a88c11a1
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="${RUNNER_TEMP}/fullsend"
+          mkdir -p "${dir}"
+          gh release download "${FULLSEND_TAG}" -R fullsend-ai/fullsend -p "${FULLSEND_ARCHIVE}" -D "${dir}"
+          echo "${FULLSEND_SHA256}  ${dir}/${FULLSEND_ARCHIVE}" | sha256sum -c -
+          tar -xzf "${dir}/${FULLSEND_ARCHIVE}" -C "${dir}" fullsend
+          echo "${dir}" >> "${GITHUB_PATH}"
 
       - name: Poll RHOAIENG issues
         env:
