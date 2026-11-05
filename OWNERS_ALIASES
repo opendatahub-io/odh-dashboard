@@ -77,13 +77,14 @@ aliases:
   # Model Serving & Model Metrics
   model-serving-metrics-approvers:
     - emilys314
-    - Griffin-Sullivan
+    - mturley
     - andrewballantyne
   model-serving-metrics-reviewers:
     - ashley-o0o
     - emilys314
-    - Griffin-Sullivan
+    - mturley
     - katieperry4
+    - sridarna
 
   # Models as a Service (MaaS)
   maas-approvers:
