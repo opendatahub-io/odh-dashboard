@@ -24,6 +24,7 @@ import (
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/controller/conditions"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
@@ -70,6 +71,38 @@ func TestTeardownManagedResourcesIgnoresUnavailableHTTPRouteAPI(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, result.Pending)
 	assertTeardownResourceAbsent(t, cli, configMap)
+}
+
+func TestTeardownManagedResourcesDeletesManagedCertificateAndXKSTLSSecret(t *testing.T) {
+	managedLabels := map[string]interface{}{labels.PlatformPartOf: "dashboard"}
+	certificate := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "cert-manager.io/v1",
+		"kind":       "Certificate",
+		"metadata": map[string]interface{}{
+			"name":      "rhaii-dashboard-tls",
+			"namespace": teardownTestNamespace,
+			"labels":    managedLabels,
+		},
+	}}
+	webhookCertificate := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "cert-manager.io/v1",
+		"kind":       "Certificate",
+		"metadata": map[string]interface{}{
+			"name":      operatorDeploymentName + "-webhook-cert",
+			"namespace": teardownTestNamespace,
+			"labels":    managedLabels,
+		},
+	}}
+	tlsSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "rhaii-dashboard-tls", Namespace: teardownTestNamespace}}
+	cli := fake.NewClientBuilder().WithScheme(teardownTestScheme(t)).WithObjects(certificate, webhookCertificate, tlsSecret).Build()
+	reconciler := &DashboardReconciler{Client: cli, ApplicationsNamespace: teardownTestNamespace, Platform: cluster.XKS}
+
+	result, err := reconciler.teardownManagedResources(context.Background(), &v1alpha1.Dashboard{}, nil, false, false)
+	require.NoError(t, err)
+	assert.False(t, result.Pending)
+	assertTeardownResourceAbsent(t, cli, certificate)
+	assertTeardownResourcePresent(t, cli, webhookCertificate)
+	assertTeardownResourceAbsent(t, cli, tlsSecret)
 }
 
 func TestTeardownManagedResourcesContinuesAndJoinsDeleteFailures(t *testing.T) {

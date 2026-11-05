@@ -162,6 +162,26 @@ rules:
       - update
       - patch
       - delete
+  # cert-manager Certificates for the XKS dashboard TLS endpoint
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  # Permission required to create the unbound XKS dashboard access ClusterRole.
+  - apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - rhaii-dashboard-access
+    verbs:
+      - list
   # Escalation for data-science-gateway reads used by Ray dashboard URL resolution
   # (manifests/base/rbac/all-users/fetch-ray-dashboard-url.rbac.yaml) and Data
   # Connect Hub RHOAI gateway discovery

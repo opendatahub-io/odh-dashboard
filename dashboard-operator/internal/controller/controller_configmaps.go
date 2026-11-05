@@ -36,6 +36,9 @@ const distributionConfigMapName = "odh-dashboard-config"
 const minReconcileInterval = 5 * time.Second
 const maxDistributionFieldLen = 256
 
+const certManagerIssuerRefNameKey = "CERT_MANAGER_ISSUER_REF_NAME"
+const certManagerIssuerRefKindKey = "CERT_MANAGER_ISSUER_REF_KIND"
+
 // OperatorConfig holds internal controller flags read from a ConfigMap.
 // A missing or malformed ConfigMap results in zero-value defaults and never
 // blocks reconciliation.
@@ -48,6 +51,34 @@ type OperatorConfig struct {
 type distributionConfig struct {
 	Distribution    *v1alpha1.Distribution
 	PlatformVersion string
+}
+
+// certManagerConfig is the xKS certificate issuer contract published by the
+// platform in the Dashboard module ConfigMap. The platform owns these values;
+// module operators must not infer them from environment variables or defaults.
+type certManagerConfig struct {
+	IssuerRefName string
+	IssuerRefKind string
+}
+
+func readCertManagerConfig(ctx context.Context, reader client.Reader, namespace string) (certManagerConfig, error) {
+	cm := &corev1.ConfigMap{}
+	key := types.NamespacedName{Name: distributionConfigMapName, Namespace: namespace}
+	if err := reader.Get(ctx, key, cm); err != nil {
+		return certManagerConfig{}, fmt.Errorf("reading xKS platform ConfigMap %s/%s: %w", namespace, distributionConfigMapName, err)
+	}
+
+	config := certManagerConfig{
+		IssuerRefName: cm.Data[certManagerIssuerRefNameKey],
+		IssuerRefKind: cm.Data[certManagerIssuerRefKindKey],
+	}
+	if config.IssuerRefName == "" || config.IssuerRefKind == "" {
+		return certManagerConfig{}, fmt.Errorf(
+			"xKS platform ConfigMap %s/%s is missing %s or %s",
+			namespace, distributionConfigMapName, certManagerIssuerRefNameKey, certManagerIssuerRefKindKey,
+		)
+	}
+	return config, nil
 }
 
 // readOperatorConfig reads the dashboard-operator-config ConfigMap from the

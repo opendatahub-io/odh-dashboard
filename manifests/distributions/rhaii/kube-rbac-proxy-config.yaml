@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rhaii-dashboard-kube-rbac-proxy-config
+data:
+  config-file.yaml: |+
+    # Access requires this explicit Dashboard capability on the authenticated
+    # user. This bundle deliberately does not bind the access ClusterRole;
+    # the installer or platform administrator supplies that policy.
+    authorization:
+      resourceAttributes:
+        namespace: ""
+        apiGroup: dashboard.opendatahub.io
+        apiVersion: v1
+        resource: rhaii-dashboard-access
+        verb: "list"
