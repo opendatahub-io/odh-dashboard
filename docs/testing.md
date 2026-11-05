@@ -170,7 +170,7 @@ tags from their owning module, and frontend areas derive tags from
 `.github/frontend-ci-tags.json`.
 
 The planner always runs changed Cypress specs, computes the executable reverse impact
-of changed Cypress support code, and validates selected tags before starting cluster
+of changed Cypress support code, and validates selected tags before starting browser
 jobs. Small impact sets run as explicit specs, broad sets use package CI tags, and
 only unmappable broad impact or support deletion falls back to the canonical Smoke
 and Sanity tag groups. If those canonical groups do not cover every required test,
@@ -181,25 +181,6 @@ run. Dashboard base and RHOAI network-policy changes run
 the Pipelines, Workbenches, and Feature Store suites because those flows exercise
 dashboard egress to the pipeline server, Thanos, and Feast.
 
-The **Test PR E2E planner and result validation (Node)** job in the Test workflow
-runs the PR revision on a GitHub-hosted runner with read-only permissions and no
-cluster credentials. The E2E workflow also runs **Test E2E planner and result
-validation (Node)** from protected default-branch code for automatic `workflow_run`
-events. These checks test the CI machinery: selection rules, real Mocha registration
-and JUnit counts, result validation, workflow wiring, historical changed-file
-simulations, and Node summary reporting. They do not start a browser or run dashboard
-journeys. Run the same checks locally with:
-
-```bash
-node scripts/cypress/run-e2e-contracts.js
-```
-
-The runner prints the result and groups individual check outcomes in the log.
-The job summary explains the purpose, shows pass/failure counts, and includes
-expandable individual results and failed-check names. No artifact download is
-needed. A passing Node summary verifies the selection and reporting code; browser
-E2E outcomes are reported separately.
-
 The **Plan browser E2E coverage and explain selection** job prints and publishes
 why each browser job runs, its tags or explicit specs, and its planned test count.
 Global support changes can affect most CI-runnable specs and trigger broad
@@ -209,16 +190,25 @@ jobs. **Build Cypress application assets** jobs prepare code for Cypress; they d
 not execute tests. **Browser E2E** jobs run the selected dashboard journeys, and
 **Validate browser E2E results against the plan** checks each job's reported counts.
 
-Referenced behaviors must exist in
-`scripts/cypress/e2e-coverage-inventory.json` and declare a terminal-state assertion.
-Selected tags must exist in `scripts/cypress/e2e-environment-capabilities.json`,
-which declares intended product compatibility, cluster modes, and coverage areas.
-These declarations are validation metadata, not an environment matrix or evidence
-that additional checks ran. Supporting-check declarations in the path map do not
-schedule jobs. They remain in the JSON audit data, while the human report shows
-the actual browser-job plan. Unsupported declared requirements are reported as
-explicit coverage gaps rather than silently becoming a default-only run. See
-`packages/cypress/cypress/tests/e2e/README.md` for the full contract.
+New packages under the pnpm workspace patterns are discovered automatically. Declare
+`e2eCiTags` in the package's `package.json` and use those tags on executable Cypress
+specs. Specs under the central `packages/cypress/cypress/tests/e2e` tree are discovered
+automatically; package-owned specs also need a `cypress.e2e` pattern in their package
+metadata. Buildable Cypress packages expose `cypress:server:build:coverage`, which the
+workflow discovers for asset builds. No workflow entry or central capability tag
+registration is needed for each new package.
+
+Package tags are additive to the default dashboard regression suite, and executable
+tags from dependent packages can also be selected. Model Registry currently declares
+both `@ModelRegistryCI` and `@ModelCatalogCI`, so a Model Registry-only code change
+selects both suites plus the default regression job. Manual runs can use
+`skip_default` to omit the default job. A new package without CI tags falls back to
+dashboard regression; a declared tag with no executable tests fails selection.
+
+The planner verifies actual tag/spec discovery and the reported per-job testcase
+counts. It does not infer product compatibility, environment coverage, or terminal
+assertions from a separate declaration file. See
+`packages/cypress/cypress/tests/e2e/README.md` for the selection rules.
 
 ### Mocked Tests
 

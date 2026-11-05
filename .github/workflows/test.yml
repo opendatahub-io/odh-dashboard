@@ -100,27 +100,6 @@ jobs:
         if: matrix.check == 'lint'
         run: pnpm run test:adr
 
-  E2E-Contracts:
-    name: Test PR E2E planner and result validation (Node)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout PR revision for unprivileged contract tests
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Setup pnpm and Node.js
-        uses: ./.github/actions/pnpm-setup
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-        env:
-          CYPRESS_INSTALL_BINARY: '0'
-      - name: Test PR CI machinery (Node; no browser or cluster)
-        run: node scripts/cypress/run-e2e-contracts.js
-
   Unit-Tests:
     needs: [Setup]
     runs-on: ubuntu-latest

@@ -230,7 +230,7 @@ Tests are parameterized using tags and applied to the 'it' block:
 it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }, () => {})
 ```
 
-### CI Selection Contract
+### CI Test Selection
 
 The GitHub Actions E2E workflow always schedules added, modified, and renamed
 Cypress specs in addition to the selected tag suites. Changes to page objects,
@@ -240,9 +240,11 @@ versioned mappings in `scripts/cypress/e2e-path-impact.json`; the first matching
 mapping wins. Patterns support exact paths plus `**`, `*`, and `?`. Package paths
 derive `e2eCiTags`, module network policies derive tags from their owning module,
 and frontend areas derive tags from `.github/frontend-ci-tags.json`. Turbo is not
-used as the E2E selector. Packages that declare CI tags without executable E2E
-specs map explicitly to dashboard regression instead of failing selection or
-silently broadening the run.
+used as the E2E selector. New packages are discovered from the pnpm workspace; their
+`e2eCiTags` and matching tagged tests determine selection. Package-owned specs need a
+`cypress.e2e` pattern. No per-package workflow entry or central tag allowlist is
+needed. A declared tag must resolve to executable tests; packages without CI tags
+use the regression fallback.
 
 Dashboard base and RHOAI network-policy changes run the Pipelines, Workbenches, and
 Feature Store suites because those flows exercise dashboard egress to the pipeline
@@ -257,32 +259,17 @@ workflow starts. A selection fails when a required spec cannot be scheduled, a
 tag resolves to zero tests, or every selected test is skipped. Added, modified,
 and renamed specs must carry a CI-selectable tag or be listed in
 `non-ci-specs.json` with an owner and reason. Deleting or renaming a spec cannot
-remove the only coverage for a mapped CI behavior.
+remove the only remaining executable coverage for one of its CI tags.
 
-Every impactful path must match a mapping. Referenced coverage behaviors must exist
-in `scripts/cypress/e2e-coverage-inventory.json` and declare a terminal-state
-assertion. Selected tags must exist in
-`scripts/cypress/e2e-environment-capabilities.json`, which records ODH/RHOAI, FIPS,
-connected/disconnected, operator, RBAC, image-contract, and performance
-capabilities. Unsupported required environments are explicit coverage gaps.
+Every impactful path must match a mapping. The workflow uploads selection and
+results summaries with actual jobs, selection reasons, planned executions, and
+executed/failed/skipped counts. It rejects jobs with missing reports, no executed
+tests, or a reported testcase total that differs from the plan.
 
-The workflow uploads a machine-readable and human-readable selection summary with
-changed paths, matched mappings, browser jobs with selection reasons and planned
-counts, coverage gaps, and unmatched impactful paths. Declared compatibility and
-supporting-check metadata remain in JSON for auditing; they do not identify actual
-run environments, schedule supporting jobs, or prove those checks ran. After
-execution, it also uploads a results summary with executed, failed, and skipped test counts. A green run with no
-executed tests is rejected.
-
-Node contract checks test the planner and reporting machinery separately from
-browser E2E journeys. The Test workflow checks the PR revision without cluster
-credentials; automatic E2E validation uses protected default-branch code. The
-shared runner groups individual check outcomes in the log and publishes a readable
-job summary with counts, failed-check names, and expandable individual results.
-No artifact download is needed. Historical simulations feed past
-changed-file lists into the planner; they do not replay those journeys on a cluster.
-See [the testing guide](../../../../../docs/testing.md#selective-e2e-tests) for job names,
-report interpretation, and the local contract command.
+Package tags and tags from dependent packages are additive to default dashboard
+regression. Model Registry currently declares `@ModelRegistryCI` and `@ModelCatalogCI`,
+so a Model Registry-only change runs both suites plus dashboard regression.
+`skip_default` on a manual run removes the default job, not the package's own tags.
 
 The browser selection report explains each job's reason, tags or explicit specs,
 and planned executions, including why broad support changes need Smoke/Sanity
@@ -290,8 +277,8 @@ coverage and additional impacted specs. Counts may overlap across jobs. Build jo
 prepare application assets and do not execute tests.
 
 Selected specs with unresolved test or suite tag expressions fail planning rather
-than receive an unreliable test count. Use literal options or unmodified top-level object constants, and same-file tag arrays
-or constants; imported tags, computed options, and option-object spreads need to be
+than receive an unreliable test count. Use literal options or unmodified top-level object constants, and same-file tag
+arrays or constants; imported tags, computed options, and option-object spreads need to be
 made statically resolvable before those specs can run in CI.
 
 ### Test Contents

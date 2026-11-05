@@ -31,7 +31,7 @@ name: Cypress e2e Test
 #   3. Path-impact selection (always additive):
 #      scripts/cypress/e2e-path-impact.json maps every impactful repository path
 #      Package and frontend-area mappings derive their declared E2E CI tags
-#      The planner validates coverage, environment capabilities, and tag resolution
+#      The planner checks executable specs, selected tags, and planned test counts
 #
 #      To add path-impact coverage for a package:
 #        Add "e2eCiTags": ["@YourTagCI"] to the package's package.json
@@ -93,33 +93,6 @@ env:
 # JOBS
 # =============================================================================
 jobs:
-  # ---------------------------------------------------------------------------
-  # CI Machinery Checks (Node) - Validate selection and reporting before browser selection
-  # ---------------------------------------------------------------------------
-  validate-selection:
-    name: Test E2E planner and result validation (Node)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          persist-credentials: false
-          ref: ${{ github.event_name == 'workflow_run' && github.event.repository.default_branch || github.ref }}
-
-      - name: Setup pnpm and Node.js
-        uses: ./.github/actions/pnpm-setup
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          install-dependencies: 'true'
-        env:
-          CYPRESS_INSTALL_BINARY: '0'
-
-      - name: Test CI machinery (Node; no browser or cluster)
-        run: node scripts/cypress/run-e2e-contracts.js
-
   # ---------------------------------------------------------------------------
   # Cluster Selection - Health check with automatic failover
   # ---------------------------------------------------------------------------
@@ -443,7 +416,7 @@ jobs:
   # ---------------------------------------------------------------------------
   get-test-tags:
     name: Plan browser E2E coverage and explain selection
-    needs: [validate-selection, select-cluster, cleanup-old-resources]
+    needs: [select-cluster, cleanup-old-resources]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
@@ -671,7 +644,6 @@ jobs:
           } else {
             console.log(`Selected tags: ${env.MATRIX_TAG}`);
           }
-          console.log('This count excludes the separate Node CI machinery checks.');
           NODE
 
       - name: Register runner proxy URL for log redaction

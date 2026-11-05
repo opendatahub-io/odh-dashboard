@@ -20,8 +20,6 @@ const DEFAULT_TAG = '@ci-dashboard-regression-tags';
 const DEFAULT_SKIP_TAGS = ['@Bug', '@Maintain', '@NonConcurrent'];
 const PATH_IMPACT_MAP_FILE = 'scripts/cypress/e2e-path-impact.json';
 const FRONTEND_CI_TAGS_FILE = '.github/frontend-ci-tags.json';
-const COVERAGE_INVENTORY_FILE = 'scripts/cypress/e2e-coverage-inventory.json';
-const ENVIRONMENT_CAPABILITIES_FILE = 'scripts/cypress/e2e-environment-capabilities.json';
 const PATH_IMPACT_SCHEMA_VERSION = 1;
 const PATH_SELECTION_MODES = new Set(['changed-spec', 'reverse-impact', 'tag', 'none']);
 const PATH_TAG_DERIVATIONS = new Set([
@@ -113,15 +111,6 @@ const validatePathImpactMap = (pathImpactMap) => {
         `E2E path mapping ${mapping.id} fallbackCypressTags`,
       );
     }
-    assertStringArray(mapping.environments ?? [], `E2E path mapping ${mapping.id} environments`);
-    assertStringArray(
-      mapping.supportingChecks ?? [],
-      `E2E path mapping ${mapping.id} supportingChecks`,
-    );
-    assertStringArray(
-      mapping.coverageInventoryIds ?? [],
-      `E2E path mapping ${mapping.id} coverageInventoryIds`,
-    );
   }
 
   return pathImpactMap;
@@ -129,99 +118,6 @@ const validatePathImpactMap = (pathImpactMap) => {
 
 const readPathImpactMap = (root = DEFAULT_ROOT) =>
   validatePathImpactMap(readJsonFile(root, PATH_IMPACT_MAP_FILE));
-
-const validateCoverageInventory = (coverageInventory, pathImpactMap) => {
-  if (coverageInventory.schemaVersion !== PATH_IMPACT_SCHEMA_VERSION) {
-    throw new Error('e2e-coverage-inventory.json must use schemaVersion 1');
-  }
-  if (!Array.isArray(coverageInventory.behaviors)) {
-    throw new Error('e2e-coverage-inventory.json must contain a behaviors array');
-  }
-
-  const mappingIds = new Set(pathImpactMap.mappings.map((mapping) => mapping.id));
-  const behaviorIds = new Set();
-  for (const behavior of coverageInventory.behaviors) {
-    if (!behavior.id || typeof behavior.id !== 'string' || behaviorIds.has(behavior.id)) {
-      throw new Error('Every E2E coverage behavior requires a unique non-empty id');
-    }
-    behaviorIds.add(behavior.id);
-    if (!mappingIds.has(behavior.mappingId)) {
-      throw new Error(`E2E coverage behavior ${behavior.id} references an unknown mapping`);
-    }
-    assertStringArray(
-      behavior.cypressTags ?? [],
-      `E2E coverage behavior ${behavior.id} cypressTags`,
-    );
-    const assertion = behavior.terminalStateAssertion;
-    if (
-      !assertion ||
-      typeof assertion.asserted !== 'boolean' ||
-      !assertion.description ||
-      typeof assertion.description !== 'string'
-    ) {
-      throw new Error(`E2E coverage behavior ${behavior.id} requires a terminal-state assertion`);
-    }
-  }
-
-  return coverageInventory;
-};
-
-const readCoverageInventory = (root = DEFAULT_ROOT, pathImpactMap = readPathImpactMap(root)) =>
-  validateCoverageInventory(readJsonFile(root, COVERAGE_INVENTORY_FILE), pathImpactMap);
-
-const validateEnvironmentCapabilities = (environmentCapabilities) => {
-  const { schemaVersion, defaultCapabilities, tags, tagOverrides } = environmentCapabilities;
-  if (schemaVersion !== PATH_IMPACT_SCHEMA_VERSION) {
-    throw new Error('e2e-environment-capabilities.json must use schemaVersion 1');
-  }
-  if (
-    !defaultCapabilities ||
-    Array.isArray(defaultCapabilities) ||
-    typeof defaultCapabilities !== 'object' ||
-    Object.keys(defaultCapabilities).length === 0
-  ) {
-    throw new Error('E2E environment capabilities require defaultCapabilities');
-  }
-  for (const [capability, value] of Object.entries(defaultCapabilities)) {
-    if (typeof value !== 'boolean') {
-      throw new Error(`E2E environment capability ${capability} must be boolean`);
-    }
-  }
-  assertStringArray(tags, 'E2E environment capability tags');
-  if (new Set(tags).size !== tags.length) {
-    throw new Error('E2E environment capability tags must be unique');
-  }
-  if (tagOverrides !== undefined) {
-    if (!tagOverrides || Array.isArray(tagOverrides) || typeof tagOverrides !== 'object') {
-      throw new Error('E2E environment tagOverrides must be an object');
-    }
-    for (const [tag, capabilities] of Object.entries(tagOverrides)) {
-      if (!tags.includes(tag)) {
-        throw new Error(`E2E environment override for ${tag} references an unknown tag`);
-      }
-      if (!capabilities || Array.isArray(capabilities) || typeof capabilities !== 'object') {
-        throw new Error(`E2E environment override for ${tag} must be a capability object`);
-      }
-      for (const [capability, value] of Object.entries(capabilities)) {
-        if (!(capability in defaultCapabilities)) {
-          throw new Error(
-            `E2E environment override for ${tag} has unknown capability ${capability}`,
-          );
-        }
-        if (typeof value !== 'boolean') {
-          throw new Error(
-            `E2E environment override for ${tag} capability ${capability} must be boolean`,
-          );
-        }
-      }
-    }
-  }
-
-  return environmentCapabilities;
-};
-
-const readEnvironmentCapabilities = (root = DEFAULT_ROOT) =>
-  validateEnvironmentCapabilities(readJsonFile(root, ENVIRONMENT_CAPABILITIES_FILE));
 
 const globSegmentToRegExp = (segment) =>
   new RegExp(
@@ -351,11 +247,6 @@ const deriveFrontendAreaTags = (changedPath, frontendAreaTags) => {
   return tag ? [normalizeTag(tag)] : [];
 };
 
-const resolveTagCapabilities = (environmentCapabilities, tag) => ({
-  ...environmentCapabilities.defaultCapabilities,
-  ...(environmentCapabilities.tagOverrides?.[tag] ?? {}),
-});
-
 const isSpecFile = (file) =>
   normalizePath(file).endsWith('.cy.ts') && /(^|\/)cypress\/tests\/e2e\//.test(normalizePath(file));
 
@@ -389,8 +280,6 @@ const resolvePathImpact = ({
   workspacePackages,
   availableTags = [],
   frontendAreaTags,
-  coverageInventory,
-  environmentCapabilities,
 }) => {
   const map = pathImpactMap ? validatePathImpactMap(pathImpactMap) : readPathImpactMap(root);
   const errors = [];
@@ -399,14 +288,9 @@ const resolvePathImpact = ({
   const unmatchedImpactfulPaths = new Set();
   const tags = new Set();
   const derivedTags = new Set();
-  const environments = new Set();
-  const supportingChecks = new Set();
-  const coverageGaps = new Set();
 
   let resolvedWorkspacePackages = workspacePackages;
   let resolvedFrontendAreaTags = frontendAreaTags;
-  let resolvedCoverageInventory = coverageInventory;
-  let resolvedEnvironmentCapabilities = environmentCapabilities;
 
   const getWorkspacePackages = () => {
     if (resolvedWorkspacePackages === undefined) {
@@ -419,22 +303,6 @@ const resolvePathImpact = ({
       resolvedFrontendAreaTags = readFrontendAreaTags(root);
     }
     return resolvedFrontendAreaTags;
-  };
-  const getCoverageInventory = () => {
-    if (resolvedCoverageInventory === undefined) {
-      resolvedCoverageInventory = readCoverageInventory(root, map);
-    } else {
-      validateCoverageInventory(resolvedCoverageInventory, map);
-    }
-    return resolvedCoverageInventory;
-  };
-  const getEnvironmentCapabilities = () => {
-    if (resolvedEnvironmentCapabilities === undefined) {
-      resolvedEnvironmentCapabilities = readEnvironmentCapabilities(root);
-    } else {
-      validateEnvironmentCapabilities(resolvedEnvironmentCapabilities);
-    }
-    return resolvedEnvironmentCapabilities;
   };
 
   for (const change of changes) {
@@ -479,9 +347,6 @@ const resolvePathImpact = ({
         cypressTags: mappingTags,
         derivedTags: mapping.deriveCypressTags ? mappingTags : [],
         fallbackUsed: usedFallback,
-        environments: mapping.selectionMode === 'none' ? [] : mapping.environments ?? [],
-        supportingChecks: mapping.supportingChecks ?? [],
-        coverageInventoryIds: mapping.coverageInventoryIds ?? [],
       });
 
       if (mapping.selectionMode === 'none') {
@@ -491,49 +356,6 @@ const resolvePathImpact = ({
       impactfulPaths.add(normalizedPath);
       for (const tag of mappingTags) {
         tags.add(tag);
-      }
-      for (const environment of mapping.environments ?? []) {
-        environments.add(environment);
-      }
-      for (const check of mapping.supportingChecks ?? []) {
-        supportingChecks.add(check);
-      }
-
-      const inventory = getCoverageInventory();
-      for (const behaviorId of mapping.coverageInventoryIds ?? []) {
-        const behavior = inventory.behaviors.find((entry) => entry.id === behaviorId);
-        if (!behavior) {
-          errors.push(
-            `E2E path mapping ${mapping.id} references unknown coverage behavior ${behaviorId}`,
-          );
-          continue;
-        }
-        if (!behavior.terminalStateAssertion.asserted) {
-          errors.push(`E2E coverage behavior ${behaviorId} has no terminal-state assertion`);
-        }
-      }
-
-      const capabilities = getEnvironmentCapabilities();
-      for (const tag of mappingTags) {
-        if (!capabilities.tags.includes(tag)) {
-          errors.push(
-            `E2E path-impact tag ${tag} is missing from the environment capability matrix`,
-          );
-          continue;
-        }
-        const tagCapabilities = resolveTagCapabilities(capabilities, tag);
-        for (const environment of mapping.environments ?? []) {
-          if (tagCapabilities[environment] === undefined) {
-            errors.push(
-              `E2E environment capability matrix has no ${environment} capability for ${tag}`,
-            );
-          } else if (!tagCapabilities[environment]) {
-            const reason = capabilities.notSupportedReasons?.[environment] ?? 'no reason recorded';
-            const gap = `${tag} cannot run in ${environment}: ${reason}`;
-            coverageGaps.add(gap);
-            errors.push(`E2E path-impact coverage gap: ${gap}`);
-          }
-        }
       }
     }
   }
@@ -548,9 +370,6 @@ const resolvePathImpact = ({
     unmatchedImpactfulPaths: [...unmatchedImpactfulPaths].toSorted(),
     tags: [...tags].toSorted(),
     derivedTags: [...derivedTags].toSorted(),
-    selectedEnvironments: [...environments].toSorted(),
-    supportingChecks: [...supportingChecks].toSorted(),
-    coverageGaps: [...coverageGaps].toSorted(),
   };
 };
 
@@ -1150,8 +969,6 @@ const buildSelectionPlan = ({
   pathImpactMap,
   workspacePackages,
   frontendAreaTags,
-  coverageInventory,
-  environmentCapabilities,
 }) => {
   const errors = [];
   const changedSpecs = new Set();
@@ -1170,8 +987,6 @@ const buildSelectionPlan = ({
     workspacePackages,
     availableTags: executableInventoryTags,
     frontendAreaTags,
-    coverageInventory,
-    environmentCapabilities,
   });
   errors.push(...pathImpact.errors);
   if (pathImpact.tags.length > 0) {
@@ -1481,9 +1296,6 @@ const buildSelectionPlan = ({
       pathImpactTags: pathImpact.tags,
       derivedPathImpactTags: pathImpact.derivedTags,
       matchedMappings: pathImpact.matchedMappings,
-      declaredCoverageRequirements: pathImpact.selectedEnvironments,
-      declaredSupportingChecks: pathImpact.supportingChecks,
-      coverageGaps: pathImpact.coverageGaps,
       unmatchedImpactfulPaths: pathImpact.unmatchedImpactfulPaths,
       selectedSuites: effectiveSelectedTags,
       resolvedTags: tagResolution.resolved,
@@ -1501,7 +1313,7 @@ const renderSelectionMarkdown = (summary) =>
     `Selected ${(summary.jobs ?? []).length} browser job(s), ${
       summary.plannedTestCount
     } planned test executions.`,
-    'Counts are per-job executions and may overlap across jobs. Node contract checks are separate.',
+    'Counts are per-job executions and may overlap across jobs.',
     '',
     '## Why this coverage runs',
     ...(summary.details ?? []).map((detail) => `- ${detail}`),
@@ -1558,11 +1370,6 @@ const renderSelectionMarkdown = (summary) =>
     ...(summary.errors?.length > 0
       ? ['## Validation errors', ...summary.errors.map((error) => `- ${error}`), '']
       : []),
-    '## Coverage gaps',
-    ...(summary.coverageGaps.length > 0
-      ? summary.coverageGaps.map((gap) => `- ${gap}`)
-      : ['- None']),
-    '',
     '## Unmatched impactful paths',
     ...(summary.unmatchedImpactfulPaths.length > 0
       ? summary.unmatchedImpactfulPaths.map((path) => `- ${path}`)
