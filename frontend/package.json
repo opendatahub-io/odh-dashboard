@@ -121,7 +121,7 @@
     "use-query-params": "^2.2.2",
     "victory-core": "^37.3.6",
     "yaml": "^2.9.0",
-    "zod": "^3.25.76"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
