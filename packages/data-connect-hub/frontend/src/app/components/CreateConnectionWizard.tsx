@@ -263,10 +263,7 @@ const ConnectionDetailsStep: React.FC<ConnectionDetailsStepProps> = ({
                 </Select>
               </FlexItem>
               <FlexItem>
-                <Popover
-                  headerContent="Available projects"
-                  bodyContent="Only projects where you have permission to create connections are shown. To request permission, contact your administrator."
-                >
+                <Popover bodyContent="This list includes only projects in which you have permission to create connections. To request changes to your permissions, contact your administrator.">
                   <Button
                     variant="link"
                     isInline
