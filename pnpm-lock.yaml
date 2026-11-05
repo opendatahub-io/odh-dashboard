@@ -2926,12 +2926,18 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@monaco-editor/react':
+        specifier: ^4.7.0
+        version: 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../../plugin-core
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
+      '@patternfly/react-code-editor':
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-component-groups':
         specifier: ~6.7.0
         version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2962,6 +2968,9 @@ importers:
       mod-arch-shared:
         specifier: ^1.21.0
         version: 1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+      monaco-editor:
+        specifier: ^0.54.0
+        version: 0.54.0
       react:
         specifier: ^18
         version: 18.3.1
@@ -3065,6 +3074,9 @@ importers:
       mocha-junit-reporter:
         specifier: ^2.2.1
         version: 2.2.1(mocha@10.8.2)(supports-color@8.1.1)
+      monaco-editor-webpack-plugin:
+        specifier: ^7.1.1
+        version: 7.1.1(monaco-editor@0.54.0)(webpack@5.104.1)
       postcss:
         specifier: '>=8.5.23 <9.0.0'
         version: 8.5.26
