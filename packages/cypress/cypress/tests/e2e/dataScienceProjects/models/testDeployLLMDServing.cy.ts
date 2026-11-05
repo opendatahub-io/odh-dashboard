@@ -249,6 +249,8 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findSubmitButton().should('be.enabled').click();
       const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
+      cy.step('Wait for the deployed model to appear in the deployments table');
+      llmdRow.find().should('exist');
       cy.then(() => {
         checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
       });
