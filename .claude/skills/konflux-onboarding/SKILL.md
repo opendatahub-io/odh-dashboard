@@ -113,7 +113,7 @@ Parse from `$ARGUMENTS`:
 
 Skip if: `--skip-jira` flag is set.
 
-If `--jira <EPIC-KEY>` was provided, use that existing epic and skip to Phase 2.
+If `--jira <EPIC-KEY>` was provided, use that existing epic and skip to Phase 2. Epics created before the ProdSec step have only 8 subtasks, so first check for a `Register image as a ProdSec pscomponent` subtask and create it (subtask 9 in Step 1b) if it is missing. Phases 6 and 7 record progress on it.
 
 ### Step 1a: Create the Parent Epic
 
@@ -561,7 +561,7 @@ Read the file and find the `moduleRegistry` map. Add a new entry with all requir
 },
 ```
 
-`TLS: true` is set by every current module. The `ProxyPaths` above match the scaffolded `module-federation.proxy` (API + healthcheck); omit the field only if the module proxies just `/<name>/api`.
+`TLS: true` is set by every current module. Derive `ProxyPaths` from the package's actual `module-federation.proxy` entries (each `path` and `pathRewrite`): the values above match the installer scaffold (API + healthcheck), but packages with custom routes need their own, for example MLflow's `/_bff/mlflow/api`. Omit the field only when the proxy is exactly the operator default, `/<ManifestSlug>/api` → `/api`.
 
 The production service port is in `packages/<name>/package.json` at `module-federation.service.port`. If `RequiredDSCComponents` or `InterModuleDependencies` are empty, omit them entirely.
 

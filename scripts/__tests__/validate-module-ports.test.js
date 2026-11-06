@@ -218,6 +218,40 @@ describe('parseModuleRegistryContent', () => {
     assert.equal(validateProductionPorts({ entries, errors }), true);
   });
 
+  it('ignores a commented-out example registry above the live declaration', () => {
+    const content = [
+      'package controller',
+      '',
+      '/* Example:',
+      'var moduleRegistry = map[string]ModuleDefinition{',
+      '\t"example": {',
+      '\t\tPort: 9999,',
+      '\t},',
+      '}',
+      '*/',
+      '',
+      '// var moduleRegistry = map[string]ModuleDefinition{"other": {Port: 1}}',
+      'var moduleRegistry = map[string]ModuleDefinition{',
+      '\t"a": {',
+      '\t\tPort: 8043,',
+      '\t},',
+      '\t"b": {',
+      '\t\tPort: 8043,',
+      '\t},',
+      '}',
+      '',
+    ].join('\n');
+    const { entries, errors } = parseModuleRegistryContent(content);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(
+      entries.map((e) => [e.name, e.port]),
+      [
+        ['a', 8043],
+        ['b', 8043],
+      ],
+    );
+  });
+
   it('fails on an unterminated block comment', () => {
     const { errors } = parseModuleRegistryContent(
       registry(['\t"a": {', '\t\tPort: 8043,', '\t},', '\t/* never closed']),

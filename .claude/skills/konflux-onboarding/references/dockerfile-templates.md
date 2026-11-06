@@ -327,7 +327,7 @@ skopeo inspect docker://registry.access.redhat.com/ubi9/go-toolset:1.26 --format
 skopeo inspect docker://registry.redhat.io/ubi9/ubi-minimal-pqc:latest --format '{{.Digest}}'
 ```
 
-Use the Go minor version from `packages/<name>/bff/go.mod` (Type A with a BFF) or `<name>/go.mod` (Type B).
+Use the Go minor version from the `go.mod` of the module actually built: for Type A, `go.mod` under the package Dockerfile's `BFF_SOURCE_CODE` (usually `packages/<name>/bff`, but `packages/model-registry/upstream/bff` for model-registry); for Type B, `<name>/go.mod`.
 
 ### Step 2: Validate digests
 

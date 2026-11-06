@@ -75,7 +75,13 @@ Collect the ports already in use and pick the next free value in each range. The
    grep -E '^[[:space:]]+Port:[[:space:]]+[0-9]+' dashboard-operator/internal/controller/modules.go | grep -oE '[0-9]+' | sort -n
    ```
 
-   Existing ports step by 100 (`8043, 8143, … 9243`). Pick the next step above the highest (e.g. `9343`).
+   Modules scaffolded but not yet registered (registration happens in `/konflux-onboarding`) already claim a port in `module-federation.service.port`, so include those too:
+
+   ```bash
+   node -e 'for (const f of require("fs").readdirSync("packages")) { try { const p = require("./packages/" + f + "/package.json")["module-federation"]?.service?.port; if (p) console.log(p); } catch {} }' | sort -n
+   ```
+
+   Existing ports step by 100 (`8043, 8143, … 9243`). Pick the next step above the highest value in either list (e.g. `9343`).
 
 4. **Report** the chosen ports to the user: frontend `<port>`, BFF `<bff-port>`, service `<service-port>`.
 
@@ -100,7 +106,8 @@ Name substitution alone is not enough in the fallback: Data Connect Hub's routes
 1. Rewrite `frontend/src/odh/extensions.ts` to the installer's shape. Add an `app.navigation/section` with id `<kebab>`, then an `app.navigation/href` with `href: '/<kebab>/main-view'`, `section: '<kebab>'`, `path: '/<kebab>/main-view/*'` and `title: '<Title Case>'`, and an `app.route` on `/<kebab>/main-view/*`. All of them are gated on `SupportedArea.PLUGIN_<UPPER_SNAKE>`.
 2. Replace the copied Connections pages with a neutral placeholder page (title and empty state only) that the route renders.
 3. Neutralize the BFF the same way. In `bff/internal/api/app.go`, keep only the user, namespaces and healthcheck routes, and delete the connection handlers (`connection*_handler.go`, `connections_handler*.go`) with their tests. Delete the upstream client and discovery (`data_connect_hub_client.go`, `data_connect_hub_discovery.go`). In `NewApp` (`bff/internal/api/app.go`), remove the upstream URL normalization, the discovery start-up, and the `dataConnectHubAPIURL`, `discoveryCancel` and `dataConnectHubHTTPTransport` fields along with their uses at shutdown. Then drop the `DataConnectHubAPIURL` setting from `bff/internal/config/environment.go` and its flag from `bff/cmd/main.go`. Then update the OpenAPI spec under `api/openapi/` to match, and run `go build ./... && go test ./...` in `bff/`.
-4. Confirm nothing from Data Connect Hub is left. This should print nothing:
+4. Remove the inherited `test:contract` script from the root `package.json`. `contract-tests/` is not copied, and `odh-ct-bff-consumer` fails without it. Add the script back together with real contract tests (see the next steps in the report).
+5. Confirm nothing from Data Connect Hub is left. This should print nothing:
 
 ```bash
 grep -rnE 'ai-hub|[Cc]onnections|dataConnectHub|DataConnectHub|DATA_CONNECT_HUB' packages/<name>/frontend/src

@@ -118,17 +118,20 @@ function stripGoComments(source) {
 function parseModuleRegistryContent(content) {
   const errors = [];
   const entries = [];
-  const declStart = content.indexOf(MODULE_REGISTRY_DECL);
+  // Strip comments from the whole file first, so a commented-out example registry above the
+  // live declaration is never mistaken for it.
+  const stripped = stripGoComments(content);
+  if (stripped === null) {
+    return { entries, errors: ['moduleRegistry contains an unterminated block comment'] };
+  }
+  const declStart = stripped.indexOf(MODULE_REGISTRY_DECL);
   if (declStart === -1) {
     return { entries, errors: [`declaration "${MODULE_REGISTRY_DECL}" not found`] };
   }
 
   // Scan characters rather than lines, so the layout (indentation, entries sharing a line with
   // the declaration, each other or the closing brace) never changes what is parsed.
-  const src = stripGoComments(content.slice(declStart + MODULE_REGISTRY_DECL.length));
-  if (src === null) {
-    return { entries, errors: ['moduleRegistry contains an unterminated block comment'] };
-  }
+  const src = stripped.slice(declStart + MODULE_REGISTRY_DECL.length);
 
   let i = 0;
   const skipString = () => {
