@@ -3,9 +3,10 @@
 How the Dashboard team keeps dependencies free of known vulnerabilities, and how to fix a CVE on
 `main` or a release branch.
 
-> **Note**: This doc covers the technical side (automation, commands, branches). Ticket triage,
-> SLAs, Jira fields, embargoed CVEs, and contacts live in the internal
-> [Dashboard Security & CVE Handbook](https://redhat.atlassian.net/wiki/spaces/RHODS/pages/304027483).
+> **Note**: This doc covers the technical side (automation, commands, branches). The internal
+> [Dashboard Security & CVE Handbook](https://redhat.atlassian.net/wiki/spaces/RHODS/pages/304027483)
+> covers the ticket process: Jira searches, what the Jira bots' labels mean, closing rules,
+> embargoed CVEs, and contacts.
 
 ## TL;DR
 
@@ -20,12 +21,13 @@ How the Dashboard team keeps dependencies free of known vulnerabilities, and how
 
 | Signal | Scans | Shows up as | Action |
 | --- | --- | --- | --- |
-| Product Security (ProdSec) trackers | SBOMs of released images (source + image), per release stream | Jira `Vulnerability` tickets, one per release stream | Triage per the handbook; fix supported streams |
+| Product Security (ProdSec) trackers | SBOMs (source + image) of every released Dashboard image | Jira `Vulnerability` tickets, one per image per release stream | Triage per the handbook; fix supported streams |
 | Snyk | Downstream `red-hat-data-services/odh-dashboard` `main` | Jira bugs titled `Snyk - …`, auto-closed when Snyk stops reporting the issue | Fix on `main`, or ignore in Snyk with a reason |
 | Dependabot | `pnpm-lock.yaml` + first-party Go modules on `main` | PRs labelled `dependencies` | Review or let auto-merge land them |
 | Renovate (trial) | Whole workspace, Go modules, GitHub Actions, Dockerfile base images | PRs labelled `dependencies` | Manual review only (see [Renovate trial](#renovate-trial)) |
 | PR gates | Lockfile / `go.mod` changes in your PR | Failing check on the PR | Fix before merge, or bypass with `ok-to-skip-audit` |
-| AI CVE triage bot (AIPCC) | Open ProdSec trackers | Verdict comment + labels on the Jira | Review the verdict; currently triage only |
+| Jira automation (AI triage, SBOM checks) | Open ProdSec trackers | Comments + labels on the Jira | Advisory only; the handbook explains each label |
+| Sustaining CVE automation (`redhat-chai-bot`) | Open trackers for a release | `fix(cve): …` PRs, often batched, against `main` or release branches | Review like any PR; check each bump against this doc |
 | Container Health Index (CHI) | Released image grade | Jira tasks labelled `chi-auto-filed` | Usually a base-image bump (downstream Dockerfiles) |
 
 > **Note**: ProdSec scans the **source tree** as well as the image, so lockfiles under
@@ -168,12 +170,16 @@ main ──► ODH v<X.Y.Z>-fixes (opendatahub-io) ──► RHOAI rhoai-<X.Y> (
 
 ## When a CVE Does Not Affect Us
 
-Only the bundled output ships in the dashboard image: [`Dockerfile`](../Dockerfile) copies
-`frontend/public` (Rspack bundle) and `backend/dist` (esbuild bundle) — no `node_modules`.
+Images ship build output, not `node_modules`:
 
-> **Warning**: Runtime dependencies are compiled **into** those bundles, so a vulnerable runtime
-> package still ships even though `node_modules` does not. Treat runtime dependencies as affected
-> unless the vulnerable code path is provably unused.
+- **Main dashboard image** ([`Dockerfile`](../Dockerfile)): `frontend/public` (Rspack bundle) and
+  `backend/dist` (esbuild bundle).
+- **Package images** (`packages/*/Dockerfile`, `distributions/*/Dockerfile`): the frontend bundle
+  plus, where present, a compiled Go BFF binary.
+
+> **Warning**: Runtime dependencies are compiled **into** those bundles and binaries, so a vulnerable
+> runtime package still ships even though `node_modules` does not. Treat runtime dependencies as
+> affected unless the vulnerable code path is provably unused.
 
 Common "not affected" cases:
 
