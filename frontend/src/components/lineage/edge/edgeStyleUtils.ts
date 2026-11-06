@@ -30,20 +30,24 @@ const getEdgeGroupClassName = ({
   endTerminalStatus,
   isConnectedToSelection,
 }: EdgeStyleConfig): string => {
-  return css(
-    styles.topologyEdge,
-    className,
-    selected && 'pf-m-selected',
-    endTerminalStatus && StatusModifier[endTerminalStatus],
-    isConnectedToSelection && 'pf-m-highlighted',
+  return (
+    css(
+      styles.topologyEdge,
+      className,
+      selected && 'pf-m-selected',
+      endTerminalStatus && StatusModifier[endTerminalStatus],
+      isConnectedToSelection && 'pf-m-highlighted',
+    ) ?? ''
   );
 };
 
 const getEdgeLinkClassName = (edgeStyle?: EdgeStyle, elementEdgeStyle?: EdgeStyle): string => {
   const finalEdgeStyle = edgeStyle ?? elementEdgeStyle;
-  return css(
-    styles.topologyEdgeLink,
-    finalEdgeStyle ? getEdgeStyleClassModifier(finalEdgeStyle) : undefined,
+  return (
+    css(
+      styles.topologyEdgeLink,
+      finalEdgeStyle ? getEdgeStyleClassModifier(finalEdgeStyle) : undefined,
+    ) ?? ''
   );
 };
 
