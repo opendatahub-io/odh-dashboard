@@ -420,6 +420,10 @@ jobs:
   # Tag Resolution - Build test matrix from defaults + PR labels/input + path impact
   # ---------------------------------------------------------------------------
   get-test-tags:
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
     name: Select Cypress E2E CI tags and specs for this PR
     needs: [select-cluster, cleanup-old-resources]
     runs-on: ubuntu-latest
@@ -1265,7 +1269,9 @@ jobs:
             echo "Running explicit Cypress specs: ${SPEC_LIST%,}"
           else
             export CYPRESS_grepTags="$MATRIX_TAG $SKIP_TAGS_GREP"
-            export CYPRESS_grepFilterSpecs=true
+            # The registration filter handles constant/inherited tags that the
+            # grep plugin cannot resolve during its static spec pre-filter.
+            export CYPRESS_grepFilterSpecs=false
           fi
           export CYPRESS_video=true
           export CYPRESS_screenshotsFolder="$CY_RESULTS_DIR/screenshots"

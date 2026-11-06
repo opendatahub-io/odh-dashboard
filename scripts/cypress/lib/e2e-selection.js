@@ -452,24 +452,29 @@ const discoverSpecs = (root, type) => {
   const specs = new Set(walkFiles(root, centralRoot, (file) => file.endsWith('.cy.ts')));
 
   for (const workspacePackage of listWorkspacePackagesFromManifest(root)) {
-    const pattern = workspacePackage.cypress?.[type];
-    if (!pattern) {
-      continue;
-    }
+    const declaredPattern = workspacePackage.cypress?.[type];
     const workspacePath = workspacePackage.location ?? workspacePackage.path;
     if (!workspacePath || workspacePath === '.') {
       continue;
     }
-    const packagePattern = normalizePath(path.join(workspacePath, pattern));
-    for (const spec of globSync(packagePattern, {
-      cwd: root,
-      dot: true,
-      nodir: true,
-      matchBase: true,
-      ignore: ['**/node_modules/**', '**/.git/**'],
-    })) {
-      if (spec.endsWith('.cy.ts')) {
-        specs.add(normalizePath(spec));
+    // Nested upstream mock suites belong in the impact graph even when they
+    // are run by their own Cypress project rather than the central runner.
+    const patterns = [
+      declaredPattern,
+      ...(type === 'mocked' ? ['**/cypress/tests/mocked/**/*.cy.ts'] : []),
+    ].filter(Boolean);
+    for (const pattern of patterns) {
+      const packagePattern = normalizePath(path.join(workspacePath, pattern));
+      for (const spec of globSync(packagePattern, {
+        cwd: root,
+        dot: true,
+        nodir: true,
+        matchBase: true,
+        ignore: ['**/node_modules/**', '**/.git/**'],
+      })) {
+        if (spec.endsWith('.cy.ts')) {
+          specs.add(normalizePath(spec));
+        }
       }
     }
   }
@@ -480,7 +485,10 @@ const discoverSpecs = (root, type) => {
 const discoverE2eSpecs = (root = DEFAULT_ROOT) => discoverSpecs(root, 'e2e');
 
 const discoverCiTags = (root = DEFAULT_ROOT) => {
-  const tags = new Set([DEFAULT_TAG]);
+  const frontendTags = fs.existsSync(path.join(root, FRONTEND_CI_TAGS_FILE))
+    ? Object.values(readFrontendAreaTags(root)).map(normalizeTag)
+    : [];
+  const tags = new Set([DEFAULT_TAG, ...FULL_COVERAGE_TAGS, ...frontendTags]);
   for (const workspacePackage of listWorkspacePackagesFromManifest(root)) {
     for (const tag of workspacePackage.e2eCiTags ?? []) {
       tags.add(normalizeTag(tag));
@@ -1393,15 +1401,62 @@ const renderSelectionMarkdown = (summary) =>
     '',
   ].join('\n');
 
+const buildDependencyIndexForE2e = ({ root, specs }) => {
+  const index = buildDependencyIndex({ root, specs, supportFile: DEFAULT_SUPPORT_FILE });
+  const mockProjects = new Map();
+  for (const spec of discoverSpecs(root, 'mocked')) {
+    const configFile = ts.findConfigFile(path.dirname(path.join(root, spec)), ts.sys.fileExists);
+    const key = configFile ?? '';
+    mockProjects.set(key, [...(mockProjects.get(key) ?? []), spec]);
+  }
+  for (const [configFile, mockSpecs] of mockProjects) {
+    let compilerOptions = {};
+    if (configFile) {
+      const config = ts.readConfigFile(configFile, ts.sys.readFile);
+      if (config.error) {
+        throw new Error(`Cannot read Cypress impact tsconfig: ${configFile}`);
+      }
+      // TypeScript resolves inherited baseUrl/paths relative to their declaring
+      // config; upstream mock imports such as ~/... must keep that context.
+      compilerOptions = ts.parseJsonConfigFileContent(
+        config.config,
+        ts.sys,
+        path.dirname(configFile),
+        {},
+        configFile,
+      ).options;
+    }
+    const supportFile = configFile
+      ? normalizePath(
+          path.relative(root, path.join(path.dirname(configFile), 'cypress/support/e2e.ts')),
+        )
+      : DEFAULT_SUPPORT_FILE;
+    const mockIndex = buildDependencyIndex({
+      root,
+      specs: mockSpecs,
+      supportFile,
+      compilerOptions,
+    });
+    index.specs = unique([...index.specs, ...mockIndex.specs]).toSorted();
+    for (const [file, consumers] of Object.entries(mockIndex.consumers)) {
+      index.consumers[file] = unique([...(index.consumers[file] ?? []), ...consumers]).toSorted();
+    }
+    index.unresolvedCode = unique([
+      ...index.unresolvedCode,
+      ...mockIndex.unresolvedCode,
+    ]).toSorted();
+    index.dynamicImports = unique([
+      ...index.dynamicImports,
+      ...mockIndex.dynamicImports,
+    ]).toSorted();
+  }
+  return index;
+};
+
 module.exports = {
   DEFAULT_SKIP_TAGS,
   DEFAULT_TAG,
-  buildDependencyIndexForE2e: ({ root, specs }) =>
-    buildDependencyIndex({
-      root,
-      specs: unique([...specs, ...discoverSpecs(root, 'mocked')]),
-      supportFile: DEFAULT_SUPPORT_FILE,
-    }),
+  buildDependencyIndexForE2e,
   buildFixtureConsumers,
   buildSelectionPlan,
   buildSpecInventory,
