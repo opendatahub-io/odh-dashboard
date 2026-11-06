@@ -152,7 +152,9 @@ def _redact_value(m):
     the bound (or one whose closing quote was never found) only matched its start: then
     everything after it is dropped too, rather than exporting the rest of the secret."""
     v = m.group(2)
-    whole = len(v) < 2000 and not (v[0] in "\"'" and (len(v) < 2 or v[-1] != v[0]))
+    # A quoted value is whole only if its closing quote isn't escaped ("a\" is not).
+    whole = len(v) < 2000 and (v[0] not in "\"'" or bool(
+        re.fullmatch(r'"(?:[^"\\]|\\.)*"' if v[0] == '"' else r"'[^']*'", v)))
     return m.group(1) + "[REDACTED]" + ("" if whole else _CUT)
 
 
@@ -2046,7 +2048,11 @@ def self_test():
          and "secret-tail" not in clean('x --token password="AAA BBB-secret-tail')
          and "secret-tail" not in clean('--token password="' + "A" * 2500 + ' secret-tail')
          and "tok3nvalue" not in clean('--token tok3nvalue password="unterminated tail')
-         and "tok3nvalue" not in clean('--token tok3nvalue password=' + "A" * 2500)),
+         and "tok3nvalue" not in clean('--token tok3nvalue password=' + "A" * 2500)
+         and "SensitiveTail" not in clean('password="a\\" SensitiveTail')
+         and "SensitiveTail" not in clean('--token "a\\" SensitiveTail')
+         and "SensitiveTail" not in clean("password='a SensitiveTail")
+         and clean('password="a\\"b" keep') == "password=[REDACTED] keep"),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
@@ -2208,6 +2214,8 @@ def main():
             sys.exit(f"export incomplete ({e}); bridge marker not written. Check the trace, "
                      "then rerun with --force to resend all spans")
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as e:
+            # MLflow may have accepted the spans before the error (a timeout on the reply).
+            set_mlflow_tags(endpoint, headers, summary["trace_id"], {PENDING_TAG: "1"})  # best effort
             sys.exit(f"export failed ({safe_error(e)})")
         print(f"exported to OTLP endpoint: HTTP {status}")
     # The bridge marker is what makes reruns idempotent, so it is required (with retries);

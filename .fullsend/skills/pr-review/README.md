@@ -583,7 +583,8 @@ trace that already has either bridge marker), and
 `bridge-only` only when the bridge never sent to that trace: after a bridge export whose
 marker write failed it would send the bridge spans twice, so use `mark-only` there. To
 back this up, a bridge-only export records `fullsend.bridge.pending` on the trace before
-sending, failed exports and marker writes try to record it too, and `bridge-only` refuses
+sending, failed or timed-out exports and marker writes try to record it too (best effort: if
+MLflow rejects that tag write as well, check the trace before choosing `bridge-only`), and `bridge-only` refuses
 a trace that has it. A
 malformed `agent-result.json` doesn't stop the export: the bridge takes the PR identity
 from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`), and the
