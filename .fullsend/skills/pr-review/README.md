@@ -569,7 +569,7 @@ from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`)
 workflow skips the author, coverage and verdict fallback. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
 and then stops a normal run instead of exporting; rerun it. `recover: resend` and
 `recover: mark-only` don't wait on the lookup, so they go ahead even when it keeps failing. The Actions log shows counts and
-tags only, never the PR, file or guidance paths.
+tags only, never the PR, run URL, file or guidance paths.
 
 ## Related files
 

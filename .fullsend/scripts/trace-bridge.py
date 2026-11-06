@@ -1150,10 +1150,11 @@ def safe_error(e):
 
 
 def log_summary(summary):
-    """The run summary for the Actions log: counts and tags, no PR identity, file or guidance
-    paths (those stay in MLflow)."""
+    """The run summary for the Actions log: counts and tags, no PR identity, URLs, file or
+    guidance paths (those stay in MLflow)."""
     keep = {k: summary.get(k) for k in ("trace_id", "spans", "personas", "coverage")}
-    keep["tags"] = {k: v for k, v in (summary.get("tags") or {}).items() if k != "fullsend.pr"}
+    keep["tags"] = {k: v for k, v in (summary.get("tags") or {}).items()
+                    if k not in ("fullsend.pr", "fullsend.run_url")}
     keep["missed_count"] = len(summary.get("missed") or [])
     return json.dumps(keep)
 
@@ -1633,11 +1634,13 @@ def self_test():
         ("truncated lookup response is an unknown state", net["truncated_state"] is None),
         ("logged errors are fixed text: status codes and exception types only",
          net["post_error"] == "HTTP 302" and net["url_error"] == "URLError"),
-        ("the run summary in the log has counts, not the PR, guidance or file paths",
+        ("the run summary in the log has counts, not the PR, run URL, guidance or file paths",
          "docs/adr" not in log_summary(summary) and ".claude/rules" not in log_summary(summary)
          and json.loads(log_summary(summary))["missed_count"] == 1
          and summary["tags"].get("fullsend.pr") == "o/r#7" and "o/r#7" not in log_summary(summary)
-         and '"pr"' not in log_summary(summary)),
+         and '"pr"' not in log_summary(summary)
+         and "secret" not in log_summary(dict(summary, tags=dict(
+             summary["tags"], **{"fullsend.run_url": "https://u:secret@x.invalid/r?token=secret"})))),
         ("non-object lookup responses and malformed tags are an unknown state", net["shape_states"] == [None] * 5),
         ("malformed and out-of-range timestamps are rejected",
          otlp_ns(float("inf")) is None and otlp_ns(float("nan")) is None and otlp_ns("x") is None
