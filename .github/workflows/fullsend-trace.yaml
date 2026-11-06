@@ -123,14 +123,20 @@ jobs:
             echo "::notice::PR head moved past the reviewed commit; tracing without guidance coverage."
           fi
           # agent-result.json may lack the verdict: the host post-script decides it after
-          # the artifact is captured. Fall back to the Fullsend bot's review of that commit,
-          # submitted after this run started (an older review of the same commit is not this
-          # run's verdict). The bridge ignores the fallback when the artifact has an action.
+          # the artifact is captured. Fall back to the Fullsend bot's review of that commit
+          # submitted while this run was running (between its start and its last update).
+          # Zero or several candidates is ambiguous, so the verdict is then left out. The
+          # bridge ignores the fallback when the artifact has an action.
           verdict=""
-          started=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.run_started_at // .created_at')
-          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$started" =~ ^[0-9T:Z-]{20}$ ]]; then
-            state=$(gh api --paginate "repos/$REPO/pulls/$pr/reviews" \
-              --jq ".[] | select(.commit_id == \"$head_sha\" and .user.type == \"Bot\" and .user.login == \"fullsend-ai-review[bot]\" and .submitted_at >= \"$started\") | .state" | tail -1)
+          window=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '"\(.run_started_at // .created_at) \(.updated_at)"')
+          started=${window% *}
+          finished=${window#* }
+          ts='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$'
+          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$started" =~ $ts && "$finished" =~ $ts ]]; then
+            states=$(gh api --paginate "repos/$REPO/pulls/$pr/reviews" \
+              --jq ".[] | select(.commit_id == \"$head_sha\" and .user.type == \"Bot\" and .user.login == \"fullsend-ai-review[bot]\" and .submitted_at >= \"$started\" and .submitted_at <= \"$finished\") | .state")
+            state=""
+            [[ $(printf '%s\n' "$states" | grep -c .) -eq 1 ]] && state=$states
             case "$state" in
               APPROVED) verdict=approve ;;
               CHANGES_REQUESTED) verdict=request-changes ;;

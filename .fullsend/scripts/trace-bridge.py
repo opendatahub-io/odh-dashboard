@@ -475,7 +475,7 @@ def shell_tokens(cmd):
             value = "".join(word)
             out.append(value)
             if expect_delim:
-                pending.append(value)
+                pending.append((value, expect_delim == "<<-"))
                 expect_delim = False
         word, fd_digits = None, True
 
@@ -535,13 +535,15 @@ def shell_tokens(cmd):
             out.append(Op(op))
             i += len(op)
             if op in ("<<", "<<-"):
-                expect_delim = True
+                expect_delim = op
             elif op == "\n" and pending:
-                for delim in pending:  # skip each heredoc body up to its delimiter line
+                for delim, strip_tabs in pending:  # skip each heredoc body up to its delimiter
                     while i < n:
                         nl = text.find("\n", i)
                         line, i = (text[i:], n) if nl < 0 else (text[i:nl], nl + 1)
-                        if line.strip() == delim:
+                        # The shell ends the body only on an exact delimiter line (<<- also
+                        # allows leading tabs); " EOF" or "EOF " is still body text.
+                        if (line.lstrip("\t") if strip_tabs else line) == delim:
                             break
                 pending = []
         else:
@@ -560,12 +562,36 @@ def shell_segments(cmd):
         if isinstance(t, Op) and t in SEPARATORS:
             if toks:
                 segs.append((op, toks[:200]))
-            op, toks = ("||" if t == "||" else ";"), []
+                op = None
+            if t not in ("(", ")"):  # grouping keeps the operator before the group
+                op = {"\n": ";", ";;": ";", "|&": "|"}.get(t, t)
+            toks = []
             continue
         toks.append(t)
     if toks:
         segs.append((op, toks[:200]))
     return segs
+
+
+def executed_segments(segs):
+    """Indexes of segments that certainly ran when the whole command succeeded. A command
+    is split into lists at ; & and newline. The first command of each list always runs;
+    a later one only when every operator before it in that list is && or |, the list is
+    the last one (its success is the command's success) and contains no ||."""
+    lists, cur = [], []
+    for k, (op, _toks) in enumerate(segs):
+        if op in (None, ";", "&") and cur:
+            lists.append(cur)
+            cur = []
+        cur.append((k, op))
+    if cur:
+        lists.append(cur)
+    ran = set()
+    for li, lst in enumerate(lists):
+        ran.add(lst[0][0])
+        if li == len(lists) - 1 and not any(op == "||" for _k, op in lst):
+            ran.update(k for k, _op in lst)
+    return ran
 
 
 def _program(toks):
@@ -727,11 +753,14 @@ def shell_summary(cmd):
 
 def shell_files(cmd, include_skipped=False):
     """(read files, redirection targets) in a shell command. Read files are the file
-    arguments of read programs (cat, head, sed, ...); segments after `||` may not run and
-    are skipped unless include_skipped. Redirection targets (`> f`) are outputs, not reads,
+    arguments of read programs (cat, head, sed, ...) in segments that certainly ran (see
+    executed_segments); others are skipped unless include_skipped. Redirection targets (`> f`) are outputs, not reads,
     and here-string text (`<<< text`) is neither."""
     reads, targets = [], []
-    for op, toks in shell_segments(cmd):
+    segs = shell_segments(cmd)
+    ran = executed_segments(segs)
+    for k, (op, toks) in enumerate(segs):
+        counts = include_skipped or k in ran
         i, prog = _program(toks)
         if i is None:
             continue
@@ -739,7 +768,7 @@ def shell_files(cmd, include_skipped=False):
         for t in without_patterns(prog, toks[i + 1:]):
             if redirect is not None:
                 if redirect == "<":  # input redirection: a read, unless the segment may not run
-                    if include_skipped or op != "||":
+                    if counts:
                         reads.append(t)
                 elif ">" in redirect and redirect not in (">&", "<>"):
                     targets.append(t)
@@ -749,8 +778,7 @@ def shell_files(cmd, include_skipped=False):
             if is_redirect(t):
                 redirect = t
                 continue
-            if prog in READ_PROGS and (include_skipped or op != "||") \
-                    and not t.startswith("-") and "*" not in t:
+            if prog in READ_PROGS and counts and not t.startswith("-") and "*" not in t:
                 reads.append(t)
     return reads, targets
 
@@ -1080,7 +1108,7 @@ def mlflow_trace_state(endpoint, headers, trace_id):
 
 
 def set_mlflow_tags(endpoint, headers, trace_id, tags):
-    """Best effort: PATCH /api/2.0/mlflow/traces/tr-<id>/tags. Never fails the run."""
+    """PATCH /api/2.0/mlflow/traces/tr-<id>/tags for each tag; returns how many were set."""
     base = re.sub(r"/v1/traces/?$", "", endpoint)
     url = f"{base}/api/2.0/mlflow/traces/tr-{trace_id}/tags"
     failed = 0
@@ -1101,6 +1129,38 @@ def _timed(fn):
     t0 = datetime.datetime.now()
     fn()
     return (datetime.datetime.now() - t0).total_seconds()
+
+
+def _self_test_marker_failure(endpoint):
+    """Run main() against an endpoint that accepts spans but refuses tag writes."""
+    global LOOKUP_ATTEMPTS
+    import tempfile
+    art = tempfile.mkdtemp(prefix="trace-bridge-marker-")
+    run = os.path.join(art, "r")
+    os.makedirs(run)
+    with open(os.path.join(run, "run-telemetry.jsonl"), "w") as f:
+        f.write(json.dumps({"resourceSpans": [{"scopeSpans": [{"spans": [
+            {"traceId": "9" * 32, "spanId": "8" * 16, "name": "run",
+             "startTimeUnixNano": "1000", "endTimeUnixNano": "2000"}]}]}]}) + "\n")
+    with open(os.path.join(run, "metrics.json"), "w") as f:
+        f.write("{}")
+    saved = (sys.argv, os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"), LOOKUP_ATTEMPTS, sys.stdout)
+    sys.argv, LOOKUP_ATTEMPTS = ["trace-bridge.py", "--artifact", art, "--no-tags"], 1
+    os.environ["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] = endpoint
+    sys.stdout = open(os.devnull, "w")
+    try:
+        main()
+        result = "no exit"
+    except SystemExit as e:
+        result = str(e.code)
+    finally:
+        sys.stdout.close()
+        sys.argv, env, LOOKUP_ATTEMPTS, sys.stdout = saved
+        if env is None:
+            os.environ.pop("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", None)
+        else:
+            os.environ["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] = env
+    return result
 
 
 def _self_test_network():
@@ -1148,7 +1208,13 @@ def _self_test_network():
                 self._send(404)
 
         def do_POST(self):
-            self._send(302, extra={"Location": "http://example.invalid/steal"})
+            if self.path.startswith("/ok/"):
+                self._send(200, b"{}")
+            else:
+                self._send(302, extra={"Location": "http://example.invalid/steal"})
+
+        def do_PATCH(self):
+            self._send(500)
 
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -1181,6 +1247,7 @@ def _self_test_network():
         http_rejected = False
     except SystemExit:
         http_rejected = True
+    marker_exit = _self_test_marker_failure(f"http://127.0.0.1:{srv.server_address[1]}/ok/v1/traces")
     srv.shutdown()
     bad = tempfile.mkdtemp(prefix="trace-bridge-badid-")
     with open(os.path.join(bad, "metrics.json"), "w") as f:
@@ -1195,7 +1262,7 @@ def _self_test_network():
     except SystemExit:
         bad_id_rejected = True
     url_error = safe_error(urllib.error.URLError("http://secret-host.internal/x?token=abc"))
-    return {"post_error": post_error, "url_error": url_error,
+    return {"marker_exit": marker_exit, "post_error": post_error, "url_error": url_error,
             "states": states, "shape_states": shape_states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
@@ -1476,6 +1543,19 @@ def self_test():
          and shell_summary("sort < in/c.md > out/d.md")[1] == ["in/c.md", "out/d.md"]
          and shell_reads("sed -i.bak s/a/b/ src/c.md") == ["src/c.md"]
          and shell_reads("sed -X 1 docs/x.md") == [] and shell_reads("cat << EOF\nb\nEOF") == []),
+        ("reads count only in commands that certainly ran (|| branches, groups, && before ;)",
+         shell_reads("true || (cat .claude/rules/react.md)") == []
+         and shell_reads("false && cat .claude/rules/react.md; true") == []
+         and shell_reads("a || b && cat e/f.md") == []
+         and shell_reads("cd x && cat .claude/rules/react.md") == [".claude/rules/react.md"]
+         and shell_reads("cat a/b.md; cat c/d.md") == ["a/b.md", "c/d.md"]
+         and shell_reads("cat i/j.md | head") == ["i/j.md"]),
+        ("heredoc bodies end only on an exact delimiter line (<<- strips leading tabs only)",
+         shell_summary("cat <<'EOF'\n EOF\nConfidentialCustomer\nEOF\ncat z/w.md")[0] == ["cat", "cat"]
+         and shell_reads("cat <<EOF\nx\nEOF \ncat z/w.md\nEOF\ncat y/v.md") == ["y/v.md"]
+         and shell_reads("cat <<-EOF\n\tbody\n\tEOF\ncat z/w.md") == ["z/w.md"]),
+        ("a failed bridge-marker write after export fails the run, even with --no-tags",
+         "marker" in net["marker_exit"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
@@ -1559,7 +1639,8 @@ def main():
     p.add_argument("--out", help="also write the OTLP JSON payload here")
     p.add_argument("--no-base-spans", action="store_true",
                    help="do not re-send run/agent spans (use once Fullsend exports them itself)")
-    p.add_argument("--no-tags", action="store_true", help="skip setting MLflow trace tags after export")
+    p.add_argument("--no-tags", action="store_true",
+                   help="skip the descriptive MLflow trace tags (the bridge marker is always set)")
     p.add_argument("--force", action="store_true",
                    help="send spans even if this bridge already sent them (doubles MLflow's token totals)")
     p.add_argument("--dry-run", action="store_true", help="build and print the summary, do not POST")
@@ -1608,9 +1689,20 @@ def main():
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as e:
             sys.exit(f"export failed ({safe_error(e)})")
         print(f"exported to OTLP endpoint: HTTP {status}")
+    # The bridge marker is what makes reruns idempotent, so it is required (with retries);
+    # the other tags are best effort, and --no-tags skips only those.
+    marker = {"fullsend.bridge.version": BRIDGE_VERSION}
+    for attempt in range(LOOKUP_ATTEMPTS):
+        if set_mlflow_tags(endpoint, headers, summary["trace_id"], marker) == 1:
+            break
+        time.sleep(2 ** attempt)
+    else:
+        sys.exit("spans exported, but the bridge marker tag could not be recorded; a rerun may "
+                 "resend bridge spans (rerun to retry the marker)")
     if not args.no_tags:
-        n = set_mlflow_tags(endpoint, headers, summary["trace_id"], summary["tags"])
-        print(f"set {n} MLflow trace tags")
+        rest = {k: v for k, v in summary["tags"].items() if k not in marker}
+        n = set_mlflow_tags(endpoint, headers, summary["trace_id"], rest)
+        print(f"set {n + 1} MLflow trace tags")
 
 
 if __name__ == "__main__":
