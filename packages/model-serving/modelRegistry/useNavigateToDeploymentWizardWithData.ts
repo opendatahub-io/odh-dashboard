@@ -86,6 +86,7 @@ export const useNavigateToDeploymentWizardWithData = (
     {
       fromCatalog: true,
       catalogModelId: deployPrefillData.catalogModelId,
+      extraDeployTrackingProperties: deployPrefillData.extraDeployTrackingProperties,
     },
   );
 

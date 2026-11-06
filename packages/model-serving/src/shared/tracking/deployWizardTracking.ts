@@ -11,9 +11,13 @@ export type DeployWizardEntryPoint =
   | 'navigator'
   | 'edit';
 
+type DeployTrackingPropertyValue = string | number | boolean | string[] | undefined;
+type ExtraDeployTrackingProperties = Record<string, DeployTrackingPropertyValue>;
+
 export type DeployWizardNavSource = {
   fromCatalog?: boolean;
   catalogModelId?: string;
+  extraDeployTrackingProperties?: ExtraDeployTrackingProperties;
   fromProject?: boolean;
   fromProjectNavigator?: boolean;
 };
@@ -56,19 +60,35 @@ export type ModelDeployedTrackingProperties = {
   outcome: 'submit' | 'cancel';
   success?: boolean;
   hasInjectedValidatedArgs: boolean;
-} & Record<string, string | number | boolean | string[] | undefined>;
+} & ExtraDeployTrackingProperties;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+const isDeployTrackingPropertyValue = (value: unknown): value is DeployTrackingPropertyValue =>
+  value === undefined ||
+  typeof value === 'string' ||
+  typeof value === 'number' ||
+  typeof value === 'boolean' ||
+  (Array.isArray(value) && value.every((item) => typeof item === 'string'));
+
+const isExtraDeployTrackingProperties = (value: unknown): value is ExtraDeployTrackingProperties =>
+  isRecord(value) &&
+  !Array.isArray(value) &&
+  Object.values(value).every(isDeployTrackingPropertyValue);
 
 export const getDeployWizardNavState = (locationState: unknown): DeployWizardNavState => {
   if (!isRecord(locationState)) {
     return {};
   }
+  const { extraDeployTrackingProperties } = locationState;
   return {
     fromCatalog: locationState.fromCatalog === true,
     catalogModelId:
       typeof locationState.catalogModelId === 'string' ? locationState.catalogModelId : undefined,
+    extraDeployTrackingProperties: isExtraDeployTrackingProperties(extraDeployTrackingProperties)
+      ? extraDeployTrackingProperties
+      : undefined,
     fromProject: locationState.fromProject === true,
     projectName:
       typeof locationState.projectName === 'string' ? locationState.projectName : undefined,
@@ -134,7 +154,7 @@ export const getModelDeployedTrackingProperties = ({
   runtimeArgs?: string[];
   outcome: 'submit' | 'cancel';
   success?: boolean;
-  additionalProperties?: Record<string, string | number | boolean | string[] | undefined>;
+  additionalProperties?: ExtraDeployTrackingProperties;
 }): ModelDeployedTrackingProperties => {
   const selectedOptions = getSelectedValidatedOptions(
     validatedConfigurations,
@@ -145,6 +165,7 @@ export const getModelDeployedTrackingProperties = ({
 
   return {
     ...additionalProperties,
+    ...navState.extraDeployTrackingProperties,
     enableToolCalling:
       selectedOptions.some((option) => option.title === TOOL_CALLING_CONFIGURATION_TITLE) ||
       hasInjectedValidatedArgs,
