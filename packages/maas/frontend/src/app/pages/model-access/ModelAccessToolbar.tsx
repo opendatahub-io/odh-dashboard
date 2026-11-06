@@ -1,10 +1,8 @@
 import * as React from 'react';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
-import TypeaheadSelect, {
-  TypeaheadSelectOption,
-} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
 import {
   EventTrackingFilterAttribute,
   EventTrackingResourceType,
@@ -25,70 +23,22 @@ type ModelAccessToolbarProps = {
   ) => void;
   /** Source of the typeahead filter options; values match on resource names. */
   subscriptions: MaaSSubscription[];
+  /** Toolbar content rendered after the filters, e.g. a create button. */
+  children?: React.ReactNode;
 };
-
-/** Matches the typed filter text against the option label or its resource name. */
-const filterByLabelOrValue = (filterValue: string, options: TypeaheadSelectOption[]) =>
-  options.filter(
-    (option) =>
-      String(option.content).toLowerCase().includes(filterValue.toLowerCase()) ||
-      String(option.value).toLowerCase().includes(filterValue.toLowerCase()),
-  );
-
-/** Deduplicates labels by resource name and sorts them for display. */
-const toSelectOptions = (labels: Map<string, string>): TypeaheadSelectOption[] =>
-  Array.from(labels.entries())
-    .toSorted(([, a], [, b]) => a.localeCompare(b))
-    .map(([value, content]) => ({ value, content }));
-
-type TypeaheadFilterFieldProps = {
-  options: TypeaheadSelectOption[];
-  filterAttribute: EventTrackingFilterAttribute;
-  placeholder: string;
-  testId: string;
-  onChange: (value?: string, label?: string) => void;
-  value?: string;
-};
-
-const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
-  options,
-  filterAttribute,
-  placeholder,
-  testId,
-  onChange,
-  value,
-}) => (
-  <TypeaheadSelect
-    selectOptions={options}
-    selected={value}
-    onSelect={(_event, selection) => {
-      const selectedOption = options.find((option) => option.value === selection);
-      onChange(String(selection), selectedOption ? String(selectedOption.content) : undefined);
-      fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-        resourceType: EventTrackingResourceType.SUBSCRIPTION,
-        filterAttribute,
-      } satisfies MaaSSettingsListFilteredProperties);
-    }}
-    onClearSelection={() => onChange('')}
-    filterFunction={filterByLabelOrValue}
-    allowClear
-    isRequired={false}
-    isScrollable
-    placeholder={placeholder}
-    toggleWidth="350px"
-    dataTestId={testId}
-  />
-);
 
 /**
- * Toolbar for the read-only Model Access page: filters the subscriptions table
- * through Subscription / Group / Model typeahead selects where the user picks a
- * value from a list or types to narrow the list and selects an item.
+ * Toolbar for the read-only Model Access page and the MaaS governance
+ * subscriptions tab: filters the subscriptions table through Model / Group /
+ * Subscription typeahead selects where the user picks a value from a list,
+ * types to narrow the list and selects an item, or commits a partial text
+ * fragment to match all rows containing it.
  */
 const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
   filterData,
   onFilterUpdate,
   subscriptions,
+  children,
 }) => {
   const { subscriptionOptions, groupOptions, modelOptions } = React.useMemo(() => {
     const subscriptionLabels = new Map<string, string>();
@@ -108,45 +58,53 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
     };
   }, [subscriptions]);
 
+  const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
+    fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+      resourceType: EventTrackingResourceType.SUBSCRIPTION,
+      filterAttribute,
+    } satisfies MaaSSettingsListFilteredProperties);
+
   return (
     <FilterToolbar<keyof typeof modelAccessFilterOptions>
       testId="model-access-table-toolbar"
       filterOptions={modelAccessFilterOptions}
       filterOptionRenders={{
-        [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
+        [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
           <TypeaheadFilterField
-            options={subscriptionOptions}
-            filterAttribute={EventTrackingFilterAttribute.SUBSCRIPTION}
-            placeholder="Select a subscription"
-            testId="model-access-subscription-filter-toggle"
+            options={modelOptions}
+            placeholder="Select a model"
+            testId="model-access-model-filter-toggle"
             onChange={onChange}
             value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.MODEL)}
           />
         ),
         [SubscriptionsFilterOptions.group]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={groupOptions}
-            filterAttribute={EventTrackingFilterAttribute.GROUP}
             placeholder="Select a group"
             testId="model-access-group-filter-toggle"
             onChange={onChange}
             value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.GROUP)}
           />
         ),
-        [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
+        [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
           <TypeaheadFilterField
-            options={modelOptions}
-            filterAttribute={EventTrackingFilterAttribute.MODEL}
-            placeholder="Select a model"
-            testId="model-access-model-filter-toggle"
+            options={subscriptionOptions}
+            placeholder="Select a subscription"
+            testId="model-access-subscription-filter-toggle"
             onChange={onChange}
             value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.SUBSCRIPTION)}
           />
         ),
       }}
       filterData={filterData}
       onFilterUpdate={onFilterUpdate}
-    />
+    >
+      {children}
+    </FilterToolbar>
   );
 };
 

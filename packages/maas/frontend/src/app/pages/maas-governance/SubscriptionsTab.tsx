@@ -1,17 +1,22 @@
 import * as React from 'react';
 import {
   Bullseye,
+  Button,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
   PageSection,
   Spinner,
+  ToolbarGroup,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import { getSubscriptionCreateUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
 import SubscriptionsToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsToolbar';
 import {
@@ -48,10 +53,26 @@ type SubscriptionsTabProps = {
   getSubscriptionDetailUrl?: (name: string) => string;
 };
 
+const textIncludes = (text: string | undefined, keyword: string): boolean =>
+  text?.toLowerCase().includes(keyword) ?? false;
+
+/**
+ * A typeahead selection is stored as { label, value } and matches exactly;
+ * a plain string is a typed partial text fragment and matches by inclusion.
+ */
 const asFilterSelection = (
   value: string | SubscriptionsFilterSelection | undefined,
-): SubscriptionsFilterSelection | undefined =>
-  typeof value === 'string' ? (value ? { label: value, value } : undefined) : value;
+): SubscriptionsFilterSelection | undefined => (typeof value === 'string' ? undefined : value);
+
+const asFilterFragment = (
+  value: string | SubscriptionsFilterSelection | undefined,
+): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim().toLowerCase();
+  return trimmed || undefined;
+};
 
 const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   returnTo,
@@ -85,8 +106,21 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
     );
     const groupFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.group]);
     const modelFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.model]);
+    const subscriptionFragment = asFilterFragment(
+      filterData[SubscriptionsFilterOptions.subscription],
+    );
+    const groupFragment = asFilterFragment(filterData[SubscriptionsFilterOptions.group]);
+    const modelFragment = asFilterFragment(filterData[SubscriptionsFilterOptions.model]);
 
-    if (!keywordText && !subscriptionFilter && !groupFilter && !modelFilter) {
+    if (
+      !keywordText &&
+      !subscriptionFilter &&
+      !groupFilter &&
+      !modelFilter &&
+      !subscriptionFragment &&
+      !groupFragment &&
+      !modelFragment
+    ) {
       return subscriptions;
     }
 
@@ -99,7 +133,12 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
       ) {
         return false;
       }
-      if (subscriptionFilter && subscription.name !== subscriptionFilter.value) {
+      if (
+        (subscriptionFilter && subscription.name !== subscriptionFilter.value) ||
+        (subscriptionFragment &&
+          !textIncludes(subscription.name, subscriptionFragment) &&
+          !textIncludes(subscription.displayName, subscriptionFragment))
+      ) {
         return false;
       }
       if (
@@ -108,7 +147,22 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
       ) {
         return false;
       }
+      if (
+        groupFragment &&
+        !subscription.owner.groups.some((group) => textIncludes(group.name, groupFragment))
+      ) {
+        return false;
+      }
       if (modelFilter && !subscription.modelRefs.some((ref) => ref.name === modelFilter.value)) {
+        return false;
+      }
+      if (
+        modelFragment &&
+        !subscription.modelRefs.some(
+          (ref) =>
+            textIncludes(ref.name, modelFragment) || textIncludes(ref.displayName, modelFragment),
+        )
+      ) {
         return false;
       }
       return true;
@@ -170,7 +224,27 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
                   filterData={filterData}
                   onFilterUpdate={onFilterUpdate}
                   subscriptions={subscriptions}
-                />
+                >
+                  {!readOnly && (
+                    <ToolbarGroup>
+                      <ToolbarItem>
+                        <Button
+                          variant="primary"
+                          component={(props) => (
+                            <Link
+                              {...props}
+                              to={getSubscriptionCreateUrl()}
+                              state={returnTo ? { returnTo } : undefined}
+                            />
+                          )}
+                          data-testid="create-subscription-button"
+                        >
+                          Create subscription
+                        </Button>
+                      </ToolbarItem>
+                    </ToolbarGroup>
+                  )}
+                </ModelAccessToolbar>
               ) : (
                 <SubscriptionsToolbar
                   filterData={filterData}

@@ -71,7 +71,10 @@ const MaaSGovernancePage: React.FC = () => {
           data-testid="subscriptions-tab"
         >
           {activeTab === SUBSCRIPTIONS_TAB && (
-            <SubscriptionsTab returnTo={`${URL_PREFIX}/maas-governance/${SUBSCRIPTIONS_TAB}`} />
+            <SubscriptionsTab
+              returnTo={`${URL_PREFIX}/maas-governance/${SUBSCRIPTIONS_TAB}`}
+              attributeFilters
+            />
           )}
         </Tab>
         <Tab

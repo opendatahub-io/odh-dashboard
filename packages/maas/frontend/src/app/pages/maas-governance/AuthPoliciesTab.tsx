@@ -55,15 +55,63 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
   const onClearFilters = React.useCallback(() => setFilterData(initialAuthPoliciesFilterData), []);
 
   const filteredAuthPolicies = React.useMemo(() => {
-    const keyword = filterData[AuthPoliciesFilterOptions.keyword]?.toLowerCase();
+    // A typeahead selection is stored as { label, value } and matches exactly;
+    // a plain string is a typed partial text fragment and matches by inclusion.
+    const asSelection = (value: string | { label: string; value: string } | undefined) =>
+      typeof value === 'string' ? undefined : value;
+    const asFragment = (value: string | { label: string; value: string } | undefined) => {
+      if (typeof value !== 'string') {
+        return undefined;
+      }
+      const trimmed = value.trim().toLowerCase();
+      return trimmed || undefined;
+    };
+    const includes = (text: string | undefined, keyword: string) =>
+      text?.toLowerCase().includes(keyword) ?? false;
+
+    const modelSelection = asSelection(filterData[AuthPoliciesFilterOptions.model]);
+    const groupSelection = asSelection(filterData[AuthPoliciesFilterOptions.group]);
+    const policySelection = asSelection(filterData[AuthPoliciesFilterOptions.policy]);
+    const modelFragment = asFragment(filterData[AuthPoliciesFilterOptions.model]);
+    const groupFragment = asFragment(filterData[AuthPoliciesFilterOptions.group]);
+    const policyFragment = asFragment(filterData[AuthPoliciesFilterOptions.policy]);
+
+    if (
+      !modelSelection &&
+      !groupSelection &&
+      !policySelection &&
+      !modelFragment &&
+      !groupFragment &&
+      !policyFragment
+    ) {
+      return authPolicies;
+    }
 
     return authPolicies.filter((policy) => {
-      if (keyword) {
-        const displayedName = (policy.displayName ?? policy.name).toLowerCase();
-        return (
-          displayedName.includes(keyword) ||
-          (policy.description ?? '').toLowerCase().includes(keyword)
-        );
+      if (
+        (modelSelection && !policy.modelRefs.some((ref) => ref.name === modelSelection.value)) ||
+        (modelFragment &&
+          !policy.modelRefs.some(
+            (ref) => includes(ref.name, modelFragment) || includes(ref.displayName, modelFragment),
+          ))
+      ) {
+        return false;
+      }
+      if (
+        (groupSelection &&
+          !policy.subjects.groups?.some((group) => group.name === groupSelection.value)) ||
+        (groupFragment &&
+          !policy.subjects.groups?.some((group) => includes(group.name, groupFragment)))
+      ) {
+        return false;
+      }
+      if (
+        (policySelection && policy.name !== policySelection.value) ||
+        (policyFragment &&
+          !includes(policy.name, policyFragment) &&
+          !includes(policy.displayName, policyFragment))
+      ) {
+        return false;
       }
       return true;
     });
@@ -119,6 +167,7 @@ const AuthPoliciesTab: React.FC<AuthPoliciesTabProps> = ({ returnTo }) => {
               <AuthPoliciesToolbar
                 filterData={filterData}
                 onFilterUpdate={onFilterUpdate}
+                authPolicies={authPolicies}
                 returnTo={returnTo}
               />
             }

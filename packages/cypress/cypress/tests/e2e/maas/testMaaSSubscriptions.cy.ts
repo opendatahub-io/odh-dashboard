@@ -287,7 +287,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the subscription is created');
       subscriptionsPage.visit();
-      subscriptionsPage.findFilterInput().type(subscriptionName);
+      subscriptionsPage.filterByTypeahead('subscription', subscriptionName, subscriptionName);
       subscriptionsPage.findRows().should('have.length', 1);
       const subscriptionRow = subscriptionsPage.getRow(subscriptionName);
       subscriptionRow.findTitleButton().should('contain.text', subscriptionName);
@@ -342,7 +342,11 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the second subscription is created');
       subscriptionsPage.visit();
-      subscriptionsPage.findFilterInput().type(`${subscriptionName}-2`);
+      subscriptionsPage.filterByTypeahead(
+        'subscription',
+        `${subscriptionName}-2`,
+        `${subscriptionName}-2`,
+      );
       subscriptionsPage.findRows().should('have.length', 1);
       subscriptionsPage.findRows().should('contain.text', `${subscriptionName}-2`);
 
@@ -361,7 +365,11 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the second subscription is updated');
       subscriptionsPage.visit();
-      subscriptionsPage.findFilterInput().type(`${subscriptionName}-2`);
+      subscriptionsPage.filterByTypeahead(
+        'subscription',
+        `${subscriptionName}-2`,
+        `${subscriptionName}-2`,
+      );
       subscriptionsPage.findRows().should('have.length', 1);
       subscriptionsPage.findRows().should('contain.text', `${subscriptionName}-2`);
       subscriptionsPage.findRows().should('contain.text', `Updated - ${subscriptionDescription}`);
@@ -426,7 +434,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       // Sometimes the page isn't refreshing fast enough, reloading for now
       subscriptionsPage.reload();
-      subscriptionsPage.findFilterInput().type(`${subscriptionName}-2`);
+      subscriptionsPage.filterByTypeahead('subscription', `${subscriptionName}-2`);
       subscriptionsPage.findRows().should('have.length', 0);
       subscriptionsPage.findTable().should('not.contain', `${subscriptionName}-2`);
 
