@@ -88,8 +88,9 @@ jobs:
           # Only trace runs of this repository's own fullsend.yaml for events that use the base
           # repository's definition. A fork PR can edit fullsend.yaml and run it on
           # pull_request or pull_request_review, and that run's artifact must not reach MLflow.
-          src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.head_branch // "")"')
-          read -r src_path src_event src_repo src_sha src_branch <<< "$src"
+          src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
+            '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.head_repository.full_name // "-") \(.head_branch // "")"')
+          read -r src_path src_event src_repo src_sha src_head_repo src_branch <<< "$src"
           default_branch=$(gh api "repos/$REPO" --jq '.default_branch')
           case "$src_event" in
             pull_request_target | issue_comment | issues | workflow_dispatch | schedule) ;;
@@ -105,6 +106,18 @@ jobs:
               on_default=$(gh api "repos/$REPO/compare/$default_branch...$src_sha" --jq '.status' || true)
             fi
             [[ "$on_default" == identical || "$on_default" == behind ]] || src_event=""
+          else
+            # pull_request_target runs the PR base branch's fullsend.yaml: the base must be the
+            # default branch (an edited file on another branch could be targeted by a PR).
+            # The run's PR is found by its head; none, several or a failed lookup is rejected.
+            bases=""
+            if [[ "$src_head_repo" == */* && -n "$src_branch" ]]; then
+              bases=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
+                -f head="${src_head_repo%%/*}:$src_branch" \
+                --jq '.[] | "\(.head.repo.full_name // "-") \(.head.ref) \(.base.ref)"' \
+                | awk -v r="$src_head_repo" -v b="$src_branch" '$1 == r && $2 == b {print $3}' || true)
+            fi
+            [[ "$bases" == "$default_branch" ]] || src_event=""
           fi
           if [[ "$src_path" != .github/workflows/fullsend.yaml || "$src_repo" != "$REPO" || -z "$src_event" ]]; then
             echo "::warning::Run $RUN_ID is not a trusted Fullsend run (workflow, event, branch or repository); nothing to trace."

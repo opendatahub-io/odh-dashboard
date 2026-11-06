@@ -152,9 +152,16 @@ def _redact_value(m):
     the bound (or one whose closing quote was never found) only matched its start: then
     everything after it is dropped too, rather than exporting the rest of the secret."""
     v = m.group(2)
-    # A quoted value is whole only if its closing quote isn't escaped ("a\" is not).
-    whole = len(v) < 2000 and (v[0] not in "\"'" or bool(
-        re.fullmatch(r'"(?:[^"\\]|\\.)*"' if v[0] == '"' else r"'[^']*'", v)))
+    # A quoted value is whole only if its closing quote isn't escaped ("a\" is not) and the
+    # shell word ends there ('abc'def continues it); an unquoted value with a quote in it may
+    # continue past the match ("abc"def ghi"). Any of those: cut everything after it.
+    nxt = m.string[m.end():m.end() + 1]
+    if v[0] in "\"'":
+        whole = bool(re.fullmatch(r'"(?:[^"\\]|\\.)*"' if v[0] == '"' else r"'[^']*'", v)) \
+            and (not nxt or nxt.isspace() or nxt in ",;&|)}]")
+    else:
+        whole = not any(q in v for q in "\"'`")
+    whole = whole and len(v) < 2000
     return m.group(1) + "[REDACTED]" + ("" if whole else _CUT)
 
 
@@ -2124,7 +2131,11 @@ def self_test():
          and "SensitiveTail" not in clean('password="a\\" SensitiveTail')
          and "SensitiveTail" not in clean('--token "a\\" SensitiveTail')
          and "SensitiveTail" not in clean("password='a SensitiveTail")
-         and clean('password="a\\"b" keep') == "password=[REDACTED] keep"),
+         and clean('password="a\\"b" keep') == "password=[REDACTED] keep"
+         and "def" not in clean("--token 'abc'def")
+         and "ghi" not in clean('password=abc"def ghi"')
+         and json.loads(clean(json.dumps({"password": "x", "keep": "y"}))
+                        .replace("[REDACTED]", '"r"')) == {"password": "r", "keep": "y"}),
         ("only the last stdin redirection counts, and only when the program reads stdin",
          "AGENTS.md" not in shell_reads("cat < AGENTS.md < /dev/null")
          and shell_reads("cat < AGENTS.md <<< ''") == []
