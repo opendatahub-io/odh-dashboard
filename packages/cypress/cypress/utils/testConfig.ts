@@ -103,9 +103,13 @@ const OCP_API_URL = testConfig?.OCP_API_URL;
 
 // MaaS connection settings
 const MAAS_URL = testConfig?.MAAS_URL;
+const MAAS_PORTAL_URL = testConfig?.MAAS_PORTAL_URL;
+const MAAS_PORTAL_SUBSCRIPTION_NAME = testConfig?.MAAS_PORTAL_SUBSCRIPTION_NAME;
 const MAAS_API_KEY = testConfig?.MAAS_API_KEY;
 const MAAS_GENERATION_MODEL_ID = testConfig?.MAAS_GENERATION_MODEL_ID;
 const MAAS_EMBEDDING_MODEL_ID = testConfig?.MAAS_EMBEDDING_MODEL_ID;
+const MAAS_PORTAL_ADMIN_USER = testConfig?.MAAS_PORTAL_ADMIN_USER ?? testConfig?.OCP_ADMIN_USER;
+const MAAS_PORTAL_USER = testConfig?.MAAS_PORTAL_USER ?? testConfig?.TEST_USER;
 
 // Hugging Face API key for catalog source e2e tests
 const HF_API_KEY = testConfig?.HF_API_KEY;
@@ -135,7 +139,11 @@ export const cypressEnv = {
   OCI_MODEL_URI,
   OCP_API_URL,
   MAAS_URL,
+  MAAS_PORTAL_URL,
+  MAAS_PORTAL_SUBSCRIPTION_NAME,
   MAAS_API_KEY,
+  MAAS_PORTAL_ADMIN_USER,
+  MAAS_PORTAL_USER,
   HF_API_KEY,
   MAAS_GENERATION_MODEL_ID,
   MAAS_EMBEDDING_MODEL_ID,

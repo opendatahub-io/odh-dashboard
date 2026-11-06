@@ -338,7 +338,11 @@ export type TestConfig = {
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
   MAAS_URL?: string;
+  MAAS_PORTAL_URL?: string;
+  MAAS_PORTAL_SUBSCRIPTION_NAME?: string;
   MAAS_API_KEY?: string;
+  MAAS_PORTAL_ADMIN_USER?: UserAuthConfig;
+  MAAS_PORTAL_USER?: UserAuthConfig;
   HF_API_KEY?: string;
   MAAS_GENERATION_MODEL_ID?: string;
   MAAS_EMBEDDING_MODEL_ID?: string;

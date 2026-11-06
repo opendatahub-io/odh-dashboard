@@ -266,17 +266,42 @@ Cypress.Commands.addQuery(
 const handleKeycloakLogin = (credentials: UserAuthConfig): void => {
   cy.log('Keycloak login flow detected - completing authentication');
 
-  // Keycloak login form - wait for the username field to be visible
-  cy.get('#username, input[name="username"]', { timeout: 15000 }).should('be.visible');
+  const usernameSelector = '#username, input[name="username"]';
+  const passwordSelector = '#password, input[name="password"]';
+  const submitSelector =
+    '#kc-login:visible, input[type="submit"]:visible, button[type="submit"]:visible';
+  const findVisibleUsername = () =>
+    cy.get(usernameSelector, { timeout: 15000 }).filter(':visible').first();
+  const findVisiblePassword = () =>
+    cy.get(passwordSelector, { timeout: 15000 }).filter(':visible').first();
 
-  // Fill in credentials on Keycloak form
-  cy.get('#username, input[name="username"]').clear();
-  cy.get('#username, input[name="username"]').type(credentials.USERNAME);
-  cy.get('#password, input[name="password"]').clear();
-  cy.get('#password, input[name="password"]').type(credentials.PASSWORD, { log: false });
+  // Some Keycloak deployments collect the username first, then show the password form.
+  findVisibleUsername().should('be.visible');
+
+  findVisibleUsername().clear();
+  findVisibleUsername().type(credentials.USERNAME);
+  findVisibleUsername().should('have.value', credentials.USERNAME);
+  cy.get('body').then(($body) => {
+    if (!$body.find(passwordSelector).filter(':visible').length) {
+      cy.get(submitSelector, { timeout: 15000 }).should('be.visible').click();
+      // Wait for the broker's second step without assuming a tenant-specific
+      // Keycloak URL or identity-provider name.
+      findVisiblePassword().should('be.visible');
+    }
+  });
+
+  // Wait for the final form after a username-only Keycloak step and refill the
+  // username because some broker flows replace the form during navigation.
+  findVisibleUsername().should('be.visible');
+  findVisibleUsername().clear();
+  findVisibleUsername().type(credentials.USERNAME);
+  findVisibleUsername().should('have.value', credentials.USERNAME);
+  findVisiblePassword().should('be.visible');
+  findVisiblePassword().clear();
+  findVisiblePassword().type(credentials.PASSWORD, { log: false });
 
   // Click the Sign In button
-  cy.get('#kc-login, input[type="submit"], button[type="submit"]').click();
+  cy.get(submitSelector).should('be.enabled').click();
 
   // Wait for redirect back to dashboard
   cy.url({ timeout: 30000 }).should('not.include', 'keycloak');
