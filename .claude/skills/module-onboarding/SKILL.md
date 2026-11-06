@@ -99,12 +99,15 @@ Name substitution alone is not enough in the fallback: Data Connect Hub's routes
 
 1. Rewrite `frontend/src/odh/extensions.ts` to the installer's shape. Add an `app.navigation/section` with id `<kebab>`, then an `app.navigation/href` with `href: '/<kebab>/main-view'`, `section: '<kebab>'`, `path: '/<kebab>/main-view/*'` and `title: '<Title Case>'`, and an `app.route` on `/<kebab>/main-view/*`. All of them are gated on `SupportedArea.PLUGIN_<UPPER_SNAKE>`.
 2. Replace the copied Connections pages with a neutral placeholder page (title and empty state only) that the route renders.
-3. Neutralize the BFF the same way. In `bff/internal/api/app.go`, keep only the user, namespaces and healthcheck routes, and delete the connection handlers (`connection*_handler.go`, `connections_handler*.go`) with their tests. Delete the upstream client and discovery (`data_connect_hub_client.go`, `data_connect_hub_discovery.go`), and remove the upstream URL flag and discovery call from `bff/cmd/main.go` and `bff/internal/config/`. Then update the OpenAPI spec under `api/openapi/` to match, and run `go build ./... && go test ./...` in `bff/`.
+3. Neutralize the BFF the same way. In `bff/internal/api/app.go`, keep only the user, namespaces and healthcheck routes, and delete the connection handlers (`connection*_handler.go`, `connections_handler*.go`) with their tests. Delete the upstream client and discovery (`data_connect_hub_client.go`, `data_connect_hub_discovery.go`). In `NewApp` (`bff/internal/api/app.go`), remove the upstream URL normalization, the discovery start-up, and the `dataConnectHubAPIURL`, `discoveryCancel` and `dataConnectHubHTTPTransport` fields along with their uses at shutdown. Then drop the `DataConnectHubAPIURL` setting from `bff/internal/config/environment.go` and its flag from `bff/cmd/main.go`. Then update the OpenAPI spec under `api/openapi/` to match, and run `go build ./... && go test ./...` in `bff/`.
 4. Confirm nothing from Data Connect Hub is left. This should print nothing:
 
 ```bash
-grep -rnE 'ai-hub|[Cc]onnections?|dataConnectHub|DataConnectHub|DATA_CONNECT_HUB|data_connect_hub' packages/<name>/frontend/src packages/<name>/bff
+grep -rnE 'ai-hub|[Cc]onnections|dataConnectHub|DataConnectHub|DATA_CONNECT_HUB' packages/<name>/frontend/src
+grep -rnE 'dataConnectHub|DataConnectHub|DATA_CONNECT_HUB|data_connect_hub|data-connect-hub|ConnectionsPath|ConnectionTypes?Path|ConnectionReadiness|TestCredentials|(Create|Delete|Get)Connection' packages/<name>/bff
 ```
+
+The BFF check uses Data Connect Hub identifiers only: the shared `bffclient` package's generic `NewConnectionError` is expected to remain.
 
 ### Step 2: Verify and patch the generated output
 

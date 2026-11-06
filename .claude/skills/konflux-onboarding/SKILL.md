@@ -415,7 +415,7 @@ Read the existing file and add entries for the new component following the exist
    ```yaml
    - context_dir: .
      dockerfile_path: ./packages/<name>/Dockerfile.workspace
-     to: odh-mod-arch-<name>-image
+     to: <image>-image
    ```
 
    For Type B:
@@ -423,36 +423,36 @@ Read the existing file and add entries for the new component following the exist
    ```yaml
    - context_dir: .
      dockerfile_path: ./<name>/Dockerfile
-     to: odh-<name>-image
+     to: <image>-image
    ```
 
 2. **PR image mirror test** — add to `tests[]`:
 
    ```yaml
-   - as: odh-<image-name>-pr-image-mirror
+   - as: <image>-pr-image-mirror
      steps:
        dependencies:
-         SOURCE_IMAGE_REF: odh-<image-name>-image
+         SOURCE_IMAGE_REF: <image>-image
        env:
-         IMAGE_REPO: odh-<image-name>
+         IMAGE_REPO: <image>
        workflow: opendatahub-io-ci-image-mirror
    ```
 
 3. **Postsubmit image mirror test** — add to `tests[]`:
 
    ```yaml
-   - as: odh-<image-name>-image-mirror
+   - as: <image>-image-mirror
      postsubmit: true
      steps:
        dependencies:
-         SOURCE_IMAGE_REF: odh-<image-name>-image
+         SOURCE_IMAGE_REF: <image>-image
        env:
-         IMAGE_REPO: odh-<image-name>
+         IMAGE_REPO: <image>
          RELEASE_VERSION: main
        workflow: opendatahub-io-ci-image-mirror
    ```
 
-Here `odh-<image-name>` is the Phase 0 `<image>` (`<image-name>` drops the `odh-` prefix). For Type A, `<image-name>` is `mod-arch-<name>`. For Type B, `<image-name>` is `dashboard-<name>` (or just the component name if it already has a clear prefix like `dashboard-operator`).
+Every name here derives from the Phase 0 `<image>` (defaults `odh-mod-arch-<name>` for Type A, `odh-<name>` for Type B), so the build output `<image>-image` is the image the mirror steps reference.
 
 Match the naming pattern of existing entries in the file.
 
