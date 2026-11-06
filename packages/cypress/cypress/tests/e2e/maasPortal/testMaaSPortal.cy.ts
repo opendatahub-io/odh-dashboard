@@ -98,11 +98,11 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       cy.step('Send an invalid completion request with the newly created API key');
       stubClipboard('copiedApiKey');
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
-      getClipboardContent('copiedApiKey').then((apiKeys) => {
+      getClipboardContent('copiedApiKey', { log: false }).then((apiKeys) => {
         const apiKey = apiKeys[0];
         expect(typeof apiKey, 'created API key type').to.equal('string');
         expect(apiKey.length, 'created API key length').to.be.greaterThan(0);
-        cy.wrap(apiKey).as('storedApiKey');
+        cy.wrap(apiKey, { log: false }).as('storedApiKey');
         copyApiKeyModal
           .findBaseURL()
           .invoke('val')
