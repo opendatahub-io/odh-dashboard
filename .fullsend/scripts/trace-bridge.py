@@ -463,6 +463,7 @@ def shell_tokens(cmd):
     pending, expect_delim = [], False  # heredoc delimiters waiting for the next newline
     fd_digits = True  # current word so far is only unquoted digits (a possible fd like the 2 in 2>)
     escaped_ansi = False  # current word has a $'...' part with backslash escapes (not decoded)
+    quoted = False  # current word has a quoted or escaped part (a quoted heredoc delimiter)
 
     def add(chars, plain_digits=False):
         nonlocal word, fd_digits
@@ -472,16 +473,16 @@ def shell_tokens(cmd):
         word.extend(chars)  # in place: rebuilding the list per character is quadratic
 
     def end_word():
-        nonlocal word, expect_delim, fd_digits, escaped_ansi
+        nonlocal word, expect_delim, fd_digits, escaped_ansi, quoted
         if word is not None:
             value = "".join(word)
             out.append(value)
             if expect_delim:
                 # A delimiter with undecoded $'\..' escapes can't be matched reliably: None
                 # makes the scanner stop at the heredoc body instead of guessing where it ends.
-                pending.append((None if escaped_ansi else value, expect_delim == "<<-"))
+                pending.append((None if escaped_ansi else value, expect_delim == "<<-", quoted))
                 expect_delim = False
-        word, fd_digits, escaped_ansi = None, True, False
+        word, fd_digits, escaped_ansi, quoted = None, True, False, False
 
     n = len(text)
     while i < n:
@@ -502,12 +503,14 @@ def shell_tokens(cmd):
             if j >= n:
                 break  # unclosed quote: drop the rest
             escaped_ansi = escaped_ansi or any(part.startswith("\\") for part in buf)
+            quoted = True
             add(buf)
             i = j + 1
         elif c == "'":
             j = text.find("'", i + 1)
             if j < 0:
                 break  # unclosed quote: drop the rest
+            quoted = True
             add([text[i + 1:j]])
             i = j + 1
         elif c == '"':
@@ -521,12 +524,14 @@ def shell_tokens(cmd):
                     j += 1
             if j >= n:
                 break
+            quoted = True
             add(buf)
             i = j + 1
         elif c == "\\":
             if i + 1 < n and text[i + 1] == "\n":
                 i += 2  # line continuation
                 continue
+            quoted = True
             add([text[i + 1:i + 2]])
             i += 2
         elif c == "#" and word is None:
@@ -542,15 +547,20 @@ def shell_tokens(cmd):
             if op in ("<<", "<<-"):
                 expect_delim = op
             elif op == "\n" and pending:
-                if any(delim is None for delim, _tabs in pending):
+                if any(delim is None for delim, _tabs, _q in pending):
                     break  # undecodable heredoc delimiter: drop the body and everything after
-                for delim, strip_tabs in pending:  # skip each heredoc body up to its delimiter
+                for delim, strip_tabs, quoted_delim in pending:  # skip each body up to its delimiter
                     while i < n:
                         nl = text.find("\n", i)
                         line, i = (text[i:], n) if nl < 0 else (text[i:nl], nl + 1)
                         # The shell ends the body only on an exact delimiter line (<<- also
                         # allows leading tabs); " EOF" or "EOF " is still body text.
                         if (line.lstrip("\t") if strip_tabs else line) == delim:
+                            break
+                        if not quoted_delim and (len(line) - len(line.rstrip("\\"))) % 2:
+                            # An unquoted body joins a backslash-newline with the next line, so
+                            # the next line can't end the body: stop rather than guess.
+                            i = n
                             break
                 pending = []
         else:
@@ -1140,8 +1150,10 @@ def safe_error(e):
 
 
 def log_summary(summary):
-    """The run summary for the Actions log: counts and tags, no file or guidance paths."""
-    keep = {k: summary.get(k) for k in ("trace_id", "pr", "spans", "personas", "coverage", "tags")}
+    """The run summary for the Actions log: counts and tags, no PR identity, file or guidance
+    paths (those stay in MLflow)."""
+    keep = {k: summary.get(k) for k in ("trace_id", "spans", "personas", "coverage")}
+    keep["tags"] = {k: v for k, v in (summary.get("tags") or {}).items() if k != "fullsend.pr"}
     keep["missed_count"] = len(summary.get("missed") or [])
     return json.dumps(keep)
 
@@ -1241,8 +1253,8 @@ def _timed(fn):
     return (datetime.datetime.now() - t0).total_seconds()
 
 
-def _self_test_marker_failure(endpoint):
-    """Run main() against an endpoint that accepts spans but refuses tag writes."""
+def _self_test_main(endpoint, trace_id="9" * 32, extra=()):
+    """Run main() against the local test endpoint (which refuses tag writes); returns the exit text."""
     global LOOKUP_ATTEMPTS
     import tempfile
     art = tempfile.mkdtemp(prefix="trace-bridge-marker-")
@@ -1250,12 +1262,12 @@ def _self_test_marker_failure(endpoint):
     os.makedirs(run)
     with open(os.path.join(run, "run-telemetry.jsonl"), "w") as f:
         f.write(json.dumps({"resourceSpans": [{"scopeSpans": [{"spans": [
-            {"traceId": "9" * 32, "spanId": "8" * 16, "name": "run",
+            {"traceId": trace_id, "spanId": "8" * 16, "name": "run",
              "startTimeUnixNano": "1000", "endTimeUnixNano": "2000"}]}]}]}) + "\n")
     with open(os.path.join(run, "metrics.json"), "w") as f:
         f.write("{}")
     saved = (sys.argv, os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"), LOOKUP_ATTEMPTS, sys.stdout)
-    sys.argv, LOOKUP_ATTEMPTS = ["trace-bridge.py", "--artifact", art, "--no-tags"], 1
+    sys.argv, LOOKUP_ATTEMPTS = ["trace-bridge.py", "--artifact", art, "--no-tags", *extra], 1
     os.environ["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] = endpoint
     sys.stdout = open(os.devnull, "w")
     try:
@@ -1323,6 +1335,7 @@ def _self_test_network():
 
         def do_POST(self):
             self._drain()
+            posts.append(self.path)
             if self.path.startswith("/partial/"):
                 self._send(200, b'{"partialSuccess": {"rejectedSpans": 2, "errorMessage": "x"}}')
             elif self.path.startswith("/ok/"):
@@ -1334,6 +1347,7 @@ def _self_test_network():
             self._drain()
             self._send(500)
 
+    posts = []
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     ep = f"http://127.0.0.1:{srv.server_address[1]}/v1/traces"
@@ -1365,8 +1379,15 @@ def _self_test_network():
         http_rejected = False
     except SystemExit:
         http_rejected = True
-    marker_exit = _self_test_marker_failure(f"http://127.0.0.1:{srv.server_address[1]}/ok/v1/traces")
-    partial_exit = _self_test_marker_failure(f"http://127.0.0.1:{srv.server_address[1]}/partial/v1/traces")
+    ok_ep = f"http://127.0.0.1:{srv.server_address[1]}/ok/v1/traces"
+    marker_exit = _self_test_main(ok_ep)
+    partial_exit = _self_test_main(f"http://127.0.0.1:{srv.server_address[1]}/partial/v1/traces")
+    del posts[:]
+    rerun = {"bridged": _self_test_main(ok_ep, "b" * 32), "unmarked": _self_test_main(ok_ep, "c" * 32),
+             "mark_only": _self_test_main(ok_ep, "c" * 32, ["--mark-only"])}
+    rerun_posts = list(posts)
+    unmarked_force = _self_test_main(ok_ep, "c" * 32, ["--force"])
+    rerun_posts_force = len(posts) - len(rerun_posts)
     srv.shutdown()
     bad = tempfile.mkdtemp(prefix="trace-bridge-badid-")
     with open(os.path.join(bad, "metrics.json"), "w") as f:
@@ -1382,6 +1403,8 @@ def _self_test_network():
         bad_id_rejected = True
     url_error = safe_error(urllib.error.URLError("http://secret-host.internal/x?token=abc"))
     return {"marker_exit": marker_exit, "partial_exit": partial_exit, "post_error": post_error, "url_error": url_error,
+            "rerun": rerun, "rerun_posts": rerun_posts, "unmarked_force": unmarked_force,
+            "rerun_posts_force": rerun_posts_force,
             "states": states, "shape_states": shape_states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
@@ -1607,9 +1630,11 @@ def self_test():
         ("truncated lookup response is an unknown state", net["truncated_state"] is None),
         ("logged errors are fixed text: status codes and exception types only",
          net["post_error"] == "HTTP 302" and net["url_error"] == "URLError"),
-        ("the run summary in the log has counts, not guidance or file paths",
+        ("the run summary in the log has counts, not the PR, guidance or file paths",
          "docs/adr" not in log_summary(summary) and ".claude/rules" not in log_summary(summary)
-         and json.loads(log_summary(summary))["missed_count"] == 1),
+         and json.loads(log_summary(summary))["missed_count"] == 1
+         and summary["tags"].get("fullsend.pr") == "o/r#7" and "o/r#7" not in log_summary(summary)
+         and '"pr"' not in log_summary(summary)),
         ("non-object lookup responses and malformed tags are an unknown state", net["shape_states"] == [None] * 5),
         ("malformed and out-of-range timestamps are rejected",
          otlp_ns(float("inf")) is None and otlp_ns(float("nan")) is None and otlp_ns("x") is None
@@ -1696,6 +1721,16 @@ def self_test():
          "marker" in net["marker_exit"]),
         ("HTTP 200 with partialSuccess.rejectedSpans fails the run before the marker is written",
          "incomplete" in net["partial_exit"]),
+        ("a rerun of a bridged trace sends nothing; an unmarked trace stops for explicit recovery",
+         net["rerun_posts"] == [] and "marker" in net["rerun"]["bridged"]
+         and "without the bridge marker" in net["rerun"]["unmarked"]
+         and "marker" in net["rerun"]["mark_only"]),
+        ("--force resends all spans to an unmarked trace", net["rerun_posts_force"] == 1
+         and "marker" in net["unmarked_force"]),
+        ("an unquoted heredoc body line ending in a backslash stops the scan (the next line joins it)",
+         shell_summary("cat <<EOF\nprefix\\\nEOF\nConfidentialCustomer\nEOF\ncat z/w.md")[0] == ["cat"]
+         and shell_reads("cat <<'EOF'\nprefix\\\nEOF\ncat z/w.md") == ["z/w.md"]
+         and shell_reads("cat <<EOF\nprefix\\\\\nEOF\ncat z/w.md") == ["z/w.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
@@ -1782,7 +1817,10 @@ def main():
     p.add_argument("--no-tags", action="store_true",
                    help="skip the descriptive MLflow trace tags (the bridge marker is always set)")
     p.add_argument("--force", action="store_true",
-                   help="send spans even if this bridge already sent them (doubles MLflow's token totals)")
+                   help="send all spans even if MLflow already has the trace (doubles MLflow's token totals)")
+    p.add_argument("--mark-only", action="store_true",
+                   help="send no spans, only record the bridge marker (when an earlier export "
+                        "completed but its marker write failed)")
     p.add_argument("--dry-run", action="store_true", help="build and print the summary, do not POST")
     args = p.parse_args()
     args.pr_files_count = None
@@ -1810,24 +1848,30 @@ def main():
         if state is not None:
             break
         time.sleep(2 ** attempt)
-    if state is None and not args.force:
+    if state is None and not (args.force or args.mark_only):
         sys.exit("trace lookup failed; not exporting, to avoid doubling MLflow's token totals "
                  "(rerun the job, or pass --force)")
     exists, bridged = state or (False, False)
-    if bridged and not args.force:
+    if args.mark_only:
+        print("--mark-only: skipping span export")
+    elif bridged and not args.force:
         print("bridge spans already in MLflow; skipping span export (use --force to resend)")
     else:
+        if exists and not bridged and not args.force and summary["base_span_ids"]:
+            # Without the marker the bridge can't tell which spans MLflow already holds: an
+            # earlier export may have been partial or lost its marker, or Fullsend may export
+            # its own spans. Guessing could finalize an incomplete trace, so stop.
+            sys.exit("trace is in MLflow without the bridge marker: an earlier export was partial "
+                     "or its marker write failed, or Fullsend exports its own spans. Check the "
+                     "trace, then rerun with --mark-only (spans complete), --force (resend all; "
+                     "accepted spans count twice) or --no-base-spans (Fullsend exports its own)")
         if exists and not bridged:
-            # Fullsend exported its own spans: add ours without re-sending theirs.
-            drop = set(summary["base_span_ids"])
-            for rs in payload["resourceSpans"]:
-                for ss in rs["scopeSpans"]:
-                    ss["spans"] = [x for x in ss["spans"] if x["spanId"] not in drop]
             print("trace exists without bridge spans; sending bridge spans only")
         try:
             status = post(payload, endpoint, headers)
         except PartialExport as e:
-            sys.exit(f"export incomplete ({e}); bridge marker not written, so a rerun resends")
+            sys.exit(f"export incomplete ({e}); bridge marker not written. Check the trace, "
+                     "then rerun with --force to resend all spans")
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as e:
             sys.exit(f"export failed ({safe_error(e)})")
         print(f"exported to OTLP endpoint: HTTP {status}")
@@ -1839,8 +1883,8 @@ def main():
             break
         time.sleep(2 ** attempt)
     else:
-        sys.exit("spans exported, but the bridge marker tag could not be recorded; a rerun may "
-                 "resend bridge spans (rerun to retry the marker)")
+        sys.exit("spans exported, but the bridge marker tag could not be recorded; "
+                 "rerun with --mark-only to record it")
     if not args.no_tags:
         rest = {k: v for k, v in summary["tags"].items() if k not in marker}
         n = set_mlflow_tags(endpoint, headers, summary["trace_id"], rest)

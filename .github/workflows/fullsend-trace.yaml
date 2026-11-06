@@ -23,7 +23,10 @@
 # --no-base-spans below.
 #
 # Backfill: run this workflow manually with a past Fullsend run ID (artifacts
-# are kept 90 days).
+# are kept 90 days). If the trace is already in MLflow without the bridge marker
+# (an earlier export was partial or lost its marker), the run stops; check the
+# trace, then rerun manually with recover=mark-only (spans complete) or
+# recover=resend (resend all spans; already accepted ones count twice).
 name: fullsend-trace
 
 on:
@@ -35,6 +38,11 @@ on:
       run_id:
         description: Fullsend workflow run ID to trace
         required: true
+      recover:
+        description: Recovery for a trace already in MLflow without the bridge marker
+        type: choice
+        options: [none, mark-only, resend]
+        default: none
 
 permissions: {}
 
@@ -106,14 +114,22 @@ jobs:
           # The result file is written in the sandbox and may be malformed (e.g. a failed run):
           # read it defensively so the bridge still runs and exports the run without metadata.
           field() { jq -r --arg k "$1" 'if type == "object" then (.[$k] // empty | tostring) else empty end' "$result" 2>/dev/null || true; }
+          # Same range build() in trace-bridge.py accepts: a JSON integer from 1 to 10^9 - 1.
           pr=""
-          [[ -n "$result" ]] && pr=$(field pr_number)
-          if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
-            echo "::warning::No PR number in the artifact; tracing without guidance coverage."
+          [[ -n "$result" ]] && pr=$(jq -r 'if type == "object" and (.pr_number | type) == "number"
+            and .pr_number == (.pr_number | floor) and .pr_number > 0 and .pr_number < 1000000000
+            then .pr_number else empty end' "$result" 2>/dev/null || true)
+          if [[ ! "$pr" =~ ^[1-9][0-9]{0,8}$ ]]; then
+            echo "::warning::No valid PR number in the artifact; tracing without PR metadata."
             exit 0
           fi
-          author=$(gh api "repos/$REPO/pulls/$pr" --jq '.user.login')
-          current_head=$(gh api "repos/$REPO/pulls/$pr" --jq '.head.sha')
+          # PR metadata is optional: an API failure loses it, but the spans are still sent.
+          if ! meta=$(gh api "repos/$REPO/pulls/$pr" --jq '"\(.user.login) \(.head.sha)"'); then
+            echo "::warning::PR lookup failed; tracing without PR metadata."
+            exit 0
+          fi
+          author=${meta% *}
+          current_head=${meta#* }
           head_sha=$(field head_sha)
           # Coverage is scored against the files of the reviewed commit. The PR files API
           # only shows the current head, so coverage is omitted once the PR has moved on
@@ -121,7 +137,10 @@ jobs:
           files=""
           if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$head_sha" == "$current_head" ]]; then
             files="$RUNNER_TEMP/pr-files.txt"
-            gh api --paginate "repos/$REPO/pulls/$pr/files" --jq '.[].filename' > "$files"
+            if ! gh api --paginate "repos/$REPO/pulls/$pr/files" --jq '.[].filename' > "$files"; then
+              echo "::warning::PR files lookup failed; tracing without guidance coverage."
+              files=""
+            fi
           else
             echo "::notice::PR head moved past the reviewed commit; tracing without guidance coverage."
           fi
@@ -131,13 +150,15 @@ jobs:
           # Zero or several candidates is ambiguous, so the verdict is then left out. The
           # bridge ignores the fallback when the artifact has an action.
           verdict=""
-          window=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '"\(.run_started_at // .created_at) \(.updated_at)"')
+          window=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '"\(.run_started_at // .created_at) \(.updated_at)"') \
+            || { echo "::warning::Run lookup failed; tracing without the review verdict fallback."; window=""; }
           started=${window% *}
           finished=${window#* }
           ts='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$'
           if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$started" =~ $ts && "$finished" =~ $ts ]]; then
             states=$(gh api --paginate "repos/$REPO/pulls/$pr/reviews" \
-              --jq ".[] | select(.commit_id == \"$head_sha\" and .user.type == \"Bot\" and .user.login == \"fullsend-ai-review[bot]\" and .submitted_at >= \"$started\" and .submitted_at <= \"$finished\") | .state")
+              --jq ".[] | select(.commit_id == \"$head_sha\" and .user.type == \"Bot\" and .user.login == \"fullsend-ai-review[bot]\" and .submitted_at >= \"$started\" and .submitted_at <= \"$finished\") | .state") \
+              || { echo "::warning::Review lookup failed; tracing without the review verdict fallback."; states=""; }
             state=""
             [[ $(printf '%s\n' "$states" | grep -c .) -eq 1 ]] && state=$states
             case "$state" in
@@ -177,6 +198,7 @@ jobs:
           PR_AUTHOR: ${{ steps.pr.outputs.author }}
           GUIDANCE: ${{ steps.pr.outputs.guidance }}
           VERDICT: ${{ steps.pr.outputs.verdict }}
+          RECOVER: ${{ inputs.recover }}
         run: |
           set -euo pipefail
           args=(--artifact "$ART" --run-url "$RUN_URL")
@@ -184,4 +206,8 @@ jobs:
           [[ -n "$PR_AUTHOR" ]] && args+=(--pr-author "$PR_AUTHOR")
           [[ -n "$GUIDANCE" ]] && args+=(--guidance "$GUIDANCE")
           [[ -n "$VERDICT" ]] && args+=(--verdict "$VERDICT")
+          case "$RECOVER" in
+            mark-only) args+=(--mark-only) ;;
+            resend) args+=(--force) ;;
+          esac
           python3 -I .fullsend/scripts/trace-bridge.py "${args[@]}"

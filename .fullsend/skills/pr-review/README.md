@@ -551,17 +551,22 @@ retention; anyone who can read the experiment can read these traces.
 
 **Failure behavior.** The job runs outside the review, so it cannot change a review's
 outcome. A run whose artifact list has no `fullsend-review` artifact is skipped; an
-artifact API or download error fails the job so it can be rerun. If guidance selection
-fails, the trace is sent without coverage. If the endpoint is unreachable, the job fails
-and the review is unaffected; rerun it from the Actions tab. If the bridge's spans are
-already in MLflow (its `fullsend.bridge.version` tag is set), a rerun only refreshes tags,
-because re-sending spans doubles MLflow's token totals (`--force` overrides). The marker
-tag is required: if it can't be written after an export, the job fails so it can be rerun.
-An export the endpoint only partly accepts (HTTP 200 with `partialSuccess.rejectedSpans`)
-also fails the job without writing the marker. A malformed `agent-result.json` doesn't
-stop the export; the run is traced without PR metadata. For the same
-reason, a lookup that keeps failing (non-404 error, timeout, malformed reply) is retried and
-then stops the job instead of exporting; rerun it, or pass `--force`.
+artifact API or download error fails the job so it can be rerun. A failed PR, files, run
+or review lookup only drops that optional metadata (author, coverage, verdict fallback);
+the spans are still sent. If guidance selection fails, the trace is sent without coverage.
+If the endpoint is unreachable, the job fails and the review is unaffected; rerun it from
+the Actions tab. If the bridge's spans are already in MLflow (its `fullsend.bridge.version`
+tag is set), a rerun only refreshes tags, because re-sending spans doubles MLflow's token
+totals. An export the endpoint only partly accepts (HTTP 200 with
+`partialSuccess.rejectedSpans`) fails the job without writing the marker, and so does a
+marker write that keeps failing after an export. A rerun then finds the trace without the
+marker and stops rather than guess which spans MLflow holds. Check the trace, then run the
+workflow manually with `recover`: `mark-only` records the marker when the spans are
+complete, and `resend` sends all spans again (the ones already accepted count twice). A
+malformed `agent-result.json` doesn't stop the export; the run is traced without PR
+metadata. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
+and then stops the job instead of exporting; rerun it. The Actions log shows counts and
+tags only, never the PR, file or guidance paths.
 
 ## Related files
 
