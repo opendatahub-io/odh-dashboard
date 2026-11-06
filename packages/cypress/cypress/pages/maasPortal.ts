@@ -45,7 +45,7 @@ class MaaSPortalPage {
   }
 
   getStoredApiKey(): Cypress.Chainable<string> {
-    return cy.get<string>('@storedApiKey');
+    return cy.get<string>('@storedApiKey', { log: false });
   }
 
   logout(): void {
