@@ -117,6 +117,8 @@ These three commands collectively start:
 - The Dashboard Frontend (Shell)
 - Your new Modular Architecture Module (Federated)
 
+The `yourModuleName` flag defaults to `false`, so the module's navigation and route stay hidden until you enable it locally. Set `yourModuleName: true` under `dashboardConfig` in your dev cluster's `OdhDashboardConfig`, or open the dashboard with `?devFeatureFlags=yourModuleName=true` for this browser session.
+
 Access the dashboard in your browser (usually at `http://localhost:4000` or the port configured for the shell) and verify that your module is loaded.
 
 > **Note**: In production, the Dashboard Module Controller (operator) handles all deployment and configuration automatically. The local development workflow described above is only for development purposes. See the sections below for production deployment details.

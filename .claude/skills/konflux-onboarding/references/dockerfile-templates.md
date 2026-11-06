@@ -327,7 +327,7 @@ skopeo inspect docker://registry.access.redhat.com/ubi9/go-toolset:1.26 --format
 skopeo inspect docker://registry.redhat.io/ubi9/ubi-minimal-pqc:latest --format '{{.Digest}}'
 ```
 
-Use the Go minor version from the module's `bff/go.mod`.
+Use the Go minor version from `packages/<name>/bff/go.mod` (Type A with a BFF) or `<name>/go.mod` (Type B).
 
 ### Step 2: Validate digests
 

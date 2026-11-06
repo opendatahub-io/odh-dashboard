@@ -99,10 +99,11 @@ Name substitution alone is not enough in the fallback: Data Connect Hub's routes
 
 1. Rewrite `frontend/src/odh/extensions.ts` to the installer's shape. Add an `app.navigation/section` with id `<kebab>`, then an `app.navigation/href` with `href: '/<kebab>/main-view'`, `section: '<kebab>'`, `path: '/<kebab>/main-view/*'` and `title: '<Title Case>'`, and an `app.route` on `/<kebab>/main-view/*`. All of them are gated on `SupportedArea.PLUGIN_<UPPER_SNAKE>`.
 2. Replace the copied Connections pages with a neutral placeholder page (title and empty state only) that the route renders.
-3. Confirm nothing from Data Connect Hub's UI is left. This should print nothing:
+3. Neutralize the BFF the same way. In `bff/internal/api/app.go`, keep only the user, namespaces and healthcheck routes, and delete the connection handlers (`connection*_handler.go`, `connections_handler*.go`) with their tests. Delete the upstream client and discovery (`data_connect_hub_client.go`, `data_connect_hub_discovery.go`), and remove the upstream URL flag and discovery call from `bff/cmd/main.go` and `bff/internal/config/`. Then update the OpenAPI spec under `api/openapi/` to match, and run `go build ./... && go test ./...` in `bff/`.
+4. Confirm nothing from Data Connect Hub is left. This should print nothing:
 
 ```bash
-grep -rnE 'ai-hub|[Cc]onnections|dataConnectHub|DataConnectHub|DATA_CONNECT_HUB' packages/<name>/frontend/src
+grep -rnE 'ai-hub|[Cc]onnections?|dataConnectHub|DataConnectHub|DATA_CONNECT_HUB|data_connect_hub' packages/<name>/frontend/src packages/<name>/bff
 ```
 
 ### Step 2: Verify and patch the generated output
@@ -118,7 +119,7 @@ Verify the following (compare with `packages/data-connect-hub/`) and patch anyth
 - Scripts:
   - `cypress:mock:build`, `cypress:mock:build:coverage`, `cypress:mock:dev` — opt the remote in to dashboard Cypress mock orchestration (`pnpm run validate:cypress-mock`)
   - `cypress:server`, `cypress:server:build`, `cypress:server:dev`, `cypress:server:wait` (`http-get://localhost:<port>/healthcheck`)
-  - `cypress:server:e2e` (`make dev-bff-e2e-cluster E2E_BFF_PORT=<port>`), `cypress:server:e2e:wait`, `prepare:e2e`
+  - `cypress:server:e2e` (`STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=<port>`, so the BFF serves the Cypress build), `cypress:server:e2e:wait`, `prepare:e2e`
   - `lint` and `type-check` — delegate to the frontend so root `pnpm run lint` / `pnpm run type-check` (turbo) cover the module
 - Internal deps use the pnpm workspace protocol (`workspace:*`): `@odh-dashboard/internal`, `plugin-core`, `ui-core` (`dependencies`); `app-config`, `eslint-config`, `tsconfig` (`devDependencies`)
 - No `exports` field is needed for federated remotes (extensions are loaded via Module Federation)
