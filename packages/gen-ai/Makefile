@@ -5,19 +5,19 @@
 DEFAULT_ENV_FILE := .env
 ifneq ("$(wildcard $(DEFAULT_ENV_FILE))","")
 include ${DEFAULT_ENV_FILE}
-export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${DEFAULT_ENV_FILE})
+export $(shell sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${DEFAULT_ENV_FILE})
 endif
 
 DEV_ENV_FILE := .env.development
 ifneq ("$(wildcard $(DEV_ENV_FILE))","")
 include ${DEV_ENV_FILE}
-export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${DEV_ENV_FILE})
+export $(shell sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${DEV_ENV_FILE})
 endif
 
 ENV_FILE := .env.local
 ifneq ("$(wildcard $(ENV_FILE))","")
 include ${ENV_FILE}
-export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${ENV_FILE})
+export $(shell sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${ENV_FILE})
 endif
 
 DISTRIBUTION_NAME ?= rh
