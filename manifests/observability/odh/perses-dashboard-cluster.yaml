@@ -17,7 +17,8 @@ spec:
             description: Filter by project
           allowMultiple: true
           allowAllValue: true
-          customAllValue: ".*"
+          # No customAllValue: All expands to concrete list (Dashboard StaticListVariable).
+          # Admin :9091 does not require namespace=; omit wildcard for consistency with scoped datasources.
           defaultValue: "$__all"
           plugin:
             kind: PrometheusLabelValuesVariable

@@ -1,31 +1,24 @@
-const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=false';
+const GEN_AI_NON_MAAS_FLAG = 'devFeatureFlags=modelAsService=false';
 const GEN_AI_CUSTOM_ENDPOINTS_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false';
+  'devFeatureFlags=aiAssetCustomEndpoints=true,modelAsService=false';
 const GEN_AI_MULTIMODAL_FLAGS =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,genAiImageUpload=true,genAiAudioUpload=true,modelAsService=false';
+  'devFeatureFlags=aiAssetCustomEndpoints=true,genAiImageUpload=true,genAiAudioUpload=true,modelAsService=false';
 const GEN_AI_EXTERNAL_VECTOR_STORES_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false';
-const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,modelAsService=false';
-const GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false';
+  'devFeatureFlags=aiAssetCustomEndpoints=true,externalVectorStores=true,modelAsService=false';
 const GEN_AI_GUARDRAILS_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
-const GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false';
+  'devFeatureFlags=aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false';
 const GEN_AI_ALL_FLAGS =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,agentConfigManagement=true,genAiImageUpload=true,genAiAudioUpload=true,modelAsService=false';
+  'devFeatureFlags=aiAssetCustomEndpoints=true,guardrails=true,agentConfigManagement=true,genAiImageUpload=true,genAiAudioUpload=true,modelAsService=false';
 const GEN_AI_AGENT_DEPLOYMENTS_FLAGS =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,agentConfigManagement=true,genAiAgentDeployment=true,modelAsService=false';
+  'devFeatureFlags=aiAssetCustomEndpoints=true,agentConfigManagement=true,genAiAgentDeployment=true,modelAsService=false';
 const GEN_AI_MCP_REGISTRY_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,mcpRegistry=true,genAiMcpRegistryServers=true,modelAsService=false';
-const GEN_AI_MAAS_FLAG = 'devFeatureFlags=genAiStudio=true,modelAsService=true,maasApiKeys=true';
+  'devFeatureFlags=aiAssetCustomEndpoints=true,mcpRegistry=true,genAiMcpRegistryServers=true,modelAsService=false';
 const GEN_AI_TRACING_FLAG =
-  'devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,genAiTracing=true,modelAsService=false';
+  'devFeatureFlags=aiAssetCustomEndpoints=true,genAiTracing=true,modelAsService=false';
 
 class GenAiPlayground {
   navigate(projectName: string) {
-    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_DEV_FLAG}`);
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_NON_MAAS_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
@@ -35,7 +28,7 @@ class GenAiPlayground {
   }
 
   navigateToAssets(projectName: string) {
-    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_DEV_FLAG}`);
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_NON_MAAS_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 
@@ -50,23 +43,18 @@ class GenAiPlayground {
   }
 
   navigateToAssetsWithMaaS(projectName: string) {
-    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_MAAS_FLAG}`);
+    cy.visit(`/gen-ai-studio/assets/${projectName}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 
   navigateToPlaygroundWithMaaS(projectName: string) {
-    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_MAAS_FLAG}`);
+    cy.visit(`/gen-ai-studio/playground/${projectName}`);
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
   navigateToAssetsWithTracing(projectName: string) {
     cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_TRACING_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
-  }
-
-  navigateWithCustomEndpoints(projectName: string) {
-    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`);
-    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
   navigateToPlaygroundWithRetry(projectName: string) {
@@ -81,31 +69,13 @@ class GenAiPlayground {
     cy.findByTestId('settings-model-selector-toggle', { timeout: 120000 }).should('be.visible');
   }
 
-  navigateToAssetsWithPromptManagement(projectName: string) {
-    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
+  navigateToAssetsWithGuardrails(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_GUARDRAILS_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 
-  navigateToAssetsWithGuardrailsAndPromptManagement(projectName: string) {
-    cy.visit(
-      `/gen-ai-studio/assets/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_GUARDRAILS_FLAG}`,
-    );
-    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
-  }
-
-  navigateToPlaygroundWithPromptManagement(projectName: string) {
-    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`);
-    cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
-  }
-
-  navigateToPlaygroundWithPromptManagementRetry(projectName: string) {
-    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_PROMPT_FLAG}`;
-    cy.visit(playgroundUrl);
-    cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
-  }
-
-  navigateToPlaygroundWithRag(projectName: string) {
-    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_RAG_FLAG}`;
+  navigateToPlaygroundWithCustomEndpoints(projectName: string) {
+    const playgroundUrl = `/gen-ai-studio/playground/${projectName}?${GEN_AI_CUSTOM_ENDPOINTS_FLAG}`;
     cy.visit(playgroundUrl);
     cy.findByTestId('chatbot-message-bar', { timeout: 120000 }).should('be.visible');
   }

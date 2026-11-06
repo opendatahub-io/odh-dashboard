@@ -7,14 +7,9 @@ import { TopologyType } from '../../../types';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 import { RoutingConfigContext } from '../RoutingConfigContext';
 import RoutingConfigurationCreateEdit from '../RoutingConfigurationCreateEdit';
-import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
-
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
-}));
+const { wrapper } = createTestProviders();
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
@@ -23,11 +18,6 @@ jest.mock('@odh-dashboard/ui-core', () => ({
       {children}
     </div>
   ),
-}));
-
-jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
-  __esModule: true,
-  default: () => ({ error: jest.fn(), success: jest.fn() }),
 }));
 
 jest.mock('../../ConfigYAMLEditor', () =>

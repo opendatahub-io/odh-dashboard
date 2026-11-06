@@ -11,12 +11,16 @@ keep_history: false
 roles:
     - review
     # Enables the fix stage (Fullsend maps fix to the coder role). The coder
-    # role also covers issue-driven /fs-code, which stays off via the code
-    # entry below.
+    # role also covers the code agent below.
     - coder
 agents:
+    # Code agent for the RHOAIENG Jira pilot (fullsend-poll-jira.yaml). Only
+    # the Jira poller dispatches it: the shim routes no GitHub issue events,
+    # so GitHub /fs-code and ready-to-code stay inert.
     - name: code
-      enabled: false
+      source: harness/code.yaml
+      runtime: pi
+      model: openai/gpt-6.1-sol
     # Dashboard overlay; the base harness still supplies Fullsend's review skills.
     - name: review
       source: harness/review.yaml
@@ -44,6 +48,17 @@ agents:
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/
+# Who may start the code agent from Jira, by /fs-code or by adding
+# ready-to-code (labels: allowlist). Jira account IDs, from the profile URL.
+# Needs Fullsend v0.54.0; the review shim's older CLI runs fine with it, but its
+# `fullsend agent add/set/update/remove` reject it.
+authorization:
+    - provider: jira
+      write:
+          accounts:
+              - "70121:6ffe4358-1556-4a4e-a0d8-1f2593d39f68" # Gage Krumbach
+              - "712020:ce710f80-369e-4b6d-95e2-ca6c9e58d9fb" # Christian Vogt
+      labels: allowlist
 create_issues:
     allow_targets:
         repos:
