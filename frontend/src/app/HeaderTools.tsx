@@ -14,7 +14,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
-import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
+import { QuestionCircleIcon, MoonIcon, SunIcon, EyeIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import LightBulbIcon from '#~/images/icons/LightBulbIcon';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '#~/utilities/const';
@@ -26,7 +26,7 @@ import AboutDialog from '#~/app/AboutDialog';
 import { useIsGuidedTourAvailable } from '#~/concepts/whatsNew/useIsGuidedTourAvailable';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
-import { useThemeContext } from './ThemeContext';
+import { useThemeContext, type ContrastMode } from './ThemeContext';
 import { logout } from './appUtils';
 import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './featureFlags/FeatureFlagLauncher';
 import { openWhatsNewTour } from './whatsNew/whatsNewEvent';
@@ -42,11 +42,12 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
   const [aboutShown, setAboutShown] = React.useState(false);
+  const [contrastMenuOpen, setContrastMenuOpen] = React.useState(false);
   const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
   const userName: string = useAppSelector((state) => state.user || '');
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
   const { dashboardConfig } = useAppContext();
-  const { theme, setAllThemes } = useThemeContext();
+  const { theme, setAllThemes, contrastMode, setContrastMode } = useThemeContext();
   const notification = useNotification();
   const isGuidedTourAvailable = useIsGuidedTourAvailable();
   const unifiedProjectSelectorEnabled = useIsAreaAvailable(
@@ -244,6 +245,63 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                 }}
               />
             </ToggleGroup>
+          </ToolbarItem>
+          <ToolbarItem>
+            <Dropdown
+              popperProps={{ position: 'right' }}
+              onOpenChange={(isOpen) => setContrastMenuOpen(isOpen)}
+              toggle={(toggleRef) => (
+                <Tooltip content="Contrast mode" position="bottom">
+                  <MenuToggle
+                    variant="plain"
+                    aria-label="Contrast mode"
+                    id="contrast-mode-toggle"
+                    ref={toggleRef}
+                    onClick={() => setContrastMenuOpen(!contrastMenuOpen)}
+                    isExpanded={contrastMenuOpen}
+                  >
+                    <EyeIcon />
+                  </MenuToggle>
+                </Tooltip>
+              )}
+              isOpen={contrastMenuOpen}
+            >
+              <DropdownList>
+                <DropdownItem
+                  key="system"
+                  onClick={() => {
+                    setContrastMode('system');
+                    setContrastMenuOpen(false);
+                  }}
+                  isSelected={contrastMode === 'system'}
+                  description="Follows your system's reduce-transparency setting"
+                >
+                  System
+                </DropdownItem>
+                <DropdownItem
+                  key="default"
+                  onClick={() => {
+                    setContrastMode('default');
+                    setContrastMenuOpen(false);
+                  }}
+                  isSelected={contrastMode === 'default'}
+                  description="Solid backgrounds, no transparency"
+                >
+                  Default
+                </DropdownItem>
+                <DropdownItem
+                  key="glass"
+                  onClick={() => {
+                    setContrastMode('glass');
+                    setContrastMenuOpen(false);
+                  }}
+                  isSelected={contrastMode === 'glass'}
+                  description="Transparency and depth effects"
+                >
+                  Glass
+                </DropdownItem>
+              </DropdownList>
+            </Dropdown>
           </ToolbarItem>
         </ToolbarGroup>
         {DEV_MODE && isImpersonating && (
