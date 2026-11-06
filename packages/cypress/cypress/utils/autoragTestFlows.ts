@@ -1,11 +1,21 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForAutoXDspaReady } from './oc_commands/autoX';
-import { waitForManagedPipelines } from './autoXPipelines';
-import { getVectorDatabaseConnection, resetAutoragConnections } from './oc_commands/autoragInfra';
+import { waitForAutoragManagedPipelines } from './autoXPipelines';
+import {
+  getVectorDatabaseConnection,
+  resetAutoragConnections,
+  verifyAutoragVectorDatabaseConnectionSecret,
+} from './oc_commands/autoragInfra';
+import { AWS_BUCKETS } from './s3Buckets';
+import { resolveAutoXS3Endpoint } from './autoXS3';
 import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
 import { autoragConfigurePage } from '../pages/autorag/configurePage';
 import { autoragResultsPage } from '../pages/autorag/resultsPage';
 import type { AutoragTestData } from '../types';
+import {
+  AUTORAG_CANCELLATION_TIMEOUT_MS,
+  AUTORAG_COMPLETION_TIMEOUT_MS,
+} from '../support/timeouts';
 
 const RESOURCES_PATH = 'resources/autorag';
 
@@ -127,15 +137,71 @@ const getMaaSServiceRoot = (configuredUrl: string): string => {
 const isMaaSModel = (value: unknown): value is MaaSModel =>
   typeof value === 'object' && value !== null;
 
+const isValidAutoragS3Configuration = (
+  testData: Pick<AutoragTestData, 'awsBucket' | 's3SecretName'>,
+): boolean => {
+  const configuredBuckets: unknown = AWS_BUCKETS;
+  if (configuredBuckets === null || typeof configuredBuckets !== 'object') {
+    return false;
+  }
+
+  const buckets = configuredBuckets as Record<string, unknown>;
+  const bucket = (
+    buckets as Record<string, { NAME?: unknown; REGION?: unknown; ENDPOINT?: unknown } | undefined>
+  )[String(testData.awsBucket)];
+  const { s3SecretName } = testData as { s3SecretName: unknown };
+  const accessKeyId = buckets.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = buckets.AWS_SECRET_ACCESS_KEY;
+  if (
+    !bucket ||
+    typeof s3SecretName !== 'string' ||
+    typeof bucket.NAME !== 'string' ||
+    typeof bucket.REGION !== 'string' ||
+    typeof bucket.ENDPOINT !== 'string' ||
+    typeof accessKeyId !== 'string' ||
+    typeof secretAccessKey !== 'string' ||
+    !s3SecretName.trim() ||
+    !bucket.NAME.trim() ||
+    !bucket.REGION.trim() ||
+    !accessKeyId.trim() ||
+    !secretAccessKey.trim()
+  ) {
+    return false;
+  }
+
+  try {
+    const endpoint = resolveAutoXS3Endpoint(bucket.ENDPOINT);
+    const normalizedEndpoint = /^https?:\/\//i.test(endpoint) ? endpoint : `https://${endpoint}`;
+    const parsedEndpoint = new URL(normalizedEndpoint);
+    return (
+      (parsedEndpoint.protocol === 'http:' || parsedEndpoint.protocol === 'https:') &&
+      !!parsedEndpoint.hostname &&
+      !parsedEndpoint.username &&
+      !parsedEndpoint.password &&
+      !parsedEndpoint.search &&
+      !parsedEndpoint.hash
+    );
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Verify the hosted MaaS models before provisioning AutoRAG resources.
  * Response details and credentials are intentionally never logged or included in failures.
  */
-export const checkAutoragMaaSReadiness = (): Cypress.Chainable<AutoragMaaSFixture> => {
+export const checkAutoragMaaSReadiness = (
+  testData: Pick<AutoragTestData, 'awsBucket' | 's3SecretName'>,
+): Cypress.Chainable<AutoragMaaSFixture> => {
   const fixture = resolveAutoragMaaSFixture();
+  const hasValidS3Configuration = isValidAutoragS3Configuration(testData);
   if (fixture.mode === 'simulator') {
     return cy.wrap<AutoragMaaSFixture>(fixture);
   }
+
+  // Completion/results require both live MaaS models and a complete, usable AutoX S3 setup.
+  // Keep this boolean-only check free of endpoint, access-key, and secret logging.
+  const supportsCompletionResults = hasValidS3Configuration;
 
   const serviceRoot = getMaaSServiceRoot(fixture.maasUrl);
 
@@ -164,7 +230,7 @@ export const checkAutoragMaaSReadiness = (): Cypress.Chainable<AutoragMaaSFixtur
           throw new Error('A configured MaaS model is missing or not ready.');
         }
       }
-      return fixture;
+      return { ...fixture, supportsCompletionResults };
     });
 };
 
@@ -205,10 +271,13 @@ const createMaaSConnection = (testData: AutoragTestData, maasFixture: AutoragMaa
   autoragConfigurePage.findMaasConnectionSubmitButton().click();
 };
 
-const createVectorDbConnection = (testData: AutoragTestData): void => {
+const createVectorDbConnection = (
+  testData: AutoragTestData,
+  projectName: string,
+): Cypress.Chainable<void> => {
   autoragConfigurePage.findAddDatabaseDropdownToggle().click();
   autoragConfigurePage.findAddPgvectorConnectionOption().click();
-  const connection = getVectorDatabaseConnection();
+  const connection = getVectorDatabaseConnection(projectName);
   autoragConfigurePage.findPgvectorConnectionNameInput().clear().type(testData.vectorDbSecretName);
   autoragConfigurePage.findPgvectorInput('host').type(connection.host);
   autoragConfigurePage.findPgvectorInput('port').type(connection.port);
@@ -216,6 +285,11 @@ const createVectorDbConnection = (testData: AutoragTestData): void => {
   autoragConfigurePage.findPgvectorInput('user').type(connection.user);
   autoragConfigurePage.findPgvectorInput('password').type(connection.password, { log: false });
   autoragConfigurePage.findPgvectorConnectionSubmitButton().click();
+  return verifyAutoragVectorDatabaseConnectionSecret(
+    testData.vectorDbSecretName,
+    projectName,
+    connection,
+  );
 };
 
 /** Create and select project-scoped connections without probing existing secrets. */
@@ -230,7 +304,7 @@ export const createAutoragConnections = (
   interceptSimulatorMaaSModels(projectName, testData, maasFixture);
   cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
   waitForAutoXDspaReady(projectName);
-  waitForManagedPipelines(projectName);
+  waitForAutoragManagedPipelines(projectName);
   autoragExperimentsPage.visit(projectName);
   autoragExperimentsPage.findAnyCreateRunButton({ timeout: 120000 }).click();
   autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
@@ -249,7 +323,7 @@ export const createAutoragConnections = (
   cy.step('Create PGVector connection through the dashboard');
   autoragConfigurePage.findNextButton().click();
   autoragConfigurePage.findDatabaseSelector({ timeout: 60000 }).should('not.be.disabled');
-  createVectorDbConnection(testData);
+  createVectorDbConnection(testData, projectName);
   connectionOwnership.vectorDbSecretCreated = true;
   autoragConfigurePage
     .findDatabaseSelector()
@@ -282,7 +356,7 @@ export const configureAutoragRun = (
   interceptSimulatorMaaSModels(projectName, testData, maasFixture);
   cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
   waitForAutoXDspaReady(projectName);
-  waitForManagedPipelines(projectName);
+  waitForAutoragManagedPipelines(projectName);
 
   cy.step('Navigate to AutoRAG experiments page');
   autoragExperimentsPage.visit(projectName);
@@ -391,7 +465,7 @@ export const configureAutoragRun = (
   cy.step('Select database connection');
   if (options.createConnections) {
     cy.step('Create PGVector connection through the dashboard');
-    createVectorDbConnection(testData);
+    createVectorDbConnection(testData, projectName);
     if (connectionOwnership) {
       connectionOwnership.vectorDbSecretCreated = true;
     }
@@ -510,13 +584,13 @@ export const verifyAutoragRunTerminated = (projectName: string, runId: string): 
     )}`,
   );
 
-  // The timeout must be on `.invoke` for the `.should` to get the 80s timeout.
-  // Putting it on `.findRunStatusLabel` will not work as that will only give 80s
-  // to find the initial label and not to match for the cancelled state.
+  // The timeout must be on `.invoke` for the `.should` to get the full cancellation timeout.
+  // Putting it on `.findRunStatusLabel` will only give the initial label lookup the timeout
+  // and not the retry period needed to reach the final canceled state.
   autoragResultsPage
     .findRunStatusLabel()
-    .invoke({ timeout: 80000 }, 'text')
-    .should('match', /CANCELED|CANCELLED|FAILED/i);
+    .invoke({ timeout: AUTORAG_CANCELLATION_TIMEOUT_MS }, 'text')
+    .should('match', /CANCELED|CANCELLED/i);
 };
 
 export const verifyAutoragRunListed = (projectName: string, runName: string): void => {
@@ -527,10 +601,11 @@ export const verifyAutoragRunListed = (projectName: string, runName: string): vo
 };
 
 /**
- * Waits up to `timeoutMs` (default 45 min) for the run to complete.
+ * Waits up to `timeoutMs` (default 60 min, configurable with AUTORAG_COMPLETION_TIMEOUT_MS)
+ * for the run to complete.
  * Asserts that the leaderboard table appears.
  */
-export const waitForAutoragRunCompletion = (timeoutMs = 2700000): void => {
+export const waitForAutoragRunCompletion = (timeoutMs = AUTORAG_COMPLETION_TIMEOUT_MS): void => {
   cy.step('Wait for run in-progress indicator to appear');
   autoragResultsPage.findRunInProgressMessage(60000).should('exist');
 

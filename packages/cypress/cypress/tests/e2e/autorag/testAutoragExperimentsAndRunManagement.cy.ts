@@ -7,7 +7,10 @@ import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
-import { cleanupAutoragInfrastructure } from '../../../utils/oc_commands/autoragInfra';
+import {
+  cleanupAutoragInfrastructure,
+  provisionAutoragPgvector,
+} from '../../../utils/oc_commands/autoragInfra';
 import {
   configureAutoragRun,
   checkAutoragMaaSReadiness,
@@ -47,10 +50,11 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
         projectName = `${testData.projectNamePrefix}-${uuid}`;
         cleanupReady = true;
       })
-      .then(() => checkAutoragMaaSReadiness())
+      .then(() => checkAutoragMaaSReadiness(testData))
       .then((fixture) => {
         maasFixture = fixture;
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        provisionAutoragPgvector(projectName);
       }),
   );
 

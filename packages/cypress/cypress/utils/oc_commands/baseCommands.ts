@@ -1,6 +1,8 @@
 import type { CommandLineResult, UserAuthConfig } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
+const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
+
 /**
  * Ensures the oc CLI session is logged in as the cluster admin user.
  * Required before setup/cleanup steps that run oc commands after a test
@@ -170,7 +172,7 @@ export const applyOpenShiftYaml = (
   yamlContent: string,
   namespace?: string,
 ): Cypress.Chainable<CommandLineResult> => {
-  const ns = namespace ? `-n ${namespace}` : '';
+  const ns = namespace ? `-n ${shellQuote(namespace)}` : '';
   // Create a temporary file to avoid logging sensitive content
   const tempFileName = `/tmp/cypress-yaml-${Date.now()}-${Math.random()
     .toString(36)

@@ -364,6 +364,24 @@ Cypress uses several environment variables to control test behavior and configur
 - **Usage**: `export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'`
 - **Required**: Yes, for e2e tests
 
+#### CYPRESS_AUTORAG_COMPLETION_TIMEOUT_MS
+
+- **Purpose**: Sets the maximum wait for an AutoRAG optimization run to complete
+- **Values**: A finite, positive number of milliseconds
+- **Default**: `3600000` (60 minutes)
+- **Effect**: Controls the completion/results wait used by AutoRAG E2E tests
+- **Usage**: `CYPRESS_AUTORAG_COMPLETION_TIMEOUT_MS=3600000 pnpm run cypress:run`
+- **Required**: No
+
+#### CYPRESS_AUTORAG_CANCELLATION_TIMEOUT_MS
+
+- **Purpose**: Sets the maximum wait for an AutoRAG run to reach a canceled state
+- **Values**: A finite, positive number of milliseconds
+- **Default**: `120000` (2 minutes)
+- **Effect**: Controls the cancellation wait used by AutoRAG E2E tests
+- **Usage**: `CYPRESS_AUTORAG_CANCELLATION_TIMEOUT_MS=120000 pnpm run cypress:run`
+- **Required**: No
+
 #### CYPRESS_DSPA_S3_ENDPOINT
 
 - **Purpose**: Overrides the S3 endpoint used by AutoX end-to-end provisioning
