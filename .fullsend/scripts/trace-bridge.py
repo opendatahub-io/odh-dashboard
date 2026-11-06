@@ -460,22 +460,24 @@ def shell_tokens(cmd):
     skipped. Text after an unclosed quote is dropped."""
     text, out, word, i = str(cmd)[:MAX_SCAN * 5], [], None, 0
     pending, expect_delim = [], False  # heredoc delimiters waiting for the next newline
+    fd_digits = True  # current word so far is only unquoted digits (a possible fd like the 2 in 2>)
 
-    def add(chars):
-        nonlocal word
+    def add(chars, plain_digits=False):
+        nonlocal word, fd_digits
         if word is None:
             word = []
+        fd_digits = fd_digits and plain_digits
         word.extend(chars)  # in place: rebuilding the list per character is quadratic
 
     def end_word():
-        nonlocal word, expect_delim
+        nonlocal word, expect_delim, fd_digits
         if word is not None:
             value = "".join(word)
             out.append(value)
             if expect_delim:
                 pending.append(value)
                 expect_delim = False
-        word = None
+        word, fd_digits = None, True
 
     n = len(text)
     while i < n:
@@ -526,8 +528,10 @@ def shell_tokens(cmd):
             nl = text.find("\n", i)
             i = n if nl < 0 else nl  # keep the newline: it still separates commands
         elif c in "();<>|&\n":
-            end_word()
             op = next(o for o in SHELL_OPS if text.startswith(o, i))
+            if word is not None and fd_digits and op[0] in "<>":
+                word = None  # an unquoted fd number attached to a redirection (2>, 1>>): not a word
+            end_word()
             out.append(Op(op))
             i += len(op)
             if op in ("<<", "<<-"):
@@ -541,7 +545,7 @@ def shell_tokens(cmd):
                             break
                 pending = []
         else:
-            add(c)
+            add(c, plain_digits=c.isdigit())
             i += 1
     end_word()
     return out
@@ -1486,6 +1490,9 @@ def self_test():
          and shell_summary("echo $'\\' > private/secret.md \\''")[1] == []
          and shell_reads("echo $'a\\'b' && cat k/l.md") == ["k/l.md"]
          and shell_summary("sed -e >/dev/null 's/private/needle/' README.md")[1] == ["README.md"]
+         and shell_summary("sed -e 2>/dev/null 's/private/needle/' README.md")[1] == ["README.md"]
+         and shell_tokens("cmd 2>err/e.log '2'>out/o.log 2 >x/y.log")
+         == ["cmd", Op(">"), "err/e.log", "2", Op(">"), "out/o.log", "2", Op(">"), "x/y.log"]
          and shell_reads("sed -e 's/a/b/' >/dev/null docs/r.md") == ["docs/r.md"]),
         ("quoted ; | > text never splits segments or creates redirections; skipped < reads don't count",
          shell_summary("echo 'status; cat ssn/123-45-6789 ; done'")[1] == []
