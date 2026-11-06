@@ -318,7 +318,7 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
   {
     type: 'model-serving.deployment/wizard-field-apply',
     properties: {
-      fieldId: 'llmd-serving/inference-service-config',
+      fieldId: 'llmd-serving/accelerator-config',
       platform: LLMD_SERVING_ID,
       apply: () => import('../src/deployments/accelerator').then((m) => m.applyAcceleratorConfig),
     },
@@ -327,7 +327,7 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
   {
     type: 'model-serving.deployment/wizard-field-extractor',
     properties: {
-      fieldId: 'llmd-serving/inference-service-config',
+      fieldId: 'llmd-serving/accelerator-config',
       platform: LLMD_SERVING_ID,
       extract: () =>
         import('../src/deployments/accelerator').then((m) => m.extractAcceleratorConfig),
@@ -337,7 +337,7 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
   {
     type: 'model-serving.deployment/wizard-field-deployment-functions',
     properties: {
-      fieldId: 'llmd-serving/inference-service-config',
+      fieldId: 'llmd-serving/accelerator-config',
       platform: LLMD_SERVING_ID,
       preDeploy: () =>
         import('../src/deployments/accelerator').then((m) => m.preDeployAcceleratorConfig),
