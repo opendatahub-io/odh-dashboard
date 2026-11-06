@@ -7,10 +7,10 @@
     <title><%= htmlRspackPlugin.options.title %></title>
     <script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script>
     <script>
-      // PatternFly Felt theme — applied before the app boots so tokens are correct
-      // on first paint. Light/dark composes via .pf-v6-theme-dark (see ThemeContext).
+      // PatternFly Felt + Glass themes — applied before the app boots so tokens
+      // are correct on first paint. Light/dark composes via .pf-v6-theme-dark
+      // (see ThemeContext). OS "Reduce Transparency" overrides glass (see App.scss).
       document.documentElement.classList.add('pf-v6-theme-felt');
-      document.documentElement.classList.add('pf-v6-theme-glass');
     </script>
   </head>
   <body>
