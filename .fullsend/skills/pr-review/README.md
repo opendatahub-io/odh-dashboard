@@ -563,8 +563,9 @@ marker write that keeps failing after an export. A rerun then finds the trace wi
 marker and stops rather than guess which spans MLflow holds. Check the trace, then run the
 workflow manually with `recover`: `mark-only` records the marker when the spans are
 complete, and `resend` sends all spans again (the ones already accepted count twice). A
-malformed `agent-result.json` doesn't stop the export; the run is traced without PR
-metadata. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
+malformed `agent-result.json` doesn't stop the export: the bridge takes the PR identity
+from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`), and the
+workflow skips the author, coverage and verdict fallback. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
 and then stops the job instead of exporting; rerun it. The Actions log shows counts and
 tags only, never the PR, file or guidance paths.
 
