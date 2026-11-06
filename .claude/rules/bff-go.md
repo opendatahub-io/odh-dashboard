@@ -127,6 +127,8 @@ type ErrorResponse struct {
 }
 ```
 
+Core BFF has a scoped [error contract](../../distributions/core-bff/docs/error-contract.md): its BFF error envelope also includes `error.requestId`. Native Kubernetes failures and rejected upstream WebSocket handshakes use sanitized Kubernetes `v1/Status`; all pre-commitment Kubernetes HTTP proxy failures use that format, including local failures with `reason: DashboardProxyError` and a stable BFF code in `details.causes[].reason`. `X-Request-ID` provides correlation. These exceptions do not change other BFF envelopes.
+
 Response helpers: `badRequestResponse`, `unauthorizedResponse`, `forbiddenResponse`, `notFoundResponse`, `serverErrorResponse`, `serviceUnavailableResponse`.
 
 ## Request/Response helpers

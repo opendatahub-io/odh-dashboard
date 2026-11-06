@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
 func testLogger() *slog.Logger {
@@ -197,8 +199,8 @@ func TestNewReverseProxy_DefaultErrorHandler(t *testing.T) {
 
 	proxy.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadGateway {
-		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadGateway)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusServiceUnavailable)
 	}
 }
 
@@ -273,9 +275,10 @@ func TestNewReverseProxy_AuthHeaderStripped(t *testing.T) {
 	defer backend.Close()
 
 	proxy, err := NewReverseProxy(ProxyConfig{
-		TargetURL: mustParseURL(t, backend.URL),
-		AllowHTTP: true,
-		Logger:    testLogger(),
+		TargetURL:    mustParseURL(t, backend.URL),
+		AllowHTTP:    true,
+		Logger:       testLogger(),
+		StripHeaders: []string{constants.HeaderAuthorization},
 		AuthHeaderFn: func(r *http.Request) string {
 			return "Bearer injected-token"
 		},
@@ -303,9 +306,10 @@ func TestNewReverseProxy_ClientAuthStrippedWhenNoIdentity(t *testing.T) {
 	defer backend.Close()
 
 	proxy, err := NewReverseProxy(ProxyConfig{
-		TargetURL: mustParseURL(t, backend.URL),
-		AllowHTTP: true,
-		Logger:    testLogger(),
+		TargetURL:    mustParseURL(t, backend.URL),
+		AllowHTTP:    true,
+		Logger:       testLogger(),
+		StripHeaders: []string{constants.HeaderAuthorization},
 		AuthHeaderFn: func(r *http.Request) string {
 			return ""
 		},
