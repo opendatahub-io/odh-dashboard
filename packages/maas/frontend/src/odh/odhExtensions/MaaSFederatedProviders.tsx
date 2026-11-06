@@ -82,8 +82,10 @@ const LegacySettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children 
 };
 
 const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const SettingsLoader = isMaaSPortalHost() ? MaaSSettingsLoader : LegacySettingsLoader;
-  const config = isMaaSPortalHost()
+  const isPortalHost = isMaaSPortalHost();
+  const SettingsLoader = isPortalHost ? MaaSSettingsLoader : LegacySettingsLoader;
+  // TODO: Remove this portal-specific namespace workaround once the mandatory namespace hack is no longer needed.
+  const config = isPortalHost
     ? { ...modularArchConfig, mandatoryNamespace: MAAS_MANDATORY_NAMESPACE }
     : modularArchConfig;
 
