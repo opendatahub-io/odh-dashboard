@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export type ContrastMode = 'system' | 'default' | 'glass';
+export type ContrastMode = 'system' | 'default' | 'glass' | 'high-contrast';
 
 export type ThemeContextProps = {
   theme: string;

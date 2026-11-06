@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   ThemeContext as SharedThemeContext,
-  type ContrastMode,
   type ThemeContextProps as SharedThemeContextProps,
 } from '@odh-dashboard/ui-core/contexts/ThemeContext';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
@@ -9,6 +8,7 @@ import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
 
 export type ColorScheme = 'system' | 'light' | 'dark';
+export type ContrastMode = 'system' | 'default' | 'glass' | 'high-contrast';
 
 type ThemeContextProps = {
   theme: string;
@@ -40,28 +40,45 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   const [prefersDark, setPrefersDark] = React.useState(false);
   const [prefersReducedTransparency, setPrefersReducedTransparency] = React.useState(false);
+  const [prefersHighContrast, setPrefersHighContrast] = React.useState(false);
 
   // Track OS-level preferences
   React.useEffect(() => {
     const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const transparencyQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
+    const contrastQuery = window.matchMedia('(prefers-contrast: more)');
 
     const handleDark = (e: MediaQueryListEvent) => setPrefersDark(e.matches);
     const handleTransparency = (e: MediaQueryListEvent) => setPrefersReducedTransparency(e.matches);
+    const handleContrast = (e: MediaQueryListEvent) => setPrefersHighContrast(e.matches);
 
     setPrefersDark(darkQuery.matches);
     setPrefersReducedTransparency(transparencyQuery.matches);
+    setPrefersHighContrast(contrastQuery.matches);
 
     darkQuery.addEventListener('change', handleDark);
     transparencyQuery.addEventListener('change', handleTransparency);
+    contrastQuery.addEventListener('change', handleContrast);
     return () => {
       darkQuery.removeEventListener('change', handleDark);
       transparencyQuery.removeEventListener('change', handleTransparency);
+      contrastQuery.removeEventListener('change', handleContrast);
     };
   }, []);
 
   // Compute the effective theme from the color scheme preference
   const theme = colorScheme === 'system' ? (prefersDark ? 'dark' : 'light') : colorScheme;
+
+  // Resolve the effective contrast mode from the preference and system state.
+  // Priority per the Glass Mode Handbook: high contrast > glass (never combined).
+  // System mode: prefers-contrast: more → high contrast; otherwise
+  // prefers-reduced-transparency: reduce → default (solid); otherwise → glass.
+  const effectiveContrast: 'default' | 'glass' | 'high-contrast' =
+    contrastMode === 'high-contrast' || (contrastMode === 'system' && prefersHighContrast)
+      ? 'high-contrast'
+      : contrastMode === 'default' || (contrastMode === 'system' && prefersReducedTransparency)
+      ? 'default'
+      : 'glass';
 
   // Apply theme classes to the document root
   React.useEffect(() => {
@@ -70,17 +87,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setMlflowTheme(theme === 'dark');
   }, [theme, setMlflowTheme]);
 
-  // Apply glass class based on the contrast mode preference
+  // Apply contrast mode classes (glass and high contrast are mutually exclusive)
   React.useEffect(() => {
-    const shouldUseGlass =
-      contrastMode === 'glass' ||
-      (contrastMode === 'system' && !prefersReducedTransparency);
-    document.documentElement.classList.toggle('pf-v6-theme-glass', shouldUseGlass);
-  }, [contrastMode, prefersReducedTransparency]);
+    const html = document.documentElement;
+    html.classList.toggle('pf-v6-theme-glass', effectiveContrast === 'glass');
+    html.classList.toggle('pf-v6-theme-high-contrast', effectiveContrast === 'high-contrast');
+  }, [effectiveContrast]);
 
   const setAllThemes = React.useCallback(
     (themeName: string) => {
-      // Legacy: map explicit light/dark to the color scheme
       setColorScheme(themeName === 'dark' ? 'dark' : 'light');
       window.dispatchEvent(
         new CustomEvent('odh-theme-change', { detail: { theme: themeName, contrastMode } }),
