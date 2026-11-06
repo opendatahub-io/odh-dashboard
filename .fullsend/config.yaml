@@ -14,9 +14,10 @@ roles:
     # role also covers the code agent below.
     - coder
 agents:
-    # Code agent for the RHOAIENG Jira pilot (fullsend-poll-jira.yaml). Only
-    # the Jira poller dispatches it: the shim routes no GitHub issue events,
-    # so GitHub /fs-code and ready-to-code stay inert.
+    # Code agent for the RHAI and RHOAIENG Jira pilot
+    # (fullsend-poll-jira.yaml). Only the Jira poller dispatches it: the shim
+    # routes no GitHub issue events, so GitHub /fs-code and ready-to-code stay
+    # inert.
     - name: code
       source: harness/code.yaml
       runtime: pi
