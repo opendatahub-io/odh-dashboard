@@ -422,6 +422,13 @@ READ_PROGS = {"cat", "head", "tail", "less", "more", "bat", "nl", "sed", "awk"}
 # a bare file name needs a known source/doc extension. Absolute paths must be in the sandbox.
 REL_PATH_RE = re.compile(r"(?:\.[\w+-]+|[\w+-]+)(?:/[\w.+-]+)+/?")
 FILE_EXTS = r"md|mdx|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|py|go|sh|txt|css|scss|html|toml|mod|sum|lock|snap"
+# Context for shell arguments: network programs take hosts, not files, so they export no
+# paths; a bare name (no slash) counts as a file only for programs that operate on files.
+NETWORK_PROGS = {"curl", "wget", "ssh", "scp", "sftp", "rsync", "nc", "ncat", "telnet", "ftp", "ping",
+                 "dig", "host", "nslookup", "openssl", "http", "https", "httpie", "grpcurl", "kubectl", "oc"}
+FILE_PROGS = READ_PROGS | {"wc", "ls", "grep", "rg", "find", "fd", "diff", "cmp", "stat", "file", "touch",
+                           "cp", "mv", "rm", "mkdir", "chmod", "jq", "yq", "git", "tee", "sort", "uniq",
+                           "cut", "tr", "xargs", "python", "python3", "node", "bash", "sh", "source", "."}
 BARE_FILE_RE = re.compile(r"\.?[\w+-]+(?:\.[\w+-]+)*\.(?:" + FILE_EXTS + r")")
 REDIRECT_RE = re.compile(r"^(?:\d|&)?>{1,2}|^<<<?$")
 
@@ -463,8 +470,9 @@ def _program(toks):
     return None, None
 
 
-def export_path(t):
-    """A repo-relative path for a shell argument that names a file, else None."""
+def export_path(t, bare_ok=True):
+    """A repo-relative path for a shell argument that names a file, else None. Bare names
+    (no slash) are only accepted when bare_ok, i.e. the program is known to take files."""
     if not t or len(t) > 300 or t.startswith("-"):
         return None
     if t.startswith("/"):
@@ -472,7 +480,7 @@ def export_path(t):
         if root not in ("base", "pr-head") or not t:
             return None
     t = t[2:] if t.startswith("./") else t
-    return t if REL_PATH_RE.fullmatch(t) or BARE_FILE_RE.fullmatch(t) else None
+    return t if REL_PATH_RE.fullmatch(t) or (bare_ok and BARE_FILE_RE.fullmatch(t)) else None
 
 
 def shell_summary(cmd):
@@ -483,8 +491,10 @@ def shell_summary(cmd):
         i, prog = _program(toks)
         if prog:
             programs.append(prog)
+        if prog in NETWORK_PROGS:
+            continue
         for t in toks[(i or 0) + 1:]:
-            rel = export_path(REDIRECT_RE.sub("", t))
+            rel = export_path(REDIRECT_RE.sub("", t), bare_ok=prog in FILE_PROGS)
             if rel and rel not in paths:
                 paths.append(rel)
     return programs[:30], paths[:30]
@@ -1001,7 +1011,8 @@ def self_test():
             call("c11", "bash", {"command": "printf '%s' 'confidential customer information' > /tmp/report.txt"}),
             call("c12", "bash", {"command": "cat <<< 'hereStringSecret' && wc -l .claude/rules/react.md"}),
             call("c14", "bash", {"command": "cat <<< 'x'\ncat AGENTS.md\ngit config user.email \"mailLeak@example.com\" "
-                                            "&& curl api.internal.corp && cat /etc/hosts.md"}),
+                                            "&& curl api.internal.corp && cat /etc/hosts.md && curl api.internal.sh && "
+                                            "echo build.sh && wc -l build.sh"}),
             call("c13", "ghp_QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ", {"x": 1})]))
         f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
         f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
@@ -1106,9 +1117,11 @@ def self_test():
          not any(k in bad_summary["tags"] for k in ("fullsend.risk", "fullsend.pr"))
          and bad_summary["tags"].get("fullsend.verdict") == "other" and bad_summary["pr"] is None),
         ("here-strings don't swallow later lines; emails, hostnames and outside paths aren't exported",
-         any(["cat", "cat", "git", "curl", "cat"] == p for p in shell_progs)
+         any(["cat", "cat", "git", "curl", "cat", "curl", "echo", "wc"] == p for p in shell_progs)
          and "mailLeak" not in blob and "api.internal.corp" not in blob and "/etc/hosts" not in blob
-         and "AGENTS.md" in blob),
+         and "api.internal.sh" not in blob and "AGENTS.md" in blob
+         and any(get(x, "fullsend.tool.paths") == {"values": [
+             {"stringValue": "AGENTS.md"}, {"stringValue": "build.sh"}]} for x in spans)),
         ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
          "fullsend.pr" not in no_repo["tags"] and no_repo["pr"] == 7 and bool_pr["pr"] is None
          and "None#" not in json.dumps(no_repo)),
