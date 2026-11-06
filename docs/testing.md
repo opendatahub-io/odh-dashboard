@@ -158,6 +158,61 @@ pnpm run cypress:open
 
 Use the custom command `cy.visitWithLogin` to visit a page and perform the login procedure steps if the user is not already logged in. The default user is not an ODH admin. `cy.visitWithLogin` can be used to login with different users by supplying the user auth configuration as a parameter.
 
+#### Selective E2E tests
+
+The E2E workflow uses the versioned path-impact map in
+`scripts/cypress/e2e-path-impact.json`, not a Turbo-only package query. The map is
+ordered, supports exact paths plus `**`, `*`, and `?` globs, and explicitly covers
+Cypress specs and support code, packages, frontend areas, manifests, the operator,
+CI configuration, build contracts, deployment scripts, documentation, and repository
+fallback. Package paths derive tags from `e2eCiTags`, module network policies derive
+tags from their owning module, and frontend areas derive tags from
+`.github/frontend-ci-tags.json`.
+
+The planner always runs changed Cypress specs, computes the executable reverse impact
+of changed Cypress support code, and validates selected tags before starting browser
+jobs. Small impact sets run as explicit specs, broad sets use package CI tags, and
+only unmappable broad impact or support deletion falls back to the canonical Smoke
+and Sanity tag groups. If those canonical groups do not cover every required test,
+the planner schedules the residual specs explicitly rather than dropping them. It
+fails selection for empty tags, unmatched impactful paths, unschedulable specs, and
+all-skipped selections, and reports executed, failed, and skipped counts after the
+run. Dashboard base and RHOAI network-policy changes run
+the Pipelines, Workbenches, and Feature Store suites because those flows exercise
+dashboard egress to the pipeline server, Thanos, and Feast.
+
+The **Select Cypress E2E CI tags and specs for this PR** job publishes
+**Cypress E2E CI selection for this PR**: the CI tags and specs selected for the PR
+under test, their selection reasons, and expected executions. The summary includes
+default regression checks when enabled. It describes a limited automated CI check,
+not a comprehensive test plan or full feature/release validation.
+Global support changes can affect most CI-runnable specs and trigger broad
+Smoke/Sanity coverage when package CI tags cannot cover the impact. Any remaining
+specs run explicitly. Counts are per-job test executions and can overlap across
+jobs. **Build Cypress application assets** jobs prepare code for Cypress; they do
+not execute tests. **Browser E2E** jobs run the selected dashboard journeys, and
+**Validate browser E2E results against the plan** checks each job's reported counts.
+
+New packages under the pnpm workspace patterns are discovered automatically. Declare
+`e2eCiTags` in the package's `package.json` and use those tags on executable Cypress
+specs. Specs under the central `packages/cypress/cypress/tests/e2e` tree are discovered
+automatically; package-owned specs also need a `cypress.e2e` pattern in their package
+metadata. Buildable Cypress packages expose `cypress:server:build:coverage`, which the
+workflow discovers for asset builds. No workflow entry or central capability tag
+registration is needed for each new package.
+
+Package tags are additive to the default dashboard regression suite, and executable
+tags from dependent packages can also be selected. Model Registry currently declares
+both `@ModelRegistryCI` and `@ModelCatalogCI`, so a Model Registry-only code change
+selects both suites plus the default regression job. Manual runs can use
+`skip_default` to omit the default job. A new package without CI tags falls back to
+dashboard regression; a declared tag with no executable tests fails selection.
+
+The planner verifies actual tag/spec discovery and the reported per-job testcase
+counts. It does not infer product compatibility, environment coverage, or terminal
+assertions from a separate declaration file. See
+`packages/cypress/cypress/tests/e2e/README.md` for the selection rules.
+
 ### Mocked Tests
 
 Cypress mocked tests run against a standalone frontend while mocking all network requests.
