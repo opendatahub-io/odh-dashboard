@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react';
 import { AreaContext, SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import PortalAreaContextProvider from '../providers/PortalAreaContextProvider';
 import PortalContextProvider from '../providers/PortalContextProvider';
 
@@ -96,4 +97,38 @@ describe('PortalContextProvider AreaContext composition', () => {
       expect(result.current.status).toBe(false);
     },
   );
+});
+
+describe('PortalContextProvider tracking', () => {
+  it('should mount a tracking no-op without accessing or initializing the global SDK', async () => {
+    const originalAnalytics = Object.getOwnPropertyDescriptor(window, 'analytics');
+    const sdk = { track: jest.fn() };
+    const analyticsRead = jest.fn(() => sdk);
+    const analyticsWrite = jest.fn();
+
+    try {
+      Object.defineProperty(window, 'analytics', {
+        configurable: true,
+        get: analyticsRead,
+        set: analyticsWrite,
+      });
+      const { result } = renderHook(useTrackEvent, { wrapper: portalWrapper });
+
+      expect(result.current('custom-event', { outcome: 'submit', success: false })).toBeUndefined();
+      await React.act(async () => undefined);
+      expect(analyticsRead).not.toHaveBeenCalled();
+      expect(analyticsWrite).not.toHaveBeenCalled();
+      expect(sdk.track).not.toHaveBeenCalled();
+
+      Reflect.deleteProperty(window, 'analytics');
+      expect(() => result.current('custom-event', {})).not.toThrow();
+      expect(Object.getOwnPropertyDescriptor(window, 'analytics')).toBeUndefined();
+    } finally {
+      if (originalAnalytics) {
+        Object.defineProperty(window, 'analytics', originalAnalytics);
+      } else {
+        Reflect.deleteProperty(window, 'analytics');
+      }
+    }
+  });
 });
