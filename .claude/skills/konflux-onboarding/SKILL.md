@@ -105,6 +105,8 @@ Parse from `$ARGUMENTS`:
    - Type A: `odh-mod-arch-<name>` (e.g., `odh-mod-arch-gen-ai`)
    - Type B: `odh-<name>` (e.g., `odh-dashboard-operator`)
 
+   Record the answer as `<image>`. Every later identifier derives from it: the downstream Dockerfile labels (`<image>-container`, `managed-open-data-hub/<image>-rhel9`), the DevOps handoff, and the ProdSec registration key `rhoai/<image>-rhel9`.
+
 ## Phase 1: Clone Tracking Epic
 
 **Goal**: Create a Jira epic to track the full onboarding workflow by cloning the [RHOAIENG-37060](https://issues.redhat.com/browse/RHOAIENG-37060) template epic and all its subtasks.
@@ -148,7 +150,7 @@ Create the following subtasks under the new epic.
 | 6 | `<name>: Create Standalone Module Manifests` | Major | Create standalone deployment manifests in `manifests/modules/<name>/`. Partially automated by `/konflux-onboarding` Phase 4 (Type A only). |
 | 7 | `<name>: Onboard Module in Operator` | Major | Register the module in `dashboard-operator/internal/controller/modules.go` with all fields and update test assertions in `modules_test.go` and `charts/dashboard/values.yaml`. Proxy paths and imagesMap entries are read from the registry (single source of truth). The **opendatahub-operator** also needs a one-line addition to `relatedImages()` in `internal/controller/modules/dashboard/support.go` — open a PR and request review in `#ai-core-platform-requests` Slack channel. |
 | 8 | `<name>: Track & Verify RHOAI Konflux Onboarding` | Major | Track RHOAI Konflux component onboarding (downstream Quay, release pipeline, Renovate). Automated by DevOps CI. |
-| 9 | `<name>: Register image as a ProdSec pscomponent` | Major | Register `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B) with ProdSec before the first release, so CVE `SecurityTracking` tickets are generated for it. Not done by the DevOps automation. See Phase 6 § ProdSec registration. |
+| 9 | `<name>: Register image as a ProdSec pscomponent` | Major | Register `rhoai/<image>-rhel9` with ProdSec before the first release, so CVE `SecurityTracking` tickets are generated for it. Not done by the DevOps automation. See Phase 6 § ProdSec registration. |
 
 For each subtask:
 
@@ -231,6 +233,8 @@ Skip if: `--skip-downstream` flag.
 
 Generate `Dockerfile.konflux.<name>` content for the `red-hat-data-services/odh-dashboard` repo root.
 
+**Before reading anything downstream**, run steps 1–2 of [§ Pushing to the Downstream Repo](#pushing-to-the-downstream-repo): identify `$DOWNSTREAM_REMOTE`, ask for the target RHOAI version to set `$TARGET_BRANCH`, and fetch that branch. The base-image and template reads below depend on both.
+
 ### Base images (all types)
 
 Take base images from a module that already ships on the target branch, not from a fresh `:latest` lookup. MintMaker keeps the downstream digests current, including security rebuilds of UBI (for example the eMudhra CA remediation, RHSB-2026-012):
@@ -246,25 +250,29 @@ git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:Dockerfile.konflux.data-connect-hub"
 
 ### Type A
 
-Start from the current `Dockerfile.konflux.data-connect-hub` on the target branch and change only the module name and labels. Do not rebuild it from the upstream `Dockerfile.workspace`: the downstream file carries Hermeto/offline install flags, `pkg/tls` and shared-package `COPY` lines that the upstream variant can lag behind.
+Combine two sources:
 
-- `ARG MODULE_NAME=<name>`
+- **From the shipped `Dockerfile.konflux.data-connect-hub` on the target branch:** pinned base images, Hermeto/offline install flags (`pnpm install --offline`, `CYPRESS_INSTALL_BINARY=0`, the `prefetch/pnpm` bootstrap), the shared-package and `pkg/tls` `COPY` lines, and the label set.
+- **From the package's own `Dockerfile.workspace`:** its source layout (`UI_SOURCE_CODE` / `BFF_SOURCE_CODE`), any extra `COPY` or build steps, and whether a BFF stage exists at all. For example, `model-registry` builds from `upstream/frontend` and `upstream/bff` with a separate npm frontend install. A UI-only package has no BFF stages, so drop them.
+
+For a package laid out like `data-connect-hub` (`packages/<name>/frontend` plus `packages/<name>/bff`, pnpm build), the result is that file with `ARG MODULE_NAME=<name>` and new labels. Otherwise keep the package's steps and swap in only the downstream conventions above. Either way:
+
 - Base images as above
-- Labels use the image name, not the bare module name:
+- Labels use `<image>` from Phase 0 (default `odh-mod-arch-<name>`), not the bare module name:
 
   ```dockerfile
-  LABEL com.redhat.component="odh-mod-arch-<name>-container" \
-        name="managed-open-data-hub/odh-mod-arch-<name>-rhel9" \
-        description="odh-mod-arch-<name>" \
-        summary="odh-mod-arch-<name>" \
+  LABEL com.redhat.component="<image>-container" \
+        name="managed-open-data-hub/<image>-rhel9" \
+        description="<image>" \
+        summary="<image>" \
         maintainer="['managed-open-data-hub@redhat.com']" \
         io.openshift.expose-services="" \
-        io.k8s.display-name="odh-mod-arch-<name>" \
-        io.k8s.description="odh-mod-arch-<name>" \
+        io.k8s.display-name="<image>" \
+        io.k8s.description="<image>" \
         com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
   ```
 
-The Dockerfile `name` label (`managed-open-data-hub/odh-mod-arch-<name>-rhel9`) and the ProdSec registration key (`rhoai/odh-mod-arch-<name>-rhel9`, Jira label `pscomponent:rhoai/odh-mod-arch-<name>-rhel9`) are different identifiers that share the `odh-mod-arch-<name>-rhel9` image name. Phase 6 uses the registration key.
+The Dockerfile `name` label (`managed-open-data-hub/<image>-rhel9`) and the ProdSec registration key (`rhoai/<image>-rhel9`, Jira label `pscomponent:rhoai/<image>-rhel9`) are different identifiers that share the `<image>-rhel9` image name. Phase 6 uses the registration key.
 
 See [references/dockerfile-templates.md](references/dockerfile-templates.md) § Downstream Type A.
 
@@ -278,8 +286,8 @@ Generate from the upstream Dockerfile with these changes:
 - Red Hat labels on final stage:
 
   ```dockerfile
-  LABEL com.redhat.component="odh-<name>-container" \
-        name="managed-open-data-hub/odh-<name>-rhel9" \
+  LABEL com.redhat.component="<image>-container" \
+        name="managed-open-data-hub/<image>-rhel9" \
         summary="ODH <Display Name>" \
         description="<Description> for Red Hat OpenShift AI" \
         io.k8s.display-name="ODH <Display Name>" \
@@ -444,7 +452,7 @@ Read the existing file and add entries for the new component following the exist
        workflow: opendatahub-io-ci-image-mirror
    ```
 
-For Type A, `<image-name>` is `mod-arch-<name>`. For Type B, `<image-name>` is `dashboard-<name>` (or just the component name if it already has a clear prefix like `dashboard-operator`).
+Here `odh-<image-name>` is the Phase 0 `<image>` (`<image-name>` drops the `odh-` prefix). For Type A, `<image-name>` is `mod-arch-<name>`. For Type B, `<image-name>` is `dashboard-<name>` (or just the component name if it already has a clear prefix like `dashboard-operator`).
 
 Match the naming pattern of existing entries in the file.
 
@@ -614,7 +622,7 @@ This phase does **not** run the DevOps skill inline — the user should run it s
    2. Run for ODH:
       /create-component-onboarding-jira
       - Product: ODH
-      - Component name: odh-<name> (must start with "odh-")
+      - Component name: <image> (from Phase 0; must start with "odh-")
       - Repo URL: https://github.com/opendatahub-io/odh-dashboard
       - Branch: main
       - Dockerfile: <Type A: packages/<name>/Dockerfile.workspace, Type B: <name>/Dockerfile>
@@ -622,7 +630,7 @@ This phase does **not** run the DevOps skill inline — the user should run it s
    3. Run for RHOAI:
       /create-component-onboarding-jira
       - Product: RHOAI
-      - Component name: odh-<name>
+      - Component name: <image>
       - Repo URL: https://github.com/red-hat-data-services/odh-dashboard
       - Branch: (auto-derived from RHOAI version)
       - Dockerfile: Dockerfile.konflux.<name>
@@ -641,18 +649,15 @@ This phase does **not** run the DevOps skill inline — the user should run it s
 
 The DevOps automation builds and releases the image but does not register it with ProdSec. CVE `SecurityTracking` tickets are only generated for images registered as a `pscomponent`, so an unregistered image silently misses CVE and security-bulletin work. This happened to `data-connect-hub` and `data-registry` during the eMudhra remediation.
 
-1. Tell the user to request registration of `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B) in ProdSec's product definitions, through `#forum-aipcc`, before the first release that ships the image. Record the request on subtask 9.
+1. Tell the user to request registration of `rhoai/<image>-rhel9` (`<image>` from Phase 0; defaults `odh-mod-arch-<name>` for Type A, `odh-<name>` for Type B) in ProdSec's product definitions, through `#forum-aipcc`, before the first release that ships the image. Record the request on subtask 9.
 2. Before the first release, get ProdSec to confirm in the `#forum-aipcc` request that the key is registered, and record the confirmation on subtask 9. That confirmation is the release gate: the Jira query below returns nothing until a CVE affecting the image has been processed, so an empty result before then proves nothing.
 3. After the first downstream build, once ProdSec processes a CVE affecting the image, use this JQL to check that tracking tickets carry the label:
 
    ```text
-   # Type A
-   labels = "pscomponent:rhoai/odh-mod-arch-<name>-rhel9"
-   # Type B
-   labels = "pscomponent:rhoai/odh-<name>-rhel9"
+   labels = "pscomponent:rhoai/<image>-rhel9"
    ```
 
-   Use the key for the component type (the image name from the Dockerfile `name` label, prefixed with `rhoai/`). An empty result is evidence of missing registration only when the CVE is confirmed to affect this image, for example because the image ships the affected package and sibling images with the same dependency (such as `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for it. In that case raise it in `#forum-aipcc`.
+   `<image>` is the Phase 0 value that the Dockerfile `name` label also uses. An empty result is evidence of missing registration only when the CVE is confirmed to affect this image, for example because the image ships the affected package and sibling images with the same dependency (such as `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for it. In that case raise it in `#forum-aipcc`.
 
 Read [references/devops-integration.md](references/devops-integration.md) for the full integration guide including Q&A flow, schema validation, and troubleshooting.
 
@@ -685,7 +690,7 @@ Print a final report:
 ### Component Classification
 - Type: A/B
 - Component: <name>
-- Image name: <image-name>
+- Image name: <image>
 
 ### Tracking Epic
 - Epic: <EPIC-KEY> (or "skipped")
@@ -714,5 +719,5 @@ Print a final report:
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
 8. Open a PR against `opendatahub-io/opendatahub-operator` adding `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `relatedImages()` in `internal/controller/modules/dashboard/support.go`, then request review in `#ai-core-platform-requests` Slack channel
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
-10. Request ProdSec `pscomponent` registration in `#forum-aipcc` for `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B), and get ProdSec's confirmation before the first release. After the first downstream build, use the matching Phase 6 JQL to check for tracking tickets once ProdSec processes an applicable CVE
+10. Request ProdSec `pscomponent` registration in `#forum-aipcc` for `rhoai/<image>-rhel9`, and get ProdSec's confirmation before the first release. After the first downstream build, use the matching Phase 6 JQL to check for tracking tickets once ProdSec processes an applicable CVE
 ```
