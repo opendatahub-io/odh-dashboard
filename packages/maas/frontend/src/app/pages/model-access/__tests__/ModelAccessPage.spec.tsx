@@ -195,6 +195,7 @@ describe('ModelAccessPage', () => {
     await screen.findByRole('link', { name: 'Premium Team' });
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
 
+    await selectFilterType(user, 'model-access-table-toolbar-option-subscription');
     await openTypeahead(user);
     await user.click(screen.getByRole('option', { name: 'Basic Team' }));
 
@@ -230,12 +231,32 @@ describe('ModelAccessPage', () => {
     const combobox = await openTypeahead(user);
     await user.type(combobox, 'Granite');
 
-    expect(screen.getAllByRole('option')).toHaveLength(1);
+    // The matching model plus the creatable option for committing the typed fragment
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    expect(screen.getByRole('option', { name: 'Granite 3 8B Instruct' })).toBeInTheDocument();
     await user.click(screen.getByRole('option', { name: 'Granite 3 8B Instruct' }));
 
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Basic Team' })).not.toBeInTheDocument();
+  });
+
+  it('should filter the table by a committed partial text fragment', async () => {
+    const user = userEvent.setup();
+    renderTwoSubscriptions();
+    await screen.findByRole('link', { name: 'Premium Team' });
+
+    await selectFilterType(user, 'model-access-table-toolbar-option-model');
+    const combobox = await openTypeahead(user);
+    await user.type(combobox, 'Flan');
+
+    await user.click(screen.getByRole('option', { name: 'Filter by "Flan"' }));
+
+    // Only the subscriptions referencing a model containing "Flan" match
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Basic Team' })).toBeInTheDocument();
+    expect(screen.getByTestId('model-filter-chip')).toHaveTextContent('Flan');
   });
 
   it('should combine filters and restore the table when filters are cleared', async () => {
@@ -244,6 +265,7 @@ describe('ModelAccessPage', () => {
     await screen.findByRole('link', { name: 'Premium Team' });
 
     // Subscription: Basic Team
+    await selectFilterType(user, 'model-access-table-toolbar-option-subscription');
     await openTypeahead(user);
     await user.click(screen.getByRole('option', { name: 'Basic Team' }));
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);

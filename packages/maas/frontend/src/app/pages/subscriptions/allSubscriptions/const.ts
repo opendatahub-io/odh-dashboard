@@ -10,11 +10,11 @@ export const subscriptionsFilterOptions = {
   [SubscriptionsFilterOptions.keyword]: 'Keyword',
 };
 
-/** Model access viewer: Subscription / Group / Model typeahead selects. */
+/** Model access viewer and governance subscriptions tab: Model / Group / Subscription typeahead selects. */
 export const modelAccessFilterOptions = {
-  [SubscriptionsFilterOptions.subscription]: 'Subscription',
-  [SubscriptionsFilterOptions.group]: 'Group',
   [SubscriptionsFilterOptions.model]: 'Model',
+  [SubscriptionsFilterOptions.group]: 'Group',
+  [SubscriptionsFilterOptions.subscription]: 'Subscription',
 };
 
 export type SubscriptionsFilterSelection = { label: string; value: string };

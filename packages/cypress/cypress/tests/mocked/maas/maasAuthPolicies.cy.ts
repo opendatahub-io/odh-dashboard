@@ -154,10 +154,10 @@ describe('MaaS Auth Policies', () => {
     phaseModal.findAffectedModelStatusMessage('granite-3-8b-instruct').should('exist');
   });
 
-  it('should filter policies by keyword', () => {
+  it('should filter policies by partial text fragments and typeahead selections', () => {
     authPoliciesPage.findRows().should('have.length', 8);
 
-    authPoliciesPage.findKeywordFilterInput().type('premium');
+    authPoliciesPage.filterByTypeahead('policy', 'premium');
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage
       .getRow('Premium Team Policy')
@@ -389,7 +389,7 @@ describe('View Auth Policy Page', () => {
     authPoliciesPage.findRows().should('have.length', 8);
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
 
-    authPoliciesPage.findKeywordFilterInput().type('premium');
+    authPoliciesPage.filterByTypeahead('policy', 'premium');
     authPoliciesPage.findRows().should('have.length', 1);
     authPoliciesPage.clearAllFilters();
     authPoliciesPage.findRows().should('have.length', 8);
