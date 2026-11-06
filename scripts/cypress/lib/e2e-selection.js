@@ -995,6 +995,23 @@ const buildSelectionPlan = ({
   const impactedSpecs = new Set();
   let fullCoverageRequired = false;
   const details = [];
+  const e2eDiagnostics = dependencyIndex.e2eDiagnostics ?? dependencyIndex;
+  const graphGaps = [
+    ...(e2eDiagnostics.unresolvedCode ?? []),
+    ...(e2eDiagnostics.dynamicImports ?? []),
+  ];
+  const changesSupport = changes.some((change) =>
+    [change.path, change.previousPath].some(
+      (file) => file && !isSpecFile(file) && isCypressSupportFile(file),
+    ),
+  );
+  if (graphGaps.length > 0 && changesSupport) {
+    errors.push(
+      'Cannot safely select E2E support impact: the E2E dependency graph has unresolved or dynamic imports. ' +
+        'Resolve these imports before running impacted specs.',
+    );
+    details.push(...graphGaps);
+  }
   const ciTagSet = new Set(ciTags);
   const executableInventoryTags = unique(
     Object.values(inventory).flatMap((entry) => entry.executableTags ?? []),
@@ -1403,6 +1420,12 @@ const renderSelectionMarkdown = (summary) =>
 
 const buildDependencyIndexForE2e = ({ root, specs }) => {
   const index = buildDependencyIndex({ root, specs, supportFile: DEFAULT_SUPPORT_FILE });
+  // Only gaps reachable from E2E specs/support make E2E reverse impact unsafe.
+  // Missing imports inside a separate mock project must not broaden live E2E runs.
+  index.e2eDiagnostics = {
+    unresolvedCode: [...index.unresolvedCode],
+    dynamicImports: [...index.dynamicImports],
+  };
   const mockProjects = new Map();
   for (const spec of discoverSpecs(root, 'mocked')) {
     const configFile = ts.findConfigFile(path.dirname(path.join(root, spec)), ts.sys.fileExists);

@@ -150,12 +150,14 @@ it('tracks nested upstream mock consumers with their inherited TypeScript aliase
     }),
     [`${frontend}/src/__tests__/cypress/tsconfig.json`]: '{"extends":"../../../tsconfig.json"}',
     [helper]: 'export const catalog = true;',
-    [mock]: "import { catalog } from '~/__tests__/cypress/cypress/pages/catalog';",
+    [mock]:
+      "import { catalog } from '~/__tests__/cypress/cypress/pages/catalog'; import './missing-mock-only';",
   });
   const inventory = inventoryFor({ [spec]: sourceFor(DEFAULT_TAG) });
   const index = buildDependencyIndexForE2e({ root, specs: [spec] });
   assert.deepEqual(index.consumers[helper], [mock]);
-  assert.deepEqual(index.unresolvedCode, []);
+  assert.equal(index.unresolvedCode.length, 1);
+  assert.deepEqual(index.e2eDiagnostics, { unresolvedCode: [], dynamicImports: [] });
   const plan = planFor({
     root,
     inventory,
@@ -205,6 +207,56 @@ it('recognizes frontend CI tags and canonical Smoke/Sanity tags for support impa
     plan.matrix.find((job) => job.run_mode === 'spec').specs,
     consumers.filter((file) => !file.endsWith('quarantined.cy.ts')).toSorted(),
   );
+});
+
+it('fails support selection when E2E consumers can be hidden by unresolved or dynamic imports', (t) => {
+  const helper = `${cypress}/utils/shared.ts`;
+  const hiddenSpec = `${cypress}/tests/e2e/hidden.cy.ts`;
+  for (const hiddenImport of [
+    "const helper = '../../utils/shared'; void import(helper);",
+    "import '../../utils/missing';",
+  ]) {
+    const sources = {
+      [spec]: sourceFor(DEFAULT_TAG),
+      [hiddenSpec]: hiddenImport + sourceFor('@A'),
+      [`${cypress}/tests/e2e/known.cy.ts`]: `import '../../utils/shared';${sourceFor('@B')}`,
+    };
+    const { root } = fixture(t, { ...sources, [helper]: 'export const value = true;' });
+    const index = buildDependencyIndexForE2e({ root, specs: Object.keys(sources) });
+    assert.ok(index.consumers[helper].length > 0);
+    assert.ok(!index.consumers[helper].includes(hiddenSpec));
+    for (const file of [helper, `${cypress}/fixtures/shared.yaml`]) {
+      const plan = planFor({
+        root,
+        inventory: inventoryFor(sources),
+        dependencyIndex: index,
+        changes: [{ status: 'M', path: file }],
+      });
+      assert.equal(plan.valid, false);
+      assert.match(plan.errors.join('\n'), /dependency graph has unresolved or dynamic imports/);
+    }
+    const docsOnly = planFor({
+      root,
+      inventory: inventoryFor(sources),
+      dependencyIndex: index,
+      changes: [{ status: 'M', path: 'docs/notes.md' }],
+    });
+    assert.equal(docsOnly.valid, true, docsOnly.errors.join('\n'));
+    const movedSupport = planFor({
+      root,
+      inventory: inventoryFor(sources),
+      dependencyIndex: index,
+      changes: [{ status: 'R', path: 'docs/moved.ts', previousPath: helper }],
+    });
+    assert.equal(movedSupport.valid, false);
+    const explicitSpec = planFor({
+      root,
+      inventory: inventoryFor(sources),
+      dependencyIndex: index,
+      changes: [{ status: 'M', path: hiddenSpec }],
+    });
+    assert.equal(explicitSpec.valid, true, explicitSpec.errors.join('\n'));
+  }
 });
 
 it('keeps conservative E2E fallback for genuinely unconsumed support files', (t) => {
@@ -473,6 +525,11 @@ it('keeps the deprecated dispatch input accepted and runs regressions in the exi
   );
   assert.match(selectionStep.run, /skip_auto_detect is deprecated and ignored/);
   assert.doesNotMatch(selectionStep.run, /--skip-auto-detect/);
+  assert.equal(selectionStep.env.PLAN_BASE_SHA, '${{ steps.refs.outputs.base_sha }}');
+  assert.equal(selectionStep.env.PLAN_HEAD_SHA, '${{ steps.refs.outputs.head_sha }}');
+  assert.match(selectionStep.run, /--base "\$PLAN_BASE_SHA"/);
+  assert.match(selectionStep.run, /--head "\$PLAN_HEAD_SHA"/);
+  assert.doesNotMatch(selectionStep.run, /\$\{\{\s*steps\.refs\.outputs/);
   assert.equal(workflow.jobs['validate-selection'], undefined);
   assert.deepEqual(workflow.jobs['get-test-tags'].permissions, {
     contents: 'read',

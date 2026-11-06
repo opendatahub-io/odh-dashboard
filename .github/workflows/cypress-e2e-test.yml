@@ -521,13 +521,15 @@ jobs:
           INPUT_PR_LABELS: ${{ steps.labels.outputs.labels }}
           INPUT_SKIP_DEFAULT: ${{ inputs.skip_default }}
           INPUT_SKIP_AUTO_DETECT: ${{ inputs.skip_auto_detect }}
+          PLAN_BASE_SHA: ${{ steps.refs.outputs.base_sha }}
+          PLAN_HEAD_SHA: ${{ steps.refs.outputs.head_sha }}
         run: |
           if [[ "$INPUT_SKIP_AUTO_DETECT" == "true" ]]; then
             echo "::warning::skip_auto_detect is deprecated and ignored. Path-impact selection is always additive; remove this input from dispatch callers."
           fi
           node scripts/cypress/plan-e2e-selection.js \
-            --base "${{ steps.refs.outputs.base_sha }}" \
-            --head "${{ steps.refs.outputs.head_sha }}" \
+            --base "$PLAN_BASE_SHA" \
+            --head "$PLAN_HEAD_SHA" \
             --additional-tags "$INPUT_ADDITIONAL_TAGS" \
             --pr-labels "$INPUT_PR_LABELS" \
             --skip-default "$INPUT_SKIP_DEFAULT" \

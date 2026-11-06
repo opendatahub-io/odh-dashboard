@@ -267,7 +267,10 @@ Reverse-impact selection recognizes workspace CI tags, the frontend CI tag map,
 and the canonical Smoke/Sanity sets. Nested upstream mocked suites are indexed
 with their TypeScript import aliases so a mock-only helper does not trigger
 all-E2E fallback. This indexing does not register those suites in the central
-Cypress runner.
+Cypress runner. If imports reachable from E2E specs or their support are unresolved
+or dynamic, shared-support selection fails rather than silently omitting possible
+consumers. Diagnostics from separate mock-only projects do not invalidate the E2E
+graph.
 
 Historical selection regressions run through the existing orchestration check:
 `node --test scripts/cypress/__tests__/e2e-historical-selection.test.js`.
