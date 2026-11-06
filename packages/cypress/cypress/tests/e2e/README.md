@@ -255,11 +255,25 @@ to the canonical `@SmokeSet1`–`@SmokeSet5` and `@SanitySet1`–`@SanitySet5` t
 groups.
 
 Every selected tag must resolve to at least one executable test before the
-workflow starts. A selection fails when a required spec cannot be scheduled, a
-tag resolves to zero tests, or every selected test is skipped. Added, modified,
+workflow starts. A selection fails when a required spec cannot be scheduled or a
+tag resolves to zero executable tests, including when its tests are statically
+skipped. Result validation rejects a job if every reported test is skipped at
+runtime. Added, modified,
 and renamed specs must carry a CI-selectable tag or be listed in
 `non-ci-specs.json` with an owner and reason. Deleting or renaming a spec cannot
 remove the only remaining executable coverage for one of its CI tags.
+
+Reverse-impact selection recognizes workspace CI tags, the frontend CI tag map,
+and the canonical Smoke/Sanity sets. Nested upstream mocked suites are indexed
+with their TypeScript import aliases so a mock-only helper does not trigger
+all-E2E fallback. This indexing does not register those suites in the central
+Cypress runner.
+
+Historical selection regressions run through the existing orchestration check:
+`node --test scripts/cypress/__tests__/e2e-historical-selection.test.js`.
+They replay saved GitHub changed-file lists against the current planner and test
+catalog; they verify scheduling without recreating historical application builds
+or cluster state.
 
 Every impactful path must match a mapping. The workflow uploads selection and
 results summaries with actual jobs, selection reasons, planned executions, and

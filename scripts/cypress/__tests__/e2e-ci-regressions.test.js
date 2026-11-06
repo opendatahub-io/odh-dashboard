@@ -17,6 +17,7 @@ const {
   buildSelectionPlan,
   buildSpecInventory,
   discoverE2eSpecs,
+  discoverCiTags,
   readPathImpactMap,
 } = require('../lib/e2e-selection');
 const { summarizeJunitFiles, validateResults } = require('../lib/e2e-results');
@@ -135,6 +136,75 @@ it('does not broaden E2E selection for helpers and fixtures consumed only by moc
     assert.equal(plan.summary.impactMode, 'none');
     assert.ok(plan.summary.details.some((detail) => /0 executable.*of 1/.test(detail)));
   }
+});
+
+it('tracks nested upstream mock consumers with their inherited TypeScript aliases', (t) => {
+  const frontend = 'packages/example/upstream/frontend';
+  const helper = `${frontend}/src/__tests__/cypress/cypress/pages/catalog.ts`;
+  const mock = `${frontend}/src/__tests__/cypress/cypress/tests/mocked/catalog.cy.ts`;
+  const { root, write } = fixture(t, {
+    [spec]: sourceFor(DEFAULT_TAG),
+    'packages/example/package.json': '{"name":"example"}',
+    [`${frontend}/tsconfig.json`]: JSON.stringify({
+      compilerOptions: { baseUrl: './src', paths: { '~/*': ['./*'] } },
+    }),
+    [`${frontend}/src/__tests__/cypress/tsconfig.json`]: '{"extends":"../../../tsconfig.json"}',
+    [helper]: 'export const catalog = true;',
+    [mock]: "import { catalog } from '~/__tests__/cypress/cypress/pages/catalog';",
+  });
+  const inventory = inventoryFor({ [spec]: sourceFor(DEFAULT_TAG) });
+  const index = buildDependencyIndexForE2e({ root, specs: [spec] });
+  assert.deepEqual(index.consumers[helper], [mock]);
+  assert.deepEqual(index.unresolvedCode, []);
+  const plan = planFor({
+    root,
+    inventory,
+    dependencyIndex: index,
+    changes: [{ status: 'M', path: helper }],
+  });
+  assert.equal(plan.valid, true, plan.errors.join('\n'));
+  assert.deepEqual(plan.summary.impactedSpecs, []);
+  assert.equal(plan.matrix.length, 1);
+
+  // A known mock consumer must not hide an actual E2E import of the same helper.
+  write(
+    spec,
+    `import '${path.posix.relative(path.posix.dirname(spec), helper)}';${sourceFor('@A')}`,
+  );
+  const sharedIndex = buildDependencyIndexForE2e({ root, specs: [spec] });
+  assert.ok(sharedIndex.consumers[helper].includes(spec));
+});
+
+it('recognizes frontend CI tags and canonical Smoke/Sanity tags for support impact', (t) => {
+  const helper = `${cypress}/utils/storage.ts`;
+  const sources = {
+    [spec]: sourceFor(DEFAULT_TAG),
+    [`${cypress}/tests/e2e/storage.cy.ts`]: sourceFor('@StorageClassesCI'),
+    [`${cypress}/tests/e2e/workbench.cy.ts`]: sourceFor('@SmokeSet2'),
+    [`${cypress}/tests/e2e/quarantined.cy.ts`]:
+      "it('excluded',{tags:['@StorageClassesCI','@Bug']},()=>{});",
+  };
+  const { root } = fixture(t, {
+    ...sources,
+    '.github/frontend-ci-tags.json': '{"storageClasses":"@StorageClassesCI"}',
+  });
+  const ciTags = discoverCiTags(root);
+  assert.ok(ciTags.includes('@StorageClassesCI'));
+  assert.ok(ciTags.includes('@SmokeSet2'));
+  assert.ok(ciTags.includes('@SanitySet3'));
+  const consumers = Object.keys(sources).filter((file) => file !== spec);
+  const plan = planFor({
+    root,
+    inventory: inventoryFor(sources),
+    ciTags,
+    dependencyIndex: { consumers: { [helper]: consumers } },
+    changes: [{ status: 'M', path: helper }],
+  });
+  assert.equal(plan.valid, true, plan.errors.join('\n'));
+  assert.deepEqual(
+    plan.matrix.find((job) => job.run_mode === 'spec').specs,
+    consumers.filter((file) => !file.endsWith('quarantined.cy.ts')).toSorted(),
+  );
 });
 
 it('keeps conservative E2E fallback for genuinely unconsumed support files', (t) => {
@@ -294,7 +364,9 @@ it('matches planner counts to real Mocha registration and JUnit for inherited, e
     registeredTags[registered.fullTitle()] = tags;
   });
   const source = `
-    describe('selected', {tags: ['@A']}, () => {
+    const selectedTags = ['@A'];
+    const options = {tags: selectedTags};
+    describe('selected', options, () => {
       context('nested', {tags: ['@B']}, () => it('same title', () => {}));
       it('runtime skip', function () { this.skip(); });
       it('bug', {tags: ['@Bug']}, () => { throw Error('excluded'); });
@@ -402,6 +474,14 @@ it('keeps the deprecated dispatch input accepted and runs regressions in the exi
   assert.match(selectionStep.run, /skip_auto_detect is deprecated and ignored/);
   assert.doesNotMatch(selectionStep.run, /--skip-auto-detect/);
   assert.equal(workflow.jobs['validate-selection'], undefined);
+  assert.deepEqual(workflow.jobs['get-test-tags'].permissions, {
+    contents: 'read',
+    'pull-requests': 'read',
+    actions: 'read',
+  });
+  const runBrowser = workflow.jobs['e2e-tests'].steps.find((step) => step.name === 'Run E2E Tests');
+  assert.doesNotMatch(runBrowser.run, /CYPRESS_grepFilterSpecs=true/);
+  assert.match(runBrowser.run, /CYPRESS_grepFilterSpecs=false/);
   const checks = YAML.parse(
     fs.readFileSync(path.join(repo, '.github/workflows/cypress-mock-orchestration.yml'), 'utf8'),
   );
