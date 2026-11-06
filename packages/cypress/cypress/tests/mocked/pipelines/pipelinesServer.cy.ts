@@ -840,6 +840,35 @@ describe('Pipeline Server', () => {
       .should('have.text', 'Data connection unsuccessfully verified');
   });
 
+  it('should show startup failure when the API server is ready but the pipeline server has timed out', () => {
+    initIntercepts({});
+    const errorMessage = 'Persistence agent failed to deploy';
+    const failedDSPA = mockDataSciencePipelineApplicationK8sResource({
+      namespace: projectName,
+      initializing: true,
+      apiServerReady: true,
+      message: errorMessage,
+    });
+    cy.interceptK8sList(
+      { model: DataSciencePipelineApplicationModel, ns: projectName },
+      mockK8sResourceList([failedDSPA]),
+    );
+    cy.interceptK8s(
+      { model: DataSciencePipelineApplicationModel, ns: projectName, name: 'dspa' },
+      failedDSPA,
+    ).as('getFailedDSPA');
+
+    pipelinesGlobal.visit(projectName);
+    cy.wait('@getFailedDSPA');
+    pipelinesGlobal
+      .findPipelineTimeoutErrorMessage()
+      .should('be.visible')
+      .and('have.text', errorMessage);
+    pipelinesGlobal.isApiAvailable();
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
+  });
+
   describe('Pipeline server actions per role', () => {
     afterEach(() => {
       Cypress.env('USER_CONFIG', undefined);
