@@ -5,7 +5,7 @@ How the Dashboard team keeps dependencies free of known vulnerabilities, and how
 
 > **Note**: This doc covers the technical side (automation, commands, branches). Red Hat
 > contributors can find the ticket process in the internal
-> [Dashboard Security & CVE Handbook](https://redhat.atlassian.net/wiki/spaces/RHODS/pages/304027483).
+> [Dashboard Security & CVE Handbook](https://redhat.atlassian.net/wiki/spaces/RHODS/pages/517997493).
 
 ## TL;DR
 
