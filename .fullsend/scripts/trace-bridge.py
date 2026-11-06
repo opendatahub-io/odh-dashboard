@@ -524,51 +524,91 @@ SCRIPT_OPTS = {  # the pattern/script comes from this option's operand
 }
 
 
+# Long options known to take no operand. Any other long option without "=value" has an
+# unknown operand count, so the segment's arguments are not trusted (fail closed).
+_GREP_LONG = {"--recursive", "--dereference-recursive", "--ignore-case", "--no-ignore-case", "--invert-match",
+              "--count", "--line-number", "--files-with-matches", "--files-without-match", "--only-matching",
+              "--quiet", "--silent", "--no-filename", "--with-filename", "--word-regexp", "--line-regexp",
+              "--fixed-strings", "--extended-regexp", "--basic-regexp", "--perl-regexp", "--color", "--colour",
+              "--no-messages", "--null", "--null-data", "--text", "--byte-offset", "--initial-tab"}
+LONG_FLAGS = {
+    "grep": _GREP_LONG, "egrep": _GREP_LONG, "fgrep": _GREP_LONG,
+    "rg": {"--hidden", "--no-ignore", "--files", "--fixed-strings", "--ignore-case", "--smart-case", "--json",
+           "--count", "--line-number", "--no-heading", "--heading", "--with-filename", "--no-filename",
+           "--follow", "--multiline", "--pcre2", "--vimgrep", "--stats", "--files-with-matches",
+           "--files-without-match", "--only-matching", "--word-regexp", "--invert-match", "--no-messages",
+           "--color", "--column", "--trim", "--unrestricted", "--search-zip", "--null"},
+    "ag": {"--hidden", "--literal", "--ignore-case", "--count", "--files-with-matches", "--nocolor"},
+    "sed": {"--quiet", "--silent", "--regexp-extended", "--in-place", "--null-data", "--separate", "--posix",
+            "--debug", "--sandbox", "--unbuffered", "--zero-terminated"},
+    "awk": {"--posix", "--traditional", "--lint", "--sandbox"},
+    "jq": {"--raw-output", "--compact-output", "--slurp", "--null-input", "--exit-status", "--sort-keys",
+           "--tab", "--join-output", "--ascii-output", "--raw-input", "--color-output", "--monochrome-output",
+           "--seq", "--stream"},
+    "yq": {"--raw-output", "--compact-output", "--slurp", "--null-input", "--exit-status", "--inplace",
+           "--prettyPrint", "--no-doc"},
+}
+OPTIONAL_ATTACHED = {"sed": {"-i"}}  # sed -i[SUFFIX]: the rest of the cluster is its operand
+
+
 def without_patterns(prog, args):
     """Arguments minus option values, search patterns and scripts. For grep/rg/sed/awk/jq
     the first plain argument is the pattern or script, unless an option such as -e or -f
-    already supplied it; value-taking options are looked up per program."""
+    already supplied it. Short option clusters (-nA 2, -A2, -ne pat) are read letter by
+    letter with per-program arities. A long option with an unknown operand count makes the
+    segment untrustworthy: only redirections are returned (fail closed)."""
     if prog not in PATTERN_PROGS:
         return list(args)
     values, scripts = VALUE_OPTS.get(prog, {}), SCRIPT_OPTS.get(prog, set())
-    out, skip, pattern_given, keep_next = [], 0, False, False
+    long_flags, optional = LONG_FLAGS.get(prog, set()), OPTIONAL_ATTACHED.get(prog, set())
+    out, redirects, skip, pattern_given, keep_next, failed = [], [], 0, False, False, False
     for t in args:
         if keep_next:  # a redirection target: pass through untouched for the caller
-            out.append(t)
+            redirects.append(t)
             keep_next = False
             continue
         if skip:
             skip -= 1
             continue
         if REDIRECT_RE.match(t):  # callers decide what redirections mean
-            out.append(t)
+            redirects.append(t)
             keep_next = REDIRECT_RE.sub("", t) == ""
             continue
-        if t in scripts:
-            skip, pattern_given = 1, True
+        if t.startswith("--"):
+            opt, has_value = t.split("=", 1)[0], "=" in t
+            if opt in scripts:
+                pattern_given = True
+                skip = 0 if has_value else 1
+            elif opt in values:
+                skip = 0 if has_value else values[opt]
+            elif not has_value and opt not in long_flags and t != "--":
+                failed = True
             continue
-        if t in values:
-            skip = values[t]
-            continue
-        opt = t.split("=", 1)[0]
-        if t.startswith("--") and "=" in t:
-            pattern_given = pattern_given or opt in scripts
-            continue
-        if t.startswith("-") and len(t) > 2 and not t.startswith("--") and t[:2] in scripts:
-            pattern_given = True  # attached operand, e.g. -e'pat' or -fscript.sed
-            continue
-        if t.startswith("-"):
+        if t.startswith("-") and len(t) > 1:
+            letters = t[1:]
+            for j, c in enumerate(letters):
+                opt, rest = "-" + c, letters[j + 1:]
+                if opt in optional:
+                    break
+                if opt in scripts:
+                    pattern_given = True
+                    skip = 0 if rest else 1
+                    break
+                if opt in values:
+                    skip = values[opt] - (1 if rest else 0)
+                    break
             continue
         if not pattern_given:
             pattern_given = True
             continue
         out.append(t)
-    return out
+    return redirects if failed else out + redirects
 
 
 def shell_summary(cmd):
     """What a shell command is exported as: the programs it runs and the file paths it
-    names. Arguments, quoted text, heredoc bodies and inline scripts are never exported."""
+    names. Only redirection targets and the file arguments of programs known to take files
+    count as paths; arguments, quoted text, heredoc bodies and inline scripts never do."""
     programs, paths = [], []
     for _op, toks in shell_segments(cmd):
         i, prog = _program(toks)
@@ -576,9 +616,19 @@ def shell_summary(cmd):
             programs.append(prog)
         if prog in NETWORK_PROGS:
             continue
+        redirect_next = False
         for t in without_patterns(prog, toks[(i or 0) + 1:]):
-            # A bare word after grep/sed/jq/... is too ambiguous (pattern vs file): paths only.
-            rel = export_path(REDIRECT_RE.sub("", t), bare_ok=prog in FILE_PROGS and prog not in PATTERN_PROGS)
+            if REDIRECT_RE.match(t):
+                target = REDIRECT_RE.sub("", t)
+                redirect_next = target == "" and not t.startswith("<<<")
+                rel = export_path(target) if target and not t.startswith("<<<") else None
+            elif redirect_next:
+                redirect_next, rel = False, export_path(t)
+            elif prog in FILE_PROGS:
+                # A bare word after grep/sed/jq/... is too ambiguous (pattern vs file): paths only.
+                rel = export_path(t, bare_ok=prog not in PATTERN_PROGS)
+            else:
+                rel = None  # echo, printf, ...: arguments are data, not paths
             if rel and rel not in paths:
                 paths.append(rel)
     return programs[:30], paths[:30]
@@ -1308,6 +1358,16 @@ def self_test():
          get(persona_sc, "fullsend.guidance.read") is not None
          and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
         ("cat in a shell command counts as opened", "AGENTS.md" in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
+        ("clustered/attached grep options, unknown long options and echo never export patterns or data",
+         shell_summary("grep -nA 2 internal/customer/acme README.md")[1] == []
+         and shell_summary("grep -nA 2 internal/customer/acme src/r.md")[1] == ["src/r.md"]
+         and shell_summary("grep -A2 internal/x src/r.md")[1] == ["src/r.md"]
+         and shell_summary("grep -ne internal/x src/r.md")[1] == ["src/r.md"]
+         and shell_summary("grep -rf pats/list.txt src/r.md")[1] == ["src/r.md"]
+         and shell_summary("grep --binary-files text internal/x src/r.md")[1] == []
+         and shell_summary("echo 'private/needle'")[1] == []
+         and shell_summary("echo hi > out/x.md")[1] == ["out/x.md"]
+         and shell_reads("sed -i.bak s/a/b/ src/c.md") == ["src/c.md"]),
         ("sed -f input files count as reads; redirection targets and grep -F/-m patterns don't",
          shell_reads("sed -f t.sed docs/adr/0010-y.md") == ["docs/adr/0010-y.md"]
          and shell_reads("sed 's/a/b/' src/c.md > .claude/rules/out.md") == ["src/c.md"]
