@@ -55,19 +55,22 @@ const summarizeJunitFiles = (files) => {
 };
 
 const validateResults = (totals, plannedTestCount) => {
+  const errors = [];
   if (plannedTestCount !== undefined && totals.tests !== plannedTestCount) {
-    return `Expected ${plannedTestCount} planned Cypress test(s), but found ${totals.tests} total`;
+    errors.push(
+      `Coverage differs from plan: expected ${plannedTestCount} Cypress test(s), reported ${totals.tests}. Check for job timeouts, cancellations, or hook failures`,
+    );
   }
   if (totals.tests === 0) {
-    return 'No Cypress tests executed';
+    errors.push('No Cypress tests executed');
   }
   if (totals.failures > 0) {
-    return `${totals.failures} Cypress test(s) failed`;
+    errors.push(`${totals.failures} Cypress test(s) failed`);
   }
-  if (totals.skipped === totals.tests) {
-    return 'Every selected Cypress test was skipped';
+  if (totals.tests > 0 && totals.skipped === totals.tests) {
+    errors.push('Every selected Cypress test was skipped');
   }
-  return null;
+  return errors.length > 0 ? errors.join('; ') : null;
 };
 
 const renderResultsMarkdown = (totals) =>
@@ -77,7 +80,12 @@ const renderResultsMarkdown = (totals) =>
     `- Executed: ${totals.executed}`,
     `- Failed: ${totals.failures}`,
     `- Skipped: ${totals.skipped}`,
-    `- Total: ${totals.tests}`,
+    `- Total reported: ${totals.tests}`,
+    ...(totals.plannedTestCount !== undefined
+      ? [`- Expected from CI selection: ${totals.plannedTestCount}`]
+      : []),
+    '',
+    'Test failures and execution completeness are checked independently. A count mismatch can indicate interrupted coverage even when some tests passed.',
     ...(totals.jobs
       ? [
           '',
@@ -87,6 +95,9 @@ const renderResultsMarkdown = (totals) =>
               `- ${job.tagDir}: executed=${job.executed}, failed=${job.failures}, skipped=${job.skipped}, total=${job.tests}, expected=${job.plannedTestCount}`,
           ),
         ]
+      : []),
+    ...(totals.validationErrors?.length > 0
+      ? ['', '## Validation failures', ...totals.validationErrors.map((error) => `- ${error}`)]
       : []),
   ]
     .concat('')
