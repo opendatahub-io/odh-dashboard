@@ -122,6 +122,7 @@ func buildServiceDetails(service *corev1.Service, logger *slog.Logger) (*Service
 		DisplayName:         displayName,
 		Description:         description,
 		ClusterIP:           service.Spec.ClusterIP,
+		ServiceDNSName:      fmt.Sprintf("%s.%s.svc", service.Name, service.Namespace),
 		HTTPPort:            httpPort,
 		IsHTTPS:             isHTTPS,
 		ExternalAddressRest: externalAddressRest,
