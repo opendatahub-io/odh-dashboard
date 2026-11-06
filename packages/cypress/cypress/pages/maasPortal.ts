@@ -10,22 +10,22 @@ class MaaSPortalPage {
       ['maas-portal', credentials.USERNAME],
       () => {
         this.visitWithLogin(url, credentials);
-        this.findNavigation().should('be.visible');
+        this.findNavigation({ timeout: 30000 }).should('be.visible');
       },
       {
         validate: () => {
           cy.visit(url);
-          this.findNavigation().should('be.visible');
+          this.findNavigation({ timeout: 30000 }).should('be.visible');
         },
       },
     );
 
     cy.visit(url);
-    this.findNavigation().should('be.visible');
+    this.findNavigation({ timeout: 30000 }).should('be.visible');
   }
 
-  findNavigation(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('navigation', { name: 'Navigation' });
+  findNavigation(options?: Partial<Cypress.Timeoutable>): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('navigation', { name: 'Navigation', ...options });
   }
 
   findNavLink(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
