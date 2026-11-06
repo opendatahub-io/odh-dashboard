@@ -4,6 +4,8 @@ declare global {
   interface Window {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analytics?: any;
+    /** Set by the dashboard's tracking initializer before the SDK is loaded. */
+    clusterID?: string;
   }
 }
 

@@ -92,6 +92,7 @@ Every normal HTTP reply gets browser security headers via response-writer middle
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `X-Frame-Options` | `DENY` |
 | `X-DNS-Prefetch-Control` | `off` |
+| `Content-Security-Policy` | see [CSP architecture](../../../docs/content-security-policy.md) |
 
 `Cache-Control` is selective:
 

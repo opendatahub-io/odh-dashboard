@@ -1249,7 +1249,7 @@ func TestRoutes_ModuleProxyPaths(t *testing.T) {
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 			assert.Equal(t, tt.wantPath, resp.Header.Get("X-Got-Path"))
-			assertConsoleSecurityHeaders(t, resp.Header)
+			assertBrowserSecurityHeaders(t, resp.Header)
 			assertNoStoreCache(t, resp.Header)
 		})
 	}

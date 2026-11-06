@@ -148,7 +148,7 @@ func TestRoutes_SPAFallback(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			assertConsoleSecurityHeaders(t, resp.Header)
+			assertBrowserSecurityHeaders(t, resp.Header)
 			assertNoStoreCache(t, resp.Header)
 
 			body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
@@ -159,6 +159,7 @@ func TestRoutes_SPAFallback(t *testing.T) {
 }
 
 func TestRoutes_SecurityHeadersOnRepresentativeRoutes(t *testing.T) {
+	t.Setenv(constants.CSPModeEnvVar, "enforce")
 	ts := newTestServer(t)
 	defer ts.Close()
 
@@ -166,10 +167,11 @@ func TestRoutes_SecurityHeadersOnRepresentativeRoutes(t *testing.T) {
 		name        string
 		path        string
 		wantNoStore bool
+		wantCSP     bool
 	}{
-		{"SPA HTML", "/", true},                        // document cache set by static handler
-		{"public healthcheck", HealthCheckPath, false}, // not under /api
-		{"authenticated API health", APIHealthCheckPath, true},
+		{"SPA HTML", "/", true, true},                         // document cache set by static handler
+		{"public healthcheck", HealthCheckPath, false, false}, // not under /api, JSON body
+		{"authenticated API health", APIHealthCheckPath, true, false},
 	}
 
 	for _, tt := range tests {
@@ -179,7 +181,12 @@ func TestRoutes_SecurityHeadersOnRepresentativeRoutes(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			assertConsoleSecurityHeaders(t, resp.Header)
+			assertBrowserSecurityHeaders(t, resp.Header)
+			if tt.wantCSP {
+				assertContentSecurityPolicy(t, resp.Header)
+			} else {
+				assertNoContentSecurityPolicy(t, resp.Header)
+			}
 			if tt.wantNoStore {
 				assertNoStoreCache(t, resp.Header)
 			} else {
@@ -241,7 +248,7 @@ func TestRoutes_StaticFileCachePolicies(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
-			assertConsoleSecurityHeaders(t, resp.Header)
+			assertBrowserSecurityHeaders(t, resp.Header)
 			assert.Equal(t, tt.wantCC, resp.Header.Get(constants.HeaderCacheControl))
 		})
 	}

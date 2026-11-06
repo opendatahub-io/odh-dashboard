@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
@@ -12,8 +13,8 @@ import (
 
 // SetSecurityHeaders applies browser security headers on normal HTTP replies.
 // Common security headers are set on every response. Cache-Control is selective
-// (no-store on API paths). Console also sends Pragma: no-cache and no-store on every response.
-// Module proxy replies force no-store in ModifyResponse (see forceNoStoreCacheHeaders).
+// (no-store on API paths). Module proxy replies force no-store in ModifyResponse
+// (see forceNoStoreCacheHeaders).
 func (app *App) SetSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sw := &securityHeadersWriter{ResponseWriter: w, req: r}
@@ -89,12 +90,40 @@ func applySecurityHeaders(h http.Header, urlPath string) {
 	h.Set(constants.HeaderXFrameOptions, constants.XFrameOptionsDeny)
 	h.Set(constants.HeaderXDNSPrefetchControl, constants.XDNSPrefetchControlOff)
 	h.Set(constants.HeaderReferrerPolicy, constants.ReferrerPolicyStrictOriginWhenCrossOrigin)
+	if isHTMLResponse(h.Get(constants.HeaderContentType)) {
+		h.Set(cspHeaderName(), constants.ContentSecurityPolicy)
+	}
 
 	if !isApiPath(urlPath) {
 		return
 	}
 
 	h.Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
+}
+
+// cspHeaderName resolves the CSP header name from CSP_MODE. "report-only" emits the
+// Report-Only header; "enforce" and any unknown value emit the enforcing header so a
+// typo fails closed. Both modes send the same directive string — only the name changes.
+//
+// TEMPORARY: unset or empty also emits the
+// Report-Only header. Restore it to the enforcing header once the violation baseline
+// is captured.
+func cspHeaderName() string {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(constants.CSPModeEnvVar))) {
+	case "", "report-only":
+		return constants.HeaderCSPReportOnly
+	default:
+		return constants.HeaderContentSecurityPolicy
+	}
+}
+
+// isHTMLResponse reports whether the handler set an HTML document content type.
+// The CSP covers documents only; JSON APIs, static assets, and module proxy
+// responses carry no policy. Handlers set Content-Type before WriteHeader, so the
+// header is final by the time the wrapper applies security headers.
+func isHTMLResponse(contentType string) bool {
+	mediaType, _, _ := strings.Cut(contentType, ";")
+	return strings.EqualFold(strings.TrimSpace(mediaType), constants.ContentTypeHTML)
 }
 
 // isApiPath reports host and module API paths after PathPrefix strip.
