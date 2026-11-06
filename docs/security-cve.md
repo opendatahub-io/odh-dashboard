@@ -176,8 +176,9 @@ Images ship build output, not `node_modules`:
 
 - **Main dashboard image** ([`Dockerfile`](../Dockerfile)): `frontend/public` (Rspack bundle) and
   `backend/dist` (esbuild bundle).
-- **Package images** (`packages/*/Dockerfile`, `distributions/*/Dockerfile`): the frontend bundle
-  plus, where present, a compiled Go BFF binary.
+- **Package images** (`packages/*/Dockerfile*`, `distributions/*/Dockerfile*`): the frontend bundle
+  plus, where present, a compiled Go BFF binary. Some packages build these from their `upstream/`
+  tree (for example `packages/model-registry/Dockerfile.workspace`).
 
 > **Warning**: Runtime dependencies are compiled **into** those bundles and binaries, so a vulnerable
 > runtime package still ships even though `node_modules` does not. Treat runtime dependencies as
@@ -187,7 +188,8 @@ Common "not affected" cases:
 
 - **Build- or test-only packages** (bundlers, linters, Cypress, Jest, dev servers): the code never
   reaches the bundles.
-- **Upstream-synced trees** or lockfiles that no image build uses.
+- **Lockfiles that no image build uses**, including `upstream/` trees whose package does not build
+  from them. Check the package's `Dockerfile*` before deciding.
 - **Go code paths** that `govulncheck` reports as not reachable. Re-run it with the build tags the
   image uses first (for example `govulncheck -tags strictfipsruntime ./...` for BFFs built that way;
   see the package's `Dockerfile.workspace`), because a scan without tags can miss code that ships.
