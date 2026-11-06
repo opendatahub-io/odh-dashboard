@@ -142,16 +142,24 @@ class APIKeysPage {
     return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
   }
 
-  findFilterInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
-    return cy.findByTestId('username-filter-input').find('input');
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('username-filter-input');
+  }
+
+  findUsernameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('textbox', { name: 'Filter by username' });
+  }
+
+  findOptionalFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('body').find('[data-testid="username-filter-input"]');
   }
 
   findFilterSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('username-filter-input').find('button[type="submit"]');
+    return cy.findByRole('button', { name: 'Search' });
   }
 
   filterByUsername(username: string): void {
-    this.findFilterInput()
+    this.findUsernameInput()
       .should('be.visible')
       .click()
       .clear()
@@ -174,41 +182,42 @@ class APIKeysPage {
   }
 
   revokeApiKeyIfPresent(name: string): void {
-    this.findTable()
-      .find('tr:has(td)')
-      .then(($rows) => {
-        const row = $rows.toArray().find((candidate) => candidate.textContent.includes(name));
-        if (!row) {
-          return;
-        }
+    cy.get('body').then(($body) => {
+      const row = $body
+        .find('[data-testid="api-keys-table"] tr:has(td)')
+        .toArray()
+        .find((candidate) => candidate.textContent.includes(name));
+      if (!row) {
+        return;
+      }
 
-        cy.wrap(row).findByRole('button', { name: 'Kebab toggle' }).click();
-        cy.findByRole('menuitem', { name: /^Revoke$/ }).click();
-        revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(name);
-        revokeAPIKeyModal.findRevokeButton().click();
-        this.findTable().should('not.contain.text', name);
-      });
+      cy.wrap(row).findByRole('button', { name: 'Kebab toggle' }).click();
+      cy.findByRole('menuitem', { name: /^Revoke$/ }).click();
+      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(name);
+      revokeAPIKeyModal.findRevokeButton().click();
+      this.findTable().should('not.contain.text', name);
+    });
   }
 
   revokeApiKeysByNamePrefix(prefix: string): void {
-    this.findTable()
-      .find('tr:has(td)')
-      .filter((_, row) => row.textContent.includes(prefix))
-      .first()
-      .then(($row) => {
-        if (!$row.length) {
-          return;
-        }
+    cy.get('body').then(($body) => {
+      const row = $body
+        .find('[data-testid="api-keys-table"] tr:has(td)')
+        .toArray()
+        .find((candidate) => candidate.textContent.includes(prefix));
+      if (!row) {
+        return;
+      }
 
-        const name = $row.find('[data-testid="api-key-name"]').text().trim();
-        cy.wrap($row).findByRole('button', { name: 'Kebab toggle' }).click();
-        cy.findByRole('menuitem', { name: /^Revoke$/ }).click();
-        revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(name);
-        revokeAPIKeyModal.findRevokeButton().should('be.enabled').click();
-        revokeAPIKeyModal.shouldBeOpen(false);
-        this.findTable().should('not.contain.text', name);
-        this.revokeApiKeysByNamePrefix(prefix);
-      });
+      const name = Cypress.$(row).find('[data-testid="api-key-name"]').text().trim();
+      cy.wrap(row).findByRole('button', { name: 'Kebab toggle' }).click();
+      cy.findByRole('menuitem', { name: /^Revoke$/ }).click();
+      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(name);
+      revokeAPIKeyModal.findRevokeButton().should('be.enabled').click();
+      revokeAPIKeyModal.shouldBeOpen(false);
+      this.findTable().should('not.contain.text', name);
+      this.revokeApiKeysByNamePrefix(prefix);
+    });
   }
 }
 
