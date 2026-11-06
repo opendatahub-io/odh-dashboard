@@ -4,6 +4,8 @@ import { maskSensitiveInfo } from '../maskSensitiveInfo';
 const EVAL_HUB_OFFLINE_DATA_SECRET_NAME = 'evalhub-e2e-offline-data';
 const EVAL_HUB_OFFLINE_DATA_INTERCEPT_ALIAS = 'evalHubOfflineDataRequest';
 const EVAL_HUB_EVALUATION_JOBS_URL = '**/eval-hub/api/v1/evaluations/jobs*';
+// Each scoped benchmark bundle provides its tokenizer at this path under /test_data.
+const EVAL_HUB_OFFLINE_BUNDLE_TOKENIZER_PATH = '/test_data/tokenizer';
 
 type EvalHubRequestBenchmark = {
   id?: string;
@@ -39,8 +41,6 @@ type OfflineDataConfig = {
   S3_KEY_PREFIX: string;
   S3_ENDPOINT: string;
   S3_REGION: string;
-  /** Exact local path of the tokenizer included in each benchmark bundle. */
-  TOKENIZER_PATH: string;
 };
 
 const enabled = (value: unknown): boolean =>
@@ -58,7 +58,6 @@ const getOfflineDataConfig = (): OfflineDataConfig | undefined => {
     'S3_KEY_PREFIX',
     'S3_ENDPOINT',
     'S3_REGION',
-    'TOKENIZER_PATH',
   ];
   const config: Partial<OfflineDataConfig> = {
     AWS_ACCESS_KEY_ID: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_AWS_ACCESS_KEY_ID'),
@@ -67,7 +66,6 @@ const getOfflineDataConfig = (): OfflineDataConfig | undefined => {
     S3_KEY_PREFIX: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_S3_KEY'),
     S3_ENDPOINT: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_S3_ENDPOINT'),
     S3_REGION: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_S3_REGION'),
-    TOKENIZER_PATH: Cypress.env('CY_EVAL_HUB_OFFLINE_DATA_TOKENIZER_PATH'),
   };
   const missing = requiredKeys.filter((key) => !config[key]?.trim());
   if (missing.length > 0) {
@@ -123,7 +121,7 @@ const withOfflineData = (
     ...benchmark,
     parameters: {
       ...benchmark.parameters,
-      tokenizer: config.TOKENIZER_PATH,
+      tokenizer: EVAL_HUB_OFFLINE_BUNDLE_TOKENIZER_PATH,
     },
     // eslint-disable-next-line camelcase
     test_data_ref: {
@@ -297,7 +295,7 @@ export const assertEvalHubOfflineDataRequest = (): void => {
     expect(benchmarks, 'offline EvalHub request benchmarks').to.have.length.greaterThan(0);
     benchmarks.forEach((benchmark) => {
       const s3Key = getOfflineBenchmarkS3Key(benchmark, config);
-      expect(benchmark.parameters?.tokenizer).to.equal(config.TOKENIZER_PATH);
+      expect(benchmark.parameters?.tokenizer).to.equal(EVAL_HUB_OFFLINE_BUNDLE_TOKENIZER_PATH);
       expect(benchmark.test_data_ref).to.deep.equal({
         s3: {
           bucket: config.S3_BUCKET,
