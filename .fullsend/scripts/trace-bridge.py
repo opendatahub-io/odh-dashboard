@@ -500,35 +500,66 @@ def export_path(t, bare_ok=True):
 
 
 PATTERN_PROGS = {"grep", "egrep", "fgrep", "rg", "ag", "sed", "awk", "jq", "yq"}
-PATTERN_OPTS = {"-e", "--regexp", "--expression"}
-# Options whose following argument(s) are values, not patterns or files.
+# Per program: options that take values (option -> number of operands), and options whose
+# operand is the pattern or script itself (so the next plain argument is already a file).
+_GREP = {"-m": 1, "-A": 1, "-B": 1, "-C": 1, "--max-count": 1, "--after-context": 1,
+         "--before-context": 1, "--context": 1, "--include": 1, "--exclude": 1, "--exclude-dir": 1,
+         "--label": 1, "-d": 1, "-D": 1, "--devices": 1, "--directories": 1}
 VALUE_OPTS = {
-    1: {"-m", "-A", "-B", "-C", "-t", "-T", "-g", "-M", "-j", "-f", "-l", "-v", "-F", "-L",
-        "--max-count", "--after-context", "--before-context", "--context", "--type", "--type-not",
-        "--glob", "--iglob", "--include", "--exclude", "--exclude-dir", "--max-columns", "--threads",
-        "--file", "--max-depth", "--indent", "--from-file"},
-    2: {"--arg", "--argjson", "--slurpfile", "--rawfile"},
+    "grep": _GREP, "egrep": _GREP, "fgrep": _GREP,
+    "rg": {"-m": 1, "-A": 1, "-B": 1, "-C": 1, "-t": 1, "-T": 1, "-g": 1, "-M": 1, "-j": 1,
+           "--max-count": 1, "--type": 1, "--type-not": 1, "--glob": 1, "--iglob": 1, "--max-columns": 1,
+           "--threads": 1, "--max-depth": 1, "-r": 1, "--replace": 1, "--sort": 1},
+    "ag": {"-A": 1, "-B": 1, "-C": 1, "-G": 1, "-m": 1, "--depth": 1},
+    "sed": {"-l": 1, "--line-length": 1},
+    "awk": {"-v": 1, "-F": 1, "--assign": 1, "--field-separator": 1},
+    "jq": {"--arg": 2, "--argjson": 2, "--slurpfile": 2, "--rawfile": 2, "--indent": 1},
+    "yq": {"--arg": 2, "--argjson": 2, "--indent": 1, "-I": 1},
+}
+SCRIPT_OPTS = {  # the pattern/script comes from this option's operand
+    "grep": {"-e", "--regexp", "-f", "--file"}, "egrep": {"-e", "--regexp", "-f", "--file"},
+    "fgrep": {"-e", "--regexp", "-f", "--file"}, "rg": {"-e", "--regexp", "-f", "--file"},
+    "sed": {"-e", "--expression", "-f", "--file"}, "awk": {"-f", "--file"},
+    "jq": {"-f", "--from-file"}, "yq": {"-f", "--from-file"},
 }
 
 
 def without_patterns(prog, args):
-    """Arguments minus search patterns and scripts: for grep/sed/awk/jq the first plain
-    argument is a pattern or program (unless given via -e), and -e takes a pattern."""
-    out, skip, pattern_given = [], 0, False
+    """Arguments minus option values, search patterns and scripts. For grep/rg/sed/awk/jq
+    the first plain argument is the pattern or script, unless an option such as -e or -f
+    already supplied it; value-taking options are looked up per program."""
+    if prog not in PATTERN_PROGS:
+        return list(args)
+    values, scripts = VALUE_OPTS.get(prog, {}), SCRIPT_OPTS.get(prog, set())
+    out, skip, pattern_given, keep_next = [], 0, False, False
     for t in args:
+        if keep_next:  # a redirection target: pass through untouched for the caller
+            out.append(t)
+            keep_next = False
+            continue
         if skip:
             skip -= 1
             continue
-        if prog in PATTERN_PROGS and t in PATTERN_OPTS:
+        if REDIRECT_RE.match(t):  # callers decide what redirections mean
+            out.append(t)
+            keep_next = REDIRECT_RE.sub("", t) == ""
+            continue
+        if t in scripts:
             skip, pattern_given = 1, True
             continue
-        if prog in PATTERN_PROGS and (t in VALUE_OPTS[1] or t in VALUE_OPTS[2]):
-            skip = 2 if t in VALUE_OPTS[2] else 1
+        if t in values:
+            skip = values[t]
             continue
-        if prog in PATTERN_PROGS and re.match(r"(-e|--regexp=|--expression=)", t):
-            pattern_given = True
+        opt = t.split("=", 1)[0]
+        if t.startswith("--") and "=" in t:
+            pattern_given = pattern_given or opt in scripts
             continue
-        if prog in PATTERN_PROGS and not pattern_given and not t.startswith("-") and not REDIRECT_RE.match(t):
+        if t.startswith("-") and len(t) > 2 and not t.startswith("--") and t[:2] in scripts:
+            pattern_given = True  # attached operand, e.g. -e'pat' or -fscript.sed
+            continue
+        if t.startswith("-"):
+            continue
+        if not pattern_given:
             pattern_given = True
             continue
         out.append(t)
@@ -1094,7 +1125,8 @@ def self_test():
                                             "echo build.sh && wc -l build.sh && grep 'patLeak.internal.sh' README.md && "
                                             "sed -n '1,5p' docs/x.md && grep -e 'patLeak2.corp.sh' -r src/a.md && "
                                             "grep -m 1 patLeak3.internal.sh README.md && rg -t ts -g '*.md' patLeak4.sh docs/y.md && "
-                                            "jq --arg k patLeak5.sh '.a' data/z.json"}),
+                                            "jq --arg k patLeak5.sh '.a' data/z.json && grep -F -m 1 internal/patLeak6 src/b.md && "
+                                            "sed -f t.sed docs/adr/0010-y.md && sed 's/a/b/' src/c.md > .claude/rules/out.md"}),
             call("c13", "ghp_QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ", {"x": 1})]))
         f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
         f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
@@ -1200,13 +1232,14 @@ def self_test():
          and bad_summary["tags"].get("fullsend.verdict") == "other" and bad_summary["pr"] is None),
         ("here-strings don't swallow later lines; emails, hostnames and outside paths aren't exported",
          any(["cat", "cat", "git", "curl", "cat", "curl", "echo", "wc", "grep", "sed", "grep", "grep",
-              "rg", "jq"] == p for p in shell_progs)
+              "rg", "jq", "grep", "sed", "sed"] == p for p in shell_progs)
          and "mailLeak" not in blob and "api.internal.corp" not in blob and "/etc/hosts" not in blob
          and "api.internal.sh" not in blob and "AGENTS.md" in blob
          and "patLeak" not in blob
          and any(get(x, "fullsend.tool.paths") == {"values": [
              {"stringValue": p} for p in ("AGENTS.md", "build.sh", "docs/x.md", "src/a.md", "docs/y.md",
-                                          "data/z.json")]}
+                                          "data/z.json", "src/b.md", "docs/adr/0010-y.md", "src/c.md",
+                                          ".claude/rules/out.md")]}
              for x in spans)),
         ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
          "fullsend.pr" not in no_repo["tags"] and no_repo["pr"] == 7 and bool_pr["pr"] is None
@@ -1275,6 +1308,10 @@ def self_test():
          get(persona_sc, "fullsend.guidance.read") is not None
          and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
         ("cat in a shell command counts as opened", "AGENTS.md" in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
+        ("sed -f input files count as reads; redirection targets and grep -F/-m patterns don't",
+         shell_reads("sed -f t.sed docs/adr/0010-y.md") == ["docs/adr/0010-y.md"]
+         and shell_reads("sed 's/a/b/' src/c.md > .claude/rules/out.md") == ["src/c.md"]
+         and shell_summary("grep -F -m 1 internal/customer/acme README.md")[1] == []),
         ("JSON credential redacted", "hunter2pass" not in blob),
         ("CLI flag credential redacted", "tok3nvalue" not in blob),
         ("write contents and prompts not exported", "leakedvalue" not in blob and "Apply docs" not in blob),
