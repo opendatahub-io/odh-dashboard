@@ -35,6 +35,7 @@ import http.client
 import math
 import json
 import os
+import posixpath
 import re
 import sys
 import time
@@ -461,6 +462,7 @@ def shell_tokens(cmd):
     text, out, word, i = str(cmd)[:MAX_SCAN * 5], [], None, 0
     pending, expect_delim = [], False  # heredoc delimiters waiting for the next newline
     fd_digits = True  # current word so far is only unquoted digits (a possible fd like the 2 in 2>)
+    escaped_ansi = False  # current word has a $'...' part with backslash escapes (not decoded)
 
     def add(chars, plain_digits=False):
         nonlocal word, fd_digits
@@ -470,14 +472,16 @@ def shell_tokens(cmd):
         word.extend(chars)  # in place: rebuilding the list per character is quadratic
 
     def end_word():
-        nonlocal word, expect_delim, fd_digits
+        nonlocal word, expect_delim, fd_digits, escaped_ansi
         if word is not None:
             value = "".join(word)
             out.append(value)
             if expect_delim:
-                pending.append((value, expect_delim == "<<-"))
+                # A delimiter with undecoded $'\..' escapes can't be matched reliably: None
+                # makes the scanner stop at the heredoc body instead of guessing where it ends.
+                pending.append((None if escaped_ansi else value, expect_delim == "<<-"))
                 expect_delim = False
-        word, fd_digits = None, True
+        word, fd_digits, escaped_ansi = None, True, False
 
     n = len(text)
     while i < n:
@@ -497,6 +501,7 @@ def shell_tokens(cmd):
                     j += 1
             if j >= n:
                 break  # unclosed quote: drop the rest
+            escaped_ansi = escaped_ansi or any(part.startswith("\\") for part in buf)
             add(buf)
             i = j + 1
         elif c == "'":
@@ -537,6 +542,8 @@ def shell_tokens(cmd):
             if op in ("<<", "<<-"):
                 expect_delim = op
             elif op == "\n" and pending:
+                if any(delim is None for delim, _tabs in pending):
+                    break  # undecodable heredoc delimiter: drop the body and everything after
                 for delim, strip_tabs in pending:  # skip each heredoc body up to its delimiter
                     while i < n:
                         nl = text.find("\n", i)
@@ -559,7 +566,8 @@ COMPOUND_INNER = {"then", "else", "elif", "do", "!"}
 
 
 def shell_segments_ctx(cmd):
-    """(operator-before, tokens, conditional) per command. Separators and redirections only
+    """(operator-before, tokens, conditional, depth) per command; depth is how many groups
+    or compounds enclose it. Separators and redirections only
     come from unquoted operators (see shell_tokens). conditional is True inside a group
     ( ... ) or { ...; } opened right after && or ||, inside a conditional group, inside a
     $(...) or <(...) substitution, and inside any if/while/until/for/case compound: those
@@ -584,7 +592,7 @@ def shell_segments_ctx(cmd):
             close("compound")
             toks = toks[1:]
         if toks:
-            segs.append((op, toks[:200], cond()))
+            segs.append((op, toks[:200], cond(), len(stack)))
             return True
         return False
 
@@ -616,7 +624,7 @@ def shell_segments_ctx(cmd):
 
 def shell_segments(cmd):
     """(operator-before, tokens) per command; see shell_segments_ctx."""
-    return [(op, toks) for op, toks, _cond in shell_segments_ctx(cmd)]
+    return [(op, toks) for op, toks, _cond, _depth in shell_segments_ctx(cmd)]
 
 
 def executed_segments(segs):
@@ -626,7 +634,7 @@ def executed_segments(segs):
     the last one (its success is the command's success) and contains no ||. Commands in a
     conditional group or compound (see shell_segments_ctx) never count."""
     lists, cur = [], []
-    for k, (op, _toks, _cond) in enumerate(segs):
+    for k, (op, *_rest) in enumerate(segs):
         if op in (None, ";", "&") and cur:
             lists.append(cur)
             cur = []
@@ -798,6 +806,30 @@ def shell_summary(cmd):
     return programs[:30], paths[:30]
 
 
+def resolve_path(cwd, p):
+    """p relative to the repository, given the tracked working directory cwd ("" is the repo
+    root, None is unknown). Absolute paths are returned unchanged. None when it can't be
+    known: unknown cwd, shell expansion ($, ~), or a path that leaves the repository."""
+    if p.startswith("/"):
+        return p
+    if cwd is None or p.startswith("~") or "$" in p:
+        return None
+    out = posixpath.normpath(posixpath.join(cwd, p))
+    return None if out == ".." or out.startswith("../") else out
+
+
+def chdir_target(cwd, args):
+    """New working directory for `cd ARG`, or None when it can't be known."""
+    if len(args) != 1 or args[0] in ("-", "--"):
+        return None
+    d = args[0]
+    if d.startswith("/"):
+        rel, root = rel_path(d.rstrip("/") + "/")
+        return (rel or "").rstrip("/") if root in ("base", "pr-head") else None
+    out = resolve_path(cwd, d)
+    return "" if out == "." else out
+
+
 def shell_files(cmd, include_skipped=False):
     """(read files, redirection targets) in a shell command. Read files are the file
     arguments of read programs (cat, head, sed, ...) in segments that certainly ran (see
@@ -806,19 +838,28 @@ def shell_files(cmd, include_skipped=False):
     reads, targets = [], []
     segs = shell_segments_ctx(cmd)
     ran = executed_segments(segs)
-    for k, (op, toks, _cond) in enumerate(segs):
+    cwd = ""  # repo root; None once a directory change can't be followed
+    for k, (op, toks, _cond, depth) in enumerate(segs):
         counts = include_skipped or k in ran
         i, prog = _program(toks)
         if i is None:
             continue
+        if prog in ("cd", "pushd", "popd"):
+            # Only a top-level cd that certainly ran is followed; anything else (in a group,
+            # after || or &&-then-;, pushd/popd, cd -, $VAR) leaves the directory unknown.
+            args = [t for t in toks[i + 1:] if not is_redirect(t)]
+            ok = prog == "cd" and depth == 0 and k in ran and cwd is not None
+            cwd = chdir_target(cwd, args) if ok else None
+            continue
         redirect = None
         for t in without_patterns(prog, toks[i + 1:]):
             if redirect is not None:
+                path = resolve_path(cwd, t)
                 if redirect == "<":  # input redirection: a read, unless the segment may not run
-                    if counts:
-                        reads.append(t)
-                elif ">" in redirect and redirect not in (">&", "<>"):
-                    targets.append(t)
+                    if counts and path:
+                        reads.append(path)
+                elif ">" in redirect and redirect not in (">&", "<>") and path:
+                    targets.append(path)
                 # <<, <<< (heredoc word / here-string text), >& and <& (fd numbers): not files
                 redirect = None
                 continue
@@ -826,7 +867,9 @@ def shell_files(cmd, include_skipped=False):
                 redirect = t
                 continue
             if prog in READ_PROGS and counts and not t.startswith("-") and "*" not in t:
-                reads.append(t)
+                path = resolve_path(cwd, t)
+                if path:
+                    reads.append(path)
     return reads, targets
 
 
@@ -1119,12 +1162,32 @@ def check_endpoint(endpoint):
         sys.exit("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT must be an https URL (http only for localhost)")
 
 
+class PartialExport(Exception):
+    """The OTLP endpoint answered 200 but rejected some spans (partialSuccess)."""
+
+
 def post(payload, endpoint, headers):
+    """POST the payload; returns the HTTP status. OTLP allows HTTP 200 with
+    partialSuccess.rejectedSpans > 0, which raises PartialExport: the export is then not
+    complete, so the bridge marker must not be written."""
     # allow_nan=False: OTLP JSON has no Infinity/NaN tokens; fail loudly rather than send them.
     req = urllib.request.Request(endpoint, data=json.dumps(payload, allow_nan=False).encode(),
                                  headers=headers, method="POST")
     with _OPENER.open(req, timeout=60) as r:
-        return r.status
+        status, body = r.status, r.read(1_000_000)
+    try:
+        reply = json.loads(body) if body.strip() else {}
+    except ValueError:
+        reply = {}  # a non-JSON 2xx body (e.g. protobuf-only collectors) carries no rejection info
+    partial = reply.get("partialSuccess") if isinstance(reply, dict) else None
+    rejected = partial.get("rejectedSpans") if isinstance(partial, dict) else None
+    try:
+        rejected = int(rejected or 0)
+    except (TypeError, ValueError):
+        rejected = 1  # unreadable count: treat as incomplete
+    if rejected > 0:
+        raise PartialExport(f"{rejected} spans rejected")
+    return status
 
 
 def mlflow_trace_state(endpoint, headers, trace_id):
@@ -1254,13 +1317,21 @@ def _self_test_network():
             else:
                 self._send(404)
 
+        def _drain(self):
+            # Read the request body before answering, or the client can see a connection reset.
+            self.rfile.read(int(self.headers.get("Content-Length") or 0))
+
         def do_POST(self):
-            if self.path.startswith("/ok/"):
+            self._drain()
+            if self.path.startswith("/partial/"):
+                self._send(200, b'{"partialSuccess": {"rejectedSpans": 2, "errorMessage": "x"}}')
+            elif self.path.startswith("/ok/"):
                 self._send(200, b"{}")
             else:
                 self._send(302, extra={"Location": "http://example.invalid/steal"})
 
         def do_PATCH(self):
+            self._drain()
             self._send(500)
 
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
@@ -1295,6 +1366,7 @@ def _self_test_network():
     except SystemExit:
         http_rejected = True
     marker_exit = _self_test_marker_failure(f"http://127.0.0.1:{srv.server_address[1]}/ok/v1/traces")
+    partial_exit = _self_test_marker_failure(f"http://127.0.0.1:{srv.server_address[1]}/partial/v1/traces")
     srv.shutdown()
     bad = tempfile.mkdtemp(prefix="trace-bridge-badid-")
     with open(os.path.join(bad, "metrics.json"), "w") as f:
@@ -1309,7 +1381,7 @@ def _self_test_network():
     except SystemExit:
         bad_id_rejected = True
     url_error = safe_error(urllib.error.URLError("http://secret-host.internal/x?token=abc"))
-    return {"marker_exit": marker_exit, "post_error": post_error, "url_error": url_error,
+    return {"marker_exit": marker_exit, "partial_exit": partial_exit, "post_error": post_error, "url_error": url_error,
             "states": states, "shape_states": shape_states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
@@ -1594,25 +1666,36 @@ def self_test():
          shell_reads("true || (cat .claude/rules/react.md)") == []
          and shell_reads("false && cat .claude/rules/react.md; true") == []
          and shell_reads("a || b && cat e/f.md") == []
-         and shell_reads("cd x && cat .claude/rules/react.md") == [".claude/rules/react.md"]
+         and shell_reads("true && cat .claude/rules/react.md") == [".claude/rules/react.md"]
          and shell_reads("cat a/b.md; cat c/d.md") == ["a/b.md", "c/d.md"]
          and shell_reads("cat i/j.md | head") == ["i/j.md"]
          and shell_reads("true || (echo hi; cat docs/adr/0009-x.md)") == []
          and shell_reads("[ -f X ] && { echo a; cat docs/adr/0009-x.md; }") == []
          and shell_reads("if [ -f X ]; then cat docs/adr/0009-x.md; fi") == []
          and shell_reads("for f in a; do cat docs/adr/0009-x.md; done; cat k/l.md") == ["k/l.md"]
-         and shell_reads("(cd x; cat m/n.md)") == ["m/n.md"]
+         and shell_reads("(cat m/n.md)") == ["m/n.md"]
          and shell_reads("{ cat o/p.md; }") == ["o/p.md"]
          and shell_reads("case $x in a) cat s/t.md;; esac; cat u/v.md") == ["u/v.md"]
          and shell_reads("true || echo $(cat docs/adr/0009-x.md)") == []
          and shell_reads("false && out=$(cat docs/adr/0009-x.md)") == []
          and shell_reads("diff <(cat docs/adr/0009-x.md) a; cat w/x.md") == ["w/x.md"]),
+        ("shell reads follow a top-level cd; unknown directory changes drop relative reads",
+         shell_reads("cd packages/maas && cat AGENTS.md") == ["packages/maas/AGENTS.md"]
+         and shell_reads("cd .claude/rules && cat react.md") == [".claude/rules/react.md"]
+         and shell_reads("cd /sandbox/workspace/target-repo/docs && cat adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("cd $HOME && cat a.md") == [] and shell_reads("cd .. && cat b.md") == []
+         and shell_reads("true || cd x; cat e/f.md") == [] and shell_reads("(cd x; cat y.md)") == []),
+        ("an escaped $'...' heredoc delimiter stops the scan instead of exposing the body",
+         shell_summary("cat <<$'E\\x4fF'\nEOF\nConfidentialCustomer\nE\\x4fF\ncat z/w.md")[0] == ["cat"]
+         and shell_reads("cat <<$'EOF'\nbody\nEOF\ncat z/w.md") == ["z/w.md"]),
         ("heredoc bodies end only on an exact delimiter line (<<- strips leading tabs only)",
          shell_summary("cat <<'EOF'\n EOF\nConfidentialCustomer\nEOF\ncat z/w.md")[0] == ["cat", "cat"]
          and shell_reads("cat <<EOF\nx\nEOF \ncat z/w.md\nEOF\ncat y/v.md") == ["y/v.md"]
          and shell_reads("cat <<-EOF\n\tbody\n\tEOF\ncat z/w.md") == ["z/w.md"]),
         ("a failed bridge-marker write after export fails the run, even with --no-tags",
          "marker" in net["marker_exit"]),
+        ("HTTP 200 with partialSuccess.rejectedSpans fails the run before the marker is written",
+         "incomplete" in net["partial_exit"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
@@ -1743,6 +1826,8 @@ def main():
             print("trace exists without bridge spans; sending bridge spans only")
         try:
             status = post(payload, endpoint, headers)
+        except PartialExport as e:
+            sys.exit(f"export incomplete ({e}); bridge marker not written, so a rerun resends")
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as e:
             sys.exit(f"export failed ({safe_error(e)})")
         print(f"exported to OTLP endpoint: HTTP {status}")

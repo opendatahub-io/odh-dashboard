@@ -524,7 +524,8 @@ column ignores cache discounts; use `fullsend.cost_usd`.
 "Opened" means a successful `read`, or a file argument to `cat`/`head`/`sed`-style programs
 in a shell command that certainly ran. Searches, failed reads, paths that only appear in
 prompts, redirection targets (`cat > f`), heredoc bodies, commands after `||`, and `&&`
-branches followed by further commands do not count. Coverage needs
+branches followed by further commands do not count. Relative paths are resolved against
+a top-level `cd` that certainly ran; after any other directory change they are dropped. Coverage needs
 `.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
 reviewed commit: when the selector is missing, or the PR head has moved past that commit
 (a later push or a backfill), the trace is sent without `context_coverage` data.
@@ -555,7 +556,10 @@ fails, the trace is sent without coverage. If the endpoint is unreachable, the j
 and the review is unaffected; rerun it from the Actions tab. If the bridge's spans are
 already in MLflow (its `fullsend.bridge.version` tag is set), a rerun only refreshes tags,
 because re-sending spans doubles MLflow's token totals (`--force` overrides). The marker
-tag is required: if it can't be written after an export, the job fails so it can be rerun. For the same
+tag is required: if it can't be written after an export, the job fails so it can be rerun.
+An export the endpoint only partly accepts (HTTP 200 with `partialSuccess.rejectedSpans`)
+also fails the job without writing the marker. A malformed `agent-result.json` doesn't
+stop the export; the run is traced without PR metadata. For the same
 reason, a lookup that keeps failing (non-404 error, timeout, malformed reply) is retried and
 then stops the job instead of exporting; rerun it, or pass `--force`.
 

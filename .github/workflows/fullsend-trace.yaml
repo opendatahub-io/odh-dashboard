@@ -103,15 +103,18 @@ jobs:
         run: |
           set -euo pipefail
           result=$(find "$ART" -path '*/output/agent-result.json' | sort | tail -1)
+          # The result file is written in the sandbox and may be malformed (e.g. a failed run):
+          # read it defensively so the bridge still runs and exports the run without metadata.
+          field() { jq -r --arg k "$1" 'if type == "object" then (.[$k] // empty | tostring) else empty end' "$result" 2>/dev/null || true; }
           pr=""
-          [[ -n "$result" ]] && pr=$(jq -r '.pr_number // empty' "$result")
+          [[ -n "$result" ]] && pr=$(field pr_number)
           if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
             echo "::warning::No PR number in the artifact; tracing without guidance coverage."
             exit 0
           fi
           author=$(gh api "repos/$REPO/pulls/$pr" --jq '.user.login')
           current_head=$(gh api "repos/$REPO/pulls/$pr" --jq '.head.sha')
-          head_sha=$(jq -r '.head_sha // empty' "$result")
+          head_sha=$(field head_sha)
           # Coverage is scored against the files of the reviewed commit. The PR files API
           # only shows the current head, so coverage is omitted once the PR has moved on
           # (a later push, or a backfill of an older review).
