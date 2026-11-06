@@ -144,10 +144,23 @@ def ns(ts):
     return v if 0 < v <= MAX_NS else None
 
 
+_CUT = "\x00cut\x00"
+
+
+def _redact_value(m):
+    """Replace a matched secret value. The value patterns are bounded, so a value longer than
+    the bound (or one whose closing quote was never found) only matched its start: then
+    everything after it is dropped too, rather than exporting the rest of the secret."""
+    v = m.group(2)
+    whole = len(v) < 2000 and not (v[0] in "\"'" and (len(v) < 2 or v[-1] != v[0]))
+    return m.group(1) + "[REDACTED]" + ("" if whole else _CUT)
+
+
 def redact(s):
     s = SECRET_RE.sub("[REDACTED]", str(s)[:MAX_SCAN])
-    s = SECRET_KV_RE.sub(lambda m: m.group(1) + "[REDACTED]", s)
-    return SECRET_FLAG_RE.sub(lambda m: m.group(1) + "[REDACTED]", s)
+    s = SECRET_KV_RE.sub(_redact_value, s)
+    s = SECRET_FLAG_RE.sub(_redact_value, s)
+    return s.split(_CUT, 1)[0] + "…" if _CUT in s else s
 
 
 def redact_obj(v):
@@ -582,8 +595,9 @@ COMPOUND_INNER = {"then", "else", "elif", "do", "!"}
 
 
 def shell_segments_ctx(cmd):
-    """(operator-before, tokens, conditional, depth) per command; depth is how many groups
-    or compounds enclose it. Separators and redirections only
+    """(operator-before, tokens, conditional, depth, top) per command; depth is how many groups
+    or compounds enclose it, and top is False inside a subshell, substitution or function
+    body (an exit there can't end the parent shell). Separators and redirections only
     come from unquoted operators (see shell_tokens). conditional is True inside a group
     ( ... ) or { ...; } opened right after && or ||, inside a conditional group, inside a
     $(...) or <(...) substitution, and inside any if/while/until/for/case compound: those
@@ -595,19 +609,23 @@ def shell_segments_ctx(cmd):
     func_body = False  # just saw "name()": the next { ... } is a function body
 
     ncond = 0  # how many open blocks are conditional: cond() stays O(1) however deep
+    nsub = 0  # how many open blocks run in their own scope (subshell, function body)
 
     def cond():
         return ncond > 0
 
     def push(kind, conditional):
-        nonlocal ncond
+        nonlocal ncond, nsub
         stack.append((kind, conditional))
         ncond += bool(conditional)
+        nsub += kind in ("paren", "fbrace")
 
-    def close(kind):
-        nonlocal ncond
-        if stack and stack[-1][0] == kind:  # a closer only closes its own kind of block
-            ncond -= bool(stack.pop()[1])
+    def close(*kinds):
+        nonlocal ncond, nsub
+        if stack and stack[-1][0] in kinds:  # a closer only closes its own kind of block
+            kind, c = stack.pop()
+            ncond -= bool(c)
+            nsub -= kind in ("paren", "fbrace")
 
     def flush():
         nonlocal toks, neg_pipe, func_body
@@ -626,7 +644,7 @@ def shell_segments_ctx(cmd):
         if toks:
             # ! negates the whole pipeline, so later | segments of it are negated too.
             neg_pipe = negated or (neg_pipe and op == "|")
-            segs.append((op, toks[:200], cond() or neg_pipe, len(stack)))
+            segs.append((op, toks[:200], cond() or neg_pipe, len(stack), nsub == 0))
             return True
         return False
 
@@ -652,7 +670,7 @@ def shell_segments_ctx(cmd):
                 # A background job's status (and its cd) never reaches this shell: the list
                 # the & ends (from its start at this depth) counts as conditional.
                 start = next(k for d, k in reversed(starts) if d <= len(stack))
-                segs[start:] = [(o, tk, True, d) for o, tk, _c, d in segs[start:]]
+                segs[start:] = [(o, tk, True, d, top) for o, tk, _c, d, top in segs[start:]]
                 op = "&"
                 starts.append((len(stack), len(segs)))
             elif t == "\n" and op in ("&&", "||", "|") and not toks:
@@ -666,16 +684,16 @@ def shell_segments_ctx(cmd):
         if not isinstance(t, Op) and t == "{" and len(toks) == 2 and toks[0] == "function":
             flush()  # "function NAME {" on one line: the declaration, then its body
             toks = []
-            push("brace", True)
+            push("fbrace", True)
             func_body = False
             continue
         if not toks and not isinstance(t, Op) and t == "{":
-            push("brace", func_body or op in ("&&", "||") or cond())
+            push("fbrace" if func_body else "brace", func_body or op in ("&&", "||") or cond())
             func_body = False
             starts.append((len(stack), len(segs)))
             continue
         if not toks and not isinstance(t, Op) and t == "}":
-            close("brace")
+            close("brace", "fbrace")
             continue
         toks.append(t)
     flush()
@@ -684,7 +702,7 @@ def shell_segments_ctx(cmd):
 
 def shell_segments(cmd):
     """(operator-before, tokens) per command; see shell_segments_ctx."""
-    return [(op, toks) for op, toks, _cond, _depth in shell_segments_ctx(cmd)]
+    return [(op, toks) for op, toks, *_rest in shell_segments_ctx(cmd)]
 
 
 EXIT_PROGS = {"exit", "return", "logout"}
@@ -708,9 +726,9 @@ def _before_exit(segs):
     after one is known to run. An exit with a literal nonzero status can't have ended a
     command that succeeded (in a subshell it only ends the subshell), so it doesn't cut;
     any other exit (exit, exit 0, exit $x) does, wherever it is."""
-    for k, (_op, toks, *_rest) in enumerate(segs):
+    for k, (_op, toks, _cond, _depth, top) in enumerate(segs):
         i, prog = _program(toks)
-        if prog in EXIT_PROGS:
+        if prog in EXIT_PROGS and top:  # in a subshell or function body it ends only that
             args = [t for t in toks[i + 1:] if not is_redirect(t)]
             if args and re.fullmatch(r"0*[1-9]\d{0,2}", str(args[0])):
                 continue
@@ -968,7 +986,7 @@ def shell_files(cmd, include_skipped=False):
     segs = shell_segments_ctx(cmd)
     read_ok = succeeded_segments(segs)  # a read or cd counts only if its success is established
     cwd = ""  # repo root; None once a directory change can't be followed
-    for k, (op, toks, _cond, depth) in enumerate(segs):
+    for k, (op, toks, _cond, depth, *_rest) in enumerate(segs):
         counts = include_skipped or k in read_ok
         i, prog = _program(toks)
         if i is None:
@@ -1984,6 +2002,21 @@ def self_test():
          and shell_reads("[ -f x ] && exit 0; cat docs/adr/0009-x.md") == []
          and shell_reads("if [ -f x ]; then exit; fi; cat docs/adr/0009-x.md") == []
          and shell_reads("true || exit $rc; cat docs/adr/0009-x.md") == []),
+        ("an exit or return in a subshell or function body doesn't cut the parent shell's reads",
+         shell_reads("f() { return; }; cat .claude/rules/react.md") == [".claude/rules/react.md"]
+         and shell_reads("(exit 0); cat .claude/rules/react.md") == [".claude/rules/react.md"]
+         and shell_reads("function g { exit; }; cat c/d.md") == ["c/d.md"]
+         and shell_reads("x=$(exit 0); cat c/d.md") == ["c/d.md"]
+         and shell_reads("{ exit 0; }; cat c/d.md") == []
+         and shell_reads("[ -f x ] && exit 0; cat c/d.md") == []),
+        ("over-long or unterminated secret values are dropped with everything after them",
+         "A" * 50 not in clean('cookie="' + "A" * 2500 + '"')
+         and "A" * 50 not in clean("password=" + "A" * 2500)
+         and "A" * 50 not in clean("--token " + "A" * 2500)
+         and "A" * 50 not in clean("x --api-key '" + "A" * 2500 + "'")
+         and "A" * 50 not in clean('cookie="' + "A" * 300)
+         and clean("password=hunter2 and more") == "password=[REDACTED] and more"
+         and clean('cookie="abc" keep') == 'cookie=[REDACTED] keep'),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
