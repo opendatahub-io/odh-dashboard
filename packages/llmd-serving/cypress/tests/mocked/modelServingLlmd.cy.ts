@@ -1103,6 +1103,29 @@ describe('Model Serving LLMD', () => {
       const deploymentName = 'test-vllm-config-deploy';
 
       initVLLMOnMaaSIntercepts();
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gaudi-config',
+            displayName: 'vLLM on Gaudi LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.9.1',
+            recommendedAccelerators: '["intel.com/gaudi"]',
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.2',
+            recommendedAccelerators: '["nvidia.com/gpu"]',
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config-alternative',
+            displayName: 'Alternative GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.3',
+            recommendedAccelerators: '["nvidia.com/gpu"]',
+          }),
+        ]),
+      );
 
       cy.interceptK8s(
         'POST',
@@ -1166,6 +1189,20 @@ describe('Model Serving LLMD', () => {
         .findModelServerAutoSelectSuggestion()
         .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
       modelServingWizard.findServingRuntimeVersionLabel().should('contain.text', 'v0.8.2');
+
+      // Manual selection remains available, and returning to Automatic restores the first match.
+      modelServingWizard.findModelServerManualSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Alternative GPU LLMInferenceServiceConfig')
+        .click();
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'Alternative GPU LLMInferenceServiceConfig');
+      modelServingWizard.findModelServerAutoSelectRadio().click();
+      modelServingWizard
+        .findModelServerAutoSelectSuggestion()
+        .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
 
       modelServingWizard.findNextButton().should('be.enabled').click();
 

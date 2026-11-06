@@ -9,6 +9,7 @@ import type {
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import {
   ModelServerTemplateSelectField,
+  getAcceleratorIdentifierFromHardwareProfile,
   type ModelServerOption,
   type ModelServerSelectFieldData,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
@@ -156,8 +157,11 @@ const suggestConfig = (
   configs: LLMInferenceServiceConfigKind[],
   hardwareProfile?: HardwareProfileKind,
 ): LLMInferenceServiceConfigKind | undefined => {
-  const compatible = configs.filter((c) => isConfigCompatible(c, hardwareProfile));
-  return compatible.length === 1 ? compatible[0] : undefined;
+  const accelerator = getAcceleratorIdentifierFromHardwareProfile(hardwareProfile);
+  if (!accelerator) {
+    return undefined;
+  }
+  return configs.find((config) => isCompatibleWithIdentifier(accelerator, config));
 };
 
 // Map an accelerator config to a ModelServerOption (mirrors LlmConfigOptionsField so the shared
@@ -348,9 +352,13 @@ export const AcceleratorConfigFieldWizardField: AcceleratorConfigFieldType = {
       if (existingFieldData) {
         return existingFieldData;
       }
-      const suggestion = suggestConfig(externalData?.configs ?? [], dependencies?.hardwareProfile);
-      // A suggestion means the hardware profile uniquely matches a config → start on Automatic
-      // (mirrors LlmConfigOptionsField). No suggestion → Manual with the built-in image default.
+      const topologyType = dependencies?.topologyFieldData?.topologyType;
+      const visibleConfigs = (externalData?.configs ?? []).filter((config) =>
+        configSupportsTopology(config, topologyType),
+      );
+      const suggestion = suggestConfig(visibleConfigs, dependencies?.hardwareProfile);
+      // A compatible config suggestion starts the field on Automatic. No suggestion → Manual with
+      // the built-in image default.
       return suggestion
         ? { selectedConfig: suggestion, autoSelect: true }
         : { selectedConfig: ACCELERATOR_CONFIG_DEFAULT, autoSelect: false };
