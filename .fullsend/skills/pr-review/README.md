@@ -539,8 +539,10 @@ bodies and inline scripts stay behind. Fields from the sandbox (`agent-result.js
 transcripts, usage) are checked for shape and dropped when malformed; numbers must be
 finite. Credential-looking values, text under sensitive key names and `--token`-style
 flags are redacted, including in span names and attribute keys. Fullsend's own spans keep
-only IDs, name, kind, times, status code and redacted attributes (no events, links or
-status messages), and must sit in the host's run directory with well-formed IDs. Strings
+only IDs, name, kind, times, status code and an allowlist of metadata attributes (model,
+token counts, cost, tool-call and turn counts, harness, mint and HTTP status); content
+attributes such as `gen_ai.output.messages`, events, links and status messages are dropped.
+They must sit in the host's run directory with well-formed IDs. Strings
 are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's own
 retention; anyone who can read the experiment can read these traces.
 
@@ -550,8 +552,9 @@ artifact API or download error fails the job so it can be rerun. If guidance sel
 fails, the trace is sent without coverage. If the endpoint is unreachable, the job fails
 and the review is unaffected; rerun it from the Actions tab. If the bridge's spans are
 already in MLflow (its `fullsend.bridge.version` tag is set), a rerun only refreshes tags,
-because re-sending spans doubles MLflow's token totals (`--force` overrides). A failed
-lookup is treated as a new trace.
+because re-sending spans doubles MLflow's token totals (`--force` overrides). For the same
+reason, a lookup that keeps failing (non-404 error, timeout, malformed reply) is retried and
+then stops the job instead of exporting; rerun it, or pass `--force`.
 
 ## Related files
 

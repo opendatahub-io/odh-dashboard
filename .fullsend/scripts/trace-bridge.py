@@ -38,6 +38,7 @@ import os
 import re
 import shlex
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -76,9 +77,22 @@ OTLP_ID_RE = {"traceId": re.compile(r"[0-9a-f]{32}"), "spanId": re.compile(r"[0-
 BASE_SPAN_FIELDS = ("traceId", "spanId", "parentSpanId", "name", "kind", "startTimeUnixNano",
                     "endTimeUnixNano", "flags")
 BRIDGE_VERSION = "3"
+# Attributes kept from Fullsend's own spans: metadata only. Anything else (e.g.
+# gen_ai.input.messages / gen_ai.output.messages when content capture is on) is dropped.
+BASE_ATTR_KEYS = {
+    "exit_code", "iteration", "gen_ai.operation.name", "gen_ai.agent.name", "gen_ai.system",
+    "gen_ai.provider.name", "gen_ai.request.model", "gen_ai.response.model",
+    "fullsend.agent", "fullsend.runtime", "fullsend.cost_usd", "fullsend.tool_calls", "fullsend.num_turns",
+    "fullsend.iterations", "fullsend.work_item_id", "fullsend.security_trace_id",
+    "fullsend.harness.path", "fullsend.harness.content_sha", "fullsend.prescript.skipped",
+    "fullsend.mint.role", "fullsend.mint.attempts", "fullsend.mint.repo_count",
+    "http.request.method", "http.response.status_code", "server.address",
+}
+BASE_ATTR_RE = re.compile(r"gen_ai\.usage\.[a-z_.]{1,60}")  # token counts only
 NAME_RE = re.compile(r"[\w.-]{1,60}")  # persona, tool and program names
 VERDICTS = ("approve", "request-changes", "comment", "reject", "failure")  # review-result.schema.json
 LOOKUP_TIMEOUT = 30
+LOOKUP_ATTEMPTS = 3
 
 
 # ---------- helpers ----------
@@ -252,7 +266,9 @@ def sanitize_base_span(s):
             del out[k]
     out["name"] = clean(out.get("name", ""))[:200]
     attrs_in = s.get("attributes") if isinstance(s.get("attributes"), list) else []
-    out["attributes"] = [x for x in (sanitize_attr(a) for a in attrs_in[:200]) if x is not None]
+    allowed = [a for a in attrs_in[:200] if isinstance(a, dict) and isinstance(a.get("key"), str)
+               and (a["key"] in BASE_ATTR_KEYS or BASE_ATTR_RE.fullmatch(a["key"]))]
+    out["attributes"] = [x for x in (sanitize_attr(a) for a in allowed) if x is not None]
     code = (s.get("status") or {}).get("code")
     if code in (0, 1, 2):
         out["status"] = {"code": code}
@@ -483,6 +499,31 @@ def export_path(t, bare_ok=True):
     return t if REL_PATH_RE.fullmatch(t) or (bare_ok and BARE_FILE_RE.fullmatch(t)) else None
 
 
+PATTERN_PROGS = {"grep", "egrep", "fgrep", "rg", "ag", "sed", "awk", "jq", "yq"}
+PATTERN_OPTS = {"-e", "--regexp", "--expression", "--arg", "--argjson"}
+
+
+def without_patterns(prog, args):
+    """Arguments minus search patterns and scripts: for grep/sed/awk/jq the first plain
+    argument is a pattern or program (unless given via -e), and -e takes a pattern."""
+    out, skip_next, pattern_given = [], False, False
+    for t in args:
+        if skip_next:
+            skip_next = False
+            continue
+        if prog in PATTERN_PROGS and t in PATTERN_OPTS:
+            skip_next, pattern_given = True, True
+            continue
+        if prog in PATTERN_PROGS and re.match(r"(-e|--regexp=|--expression=)", t):
+            pattern_given = True
+            continue
+        if prog in PATTERN_PROGS and not pattern_given and not t.startswith("-") and not REDIRECT_RE.match(t):
+            pattern_given = True
+            continue
+        out.append(t)
+    return out
+
+
 def shell_summary(cmd):
     """What a shell command is exported as: the programs it runs and the file paths it
     names. Arguments, quoted text, heredoc bodies and inline scripts are never exported."""
@@ -493,7 +534,7 @@ def shell_summary(cmd):
             programs.append(prog)
         if prog in NETWORK_PROGS:
             continue
-        for t in toks[(i or 0) + 1:]:
+        for t in without_patterns(prog, toks[(i or 0) + 1:]):
             rel = export_path(REDIRECT_RE.sub("", t), bare_ok=prog in FILE_PROGS)
             if rel and rel not in paths:
                 paths.append(rel)
@@ -511,7 +552,7 @@ def shell_reads(cmd):
         if prog not in READ_PROGS:
             continue
         skip_next = False
-        for t in toks[i + 1:]:
+        for t in without_patterns(prog, toks[i + 1:]):
             if skip_next:
                 skip_next = False
                 continue
@@ -819,7 +860,8 @@ def post(payload, endpoint, headers):
 
 def mlflow_trace_state(endpoint, headers, trace_id):
     """(exists, bridged): whether MLflow has this trace, and whether this bridge already
-    sent its spans to it (its tags are present). Unknown counts as absent."""
+    sent its spans to it (its tags are present). None when the lookup failed: resending
+    then could double MLflow's token totals, so the caller retries or stops."""
     base = re.sub(r"/v1/traces/?$", "", endpoint)
     req = urllib.request.Request(f"{base}/api/3.0/mlflow/traces/tr-{trace_id}", headers=headers)
     try:
@@ -830,13 +872,14 @@ def mlflow_trace_state(endpoint, headers, trace_id):
         if not isinstance(info, dict):
             raise ValueError("unexpected trace lookup response shape")
     except urllib.error.HTTPError as e:
-        if e.code != 404:
-            print(f"warning: trace lookup returned HTTP {e.code}; treating the trace as new", file=sys.stderr)
-        return False, False
+        if e.code == 404:
+            return False, False
+        print(f"warning: trace lookup returned HTTP {e.code}", file=sys.stderr)
+        return None
     except (urllib.error.URLError, ValueError, OSError, http.client.HTTPException) as e:
         # OSError covers read timeouts; HTTPException covers IncompleteRead and bad status lines
-        print(f"warning: trace lookup failed ({safe_error(e)}); treating the trace as new", file=sys.stderr)
-        return False, False
+        print(f"warning: trace lookup failed ({safe_error(e)})", file=sys.stderr)
+        return None
     tags = info.get("tags") if isinstance(info.get("tags"), dict) else {}
     # fullsend.pr marks traces sent by bridge version 1, before fullsend.bridge.version existed.
     return True, ("fullsend.bridge.version" in tags or "fullsend.pr" in tags)
@@ -974,11 +1017,14 @@ def self_test():
                       "attributes": [{"key": "cmd", "value": {"stringValue": "--api-key s3cr3tvalue1"}},
                                      {"key": "fullsend.mint.token", "value": {"stringValue": "plainValue9x"}},
                                      {"key": "gen_ai.usage.input_tokens", "value": {"intValue": "42"}},
-                                     {"key": "bad.double", "value": {"doubleValue": float("nan")}},
-                                     {"key": "bad.int", "value": {"intValue": [1, 2]}},
-                                     {"key": "bad.bool", "value": {"boolValue": "yes"}},
-                                     {"key": "bad.huge", "value": {"doubleValue": 10**400}},
-                                     {"key": "ok.double", "value": {"doubleValue": 1.5}},
+                                     {"key": "fullsend.num_turns", "value": {"doubleValue": float("nan")}},
+                                     {"key": "fullsend.tool_calls", "value": {"intValue": [1, 2]}},
+                                     {"key": "fullsend.prescript.skipped", "value": {"boolValue": "yes"}},
+                                     {"key": "fullsend.iterations", "value": {"doubleValue": 10**400}},
+                                     {"key": "fullsend.cost_usd", "value": {"doubleValue": 1.5}},
+                                     {"key": "gen_ai.output.messages", "value": {"stringValue": "fileBodyLeak7"}},
+                                     {"key": "gen_ai.usage.input_tokens.Bearer keyLeakabcdefghij",
+                                      "value": {"intValue": "1"}},
                                      {"key": "Bearer keyLeakabcdefghij", "value": {"stringValue": "v"}},
                                      {"key": "deep", "value": {"arrayValue": {"values": [
                                          {"doubleValue": float("inf")}, {"intValue": "7"}, "junk"]}}},
@@ -1031,7 +1077,8 @@ def self_test():
             call("c12", "bash", {"command": "cat <<< 'hereStringSecret' && wc -l .claude/rules/react.md"}),
             call("c14", "bash", {"command": "cat <<< 'x'\ncat AGENTS.md\ngit config user.email \"mailLeak@example.com\" "
                                             "&& curl api.internal.corp && cat /etc/hosts.md && curl api.internal.sh && "
-                                            "echo build.sh && wc -l build.sh"}),
+                                            "echo build.sh && wc -l build.sh && grep 'patLeak.internal.sh' README.md && "
+                                            "sed -n '1,5p' docs/x.md && grep -e 'patLeak2.corp.sh' -r src/a.md"}),
             call("c13", "ghp_QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ", {"x": 1})]))
         f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
         f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
@@ -1136,11 +1183,14 @@ def self_test():
          not any(k in bad_summary["tags"] for k in ("fullsend.risk", "fullsend.pr"))
          and bad_summary["tags"].get("fullsend.verdict") == "other" and bad_summary["pr"] is None),
         ("here-strings don't swallow later lines; emails, hostnames and outside paths aren't exported",
-         any(["cat", "cat", "git", "curl", "cat", "curl", "echo", "wc"] == p for p in shell_progs)
+         any(["cat", "cat", "git", "curl", "cat", "curl", "echo", "wc", "grep", "sed", "grep"] == p
+             for p in shell_progs)
          and "mailLeak" not in blob and "api.internal.corp" not in blob and "/etc/hosts" not in blob
          and "api.internal.sh" not in blob and "AGENTS.md" in blob
+         and "patLeak" not in blob
          and any(get(x, "fullsend.tool.paths") == {"values": [
-             {"stringValue": "AGENTS.md"}, {"stringValue": "build.sh"}]} for x in spans)),
+             {"stringValue": p} for p in ("AGENTS.md", "build.sh", "README.md", "docs/x.md", "src/a.md")]}
+             for x in spans)),
         ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
          "fullsend.pr" not in no_repo["tags"] and no_repo["pr"] == 7 and bool_pr["pr"] is None
          and "None#" not in json.dumps(no_repo)),
@@ -1159,14 +1209,14 @@ def self_test():
          abs(persona_cost.get("style-conventions", 0) - 0.05) < 1e-9),
         ("credential-shaped tool names, persona names and attribute keys are redacted",
          "QQQQQQQQQQQQ" not in blob and "keyLeakabcdefghij" not in blob),
-        ("lookup timeout treated as a new trace", net["timeout_state"] == (False, False)),
-        ("truncated lookup response treated as a new trace", net["truncated_state"] == (False, False)),
+        ("lookup timeout is an unknown state, not a new trace", net["timeout_state"] is None),
+        ("truncated lookup response is an unknown state", net["truncated_state"] is None),
         ("logged errors are fixed text: status codes and exception types only",
          net["post_error"] == "HTTP 302" and net["url_error"] == "URLError"),
         ("the run summary in the log has counts, not guidance or file paths",
          "docs/adr" not in log_summary(summary) and ".claude/rules" not in log_summary(summary)
          and json.loads(log_summary(summary))["missed_count"] == 1),
-        ("non-object lookup responses treated as a new trace", net["shape_states"] == [(False, False)] * 3),
+        ("non-object lookup responses are an unknown state", net["shape_states"] == [None] * 3),
         ("malformed and out-of-range timestamps are rejected",
          otlp_ns(float("inf")) is None and otlp_ns(float("nan")) is None and otlp_ns("x") is None
          and otlp_ns("1793664001000000000") == 1793664001000000000
@@ -1176,9 +1226,15 @@ def self_test():
          any(x["name"] == "sandbox_create" and x["endTimeUnixNano"] == "1500000000" and "kind" not in x
              for x in spans) and not any(x["name"] == "bad_start" for x in spans)),
         ("invalid numbers on Fullsend spans are dropped, valid ones kept",
-         not any(k in base_attrs for k in ("bad.double", "bad.int", "bad.bool", "bad.huge"))
-         and base_attrs.get("ok.double") == {"doubleValue": 1.5}
-         and base_attrs.get("deep") == {"arrayValue": {"values": [{"intValue": "7"}]}}),
+         not any(k in base_attrs for k in ("fullsend.num_turns", "fullsend.tool_calls",
+                                           "fullsend.prescript.skipped", "fullsend.iterations"))
+         and base_attrs.get("fullsend.cost_usd") == {"doubleValue": 1.5}
+         and sanitize_value({"arrayValue": {"values": [{"doubleValue": float("inf")}, {"intValue": "7"}, "junk"]}})
+         == {"arrayValue": {"values": [{"intValue": "7"}]}}),
+        ("Fullsend span attributes are allowlisted: content and unknown keys are dropped",
+         "fileBodyLeak7" not in blob and "gen_ai.output.messages" not in blob and "nested" not in base_attrs
+         and set(base_attrs) <= BASE_ATTR_KEYS | {"session.id", "user.id", "fullsend.repo", "fullsend.pr_number",
+                                                  "fullsend.head_sha", "fullsend.run_url", "gen_ai.usage.input_tokens"}),
         ("payload serializes as strict JSON (no Infinity/NaN)",
          bool(json.dumps(payload, allow_nan=False))),
         ("every span time stays within the OTLP range",
@@ -1197,7 +1253,7 @@ def self_test():
         ("plain http to a remote host rejected", net["http_rejected"]),
         ("redirects are not followed", net["redirect_blocked"]),
         ("missing trace is new; bridge-tagged trace is bridged; Fullsend-only trace is not",
-         net["states"] == [(False, False), (True, True), (True, False), (False, False)]),
+         net["states"] == [(False, False), (True, True), (True, False), None]),
         ("failed read, search, prompt mention and unanswered call don't count as opened",
          get(persona_sc, "fullsend.guidance.read") is not None
          and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
@@ -1269,7 +1325,16 @@ def main():
         return
     check_endpoint(endpoint)
     headers = parse_headers(os.environ.get("OTEL_EXPORTER_OTLP_TRACES_HEADERS"))
-    exists, bridged = mlflow_trace_state(endpoint, headers, summary["trace_id"])
+    state = None
+    for attempt in range(LOOKUP_ATTEMPTS):
+        state = mlflow_trace_state(endpoint, headers, summary["trace_id"])
+        if state is not None:
+            break
+        time.sleep(2 ** attempt)
+    if state is None and not args.force:
+        sys.exit("trace lookup failed; not exporting, to avoid doubling MLflow's token totals "
+                 "(rerun the job, or pass --force)")
+    exists, bridged = state or (False, False)
     if bridged and not args.force:
         print("bridge spans already in MLflow; skipping span export (use --force to resend)")
     else:
