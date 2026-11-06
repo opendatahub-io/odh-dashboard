@@ -89,17 +89,7 @@ copy_upstream_files() {
     source_dir="$source_base/$upstream_subdir"
   fi
 
-  if command -v rsync >/dev/null 2>&1; then
-    if ! rsync -a --delete --exclude='.git' "$source_dir"/ "$target_dir"/; then
-      error_msg "Failed to rsync files from $source_dir to $target_dir"
-      return 1
-    fi
-  else
-    if ! ( cd "$source_dir" && tar --exclude='.git' -cf - . ) | ( cd "$target_dir" && tar -xpf - ); then
-      error_msg "Failed to copy files from $source_dir to $target_dir using tar"
-      return 1
-    fi
-  fi
+  node "$SCRIPT_DIR/package-subtree-files.cjs" copy "$PACKAGE_JSON" "$source_dir" "$target_dir" || return 1
 
   return 0
 }
@@ -150,77 +140,10 @@ filter_and_transform_patch() {
   local input_patch="$1"
   local upstream_subdir="$2"
   local output_patch="$3"
+  local split_patch="${4:-}"
 
-  if [ -z "$upstream_subdir" ]; then
-    cp "$input_patch" "$output_patch"
-    return 0
-  fi
-
-  awk -v subdir="$upstream_subdir" '
-    BEGIN {
-      in_relevant_file = 0
-      skip_file = 0
-      subdir_prefix = subdir "/"
-    }
-
-    /^diff --git/ {
-      split($0, parts, " ")
-      old_path_full = parts[3]
-      new_path_full = parts[4]
-
-      gsub(/^a\//, "", old_path_full)
-      gsub(/^b\//, "", new_path_full)
-      old_path = old_path_full
-      new_path = new_path_full
-
-      if (old_path ~ "^" subdir_prefix || new_path ~ "^" subdir_prefix) {
-        in_relevant_file = 1
-        skip_file = 0
-
-        gsub("a/" subdir_prefix, "a/", $0)
-        gsub("b/" subdir_prefix, "b/", $0)
-        print $0
-      } else {
-        in_relevant_file = 0
-        skip_file = 1
-      }
-      next
-    }
-
-    /^index / {
-      if (in_relevant_file && !skip_file) print $0
-      next
-    }
-
-    /^(new|deleted) file mode/ {
-      if (in_relevant_file && !skip_file) print $0
-      next
-    }
-
-    /^(rename|copy) (from|to)/ {
-      if (in_relevant_file && !skip_file) {
-        gsub(subdir_prefix, "", $0)
-        print $0
-      }
-      next
-    }
-
-    /^(---|[+][+][+])/ {
-      if (in_relevant_file && !skip_file) {
-        if ($0 ~ "^---.*/" subdir_prefix) {
-          gsub("/" subdir_prefix, "/", $0)
-        } else if ($0 ~ "^[+][+][+].*/" subdir_prefix) {
-          gsub("/" subdir_prefix, "/", $0)
-        }
-        print $0
-      }
-      next
-    }
-
-    {
-      if (in_relevant_file && !skip_file) print $0
-    }
-  ' "$input_patch" > "$output_patch"
+  node "$SCRIPT_DIR/package-subtree-files.cjs" filter "$PACKAGE_JSON" \
+    "$input_patch" "$upstream_subdir" "$output_patch" "$split_patch"
 }
 
 extract_single_file_patch() {
@@ -228,15 +151,8 @@ extract_single_file_patch() {
   local rel_file="$2"
   local output_file="$3"
 
-  awk -v file="$rel_file" '
-    /^diff --git/ {
-      if (in_file) exit
-      in_file = ($0 ~ " b/" file "$" || $0 ~ " b/" file " ")
-      if (in_file) print
-      next
-    }
-    in_file { print }
-  ' "$patch_file" > "$output_file"
+  printf '%s' "$rel_file" | node "$SCRIPT_DIR/package-subtree-files.cjs" extract "$PACKAGE_JSON" \
+    "$patch_file" "$output_file"
 }
 
 is_binary_file() {
@@ -465,10 +381,15 @@ apply_patch_based_update() {
     commit_msg=$(_git_upstream_cmd log -1 --format="%s" "$commit")
 
     local patch_file="$TMP_DIR/patch_${commit}.patch"
-    _git_upstream_cmd format-patch -1 "$commit" --stdout > "$patch_file"
+    _git_upstream_cmd format-patch --find-renames -1 "$commit" --stdout > "$patch_file"
 
+    local split_patch=""
+    if grep -q '^rename from ' "$patch_file"; then
+      split_patch="$TMP_DIR/split_${commit}.patch"
+      _git_upstream_cmd format-patch --no-renames -1 "$commit" --stdout > "$split_patch"
+    fi
     local filtered_patch="$TMP_DIR/filtered_${commit}.patch"
-    filter_and_transform_patch "$patch_file" "$upstream_subdir" "$filtered_patch"
+    filter_and_transform_patch "$patch_file" "$upstream_subdir" "$filtered_patch" "$split_patch"
 
     if [ -s "$filtered_patch" ]; then
       cd "$MONOREPO_ROOT"
@@ -595,10 +516,11 @@ handle_apply_conflict() {
       info_msg "Attempting to apply other files from the patch individually..."
       echo ""
 
-      local all_files
-      all_files=$(grep '^diff --git' "$filtered_patch" | sed 's/^diff --git a\/.* b\///' || true)
-
-      while IFS= read -r file; do
+      local paths_file="$TMP_DIR/patch-paths"
+      if ! node "$SCRIPT_DIR/package-subtree-files.cjs" paths "$PACKAGE_JSON" "$filtered_patch" > "$paths_file"; then
+        clean_exit 1 "Failed to enumerate patch files for conflict recovery"
+      fi
+      while IFS= read -r -d '' file; do
         [ -z "$file" ] && continue
 
         local is_failed=false
@@ -621,7 +543,7 @@ handle_apply_conflict() {
             echo -e "  ${RED}✗${NC} $file"
           fi
         fi
-      done <<< "$all_files"
+      done < "$paths_file"
       echo ""
     fi
   fi
