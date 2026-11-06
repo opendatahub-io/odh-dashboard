@@ -74,6 +74,12 @@ describe('PersesDashboardGate', () => {
     expect(screen.getByTestId('dashboard-panels')).toBeDefined();
   });
 
+  it('should render panels for a non-null scalar variable value', () => {
+    renderGate(namespaceDashboard, { value: 0, loading: false } as unknown as VariableState);
+
+    expect(screen.getByTestId('dashboard-panels')).toBeDefined();
+  });
+
   it('should render panels after the namespace variable finishes loading', () => {
     const rendered = renderGate(namespaceDashboard, { value: null, loading: true });
 
