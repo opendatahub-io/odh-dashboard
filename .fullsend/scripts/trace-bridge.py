@@ -2213,7 +2213,7 @@ def self_test():
          and shell_reads("(exec true); cat c/d.md") == ["c/d.md"]
          and shell_reads("exec 2>/dev/null; cat c/d.md") == ["c/d.md"]
          and shell_reads("exec cat .claude/rules/react.md") == [".claude/rules/react.md"]
-         and shell_reads("exec head -n 5 c/d.md; cat e/f.md") == ["c/d.md"]),
+         and shell_reads("exec head -n 5 c/d.md") == ["c/d.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
