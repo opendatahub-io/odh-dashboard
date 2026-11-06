@@ -10,12 +10,8 @@ export const InvalidArgoDeploymentAlert: React.FC = () => {
     useBrowserStorage('invalidArgoDeploymentAlertDismissed', false, true, true);
 
   const showMessage =
-    useIsAreaAvailable(SupportedArea.DS_PIPELINES).customCondition(
-      ({ dscStatus }) =>
-        !!dscStatus?.conditions.some(
-          (c) => c.type === 'CapabilityDSPv2Argo' && c.status === 'False',
-        ),
-    ) && !invalidArgoDeploymentAlertDismissed;
+    useIsAreaAvailable(SupportedArea.DS_PIPELINES_ARGO_INVALID).status &&
+    !invalidArgoDeploymentAlertDismissed;
 
   if (!showMessage) {
     return null;

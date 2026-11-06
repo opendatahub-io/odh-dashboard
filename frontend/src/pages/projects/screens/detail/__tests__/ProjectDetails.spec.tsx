@@ -82,7 +82,6 @@ const defaultAreaAvailability = {
   reliantAreas: {},
   requiredComponents: {},
   requiredCapabilities: {},
-  customCondition: () => false,
 };
 
 const renderProjectDetails = () =>
