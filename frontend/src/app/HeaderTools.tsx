@@ -20,7 +20,7 @@ import {
   Icon,
   Divider,
 } from '@patternfly/react-core';
-import { QuestionCircleIcon, MoonIcon, SunIcon, DesktopIcon } from '@patternfly/react-icons';
+import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import LightBulbIcon from '#~/images/icons/LightBulbIcon';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '#~/utilities/const';
@@ -44,6 +44,41 @@ interface HeaderToolsProps {
 }
 
 type Props = HeaderToolsProps & FeatureFlagLauncherProps;
+
+// RHDS UI icons (CC-BY-4.0 Red Hat, Inc.)
+// https://ux.redhat.com/foundations/iconography
+const ThemeSunIcon = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 32 32"
+    className="pf-v6-svg"
+    fill="var(--pf-t--global--icon--color--regular)"
+  >
+    <path d="M16 7c-4.963 0-9 4.038-9 9s4.037 9 9 9 9-4.038 9-9-4.037-9-9-9Zm0 16c-3.859 0-7-3.14-7-7s3.141-7 7-7 7 3.14 7 7-3.141 7-7 7ZM15 4V1a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0Zm2 24v3a1 1 0 1 1-2 0v-3a1 1 0 1 1 2 0Zm15-12a1 1 0 0 1-1 1h-3a1 1 0 1 1 0-2h3a1 1 0 0 1 1 1ZM4 17H1a1 1 0 1 1 0-2h3a1 1 0 1 1 0 2Zm3.707 7.293a.999.999 0 0 1 0 1.414l-2 2a.997.997 0 0 1-1.414 0 .999.999 0 0 1 0-1.414l2-2a.999.999 0 0 1 1.414 0ZM24.293 7.707a.999.999 0 0 1 0-1.414l2-2a.999.999 0 1 1 1.414 1.414l-2 2a.997.997 0 0 1-1.414 0Zm-20-2a.999.999 0 1 1 1.414-1.414l2 2a.999.999 0 1 1-1.414 1.414l-2-2Zm23.414 20.586a.999.999 0 1 1-1.414 1.414l-2-2a.999.999 0 1 1 1.414-1.414l2 2Z" />
+  </svg>
+);
+
+const ThemeMoonIcon = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 32 32"
+    className="pf-v6-svg"
+    fill="var(--pf-t--global--icon--color--regular)"
+  >
+    <path d="M16 29C8.832 29 3 23.168 3 16a12.98 12.98 0 0 1 8.82-12.307.999.999 0 0 1 1.265 1.275A10.735 10.735 0 0 0 12.5 8.5c0 6.065 4.935 11 11 11 1.226 0 2.414-.197 3.532-.585a1 1 0 0 1 1.275 1.265A12.981 12.981 0 0 1 16 29ZM10.672 6.375A10.985 10.985 0 0 0 5 16c0 6.065 4.935 11 11 11 4.056 0 7.718-2.216 9.625-5.672a13.01 13.01 0 0 1-2.125.172c-7.168 0-13-5.832-13-13 0-.72.058-1.43.172-2.125Z" />
+  </svg>
+);
+
+const ThemeAutoIcon = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 32 32"
+    className="pf-v6-svg"
+    fill="var(--pf-t--global--icon--color--regular)"
+  >
+    <path d="M16 2C8.28 2 2 8.28 2 16s6.28 14 14 14 14-6.28 14-14S23.72 2 16 2Zm0 26C9.383 28 4 22.617 4 16S9.383 4 16 4s12 5.383 12 12-5.383 12-12 12Zm9-12a9 9 0 0 1-8.738 8.996.259.259 0 0 1-.262-.257V7.26c0-.142.12-.261.262-.257A9 9 0 0 1 25 15.999Z" />
+  </svg>
+);
 
 const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlagsProps }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
@@ -227,16 +262,22 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
               isOpen={themeSwitcherOpen}
               onOpenChange={(isOpen) => setThemeSwitcherOpen(isOpen)}
               toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setThemeSwitcherOpen(!themeSwitcherOpen)}
-                  isExpanded={themeSwitcherOpen}
-                  icon={
-                    <Icon size="lg">{theme === 'dark' ? <MoonIcon /> : <SunIcon />}</Icon>
-                  }
-                  aria-label={`Theme selection, current: ${colorScheme}`}
-                  data-testid="appearance-settings-button"
-                />
+                <Tooltip content="Theme selection" position="bottom">
+                  <MenuToggle
+                    variant="plain"
+                    ref={toggleRef}
+                    onClick={() => setThemeSwitcherOpen(!themeSwitcherOpen)}
+                    isExpanded={themeSwitcherOpen}
+                    aria-label={`Theme selection, current: ${colorScheme}`}
+                    data-testid="appearance-settings-button"
+                  >
+                  {colorScheme === 'system'
+                    ? ThemeAutoIcon
+                    : colorScheme === 'dark'
+                      ? <MoonIcon />
+                      : <SunIcon />}
+                  </MenuToggle>
+                </Tooltip>
               )}
               shouldFocusToggleOnSelect
               onOpenChangeKeys={['Escape']}
@@ -296,6 +337,12 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                         buttonId="default"
                         isSelected={contrastMode === 'default'}
                         onChange={() => setContrastMode('default')}
+                      />
+                      <ToggleGroupItem
+                        text="High contrast"
+                        buttonId="high-contrast"
+                        isSelected={contrastMode === 'high-contrast'}
+                        onChange={() => setContrastMode('high-contrast')}
                       />
                       <ToggleGroupItem
                         text="Glass"
