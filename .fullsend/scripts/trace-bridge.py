@@ -500,19 +500,30 @@ def export_path(t, bare_ok=True):
 
 
 PATTERN_PROGS = {"grep", "egrep", "fgrep", "rg", "ag", "sed", "awk", "jq", "yq"}
-PATTERN_OPTS = {"-e", "--regexp", "--expression", "--arg", "--argjson"}
+PATTERN_OPTS = {"-e", "--regexp", "--expression"}
+# Options whose following argument(s) are values, not patterns or files.
+VALUE_OPTS = {
+    1: {"-m", "-A", "-B", "-C", "-t", "-T", "-g", "-M", "-j", "-f", "-l", "-v", "-F", "-L",
+        "--max-count", "--after-context", "--before-context", "--context", "--type", "--type-not",
+        "--glob", "--iglob", "--include", "--exclude", "--exclude-dir", "--max-columns", "--threads",
+        "--file", "--max-depth", "--indent", "--from-file"},
+    2: {"--arg", "--argjson", "--slurpfile", "--rawfile"},
+}
 
 
 def without_patterns(prog, args):
     """Arguments minus search patterns and scripts: for grep/sed/awk/jq the first plain
     argument is a pattern or program (unless given via -e), and -e takes a pattern."""
-    out, skip_next, pattern_given = [], False, False
+    out, skip, pattern_given = [], 0, False
     for t in args:
-        if skip_next:
-            skip_next = False
+        if skip:
+            skip -= 1
             continue
         if prog in PATTERN_PROGS and t in PATTERN_OPTS:
-            skip_next, pattern_given = True, True
+            skip, pattern_given = 1, True
+            continue
+        if prog in PATTERN_PROGS and (t in VALUE_OPTS[1] or t in VALUE_OPTS[2]):
+            skip = 2 if t in VALUE_OPTS[2] else 1
             continue
         if prog in PATTERN_PROGS and re.match(r"(-e|--regexp=|--expression=)", t):
             pattern_given = True
@@ -535,7 +546,8 @@ def shell_summary(cmd):
         if prog in NETWORK_PROGS:
             continue
         for t in without_patterns(prog, toks[(i or 0) + 1:]):
-            rel = export_path(REDIRECT_RE.sub("", t), bare_ok=prog in FILE_PROGS)
+            # A bare word after grep/sed/jq/... is too ambiguous (pattern vs file): paths only.
+            rel = export_path(REDIRECT_RE.sub("", t), bare_ok=prog in FILE_PROGS and prog not in PATTERN_PROGS)
             if rel and rel not in paths:
                 paths.append(rel)
     return programs[:30], paths[:30]
@@ -1078,7 +1090,9 @@ def self_test():
             call("c14", "bash", {"command": "cat <<< 'x'\ncat AGENTS.md\ngit config user.email \"mailLeak@example.com\" "
                                             "&& curl api.internal.corp && cat /etc/hosts.md && curl api.internal.sh && "
                                             "echo build.sh && wc -l build.sh && grep 'patLeak.internal.sh' README.md && "
-                                            "sed -n '1,5p' docs/x.md && grep -e 'patLeak2.corp.sh' -r src/a.md"}),
+                                            "sed -n '1,5p' docs/x.md && grep -e 'patLeak2.corp.sh' -r src/a.md && "
+                                            "grep -m 1 patLeak3.internal.sh README.md && rg -t ts -g '*.md' patLeak4.sh docs/y.md && "
+                                            "jq --arg k patLeak5.sh '.a' data/z.json"}),
             call("c13", "ghp_QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ", {"x": 1})]))
         f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
         f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
@@ -1183,13 +1197,14 @@ def self_test():
          not any(k in bad_summary["tags"] for k in ("fullsend.risk", "fullsend.pr"))
          and bad_summary["tags"].get("fullsend.verdict") == "other" and bad_summary["pr"] is None),
         ("here-strings don't swallow later lines; emails, hostnames and outside paths aren't exported",
-         any(["cat", "cat", "git", "curl", "cat", "curl", "echo", "wc", "grep", "sed", "grep"] == p
-             for p in shell_progs)
+         any(["cat", "cat", "git", "curl", "cat", "curl", "echo", "wc", "grep", "sed", "grep", "grep",
+              "rg", "jq"] == p for p in shell_progs)
          and "mailLeak" not in blob and "api.internal.corp" not in blob and "/etc/hosts" not in blob
          and "api.internal.sh" not in blob and "AGENTS.md" in blob
          and "patLeak" not in blob
          and any(get(x, "fullsend.tool.paths") == {"values": [
-             {"stringValue": p} for p in ("AGENTS.md", "build.sh", "README.md", "docs/x.md", "src/a.md")]}
+             {"stringValue": p} for p in ("AGENTS.md", "build.sh", "docs/x.md", "src/a.md", "docs/y.md",
+                                          "data/z.json")]}
              for x in spans)),
         ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
          "fullsend.pr" not in no_repo["tags"] and no_repo["pr"] == 7 and bool_pr["pr"] is None
