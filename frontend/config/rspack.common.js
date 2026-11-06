@@ -237,6 +237,17 @@ module.exports = (env) => ({
     }),
     new MonacoWebpackPlugin({
       languages: ['yaml'],
+      // Replace the built-in YAML worker with monaco-yaml so syntax validation runs off-thread.
+      customLanguages: [
+        {
+          label: 'yaml',
+          entry: 'monaco-yaml',
+          worker: {
+            id: 'monaco-yaml/yamlWorker',
+            entry: 'monaco-yaml/yaml.worker',
+          },
+        },
+      ],
     }),
     new rspack.DefinePlugin({
       __COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
