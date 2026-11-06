@@ -153,6 +153,9 @@ func TestNormalizeCollectionPatchOperations(t *testing.T) {
 	replaceOperation := evalhub.CollectionPatchOperation{
 		Op: "replace", Path: "/benchmarks", Value: json.RawMessage(`[{"id":"arc_easy"}]`),
 	}
+	addOperation := evalhub.CollectionPatchOperation{
+		Op: "add", Path: "/benchmarks", Value: json.RawMessage(`[{"id":"arc_easy"}]`),
+	}
 	tests := []struct {
 		name            string
 		currentJSON     string
@@ -191,6 +194,15 @@ func TestNormalizeCollectionPatchOperations(t *testing.T) {
 			currentJSON: `{"name":"Empty legacy collection"}`,
 			operations: []evalhub.CollectionPatchOperation{
 				replaceOperation,
+				replaceOperation,
+			},
+			expectedPatches: []string{"add", "replace"},
+		},
+		{
+			name:        "keeps an explicit add before a replace",
+			currentJSON: `{"name":"Empty legacy collection"}`,
+			operations: []evalhub.CollectionPatchOperation{
+				addOperation,
 				replaceOperation,
 			},
 			expectedPatches: []string{"add", "replace"},

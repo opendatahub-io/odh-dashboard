@@ -245,14 +245,17 @@ export const interceptEvalHubOfflineDataReadForReconfigure = (tenantNamespace: s
   return true;
 };
 
-/** Verifies the submitted request has offline data for every selected benchmark. */
-export const assertEvalHubOfflineDataRequest = (): void => {
+/** Verifies the transformed request's offline data and any related assertions from the same wait. */
+export const assertEvalHubOfflineDataRequest = (
+  assertRequestBody?: (requestBody: unknown) => void,
+): void => {
   const config = getOfflineDataConfig();
   if (!config) {
     return;
   }
 
   cy.wait(`@${EVAL_HUB_OFFLINE_DATA_INTERCEPT_ALIAS}`).then(({ request }) => {
+    assertRequestBody?.(request.body);
     const evaluationRequest = request.body as EvalHubEvaluationRequest;
     expect(evaluationRequest.model?.url, 'model endpoint URL')
       .to.be.a('string')

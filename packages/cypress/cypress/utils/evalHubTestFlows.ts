@@ -487,40 +487,48 @@ const assertBenchmarkParametersIncluded = (
   expect(actualParameters, `${context} parameters`).to.deep.include(expectedParameters);
 };
 
-/** Confirms hardware selection and optional benchmark overrides in the create-job request. */
+/** Confirms hardware selection and optional benchmark overrides in a create-job request body. */
+const assertEvaluationJobOptionsForRequest = (
+  requestBody: unknown,
+  profileName?: string,
+  benchmarkParameterOverrides?: Record<string, unknown>,
+): void => {
+  if (profileName) {
+    expect(requestBody).to.have.nested.property(
+      'hardware_config.hardware_profile_name',
+      profileName,
+    );
+  } else {
+    expect(requestBody).not.to.have.property('hardware_config');
+  }
+
+  if (benchmarkParameterOverrides) {
+    const jobRequest = requestBody as {
+      collection?: {
+        benchmarks?: { parameters?: Record<string, unknown> }[];
+      };
+    };
+    const collectionBenchmarks = jobRequest.collection?.benchmarks;
+    expect(collectionBenchmarks, 'collection benchmarks in job request').to.have.length.greaterThan(
+      0,
+    );
+    collectionBenchmarks?.forEach(({ parameters }, index) => {
+      assertBenchmarkParametersIncluded(
+        parameters,
+        benchmarkParameterOverrides,
+        `collection benchmark ${index + 1}`,
+      );
+    });
+  }
+};
+
+/** Waits for and validates the standard create-job spy interception. */
 const assertEvaluationJobOptions = (
   profileName?: string,
   benchmarkParameterOverrides?: Record<string, unknown>,
 ): void => {
   cy.wait('@createEvalHubJob', { timeout: 120000 }).then(({ request }) => {
-    if (profileName) {
-      expect(request.body).to.have.nested.property(
-        'hardware_config.hardware_profile_name',
-        profileName,
-      );
-    } else {
-      expect(request.body).not.to.have.property('hardware_config');
-    }
-
-    if (benchmarkParameterOverrides) {
-      const jobRequest = request.body as {
-        collection?: {
-          benchmarks?: { parameters?: Record<string, unknown> }[];
-        };
-      };
-      const collectionBenchmarks = jobRequest.collection?.benchmarks;
-      expect(
-        collectionBenchmarks,
-        'collection benchmarks in job request',
-      ).to.have.length.greaterThan(0);
-      collectionBenchmarks?.forEach(({ parameters }, index) => {
-        assertBenchmarkParametersIncluded(
-          parameters,
-          benchmarkParameterOverrides,
-          `collection benchmark ${index + 1}`,
-        );
-      });
-    }
+    assertEvaluationJobOptionsForRequest(request.body, profileName, benchmarkParameterOverrides);
   });
 };
 
@@ -1160,9 +1168,16 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
           Object.entries(benchmarkParameterOverrides).filter(([key]) => key !== 'tokenizer'),
         )
       : benchmarkParameterOverrides;
-  assertEvaluationJobOptions(hardwareProfileName, expectedBenchmarkParameterOverrides);
   if (usesOfflineData) {
-    assertEvalHubOfflineDataRequest();
+    assertEvalHubOfflineDataRequest((requestBody) => {
+      assertEvaluationJobOptionsForRequest(
+        requestBody,
+        hardwareProfileName,
+        expectedBenchmarkParameterOverrides,
+      );
+    });
+  } else {
+    assertEvaluationJobOptions(hardwareProfileName, expectedBenchmarkParameterOverrides);
   }
   evaluationsPage.findRunsTabContent({ timeout: 120000 }).should('be.visible');
   evaluationsPage.findEvaluationsTable().should('contain', evaluationRunName);
