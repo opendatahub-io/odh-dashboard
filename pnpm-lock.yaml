@@ -1022,6 +1022,9 @@ importers:
       '@odh-dashboard/model-serving':
         specifier: workspace:*
         version: link:../packages/model-serving
+      '@odh-dashboard/plugin-core':
+        specifier: workspace:*
+        version: link:../packages/plugin-core
       '@odh-dashboard/trustyai':
         specifier: workspace:*
         version: link:../packages/trustyai
