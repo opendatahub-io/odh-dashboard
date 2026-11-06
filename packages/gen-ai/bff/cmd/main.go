@@ -290,11 +290,28 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 	return loopbackIP.String(), nil
 }
 
+// isPlausibleHost reports whether h is a value the listener could reasonably
+// bind: empty (all interfaces), an IP literal, a scoped IPv6 address
+// (fe80::1%eth0), or a DNS hostname (letters, digits, dots, hyphens).
+func isPlausibleHost(h string) bool {
+	if h == "" {
+		return true
+	}
+	if net.ParseIP(h) != nil {
+		return true
+	}
+	if zone := strings.Index(h, "%"); zone > 0 {
+		return net.ParseIP(h[:zone]) != nil &&
+			strings.Trim(h[zone+1:], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._") == ""
+	}
+	return strings.Trim(h, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-") == ""
+}
+
 // sanitizedHost strips any scheme prefix and userinfo credentials from a
 // configured host before logging, so a password-bearing HOST or --host value
 // never appears in logs. A host that still carries path or query data after
 // stripping cannot be summarized safely (the path or query may hold a token),
-// so it is replaced with a redacted marker.
+// and neither can a malformed value; both are replaced with a redacted marker.
 func sanitizedHost(host string) string {
 	if scheme := strings.Index(host, "://"); scheme >= 0 {
 		host = host[scheme+3:]
@@ -303,6 +320,9 @@ func sanitizedHost(host string) string {
 		host = host[at+1:]
 	}
 	if strings.ContainsAny(host, "/?#") {
+		return "[redacted]"
+	}
+	if !isPlausibleHost(host) {
 		return "[redacted]"
 	}
 	return host
@@ -332,10 +352,11 @@ func validateListenHost(host string) error {
 		return errors.New("--host must not contain path or query data")
 	}
 	// An empty host binds all interfaces; anything else must be an IP literal
-	// or a DNS hostname (letters, digits, dots, hyphens) so a malformed value
-	// fails here instead of inside the listener, whose error echoes the raw
-	// value into the logs.
-	if h != "" && net.ParseIP(h) == nil && strings.Trim(h, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-") != "" {
+	// (optionally scoped, e.g. fe80::1%eth0) or a DNS hostname so a malformed
+	// value — including colon-bearing values that are not IP literals, like
+	// "host:port" — fails here instead of inside the listener, whose error
+	// echoes the raw value into the logs.
+	if !isPlausibleHost(h) {
 		slog.Error("SECURITY: --host must be a valid hostname or IP address",
 			"host", sanitizedHost(host),
 			"fix", "Pass a plain host or IP, e.g. --host localhost",

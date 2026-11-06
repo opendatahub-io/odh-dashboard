@@ -300,6 +300,9 @@ func TestSanitizedHost(t *testing.T) {
 		{name: "query data is redacted", host: "localhost?token=secret-pw", want: "[redacted]"},
 		{name: "fragment data is redacted", host: "localhost#token", want: "[redacted]"},
 		{name: "scheme, userinfo, and path data are redacted", host: "https://user:secret-pw@localhost/api?token=secret-pw", want: "[redacted]"},
+		{name: "malformed host with space is redacted", host: "local host", want: "[redacted]"},
+		{name: "colon-bearing non-IP is redacted", host: "localhost:8080", want: "[redacted]"},
+		{name: "scoped IPv6 address is unchanged", host: "fe80::1%eth0", want: "fe80::1%eth0"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -330,6 +333,16 @@ func TestHostValuesAreSanitizedInLogs(t *testing.T) {
 		})
 		assert.Contains(t, logs, "loopback interface")
 		assert.NotContains(t, logs, "super-secret-pw")
+	})
+
+	t.Run("loopback-check error log redacts a malformed host", func(t *testing.T) {
+		logs := captureDefaultLog(t, func() {
+			_, err := validateAllowLocalModelEndpoints(true, true, "local host secret-token", "")
+			assert.Error(t, err)
+		})
+		assert.Contains(t, logs, "loopback interface")
+		assert.NotContains(t, logs, "local host secret-token")
+		assert.NotContains(t, logs, "secret-token")
 	})
 
 	t.Run("startup addr omits the password", func(t *testing.T) {
@@ -367,12 +380,19 @@ func TestListenHostRejected(t *testing.T) {
 			assert.Contains(t, err.Error(), "valid hostname or IP")
 		})
 		assert.Contains(t, logs, "SECURITY")
+		assert.NotContains(t, logs, "localhost:8080")
+	})
+
+	t.Run("colon-bearing value that is not an IP literal is rejected", func(t *testing.T) {
+		assert.Error(t, validateListenHost("::zz"))
+		assert.Error(t, validateListenHost("host:port"))
 	})
 
 	t.Run("plain host is accepted", func(t *testing.T) {
 		assert.NoError(t, validateListenHost("localhost"))
 		assert.NoError(t, validateListenHost("0.0.0.0"))
 		assert.NoError(t, validateListenHost("::1"))
+		assert.NoError(t, validateListenHost("fe80::1%eth0"))
 		assert.NoError(t, validateListenHost(""))
 	})
 }
