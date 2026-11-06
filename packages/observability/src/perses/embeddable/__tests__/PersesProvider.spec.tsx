@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import type { DashboardResource } from '@perses-dev/core';
+import type { DashboardResource, ListVariableDefinition } from '@perses-dev/core';
 import type { VariableState } from '@perses-dev/plugin-system';
 import { useVariableDefinitionAndState } from '@perses-dev/dashboards';
-import { PersesDashboardGate } from '../PersesProvider';
+import { PersesDashboardGate } from '../PersesDashboardGate';
 
 jest.mock('@perses-dev/dashboards', () => ({
   ...jest.requireActual('@perses-dev/dashboards'),
@@ -12,11 +12,27 @@ jest.mock('@perses-dev/dashboards', () => ({
 
 const useVariableDefinitionAndStateMock = jest.mocked(useVariableDefinitionAndState);
 
+const namespaceDefinition = {
+  kind: 'ListVariable',
+  spec: {
+    name: 'namespace',
+    allowMultiple: true,
+    allowAllValue: true,
+    defaultValue: '$__all',
+    plugin: { kind: 'StaticListVariable', spec: { values: [] } },
+  },
+} as ListVariableDefinition;
+
+const customAllNamespaceDefinition = {
+  ...namespaceDefinition,
+  spec: { ...namespaceDefinition.spec, customAllValue: '.*' },
+} as ListVariableDefinition;
+
 const namespaceDashboard = {
   kind: 'Dashboard',
   metadata: { name: 'dashboard-model' },
   spec: {
-    variables: [{ kind: 'ListVariable', spec: { name: 'namespace' } }],
+    variables: [namespaceDefinition],
   },
 } as unknown as DashboardResource;
 
@@ -26,9 +42,13 @@ const clusterDashboard = {
   spec: { variables: [] },
 } as unknown as DashboardResource;
 
-const renderGate = (dashboardResource: DashboardResource, namespaceState?: VariableState) => {
+const renderGate = (
+  dashboardResource: DashboardResource,
+  namespaceState?: VariableState,
+  namespaceDefinitionOverride = namespaceDefinition,
+) => {
   useVariableDefinitionAndStateMock.mockReturnValue({
-    definition: undefined,
+    definition: namespaceDefinitionOverride,
     state: namespaceState,
   });
 
@@ -53,7 +73,7 @@ describe('PersesDashboardGate', () => {
   it('should delay panels when the namespace variable is empty', () => {
     renderGate(namespaceDashboard, { value: '', loading: false });
 
-    expect(screen.queryByTestId('dashboard-panels')).toBeNull();
+    expect(screen.getByTestId('namespace-empty-state')).toBeDefined();
   });
 
   it('should delay panels when no namespace state has been initialized', () => {
@@ -69,7 +89,27 @@ describe('PersesDashboardGate', () => {
   });
 
   it('should render panels when all namespaces are selected', () => {
-    renderGate(namespaceDashboard, { value: '$__all', loading: false });
+    renderGate(namespaceDashboard, {
+      value: '$__all',
+      loading: false,
+      options: [{ label: 'Project A', value: 'project-a' }],
+    });
+
+    expect(screen.getByTestId('dashboard-panels')).toBeDefined();
+  });
+
+  it('should delay the default All value until namespace options are loaded', () => {
+    renderGate(namespaceDashboard, { value: '$__all', loading: false, options: [] });
+
+    expect(screen.queryByTestId('dashboard-panels')).toBeNull();
+  });
+
+  it('should not wait for options when a custom All value is configured', () => {
+    renderGate(
+      namespaceDashboard,
+      { value: '$__all', loading: false, options: [] },
+      customAllNamespaceDefinition,
+    );
 
     expect(screen.getByTestId('dashboard-panels')).toBeDefined();
   });
@@ -99,9 +139,13 @@ describe('PersesDashboardGate', () => {
   });
 
   it('should delay panels for an empty namespace selection', () => {
-    renderGate(namespaceDashboard, { value: [], loading: false });
+    renderGate(namespaceDashboard, {
+      value: [],
+      loading: false,
+      options: [{ label: 'Project A', value: 'project-a' }],
+    });
 
-    expect(screen.queryByTestId('dashboard-panels')).toBeNull();
+    expect(screen.getByTestId('namespace-empty-state')).toBeDefined();
   });
 
   it('should render panels immediately for dashboards without a namespace variable', () => {

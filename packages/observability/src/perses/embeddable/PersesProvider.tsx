@@ -7,7 +7,6 @@ import {
   DatasourceStoreProvider,
   PanelFocusProvider,
   VariableProvider,
-  useVariableDefinitionAndState,
 } from '@perses-dev/dashboards';
 import {
   DataQueriesProvider,
@@ -23,7 +22,9 @@ import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6';
 import { createPluginLoader } from '../persesPluginsLoader';
 import { OdhDatasourceApi, CachedDatasourceAPI, PERSES_PROXY_BASE_PATH } from '../perses-client';
 import { usePatternFlyTheme } from '../theme';
-import { hasNamespaceVariable } from '../../utils/dashboardUtils';
+
+export { PersesDashboardGate } from './PersesDashboardGate';
+export type { PersesDashboardGateProps } from './PersesDashboardGate';
 
 const DEFAULT_DURATION: DurationString = '30m';
 const DEFAULT_REFRESH_INTERVAL: DurationString = '60s';
@@ -55,43 +56,6 @@ export type PersesProviderProps = {
   /** Same-origin Perses proxy used for dashboards, datasources, and plugin assets. */
   persesProxyBasePath?: string;
   children: React.ReactNode;
-};
-
-export type PersesDashboardGateProps = {
-  dashboardResource: DashboardResource;
-  children: React.ReactNode;
-};
-
-const hasVariableValue = (value: unknown): boolean => {
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-
-  return typeof value === 'string'
-    ? value.trim().length > 0
-    : value !== null && value !== undefined;
-};
-
-/**
- * Delays panel rendering until the namespace variable has an initial value.
- * The variable controls datasource query parameters, so rendering panels before
- * it is initialized can issue an invalid query without a namespace.
- */
-export const PersesDashboardGate: React.FC<PersesDashboardGateProps> = ({
-  dashboardResource,
-  children,
-}) => {
-  const { state: namespaceState } = useVariableDefinitionAndState('namespace');
-
-  if (!hasNamespaceVariable(dashboardResource)) {
-    return <>{children}</>;
-  }
-
-  const namespaceReady = Boolean(
-    namespaceState && !namespaceState.loading && hasVariableValue(namespaceState.value),
-  );
-
-  return namespaceReady ? <>{children}</> : null;
 };
 
 type PersesProviderCoreProps = {
