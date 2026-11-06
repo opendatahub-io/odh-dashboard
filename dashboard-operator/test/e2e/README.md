@@ -285,22 +285,36 @@ component registry should set it explicitly as the smoke quality gate.
   Jenkins collection and PR reporting.
 - Component quality-gate arguments are appended to the image entrypoint.
 
-### DevOps handoff (owned outside this repo)
+### Activation and packaged-image migration
 
-These remain to be configured under RHOAIENG-96237 before early-gate E2E is
-live:
+The Jenkins component registry may initially run the dashboard-operator tests
+by compiling the workspace source in a compatible toolchain image. This interim
+path allows shift-left validation before
+`quay.io/opendatahub/odh-dashboard-operator-e2e` is available; it must use the
+same `existing` fixture and smoke selection shown above.
 
-1. Add `resources/configs/components-testing/components/dashboard-operator/main.yaml`
-   in `ods/jenkins` with `metadata.earlyGateTestRunner: shiftleft`, image
-   `quay.io/opendatahub/odh-dashboard-operator-e2e:odh-stable`,
-   `workingDir: /e2e`, `resultsDir: /e2e/results`, and the smoke arguments above
-   under `qualityGatesMap.default`.
-2. Konflux tenant registration of the `odh-dashboard-operator-e2e-ci` Component
-   (and its `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount) so the
-   `.tekton` E2E build PipelineRuns above can run. After registration, remove
-   the temporary `false` guard from both PipelineRun CEL expressions to enable
-   pull-request and stable-image builds.
-3. ROSA HCP cluster-pool / Jenkins access for the component.
+Use this order to activate and then remove the interim path:
+
+1. Register the `odh-dashboard-operator-e2e-ci` Konflux Component and its
+   `build-pipeline-odh-dashboard-operator-e2e-ci` ServiceAccount in
+   `open-data-hub-tenant`, including credentials that can publish to
+   `quay.io/opendatahub/odh-dashboard-operator-e2e`.
+2. Add the `dashboard-operator` entry to the `ods/jenkins` component registry.
+   It may use workspace compilation until the packaged image is published, with
+   `metadata.earlyGateTestRunner: shiftleft`, `workingDir: /e2e`,
+   `resultsDir: /e2e/results`, and
+   `-fixture-mode=existing -test.run=^TestE2ESmoke_` for smoke and early-gate.
+3. Merge the PipelineRun activation under RHOAIENG-96237. The pull-request and
+   push PipelineRuns publish `pr-<N>` and `odh-stable` tags respectively.
+4. Verify that the published tags can be pulled by the Jenkins runner.
+5. Follow up in `ods/jenkins`: set `image.url` to
+   `quay.io/opendatahub/odh-dashboard-operator-e2e`, remove the workspace-build
+   configuration and toolchain-only `releaseTag`/runner hooks, and resolve
+   `pr-<N>` tags against the packaged E2E image repository.
+
+ROSA HCP cluster-pool and Jenkins access remain required for the component's
+cluster test execution, but the packaged image does not need to exist before
+the interim Jenkins registration is merged.
 
 ## Authoring Scenarios
 
