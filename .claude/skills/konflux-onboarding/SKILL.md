@@ -105,7 +105,7 @@ Parse from `$ARGUMENTS`:
    - Type A: `odh-mod-arch-<name>` (e.g., `odh-mod-arch-gen-ai`)
    - Type B: `odh-<name>` (e.g., `odh-dashboard-operator`)
 
-   Record the answer as `<image>`. Every later identifier derives from it: the downstream Dockerfile labels (`<image>-container`, `managed-open-data-hub/<image>-rhel9`), the DevOps handoff, and the ProdSec registration key `rhoai/<image>-rhel9`.
+   Validate the answer before using it: it must match `^odh-[a-z0-9]+(-[a-z0-9]+)*$` (the DevOps `component_name` rule). If it doesn't, ask for another name. Record the answer as `<image>`. Every later identifier derives from it: the downstream Dockerfile labels (`<image>-container`, `managed-open-data-hub/<image>-rhel9`), the DevOps handoff, and the ProdSec registration key `rhoai/<image>-rhel9`.
 
 ## Phase 1: Clone Tracking Epic
 
@@ -259,7 +259,7 @@ Combine two sources:
 - **From `$REF_DOCKERFILE` (the shipped module Dockerfile picked above, normally `Dockerfile.konflux.data-connect-hub`):** pinned base images, Hermeto/offline install flags (`pnpm install --offline`, `CYPRESS_INSTALL_BINARY=0`, the `prefetch/pnpm` bootstrap), the shared-package and `pkg/tls` `COPY` lines, and the label set.
 - **From the package's own `Dockerfile.workspace`:** its source layout (`UI_SOURCE_CODE` / `BFF_SOURCE_CODE`), any extra `COPY` or build steps, and whether a BFF stage exists at all. For example, `model-registry` builds from `upstream/frontend` and `upstream/bff` with a separate npm frontend install. A UI-only package has no BFF stages, so drop them.
 
-For a package laid out like `data-connect-hub` (`packages/<name>/frontend` plus `packages/<name>/bff`, pnpm build), the result is that file with `ARG MODULE_NAME=<name>` and new labels. Otherwise keep the package's steps and swap in only the downstream conventions above. Either way:
+A matching directory layout does not make the build steps interchangeable. Always diff the package's `Dockerfile.workspace` against the reference and keep its extra inputs. For example, `gen-ai` has the same `frontend` + `bff` layout as `data-connect-hub` but also copies `openapi/` into the BFF stage and the final image, and needs extra frontend dependencies. Either way:
 
 - Base images as above
 - Labels use `<image>` from Phase 0 (default `odh-mod-arch-<name>`), not the bare module name:

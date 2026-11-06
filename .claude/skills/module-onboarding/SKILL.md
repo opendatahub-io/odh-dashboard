@@ -22,7 +22,7 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
 1. **Extract the module name** from `$ARGUMENTS`. If empty, ask the user for a name.
 
 2. **Validate the name**:
-   - Must be non-empty, lowercase, kebab-case (only `[a-z0-9-]`, no leading/trailing hyphens).
+   - Must be non-empty, lowercase, kebab-case and start with a letter: `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`. A leading digit (for example `3d-tools` → `3dTools`) would produce invalid TypeScript property names in the host config.
    - Must not already exist: check that `packages/<name>/` does not exist.
 
 3. **Compute all name variants** (see reference.md § Name Transformation Rules):

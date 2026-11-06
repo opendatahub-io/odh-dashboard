@@ -189,6 +189,8 @@ Add the area to `packages/plugin-core/src/areas/types.ts` (under `/* Plugins */`
 - a default in `techPreviewFlags` (or `devTemporaryFeatureFlags` for dev-only switches) in `const.ts`
 - a property in `manifests/base/crd/odhdashboardconfigs.opendatahub.io.crd.yaml`
 
+For a federated remote, repeat the gates in the remote's own `app.area` extension (`featureFlags`, `requiredComponents`, `reliantAreas`). `AreaContext.tsx` replaces the host's entry with the extension's properties for the same area id instead of merging them, so gates set only in `const.ts` are lost once the remote loads. `packages/autorag/frontend/src/odh/extensions.ts` is the example. Areas that are not remotes only need the host config.
+
 See [docs/onboard-modular-architecture.md § Add the Area and Feature Flag](../../docs/onboard-modular-architecture.md#4-add-the-area-and-feature-flag) for the feature flag setup.
 
 ### 7. Rspack config (federated modules)
