@@ -198,7 +198,7 @@ func (r *DashboardReconciler) dashboardRedirectImage() string {
 		return image
 	}
 
-	manifest := defaultManifestInfo(r.ManifestsBasePath, r.Platform)
+	manifest := openShiftManifestInfo(r.ManifestsBasePath, r.Platform)
 	if image := strings.TrimSpace(readExistingParams(filepath.Join(manifest.String(), "params.env"))["nginx-126-image"]); image != "" {
 		return image
 	}

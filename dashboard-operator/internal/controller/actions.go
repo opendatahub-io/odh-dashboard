@@ -54,7 +54,7 @@ const (
 
 func (r *DashboardReconciler) monitoringNamespace() string {
 	switch r.Platform {
-	case cluster.SelfManagedRhoai, cluster.ManagedRhoai:
+	case cluster.SelfManagedRhoai:
 		return rhoaiMonitoringNamespace
 	default:
 		return r.ApplicationsNamespace
@@ -167,7 +167,7 @@ func setMaaSUsageDashboardRoleBindingNamespace(resources []unstructured.Unstruct
 }
 
 func dataConnectHubGatewayRBACForPlatform(platform cluster.Platform) (string, string) {
-	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
+	if platform == cluster.SelfManagedRhoai {
 		return dchRhoaiGatewayRBACName, dataScienceGatewayNamespace
 	}
 
@@ -247,14 +247,19 @@ func filterAndRemapDataConnectHubGatewayRBAC(resources []unstructured.Unstructur
 	return result
 }
 
-func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
-	return []render.ManifestInfo{
-		defaultManifestInfo(basePath, platform),
-	}
+func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
+	return applyKustomizeParamsWithOverrides(dashboard, manifests, platform, nil)
 }
 
-func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
+func applyKustomizeParamsWithOverrides(
+	dashboard *v1alpha1.Dashboard,
+	manifests []render.ManifestInfo,
+	platform cluster.Platform,
+	overrides map[string]string,
+) error {
 	computed := computeKustomizeVariables(dashboard, platform)
+	renderParams := maps.Clone(computed)
+	maps.Copy(renderParams, overrides)
 	maps.Copy(computed, resolveImageParams())
 	// The operator applies the upload ConfigMap separately after validating the
 	// CR value. Render a safe placeholder, including after a previous reconcile.
@@ -263,7 +268,28 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 	for _, m := range manifests {
 		manifestPath := m.String()
 		params := readExistingParams(filepath.Join(manifestPath, "params.env"))
-		maps.Copy(params, computed)
+		// OpenShift bundles consume computed Kustomize replacement sources even
+		// when their params.env does not declare every key. The standalone XKS
+		// bundle is deliberately scoped to its declared params, apart from its
+		// caller-supplied certificate issuer overrides.
+		if platform == cluster.XKS {
+			maps.Copy(params, overrides)
+		} else {
+			maps.Copy(params, renderParams)
+		}
+		// A bundle's params.env defines the parameters it consumes. Do not add
+		// every resolved operator image to every generated params ConfigMap.
+		for key := range params {
+			if value, found := computed[key]; found {
+				params[key] = value
+			}
+		}
+		// OpenShift overlays use this key as the source of a Kustomize
+		// replacement for model-registry-ui-config. Keep the value empty here:
+		// the validated CR value is applied separately after rendering.
+		if platform != cluster.XKS {
+			params[ociBaseImageParam] = computed[ociBaseImageParam]
+		}
 		if err := writeParamsEnv(manifestPath, params); err != nil {
 			return fmt.Errorf("failed to write params.env to %s: %w", manifestPath, err)
 		}
@@ -276,7 +302,6 @@ func extractDashboardURL(ctx context.Context, reader client.Reader, dashboard *v
 	if platform == cluster.XKS {
 		return "", nil
 	}
-
 	if dashboard.Spec.Gateway != nil && dashboard.Spec.Gateway.Domain != "" {
 		return "https://" + dashboard.Spec.Gateway.Domain + "/", nil
 	}
@@ -324,7 +349,7 @@ func deployObservabilityManifests(
 	cli client.Client,
 	reader client.Reader,
 	dashboard *v1alpha1.Dashboard,
-	basePath string,
+	manifest render.ManifestInfo,
 	platform cluster.Platform,
 	applicationsNamespace string,
 ) error {
@@ -354,10 +379,9 @@ func deployObservabilityManifests(
 		return fmt.Errorf("observability PersesService namespace must not be empty")
 	}
 
-	m := observabilityManifestInfo(basePath, platform)
-	rendered, err := kustomize.NewEngine().Render(m.String(), kustomize.WithNamespace(obsNamespace))
+	rendered, err := kustomize.NewEngine().Render(manifest.String(), kustomize.WithNamespace(obsNamespace))
 	if err != nil {
-		return fmt.Errorf("failed to render observability manifests from %s: %w", m, err)
+		return fmt.Errorf("failed to render observability manifests from %s: %w", manifest, err)
 	}
 
 	if maasPortalSupportedPlatform(platform) {
@@ -378,7 +402,7 @@ func deployObservabilityManifests(
 	}
 
 	deployer := deploy.NewDeployer(
-		deploy.WithFieldOwner("dashboard-operator"),
+		deploy.WithFieldOwner(dashboardFieldOwner),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithLabel(moduleComponentLabel, observabilityComponent),
 		deploy.WithApplyOrder(),

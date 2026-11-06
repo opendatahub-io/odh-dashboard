@@ -195,7 +195,10 @@ func TestIntegration_OCIBaseImageReadiness(t *testing.T) {
 	})
 	r := newManifestReconciler(manifests)
 	reconcile(t, r) // finalizer
-	reconcile(t, r) // invalid OCI input does not return an error or trigger failure backoff
+	// OCI validation is informational. Supply the primary workload and ingress
+	// status through the shared helper so this test isolates that contract from
+	// the lifecycle's independent DashboardAvailable readiness requirement.
+	establishDashboardAvailability(t, r, "odh-dashboard")
 	assertStatusHealthy(t, getDashboard(t))
 	assert.NotNil(t, conditions.FindStatusCondition(getDashboard(t), "ModelRegistryConfigValid"))
 
@@ -240,10 +243,15 @@ func TestIntegration_OCIBaseImageReadiness(t *testing.T) {
 	reconcile(t, r)
 	assert.Nil(t, conditions.FindStatusCondition(getDashboard(t), "ModelRegistryConfigValid"))
 
+	// Keep the Dashboard Removed until its asynchronous teardown is complete.
+	// Re-enabling it earlier can race the creation of the simulated readiness
+	// Deployment with deletion of the previous instance.
+	waitForDashboardOperandRemoval(t, r, "odh-dashboard")
+
 	dashboard = getDashboard(t)
 	dashboard.Spec.ManagementState = "Managed"
 	require.NoError(t, k8sClient.Update(ctx, dashboard))
-	reconcile(t, r)
+	establishDashboardAvailability(t, r, "odh-dashboard")
 	assertStatusHealthy(t, getDashboard(t))
 	assert.NotNil(t, conditions.FindStatusCondition(getDashboard(t), "ModelRegistryConfigValid"))
 	assert.Equal(t, "", getConfigMap(t, "model-registry-ui-config").Data["images-oci-base-image"])

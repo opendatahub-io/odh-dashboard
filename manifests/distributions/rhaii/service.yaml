@@ -9,4 +9,5 @@ spec:
     - name: dashboard
       protocol: TCP
       port: 8443
-      targetPort: dashboard
+      appProtocol: https
+      targetPort: dashboard-ui

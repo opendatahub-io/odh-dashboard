@@ -146,6 +146,26 @@ rules:
       - update
       - patch
       - delete
+  # cert-manager Certificates for the XKS dashboard TLS endpoint
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  # Permission required to create the unbound XKS dashboard access ClusterRole.
+  - apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - rhaii-dashboard-access
+    verbs:
+      - list
   # Escalation for data-science-gateway reads used by Ray dashboard URL resolution
   # (manifests/base/rbac/all-users/fetch-ray-dashboard-url.rbac.yaml) and Data
   # Connect Hub RHOAI gateway discovery
@@ -227,7 +247,7 @@ rules:
       - watch
   # OLM v1 resources for platform detection (ClusterExtension/ClusterCatalog).
   # Read by odh-platform-utilities DetectPlatform() (v0.4.0+): clustercatalogs for the
-  # managed-RHOAI ClusterCatalog lookup and clusterextensions for the rhods-operator install
+  # RHOAI ClusterCatalog lookup and clusterextensions for the rhods-operator install
   # check. No first-party operator code reads these directly.
   - apiGroups:
       - olm.operatorframework.io

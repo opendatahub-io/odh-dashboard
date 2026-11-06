@@ -1,9 +1,12 @@
 # Manifests
 
-The Dashboard manifests run on Kustomize. There are now 2 types of deployments for the Dashboard component.
+The Dashboard manifests run on Kustomize. There are three Dashboard deployment bundles:
 
 - Open Data Hub ([`./odh`](./odh))
 - Red Hat OpenShift AI, aka RHOAI Self Managed ([`./rhoai`](./rhoai))
+- RHAII/XKS ([`./distributions/rhaii`](./distributions/rhaii)); see the
+  [RHAII/XKS operator guide](../docs/dashboard-operator-xks.md) for Gateway
+  prerequisites and lifecycle behavior.
 
 Each deployment type will have a `params.env` file where the Operator can inject values for us to use. For documentation of parameters that are injected as environment variables (e.g. `gateway-domain` → `GATEWAY_DOMAIN`), see [Dashboard environment variables](../docs/dashboard-environment-variables.md).
 
@@ -53,6 +56,7 @@ Before:
 # Generate the files before your changes for a baseline
 kustomize build rhoai > before-rhoai-test.yaml
 kustomize build odh > before-odh-test.yaml
+kustomize build distributions/rhaii > before-rhaii-test.yaml
 ```
 
 After:
@@ -60,10 +64,12 @@ After:
 # Generate the files after your changes
 kustomize build rhoai > after-rhoai-test.yaml
 kustomize build odh > after-odh-test.yaml
+kustomize build distributions/rhaii > after-rhaii-test.yaml
 
 # Generate the diff between the two
 git diff --no-index before-rhoai-test.yaml after-rhoai-test.yaml > output-rhoai.diff
 git diff --no-index before-odh-test.yaml after-odh-test.yaml > output-odh.diff
+git diff --no-index before-rhaii-test.yaml after-rhaii-test.yaml > output-rhaii.diff
 ```
 
 Viewing the diffs will help you understand what changed.
@@ -76,5 +82,8 @@ The repository includes a GitHub Actions workflow (`.github/workflows/validate-k
 - **Validates all deployment types** in parallel:
   - RHOAI (`manifests/rhoai`)
   - ODH (`manifests/odh`)
+
+Dashboard-operator manifest tests also validate the RHAII bundle's Gateway
+parameters.
 
 This validation ensures that any manifest changes don't break the Kustomize build process before they're merged. If you see validation failures in CI, you can run the same `kustomize build` commands locally to debug the issue.
