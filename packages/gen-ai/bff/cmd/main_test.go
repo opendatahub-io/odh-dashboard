@@ -245,7 +245,7 @@ func TestValidateAllowLocalModelEndpoints(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateAllowLocalModelEndpoints(
+			_, err := validateAllowLocalModelEndpoints(
 				tc.allowLocalModelEndpoints,
 				tc.devMode,
 				tc.host,
@@ -262,6 +262,28 @@ func TestValidateAllowLocalModelEndpoints(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateAllowLocalModelEndpointsBindHost(t *testing.T) {
+	t.Run("loopback IP literal is returned as the bind address", func(t *testing.T) {
+		bindHost, err := validateAllowLocalModelEndpoints(true, true, "127.0.0.1", "")
+		assert.NoError(t, err)
+		assert.Equal(t, "127.0.0.1", bindHost)
+	})
+
+	t.Run("loopback hostname is resolved to a validated loopback IP", func(t *testing.T) {
+		bindHost, err := validateAllowLocalModelEndpoints(true, true, "localhost", "")
+		assert.NoError(t, err)
+		ip := net.ParseIP(bindHost)
+		assert.NotNil(t, ip, "bind host must be an IP literal, got %q", bindHost)
+		assert.True(t, ip.IsLoopback(), "bind host must be loopback, got %q", bindHost)
+	})
+
+	t.Run("configured host is returned unchanged when local endpoints are disabled", func(t *testing.T) {
+		bindHost, err := validateAllowLocalModelEndpoints(false, false, "0.0.0.0", "")
+		assert.NoError(t, err)
+		assert.Equal(t, "0.0.0.0", bindHost)
+	})
 }
 
 func TestSanitizedHost(t *testing.T) {
@@ -303,7 +325,7 @@ func TestHostValuesAreSanitizedInLogs(t *testing.T) {
 
 	t.Run("validation error log omits the password", func(t *testing.T) {
 		logs := captureDefaultLog(t, func() {
-			err := validateAllowLocalModelEndpoints(true, true, passwordHost, "")
+			_, err := validateAllowLocalModelEndpoints(true, true, passwordHost, "")
 			assert.Error(t, err)
 		})
 		assert.Contains(t, logs, "loopback interface")

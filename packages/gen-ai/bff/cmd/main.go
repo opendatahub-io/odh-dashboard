@@ -120,7 +120,8 @@ func main() {
 	if err := validateInsecureSkipVerify(cfg.InsecureSkipVerify, certFile); err != nil {
 		os.Exit(1)
 	}
-	if err := validateAllowLocalModelEndpoints(cfg.AllowLocalModelEndpoints, cfg.DevMode, cfg.Host, certFile); err != nil {
+	bindHost, err := validateAllowLocalModelEndpoints(cfg.AllowLocalModelEndpoints, cfg.DevMode, cfg.Host, certFile)
+	if err != nil {
 		os.Exit(1)
 	}
 	if err := validateListenHost(cfg.Host); err != nil {
@@ -157,7 +158,7 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:         net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)),
+		Addr:         net.JoinHostPort(bindHost, strconv.Itoa(cfg.Port)),
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  8 * time.Minute, // Allow larger file uploads (up to 10MB)
@@ -176,7 +177,7 @@ func main() {
 	serverClosed := make(chan struct{})
 	go func() {
 		defer close(serverClosed)
-		logger.Info("starting server", "addr", net.JoinHostPort(sanitizedHost(cfg.Host), strconv.Itoa(cfg.Port)), "TLS enabled", tlsEnabled, "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
+		logger.Info("starting server", "addr", net.JoinHostPort(sanitizedHost(bindHost), strconv.Itoa(cfg.Port)), "TLS enabled", tlsEnabled, "path_prefix", cfg.PathPrefix, "swagger_ui", constants.SwaggerUIPath)
 		if tlsEnabled {
 			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
@@ -248,10 +249,13 @@ func validateInsecureSkipVerify(insecureSkipVerify bool, certFile string) error 
 // configuration at startup, mirroring the InsecureSkipVerify fail-fast check.
 // An empty certFile alone is not evidence of local development: the setting is
 // accepted only when dev mode is explicitly enabled and the server is bound to
-// a loopback interface.
-func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode bool, host string, certFile string) error {
+// a loopback interface. It returns the address the listener should bind: the
+// validated loopback IP when local model endpoints are enabled (so the
+// listener does not re-resolve the hostname and can never bind a different,
+// non-loopback address), and the configured host unchanged otherwise.
+func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode bool, host string, certFile string) (string, error) {
 	if !allowLocalModelEndpoints {
-		return nil
+		return host, nil
 	}
 
 	if certFile != "" {
@@ -260,7 +264,7 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 			"allow_local_model_endpoints", allowLocalModelEndpoints,
 			"fix", "Remove --allow-local-model-endpoints flag and ALLOW_LOCAL_MODEL_ENDPOINTS env var",
 		)
-		return errors.New("AllowLocalModelEndpoints cannot be used when TLS certificates are mounted (deployed environment detected)")
+		return "", errors.New("AllowLocalModelEndpoints cannot be used when TLS certificates are mounted (deployed environment detected)")
 	}
 
 	if !devMode {
@@ -268,21 +272,22 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 			"allow_local_model_endpoints", allowLocalModelEndpoints,
 			"fix", "Remove --allow-local-model-endpoints flag and ALLOW_LOCAL_MODEL_ENDPOINTS env var, or enable --dev-mode for local development",
 		)
-		return errors.New("AllowLocalModelEndpoints is only allowed in local development mode (--dev-mode)")
+		return "", errors.New("AllowLocalModelEndpoints is only allowed in local development mode (--dev-mode)")
 	}
 
-	if !hostResolvesToLoopback(host) {
+	loopbackIP, ok := resolveLoopbackIP(host)
+	if !ok {
 		slog.Error("SECURITY: AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface",
 			"host", sanitizedHost(host),
 			"fix", "Pass --host localhost (or 127.0.0.1) when using --allow-local-model-endpoints",
 		)
-		return errors.New("AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface (--host)")
+		return "", errors.New("AllowLocalModelEndpoints requires the BFF to be bound to a loopback interface (--host)")
 	}
 
 	slog.Warn("SECURITY WARNING: verifying localhost/loopback model endpoints is ENABLED (AllowLocalModelEndpoints=true)",
 		"use_case", "local development only - NEVER use in production",
 	)
-	return nil
+	return loopbackIP.String(), nil
 }
 
 // sanitizedHost strips any scheme prefix and userinfo credentials from a
@@ -340,25 +345,32 @@ func validateListenHost(host string) error {
 	return nil
 }
 
-// hostResolvesToLoopback reports whether host is an IP literal that is loopback
-// or a hostname that resolves exclusively to loopback addresses. Hostnames are
-// resolved rather than trusted, so a hosts-file entry pointing "localhost" at a
-// non-loopback address does not bypass the check.
-func hostResolvesToLoopback(host string) bool {
+// resolveLoopbackIP reports whether host is an IP literal that is loopback or
+// a hostname that resolves exclusively to loopback addresses, and returns that
+// loopback address so callers can bind the validated address instead of
+// re-resolving the hostname. Hostnames are resolved rather than trusted, so a
+// hosts-file entry pointing "localhost" at a non-loopback address does not
+// bypass the check.
+func resolveLoopbackIP(host string) (net.IP, bool) {
 	if ip := net.ParseIP(host); ip != nil {
-		return ip.IsLoopback()
+		return ip, ip.IsLoopback()
 	}
 	addrs, err := net.LookupHost(host)
 	if err != nil {
-		return false
+		return nil, false
 	}
 	if len(addrs) == 0 {
-		return false
+		return nil, false
 	}
+	var first net.IP
 	for _, addr := range addrs {
-		if ip := net.ParseIP(addr); ip == nil || !ip.IsLoopback() {
-			return false
+		ip := net.ParseIP(addr)
+		if ip == nil || !ip.IsLoopback() {
+			return nil, false
+		}
+		if first == nil {
+			first = ip
 		}
 	}
-	return true
+	return first, true
 }
