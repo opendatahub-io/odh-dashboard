@@ -593,7 +593,9 @@ def shell_segments_ctx(cmd):
 
     def flush():
         nonlocal toks
+        negated = False
         while toks and toks[0] in COMPOUND_INNER:
+            negated = negated or toks[0] == "!"  # ! cmd: the status no longer shows cmd's success
             toks = toks[1:]
         if toks and toks[0] in COMPOUND_OPEN:
             stack.append(("compound", True))  # the whole compound is conditional
@@ -602,7 +604,7 @@ def shell_segments_ctx(cmd):
             close("compound")
             toks = toks[1:]
         if toks:
-            segs.append((op, toks[:200], cond(), len(stack)))
+            segs.append((op, toks[:200], cond() or negated, len(stack)))
             return True
         return False
 
@@ -617,6 +619,11 @@ def shell_segments_ctx(cmd):
                 stack.append(("paren", mid_command or op in ("&&", "||") or cond()))
             elif t == ")":
                 close("paren")  # inside case, a pattern's ")" is not a group close
+            elif t == "&":
+                # A background job's status (and its cd) never reaches this shell: everything
+                # before the & counts as conditional.
+                segs[:] = [(o, tk, True, d) for o, tk, _c, d in segs]
+                op = "&"
             else:
                 op = {"\n": ";", ";;": ";", "|&": "|"}.get(t, t)
             toks = []
@@ -1778,6 +1785,12 @@ def self_test():
          and shell_reads("cat a/b.md; ls") == [] and shell_reads("cat i/j.md | head") == []
          and shell_reads("ls; cat c/d.md") == ["c/d.md"]
          and shell_reads("cd docs && ls; cat adr/0009-x.md") == ["docs/adr/0009-x.md"]),
+        ("negated and background reads don't count; a cd in a background job isn't followed",
+         shell_reads("! cat .claude/rules/does-not-exist.md") == []
+         and shell_reads("cat .claude/rules/does-not-exist.md &") == []
+         and shell_reads("(cat a/b.md; cat c/d.md) &") == []
+         and shell_reads("cd docs & cat adr/0009-x.md") == []
+         and shell_reads("cat x/y.md & wait; cat z/w.md") == ["z/w.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]

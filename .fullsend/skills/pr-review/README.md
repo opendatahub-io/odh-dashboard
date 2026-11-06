@@ -526,8 +526,8 @@ in a shell command whose success is established: it is in the command's last lis
 (after the last `;` or newline), joined only by `&&`, and not piped into another command.
 Searches, failed reads, paths that only appear in prompts, redirection targets
 (`cat > f`), heredoc bodies, reads masked by a later command (`cat f; ls`), an `||`
-fallback (`cat f || true`) or a pipe (`cat f | head`), and anything after `exit` do not
-count. Relative paths are resolved against
+fallback (`cat f || true`) or a pipe (`cat f | head`), negated (`! cat f`) or background
+(`cat f &`) commands, and anything after `exit` do not count. Relative paths are resolved against
 a top-level `cd` that certainly ran; after any other directory change they are dropped. Coverage needs
 `.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
 reviewed commit: when the selector is missing, or the PR head has moved past that commit
