@@ -56,7 +56,7 @@ const copiedCollection: Collection = {
   name: 'Copied suite',
 };
 
-const renderModal = () => {
+const renderModal = (collection: Collection = sourceCollection) => {
   const onClose = jest.fn();
   const onSuccess = jest.fn();
 
@@ -65,7 +65,7 @@ const renderModal = () => {
       isOpen
       onClose={onClose}
       namespace="test-namespace"
-      collection={sourceCollection}
+      collection={collection}
       trackingSource="curated_gallery"
       onSuccess={onSuccess}
     />,
@@ -114,6 +114,25 @@ describe('CuratedSuiteRunModal', () => {
     expect(props.resolveCollection).toEqual(expect.any(Function));
     expect(props.onRunFailure).toEqual(expect.any(Function));
     expect(props.modalId).toBe('curated-suite-start-evaluation-run-modal');
+  });
+
+  it('passes run prerequisites to the run modal', () => {
+    renderModal({ ...sourceCollection, resource: { id: 'tool-use-v1' } });
+
+    expect(getRunModalProps().prerequisite).toBe(
+      'The model you are evaluating must support multiple tool/function calls.',
+    );
+  });
+
+  it('does not pass config prerequisites to the run modal', () => {
+    renderModal({
+      ...sourceCollection,
+      benchmarks: [
+        { id: 'benchmark-a', provider_id: 'provider-a', parameters: { judge_model: '' } },
+      ],
+    });
+
+    expect(getRunModalProps().prerequisite).toBeUndefined();
   });
 
   it('reuses an unchanged collection without cloning', async () => {

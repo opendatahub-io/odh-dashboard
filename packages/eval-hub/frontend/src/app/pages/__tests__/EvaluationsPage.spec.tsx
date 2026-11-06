@@ -283,7 +283,7 @@ describe('EvaluationsPage', () => {
     );
   });
 
-  it('should show prerequisites and customize-only actions for mapped Gallery suites', () => {
+  it('should show prerequisites and gate only judge-model suites behind customization', () => {
     const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1', 'unmapped-suite'];
     const collections = mockCuratedBenchmarkSuiteCollections()
       .slice(0, ids.length)
@@ -316,13 +316,21 @@ describe('EvaluationsPage', () => {
       'Requires a vision-language model that supports image inputs.',
     );
 
-    ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
+    const judgeModelAction = screen.getByTestId(
+      'benchmark-suite-card-primary-action-trustworthiness-v1',
+    );
+    expect(judgeModelAction).toHaveTextContent('Customize');
+    expect(judgeModelAction).toHaveClass('pf-m-secondary');
+    expect(
+      screen.queryByTestId('benchmark-suite-card-dropdown-toggle-trustworthiness-v1'),
+    ).not.toBeInTheDocument();
+
+    ['tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
       const action = screen.getByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
-      expect(action).toHaveTextContent('Customize');
-      expect(action).toHaveClass('pf-m-secondary');
+      expect(action).toHaveTextContent('Run');
       expect(
-        screen.queryByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`),
-      ).not.toBeInTheDocument();
+        screen.getByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`),
+      ).toBeInTheDocument();
     });
 
     expect(

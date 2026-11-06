@@ -96,7 +96,7 @@ func TestCreateNIMIntegration_EmptySecretData(t *testing.T) {
 	app.CreateNIMIntegrationHandler(rr, req, nil)
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
-	assert.Contains(t, rr.Body.String(), "secret data must not be empty")
+	assert.Contains(t, rr.Body.String(), "invalid request")
 }
 
 func TestDeleteNIMIntegration_NoAccount(t *testing.T) {

@@ -1,20 +1,23 @@
 # Makefile for gen-ai development
+
+# The regex selects variable assignments, excluding comments and blank lines.
+# Commented examples must not create empty variables (can cause breakages like preventing ?= defaults).
 DEFAULT_ENV_FILE := .env
 ifneq ("$(wildcard $(DEFAULT_ENV_FILE))","")
 include ${DEFAULT_ENV_FILE}
-export $(shell sed 's/=.*//' ${DEFAULT_ENV_FILE})
+export $(shell sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${DEFAULT_ENV_FILE})
 endif
 
 DEV_ENV_FILE := .env.development
 ifneq ("$(wildcard $(DEV_ENV_FILE))","")
 include ${DEV_ENV_FILE}
-export $(shell sed 's/=.*//' ${DEV_ENV_FILE})
+export $(shell sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${DEV_ENV_FILE})
 endif
 
 ENV_FILE := .env.local
 ifneq ("$(wildcard $(ENV_FILE))","")
 include ${ENV_FILE}
-export $(shell sed 's/=.*//' ${ENV_FILE})
+export $(shell sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' ${ENV_FILE})
 endif
 
 DISTRIBUTION_NAME ?= rh

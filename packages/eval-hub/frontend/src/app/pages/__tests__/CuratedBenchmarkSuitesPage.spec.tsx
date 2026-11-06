@@ -164,7 +164,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     },
   );
 
-  it('should route mapped curated suites through customization', () => {
+  it('should route judge-model curated suites through customization', () => {
     const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'];
     const collections = mockCuratedBenchmarkSuiteCollections('model')
       .slice(0, ids.length)
@@ -189,18 +189,24 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     renderPage('model');
 
-    ids.forEach((collectionId) => {
-      const customizeAction = screen.getByTestId(
-        `benchmark-suite-card-primary-action-${collectionId}`,
-      );
-      expect(customizeAction).toHaveTextContent('Customize');
-      expect(customizeAction).toHaveAttribute(
-        'href',
-        `/evaluation/test-project/create/collections/${collectionId}/copy`,
-      );
+    const judgeModelAction = screen.getByTestId(
+      'benchmark-suite-card-primary-action-trustworthiness-v1',
+    );
+    expect(judgeModelAction).toHaveTextContent('Customize');
+    expect(judgeModelAction).toHaveAttribute(
+      'href',
+      '/evaluation/test-project/create/collections/trustworthiness-v1/copy',
+    );
+    expect(
+      screen.queryByTestId('benchmark-suite-card-dropdown-toggle-trustworthiness-v1'),
+    ).not.toBeInTheDocument();
+
+    ['tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
+      const runAction = screen.getByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
+      expect(runAction).toHaveTextContent('Run');
       expect(
-        screen.queryByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`),
-      ).not.toBeInTheDocument();
+        screen.getByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`),
+      ).toBeInTheDocument();
     });
   });
 
