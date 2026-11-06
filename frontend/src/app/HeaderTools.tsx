@@ -11,10 +11,16 @@ import {
   DropdownItem,
   Dropdown,
   DropdownList,
+  Select,
+  SelectGroup,
+  MenuSearch,
+  MenuSearchInput,
   ToggleGroup,
   ToggleGroupItem,
+  Icon,
+  Divider,
 } from '@patternfly/react-core';
-import { QuestionCircleIcon, MoonIcon, SunIcon, EyeIcon } from '@patternfly/react-icons';
+import { QuestionCircleIcon, MoonIcon, SunIcon, DesktopIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import LightBulbIcon from '#~/images/icons/LightBulbIcon';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '#~/utilities/const';
@@ -26,7 +32,8 @@ import AboutDialog from '#~/app/AboutDialog';
 import { useIsGuidedTourAvailable } from '#~/concepts/whatsNew/useIsGuidedTourAvailable';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
-import { useThemeContext, type ContrastMode } from './ThemeContext';
+import { useThemeContext, type ColorScheme } from './ThemeContext';
+import type { ContrastMode } from '@odh-dashboard/ui-core/contexts/ThemeContext';
 import { logout } from './appUtils';
 import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './featureFlags/FeatureFlagLauncher';
 import { openWhatsNewTour } from './whatsNew/whatsNewEvent';
@@ -42,26 +49,17 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
   const [aboutShown, setAboutShown] = React.useState(false);
-  const [contrastMenuOpen, setContrastMenuOpen] = React.useState(false);
+  const [themeSwitcherOpen, setThemeSwitcherOpen] = React.useState(false);
   const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
   const userName: string = useAppSelector((state) => state.user || '');
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
   const { dashboardConfig } = useAppContext();
-  const { theme, setAllThemes, contrastMode, setContrastMode } = useThemeContext();
+  const { theme, colorScheme, setColorScheme, contrastMode, setContrastMode } = useThemeContext();
   const notification = useNotification();
   const isGuidedTourAvailable = useIsGuidedTourAvailable();
   const unifiedProjectSelectorEnabled = useIsAreaAvailable(
     SupportedArea.UNIFIED_PROJECT_SELECTOR,
   ).status;
-
-  React.useEffect(() => {
-    const htmlElement = document.getElementsByTagName('html')[0];
-    if (theme === 'dark') {
-      htmlElement.classList.add('pf-v6-theme-dark');
-    } else {
-      htmlElement.classList.remove('pf-v6-theme-dark');
-    }
-  }, [theme]);
 
   const newNotifications = React.useMemo(
     () => notifications.filter((currentNotification) => !currentNotification.read).length,
@@ -225,83 +223,91 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
             </Dropdown>
           </ToolbarItem>
           <ToolbarItem>
-            <ToggleGroup aria-label="Theme toggle group">
-              <ToggleGroupItem
-                aria-label="light theme"
-                icon={<SunIcon />}
-                isSelected={theme === 'light'}
-                data-testid="light-theme-toggle"
-                onChange={() => {
-                  setAllThemes('light');
-                }}
-              />
-              <ToggleGroupItem
-                aria-label="dark theme"
-                icon={<MoonIcon />}
-                isSelected={theme === 'dark'}
-                data-testid="dark-theme-toggle"
-                onChange={() => {
-                  setAllThemes('dark');
-                }}
-              />
-            </ToggleGroup>
-          </ToolbarItem>
-          <ToolbarItem>
-            <Dropdown
-              popperProps={{ position: 'right' }}
-              onOpenChange={(isOpen) => setContrastMenuOpen(isOpen)}
+            <Select
+              isOpen={themeSwitcherOpen}
+              onOpenChange={(isOpen) => setThemeSwitcherOpen(isOpen)}
               toggle={(toggleRef) => (
-                <Tooltip content="Contrast mode" position="bottom">
-                  <MenuToggle
-                    variant="plain"
-                    aria-label="Contrast mode"
-                    id="contrast-mode-toggle"
-                    ref={toggleRef}
-                    onClick={() => setContrastMenuOpen(!contrastMenuOpen)}
-                    isExpanded={contrastMenuOpen}
-                  >
-                    <EyeIcon />
-                  </MenuToggle>
-                </Tooltip>
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setThemeSwitcherOpen(!themeSwitcherOpen)}
+                  isExpanded={themeSwitcherOpen}
+                  icon={
+                    <Icon size="lg">{theme === 'dark' ? <MoonIcon /> : <SunIcon />}</Icon>
+                  }
+                  aria-label={`Theme selection, current: ${colorScheme}`}
+                  data-testid="appearance-settings-button"
+                />
               )}
-              isOpen={contrastMenuOpen}
+              shouldFocusToggleOnSelect
+              onOpenChangeKeys={['Escape']}
+              popperProps={{ position: 'right', enableFlip: true, preventOverflow: true }}
             >
-              <DropdownList>
-                <DropdownItem
-                  key="system"
-                  onClick={() => {
-                    setContrastMode('system');
-                    setContrastMenuOpen(false);
-                  }}
-                  isSelected={contrastMode === 'system'}
-                  description="Follows your system's reduce-transparency setting"
-                >
-                  System
-                </DropdownItem>
-                <DropdownItem
-                  key="default"
-                  onClick={() => {
-                    setContrastMode('default');
-                    setContrastMenuOpen(false);
-                  }}
-                  isSelected={contrastMode === 'default'}
-                  description="Solid backgrounds, no transparency"
-                >
-                  Default
-                </DropdownItem>
-                <DropdownItem
-                  key="glass"
-                  onClick={() => {
-                    setContrastMode('glass');
-                    setContrastMenuOpen(false);
-                  }}
-                  isSelected={contrastMode === 'glass'}
-                  description="Transparency and depth effects"
-                >
-                  Glass
-                </DropdownItem>
-              </DropdownList>
-            </Dropdown>
+              <SelectGroup
+                label={
+                  <div className="pf-v6-c-menu__group-title" id="theme-selector-color-scheme-title">
+                    Color scheme
+                  </div>
+                }
+              >
+                <MenuSearch>
+                  <MenuSearchInput>
+                    <ToggleGroup aria-labelledby="theme-selector-color-scheme-title">
+                      <ToggleGroupItem
+                        text="System"
+                        buttonId="system"
+                        isSelected={colorScheme === 'system'}
+                        onChange={() => setColorScheme('system')}
+                      />
+                      <ToggleGroupItem
+                        text="Light"
+                        buttonId="light"
+                        isSelected={colorScheme === 'light'}
+                        onChange={() => setColorScheme('light')}
+                      />
+                      <ToggleGroupItem
+                        text="Dark"
+                        buttonId="dark"
+                        isSelected={colorScheme === 'dark'}
+                        onChange={() => setColorScheme('dark')}
+                      />
+                    </ToggleGroup>
+                  </MenuSearchInput>
+                </MenuSearch>
+              </SelectGroup>
+              <Divider />
+              <SelectGroup
+                label={
+                  <div className="pf-v6-c-menu__group-title" id="theme-selector-contrast-title">
+                    Contrast mode
+                  </div>
+                }
+              >
+                <MenuSearch>
+                  <MenuSearchInput>
+                    <ToggleGroup aria-labelledby="theme-selector-contrast-title">
+                      <ToggleGroupItem
+                        text="System"
+                        buttonId="system"
+                        isSelected={contrastMode === 'system'}
+                        onChange={() => setContrastMode('system')}
+                      />
+                      <ToggleGroupItem
+                        text="Default"
+                        buttonId="default"
+                        isSelected={contrastMode === 'default'}
+                        onChange={() => setContrastMode('default')}
+                      />
+                      <ToggleGroupItem
+                        text="Glass"
+                        buttonId="glass"
+                        isSelected={contrastMode === 'glass'}
+                        onChange={() => setContrastMode('glass')}
+                      />
+                    </ToggleGroup>
+                  </MenuSearchInput>
+                </MenuSearch>
+              </SelectGroup>
+            </Select>
           </ToolbarItem>
         </ToolbarGroup>
         {DEV_MODE && isImpersonating && (
