@@ -654,7 +654,16 @@ paths:
                         type: string
                         example: 'API key is invalid or unauthorized'
         '403':
-          description: Caller lacks permission to get the in-cluster Service backing an in-cluster base_url, list its EndpointSlices, or list the Pods matching the Service's selector (all required to verify in-cluster endpoints)
+          description: >-
+            Caller lacks permission to get the in-cluster Service backing an
+            in-cluster base_url, list its EndpointSlices, or list the Pods
+            matching the Service's selector (all required to verify in-cluster
+            endpoints); or the base_url targets a Service DNS name in another
+            namespace (in-cluster service endpoints are only allowed in the
+            caller's own namespace); or the base_url targets an in-cluster
+            Service DNS name whose backing resources cannot be verified
+            against the Kubernetes API (e.g. ExternalName, selectorless, or no
+            verified endpoints)
           content:
             application/json:
               schema:

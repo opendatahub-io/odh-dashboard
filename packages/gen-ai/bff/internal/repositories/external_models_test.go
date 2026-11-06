@@ -484,16 +484,18 @@ func TestResolveTrustedHost(t *testing.T) {
 			}(),
 		},
 		{
-			name:      "endpoint slice lookup failure is NOT trusted",
+			name:      "endpoint slice lookup failure propagates an availability error",
 			service:   selectorSvc("", intstr.FromInt32(8443)),
 			slicesErr: fmt.Errorf("connection refused"),
+			wantErr:   true,
 			wantName:  "my-model",
 		},
 		{
-			name:     "pod lookup failure is NOT trusted",
+			name:     "pod lookup failure propagates an availability error",
 			service:  selectorSvc("", intstr.FromInt32(8443)),
 			slices:   []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
 			podErr:   fmt.Errorf("connection refused"),
+			wantErr:  true,
 			wantName: "my-model",
 		},
 		{
@@ -684,8 +686,9 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantName: "my-model",
 		},
 		{
-			name:     "service lookup failure is NOT trusted",
+			name:     "service lookup failure propagates an availability error",
 			err:      fmt.Errorf("connection refused"),
+			wantErr:  true,
 			wantName: "my-model",
 		},
 	}
@@ -795,11 +798,14 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
-			t.Fatal("VerifyExternalModel() error = nil, want in-cluster endpoint rejection")
+			t.Fatal("VerifyExternalModel() error = nil, want availability error")
 		}
 		var extErr *externalmodels.ExternalModelError
-		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
-			t.Errorf("VerifyExternalModel() error = %v, want 403 rejection of an unverifiable in-cluster endpoint", err)
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusServiceUnavailable {
+			t.Errorf("VerifyExternalModel() error = %v, want 503 availability error retaining the Kubernetes failure cause", err)
+		}
+		if !strings.Contains(err.Error(), "connection refused") {
+			t.Errorf("VerifyExternalModel() error = %v, want the underlying Kubernetes error preserved", err)
 		}
 	})
 
