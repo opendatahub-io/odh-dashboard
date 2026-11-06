@@ -250,7 +250,8 @@ git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:$REF_DOCKERFILE" | grep -E '^ARG .*_
 - Builders: `registry.access.redhat.com/ubi9/nodejs-22@sha256:…` and `registry.access.redhat.com/ubi9/go-toolset:<go>@sha256:…`
 - Runtime: `registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:…`. Every shipped dashboard image uses the PQC variant; do not use plain `ubi9-minimal` downstream.
 - Never use Docker Hub, `gcr.io/distroless` or unpinned tags downstream.
-- If the target branch has no module yet, resolve the same repositories with `skopeo inspect` (see [references/dockerfile-templates.md](references/dockerfile-templates.md) § SHA Digest Management).
+- Check the copied Go builder against the component's `go.mod`. If its Go version is lower than the one `go.mod` requires, use another shipped module's compatible pin, or resolve a pinned `go-toolset:<go-minor>@sha256:…` digest with `skopeo inspect`. Never fall back to an unpinned tag.
+- If the target branch has no module yet (`$REF_DOCKERFILE` is empty), resolve the same repositories with `skopeo inspect` (see [references/dockerfile-templates.md](references/dockerfile-templates.md) § SHA Digest Management). For Type A build structure, start from the downstream Type A snapshot in that reference and adapt it to the package's `Dockerfile.workspace` as described below.
 
 ### Type A
 

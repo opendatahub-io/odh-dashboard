@@ -38,10 +38,10 @@ The host never exposes modules (`exposes: {}`). Remotes expose `./extensions` an
 
 See [docs/module-federation.md](../../docs/module-federation.md) for the full config schema and rspack template. In brief:
 
-1. **`package.json`** — add a `module-federation` key (name, remoteEntry, proxy, local port, service) and `"exports": { "./extensions": "..." }`
+1. **`package.json`** — add a `module-federation` key (name, remoteEntry, proxy, local port, service). Federated remotes do **not** add a `package.json` `exports["./extensions"]`; that is only for static plugins (see step 4).
 2. **`moduleFederation.js`** — configure `OdhFederationPlugin` with `name`, `isHost`, `exposes` / `remotes`. Shared singletons are applied by the plugin.
 3. **`src/odh/extensions.ts`** — export a default array of `Extension` objects
-4. **Static bundling** — `discoverPluginPackages.js` finds `./extensions` exports and generates `plugin-extensions.ts` at build time
+4. **Discovery** — federated remotes are loaded at runtime from the `module-federation` config via `loadRemote('{name}/extensions')`. Only static plugins (packages bundled into the host, without a `module-federation` key) export `./extensions` in `package.json`, which `discoverPluginPackages.js` turns into `plugin-extensions.ts` at build time.
 
 ## Shared Dependencies
 
