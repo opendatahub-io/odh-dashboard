@@ -249,6 +249,15 @@ filters:
     labels:
       - 'area/data-connect-hub'
 
+  # AI Safety
+  '(packages/ai-safety|manifests/modules/ai-safety)/.*':
+    approvers:
+      - ai-safety-approvers
+    reviewers:
+      - ai-safety-reviewers
+    labels:
+      - 'area/ai-safety'
+
   # MLflow
   '(packages/mlflow.*|manifests/modules/mlflow)/.*':
     approvers:

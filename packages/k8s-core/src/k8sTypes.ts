@@ -367,6 +367,7 @@ export type DashboardCommonConfig = {
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;
+  aiSafety?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
