@@ -528,8 +528,9 @@ Searches, failed reads, paths that only appear in prompts, redirection targets
 (`cat > f`), heredoc bodies, reads masked by a later command (`cat f; ls`), an `||`
 fallback (`cat f || true`) or a pipe (`cat f | head`), negated pipelines (`! cat f`,
 `! true | cat f`), background jobs (`cat f &`), input redirections to programs that
-don't show the file (`grep -q x < f`), reads whose output is sent away (`cat f >/dev/null`),
-and anything after `exit` do not count. Relative paths are resolved against
+don't show the file (`grep -q x < f`), reads whose output is sent away (`cat f >/dev/null`,
+`cat f >& file`), bodies of functions that may never be called (`f() { cat f; }`), and
+anything after `exit` do not count. Relative paths are resolved against
 a top-level `cd` whose success is established (by the same rule); after any other directory change they are dropped. Coverage needs
 `.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
 reviewed commit: when the selector is missing, or the PR head has moved past that commit

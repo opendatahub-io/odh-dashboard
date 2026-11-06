@@ -591,6 +591,8 @@ def shell_segments_ctx(cmd):
     segs, op, toks, stack = [], None, [], []  # stack: (kind, conditional) per open block
     starts = [(0, 0)]  # (depth, segment index) where each list or group begins
     neg_pipe = False  # inside a pipeline whose first command was negated with !
+    paren_open = None  # (segment count, mid_command) at the last unclosed "("
+    func_body = False  # just saw "name()": the next { ... } is a function body
 
     def cond():
         return any(c for _kind, c in stack)
@@ -623,6 +625,10 @@ def shell_segments_ctx(cmd):
             mid_command = bool(toks)  # ( inside a command: $(...) or <(...) substitution
             if flush():
                 op = None
+            # "name()" with nothing between the parens defines a function; its body only
+            # runs if the function is called, which isn't tracked, so it is conditional.
+            func_body = t == ")" and paren_open == (len(segs), True)
+            paren_open = (len(segs), mid_command) if t == "(" else None
             if t == "(":
                 # A substitution's run status follows its command's, which isn't tracked
                 # here, so its contents count as conditional (reads there are not counted).
@@ -644,7 +650,8 @@ def shell_segments_ctx(cmd):
             toks = []
             continue
         if not toks and not isinstance(t, Op) and t == "{":
-            stack.append(("brace", op in ("&&", "||") or cond()))
+            stack.append(("brace", func_body or op in ("&&", "||") or cond()))
+            func_body = False
             starts.append((len(stack), len(segs)))
             continue
         if not toks and not isinstance(t, Op) and t == "}":
@@ -918,8 +925,11 @@ def shell_files(cmd, include_skipped=False):
             cwd = chdir_target(cwd, args) if ok else None
             continue
         # A read program whose stdout goes to a file or /dev/null returns nothing to the agent.
-        if any(is_redirect(t) and (t == "&>" or (t in (">", ">>", ">|") and t.fd in ("", "1")))
-               for t in toks):
+        # >&N to another fd (>&2) still reaches the tool output; >& file does not.
+        if any(is_redirect(t) and (t == "&>" or (t in (">", ">>", ">|") and t.fd in ("", "1"))
+                                   or (t == ">&" and t.fd in ("", "1") and not (
+                                       j + 1 < len(toks) and str(toks[j + 1]).isdigit())))
+               for j, t in enumerate(toks)):
             counts = include_skipped
         redirect = None
         for t in without_patterns(prog, toks[i + 1:]):
@@ -1838,6 +1848,14 @@ def self_test():
          and shell_reads("cat .claude/rules/react.md &>/dev/null") == []
          and shell_reads("cat .claude/rules/react.md 2>/dev/null") == [".claude/rules/react.md"]
          and ".claude/rules/react.md" in shell_summary("cat .claude/rules/react.md >/dev/null")[1]),
+        ("uncalled function bodies and >& file redirects don't count as reads",
+         shell_reads("f() { cat docs/adr/0009-x.md; }") == []
+         and shell_reads("function g() { cat docs/adr/0009-x.md; }") == []
+         and shell_reads("f() { cat a/b.md; }; cat c/d.md") == ["c/d.md"]
+         and shell_reads("{ cat o/p.md; }") == ["o/p.md"]
+         and shell_reads("cat docs/adr/0009-x.md >& /dev/null") == []
+         and shell_reads("cat docs/adr/0009-x.md >&2") == ["docs/adr/0009-x.md"]
+         and shell_reads("cat docs/adr/0009-x.md 2>&1") == ["docs/adr/0009-x.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
