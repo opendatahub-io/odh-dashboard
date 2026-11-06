@@ -583,6 +583,8 @@ def shell_segments_ctx(cmd):
     $(...) or <(...) substitution, and inside any if/while/until/for/case compound: those
     commands may not run (or their run status isn't tracked)."""
     segs, op, toks, stack = [], None, [], []  # stack: (kind, conditional) per open block
+    starts = [(0, 0)]  # (depth, segment index) where each list or group begins
+    neg_pipe = False  # inside a pipeline whose first command was negated with !
 
     def cond():
         return any(c for _kind, c in stack)
@@ -592,7 +594,7 @@ def shell_segments_ctx(cmd):
             stack.pop()
 
     def flush():
-        nonlocal toks
+        nonlocal toks, neg_pipe
         negated = False
         while toks and toks[0] in COMPOUND_INNER:
             negated = negated or toks[0] == "!"  # ! cmd: the status no longer shows cmd's success
@@ -604,7 +606,9 @@ def shell_segments_ctx(cmd):
             close("compound")
             toks = toks[1:]
         if toks:
-            segs.append((op, toks[:200], cond() or negated, len(stack)))
+            # ! negates the whole pipeline, so later | segments of it are negated too.
+            neg_pipe = negated or (neg_pipe and op == "|")
+            segs.append((op, toks[:200], cond() or neg_pipe, len(stack)))
             return True
         return False
 
@@ -617,19 +621,25 @@ def shell_segments_ctx(cmd):
                 # A substitution's run status follows its command's, which isn't tracked
                 # here, so its contents count as conditional (reads there are not counted).
                 stack.append(("paren", mid_command or op in ("&&", "||") or cond()))
+                starts.append((len(stack), len(segs)))
             elif t == ")":
                 close("paren")  # inside case, a pattern's ")" is not a group close
             elif t == "&":
-                # A background job's status (and its cd) never reaches this shell: everything
-                # before the & counts as conditional.
-                segs[:] = [(o, tk, True, d) for o, tk, _c, d in segs]
+                # A background job's status (and its cd) never reaches this shell: the list
+                # the & ends (from its start at this depth) counts as conditional.
+                start = next(k for d, k in reversed(starts) if d <= len(stack))
+                segs[start:] = [(o, tk, True, d) for o, tk, _c, d in segs[start:]]
                 op = "&"
+                starts.append((len(stack), len(segs)))
             else:
                 op = {"\n": ";", ";;": ";", "|&": "|"}.get(t, t)
+                if op == ";":
+                    starts.append((len(stack), len(segs)))
             toks = []
             continue
         if not toks and not isinstance(t, Op) and t == "{":
             stack.append(("brace", op in ("&&", "||") or cond()))
+            starts.append((len(stack), len(segs)))
             continue
         if not toks and not isinstance(t, Op) and t == "}":
             close("brace")
@@ -904,9 +914,15 @@ def shell_files(cmd, include_skipped=False):
         for t in without_patterns(prog, toks[i + 1:]):
             if redirect is not None:
                 path = resolve_path(cwd, t)
-                if redirect == "<":  # input redirection: a read, unless the segment may not run
-                    if counts and path:
-                        reads.append(path)
+                if redirect == "<":
+                    # A read only for a read program in a segment that succeeded; for any other
+                    # program (grep -q, true) the file's contents aren't shown, so it is
+                    # kept as path metadata only.
+                    if prog in READ_PROGS:
+                        if counts and path:
+                            reads.append(path)
+                    elif path:
+                        targets.append(path)
                 elif ">" in redirect and redirect not in (">&", "<>") and path:
                     targets.append(path)
                 # <<, <<< (heredoc word / here-string text), >& and <& (fd numbers): not files
@@ -1791,6 +1807,17 @@ def self_test():
          and shell_reads("(cat a/b.md; cat c/d.md) &") == []
          and shell_reads("cd docs & cat adr/0009-x.md") == []
          and shell_reads("cat x/y.md & wait; cat z/w.md") == ["z/w.md"]),
+        ("! negates the whole pipeline; < only counts for read programs; & marks only its own list",
+         shell_reads("! true | cat .claude/rules/react.md") == []
+         and shell_reads("! true && cat a/b.md") == ["a/b.md"]
+         and shell_reads("grep -q flag < .claude/rules/react.md") == []
+         and shell_reads("true < .claude/rules/react.md") == []
+         and shell_reads("cat < .claude/rules/react.md") == [".claude/rules/react.md"]
+         and ".claude/rules/react.md" in shell_summary("grep -q flag < .claude/rules/react.md")[1]
+         and shell_reads("cd docs && pwd; true & cat adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("cd docs; (cat a/b.md; true) & cat adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("(cat a/b.md; cat c/d.md) &") == []
+         and shell_reads("cd docs; (cat a/b.md &); cat adr/0009-x.md") == ["docs/adr/0009-x.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
