@@ -534,8 +534,9 @@ out the default branch only, without persisted credentials, and its token has `a
 `contents` and `pull-requests` read access. Exported data excludes file contents, model
 messages, prompts and tool results; only paths, search patterns and an allowlist of tool
 arguments leave the artifact. Shell command text is never exported: a command becomes the
-list of programs it runs and the file paths it names, so arguments, quoted text, heredoc
-bodies and inline scripts stay behind. Fields from the sandbox (`agent-result.json`,
+list of programs it runs plus the files it reads with a read program (`cat`, `head`,
+`sed`, …) or redirects to or from. Other arguments, including those of `git`, `grep` and
+`echo`, quoted text, heredoc bodies and inline scripts, stay behind. Fields from the sandbox (`agent-result.json`,
 transcripts, usage) are checked for shape and dropped when malformed; numbers must be
 finite. Credential-looking values, text under sensitive key names and `--token`-style
 flags are redacted, including in span names and attribute keys. Fullsend's own spans keep

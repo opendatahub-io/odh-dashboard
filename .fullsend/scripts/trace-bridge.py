@@ -438,15 +438,9 @@ READ_PROGS = {"cat", "head", "tail", "less", "more", "bat", "nl", "sed", "awk"}
 # a bare file name needs a known source/doc extension. Absolute paths must be in the sandbox.
 REL_PATH_RE = re.compile(r"(?:\.[\w+-]+|[\w+-]+)(?:/[\w.+-]+)+/?")
 FILE_EXTS = r"md|mdx|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|py|go|sh|txt|css|scss|html|toml|mod|sum|lock|snap"
-# Context for shell arguments: network programs take hosts, not files, so they export no
-# paths; a bare name (no slash) counts as a file only for programs that operate on files.
-NETWORK_PROGS = {"curl", "wget", "ssh", "scp", "sftp", "rsync", "nc", "ncat", "telnet", "ftp", "ping",
-                 "dig", "host", "nslookup", "openssl", "http", "https", "httpie", "grpcurl", "kubectl", "oc"}
-FILE_PROGS = READ_PROGS | {"wc", "ls", "grep", "rg", "find", "fd", "diff", "cmp", "stat", "file", "touch",
-                           "cp", "mv", "rm", "mkdir", "chmod", "jq", "yq", "git", "tee", "sort", "uniq",
-                           "cut", "tr", "xargs", "python", "python3", "node", "bash", "sh", "source", "."}
 BARE_FILE_RE = re.compile(r"\.?[\w+-]+(?:\.[\w+-]+)*\.(?:" + FILE_EXTS + r")")
-REDIRECT_RE = re.compile(r"^(?:\d|&)?>{1,2}|^<<<?$")
+# Redirection operators at the start of a token: >, >>, 2>, &>, <, <<, <<<.
+REDIRECT_RE = re.compile(r"^(?:\d|&)?>{1,2}|^<{1,3}")
 
 
 def shell_segments(cmd):
@@ -549,6 +543,12 @@ LONG_FLAGS = {
            "--prettyPrint", "--no-doc"},
 }
 OPTIONAL_ATTACHED = {"sed": {"-i"}}  # sed -i[SUFFIX]: the rest of the cluster is its operand
+_GREP_SHORT = set("abcEFGHhiILlnoPqrRsTUuVvwxyzZ")
+SHORT_FLAGS = {  # operand-free short options; any other letter fails closed
+    "grep": _GREP_SHORT, "egrep": _GREP_SHORT, "fgrep": _GREP_SHORT,
+    "rg": set("acFHhiILlnNoPpqSsUuvwxz."), "ag": set("iQlcsSwvuUf"),
+    "sed": set("nErsuz"), "awk": set(), "jq": set("rcsneSjaCMR"), "yq": set("rcsneiPMC"),
+}
 
 
 def without_patterns(prog, args):
@@ -585,7 +585,7 @@ def without_patterns(prog, args):
                 failed = True
             continue
         if t.startswith("-") and len(t) > 1:
-            letters = t[1:]
+            letters, flags = t[1:], SHORT_FLAGS.get(prog, set())
             for j, c in enumerate(letters):
                 opt, rest = "-" + c, letters[j + 1:]
                 if opt in optional:
@@ -597,6 +597,9 @@ def without_patterns(prog, args):
                 if opt in values:
                     skip = values[opt] - (1 if rest else 0)
                     break
+                if c not in flags:  # unknown arity (e.g. rg -E ENCODING): don't guess
+                    failed = True
+                    break
             continue
         if not pattern_given:
             pattern_given = True
@@ -607,56 +610,54 @@ def without_patterns(prog, args):
 
 def shell_summary(cmd):
     """What a shell command is exported as: the programs it runs and the file paths it
-    names. Only redirection targets and the file arguments of programs known to take files
-    count as paths; arguments, quoted text, heredoc bodies and inline scripts never do."""
+    names. Paths are only files given to read programs (cat, head, sed, ...) and
+    redirection targets; other programs' arguments (git, grep, cp, echo, ...) are never
+    exported, since their meaning depends on subcommands and options."""
     programs, paths = [], []
     for _op, toks in shell_segments(cmd):
-        i, prog = _program(toks)
+        _i, prog = _program(toks)
         if prog:
             programs.append(prog)
-        if prog in NETWORK_PROGS:
-            continue
-        redirect_next = False
-        for t in without_patterns(prog, toks[(i or 0) + 1:]):
-            if REDIRECT_RE.match(t):
-                target = REDIRECT_RE.sub("", t)
-                redirect_next = target == "" and not t.startswith("<<<")
-                rel = export_path(target) if target and not t.startswith("<<<") else None
-            elif redirect_next:
-                redirect_next, rel = False, export_path(t)
-            elif prog in FILE_PROGS:
-                # A bare word after grep/sed/jq/... is too ambiguous (pattern vs file): paths only.
-                rel = export_path(t, bare_ok=prog not in PATTERN_PROGS)
-            else:
-                rel = None  # echo, printf, ...: arguments are data, not paths
-            if rel and rel not in paths:
-                paths.append(rel)
+    for f in shell_files(cmd, include_skipped=True)[0] + shell_files(cmd)[1]:
+        rel = export_path(f)
+        if rel and rel not in paths:
+            paths.append(rel)
     return programs[:30], paths[:30]
 
 
-def shell_reads(cmd):
-    """Files whose contents a read program (cat, head, sed, ...) was given. Segments after
-    `||` may not run and are skipped; redirection targets (`> f`) are outputs, not reads."""
-    got = []
+def shell_files(cmd, include_skipped=False):
+    """(read files, redirection targets) in a shell command. Read files are the file
+    arguments of read programs (cat, head, sed, ...); segments after `||` may not run and
+    are skipped unless include_skipped. Redirection targets (`> f`) are outputs, not reads,
+    and here-string text (`<<< text`) is neither."""
+    reads, targets = [], []
     for op, toks in shell_segments(cmd):
-        if op == "||":
-            continue
         i, prog = _program(toks)
-        if prog not in READ_PROGS:
+        if i is None:
             continue
-        skip_next = False
+        redirect = None
         for t in without_patterns(prog, toks[i + 1:]):
-            if skip_next:
-                skip_next = False
+            if redirect is not None:
+                if not redirect.startswith("<<"):  # << heredoc word / <<< text are not files
+                    (reads if redirect.startswith("<") else targets).append(t)
+                redirect = None
                 continue
             if REDIRECT_RE.match(t):
-                # `> f` / `>> f` / `2> f` write and `<<< text` is literal text; `< f` reads f.
-                skip_next = t == "<<<" or (not t.startswith("<") and REDIRECT_RE.sub("", t) == "")
+                target = REDIRECT_RE.sub("", t, count=1)
+                if not target:
+                    redirect = t
+                elif not t.startswith("<<"):
+                    (reads if t.startswith("<") else targets).append(target)
                 continue
-            if t.startswith("-") or "*" in t:
-                continue
-            got.append(t)
-    return got
+            if prog in READ_PROGS and (include_skipped or op != "||") \
+                    and not t.startswith("-") and "*" not in t:
+                reads.append(t)
+    return reads, targets
+
+
+def shell_reads(cmd):
+    """Files whose contents a read program was given (see shell_files)."""
+    return shell_files(cmd)[0]
 
 
 def describe_call(c):
@@ -1176,7 +1177,8 @@ def self_test():
                                             "sed -n '1,5p' docs/x.md && grep -e 'patLeak2.corp.sh' -r src/a.md && "
                                             "grep -m 1 patLeak3.internal.sh README.md && rg -t ts -g '*.md' patLeak4.sh docs/y.md && "
                                             "jq --arg k patLeak5.sh '.a' data/z.json && grep -F -m 1 internal/patLeak6 src/b.md && "
-                                            "sed -f t.sed docs/adr/0010-y.md && sed 's/a/b/' src/c.md > .claude/rules/out.md"}),
+                                            "sed -f t.sed docs/adr/0010-y.md && sed 's/a/b/' src/c.md > .claude/rules/out.md && "
+                                            "git commit -m 'gitLeak/needle' && rg -E utf-8 rgLeak/needle src/r.md"}),
             call("c13", "ghp_QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ", {"x": 1})]))
         f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
         f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
@@ -1282,13 +1284,13 @@ def self_test():
          and bad_summary["tags"].get("fullsend.verdict") == "other" and bad_summary["pr"] is None),
         ("here-strings don't swallow later lines; emails, hostnames and outside paths aren't exported",
          any(["cat", "cat", "git", "curl", "cat", "curl", "echo", "wc", "grep", "sed", "grep", "grep",
-              "rg", "jq", "grep", "sed", "sed"] == p for p in shell_progs)
+              "rg", "jq", "grep", "sed", "sed", "git", "rg"] == p for p in shell_progs)
          and "mailLeak" not in blob and "api.internal.corp" not in blob and "/etc/hosts" not in blob
          and "api.internal.sh" not in blob and "AGENTS.md" in blob
-         and "patLeak" not in blob
+         and "patLeak" not in blob and "gitLeak" not in blob and "rgLeak" not in blob
+         # only read-program files and redirection targets: no wc/grep/rg/jq/git arguments
          and any(get(x, "fullsend.tool.paths") == {"values": [
-             {"stringValue": p} for p in ("AGENTS.md", "build.sh", "docs/x.md", "src/a.md", "docs/y.md",
-                                          "data/z.json", "src/b.md", "docs/adr/0010-y.md", "src/c.md",
+             {"stringValue": p} for p in ("AGENTS.md", "docs/x.md", "docs/adr/0010-y.md", "src/c.md",
                                           ".claude/rules/out.md")]}
              for x in spans)),
         ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
@@ -1358,16 +1360,15 @@ def self_test():
          get(persona_sc, "fullsend.guidance.read") is not None
          and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
         ("cat in a shell command counts as opened", "AGENTS.md" in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
-        ("clustered/attached grep options, unknown long options and echo never export patterns or data",
-         shell_summary("grep -nA 2 internal/customer/acme README.md")[1] == []
-         and shell_summary("grep -nA 2 internal/customer/acme src/r.md")[1] == ["src/r.md"]
-         and shell_summary("grep -A2 internal/x src/r.md")[1] == ["src/r.md"]
-         and shell_summary("grep -ne internal/x src/r.md")[1] == ["src/r.md"]
-         and shell_summary("grep -rf pats/list.txt src/r.md")[1] == ["src/r.md"]
-         and shell_summary("grep --binary-files text internal/x src/r.md")[1] == []
-         and shell_summary("echo 'private/needle'")[1] == []
+        ("only read-program files and redirection targets are exported (no git/grep/rg/echo args)",
+         all(shell_summary(c)[1] == [] for c in (
+             "grep -nA 2 internal/customer/acme src/r.md", "grep -ne internal/x src/r.md",
+             "grep --binary-files text internal/x src/r.md", "echo 'private/needle'",
+             "git commit -m 'private/needle'", "rg -E utf-8 internal/customer/acme src/r.md", "wc -l build.sh"))
          and shell_summary("echo hi > out/x.md")[1] == ["out/x.md"]
-         and shell_reads("sed -i.bak s/a/b/ src/c.md") == ["src/c.md"]),
+         and shell_summary("sort < in/c.md > out/d.md")[1] == ["in/c.md", "out/d.md"]
+         and shell_reads("sed -i.bak s/a/b/ src/c.md") == ["src/c.md"]
+         and shell_reads("sed -X 1 docs/x.md") == [] and shell_reads("cat << EOF\nb\nEOF") == []),
         ("sed -f input files count as reads; redirection targets and grep -F/-m patterns don't",
          shell_reads("sed -f t.sed docs/adr/0010-y.md") == ["docs/adr/0010-y.md"]
          and shell_reads("sed 's/a/b/' src/c.md > .claude/rules/out.md") == ["src/c.md"]
