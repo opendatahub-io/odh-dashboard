@@ -553,33 +553,76 @@ def shell_tokens(cmd):
     return out
 
 
-def shell_segments(cmd):
-    """Split a shell command into (operator-before, tokens) segments. Separators and
-    redirections only come from unquoted operators (see shell_tokens); redirection tokens
-    stay in the segment as Op instances."""
-    segs, op, toks = [], None, []
+COMPOUND_OPEN = {"if", "while", "until", "for", "case", "select"}
+COMPOUND_CLOSE = {"fi", "done", "esac"}
+COMPOUND_INNER = {"then", "else", "elif", "do", "!"}
+
+
+def shell_segments_ctx(cmd):
+    """(operator-before, tokens, conditional) per command. Separators and redirections only
+    come from unquoted operators (see shell_tokens). conditional is True inside a group
+    ( ... ) or { ...; } opened right after && or ||, inside a conditional group, and inside
+    any if/while/until/for/case compound: those commands may not run."""
+    segs, op, toks, stack = [], None, [], []  # stack: (kind, conditional) per open block
+
+    def cond():
+        return any(c for _kind, c in stack)
+
+    def close(kind):
+        if stack and stack[-1][0] == kind:  # a closer only closes its own kind of block
+            stack.pop()
+
+    def flush():
+        nonlocal toks
+        while toks and toks[0] in COMPOUND_INNER:
+            toks = toks[1:]
+        if toks and toks[0] in COMPOUND_OPEN:
+            stack.append(("compound", True))  # the whole compound is conditional
+            toks = toks[1:]
+        if toks and toks[0] in COMPOUND_CLOSE:
+            close("compound")
+            toks = toks[1:]
+        if toks:
+            segs.append((op, toks[:200], cond()))
+            return True
+        return False
+
     for t in shell_tokens(cmd):
         if isinstance(t, Op) and t in SEPARATORS:
-            if toks:
-                segs.append((op, toks[:200]))
+            if flush():
                 op = None
-            if t not in ("(", ")"):  # grouping keeps the operator before the group
+            if t == "(":
+                stack.append(("paren", op in ("&&", "||") or cond()))
+            elif t == ")":
+                close("paren")  # inside case, a pattern's ")" is not a group close
+            else:
                 op = {"\n": ";", ";;": ";", "|&": "|"}.get(t, t)
             toks = []
             continue
+        if not toks and not isinstance(t, Op) and t == "{":
+            stack.append(("brace", op in ("&&", "||") or cond()))
+            continue
+        if not toks and not isinstance(t, Op) and t == "}":
+            close("brace")
+            continue
         toks.append(t)
-    if toks:
-        segs.append((op, toks[:200]))
+    flush()
     return segs
+
+
+def shell_segments(cmd):
+    """(operator-before, tokens) per command; see shell_segments_ctx."""
+    return [(op, toks) for op, toks, _cond in shell_segments_ctx(cmd)]
 
 
 def executed_segments(segs):
     """Indexes of segments that certainly ran when the whole command succeeded. A command
     is split into lists at ; & and newline. The first command of each list always runs;
     a later one only when every operator before it in that list is && or |, the list is
-    the last one (its success is the command's success) and contains no ||."""
+    the last one (its success is the command's success) and contains no ||. Commands in a
+    conditional group or compound (see shell_segments_ctx) never count."""
     lists, cur = [], []
-    for k, (op, _toks) in enumerate(segs):
+    for k, (op, _toks, _cond) in enumerate(segs):
         if op in (None, ";", "&") and cur:
             lists.append(cur)
             cur = []
@@ -591,7 +634,7 @@ def executed_segments(segs):
         ran.add(lst[0][0])
         if li == len(lists) - 1 and not any(op == "||" for _k, op in lst):
             ran.update(k for k, _op in lst)
-    return ran
+    return {k for k in ran if not segs[k][2]}
 
 
 def _program(toks):
@@ -757,9 +800,9 @@ def shell_files(cmd, include_skipped=False):
     executed_segments); others are skipped unless include_skipped. Redirection targets (`> f`) are outputs, not reads,
     and here-string text (`<<< text`) is neither."""
     reads, targets = [], []
-    segs = shell_segments(cmd)
+    segs = shell_segments_ctx(cmd)
     ran = executed_segments(segs)
-    for k, (op, toks) in enumerate(segs):
+    for k, (op, toks, _cond) in enumerate(segs):
         counts = include_skipped or k in ran
         i, prog = _program(toks)
         if i is None:
@@ -1549,7 +1592,14 @@ def self_test():
          and shell_reads("a || b && cat e/f.md") == []
          and shell_reads("cd x && cat .claude/rules/react.md") == [".claude/rules/react.md"]
          and shell_reads("cat a/b.md; cat c/d.md") == ["a/b.md", "c/d.md"]
-         and shell_reads("cat i/j.md | head") == ["i/j.md"]),
+         and shell_reads("cat i/j.md | head") == ["i/j.md"]
+         and shell_reads("true || (echo hi; cat docs/adr/0009-x.md)") == []
+         and shell_reads("[ -f X ] && { echo a; cat docs/adr/0009-x.md; }") == []
+         and shell_reads("if [ -f X ]; then cat docs/adr/0009-x.md; fi") == []
+         and shell_reads("for f in a; do cat docs/adr/0009-x.md; done; cat k/l.md") == ["k/l.md"]
+         and shell_reads("(cd x; cat m/n.md)") == ["m/n.md"]
+         and shell_reads("{ cat o/p.md; }") == ["o/p.md"]
+         and shell_reads("case $x in a) cat s/t.md;; esac; cat u/v.md") == ["u/v.md"]),
         ("heredoc bodies end only on an exact delimiter line (<<- strips leading tabs only)",
          shell_summary("cat <<'EOF'\n EOF\nConfidentialCustomer\nEOF\ncat z/w.md")[0] == ["cat", "cat"]
          and shell_reads("cat <<EOF\nx\nEOF \ncat z/w.md\nEOF\ncat y/v.md") == ["y/v.md"]
