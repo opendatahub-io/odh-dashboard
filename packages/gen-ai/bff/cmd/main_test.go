@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"log/slog"
 	"net"
 	"os"
@@ -286,6 +287,43 @@ func TestValidateAllowLocalModelEndpointsBindHost(t *testing.T) {
 	})
 }
 
+func TestResolveLoopbackIP(t *testing.T) {
+	original := lookupHostFn
+	defer func() { lookupHostFn = original }()
+
+	t.Run("mixed loopback and non-loopback results are rejected", func(t *testing.T) {
+		lookupHostFn = func(string) ([]string, error) { return []string{"127.0.0.1", "10.0.0.5"}, nil }
+		_, ok := resolveLoopbackIP("localhost")
+		assert.False(t, ok, "a hostname resolving to mixed addresses must not be trusted as loopback")
+	})
+
+	t.Run("non-loopback-only results are rejected", func(t *testing.T) {
+		lookupHostFn = func(string) ([]string, error) { return []string{"10.0.0.5", "192.168.1.1"}, nil }
+		_, ok := resolveLoopbackIP("localhost")
+		assert.False(t, ok, "a hostname resolving only to non-loopback addresses must not be trusted as loopback")
+	})
+
+	t.Run("loopback-only hostname is accepted and returns its address", func(t *testing.T) {
+		lookupHostFn = func(string) ([]string, error) { return []string{"127.0.0.1", "::1"}, nil }
+		ip, ok := resolveLoopbackIP("localhost")
+		assert.True(t, ok)
+		assert.True(t, ip.IsLoopback())
+	})
+
+	t.Run("::1 literal is accepted when local endpoints are enabled", func(t *testing.T) {
+		lookupHostFn = func(string) ([]string, error) { return nil, errors.New("must not be called for IP literals") }
+		bindHost, err := validateAllowLocalModelEndpoints(true, true, "::1", "")
+		assert.NoError(t, err)
+		assert.Equal(t, "::1", bindHost)
+	})
+
+	t.Run("lookup failure is rejected", func(t *testing.T) {
+		lookupHostFn = func(string) ([]string, error) { return nil, errors.New("no such host") }
+		_, ok := resolveLoopbackIP("localhost")
+		assert.False(t, ok)
+	})
+}
+
 func TestSanitizedHost(t *testing.T) {
 	testCases := []struct {
 		name string
@@ -303,6 +341,10 @@ func TestSanitizedHost(t *testing.T) {
 		{name: "malformed host with space is redacted", host: "local host", want: "[redacted]"},
 		{name: "colon-bearing non-IP is redacted", host: "localhost:8080", want: "[redacted]"},
 		{name: "scoped IPv6 address is unchanged", host: "fe80::1%eth0", want: "fe80::1%eth0"},
+		{name: "IPv4 with a zone is redacted", host: "127.0.0.1%eth0", want: "[redacted]"},
+		{name: "query data containing an at-sign is redacted", host: "localhost?token=secret-pw@example", want: "[redacted]"},
+		{name: "scheme-like text in query data is redacted", host: "localhost?next=http://evil.example", want: "[redacted]"},
+		{name: "path data containing scheme-like text is redacted", host: "example.com/http://evil", want: "[redacted]"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -343,6 +385,30 @@ func TestHostValuesAreSanitizedInLogs(t *testing.T) {
 		assert.Contains(t, logs, "loopback interface")
 		assert.NotContains(t, logs, "local host secret-token")
 		assert.NotContains(t, logs, "secret-token")
+	})
+
+	t.Run("loopback-check error log redacts query data containing an at-sign", func(t *testing.T) {
+		original := lookupHostFn
+		defer func() { lookupHostFn = original }()
+		lookupHostFn = func(string) ([]string, error) { return nil, errors.New("no such host") }
+		logs := captureDefaultLog(t, func() {
+			_, err := validateAllowLocalModelEndpoints(true, true, "localhost?token=super-secret-pw@evil", "")
+			assert.Error(t, err)
+		})
+		assert.Contains(t, logs, "loopback interface")
+		assert.NotContains(t, logs, "super-secret-pw")
+		assert.NotContains(t, logs, "evil")
+	})
+
+	t.Run("loopback-check error log redacts scheme-like text in query data", func(t *testing.T) {
+		original := lookupHostFn
+		defer func() { lookupHostFn = original }()
+		lookupHostFn = func(string) ([]string, error) { return nil, errors.New("no such host") }
+		logs := captureDefaultLog(t, func() {
+			_, err := validateAllowLocalModelEndpoints(true, true, "localhost?next=http://user:super-secret-pw@evil", "")
+			assert.Error(t, err)
+		})
+		assert.NotContains(t, logs, "super-secret-pw")
 	})
 
 	t.Run("startup addr omits the password", func(t *testing.T) {

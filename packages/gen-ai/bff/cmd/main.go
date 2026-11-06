@@ -292,7 +292,8 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 
 // isPlausibleHost reports whether h is a value the listener could reasonably
 // bind: empty (all interfaces), an IP literal, a scoped IPv6 address
-// (fe80::1%eth0), or a DNS hostname (letters, digits, dots, hyphens).
+// (fe80::1%eth0), or a DNS hostname (letters, digits, dots, hyphens). A zone
+// is only valid on IPv6 addresses, which contain a colon.
 func isPlausibleHost(h string) bool {
 	if h == "" {
 		return true
@@ -301,26 +302,44 @@ func isPlausibleHost(h string) bool {
 		return true
 	}
 	if zone := strings.Index(h, "%"); zone > 0 {
-		return net.ParseIP(h[:zone]) != nil &&
+		return strings.Contains(h[:zone], ":") &&
+			net.ParseIP(h[:zone]) != nil &&
 			strings.Trim(h[zone+1:], "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._") == ""
 	}
 	return strings.Trim(h, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-") == ""
 }
 
+// stripLeadingScheme removes a scheme prefix ("https://") only when it starts
+// the value and the prefix is composed of valid scheme characters, so
+// scheme-like text embedded in path or query data is not mistaken for a
+// prefix and mangled.
+func stripLeadingScheme(host string) string {
+	i := strings.Index(host, "://")
+	if i <= 0 {
+		return host
+	}
+	for _, r := range host[:i] {
+		if !strings.ContainsRune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-.", r) {
+			return host
+		}
+	}
+	return host[i+3:]
+}
+
 // sanitizedHost strips any scheme prefix and userinfo credentials from a
 // configured host before logging, so a password-bearing HOST or --host value
-// never appears in logs. A host that still carries path or query data after
-// stripping cannot be summarized safely (the path or query may hold a token),
-// and neither can a malformed value; both are replaced with a redacted marker.
+// never appears in logs. A value that still carries path or query data after
+// scheme stripping cannot be summarized safely — the path or query may hold a
+// token, possibly one containing "@" or scheme-like text that would otherwise
+// drive the stripping — and neither can a malformed value; both are replaced
+// with a redacted marker before userinfo is considered.
 func sanitizedHost(host string) string {
-	if scheme := strings.Index(host, "://"); scheme >= 0 {
-		host = host[scheme+3:]
+	host = stripLeadingScheme(host)
+	if strings.ContainsAny(host, "/?#") {
+		return "[redacted]"
 	}
 	if at := strings.LastIndex(host, "@"); at >= 0 {
 		host = host[at+1:]
-	}
-	if strings.ContainsAny(host, "/?#") {
-		return "[redacted]"
 	}
 	if !isPlausibleHost(host) {
 		return "[redacted]"
@@ -372,6 +391,10 @@ func validateListenHost(host string) error {
 	return nil
 }
 
+// lookupHostFn resolves a hostname to its addresses; a variable so tests can
+// inject deterministic results instead of depending on the environment's DNS.
+var lookupHostFn = net.LookupHost
+
 // resolveLoopbackIP reports whether host is an IP literal that is loopback or
 // a hostname that resolves exclusively to loopback addresses, and returns that
 // loopback address so callers can bind the validated address instead of
@@ -382,7 +405,7 @@ func resolveLoopbackIP(host string) (net.IP, bool) {
 	if ip := net.ParseIP(host); ip != nil {
 		return ip, ip.IsLoopback()
 	}
-	addrs, err := net.LookupHost(host)
+	addrs, err := lookupHostFn(host)
 	if err != nil {
 		return nil, false
 	}

@@ -7,9 +7,13 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/externalmodels"
@@ -56,6 +60,61 @@ func TestIsInternalHost(t *testing.T) {
 			}
 		})
 	}
+}
+
+// withInjectedServiceDNS swaps the cluster suffix and absolute-lookup
+// functions for deterministic fakes and restores them when the test ends.
+func withInjectedServiceDNS(t *testing.T, suffixes []string, resolvesAbsolutely bool) {
+	t.Helper()
+	originalSuffixes, originalLookup := clusterServiceSuffixesFn, lookupAbsHostFn
+	clusterServiceSuffixesFn = func() []string { return suffixes }
+	lookupAbsHostFn = func(string) bool { return resolvesAbsolutely }
+	t.Cleanup(func() {
+		clusterServiceSuffixesFn = originalSuffixes
+		lookupAbsHostFn = originalLookup
+	})
+}
+
+func TestServiceHostClassificationSearchDomains(t *testing.T) {
+	t.Run("custom cluster domain is classified like cluster.local", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.example.com"}, false)
+		assert.True(t, isInternalHost("https://my-model.my-ns.svc.cluster.example.com:8443/v1", "my-ns", false),
+			"same-namespace service on a custom cluster domain must be trusted")
+		assert.False(t, isInternalHost("https://my-model.other-ns.svc.cluster.example.com:8443/v1", "my-ns", false),
+			"cross-namespace service on a custom cluster domain must not be trusted")
+		assert.True(t, isCrossNamespaceServiceHost("https://my-model.other-ns.svc.cluster.example.com:8443/v1", "my-ns"),
+			"cross-namespace service on a custom cluster domain must be denied explicitly")
+	})
+
+	t.Run("short cross-namespace name completed by search is classified cross-namespace", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		assert.True(t, isCrossNamespaceServiceHost("https://my-model.other-ns:8443/v1", "my-ns"),
+			"a short service.namespace name only the search path resolves must be denied explicitly")
+		assert.False(t, isInternalHost("https://my-model.other-ns:8443/v1", "my-ns", false))
+	})
+
+	t.Run("short same-namespace name completed by search is trusted", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		assert.True(t, isInternalHost("https://my-model.my-ns:8443/v1", "my-ns", false),
+			"a short same-namespace service name must go through Service verification")
+	})
+
+	t.Run("external two-label hostname that resolves absolutely stays external", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, true)
+		assert.False(t, isInternalHost("https://example.com:8443/v1", "my-ns", false))
+		assert.False(t, isCrossNamespaceServiceHost("https://example.com:8443/v1", "my-ns"))
+		assert.False(t, isClusterServiceDNSHost("https://example.com:8443/v1"))
+	})
+}
+
+func TestParseResolvConfServiceSuffixes(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "resolv.conf")
+	content := "nameserver 10.96.0.10\nsearch my-ns.svc.cluster.example.com svc.cluster.example.com cluster.example.com\noptions ndots:5\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("failed to write test resolv.conf: %v", err)
+	}
+	assert.Equal(t, []string{"svc.cluster.example.com"}, parseResolvConfServiceSuffixes(path))
+	assert.Empty(t, parseResolvConfServiceSuffixes(filepath.Join(t.TempDir(), "missing.conf")))
 }
 
 // recordingServiceClient records the GetService arguments so tests can assert that
@@ -919,6 +978,26 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 	})
 
+	t.Run("short cross-namespace Service name is denied without SSRF resolution", func(t *testing.T) {
+		// A short <service>.<namespace> name the pod's search path completes
+		// must receive the same cross-namespace denial as its FQDN form.
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		req := req
+		req.BaseURL = "https://my-model.other-ns:8443/v1"
+		client := &k8smocks.ConfigurableMockKubernetesClient{}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want short cross-namespace Service to be denied")
+		}
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+			t.Errorf("VerifyExternalModel() error = %v, want ExternalModelError with status 403", err)
+		}
+		if !strings.Contains(err.Error(), "another namespace") {
+			t.Errorf("VerifyExternalModel() error = %v, want cross-namespace denial message", err)
+		}
+	})
+
 	t.Run("internalTrafficPolicy Local Service is not trusted via its VIP name", func(t *testing.T) {
 		// With Local policy, kube-proxy only routes the VIP to endpoints on the
 		// BFF's node; the pinned dial bypasses that filtering, so verification
@@ -939,6 +1018,10 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
 			t.Fatal("VerifyExternalModel() error = nil, want Local-policy Service to fail closed")
+		}
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden || extErr.Code != "FORBIDDEN" {
+			t.Errorf("VerifyExternalModel() error = %v, want ExternalModelError with status 403 and code FORBIDDEN", err)
 		}
 		if strings.Contains(err.Error(), "pinned dial") {
 			t.Errorf("VerifyExternalModel() error = %v, a Local-policy VIP name must not be pinned-dialed", err)

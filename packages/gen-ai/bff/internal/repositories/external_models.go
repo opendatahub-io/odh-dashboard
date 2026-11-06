@@ -8,8 +8,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -198,6 +200,118 @@ func canonicalClusterDNSName(hostname string) string {
 	return strings.ToLower(strings.TrimSuffix(hostname, "."))
 }
 
+// clusterServiceSuffixesFn returns the cluster's service DNS suffixes (e.g.
+// "svc.cluster.local"), derived from the pod's resolv.conf search list so
+// clusters with a custom cluster domain are covered rather than assuming
+// cluster.local; a variable so tests can inject deterministic suffixes.
+var clusterServiceSuffixesFn = defaultClusterServiceSuffixes
+
+var (
+	clusterServiceSuffixesOnce sync.Once
+	clusterServiceSuffixesList []string
+)
+
+func defaultClusterServiceSuffixes() []string {
+	clusterServiceSuffixesOnce.Do(func() {
+		clusterServiceSuffixesList = parseResolvConfServiceSuffixes("/etc/resolv.conf")
+		// Always keep the Kubernetes default alongside discovered suffixes:
+		// environments without discoverable service search entries (local
+		// development, CI containers) still classify standard cluster.local
+		// names.
+		for _, suffix := range clusterServiceSuffixesList {
+			if suffix == "svc.cluster.local" {
+				return
+			}
+		}
+		clusterServiceSuffixesList = append(clusterServiceSuffixesList, "svc.cluster.local")
+	})
+	return clusterServiceSuffixesList
+}
+
+// parseResolvConfServiceSuffixes extracts the "svc.<domain>" suffixes from a
+// resolv.conf search list. A pod's search entries are
+// "<ns>.svc.<domain> svc.<domain> <domain>", so entries carrying an "svc"
+// segment yield the suffix from "svc." onward.
+func parseResolvConfServiceSuffixes(path string) []string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var suffixes []string
+	seen := map[string]bool{}
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 2 || fields[0] != "search" {
+			continue
+		}
+		for _, entry := range fields[1:] {
+			entry = strings.TrimSuffix(entry, ".")
+			var suffix string
+			if strings.HasPrefix(entry, "svc.") {
+				suffix = entry
+			} else if i := strings.Index(entry, ".svc."); i >= 0 {
+				suffix = entry[i+1:]
+			} else {
+				continue
+			}
+			if !seen[suffix] {
+				seen[suffix] = true
+				suffixes = append(suffixes, suffix)
+			}
+		}
+	}
+	return suffixes
+}
+
+// lookupAbsHostFn reports whether a hostname resolves as an absolute DNS
+// name; a variable so tests can inject deterministic results.
+var lookupAbsHostFn = func(host string) bool {
+	addrs, err := net.LookupHost(host + ".")
+	return err == nil && len(addrs) > 0
+}
+
+// parseServiceHost identifies the in-cluster Service a URL hostname names:
+// either a fully-qualified <service>.<namespace>.svc.<domain> name (with an
+// optional pod-specific label, and any cluster domain discovered from the
+// search list rather than only cluster.local) or a short
+// <service>.<namespace> name that only the pod's DNS search path resolves.
+// The short form applies only when the name does not resolve as an absolute
+// DNS name, so ordinary external hostnames keep their normal external
+// handling; a one-label name can only complete within the pod's own
+// namespace and is not treated as a Service name here.
+func parseServiceHost(baseURL string) (service string, namespace string, podLabel string, ok bool) {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return "", "", "", false
+	}
+	h := canonicalClusterDNSName(u.Hostname())
+	if net.ParseIP(h) != nil {
+		return "", "", "", false
+	}
+	for _, suffix := range clusterServiceSuffixesFn() {
+		if !strings.HasSuffix(h, "."+suffix) {
+			continue
+		}
+		suffixLabels := strings.Count(suffix, ".") + 1
+		labels := strings.Split(h, ".")
+		// Exactly two labels before the suffix form a Service name
+		// (<service>.<namespace>), three a pod-specific name (the extra label
+		// is the pod hostname). Any other count does not form a Kubernetes
+		// DNS name the cluster would resolve.
+		switch len(labels) - suffixLabels {
+		case 2:
+			return labels[0], labels[1], "", true
+		case 3:
+			return labels[1], labels[2], labels[0], true
+		}
+	}
+	labels := strings.Split(h, ".")
+	if len(labels) == 2 && !lookupAbsHostFn(h) {
+		return labels[0], labels[1], "", true
+	}
+	return "", "", "", false
+}
+
 // isInternalHost reports whether a URL targets a host trusted for the caller's
 // namespace: loopback (only in local development) or a same-namespace in-cluster
 // Service DNS name. These legitimately resolve to private IPs, so SSRF validation
@@ -216,14 +330,9 @@ func isInternalHost(baseURL string, allowedNamespace string, allowLoopback bool)
 		return allowLoopback
 	}
 	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
-	// Require a fully-qualified Kubernetes service DNS name: <service>.<namespace>.svc.cluster.local
-	// (5 dot-separated labels minimum), preventing overly-broad matches like "evil.cluster.local".
 	// Only trust services whose namespace segment matches the caller's authorized namespace.
-	labels := strings.Split(h, ".")
-	return strings.HasSuffix(h, ".svc.cluster.local") &&
-		len(labels) >= 5 &&
-		allowedNamespace != "" &&
-		labels[len(labels)-4] == allowedNamespace
+	_, namespace, _, ok := parseServiceHost(baseURL)
+	return ok && allowedNamespace != "" && namespace == allowedNamespace
 }
 
 // isCrossNamespaceServiceHost reports whether a URL targets a Kubernetes
@@ -233,57 +342,17 @@ func isInternalHost(baseURL string, allowedNamespace string, allowLoopback bool)
 // 100.96.0.0/16), in which case a cross-namespace Service VIP is not a
 // private IP by that filter and the request would pass SSRF validation.
 func isCrossNamespaceServiceHost(baseURL string, allowedNamespace string) bool {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return false
-	}
-	h := canonicalClusterDNSName(u.Hostname())
-	labels := strings.Split(h, ".")
-	return strings.HasSuffix(h, ".svc.cluster.local") &&
-		len(labels) >= 5 &&
-		allowedNamespace != "" &&
-		labels[len(labels)-4] != allowedNamespace
+	_, namespace, _, ok := parseServiceHost(baseURL)
+	return ok && allowedNamespace != "" && namespace != allowedNamespace
 }
 
-// isClusterServiceDNSHost reports whether a URL targets a fully-qualified
-// Kubernetes Service DNS name in any namespace. Recognized in-cluster names
-// whose backing resources failed validation must be rejected outright rather
-// than fall back to DNS-based SSRF validation, which a non-RFC1918 Service
-// CIDR can pass.
+// isClusterServiceDNSHost reports whether a URL targets a Kubernetes Service
+// DNS name in any namespace. Recognized in-cluster names whose backing
+// resources failed validation must be rejected outright rather than fall back
+// to DNS-based SSRF validation, which a non-RFC1918 Service CIDR can pass.
 func isClusterServiceDNSHost(baseURL string) bool {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return false
-	}
-	h := canonicalClusterDNSName(u.Hostname())
-	labels := strings.Split(h, ".")
-	return strings.HasSuffix(h, ".svc.cluster.local") && len(labels) >= 5
-}
-
-// k8sServiceHost extracts the service and namespace labels, plus the pod-specific
-// hostname label when present (empty for plain Service DNS names), from a
-// fully-qualified in-cluster service DNS name.
-func k8sServiceHost(baseURL string) (service string, namespace string, podLabel string, ok bool) {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return "", "", "", false
-	}
-	h := canonicalClusterDNSName(u.Hostname())
-	labels := strings.Split(h, ".")
-	if !strings.HasSuffix(h, ".svc.cluster.local") || len(labels) < 5 {
-		return "", "", "", false
-	}
-	// Exactly five labels form a Service name, six a pod-specific name (the extra
-	// label is the pod hostname). Any further labels do not form a Kubernetes DNS
-	// name the cluster would resolve, so they are rejected rather than silently
-	// discarding intermediate labels.
-	if len(labels) > 6 {
-		return "", "", "", false
-	}
-	if len(labels) == 6 {
-		podLabel = labels[0]
-	}
-	return labels[len(labels)-5], labels[len(labels)-4], podLabel, true
+	_, _, _, ok := parseServiceHost(baseURL)
+	return ok
 }
 
 // resolveTrustedHost decides whether a base URL in the caller's own namespace may
@@ -334,7 +403,7 @@ func resolveTrustedHost(
 	if host == "localhost" || (ip != nil && ip.IsLoopback()) {
 		return true, nil, nil
 	}
-	svcName, svcNamespace, podLabel, ok := k8sServiceHost(baseURL)
+	svcName, svcNamespace, podLabel, ok := parseServiceHost(baseURL)
 	if !ok {
 		// isInternalHost matched the suffix and namespace but the label count is
 		// not a valid Kubernetes service DNS name (e.g. extra intermediate
