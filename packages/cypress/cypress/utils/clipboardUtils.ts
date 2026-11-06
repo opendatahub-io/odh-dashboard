@@ -39,8 +39,11 @@ export const verifyClipboardHasContent = (
  * @param aliasName The alias name used in stubClipboard (without @).
  * @returns Cypress chainable with the copied items array.
  */
-export const getClipboardContent = (aliasName: string): Cypress.Chainable<string[]> => {
-  return cy.get<string[]>(`@${aliasName}`);
+export const getClipboardContent = (
+  aliasName: string,
+  options?: Partial<Cypress.Loggable & Cypress.Timeoutable>,
+): Cypress.Chainable<string[]> => {
+  return cy.get<string[]>(`@${aliasName}`, options);
 };
 
 /**
