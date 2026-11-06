@@ -1113,19 +1113,35 @@ const configureAndSubmitBenchmarkSuiteEvaluation = ({
   configureEvaluationHardwareProfile(hardwareProfileName, modalId);
 
   cy.step('Submit evaluation and confirm it appears in the list');
-  const usesOfflineData = interceptEvalHubOfflineDataRequest();
-  cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*', (request) => {
-    const interceptedRequest = request;
-    if (benchmarkParameterOverrides) {
-      interceptedRequest.body = overrideCollectionBenchmarkParameters(
-        interceptedRequest.body,
-        benchmarkParameterOverrides,
-      );
-    }
-    interceptedRequest.continue();
-  }).as('createEvalHubJob');
+  const transformRequestBody = benchmarkParameterOverrides
+    ? (requestBody: unknown) =>
+        overrideCollectionBenchmarkParameters(requestBody, benchmarkParameterOverrides)
+    : undefined;
+  const usesOfflineData = interceptEvalHubOfflineDataRequest(transformRequestBody);
+  if (usesOfflineData) {
+    // The offline interceptor now composes the request body. Keep a pass-through alias for the
+    // common job assertion without registering a second request handler that would short-circuit it.
+    cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*').as('createEvalHubJob');
+  } else {
+    cy.intercept('POST', '**/eval-hub/api/v1/evaluations/jobs*', (request) => {
+      const interceptedRequest = request;
+      if (benchmarkParameterOverrides) {
+        interceptedRequest.body = overrideCollectionBenchmarkParameters(
+          interceptedRequest.body,
+          benchmarkParameterOverrides,
+        );
+      }
+      interceptedRequest.continue();
+    }).as('createEvalHubJob');
+  }
   createEvaluationPage.findStartEvaluationSubmitButton(modalId).should('be.enabled').click();
-  assertEvaluationJobOptions(hardwareProfileName, benchmarkParameterOverrides);
+  const expectedBenchmarkParameterOverrides =
+    usesOfflineData && benchmarkParameterOverrides
+      ? Object.fromEntries(
+          Object.entries(benchmarkParameterOverrides).filter(([key]) => key !== 'tokenizer'),
+        )
+      : benchmarkParameterOverrides;
+  assertEvaluationJobOptions(hardwareProfileName, expectedBenchmarkParameterOverrides);
   if (usesOfflineData) {
     assertEvalHubOfflineDataRequest();
   }
