@@ -468,7 +468,10 @@ test('rejected quoted-path patches produce recovery output and apply unaffected 
     assert.match(fs.readFileSync(conflictFile, 'utf8'), /<<<<<<< PATCH FAILED TO APPLY/);
   }
   const recovered = path.join(f.dir, 'recovered.patch');
-  f.run('extract', output, 'file with spaces.txt', recovered);
+  execFileSync(process.execPath, [helper, 'extract', f.config, output, recovered], {
+    cwd: f.dir,
+    input: 'file with spaces.txt',
+  });
   assert.ok(fs.statSync(recovered).size > 0);
   assert.deepEqual(f.run('bases', output).toString().split('\0').filter(Boolean), [
     'file with spaces.txt',
@@ -503,3 +506,242 @@ for (const exclude of [undefined, []]) {
     ]);
   });
 }
+
+function syncFixture(t, upstream, { remote = false, src = '', exclude } = {}) {
+  const host = fixture(t, []);
+  const branch = upstream.git('branch', '--show-current').trim();
+  host.write(
+    'scripts/query-workspace-packages.js',
+    'console.log(JSON.stringify([{ name: "fixture", path: "packages/fixture" }]));',
+  );
+  host.write(
+    'packages/fixture/package.json',
+    JSON.stringify({
+      name: 'fixture',
+      subtree: { repo: upstream.dir, branch, src, target: 'upstream', exclude },
+    }),
+  );
+  host.commit();
+  const sync = (...args) =>
+    execFileSync(
+      'bash',
+      [
+        path.join(scriptDir, remote ? 'package-subtree.sh' : 'package-subtree-local.sh'),
+        '--package=fixture',
+        ...(remote ? [] : [`--local-repo=${upstream.dir}`, `--branch=${branch}`]),
+        ...args,
+      ],
+      {
+        cwd: host.dir,
+        env: Object.fromEntries(
+          Object.entries(process.env).filter(([key]) => key !== 'npm_config_user_agent'),
+        ),
+        stdio: 'pipe',
+      },
+    );
+  return { host, sync, target: path.join(host.dir, 'packages/fixture/upstream') };
+}
+
+for (const remote of [false, true]) {
+  for (const src of ['', 'clients/ui']) {
+    test(`${
+      remote ? 'remote' : 'local'
+    } sync preserves downstream edits across included renames (src=${src})`, (t) => {
+      const upstream = fixture(t, []);
+      const prefix = src ? `${src}/` : '';
+      upstream.write(`${prefix}old.txt`, 'first\nsecond\nthird\nfourth\n');
+      upstream.commit();
+      const { host, sync, target } = syncFixture(t, upstream, { remote, src });
+      sync();
+      fs.writeFileSync(path.join(target, 'old.txt'), 'downstream\nsecond\nthird\nfourth\n');
+      host.commit();
+      upstream.git('mv', `${prefix}old.txt`, `${prefix}new.txt`);
+      upstream.write(`${prefix}new.txt`, 'first\nsecond\nthird\nupstream\n');
+      upstream.commit();
+      sync();
+      assert.equal(fs.existsSync(path.join(target, 'old.txt')), false);
+      assert.equal(
+        fs.readFileSync(path.join(target, 'new.txt'), 'utf8'),
+        'downstream\nsecond\nthird\nupstream\n',
+      );
+      assert.equal(
+        JSON.parse(fs.readFileSync(path.join(host.dir, 'packages/fixture/package.json'))).subtree
+          .commit,
+        upstream.git('rev-parse', 'HEAD').trim(),
+      );
+    });
+
+    test(`${
+      remote ? 'remote' : 'local'
+    } sync splits renames across exclusion boundaries (src=${src})`, (t) => {
+      const upstream = fixture(t, []);
+      const prefix = src ? `${src}/` : '';
+      upstream.write(`${prefix}included.txt`, 'moving into excluded directory\n');
+      upstream.write(`${prefix}skip/out.txt`, 'moving out of excluded directory\n');
+      upstream.commit();
+      const { host, sync, target } = syncFixture(t, upstream, { remote, src, exclude: ['skip/'] });
+      sync();
+      fs.mkdirSync(path.join(target, 'skip'), { recursive: true });
+      fs.writeFileSync(path.join(target, 'skip/out.txt'), 'local excluded content\n');
+      host.commit();
+      upstream.git('mv', `${prefix}included.txt`, `${prefix}skip/in.txt`);
+      upstream.git('mv', `${prefix}skip/out.txt`, `${prefix}out.txt`);
+      upstream.commit();
+      sync();
+      assert.equal(fs.existsSync(path.join(target, 'included.txt')), false);
+      assert.equal(fs.existsSync(path.join(target, 'skip/in.txt')), false);
+      assert.equal(
+        fs.readFileSync(path.join(target, 'skip/out.txt'), 'utf8'),
+        'local excluded content\n',
+      );
+      assert.equal(
+        fs.readFileSync(path.join(target, 'out.txt'), 'utf8'),
+        'moving out of excluded directory\n',
+      );
+    });
+  }
+
+  for (const invalidUtf8 of [false, true]) {
+    test(
+      `${
+        remote ? 'remote' : 'local'
+      } bootstrap and incremental sync preserve exact filename bytes (${
+        invalidUtf8 ? 'non-UTF-8' : 'Git quoting'
+      })`,
+      {
+        skip:
+          invalidUtf8 && process.platform === 'darwin'
+            ? 'macOS rejects non-UTF-8 filenames'
+            : false,
+      },
+      (t) => {
+        const upstream = fixture(t, []);
+        const names = invalidUtf8
+          ? [Buffer.from([0x63, 0x61, 0x66, 0xe9, 0x2e, 0x74, 0x78, 0x74])]
+          : [
+              Buffer.from('escape-\x1b.txt'),
+              Buffer.from('vertical-\x0b.txt'),
+              Buffer.from('quote-".txt'),
+              Buffer.from('backslash-\\.txt'),
+              Buffer.from('café.txt'),
+            ];
+        const filename = (root, name) => Buffer.concat([Buffer.from(`${root}/filenames/`), name]);
+        fs.mkdirSync(path.join(upstream.dir, 'clients/ui/filenames'), { recursive: true });
+        for (const name of names)
+          fs.writeFileSync(filename(`${upstream.dir}/clients/ui`, name), 'before\n');
+        upstream.commit();
+        const { sync, target } = syncFixture(t, upstream, { remote, src: 'clients/ui' });
+        sync();
+        const assertFiles = (expected) => {
+          assert.deepEqual(
+            fs
+              .readdirSync(path.join(target, 'filenames'), { encoding: 'buffer' })
+              .map((name) => name.toString('hex'))
+              .toSorted(),
+            names.map((name) => name.toString('hex')).toSorted(),
+          );
+          for (const name of names)
+            assert.equal(fs.readFileSync(filename(target, name), 'utf8'), expected);
+        };
+        assertFiles('before\n');
+        for (const name of names)
+          fs.writeFileSync(filename(`${upstream.dir}/clients/ui`, name), 'after\n');
+        upstream.commit();
+        sync();
+        assertFiles('after\n');
+      },
+    );
+  }
+}
+
+for (const mode of ['bases', 'paths']) {
+  test(`a failed ${mode} helper stops its shell consumer`, (t) => {
+    const f = fixture(t, []);
+    f.write('apply_error.log', 'error: workspace/target/file.txt: patch does not apply\n');
+    const localSource = fs.readFileSync(path.join(scriptDir, 'package-subtree-local.sh'), 'utf8');
+    const baseFunction = localSource.match(/ensure_base_blobs_in_index\(\) \{[\s\S]*?\n\}/)[0];
+    const result = spawnSync(
+      'bash',
+      [
+        '-c',
+        `
+      set -e
+      source "$COMMON"
+      ${baseFunction}
+      SCRIPT_DIR="$SCRIPTS"
+      PACKAGE_JSON="$CONFIG"
+      MONOREPO_ROOT="$PWD"
+      WORKSPACE_LOCATION=workspace
+      TARGET_RELATIVE=target
+      PACKAGE_NAME=fixture
+      TMP_DIR="$PWD"
+      node() { echo "simulated helper failure" >&2; return 12; }
+      if [ "$MODE" = bases ]; then
+        ensure_base_blobs_in_index unused.patch workspace/target
+      else
+        handle_apply_conflict 1 1 abc123 fixture unused.patch 'sync --continue' upstream
+      fi
+      echo UNEXPECTED_CONTINUATION
+    `,
+      ],
+      {
+        cwd: f.dir,
+        encoding: 'utf8',
+        env: {
+          ...Object.fromEntries(
+            Object.entries(process.env).filter(([key]) => key !== 'npm_config_user_agent'),
+          ),
+          COMMON: common,
+          SCRIPTS: scriptDir,
+          CONFIG: f.config,
+          MODE: mode,
+        },
+      },
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /simulated helper failure/);
+    assert.equal(result.stdout.includes('UNEXPECTED_CONTINUATION'), false);
+  });
+}
+
+test('patch filtering, enumeration and extraction retain non-UTF-8 filename bytes', (t) => {
+  const f = fixture(t, []);
+  const input = path.join(f.dir, 'input.patch');
+  const output = path.join(f.dir, 'output.patch');
+  const recovered = path.join(f.dir, 'recovered.patch');
+  const name = Buffer.from([0x63, 0x61, 0x66, 0xe9, 0x2e, 0x74, 0x78, 0x74]);
+  fs.writeFileSync(
+    input,
+    'diff --git "a/clients/ui/caf\\351.txt" "b/clients/ui/caf\\351.txt"\n' +
+      '--- "a/clients/ui/caf\\351.txt"\n+++ "b/clients/ui/caf\\351.txt"\n' +
+      '@@ -1 +1 @@\n-before\n+after\n',
+  );
+  f.run('filter', input, 'clients/ui', output);
+  assert.deepEqual(f.run('paths', output), Buffer.concat([name, Buffer.from([0])]));
+  execFileSync(process.execPath, [helper, 'extract', f.config, output, recovered], {
+    cwd: f.dir,
+    input: name,
+  });
+  assert.deepEqual(fs.readFileSync(recovered), fs.readFileSync(output));
+  assert.match(fs.readFileSync(output, 'ascii'), /caf\\351\.txt/);
+});
+
+test('rename metadata retains byte paths when stripping the source directory', (t) => {
+  const f = fixture(t, []);
+  const input = path.join(f.dir, 'input.patch');
+  const output = path.join(f.dir, 'output.patch');
+  fs.writeFileSync(
+    input,
+    'diff --git "a/clients/ui/old\\351.txt" "b/clients/ui/new\\352.txt"\n' +
+      'similarity index 100%\n' +
+      'rename from "clients/ui/old\\351.txt"\nrename to "clients/ui/new\\352.txt"\n',
+  );
+  f.run('filter', input, 'clients/ui', output);
+  const patch = fs.readFileSync(output, 'ascii');
+  assert.match(patch, /rename from "old\\351\.txt"/);
+  assert.match(patch, /rename to "new\\352\.txt"/);
+  assert.deepEqual(
+    f.run('paths', output),
+    Buffer.from([0x6e, 0x65, 0x77, 0xea, 0x2e, 0x74, 0x78, 0x74, 0]),
+  );
+});

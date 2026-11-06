@@ -21,6 +21,8 @@ ensure_base_blobs_in_index() {
   local patch_file="$1"
   local target_dir="$2"
   local current_file old_hash mode
+  local base_records="$TMP_DIR/base-records"
+  node "$SCRIPT_DIR/package-subtree-files.cjs" bases "$PACKAGE_JSON" "$patch_file" > "$base_records" || return 1
 
   while IFS= read -r -d '' current_file && IFS= read -r -d '' old_hash && IFS= read -r -d '' mode; do
     local full_path="$target_dir/$current_file"
@@ -39,7 +41,7 @@ ensure_base_blobs_in_index() {
     if [ -n "$full_old_hash" ] && git cat-file -e "$full_old_hash" 2>/dev/null; then
       git update-index --add --cacheinfo "$mode,$full_old_hash,$full_path" 2>/dev/null || true
     fi
-  done < <(node "$SCRIPT_DIR/package-subtree-files.cjs" bases "$PACKAGE_JSON" "$patch_file")
+  done < "$base_records"
 }
 
 show_do_not_merge_warning() {

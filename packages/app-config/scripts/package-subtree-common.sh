@@ -140,9 +140,10 @@ filter_and_transform_patch() {
   local input_patch="$1"
   local upstream_subdir="$2"
   local output_patch="$3"
+  local split_patch="${4:-}"
 
   node "$SCRIPT_DIR/package-subtree-files.cjs" filter "$PACKAGE_JSON" \
-    "$input_patch" "$upstream_subdir" "$output_patch"
+    "$input_patch" "$upstream_subdir" "$output_patch" "$split_patch"
 }
 
 extract_single_file_patch() {
@@ -150,8 +151,8 @@ extract_single_file_patch() {
   local rel_file="$2"
   local output_file="$3"
 
-  node "$SCRIPT_DIR/package-subtree-files.cjs" extract "$PACKAGE_JSON" \
-    "$patch_file" "$rel_file" "$output_file"
+  printf '%s' "$rel_file" | node "$SCRIPT_DIR/package-subtree-files.cjs" extract "$PACKAGE_JSON" \
+    "$patch_file" "$output_file"
 }
 
 is_binary_file() {
@@ -380,10 +381,15 @@ apply_patch_based_update() {
     commit_msg=$(_git_upstream_cmd log -1 --format="%s" "$commit")
 
     local patch_file="$TMP_DIR/patch_${commit}.patch"
-    _git_upstream_cmd format-patch --no-renames -1 "$commit" --stdout > "$patch_file"
+    _git_upstream_cmd format-patch --find-renames -1 "$commit" --stdout > "$patch_file"
 
+    local split_patch=""
+    if grep -q '^rename from ' "$patch_file"; then
+      split_patch="$TMP_DIR/split_${commit}.patch"
+      _git_upstream_cmd format-patch --no-renames -1 "$commit" --stdout > "$split_patch"
+    fi
     local filtered_patch="$TMP_DIR/filtered_${commit}.patch"
-    filter_and_transform_patch "$patch_file" "$upstream_subdir" "$filtered_patch"
+    filter_and_transform_patch "$patch_file" "$upstream_subdir" "$filtered_patch" "$split_patch"
 
     if [ -s "$filtered_patch" ]; then
       cd "$MONOREPO_ROOT"
@@ -510,6 +516,10 @@ handle_apply_conflict() {
       info_msg "Attempting to apply other files from the patch individually..."
       echo ""
 
+      local paths_file="$TMP_DIR/patch-paths"
+      if ! node "$SCRIPT_DIR/package-subtree-files.cjs" paths "$PACKAGE_JSON" "$filtered_patch" > "$paths_file"; then
+        clean_exit 1 "Failed to enumerate patch files for conflict recovery"
+      fi
       while IFS= read -r -d '' file; do
         [ -z "$file" ] && continue
 
@@ -533,7 +543,7 @@ handle_apply_conflict() {
             echo -e "  ${RED}✗${NC} $file"
           fi
         fi
-      done < <(node "$SCRIPT_DIR/package-subtree-files.cjs" paths "$PACKAGE_JSON" "$filtered_patch")
+      done < "$paths_file"
       echo ""
     fi
   fi

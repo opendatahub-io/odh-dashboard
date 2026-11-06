@@ -39,14 +39,14 @@ Each package with an upstream subtree has a `subtree` config block in its `packa
 
 The scripts compare the stored `commit` against the target branch, generate `git format-patch` patches for each new commit, filter them to the `src` subdirectory, transform paths, and apply them with `git apply --3way --index` into the `target` directory. Each upstream commit produces a corresponding monorepo commit.
 
-### Excluding locally owned files
+### Excluding upstream paths
 
-Set `subtree.exclude` in the package's `package.json` to preserve locally owned files:
+Set `subtree.exclude` in the package's `package.json` to skip selected upstream paths:
 
 ```json
 "exclude": [
-  "workspaces/frontend/src/odh/",
-  "workspaces/frontend/config/local-settings.js"
+  "development/",
+  "CONTRIBUTING.md"
 ]
 ```
 
@@ -61,19 +61,19 @@ imported, overwritten, or deleted; existing local contents are retained. Initial
 copies use the shared Node file helper, with no dependency on rsync or tar.
 Commits affecting only excluded files still advance `subtree.commit` through a
 tracking-only commit. PR and local configuration overrides preserve exclusions.
+Locally deleted, excluded files remain absent even when upstream modifies or
+recreates them.
 
-Renames are processed as independent deletions and additions. Moving an included
-file into an excluded directory deletes the included source without importing the
-destination. Moving an excluded file out preserves the local source and imports
-the included destination.
+Renames between included paths retain Git rename semantics, preserving downstream
+edits. Moves across exclusion boundaries are processed as independent deletions
+and additions. Moving an included file into an excluded directory deletes the
+included source without importing the destination. Moving an excluded file out
+preserves the local source and imports the included destination.
 
 Keep exclusions unchanged while resolving an interrupted sync with `--continue`.
 Adding an exclusion preserves the current local contents. Removing an exclusion
 resumes future patches, but does not replay previously skipped changes; reconcile
 the file with the tracked upstream revision manually before resuming sync.
-
-Notebooks excludes `workspaces/frontend/src/odh/` so its ODH integration remains
-locally owned.
 
 Run the subtree exclusion integration checks without network access:
 
