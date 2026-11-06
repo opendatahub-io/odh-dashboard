@@ -12,8 +12,10 @@
 # code is checked out; the guidance list is computed from the default branch.
 #
 # Setup (both are needed, the workflow is a no-op without the variable):
+#   environment    fullsend-trace, deployment branches limited to the default branch only
 #   repo variable  FULLSEND_TRACE_OTLP_ENDPOINT  e.g. https://<mlflow>/v1/traces
-#   repo secret    FULLSEND_TRACE_OTLP_HEADERS   e.g.
+#   env secret     FULLSEND_TRACE_OTLP_HEADERS   (a secret of that environment, not of the
+#                  repository: a branch could dispatch an edited workflow that reads it) e.g.
 #                  Authorization=Basic%20<b64>,x-mlflow-experiment-id=<id>
 # RHOAI MLflow (3.17+) serves everything under /mlflow: use
 # https://<route>/mlflow/v1/traces, a Bearer token for a service account that can
@@ -54,6 +56,9 @@ concurrency:
 
 jobs:
   trace:
+    # The secret lives in this environment, which only the default branch may deploy to: a
+    # dispatch of an edited workflow or bridge from another branch can't read it.
+    environment: fullsend-trace
     if: >-
       vars.FULLSEND_TRACE_OTLP_ENDPOINT != ''
       && (github.event_name == 'workflow_dispatch'

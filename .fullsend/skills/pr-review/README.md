@@ -499,14 +499,17 @@ backfill). It downloads that run's `fullsend-review` artifact and
 trace ID.
 
 **Setup.** Repo variable `FULLSEND_TRACE_OTLP_ENDPOINT` (`<mlflow>/v1/traces`; RHOAI
-MLflow 3.17+ serves it at `<route>/mlflow/v1/traces`) and secret
-`FULLSEND_TRACE_OTLP_HEADERS` (`Authorization=Bearer%20<token>,x-mlflow-experiment-id=<id>`,
-plus `X-MLFLOW-WORKSPACE=<namespace>` for RHOAI). Use a credential that can only write
+MLflow 3.17+ serves it at `<route>/mlflow/v1/traces`), and an environment
+`fullsend-trace` whose deployment branches are limited to the default branch, holding the
+secret `FULLSEND_TRACE_OTLP_HEADERS` (`Authorization=Bearer%20<token>,x-mlflow-experiment-id=<id>`,
+plus `X-MLFLOW-WORKSPACE=<namespace>` for RHOAI). Keep the secret only in that environment,
+never as a repository secret: anyone who can push a branch could dispatch an edited copy of
+this workflow or the bridge from it and read a repository secret. Use a credential that can only write
 traces to one experiment. The endpoint must be `https` (plain `http` only for localhost),
 and redirects are not followed. Without the variable the job is skipped. The bridge
 re-sends Fullsend's run and agent spans, so Fullsend's own
-`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` can stay unset. If Fullsend has already exported a
-trace, the bridge adds only its own spans to it.
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` can stay unset. If Fullsend exports its own spans later,
+add `--no-base-spans` (or use `recover: bridge-only`).
 
 **Exported data.**
 
