@@ -9,6 +9,7 @@ import {
   findEvalHubCollectionIdByName,
   getEvalHubExperimentSuffix,
   navigateToEvaluationsPage,
+  submitCuratedCollectionEvaluation,
   submitBenchmarkSuiteEvaluation,
   submitCreatedBenchmarkSuiteEvaluation,
   verifyEvaluationCompletedAndViewResults,
@@ -32,17 +33,52 @@ import { ensureMlflowCrReady } from './oc_commands/mlflow';
 import { addUserToProject } from './oc_commands/project';
 import type { EvalHubBenchmarkSuiteTestData } from '../types';
 
-export type BenchmarkSuiteScenarioKey = 'save-and-run' | 'gallery';
+export type BenchmarkSuiteScenarioKey =
+  | 'save-and-run'
+  | 'gallery'
+  | 'curated-customize'
+  | 'curated-run'
+  | 'duplicate'
+  | 'edit';
 
 export type EvalHubBenchmarkSuiteScenario = {
   setup: () => void;
   cleanup: () => void;
   run: () => void;
+  createSavedCollection: () => void;
+  runSavedCollection: (suiteName: string, evaluationRunName: string) => void;
+  runCuratedCollection: () => void;
+  getTenantProject: () => string;
+  getCreatedSuiteName: () => string;
+  getTestData: () => EvalHubBenchmarkSuiteTestData;
+};
+
+const getScenarioFixturePath = (key: BenchmarkSuiteScenarioKey): string => {
+  switch (key) {
+    case 'curated-customize':
+      return 'e2e/eval-hub/testEvalHubCuratedCollectionCustomize.yaml';
+    case 'curated-run':
+      return 'e2e/eval-hub/testEvalHubCuratedCollectionRun.yaml';
+    case 'duplicate':
+      return 'e2e/eval-hub/testEvalHubBenchmarkSuiteDuplicate.yaml';
+    case 'edit':
+      return 'e2e/eval-hub/testEvalHubBenchmarkSuiteEdit.yaml';
+    case 'save-and-run':
+    case 'gallery':
+      return 'e2e/eval-hub/testEvalHubBenchmarkSuite.yaml';
+  }
 };
 
 const getScenarioUuid = (key: BenchmarkSuiteScenarioKey): string => {
-  const envKey =
-    key === 'save-and-run' ? 'EVAL_HUB_SUITE_SAVE_AND_RUN_UUID' : 'EVAL_HUB_SUITE_GALLERY_UUID';
+  const envKeys: Record<BenchmarkSuiteScenarioKey, string> = {
+    'save-and-run': 'EVAL_HUB_SUITE_SAVE_AND_RUN_UUID',
+    gallery: 'EVAL_HUB_SUITE_GALLERY_UUID',
+    'curated-customize': 'EVAL_HUB_CURATED_CUSTOMIZE_UUID',
+    'curated-run': 'EVAL_HUB_CURATED_RUN_UUID',
+    duplicate: 'EVAL_HUB_SUITE_DUPLICATE_UUID',
+    edit: 'EVAL_HUB_SUITE_EDIT_UUID',
+  };
+  const envKey = envKeys[key];
   const uuid = Cypress.env(envKey) || generateTestUUID();
   Cypress.env(envKey, uuid);
   return uuid;
@@ -58,6 +94,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
   let testData: EvalHubBenchmarkSuiteTestData;
   const scenarioUuid = getScenarioUuid(key);
   const runAfterSave = key === 'save-and-run';
+  const fixturePath = getScenarioFixturePath(key);
   let evaluationTenantProject = '';
   let hardwareProfileName = '';
   let inferenceServiceName = '';
@@ -74,17 +111,38 @@ export const createEvalHubBenchmarkSuiteScenario = (
     });
   };
 
+  /** Validates result cards against the benchmarks actually submitted for this run. */
+  const verifySubmittedCollectionResults = (evaluationRunName: string): void => {
+    cy.get('@createEvalHubJob').then((interception) => {
+      const requestBody = (
+        interception as {
+          request: {
+            body: { collection?: { benchmarks?: { id?: unknown }[] } };
+          };
+        }
+      ).request.body;
+      const benchmarks = requestBody.collection?.benchmarks;
+      expect(benchmarks, `benchmarks submitted for ${evaluationRunName}`)
+        .to.be.an('array')
+        .and.to.have.length.greaterThan(0);
+      const expectedBenchmarkIds = (benchmarks ?? []).map(({ id }, index) => {
+        expect(id, `submitted benchmark ${index + 1} ID`).to.be.a('string');
+        expect(id, `submitted benchmark ${index + 1} ID`).not.to.equal('');
+        return String(id);
+      });
+      verifyEvaluationCompletedAndViewResults(evaluationRunName, expectedBenchmarkIds);
+    });
+  };
+
   const setup = (): void => {
     ensureAdminOcSession();
-    cy.fixture('e2e/eval-hub/testEvalHubBenchmarkSuite.yaml', 'utf8').then(
-      (yamlContent: string) => {
-        testData = yaml.load(yamlContent) as EvalHubBenchmarkSuiteTestData;
-        hardwareProfileName = getEvalHubHardwareProfileName(scenarioUuid);
-        evaluationTenantProject = `${testData.projectNamePrefix}-${scenarioUuid}`;
-        createdSuiteName = `${testData.suiteName}-${scenarioUuid}`;
-        inferenceServiceName = testData.inferenceServiceName;
-      },
-    );
+    cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+      testData = yaml.load(yamlContent) as EvalHubBenchmarkSuiteTestData;
+      hardwareProfileName = getEvalHubHardwareProfileName(scenarioUuid);
+      evaluationTenantProject = `${testData.projectNamePrefix}-${scenarioUuid}`;
+      createdSuiteName = `${testData.suiteName}-${scenarioUuid}`;
+      inferenceServiceName = testData.inferenceServiceName;
+    });
 
     cy.then(() => {
       cy.step('[Setup] Provision MLflow instance');
@@ -142,7 +200,10 @@ export const createEvalHubBenchmarkSuiteScenario = (
       // Establish the browser/BFF session before calling the EvalHub cleanup APIs. This works
       // with both the local E2E proxy and direct-cluster Cypress configurations.
       cy.step('[Setup] Open EvalHub and remove stale runs and collections');
-      navigateToEvaluationsPage(evaluationTenantProject);
+      navigateToEvaluationsPage(
+        evaluationTenantProject,
+        key === 'curated-customize' || key === 'curated-run' ? 'gallery' : 'evaluate',
+      );
       clearEvalHubEvaluationJobs(evaluationTenantProject);
       deleteEvalHubTenantCollections(evaluationTenantProject);
     });
@@ -195,5 +256,74 @@ export const createEvalHubBenchmarkSuiteScenario = (
     verifyEvaluationCompletedAndViewResults(evaluationRunName, testData.expectedBenchmarkIds);
   };
 
-  return { setup, cleanup, run };
+  const createSavedCollection = (): void => {
+    cy.step('[Setup] Create a saved collection for this scenario');
+    createBenchmarkSuite({
+      suiteName: createdSuiteName,
+      suiteDomains: testData.suiteDomains,
+      benchmarkProviderId: testData.benchmarkProviderId,
+      benchmarks: testData.benchmarks,
+      additionalBenchmarkParams: testData.additionalBenchmarkParams,
+    });
+    trackCreatedCollectionId();
+  };
+
+  const runSavedCollection = (suiteName: string, evaluationRunName: string): void => {
+    submitBenchmarkSuiteEvaluation({
+      suiteName,
+      evaluationRunName,
+      inferenceServiceName,
+      mlflowExperimentName: experimentName,
+    });
+    verifyEvaluationProgressModal(evaluationRunName);
+    waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
+    verifySubmittedCollectionResults(evaluationRunName);
+  };
+
+  const runCuratedCollection = (): void => {
+    const collectionId = testData.curatedCollectionId;
+    if (!collectionId) {
+      throw new Error('The curated-run scenario fixture must provide a curated collection ID.');
+    }
+    const numExamples = testData.curatedRunNumExamples;
+    if (!Number.isInteger(numExamples) || numExamples === undefined || numExamples < 1) {
+      throw new Error(
+        'The curated-run scenario fixture must provide a positive num_examples value.',
+      );
+    }
+    const { tokenizer } = JSON.parse(testData.additionalBenchmarkParams) as Record<string, unknown>;
+    if (typeof tokenizer !== 'string' || !tokenizer.trim()) {
+      throw new Error(
+        'The curated-run scenario fixture must provide an accessible tokenizer in additionalBenchmarkParams.',
+      );
+    }
+
+    const evaluationRunName = `e2e-curated-run-${evaluationTenantProject}`;
+    submitCuratedCollectionEvaluation({
+      collectionId,
+      benchmarkParameterOverrides: {
+        // eslint-disable-next-line camelcase
+        num_examples: numExamples,
+        tokenizer: tokenizer.trim(),
+      },
+      evaluationRunName,
+      inferenceServiceName,
+      mlflowExperimentName: experimentName,
+    });
+    verifyEvaluationProgressModal(evaluationRunName);
+    waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
+    verifySubmittedCollectionResults(evaluationRunName);
+  };
+
+  return {
+    setup,
+    cleanup,
+    run,
+    createSavedCollection,
+    runSavedCollection,
+    runCuratedCollection,
+    getTenantProject: () => evaluationTenantProject,
+    getCreatedSuiteName: () => createdSuiteName,
+    getTestData: () => testData,
+  };
 };

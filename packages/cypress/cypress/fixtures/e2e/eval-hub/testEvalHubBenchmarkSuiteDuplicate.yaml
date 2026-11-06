@@ -1,0 +1,30 @@
+# Eval Hub E2E — duplicate a saved tenant collection and add the copy to My collections.
+projectNamePrefix: eval-hub-suite-duplicate-e2e
+evalHubCrName: evalhub
+evalHubInstanceResourceYamlPath: resources/eval-hub/evalhub-instance.yaml
+mlflowInstanceResourceYamlPath: resources/mlflow/mlflow-instance-minimal.yaml
+modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct
+inferenceServiceName: evalhub-suite-llm
+servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
+hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
+suiteName: EvalHub Cypress duplicate source
+suiteDomains:
+  - knowledge_and_reasoning
+  - trustworthiness
+benchmarkProviderId: lm_evaluation_harness
+benchmarks:
+  - id: arc_easy
+    name: Basic science Q&A
+    numExamples: 5
+  - id: toxigen
+    name: Toxigen
+    numExamples: 5
+expectedBenchmarkIds:
+  - arc_easy
+  - toxigen
+inferenceModelName: evalhub-suite-llm
+mlflowExperimentName: Cy-Evalhub
+additionalBenchmarkParams: |
+  {
+    "tokenizer": "google/flan-t5-small"
+  }
