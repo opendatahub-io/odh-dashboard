@@ -117,12 +117,15 @@ jobs:
           # must match exactly one PR (open or closed). Otherwise the trace is sent without
           # PR identity.
           run=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
-            '"\(.head_sha) \(.head_repository.full_name // "-") \(.run_started_at // .created_at) \(.updated_at) \(.head_branch // "")"' \
+            '"\(.event) \(.head_sha) \(.head_repository.full_name // "-") \(.run_started_at // .created_at) \(.updated_at) \(.head_branch // "")"' \
             || true)
-          read -r head_sha head_repo started finished head_branch <<< "$run" || true
+          read -r event head_sha head_repo started finished head_branch <<< "$run" || true
           pr=""
-          # (The commit-to-PR API returns nothing for a fork's commits, so look up by head.)
-          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$head_repo" == */* && -n "$head_branch" ]]; then
+          # Only a pull_request_target run's head is the PR's head; an issue_comment or review
+          # run reports the default branch, which can't identify the PR. (The commit-to-PR API
+          # returns nothing for a fork's commits, so look up by head owner and branch.)
+          if [[ "$event" == pull_request_target && "$head_sha" =~ ^[0-9a-f]{40}$
+                && "$head_repo" == */* && -n "$head_branch" ]]; then
             pr=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
               -f head="${head_repo%%/*}:$head_branch" \
               --jq '.[] | "\(.number) \(.head.repo.full_name // "-") \(.head.ref)"' \

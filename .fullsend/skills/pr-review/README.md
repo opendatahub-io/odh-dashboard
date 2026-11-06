@@ -557,8 +557,9 @@ retention; anyone who can read the experiment can read these traces.
 
 **Failure behavior.** The job runs outside the review, so it cannot change a review's
 outcome. A run whose artifact list has no `fullsend-review` artifact is skipped; an
-artifact API or download error fails the job so it can be rerun. The PR identity comes from the Fullsend run's own head
-commit, repository and branch, which must match exactly one PR; the bridge gets it as
+artifact API or download error fails the job so it can be rerun. The PR identity comes from a `pull_request_target`
+Fullsend run's own head commit, repository and branch, which must match exactly one PR
+(comment- and review-triggered runs report the default branch, so they carry none); the bridge gets it as
 `--pr-number` and ignores the PR fields the sandbox wrote. Without a single match the
 trace is sent without PR identity. A failed PR, files, run
 or review lookup only drops that optional metadata (author, coverage, verdict fallback);
@@ -574,7 +575,10 @@ workflow manually with `recover`: `mark-only` records the marker when the spans 
 complete (it stops if MLflow doesn't have the trace), `resend` sends all spans again (the ones already accepted count twice), and
 `bridge-only` adds only the bridge's spans to a trace Fullsend exported itself. Use
 `bridge-only` only when the bridge never sent to that trace: after a bridge export whose
-marker write failed it would send the bridge spans twice, so use `mark-only` there. A
+marker write failed it would send the bridge spans twice, so use `mark-only` there. To
+back this up, a bridge-only export records `fullsend.bridge.pending` on the trace before
+sending, failed exports and marker writes try to record it too, and `bridge-only` refuses
+a trace that has it. A
 malformed `agent-result.json` doesn't stop the export: the bridge takes the PR identity
 from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`), and the
 workflow skips the author, coverage and verdict fallback. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried

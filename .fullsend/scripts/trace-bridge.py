@@ -594,12 +594,20 @@ def shell_segments_ctx(cmd):
     paren_open = None  # (segment count, mid_command) at the last unclosed "("
     func_body = False  # just saw "name()": the next { ... } is a function body
 
+    ncond = 0  # how many open blocks are conditional: cond() stays O(1) however deep
+
     def cond():
-        return any(c for _kind, c in stack)
+        return ncond > 0
+
+    def push(kind, conditional):
+        nonlocal ncond
+        stack.append((kind, conditional))
+        ncond += bool(conditional)
 
     def close(kind):
+        nonlocal ncond
         if stack and stack[-1][0] == kind:  # a closer only closes its own kind of block
-            stack.pop()
+            ncond -= bool(stack.pop()[1])
 
     def flush():
         nonlocal toks, neg_pipe
@@ -608,7 +616,7 @@ def shell_segments_ctx(cmd):
             negated = negated or toks[0] == "!"  # ! cmd: the status no longer shows cmd's success
             toks = toks[1:]
         if toks and toks[0] in COMPOUND_OPEN:
-            stack.append(("compound", True))  # the whole compound is conditional
+            push("compound", True)  # the whole compound is conditional
             toks = toks[1:]
         if toks and toks[0] in COMPOUND_CLOSE:
             close("compound")
@@ -634,7 +642,7 @@ def shell_segments_ctx(cmd):
             if t == "(":
                 # A substitution's run status follows its command's, which isn't tracked
                 # here, so its contents count as conditional (reads there are not counted).
-                stack.append(("paren", body_paren or mid_command or op in ("&&", "||") or cond()))
+                push("paren", body_paren or mid_command or op in ("&&", "||") or cond())
                 starts.append((len(stack), len(segs)))
             elif t == ")":
                 close("paren")  # inside case, a pattern's ")" is not a group close
@@ -654,7 +662,7 @@ def shell_segments_ctx(cmd):
             toks = []
             continue
         if not toks and not isinstance(t, Op) and t == "{":
-            stack.append(("brace", func_body or op in ("&&", "||") or cond()))
+            push("brace", func_body or op in ("&&", "||") or cond())
             func_body = False
             starts.append((len(stack), len(segs)))
             continue
@@ -1290,10 +1298,14 @@ def post(payload, endpoint, headers):
     return status
 
 
+PENDING_TAG = "fullsend.bridge.pending"  # set before a bridge-only export; the marker supersedes it
+
+
 def mlflow_trace_state(endpoint, headers, trace_id):
-    """(exists, bridged): whether MLflow has this trace, and whether this bridge already
-    sent its spans to it (its tags are present). None when the lookup failed: resending
-    then could double MLflow's token totals, so the caller retries or stops."""
+    """(exists, bridged, pending): whether MLflow has this trace, whether this bridge already
+    sent its spans to it (its tags are present), and whether an earlier bridge export to it
+    may not have finished (PENDING_TAG). None when the lookup failed: resending then could
+    double MLflow's token totals, so the caller retries or stops."""
     base = re.sub(r"/v1/traces/?$", "", endpoint)
     req = urllib.request.Request(f"{base}/api/3.0/mlflow/traces/tr-{trace_id}", headers=headers)
     try:
@@ -1306,7 +1318,7 @@ def mlflow_trace_state(endpoint, headers, trace_id):
             raise ValueError("unexpected trace lookup response shape")
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            return False, False
+            return False, False, False
         print(f"warning: trace lookup returned HTTP {e.code}", file=sys.stderr)
         return None
     except (urllib.error.URLError, ValueError, OSError, http.client.HTTPException) as e:
@@ -1314,7 +1326,7 @@ def mlflow_trace_state(endpoint, headers, trace_id):
         print(f"warning: trace lookup failed ({safe_error(e)})", file=sys.stderr)
         return None
     # fullsend.pr marks traces sent by bridge version 1, before fullsend.bridge.version existed.
-    return True, ("fullsend.bridge.version" in tags or "fullsend.pr" in tags)
+    return True, ("fullsend.bridge.version" in tags or "fullsend.pr" in tags), PENDING_TAG in tags
 
 
 def set_mlflow_tags(endpoint, headers, trace_id, tags):
@@ -1392,7 +1404,8 @@ def _self_test_network():
 
         def do_GET(self):
             tid = self.path.rsplit("tr-", 1)[-1]
-            tags = {"b" * 32: {"fullsend.bridge.version": "2"}, "c" * 32: {"other": "x"}}
+            tags = {"b" * 32: {"fullsend.bridge.version": "2"}, "c" * 32: {"other": "x"},
+                    "6" * 32: {"other": "x", "fullsend.bridge.pending": "1"}}
             if tid in tags:
                 self._send(200, json.dumps({"trace": {"trace_info": {"tags": tags[tid]}}}).encode())
             elif tid == "e" * 32:
@@ -1432,8 +1445,9 @@ def _self_test_network():
                 self._send(302, extra={"Location": "http://example.invalid/steal"})
 
         def do_PATCH(self):
-            self._drain()
-            self._send(500)
+            # Only the pending tag can be written, so marker writes always fail here.
+            body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+            self._send(200 if b"fullsend.bridge.pending" in body else 500)
 
     posts = []
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
@@ -1478,6 +1492,9 @@ def _self_test_network():
     unmarked_force = _self_test_main(ok_ep, "c" * 32, ["--force"])
     rerun_posts_force = len(posts) - len(rerun_posts)
     bridge_only = _self_test_main(ok_ep, "c" * 32, ["--no-base-spans"])
+    before_pending = len(posts)
+    bridge_only_pending = _self_test_main(ok_ep, "6" * 32, ["--no-base-spans"])
+    pending_posts = len(posts) - before_pending
     rerun_posts_bridge_only = len(posts) - len(rerun_posts) - rerun_posts_force
     srv.shutdown()
     bad = tempfile.mkdtemp(prefix="trace-bridge-badid-")
@@ -1497,6 +1514,7 @@ def _self_test_network():
             "rerun": rerun, "rerun_posts": rerun_posts, "unmarked_force": unmarked_force,
             "rerun_posts_force": rerun_posts_force, "bridge_only": bridge_only,
             "rerun_posts_bridge_only": rerun_posts_bridge_only,
+            "bridge_only_pending": bridge_only_pending, "pending_posts": pending_posts,
             "states": states, "shape_states": shape_states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
@@ -1774,7 +1792,7 @@ def self_test():
         ("plain http to a remote host rejected", net["http_rejected"]),
         ("redirects are not followed", net["redirect_blocked"]),
         ("missing trace is new; bridge-tagged trace is bridged; Fullsend-only trace is not",
-         net["states"] == [(False, False), (True, True), (True, False), None]),
+         net["states"] == [(False, False, False), (True, True, False), (True, False, False), None]),
         ("failed read, search, prompt mention and unanswered call don't count as opened",
          get(persona_sc, "fullsend.guidance.read") is not None
          and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
@@ -1830,6 +1848,8 @@ def self_test():
          and "marker" in net["unmarked_force"]),
         ("--no-base-spans adds bridge spans to an unmarked (Fullsend-exported) trace",
          net["rerun_posts_bridge_only"] == 1 and "marker" in net["bridge_only"]),
+        ("--no-base-spans refuses a trace whose earlier bridge export didn't finish",
+         net["pending_posts"] == 0 and "didn't finish" in net["bridge_only_pending"]),
         ("an unquoted heredoc body line ending in a backslash stops the scan (the next line joins it)",
          shell_summary("cat <<EOF\nprefix\\\nEOF\nConfidentialCustomer\nEOF\ncat z/w.md")[0] == ["cat"]
          and shell_reads("cat <<'EOF'\nprefix\\\nEOF\ncat z/w.md") == ["z/w.md"]
@@ -2009,7 +2029,7 @@ def main():
     if state is None and not (args.force or args.mark_only):
         sys.exit("trace lookup failed; not exporting, to avoid doubling MLflow's token totals "
                  "(rerun the job, or pass --force)")
-    exists, bridged = state or (False, False)
+    exists, bridged, pending = state or (False, False, False)
     if args.mark_only:
         if not exists:
             sys.exit("--mark-only needs the trace to be in MLflow already (the lookup "
@@ -2026,11 +2046,20 @@ def main():
                      "or its marker write failed, or Fullsend exports its own spans. Check the "
                      "trace, then rerun with --mark-only (spans complete), --force (resend all; "
                      "accepted spans count twice) or --no-base-spans (Fullsend exports its own)")
-        if exists and not bridged:
+        if exists and not bridged and not args.force:
+            # Bridge spans only (--no-base-spans). A pending tag means an earlier bridge export
+            # here may have sent some of them; sending again would duplicate them.
+            if pending:
+                sys.exit(f"an earlier bridge export to this trace didn't finish ({PENDING_TAG} is "
+                         "set); sending again would duplicate the bridge spans. Check the trace, "
+                         "then rerun with --mark-only (spans complete) or --force")
+            if set_mlflow_tags(endpoint, headers, summary["trace_id"], {PENDING_TAG: "1"}) != 1:
+                sys.exit(f"could not record {PENDING_TAG} before a bridge-only export; not exporting")
             print("trace exists without bridge spans; sending bridge spans only")
         try:
             status = post(payload, endpoint, headers)
         except PartialExport as e:
+            set_mlflow_tags(endpoint, headers, summary["trace_id"], {PENDING_TAG: "1"})  # best effort
             sys.exit(f"export incomplete ({e}); bridge marker not written. Check the trace, "
                      "then rerun with --force to resend all spans")
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as e:
@@ -2044,6 +2073,7 @@ def main():
             break
         time.sleep(2 ** attempt)
     else:
+        set_mlflow_tags(endpoint, headers, summary["trace_id"], {PENDING_TAG: "1"})  # best effort
         sys.exit("spans exported, but the bridge marker tag could not be recorded; "
                  "rerun with --mark-only to record it")
     if not args.no_tags:
