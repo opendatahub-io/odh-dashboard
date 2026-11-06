@@ -736,10 +736,11 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
-			t.Fatal("VerifyExternalModel() error = nil, want SSRF validation failure")
+			t.Fatal("VerifyExternalModel() error = nil, want in-cluster endpoint rejection")
 		}
-		if !strings.Contains(err.Error(), "failed to resolve hostname") {
-			t.Errorf("VerifyExternalModel() error = %v, want SSRF validation to run (failed to resolve hostname)", err)
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+			t.Errorf("VerifyExternalModel() error = %v, want 403 rejection of an unverifiable in-cluster endpoint", err)
 		}
 	})
 
@@ -856,6 +857,68 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 	})
 
+	t.Run("uppercase cross-namespace Service DNS name is denied without SSRF resolution", func(t *testing.T) {
+		req := req
+		req.BaseURL = "https://my-model.Other-Ns.SVC.CLUSTER.LOCAL:8443/v1"
+		client := &k8smocks.ConfigurableMockKubernetesClient{}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want DNS-equivalent uppercase cross-namespace Service to be denied")
+		}
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+			t.Errorf("VerifyExternalModel() error = %v, want ExternalModelError with status 403", err)
+		}
+	})
+
+	t.Run("trailing-dot cross-namespace Service DNS name is denied without SSRF resolution", func(t *testing.T) {
+		req := req
+		req.BaseURL = "https://my-model.other-ns.svc.cluster.local.:8443/v1"
+		client := &k8smocks.ConfigurableMockKubernetesClient{}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want DNS-equivalent trailing-dot cross-namespace Service to be denied")
+		}
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+			t.Errorf("VerifyExternalModel() error = %v, want ExternalModelError with status 403", err)
+		}
+	})
+
+	t.Run("DNS-equivalent spelling of a same-namespace Service is still trusted", func(t *testing.T) {
+		// Canonicalization must not over-block: uppercase and trailing-dot
+		// forms of a verifiable same-namespace Service keep their trust.
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatalf("failed to reserve an ephemeral port: %v", err)
+		}
+		closedPort := listener.Addr().(*net.TCPAddr).Port
+		if err := listener.Close(); err != nil {
+			t.Fatalf("failed to release the ephemeral port: %v", err)
+		}
+		req := req
+		req.BaseURL = fmt.Sprintf("https://My-Model.My-Ns.svc.cluster.local.:%d/v1", closedPort)
+		client := &k8smocks.ConfigurableMockKubernetesClient{
+			Service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+				Spec: corev1.ServiceSpec{
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: corev1.ClusterIPNone,
+					Selector:  map[string]string{"app": "my-model"},
+				},
+			},
+			EndpointSlices: []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+			Pod:            runningPod("my-ns", "127.0.0.1"),
+		}
+		_, err = repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want pinned dial failure to the loopback address with nothing listening")
+		}
+		if !strings.Contains(err.Error(), "pinned dial") {
+			t.Errorf("VerifyExternalModel() error = %v, want pinned dial failure for the trusted Service", err)
+		}
+	})
+
 	t.Run("internalTrafficPolicy Local Service is not trusted via its VIP name", func(t *testing.T) {
 		// With Local policy, kube-proxy only routes the VIP to endpoints on the
 		// BFF's node; the pinned dial bypasses that filtering, so verification
@@ -919,6 +982,10 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 	})
 
 	t.Run("manually managed EndpointSlice does not enable the SSRF skip", func(t *testing.T) {
+		// Regression: a same-namespace Service whose backing resources fail
+		// validation must be rejected outright. Falling back to DNS-based SSRF
+		// validation would pass on a non-RFC1918 Service CIDR (e.g.
+		// 100.96.0.0/16) and let the BFF reach unvalidated endpoints.
 		client := &k8smocks.ConfigurableMockKubernetesClient{
 			Service: &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
@@ -932,10 +999,11 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
 		if err == nil {
-			t.Fatal("VerifyExternalModel() error = nil, want SSRF validation failure")
+			t.Fatal("VerifyExternalModel() error = nil, want in-cluster endpoint rejection")
 		}
-		if !strings.Contains(err.Error(), "failed to resolve hostname") {
-			t.Errorf("VerifyExternalModel() error = %v, want SSRF validation to run (failed to resolve hostname)", err)
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+			t.Errorf("VerifyExternalModel() error = %v, want 403 rejection of an unverifiable in-cluster endpoint", err)
 		}
 	})
 }

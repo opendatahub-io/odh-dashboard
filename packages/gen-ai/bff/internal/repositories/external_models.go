@@ -191,6 +191,13 @@ func (r *ExternalModelsRepository) DeleteExternalModel(
 	return client.DeleteExternalModel(ctx, identity, namespace, modelID)
 }
 
+// canonicalClusterDNSName lowercases a hostname and removes a terminal DNS
+// root dot, so DNS-equivalent spellings (case variation, trailing dot)
+// classify identically for namespace checks and Kubernetes API lookups.
+func canonicalClusterDNSName(hostname string) string {
+	return strings.ToLower(strings.TrimSuffix(hostname, "."))
+}
+
 // isInternalHost reports whether a URL targets a host trusted for the caller's
 // namespace: loopback (only in local development) or a same-namespace in-cluster
 // Service DNS name. These legitimately resolve to private IPs, so SSRF validation
@@ -201,7 +208,7 @@ func isInternalHost(baseURL string, allowedNamespace string, allowLoopback bool)
 	if err != nil {
 		return false
 	}
-	h := u.Hostname()
+	h := canonicalClusterDNSName(u.Hostname())
 	ip := net.ParseIP(h)
 	if h == "localhost" || (ip != nil && ip.IsLoopback()) {
 		// Loopback endpoints are only exempt from SSRF validation in local
@@ -230,12 +237,27 @@ func isCrossNamespaceServiceHost(baseURL string, allowedNamespace string) bool {
 	if err != nil {
 		return false
 	}
-	h := u.Hostname()
+	h := canonicalClusterDNSName(u.Hostname())
 	labels := strings.Split(h, ".")
 	return strings.HasSuffix(h, ".svc.cluster.local") &&
 		len(labels) >= 5 &&
 		allowedNamespace != "" &&
 		labels[len(labels)-4] != allowedNamespace
+}
+
+// isClusterServiceDNSHost reports whether a URL targets a fully-qualified
+// Kubernetes Service DNS name in any namespace. Recognized in-cluster names
+// whose backing resources failed validation must be rejected outright rather
+// than fall back to DNS-based SSRF validation, which a non-RFC1918 Service
+// CIDR can pass.
+func isClusterServiceDNSHost(baseURL string) bool {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return false
+	}
+	h := canonicalClusterDNSName(u.Hostname())
+	labels := strings.Split(h, ".")
+	return strings.HasSuffix(h, ".svc.cluster.local") && len(labels) >= 5
 }
 
 // k8sServiceHost extracts the service and namespace labels, plus the pod-specific
@@ -246,7 +268,7 @@ func k8sServiceHost(baseURL string) (service string, namespace string, podLabel 
 	if err != nil {
 		return "", "", "", false
 	}
-	h := u.Hostname()
+	h := canonicalClusterDNSName(u.Hostname())
 	labels := strings.Split(h, ".")
 	if !strings.HasSuffix(h, ".svc.cluster.local") || len(labels) < 5 {
 		return "", "", "", false
@@ -618,6 +640,14 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	if !trusted && isCrossNamespaceServiceHost(req.BaseURL, namespace) {
 		return nil, forbiddenTrustError(req.BaseURL, fmt.Sprintf(
 			"in-cluster service endpoints are only allowed in your own namespace (%s); the URL targets a service in another namespace", namespace))
+	}
+	// A same-namespace Service DNS name that failed validation (ExternalName,
+	// selectorless, no verified endpoints, ...) must also be rejected rather
+	// than fall back to DNS-based SSRF validation: on a non-RFC1918 Service
+	// CIDR the Service VIP passes that filter and the BFF would connect to
+	// manually configured, unvalidated endpoints.
+	if !trusted && isClusterServiceDNSHost(req.BaseURL) {
+		return nil, forbiddenTrustError(req.BaseURL, "in-cluster service endpoint could not be verified against the Kubernetes API (e.g. ExternalName, selectorless, or no verified endpoints)")
 	}
 	modelsClient, err := externalmodels.NewExternalModelsClient(
 		logger,

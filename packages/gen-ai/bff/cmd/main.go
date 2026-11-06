@@ -328,14 +328,20 @@ func sanitizedHost(host string) string {
 	return host
 }
 
-// validateListenHost rejects listen hosts that embed userinfo credentials or
-// path/query data, or that are not a valid IP or DNS hostname. Such hosts can
-// never work as listen addresses, and their raw values would otherwise leak
-// through net/http listener errors when startup fails.
+// validateListenHost rejects listen hosts that carry a scheme prefix, embed
+// userinfo credentials or path/query data, or are not a valid IP or DNS
+// hostname. Such hosts can never work as listen addresses, and their raw
+// values would otherwise leak through net/http listener errors when startup
+// fails. Scheme prefixes are rejected rather than stripped so validation and
+// the bound address cannot disagree.
 func validateListenHost(host string) error {
 	h := host
-	if scheme := strings.Index(h, "://"); scheme >= 0 {
-		h = h[scheme+3:]
+	if strings.Contains(h, "://") {
+		slog.Error("SECURITY: --host must not include a scheme",
+			"host", sanitizedHost(host),
+			"fix", "Pass a plain host or IP, e.g. --host localhost",
+		)
+		return errors.New("--host must not include a scheme")
 	}
 	if at := strings.LastIndex(h, "@"); at >= 0 {
 		slog.Error("SECURITY: --host must not contain userinfo credentials",

@@ -388,6 +388,16 @@ func TestListenHostRejected(t *testing.T) {
 		assert.Error(t, validateListenHost("host:port"))
 	})
 
+	t.Run("scheme-prefixed host is rejected", func(t *testing.T) {
+		logs := captureDefaultLog(t, func() {
+			err := validateListenHost("http://localhost")
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "must not include a scheme")
+			assert.Error(t, validateListenHost("http://"))
+		})
+		assert.Contains(t, logs, "SECURITY")
+	})
+
 	t.Run("plain host is accepted", func(t *testing.T) {
 		assert.NoError(t, validateListenHost("localhost"))
 		assert.NoError(t, validateListenHost("0.0.0.0"))
