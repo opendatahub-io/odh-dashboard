@@ -238,12 +238,17 @@ func tlsConfigEqual(a, b *tls.Config) bool {
 }
 
 // tlsConfigPermitsHTTP2 reports whether cfg's cipher list is compatible with
-// HTTP/2. An empty CipherSuites means Go's defaults apply (which include a required
-// suite), so HTTP/2 is fine; a non-empty list must contain one of the two ECDHE
-// AES-128-GCM suites http2.ConfigureServer demands. This mirrors Go's own check,
-// which inspects CipherSuites regardless of MinVersion.
+// HTTP/2. This mirrors Go's own check in http2.ConfigureServer, which only inspects
+// CipherSuites when MinVersion is below TLS 1.3:
+//   - a TLS 1.3-only config is always compatible: CipherSuites only governs TLS <=1.2
+//     (TLS 1.3 suites are not configurable and are all HTTP/2-acceptable), so any
+//     leftover TLS 1.2 entries from a Custom profile are irrelevant;
+//   - an empty CipherSuites means Go's defaults apply (which include a required
+//     suite), so HTTP/2 is fine;
+//   - otherwise the list must contain one of the two ECDHE AES-128-GCM suites
+//     RFC 7540 §9.2.2 requires for TLS <=1.2.
 func tlsConfigPermitsHTTP2(cfg *tls.Config) bool {
-	if cfg == nil || len(cfg.CipherSuites) == 0 {
+	if cfg == nil || cfg.MinVersion >= tls.VersionTLS13 || len(cfg.CipherSuites) == 0 {
 		return true
 	}
 	for _, id := range cfg.CipherSuites {
