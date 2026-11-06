@@ -414,10 +414,15 @@ def tool_calls(entries):
     return [calls[i] for i in order]
 
 
-HEREDOC_RE = re.compile(r"<<-?[ \t]{0,4}(['\"]?)([A-Za-z_][\w]{0,40})\1")
+HEREDOC_RE = re.compile(r"(?<!<)<<(?!<)-?[ \t]{0,4}(['\"]?)([A-Za-z_][\w]{0,40})\1")  # not <<< here-strings
 SHELL_OP_RE = re.compile(r"(\|\||&&|;|\||\n)")
 READ_PROGS = {"cat", "head", "tail", "less", "more", "bat", "nl", "sed", "awk"}
-PATH_TOKEN_RE = re.compile(r"[\w@.+-]*(?:/[\w@.+-]+)+/?|[\w@+-]+\.[A-Za-z0-9]{1,8}")
+# Exported shell "paths" must look like repo files, not other arguments: no @ or :, a
+# relative path's first segment may not look like a hostname (dotted, not a dotfile), and
+# a bare file name needs a known source/doc extension. Absolute paths must be in the sandbox.
+REL_PATH_RE = re.compile(r"(?:\.[\w+-]+|[\w+-]+)(?:/[\w.+-]+)+/?")
+FILE_EXTS = r"md|mdx|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|py|go|sh|txt|css|scss|html|toml|mod|sum|lock|snap"
+BARE_FILE_RE = re.compile(r"\.?[\w+-]+(?:\.[\w+-]+)*\.(?:" + FILE_EXTS + r")")
 REDIRECT_RE = re.compile(r"^(?:\d|&)?>{1,2}|^<<<?$")
 
 
@@ -458,6 +463,18 @@ def _program(toks):
     return None, None
 
 
+def export_path(t):
+    """A repo-relative path for a shell argument that names a file, else None."""
+    if not t or len(t) > 300 or t.startswith("-"):
+        return None
+    if t.startswith("/"):
+        t, root = rel_path(t)  # only repo checkouts in the sandbox give a path back
+        if root not in ("base", "pr-head") or not t:
+            return None
+    t = t[2:] if t.startswith("./") else t
+    return t if REL_PATH_RE.fullmatch(t) or BARE_FILE_RE.fullmatch(t) else None
+
+
 def shell_summary(cmd):
     """What a shell command is exported as: the programs it runs and the file paths it
     names. Arguments, quoted text, heredoc bodies and inline scripts are never exported."""
@@ -467,11 +484,9 @@ def shell_summary(cmd):
         if prog:
             programs.append(prog)
         for t in toks[(i or 0) + 1:]:
-            t = REDIRECT_RE.sub("", t)
-            if t and not t.startswith("-") and PATH_TOKEN_RE.fullmatch(t) and len(t) <= 300:
-                rel = rel_path(t)[0] if t.startswith("/") else t
-                if rel and rel not in paths:
-                    paths.append(rel)
+            rel = export_path(REDIRECT_RE.sub("", t))
+            if rel and rel not in paths:
+                paths.append(rel)
     return programs[:30], paths[:30]
 
 
@@ -491,8 +506,8 @@ def shell_reads(cmd):
                 skip_next = False
                 continue
             if REDIRECT_RE.match(t):
-                # `> f` / `>> f` / `2> f` write; a bare `<` reads its target.
-                skip_next = not t.startswith("<") and REDIRECT_RE.sub("", t) == ""
+                # `> f` / `>> f` / `2> f` write and `<<< text` is literal text; `< f` reads f.
+                skip_next = t == "<<<" or (not t.startswith("<") and REDIRECT_RE.sub("", t) == "")
                 continue
             if t.startswith("-") or "*" in t:
                 continue
@@ -561,19 +576,22 @@ def build(args):
     result = load_json(os.path.join(last, "output", "agent-result.json"), {}) or {}
     result = result if isinstance(result, dict) else {}
     # agent-result.json is written in the sandbox: keep only well-formed values.
-    pr = result.get("pr_number") if isinstance(result.get("pr_number"), int) else None
+    pr = result.get("pr_number")
+    pr = pr if isinstance(pr, int) and not isinstance(pr, bool) and 0 < pr < 10**9 else None
     repo = result.get("repo") if isinstance(result.get("repo"), str) \
         and re.fullmatch(r"[\w.-]{1,100}/[\w.-]{1,100}", result["repo"]) else None
-    if not pr:
+    if not (pr and repo):
         shared = os.path.join(last, "output", "context", "shared.md")
         try:
             with open(shared, errors="replace") as f:
                 m = re.search(r"PR:\s*([\w.-]{1,100}/[\w.-]{1,100})#(\d{1,9})", f.read(MAX_SCAN * 25))
-            repo, pr = (m.group(1), int(m.group(2))) if m else (repo, None)
+            if m and 0 < int(m.group(2)):
+                repo, pr = m.group(1), int(m.group(2))
         except OSError:
             pass
 
-    common = {"session.id": f"{repo}#{pr}" if pr else None, "user.id": args.pr_author,
+    pr_key = f"{repo}#{pr}" if pr and repo else None  # both or neither: never "None#7"
+    common = {"session.id": pr_key, "user.id": args.pr_author,
               "fullsend.repo": repo, "fullsend.pr_number": pr,
               "fullsend.head_sha": result.get("head_sha") if isinstance(result.get("head_sha"), str)
               and re.fullmatch(r"[0-9a-f]{40}", result["head_sha"]) else None}
@@ -730,7 +748,7 @@ def build(args):
                "missed": cov["fullsend.guidance.missed"], "base_span_ids": sorted(base_ids)}
     # MLflow trace tags: filterable and sortable in the trace table. MLflow's own cost
     # column prices tokens without cache discounts, so the real cost goes here too.
-    tags = {"fullsend.pr": f"{repo}#{pr}" if pr else None, "fullsend.verdict": verdict,
+    tags = {"fullsend.pr": pr_key, "fullsend.verdict": verdict,
             "fullsend.cost_usd": num(metrics.get("total_cost_usd")),
             "fullsend.guidance.coverage": cov["fullsend.guidance.coverage"],
             "fullsend.guidance.missed_count": len(cov["fullsend.guidance.missed"]) if applicable else None,
@@ -781,7 +799,11 @@ def mlflow_trace_state(endpoint, headers, trace_id):
     req = urllib.request.Request(f"{base}/api/3.0/mlflow/traces/tr-{trace_id}", headers=headers)
     try:
         with _OPENER.open(req, timeout=LOOKUP_TIMEOUT) as r:
-            info = (json.load(r).get("trace") or {}).get("trace_info") or {}
+            doc = json.load(r)
+        trace = doc.get("trace") if isinstance(doc, dict) else None
+        info = trace.get("trace_info") if isinstance(trace, dict) else None
+        if not isinstance(info, dict):
+            raise ValueError("unexpected trace lookup response shape")
     except urllib.error.HTTPError as e:
         if e.code != 404:
             print(f"warning: trace lookup returned HTTP {e.code}; treating the trace as new", file=sys.stderr)
@@ -790,7 +812,7 @@ def mlflow_trace_state(endpoint, headers, trace_id):
         # OSError covers read timeouts; HTTPException covers IncompleteRead and bad status lines
         print(f"warning: trace lookup failed ({e}); treating the trace as new", file=sys.stderr)
         return False, False
-    tags = info.get("tags") or {}
+    tags = info.get("tags") if isinstance(info.get("tags"), dict) else {}
     # fullsend.pr marks traces sent by bridge version 1, before fullsend.bridge.version existed.
     return True, ("fullsend.bridge.version" in tags or "fullsend.pr" in tags)
 
@@ -837,6 +859,9 @@ def _self_test_network():
                 self._send(200, json.dumps({"trace": {"trace_info": {"tags": tags[tid]}}}).encode())
             elif tid == "e" * 32:
                 self._send(500)
+            elif tid in ("1" * 32, "2" * 32, "3" * 32):  # valid JSON, wrong shape
+                body = {"1" * 32: b"[1]", "2" * 32: b"null", "3" * 32: b'{"trace": "x"}'}[tid]
+                self._send(200, body)
             elif tid == "d" * 32:  # declares more body than it sends, then closes
                 self.send_response(200)
                 self.send_header("Content-Length", "1000")
@@ -859,6 +884,10 @@ def _self_test_network():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     ep = f"http://127.0.0.1:{srv.server_address[1]}/v1/traces"
     states = [mlflow_trace_state(ep, {}, t) for t in ("a" * 32, "b" * 32, "c" * 32, "e" * 32)]
+    try:
+        shape_states = [mlflow_trace_state(ep, {}, t) for t in ("1" * 32, "2" * 32, "3" * 32)]
+    except Exception:  # noqa: BLE001 - the check is that nothing escapes
+        shape_states = "raised"
     try:
         truncated_state = mlflow_trace_state(ep, {}, "d" * 32)
     except Exception:  # noqa: BLE001 - the check is that nothing escapes
@@ -893,7 +922,7 @@ def _self_test_network():
         bad_id_rejected = False
     except SystemExit:
         bad_id_rejected = True
-    return {"states": states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
+    return {"states": states, "shape_states": shape_states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
 
@@ -971,11 +1000,13 @@ def self_test():
             call("c10", "bash", {"command": "true || cat docs/adr/0009-x.md"}),
             call("c11", "bash", {"command": "printf '%s' 'confidential customer information' > /tmp/report.txt"}),
             call("c12", "bash", {"command": "cat <<< 'hereStringSecret' && wc -l .claude/rules/react.md"}),
+            call("c14", "bash", {"command": "cat <<< 'x'\ncat AGENTS.md\ngit config user.email \"mailLeak@example.com\" "
+                                            "&& curl api.internal.corp && cat /etc/hosts.md"}),
             call("c13", "ghp_QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ", {"x": 1})]))
         f.write(msg("toolResult", toolCallId="c1", durationMs=250, timestamp=1793664001500))
         f.write(msg("toolResult", toolCallId="c2", durationMs=10, timestamp=1793664001600, isError=True))
         f.write(msg("toolResult", toolCallId="c3", durationMs=5, timestamp=1793664001700, isError=True))
-        for i in ("c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11", "c12", "c13"):
+        for i in ("c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11", "c12", "c13", "c14"):
             f.write(msg("toolResult", toolCallId=i, durationMs=5, timestamp=1793664001800))
     with open(os.path.join(tr, "review-sub2-2026-11-03T00-00-01Z_b.jsonl"), "w") as f:
         f.write(msg("user", [{"type": "text", "text": "Read /x/sub-agents/test-impact-review/SKILL.md first"}]))
@@ -1053,6 +1084,8 @@ def self_test():
         json.dump(result, open(result_path, "w"))
         return build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict=verdict)))
     v_failure = variant({"action": "failure"}, "approve")[1]["tags"].get("fullsend.verdict")
+    no_repo = variant({"pr_number": 7})[1]
+    bool_pr = variant({"pr_number": True, "repo": "o/r"})[1]
     v_fallback = variant({}, "approve")[1]["tags"].get("fullsend.verdict")
     v_unknown = variant({"action": "weird"}, "approve")[1]["tags"].get("fullsend.verdict")
     junk_payload, junk_summary = variant({
@@ -1072,6 +1105,13 @@ def self_test():
         ("hostile agent-result: no verdict, risk, PR or repo in tags",
          not any(k in bad_summary["tags"] for k in ("fullsend.risk", "fullsend.pr"))
          and bad_summary["tags"].get("fullsend.verdict") == "other" and bad_summary["pr"] is None),
+        ("here-strings don't swallow later lines; emails, hostnames and outside paths aren't exported",
+         any(["cat", "cat", "git", "curl", "cat"] == p for p in shell_progs)
+         and "mailLeak" not in blob and "api.internal.corp" not in blob and "/etc/hosts" not in blob
+         and "AGENTS.md" in blob),
+        ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
+         "fullsend.pr" not in no_repo["tags"] and no_repo["pr"] == 7 and bool_pr["pr"] is None
+         and "None#" not in json.dumps(no_repo)),
         ("explicit artifact action wins (failure kept, unknown is 'other'); fallback only without one",
          (v_failure, v_unknown, v_fallback) == ("failure", "other", "approve")),
         ("malformed findings, producers, adapters and head_sha don't break the build or strict JSON",
@@ -1089,6 +1129,7 @@ def self_test():
          "QQQQQQQQQQQQ" not in blob and "keyLeakabcdefghij" not in blob),
         ("lookup timeout treated as a new trace", net["timeout_state"] == (False, False)),
         ("truncated lookup response treated as a new trace", net["truncated_state"] == (False, False)),
+        ("non-object lookup responses treated as a new trace", net["shape_states"] == [(False, False)] * 3),
         ("malformed and out-of-range timestamps are rejected",
          otlp_ns(float("inf")) is None and otlp_ns(float("nan")) is None and otlp_ns("x") is None
          and otlp_ns("1793664001000000000") == 1793664001000000000
