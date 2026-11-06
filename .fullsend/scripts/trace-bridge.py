@@ -367,7 +367,7 @@ def guidance_opened(c):
         g = _norm_guidance(a["path"])
         return {g} if g else set()
     if c["name"] == "bash" and isinstance(a.get("command"), str):
-        return {g for g in (_norm_guidance(t) for t in shell_reads(a["command"])) if g}
+        return {g for g in (_norm_guidance(t) for t in safe_shell(shell_reads, a["command"], [])) if g}
     return set()
 
 
@@ -982,7 +982,7 @@ def stdout_reaches_tool(toks):
     Descriptors other than 1 and 2 have unknown destinations."""
     dest = {"1": "out", "2": "err"}
     for j, t in enumerate(toks):
-        if t == "<>" and t.fd not in ("", "0"):
+        if is_redirect(t) and t == "<>" and t.fd not in ("", "0"):
             dest[t.fd] = "file"  # 1<>f opens f read-write as fd 1: stdout goes to f
             continue
         if not is_redirect(t) or t in ("<", "<<", "<<-", "<<<", "<>", "<&"):
@@ -1076,6 +1076,15 @@ def shell_files(cmd, include_skipped=False):
     return reads, targets
 
 
+def safe_shell(fn, cmd, fallback):
+    """Run a shell parser on untrusted command text; a parser bug loses that command's
+    reads and programs, never the whole export."""
+    try:
+        return fn(cmd)
+    except Exception:  # noqa: BLE001 - one malformed command must not stop the export
+        return fallback
+
+
 def shell_reads(cmd):
     """Files whose contents a read program was given (see shell_files)."""
     return shell_files(cmd)[0]
@@ -1090,7 +1099,7 @@ def describe_call(c):
         out.update({"fullsend.tool.path": rel or path, "fullsend.file.root": root,
                     "fullsend.file.category": category(rel) if root != "pi-skill" else "pi-skill"})
     if name == "bash" and isinstance(a.get("command"), str):
-        programs, paths = shell_summary(a["command"])
+        programs, paths = safe_shell(shell_summary, a["command"], ([], []))
         out["fullsend.tool.programs"] = programs
         out["fullsend.tool.paths"] = paths
     elif name in ("grep", "find") and isinstance(a.get("pattern"), str):
@@ -2093,7 +2102,9 @@ def self_test():
          and ".claude/rules/react.md" in shell_summary(
              "sed --follow-symlinks -n 1p docs/x.md < .claude/rules/react.md")[1]
          and shell_reads("cat .claude/rules/react.md 1<>out.txt") == []
-         and shell_reads("cat .claude/rules/react.md 2<>err.txt") == [".claude/rules/react.md"]),
+         and shell_reads("cat .claude/rules/react.md 2<>err.txt") == [".claude/rules/react.md"]
+         and shell_reads("cat '<>' .claude/rules/react.md") == ["<>", ".claude/rules/react.md"]
+         and shell_reads("cat \\<\\> c/d.md") == ["<>", "c/d.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
