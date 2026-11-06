@@ -59,3 +59,21 @@ export const createCleanHardwareProfile = (
     });
   });
 };
+
+/**
+ * Delete a single HardwareProfile by exact name.
+ *
+ * Unlike `cleanupHardwareProfiles` (plural), which uses substring matching
+ * via `jq contains()`, this function targets only the profile whose
+ * `metadata.name` equals the given name exactly.
+ *
+ * Uses `--ignore-not-found` so it succeeds even if the profile was already
+ * deleted or never created.
+ */
+export const cleanupHardwareProfile = (
+  hardwareProfile: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc delete hardwareprofiles ${hardwareProfile} -n ${applicationNamespace} --ignore-not-found`;
+  cy.log(`Deleting HardwareProfile (exact name): ${hardwareProfile}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: false });
+};
