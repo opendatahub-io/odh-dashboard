@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -49,11 +48,10 @@ func (app *App) PrometheusQueryHandler(w http.ResponseWriter, r *http.Request, _
 				Response: promErr.ResponseBody(),
 			}, nil)
 		} else {
-			escaped, _ := json.Marshal(fmt.Sprintf("Cannot fetch prometheus data, %s", err.Error()))
 			app.LogError(r, err)
 			app.WriteJSON(w, http.StatusInternalServerError, models.PrometheusQueryResponse{ //nolint:errcheck // response write failure is non-recoverable
 				Code:     http.StatusInternalServerError,
-				Response: escaped,
+				Response: json.RawMessage(`"Cannot fetch prometheus data"`),
 			}, nil)
 		}
 		return

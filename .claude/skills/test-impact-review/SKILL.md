@@ -6,7 +6,7 @@ argument-hint: "[PR number | path | branch]"
 
 # Test Impact Review
 
-Assurance-grade readiness check for how the change is tested. Scores **Automation**, **Efficiency**, and **Evidence depth**. This is narrower than a test run and is a readiness check only (not a code-finding producer): it judges durable automation, tier/efficiency, and whether author-supplied proof covers the change and protects feature integrity while those tests stay green. This skill digs into whether that proof (required in the description) is adequate for the actual changes.
+Assurance-grade readiness check for how the change is tested. Scores **Automation**, **Efficiency**, and **Evidence depth**. This is narrower than a test run and is a readiness check only (not a code-finding producer): it judges durable automation, tier/efficiency, and whether the available proof covers the change and protects feature integrity while those tests stay green. Available proof means author-supplied description evidence plus suites that required PR status checks run for the changed packages; this skill judges whether that combined proof is adequate for the actual changes.
 
 ## Invocation contract
 
@@ -30,7 +30,9 @@ gh pr diff <PR>
 - With a branch name, validate and resolve it, then inspect `git diff main...<branch>` (names and content as needed).
 - With no argument, use `git diff main` (names and content as needed).
 
-Do **not** pass Evidence depth from the test tree alone when the description omits testing proof.
+**Required-CI suites are presumed to run and gate.** Unit tests, type checks, lint, and Cypress run under required PR status checks, so treat them as executed and gated — a scoring presumption, not a verified fact. Do not verify it, enumerate the workflows, infer additional coverage from tests that happen to exist in the tree, or fail, warn, or report “could not verify” because no caller supplied coverage information. The presumption covers only what those standard suites run; manual or cluster checks, scripts, and suites outside required CI still need author proof.
+
+Do **not** pass Evidence depth from the test tree alone when the description omits testing proof — unless required-CI suites cover the change under the presumption above (see Evidence depth below).
 
 ## Review procedure
 
@@ -45,7 +47,7 @@ Is there enough durable test automation for the future to cover the feature, inc
 - Product-code changes that need automation but lack adequate coverage (including edge cases) → ❌, **unless** the PR description provides a **sufficient constraint justification** (see below) → ⚠️.
 - Coverage present but thin / missing important edges → ⚠️.
 - Adequate durable automation for the change → ✅.
-- **➖** when there is no product behavior under test (e.g. docs-only, pure lockfile/manifest/generated with nothing sensible to unit- or mock-test). Do not require new test files for those heads.
+- **➖** when there is no product behavior under test (e.g. docs-only, localization/translation strings, pure lockfile/manifest/generated with nothing sensible to unit- or mock-test). Do not require new test files for those heads.
 
 **Constraint justification (Automation):** the author may explain in the PR body — typically under `## Evidence` alongside their other testing proof — why durable test automation could not or should not be added for this change (e.g. the surface is not automatable, the change is infrastructure/workflow-only with no testable behavior, or tests would provide no value for the specific type of change). A sufficient justification must state **which constraint** applies, **why** automation is inappropriate or impossible here, and **what alternative verification** exists. When sufficient, score ⚠️ (acknowledged waiver) instead of ❌ — never ✅, which would imply automation exists. Note in the Evidence cell that the score was adjusted based on the author's constraint justification.
 
@@ -60,13 +62,15 @@ Are tests written efficiently? Call out duplication. Prefer unit tests over Cypr
 
 ### 3. Evidence depth
 
-Dig into author-supplied testing evidence (and related automation): does it sufficiently cover the changes that were made, and will feature integrity hold so long as those tests continue to pass?
+Dig into available testing evidence (author-supplied and required-CI suites, plus related automation): does it sufficiently cover the changes that were made, and will feature integrity hold so long as those tests continue to pass?
 
-- Testing proof **not called out in the PR description** → ❌, even when the tree already has good automation. Silent “tests exist in the tree” is not enough.
+- **Required-CI suites need no author call-out.** Treat them as proving themselves, per the [required-CI presumption](#inputs-and-direct-cli-defaults). Do not fail, warn, or report “could not verify” because the description does not restate that run, and never ask the author to paste CI output into prose. This skill does not inspect CI status or confirm the checks are green — the merge gate does that; do not add a CI row or caveat here.
+- **Author-supplied proof is still required for what required CI cannot show:** UI/visual proof for UI changes, cluster or manual checks, suites outside required CI, and test-quality judgments (see Automation and Efficiency). Missing proof for any of these stays ❌ as below.
+- Testing proof **not called out in the PR description** → ❌, even when the tree already has good automation. Silent “tests exist in the tree” is not enough. Exception: suites covered by required CI, per the first bullet.
 - Proof present but does not cover the changed behavior, or green tests would not protect integrity → ❌.
 - Proof present but thin / partially matched to the change → ⚠️.
 - Proof in the description adequately covers the change and supports integrity-while-green → ✅.
-- **Still scored** for docs, manifests, lockfiles, CI config, and similar: require verification proof in the description (CI green, install/deploy check, override rationale, etc.) that fits the change. Missing call-out → ❌.
+- **Still scored** for docs, manifests, lockfiles, CI config, and similar: require verification proof (install/deploy check, override rationale, etc.) that fits the change. Verification performed by required CI satisfies this where it covers the change, and for non-behavioral edits (localization strings, docs, formatting) an explicit scope statement such as “localization only; no behavior change” is sufficient. Otherwise the proof belongs in the description. Missing proof → ❌.
 - **➖** only when no PR body is available (cannot evaluate description call-out). Do **not** mark the whole check ➖ merely because the head is docs/manifest/lockfile-only.
 
 ## Status mapping

@@ -31,7 +31,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 		{
 			name:              "success",
 			upstreamStatus:    http.StatusOK,
-			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[{"roles":[]}]}`,
+			upstreamBody:      `{"sub":"user-123","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":[]}`,
 			subscriptionsBody: `[{"roles":["admin"]}]`,
 			wantStatus:        http.StatusOK,
 			wantAdmin:         false,
@@ -39,7 +39,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 		{
 			name:              "organization admin",
 			upstreamStatus:    http.StatusOK,
-			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[{"roles":["admins"]}]}`,
+			upstreamBody:      `{"sub":"user-123","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":["admins"]}`,
 			subscriptionsBody: `[]`,
 			wantStatus:        http.StatusOK,
 			wantAdmin:         true,
@@ -55,7 +55,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 		{
 			name:              "subscription user is not an admin",
 			upstreamStatus:    http.StatusOK,
-			upstreamBody:      `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
+			upstreamBody:      `{"sub":"user-123"}`,
 			subscriptionsBody: `[{"roles":["user"]}]`,
 			wantStatus:        http.StatusOK,
 			wantAdmin:         false,
@@ -64,7 +64,7 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			name:                "subscription check failure",
 			upstreamStatus:      http.StatusOK,
 			subscriptionsStatus: http.StatusInternalServerError,
-			upstreamBody:        `{"sub":"user-123","https://redhat.com/maas/orgs":[]}`,
+			upstreamBody:        `{"sub":"user-123"}`,
 			subscriptionsBody:   `{"error":"MaaS unavailable"}`,
 			wantStatus:          http.StatusOK,
 			wantAdmin:           false,

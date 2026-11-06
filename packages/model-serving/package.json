@@ -92,6 +92,8 @@
     "./concepts/useStopModalPreference": "./src/concepts/useStopModalPreference.ts",
     "./hooks/useServingPlatformStatuses": "./src/hooks/useServingPlatformStatuses.ts",
     "./hooks/useIsNIMAvailable": "./src/hooks/useIsNIMAvailable.ts",
+    "./shared/api/models": "./src/shared/api/models.ts",
+    "./shared/api/servingRuntimes": "./src/shared/api/servingRuntimes.ts",
     "./api/prometheus/kservePerformanceMetrics": "./src/api/prometheus/kservePerformanceMetrics.ts",
     "./__mocks__/mockInferenceServiceK8sResource": "./src/__mocks__/mockInferenceServiceK8sResource.ts",
     "./__mocks__/mockServingRuntimeK8sResource": "./src/__mocks__/mockServingRuntimeK8sResource.ts",

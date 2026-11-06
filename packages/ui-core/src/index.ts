@@ -146,7 +146,16 @@ export type {
   WorkingProjectContextType,
   WorkingProjectProviderProps,
   WorkingProjectStatus,
+  WorkingProjectNavigation,
+  WorkingProjectNavigationTransaction,
 } from './context/WorkingProjectContext';
+
+export { useWorkingProjectSynchronization } from './hooks/useWorkingProjectSynchronization';
+export type {
+  WorkingProjectChange,
+  WorkingProjectChangeSource,
+  WorkingProjectSynchronizationOptions,
+} from './hooks/useWorkingProjectSynchronization';
 
 export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';
 export { default as DefaultValueTextRenderer } from './components/connectionTypes/DefaultValueTextRenderer';

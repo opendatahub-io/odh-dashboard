@@ -8,6 +8,7 @@ import {
   restGET,
 } from 'mod-arch-core';
 import { BFF_API_VERSION, API_URL_PREFIX } from '~/app/utilities/const';
+import { isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
 import type {
   APIKeyListResponse,
   APIKeySearchRequest,
@@ -111,6 +112,12 @@ export const searchTenantApiKeys =
       }
       throw new Error('Invalid response format');
     });
+
+/** Select the API-key search contract for the current distribution. */
+export const searchApiKeysForCurrentHost =
+  (hostPath = '') =>
+  (opts: APIOptions, request: APIKeySearchRequest = {}): Promise<APIKeyListResponse> =>
+    (isMaaSPortalHost() ? searchTenantApiKeys : searchApiKeys)(hostPath)(opts, request);
 
 /** POST /api/v1/api-keys - Create a new API key */
 export const createApiKey =

@@ -78,6 +78,7 @@ func TestK8sProxy_PathStripping(t *testing.T) {
 func TestK8sProxy_QueryParams(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Got-Query", r.URL.RawQuery)
+		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer backend.Close()
@@ -105,19 +106,24 @@ func TestK8sProxy_AuthHeader(t *testing.T) {
 	}))
 	defer backend.Close()
 
-	handler, err := NewK8sProxyHandler(testK8sProxyConfig(backend.URL))
-	if err != nil {
-		t.Fatalf("NewK8sProxyHandler() error = %v", err)
-	}
-
-	req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil)
-	req = req.WithContext(newIdentityContext("my-secret-token"))
-	rec := httptest.NewRecorder()
-
-	handler.ServeHTTP(rec, req)
-
-	if got := rec.Header().Get("X-Got-Auth"); got != "Bearer my-secret-token" {
-		t.Errorf("auth = %q, want %q", got, "Bearer my-secret-token")
+	for _, header := range []string{"X-Forwarded-Access-Token", "Authorization", "X-Custom-Credential"} {
+		t.Run(header, func(t *testing.T) {
+			cfg := testK8sProxyConfig(backend.URL)
+			cfg.AuthTokenHeader = header
+			handler, err := NewK8sProxyHandler(cfg)
+			if err != nil {
+				t.Fatalf("NewK8sProxyHandler() error = %v", err)
+			}
+			req := httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/pods", nil)
+			req.Header.Set(header, "untrusted-ingress-value")
+			req.Header.Set(constants.HeaderAuthorization, "Bearer untrusted-token")
+			req = req.WithContext(newIdentityContext("my-secret-token"))
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if got := rec.Header().Get("X-Got-Auth"); got != "Bearer my-secret-token" {
+				t.Errorf("auth = %q, want %q", got, "Bearer my-secret-token")
+			}
+		})
 	}
 }
 
@@ -308,7 +314,7 @@ func TestK8sProxy_ResponsePassthrough(t *testing.T) {
 	if got := rec.Header().Get("X-Custom-Header"); got != "preserved" {
 		t.Errorf("X-Custom-Header = %q, want %q", got, "preserved")
 	}
-	if got := rec.Body.String(); got != `{"kind":"Status","code":404}` {
+	if got := rec.Body.String(); !strings.Contains(got, `"reason":"NotFound"`) {
 		t.Errorf("body = %q, want %q", got, `{"kind":"Status","code":404}`)
 	}
 }
@@ -335,7 +341,7 @@ func TestK8sProxy_ForbiddenPassthrough(t *testing.T) {
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
-	if got := rec.Body.String(); got != `{"kind":"Status","code":403,"message":"pods is forbidden"}` {
+	if got := rec.Body.String(); !strings.Contains(got, `"reason":"Forbidden"`) || !strings.Contains(got, "pods is forbidden") {
 		t.Errorf("body = %q, want K8s forbidden response", got)
 	}
 }
