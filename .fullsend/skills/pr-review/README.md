@@ -529,7 +529,7 @@ Searches, failed reads, paths that only appear in prompts, redirection targets
 fallback (`cat f || true`) or a pipe (`cat f | head`), negated pipelines (`! cat f`,
 `! true | cat f`), background jobs (`cat f &`), input redirections to programs that
 don't show the file (`grep -q x < f`), reads whose output is sent away (`cat f >/dev/null`,
-`cat f >& file`), bodies of functions that may never be called (`f() { cat f; }`), and
+`cat f >& file`, `cat f 2>/dev/null 1>&2`; redirections are followed in order), `sed -i`, bodies of functions that may never be called (`f() { cat f; }`), and
 anything after `exit` do not count. Relative paths are resolved against
 a top-level `cd` whose success is established (by the same rule); after any other directory change they are dropped. Coverage needs
 `.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the

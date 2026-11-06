@@ -915,6 +915,37 @@ def chdir_target(cwd, args):
     return "" if out == "." else out
 
 
+def stdout_reaches_tool(toks):
+    """Whether a command's stdout still goes to the tool output after its redirections,
+    applied in order (2>/dev/null 1>&2 sends it to /dev/null; 1>&2 2>/dev/null doesn't).
+    Descriptors other than 1 and 2 have unknown destinations."""
+    dest = {"1": "out", "2": "err"}
+    for j, t in enumerate(toks):
+        if not is_redirect(t) or t in ("<", "<<", "<<-", "<<<", "<>", "<&"):
+            continue
+        target = str(toks[j + 1]) if j + 1 < len(toks) else ""
+        if t == "&>" or (t == ">&" and not t.fd and not target.isdigit()):
+            dest["1"] = dest["2"] = "file"  # &> f, >& f: both streams to the file
+        elif t == ">&" and target.isdigit():
+            dest[t.fd or "1"] = dest.get(target, "unknown")
+        elif t in (">", ">>", ">|", ">&"):
+            dest[t.fd or "1"] = "file"
+    return dest["1"] in ("out", "err")
+
+
+def sed_in_place(args):
+    """sed -i / -iSUFFIX / --in-place[=SUFFIX], alone or in a short-option cluster."""
+    for a in args:
+        a = str(a)
+        if a == "--":
+            break
+        if a == "--in-place" or a.startswith("--in-place="):
+            return True
+        if a.startswith("-") and not a.startswith("--") and "i" in a[1:].split("e")[0].split("f")[0]:
+            return True
+    return False
+
+
 def shell_files(cmd, include_skipped=False):
     """(read files, redirection targets) in a shell command. Read files are the file
     arguments of read programs (cat, head, sed, ...) in segments that certainly ran (see
@@ -938,12 +969,9 @@ def shell_files(cmd, include_skipped=False):
             ok = prog == "cd" and depth == 0 and k in read_ok and cwd is not None
             cwd = chdir_target(cwd, args) if ok else None
             continue
-        # A read program whose stdout goes to a file or /dev/null returns nothing to the agent.
-        # >&N to another fd (>&2) still reaches the tool output; >& file does not.
-        if any(is_redirect(t) and (t == "&>" or (t in (">", ">>", ">|") and t.fd in ("", "1"))
-                                   or (t == ">&" and t.fd in ("", "1") and not (
-                                       j + 1 < len(toks) and str(toks[j + 1]).isdigit())))
-               for j, t in enumerate(toks)):
+        # A read program whose stdout ends up anywhere but the tool output returns nothing to the
+        # agent, and neither does sed -i (it writes the result back to the file).
+        if not stdout_reaches_tool(toks) or (prog == "sed" and sed_in_place(toks[i + 1:])):
             counts = include_skipped
         redirect = None
         for t in without_patterns(prog, toks[i + 1:]):
@@ -1819,7 +1847,8 @@ def self_test():
              "git commit -m 'private/needle'", "rg -E utf-8 internal/customer/acme src/r.md", "wc -l build.sh"))
          and shell_summary("echo hi > out/x.md")[1] == ["out/x.md"]
          and shell_summary("sort < in/c.md > out/d.md")[1] == ["in/c.md", "out/d.md"]
-         and shell_reads("sed -i.bak s/a/b/ src/c.md") == ["src/c.md"]
+         and shell_reads("sed -i.bak s/a/b/ src/c.md") == []
+         and "src/c.md" in shell_summary("sed -i.bak s/a/b/ src/c.md")[1]
          and shell_reads("sed -X 1 docs/x.md") == [] and shell_reads("cat << EOF\nb\nEOF") == []),
         ("reads count only in commands that certainly ran (|| branches, groups, && before ;)",
          shell_reads("true || (cat .claude/rules/react.md)") == []
@@ -1923,6 +1952,17 @@ def self_test():
          and shell_reads("cd packages/x &&\ncat AGENTS.md") == ["packages/x/AGENTS.md"]
          and shell_reads("cat a/b.md |\nhead") == []
          and shell_reads("true\ncat c/d.md") == ["c/d.md"]),
+        ("stdout destinations follow redirection order; sed -i writes back instead of showing",
+         shell_reads("cat .claude/rules/react.md 2>/dev/null 1>&2") == []
+         and shell_reads("cat .claude/rules/react.md 1>&2 2>/dev/null") == [".claude/rules/react.md"]
+         and shell_reads("cat .claude/rules/react.md 1>&3") == []
+         and shell_reads("cat .claude/rules/react.md 2>&1") == [".claude/rules/react.md"]
+         and shell_reads("sed -i 's/a/b/' .claude/rules/react.md") == []
+         and shell_reads("sed -ni 's/a/b/p' .claude/rules/react.md") == []
+         and shell_reads("sed --in-place=.bak 's/a/b/' .claude/rules/react.md") == []
+         and shell_reads("sed -n '1,5p' .claude/rules/react.md") == [".claude/rules/react.md"]
+         and shell_reads("sed -e 's/i/j/' .claude/rules/react.md") == [".claude/rules/react.md"]
+         and ".claude/rules/react.md" in shell_summary("sed -i 's/a/b/' .claude/rules/react.md")[1]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
