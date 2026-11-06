@@ -90,16 +90,21 @@ const getOfflineBenchmarkS3Key = (
   const rawBenchmarkId = benchmark.id;
   const providerId = typeof rawProviderId === 'string' ? rawProviderId.trim() : '';
   const benchmarkId = typeof rawBenchmarkId === 'string' ? rawBenchmarkId.trim() : '';
-  if (
-    !providerId ||
-    !benchmarkId ||
-    [providerId, benchmarkId].some(
-      (part) => part.includes('/') || part.includes('\\') || part === '.' || part === '..',
-    )
-  ) {
+  // The API permits a missing provider_id, but offline bundles are keyed by provider.
+  if (!providerId) {
     throw new Error(
-      'Offline EvalHub benchmark data requires a provider_id and benchmark id that are single path segments.',
+      'Offline EvalHub benchmark data requires provider_id to select a staged bundle.',
     );
+  }
+
+  const isSafeSegment = (segment: string): boolean =>
+    segment !== '' && segment !== '.' && segment !== '..' && !segment.includes('\\');
+  if (providerId.includes('/') || !isSafeSegment(providerId)) {
+    throw new Error('Offline EvalHub provider_id must be a single safe path segment.');
+  }
+  // IDs such as inspect/bfcl are nested in the staged bundle layout.
+  if (!benchmarkId || !benchmarkId.split('/').every(isSafeSegment)) {
+    throw new Error('Offline EvalHub benchmark id must be a safe relative path.');
   }
 
   const rootPrefix = config.S3_KEY_PREFIX.replace(/^\/+|\/+$/g, '');
