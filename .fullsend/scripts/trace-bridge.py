@@ -439,8 +439,9 @@ READ_PROGS = {"cat", "head", "tail", "less", "more", "bat", "nl", "sed", "awk"}
 REL_PATH_RE = re.compile(r"(?:\.[\w+-]+|[\w+-]+)(?:/[\w.+-]+)+/?")
 FILE_EXTS = r"md|mdx|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|py|go|sh|txt|css|scss|html|toml|mod|sum|lock|snap"
 BARE_FILE_RE = re.compile(r"\.?[\w+-]+(?:\.[\w+-]+)*\.(?:" + FILE_EXTS + r")")
-# Redirection operators at the start of a token: >, >>, 2>, &>, <, <<, <<<.
-REDIRECT_RE = re.compile(r"^(?:\d|&)?>{1,2}|^<{1,3}")
+# Redirection operators. The tokenizer splits unquoted < and > into tokens of their own, so a
+# redirection is a whole token: quoted text such as '>x' stays a word and never matches.
+REDIRECT_RE = re.compile(r"(?:>{1,2}|<{1,3}|<>)")
 
 
 def shell_segments(cmd):
@@ -462,9 +463,13 @@ def shell_segments(cmd):
             op = part
             continue
         try:
-            toks = shlex.split(part, comments=False, posix=True)
+            # punctuation_chars splits unquoted < and > into their own tokens and keeps quoted
+            # ones inside words, so quote context survives for redirection detection.
+            lex = shlex.shlex(part, posix=True, punctuation_chars="<>")
+            lex.whitespace_split = True
+            toks = list(lex)
         except ValueError:
-            toks = part.split()
+            toks = [t for t in part.split() if "<" not in t and ">" not in t]
         if toks:
             segs.append((op, toks[:200]))
     return segs
@@ -570,9 +575,9 @@ def without_patterns(prog, args):
         if skip:
             skip -= 1
             continue
-        if REDIRECT_RE.match(t):  # callers decide what redirections mean
+        if REDIRECT_RE.fullmatch(t):  # callers decide what redirections mean
             redirects.append(t)
-            keep_next = REDIRECT_RE.sub("", t) == ""
+            keep_next = True
             continue
         if t.startswith("--"):
             opt, has_value = t.split("=", 1)[0], "=" in t
@@ -642,12 +647,8 @@ def shell_files(cmd, include_skipped=False):
                     (reads if redirect.startswith("<") else targets).append(t)
                 redirect = None
                 continue
-            if REDIRECT_RE.match(t):
-                target = REDIRECT_RE.sub("", t, count=1)
-                if not target:
-                    redirect = t
-                elif not t.startswith("<<"):
-                    (reads if t.startswith("<") else targets).append(target)
+            if REDIRECT_RE.fullmatch(t):
+                redirect = t
                 continue
             if prog in READ_PROGS and (include_skipped or op != "||") \
                     and not t.startswith("-") and "*" not in t:
@@ -1369,6 +1370,15 @@ def self_test():
          and shell_summary("sort < in/c.md > out/d.md")[1] == ["in/c.md", "out/d.md"]
          and shell_reads("sed -i.bak s/a/b/ src/c.md") == ["src/c.md"]
          and shell_reads("sed -X 1 docs/x.md") == [] and shell_reads("cat << EOF\nb\nEOF") == []),
+        ("quoted < and > text is not a redirection; here-string text is never a path",
+         shell_summary("echo '>private/needle'")[1] == []
+         and shell_summary("grep '>internal/customer/acme' README.md")[1] == []
+         and shell_summary("cat <<< 'internal/customer/acme'")[1] == []
+         and shell_summary("grep foo <<< 'private/needle'")[1] == []
+         and shell_summary("rg --color never internal/customer/acme src/a.md")[1] == []
+         and shell_summary("echo hi >out/x.md")[1] == ["out/x.md"]
+         and shell_summary("cat <in/a.md")[1] == ["in/a.md"]
+         and shell_summary("cat 2>err/e.log docs/a.md")[1] == ["docs/a.md", "err/e.log"]),
         ("sed -f input files count as reads; redirection targets and grep -F/-m patterns don't",
          shell_reads("sed -f t.sed docs/adr/0010-y.md") == ["docs/adr/0010-y.md"]
          and shell_reads("sed 's/a/b/' src/c.md > .claude/rules/out.md") == ["src/c.md"]
