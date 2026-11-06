@@ -4,7 +4,7 @@
   // ─────────────────────────────────────────────────────────────────────────
   // TRIAL: Renovate runs full-scope ALONGSIDE Dependabot.
   //
-  // Division of labor during the trial (see .github/security-audit-triage.md):
+  // Division of labor during the trial (see docs/security-cve.md):
   //   - Dependabot keeps auto-merge (dependabot-auto-merge.yml is untouched)
   //     and remains the CVE-PR path (repo Dependabot alerts stay on).
   //   - Renovate PRs are NOT auto-merged — manual review is the evaluation.
