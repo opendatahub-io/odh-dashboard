@@ -561,8 +561,9 @@ COMPOUND_INNER = {"then", "else", "elif", "do", "!"}
 def shell_segments_ctx(cmd):
     """(operator-before, tokens, conditional) per command. Separators and redirections only
     come from unquoted operators (see shell_tokens). conditional is True inside a group
-    ( ... ) or { ...; } opened right after && or ||, inside a conditional group, and inside
-    any if/while/until/for/case compound: those commands may not run."""
+    ( ... ) or { ...; } opened right after && or ||, inside a conditional group, inside a
+    $(...) or <(...) substitution, and inside any if/while/until/for/case compound: those
+    commands may not run (or their run status isn't tracked)."""
     segs, op, toks, stack = [], None, [], []  # stack: (kind, conditional) per open block
 
     def cond():
@@ -589,10 +590,13 @@ def shell_segments_ctx(cmd):
 
     for t in shell_tokens(cmd):
         if isinstance(t, Op) and t in SEPARATORS:
+            mid_command = bool(toks)  # ( inside a command: $(...) or <(...) substitution
             if flush():
                 op = None
             if t == "(":
-                stack.append(("paren", op in ("&&", "||") or cond()))
+                # A substitution's run status follows its command's, which isn't tracked
+                # here, so its contents count as conditional (reads there are not counted).
+                stack.append(("paren", mid_command or op in ("&&", "||") or cond()))
             elif t == ")":
                 close("paren")  # inside case, a pattern's ")" is not a group close
             else:
@@ -1599,7 +1603,10 @@ def self_test():
          and shell_reads("for f in a; do cat docs/adr/0009-x.md; done; cat k/l.md") == ["k/l.md"]
          and shell_reads("(cd x; cat m/n.md)") == ["m/n.md"]
          and shell_reads("{ cat o/p.md; }") == ["o/p.md"]
-         and shell_reads("case $x in a) cat s/t.md;; esac; cat u/v.md") == ["u/v.md"]),
+         and shell_reads("case $x in a) cat s/t.md;; esac; cat u/v.md") == ["u/v.md"]
+         and shell_reads("true || echo $(cat docs/adr/0009-x.md)") == []
+         and shell_reads("false && out=$(cat docs/adr/0009-x.md)") == []
+         and shell_reads("diff <(cat docs/adr/0009-x.md) a; cat w/x.md") == ["w/x.md"]),
         ("heredoc bodies end only on an exact delimiter line (<<- strips leading tabs only)",
          shell_summary("cat <<'EOF'\n EOF\nConfidentialCustomer\nEOF\ncat z/w.md")[0] == ["cat", "cat"]
          and shell_reads("cat <<EOF\nx\nEOF \ncat z/w.md\nEOF\ncat y/v.md") == ["y/v.md"]
