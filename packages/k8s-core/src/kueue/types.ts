@@ -29,8 +29,8 @@ export type KueueWorkloadStatusWithMessage = {
   };
   /**
    * Multi-Pod admission breakdown (model deployments only — one Workload CR per replica Pod).
-   * Present only when there's more than one correlated Workload CR for the model, so the UI can
-   * show e.g. "3 of 5 pods admitted" instead of a single pass/fail status.
+   * Present only when there's more than one correlated Workload CR for the model. Used for
+   * analytics tracking and not shown in the UI.
    */
   podAdmissionCounts?: {
     admitted: number;
