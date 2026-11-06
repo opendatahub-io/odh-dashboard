@@ -324,10 +324,11 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     return <DrawerPanelContent isResizable minSize="380px" />;
   }
 
-  const prerequisite = collection.resource.tenant
+  const curatedConfig = collection.resource.tenant
     ? undefined
-    : getCuratedCollectionConfig(collection)?.prerequisite.long;
-  const showCustomize = Boolean(onCustomizeCollection && (isSystemCollection || prerequisite));
+    : getCuratedCollectionConfig(collection);
+  const prerequisite = curatedConfig?.prerequisites.map((part) => part.long).join(' ');
+  const showCustomize = Boolean(onCustomizeCollection && (isSystemCollection || curatedConfig));
 
   return (
     <DrawerPanelContent isResizable minSize="380px" data-testid="collection-drawer-panel">
@@ -380,7 +381,7 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
 
       <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">
         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
-          {!prerequisite ? (
+          {!curatedConfig?.requiresConfiguration ? (
             <FlexItem>
               <Button
                 variant="primary"
