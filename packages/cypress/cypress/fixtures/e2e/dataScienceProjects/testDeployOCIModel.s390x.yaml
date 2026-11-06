@@ -1,0 +1,12 @@
+# testDeployOCIModel.cy.ts Test Data - s390x #
+# Uses IBM Z Triton Inference Server with a predictive model
+projectName: 'test-oci-deployment'
+connectionName: 'test-oci-connection'
+ociRegistryHost: 'quay.io'
+modelOciUri: 'oci://quay.io/bchakrab/odh-s390x:latest'
+modelDeploymentName: 'python'
+modelFormat: 'python - 1'
+servingRuntime: 'IBM Z Triton Inference Server'
+servingRuntimeName: 'ibmz-triton-rest'
+servingRuntimeYamlPath: 'resources/modelServing/ibmz-triton-rest.yaml'
+isS390x: true

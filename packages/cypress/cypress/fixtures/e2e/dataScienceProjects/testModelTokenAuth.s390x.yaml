@@ -1,0 +1,17 @@
+# testModelTokenAuth.cy.ts Test Data - s390x #
+# OpenVINO Model Server is not available on s390x.
+# Uses IBM Z Triton Inference Server with a python model from ods-ci-wisdom (BUCKET_3).
+# singleModelName must match the Triton model name ('python') since token checks call /v2/models/<name>.
+projectResourceName: 'test-model-token-auth'
+projectDisplayName: 'Test Model Token Auth'
+singleModelName: 'python'
+singleModelResourceName: 'python'
+modelOpenVinoExamplePath: 'triton/model_repository'
+modelFormat: 'python - 1'
+servingRuntime: 'IBM Z Triton Inference Server'
+servingRuntimeName: 'ibmz-triton-rest'
+servingRuntimeYamlPath: 'resources/modelServing/ibmz-triton-rest.yaml'
+serviceAccountName1: 'secret'
+serviceAccountName2: 'secret2'
+awsBucket: 'BUCKET_3'
+isS390x: true

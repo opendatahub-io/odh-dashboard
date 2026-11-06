@@ -17,6 +17,8 @@ import {
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
+import { createCustomResource } from '../../../../utils/oc_commands/customResources';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { skipOnArm } from '../../../../utils/skipUtils';
 
@@ -27,7 +29,8 @@ let modelName: string;
 let modelFilePath: string;
 let modelFormat: string;
 let servingRuntime: string;
-const awsBucket = 'BUCKET_1' as const;
+let isS390x: boolean;
+let awsBucket: 'BUCKET_1' | 'BUCKET_3';
 const uuid = generateTestUUID();
 
 describe('A model can be deployed with token auth', () => {
@@ -35,29 +38,48 @@ describe('A model can be deployed with token auth', () => {
 
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then(
-      (fixtureData: DataScienceProjectData) => {
-        testData = fixtureData;
-        projectName = `${testData.projectResourceName}-${uuid}`;
-        modelName = testData.singleModelName;
-        modelFilePath = testData.modelOpenVinoExamplePath;
-        modelFormat = testData.modelFormat;
-        servingRuntime = testData.servingRuntime;
+    return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then((fixtureData) => {
+      testData = fixtureData;
+      projectName = `${testData.projectResourceName}-${uuid}`;
+      modelName = testData.singleModelName;
+      modelFilePath = testData.modelOpenVinoExamplePath;
+      modelFormat = testData.modelFormat;
+      servingRuntime = testData.servingRuntime;
+      isS390x = !!testData.isS390x;
+      awsBucket = testData.awsBucket ?? 'BUCKET_1';
 
-        if (!projectName) {
-          throw new Error('Project name is undefined or empty in the loaded fixture');
-        }
-        cy.log(`Loaded project name: ${projectName}`);
-        // Create a Project
-        provisionProjectForModelServing(
-          projectName,
-          awsBucket,
-          'resources/yaml/data_connection_model_serving.yaml',
-        );
-      },
-    );
+      if (!projectName) {
+        throw new Error('Project name is undefined or empty in the loaded fixture');
+      }
+      cy.log(`Loaded project name: ${projectName}`);
+
+      if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
+        const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
+        const runtimeYamlPath = testData.servingRuntimeYamlPath;
+        cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
+        cleanupTemplates(testData.servingRuntimeName).then(() => {
+          if (!applicationNamespace) {
+            throw new Error('APPLICATIONS_NAMESPACE is not configured.');
+          }
+          createCustomResource(applicationNamespace, runtimeYamlPath).then((result) => {
+            expect(result.exitCode).to.equal(0);
+          });
+        });
+      }
+
+      // Create a Project
+      provisionProjectForModelServing(
+        projectName,
+        awsBucket,
+        'resources/yaml/data_connection_model_serving.yaml',
+      );
+    });
   });
   after(() => {
+    if (isS390x && testData.servingRuntimeName) {
+      cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
+      cleanupTemplates(testData.servingRuntimeName);
+    }
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
@@ -104,8 +126,13 @@ describe('A model can be deployed with token auth', () => {
         .then((val) => {
           resourceName = val as string;
         });
-      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-      modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      if (isS390x) {
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click({ force: true });
+      } else {
+        modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      }
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');
@@ -120,7 +147,13 @@ describe('A model can be deployed with token auth', () => {
 
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(testData.singleModelName);
+      if (isS390x) {
+        modelServingSection
+          .findModelServerDeployedName(testData.singleModelName, { timeout: 120000 })
+          .should('be.visible');
+      } else {
+        modelServingSection.findModelServerDeployedName(testData.singleModelName);
+      }
 
       // Verify the model created
       cy.step('Verify that the Model is running');
@@ -188,7 +221,13 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizardEdit.findNextButton().click();
       // Submit
       modelServingWizardEdit.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(testData.singleModelName);
+      if (isS390x) {
+        modelServingSection
+          .findModelServerDeployedName(testData.singleModelName, { timeout: 120000 })
+          .should('be.visible');
+      } else {
+        modelServingSection.findModelServerDeployedName(testData.singleModelName);
+      }
 
       cy.step('Verify that the Model is running');
       cy.then(() => {
