@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
 import {
@@ -8,7 +9,6 @@ import {
 } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import {
-  buildModelDeploymentKey,
   buildWorkloadMapForDeployments,
   countActiveModelDeploymentPods,
   useWatchWorkloads,

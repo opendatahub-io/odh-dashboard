@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
 import {
   getTemplateEnabled,
   setListDisabled,
@@ -19,8 +19,7 @@ import {
   fireRiskDismissed,
   getResourceVersions,
 } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { patchDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
 import { patchTemplateAcceptedAnnotationBackend } from '@odh-dashboard/internal/services/templateService';
