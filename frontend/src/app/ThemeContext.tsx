@@ -1,17 +1,20 @@
 import * as React from 'react';
 import {
   ThemeContext as SharedThemeContext,
+  type ContrastMode,
   type ThemeContextProps as SharedThemeContextProps,
 } from '@odh-dashboard/ui-core/contexts/ThemeContext';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 
 const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
 
-export type ContrastMode = 'system' | 'default' | 'glass';
+export type ColorScheme = 'system' | 'light' | 'dark';
 
 type ThemeContextProps = {
   theme: string;
   setAllThemes: (themeName: string) => void;
+  colorScheme: ColorScheme;
+  setColorScheme: (scheme: ColorScheme) => void;
   contrastMode: ContrastMode;
   setContrastMode: (mode: ContrastMode) => void;
 };
@@ -25,30 +28,49 @@ type ThemeProviderProps = {
   children: React.ReactNode;
 };
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [odhTheme, setOdhTheme] = useBrowserStorage<string>('odh.dashboard.ui.theme', 'light');
+  const [colorScheme, setColorScheme] = useBrowserStorage<ColorScheme>(
+    'odh.dashboard.ui.colorScheme',
+    'system',
+  );
   const [contrastMode, setContrastMode] = useBrowserStorage<ContrastMode>(
     'odh.dashboard.ui.contrastMode',
     'system',
   );
-  const [, setMlflowTheme] = useBrowserStorage<boolean>(MLFLOW_DARK_MODE_KEY, odhTheme === 'dark');
+  const [, setMlflowTheme] = useBrowserStorage<boolean>(MLFLOW_DARK_MODE_KEY, false);
 
+  const [prefersDark, setPrefersDark] = React.useState(false);
   const [prefersReducedTransparency, setPrefersReducedTransparency] = React.useState(false);
 
+  // Track OS-level preferences
   React.useEffect(() => {
-    setMlflowTheme(odhTheme === 'dark');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const transparencyQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
+
+    const handleDark = (e: MediaQueryListEvent) => setPrefersDark(e.matches);
+    const handleTransparency = (e: MediaQueryListEvent) => setPrefersReducedTransparency(e.matches);
+
+    setPrefersDark(darkQuery.matches);
+    setPrefersReducedTransparency(transparencyQuery.matches);
+
+    darkQuery.addEventListener('change', handleDark);
+    transparencyQuery.addEventListener('change', handleTransparency);
+    return () => {
+      darkQuery.removeEventListener('change', handleDark);
+      transparencyQuery.removeEventListener('change', handleTransparency);
+    };
   }, []);
 
-  // Track the OS-level "Reduce Transparency" preference
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
-    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedTransparency(e.matches);
-    setPrefersReducedTransparency(mediaQuery.matches);
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  // Compute the effective theme from the color scheme preference
+  const theme = colorScheme === 'system' ? (prefersDark ? 'dark' : 'light') : colorScheme;
 
-  // Apply the glass class based on the contrast mode preference
+  // Apply theme classes to the document root
+  React.useEffect(() => {
+    const html = document.documentElement;
+    html.classList.toggle('pf-v6-theme-dark', theme === 'dark');
+    setMlflowTheme(theme === 'dark');
+  }, [theme, setMlflowTheme]);
+
+  // Apply glass class based on the contrast mode preference
   React.useEffect(() => {
     const shouldUseGlass =
       contrastMode === 'glass' ||
@@ -57,35 +79,52 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   }, [contrastMode, prefersReducedTransparency]);
 
   const setAllThemes = React.useCallback(
-    (theme: string) => {
-      setMlflowTheme(theme === 'dark');
-      setOdhTheme(theme);
-      // Notify federated modules running in the same document.
+    (themeName: string) => {
+      // Legacy: map explicit light/dark to the color scheme
+      setColorScheme(themeName === 'dark' ? 'dark' : 'light');
       window.dispatchEvent(
-        new CustomEvent('odh-theme-change', { detail: { theme, contrastMode } }),
+        new CustomEvent('odh-theme-change', { detail: { theme: themeName, contrastMode } }),
       );
     },
-    [setMlflowTheme, setOdhTheme, contrastMode],
+    [setColorScheme, contrastMode],
+  );
+
+  const handleSetColorScheme = React.useCallback(
+    (scheme: ColorScheme) => {
+      setColorScheme(scheme);
+      const effective = scheme === 'system' ? (prefersDark ? 'dark' : 'light') : scheme;
+      window.dispatchEvent(
+        new CustomEvent('odh-theme-change', { detail: { theme: effective, contrastMode } }),
+      );
+    },
+    [setColorScheme, prefersDark, contrastMode],
   );
 
   const handleSetContrastMode = React.useCallback(
     (mode: ContrastMode) => {
       setContrastMode(mode);
       window.dispatchEvent(
-        new CustomEvent('odh-theme-change', { detail: { theme: odhTheme, contrastMode: mode } }),
+        new CustomEvent('odh-theme-change', { detail: { theme, contrastMode: mode } }),
       );
     },
-    [setContrastMode, odhTheme],
+    [setContrastMode, theme],
   );
 
   const contextValue = React.useMemo(
-    () => ({ theme: odhTheme, setAllThemes, contrastMode, setContrastMode: handleSetContrastMode }),
-    [odhTheme, setAllThemes, contrastMode, handleSetContrastMode],
+    () => ({
+      theme,
+      setAllThemes,
+      colorScheme,
+      setColorScheme: handleSetColorScheme,
+      contrastMode,
+      setContrastMode: handleSetContrastMode,
+    }),
+    [theme, setAllThemes, colorScheme, handleSetColorScheme, contrastMode, handleSetContrastMode],
   );
 
   const sharedContextValue = React.useMemo<SharedThemeContextProps>(
-    () => ({ theme: odhTheme, setTheme: setAllThemes }),
-    [odhTheme, setAllThemes],
+    () => ({ theme, setTheme: setAllThemes }),
+    [theme, setAllThemes],
   );
 
   return (

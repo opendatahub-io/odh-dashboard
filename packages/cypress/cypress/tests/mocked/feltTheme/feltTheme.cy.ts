@@ -12,10 +12,9 @@ import { automlExperimentsPage } from '../../../pages/automl/experimentsPage';
 import { createProjectModal, projectListPage } from '../../../pages/projects';
 
 // Felt is enabled unconditionally via the inline script in index.html. Glass
-// is managed by the ThemeContext's contrast mode preference (default: system).
-// These checks pin the enablement: the root class, the computed Felt token
-// values, composition with light/dark, the contrast mode switcher, and
-// persistence across a late-loaded federated remote.
+// is managed by the ThemeContext's contrast mode preference. The appearance
+// switcher is a PatternFly-style masthead popover with Color scheme
+// (System/Light/Dark) and Contrast mode (System/Default/Glass) toggle groups.
 const FELT_CONTROL_RADIUS = '999px';
 
 const getControlRadiusToken = (): Cypress.Chainable<string> =>
@@ -28,12 +27,6 @@ const getControlRadiusToken = (): Cypress.Chainable<string> =>
           .trim()
       : '';
   });
-
-const setContrastMode = (mode: string) => {
-  cy.window({ log: false }).then((win) => {
-    win.localStorage.setItem('odh.dashboard.ui.contrastMode', mode);
-  });
-};
 
 describe('Felt theme (RHAI-19115)', () => {
   const initIntercepts = (config: Partial<MockDashboardConfigType> = {}) => {
@@ -90,58 +83,70 @@ describe('Felt theme (RHAI-19115)', () => {
     cy.screenshot('felt-theme-federated-automl');
   });
 
-  it('keeps the light/dark toggle working and composing with Felt', () => {
+  it('toggles color scheme and contrast mode via the appearance switcher', () => {
     initIntercepts();
     cy.visitWithLogin('/projects');
-    cy.get('html').should('have.class', 'pf-v6-theme-felt');
 
-    cy.findByRole('button', { name: 'dark theme' }).click();
+    // Open the appearance switcher
+    cy.findByTestId('appearance-settings-button').click();
+    cy.get('#theme-selector-color-scheme-title').should('be.visible');
+    cy.screenshot('felt-theme-switcher-open');
+
+    // Toggle dark mode via color scheme
+    cy.get('#theme-selector-color-scheme-title')
+      .parent()
+      .findByRole('button', { name: 'Dark' })
+      .click();
     cy.get('html').should('have.class', 'pf-v6-theme-dark');
-    cy.get('html').should('have.class', 'pf-v6-theme-felt');
 
-    cy.findByRole('button', { name: 'light theme' }).click();
+    // Toggle light mode
+    cy.get('#theme-selector-color-scheme-title')
+      .parent()
+      .findByRole('button', { name: 'Light' })
+      .click();
     cy.get('html').should('not.have.class', 'pf-v6-theme-dark');
-    cy.get('html').should('have.class', 'pf-v6-theme-felt');
-    getControlRadiusToken().should('equal', FELT_CONTROL_RADIUS);
-  });
 
-  it('toggles Glass via the contrast mode switcher', () => {
-    initIntercepts();
-    cy.visitWithLogin('/projects');
-
-    // Open the contrast mode dropdown and select Glass
-    cy.findByRole('button', { name: 'Contrast mode' }).click();
-    cy.findByRole('menuitem', { name: /Glass/ }).click();
+    // Toggle Glass via contrast mode
+    cy.get('#theme-selector-contrast-title')
+      .parent()
+      .findByRole('button', { name: 'Glass' })
+      .click();
     cy.get('html').should('have.class', 'pf-v6-theme-glass');
 
-    // Felt stays on regardless of contrast mode
+    // Felt stays on regardless of color scheme or contrast mode
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
     getControlRadiusToken().should('equal', FELT_CONTROL_RADIUS);
     cy.screenshot('felt-theme-glass-on');
 
     // Switch to Default (solid backgrounds, no glass)
-    cy.findByRole('button', { name: 'Contrast mode' }).click();
-    cy.findByRole('menuitem', { name: /Default/ }).click();
+    cy.get('#theme-selector-contrast-title')
+      .parent()
+      .findByRole('button', { name: /Default/ })
+      .click();
     cy.get('html').should('not.have.class', 'pf-v6-theme-glass');
-
-    // Felt is still on
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
-    getControlRadiusToken().should('equal', FELT_CONTROL_RADIUS);
     cy.screenshot('felt-theme-glass-off');
   });
 
-  it('persists the contrast mode preference across a page reload', () => {
+  it('persists color scheme and contrast mode preferences across reload', () => {
     initIntercepts();
     cy.visitWithLogin('/projects');
 
-    // Set glass via the switcher
-    cy.findByRole('button', { name: 'Contrast mode' }).click();
-    cy.findByRole('menuitem', { name: /Glass/ }).click();
-    cy.get('html').should('have.class', 'pf-v6-theme-glass');
+    // Set dark + glass via the switcher
+    cy.findByTestId('appearance-settings-button').click();
+    cy.get('#theme-selector-color-scheme-title')
+      .parent()
+      .findByRole('button', { name: 'Dark' })
+      .click();
+    cy.get('#theme-selector-contrast-title')
+      .parent()
+      .findByRole('button', { name: 'Glass' })
+      .click();
 
-    // Reload and verify the preference persisted
+    // Reload and verify the preferences persisted
     cy.reload();
     projectListPage.shouldHaveProjects();
+    cy.get('html').should('have.class', 'pf-v6-theme-dark');
     cy.get('html').should('have.class', 'pf-v6-theme-glass');
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
   });
