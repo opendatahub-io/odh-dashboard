@@ -36,7 +36,6 @@ import math
 import json
 import os
 import re
-import shlex
 import sys
 import time
 import urllib.error
@@ -430,8 +429,6 @@ def tool_calls(entries):
     return [calls[i] for i in order]
 
 
-HEREDOC_RE = re.compile(r"(?<!<)<<(?!<)-?[ \t]{0,4}(['\"]?)([A-Za-z_][\w]{0,40})\1")  # not <<< here-strings
-SHELL_PUNCT = "();<>|&\n"
 READ_PROGS = {"cat", "head", "tail", "less", "more", "bat", "nl", "sed", "awk"}
 # Exported shell "paths" must look like repo files, not other arguments: no @ or :, a
 # relative path's first segment may not look like a hostname (dotted, not a dotfile), and
@@ -450,45 +447,97 @@ def is_redirect(t):
     return isinstance(t, Op)
 
 
-def shell_segments(cmd):
-    """Split a shell command into (operator-before, tokens) segments. Heredoc bodies are
-    dropped first. The whole command is tokenized at once with quotes kept, so separators
-    (; | && || newline) and redirections are only taken from unquoted operators; words are
-    unquoted afterwards. Redirection tokens are Op instances. Unbalanced quotes leave only
-    plain words (no operators, no quoted text)."""
-    lines, kept, end = str(cmd)[:MAX_SCAN * 5].split("\n"), [], None
-    for line in lines:
-        if end is not None:
-            if line.strip() == end:
-                end = None
-            continue
-        kept.append(line)
-        m = HEREDOC_RE.search(line)
-        if m:
-            end = m.group(2)
-    text = "\n".join(kept)
-    try:
-        # Non-POSIX mode keeps quotes on word tokens, so operators found here are unquoted.
-        lex = shlex.shlex(text, posix=False, punctuation_chars=SHELL_PUNCT)
-        lex.whitespace, lex.whitespace_split = " \t\r", True
-        raw = list(lex)
-    except ValueError:  # unbalanced quotes: keep plain words only, no operators
-        raw = [t for t in text.split() if not set(t) & set(SHELL_PUNCT + "'\"")]
-    segs, op, toks = [], None, []
-    for t in raw:
-        if t and set(t) <= set(SHELL_PUNCT):
-            if "<" in t or ">" in t:
-                toks.append(Op(t))
+SHELL_OPS = ("<<<", "<<-", "&&", "||", ";;", ">>", "<<", ">&", "<&", "&>", ">|", "<>", "|&",
+             "(", ")", ";", "|", "&", "<", ">", "\n")  # longest first
+SEPARATORS = {"\n", ";", ";;", "&", "&&", "|", "||", "|&", "(", ")"}
+
+
+def shell_tokens(cmd):
+    """Tokenize a shell command the way a shell splits words: single quotes, double quotes
+    and backslash escapes are honoured, and only unquoted operator characters form
+    operators (returned as Op). # starts a comment only at the start of a word and ends at
+    the newline, which still separates commands. Heredoc bodies after an unquoted << are
+    skipped. Text after an unclosed quote is dropped."""
+    text, out, word, i = str(cmd)[:MAX_SCAN * 5], [], None, 0
+    pending, expect_delim = [], False  # heredoc delimiters waiting for the next newline
+
+    def end_word():
+        nonlocal word, expect_delim
+        if word is not None:
+            value = "".join(word)
+            out.append(value)
+            if expect_delim:
+                pending.append(value)
+                expect_delim = False
+        word = None
+
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if c in " \t\r":
+            end_word()
+            i += 1
+        elif c == "'":
+            j = text.find("'", i + 1)
+            if j < 0:
+                break  # unclosed quote: drop the rest
+            word = (word or []) + [text[i + 1:j]]
+            i = j + 1
+        elif c == '"':
+            buf, j = [], i + 1
+            while j < n and text[j] != '"':
+                if text[j] == "\\" and j + 1 < n and text[j + 1] in '"\\$`\n':
+                    buf.append(text[j + 1])
+                    j += 2
+                else:
+                    buf.append(text[j])
+                    j += 1
+            if j >= n:
+                break
+            word = (word or []) + buf
+            i = j + 1
+        elif c == "\\":
+            if i + 1 < n and text[i + 1] == "\n":
+                i += 2  # line continuation
                 continue
+            word = (word or []) + [text[i + 1:i + 2]]
+            i += 2
+        elif c == "#" and word is None:
+            nl = text.find("\n", i)
+            i = n if nl < 0 else nl  # keep the newline: it still separates commands
+        elif c in "();<>|&\n":
+            end_word()
+            op = next(o for o in SHELL_OPS if text.startswith(o, i))
+            out.append(Op(op))
+            i += len(op)
+            if op in ("<<", "<<-"):
+                expect_delim = True
+            elif op == "\n" and pending:
+                for delim in pending:  # skip each heredoc body up to its delimiter line
+                    while i < n:
+                        nl = text.find("\n", i)
+                        line, i = (text[i:], n) if nl < 0 else (text[i:nl], nl + 1)
+                        if line.strip() == delim:
+                            break
+                pending = []
+        else:
+            word = (word or []) + [c]
+            i += 1
+    end_word()
+    return out
+
+
+def shell_segments(cmd):
+    """Split a shell command into (operator-before, tokens) segments. Separators and
+    redirections only come from unquoted operators (see shell_tokens); redirection tokens
+    stay in the segment as Op instances."""
+    segs, op, toks = [], None, []
+    for t in shell_tokens(cmd):
+        if isinstance(t, Op) and t in SEPARATORS:
             if toks:
                 segs.append((op, toks[:200]))
             op, toks = ("||" if t == "||" else ";"), []
             continue
-        if "'" in t or '"' in t:
-            try:
-                t = " ".join(shlex.split(t, posix=True))
-            except ValueError:
-                t = t.strip("'\"")
         toks.append(t)
     if toks:
         segs.append((op, toks[:200]))
@@ -1394,6 +1443,14 @@ def self_test():
          and shell_summary("sort < in/c.md > out/d.md")[1] == ["in/c.md", "out/d.md"]
          and shell_reads("sed -i.bak s/a/b/ src/c.md") == ["src/c.md"]
          and shell_reads("sed -X 1 docs/x.md") == [] and shell_reads("cat << EOF\nb\nEOF") == []),
+        ("comments end at the newline; quotes and escapes inside a word never make operators",
+         shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
+         and shell_reads("cat a#b.md") == ["a#b.md"]
+         and shell_summary("grep x'>internal/customer/acme' README.md")[1] == []
+         and shell_summary("grep x\\>internal/customer/acme README.md")[1] == []
+         and shell_reads("cat <<'EOF'\nsecret/x\nEOF\ncat z/w.md") == ["z/w.md"]
+         and shell_reads("echo '<<EOF'\ncat z/w.md") == ["z/w.md"]),
         ("quoted ; | > text never splits segments or creates redirections; skipped < reads don't count",
          shell_summary("echo 'status; cat ssn/123-45-6789 ; done'")[1] == []
          and shell_summary("echo '>' private/needle")[1] == []
