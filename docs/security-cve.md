@@ -3,34 +3,32 @@
 How the Dashboard team keeps dependencies free of known vulnerabilities, and how to fix a CVE on
 `main` or a release branch.
 
-> **Note**: This doc covers the technical side (automation, commands, branches). The internal
-> [Dashboard Security & CVE Handbook](https://redhat.atlassian.net/wiki/spaces/RHODS/pages/304027483)
-> covers the ticket process: Jira searches, what the Jira bots' labels mean, closing rules,
-> embargoed CVEs, and contacts.
+> **Note**: This doc covers the technical side (automation, commands, branches). Red Hat
+> contributors can find the ticket process in the internal
+> [Dashboard Security & CVE Handbook](https://redhat.atlassian.net/wiki/spaces/RHODS/pages/304027483).
 
 ## TL;DR
 
 - **`main` is owned by the Dashboard team.** Keep it free of known CVEs; drain dependency PRs promptly.
-- **Shipped z-stream releases are owned by Sustaining Engineering.** The Dashboard team reviews and
-  helps with hard fixes (major bumps, code migrations).
+- **Shipped z-stream releases are owned by the sustaining engineering team.** The Dashboard team
+  reviews and helps with hard fixes (major bumps, code migrations).
 - **Fix `main` first.** A release-only fix is never a substitute for leaving `main` vulnerable
-  (unless the CVE does not apply to `main` — record that in the Jira).
+  (unless the CVE does not apply to `main` — record that on the tracker).
 - **Put the CVE ID in the commit message** so fixes can be found with `git log --grep=CVE-YYYY-NNNNN`.
 
 ## Where CVE Signals Come From
 
 | Signal | Scans | Shows up as | Action |
 | --- | --- | --- | --- |
-| Product Security (ProdSec) trackers | SBOMs (source + image) of every released Dashboard image | Jira `Vulnerability` tickets, one per image per release stream | Triage per the handbook; fix supported streams |
-| Snyk | Downstream `red-hat-data-services/odh-dashboard` `main` | Jira bugs titled `Snyk - …`, auto-closed when Snyk stops reporting the issue | Fix on `main`, or ignore in Snyk with a reason |
-| Dependabot | `pnpm-lock.yaml` + first-party Go modules on `main` | PRs labelled `dependencies` | Review or let auto-merge land them |
+| Product Security trackers | Released images and their source, per release stream | A tracker per affected image and release | Fix on `main`, then on supported release branches |
+| Snyk | Downstream `red-hat-data-services/odh-dashboard` `main` | A ticket per finding, closed automatically when Snyk stops reporting it | Fix on `main` |
+| Dependabot | `pnpm-lock.yaml` + Go modules on `main` | PRs labelled `dependencies` | Review or let auto-merge land them |
 | Renovate (trial) | Whole workspace, Go modules, GitHub Actions, Dockerfile base images | PRs labelled `dependencies` | Manual review only (see [Renovate trial](#renovate-trial)) |
 | PR gates | Lockfile / `go.mod` changes in your PR | Failing check on the PR | Fix before merge, or bypass with `ok-to-skip-audit` |
-| Jira automation (AI triage, SBOM checks) | Open ProdSec trackers | Comments + labels on the Jira | Advisory only; the handbook explains each label |
-| Sustaining CVE automation (`redhat-chai-bot`) | Open trackers for a release | `fix(cve): …` PRs, often batched, against `main` or release branches | Review like any PR; check each bump against this doc |
-| Container Health Index (CHI) | Released image grade | Jira tasks labelled `chi-auto-filed` | Usually a base-image bump (downstream Dockerfiles) |
+| CVE remediation bot (`redhat-chai-bot`) | Open trackers for a release | `fix(cve): …` PRs, often batched, against `main` or release branches | Review like any PR; check each bump against this doc |
+| Container Health Index | Grade of released images | A ticket per image | Usually a base-image bump (downstream Dockerfiles) |
 
-> **Note**: ProdSec scans the **source tree** as well as the image, so lockfiles under
+> **Note**: Product Security scans the **source tree** as well as the image, so lockfiles under
 > `packages/*/upstream/` and test-only dependencies can still produce trackers. See
 > [When a CVE does not affect us](#when-a-cve-does-not-affect-us).
 
@@ -43,16 +41,17 @@ Configured in [`.github/dependabot.yml`](../.github/dependabot.yml); all updates
 - **npm**: a single entry for the workspace root (`/`) covers every package in
   [`pnpm-workspace.yaml`](../pnpm-workspace.yaml).
 - **gomod**: an explicit list of first-party Go modules. Upstream-synced modules are excluded.
-- **Security PRs are grouped**: `npm-security`, `patternfly-security`, `go-security`.
-- **Cooldown applies to version updates only.** Security updates are opened as soon as an advisory
-  is published.
+- **Settings apply to version updates only.** Every entry sets `target-branch`, so
+  [GitHub ignores the file's settings for security updates](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configure-security-updates).
+  Security PRs are opened as soon as an advisory is published, one per dependency, for any
+  manifest with an open alert. The `*-security` groups and the cooldown do not apply to them.
 
 ### PR gates
 
 | Workflow | Runs when | Fails when |
 | --- | --- | --- |
 | [`dependency-validation.yml`](../.github/workflows/dependency-validation.yml) | `pnpm-lock.yaml` changes | `pnpm audit --prod --audit-level=high` reports an advisory that is **not** on the base branch |
-| [`go-vulnerability-validation.yml`](../.github/workflows/go-vulnerability-validation.yml) | any `go.mod` / `go.sum` changes (upstream modules skipped) | `govulncheck` reports a vulnerability that is not on the base branch |
+| [`go-vulnerability-validation.yml`](../.github/workflows/go-vulnerability-validation.yml) | any `go.mod` / `go.sum` changes (upstream modules skipped) | `govulncheck -json` reports a finding ID that is not on the base branch. Findings in required modules count, even when the vulnerable code is not called. |
 
 Both are differential — they only block **new** findings, so existing debt does not block unrelated PRs.
 
@@ -88,14 +87,15 @@ The cutover plan is documented at the top of `renovate.json5`.
 
 | Label | Meaning |
 | --- | --- |
-| `dependencies` | Dependabot or Renovate npm/Go PR (exempt from the stale bot) |
+| `dependencies` | Dependabot npm/Go PR, or any Renovate PR (exempt from the stale bot) |
 | `build` | Dependabot GitHub Actions PR |
 | `lgtm` + `approved` | Auto-merge eligible; Tide merges when CI is green |
 | `dependabot-needs-human` | Auto-merge PR stuck on failing CI |
-| `ok-to-skip-audit` | Accepts a PR-gate finding; [`audit-bypass-notice.yml`](../.github/workflows/audit-bypass-notice.yml) records what was accepted at merge |
+| `ok-to-skip-audit` | Accepts a PR-gate finding. At merge, [`audit-bypass-notice.yml`](../.github/workflows/audit-bypass-notice.yml) comments with the accepted `pnpm audit` findings. Go findings are not included. |
 
 Use `ok-to-skip-audit` only for an explicitly accepted risk (for example, no fix exists yet) and
-explain why in the PR description.
+explain why in the PR description. For a Go finding, list the accepted vulnerability IDs there too,
+because the merge notice does not record them.
 
 ## Fixing a CVE Manually
 
@@ -123,7 +123,8 @@ pnpm audit --prod --audit-level=high  # what the PR gate will see
 
 ```bash
 cd <module-dir>
-govulncheck ./...                     # what the PR gate will see (reachable code only)
+govulncheck ./...                     # reachable vulnerabilities, with call stacks
+govulncheck -json ./... | jq -r 'select(.finding) | .finding.osv' | sort -u   # IDs the PR gate compares
 go get <module>@<fixed-version>
 go mod tidy
 ```
@@ -159,14 +160,15 @@ main ──► ODH v<X.Y.Z>-fixes (opendatahub-io) ──► RHOAI rhoai-<X.Y> (
 1. Confirm the fix is on `main`: `git log --grep="CVE-YYYY-NNNNN" upstream/main`.
 1. Check the release branch's package manager (`packageManager` in its root `package.json`):
    - **Same layout as `main` (pnpm)** — cherry-pick the `main` commit.
-   - **Older npm layout** (per-package `package-lock.json`) — open a direct fix on that branch:
-     bump only the affected package in the lockfiles that exist there, using npm `overrides` in
-     `package.json` for transitive pins.
+   - **Older npm layout** (per-package `package-lock.json`) — open a direct fix on that branch.
+     For a direct dependency, raise its range in the owning `package.json` if the fixed version is
+     outside it. For a transitive one, add an npm `overrides` entry. Then regenerate that
+     package's `package-lock.json` with `npm install`.
 1. Open the PR against the ODH `-fixes` branch, validate, merge, then bring the same change into
    the matching downstream `rhoai-*` branch.
 
-> **Note**: Release-branch validation and who drives each step are part of the Sustaining process —
-> see the handbook.
+> **Note**: The sustaining engineering team drives release-branch fixes and validation; the Dashboard
+> team reviews and helps.
 
 ## When a CVE Does Not Affect Us
 
@@ -186,9 +188,11 @@ Common "not affected" cases:
 - **Build- or test-only packages** (bundlers, linters, Cypress, Jest, dev servers): the code never
   reaches the bundles.
 - **Upstream-synced trees** or lockfiles that no image build uses.
-- **Go code paths** that `govulncheck` reports as not reachable.
+- **Go code paths** that `govulncheck` reports as not reachable. Re-run it with the build tags the
+  image uses first (for example `govulncheck -tags strictfipsruntime ./...` for BFFs built that way;
+  see the package's `Dockerfile.workspace`), because a scan without tags can miss code that ships.
 
-Record the reasoning in the Jira and close it with the matching VEX justification (see the handbook).
+Record the reasoning on the tracker before closing it as not affected.
 Still bump the package on `main` when it is cheap — it keeps scanners quiet and future trackers away.
 
 ## Onboarding a New Package
@@ -201,7 +205,10 @@ Still bump the package on `main` when it is cheap — it keeps scanners quiet an
 ## Known Gaps
 
 - Go modules not yet listed in `dependabot.yml` (for example `packages/data-registry/bff`,
-  `packages/data-connect-hub/bff`, `pkg/tls`) get Renovate updates but no Dependabot security PRs.
-- `packages/autox-core` is excluded from both bots; track its CVEs via RHOAIENG-59135.
-- Dependabot opens security PRs only against `main`; release branches rely on the Sustaining
-  process.
+  `packages/data-connect-hub/bff`, `pkg/tls`) get no Dependabot version updates; Renovate covers
+  them during the trial.
+- Dependabot security PRs are not grouped (see [Dependabot](#dependabot)), so one advisory can
+  open several PRs.
+- `packages/autox-core` is excluded from both bots; its CVEs are tracked in RHOAIENG-59135.
+- Dependabot opens security PRs only against `main`; release branches rely on the sustaining
+  engineering team.
