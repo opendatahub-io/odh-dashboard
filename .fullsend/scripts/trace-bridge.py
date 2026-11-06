@@ -1095,8 +1095,11 @@ def shell_files(cmd, include_skipped=False):
     segs = shell_segments_ctx(cmd)
     read_ok = succeeded_segments(segs)  # a read or cd counts only if its success is established
     cwd = ""  # repo root; None once a directory change can't be followed
+    stdout_gone = False  # a bare exec sent the shell's stdout away: later output isn't seen
     for k, (op, toks, _cond, depth, *_rest) in enumerate(segs):
-        counts = include_skipped or k in read_ok
+        if toks and toks[0] == "exec" and not _execs_command(toks) and not stdout_reaches_tool(toks):
+            stdout_gone = True  # exec >/dev/null: every later command writes there too
+        counts = include_skipped or (k in read_ok and not stdout_gone)
         i, prog = _program(toks)
         if i is None:
             continue
@@ -2219,7 +2222,10 @@ def self_test():
          and shell_reads("(exec true); cat c/d.md") == ["c/d.md"]
          and shell_reads("exec 2>/dev/null; cat c/d.md") == ["c/d.md"]
          and shell_reads("exec cat .claude/rules/react.md") == [".claude/rules/react.md"]
-         and shell_reads("exec head -n 5 c/d.md") == ["c/d.md"]),
+         and shell_reads("exec head -n 5 c/d.md") == ["c/d.md"]
+         and shell_reads("exec >/dev/null; cat .claude/rules/react.md") == []
+         and shell_reads("exec 1>out.log; cat .claude/rules/react.md") == []
+         and shell_reads("exec 2>/dev/null; cat c/d.md") == ["c/d.md"]),
         ("count dictionaries stay valid JSON with sensitive-looking keys; secrets in them still go",
          json.loads(attr("c", {"auth_login": 3, "read": 2})["value"]["stringValue"]) == {"auth_login": 3, "read": 2}
          and "hunter2" not in json.dumps(attr("c", {"password": "hunter2", "n": 1}))
