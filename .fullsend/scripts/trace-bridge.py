@@ -162,7 +162,9 @@ def _redact_value(m):
     else:
         # A quote or a backslash (prefix\ tail: an escaped space) means the shell word may go on
         # past the match.
-        whole = not any(q in v for q in "\"'`\\")
+        # A value stopped by punctuation (password=prefix,tail) may go on past it too: only
+        # whitespace or the end of the string ends an unquoted value for sure.
+        whole = not any(q in v for q in "\"'`\\") and (not nxt or nxt.isspace())
     whole = whole and len(v) < 2000
     return m.group(1) + "[REDACTED]" + ("" if whole else _CUT)
 
@@ -745,6 +747,29 @@ def _lists(segs):
     return lists
 
 
+def _execs_command(toks):
+    """Whether a segment is exec with a command (exec CMD replaces the shell); a bare exec
+    with only redirections (exec >log) keeps the shell running."""
+    rest = [t for t in toks if not re.fullmatch(r"[A-Za-z_]\w*=.*", str(t))]
+    if not rest or rest[0] != "exec":
+        return False
+    skip = False
+    for t in rest[1:]:
+        if skip:
+            skip = False
+            continue
+        if is_redirect(t):
+            skip = True  # its target follows
+            continue
+        if str(t) in ("-c", "-l", "--"):
+            continue
+        if str(t) == "-a":
+            skip = True
+            continue
+        return True
+    return False
+
+
 def _before_exit(segs):
     """Indexes that no exit/return/logout may have skipped. In the parent shell, an exit cuts
     everything after it, unless it has a literal nonzero status (it can't have ended a
@@ -753,7 +778,14 @@ def _before_exit(segs):
     ok = set(range(len(segs)))
     for k, (_op, toks, _cond, _depth, scope) in enumerate(segs):
         i, prog = _program(toks)
-        if prog not in EXIT_PROGS or k not in ok:
+        if k not in ok:
+            continue
+        if _execs_command(toks):  # exec CMD replaces the shell: like exit 0
+            if scope is not None:
+                ok.difference_update(range(k + 1, scope["end"]))
+                continue
+            return ok & set(range(k))
+        if prog not in EXIT_PROGS:
             continue
         if scope is not None:
             ok.difference_update(range(k + 1, scope["end"]))
@@ -2141,6 +2173,11 @@ def self_test():
          and "def" not in clean("--token 'abc'def")
          and "secretTail" not in clean("--password prefix\\ secretTail")
          and "secretTail" not in clean("password=prefix\\ secretTail")
+         and "secretTail" not in clean("password=prefix,secretTail")
+         and "secretTail" not in clean("password=prefix]secretTail")
+         and "secretTail" not in clean("password=prefix}secretTail")
+         and "secretTail" not in clean("--token prefix,secretTail")
+         and clean("password=hunter2 and more") == "password=[REDACTED] and more"
          and "ghi" not in clean('password=abc"def ghi"')
          and json.loads(clean(json.dumps({"password": "x", "keep": "y"}))
                         .replace("[REDACTED]", '"r"')) == {"password": "r", "keep": "y"}),
@@ -2170,6 +2207,11 @@ def self_test():
          and shell_reads("cat -n docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("bat -r 1:20 --style plain docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("head --weird docs/adr/0009-x.md") == []),
+        ("exec CMD replaces the shell, so later reads don't count; a bare exec with redirections doesn't",
+         shell_reads("exec true; cat .claude/rules/react.md") == []
+         and shell_reads("FOO=1 exec -a x true; cat c/d.md") == []
+         and shell_reads("(exec true); cat c/d.md") == ["c/d.md"]
+         and shell_reads("exec 2>/dev/null; cat c/d.md") == ["c/d.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]

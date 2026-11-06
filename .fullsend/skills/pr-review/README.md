@@ -572,8 +572,12 @@ artifact API or download error fails the job so it can be rerun. On a rerun (`ru
 fetched the PR's head when it ran, so the commit, coverage and verdict are left out. The PR identity comes from a `pull_request_target`
 Fullsend run's own head commit, repository and branch, which must match exactly one PR
 (comment- and review-triggered runs report the default branch, so they carry none); the bridge gets it as
-`--pr-number` and ignores the PR fields the sandbox wrote. Without a single match the
-trace is sent without PR identity. The reviewed commit (`fullsend.head_sha`) comes from the
+`--pr-number` and ignores the PR fields the sandbox wrote. There are two stages. The
+trust check before the download (trusted workflow, event, branch and, for
+`pull_request_target`, a single default-branch PR not retargeted since the run) skips the
+trace when it fails: the job succeeds and nothing is exported. After that, the PR metadata
+lookups are optional: without a single match, or when a lookup fails, the trace is still
+sent, just without PR identity or the missing metadata. The reviewed commit (`fullsend.head_sha`) comes from the
 same run, and `fullsend.verdict` only from the Fullsend bot's review posted during it; the
 artifact's `action` is exported separately as `fullsend.verdict.claimed` (for example
 `failure`, which posts no review). The matched PR must also contain the reviewed commit. A failed PR, files, run
