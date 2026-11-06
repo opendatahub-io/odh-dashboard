@@ -231,7 +231,7 @@ describe('llmd-serving apply extension ordering', () => {
   it('registers the inference service configuration apply after the topology config apply', () => {
     const applyIds = extensions.map(getFieldIdForApplyExtension).filter(Boolean) as string[];
     const topoIdx = applyIds.indexOf('llmd-serving/custom-topology-config');
-    const accelIdx = applyIds.indexOf('llmd-serving/inference-service-config');
+    const accelIdx = applyIds.indexOf('llmd-serving/accelerator-config');
     expect(topoIdx).toBeGreaterThanOrEqual(0);
     expect(accelIdx).toBeGreaterThan(topoIdx);
   });
