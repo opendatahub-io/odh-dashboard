@@ -561,8 +561,10 @@ artifact API or download error fails the job so it can be rerun. The PR identity
 Fullsend run's own head commit, repository and branch, which must match exactly one PR
 (comment- and review-triggered runs report the default branch, so they carry none); the bridge gets it as
 `--pr-number` and ignores the PR fields the sandbox wrote. Without a single match the
-trace is sent without PR identity. A failed PR, files, run
-or review lookup only drops that optional metadata (author, coverage, verdict fallback);
+trace is sent without PR identity. The reviewed commit (`fullsend.head_sha`) comes from the
+same run, and the verdict from the Fullsend bot's review posted during it; the artifact's
+`action` is used only when no such review exists (for example `failure`). A failed PR, files, run
+or review lookup only drops that optional metadata (author, coverage, posted verdict);
 the spans are still sent. If guidance selection fails, the trace is sent without coverage.
 If the endpoint is unreachable, the job fails and the review is unaffected; rerun it from
 the Actions tab. If the bridge's spans are already in MLflow (its `fullsend.bridge.version`
@@ -581,7 +583,7 @@ sending, failed exports and marker writes try to record it too, and `bridge-only
 a trace that has it. A
 malformed `agent-result.json` doesn't stop the export: the bridge takes the PR identity
 from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`), and the
-workflow skips the author, coverage and verdict fallback. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
+workflow skips the author, coverage and posted verdict. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
 and then stops a normal run instead of exporting; rerun it. `recover: resend` and
 `recover: mark-only` don't wait on the lookup, so they go ahead even when it keeps failing. The Actions log shows counts and
 tags only, never the PR, run URL, file or guidance paths.

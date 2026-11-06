@@ -1043,6 +1043,11 @@ def build(args):
     pr = pr if isinstance(pr, int) and not isinstance(pr, bool) and 0 < pr < 10**9 else None
     repo = result.get("repo") if isinstance(result.get("repo"), str) \
         and re.fullmatch(r"[\w.-]{1,100}/[\w.-]{1,100}", result["repo"]) else None
+    # The reviewed commit: the caller's trusted --head-sha (from the run) replaces the artifact's.
+    head_sha = getattr(args, "head_sha", None)
+    if head_sha is None:
+        head_sha = result.get("head_sha")
+    head_sha = head_sha if isinstance(head_sha, str) and re.fullmatch(r"[0-9a-f]{40}", head_sha) else None
     if getattr(args, "pr_number", None) is not None:
         # A trusted identity from the caller replaces the sandbox-written one entirely.
         pr = int(args.pr_number) if re.fullmatch(r"[1-9]\d{0,8}", args.pr_number) else None
@@ -1061,8 +1066,7 @@ def build(args):
     pr_key = f"{repo}#{pr}" if pr and repo else None  # both or neither: never "None#7"
     common = {"session.id": pr_key, "user.id": args.pr_author,
               "fullsend.repo": repo, "fullsend.pr_number": pr,
-              "fullsend.head_sha": result.get("head_sha") if isinstance(result.get("head_sha"), str)
-              and re.fullmatch(r"[0-9a-f]{40}", result["head_sha"]) else None}
+              "fullsend.head_sha": head_sha}
 
     applicable = set()
     if args.guidance:
@@ -1172,13 +1176,16 @@ def build(args):
     def level(v):
         v = v.get("level") if isinstance(v, dict) else v
         return v if v in ("low", "medium", "high", "critical") else None
-    # An explicit action in the artifact always wins (unknown values export as "other");
-    # the GitHub-review fallback is used only when the artifact has none.
+    # The review the host posted (--verdict, from GitHub) wins: the artifact is written in the
+    # sandbox. Without a posted review, the artifact's action is used (unknown values export
+    # as "other"), which keeps outcomes such as "failure" that post no review.
     action = result.get("action")
-    if action is not None:
+    if args.verdict in VERDICTS:
+        verdict = args.verdict
+    elif action is not None:
         verdict = action if action in VERDICTS else "other"
     else:
-        verdict = args.verdict if args.verdict in VERDICTS else None
+        verdict = None
     rr = {"fullsend.verdict": verdict, "fullsend.findings.count": len(findings),
           "fullsend.findings.by_severity": dict(sev), "fullsend.findings.by_dimension": dict(dim),
           "fullsend.risk": level(risk), "fullsend.confidence": level(conf),
@@ -1685,13 +1692,16 @@ def self_test():
     def variant(result, verdict=None, **over):
         json.dump(result, open(result_path, "w"))
         return build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict=verdict, **over)))
-    v_failure = variant({"action": "failure"}, "approve")[1]["tags"].get("fullsend.verdict")
+    v_failure = variant({"action": "failure"})[1]["tags"].get("fullsend.verdict")
+    v_posted = variant({"action": "approve"}, "request-changes")[1]["tags"].get("fullsend.verdict")
+    trusted_sha = variant({"head_sha": "b" * 40}, head_sha="c" * 40)[0]
+    no_sha = variant({"head_sha": "b" * 40}, head_sha="none")[0]
     no_repo = variant({"pr_number": 7})[1]
     bool_pr = variant({"pr_number": True, "repo": "o/r"})[1]
     trusted_pr = variant({"pr_number": 8, "repo": "evil/x"}, pr_number="7", repo="o/r")[1]
     no_trusted_pr = variant({"pr_number": 8, "repo": "evil/x"}, pr_number="none", repo="o/r")
     v_fallback = variant({}, "approve")[1]["tags"].get("fullsend.verdict")
-    v_unknown = variant({"action": "weird"}, "approve")[1]["tags"].get("fullsend.verdict")
+    v_unknown = variant({"action": "weird"})[1]["tags"].get("fullsend.verdict")
     junk_payload, junk_summary = variant({
         "findings": ["x", {"severity": float("nan"), "dimension": ["d"]}], "producers": ["a"],
         "head_sha": float("nan")})
@@ -1728,8 +1738,11 @@ def self_test():
         ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
          "fullsend.pr" not in no_repo["tags"] and no_repo["pr"] == 7 and bool_pr["pr"] is None
          and "None#" not in json.dumps(no_repo)),
-        ("explicit artifact action wins (failure kept, unknown is 'other'); fallback only without one",
-         (v_failure, v_unknown, v_fallback) == ("failure", "other", "approve")),
+        ("the posted review's verdict wins over the artifact; without one, the artifact's action is "
+         "kept (failure kept, unknown is 'other'); a trusted --head-sha replaces the artifact's",
+         (v_failure, v_unknown, v_fallback, v_posted) == ("failure", "other", "approve", "request-changes")
+         and "c" * 40 in json.dumps(trusted_sha) and "b" * 40 not in json.dumps(trusted_sha)
+         and "b" * 40 not in json.dumps(no_sha)),
         ("malformed findings, producers, adapters and head_sha don't break the build or strict JSON",
          junk_ok and "nan" not in json.dumps(junk_summary).lower()),
         ("shell write targets, || branches, printf text and here-strings are not reads or exports",
@@ -1987,8 +2000,9 @@ def main():
     p.add_argument("--pr-number", help="trusted PR number, or 'none': overrides the PR identity in "
                                        "the artifact, which is written in the sandbox")
     p.add_argument("--repo", help="trusted owner/name of the repository, used with --pr-number")
-    p.add_argument("--verdict", help="review verdict to use when agent-result.json has no action "
-                                     "(the host post-script decides it after the artifact is captured)")
+    p.add_argument("--head-sha", help="trusted reviewed commit, or 'none': overrides the artifact's")
+    p.add_argument("--verdict", help="the verdict of the review the host posted; wins over the "
+                                     "artifact's action, which is written in the sandbox")
     p.add_argument("--out", help="also write the OTLP JSON payload here")
     p.add_argument("--no-base-spans", action="store_true",
                    help="do not re-send run/agent spans (use once Fullsend exports them itself)")
