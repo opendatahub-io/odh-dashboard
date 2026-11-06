@@ -557,8 +557,10 @@ retention; anyone who can read the experiment can read these traces.
 
 **Failure behavior.** The job runs outside the review, so it cannot change a review's
 outcome. A run whose artifact list has no `fullsend-review` artifact is skipped; an
-artifact API or download error fails the job so it can be rerun. The artifact's PR number is used only if GitHub links that PR to the run's
-head commit; otherwise the trace is sent without PR metadata. A failed PR, files, run
+artifact API or download error fails the job so it can be rerun. The PR identity comes from the Fullsend run's own head
+commit, repository and branch, which must match exactly one PR; the bridge gets it as
+`--pr-number` and ignores the PR fields the sandbox wrote. Without a single match the
+trace is sent without PR identity. A failed PR, files, run
 or review lookup only drops that optional metadata (author, coverage, verdict fallback);
 the spans are still sent. If guidance selection fails, the trace is sent without coverage.
 If the endpoint is unreachable, the job fails and the review is unaffected; rerun it from

@@ -112,30 +112,27 @@ jobs:
           RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
         run: |
           set -euo pipefail
-          result=$(find "$ART" -path '*/output/agent-result.json' | sort | tail -1)
-          # The result file is written in the sandbox and may be malformed (e.g. a failed run):
-          # read it defensively so the bridge still runs and exports the run without metadata.
-          field() { jq -r --arg k "$1" 'if type == "object" then (.[$k] // empty | tostring) else empty end' "$result" 2>/dev/null || true; }
-          # Same range build() in trace-bridge.py accepts: a JSON integer from 1 to 10^9 - 1.
+          # The PR identity comes from the Fullsend run's own metadata, never from the artifact
+          # (written in the sandbox): the run's head commit, head repository and head branch
+          # must match exactly one PR (open or closed). Otherwise the trace is sent without
+          # PR identity.
+          run=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
+            '"\(.head_sha) \(.head_repository.full_name // "-") \(.run_started_at // .created_at) \(.updated_at) \(.head_branch // "")"' \
+            || true)
+          read -r head_sha head_repo started finished head_branch <<< "$run" || true
           pr=""
-          [[ -n "$result" ]] && pr=$(jq -r 'if type == "object" and (.pr_number | type) == "number"
-            and .pr_number == (.pr_number | floor) and .pr_number > 0 and .pr_number < 1000000000
-            then .pr_number else empty end' "$result" 2>/dev/null || true)
-          if [[ ! "$pr" =~ ^[1-9][0-9]{0,8}$ ]]; then
-            echo "::warning::No valid PR number in the artifact; tracing without PR metadata."
+          # (The commit-to-PR API returns nothing for a fork's commits, so look up by head.)
+          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$head_repo" == */* && -n "$head_branch" ]]; then
+            pr=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
+              -f head="${head_repo%%/*}:$head_branch" \
+              --jq '.[] | "\(.number) \(.head.repo.full_name // "-") \(.head.ref)"' \
+              | awk -v r="$head_repo" -v b="$head_branch" '$2 == r && $3 == b {print $1}' | sort -u || true)
+          fi
+          if [[ ! "$pr" =~ ^[1-9][0-9]{0,8}$ ]]; then  # none, several, or a failed lookup
+            echo "::warning::No single PR matches the run's head commit and branch; tracing without PR identity."
             exit 0
           fi
-          # The artifact's PR number is sandbox-written: use it only if GitHub links that PR to
-          # the run's own head commit, so the exported author belongs to the reviewed PR.
-          run_head=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.head_sha' || true)
-          linked=""
-          if [[ "$run_head" =~ ^[0-9a-f]{40}$ ]]; then
-            linked=$(gh api --paginate "repos/$REPO/commits/$run_head/pulls" --jq '.[].number' || true)
-          fi
-          if ! grep -qx "$pr" <<< "$linked"; then
-            echo "::warning::The artifact's PR is not linked to the run's commit; tracing without PR metadata."
-            exit 0
-          fi
+          echo "pr_number=$pr" >> "$GITHUB_OUTPUT"
           # PR metadata is optional: an API failure loses it, but the spans are still sent.
           if ! meta=$(gh api "repos/$REPO/pulls/$pr" --jq '"\(.user.login) \(.head.sha)"'); then
             echo "::warning::PR lookup failed; tracing without PR metadata."
@@ -143,7 +140,6 @@ jobs:
           fi
           author=${meta% *}
           current_head=${meta#* }
-          head_sha=$(field head_sha)
           # Coverage is scored against the files of the reviewed commit. The PR files API
           # only shows the current head, so coverage is omitted once the PR has moved on
           # (a later push, or a backfill of an older review).
@@ -163,10 +159,6 @@ jobs:
           # Zero or several candidates is ambiguous, so the verdict is then left out. The
           # bridge ignores the fallback when the artifact has an action.
           verdict=""
-          window=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '"\(.run_started_at // .created_at) \(.updated_at)"') \
-            || { echo "::warning::Run lookup failed; tracing without the review verdict fallback."; window=""; }
-          started=${window% *}
-          finished=${window#* }
           ts='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$'
           if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$started" =~ $ts && "$finished" =~ $ts ]]; then
             states=$(gh api --paginate "repos/$REPO/pulls/$pr/reviews" \
@@ -211,10 +203,13 @@ jobs:
           PR_AUTHOR: ${{ steps.pr.outputs.author }}
           GUIDANCE: ${{ steps.pr.outputs.guidance }}
           VERDICT: ${{ steps.pr.outputs.verdict }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number || 'none' }}
+          REPO: ${{ github.repository }}
           RECOVER: ${{ inputs.recover }}
         run: |
           set -euo pipefail
-          args=(--artifact "$ART" --run-url "$RUN_URL")
+          # The PR identity is the one verified above (or none), never the artifact's.
+          args=(--artifact "$ART" --run-url "$RUN_URL" --pr-number "$PR_NUMBER" --repo "$REPO")
           [[ -n "$PR_FILES" ]] && args+=(--pr-files "$PR_FILES")
           [[ -n "$PR_AUTHOR" ]] && args+=(--pr-author "$PR_AUTHOR")
           [[ -n "$GUIDANCE" ]] && args+=(--guidance "$GUIDANCE")

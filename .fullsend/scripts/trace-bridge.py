@@ -1033,7 +1033,12 @@ def build(args):
     pr = pr if isinstance(pr, int) and not isinstance(pr, bool) and 0 < pr < 10**9 else None
     repo = result.get("repo") if isinstance(result.get("repo"), str) \
         and re.fullmatch(r"[\w.-]{1,100}/[\w.-]{1,100}", result["repo"]) else None
-    if not (pr and repo):
+    if getattr(args, "pr_number", None) is not None:
+        # A trusted identity from the caller replaces the sandbox-written one entirely.
+        pr = int(args.pr_number) if re.fullmatch(r"[1-9]\d{0,8}", args.pr_number) else None
+        repo = args.repo if pr and isinstance(args.repo, str) \
+            and re.fullmatch(r"[\w.-]{1,100}/[\w.-]{1,100}", args.repo) else None
+    elif not (pr and repo):
         shared = os.path.join(last, "output", "context", "shared.md")
         try:
             with open(shared, errors="replace") as f:
@@ -1656,12 +1661,14 @@ def self_test():
     _, bad_summary = build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict="<y>")))
     result_path = os.path.join(bad_result, "fs-rev-x", "iteration-1", "output", "agent-result.json")
 
-    def variant(result, verdict=None):
+    def variant(result, verdict=None, **over):
         json.dump(result, open(result_path, "w"))
-        return build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict=verdict)))
+        return build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict=verdict, **over)))
     v_failure = variant({"action": "failure"}, "approve")[1]["tags"].get("fullsend.verdict")
     no_repo = variant({"pr_number": 7})[1]
     bool_pr = variant({"pr_number": True, "repo": "o/r"})[1]
+    trusted_pr = variant({"pr_number": 8, "repo": "evil/x"}, pr_number="7", repo="o/r")[1]
+    no_trusted_pr = variant({"pr_number": 8, "repo": "evil/x"}, pr_number="none", repo="o/r")
     v_fallback = variant({}, "approve")[1]["tags"].get("fullsend.verdict")
     v_unknown = variant({"action": "weird"}, "approve")[1]["tags"].get("fullsend.verdict")
     junk_payload, junk_summary = variant({
@@ -1692,6 +1699,11 @@ def self_test():
              {"stringValue": p} for p in ("AGENTS.md", "docs/x.md", "docs/adr/0010-y.md", "src/c.md",
                                           ".claude/rules/out.md")]}
              for x in spans)),
+        ("a trusted --pr-number replaces the artifact's PR identity; 'none' drops it entirely",
+         trusted_pr["pr"] == 7 and trusted_pr["tags"].get("fullsend.pr") == "o/r#7"
+         and no_trusted_pr[1]["pr"] is None and "fullsend.pr" not in no_trusted_pr[1]["tags"]
+         and "evil/x" not in json.dumps(no_trusted_pr[0]) and '"8"' not in json.dumps(no_trusted_pr[0])
+         and "evil/x" not in json.dumps(trusted_pr)),
         ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
          "fullsend.pr" not in no_repo["tags"] and no_repo["pr"] == 7 and bool_pr["pr"] is None
          and "None#" not in json.dumps(no_repo)),
@@ -1943,6 +1955,9 @@ def main():
     p.add_argument("--pr-files", help="file with the PR's changed paths, one per line (for counts)")
     p.add_argument("--pr-author", help="PR author login, used as MLflow user")
     p.add_argument("--run-url", help="link to the Fullsend workflow run")
+    p.add_argument("--pr-number", help="trusted PR number, or 'none': overrides the PR identity in "
+                                       "the artifact, which is written in the sandbox")
+    p.add_argument("--repo", help="trusted owner/name of the repository, used with --pr-number")
     p.add_argument("--verdict", help="review verdict to use when agent-result.json has no action "
                                      "(the host post-script decides it after the artifact is captured)")
     p.add_argument("--out", help="also write the OTLP JSON payload here")
