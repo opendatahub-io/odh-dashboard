@@ -649,6 +649,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     }
   };
 
+  const lastUpdate = renderLastUpdate();
+
   return (
     <Modal
       appendTo={document.body}
@@ -660,13 +662,15 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       <ModalHeader
         data-testid="notebook-status-modal-header"
         description={
-          <Content
-            component="p"
-            data-testid="notebook-status-modal-description"
-            style={{ color: Gray60.value }}
-          >
-            Workbench status
-          </Content>
+          lastUpdate ? (
+            <Content
+              component="p"
+              data-testid="notebook-status-modal-description"
+              style={{ color: Gray60.value }}
+            >
+              Workbench status
+            </Content>
+          ) : undefined
         }
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -688,7 +692,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       />
       <ModalBody className="start-notebook-modal__content-height">
         <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {renderLastUpdate()}
+          {lastUpdate}
           {renderStatus()}
           <StackItem>
             <Tabs

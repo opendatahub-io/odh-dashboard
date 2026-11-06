@@ -262,6 +262,10 @@ describe('Start Notebook modal', () => {
     // Validate the header contents
     const header = screen.getByTestId('notebook-status-modal-header');
     expect(header).toHaveTextContent('Test Workbench statusReady');
+    expect(screen.queryByTestId('notebook-latest-status')).not.toBeInTheDocument();
+    expect(
+      within(header).queryByTestId('notebook-status-modal-description'),
+    ).not.toBeInTheDocument();
 
     // 8 top-level steps (pvc_attached surfaced by event); sub-steps collapsed, all SUCCESS.
     const stepper = screen.getByTestId('notebook-startup-steps');
@@ -318,6 +322,9 @@ describe('Start Notebook modal', () => {
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
     expect(statusLabel).toHaveTextContent('Attempt 2');
+    expect(screen.getByTestId('notebook-status-modal-description')).toHaveTextContent(
+      /^Workbench status$/,
+    );
   });
 
   it('should show only queue position in modal header when queue position is available', () => {
