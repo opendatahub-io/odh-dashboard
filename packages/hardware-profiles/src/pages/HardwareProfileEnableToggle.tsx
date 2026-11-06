@@ -5,10 +5,10 @@ import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { DashboardPopupIconButton } from '@odh-dashboard/ui-core';
 import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import { HardwareProfileModel, toggleHardwareProfileEnablement } from '@odh-dashboard/internal/api';
-import { HardwareProfileWarningType } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { useAccessAllowed, verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR';
 import { isHardwareProfileEnabled, validateProfileWarning } from './utils';
 import { DRA_HARDWARE_PROFILE_TOGGLE_DISABLED_MESSAGE } from './const';
+import { HardwareProfileWarningType } from '../../shared/types';
 import { getHardwareProfileDisplayName, isDRAHardwareProfile } from '../../shared/utils';
 
 type HardwareProfileEnableToggleProps = {

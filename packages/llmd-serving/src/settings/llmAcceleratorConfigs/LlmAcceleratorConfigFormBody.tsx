@@ -10,9 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import YAML from 'yaml';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';

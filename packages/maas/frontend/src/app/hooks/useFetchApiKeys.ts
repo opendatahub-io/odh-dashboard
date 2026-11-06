@@ -7,13 +7,13 @@ import {
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
 import { type APIKeyListResponse, type APIKeySearchRequest } from '~/app/types/api-key';
-import { searchTenantApiKeys } from '~/app/api/api-keys';
+import { searchApiKeysForCurrentHost } from '~/app/api/api-keys';
 
 export const useFetchApiKeys = (
   searchRequest: APIKeySearchRequest,
 ): FetchState<APIKeyListResponse> => {
   const callback = React.useCallback<FetchStateCallbackPromise<APIKeyListResponse>>(
-    (opts: APIOptions) => searchTenantApiKeys()(opts, searchRequest),
+    (opts: APIOptions) => searchApiKeysForCurrentHost()(opts, searchRequest),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(searchRequest)],
   );

@@ -6,8 +6,8 @@ name: ODH Dashboard Agent
 #   pull_request_target — auto-runs on PR open/reopen/ready_for_review
 #   issue_comment       — @odh-dashboard-agent preflight (org members only)
 #
-# Dependabot PRs are skipped on pull_request_target (not useful for
-# dependency bumps; avoids noisy failures). Manual comment trigger still works.
+# Dependabot and Renovate PRs are skipped on pull_request_target (not useful
+# for dependency bumps; avoids noisy failures). Manual comment trigger still works.
 #
 # Draft PRs are skipped (e.g. Mergify merge-queue drafts). ready_for_review
 # re-triggers when a draft is marked ready. issue_comment routes check isDraft
@@ -61,8 +61,8 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
-          if [[ "$PR_AUTHOR" == "dependabot[bot]" ]]; then
-            echo "Skipping: Dependabot PR — preflight not useful for dependency bumps"
+          if [[ "$PR_AUTHOR" == "dependabot[bot]" ]] || [[ "$PR_AUTHOR" == "odh-dashboard-agent[bot]" && "$HEAD_REF" == renovate/* ]]; then
+            echo "Skipping: dependency-bot PR — preflight not useful for dependency bumps"
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
             exit 0
           fi

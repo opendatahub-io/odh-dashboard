@@ -14,5 +14,5 @@
     "../base/src/**/*.tsx",
     "../base/types/**/*.d.ts"
   ],
-  "exclude": ["node_modules", "dist", "public"]
+  "exclude": ["node_modules", "dist", "public", "public-cypress", "src/__tests__/cypress"]
 }

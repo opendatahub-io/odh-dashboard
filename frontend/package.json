@@ -74,6 +74,7 @@
     "@odh-dashboard/hardware-profiles": "workspace:*",
     "@odh-dashboard/internal": "workspace:*",
     "@odh-dashboard/model-serving": "workspace:*",
+    "@odh-dashboard/plugin-core": "workspace:*",
     "@odh-dashboard/trustyai": "workspace:*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-extensions": "^1.4.1",

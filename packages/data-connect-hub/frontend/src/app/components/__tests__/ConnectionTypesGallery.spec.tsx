@@ -50,8 +50,8 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.getByRole('heading', { name: 'No data connection types' })).toBeTruthy();
     expect(screen.getByText('No data connection types available')).toBeTruthy();
     expect(screen.queryByText('No data connection types match your search or filter')).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ingestion supported' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'No ingestion' })).toBeNull();
   });
 
   it('should keep the empty state when searching with no connection types available', async () => {
@@ -89,24 +89,20 @@ describe('ConnectionTypesGallery', () => {
     );
   });
 
-  it('should group connection types by capability', () => {
+  it('should render ingestion-supported types first without group headings', () => {
     render(
       <ConnectionTypesGallery
-        connectionTypes={getConnectionTypes()}
+        connectionTypes={[mockOCIConnectionType, mockPSQLConnectionType, mockS3ConnectionType]}
         onConnectionTypeClick={jest.fn()}
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Full integration' })).toBeTruthy();
-    expect(
-      screen.getByText('Connection types with credential management and data ingestion support.'),
-    ).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Credentials only' })).toBeTruthy();
-    expect(
-      screen.getByText(
-        'Connection types that store credentials for authentication without built-in ingestion.',
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.getAllByTestId(/--ConnectionTypeCard$/).map((card) => card.id)).toEqual(
+      [mockPSQLConnectionType, mockS3ConnectionType, mockOCIConnectionType].map(
+        (connectionType) => `${connectionType.id}--ConnectionTypeCard`,
       ),
-    ).toBeTruthy();
+    );
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('S3')).toBeTruthy();
     expect(screen.getByText('OCI')).toBeTruthy();
@@ -162,14 +158,14 @@ describe('ConnectionTypesGallery', () => {
     await user.click(
       within(screen.getByTestId('connection-types-gallery-capability-credentials')).getByRole(
         'option',
-        { name: 'Credentials only' },
+        { name: 'No ingestion' },
       ),
     );
 
     expect(screen.getByText('OCI')).toBeTruthy();
     expect(screen.queryByText('PostgreSQL')).toBeNull();
     expect(screen.queryByText('S3')).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'No ingestion' })).toBeNull();
   });
 
   it('should render the no-match state when filters exclude all connection types', async () => {
@@ -192,7 +188,7 @@ describe('ConnectionTypesGallery', () => {
     await user.click(
       within(screen.getByTestId('connection-types-gallery-capability-credentials')).getByRole(
         'option',
-        { name: 'Credentials only' },
+        { name: 'No ingestion' },
       ),
     );
 
@@ -223,7 +219,7 @@ describe('ConnectionTypesGallery', () => {
     await user.click(
       within(screen.getByTestId('connection-types-gallery-capability-credentials')).getByRole(
         'option',
-        { name: 'Credentials only' },
+        { name: 'No ingestion' },
       ),
     );
     await user.type(
@@ -279,7 +275,7 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.queryByTestId('connection-types-gallery-dropdown-labels')).toBeNull();
   });
 
-  it('should filter by any selected label and restore groups when filters are cleared', async () => {
+  it('should filter by any selected label and restore cards when filters are cleared', async () => {
     const user = userEvent.setup();
 
     render(
@@ -304,8 +300,8 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.queryByText('S3')).toBeNull();
     expect(screen.queryByText('OCI')).toBeNull();
     expect(screen.queryByText('Untagged')).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ingestion supported' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'No ingestion' })).toBeNull();
 
     await user.click(within(secondLabelOption).getByRole('checkbox'));
 
@@ -329,8 +325,8 @@ describe('ConnectionTypesGallery', () => {
     expect(within(toolbar).queryByText('finance')).toBeNull();
     expect(within(toolbar).queryByText('storage')).toBeNull();
     expect(screen.getByText('Untagged')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Full integration' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Credentials only' })).toBeTruthy();
+    expect(screen.getAllByTestId(/--ConnectionTypeCard$/)).toHaveLength(4);
+    expect(screen.queryByRole('heading')).toBeNull();
   });
 
   it('should combine labels, capability, and search with AND behavior', async () => {
@@ -369,7 +365,7 @@ describe('ConnectionTypesGallery', () => {
     await user.click(
       within(screen.getByTestId('connection-types-gallery-capability-full-integration')).getByRole(
         'option',
-        { name: 'Full integration' },
+        { name: 'Ingestion supported' },
       ),
     );
 
@@ -414,7 +410,7 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.getByText('S3')).toBeTruthy();
     expect(screen.queryByText('PostgreSQL')).toBeNull();
     expect(screen.queryByText('OCI')).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ingestion supported' })).toBeNull();
 
     await user.clear(search);
 
@@ -439,8 +435,8 @@ describe('ConnectionTypesGallery', () => {
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
     expect(screen.getByText('No data connection types match your search or filter')).toBeTruthy();
     expect(screen.queryByText('No data connection types available')).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ingestion supported' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'No ingestion' })).toBeNull();
     expect(
       screen.queryByTestId(`${mockPSQLConnectionType.metadata.id}--ConnectionTypeCard`),
     ).toBeNull();

@@ -14,16 +14,12 @@ import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLL
 import { LlmAcceleratorConfigTrackingEvent } from '../../tracking/llmdTrackingConstants';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../settings/llmAcceleratorConfigs/paths';
 import LlmAcceleratorInstallTarget from '../LlmAcceleratorInstallTarget';
-import { createHostApiWrapper } from '../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
+const { trackEvent: mockTrackEvent, wrapper } = createTestProviders();
 
 jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed', () => ({
   useAccessAllowed: jest.fn(),
-}));
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
 }));
 jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
   createLLMInferenceServiceConfig: jest.fn(),

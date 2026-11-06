@@ -48,6 +48,7 @@ import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardMod
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { testCredentials } from '~/app/api/dch';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
 import PasswordInput from '~/app/components/PasswordInput';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
@@ -88,7 +89,7 @@ export type CreateConnectionWizardProps = {
 const INITIAL_FORM_DATA: CreateConnectionFormData = {
   name: '',
   data_connection_type_id: '',
-  format: 'tabular',
+  format: 'tabular', // TODO [ Gustavo + Matthew ] Needs to support binary. We will need to get this from the API that informs the UI on the input fields
   credentials: {
     secret: '',
     properties: {},
@@ -121,7 +122,7 @@ const isValidConnectionName = (name: string): boolean =>
 const hasCredentialValue = (value?: string): boolean => Boolean(value?.trim());
 
 type ConnectionTypeStepProps = {
-  connectionTypes: ConnectionType[];
+  connectionTypes: ConnectionTypeInstance[];
   selectedConnectionTypeId: string;
   connectionTypesLoaded: boolean;
   connectionTypesError?: Error;

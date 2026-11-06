@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -264,4 +266,46 @@ func TestForceNoStoreCacheHeaders(t *testing.T) {
 	resp.Header.Set(constants.HeaderCacheControl, "public, max-age=60")
 	require.NoError(t, forceNoStoreCacheHeaders(resp))
 	assertNoStoreCache(t, resp.Header)
+}
+
+func TestRoutesPanicRetainsSecurityHeaders(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		committed bool
+	}{{name: "before commitment"}, {name: "after commitment", committed: true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, path := range []string{
+				"/api/k8s/api/v1/pods", "/core-bff/api/k8s/api/v1/pods",
+				"/wss/k8s/api/v1/pods", "/core-bff/wss/k8s/api/v1/pods",
+			} {
+				t.Run(path, func(t *testing.T) {
+					app := newTestApp(func(a *App) { a.config.AuthMethod = config.AuthMethodDisabled })
+					panicHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+						if tc.committed {
+							_, _ = w.Write([]byte("partial"))
+						}
+						panic("CANARY_PANIC")
+					})
+					app.k8sProxy, app.wsProxy = panicHandler, panicHandler
+					handler := app.Routes()
+					response := httptest.NewRecorder()
+					request := httptest.NewRequest(http.MethodGet, path, nil)
+					if tc.committed {
+						require.PanicsWithValue(t, http.ErrAbortHandler, func() { handler.ServeHTTP(response, request) })
+						require.Equal(t, http.StatusOK, response.Code)
+						require.Equal(t, "partial", response.Body.String())
+					} else {
+						handler.ServeHTTP(response, request)
+						require.Equal(t, http.StatusInternalServerError, response.Code)
+						require.NotContains(t, response.Body.String(), "CANARY")
+					}
+					result := response.Result()
+					defer result.Body.Close()
+					assertConsoleSecurityHeaders(t, result.Header)
+					assertNoStoreCache(t, result.Header)
+					require.NotEmpty(t, result.Header.Get(httpcontract.RequestIDHeader))
+				})
+			}
+		})
+	}
 }

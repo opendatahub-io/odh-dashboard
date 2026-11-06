@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/k8sutil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/maputil"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
@@ -173,7 +174,7 @@ func (r *DashboardConfigRepository) autoCreateDashboardCR(
 		}
 	}
 
-	slog.Debug("failed to auto-create OdhDashboardConfig, falling back to defaults",
-		slog.String("namespace", namespace), slog.String("name", name), slog.Any("error", createErr))
+	httpcontract.LogContext(slog.Default(), ctx).Debug("failed to auto-create OdhDashboardConfig, falling back to defaults",
+		slog.String("namespace", namespace), slog.String("name", name), slog.String("code", httpcontract.SafeErrorCode(createErr)))
 	return blankDefaults()
 }
