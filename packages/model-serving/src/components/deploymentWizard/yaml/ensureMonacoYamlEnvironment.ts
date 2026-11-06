@@ -1,22 +1,28 @@
 import * as monaco from 'monaco-editor';
 import { loader } from '@monaco-editor/react';
 
-let initialized = false;
+let loaderConfigured = false;
 
 /**
- * Point @monaco-editor/react at the bundled monaco-editor and register the
- * monaco-yaml web worker. Without this, PF CodeEditor falls back to CDN Monaco
- * and syntax validation never runs.
+ * Point this remote's @monaco-editor/react at a bundled monaco-editor and register
+ * the monaco-yaml worker. Required because Module Federation gives the remote its
+ * own loader instance — host `loader.config` does not apply here.
+ *
+ * MonacoEnvironment is re-asserted on every call so a host bootstrap / HMR pass
+ * cannot leave a stale getWorker that fails yaml validation.
  *
  * Same pattern as notebooks WorkspaceKindYamlEditor / NotebooksWrapper.
  */
 export const ensureMonacoYamlEnvironment = (): void => {
-  if (initialized || typeof window === 'undefined') {
+  if (typeof window === 'undefined') {
     return;
   }
-  initialized = true;
 
-  loader.config({ monaco });
+  if (!loaderConfigured) {
+    loader.config({ monaco });
+    loaderConfigured = true;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions
   (window as any).monaco = monaco;
 

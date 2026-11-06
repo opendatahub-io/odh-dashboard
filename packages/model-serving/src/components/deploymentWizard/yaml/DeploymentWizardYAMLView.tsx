@@ -23,7 +23,7 @@ import {
 import { ensureMonacoYamlEnvironment } from './ensureMonacoYamlEnvironment';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
 
-// Configure bundled Monaco + yaml worker before the editor mounts.
+// Configure this remote's Monaco loader + yaml worker before PF CodeEditor mounts.
 ensureMonacoYamlEnvironment();
 
 type DeploymentWizardYAMLViewProps = {
@@ -52,6 +52,9 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
 
   const handleBeforeMount = React.useCallback(
     (monacoInstance: Parameters<typeof configureDeploymentWizardMonacoYaml>[0]) => {
+      // Re-assert remote workers immediately before the editor mounts (host may have
+      // overwritten MonacoEnvironment during bootstrap / other editor loads).
+      ensureMonacoYamlEnvironment();
       // Expose for Cypress helpers that read markers / model content via window.monaco.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions
       (window as any).monaco = monacoInstance;

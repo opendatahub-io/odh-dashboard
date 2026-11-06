@@ -1,14 +1,11 @@
 import * as React from 'react';
 import { CodeEditor, CodeEditorProps } from '@patternfly/react-code-editor';
-import * as monaco from 'monaco-editor';
-import { loader } from '@monaco-editor/react';
 
 import './DashboardCodeEditor.scss';
 import { useThemeContext } from '#~/app/ThemeContext';
+import { ensureMonacoEnvironment } from '#~/concepts/dashboard/codeEditor/ensureMonacoEnvironment';
 
-loader.config({ monaco });
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-(window as any).monaco = monaco; // eslint-disable-line @typescript-eslint/no-explicit-any
+ensureMonacoEnvironment();
 
 type DashboardCodeEditorProps = Omit<CodeEditorProps, 'ref'> & {
   testId?: string;

@@ -12,6 +12,9 @@ type MonacoEditorInstance = Parameters<typeof configureMonacoYaml>[0];
  * Wires `monaco-yaml` for syntax-level validation in the deployment wizard YAML editor.
  * Passes an empty `schemas` array by default so schema-aware linting can be added later
  * without reworking this call site.
+ *
+ * Monaco + yaml worker are initialized in this remote (see ensureMonacoYamlEnvironment)
+ * because MF gives the remote its own `@monaco-editor/react` loader instance.
  */
 export const configureDeploymentWizardMonacoYaml = (
   monaco: MonacoEditorInstance,

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { BrowserStorageContextProvider } from '@odh-dashboard/ui-core/hooks';
+import { ensureMonacoEnvironment } from './concepts/dashboard/codeEditor/ensureMonacoEnvironment';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
 import { ThemeProvider } from './app/ThemeContext';
@@ -12,6 +13,8 @@ import SDKInitialize from './SDKInitialize';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import RouteErrorElement from './components/error/RouteErrorElement';
 import { ReduxContext } from './redux/context';
+
+ensureMonacoEnvironment();
 
 // Creates a data router using createBrowserRouter
 const router = createBrowserRouter([
