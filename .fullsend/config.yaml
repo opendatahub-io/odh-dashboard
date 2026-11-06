@@ -8,12 +8,18 @@ runtime: claude
 # Replace sticky comment bodies in-place (no collapsed "Previous run" history).
 # https://github.com/fullsend-ai/fullsend/pull/6930
 keep_history: false
-roles:
-    - review
-    # Enables the fix stage (Fullsend maps fix to the coder role). The coder
-    # role also covers the code agent below.
-    - coder
 agents:
+    # Off on purpose. roles: used to carry this opt-out, but Fullsend v0.51.0
+    # (fullsend-ai/fullsend#7786) removed the dispatch role check, so roles: no
+    # longer gates which stages run (fullsend-ai/fullsend#9096). These entries
+    # state it directly and read the same before and after the shim upgrade.
+    # Turn one on by deleting its entry or setting enabled: true.
+    - name: triage
+      enabled: false
+    - name: retro
+      enabled: false
+    - name: prioritize
+      enabled: false
     # Code agent for the RHAI and RHOAIENG Jira pilot
     # (fullsend-poll-jira.yaml). Only the Jira poller dispatches it: the shim
     # routes no GitHub issue events, so GitHub /fs-code and ready-to-code stay
@@ -46,6 +52,16 @@ agents:
           security: openai/gpt-6.1-sol
           security-triage: openai/gpt-6-luna
           style-conventions: openai/gpt-6-luna
+    # Pin the built-in fix agent to the agents v0.54.0 release (87a43fcb), the
+    # commit harness/code.yaml already bases on. Without this entry fix tracks
+    # fullsend-ai/agents@main: the reusable-dispatch pin is not a release tag,
+    # so the CLI is built from source and resolves the agents ref to main.
+    # fix.yaml's relative scripts, skills and schema resolve against this URL,
+    # so this pins the whole agent. To move it, edit the URL to the next
+    # release's commit and hash; a bare `fullsend agent update fix` re-resolves
+    # to main.
+    - name: fix
+      source: https://raw.githubusercontent.com/fullsend-ai/agents/87a43fcb849546b267a619434ca19dedde8df476/harness/fix.yaml#sha256=aa53c3e79b349b746014e7cfa213ab582e7464cf4226a1f08df96490d27385dc
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/
