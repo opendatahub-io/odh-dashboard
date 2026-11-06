@@ -3,15 +3,25 @@ import { Contextual } from './Contextual';
 type MonacoModel = {
   getValue: () => string;
   setValue: (value: string) => void;
+  uri?: { toString: () => string };
+};
+
+type MonacoMarker = {
+  severity: number;
+  message: string;
+  resource?: { toString: () => string };
 };
 
 type MonacoGlobal = {
   editor: {
     getModels: () => MonacoModel[];
+    getModelMarkers: (filter: object) => MonacoMarker[];
     getEditors: () => {
       getDomNode: () => HTMLElement | null;
       getModel: () => MonacoModel | null;
     }[];
+    // MarkerSeverity.Error === 8 in monaco-editor
+    MarkerSeverity?: { Error: number };
   };
 };
 
@@ -115,5 +125,57 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
 
   download(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('button[aria-label="Download code"]');
+  }
+
+  /**
+   * Waits for Monaco error markers (monaco-yaml syntax diagnostics) on the editor model.
+   * Severity 8 = MarkerSeverity.Error.
+   */
+  expectErrorMarkers(minCount = 1): void {
+    this.waitForReady();
+    this.find().then(($container) => {
+      cy.window().should((win) => {
+        const { monaco } = win as unknown as { monaco?: MonacoGlobal };
+        if (!monaco) {
+          throw new Error('Monaco editor was not found on window');
+        }
+        const editors = monaco.editor.getEditors().filter((editor) => {
+          const node = editor.getDomNode();
+          return node !== null && $container[0].contains(node);
+        });
+        expect(editors, 'Monaco editor inside the requested code editor').to.have.length(1);
+        const model = editors[0].getModel();
+        if (!model) {
+          throw new Error('The code editor has no Monaco model');
+        }
+        const errorSeverity = monaco.editor.MarkerSeverity?.Error ?? 8;
+        const markers = monaco.editor
+          .getModelMarkers({})
+          .filter((marker) => marker.severity === errorSeverity);
+        expect(markers.length, 'Monaco error markers').to.be.at.least(minCount);
+      });
+    });
+  }
+
+  expectNoErrorMarkers(): void {
+    this.waitForReady();
+    this.find().then(($container) => {
+      cy.window().should((win) => {
+        const { monaco } = win as unknown as { monaco?: MonacoGlobal };
+        if (!monaco) {
+          throw new Error('Monaco editor was not found on window');
+        }
+        const editors = monaco.editor.getEditors().filter((editor) => {
+          const node = editor.getDomNode();
+          return node !== null && $container[0].contains(node);
+        });
+        expect(editors, 'Monaco editor inside the requested code editor').to.have.length(1);
+        const errorSeverity = monaco.editor.MarkerSeverity?.Error ?? 8;
+        const markers = monaco.editor
+          .getModelMarkers({})
+          .filter((marker) => marker.severity === errorSeverity);
+        expect(markers, 'Monaco error markers').to.have.length(0);
+      });
+    });
   }
 }
