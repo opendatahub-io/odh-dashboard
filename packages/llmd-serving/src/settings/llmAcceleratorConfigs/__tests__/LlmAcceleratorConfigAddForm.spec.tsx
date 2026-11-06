@@ -13,10 +13,9 @@ import {
 } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../paths';
-import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
+const { wrapper } = createTestProviders();
 
 jest.mock('react-router-dom', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
@@ -25,10 +24,6 @@ jest.mock('react-router-dom', () => ({
   Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
   useNavigate: jest.fn(),
   useParams: jest.fn(),
-}));
-
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
 }));
 
 jest.mock('../../ConfigYAMLEditor', () =>

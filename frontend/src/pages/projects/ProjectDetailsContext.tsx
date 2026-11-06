@@ -222,6 +222,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
       <InvalidProject
         namespace={namespace}
         title={`Problem loading ${pageName}`}
+        syncWorkingProject={false}
         getRedirectPath={(ns) => `/projects/${ns}`}
       />
     );

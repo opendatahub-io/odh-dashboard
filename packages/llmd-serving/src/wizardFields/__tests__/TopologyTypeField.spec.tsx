@@ -15,10 +15,9 @@ import {
   useFetchTopologyConfigs,
   useFetchLLMInferenceServiceConfig,
 } from '../../api/LLMInferenceServiceConfigs';
-import { createHostApiWrapper } from '../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
+const { trackEvent: mockTrackEvent, wrapper } = createTestProviders();
 
 jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
@@ -98,7 +97,7 @@ describe('TopologyTypeField tracking', () => {
 
   it('should allow topology selection when the host disables tracking', async () => {
     render(<TopologyTypeFieldComponent id="llmd-serving/topology-type" onChange={mockOnChange} />, {
-      wrapper: createHostApiWrapper(() => undefined),
+      wrapper: createTestProviders({ trackEvent: () => undefined }).wrapper,
     });
 
     await openDropdown();

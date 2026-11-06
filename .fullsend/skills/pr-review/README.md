@@ -115,8 +115,10 @@ only. Host warns if `challenger.removed` ≠ audit list length.
 `### Justified (N)` (after the severity groups), not in the Challenger
 removed audit. Each shows the original severity, description, and
 `removal_reason` labeled as a justification. A fixed disclaimer notes
-these do not block disposition. The section is wrapped in HTML markers
-(`<!-- fullsend:justified-findings -->`) for downstream tooling.
+these do not block disposition. The section is delimited by the
+`### Justified (N)` heading; do not wrap it in an HTML comment.
+`fullsend post-review` escapes comment openers in agent-authored bodies,
+so a wrapper would show as visible text in the sticky.
 
 ### Author rebuttals (Justifications vs Evidence)
 
@@ -175,10 +177,11 @@ Control labels that must not appear in agent `label_actions`:
 
 ### Findings
 
-Host blocking: severity `medium` and above, except categories excluded in
-[`.fullsend/rating-policy.json`](../../rating-policy.json) (today:
-`protected-path` → needs judgment / `comment`, not author `request-changes`).
-`low` / `info` can ride with `approve`. Category `approach-rejected` → `reject`.
+Host blocking: the severities in `blocking_finding_severities`, except
+categories excluded in [`.fullsend/rating-policy.json`](../../rating-policy.json).
+`human_judgment_finding_severities` do not block but yield `comment` / needs
+judgment; `low` / `info` can ride with `approve`. Category `approach-rejected`
+→ `reject`.
 
 ### Checks
 
@@ -220,7 +223,7 @@ mismatch or incomplete checks; it does not invent risk.
 Closed recipe after the report is assembled (kind/status-driven, not producer-id
 branches). Prefer `{category,text}` objects:
 
-1. `findings` — blocking findings → remediation / location pointers
+1. `findings` — findings that block or need judgment → remediation / location pointers
 2. `checks` — check `fail` → that check’s summary
 3. `judgement` — check `could-not-verify`, refuse-approve levels from `rating-policy.json`, section `needs_human` → concrete follow-ups
 4. `nits` — one bullet per `low`/`info` finding with `actionable: true` (whenever
