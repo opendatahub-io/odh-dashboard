@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# CI-only RHAII overlay. It deploys the standalone release image to a fresh
+# Kind cluster without depending on the ODH dashboard/operator integration
+# scenario.
+namespace: opendatahub
+resources:
+  - ../../../distributions/core-bff/manifests/base
+patches:
+  # The production rendering path supplies the ServiceAccount namespace. Direct
+  # Kind application does not, so make the binding point to this test namespace.
+  - target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: rhaii-dashboard
+    patch: |-
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: rhaii-dashboard
+      subjects:
+        - kind: ServiceAccount
+          name: rhaii-dashboard
+          namespace: opendatahub
+  - path: rhaii-kind.patch.yaml
