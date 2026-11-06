@@ -89,8 +89,8 @@ jobs:
           # repository's definition. A fork PR can edit fullsend.yaml and run it on
           # pull_request or pull_request_review, and that run's artifact must not reach MLflow.
           src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
-            '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.head_repository.full_name // "-") \(.head_branch // "")"')
-          read -r src_path src_event src_repo src_sha src_head_repo src_branch <<< "$src"
+            '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.run_started_at // .created_at) \(.head_repository.full_name // "-") \(.head_branch // "")"')
+          read -r src_path src_event src_repo src_sha src_started src_head_repo src_branch <<< "$src"
           default_branch=$(gh api "repos/$REPO" --jq '.default_branch')
           case "$src_event" in
             pull_request_target | issue_comment | issues | workflow_dispatch | schedule) ;;
@@ -110,14 +110,24 @@ jobs:
             # pull_request_target runs the PR base branch's fullsend.yaml: the base must be the
             # default branch (an edited file on another branch could be targeted by a PR).
             # The run's PR is found by its head; none, several or a failed lookup is rejected.
-            bases=""
+            # The base is checked now, so it must also not have changed since the run started
+            # (a PR retargeted to the default branch afterwards); an unreadable timeline is rejected.
+            matches=""
             if [[ "$src_head_repo" == */* && -n "$src_branch" ]]; then
-              bases=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
+              matches=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
                 -f head="${src_head_repo%%/*}:$src_branch" \
-                --jq '.[] | "\(.head.repo.full_name // "-") \(.head.ref) \(.base.ref)"' \
-                | awk -v r="$src_head_repo" -v b="$src_branch" '$1 == r && $2 == b {print $3}' || true)
+                --jq '.[] | "\(.head.repo.full_name // "-") \(.head.ref) \(.base.ref) \(.number)"' \
+                | awk -v r="$src_head_repo" -v b="$src_branch" '$1 == r && $2 == b {print $3, $4}' || true)
             fi
-            [[ "$bases" == "$default_branch" ]] || src_event=""
+            src_pr=${matches#* }
+            if [[ "$matches" != "$default_branch "* || ! "$src_pr" =~ ^[0-9]+$ || ! "$src_started" =~ ^[0-9T:-]+Z$ ]]; then
+              src_event=""
+            elif ! changes=$(gh api --paginate "repos/$REPO/issues/$src_pr/timeline" \
+                --jq '.[] | select(.event == "base_ref_changed") | .created_at'); then
+              src_event=""
+            elif awk -v t="$src_started" '$1 >= t {found=1} END {exit !found}' <<< "$changes"; then
+              src_event=""  # retargeted after the run started: its base then is unknown
+            fi
           fi
           if [[ "$src_path" != .github/workflows/fullsend.yaml || "$src_repo" != "$REPO" || -z "$src_event" ]]; then
             echo "::warning::Run $RUN_ID is not a trusted Fullsend run (workflow, event, branch or repository); nothing to trace."

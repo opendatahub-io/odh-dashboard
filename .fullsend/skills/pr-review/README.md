@@ -560,7 +560,8 @@ retention; anyone who can read the experiment can read these traces.
 outcome. Only runs of this repository's `.github/workflows/fullsend.yaml` for events that use the
 base repository's definition (`pull_request_target`, `issue_comment`, `issues`,
 `workflow_dispatch`, `schedule`; all but `pull_request_target` must run from the default
-branch, and a `pull_request_target` run's PR must target it, since a run from another ref
+branch, and a `pull_request_target` run's PR must target it and not have been retargeted since
+the run started, since a run from another ref
 or a PR into another branch could use an edited file) are traced; a fork PR could edit that file and run it on
 `pull_request` or `pull_request_review`, so those runs are skipped. A run whose artifact
 list has no `fullsend-review` artifact is skipped; an
