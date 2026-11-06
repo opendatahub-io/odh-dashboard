@@ -95,6 +95,8 @@ Key differences from upstream `Dockerfile.workspace`:
 - Red Hat labels named after the image: `com.redhat.component="<image>-container"` and `name="managed-open-data-hub/<image>-rhel9"`, where `<image>` is the Phase 0 image name (default `odh-mod-arch-<name>`). The ProdSec registration key is a separate identifier, `rhoai/<image>-rhel9` (see SKILL.md Phase 6)
 - `CACHITO_ENV_FILE` support is optional — Konflux Cachi2 injects this file automatically during hermetic builds when prefetch is enabled; no Dockerfile changes are needed unless you opt into sourcing it explicitly
 
+The committed downstream file installs with `pnpm install --frozen-lockfile --offline`, which only works with the dependencies Hermeto prefetches in Konflux. A plain local `podman build` / `docker build` of it fails at that step even with network access. For a local smoke test, build a temporary copy with `--offline` replaced by `--prefer-offline` (for example `sed 's/--offline/--prefer-offline/' Dockerfile.konflux.<name> > /tmp/Dockerfile.local`), and keep `--offline` in the committed file.
+
 Snapshot from `rhoai-3.7-ea.1` (digests replaced with placeholders):
 
 ```dockerfile
