@@ -1,3 +1,4 @@
+import type { Interception } from 'cypress/types/net-stubbing';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockSecretK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
@@ -7,16 +8,24 @@ import { mockGlobalScopedHardwareProfiles } from '@odh-dashboard/hardware-profil
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
+import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { ConfigType, TopologyType } from '@odh-dashboard/llmd-serving/types';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../utils/modelServingConstants';
-import { modelServingGlobal, modelServingWizard } from '../../../pages/modelServing';
+import {
+  modelServingGlobal,
+  modelServingWizard,
+  modelServingWizardEdit,
+} from '../../../pages/modelServing';
 import { initMockGatewayIntercepts } from '../../../utils/modelServingUtils';
 import {
   HardwareProfileModel,
   InferenceServiceModel,
+  LLMInferenceServiceConfigModel,
   LLMInferenceServiceModel,
   ProjectModel,
   ServingRuntimeModel,
@@ -184,6 +193,175 @@ describe('Deployment wizard YAML view', () => {
     modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
     modelServingWizard.findGatewaySelect().should('contain.text', 'other-gateway | other-ns');
+  });
+
+  it('preserves annotations added in YAML through form edits and submit', () => {
+    // Plain llm-d deployment: turn MaaS off so submitting only updates the LLMInferenceService
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServe: false,
+        disableLLMd: false,
+        deploymentWizardYAMLViewer: true,
+        bidirectionalYamlWizardGa: true,
+        modelAsService: false,
+      }),
+    );
+    // Existing llm-d deployment, plus a connection so the form can read it
+    cy.interceptK8sList(
+      { model: LLMInferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockLLMInferenceServiceK8sResource({
+          name: 'test-llm-inference-service',
+          displayName: 'Test LLM Inference Service',
+          secretName: 'test-s3-secret',
+        }),
+      ]),
+    );
+    cy.intercept('PUT', '**/llminferenceservices/test-llm-inference-service*', (req) => {
+      req.reply({ statusCode: 200, body: req.body });
+    }).as('updateLLMInferenceService');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test LLM Inference Service').findKebabAction('Edit').click();
+
+    // A scheduler means llm-d, so the form selects it from the existing deployment
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit
+      .findDeploymentMethodRadio('llm-inference-service-llmd')
+      .should('be.checked');
+
+    // Add a base resource annotation and a scheduler annotation in YAML
+    modelServingWizardEdit.yaml.findYAMLViewerToggle('YAML').click();
+    editYaml(
+      (yaml) =>
+        yaml
+          .replace(/^(\s*)annotations:$/m, '$1annotations:\n$1  custom.example.com/hello: base')
+          .replace(/^(\s*)scheduler:$/m, '$1scheduler:\n$1  annotations:\n$1    hello: hello'),
+      'custom.example.com/hello: base',
+    );
+
+    // Back to the form: llm-d is still selected, and editing the form must not drop the annotations
+    modelServingWizardEdit.yaml.findYAMLViewerToggle('Form').click();
+    modelServingWizardEdit
+      .findDeploymentMethodRadio('llm-inference-service-llmd')
+      .should('be.checked');
+    modelServingWizardEdit
+      .findModelDeploymentDescriptionInput()
+      .clear()
+      .type('updated from the form');
+
+    modelServingWizardEdit.yaml.findYAMLViewerToggle('YAML').click();
+    modelServingWizardEdit.yaml
+      .findYAMLCodeEditor()
+      .shouldContainTextInModel('custom.example.com/hello: base');
+    modelServingWizardEdit.yaml.findYAMLCodeEditor().shouldContainTextInModel('hello: hello');
+
+    // Submit from the form and confirm the annotations survive into the update request
+    modelServingWizardEdit.yaml.findYAMLViewerToggle('Form').click();
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+    modelServingWizardEdit.findSubmitButton().click();
+
+    cy.wait('@updateLLMInferenceService'); // dry run
+    cy.wait('@updateLLMInferenceService').then((interception) => {
+      expect(interception.request.body.metadata.annotations['custom.example.com/hello']).to.equal(
+        'base',
+      );
+      expect(interception.request.body.spec.router.scheduler.annotations).to.deep.equal({
+        hello: 'hello',
+      });
+    });
+  });
+
+  it('uses the accelerator picked in the form after a YAML round-trip', () => {
+    // Enable the accelerator field (needs vLLM-on-MaaS) without the MaaS side effects
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableKServe: false,
+        disableLLMd: false,
+        deploymentWizardYAMLViewer: true,
+        bidirectionalYamlWizardGa: true,
+        vLLMDeploymentOnMaaS: true,
+        modelAsService: false,
+      }),
+    );
+    const acceleratorConfigs = [
+      mockLLMInferenceServiceConfigK8sResource({
+        name: 'vllm-rocm',
+        displayName: 'vLLM ROCm',
+        configType: ConfigType.ACCELERATOR,
+        supportedTopologies: [TopologyType.SINGLE_NODE],
+      }),
+      mockLLMInferenceServiceConfigK8sResource({
+        name: 'vllm-cuda',
+        displayName: 'vLLM CUDA',
+        configType: ConfigType.ACCELERATOR,
+        supportedTopologies: [TopologyType.SINGLE_NODE],
+      }),
+    ];
+    cy.interceptK8sList(
+      { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+      mockK8sResourceList(acceleratorConfigs),
+    );
+    cy.interceptK8sList(
+      { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8s(
+      'POST',
+      { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+      (req) => {
+        req.reply({ statusCode: 200, body: req.body });
+      },
+    ).as('createLLMInferenceServiceConfig');
+
+    setupWizardWithFormData();
+
+    // Pick accelerator A
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.selectGlobalScopedTemplateOption('vLLM ROCm');
+    modelServingWizard
+      .findServingRuntimeTemplateSearchSelector()
+      .should('contain.text', 'vLLM ROCm');
+
+    // Make a YAML-only change (not represented in the form) and come back to the form
+    modelServingWizard.yaml.findYAMLViewerToggle('YAML').click();
+    editYaml(
+      (yaml) =>
+        yaml.replace(/(\n\s*)annotations:/, '$1annotations:\n$1  example.com/yaml-only: kept'),
+      'example.com/yaml-only: kept',
+    );
+    modelServingWizard.yaml.findYAMLViewerToggle('Form').click();
+
+    // Switch accelerator A -> B
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.selectGlobalScopedTemplateOption('vLLM CUDA');
+    modelServingWizard
+      .findServingRuntimeTemplateSearchSelector()
+      .should('contain.text', 'vLLM CUDA');
+
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+    modelServingWizard.findSubmitButton().should('be.enabled').click();
+
+    const rocmRef = `${MODEL_NAME}-vllm-rocm`;
+    const cudaRef = `${MODEL_NAME}-vllm-cuda`;
+
+    cy.wait('@createLLMInferenceService').then((interception) => {
+      expect(interception.request.body.metadata.annotations).to.containSubset({
+        'opendatahub.io/accelerator-config-ref': cudaRef,
+      });
+      expect(interception.request.body.spec.baseRefs).to.deep.equal([{ name: cudaRef }]);
+    });
+
+    // Only the accelerator chosen in the form gets copied into the project
+    cy.get<Interception[]>('@createLLMInferenceServiceConfig.all').then((interceptions) => {
+      const names = interceptions.map((i) => i.request.body.metadata.name);
+      expect(names).to.include(cudaRef);
+      expect(names).not.to.include(rocmRef);
+    });
   });
 
   it('shows the YAML errors modal and stays in YAML when cancelled', () => {

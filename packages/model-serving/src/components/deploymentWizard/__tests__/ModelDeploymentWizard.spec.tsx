@@ -68,6 +68,7 @@ describe('ModelDeploymentWizard submit readiness', () => {
     });
     jest.mocked(useFormToResourcesTransformer).mockReturnValue({
       resources: {},
+      setLatestResourcesFromYaml: jest.fn(),
       loaded: true,
       errors: [],
     });

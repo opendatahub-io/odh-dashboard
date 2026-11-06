@@ -292,9 +292,12 @@ export const useExtractFormDataFromDeployment = (
     [loadingError, extractionError, validationErrors],
   );
 
-  return {
-    formData,
-    loaded,
-    errors,
-  };
+  return React.useMemo(
+    () => ({
+      formData,
+      loaded,
+      errors,
+    }),
+    [formData, loaded, errors],
+  );
 };

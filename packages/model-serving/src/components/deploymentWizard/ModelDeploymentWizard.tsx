@@ -71,7 +71,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     project?.metadata.name,
     externalData,
   );
-  const { resources: formAsResources } = useFormToResourcesTransformer(
+  const { resources: formAsResources, setLatestResourcesFromYaml } = useFormToResourcesTransformer(
     wizardFormData,
     existingDeployment,
   );
@@ -184,6 +184,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                   viewMode === 'yaml-edit' &&
                   initialDataFromYaml?.formData
                 ) {
+                  setLatestResourcesFromYaml(yamlAsResources.resources);
                   wizardFormData.dispatch({
                     type: 'reInitForm',
                     payload: { initialData: initialDataFromYaml.formData },
