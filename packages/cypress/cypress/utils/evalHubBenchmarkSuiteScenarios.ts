@@ -38,7 +38,8 @@ export type BenchmarkSuiteScenarioKey =
   | 'gallery'
   | 'curated-customize'
   | 'curated-run'
-  | 'duplicate';
+  | 'duplicate'
+  | 'edit';
 
 export type EvalHubBenchmarkSuiteScenario = {
   setup: () => void;
@@ -60,6 +61,8 @@ const getScenarioFixturePath = (key: BenchmarkSuiteScenarioKey): string => {
       return 'e2e/eval-hub/testEvalHubCuratedCollectionRun.yaml';
     case 'duplicate':
       return 'e2e/eval-hub/testEvalHubBenchmarkSuiteDuplicate.yaml';
+    case 'edit':
+      return 'e2e/eval-hub/testEvalHubBenchmarkSuiteEdit.yaml';
     case 'save-and-run':
     case 'gallery':
       return 'e2e/eval-hub/testEvalHubBenchmarkSuite.yaml';
@@ -73,6 +76,7 @@ const getScenarioUuid = (key: BenchmarkSuiteScenarioKey): string => {
     'curated-customize': 'EVAL_HUB_CURATED_CUSTOMIZE_UUID',
     'curated-run': 'EVAL_HUB_CURATED_RUN_UUID',
     duplicate: 'EVAL_HUB_SUITE_DUPLICATE_UUID',
+    edit: 'EVAL_HUB_SUITE_EDIT_UUID',
   };
   const envKey = envKeys[key];
   const uuid = Cypress.env(envKey) || generateTestUUID();
@@ -230,7 +234,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
   };
 
   const createSavedCollection = (): void => {
-    cy.step('[Setup] Create a saved collection to use as the duplicate source');
+    cy.step('[Setup] Create a saved collection for this scenario');
     createBenchmarkSuite({
       suiteName: createdSuiteName,
       suiteDomains: testData.suiteDomains,

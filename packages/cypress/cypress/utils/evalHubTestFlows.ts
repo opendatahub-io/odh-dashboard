@@ -601,9 +601,9 @@ export const navigateToEvaluationsPage = (
   });
 };
 
-// Collection copy flow helpers
-/** Names a copied collection and advances the wizard to benchmark configuration. */
-const advanceCopyCollectionWizard = (
+// Collection editor flow helpers
+/** Names an edited or copied collection and opens its benchmark configuration. */
+const advanceCollectionEditorToBenchmarks = (
   collectionName: string,
   navigationTimeout: Partial<Cypress.Timeoutable>,
 ): void => {
@@ -613,13 +613,13 @@ const advanceCopyCollectionWizard = (
   createEvaluationPage.findCopySuiteStepBenchmarks(navigationTimeout).should('be.visible');
 };
 
-/** Saves a copied collection without starting an evaluation run. */
-const saveCopiedCollectionOnly = (): void => {
+/** Saves collection changes without starting an evaluation run. */
+const saveCollectionWithoutRun = (): void => {
   createEvaluationPage.findCopySuiteSaveOnlyButton().should('be.enabled').click();
 };
 
-/** Confirms the copy flow returned to collections and the named copies appear under Evaluate. */
-const verifyCopiedCollectionsVisible = (
+/** Confirms saved collections appear under Evaluate after returning from the editor. */
+const verifySavedCollectionsVisible = (
   evaluationTenantProject: string,
   collectionNames: string[],
   navigationTimeout: Partial<Cypress.Timeoutable>,
@@ -683,7 +683,7 @@ export const customizeCuratedCollection = (
     .findCopySuitePrerequisiteAlert()
     .should('contain.text', 'multiple tool/function calls');
   cy.step('Name the collection and keep the curated benchmarks selected');
-  advanceCopyCollectionWizard(customizedCollectionName, navigationTimeout);
+  advanceCollectionEditorToBenchmarks(customizedCollectionName, navigationTimeout);
   createEvaluationPage.findBenchmarkParameterInput(0, 'judge_model').should('not.exist');
   cy.step('Limit each benchmark to five examples');
   createEvaluationPage
@@ -722,9 +722,9 @@ export const customizeCuratedCollection = (
       });
     });
   // Save the customized collection without launching it; the spec verifies the run separately.
-  saveCopiedCollectionOnly();
+  saveCollectionWithoutRun();
   cy.step('Verify the customized collection is available under Evaluate');
-  verifyCopiedCollectionsVisible(
+  verifySavedCollectionsVisible(
     evaluationTenantProject,
     [customizedCollectionName],
     navigationTimeout,
@@ -758,7 +758,7 @@ export const duplicateSavedBenchmarkCollection = (
   );
 
   cy.step('Name the duplicate and keep the source benchmarks selected');
-  advanceCopyCollectionWizard(duplicatedCollectionName, navigationTimeout);
+  advanceCollectionEditorToBenchmarks(duplicatedCollectionName, navigationTimeout);
 
   cy.step('Verify the duplicate retains its sample counts and tokenizer');
   createEvaluationPage.findBenchmarkSections().should('have.length', expectedBenchmarks.length);
@@ -778,7 +778,7 @@ export const duplicateSavedBenchmarkCollection = (
   cy.intercept('POST', '**/eval-hub/api/v1/evaluations/collections/*/clones*').as(
     'cloneEvalHubCollection',
   );
-  saveCopiedCollectionOnly();
+  saveCollectionWithoutRun();
   cy.wait('@cloneEvalHubCollection', { timeout: 120000 }).then(({ request, response }) => {
     expect(response?.statusCode).to.equal(201);
     expect(request.body).to.have.property('name', duplicatedCollectionName);
@@ -806,7 +806,7 @@ export const duplicateSavedBenchmarkCollection = (
       );
     });
   });
-  verifyCopiedCollectionsVisible(
+  verifySavedCollectionsVisible(
     evaluationTenantProject,
     [sourceCollectionName, duplicatedCollectionName],
     navigationTimeout,
@@ -819,6 +819,94 @@ export const duplicateSavedBenchmarkCollection = (
         },
       ),
   );
+};
+
+/** Edits a saved collection's sample count and verifies the saved PATCH payload. */
+export const editSavedBenchmarkCollection = (
+  evaluationTenantProject: string,
+  collectionName: string,
+  expectedBenchmarks: EvalHubBenchmarkSuiteTestData['benchmarks'],
+  updatedNumExamples: number,
+  expectedBenchmarkParameters: Record<string, unknown>,
+): void => {
+  const navigationTimeout = { timeout: 120000 };
+
+  navigateToEvaluationsPage(evaluationTenantProject);
+  cy.step(`Open the saved collection for editing: ${collectionName}`);
+  findEvalHubCollectionIdByName(evaluationTenantProject, collectionName).then((collectionId) => {
+    evaluationsPage.findBenchmarkSuiteMenu(collectionId).should('be.visible').click();
+    evaluationsPage.findBenchmarkSuiteAction('edit', collectionId).should('be.enabled').click();
+    cy.location('pathname', navigationTimeout).should(
+      'eq',
+      `/evaluation/${evaluationTenantProject}/create/collections/${collectionId}/edit`,
+    );
+  });
+
+  cy.step('Check saved settings and update each benchmark sample count');
+  advanceCollectionEditorToBenchmarks(collectionName, navigationTimeout);
+  expectedBenchmarks.forEach(({ numExamples }, index) => {
+    createEvaluationPage
+      .findBenchmarkParameterInput(index, 'num_examples')
+      .should('have.value', String(numExamples));
+    Object.entries(expectedBenchmarkParameters).forEach(([parameterKey, parameterValue]) => {
+      createEvaluationPage
+        .findBenchmarkParameterInput(index, parameterKey)
+        .should('have.value', String(parameterValue));
+    });
+    setBenchmarkNumExamples(
+      index,
+      updatedNumExamples,
+      `Set benchmark ${index + 1} to ${updatedNumExamples} examples`,
+    );
+  });
+
+  cy.step('Save the edited collection and verify the PATCH payload');
+  cy.intercept('PATCH', '**/eval-hub/api/v1/evaluations/collections/*').as(
+    'updateEvalHubCollection',
+  );
+  saveCollectionWithoutRun();
+  cy.wait('@updateEvalHubCollection', { timeout: 120000 }).then(({ request, response }) => {
+    expect(response?.statusCode).to.equal(200);
+    const patchOperations = request.body as {
+      op: string;
+      path: string;
+      value: unknown;
+    }[];
+    const benchmarksOperation = patchOperations.find(({ path }) => path === '/benchmarks');
+    expect(benchmarksOperation?.op, 'benchmark patch operation').to.equal('replace');
+    expect(benchmarksOperation?.value, 'edited benchmark values').to.be.an('array');
+    const patchedBenchmarks = benchmarksOperation?.value as {
+      id: string;
+      parameters?: Record<string, unknown>;
+    }[];
+    expect(patchedBenchmarks).to.have.length(expectedBenchmarks.length);
+    patchedBenchmarks.forEach((benchmark, index) => {
+      expect(benchmark.id).to.equal(expectedBenchmarks[index].id);
+      assertBenchmarkParametersIncluded(
+        benchmark.parameters,
+        {
+          // eslint-disable-next-line camelcase
+          num_examples: updatedNumExamples,
+          ...expectedBenchmarkParameters,
+        },
+        `edited benchmark ${benchmark.id}`,
+      );
+    });
+  });
+  verifySavedCollectionsVisible(evaluationTenantProject, [collectionName], navigationTimeout);
+};
+
+/** Confirms the Edit action is disabled after a saved collection has been run. */
+export const verifySavedBenchmarkCollectionEditDisabled = (
+  evaluationTenantProject: string,
+  collectionName: string,
+): void => {
+  navigateToEvaluationsPage(evaluationTenantProject);
+  cy.step(`Verify Edit is disabled for the run collection: ${collectionName}`);
+  findEvalHubCollectionIdByName(evaluationTenantProject, collectionName).then((collectionId) => {
+    evaluationsPage.findBenchmarkSuiteMenu(collectionId).should('be.visible').click();
+    evaluationsPage.findBenchmarkSuiteAction('edit', collectionId).should('be.disabled');
+  });
 };
 
 /** Removes stale EvalHub runs left by an earlier attempt using the same E2E tenant. */
