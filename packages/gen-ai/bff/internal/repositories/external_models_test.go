@@ -74,6 +74,11 @@ func (r *recordingServiceClient) GetService(ctx context.Context, identity *integ
 
 func boolPtr(b bool) *bool { return &b }
 
+func policyLocal() *corev1.ServiceInternalTrafficPolicy {
+	p := corev1.ServiceInternalTrafficPolicyLocal
+	return &p
+}
+
 // podRefAt returns a Pod targetRef for the named Pod in the given namespace.
 func podRefAt(ns, name string) *corev1.ObjectReference {
 	return &corev1.ObjectReference{Kind: "Pod", Namespace: ns, Name: name}
@@ -848,6 +853,68 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "another namespace") {
 			t.Errorf("VerifyExternalModel() error = %v, want cross-namespace denial message", err)
+		}
+	})
+
+	t.Run("internalTrafficPolicy Local Service is not trusted via its VIP name", func(t *testing.T) {
+		// With Local policy, kube-proxy only routes the VIP to endpoints on the
+		// BFF's node; the pinned dial bypasses that filtering, so verification
+		// must fail closed instead of reporting a URL the BFF cannot use.
+		client := &k8smocks.ConfigurableMockKubernetesClient{
+			Service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+				Spec: corev1.ServiceSpec{
+					Type:                  corev1.ServiceTypeClusterIP,
+					Selector:              map[string]string{"app": "my-model"},
+					InternalTrafficPolicy: policyLocal(),
+					Ports:                 []corev1.ServicePort{{Name: "https", Port: 8443, TargetPort: intstr.FromInt32(8443)}},
+				},
+			},
+			EndpointSlices: []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+			Pod:            runningPod("my-ns", "127.0.0.1"),
+		}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want Local-policy Service to fail closed")
+		}
+		if strings.Contains(err.Error(), "pinned dial") {
+			t.Errorf("VerifyExternalModel() error = %v, a Local-policy VIP name must not be pinned-dialed", err)
+		}
+	})
+
+	t.Run("internalTrafficPolicy Local headless Service is still trusted", func(t *testing.T) {
+		// Headless Services have no VIP: normal traffic goes directly to the
+		// endpoint addresses, so Local policy does not apply and the pinned dial
+		// matches real routing.
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatalf("failed to reserve an ephemeral port: %v", err)
+		}
+		closedPort := listener.Addr().(*net.TCPAddr).Port
+		if err := listener.Close(); err != nil {
+			t.Fatalf("failed to release the ephemeral port: %v", err)
+		}
+		req := req
+		req.BaseURL = fmt.Sprintf("https://my-model.my-ns.svc.cluster.local:%d/v1", closedPort)
+		client := &k8smocks.ConfigurableMockKubernetesClient{
+			Service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+				Spec: corev1.ServiceSpec{
+					Type:                  corev1.ServiceTypeClusterIP,
+					ClusterIP:             corev1.ClusterIPNone,
+					Selector:              map[string]string{"app": "my-model"},
+					InternalTrafficPolicy: policyLocal(),
+				},
+			},
+			EndpointSlices: []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+			Pod:            runningPod("my-ns", "127.0.0.1"),
+		}
+		_, err = repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want pinned dial failure to the loopback address with nothing listening")
+		}
+		if !strings.Contains(err.Error(), "pinned dial") {
+			t.Errorf("VerifyExternalModel() error = %v, want pinned dial failure for the trusted headless Service", err)
 		}
 	})
 

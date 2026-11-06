@@ -382,6 +382,21 @@ func resolveTrustedHost(
 	} else {
 		backendPort = urlPort
 	}
+	// internalTrafficPolicy: Local makes kube-proxy route VIP traffic only to
+	// endpoints on the traffic source's node — the BFF's node — treating the
+	// Service as endpoint-less from nodes without a local endpoint. The pinned
+	// dial bypasses the VIP and would reach a remote Pod directly, reporting
+	// success for a URL the BFF cannot use normally. The BFF cannot determine
+	// its own node to filter endpoints by locality, so fail closed. Headless
+	// Services and pod-specific DNS names bypass the VIP in normal traffic too,
+	// so the policy does not apply to them.
+	if !directEndpoint &&
+		svc.Spec.InternalTrafficPolicy != nil &&
+		*svc.Spec.InternalTrafficPolicy == corev1.ServiceInternalTrafficPolicyLocal {
+		logger.Warn("service uses internalTrafficPolicy Local; node-local routing cannot be verified for the pinned dial",
+			"service", svcName, "namespace", svcNamespace)
+		return false, nil, nil
+	}
 	slices, err := client.GetServiceEndpointSlices(ctx, identity, svcNamespace, svcName)
 	if err != nil {
 		if apierrors.IsForbidden(err) {
