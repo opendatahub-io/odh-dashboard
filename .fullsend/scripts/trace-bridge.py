@@ -610,7 +610,7 @@ def shell_segments_ctx(cmd):
             ncond -= bool(stack.pop()[1])
 
     def flush():
-        nonlocal toks, neg_pipe
+        nonlocal toks, neg_pipe, func_body
         negated = False
         while toks and toks[0] in COMPOUND_INNER:
             negated = negated or toks[0] == "!"  # ! cmd: the status no longer shows cmd's success
@@ -621,6 +621,8 @@ def shell_segments_ctx(cmd):
         if toks and toks[0] in COMPOUND_CLOSE:
             close("compound")
             toks = toks[1:]
+        if len(toks) == 2 and toks[0] == "function":
+            func_body = True  # "function NAME" then a newline: the next { ... } is its body
         if toks:
             # ! negates the whole pipeline, so later | segments of it are negated too.
             neg_pipe = negated or (neg_pipe and op == "|")
@@ -1911,6 +1913,9 @@ def self_test():
          and shell_reads("cat docs/adr/0009-x.md 2>&1") == ["docs/adr/0009-x.md"]
          and shell_reads("f()\n{ cat docs/adr/0009-x.md; }") == []
          and shell_reads("f() ( cat docs/adr/0009-x.md )") == []
+         and shell_reads("function g { cat docs/adr/0009-x.md; }") == []
+         and shell_reads("function g\n{ cat docs/adr/0009-x.md; }") == []
+         and shell_reads("function g\n{ cat a/b.md; }\ncat c/d.md") == ["c/d.md"]
          and shell_reads("cat 3<docs/adr/0009-x.md") == []
          and shell_reads("cat 0<docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]),
         ("a newline after &&, || or | continues the command",
