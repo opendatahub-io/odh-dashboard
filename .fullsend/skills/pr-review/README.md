@@ -530,7 +530,8 @@ fallback (`cat f || true`) or a pipe (`cat f | head`), negated pipelines (`! cat
 `! true | cat f`), background jobs (`cat f &`), input redirections to programs that
 don't show the file (`grep -q x < f`), reads whose output is sent away (`cat f >/dev/null`,
 `cat f >& file`, `cat f 2>/dev/null 1>&2`; redirections are followed in order), `sed -i`, bodies of functions that may never be called (`f() { cat f; }`), and
-anything after `exit` do not count. Relative paths are resolved against
+anything after an `exit` that may have ended the shell (`exit 0`, `exit`, `exit $x`; a literal
+nonzero `exit 1` can't have, in a command that succeeded) do not count. Relative paths are resolved against
 a top-level `cd` whose success is established (by the same rule); after any other directory change they are dropped. Coverage needs
 `.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
 reviewed commit: when the selector is missing, or the PR head has moved past that commit
@@ -562,8 +563,9 @@ Fullsend run's own head commit, repository and branch, which must match exactly 
 (comment- and review-triggered runs report the default branch, so they carry none); the bridge gets it as
 `--pr-number` and ignores the PR fields the sandbox wrote. Without a single match the
 trace is sent without PR identity. The reviewed commit (`fullsend.head_sha`) comes from the
-same run, and the verdict from the Fullsend bot's review posted during it; the artifact's
-`action` is used only when no such review exists (for example `failure`). A failed PR, files, run
+same run, and `fullsend.verdict` only from the Fullsend bot's review posted during it; the
+artifact's `action` is exported separately as `fullsend.verdict.claimed` (for example
+`failure`, which posts no review). The matched PR must also contain the reviewed commit. A failed PR, files, run
 or review lookup only drops that optional metadata (author, coverage, posted verdict);
 the spans are still sent. If guidance selection fails, the trace is sent without coverage.
 If the endpoint is unreachable, the job fails and the review is unaffected; rerun it from

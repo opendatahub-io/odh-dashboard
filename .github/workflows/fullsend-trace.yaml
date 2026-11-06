@@ -135,15 +135,24 @@ jobs:
             echo "::warning::No single PR matches the run's head commit and branch; tracing without PR identity."
             exit 0
           fi
-          echo "pr_number=$pr" >> "$GITHUB_OUTPUT"
-          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"  # the reviewed commit, from the run
-          # PR metadata is optional: an API failure loses it, but the spans are still sent.
           if ! meta=$(gh api "repos/$REPO/pulls/$pr" --jq '"\(.user.login) \(.head.sha)"'); then
-            echo "::warning::PR lookup failed; tracing without PR metadata."
+            echo "::warning::PR lookup failed; tracing without PR identity."
             exit 0
           fi
           author=${meta% *}
           current_head=${meta#* }
+          # The match must own the reviewed commit (a stale PR from a reused branch doesn't):
+          # it is the PR's head, or one of its commits once the PR has moved on.
+          commits=$current_head
+          if [[ "$head_sha" != "$current_head" ]]; then
+            commits=$(gh api --paginate "repos/$REPO/pulls/$pr/commits" --jq '.[].sha' || true)
+          fi
+          if ! grep -qx "$head_sha" <<< "$commits"; then
+            echo "::warning::PR #$pr doesn't contain the reviewed commit; tracing without PR identity."
+            exit 0
+          fi
+          echo "pr_number=$pr" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"  # the reviewed commit, from the run
           # Coverage is scored against the files of the reviewed commit. The PR files API
           # only shows the current head, so coverage is omitted once the PR has moved on
           # (a later push, or a backfill of an older review).

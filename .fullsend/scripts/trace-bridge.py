@@ -663,6 +663,12 @@ def shell_segments_ctx(cmd):
                     starts.append((len(stack), len(segs)))
             toks = []
             continue
+        if not isinstance(t, Op) and t == "{" and len(toks) == 2 and toks[0] == "function":
+            flush()  # "function NAME {" on one line: the declaration, then its body
+            toks = []
+            push("brace", True)
+            func_body = False
+            continue
         if not toks and not isinstance(t, Op) and t == "{":
             push("brace", func_body or op in ("&&", "||") or cond())
             func_body = False
@@ -698,9 +704,16 @@ def _lists(segs):
 
 
 def _before_exit(segs):
-    """Indexes before the first exit/return/logout anywhere: nothing after one is known to run."""
+    """Indexes before the first exit/return/logout that may have ended the shell: nothing
+    after one is known to run. An exit with a literal nonzero status can't have ended a
+    command that succeeded (in a subshell it only ends the subshell), so it doesn't cut;
+    any other exit (exit, exit 0, exit $x) does, wherever it is."""
     for k, (_op, toks, *_rest) in enumerate(segs):
-        if _program(toks)[1] in EXIT_PROGS:
+        i, prog = _program(toks)
+        if prog in EXIT_PROGS:
+            args = [t for t in toks[i + 1:] if not is_redirect(t)]
+            if args and re.fullmatch(r"0*[1-9]\d{0,2}", str(args[0])):
+                continue
             return set(range(k))
     return set(range(len(segs)))
 
@@ -1206,17 +1219,13 @@ def build(args):
     def level(v):
         v = v.get("level") if isinstance(v, dict) else v
         return v if v in ("low", "medium", "high", "critical") else None
-    # The review the host posted (--verdict, from GitHub) wins: the artifact is written in the
-    # sandbox. Without a posted review, the artifact's action is used (unknown values export
-    # as "other"), which keeps outcomes such as "failure" that post no review.
+    # fullsend.verdict is only the review the host posted (--verdict, from GitHub). The
+    # artifact is written in the sandbox, so its action is kept apart as what the agent
+    # claimed (unknown values export as "other"); outcomes such as "failure" post no review.
     action = result.get("action")
-    if args.verdict in VERDICTS:
-        verdict = args.verdict
-    elif action is not None:
-        verdict = action if action in VERDICTS else "other"
-    else:
-        verdict = None
-    rr = {"fullsend.verdict": verdict, "fullsend.findings.count": len(findings),
+    verdict = args.verdict if args.verdict in VERDICTS else None
+    claimed = None if action is None else action if action in VERDICTS else "other"
+    rr = {"fullsend.verdict": verdict, "fullsend.verdict.claimed": claimed, "fullsend.findings.count": len(findings),
           "fullsend.findings.by_severity": dict(sev), "fullsend.findings.by_dimension": dict(dim),
           "fullsend.risk": level(risk), "fullsend.confidence": level(conf),
           "fullsend.producers.dispatched": dispatched, "fullsend.producers.skipped": skipped,
@@ -1254,6 +1263,7 @@ def build(args):
     # MLflow trace tags: filterable and sortable in the trace table. MLflow's own cost
     # column prices tokens without cache discounts, so the real cost goes here too.
     tags = {"fullsend.pr": pr_key, "fullsend.verdict": verdict,
+            "fullsend.verdict.claimed": rr["fullsend.verdict.claimed"],
             "fullsend.cost_usd": num(metrics.get("total_cost_usd")),
             "fullsend.guidance.coverage": cov["fullsend.guidance.coverage"],
             "fullsend.guidance.missed_count": len(cov["fullsend.guidance.missed"]) if applicable else None,
@@ -1722,7 +1732,8 @@ def self_test():
     def variant(result, verdict=None, **over):
         json.dump(result, open(result_path, "w"))
         return build(argparse.Namespace(**dict(vars(args), artifact=bad_result, verdict=verdict, **over)))
-    v_failure = variant({"action": "failure"})[1]["tags"].get("fullsend.verdict")
+    v_failure = variant({"action": "failure"})[1]["tags"].get("fullsend.verdict.claimed")
+    v_failure_verdict = variant({"action": "failure"})[1]["tags"].get("fullsend.verdict")
     v_posted = variant({"action": "approve"}, "request-changes")[1]["tags"].get("fullsend.verdict")
     trusted_sha = variant({"head_sha": "b" * 40}, head_sha="c" * 40)[0]
     no_sha = variant({"head_sha": "b" * 40}, head_sha="none")[0]
@@ -1731,7 +1742,7 @@ def self_test():
     trusted_pr = variant({"pr_number": 8, "repo": "evil/x"}, pr_number="7", repo="o/r")[1]
     no_trusted_pr = variant({"pr_number": 8, "repo": "evil/x"}, pr_number="none", repo="o/r")
     v_fallback = variant({}, "approve")[1]["tags"].get("fullsend.verdict")
-    v_unknown = variant({"action": "weird"})[1]["tags"].get("fullsend.verdict")
+    v_unknown = variant({"action": "weird"})[1]["tags"].get("fullsend.verdict.claimed")
     junk_payload, junk_summary = variant({
         "findings": ["x", {"severity": float("nan"), "dimension": ["d"]}], "producers": ["a"],
         "head_sha": float("nan")})
@@ -1748,7 +1759,8 @@ def self_test():
          sum(1 for x in spans if get(x, "fullsend.tool.path") == "y.ts") == 2),
         ("hostile agent-result: no verdict, risk, PR or repo in tags",
          not any(k in bad_summary["tags"] for k in ("fullsend.risk", "fullsend.pr"))
-         and bad_summary["tags"].get("fullsend.verdict") == "other" and bad_summary["pr"] is None),
+         and bad_summary["tags"].get("fullsend.verdict") is None
+         and bad_summary["tags"].get("fullsend.verdict.claimed") == "other" and bad_summary["pr"] is None),
         ("here-strings don't swallow later lines; emails, hostnames and outside paths aren't exported",
          any(["cat", "cat", "git", "curl", "cat", "curl", "echo", "wc", "grep", "sed", "grep", "grep",
               "rg", "jq", "grep", "sed", "sed", "git", "rg"] == p for p in shell_progs)
@@ -1768,9 +1780,10 @@ def self_test():
         ("PR key needs both repo and PR number (no 'None#7', no bool PR)",
          "fullsend.pr" not in no_repo["tags"] and no_repo["pr"] == 7 and bool_pr["pr"] is None
          and "None#" not in json.dumps(no_repo)),
-        ("the posted review's verdict wins over the artifact; without one, the artifact's action is "
-         "kept (failure kept, unknown is 'other'); a trusted --head-sha replaces the artifact's",
+        ("fullsend.verdict is only the posted review; the artifact's action is fullsend.verdict.claimed "
+         "(failure kept, unknown is 'other'); a trusted --head-sha replaces the artifact's",
          (v_failure, v_unknown, v_fallback, v_posted) == ("failure", "other", "approve", "request-changes")
+         and v_failure_verdict is None
          and "c" * 40 in json.dumps(trusted_sha) and "b" * 40 not in json.dumps(trusted_sha)
          and "b" * 40 not in json.dumps(no_sha)),
         ("malformed findings, producers, adapters and head_sha don't break the build or strict JSON",
@@ -1963,6 +1976,14 @@ def self_test():
          and shell_reads("sed -n '1,5p' .claude/rules/react.md") == [".claude/rules/react.md"]
          and shell_reads("sed -e 's/i/j/' .claude/rules/react.md") == [".claude/rules/react.md"]
          and ".claude/rules/react.md" in shell_summary("sed -i 's/a/b/' .claude/rules/react.md")[1]),
+        ("same-line function bodies stay uncalled; only an exit that may have ended the shell cuts",
+         shell_reads("function g { echo hi; cat docs/adr/0009-x.md; }") == []
+         and shell_reads("function g { echo hi; }; cat c/d.md") == ["c/d.md"]
+         and shell_reads("[ -f x ] || exit 1; cat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("(exit 3); cat c/d.md") == ["c/d.md"]
+         and shell_reads("[ -f x ] && exit 0; cat docs/adr/0009-x.md") == []
+         and shell_reads("if [ -f x ]; then exit; fi; cat docs/adr/0009-x.md") == []
+         and shell_reads("true || exit $rc; cat docs/adr/0009-x.md") == []),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
@@ -2018,8 +2039,10 @@ def self_test():
         ("coverage is 1 of 2", summary["coverage"] == 0.5 and summary["missed"] == ["docs/adr/0009-x.md"]),
         ("session and user set", get(by["review_result"], "session.id") == "o/r#7"
          and get(by["review_result"], "user.id") == "alice"),
-        ("tags carry real cost and verdict", summary["tags"].get("fullsend.cost_usd") == 0.5
-         and summary["tags"].get("fullsend.verdict") == "request-changes"),
+        ("tags carry real cost; the artifact's action is only the claimed verdict",
+         summary["tags"].get("fullsend.cost_usd") == 0.5
+         and summary["tags"].get("fullsend.verdict") is None
+         and summary["tags"].get("fullsend.verdict.claimed") == "request-changes"),
         ("single trace, unique span ids", len({s["traceId"] for s in spans}) == 1
          and len({s["spanId"] for s in spans}) == len(spans)),
         ("span ids are deterministic", [s["spanId"] for s in build(args)[0]["resourceSpans"][0]
