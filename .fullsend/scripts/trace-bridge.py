@@ -1025,20 +1025,17 @@ def shell_files(cmd, include_skipped=False):
         if not stdout_reaches_tool(toks) or (prog == "sed" and sed_in_place(toks[i + 1:])):
             counts = include_skipped
         redirect = None
+        stdin = []  # stdin redirections in order: a path, or None for one that isn't a file
+        has_operand = False  # a file operand: the program reads it, not stdin
         for t in without_patterns(prog, toks[i + 1:]):
             if redirect is not None:
                 path = resolve_path(cwd, t)
-                if redirect == "<" and redirect.fd not in ("", "0"):
+                if redirect.fd not in ("", "0") and redirect[0] == "<":
                     pass  # 3<f opens another descriptor: the program doesn't read it as input
                 elif redirect == "<":
-                    # A read only for a read program in a segment that succeeded; for any other
-                    # program (grep -q, true) the file's contents aren't shown, so it is
-                    # kept as path metadata only.
-                    if prog in READ_PROGS:
-                        if counts and path:
-                            reads.append(path)
-                    elif path:
-                        targets.append(path)
+                    stdin.append((path, len(targets)))
+                elif redirect in ("<<", "<<-", "<<<", "<&", "<>"):
+                    stdin.append((None, len(targets)))  # heredoc, here-string, fd copy: replaces stdin
                 elif ">" in redirect and redirect not in (">&", "<>") and path:
                     targets.append(path)
                 # <<, <<< (heredoc word / here-string text), >& and <& (fd numbers): not files
@@ -1047,10 +1044,21 @@ def shell_files(cmd, include_skipped=False):
             if is_redirect(t):
                 redirect = t
                 continue
-            if prog in READ_PROGS and counts and not t.startswith("-") and "*" not in t:
+            if prog in READ_PROGS and not t.startswith("-") and "*" not in t:
+                has_operand = True
                 path = resolve_path(cwd, t)
-                if path:
+                if counts and path:
                     reads.append(path)
+        # Only the last stdin redirection is what the program reads, and only a read program
+        # with no file operands reads stdin at all; the other paths are kept as metadata.
+        for j in range(len(stdin) - 1, -1, -1):  # backwards, so the insert positions hold
+            path, at = stdin[j]
+            if not path:
+                continue
+            if counts and prog in READ_PROGS and j == len(stdin) - 1 and not has_operand:
+                reads.append(path)
+            else:
+                targets.insert(at, path)
     return reads, targets
 
 
@@ -2053,6 +2061,14 @@ def self_test():
          and "SensitiveTail" not in clean('--token "a\\" SensitiveTail')
          and "SensitiveTail" not in clean("password='a SensitiveTail")
          and clean('password="a\\"b" keep') == "password=[REDACTED] keep"),
+        ("only the last stdin redirection counts, and only when the program reads stdin",
+         "AGENTS.md" not in shell_reads("cat < AGENTS.md < /dev/null")
+         and shell_reads("cat < AGENTS.md <<< ''") == []
+         and shell_reads("cat c/d.md < AGENTS.md") == ["c/d.md"]
+         and shell_reads("cat < /dev/null < AGENTS.md") == ["AGENTS.md"]
+         and shell_reads("cat - < AGENTS.md") == ["AGENTS.md"]
+         and "AGENTS.md" in shell_summary("cat < AGENTS.md < /dev/null")[1]
+         and "AGENTS.md" in shell_summary("cat c/d.md < AGENTS.md")[1]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
