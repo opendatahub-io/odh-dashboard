@@ -85,6 +85,20 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id must be numeric"; exit 1; }
+          # Only trace runs of this repository's own fullsend.yaml for events that use the base
+          # repository's definition. A fork PR can edit fullsend.yaml and run it on
+          # pull_request or pull_request_review, and that run's artifact must not reach MLflow.
+          src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '"\(.path) \(.event) \(.repository.full_name)"')
+          read -r src_path src_event src_repo <<< "$src"
+          case "$src_event" in
+            pull_request_target | issue_comment | issues | workflow_dispatch | schedule) ;;
+            *) src_event="" ;;
+          esac
+          if [[ "$src_path" != .github/workflows/fullsend.yaml || "$src_repo" != "$REPO" || -z "$src_event" ]]; then
+            echo "::warning::Run $RUN_ID is not a trusted Fullsend run (workflow, event or repository); nothing to trace."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           dest="$RUNNER_TEMP/artifact"
           mkdir -p "$dest"
           # Only a confirmed absence is a no-op; API and download errors fail the job so

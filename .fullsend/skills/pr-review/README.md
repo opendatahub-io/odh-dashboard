@@ -557,7 +557,11 @@ are capped at 1,000 characters. What MLflow keeps follows the MLflow instance's 
 retention; anyone who can read the experiment can read these traces.
 
 **Failure behavior.** The job runs outside the review, so it cannot change a review's
-outcome. A run whose artifact list has no `fullsend-review` artifact is skipped; an
+outcome. Only runs of this repository's `.github/workflows/fullsend.yaml` for events that use the
+base repository's definition (`pull_request_target`, `issue_comment`, `issues`,
+`workflow_dispatch`, `schedule`) are traced; a fork PR could edit that file and run it on
+`pull_request` or `pull_request_review`, so those runs are skipped. A run whose artifact
+list has no `fullsend-review` artifact is skipped; an
 artifact API or download error fails the job so it can be rerun. The PR identity comes from a `pull_request_target`
 Fullsend run's own head commit, repository and branch, which must match exactly one PR
 (comment- and review-triggered runs report the default branch, so they carry none); the bridge gets it as
@@ -586,9 +590,10 @@ back this up, a bridge-only export records `fullsend.bridge.pending` on the trac
 sending, failed or timed-out exports and marker writes try to record it too (best effort: if
 MLflow rejects that tag write as well, check the trace before choosing `bridge-only`), and `bridge-only` refuses
 a trace that has it. A
-malformed `agent-result.json` doesn't stop the export: the bridge takes the PR identity
-from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`), and the
-workflow skips the author, coverage and posted verdict. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
+malformed `agent-result.json` doesn't stop the export and doesn't affect the PR identity,
+author, coverage or posted verdict: in the workflow those come from the run and GitHub (the
+bridge's own `shared.md` fallback is only for runs without `--pr-number`). It only loses the
+artifact's own fields, such as the claimed verdict, risk and findings. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
 and then stops a normal run instead of exporting; rerun it. `recover: resend` and
 `recover: mark-only` don't wait on the lookup, so they go ahead even when it keeps failing. The bridge's run summary in the Actions log has counts and tags
 only, never the PR, run URL, file or guidance paths (missed guidance is a count); the
