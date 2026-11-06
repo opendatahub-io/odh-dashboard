@@ -1149,6 +1149,10 @@ declare global {
           response: OdhResponse<GlobalSearchResponse>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /maas/api/v1/api-keys/search',
+          response: { data: OdhResponse<APIKeyListResponse> },
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'POST /maas/api/v1/api-keys/search/tenant',
           response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
