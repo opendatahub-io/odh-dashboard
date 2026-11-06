@@ -1,6 +1,7 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import type { PodKind } from '@odh-dashboard/k8s-core';
 import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
+import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
 import { WorkloadModel, PodModel } from '@odh-dashboard/k8s-core/api/models';
 import {
   aggregateKueueStatusForModel,
@@ -73,13 +74,6 @@ export const buildWorkloadMapForNotebooks = (
 
 // Avoids importing @odh-dashboard/llmd-serving/types which is not a frontend dep.
 type NamedModelResource = { metadata: { name: string } };
-
-/** K8s kinds used as model-deployment map keys (name alone is not unique across kinds). */
-export type ModelDeploymentResourceKind = 'InferenceService' | 'LLMInferenceService';
-
-/** Stable map key: `InferenceService/foo` vs `LLMInferenceService/foo`. */
-export const buildModelDeploymentKey = (kind: ModelDeploymentResourceKind, name: string): string =>
-  `${kind}/${name}`;
 
 /**
  * Two-hop Workload-to-IS/LLMIS correlation (confirmed on live RHOAI + RHBoK cluster):
