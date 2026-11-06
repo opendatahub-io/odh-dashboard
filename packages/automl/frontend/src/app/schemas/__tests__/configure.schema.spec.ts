@@ -890,7 +890,7 @@ describe('createConfigureSchema', () => {
       }
     });
 
-    it('should reject quality preset for timeseries training', () => {
+    it('should accept quality preset for timeseries training', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,
         display_name: 'test',
@@ -899,12 +899,16 @@ describe('createConfigureSchema', () => {
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_TIMESERIES,
         target_column: 'target',
+        id_column: 'item_id',
+        timestamp_column: 'timestamp',
+        training_data_column_count: 3,
         preset: 'quality',
       });
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues.map((issue) => issue.path.join('.'))).toContain('preset');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.preset).toBe('quality');
+        expect(result.data.target).toBe('target');
       }
     });
   });

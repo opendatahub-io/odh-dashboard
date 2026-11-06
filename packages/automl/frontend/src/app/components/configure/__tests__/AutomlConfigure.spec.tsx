@@ -1384,18 +1384,23 @@ describe('AutomlConfigure', () => {
         ).toBeInTheDocument();
       });
 
-      it('should not offer quality for timeseries runs', () => {
+      it('should offer quality for timeseries runs', () => {
         renderComponent();
         selectSecretAndFile();
         selectTargetColumn();
         selectPredictionType('timeseries');
 
-        expect(screen.queryByTestId('preset-radio-quality')).not.toBeInTheDocument();
+        expect(screen.getByTestId('preset-radio-quality')).toBeInTheDocument();
         expect(screen.getByTestId('preset-radio-speed')).toBeInTheDocument();
         expect(screen.getByTestId('preset-radio-balanced')).toBeInTheDocument();
+        expect(screen.getByText(/10-minute model-selection budget/)).toBeInTheDocument();
+        expect(screen.getByText(/Up to 1 hour for model selection/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Up to 2 hours for model selection; data loading and refit/),
+        ).toBeInTheDocument();
       });
 
-      it('should reset quality to speed when switching to timeseries', () => {
+      it('should preserve quality when switching to timeseries', () => {
         renderComponent();
         selectSecretAndFile();
         selectTargetColumn();
@@ -1405,11 +1410,11 @@ describe('AutomlConfigure', () => {
 
         selectPredictionType('timeseries');
 
-        expect(screen.queryByTestId('preset-radio-quality')).not.toBeInTheDocument();
-        expect(screen.getByTestId('preset-radio-speed')).toBeChecked();
+        expect(screen.getByTestId('preset-radio-quality')).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
       });
 
-      it('should normalize quality to speed when opening a timeseries run in reconfigure', () => {
+      it('should preserve quality when opening a timeseries run in reconfigure', () => {
         const initialValues = {
           train_data_secret_name: 'Test Secret 1',
           train_data_bucket_name: 'test-bucket-1',
@@ -1433,8 +1438,8 @@ describe('AutomlConfigure', () => {
           initialValues,
         );
 
-        expect(screen.queryByTestId('preset-radio-quality')).not.toBeInTheDocument();
-        expect(screen.getByTestId('preset-radio-speed')).toBeChecked();
+        expect(screen.getByTestId('preset-radio-quality')).toBeChecked();
+        expect(screen.getByTestId('preset-radio-speed')).not.toBeChecked();
       });
     });
 
