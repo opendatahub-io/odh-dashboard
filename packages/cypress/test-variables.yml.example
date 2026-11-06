@@ -48,7 +48,11 @@ OCI_SECRET_VALUE: cmhvYWlfZGFzaGJvYXJkK3Job
 OCI_MODEL_URI: quay.io/my_user/my_oci_model:latest
 MAAS_URL: https://maas.apps.your-cluster.com
 MAAS_PORTAL_URL: https://maas.apps.your-cluster.com/maas-portal/
-MAAS_PORTAL_SUBSCRIPTION_NAME: tenant-42c3e46f-2477-44d7-a85b-d3b43f6b31fa-users
+ENABLE_MAAS_PORTAL_E2E: false
+MAAS_PORTAL_ORGANIZATION_ID: your-organization-id
+MAAS_PORTAL_USER_GROUPS:
+  - your-organization/ai-grid-users
+  - your-organization:ai-grid-users
 MAAS_API_KEY: your-api-key-here
 MAAS_GENERATION_MODEL_ID: your-generation-model-id
 MAAS_EMBEDDING_MODEL_ID: your-embedding-model-id

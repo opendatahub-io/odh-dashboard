@@ -1,0 +1,20 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  name: '{{POLICY_NAME}}'
+  namespace: models-as-a-service
+  annotations:
+    ai-grid/version: '1'
+    openshift.io/display-name: '{{POLICY_NAME}}'
+    openshift.io/description: 'MaaS Portal Cypress test policy'
+spec:
+  modelRefs:
+    - name: '{{MODEL_NAME}}'
+      namespace: '{{PROJECT_NAME}}'
+  subjects:
+    groups:
+      - name: '{{USER_GROUP_1}}'
+      - name: '{{USER_GROUP_2}}'
+    users:
+      - '{{PORTAL_ADMIN_USERNAME}}'
+      - '{{PORTAL_USER_USERNAME}}'

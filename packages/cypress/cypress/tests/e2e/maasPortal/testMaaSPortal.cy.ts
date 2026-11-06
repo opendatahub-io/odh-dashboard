@@ -1,4 +1,26 @@
 import {
+  checkLLMInferenceServiceState,
+  cleanupLLMInferenceService,
+} from '../../../utils/oc_commands/modelServing';
+import {
+  checkMaaSAuthPolicyState,
+  checkMaaSSubscriptionState,
+  cleanupApiKeys,
+  cleanupAuthPolicy,
+  cleanupSubscription,
+  createLLMInferenceServiceWithMaaSEnabled,
+  createMaaSAuthPolicy,
+  createMaaSModelRef,
+  createMaaSSubscription,
+  cleanupMaaSModelRef,
+  modelsAsAServiceNamespace,
+  waitForMaaSModelReady,
+} from '../../../utils/oc_commands/maas';
+import { deleteOpenShiftProjectBestEffort } from '../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
+import { createAndVerifyProject } from '../../../utils/projectChecker';
+import { generateTestUUID } from '../../../utils/uuidGenerator';
+import {
   apiKeysPage,
   copyApiKeyModal,
   createApiKeyModal,
@@ -10,23 +32,38 @@ import { MAAS_PORTAL_ADMIN_USER, MAAS_PORTAL_USER } from '../../../utils/e2eUser
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
 import type { UserAuthConfig } from '../../../types';
 
-const apiKeyName = `portal-e2e-${Date.now()}`;
+const testSuffix = `${generateTestUUID()}-${Date.now().toString(36).slice(-5)}`;
+const projectName = `portal-e2e-project-${testSuffix}`;
+const modelName = `portal-e2e-model-${testSuffix}`;
+const subscriptionName = `portal-e2e-sub-${testSuffix}`;
+const policyName = `portal-e2e-policy-${testSuffix}`;
+const apiKeyName = `portal-e2e-key-${testSuffix}`;
+const modelFixture = 'resources/maas/llmInferenceServiceSimulatorPremium.yaml';
+const subscriptionFixture = 'resources/maas/MaaSSubscriptionPortal.yaml';
+const authPolicyFixture = 'resources/maas/MaaSAuthPolicyPortal.yaml';
+const runMaaSPortalE2E = Cypress.env('ENABLE_MAAS_PORTAL_E2E') === 'true';
 
 const getRequiredPortalConfig = (): {
   portalUrl: string;
-  subscriptionName: string;
+  organizationId: string;
+  userGroups: string[];
   adminUser: UserAuthConfig;
   portalUser: UserAuthConfig;
 } => {
   const portalUrl = Cypress.env('MAAS_PORTAL_URL') as string | undefined;
-  const subscriptionName = Cypress.env('MAAS_PORTAL_SUBSCRIPTION_NAME') as string | undefined;
+  const organizationId = Cypress.env('MAAS_PORTAL_ORGANIZATION_ID') as string | undefined;
+  const userGroups = Cypress.env('MAAS_PORTAL_USER_GROUPS') as string[] | undefined;
 
   if (!portalUrl) {
     throw new Error('MAAS_PORTAL_URL is not configured in CY_TEST_CONFIG');
   }
 
-  if (!subscriptionName) {
-    throw new Error('MAAS_PORTAL_SUBSCRIPTION_NAME is not configured in CY_TEST_CONFIG');
+  if (!organizationId) {
+    throw new Error('MAAS_PORTAL_ORGANIZATION_ID is not configured in CY_TEST_CONFIG');
+  }
+
+  if (!userGroups?.length) {
+    throw new Error('MAAS_PORTAL_USER_GROUPS is not configured in CY_TEST_CONFIG');
   }
 
   if (!MAAS_PORTAL_ADMIN_USER) {
@@ -39,18 +76,80 @@ const getRequiredPortalConfig = (): {
 
   return {
     portalUrl,
-    subscriptionName,
+    organizationId,
+    userGroups,
     adminUser: MAAS_PORTAL_ADMIN_USER,
     portalUser: MAAS_PORTAL_USER,
   };
 };
 
 describe('MaaS Portal role access and API-key lifecycle', () => {
-  it(
+  const portalTest = runMaaSPortalE2E ? it : it.skip;
+
+  before(() => {
+    if (!runMaaSPortalE2E) {
+      return;
+    }
+
+    const { organizationId, userGroups, adminUser, portalUser } = getRequiredPortalConfig();
+    if (userGroups.length !== 2) {
+      throw new Error(
+        `MAAS_PORTAL_USER_GROUPS must contain exactly 2 groups for the portal fixtures; received ${userGroups.length}`,
+      );
+    }
+
+    const accessReplacements = {
+      MAAS_NAMESPACE: modelsAsAServiceNamespace,
+      ORGANIZATION_ID: organizationId,
+      USER_GROUP_1: userGroups[0],
+      USER_GROUP_2: userGroups[1],
+      PORTAL_USER_USERNAME: portalUser.USERNAME,
+      PORTAL_ADMIN_USERNAME: adminUser.USERNAME,
+    };
+
+    cy.step('Create isolated MaaS resources for the portal test');
+    ensureAdminOcSession();
+    createAndVerifyProject(projectName);
+    createLLMInferenceServiceWithMaaSEnabled(projectName, modelName, modelFixture);
+    checkLLMInferenceServiceState(modelName, projectName, { checkReady: true });
+    createMaaSModelRef(projectName, modelName);
+    createMaaSSubscription(
+      subscriptionName,
+      'Cypress MaaS Portal test subscription',
+      projectName,
+      modelName,
+      subscriptionFixture,
+      accessReplacements,
+    );
+    createMaaSAuthPolicy(policyName, projectName, modelName, authPolicyFixture, accessReplacements);
+    checkMaaSSubscriptionState(subscriptionName, modelsAsAServiceNamespace, {
+      phase: 'Active',
+      models: [modelName],
+    });
+    checkMaaSAuthPolicyState(policyName, modelsAsAServiceNamespace, { phase: 'Active' });
+    waitForMaaSModelReady(projectName, modelName);
+  });
+
+  after(() => {
+    if (!runMaaSPortalE2E) {
+      return;
+    }
+
+    cy.step('Clean up isolated MaaS resources created by the portal test');
+    ensureAdminOcSession();
+    cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
+    cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
+    cleanupMaaSModelRef(modelName, projectName);
+    cleanupLLMInferenceService(modelName, projectName);
+    deleteOpenShiftProjectBestEffort(projectName);
+    cleanupApiKeys(apiKeyName);
+  });
+
+  portalTest(
     'validates role access, API-key creation and revocation, and revoked-key authorization',
     { tags: ['@Smoke', '@Dashboard', '@MaaS', '@MaaSPortal', '@MaaSAccess'] },
     () => {
-      const { portalUrl, subscriptionName, adminUser, portalUser } = getRequiredPortalConfig();
+      const { portalUrl, adminUser, portalUser } = getRequiredPortalConfig();
 
       cy.step('Log into the MaaS Portal as an administrator');
       maasPortalPage.loginWithCachedSession(portalUrl, adminUser);
@@ -95,7 +194,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
         .should('be.visible')
         .and('contain.text', 'Endpoint compatibility');
 
-      cy.step('Send an invalid completion request with the newly created API key');
+      cy.step('Run the copied usage example with the newly created API key');
       stubClipboard('copiedApiKey');
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
       getClipboardContent('copiedApiKey', { log: false }).then((apiKeys) => {
@@ -123,12 +222,14 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
                     Authorization: `Bearer ${apiKey}`,
                     'Content-Type': 'application/json',
                   },
-                  body: { model: modelId },
+                  body: {
+                    model: modelId,
+                    messages: [{ role: 'user', content: 'Hello' }],
+                  },
                   failOnStatusCode: false,
                   log: false,
                 }).then((response) => {
                   expect(response.status).to.equal(200);
-                  expect(response.body.error ?? response.body).to.have.property('code', 200);
                 });
               });
           });
