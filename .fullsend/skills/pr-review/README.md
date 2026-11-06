@@ -587,8 +587,9 @@ malformed `agent-result.json` doesn't stop the export: the bridge takes the PR i
 from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`), and the
 workflow skips the author, coverage and posted verdict. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
 and then stops a normal run instead of exporting; rerun it. `recover: resend` and
-`recover: mark-only` don't wait on the lookup, so they go ahead even when it keeps failing. The Actions log shows counts and
-tags only, never the PR, run URL, file or guidance paths.
+`recover: mark-only` don't wait on the lookup, so they go ahead even when it keeps failing. The bridge's run summary in the Actions log has counts and tags
+only, never the PR, run URL, file or guidance paths (missed guidance is a count); the
+workflow's own notices can still name a run ID or PR number.
 
 ## Related files
 

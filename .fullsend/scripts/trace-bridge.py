@@ -61,9 +61,9 @@ SENSITIVE = r"(?:token|passw(?:or)?d|passwd|secret|api[_-]?key|authorization|aut
 # Quantifiers are bounded so redaction stays linear on long, adversarial strings.
 SECRET_KV_RE = re.compile(
     r"(?i)((?<![\w-])[\"']?[\w-]{0,40}" + SENSITIVE + r"[\w-]{0,40}[\"']?[ \t]{0,8}[:=][ \t]{0,8})"
-    r"(\"[^\"]{0,2000}\"|'[^']{0,2000}'|[^\s,;&|)}\]]{1,2000})")
+    r"(\"(?:[^\"\\]|\\.){0,2000}\"|'[^']{0,2000}'|[^\s,;&|)}\]]{1,2000})")
 SECRET_FLAG_RE = re.compile(
-    r"(?i)(--[\w-]{0,40}" + SENSITIVE + r"[\w-]{0,40}[ \t]{1,8})(\"[^\"]{0,2000}\"|'[^']{0,2000}'|[^\s-]\S{0,2000})")
+    r"(?i)(--[\w-]{0,40}" + SENSITIVE + r"[\w-]{0,40}[ \t]{1,8})(\"(?:[^\"\\]|\\.){0,2000}\"|'[^']{0,2000}'|[^\s-]\S{0,2000})")
 SENSITIVE_KEY_RE = re.compile(r"(?i)" + SENSITIVE)
 # Tool arguments exported as attributes; anything else (file contents for write/edit, prompts) is dropped.
 TOOL_ARG_ALLOWLIST = ("path", "pattern", "glob", "offset", "limit", "description", "subagent_type")
@@ -595,9 +595,10 @@ COMPOUND_INNER = {"then", "else", "elif", "do", "!"}
 
 
 def shell_segments_ctx(cmd):
-    """(operator-before, tokens, conditional, depth, top) per command; depth is how many groups
-    or compounds enclose it, and top is False inside a subshell, substitution or function
-    body (an exit there can't end the parent shell). Separators and redirections only
+    """(operator-before, tokens, conditional, depth, scope) per command; depth is how many groups
+    or compounds enclose it, and scope is the innermost subshell, substitution or function
+    body around it ({"end": index after its last segment}), or None in the parent shell: an
+    exit in a scope ends only that scope. Separators and redirections only
     come from unquoted operators (see shell_tokens). conditional is True inside a group
     ( ... ) or { ...; } opened right after && or ||, inside a conditional group, inside a
     $(...) or <(...) substitution, and inside any if/while/until/for/case compound: those
@@ -610,6 +611,7 @@ def shell_segments_ctx(cmd):
 
     ncond = 0  # how many open blocks are conditional: cond() stays O(1) however deep
     nsub = 0  # how many open blocks run in their own scope (subshell, function body)
+    scopes = []  # open own-scope blocks, innermost last: {"end": segment count at close}
 
     def cond():
         return ncond > 0
@@ -618,14 +620,18 @@ def shell_segments_ctx(cmd):
         nonlocal ncond, nsub
         stack.append((kind, conditional))
         ncond += bool(conditional)
-        nsub += kind in ("paren", "fbrace")
+        if kind in ("paren", "fbrace"):
+            nsub += 1
+            scopes.append({"end": None})
 
     def close(*kinds):
         nonlocal ncond, nsub
         if stack and stack[-1][0] in kinds:  # a closer only closes its own kind of block
             kind, c = stack.pop()
             ncond -= bool(c)
-            nsub -= kind in ("paren", "fbrace")
+            if kind in ("paren", "fbrace"):
+                nsub -= 1
+                scopes.pop()["end"] = len(segs)
 
     def flush():
         nonlocal toks, neg_pipe, func_body
@@ -644,7 +650,7 @@ def shell_segments_ctx(cmd):
         if toks:
             # ! negates the whole pipeline, so later | segments of it are negated too.
             neg_pipe = negated or (neg_pipe and op == "|")
-            segs.append((op, toks[:200], cond() or neg_pipe, len(stack), nsub == 0))
+            segs.append((op, toks[:200], cond() or neg_pipe, len(stack), scopes[-1] if scopes else None))
             return True
         return False
 
@@ -670,7 +676,7 @@ def shell_segments_ctx(cmd):
                 # A background job's status (and its cd) never reaches this shell: the list
                 # the & ends (from its start at this depth) counts as conditional.
                 start = next(k for d, k in reversed(starts) if d <= len(stack))
-                segs[start:] = [(o, tk, True, d, top) for o, tk, _c, d, top in segs[start:]]
+                segs[start:] = [(o, tk, True, d, sc) for o, tk, _c, d, sc in segs[start:]]
                 op = "&"
                 starts.append((len(stack), len(segs)))
             elif t == "\n" and op in ("&&", "||", "|") and not toks:
@@ -697,6 +703,8 @@ def shell_segments_ctx(cmd):
             continue
         toks.append(t)
     flush()
+    for sc in scopes:  # unclosed at the end: the scope runs to the last segment
+        sc["end"] = len(segs)
     return segs
 
 
@@ -722,18 +730,23 @@ def _lists(segs):
 
 
 def _before_exit(segs):
-    """Indexes before the first exit/return/logout that may have ended the shell: nothing
-    after one is known to run. An exit with a literal nonzero status can't have ended a
-    command that succeeded (in a subshell it only ends the subshell), so it doesn't cut;
-    any other exit (exit, exit 0, exit $x) does, wherever it is."""
-    for k, (_op, toks, _cond, _depth, top) in enumerate(segs):
+    """Indexes that no exit/return/logout may have skipped. In the parent shell, an exit cuts
+    everything after it, unless it has a literal nonzero status (it can't have ended a
+    command that succeeded); any other exit (exit, exit 0, exit $x) cuts. In a subshell,
+    substitution or function body, an exit cuts only the rest of that scope."""
+    ok = set(range(len(segs)))
+    for k, (_op, toks, _cond, _depth, scope) in enumerate(segs):
         i, prog = _program(toks)
-        if prog in EXIT_PROGS and top:  # in a subshell or function body it ends only that
-            args = [t for t in toks[i + 1:] if not is_redirect(t)]
-            if args and re.fullmatch(r"0*[1-9]\d{0,2}", str(args[0])):
-                continue
-            return set(range(k))
-    return set(range(len(segs)))
+        if prog not in EXIT_PROGS or k not in ok:
+            continue
+        if scope is not None:
+            ok.difference_update(range(k + 1, scope["end"]))
+            continue
+        args = [t for t in toks[i + 1:] if not is_redirect(t)]
+        if args and re.fullmatch(r"0*[1-9]\d{0,2}", str(args[0])):
+            continue
+        return ok & set(range(k))
+    return ok
 
 
 def executed_segments(segs):
@@ -2017,6 +2030,14 @@ def self_test():
          and "A" * 50 not in clean('cookie="' + "A" * 300)
          and clean("password=hunter2 and more") == "password=[REDACTED] and more"
          and clean('cookie="abc" keep') == 'cookie=[REDACTED] keep'),
+        ("an exit in a subshell cuts the rest of that subshell only; escaped quotes don't end secrets",
+         shell_reads("(exit 0; cat .claude/rules/react.md)") == []
+         and shell_reads("(exit 0; cat .claude/rules/react.md) && cat AGENTS.md") == ["AGENTS.md"]
+         and shell_reads("(exit 0; (cat a/b.md)); cat c/d.md") == ["c/d.md"]
+         and "SensitiveTail" not in clean('{"password": "prefix\\"SensitiveTail"}')
+         and "SensitiveTail" not in clean('--token "prefix\\"SensitiveTail" x')
+         and "SensitiveTail" not in clean(json.dumps({"q": 'password="a\\"SensitiveTail"'}))
+         and clean('password="a\\"b" keep') == "password=[REDACTED] keep"),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
