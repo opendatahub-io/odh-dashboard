@@ -641,12 +641,14 @@ def without_patterns(prog, args):
             redirects.append(t)
             keep_next = False
             continue
-        if skip:
-            skip -= 1
-            continue
+        # Redirections come before option operands: in `sed -e >/dev/null SCRIPT`, the
+        # shell gives SCRIPT (not >) to -e.
         if is_redirect(t):  # callers decide what redirections mean
             redirects.append(t)
             keep_next = True
+            continue
+        if skip:
+            skip -= 1
             continue
         if t.startswith("--"):
             opt, has_value = t.split("=", 1)[0], "=" in t
@@ -1450,7 +1452,12 @@ def self_test():
          and shell_summary("grep x'>internal/customer/acme' README.md")[1] == []
          and shell_summary("grep x\\>internal/customer/acme README.md")[1] == []
          and shell_reads("cat <<'EOF'\nsecret/x\nEOF\ncat z/w.md") == ["z/w.md"]
-         and shell_reads("echo '<<EOF'\ncat z/w.md") == ["z/w.md"]),
+         and shell_reads("echo '<<EOF'\ncat z/w.md") == ["z/w.md"]
+         and shell_reads("# say \\\"hi\\\" and it\\'s fine\ncat k/l.md") == ["k/l.md"]
+         and shell_reads("# cat <<EOF\ncat k/l.md\nEOF") == ["k/l.md"]
+         and shell_summary("echo \\> private/needle")[1] == []
+         and shell_summary("sed -e >/dev/null 's/private/needle/' README.md")[1] == ["README.md"]
+         and shell_reads("sed -e 's/a/b/' >/dev/null docs/r.md") == ["docs/r.md"]),
         ("quoted ; | > text never splits segments or creates redirections; skipped < reads don't count",
          shell_summary("echo 'status; cat ssn/123-45-6789 ; done'")[1] == []
          and shell_summary("echo '>' private/needle")[1] == []
