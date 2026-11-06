@@ -184,8 +184,9 @@ def redact(s):
 def redact_obj(v):
     """Redact a JSON-like value: sensitive keys lose their values, strings are scanned."""
     if isinstance(v, dict):
-        # Numbers under sensitive-looking keys (token counts) are kept; text is not.
-        return {k: "[REDACTED]" if SENSITIVE_KEY_RE.search(str(k)) and not isinstance(x, (int, float, bool))
+        # Numbers under sensitive-looking keys (token counts) are kept; text is not. Keys are
+        # scanned too, since they can be tool or file names.
+        return {redact(k): "[REDACTED]" if SENSITIVE_KEY_RE.search(str(k)) and not isinstance(x, (int, float, bool))
                 else redact_obj(x) for k, x in v.items()}
     if isinstance(v, list):
         return [redact_obj(x) for x in v]
@@ -211,7 +212,10 @@ def attr(k, v):
     elif isinstance(v, (list, tuple)):
         val = {"arrayValue": {"values": [{"stringValue": clean(x)} for x in v]}}
     elif isinstance(v, dict):
-        val = {"stringValue": clean(json.dumps(redact_obj(v), sort_keys=True))}
+        # Redacted field by field: running the free-text pass over the serialized JSON would
+        # read "auth_login": 3 as a secret and cut the rest, leaving invalid JSON.
+        text = json.dumps(redact_obj(v), sort_keys=True)
+        val = {"stringValue": text if len(text) <= MAX_STR else text[:MAX_STR] + "…"}
     else:
         val = {"stringValue": clean(v)}
     return {"key": k, "value": val}
@@ -2214,6 +2218,10 @@ def self_test():
          and shell_reads("exec 2>/dev/null; cat c/d.md") == ["c/d.md"]
          and shell_reads("exec cat .claude/rules/react.md") == [".claude/rules/react.md"]
          and shell_reads("exec head -n 5 c/d.md") == ["c/d.md"]),
+        ("count dictionaries stay valid JSON with sensitive-looking keys; secrets in them still go",
+         json.loads(attr("c", {"auth_login": 3, "read": 2})["value"]["stringValue"]) == {"auth_login": 3, "read": 2}
+         and "hunter2" not in json.dumps(attr("c", {"password": "hunter2", "n": 1}))
+         and "ghp_" not in json.dumps(attr("c", {"ghp_" + "a" * 30: 1}))),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
