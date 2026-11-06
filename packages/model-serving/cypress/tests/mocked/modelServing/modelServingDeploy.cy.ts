@@ -15,6 +15,7 @@ import {
   isGeneratedSecretName,
 } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared/types';
+import type { TemplateKind } from '@odh-dashboard/k8s-core';
 import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
@@ -2248,6 +2249,35 @@ describe('Model Serving Deploy Wizard', () => {
     });
 
     it('autoselect logic with manual override and model type changes', () => {
+      const templates = mockStandardModelServingTemplateK8sResources();
+      const nvidiaTemplate = templates.find((template) => template.metadata.name === 'template-5');
+      if (!nvidiaTemplate) {
+        throw new Error('Expected NVIDIA ServingRuntime template mock');
+      }
+      const alternativeTemplate: TemplateKind = {
+        ...nvidiaTemplate,
+        metadata: { ...nvidiaTemplate.metadata, name: 'template-6' },
+        objects: nvidiaTemplate.objects.map((templateObject) =>
+          templateObject.kind === 'ServingRuntime'
+            ? {
+                ...templateObject,
+                metadata: {
+                  ...templateObject.metadata,
+                  name: 'template-6',
+                  annotations: {
+                    ...templateObject.metadata.annotations,
+                    'openshift.io/display-name': 'vLLM NVIDIA Alternative',
+                  },
+                },
+              }
+            : templateObject,
+        ),
+      };
+      cy.interceptK8sList(
+        TemplateModel,
+        mockK8sResourceList([...templates, alternativeTemplate], { namespace: 'opendatahub' }),
+      );
+
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
@@ -2267,11 +2297,14 @@ describe('Model Serving Deploy Wizard', () => {
       // Step 2: Model deployment
       modelServingWizard.findModelDeploymentNameInput().type('test-model');
 
-      // Select openvino_ir - opset1 format - should autoselect OpenVINO (only 1 match)
+      // Without an accelerator identifier, even a unique model-format match stays Manual.
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').click();
-      // Verify autoselect is checked and OpenVINO is selected
-      modelServingWizard.findModelServerAutoSelectRadio().should('be.checked');
-      cy.findByText('OpenVINO').should('exist');
+      modelServingWizard.findModelServerManualSelectRadio().should('be.checked');
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.selectGlobalScopedTemplateOption('OpenVINO');
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'OpenVINO');
 
       // Step 3: Override autoselect - manually select Caikit
       modelServingWizard.findModelServerManualSelectRadio().click();
@@ -2301,12 +2334,21 @@ describe('Model Serving Deploy Wizard', () => {
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'Select a serving runtime template');
 
-      // Step 7: Select NVIDIA GPU hardware profile - vLLM NVIDIA should be autoselected
+      // Step 7: The first of multiple NVIDIA-compatible runtimes should be suggested.
       hardwareProfileSection.findSelect().click();
       hardwareProfileSection.selectProfileContaining('NVIDIA GPU Profile');
-      // Verify autoselect is checked and vLLM NVIDIA is selected (only nvidia-compatible runtime)
       modelServingWizard.findModelServerAutoSelectRadio().should('be.checked');
-      cy.findByText('vLLM NVIDIA').should('exist');
+      modelServingWizard
+        .findModelServerAutoSelectSuggestion()
+        .should('contain.text', 'vLLM NVIDIA');
+
+      // A later compatible option remains manually selectable.
+      modelServingWizard.findModelServerManualSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA Alternative');
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'vLLM NVIDIA Alternative');
 
       // Step 8: Manual override to vLLM AMD
       modelServingWizard.findModelServerManualSelectRadio().click();

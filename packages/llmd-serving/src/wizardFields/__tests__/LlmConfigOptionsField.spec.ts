@@ -200,20 +200,77 @@ describe('getInitialFieldData', () => {
     expect(result).toBe(existingData);
   });
 
-  it('should auto-select with suggestion when there is only one config', () => {
+  it('should not auto-select a config without a hardware profile accelerator', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({
       name: 'only-config',
       displayName: 'Only Config',
+      recommendedAccelerators: '["nvidia.com/gpu"]',
     });
     const result = getInitialFieldData(undefined, { configs: [config] });
 
-    expect(result.data?.autoSelect).toBe(true);
-    expect(result.data?.suggestion).toBeDefined();
-    expect(result.data?.suggestion?.name).toBe('only-config');
-    expect(result.data?.selection?.name).toBe('only-config');
+    expect(result.data?.autoSelect).toBe(false);
+    expect(result.data?.suggestion).toBeUndefined();
   });
 
-  it('should auto-select the single hardware-compatible config among multiple', () => {
+  it('should not auto-select a config matching only a non-accelerator identifier', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({
+      name: 'cpu-config',
+      recommendedAccelerators: '["example.com/cpu"]',
+    });
+    const cpuProfile = mockHardwareProfile({
+      identifiers: [
+        {
+          identifier: 'example.com/cpu',
+          displayName: 'CPU',
+          resourceType: IdentifierResourceType.CPU,
+          defaultCount: 1,
+          minCount: 1,
+          maxCount: 4,
+        },
+      ],
+    });
+    const result = getInitialFieldData(
+      undefined,
+      { configs: [config] },
+      { hardwareProfile: cpuProfile },
+    );
+
+    expect(result.data?.autoSelect).toBe(false);
+    expect(result.data?.suggestion).toBeUndefined();
+  });
+
+  it('should auto-select the first compatible config when multiple configs match', () => {
+    const first = mockLLMInferenceServiceConfigK8sResource({
+      name: 'first',
+      recommendedAccelerators: '["nvidia.com/gpu"]',
+    });
+    const second = mockLLMInferenceServiceConfigK8sResource({
+      name: 'second',
+      recommendedAccelerators: '["nvidia.com/gpu"]',
+    });
+    const gpuProfile = mockHardwareProfile({
+      identifiers: [
+        {
+          identifier: 'nvidia.com/gpu',
+          displayName: 'GPU',
+          resourceType: IdentifierResourceType.ACCELERATOR,
+          defaultCount: 1,
+          minCount: 1,
+          maxCount: 4,
+        },
+      ],
+    });
+    const result = getInitialFieldData(
+      undefined,
+      { configs: [first, second] },
+      { hardwareProfile: gpuProfile },
+    );
+
+    expect(result.data?.autoSelect).toBe(true);
+    expect(result.data?.suggestion?.name).toBe('first');
+  });
+
+  it('should auto-select the first compatible config among multiple', () => {
     const compatibleConfig = mockLLMInferenceServiceConfigK8sResource({
       name: 'compatible',
       displayName: 'Compatible Config',
@@ -247,7 +304,7 @@ describe('getInitialFieldData', () => {
     expect(result.data?.selection?.name).toBe('compatible');
   });
 
-  it('should not auto-select when multiple configs match hardware profile', () => {
+  it('should select the first matching config when multiple configs match hardware profile', () => {
     const config1 = mockLLMInferenceServiceConfigK8sResource({
       name: 'config-1',
       displayName: 'Config 1',
@@ -277,8 +334,8 @@ describe('getInitialFieldData', () => {
       { hardwareProfile: gpuProfile },
     );
 
-    expect(result.data?.autoSelect).toBe(false);
-    expect(result.data?.suggestion).toBeUndefined();
+    expect(result.data?.autoSelect).toBe(true);
+    expect(result.data?.suggestion?.name).toBe('config-1');
   });
 
   it('should not auto-select when there are no configs', () => {

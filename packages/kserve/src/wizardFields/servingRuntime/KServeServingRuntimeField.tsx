@@ -298,13 +298,16 @@ const computeSuggestion = (
   }
 
   const accelerator = getAcceleratorIdentifierFromHardwareProfile(hardwareProfile);
-  if (accelerator) {
-    filtered = filtered?.filter((template) =>
-      isCompatibleWithIdentifier(accelerator, getServingRuntimeFromTemplate(template)),
-    );
+  if (!accelerator) {
+    return undefined;
   }
 
-  if (filtered?.length === 1) {
+  filtered = filtered?.filter((template) =>
+    isCompatibleWithIdentifier(accelerator, getServingRuntimeFromTemplate(template)),
+  );
+
+  if (filtered && filtered.length > 0) {
+    // `templates` is already in admin-defined order; keep that order when selecting the first match.
     const suggestedTemplate = filtered[0];
     return {
       name: suggestedTemplate.metadata.name,
