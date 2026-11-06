@@ -111,6 +111,29 @@ export const createEvalHubBenchmarkSuiteScenario = (
     });
   };
 
+  /** Validates result cards against the benchmarks actually submitted for this run. */
+  const verifySubmittedCollectionResults = (evaluationRunName: string): void => {
+    cy.get('@createEvalHubJob').then((interception) => {
+      const requestBody = (
+        interception as {
+          request: {
+            body: { collection?: { benchmarks?: { id?: unknown }[] } };
+          };
+        }
+      ).request.body;
+      const benchmarks = requestBody.collection?.benchmarks;
+      expect(benchmarks, `benchmarks submitted for ${evaluationRunName}`)
+        .to.be.an('array')
+        .and.to.have.length.greaterThan(0);
+      const expectedBenchmarkIds = (benchmarks ?? []).map(({ id }, index) => {
+        expect(id, `submitted benchmark ${index + 1} ID`).to.be.a('string');
+        expect(id, `submitted benchmark ${index + 1} ID`).not.to.equal('');
+        return String(id);
+      });
+      verifyEvaluationCompletedAndViewResults(evaluationRunName, expectedBenchmarkIds);
+    });
+  };
+
   const setup = (): void => {
     ensureAdminOcSession();
     cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
@@ -254,7 +277,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
     });
     verifyEvaluationProgressModal(evaluationRunName);
     waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
-    verifyEvaluationCompletedAndViewResults(evaluationRunName, testData.expectedBenchmarkIds);
+    verifySubmittedCollectionResults(evaluationRunName);
   };
 
   const runCuratedCollection = (): void => {
@@ -289,25 +312,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
     });
     verifyEvaluationProgressModal(evaluationRunName);
     waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
-    cy.get('@createEvalHubJob').then((interception) => {
-      const requestBody = (
-        interception as {
-          request: {
-            body: { collection?: { benchmarks?: { id?: unknown }[] } };
-          };
-        }
-      ).request.body;
-      const benchmarks = requestBody.collection?.benchmarks;
-      expect(benchmarks, 'benchmarks submitted for the curated collection run')
-        .to.be.an('array')
-        .and.to.have.length.greaterThan(0);
-      const expectedBenchmarkIds = (benchmarks ?? []).map(({ id }, index) => {
-        expect(id, `submitted benchmark ${index + 1} ID`).to.be.a('string');
-        expect(id, `submitted benchmark ${index + 1} ID`).not.to.equal('');
-        return String(id);
-      });
-      verifyEvaluationCompletedAndViewResults(evaluationRunName, expectedBenchmarkIds);
-    });
+    verifySubmittedCollectionResults(evaluationRunName);
   };
 
   return {

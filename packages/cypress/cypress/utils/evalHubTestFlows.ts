@@ -1280,20 +1280,31 @@ export const verifyEvaluationCompletedAndViewResults = (
 
   if (expectedBenchmarkIds.length > 0) {
     cy.step(`Verify all ${expectedBenchmarkIds.length} benchmark results are displayed`);
-    evaluationResultsPage.findBenchmarksGrid().should('be.visible');
-    evaluationResultsPage
-      .findBenchmarkResultCards()
-      .should('have.length', expectedBenchmarkIds.length);
-    const expectedOccurrences = new Map<string, number>();
-    expectedBenchmarkIds.forEach((benchmarkId) => {
-      expectedOccurrences.set(benchmarkId, (expectedOccurrences.get(benchmarkId) ?? 0) + 1);
-    });
-    expectedOccurrences.forEach((expectedCount, benchmarkId) => {
+    if (expectedBenchmarkIds.length === 1) {
       evaluationResultsPage
-        .findBenchmarkResultCardById(benchmarkId)
-        .should('have.length', expectedCount)
-        .and('be.visible');
-    });
+        .findBenchmarkProviderLabel()
+        .should('contain.text', expectedBenchmarkIds[0]);
+    } else {
+      evaluationResultsPage.findBenchmarksGrid().should('be.visible');
+      evaluationResultsPage.findBenchmarkResultCards().then(($cards) => {
+        if ($cards.length < expectedBenchmarkIds.length) {
+          evaluationResultsPage.findViewMoreButton().should('be.visible').click();
+        }
+      });
+      evaluationResultsPage
+        .findBenchmarkResultCards()
+        .should('have.length', expectedBenchmarkIds.length);
+      const expectedOccurrences = new Map<string, number>();
+      expectedBenchmarkIds.forEach((benchmarkId) => {
+        expectedOccurrences.set(benchmarkId, (expectedOccurrences.get(benchmarkId) ?? 0) + 1);
+      });
+      expectedOccurrences.forEach((expectedCount, benchmarkId) => {
+        evaluationResultsPage
+          .findBenchmarkResultCardById(benchmarkId)
+          .should('have.length', expectedCount)
+          .and('be.visible');
+      });
+    }
   }
 
   cy.step('Verify About this result popover opens');

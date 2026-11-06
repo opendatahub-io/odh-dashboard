@@ -150,37 +150,63 @@ func TestPatchCollectionHandler(t *testing.T) {
 }
 
 func TestNormalizeCollectionPatchOperations(t *testing.T) {
-	operations := []evalhub.CollectionPatchOperation{{
+	replaceOperation := evalhub.CollectionPatchOperation{
 		Op: "replace", Path: "/benchmarks", Value: json.RawMessage(`[{"id":"arc_easy"}]`),
-	}}
+	}
 	tests := []struct {
-		name          string
-		currentJSON   string
-		expectedPatch string
+		name            string
+		currentJSON     string
+		operations      []evalhub.CollectionPatchOperation
+		expectedPatches []string
 	}{
 		{
-			name:          "adds benchmarks when the field is absent",
-			currentJSON:   `{"name":"Empty legacy collection"}`,
-			expectedPatch: "add",
+			name:            "adds benchmarks when the field is absent",
+			currentJSON:     `{"name":"Empty legacy collection"}`,
+			operations:      []evalhub.CollectionPatchOperation{replaceOperation},
+			expectedPatches: []string{"add"},
 		},
 		{
-			name:          "replaces an existing empty benchmarks array",
-			currentJSON:   `{"name":"Empty collection","benchmarks":[]}`,
-			expectedPatch: "replace",
+			name:            "replaces an existing empty benchmarks array",
+			currentJSON:     `{"name":"Empty collection","benchmarks":[]}`,
+			operations:      []evalhub.CollectionPatchOperation{replaceOperation},
+			expectedPatches: []string{"replace"},
 		},
 		{
-			name:          "replaces an existing populated benchmarks array",
-			currentJSON:   `{"name":"Existing collection","benchmarks":[{"id":"truthfulqa"}]}`,
-			expectedPatch: "replace",
+			name:            "replaces an existing populated benchmarks array",
+			currentJSON:     `{"name":"Existing collection","benchmarks":[{"id":"truthfulqa"}]}`,
+			operations:      []evalhub.CollectionPatchOperation{replaceOperation},
+			expectedPatches: []string{"replace"},
+		},
+		{
+			name:        "adds benchmarks after removing an existing field",
+			currentJSON: `{"name":"Existing collection","benchmarks":[{"id":"truthfulqa"}]}`,
+			operations: []evalhub.CollectionPatchOperation{
+				{Op: "remove", Path: "/benchmarks"},
+				replaceOperation,
+			},
+			expectedPatches: []string{"remove", "add"},
+		},
+		{
+			name:        "replaces benchmarks after adding a missing field",
+			currentJSON: `{"name":"Empty legacy collection"}`,
+			operations: []evalhub.CollectionPatchOperation{
+				replaceOperation,
+				replaceOperation,
+			},
+			expectedPatches: []string{"add", "replace"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			normalized, err := normalizeCollectionPatchOperations(json.RawMessage(tt.currentJSON), operations)
+			normalized, err := normalizeCollectionPatchOperations(
+				json.RawMessage(tt.currentJSON), tt.operations,
+			)
 			require.NoError(t, err)
-			require.Len(t, normalized, 1)
-			assert.Equal(t, tt.expectedPatch, normalized[0].Op)
+			require.Len(t, normalized, len(tt.expectedPatches))
+			for index, operation := range normalized {
+				assert.Equal(t, tt.expectedPatches[index], operation.Op)
+			}
 		})
 	}
 }
