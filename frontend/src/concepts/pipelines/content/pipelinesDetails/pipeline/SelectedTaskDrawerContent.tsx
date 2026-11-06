@@ -22,7 +22,7 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
   return (
     <>
       <DrawerHead>
-        <Title headingLevel="h2" size="xl" data-testid="pipeline-task-name">
+        <Title headingLevel="h2" size="xl" tabIndex={-1} data-testid="pipeline-drawer-task-title">
           {task.name} {task.type === 'artifact' ? 'Artifact details' : ''}
         </Title>
         <DrawerActions>

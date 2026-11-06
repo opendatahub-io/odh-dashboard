@@ -1,23 +1,25 @@
 import React from 'react';
 import {
   action,
+  addSpacerNodes,
   createTopologyControlButtons,
+  DEFAULT_EDGE_TYPE,
+  DEFAULT_SPACER_NODE_TYPE,
   defaultControlButtonsOptions,
   getEdgesFromNodes,
+  isEdge,
+  isNode,
   PipelineNodeModel,
   TopologyControlBar,
+  TopologySideBar,
   TopologyView,
   useVisualizationController,
   VisualizationSurface,
-  addSpacerNodes,
-  DEFAULT_SPACER_NODE_TYPE,
-  DEFAULT_EDGE_TYPE,
-  TopologySideBar,
-  isEdge,
 } from '@patternfly/react-topology';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { css } from '@patternfly/react-styles';
+import { isHiddenByCollapsedAncestor, panNodeIntoView } from './a11yUtils';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 import './PipelineVisualizationSurface.scss';
 
@@ -34,12 +36,65 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
 }) => {
   const controller = useVisualizationController();
   const [error, setError] = React.useState<Error | null>();
+  const selectedId = selectedIds?.[0];
+  const previousSelectedId = React.useRef<string>();
+  const focusReturnTarget = React.useRef<HTMLButtonElement | null>(null);
+  const controlBarRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (selectedId) {
+      if (previousSelectedId.current !== selectedId) {
+        const { activeElement } = document;
+        focusReturnTarget.current =
+          activeElement instanceof HTMLButtonElement &&
+          activeElement.closest<HTMLElement>('[data-pipeline-node-id]')?.dataset.pipelineNodeId ===
+            selectedId
+            ? activeElement
+            : null;
+        previousSelectedId.current = selectedId;
+      }
+      return;
+    }
+
+    controller.setState({ selectedIds: [] });
+    const nodeId = previousSelectedId.current;
+    if (!nodeId) {
+      return;
+    }
+    // Consume the return target once; later node polls must not move focus again.
+    previousSelectedId.current = undefined;
+
+    const graphButtons = Array.from(
+      controlBarRef.current
+        ?.closest('.pipeline-visualization')
+        ?.querySelectorAll<HTMLButtonElement>('.odh-pipeline-node-button[data-pipeline-node-id]') ??
+        [],
+    );
+    const findGraphButton = (id: string) =>
+      graphButtons.find((button) => button.dataset.pipelineNodeId === id);
+    const findVisibleAncestorButton = (id: string): HTMLButtonElement | undefined => {
+      let parent = controller.getNodeById(id)?.getParent();
+      while (parent && isNode(parent)) {
+        const button = findGraphButton(parent.getId());
+        if (button) {
+          return button;
+        }
+        parent = parent.getParent();
+      }
+      return undefined;
+    };
+    const returnTarget =
+      (focusReturnTarget.current?.isConnected ? focusReturnTarget.current : null) ??
+      findGraphButton(nodeId) ??
+      findVisibleAncestorButton(nodeId);
+    focusReturnTarget.current = null;
+    returnTarget?.focus();
+  }, [controller, nodes, selectedId]);
 
   const selectedNode = React.useMemo(
     () => (selectedIds?.[0] ? controller.getNodeById(selectedIds[0]) || null : null),
     [selectedIds, controller],
   );
-
   const selections = React.useMemo(() => {
     if (selectedIds?.[0]) {
       const element = controller.getElementById(selectedIds[0]);
@@ -67,7 +122,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     if (selectedNode) {
       // Use a timeout in order to allow the side panel to be shown and window size recomputed
       resizeTimeout = setTimeout(() => {
-        controller.getGraph().panIntoView(selectedNode, { offset: 20, minimumVisible: 100 });
+        panNodeIntoView(selectedNode);
         resizeTimeout = null;
       }, 500);
     }
@@ -77,6 +132,57 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       }
     };
   }, [selectedIds, controller, selectedNode]);
+
+  React.useEffect(() => {
+    // A collapsed group hides its child's graph button; choosing that child also closes its
+    // popover, so move focus to the drawer even though the original button is now gone.
+    // Selection events provide a new selectedIds array even when the same child is selected
+    // again. Node polls and later group collapse preserve the array, so they cannot steal focus.
+    if (!selectedId) {
+      return undefined;
+    }
+    const selectedNodeAtSelection = controller.getNodeById(selectedId);
+    const hiddenAtSelection = selectedNodeAtSelection
+      ? isHiddenByCollapsedAncestor(selectedNodeAtSelection)
+      : false;
+    if (!focusReturnTarget.current && !hiddenAtSelection) {
+      return undefined;
+    }
+    const focusedAtSelection = document.activeElement;
+    const focusTimeout = setTimeout(() => {
+      // A user may already have tabbed away while the drawer was opening. Only reclaim focus
+      // from the original trigger, or from the body/group button after a popover trigger was removed.
+      const { activeElement } = document;
+      const triggerWasRemoved = !focusedAtSelection?.isConnected;
+      const selectedAndAncestorIds = new Set<string>([selectedId]);
+      let parent = controller.getNodeById(selectedId)?.getParent();
+      while (parent && isNode(parent)) {
+        selectedAndAncestorIds.add(parent.getId());
+        parent = parent.getParent();
+      }
+      const focusReturnedToTaskListTrigger =
+        triggerWasRemoved &&
+        activeElement instanceof HTMLButtonElement &&
+        activeElement.hasAttribute('data-pipeline-group-trigger') &&
+        !!activeElement.dataset.pipelineNodeId &&
+        selectedAndAncestorIds.has(activeElement.dataset.pipelineNodeId);
+      if (
+        activeElement !== focusedAtSelection &&
+        !(triggerWasRemoved && activeElement === document.body) &&
+        !focusReturnedToTaskListTrigger
+      ) {
+        return;
+      }
+      const drawer = controlBarRef.current
+        ?.closest('.pipeline-visualization')
+        ?.querySelector('[data-testid="pipeline-topology-drawer"]');
+      const focusTarget = drawer?.querySelector<HTMLElement>(
+        '[data-testid="pipeline-drawer-task-title"]',
+      );
+      focusTarget?.focus();
+    }, 550);
+    return () => clearTimeout(focusTimeout);
+  }, [controller, selectedId, selectedIds]);
 
   React.useEffect(() => {
     const currentModel = controller.toModel();
@@ -178,7 +284,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     <TopologyView
       className={css('pipeline-visualization', !!selectedNode && 'm-is-open')}
       controlBar={
-        <div data-testid="pipeline-topology-control-bar">
+        <div ref={controlBarRef} data-testid="pipeline-topology-control-bar">
           <TopologyControlBar
             controlButtons={createTopologyControlButtons({
               ...defaultControlButtonsOptions,

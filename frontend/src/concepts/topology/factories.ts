@@ -16,21 +16,24 @@ import PipelineTaskEdge from './PipelineTaskEdge';
 import PipelineDefaultTaskGroup from './PipelineDefaultTaskGroup';
 import { EXECUTION_TASK_NODE_TYPE } from './const';
 
+// PatternFly raises selected nodes to the end of their parent, which changes keyboard order.
+const withOrderedSelection = withSelection({ raiseOnSelect: false });
+
 export const pipelineComponentFactory: ComponentFactory = (kind, type) => {
   if (kind === ModelKind.graph) {
     return withPanZoom()(withSelection()(GraphComponent));
   }
   switch (type) {
     case DEFAULT_TASK_NODE_TYPE:
-      return withSelection()(StandardTaskNode);
+      return withOrderedSelection(StandardTaskNode);
     case ICON_TASK_NODE_TYPE:
-      return withSelection()(ArtifactTaskNode);
+      return withOrderedSelection(ArtifactTaskNode);
     case DEFAULT_SPACER_NODE_TYPE:
       return SpacerNode;
     case DEFAULT_EDGE_TYPE:
       return withSelection()(PipelineTaskEdge);
     case EXECUTION_TASK_NODE_TYPE:
-      return withSelection()(PipelineDefaultTaskGroup);
+      return withOrderedSelection(PipelineDefaultTaskGroup);
     default:
       return undefined;
   }
