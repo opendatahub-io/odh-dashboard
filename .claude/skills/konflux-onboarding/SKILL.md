@@ -240,8 +240,12 @@ Generate `Dockerfile.konflux.<name>` content for the `red-hat-data-services/odh-
 Take base images from a module that already ships on the target branch, not from a fresh `:latest` lookup. MintMaker keeps the downstream digests current, including security rebuilds of UBI (for example the eMudhra CA remediation, RHSB-2026-012):
 
 ```bash
-git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:Dockerfile.konflux.data-connect-hub" | grep -E '^ARG .*_BASE_IMAGE='
+REF_DOCKERFILE=$(git ls-tree --name-only "$DOWNSTREAM_REMOTE/$TARGET_BRANCH" | grep -x 'Dockerfile.konflux.data-connect-hub' \
+  || git ls-tree --name-only "$DOWNSTREAM_REMOTE/$TARGET_BRANCH" | grep -E '^Dockerfile\.konflux\.' | grep -vE '\.(core-bff|dashboard-operator|sealights)$|^Dockerfile\.konflux$' | head -1)
+git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:$REF_DOCKERFILE" | grep -E '^ARG .*_BASE_IMAGE='
 ```
+
+`$REF_DOCKERFILE` is the reference for the rest of this phase: `Dockerfile.konflux.data-connect-hub` when the branch ships it, otherwise another shipped module's Dockerfile. If it comes back empty, no module ships on the branch yet; use the `skopeo` fallback below.
 
 - Builders: `registry.access.redhat.com/ubi9/nodejs-22@sha256:…` and `registry.access.redhat.com/ubi9/go-toolset:<go>@sha256:…`
 - Runtime: `registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:…`. Every shipped dashboard image uses the PQC variant; do not use plain `ubi9-minimal` downstream.
@@ -252,7 +256,7 @@ git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:Dockerfile.konflux.data-connect-hub"
 
 Combine two sources:
 
-- **From the shipped `Dockerfile.konflux.data-connect-hub` on the target branch:** pinned base images, Hermeto/offline install flags (`pnpm install --offline`, `CYPRESS_INSTALL_BINARY=0`, the `prefetch/pnpm` bootstrap), the shared-package and `pkg/tls` `COPY` lines, and the label set.
+- **From `$REF_DOCKERFILE` (the shipped module Dockerfile picked above, normally `Dockerfile.konflux.data-connect-hub`):** pinned base images, Hermeto/offline install flags (`pnpm install --offline`, `CYPRESS_INSTALL_BINARY=0`, the `prefetch/pnpm` bootstrap), the shared-package and `pkg/tls` `COPY` lines, and the label set.
 - **From the package's own `Dockerfile.workspace`:** its source layout (`UI_SOURCE_CODE` / `BFF_SOURCE_CODE`), any extra `COPY` or build steps, and whether a BFF stage exists at all. For example, `model-registry` builds from `upstream/frontend` and `upstream/bff` with a separate npm frontend install. A UI-only package has no BFF stages, so drop them.
 
 For a package laid out like `data-connect-hub` (`packages/<name>/frontend` plus `packages/<name>/bff`, pnpm build), the result is that file with `ARG MODULE_NAME=<name>` and new labels. Otherwise keep the package's steps and swap in only the downstream conventions above. Either way:

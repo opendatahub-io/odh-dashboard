@@ -86,13 +86,13 @@ ENTRYPOINT ["/bff"]
 
 ### Downstream — `Dockerfile.konflux.<name>`
 
-Copy of `Dockerfile.konflux.data-connect-hub` on the target downstream branch (`red-hat-data-services/odh-dashboard`, repo root), with the module name replaced. Re-copy from the branch rather than trusting this snapshot: MintMaker refreshes the digests there, and the install steps change with the workspace.
+Copy of `$REF_DOCKERFILE` (normally `Dockerfile.konflux.data-connect-hub`; see SKILL.md Phase 3) on the target downstream branch (`red-hat-data-services/odh-dashboard`, repo root), with the module name replaced. Re-copy from the branch rather than trusting this snapshot: MintMaker refreshes the digests there, and the install steps change with the workspace.
 
 Key differences from upstream `Dockerfile.workspace`:
 
 - All base images pinned by SHA digest; runtime is `registry.redhat.io/ubi9/ubi-minimal-pqc`
 - `pnpm install --offline` against the Hermeto-prefetched store, `CYPRESS_INSTALL_BINARY=0`
-- Red Hat labels named after the image: `com.redhat.component="odh-mod-arch-<name>-container"` and `name="managed-open-data-hub/odh-mod-arch-<name>-rhel9"`. The ProdSec registration key is a separate identifier, `rhoai/odh-mod-arch-<name>-rhel9` (see SKILL.md Phase 6)
+- Red Hat labels named after the image: `com.redhat.component="<image>-container"` and `name="managed-open-data-hub/<image>-rhel9"`, where `<image>` is the Phase 0 image name (default `odh-mod-arch-<name>`). The ProdSec registration key is a separate identifier, `rhoai/<image>-rhel9` (see SKILL.md Phase 6)
 - `CACHITO_ENV_FILE` support is optional — Konflux Cachi2 injects this file automatically during hermetic builds when prefetch is enabled; no Dockerfile changes are needed unless you opt into sourcing it explicitly
 
 Snapshot from `rhoai-3.7-ea.1` (digests replaced with placeholders):
@@ -199,14 +199,14 @@ EXPOSE 8080
 
 ENTRYPOINT ["/bff"]
 
-LABEL com.redhat.component="odh-mod-arch-<name>-container" \
-      name="managed-open-data-hub/odh-mod-arch-<name>-rhel9" \
-      description="odh-mod-arch-<name>" \
-      summary="odh-mod-arch-<name>" \
+LABEL com.redhat.component="<image>-container" \
+      name="managed-open-data-hub/<image>-rhel9" \
+      description="<image>" \
+      summary="<image>" \
       maintainer="['managed-open-data-hub@redhat.com']" \
       io.openshift.expose-services="" \
-      io.k8s.display-name="odh-mod-arch-<name>" \
-      io.k8s.description="odh-mod-arch-<name>" \
+      io.k8s.display-name="<image>" \
+      io.k8s.description="<image>" \
       com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
 ```
 
@@ -281,8 +281,8 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntim
 
 FROM registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:<digest>
 
-LABEL com.redhat.component="odh-<name>-container" \
-      name="managed-open-data-hub/odh-<name>-rhel9" \
+LABEL com.redhat.component="<image>-container" \
+      name="managed-open-data-hub/<image>-rhel9" \
       summary="ODH <Name>" \
       description="<Name> for Red Hat OpenShift AI Dashboard" \
       io.k8s.display-name="ODH <Name>" \
@@ -316,7 +316,7 @@ Downstream Dockerfiles use SHA digests instead of tags. Complete this workflow *
 Copy the `ARG *_BASE_IMAGE=` lines from an image that already ships on the target downstream branch. MintMaker keeps those digests current, including security rebuilds such as the eMudhra CA remediation (RHSB-2026-012):
 
 ```bash
-git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:Dockerfile.konflux.data-connect-hub" | grep -E '^ARG .*_BASE_IMAGE='
+git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:$REF_DOCKERFILE" | grep -E '^ARG .*_BASE_IMAGE='
 ```
 
 Only when no module exists on the branch, query the registry:
