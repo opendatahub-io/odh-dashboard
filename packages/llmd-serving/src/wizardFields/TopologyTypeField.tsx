@@ -24,6 +24,7 @@ import {
   TopologyTypeDescriptions,
   type LLMInferenceServiceConfigKind,
   getConfigTopologyType,
+  type TopologyTypeFieldData,
 } from '../types';
 import { isConfigEnabled } from '../utils';
 import {
@@ -140,21 +141,6 @@ export const useTopologyTypeData = (
 
 // --- Field value ---
 
-export type TopologyTypeFieldData = {
-  topologyType: TopologyType;
-};
-
-const topologyTypeValues: string[] = Object.values(TopologyType);
-export const isTopologyTypeFieldData = (data: unknown): data is TopologyTypeFieldData => {
-  if (data == null || typeof data !== 'object' || !('topologyType' in data)) {
-    return false;
-  }
-  const record: Record<string, unknown> = data;
-  return (
-    typeof record.topologyType === 'string' && topologyTypeValues.includes(record.topologyType)
-  );
-};
-
 export type TopologyTypeFieldType = WizardField<
   TopologyTypeFieldData,
   TopologyTypeExternalData,
@@ -170,7 +156,6 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
 }) => {
   const trackEvent = useTrackEvent();
   const configsByTopology = externalData?.data.configsByTopology;
-
   const options: SimpleSelectOption[] = React.useMemo(
     () =>
       Object.values(TopologyType).map((topoType): SimpleSelectOption => {
@@ -204,7 +189,8 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
             options={options}
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
-              if (matched) {
+              if (matched && matched !== value?.topologyType) {
+                // Track the topology choice immediately; deployment events report configuration defaults.
                 fireTopologyTypeSelected(trackEvent, {
                   llmdComposablePattern: matched,
                   previousPattern: value?.topologyType,

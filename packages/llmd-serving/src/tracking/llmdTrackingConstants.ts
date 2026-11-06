@@ -15,7 +15,6 @@ export type TopologyTypeSelectedProperties = {
 };
 
 export type RoutingSelectedProperties = {
-  routingConfigurationId: string;
   isDefaultRouting: boolean;
 };
 

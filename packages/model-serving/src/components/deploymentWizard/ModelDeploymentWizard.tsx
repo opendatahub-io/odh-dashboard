@@ -55,9 +55,6 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   cancelReturnRoute,
 }) => {
   const onRefresh = useRefreshWizardPage(existingDeployment);
-  const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
-    useExitDeploymentWizard({ returnRoute, cancelReturnRoute, isEdit: !!existingDeployment });
-
   // External data state - loaded by ExternalDataLoader component
   const [externalData, setExternalData] = React.useState<ExternalDataMap>({});
 
@@ -66,6 +63,13 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     project?.metadata.name,
     externalData,
   );
+  const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
+    useExitDeploymentWizard({
+      returnRoute,
+      cancelReturnRoute,
+      isEdit: !!existingDeployment,
+      formData: wizardFormData,
+    });
   const shouldShowPreconfigureStep = calcShouldShowPreconfigureStep(project, existingData);
 
   const validation = useModelDeploymentWizardValidation(
