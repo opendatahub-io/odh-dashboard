@@ -318,6 +318,7 @@ export type FileMapping = Record<string, string>;
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  ODH_DASHBOARD_CANONICAL_URL?: string;
   OCP_API_URL?: string;
   TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
