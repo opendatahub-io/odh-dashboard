@@ -645,6 +645,8 @@ def shell_segments_ctx(cmd):
                 segs[start:] = [(o, tk, True, d) for o, tk, _c, d in segs[start:]]
                 op = "&"
                 starts.append((len(stack), len(segs)))
+            elif t == "\n" and op in ("&&", "||", "|") and not toks:
+                pass  # a newline after &&, || or | continues the same command
             else:
                 op = {"\n": ";", ";;": ";", "|&": "|"}.get(t, t)
                 if op == ";":
@@ -1470,7 +1472,8 @@ def _self_test_network():
     partial_exit = _self_test_main(f"http://127.0.0.1:{srv.server_address[1]}/partial/v1/traces")
     del posts[:]
     rerun = {"bridged": _self_test_main(ok_ep, "b" * 32), "unmarked": _self_test_main(ok_ep, "c" * 32),
-             "mark_only": _self_test_main(ok_ep, "c" * 32, ["--mark-only"])}
+             "mark_only": _self_test_main(ok_ep, "c" * 32, ["--mark-only"]),
+        "mark_only_missing": _self_test_main(ok_ep, "a" * 32, ["--mark-only"])}
     rerun_posts = list(posts)
     unmarked_force = _self_test_main(ok_ep, "c" * 32, ["--force"])
     rerun_posts_force = len(posts) - len(rerun_posts)
@@ -1821,7 +1824,8 @@ def self_test():
         ("a rerun of a bridged trace sends nothing; an unmarked trace stops for explicit recovery",
          net["rerun_posts"] == [] and "marker" in net["rerun"]["bridged"]
          and "without the bridge marker" in net["rerun"]["unmarked"]
-         and "marker" in net["rerun"]["mark_only"]),
+         and "marker" in net["rerun"]["mark_only"]
+         and "found no trace" in net["rerun"]["mark_only_missing"]),
         ("--force resends all spans to an unmarked trace", net["rerun_posts_force"] == 1
          and "marker" in net["unmarked_force"]),
         ("--no-base-spans adds bridge spans to an unmarked (Fullsend-exported) trace",
@@ -1876,6 +1880,11 @@ def self_test():
          and shell_reads("f() ( cat docs/adr/0009-x.md )") == []
          and shell_reads("cat 3<docs/adr/0009-x.md") == []
          and shell_reads("cat 0<docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]),
+        ("a newline after &&, || or | continues the command",
+         shell_reads("true ||\ncat docs/adr/0009-x.md") == []
+         and shell_reads("cd packages/x &&\ncat AGENTS.md") == ["packages/x/AGENTS.md"]
+         and shell_reads("cat a/b.md |\nhead") == []
+         and shell_reads("true\ncat c/d.md") == ["c/d.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
@@ -2002,6 +2011,9 @@ def main():
                  "(rerun the job, or pass --force)")
     exists, bridged = state or (False, False)
     if args.mark_only:
+        if not exists:
+            sys.exit("--mark-only needs the trace to be in MLflow already (the lookup "
+                     + ("failed" if state is None else "found no trace") + "); not writing the marker")
         print("--mark-only: skipping span export")
     elif bridged and not args.force:
         print("bridge spans already in MLflow; skipping span export (use --force to resend)")

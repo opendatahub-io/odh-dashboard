@@ -571,7 +571,7 @@ totals. An export the endpoint only partly accepts (HTTP 200 with
 marker write that keeps failing after an export. A rerun then finds the trace without the
 marker and stops rather than guess which spans MLflow holds. Check the trace, then run the
 workflow manually with `recover`: `mark-only` records the marker when the spans are
-complete, `resend` sends all spans again (the ones already accepted count twice), and
+complete (it stops if MLflow doesn't have the trace), `resend` sends all spans again (the ones already accepted count twice), and
 `bridge-only` adds only the bridge's spans to a trace Fullsend exported itself. Use
 `bridge-only` only when the bridge never sent to that trace: after a bridge export whose
 marker write failed it would send the bridge spans twice, so use `mark-only` there. A
