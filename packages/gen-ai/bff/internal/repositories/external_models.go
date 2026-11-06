@@ -494,12 +494,8 @@ func resolveTrustedHost(
 			if pod.Status.Phase != corev1.PodRunning {
 				continue
 			}
-			podIPs := make(map[string]bool, len(pod.Status.PodIPs))
-			for _, podIP := range pod.Status.PodIPs {
-				podIPs[podIP.IP] = true
-			}
 			for _, address := range endpoint.Addresses {
-				if !podIPs[address] {
+				if !podOwnsAddress(pod, address) {
 					return false, nil, nil
 				}
 				if podLabel != "" && endpoint.Hostname == nil && dashedEndpointName(address) != podLabel {
@@ -540,6 +536,24 @@ func resolveTrustedHost(
 		return false, nil, nil
 	}
 	return true, targets, nil
+}
+
+// podOwnsAddress reports whether an EndpointSlice address matches one of the
+// Pod's IPs. Kubernetes parses and re-stringifies Pod IPs when publishing
+// EndpointSlices, so equivalent IPv6 textual forms (e.g. PodIP
+// fd08::5678:0000:0000:9abc:def0 vs endpoint address fd08::5678:0:0:9abc:def0)
+// must compare via net.IP.Equal, not string equality.
+func podOwnsAddress(pod *corev1.Pod, address string) bool {
+	addressIP := net.ParseIP(address)
+	for _, podIP := range pod.Status.PodIPs {
+		if podIP.IP == address {
+			return true
+		}
+		if ip := net.ParseIP(podIP.IP); ip != nil && addressIP != nil && ip.Equal(addressIP) {
+			return true
+		}
+	}
+	return false
 }
 
 // forbiddenTrustError builds the permission error returned when a caller lacks read

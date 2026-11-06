@@ -791,6 +791,49 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 	})
 
+	t.Run("IPv6 endpoint address in short form is trusted despite PodIP textual difference", func(t *testing.T) {
+		// Kubernetes re-stringifies Pod IPs when publishing EndpointSlices, so the
+		// endpoint address may use a different (but equivalent) IPv6 textual form
+		// than the Pod's status. Use loopback forms of the same shapes the
+		// endpoint controller produces (full vs zero-compressed) so the pinned
+		// dial fails fast and locally.
+		listener, err := net.Listen("tcp", "[::1]:0")
+		if err != nil {
+			t.Skipf("IPv6 loopback unavailable: %v", err)
+		}
+		closedPort := listener.Addr().(*net.TCPAddr).Port
+		if err := listener.Close(); err != nil {
+			t.Fatalf("failed to release the ephemeral port: %v", err)
+		}
+		req := req
+		req.BaseURL = fmt.Sprintf("https://my-model.my-ns.svc.cluster.local:%d/v1", closedPort)
+
+		client := &k8smocks.ConfigurableMockKubernetesClient{
+			Service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+				Spec: corev1.ServiceSpec{
+					Type:      corev1.ServiceTypeClusterIP,
+					ClusterIP: corev1.ClusterIPNone,
+					Selector:  map[string]string{"app": "my-model"},
+				},
+			},
+			EndpointSlices: []discoveryv1.EndpointSlice{withSlicePort(
+				sliceWith("my-ns", "my-model-x7", false, ep("::1", boolPtr(true), nil, nil, "", podRefAt("my-ns", "my-model-pod"))),
+				"https", int32(closedPort))},
+			Pod: runningPodWithIPs("my-ns", "::0001"),
+		}
+		_, err = repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want pinned dial failure to the loopback address with nothing listening")
+		}
+		if strings.Contains(err.Error(), "failed to resolve hostname") {
+			t.Errorf("VerifyExternalModel() error = %v, equivalent IPv6 forms must match and the Service must be trusted", err)
+		}
+		if !strings.Contains(err.Error(), "pinned dial") {
+			t.Errorf("VerifyExternalModel() error = %v, want pinned dial failure for the trusted Service", err)
+		}
+	})
+
 	t.Run("cross-namespace Service DNS name is denied without SSRF resolution", func(t *testing.T) {
 		req := req
 		req.BaseURL = "https://my-model.other-ns.svc.cluster.local:8443/v1"
