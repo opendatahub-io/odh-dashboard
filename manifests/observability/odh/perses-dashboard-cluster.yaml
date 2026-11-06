@@ -27,7 +27,7 @@ spec:
                 name: data-science-prometheus-datasource
               labelName: namespace
               matchers:
-                - kserve_vllm:num_requests_running
+                - vllm:num_requests_running
       # Cluster details variables - set by ClusterDetailsVariablesProvider
       - kind: TextVariable
         spec:
@@ -103,9 +103,9 @@ spec:
                     datasource:
                       kind: PrometheusDatasource
                       name: data-science-prometheus-datasource
-                    # Count unique models by model_name and namespace from kserve_vllm metrics.
+                    # Count unique models by model_name and namespace from vllm metrics.
                     # Namespace scoping is enforced by the datasource query parameter.
-                    query: count(group(kserve_vllm:num_requests_running) by (model_name, namespace))
+                    query: count(group(vllm:num_requests_running) by (model_name, namespace))
                     seriesNameFormat: Deployed models
       gpuUtilizationStat:
         kind: Panel
@@ -150,9 +150,9 @@ spec:
                     datasource:
                       kind: PrometheusDatasource
                       name: data-science-prometheus-datasource
-                    # Request success rate using kserve_vllm metrics.
+                    # Request success rate using vllm metrics.
                     # Namespace scoping is enforced by the datasource query parameter.
-                    query: (sum(increase(kserve_vllm:request_success_total{finished_reason=~"length|stop"}[$__range])) / sum(increase(kserve_vllm:request_success_total[$__range]))) and (sum(increase(kserve_vllm:request_success_total[$__range])) > 0)
+                    query: (sum(increase(vllm:request_success_total{finished_reason=~"length|stop"}[$__range])) / sum(increase(vllm:request_success_total[$__range]))) and (sum(increase(vllm:request_success_total[$__range])) > 0)
                     seriesNameFormat: Request success rate
       # Cluster-wide usage - Area charts
       gpuUtilizationArea:

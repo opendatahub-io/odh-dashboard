@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import type { DashboardResource, ListVariableDefinition } from '@perses-dev/core';
-import type { VariableState } from '@perses-dev/plugin-system';
+import { useListVariablePluginValues, type VariableState } from '@perses-dev/plugin-system';
 import { useVariableDefinitionAndState } from '@perses-dev/dashboards';
 import { PersesDashboardGate } from '../PersesDashboardGate';
 
@@ -10,7 +10,26 @@ jest.mock('@perses-dev/dashboards', () => ({
   useVariableDefinitionAndState: jest.fn(),
 }));
 
+jest.mock('@perses-dev/plugin-system', () => ({
+  ...jest.requireActual('@perses-dev/plugin-system'),
+  useListVariablePluginValues: jest.fn(),
+}));
+
 const useVariableDefinitionAndStateMock = jest.mocked(useVariableDefinitionAndState);
+const useListVariablePluginValuesMock = jest.mocked(useListVariablePluginValues);
+type NamespaceOptionsQuery = ReturnType<typeof useListVariablePluginValues>;
+
+const createNamespaceOptionsQuery = (
+  data: NonNullable<NamespaceOptionsQuery['data']> = [],
+  overrides: Partial<Pick<NamespaceOptionsQuery, 'error' | 'isError' | 'isFetched'>> = {},
+): NamespaceOptionsQuery =>
+  ({
+    data,
+    error: null,
+    isError: false,
+    isFetched: true,
+    ...overrides,
+  } as unknown as NamespaceOptionsQuery);
 
 const namespaceDefinition = {
   kind: 'ListVariable',
@@ -62,6 +81,7 @@ const renderGate = (
 describe('PersesDashboardGate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useListVariablePluginValuesMock.mockReturnValue(createNamespaceOptionsQuery());
   });
 
   it('should delay panels while the namespace variable is loading', () => {
@@ -89,6 +109,9 @@ describe('PersesDashboardGate', () => {
   });
 
   it('should render panels when all namespaces are selected', () => {
+    useListVariablePluginValuesMock.mockReturnValue(
+      createNamespaceOptionsQuery([{ label: 'Project A', value: 'project-a' }]),
+    );
     renderGate(namespaceDashboard, {
       value: '$__all',
       loading: false,
@@ -99,9 +122,27 @@ describe('PersesDashboardGate', () => {
   });
 
   it('should delay the default All value until namespace options are loaded', () => {
-    renderGate(namespaceDashboard, { value: '$__all', loading: false, options: [] });
+    useListVariablePluginValuesMock.mockReturnValue(
+      createNamespaceOptionsQuery([], { isFetched: false }),
+    );
+    renderGate(namespaceDashboard, { value: '$__all', loading: false });
 
     expect(screen.queryByTestId('dashboard-panels')).toBeNull();
+  });
+
+  it('should show an empty state when the default All options query returns no projects', () => {
+    renderGate(namespaceDashboard, { value: '$__all', loading: false });
+
+    expect(screen.getByTestId('namespace-options-empty-state')).toBeDefined();
+  });
+
+  it('should show an error state when the default All options query fails', () => {
+    useListVariablePluginValuesMock.mockReturnValue(
+      createNamespaceOptionsQuery([], { error: new Error('options unavailable'), isError: true }),
+    );
+    renderGate(namespaceDashboard, { value: '$__all', loading: false });
+
+    expect(screen.getByTestId('namespace-options-error-state')).toBeDefined();
   });
 
   it('should not wait for options when a custom All value is configured', () => {

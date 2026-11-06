@@ -13,12 +13,12 @@ import (
 )
 
 // TestModelsPersesDashboardsScopedPins guards Models CR product pins:
-// admin + non-admin must route kserve through the DS namespace proxy,
+// admin + non-admin must route vLLM through the DS namespace proxy,
 // OCP GPU/CPU through OCP tenancy, never unscoped cluster :9091, use a TextVariable
 // namespace stub, and keep PromQL queryparam-first (no namespace=~"$namespace" dual tenancy).
 //
-// Out of scope here: tenancy GPU/CPU PromQL that still joins kserve_vllm:* (cross-stack).
-// That is a separate metric-ownership change — do not encode absence of kserve in tenancy
+// Out of scope here: tenancy GPU/CPU PromQL that still joins vllm:* (cross-stack).
+// That is a separate metric-ownership change — do not encode absence of vLLM in tenancy
 // panels as a scoping pin.
 func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 	t.Parallel()
@@ -41,7 +41,11 @@ func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 			assert.NotContains(t, raw, "name: cluster-prometheus-datasource",
 				"Models must not pin unscoped OCP :9091")
 			assert.Contains(t, raw, "name: data-science-prometheus-datasource",
-				"Models must pin DS namespace proxy for kserve series")
+				"Models must pin DS namespace proxy for vLLM series")
+			assert.Contains(t, raw, "vllm:num_requests_running",
+				"Models must use the live Data Science vLLM metric family")
+			assert.NotContains(t, raw, "kserve_vllm:",
+				"Models must not use the unavailable kserve_vllm metric family")
 			assert.Contains(t, raw, "name: cluster-prometheus-tenancy-datasource",
 				"Models must pin OCP tenancy for GPU/CPU series")
 			assert.NotContains(t, raw, `namespace=~"$namespace"`,
