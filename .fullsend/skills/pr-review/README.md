@@ -575,7 +575,8 @@ Fullsend run's own head commit, repository and branch, which must match exactly 
 `--pr-number` and ignores the PR fields the sandbox wrote. There are two stages. The
 trust check before the download (trusted workflow, event, branch and, for
 `pull_request_target`, a single default-branch PR not retargeted since the run) skips the
-trace when it fails: the job succeeds and nothing is exported. After that, the PR metadata
+trace when its answer is negative: the job succeeds and nothing is exported. A GitHub API
+error during that check fails the job instead, so it can be rerun. After that, the PR metadata
 lookups are optional: without a single match, or when a lookup fails, the trace is still
 sent, just without PR identity or the missing metadata. The reviewed commit (`fullsend.head_sha`) comes from the
 same run, and `fullsend.verdict` only from the Fullsend bot's review posted during it; the
@@ -594,7 +595,8 @@ marker and stops rather than guess which spans MLflow holds. Check the trace, th
 workflow manually with `recover`: `mark-only` records the marker when the spans are
 complete (it stops if MLflow doesn't have the trace), `resend` sends all spans again (the ones already accepted count twice, so never use it on a
 trace that already has either bridge marker), and
-`bridge-only` adds only the bridge's spans to a trace Fullsend exported itself. Use
+`bridge-only` adds only the bridge's spans to a trace Fullsend exported itself (it stops if
+MLflow doesn't have the trace yet). Use
 `bridge-only` only when the bridge never sent to that trace: after a bridge export whose
 marker write failed it would send the bridge spans twice, so use `mark-only` there. To
 back this up, a bridge-only export records `fullsend.bridge.pending` on the trace before

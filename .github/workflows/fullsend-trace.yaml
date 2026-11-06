@@ -90,6 +90,8 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id must be numeric"; exit 1; }
+          # API errors in these checks fail the step (so it can be rerun); only a definite
+          # negative result skips the trace.
           # Only trace runs of this repository's own fullsend.yaml for events that use the base
           # repository's definition. A fork PR can edit fullsend.yaml and run it on
           # pull_request or pull_request_review, and that run's artifact must not reach MLflow.
@@ -108,7 +110,7 @@ jobs:
           if [[ "$src_event" != pull_request_target ]]; then
             on_default=""
             if [[ "$src_branch" == "$default_branch" && "$src_sha" =~ ^[0-9a-f]{40}$ ]]; then
-              on_default=$(gh api "repos/$REPO/compare/$default_branch...$src_sha" --jq '.status' || true)
+              on_default=$(gh api "repos/$REPO/compare/$default_branch...$src_sha" --jq '.status')
             fi
             [[ "$on_default" == identical || "$on_default" == behind ]] || src_event=""
           else
@@ -123,15 +125,16 @@ jobs:
               matches=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
                 -f head="${src_head_repo%%/*}:$src_branch" \
                 --jq '.[] | "\(.head.repo.full_name // "-") \(.head.ref) \(.base.ref) \(.number)"' \
-                | awk -v r="$src_head_repo" -v b="$src_branch" '$1 == r && $2 == b {print $3, $4}' || true)
+                | awk -v r="$src_head_repo" -v b="$src_branch" '$1 == r && $2 == b {print $3, $4}')
             fi
             src_pr=${matches#* }
             if [[ "$matches" != "$default_branch "* || ! "$src_pr" =~ ^[0-9]+$ || ! "$src_started" =~ ^[0-9T:-]+Z$ ]]; then
               src_event=""
-            elif ! changes=$(gh api --paginate "repos/$REPO/issues/$src_pr/timeline" \
-                --jq '.[] | select(.event == "base_ref_changed") | .created_at'); then
-              src_event=""
-            elif awk -v t="$src_started" '$1 >= t {found=1} END {exit !found}' <<< "$changes"; then
+            else
+              changes=$(gh api --paginate "repos/$REPO/issues/$src_pr/timeline" \
+                --jq '.[] | select(.event == "base_ref_changed") | .created_at')
+            fi
+            if [[ -n "$src_event" ]] && awk -v t="$src_started" '$1 >= t {found=1} END {exit !found}' <<< "$changes"; then
               src_event=""  # retargeted after the run started: its base then is unknown
             fi
           fi

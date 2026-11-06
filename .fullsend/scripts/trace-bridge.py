@@ -1685,7 +1685,8 @@ def _self_test_network():
     del posts[:]
     rerun = {"bridged": _self_test_main(ok_ep, "b" * 32), "unmarked": _self_test_main(ok_ep, "c" * 32),
              "mark_only": _self_test_main(ok_ep, "c" * 32, ["--mark-only"]),
-        "mark_only_missing": _self_test_main(ok_ep, "a" * 32, ["--mark-only"])}
+        "mark_only_missing": _self_test_main(ok_ep, "a" * 32, ["--mark-only"]),
+        "bridge_only_missing": _self_test_main(ok_ep, "a" * 32, ["--no-base-spans"])}
     rerun_posts = list(posts)
     unmarked_force = _self_test_main(ok_ep, "c" * 32, ["--force"])
     rerun_posts_force = len(posts) - len(rerun_posts)
@@ -2053,7 +2054,8 @@ def self_test():
          net["rerun_posts"] == [] and "marker" in net["rerun"]["bridged"]
          and "without the bridge marker" in net["rerun"]["unmarked"]
          and "marker" in net["rerun"]["mark_only"]
-         and "found no trace" in net["rerun"]["mark_only_missing"]),
+         and "found no trace" in net["rerun"]["mark_only_missing"]
+         and "needs the trace to be in MLflow" in net["rerun"]["bridge_only_missing"]),
         ("--force resends all spans to an unmarked trace", net["rerun_posts_force"] == 1
          and "marker" in net["unmarked_force"]),
         ("--no-base-spans adds bridge spans to an unmarked (Fullsend-exported) trace",
@@ -2366,6 +2368,11 @@ def main():
                      "or its marker write failed, or Fullsend exports its own spans. Check the "
                      "trace, then rerun with --mark-only (spans complete), --force (resend all; "
                      "accepted spans count twice) or --no-base-spans (Fullsend exports its own)")
+        if args.no_base_spans and not exists and not args.force:
+            # Bridge spans only belong on a trace Fullsend exported itself; posting to a missing
+            # trace would skip the pending tag, so a stop before the marker could resend them.
+            sys.exit("--no-base-spans needs the trace to be in MLflow already (Fullsend's own export "
+                     "may not have landed yet); rerun later, or pass --force")
         if exists and not bridged and not args.force:
             # Bridge spans only (--no-base-spans). A pending tag means an earlier bridge export
             # here may have sent some of them; sending again would duplicate them.
