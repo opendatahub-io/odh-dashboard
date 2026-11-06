@@ -160,7 +160,9 @@ def _redact_value(m):
         whole = bool(re.fullmatch(r'"(?:[^"\\]|\\.)*"' if v[0] == '"' else r"'[^']*'", v)) \
             and (not nxt or nxt.isspace() or nxt in ",;&|)}]")
     else:
-        whole = not any(q in v for q in "\"'`")
+        # A quote or a backslash (prefix\ tail: an escaped space) means the shell word may go on
+        # past the match.
+        whole = not any(q in v for q in "\"'`\\")
     whole = whole and len(v) < 2000
     return m.group(1) + "[REDACTED]" + ("" if whole else _CUT)
 
@@ -1253,7 +1255,9 @@ def build(args):
             for i, c in enumerate(calls):
                 a = describe_call(c)
                 counts[c["name"]] += 1
-                if c["name"] == "read" and "fullsend.file.category" in a:
+                # Only completed, successful reads count as files read; attempts stay in tool_counts.
+                if c["name"] == "read" and "fullsend.file.category" in a \
+                        and not c.get("error") and c.get("end") is not None:
                     cats[a["fullsend.file.category"]] += 1
                     if a["fullsend.file.category"] not in ("run-input", "fullsend-scaffold", "pi-skill"):
                         reads.append(a["fullsend.tool.path"])
@@ -1962,7 +1966,9 @@ def self_test():
          net["states"] == [(False, False, False), (True, True, False), (True, False, False), None]),
         ("failed read, search, prompt mention and unanswered call don't count as opened",
          get(persona_sc, "fullsend.guidance.read") is not None
-         and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
+         and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.guidance.read"))
+         and "docs/adr/0009-x.md" not in json.dumps(get(persona_sc, "fullsend.files_read"))
+         and json.loads(get(persona_sc, "fullsend.tool_counts") or "{}").get("read", 0) >= 1),
         ("cat in a shell command counts as opened", "AGENTS.md" in json.dumps(get(persona_sc, "fullsend.guidance.read"))),
         ("only read-program files and redirection targets are exported (no git/grep/rg/echo args)",
          all(shell_summary(c)[1] == [] for c in (
@@ -2133,6 +2139,8 @@ def self_test():
          and "SensitiveTail" not in clean("password='a SensitiveTail")
          and clean('password="a\\"b" keep') == "password=[REDACTED] keep"
          and "def" not in clean("--token 'abc'def")
+         and "secretTail" not in clean("--password prefix\\ secretTail")
+         and "secretTail" not in clean("password=prefix\\ secretTail")
          and "ghi" not in clean('password=abc"def ghi"')
          and json.loads(clean(json.dumps({"password": "x", "keep": "y"}))
                         .replace("[REDACTED]", '"r"')) == {"password": "r", "keep": "y"}),

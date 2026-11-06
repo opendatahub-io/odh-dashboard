@@ -568,7 +568,8 @@ the run started, since a run from another ref
 or a PR into another branch could use an edited file) are traced; a fork PR could edit that file and run it on
 `pull_request` or `pull_request_review`, so those runs are skipped. A run whose artifact
 list has no `fullsend-review` artifact is skipped; an
-artifact API or download error fails the job so it can be rerun. The PR identity comes from a `pull_request_target`
+artifact API or download error fails the job so it can be rerun. On a rerun (`run_attempt` > 1) the reviewed commit is unknown, because the review
+fetched the PR's head when it ran, so the commit, coverage and verdict are left out. The PR identity comes from a `pull_request_target`
 Fullsend run's own head commit, repository and branch, which must match exactly one PR
 (comment- and review-triggered runs report the default branch, so they carry none); the bridge gets it as
 `--pr-number` and ignores the PR fields the sandbox wrote. Without a single match the

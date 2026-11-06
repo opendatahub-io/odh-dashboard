@@ -172,9 +172,9 @@ jobs:
           # must match exactly one PR (open or closed). Otherwise the trace is sent without
           # PR identity.
           run=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
-            '"\(.event) \(.head_sha) \(.head_repository.full_name // "-") \(.run_started_at // .created_at) \(.updated_at) \(.head_branch // "")"' \
+            '"\(.event) \(.head_sha) \(.head_repository.full_name // "-") \(.run_started_at // .created_at) \(.updated_at) \(.run_attempt // 0) \(.head_branch // "")"' \
             || true)
-          read -r event head_sha head_repo started finished head_branch <<< "$run" || true
+          read -r event head_sha head_repo started finished attempt head_branch <<< "$run" || true
           pr=""
           # Only a pull_request_target run's head is the PR's head; an issue_comment or review
           # run reports the default branch, which can't identify the PR. (The commit-to-PR API
@@ -207,7 +207,14 @@ jobs:
             exit 0
           fi
           echo "pr_number=$pr" >> "$GITHUB_OUTPUT"
-          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"  # the reviewed commit, from the run
+          # A rerun keeps the original run's commit, but the review fetches the PR's head at run
+          # time, so on a rerun the reviewed commit is unknown: omit it, coverage and the verdict.
+          if [[ "$attempt" != 1 ]]; then
+            echo "::notice::Run attempt $attempt: the reviewed commit is unknown; tracing without it, coverage or the verdict."
+            head_sha=""
+          else
+            echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"  # the reviewed commit, from the run
+          fi
           # Coverage is scored against the files of the reviewed commit. The PR files API
           # only shows the current head, so coverage is omitted once the PR has moved on
           # (a later push, or a backfill of an older review).
