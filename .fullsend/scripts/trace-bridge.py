@@ -1489,6 +1489,7 @@ def self_test():
          and shell_summary("echo \\> private/needle")[1] == []
          and shell_summary("echo $'\\' > private/secret.md \\''")[1] == []
          and shell_reads("echo $'a\\'b' && cat k/l.md") == ["k/l.md"]
+         and shell_reads("echo $'\\' ; cat docs/adr/0009-x.md \\''") == []
          and shell_summary("sed -e >/dev/null 's/private/needle/' README.md")[1] == ["README.md"]
          and shell_summary("sed -e 2>/dev/null 's/private/needle/' README.md")[1] == ["README.md"]
          and shell_tokens("cmd 2>err/e.log '2'>out/o.log 2 >x/y.log")
