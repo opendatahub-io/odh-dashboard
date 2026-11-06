@@ -158,9 +158,12 @@ def _redact_value(m):
 
 def redact(s):
     s = SECRET_RE.sub("[REDACTED]", str(s)[:MAX_SCAN])
-    s = SECRET_KV_RE.sub(_redact_value, s)
-    s = SECRET_FLAG_RE.sub(_redact_value, s)
-    return s.split(_CUT, 1)[0] + "…" if _CUT in s else s
+    # Cut right after each pass: a later pattern must never consume the cut marker.
+    for pattern in (SECRET_KV_RE, SECRET_FLAG_RE):
+        s = pattern.sub(_redact_value, s)
+        if _CUT in s:
+            return s.split(_CUT, 1)[0] + "…"
+    return s
 
 
 def redact_obj(v):
@@ -2037,7 +2040,9 @@ def self_test():
          and "SensitiveTail" not in clean('{"password": "prefix\\"SensitiveTail"}')
          and "SensitiveTail" not in clean('--token "prefix\\"SensitiveTail" x')
          and "SensitiveTail" not in clean(json.dumps({"q": 'password="a\\"SensitiveTail"'}))
-         and clean('password="a\\"b" keep') == "password=[REDACTED] keep"),
+         and clean('password="a\\"b" keep') == "password=[REDACTED] keep"
+         and "secret-tail" not in clean('x --token password="AAA BBB-secret-tail')
+         and "secret-tail" not in clean('--token password="' + "A" * 2500 + ' secret-tail')),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]

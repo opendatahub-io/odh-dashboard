@@ -570,13 +570,15 @@ or review lookup only drops that optional metadata (author, coverage, posted ver
 the spans are still sent. If guidance selection fails, the trace is sent without coverage.
 If the endpoint is unreachable, the job fails and the review is unaffected; rerun it from
 the Actions tab. If the bridge's spans are already in MLflow (its `fullsend.bridge.version`
-tag is set), a rerun only refreshes tags, because re-sending spans doubles MLflow's token
+tag is set, or the `fullsend.pr` tag that bridge version 1 used as its marker), a rerun
+only refreshes tags, because re-sending spans doubles MLflow's token
 totals. An export the endpoint only partly accepts (HTTP 200 with
 `partialSuccess.rejectedSpans`) fails the job without writing the marker, and so does a
 marker write that keeps failing after an export. A rerun then finds the trace without the
 marker and stops rather than guess which spans MLflow holds. Check the trace, then run the
 workflow manually with `recover`: `mark-only` records the marker when the spans are
-complete (it stops if MLflow doesn't have the trace), `resend` sends all spans again (the ones already accepted count twice), and
+complete (it stops if MLflow doesn't have the trace), `resend` sends all spans again (the ones already accepted count twice, so never use it on a
+trace that already has either bridge marker), and
 `bridge-only` adds only the bridge's spans to a trace Fullsend exported itself. Use
 `bridge-only` only when the bridge never sent to that trace: after a bridge export whose
 marker write failed it would send the bridge spans twice, so use `mark-only` there. To
