@@ -99,6 +99,20 @@ describe('TopologyTypeField tracking', () => {
   const getMultiNodeOption = () =>
     within(screen.getByTestId(`topology-type-${TopologyType.MULTI_NODE}`)).getByRole('option');
 
+  it('should allow topology selection when the host disables tracking', async () => {
+    render(<TopologyTypeFieldComponent id="llmd-serving/topology-type" onChange={mockOnChange} />, {
+      wrapper: createTestProviders({ trackEvent: () => undefined }).wrapper,
+    });
+
+    await openDropdown();
+    await act(async () => {
+      fireEvent.click(screen.getByText(TopologyTypeLabels[TopologyType.SINGLE_NODE]));
+    });
+
+    expect(mockOnChange).toHaveBeenCalledWith({ topologyType: TopologyType.SINGLE_NODE });
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
+
   it('should track a topology change immediately with its previous pattern', async () => {
     renderComponent({ value: { topologyType: TopologyType.MULTI_NODE } });
     await openDropdown();
