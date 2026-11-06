@@ -778,6 +778,21 @@ def parse_headers(headers_env):
     return headers
 
 
+def safe_error(e):
+    """A fixed description of a network error: status code or exception type, never its
+    message (which can carry URLs, hosts or response text)."""
+    if isinstance(e, urllib.error.HTTPError):
+        return f"HTTP {e.code}"
+    return type(e).__name__
+
+
+def log_summary(summary):
+    """The run summary for the Actions log: counts and tags, no file or guidance paths."""
+    keep = {k: summary.get(k) for k in ("trace_id", "pr", "spans", "personas", "coverage", "tags")}
+    keep["missed_count"] = len(summary.get("missed") or [])
+    return json.dumps(keep)
+
+
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     """Never follow redirects: they would forward the Authorization header."""
     def redirect_request(self, *args, **kwargs):
@@ -820,7 +835,7 @@ def mlflow_trace_state(endpoint, headers, trace_id):
         return False, False
     except (urllib.error.URLError, ValueError, OSError, http.client.HTTPException) as e:
         # OSError covers read timeouts; HTTPException covers IncompleteRead and bad status lines
-        print(f"warning: trace lookup failed ({e}); treating the trace as new", file=sys.stderr)
+        print(f"warning: trace lookup failed ({safe_error(e)}); treating the trace as new", file=sys.stderr)
         return False, False
     tags = info.get("tags") if isinstance(info.get("tags"), dict) else {}
     # fullsend.pr marks traces sent by bridge version 1, before fullsend.bridge.version existed.
@@ -841,7 +856,7 @@ def set_mlflow_tags(endpoint, headers, trace_id, tags):
             failed += 1
             last = e
     if failed:
-        print(f"warning: {failed}/{len(tags)} trace tags not set ({last})", file=sys.stderr)
+        print(f"warning: {failed}/{len(tags)} trace tags not set ({safe_error(last)})", file=sys.stderr)
     return len(tags) - failed
 
 
@@ -909,11 +924,13 @@ def _self_test_network():
     except Exception:  # noqa: BLE001 - the check is that nothing escapes
         timeout_state = "raised"
     LOOKUP_TIMEOUT = saved
+    post_error = None
     try:
         post({}, ep, {})
         redirect_blocked = False
     except urllib.error.HTTPError as e:
         redirect_blocked = e.code == 302
+        post_error = safe_error(e)
     try:
         check_endpoint("http://mlflow.example.com/v1/traces")
         http_rejected = False
@@ -932,7 +949,9 @@ def _self_test_network():
         bad_id_rejected = False
     except SystemExit:
         bad_id_rejected = True
-    return {"states": states, "shape_states": shape_states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
+    url_error = safe_error(urllib.error.URLError("http://secret-host.internal/x?token=abc"))
+    return {"post_error": post_error, "url_error": url_error,
+            "states": states, "shape_states": shape_states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
 
@@ -1142,6 +1161,11 @@ def self_test():
          "QQQQQQQQQQQQ" not in blob and "keyLeakabcdefghij" not in blob),
         ("lookup timeout treated as a new trace", net["timeout_state"] == (False, False)),
         ("truncated lookup response treated as a new trace", net["truncated_state"] == (False, False)),
+        ("logged errors are fixed text: status codes and exception types only",
+         net["post_error"] == "HTTP 302" and net["url_error"] == "URLError"),
+        ("the run summary in the log has counts, not guidance or file paths",
+         "docs/adr" not in log_summary(summary) and ".claude/rules" not in log_summary(summary)
+         and json.loads(log_summary(summary))["missed_count"] == 1),
         ("non-object lookup responses treated as a new trace", net["shape_states"] == [(False, False)] * 3),
         ("malformed and out-of-range timestamps are rejected",
          otlp_ns(float("inf")) is None and otlp_ns(float("nan")) is None and otlp_ns("x") is None
@@ -1237,7 +1261,7 @@ def main():
     if args.out:
         with open(args.out, "w") as f:
             json.dump(payload, f, indent=1)
-    print(json.dumps({k: v for k, v in summary.items() if k != "base_span_ids"}))
+    print(log_summary(summary))
     endpoint = os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
     if args.dry_run or not endpoint:
         if not endpoint and not args.dry_run:
@@ -1256,7 +1280,10 @@ def main():
                 for ss in rs["scopeSpans"]:
                     ss["spans"] = [x for x in ss["spans"] if x["spanId"] not in drop]
             print("trace exists without bridge spans; sending bridge spans only")
-        status = post(payload, endpoint, headers)
+        try:
+            status = post(payload, endpoint, headers)
+        except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as e:
+            sys.exit(f"export failed ({safe_error(e)})")
         print(f"exported to OTLP endpoint: HTTP {status}")
     if not args.no_tags:
         n = set_mlflow_tags(endpoint, headers, summary["trace_id"], summary["tags"])
