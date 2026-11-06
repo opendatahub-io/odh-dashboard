@@ -44,7 +44,16 @@ update_package_json_commit() {
   local commit="$1"
   local temp_file="$PACKAGE_JSON.tmp"
 
-  if ! jq --arg commit "$commit" '.subtree.commit = $commit' "$PACKAGE_JSON" > "$temp_file"; then
+  local tracking_filter='.subtree.commit = $commit'
+  if [ -n "${SYNC_BASE_COMMIT:-}" ]; then
+    tracking_filter+=' | .subtree.syncBase = $base'
+  fi
+  if [ -n "${SYNC_TARGET_COMMIT:-}" ]; then
+    tracking_filter+=' | .subtree.syncTarget = $target'
+  fi
+
+  if ! jq --arg commit "$commit" --arg base "${SYNC_BASE_COMMIT:-}" \
+      --arg target "${SYNC_TARGET_COMMIT:-}" "$tracking_filter" "$PACKAGE_JSON" > "$temp_file"; then
     error_msg "Failed to update package.json with commit $commit"
     rm -f "$temp_file"
     return 1
@@ -57,6 +66,78 @@ update_package_json_commit() {
   fi
 
   return 0
+}
+
+pin_upstream_sync_target() {
+  local base_commit="$1"
+  local target_commit="$2"
+  local temp_file="$PACKAGE_JSON.tmp"
+
+  if ! jq --arg base "$base_commit" --arg target "$target_commit" \
+      '.subtree.syncBase = $base | .subtree.syncTarget = $target' "$PACKAGE_JSON" > "$temp_file"; then
+    error_msg "Failed to save upstream sync target $target_commit"
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  if ! mv "$temp_file" "$PACKAGE_JSON"; then
+    error_msg "Failed to replace package.json"
+    rm -f "$temp_file"
+    return 1
+  fi
+}
+
+resolve_upstream_target_commit() {
+  local pinned_commit="$1"
+  local requested_commit="$2"
+
+  if [ -n "$pinned_commit" ]; then
+    if ! git cat-file -e "$pinned_commit^{commit}" 2>/dev/null; then
+      error_msg "Pinned upstream target $pinned_commit is unavailable"
+      return 1
+    fi
+    if [ -n "$requested_commit" ] && [ "$(git rev-parse "$requested_commit^{commit}")" != "$pinned_commit" ]; then
+      error_msg "Requested commit $requested_commit differs from pinned target $pinned_commit"
+      return 1
+    fi
+    TARGET_COMMIT="$pinned_commit"
+  elif [ -n "$requested_commit" ]; then
+    git checkout -q "$requested_commit" || return 1
+    TARGET_COMMIT=$(git rev-parse HEAD) || return 1
+  else
+    TARGET_COMMIT=$(git rev-parse HEAD) || return 1
+  fi
+}
+
+# A processed commit may be on a side branch and not contain the original
+# baseline in its ancestry. Always enumerate from that baseline, then skip
+# through the last processed commit in the same ordered list.
+remaining_upstream_commits() {
+  local base_commit="$1"
+  local processed_commit="$2"
+  local target_commit="$3"
+  local commits
+  commits=$(git rev-list --no-merges --reverse "$base_commit..$target_commit") || return 1
+
+  if [ "$processed_commit" = "$base_commit" ]; then
+    printf '%s\n' "$commits"
+    return 0
+  fi
+
+  local found_processed=false
+  local commit
+  for commit in $commits; do
+    if [ "$found_processed" = true ]; then
+      printf '%s\n' "$commit"
+    elif [ "$commit" = "$processed_commit" ]; then
+      found_processed=true
+    fi
+  done
+
+  if [ "$found_processed" = false ]; then
+    error_msg "Processed commit $processed_commit is not in the sync range $base_commit..$target_commit"
+    return 1
+  fi
 }
 
 safe_git_commit_if_changes() {
