@@ -1072,6 +1072,7 @@ def shell_files(cmd, include_skipped=False):
         stdin = []  # stdin redirections in order: a path, or None for one that isn't a file
         parsed = without_patterns(prog, toks[i + 1:])
         has_operand = parsed.unknown  # a file operand (or unknown ones): it isn't reading stdin
+        dash = False  # an explicit "-" operand: stdin is read alongside any files
         for t in parsed:
             if redirect is not None:
                 path = resolve_path(cwd, t)
@@ -1089,6 +1090,9 @@ def shell_files(cmd, include_skipped=False):
             if is_redirect(t):
                 redirect = t
                 continue
+            if prog in READ_PROGS and t == "-":
+                dash = True
+                continue
             if prog in READ_PROGS and not t.startswith("-") and "*" not in t:
                 has_operand = True
                 path = resolve_path(cwd, t)
@@ -1100,7 +1104,7 @@ def shell_files(cmd, include_skipped=False):
             path, at = stdin[j]
             if not path:
                 continue
-            if counts and prog in READ_PROGS and j == len(stdin) - 1 and not has_operand:
+            if counts and prog in READ_PROGS and j == len(stdin) - 1 and (dash or not has_operand):
                 reads.append(path)
             else:
                 targets.insert(at, path)
@@ -2127,6 +2131,8 @@ def self_test():
          and shell_reads("cat c/d.md < AGENTS.md") == ["c/d.md"]
          and shell_reads("cat < /dev/null < AGENTS.md") == ["AGENTS.md"]
          and shell_reads("cat - < AGENTS.md") == ["AGENTS.md"]
+         and shell_reads("cat README.md - < AGENTS.md") == ["README.md", "AGENTS.md"]
+         and shell_reads("cat README.md < AGENTS.md") == ["README.md"]
          and "AGENTS.md" in shell_summary("cat < AGENTS.md < /dev/null")[1]
          and "AGENTS.md" in shell_summary("cat c/d.md < AGENTS.md")[1]
          and shell_reads("sed --follow-symlinks -n 1p docs/x.md < .claude/rules/react.md") == []
