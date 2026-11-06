@@ -881,7 +881,8 @@ def mlflow_trace_state(endpoint, headers, trace_id):
             doc = json.load(r)
         trace = doc.get("trace") if isinstance(doc, dict) else None
         info = trace.get("trace_info") if isinstance(trace, dict) else None
-        if not isinstance(info, dict):
+        tags = info.get("tags", {}) if isinstance(info, dict) else None
+        if not isinstance(tags, dict):  # a missing tags field is fine; any other shape is unknown
             raise ValueError("unexpected trace lookup response shape")
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -892,7 +893,6 @@ def mlflow_trace_state(endpoint, headers, trace_id):
         # OSError covers read timeouts; HTTPException covers IncompleteRead and bad status lines
         print(f"warning: trace lookup failed ({safe_error(e)})", file=sys.stderr)
         return None
-    tags = info.get("tags") if isinstance(info.get("tags"), dict) else {}
     # fullsend.pr marks traces sent by bridge version 1, before fullsend.bridge.version existed.
     return True, ("fullsend.bridge.version" in tags or "fullsend.pr" in tags)
 
@@ -939,8 +939,10 @@ def _self_test_network():
                 self._send(200, json.dumps({"trace": {"trace_info": {"tags": tags[tid]}}}).encode())
             elif tid == "e" * 32:
                 self._send(500)
-            elif tid in ("1" * 32, "2" * 32, "3" * 32):  # valid JSON, wrong shape
-                body = {"1" * 32: b"[1]", "2" * 32: b"null", "3" * 32: b'{"trace": "x"}'}[tid]
+            elif tid in ("1" * 32, "2" * 32, "3" * 32, "4" * 32, "5" * 32):  # valid JSON, wrong shape
+                body = {"1" * 32: b"[1]", "2" * 32: b"null", "3" * 32: b'{"trace": "x"}',
+                        "4" * 32: b'{"trace": {"trace_info": {"tags": ["fullsend.pr"]}}}',
+                        "5" * 32: b'{"trace": {"trace_info": {"tags": "fullsend.pr"}}}'}[tid]
                 self._send(200, body)
             elif tid == "d" * 32:  # declares more body than it sends, then closes
                 self.send_response(200)
@@ -965,7 +967,7 @@ def _self_test_network():
     ep = f"http://127.0.0.1:{srv.server_address[1]}/v1/traces"
     states = [mlflow_trace_state(ep, {}, t) for t in ("a" * 32, "b" * 32, "c" * 32, "e" * 32)]
     try:
-        shape_states = [mlflow_trace_state(ep, {}, t) for t in ("1" * 32, "2" * 32, "3" * 32)]
+        shape_states = [mlflow_trace_state(ep, {}, t) for t in ("1" * 32, "2" * 32, "3" * 32, "4" * 32, "5" * 32)]
     except Exception:  # noqa: BLE001 - the check is that nothing escapes
         shape_states = "raised"
     try:
@@ -1231,7 +1233,7 @@ def self_test():
         ("the run summary in the log has counts, not guidance or file paths",
          "docs/adr" not in log_summary(summary) and ".claude/rules" not in log_summary(summary)
          and json.loads(log_summary(summary))["missed_count"] == 1),
-        ("non-object lookup responses are an unknown state", net["shape_states"] == [None] * 3),
+        ("non-object lookup responses and malformed tags are an unknown state", net["shape_states"] == [None] * 5),
         ("malformed and out-of-range timestamps are rejected",
          otlp_ns(float("inf")) is None and otlp_ns(float("nan")) is None and otlp_ns("x") is None
          and otlp_ns("1793664001000000000") == 1793664001000000000
