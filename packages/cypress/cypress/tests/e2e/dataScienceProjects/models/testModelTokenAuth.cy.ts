@@ -13,7 +13,6 @@ import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import {
   checkInferenceServiceState,
-  patchInferenceServiceStoragePath,
   provisionProjectForModelServing,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
@@ -149,17 +148,6 @@ describe('A model can be deployed with token auth', () => {
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       if (isS390x) {
-        // Patch storage.path onto the IS immediately after submit.
-        // The dashboard image on this cluster pre-dates the storage.path fix — the wizard
-        // creates the IS with only storage.key set; without storage.path the KServe storage
-        // initializer cannot locate the model and Triton crashes with "failed to stat /mnt/models".
-        // Use testData.singleModelResourceName (from fixture) — a deterministic value known
-        // before the Cypress queue runs, avoiding the async resourceName variable timing issue.
-        patchInferenceServiceStoragePath(
-          testData.singleModelResourceName ?? resourceName,
-          projectName,
-          modelFilePath,
-        );
         modelServingSection
           .findModelServerDeployedName(testData.singleModelName, { timeout: 120000 })
           .should('be.visible');

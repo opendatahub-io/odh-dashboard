@@ -4,10 +4,6 @@ metadata:
   name: {{POD_NAME}}
   namespace: {{NAMESPACE}}
 spec:
-  securityContext:
-    runAsUser: 1001
-    runAsGroup: 1001
-    fsGroup: 1001
   containers:
     - name: s3-downloader
       # IBM Z Triton image is proven to pull in user namespaces on s390x clusters.
@@ -64,11 +60,21 @@ spec:
             OUT="${DEST}/${KEY}"
             mkdir -p "$(dirname "${OUT}")"
             echo "Downloading ${KEY} -> ${OUT}"
-            curl -sSf \
-              --aws-sigv4 "aws:amz:${REGION}:s3" \
-              --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
-              "${ENDPOINT}/${BUCKET}/${KEY}" \
-              -o "${OUT}"
+            for attempt in 1 2 3; do
+              if curl -sSf \
+                --aws-sigv4 "aws:amz:${REGION}:s3" \
+                --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+                "${ENDPOINT}/${BUCKET}/${KEY}" \
+                -o "${OUT}"; then
+                break
+              fi
+              if [ "${attempt}" -eq 3 ]; then
+                echo "ERROR: failed to download ${KEY} after 3 attempts"
+                exit 1
+              fi
+              echo "Download of ${KEY} failed (attempt ${attempt} of 3). Retrying in 5 seconds..."
+              sleep 5
+            done
           done
 
           touch "${DEST}/.copy-complete"
