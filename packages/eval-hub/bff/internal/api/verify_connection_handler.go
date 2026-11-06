@@ -1,7 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -33,15 +36,20 @@ func sanitizeURL(raw string) string {
 
 type VerifyConnectionEnvelope = Envelope[models.VerifyConnectionResponse, None]
 
-// resolveSecretAPIKey looks up a Kubernetes Secret by name and returns the value of its
-// "api-key" data field. Uses the caller's bearer token so RBAC is enforced.
-func resolveSecretAPIKey(ctx context.Context, token, namespace, secretName string, logger *slog.Logger) (string, error) {
+type secretConnectionCredentials struct {
+	apiKey string
+	caCert []byte
+}
+
+// resolveSecretConnectionCredentials reads the API key and optional CA certificate
+// from a Secret using the caller's bearer token so RBAC is enforced.
+func resolveSecretConnectionCredentials(ctx context.Context, token, namespace, secretName string, logger *slog.Logger) (secretConnectionCredentials, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	baseConfig, err := helper.GetKubeconfig()
 	if err != nil {
-		return "", fmt.Errorf("failed to get kubeconfig: %w", err)
+		return secretConnectionCredentials{}, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
 	cfg := rest.AnonymousClientConfig(baseConfig)
@@ -54,21 +62,79 @@ func resolveSecretAPIKey(ctx context.Context, token, namespace, secretName strin
 
 	clientset, err := k8sclient.NewForConfig(cfg)
 	if err != nil {
-		return "", fmt.Errorf("failed to create Kubernetes client: %w", err)
+		return secretConnectionCredentials{}, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get secret %q in namespace %q: %w", secretName, namespace, err)
+		return secretConnectionCredentials{}, fmt.Errorf("failed to get secret %q in namespace %q: %w", secretName, namespace, err)
 	}
 
 	apiKey, ok := secret.Data["api-key"]
 	if !ok || len(apiKey) == 0 {
-		return "", fmt.Errorf("secret %q does not contain an \"api-key\" data field", secretName)
+		return secretConnectionCredentials{}, fmt.Errorf("secret %q does not contain an \"api-key\" data field", secretName)
 	}
 
 	logger.Debug("resolved API key from secret", slog.String("secret", secretName), slog.String("namespace", namespace))
-	return string(apiKey), nil
+	return secretConnectionCredentials{apiKey: string(apiKey), caCert: secret.Data["ca_cert"]}, nil
+}
+
+func rootCAsWithSecretCert(configured *x509.CertPool, caCert []byte) (*x509.CertPool, error) {
+	if len(caCert) == 0 {
+		return configured, nil
+	}
+
+	var roots *x509.CertPool
+	if configured != nil {
+		roots = configured.Clone()
+	} else {
+		var err error
+		roots, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load system certificate pool: %w", err)
+		}
+	}
+	if roots == nil {
+		roots = x509.NewCertPool()
+	}
+	addedCA := false
+	for len(bytes.TrimSpace(caCert)) > 0 {
+		caCert = bytes.TrimSpace(caCert)
+		const beginMarker = "-----BEGIN "
+		if !bytes.HasPrefix(caCert, []byte(beginMarker)) {
+			return nil, fmt.Errorf("ca_cert contains invalid PEM data")
+		}
+
+		// Decode one block at a time. pem.Decode searches forward for a valid block,
+		// so bound its input at the next BEGIN marker and reject skipped content.
+		blockEnd := bytes.Index(caCert[len(beginMarker):], []byte(beginMarker))
+		if blockEnd < 0 {
+			blockEnd = len(caCert)
+		} else {
+			blockEnd += len(beginMarker)
+		}
+		block, remaining := pem.Decode(caCert[:blockEnd])
+		if block == nil || len(bytes.TrimSpace(remaining)) > 0 {
+			return nil, fmt.Errorf("ca_cert contains invalid PEM data")
+		}
+		caCert = caCert[blockEnd:]
+		if block.Type != "CERTIFICATE" {
+			return nil, fmt.Errorf("ca_cert contains a non-certificate PEM block")
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("ca_cert contains an invalid certificate: %w", err)
+		}
+		if !cert.IsCA || !cert.BasicConstraintsValid || (cert.KeyUsage != 0 && cert.KeyUsage&x509.KeyUsageCertSign == 0) {
+			continue
+		}
+		roots.AddCert(cert)
+		addedCA = true
+	}
+	if !addedCA {
+		return nil, fmt.Errorf("ca_cert does not contain a CA certificate")
+	}
+	return roots, nil
 }
 
 // VerifyConnectionHandler handles POST /api/v1/evaluations/verify-connection
@@ -104,8 +170,9 @@ func (app *App) VerifyConnectionHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	// Resolve secret_name → actual API key value from the Kubernetes Secret.
+	// Resolve secret_name → API key and optional CA certificate from the Kubernetes Secret.
 	secretValue := req.SecretValue
+	probeRootCAs := app.rootCAs
 	if req.SecretName != "" {
 		namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 		identity, _ := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
@@ -114,7 +181,7 @@ func (app *App) VerifyConnectionHandler(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 
-		resolved, err := resolveSecretAPIKey(ctx, identity.Token, namespace, req.SecretName, app.logger)
+		credentials, err := resolveSecretConnectionCredentials(ctx, identity.Token, namespace, req.SecretName, app.logger)
 		if err != nil {
 			app.logger.Warn("verify-connection: failed to resolve secret",
 				slog.String("secret_name", req.SecretName),
@@ -124,7 +191,12 @@ func (app *App) VerifyConnectionHandler(w http.ResponseWriter, r *http.Request, 
 			app.badRequestResponse(w, r, fmt.Errorf("failed to resolve secret %q: %w", req.SecretName, err))
 			return
 		}
-		secretValue = resolved
+		secretValue = credentials.apiKey
+		probeRootCAs, err = rootCAsWithSecretCert(app.rootCAs, credentials.caCert)
+		if err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid ca_cert in secret %q: %w", req.SecretName, err))
+			return
+		}
 	}
 
 	app.logger.Info("verify-connection: probing endpoint",
@@ -143,7 +215,7 @@ func (app *App) VerifyConnectionHandler(w http.ResponseWriter, r *http.Request, 
 			AllowHTTP:           app.config.DevMode || app.config.InsecureSkipVerify,
 			SkipSSRFValidation:  app.config.DevMode,
 			SkipTLSVerification: app.config.InsecureSkipVerify,
-			RootCAs:             app.rootCAs,
+			RootCAs:             probeRootCAs,
 		},
 	)
 	if err != nil {
