@@ -246,6 +246,7 @@ describe('useFormToResourcesTransformer', () => {
 
     expect(renderResult).hookToStrictEqual({
       resources: {},
+      setLatestResourcesFromYaml: expect.any(Function),
       loaded: true,
       errors: [],
     });
@@ -325,6 +326,7 @@ describe('useFormToResourcesTransformer', () => {
       resources: {
         model: mockDeployment.model,
       },
+      setLatestResourcesFromYaml: expect.any(Function),
       loaded: true,
       errors: [],
     });
@@ -388,6 +390,7 @@ describe('useFormToResourcesTransformer', () => {
     );
     expect(renderResult).hookToStrictEqual({
       resources: { model: deploymentWithMetadata.model },
+      setLatestResourcesFromYaml: expect.any(Function),
       loaded: true,
       errors: [],
     });
@@ -447,6 +450,59 @@ describe('useFormToResourcesTransformer', () => {
     expect(mockAssembleDeployment).toHaveBeenCalledWith(
       mockFormData,
       existingDeployment,
+      undefined,
+      '',
+    );
+  });
+
+  it('should keep the existing server when applying resources from YAML', () => {
+    const server: DeploymentAssemblyResources['server'] = {
+      apiVersion: 'serving.kserve.io/v1alpha2',
+      kind: 'LLMInferenceServiceConfig',
+      metadata: { name: 'existing-server', namespace: 'test-ns' },
+    };
+    const existingDeployment: Deployment = { ...mockDeployment, server };
+    const yamlModel: ModelResourceType = {
+      ...mockModel,
+      metadata: { ...mockModel.metadata, name: 'from-yaml' },
+    };
+    const yamlServer: DeploymentAssemblyResources['server'] = {
+      apiVersion: 'serving.kserve.io/v1alpha2',
+      kind: 'LLMInferenceServiceConfig',
+      metadata: { name: 'yaml-server', namespace: 'test-ns' },
+    };
+    const mockAssembleDeployment = jest.fn().mockReturnValue(mockDeployment);
+
+    mockExtensions([
+      {
+        type: 'model-serving.deployment/assemble-model-resource',
+        pluginName: 'test',
+        uid: 'test-uid',
+        properties: {
+          platform: 'test-platform',
+          isActive: true,
+          assemble: mockAssembleDeployment,
+        },
+      },
+    ]);
+    mockUseWizardFieldApply.mockReturnValue({
+      applyAllFieldDataFn: (d: Deployment) => d,
+      applyExtensionsLoaded: true,
+      applyExtensionErrors: [],
+    });
+
+    const renderResult = testHook(useFormToResourcesTransformer)(mockFormData, existingDeployment);
+    act(() => {
+      renderResult.result.current.setLatestResourcesFromYaml({
+        model: yamlModel,
+        server: yamlServer,
+      });
+    });
+
+    // YAML only owns the model; the existing server must not be replaced or dropped
+    expect(mockAssembleDeployment).toHaveBeenLastCalledWith(
+      mockFormData,
+      { ...existingDeployment, model: yamlModel },
       undefined,
       '',
     );
