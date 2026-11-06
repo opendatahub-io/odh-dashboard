@@ -3592,6 +3592,9 @@ importers:
       eslint:
         specifier: ^8.57.1
         version: 8.57.1(supports-color@8.1.1)
+      jest:
+        specifier: ^29.7.0
+        version: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
 
   packages/eslint-plugin:
     dependencies:
@@ -3602,9 +3605,15 @@ importers:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      '@typescript-eslint/parser':
+        specifier: ^7.18.0
+        version: 7.18.0(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       eslint:
         specifier: ^8.57.1
         version: 8.57.1(supports-color@8.1.1)
+      jest:
+        specifier: ^29.7.0
+        version: 29.7.0(@types/node@22.20.5)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.0)(@types/node@22.20.1)(typescript@5.9.3))
 
   packages/eval-hub:
     dependencies:
