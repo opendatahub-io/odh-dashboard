@@ -637,12 +637,11 @@ def shell_segments(cmd):
     return [(op, toks) for op, toks, _cond, _depth in shell_segments_ctx(cmd)]
 
 
-def executed_segments(segs):
-    """Indexes of segments that certainly ran when the whole command succeeded. A command
-    is split into lists at ; & and newline. The first command of each list always runs;
-    a later one only when every operator before it in that list is && or |, the list is
-    the last one (its success is the command's success) and contains no ||. Commands in a
-    conditional group or compound (see shell_segments_ctx) never count."""
+EXIT_PROGS = {"exit", "return", "logout"}
+
+
+def _lists(segs):
+    """Segment indexes grouped into lists split at ; & and newline, with their operators."""
     lists, cur = [], []
     for k, (op, *_rest) in enumerate(segs):
         if op in (None, ";", "&") and cur:
@@ -651,12 +650,44 @@ def executed_segments(segs):
         cur.append((k, op))
     if cur:
         lists.append(cur)
-    ran = set()
+    return lists
+
+
+def _before_exit(segs):
+    """Indexes before the first exit/return/logout anywhere: nothing after one is known to run."""
+    for k, (_op, toks, *_rest) in enumerate(segs):
+        if _program(toks)[1] in EXIT_PROGS:
+            return set(range(k))
+    return set(range(len(segs)))
+
+
+def executed_segments(segs):
+    """Indexes of segments that certainly ran when the whole command succeeded. A command
+    is split into lists at ; & and newline. The first command of each list always runs;
+    a later one only when every operator before it in that list is && or |, the list is
+    the last one (its success is the command's success) and contains no ||. Nothing after
+    an exit/return/logout counts, and neither do commands in a conditional group or
+    compound (see shell_segments_ctx)."""
+    lists, ran = _lists(segs), set()
     for li, lst in enumerate(lists):
         ran.add(lst[0][0])
         if li == len(lists) - 1 and not any(op == "||" for _k, op in lst):
             ran.update(k for k, _op in lst)
-    return {k for k in ran if not segs[k][2]}
+    return {k for k in ran if not segs[k][2]} & _before_exit(segs)
+
+
+def succeeded_segments(segs):
+    """Indexes of segments that certainly ran and succeeded when the whole command did:
+    only the last list counts (a failure earlier is masked by later commands), only when
+    it has no || (a fallback masks failure), and not a command piped into another (the
+    pipeline's status is the last command's)."""
+    lists = _lists(segs)
+    if not lists or any(op == "||" for _k, op in lists[-1]):
+        return set()
+    last = lists[-1]
+    ok = {k for j, (k, _op) in enumerate(last)
+          if j + 1 == len(last) or last[j + 1][1] not in ("|", "|&")}
+    return ok & executed_segments(segs)
 
 
 def _program(toks):
@@ -843,14 +874,15 @@ def chdir_target(cwd, args):
 def shell_files(cmd, include_skipped=False):
     """(read files, redirection targets) in a shell command. Read files are the file
     arguments of read programs (cat, head, sed, ...) in segments that certainly ran (see
-    executed_segments); others are skipped unless include_skipped. Redirection targets (`> f`) are outputs, not reads,
+    succeeded_segments); others are skipped unless include_skipped. Redirection targets (`> f`) are outputs, not reads,
     and here-string text (`<<< text`) is neither."""
     reads, targets = [], []
     segs = shell_segments_ctx(cmd)
-    ran = executed_segments(segs)
+    ran = executed_segments(segs)  # for directory changes
+    read_ok = succeeded_segments(segs)  # a read counts only if its success is established
     cwd = ""  # repo root; None once a directory change can't be followed
     for k, (op, toks, _cond, depth) in enumerate(segs):
-        counts = include_skipped or k in ran
+        counts = include_skipped or k in read_ok
         i, prog = _program(toks)
         if i is None:
             continue
@@ -1482,7 +1514,7 @@ def self_test():
         f.write(msg("assistant", [
             call("c3", "read", {"path": "/sandbox/workspace/target-repo/docs/adr/0009-x.md"}),
             call("c4", "grep", {"pattern": "flag", "path": "/sandbox/workspace/target-repo/docs/adr/0009-x.md"}),
-            call("c5", "bash", {"command": "rg -n flag docs/adr/0009-x.md && cat AGENTS.md | head"}),
+            call("c5", "bash", {"command": "rg -n flag docs/adr/0009-x.md && cat AGENTS.md"}),
             call("c6", "bash", {"command": 'curl -d \'{"password": "hunter2pass"}\' --token tok3nvalue x'}),
             call("c7", "write", {"path": "/sandbox/workspace/out.json", "content": "client_secret=leakedvalue"}),
             call("c8", "bash", {"command": "cat > /tmp/x.py <<'EOF'\nheredocBody1 = 1\nEOF\npython3 -c 'inlineBody2()' && ls"}),
@@ -1698,8 +1730,7 @@ def self_test():
          and shell_reads("false && cat .claude/rules/react.md; true") == []
          and shell_reads("a || b && cat e/f.md") == []
          and shell_reads("true && cat .claude/rules/react.md") == [".claude/rules/react.md"]
-         and shell_reads("cat a/b.md; cat c/d.md") == ["a/b.md", "c/d.md"]
-         and shell_reads("cat i/j.md | head") == ["i/j.md"]
+         and shell_reads("cat a/b.md && cat c/d.md") == ["a/b.md", "c/d.md"]
          and shell_reads("true || (echo hi; cat docs/adr/0009-x.md)") == []
          and shell_reads("[ -f X ] && { echo a; cat docs/adr/0009-x.md; }") == []
          and shell_reads("if [ -f X ]; then cat docs/adr/0009-x.md; fi") == []
@@ -1739,6 +1770,14 @@ def self_test():
          shell_summary("cat <<EOF\nprefix\\\nEOF\nConfidentialCustomer\nEOF\ncat z/w.md")[0] == ["cat"]
          and shell_reads("cat <<'EOF'\nprefix\\\nEOF\ncat z/w.md") == ["z/w.md"]
          and shell_reads("cat <<EOF\nprefix\\\\\nEOF\ncat z/w.md") == ["z/w.md"]),
+        ("reads count only when their success is established: not after exit, not masked by a "
+         "later list, an || fallback or a pipe",
+         shell_reads("exit 0; cat .claude/rules/react.md") == []
+         and shell_reads("true && exit 0 && cat .claude/rules/react.md") == []
+         and shell_reads("cat /sandbox/workspace/pr-head/.claude/rules/react.md 2>/dev/null || true") == []
+         and shell_reads("cat a/b.md; ls") == [] and shell_reads("cat i/j.md | head") == []
+         and shell_reads("ls; cat c/d.md") == ["c/d.md"]
+         and shell_reads("cd docs && ls; cat adr/0009-x.md") == ["docs/adr/0009-x.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
@@ -1748,7 +1787,7 @@ def self_test():
          and shell_reads("cat <<'EOF'\nsecret/x\nEOF\ncat z/w.md") == ["z/w.md"]
          and shell_reads("echo '<<EOF'\ncat z/w.md") == ["z/w.md"]
          and shell_reads("# say \\\"hi\\\" and it\\'s fine\ncat k/l.md") == ["k/l.md"]
-         and shell_reads("# cat <<EOF\ncat k/l.md\nEOF") == ["k/l.md"]
+         and shell_reads("# cat <<EOF\ncat k/l.md && echo EOF") == ["k/l.md"]
          and shell_summary("echo \\> private/needle")[1] == []
          and shell_summary("echo $'\\' > private/secret.md \\''")[1] == []
          and shell_reads("echo $'a\\'b' && cat k/l.md") == ["k/l.md"]

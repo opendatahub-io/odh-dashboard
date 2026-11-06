@@ -522,9 +522,12 @@ Trace tags (`fullsend.pr`, `fullsend.verdict`, `fullsend.cost_usd`,
 column ignores cache discounts; use `fullsend.cost_usd`.
 
 "Opened" means a successful `read`, or a file argument to `cat`/`head`/`sed`-style programs
-in a shell command that certainly ran. Searches, failed reads, paths that only appear in
-prompts, redirection targets (`cat > f`), heredoc bodies, commands after `||`, and `&&`
-branches followed by further commands do not count. Relative paths are resolved against
+in a shell command whose success is established: it is in the command's last list
+(after the last `;` or newline), joined only by `&&`, and not piped into another command.
+Searches, failed reads, paths that only appear in prompts, redirection targets
+(`cat > f`), heredoc bodies, reads masked by a later command (`cat f; ls`), an `||`
+fallback (`cat f || true`) or a pipe (`cat f | head`), and anything after `exit` do not
+count. Relative paths are resolved against
 a top-level `cd` that certainly ran; after any other directory change they are dropped. Coverage needs
 `.fullsend/scripts/fetch-guidance-context.sh`, and is scored against the files of the
 reviewed commit: when the selector is missing, or the PR head has moved past that commit
