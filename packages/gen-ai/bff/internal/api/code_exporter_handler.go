@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -66,6 +67,10 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, namespace st
 		return "", fmt.Errorf("failed to initialize Python template: %w", err)
 	}
 
+	// View Code talks to the model API directly. Drop a vLLM provider prefix
+	// (vllm-inference-1/model -> model). Keep genai-bff-proxy/... for OGX routing.
+	config.Model = modelNameForCodeExport(config.Model)
+
 	// Execute the template with config data, injecting server-side fields
 	result, err := templateRepo.ExecuteTemplate("python", codeExportTemplateData{
 		CodeExportRequest: config,
@@ -78,6 +83,40 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, namespace st
 	}
 
 	return result, nil
+}
+
+
+// modelNameForCodeExport returns the model id the exported script must send.
+// "vllm-inference-1/deepseek-r1" -> "deepseek-r1"
+// "vllm-inference-1/facebook/opt-125m" -> "facebook/opt-125m"
+// "genai-bff-proxy/llama-32-1b-instruct" is left unchanged.
+func modelNameForCodeExport(model string) string {
+	if strings.HasPrefix(model, constants.PassthroughProviderID+"/") {
+		return model
+	}
+	for _, prefix := range []string{"maas-vllm-inference-", "vllm-inference-"} {
+		if !strings.HasPrefix(model, prefix) {
+			continue
+		}
+		rest := model[len(prefix):]
+		slash := strings.Index(rest, "/")
+		if slash > 0 && isAllDigits(rest[:slash]) {
+			return rest[slash+1:]
+		}
+	}
+	return model
+}
+
+func isAllDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // validateCodeExportRequest validates all parameters in the code export request
