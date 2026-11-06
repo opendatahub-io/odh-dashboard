@@ -50,6 +50,86 @@ type McpDeploymentRepository struct {
 	logger *slog.Logger
 }
 
+// DeleteLayer removes only resources created by the Project Matrix Gateway
+// layer installer. Shared platform resources—RHCL, Gateway API, MCP
+// Lifecycle, MCP Gateway, operators, and cluster ingress—are deliberately not
+// in this inventory and are never deleted here.
+func (r *McpDeploymentRepository) DeleteLayer(
+	ctx context.Context,
+	client k8s.KubernetesClientInterface,
+	namespace string,
+	layer string,
+) error {
+	if namespace == "" || layer == "" {
+		return errors.New("namespace and layer are required")
+	}
+	if layer != projectMatrixGatewayLayer {
+		return fmt.Errorf("unsupported Project Matrix layer %q", layer)
+	}
+
+	dyn, err := r.buildDynamicClient(client)
+	if err != nil {
+		return err
+	}
+
+	// Include both the current Project Matrix label and the earlier
+	// odh-dashboard-owned gateway registration label. This makes cleanup
+	// idempotent across the development iterations that predated the layer
+	// ownership label, including stale registrations after a direct MCPServer
+	// deletion.
+	serverNames := map[string]struct{}{}
+	serverSelector := fmt.Sprintf("%s=%s,%s=%s", projectMatrixManagedByLabel, projectMatrixManager, projectMatrixLayerLabel, layer)
+	serverList, err := dyn.Resource(mcpServerGVR).Namespace(namespace).List(ctx, metav1.ListOptions{LabelSelector: serverSelector})
+	if err != nil {
+		return fmt.Errorf("failed to list Project Matrix MCPServer resources: %w", err)
+	}
+	for _, item := range serverList.Items {
+		serverNames[item.GetName()] = struct{}{}
+	}
+
+	legacySelector := fmt.Sprintf("%s=%s", mcpPrerequisiteManagedByLabel, mcpPrerequisiteManager)
+	registrationList, err := dyn.Resource(mcpServerRegistrationGVR).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{LabelSelector: legacySelector})
+	if err != nil && !apierrors.IsForbidden(err) {
+		return fmt.Errorf("failed to list owned MCP gateway registrations: %w", err)
+	}
+	for _, item := range registrationList.Items {
+		serverNames[item.GetName()] = struct{}{}
+	}
+
+	for serverName := range serverNames {
+		if deleteErr := dyn.Resource(mcpServerGVR).Namespace(namespace).Delete(ctx, serverName, metav1.DeleteOptions{}); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+			return fmt.Errorf("failed to delete MCPServer %q: %w", serverName, deleteErr)
+		}
+		cleanupOwnedMcpGatewayRegistration(ctx, dyn, serverName)
+		cleanupOwnedMcpPrerequisites(ctx, dyn, namespace, serverName)
+	}
+
+	// A server can be deleted out-of-band before the layer operation runs. Sweep
+	// only resources carrying Project Matrix ownership labels; no name-only or
+	// namespace-wide deletion is permitted.
+	selector := fmt.Sprintf("%s=%s,%s=%s", projectMatrixManagedByLabel, projectMatrixManager, projectMatrixLayerLabel, layer)
+	for _, resource := range []schema.GroupVersionResource{
+		mcpServerRegistrationGVR,
+		mcpHTTPRouteGVR,
+		mcpReferenceGrantGVR,
+		roleBindingGVR,
+		configMapGVR,
+		serviceAccountGVR,
+	} {
+		list, listErr := dyn.Resource(resource).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{LabelSelector: selector})
+		if listErr != nil {
+			return fmt.Errorf("failed to list owned %s resources: %w", resource.Resource, listErr)
+		}
+		for _, item := range list.Items {
+			if deleteErr := dyn.Resource(resource).Namespace(item.GetNamespace()).Delete(ctx, item.GetName(), metav1.DeleteOptions{}); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+				return fmt.Errorf("failed to delete owned %s %q: %w", resource.Resource, item.GetName(), deleteErr)
+			}
+		}
+	}
+
+	return nil
+}
+
 func NewMcpDeploymentRepository(logger *slog.Logger) *McpDeploymentRepository {
 	return &McpDeploymentRepository{logger: logger}
 }
@@ -92,6 +172,7 @@ func (r *McpDeploymentRepository) List(
 			r.logger.Warn("skipping MCPServer conversion", "name", item.GetName(), "error", err)
 			continue
 		}
+		r.addGatewayRegistrationCondition(ctx, dyn, &deployment)
 		items = append(items, deployment)
 	}
 
@@ -124,7 +205,12 @@ func (r *McpDeploymentRepository) Get(
 		return models.McpDeployment{}, fmt.Errorf("failed to get MCPServer %q: %w", name, err)
 	}
 
-	return convertUnstructuredToMcpDeployment(*item)
+	deployment, err := convertUnstructuredToMcpDeployment(*item)
+	if err != nil {
+		return models.McpDeployment{}, err
+	}
+	r.addGatewayRegistrationCondition(ctx, dyn, &deployment)
+	return deployment, nil
 }
 
 func (r *McpDeploymentRepository) Create(
@@ -151,6 +237,18 @@ func (r *McpDeploymentRepository) Create(
 		return models.McpDeployment{}, err
 	}
 
+	if _, err := dyn.Resource(mcpServerGVR).Namespace(namespace).Get(ctx, server.Metadata.Name, metav1.GetOptions{}); err == nil {
+		return models.McpDeployment{}, fmt.Errorf("%w: %q in namespace %q", ErrMcpDeploymentConflict, server.Metadata.Name, namespace)
+	} else if !apierrors.IsNotFound(err) {
+		return models.McpDeployment{}, fmt.Errorf("failed to check MCPServer %q: %w", server.Metadata.Name, err)
+	}
+
+	createdPrerequisites, err := ensureMcpPrerequisites(ctx, dyn, namespace, server.Metadata.Name, req.Prerequisites)
+	if err != nil {
+		cleanupMcpPrerequisites(ctx, dyn, createdPrerequisites)
+		return models.McpDeployment{}, err
+	}
+
 	obj, err := convertMcpServerToUnstructured(server)
 	if err != nil {
 		return models.McpDeployment{}, err
@@ -158,13 +256,27 @@ func (r *McpDeploymentRepository) Create(
 
 	created, err := dyn.Resource(mcpServerGVR).Namespace(namespace).Create(ctx, &obj, metav1.CreateOptions{})
 	if err != nil {
+		cleanupMcpPrerequisites(ctx, dyn, createdPrerequisites)
 		if apierrors.IsAlreadyExists(err) {
 			return models.McpDeployment{}, fmt.Errorf("%w: %q in namespace %q", ErrMcpDeploymentConflict, server.Metadata.Name, namespace)
 		}
 		return models.McpDeployment{}, fmt.Errorf("failed to create MCPServer: %w", err)
 	}
 
-	return convertUnstructuredToMcpDeployment(*created)
+	createdGatewayResources, err := ensureMcpGatewayRegistration(ctx, dyn, namespace, server, req.GatewayRegistration)
+	if err != nil {
+		cleanupMcpPrerequisites(ctx, dyn, createdGatewayResources)
+		_ = dyn.Resource(mcpServerGVR).Namespace(namespace).Delete(ctx, server.Metadata.Name, metav1.DeleteOptions{})
+		cleanupMcpPrerequisites(ctx, dyn, createdPrerequisites)
+		return models.McpDeployment{}, err
+	}
+
+	deployment, err := convertUnstructuredToMcpDeployment(*created)
+	if err != nil {
+		return models.McpDeployment{}, err
+	}
+	r.addGatewayRegistrationCondition(ctx, dyn, &deployment)
+	return deployment, nil
 }
 
 func (r *McpDeploymentRepository) Update(
@@ -227,8 +339,51 @@ func (r *McpDeploymentRepository) Delete(
 		}
 		return fmt.Errorf("failed to delete MCPServer %q: %w", name, err)
 	}
+	cleanupOwnedMcpGatewayRegistration(ctx, dyn, name)
+	cleanupOwnedMcpPrerequisites(ctx, dyn, namespace, name)
 
 	return nil
+}
+
+// addGatewayRegistrationCondition exposes the live MCP Gateway registration
+// status beside the MCPServer conditions so the guided installer can report
+// the actual end-to-end state instead of inferring registration from Ready.
+func (r *McpDeploymentRepository) addGatewayRegistrationCondition(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	deployment *models.McpDeployment,
+) {
+	if deployment == nil || deployment.Name == "" {
+		return
+	}
+	selector := fmt.Sprintf("%s=%s,%s=%s", mcpPrerequisiteManagedByLabel, mcpPrerequisiteManager, mcpPrerequisiteServerLabel, deployment.Name)
+	list, err := dyn.Resource(mcpServerRegistrationGVR).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil || len(list.Items) == 0 {
+		return
+	}
+
+	conditions, _, _ := unstructured.NestedSlice(list.Items[0].Object, "status", "conditions")
+	for _, raw := range conditions {
+		condition, ok := raw.(map[string]interface{})
+		if !ok || getString(condition, "type") != "Ready" {
+			continue
+		}
+		deployment.Conditions = append(deployment.Conditions, models.McpDeploymentCondition{
+			Type:               "GatewayRegistration",
+			Status:             getString(condition, "status"),
+			LastTransitionTime: getString(condition, "lastTransitionTime"),
+			Reason:             getString(condition, "reason"),
+			Message:            getString(condition, "message"),
+		})
+		return
+	}
+
+	deployment.Conditions = append(deployment.Conditions, models.McpDeploymentCondition{
+		Type:    "GatewayRegistration",
+		Status:  "False",
+		Reason:  "Pending",
+		Message: "MCP Gateway registration has not reported Ready yet.",
+	})
 }
 
 func validateCreateRequest(req models.McpDeploymentCreateRequest) error {
@@ -264,6 +419,7 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		Kind:       mcpServerKind,
 		Metadata: models.MCPMetadata{
 			Name: name,
+			Labels: mcpPrerequisiteLabels(name),
 			// Always the URL path parameter, never read from req/YAML, so the caller can't
 			// target a different namespace than the one it was authorized against.
 			Namespace: namespace,

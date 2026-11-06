@@ -17,11 +17,11 @@ type InternalKubernetesClient struct {
 	SharedClientLogic
 }
 
-// newInternalKubernetesClient creates a Kubernetes client
+// NewInternalKubernetesClient creates a Kubernetes client
 // using the credentials of the running backend to create a single instance of the client
 // If running inside the cluster, it uses the pod's service account.
 // If running locally (e.g. for development), it uses the current user's kubeconfig context.
-func newInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface, error) {
+func NewInternalKubernetesClient(logger *slog.Logger) (KubernetesClientInterface, error) {
 	// Get kubeconfig
 	kubeconfig, err := helper.GetKubeconfig()
 	if err != nil {

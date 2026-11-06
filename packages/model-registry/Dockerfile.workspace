@@ -92,6 +92,11 @@ COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
 
+# ubi9/go-toolset runs the build stage as a non-root user. Keep the source
+# tree non-root while allowing the compiler to write its final artifact into
+# the stage work directory for the distroless image.
+USER root
+
 # Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
 

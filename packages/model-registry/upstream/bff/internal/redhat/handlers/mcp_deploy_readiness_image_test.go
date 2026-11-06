@@ -216,7 +216,9 @@ func TestMcpDeployReadinessOtherImageSkipsAccessCheck(t *testing.T) {
 			require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 			var envelope McpServerDeployReadinessEnvelope
 			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &envelope))
-			assert.Equal(t, models.McpServerDeployReadiness{Deployable: true}, envelope.Data)
+			assert.True(t, envelope.Data.Deployable)
+			assert.Equal(t, models.McpSupportLevelTechnologyPreview, envelope.Data.SupportLevel)
+			assert.NotEmpty(t, envelope.Data.SupportMessage)
 			assert.Empty(t, client.recordedChecks())
 			assert.Zero(t, reader.calls.Load())
 		})

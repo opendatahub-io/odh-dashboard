@@ -28,7 +28,7 @@ type StaticClientFactory struct {
 }
 
 func NewStaticClientFactory(logger *slog.Logger) (KubernetesClientFactory, error) {
-	client, err := newInternalKubernetesClient(logger)
+	client, err := NewInternalKubernetesClient(logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service account client: %w", err)
 	}

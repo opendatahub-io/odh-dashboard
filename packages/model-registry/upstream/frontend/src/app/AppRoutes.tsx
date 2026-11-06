@@ -25,6 +25,8 @@ import { modelRegistryUrl } from './pages/modelRegistry/screens/routeUtils';
 import { MODEL_CATALOG_TITLE } from './pages/modelCatalog/const';
 import { MCP_CATALOG_TITLE } from './pages/mcpCatalog/const';
 import { AGENTS_CATALOG_TITLE } from './pages/agentsCatalog/const';
+import AiStackPage from './pages/aiStack/AiStackPage';
+import { aiStackUrl } from './routes/aiStack/aiStack';
 import useUser from './hooks/useUser';
 
 export const useAdminSettings = (): NavDataItem[] => {
@@ -64,6 +66,10 @@ export const useNavData = (): NavDataItem[] => {
 
   const baseNavItems = [
     {
+      label: 'AI Stack',
+      path: aiStackUrl(),
+    },
+    {
       label: 'Model Registry',
       path: modelRegistryUrl(),
     },
@@ -89,7 +95,8 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={modelRegistryUrl()} replace />} />
+      <Route path="/" element={<Navigate to={aiStackUrl()} replace />} />
+      <Route path={aiStackUrl()} element={<AiStackPage />} />
       <Route path={`${modelRegistryUrl()}/*`} element={<ModelRegistryRoutes />} />
       {(isStandalone || isFederated) && (
         <>
