@@ -4,6 +4,7 @@ const { createHash } = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
+const { globSync } = require('glob');
 
 const {
   buildDependencyIndex,
@@ -422,11 +423,6 @@ const parseTagSelection = ({
   };
 };
 
-const getGlobBaseDir = (pattern) => {
-  const [prefix] = String(pattern).split('**');
-  return prefix.replace(/\/+$/, '') || '.';
-};
-
 const walkFiles = (root, relativeDir, predicate) => {
   const absoluteDir = path.join(root, relativeDir);
   if (!fs.existsSync(absoluteDir)) {
@@ -451,11 +447,12 @@ const walkFiles = (root, relativeDir, predicate) => {
   return files.toSorted();
 };
 
-const discoverE2eSpecs = (root = DEFAULT_ROOT) => {
-  const specs = new Set(walkFiles(root, DEFAULT_SPEC_ROOT, (file) => file.endsWith('.cy.ts')));
+const discoverSpecs = (root, type) => {
+  const centralRoot = `${DEFAULT_CYPRESS_SOURCE_ROOT}/tests/${type}`;
+  const specs = new Set(walkFiles(root, centralRoot, (file) => file.endsWith('.cy.ts')));
 
   for (const workspacePackage of listWorkspacePackagesFromManifest(root)) {
-    const pattern = workspacePackage.cypress?.e2e;
+    const pattern = workspacePackage.cypress?.[type];
     if (!pattern) {
       continue;
     }
@@ -463,14 +460,24 @@ const discoverE2eSpecs = (root = DEFAULT_ROOT) => {
     if (!workspacePath || workspacePath === '.') {
       continue;
     }
-    const packageBaseDir = path.join(workspacePath, getGlobBaseDir(pattern));
-    for (const spec of walkFiles(root, packageBaseDir, (file) => file.endsWith('.cy.ts'))) {
-      specs.add(spec);
+    const packagePattern = normalizePath(path.join(workspacePath, pattern));
+    for (const spec of globSync(packagePattern, {
+      cwd: root,
+      dot: true,
+      nodir: true,
+      matchBase: true,
+      ignore: ['**/node_modules/**', '**/.git/**'],
+    })) {
+      if (spec.endsWith('.cy.ts')) {
+        specs.add(normalizePath(spec));
+      }
     }
   }
 
   return [...specs].toSorted();
 };
+
+const discoverE2eSpecs = (root = DEFAULT_ROOT) => discoverSpecs(root, 'e2e');
 
 const discoverCiTags = (root = DEFAULT_ROOT) => {
   const tags = new Set([DEFAULT_TAG]);
@@ -807,7 +814,8 @@ const buildTagJobs = (selectedTags, autoTags = []) =>
     [tagDirKey]: sanitizeTagDir(tags.join('__')),
     specs: [],
     [runModeKey]: 'tag',
-    timeout: Math.min(360, 30 + 7 * tags.length),
+    // Tag count does not bound cluster setup, training, or model-serving duration.
+    timeout: 360,
   }));
 
 const buildNamedTagJobs = (tagGroups, prefix) =>
@@ -816,7 +824,8 @@ const buildNamedTagJobs = (tagGroups, prefix) =>
     [tagDirKey]: `${sanitizeTagDir(prefix)}-${String(index + 1).padStart(2, '0')}`,
     specs: [],
     [runModeKey]: 'tag',
-    timeout: Math.min(360, 30 + 7 * tags.length),
+    // Tag count does not bound cluster setup, training, or model-serving duration.
+    timeout: 360,
   }));
 
 const createSpecJobs = (specs, prefix) => {
@@ -859,9 +868,11 @@ const buildFixtureTokens = (fixturePath) => {
 
 const buildFixtureConsumers = ({ root, specs, dependencyIndex, fixturePath }) => {
   const tokens = buildFixtureTokens(fixturePath);
-  const sourceFiles = walkFiles(root, DEFAULT_CYPRESS_SOURCE_ROOT, (file) =>
-    /\.(ts|tsx|js)$/.test(file),
-  );
+  const sourceFiles = unique([
+    ...walkFiles(root, DEFAULT_CYPRESS_SOURCE_ROOT, (file) => /\.(ts|tsx|js)$/.test(file)),
+    ...specs,
+    ...Object.keys(dependencyIndex.consumers),
+  ]).filter((file) => /\.(ts|tsx|js)$/.test(file) && fs.existsSync(path.join(root, file)));
   const specSet = new Set(specs);
   const consumers = new Set();
 
@@ -1051,7 +1062,7 @@ const buildSelectionPlan = ({
 
     const consumers = buildFixtureConsumers({
       root,
-      specs: Object.keys(inventory),
+      specs: dependencyIndex.specs ?? Object.keys(inventory),
       dependencyIndex,
       fixturePath: changedPath,
     });
@@ -1386,7 +1397,11 @@ module.exports = {
   DEFAULT_SKIP_TAGS,
   DEFAULT_TAG,
   buildDependencyIndexForE2e: ({ root, specs }) =>
-    buildDependencyIndex({ root, specs, supportFile: DEFAULT_SUPPORT_FILE }),
+    buildDependencyIndex({
+      root,
+      specs: unique([...specs, ...discoverSpecs(root, 'mocked')]),
+      supportFile: DEFAULT_SUPPORT_FILE,
+    }),
   buildFixtureConsumers,
   buildSelectionPlan,
   buildSpecInventory,

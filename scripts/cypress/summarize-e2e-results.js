@@ -148,7 +148,14 @@ const main = () => {
     errors.push(aggregateError);
   }
 
-  const summary = { ...totals, jobs: jobResults };
+  const summary = {
+    ...totals,
+    plannedTestCount: matrixJobs
+      ? matrixJobs.reduce((total, job) => total + job.planned_test_count, 0)
+      : undefined,
+    jobs: jobResults,
+    validationErrors: errors,
+  };
   writeFile(options['summary-json'], `${JSON.stringify(summary, null, 2)}\n`);
   writeFile(options['summary-md'], `${renderResultsMarkdown(summary)}\n`);
   console.log(

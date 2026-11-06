@@ -69,6 +69,11 @@ on:
         required: false
         default: false
         type: boolean
+      skip_auto_detect:
+        description: 'Deprecated: accepted for compatibility; path-impact selection always runs'
+        required: false
+        default: false
+        type: boolean
       run_id:
         description: 'Test workflow run ID to reuse artifacts from (skips rebuild if provided)'
         required: false
@@ -511,7 +516,11 @@ jobs:
           INPUT_ADDITIONAL_TAGS: ${{ inputs.additional_tags }}
           INPUT_PR_LABELS: ${{ steps.labels.outputs.labels }}
           INPUT_SKIP_DEFAULT: ${{ inputs.skip_default }}
+          INPUT_SKIP_AUTO_DETECT: ${{ inputs.skip_auto_detect }}
         run: |
+          if [[ "$INPUT_SKIP_AUTO_DETECT" == "true" ]]; then
+            echo "::warning::skip_auto_detect is deprecated and ignored. Path-impact selection is always additive; remove this input from dispatch callers."
+          fi
           node scripts/cypress/plan-e2e-selection.js \
             --base "${{ steps.refs.outputs.base_sha }}" \
             --head "${{ steps.refs.outputs.head_sha }}" \
