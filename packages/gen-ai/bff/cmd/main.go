@@ -304,9 +304,9 @@ func sanitizedHost(host string) string {
 }
 
 // validateListenHost rejects listen hosts that embed userinfo credentials or
-// path/query data. Such hosts can never work as listen addresses, and the
-// credentials they carry would otherwise leak through net/http listener errors
-// when startup fails.
+// path/query data, or that are not a valid IP or DNS hostname. Such hosts can
+// never work as listen addresses, and their raw values would otherwise leak
+// through net/http listener errors when startup fails.
 func validateListenHost(host string) error {
 	h := host
 	if scheme := strings.Index(h, "://"); scheme >= 0 {
@@ -325,6 +325,17 @@ func validateListenHost(host string) error {
 			"fix", "Pass a plain host or IP, e.g. --host localhost",
 		)
 		return errors.New("--host must not contain path or query data")
+	}
+	// An empty host binds all interfaces; anything else must be an IP literal
+	// or a DNS hostname (letters, digits, dots, hyphens) so a malformed value
+	// fails here instead of inside the listener, whose error echoes the raw
+	// value into the logs.
+	if h != "" && net.ParseIP(h) == nil && strings.Trim(h, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-") != "" {
+		slog.Error("SECURITY: --host must be a valid hostname or IP address",
+			"host", sanitizedHost(host),
+			"fix", "Pass a plain host or IP, e.g. --host localhost",
+		)
+		return errors.New("--host must be a valid hostname or IP address")
 	}
 	return nil
 }

@@ -338,8 +338,19 @@ func TestListenHostRejected(t *testing.T) {
 		assert.NotContains(t, logs, "super-secret-pw")
 	})
 
+	t.Run("malformed host is rejected before the listener starts", func(t *testing.T) {
+		logs := captureDefaultLog(t, func() {
+			err := validateListenHost("localhost:8080")
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "valid hostname or IP")
+		})
+		assert.Contains(t, logs, "SECURITY")
+	})
+
 	t.Run("plain host is accepted", func(t *testing.T) {
 		assert.NoError(t, validateListenHost("localhost"))
 		assert.NoError(t, validateListenHost("0.0.0.0"))
+		assert.NoError(t, validateListenHost("::1"))
+		assert.NoError(t, validateListenHost(""))
 	})
 }
