@@ -46,3 +46,9 @@ export interface ContractTestOptions {
 export interface ContractTestMatcher {
   toMatchContract: (schema: Record<string, unknown>, options: ContractTestOptions) => void;
 }
+
+export {
+  startGoTestFixture,
+  type GoTestFixture,
+  type GoTestFixtureOptions,
+} from './utils/go-test-fixture';
