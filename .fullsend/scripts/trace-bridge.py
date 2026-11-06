@@ -780,11 +780,11 @@ def _before_exit(segs):
         i, prog = _program(toks)
         if k not in ok:
             continue
-        if _execs_command(toks):  # exec CMD replaces the shell: like exit 0
+        if _execs_command(toks):  # exec CMD runs CMD in place of the shell: nothing after it runs
             if scope is not None:
                 ok.difference_update(range(k + 1, scope["end"]))
                 continue
-            return ok & set(range(k))
+            return ok & set(range(k + 1))
         if prog not in EXIT_PROGS:
             continue
         if scope is not None:
@@ -2211,7 +2211,9 @@ def self_test():
          shell_reads("exec true; cat .claude/rules/react.md") == []
          and shell_reads("FOO=1 exec -a x true; cat c/d.md") == []
          and shell_reads("(exec true); cat c/d.md") == ["c/d.md"]
-         and shell_reads("exec 2>/dev/null; cat c/d.md") == ["c/d.md"]),
+         and shell_reads("exec 2>/dev/null; cat c/d.md") == ["c/d.md"]
+         and shell_reads("exec cat .claude/rules/react.md") == [".claude/rules/react.md"]
+         and shell_reads("exec head -n 5 c/d.md; cat e/f.md") == ["c/d.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
