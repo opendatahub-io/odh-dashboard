@@ -15,7 +15,5 @@ export const findInlineVectorStore = (
   if (!username) {
     return undefined;
   }
-  return stores.find(
-    (store) => isAutoProvisioned(store) && store.metadata.username === username,
-  );
+  return stores.find((store) => isAutoProvisioned(store) && store.metadata.username === username);
 };

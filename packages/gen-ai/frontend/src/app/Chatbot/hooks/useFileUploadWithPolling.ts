@@ -7,10 +7,7 @@ import { ChatbotSourceSettings } from '~/app/types';
 export type UploadStatus = 'idle' | 'uploading' | 'uploaded' | 'failed';
 
 /** The BFF applies chunk sizes only when chunking_type is set. Zero overlap is valid. */
-export const appendChunkingFields = (
-  formData: FormData,
-  settings: ChatbotSourceSettings,
-): void => {
+export const appendChunkingFields = (formData: FormData, settings: ChatbotSourceSettings): void => {
   const maxChunkLength =
     settings.maxChunkLength ??
     (settings.chunkOverlap !== undefined ? DEFAULT_SOURCE_SETTINGS.maxChunkLength : undefined);

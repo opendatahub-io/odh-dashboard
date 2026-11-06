@@ -48,18 +48,18 @@ const UserContextProvider: React.FunctionComponent<UserContextProviderProps> = (
   }, []);
 
   React.useEffect(() => {
-    let cancelled = false;
+    const cancellation = { cancelled: false };
     const timers: Array<ReturnType<typeof setTimeout>> = [];
 
     const recoverLater = (delays: number[]) => {
-      if (cancelled || delays.length === 0) {
+      if (cancellation.cancelled || delays.length === 0) {
         return;
       }
       const [delay, ...remaining] = delays;
       const timer = setTimeout(() => {
         void (async () => {
           const userId = await lookupUsername();
-          if (cancelled) {
+          if (cancellation.cancelled) {
             return;
           }
           if (userId) {
@@ -74,7 +74,7 @@ const UserContextProvider: React.FunctionComponent<UserContextProviderProps> = (
 
     void (async () => {
       const userId = await lookupUsername();
-      if (cancelled) {
+      if (cancellation.cancelled) {
         return;
       }
       setUsername(userId);
@@ -84,7 +84,7 @@ const UserContextProvider: React.FunctionComponent<UserContextProviderProps> = (
     })();
 
     return () => {
-      cancelled = true;
+      cancellation.cancelled = true;
       timers.forEach((timer) => clearTimeout(timer));
     };
   }, []);
