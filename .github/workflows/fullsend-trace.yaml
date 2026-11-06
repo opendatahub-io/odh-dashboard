@@ -27,7 +27,8 @@
 # (an earlier export was partial or lost its marker), the run stops; check the
 # trace, then rerun manually with recover=mark-only (spans complete),
 # recover=resend (resend all spans; already accepted ones count twice) or
-# recover=bridge-only (Fullsend exported the trace itself: add only bridge spans).
+# recover=bridge-only (Fullsend exported the trace itself and the bridge never sent
+# to it: add only bridge spans; never after a bridge export, which would send them twice).
 name: fullsend-trace
 
 on:
@@ -122,6 +123,17 @@ jobs:
             then .pr_number else empty end' "$result" 2>/dev/null || true)
           if [[ ! "$pr" =~ ^[1-9][0-9]{0,8}$ ]]; then
             echo "::warning::No valid PR number in the artifact; tracing without PR metadata."
+            exit 0
+          fi
+          # The artifact's PR number is sandbox-written: use it only if GitHub links that PR to
+          # the run's own head commit, so the exported author belongs to the reviewed PR.
+          run_head=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.head_sha' || true)
+          linked=""
+          if [[ "$run_head" =~ ^[0-9a-f]{40}$ ]]; then
+            linked=$(gh api --paginate "repos/$REPO/commits/$run_head/pulls" --jq '.[].number' || true)
+          fi
+          if ! grep -qx "$pr" <<< "$linked"; then
+            echo "::warning::The artifact's PR is not linked to the run's commit; tracing without PR metadata."
             exit 0
           fi
           # PR metadata is optional: an API failure loses it, but the spans are still sent.

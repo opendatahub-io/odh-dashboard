@@ -627,12 +627,14 @@ def shell_segments_ctx(cmd):
                 op = None
             # "name()" with nothing between the parens defines a function; its body only
             # runs if the function is called, which isn't tracked, so it is conditional.
-            func_body = t == ")" and paren_open == (len(segs), True)
+            # A newline may sit between "name()" and its body; a ( ... ) body works too.
+            body_paren = t == "(" and func_body
+            func_body = (t == ")" and paren_open == (len(segs), True)) or (t == "\n" and func_body)
             paren_open = (len(segs), mid_command) if t == "(" else None
             if t == "(":
                 # A substitution's run status follows its command's, which isn't tracked
                 # here, so its contents count as conditional (reads there are not counted).
-                stack.append(("paren", mid_command or op in ("&&", "||") or cond()))
+                stack.append(("paren", body_paren or mid_command or op in ("&&", "||") or cond()))
                 starts.append((len(stack), len(segs)))
             elif t == ")":
                 close("paren")  # inside case, a pattern's ")" is not a group close
@@ -935,7 +937,9 @@ def shell_files(cmd, include_skipped=False):
         for t in without_patterns(prog, toks[i + 1:]):
             if redirect is not None:
                 path = resolve_path(cwd, t)
-                if redirect == "<":
+                if redirect == "<" and redirect.fd not in ("", "0"):
+                    pass  # 3<f opens another descriptor: the program doesn't read it as input
+                elif redirect == "<":
                     # A read only for a read program in a segment that succeeded; for any other
                     # program (grep -q, true) the file's contents aren't shown, so it is
                     # kept as path metadata only.
@@ -1855,7 +1859,11 @@ def self_test():
          and shell_reads("{ cat o/p.md; }") == ["o/p.md"]
          and shell_reads("cat docs/adr/0009-x.md >& /dev/null") == []
          and shell_reads("cat docs/adr/0009-x.md >&2") == ["docs/adr/0009-x.md"]
-         and shell_reads("cat docs/adr/0009-x.md 2>&1") == ["docs/adr/0009-x.md"]),
+         and shell_reads("cat docs/adr/0009-x.md 2>&1") == ["docs/adr/0009-x.md"]
+         and shell_reads("f()\n{ cat docs/adr/0009-x.md; }") == []
+         and shell_reads("f() ( cat docs/adr/0009-x.md )") == []
+         and shell_reads("cat 3<docs/adr/0009-x.md") == []
+         and shell_reads("cat 0<docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
