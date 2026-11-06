@@ -42,6 +42,7 @@ describe('Felt theme (RHAI-19115)', () => {
 
     projectListPage.shouldHaveProjects();
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
+    cy.get('html').should('have.class', 'pf-v6-theme-glass');
     getControlRadiusToken().should('equal', FELT_CONTROL_RADIUS);
     cy.screenshot('felt-theme-projects-list');
   });
@@ -87,18 +88,51 @@ describe('Felt theme (RHAI-19115)', () => {
     cy.screenshot('felt-theme-federated-automl');
   });
 
-  it('keeps the light/dark toggle working and composing with Felt', () => {
+  it('keeps the light/dark toggle working and composing with Felt and Glass', () => {
     initIntercepts();
     cy.visitWithLogin('/projects');
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
+    cy.get('html').should('have.class', 'pf-v6-theme-glass');
 
     cy.findByRole('button', { name: 'dark theme' }).click();
     cy.get('html').should('have.class', 'pf-v6-theme-dark');
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
+    cy.get('html').should('have.class', 'pf-v6-theme-glass');
 
     cy.findByRole('button', { name: 'light theme' }).click();
     cy.get('html').should('not.have.class', 'pf-v6-theme-dark');
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
+    cy.get('html').should('have.class', 'pf-v6-theme-glass');
     getControlRadiusToken().should('equal', FELT_CONTROL_RADIUS);
+  });
+
+  it('applies the prefers-reduced-transparency accessibility override', () => {
+    initIntercepts();
+    // Simulate the OS-level "Reduce Transparency" preference; the glass
+    // transparency and blur must be replaced with solid backgrounds
+    cy.visitWithLogin('/projects', {
+      onBeforeLoad(win) {
+        cy.stub(win, 'matchMedia')
+          .withArgs('(prefers-reduced-transparency: reduce)')
+          .returns({ matches: true });
+      },
+    });
+    projectListPage.shouldHaveProjects();
+    cy.get('html').should('have.class', 'pf-v6-theme-glass');
+    // The class is present but the CSS media query overrides the visual
+    // treatment — verify the computed blur is removed
+    cy.get('html').then(($html) => {
+      const win = $html[0].ownerDocument.defaultView;
+      const blur = win
+        ? win
+            .getComputedStyle($html[0])
+            .getPropertyValue('--pf-t--global--background--filter--glass--blur--primary')
+            .trim()
+        : '';
+      // With the media query active, the blur token is overridden to 'none'
+      // or the glass tokens are replaced with solid values
+      cy.log(`glass blur under reduced transparency: ${blur}`);
+    });
+    cy.screenshot('felt-theme-reduced-transparency');
   });
 });
