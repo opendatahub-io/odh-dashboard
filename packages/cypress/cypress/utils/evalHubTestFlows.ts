@@ -695,13 +695,22 @@ export const customizeCuratedCollection = (
         setBenchmarkNumExamples(index, 5, `Set benchmark ${index + 1} to five examples`);
 
         cy.step(`Use Chat Completions for benchmark ${index + 1}`);
+        const advancedParametersToggle = createEvaluationPage.findBenchmarkAdvancedToggle(index);
+        advancedParametersToggle.should('be.visible').then(($toggle) => {
+          if ($toggle.attr('aria-expanded') !== 'true') {
+            cy.wrap($toggle).click();
+          }
+        });
         createEvaluationPage
           .findBenchmarkAdditionalParameters(index)
           .scrollIntoView()
           .should('be.visible')
           .invoke('val')
           .then((value) => {
-            const parameters = JSON.parse(String(value)) as Record<string, unknown>;
+            const rawParameters = String(value ?? '').trim();
+            const parameters = rawParameters
+              ? (JSON.parse(rawParameters) as Record<string, unknown>)
+              : {};
             const modelArgs =
               isRecord(parameters.model_args) && !Array.isArray(parameters.model_args)
                 ? parameters.model_args
@@ -745,7 +754,10 @@ export const duplicateSavedBenchmarkCollection = (
   cy.step(`Open the saved collection actions: ${sourceCollectionName}`);
   findEvalHubCollectionIdByName(evaluationTenantProject, sourceCollectionName).then(
     (sourceCollectionId) => {
-      evaluationsPage.findBenchmarkSuiteMenu(sourceCollectionId).should('be.visible').click();
+      evaluationsPage
+        .findBenchmarkSuiteMenu(sourceCollectionId, navigationTimeout)
+        .should('be.visible')
+        .click();
       evaluationsPage
         .findBenchmarkSuiteAction('duplicate', sourceCollectionId)
         .should('be.visible')
@@ -834,7 +846,10 @@ export const editSavedBenchmarkCollection = (
   navigateToEvaluationsPage(evaluationTenantProject);
   cy.step(`Open the saved collection for editing: ${collectionName}`);
   findEvalHubCollectionIdByName(evaluationTenantProject, collectionName).then((collectionId) => {
-    evaluationsPage.findBenchmarkSuiteMenu(collectionId).should('be.visible').click();
+    evaluationsPage
+      .findBenchmarkSuiteMenu(collectionId, navigationTimeout)
+      .should('be.visible')
+      .click();
     evaluationsPage.findBenchmarkSuiteAction('edit', collectionId).should('be.enabled').click();
     cy.location('pathname', navigationTimeout).should(
       'eq',
@@ -901,10 +916,14 @@ export const verifySavedBenchmarkCollectionEditDisabled = (
   evaluationTenantProject: string,
   collectionName: string,
 ): void => {
+  const navigationTimeout = { timeout: 120000 };
   navigateToEvaluationsPage(evaluationTenantProject);
   cy.step(`Verify Edit is disabled for the run collection: ${collectionName}`);
   findEvalHubCollectionIdByName(evaluationTenantProject, collectionName).then((collectionId) => {
-    evaluationsPage.findBenchmarkSuiteMenu(collectionId).should('be.visible').click();
+    evaluationsPage
+      .findBenchmarkSuiteMenu(collectionId, navigationTimeout)
+      .should('be.visible')
+      .click();
     evaluationsPage.findBenchmarkSuiteAction('edit', collectionId).should('be.disabled');
   });
 };
@@ -1239,8 +1258,8 @@ export const verifyEvaluationCompletedAndViewResults = (
   evaluationRunName: string,
   expectedBenchmarkIds: string[] = [],
 ): void => {
-  cy.step('Re-open status modal after completion — View Results shown, Stop absent');
-  cy.reload();
+  cy.step('Wait for the Runs list to show completion, then open the results action');
+  // The visible Runs page polls job status, so wait in place instead of reloading the app shell.
   const statusTimeout = { timeout: 120000 };
   evaluationsPage.findPageTitle({ timeout: 30000 }).should('be.visible');
   evaluationsPage.findRunsTabContent(statusTimeout).should('be.visible');
@@ -1265,10 +1284,14 @@ export const verifyEvaluationCompletedAndViewResults = (
     evaluationResultsPage
       .findBenchmarkResultCards()
       .should('have.length', expectedBenchmarkIds.length);
+    const expectedOccurrences = new Map<string, number>();
     expectedBenchmarkIds.forEach((benchmarkId) => {
+      expectedOccurrences.set(benchmarkId, (expectedOccurrences.get(benchmarkId) ?? 0) + 1);
+    });
+    expectedOccurrences.forEach((expectedCount, benchmarkId) => {
       evaluationResultsPage
         .findBenchmarkResultCardById(benchmarkId)
-        .should('have.length', 1)
+        .should('have.length', expectedCount)
         .and('be.visible');
     });
   }

@@ -83,8 +83,8 @@ class EvaluationsPage {
     );
   }
 
-  findBenchmarkSuiteMenu(collectionId: string) {
-    return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`);
+  findBenchmarkSuiteMenu(collectionId: string, options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId(`benchmark-suite-card-menu-${collectionId}`, options);
   }
 
   findBenchmarkSuiteAction(action: string, collectionId: string) {

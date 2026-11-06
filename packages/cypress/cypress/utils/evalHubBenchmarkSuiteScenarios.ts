@@ -254,7 +254,7 @@ export const createEvalHubBenchmarkSuiteScenario = (
     });
     verifyEvaluationProgressModal(evaluationRunName);
     waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
-    verifyEvaluationCompletedAndViewResults(evaluationRunName);
+    verifyEvaluationCompletedAndViewResults(evaluationRunName, testData.expectedBenchmarkIds);
   };
 
   const runCuratedCollection = (): void => {
@@ -289,7 +289,25 @@ export const createEvalHubBenchmarkSuiteScenario = (
     });
     verifyEvaluationProgressModal(evaluationRunName);
     waitForEvaluationJobComplete(evaluationTenantProject, 1800000);
-    verifyEvaluationCompletedAndViewResults(evaluationRunName);
+    cy.get('@createEvalHubJob').then((interception) => {
+      const requestBody = (
+        interception as {
+          request: {
+            body: { collection?: { benchmarks?: { id?: unknown }[] } };
+          };
+        }
+      ).request.body;
+      const benchmarks = requestBody.collection?.benchmarks;
+      expect(benchmarks, 'benchmarks submitted for the curated collection run')
+        .to.be.an('array')
+        .and.to.have.length.greaterThan(0);
+      const expectedBenchmarkIds = (benchmarks ?? []).map(({ id }, index) => {
+        expect(id, `submitted benchmark ${index + 1} ID`).to.be.a('string');
+        expect(id, `submitted benchmark ${index + 1} ID`).not.to.equal('');
+        return String(id);
+      });
+      verifyEvaluationCompletedAndViewResults(evaluationRunName, expectedBenchmarkIds);
+    });
   };
 
   return {
