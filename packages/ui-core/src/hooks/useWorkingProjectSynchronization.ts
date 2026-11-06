@@ -26,7 +26,7 @@ export type WorkingProjectSynchronizationOptions = {
   onProjectChange: (project: ProjectIdentity, change: WorkingProjectChange) => void;
   /** Required for every switch/restore without a current list, including previously known names. */
   validateCandidate?: (name: string, signal: AbortSignal) => Promise<ProjectIdentity | null>;
-  /** Publish the returned identity instance in projects before activation. */
+  /** Publish the validated identity in projects before activation. */
   onProjectValidated?: (project: ProjectIdentity) => void;
 };
 
@@ -141,8 +141,8 @@ export const useWorkingProjectSynchronization = ({
     if (!validated || validated.controller.signal.aborted) {
       return;
     }
-    const known = projects.find(({ name }) => name === validated.name);
-    if (known !== validated.identity) {
+    const publishedProject = projects.find(({ name }) => name === validated.name);
+    if (!publishedProject || publishedProject.displayName !== validated.identity.displayName) {
       return;
     }
     if (status === 'listed' || status === 'listing-unavailable') {
@@ -157,7 +157,7 @@ export const useWorkingProjectSynchronization = ({
       }
       request.current = null;
       setValidated(null);
-      onProjectChange(known, {
+      onProjectChange(publishedProject, {
         source: validated.source,
         replace: validated.source === 'storage',
       });

@@ -132,28 +132,42 @@ describe('WorkingProjectNavigationAdapter', () => {
     { from: '/models/a', search: '', hash: '', to: 'b', destination: '/models/a/b' },
     { from: '/models/a/details', search: '', hash: '', to: 'b', destination: '/models/a/b' },
     {
+      from: '/models/a/details/more',
+      search: '',
+      hash: '',
+      to: '../b/details',
+      routeBase: '/models/a/details',
+      destination: '/models/a/b/details',
+    },
+    {
       from: '/models/a',
       search: '?old=1',
       hash: '#results',
       to: '?tab=details',
       destination: '/models/a?tab=details',
     },
-  ])('should commit a resolved destination for $to', ({ from, search, hash, to, destination }) => {
-    at(from, search, hash);
-    getRedirectPath.mockReturnValueOnce(to);
-    const { rerender } = render(
-      <WorkingProjectNavigationAdapter getRedirectPath={getRedirectPath} />,
-    );
-    const request = transaction();
-    act(() => onNavigate({ name: 'b' }, request));
-    expect(navigate).toHaveBeenCalledWith(to, { replace: true });
-    expect(request.commit).not.toHaveBeenCalled();
-    const { pathname, search: destinationSearch } = new URL(destination, 'http://localhost');
-    at(pathname, destinationSearch);
-    rerender(<WorkingProjectNavigationAdapter getRedirectPath={getRedirectPath} />);
-    expect(request.commit).toHaveBeenCalledTimes(1);
-    expect(request.cancel).not.toHaveBeenCalled();
-  });
+  ])(
+    'should commit a resolved destination for $to',
+    ({ from, search, hash, to, routeBase, destination }) => {
+      at(from, search, hash);
+      if (routeBase) {
+        jest.mocked(useResolvedPath).mockReturnValue({ pathname: routeBase, search: '', hash: '' });
+      }
+      getRedirectPath.mockReturnValueOnce(to);
+      const { rerender } = render(
+        <WorkingProjectNavigationAdapter getRedirectPath={getRedirectPath} />,
+      );
+      const request = transaction();
+      act(() => onNavigate({ name: 'b' }, request));
+      expect(navigate).toHaveBeenCalledWith(destination, { replace: true });
+      expect(request.commit).not.toHaveBeenCalled();
+      const { pathname, search: destinationSearch } = new URL(destination, 'http://localhost');
+      at(pathname, destinationSearch);
+      rerender(<WorkingProjectNavigationAdapter getRedirectPath={getRedirectPath} />);
+      expect(request.commit).toHaveBeenCalledTimes(1);
+      expect(request.cancel).not.toHaveBeenCalled();
+    },
+  );
 
   it('should replace the displayed URL before committing when superseding pending navigation', () => {
     const { rerender } = render(

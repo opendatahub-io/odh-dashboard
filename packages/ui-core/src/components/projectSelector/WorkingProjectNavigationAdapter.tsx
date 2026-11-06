@@ -76,7 +76,7 @@ const WorkingProjectNavigationAdapter: React.FC<WorkingProjectNavigationAdapterP
           ) {
             // A same-location navigation still aborts a superseded loader/lazy transition.
             pending.current = { target, transaction };
-            const result = current.navigate(destination, { replace: true });
+            const result = current.navigate(target, { replace: true });
             if (result) {
               void result.catch(() => {
                 if (pending.current?.transaction === transaction) {

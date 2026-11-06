@@ -86,6 +86,24 @@ describe('useWorkingProjectSynchronization', () => {
     });
   });
 
+  it('should activate a published identity with matching values but a different reference', async () => {
+    const input = options();
+    const { rerender } = render(<Harness {...input} />);
+    act(() => select(second.name));
+    await waitFor(() => expect(input.onProjectValidated).toHaveBeenCalledWith(second));
+
+    const published = { ...second };
+    expect(published).not.toBe(second);
+    rerender(<Harness {...input} projects={[first, published]} />);
+
+    expect(input.onProjectChange).toHaveBeenCalledWith(published, {
+      source: 'selection',
+      replace: false,
+    });
+    expect(input.onProjectChange).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(input.onProjectChange).mock.calls[0][0]).toBe(published);
+  });
+
   it.each(['validation', 'publication'] as const)(
     'should reject initial stored restoration superseded during %s without an event',
     async (phase) => {
