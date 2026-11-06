@@ -2,10 +2,13 @@ import { handleRestFailures, isModArchResponse, restGET } from 'mod-arch-core';
 import { describe, expect, it, jest } from '@jest/globals';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import {
+  ConnectionApiError,
   createConnection,
   deleteConnection,
   getConnection,
+  getConnections,
   getConnectionType,
+  getConnectionTypes,
   testCredentials,
   verifyConnection,
 } from '~/app/api/dch';
@@ -84,6 +87,89 @@ describe('getConnectionType', () => {
 
 const response = (status: number, body = '') =>
   ({ status, ok: status >= 200 && status < 300, text: () => Promise.resolve(body) }) as Response;
+
+describe('getConnections', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsModArchResponse.mockReturnValue(true);
+  });
+
+  it('returns connections from a valid response', async () => {
+    const connection = {
+      metadata: { id: '550e8400-e29b-41d4-a716-446655440001' },
+      resource: {
+        name: 'warehouse',
+        data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
+        format: 'tabular' as const,
+        credentials_ref: { secret: 'warehouse' },
+      },
+      status: { state: 'ready' as const },
+    };
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(200, JSON.stringify({ data: [connection] })));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(getConnections('')({}, 'test-project')).resolves.toEqual([connection]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/data-connect-hub/api/v1/connections?namespace=test-project',
+      expect.objectContaining({ method: 'GET' }),
+    );
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
+  it('preserves HTTP 403 failures', async () => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(403, '{"error":{"message":"Access forbidden"}}'));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    const error = await getConnections('')({}, 'test-project').catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ConnectionApiError);
+    expect((error as ConnectionApiError).status).toBe(403);
+    expect((error as ConnectionApiError).message).toBe('Access forbidden');
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+});
+
+describe('getConnectionTypes', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsModArchResponse.mockReturnValue(true);
+  });
+
+  it('returns connection types from a valid response', async () => {
+    const connectionType = mockConnectionType().toJSON();
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(200, JSON.stringify({ data: [connectionType] })));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    await expect(getConnectionTypes('')({}, 'test-project')).resolves.toEqual([connectionType]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/data-connect-hub/api/v1/connection-types?namespace=test-project',
+      expect.objectContaining({ method: 'GET' }),
+    );
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+
+  it('preserves HTTP 403 failures', async () => {
+    const fetchMock = jest
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(response(403, '{"error":{"message":"Access forbidden"}}'));
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: fetchMock });
+
+    const error = await getConnectionTypes('')({}, 'test-project').catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(ConnectionApiError);
+    expect((error as ConnectionApiError).status).toBe(403);
+    expect((error as ConnectionApiError).message).toBe('Access forbidden');
+    delete (globalThis as { fetch?: typeof fetch }).fetch;
+  });
+});
 
 describe('getConnection', () => {
   const connection = {
