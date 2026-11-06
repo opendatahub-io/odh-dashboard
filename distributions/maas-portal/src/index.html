@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#ffffff" />
     <title><%= htmlRspackPlugin.options.title %></title>
+    <script>
+      // PatternFly Felt + Glass themes — applied before the app boots so tokens
+      // are correct on first paint. Light/dark composes via .pf-v6-theme-dark
+      // (see ThemeContext). OS "Reduce Transparency" overrides glass (see App.scss).
+      document.documentElement.classList.add('pf-v6-theme-felt');
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
