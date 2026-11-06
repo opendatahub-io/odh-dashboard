@@ -94,7 +94,7 @@ jobs:
           # repository's definition. A fork PR can edit fullsend.yaml and run it on
           # pull_request or pull_request_review, and that run's artifact must not reach MLflow.
           src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
-            '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.run_started_at // .created_at) \(.head_repository.full_name // "-") \(.head_branch // "")"')
+            '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.created_at // "-") \(.head_repository.full_name // "-") \(.head_branch // "")"')
           read -r src_path src_event src_repo src_sha src_started src_head_repo src_branch <<< "$src"
           default_branch=$(gh api "repos/$REPO" --jq '.default_branch')
           case "$src_event" in
@@ -115,8 +115,9 @@ jobs:
             # pull_request_target runs the PR base branch's fullsend.yaml: the base must be the
             # default branch (an edited file on another branch could be targeted by a PR).
             # The run's PR is found by its head; none, several or a failed lookup is rejected.
-            # The base is checked now, so it must also not have changed since the run started
-            # (a PR retargeted to the default branch afterwards); an unreadable timeline is rejected.
+            # The base is checked now, so it must also not have changed since the run was created
+            # (a PR retargeted to the default branch afterwards). created_at is the original run's
+            # time; run_started_at moves on a rerun. An unreadable timeline is rejected.
             matches=""
             if [[ "$src_head_repo" == */* && -n "$src_branch" ]]; then
               matches=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
