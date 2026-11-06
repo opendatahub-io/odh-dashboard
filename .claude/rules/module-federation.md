@@ -38,10 +38,10 @@ The host never exposes modules (`exposes: {}`). Remotes expose `./extensions` an
 
 See [docs/module-federation.md](../../docs/module-federation.md) for the full config schema and rspack template. In brief:
 
-1. **`package.json`** — add a `module-federation` key (name, remoteEntry, proxy, local port, service). Federated remotes do **not** add a `package.json` `exports["./extensions"]`; that is only for static plugins (see step 4).
+1. **`package.json`** — add a `module-federation` key (name, remoteEntry, proxy, local port, service). A federated remote does not need `exports["./extensions"]`. Add it only when the remote also contributes host-side extensions that must be bundled at build time (for example `model-registry`'s catalog tabs). The two paths can coexist.
 2. **`moduleFederation.js`** — configure `OdhFederationPlugin` with `name`, `isHost`, `exposes` / `remotes`. Shared singletons are applied by the plugin.
 3. **`src/odh/extensions.ts`** — export a default array of `Extension` objects
-4. **Discovery** — federated remotes are loaded at runtime from the `module-federation` config via `loadRemote('{name}/extensions')`. Only static plugins (packages bundled into the host, without a `module-federation` key) export `./extensions` in `package.json`, which `discoverPluginPackages.js` turns into `plugin-extensions.ts` at build time.
+4. **Discovery** — the host loads remotes at runtime via `loadRemote('{name}/extensions')`. In development the backend builds the remote list from each package's `module-federation` key. In production it reads `MODULE_FEDERATION_CONFIG` from the operator-generated ConfigMap instead, so a remote only loads on a cluster once it is in the dashboard-operator `moduleRegistry` with manifests (done by `/konflux-onboarding`). Separately, any package that exports `./extensions` in `package.json` (static plugins, and remotes with host-side extensions) is bundled at build time by `discoverPluginPackages.js` into `plugin-extensions.ts`.
 
 ## Shared Dependencies
 

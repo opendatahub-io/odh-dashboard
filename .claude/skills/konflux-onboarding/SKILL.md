@@ -105,7 +105,7 @@ Parse from `$ARGUMENTS`:
    - Type A: `odh-mod-arch-<name>` (e.g., `odh-mod-arch-gen-ai`)
    - Type B: `odh-<name>` (e.g., `odh-dashboard-operator`)
 
-   Validate the answer before using it: it must match `^odh-[a-z0-9]+(-[a-z0-9]+)*$` (the DevOps `component_name` rule). If it doesn't, ask for another name. Record the answer as `<image>`. Every later identifier derives from it: the downstream Dockerfile labels (`<image>-container`, `managed-open-data-hub/<image>-rhel9`), the DevOps handoff, and the ProdSec registration key `rhoai/<image>-rhel9`.
+   Validate the answer before using it: it must match `^odh-[a-z0-9]+(-[a-z0-9]+)*$` (the DevOps `component_name` rule). It must also be unused by another component. Check the `IMAGE_REPO` values in `ci-operator/config/opendatahub-io/odh-dashboard/opendatahub-io-odh-dashboard-main.yaml` (openshift/release) and the existing `Dockerfile.konflux.*` labels downstream. For example, `odh-mod-arch-modular-architecture` already belongs to model-registry, so a default derived from a module named `modular-architecture` would overwrite its `:main` image. Reuse a name only for the same component. If either check fails, ask for another name. Record the answer as `<image>`. Every later identifier derives from it: the downstream Dockerfile labels (`<image>-container`, `managed-open-data-hub/<image>-rhel9`), the DevOps handoff, and the ProdSec registration key `rhoai/<image>-rhel9`.
 
 ## Phase 1: Clone Tracking Epic
 

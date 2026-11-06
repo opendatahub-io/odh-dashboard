@@ -65,7 +65,7 @@ There are two registration paths:
   1. The package exports `./extensions` in its `package.json` `exports` field.
   2. `discoverPluginPackages.js` discovers them via `scripts/query-workspace-packages.js`, which reads `pnpm-workspace.yaml`.
   3. At build time, `GenerateExtensionsPlugin` creates `plugin-extensions.ts` importing their extensions.
-- **Federated remotes** (every module with a `module-federation` key, such as `data-connect-hub`): no `exports` entry. The remote's `moduleFederation.js` exposes `./extensions`, and the host loads it at runtime via `loadRemote('{name}/extensions')`.
+- **Federated remotes** (every module with a `module-federation` key, such as `data-connect-hub`): the remote's `moduleFederation.js` exposes `./extensions`, and the host loads it at runtime via `loadRemote('{name}/extensions')`. Remote metadata comes from `package.json` in development and from the operator-generated `MODULE_FEDERATION_CONFIG` in production. A remote may also export `./extensions` in `package.json` for host-side extensions bundled at build time (`model-registry` does both).
 
 `ExtensibilityContextProvider` then creates a `PluginStore` with the extensions from both paths.
 
