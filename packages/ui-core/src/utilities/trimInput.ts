@@ -12,11 +12,21 @@ export const trimInputOnBlur =
 export const trimInputOnPaste =
   (onChange?: (value: string) => void) =>
   (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
-    const trimmed = e.clipboardData.getData('text').trim();
-    if (!onChange) {
+    const text = e.clipboardData.getData('text');
+    const trimmed = text.trim();
+    if (!onChange || trimmed === text) {
       return;
     }
     e.preventDefault();
+    // Native editing preserves undo history and fires the input's change handler.
+    // execCommand has no undo-preserving replacement for inserting trimmed text.
+    const { ownerDocument } = e.currentTarget;
+    if (
+      typeof ownerDocument.execCommand === 'function' &&
+      ownerDocument.execCommand('insertText', false, trimmed)
+    ) {
+      return;
+    }
     const { selectionStart, selectionEnd, value: current } = e.currentTarget;
     const resolvedStart = selectionStart ?? 0;
     const start = current.slice(0, resolvedStart);
