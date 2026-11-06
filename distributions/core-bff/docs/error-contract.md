@@ -72,7 +72,7 @@ The HTTP Kubernetes proxy rejects upstream protocol upgrades before commitment w
 Caller-token Kubernetes resource proxies preserve upstream `Status.message`, validation cause text,
 field paths and resource names. Existing consumers use these for not-found detection, duplicate-name
 messages and actionable quota, validation and admission explanations. Apply targeted redaction to
-complete known request credentials, recognized Bearer/Basic credentials, bearer subprotocols and credential assignments, including quoted keys and JSON-escaped diagnostic representations. Short credential values are redacted in explicit credential contexts, rather than replaced inside ordinary words. Ordinary subprotocol names are not treated as credentials.
+complete known request credentials, recognized Bearer/Basic credentials, bearer subprotocols and credential assignments, including quoted keys and JSON-escaped diagnostic representations. Short credential values are redacted in explicit credential contexts, rather than replaced inside ordinary words. Credential validation fields include terminal bracketed map keys. Complete JSON and PEM assignment values are redacted; YAML blocks and malformed structured or PEM values suppress the remaining diagnostic when their extent cannot be safely determined. Ordinary subprotocol names are not treated as credentials.
 Diagnostic strings are bounded to 8 KiB; longer strings use the safe fallback. A 404 response includes
 `404` in its message so existing numeric and `not found` checks continue working.
 
