@@ -791,6 +791,23 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 	})
 
+	t.Run("cross-namespace Service DNS name is denied without SSRF resolution", func(t *testing.T) {
+		req := req
+		req.BaseURL = "https://my-model.other-ns.svc.cluster.local:8443/v1"
+		client := &k8smocks.ConfigurableMockKubernetesClient{}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want cross-namespace Service to be denied")
+		}
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+			t.Errorf("VerifyExternalModel() error = %v, want ExternalModelError with status 403", err)
+		}
+		if !strings.Contains(err.Error(), "another namespace") {
+			t.Errorf("VerifyExternalModel() error = %v, want cross-namespace denial message", err)
+		}
+	})
+
 	t.Run("manually managed EndpointSlice does not enable the SSRF skip", func(t *testing.T) {
 		client := &k8smocks.ConfigurableMockKubernetesClient{
 			Service: &corev1.Service{

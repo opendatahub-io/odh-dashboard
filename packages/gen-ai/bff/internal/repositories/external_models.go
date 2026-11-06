@@ -219,6 +219,25 @@ func isInternalHost(baseURL string, allowedNamespace string, allowLoopback bool)
 		labels[len(labels)-4] == allowedNamespace
 }
 
+// isCrossNamespaceServiceHost reports whether a URL targets a Kubernetes
+// Service DNS name whose namespace differs from the caller's authorized
+// namespace. Such hosts must be denied outright rather than left to the SSRF
+// private-IP filter: clusters can configure a non-RFC1918 Service CIDR (e.g.
+// 100.96.0.0/16), in which case a cross-namespace Service VIP is not a
+// private IP by that filter and the request would pass SSRF validation.
+func isCrossNamespaceServiceHost(baseURL string, allowedNamespace string) bool {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return false
+	}
+	h := u.Hostname()
+	labels := strings.Split(h, ".")
+	return strings.HasSuffix(h, ".svc.cluster.local") &&
+		len(labels) >= 5 &&
+		allowedNamespace != "" &&
+		labels[len(labels)-4] != allowedNamespace
+}
+
 // k8sServiceHost extracts the service and namespace labels, plus the pod-specific
 // hostname label when present (empty for plain Service DNS names), from a
 // fully-qualified in-cluster service DNS name.
@@ -566,6 +585,10 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	trusted, pinnedAddresses, err := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace, allowLoopback, logger)
 	if err != nil {
 		return nil, err
+	}
+	if !trusted && isCrossNamespaceServiceHost(req.BaseURL, namespace) {
+		return nil, forbiddenTrustError(req.BaseURL, fmt.Sprintf(
+			"in-cluster service endpoints are only allowed in your own namespace (%s); the URL targets a service in another namespace", namespace))
 	}
 	modelsClient, err := externalmodels.NewExternalModelsClient(
 		logger,
