@@ -24,14 +24,23 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 
+import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
+import { getKueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import {
+  KueueWorkloadStatus,
+  KUEUE_STATUSES_OVERRIDE_WORKBENCH,
+} from '@odh-dashboard/k8s-core/kueue/types';
+import {
+  getHumanReadableKueueMessage,
+  getRequeuedMessage,
+} from '@odh-dashboard/k8s-core/kueue/messageUtils';
+import {
+  t_global_text_color_regular as RegularColor,
+  t_global_text_color_status_danger_default as DangerColor,
   t_color_gray_60 as Gray60,
   t_global_text_color_disabled as DisabledColor,
 } from '@patternfly/react-tokens';
-import {
-  getDescriptionFromK8sResource,
-  getDisplayNameFromK8sResource,
-} from '@odh-dashboard/k8s-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import EventLog from '@odh-dashboard/internal/concepts/k8s/EventLog/EventLog';
 import TrainingJobStatus from './components/TrainingJobStatus';
 import {
@@ -88,8 +97,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
 }) => {
   const status = jobStatus || getTrainingJobStatusSync(job);
   const displayName = getDisplayNameFromK8sResource(job);
-  const description = getDescriptionFromK8sResource(job).trim();
-  const [workloads, workloadLoaded] = useWorkloadForTrainJob(job);
+  const [workloads, workloadLoaded, workloadError] = useWorkloadForTrainJob(job);
   const workload = React.useMemo(() => {
     if (!workloadLoaded || workloads.length === 0) return null;
     return workloads[0];
@@ -127,6 +135,62 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
     () => getStatusAlert(status, workloadConditions, job.status?.conditions, events),
     [status, workloadConditions, job.status?.conditions, events],
   );
+
+  const renderQueueDetails = () => {
+    if (
+      !workload ||
+      workloadError ||
+      isComplete ||
+      isFailed ||
+      status === TrainingJobState.DELETING
+    ) {
+      return null;
+    }
+    const kueueStatus = getKueueWorkloadStatusWithMessage({
+      ...workload,
+      status: {
+        ...workload.status,
+        conditions: workloadConditions.filter(
+          (condition) =>
+            condition.observedGeneration === undefined ||
+            workload.metadata?.generation === undefined ||
+            condition.observedGeneration >= workload.metadata.generation,
+        ),
+      },
+    });
+    if (
+      kueueStatus.status === KueueWorkloadStatus.Complete ||
+      !KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status) ||
+      !kueueStatus.message
+    ) {
+      return null;
+    }
+    const info = getKueueStatusInfo(kueueStatus.status);
+    const message =
+      kueueStatus.status === KueueWorkloadStatus.Requeued
+        ? getRequeuedMessage({ ...kueueStatus, queueName: workload.spec.queueName })
+        : getHumanReadableKueueMessage(
+            kueueStatus.status,
+            kueueStatus.message,
+            workload.spec.queueName,
+          );
+    return (
+      <StackItem style={{ maxHeight: '50%', overflowY: 'auto', flexShrink: 0 }}>
+        <Content
+          component="p"
+          className="pf-v6-u-text-break-word"
+          style={{ color: info.status === 'danger' ? DangerColor.var : RegularColor.var }}
+          aria-live="polite"
+          data-testid="training-job-status-summary"
+        >
+          <Icon isInline status={info.status}>
+            <info.IconComponent className={info.iconClassName} />
+          </Icon>{' '}
+          {message}
+        </Content>
+      </StackItem>
+    );
+  };
 
   const renderFailureMessage = () => {
     if (!isFailed || !statusMessage) {
@@ -269,15 +333,13 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
       <ModalHeader
         data-testid="training-job-status-modal-header"
         description={
-          description ? (
-            <Content
-              component="p"
-              data-testid="training-job-status-modal-description"
-              style={{ color: Gray60.value }}
-            >
-              {description}
-            </Content>
-          ) : undefined
+          <Content
+            component="p"
+            data-testid="training-job-status-modal-description"
+            style={{ color: Gray60.value }}
+          >
+            Job status
+          </Content>
         }
         title={
           <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -290,6 +352,7 @@ const TrainingJobStatusModal: React.FC<TrainingJobStatusModalProps> = ({
         style={{ height: '400px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {renderQueueDetails()}
           {renderStatus()}
           <StackItem>
             <Tabs
