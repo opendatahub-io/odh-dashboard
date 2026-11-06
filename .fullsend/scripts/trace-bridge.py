@@ -859,11 +859,39 @@ LONG_FLAGS = {
            "--prettyPrint", "--no-doc"},
 }
 OPTIONAL_ATTACHED = {"sed": {"-i"}}  # sed -i[SUFFIX]: the rest of the cluster is its operand
+# Read programs whose arguments are all files except option values (no pattern argument).
+OPERAND_PROGS = {"cat", "head", "tail", "nl", "bat", "less", "more"}
+VALUE_OPTS.update({
+    "head": {"-n": 1, "-c": 1, "--lines": 1, "--bytes": 1},
+    "tail": {"-n": 1, "-c": 1, "-s": 1, "--lines": 1, "--bytes": 1, "--sleep-interval": 1, "--pid": 1,
+             "--max-unchanged-stats": 1},
+    "nl": {"-b": 1, "-d": 1, "-f": 1, "-h": 1, "-i": 1, "-l": 1, "-n": 1, "-s": 1, "-v": 1, "-w": 1,
+           "--body-numbering": 1, "--section-delimiter": 1, "--footer-numbering": 1,
+           "--header-numbering": 1, "--line-increment": 1, "--join-blank-lines": 1,
+           "--number-format": 1, "--number-separator": 1, "--starting-line-number": 1, "--number-width": 1},
+    "bat": {"-l": 1, "-H": 1, "-r": 1, "-m": 1, "--language": 1, "--highlight-line": 1, "--line-range": 1,
+            "--map-syntax": 1, "--style": 1, "--theme": 1, "--tabs": 1, "--wrap": 1, "--color": 1,
+            "--paging": 1, "--terminal-width": 1},
+    "less": {"-b": 1, "-h": 1, "-j": 1, "-k": 1, "-o": 1, "-O": 1, "-p": 1, "-P": 1, "-t": 1, "-T": 1,
+             "-x": 1, "-y": 1, "-z": 1, "-D": 1},
+    "more": {"-n": 1, "--lines": 1},
+})
+LONG_FLAGS.update({
+    "cat": {"--show-all", "--number-nonblank", "--show-ends", "--number", "--squeeze-blank",
+            "--show-tabs", "--show-nonprinting"},
+    "head": {"--quiet", "--silent", "--verbose", "--zero-terminated"},
+    "tail": {"--follow", "--retry", "--quiet", "--silent", "--verbose", "--zero-terminated"},
+    "nl": {"--no-renumber"},
+    "bat": {"--plain", "--number", "--show-all", "--unbuffered", "--no-config"},
+    "less": set(), "more": set(),
+})
 _GREP_SHORT = set("abcEFGHhiILlnoPqrRsTUuVvwxyzZ")
 SHORT_FLAGS = {  # operand-free short options; any other letter fails closed
     "grep": _GREP_SHORT, "egrep": _GREP_SHORT, "fgrep": _GREP_SHORT,
     "rg": set("acFHhiILlnNoPpqSsUuvwxz."), "ag": set("iQlcsSwvuUf"),
     "sed": set("nErsuz"), "awk": set(), "jq": set("rcsneSjaCMR"), "yq": set("rcsneiPMC"),
+    "cat": set("AbeEnstTuv"), "head": set("qvz"), "tail": set("fFqvzr"), "nl": set("p"),
+    "bat": set("pnAPu"), "less": set("RNSFXriIMmseEKgGqQ"), "more": set("dlfpcsu"),
 }
 
 
@@ -878,11 +906,12 @@ def without_patterns(prog, args):
     already supplied it. Short option clusters (-nA 2, -A2, -ne pat) are read letter by
     letter with per-program arities. A long option with an unknown operand count makes the
     segment untrustworthy: only redirections are returned (fail closed)."""
-    if prog not in PATTERN_PROGS:
+    if prog not in PATTERN_PROGS and prog not in OPERAND_PROGS:
         return _Args(args)
     values, scripts = VALUE_OPTS.get(prog, {}), SCRIPT_OPTS.get(prog, set())
     long_flags, optional = LONG_FLAGS.get(prog, set()), OPTIONAL_ATTACHED.get(prog, set())
-    out, redirects, skip, pattern_given, keep_next, failed = [], [], 0, False, False, False
+    out, redirects, skip, keep_next, failed = [], [], 0, False, False
+    pattern_given = prog not in PATTERN_PROGS  # cat, head, ...: every plain argument is a file
     for t in args:
         if keep_next:  # a redirection target: pass through untouched for the caller
             redirects.append(t)
@@ -907,6 +936,8 @@ def without_patterns(prog, args):
             elif not has_value and opt not in long_flags and t != "--":
                 failed = True
             continue
+        if prog in ("head", "tail") and re.fullmatch(r"-\d{1,9}", t):
+            continue  # legacy head -5 / tail -20: a line count
         if t.startswith("-") and len(t) > 1:
             letters, flags = t[1:], SHORT_FLAGS.get(prog, set())
             for j, c in enumerate(letters):
@@ -2105,6 +2136,15 @@ def self_test():
          and shell_reads("cat .claude/rules/react.md 2<>err.txt") == [".claude/rules/react.md"]
          and shell_reads("cat '<>' .claude/rules/react.md") == ["<>", ".claude/rules/react.md"]
          and shell_reads("cat \\<\\> c/d.md") == ["<>", "c/d.md"]),
+        ("option values of read programs aren't files; stdin counts when only options remain",
+         shell_reads("head -n 5 < docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("nl -s docs/adr/0009-x.md other.txt") == ["other.txt"]
+         and shell_reads("head -n 50 docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("head -20 docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("tail -n +3 docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("cat -n docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("bat -r 1:20 --style plain docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("head --weird docs/adr/0009-x.md") == []),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
