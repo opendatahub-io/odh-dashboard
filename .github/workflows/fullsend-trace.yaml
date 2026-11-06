@@ -25,8 +25,9 @@
 # Backfill: run this workflow manually with a past Fullsend run ID (artifacts
 # are kept 90 days). If the trace is already in MLflow without the bridge marker
 # (an earlier export was partial or lost its marker), the run stops; check the
-# trace, then rerun manually with recover=mark-only (spans complete) or
-# recover=resend (resend all spans; already accepted ones count twice).
+# trace, then rerun manually with recover=mark-only (spans complete),
+# recover=resend (resend all spans; already accepted ones count twice) or
+# recover=bridge-only (Fullsend exported the trace itself: add only bridge spans).
 name: fullsend-trace
 
 on:
@@ -41,7 +42,7 @@ on:
       recover:
         description: Recovery for a trace already in MLflow without the bridge marker
         type: choice
-        options: [none, mark-only, resend]
+        options: [none, mark-only, resend, bridge-only]
         default: none
 
 permissions: {}
@@ -209,5 +210,6 @@ jobs:
           case "$RECOVER" in
             mark-only) args+=(--mark-only) ;;
             resend) args+=(--force) ;;
+            bridge-only) args+=(--no-base-spans) ;;
           esac
           python3 -I .fullsend/scripts/trace-bridge.py "${args[@]}"

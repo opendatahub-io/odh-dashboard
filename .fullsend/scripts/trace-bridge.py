@@ -1388,6 +1388,8 @@ def _self_test_network():
     rerun_posts = list(posts)
     unmarked_force = _self_test_main(ok_ep, "c" * 32, ["--force"])
     rerun_posts_force = len(posts) - len(rerun_posts)
+    bridge_only = _self_test_main(ok_ep, "c" * 32, ["--no-base-spans"])
+    rerun_posts_bridge_only = len(posts) - len(rerun_posts) - rerun_posts_force
     srv.shutdown()
     bad = tempfile.mkdtemp(prefix="trace-bridge-badid-")
     with open(os.path.join(bad, "metrics.json"), "w") as f:
@@ -1404,7 +1406,8 @@ def _self_test_network():
     url_error = safe_error(urllib.error.URLError("http://secret-host.internal/x?token=abc"))
     return {"marker_exit": marker_exit, "partial_exit": partial_exit, "post_error": post_error, "url_error": url_error,
             "rerun": rerun, "rerun_posts": rerun_posts, "unmarked_force": unmarked_force,
-            "rerun_posts_force": rerun_posts_force,
+            "rerun_posts_force": rerun_posts_force, "bridge_only": bridge_only,
+            "rerun_posts_bridge_only": rerun_posts_bridge_only,
             "states": states, "shape_states": shape_states, "timeout_state": timeout_state, "truncated_state": truncated_state, "redirect_blocked": redirect_blocked, "http_rejected": http_rejected,
             "bad_id_rejected": bad_id_rejected}
 
@@ -1727,6 +1730,8 @@ def self_test():
          and "marker" in net["rerun"]["mark_only"]),
         ("--force resends all spans to an unmarked trace", net["rerun_posts_force"] == 1
          and "marker" in net["unmarked_force"]),
+        ("--no-base-spans adds bridge spans to an unmarked (Fullsend-exported) trace",
+         net["rerun_posts_bridge_only"] == 1 and "marker" in net["bridge_only"]),
         ("an unquoted heredoc body line ending in a backslash stops the scan (the next line joins it)",
          shell_summary("cat <<EOF\nprefix\\\nEOF\nConfidentialCustomer\nEOF\ncat z/w.md")[0] == ["cat"]
          and shell_reads("cat <<'EOF'\nprefix\\\nEOF\ncat z/w.md") == ["z/w.md"]

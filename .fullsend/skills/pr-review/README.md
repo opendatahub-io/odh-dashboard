@@ -562,7 +562,8 @@ totals. An export the endpoint only partly accepts (HTTP 200 with
 marker write that keeps failing after an export. A rerun then finds the trace without the
 marker and stops rather than guess which spans MLflow holds. Check the trace, then run the
 workflow manually with `recover`: `mark-only` records the marker when the spans are
-complete, and `resend` sends all spans again (the ones already accepted count twice). A
+complete, `resend` sends all spans again (the ones already accepted count twice), and
+`bridge-only` adds only the bridge's spans to a trace Fullsend exported itself. A
 malformed `agent-result.json` doesn't stop the export: the bridge takes the PR identity
 from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`), and the
 workflow skips the author, coverage and verdict fallback. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
