@@ -20,7 +20,7 @@ import {
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useKueueStatusWithQueuePositions } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
+import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
 import {
   useWatchDeploymentPods,
   useWatchServingRuntimes,

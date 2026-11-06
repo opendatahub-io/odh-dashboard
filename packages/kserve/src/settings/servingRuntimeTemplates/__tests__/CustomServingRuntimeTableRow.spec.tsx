@@ -51,4 +51,16 @@ describe('CustomServingRuntimeTableRow', () => {
 
     expect(screen.queryByTestId('from-library-label')).not.toBeInTheDocument();
   });
+
+  it('should show the shared pre-installed label for an operator-provided template', () => {
+    renderRow(mockServingRuntimeTemplateK8sResource({ preInstalled: true }));
+
+    expect(screen.getByTestId('pre-installed-label')).toHaveTextContent('Pre-installed');
+  });
+
+  it('should not show the pre-installed label for a user-created template', () => {
+    renderRow(mockServingRuntimeTemplateK8sResource({ preInstalled: false }));
+
+    expect(screen.queryByTestId('pre-installed-label')).not.toBeInTheDocument();
+  });
 });

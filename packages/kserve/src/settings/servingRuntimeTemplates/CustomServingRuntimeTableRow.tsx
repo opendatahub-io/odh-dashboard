@@ -9,7 +9,7 @@ import {
   getServingRuntimeNameFromTemplate,
 } from '@odh-dashboard/model-serving/shared';
 import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
-import { isOOTB, PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { isOOTB, PreInstalledName } from '@odh-dashboard/k8s-core';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import CustomServingRuntimeAPIProtocolLabel from './CustomServingRuntimeAPIProtocolLabel';
 
