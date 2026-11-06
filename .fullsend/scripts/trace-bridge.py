@@ -441,7 +441,9 @@ BARE_FILE_RE = re.compile(r"\.?[\w+-]+(?:\.[\w+-]+)*\.(?:" + FILE_EXTS + r")")
 
 class Op(str):
     """An unquoted shell operator token (e.g. >, <, <<<). Quoted text is never an Op, so
-    '>' or '; cat x' inside quotes can't be mistaken for a redirection or a separator."""
+    '>' or '; cat x' inside quotes can't be mistaken for a redirection or a separator.
+    fd is the file descriptor number attached to a redirection (the 2 in 2>), if any."""
+    fd = ""
 
 
 def is_redirect(t):
@@ -539,10 +541,14 @@ def shell_tokens(cmd):
             i = n if nl < 0 else nl  # keep the newline: it still separates commands
         elif c in "();<>|&\n":
             op = next(o for o in SHELL_OPS if text.startswith(o, i))
+            fd = ""
             if word is not None and fd_digits and op[0] in "<>":
-                word = None  # an unquoted fd number attached to a redirection (2>, 1>>): not a word
+                fd = "".join(word)  # an unquoted fd number attached to a redirection (2>, 1>>)
+                word = None  # not a word
             end_word()
-            out.append(Op(op))
+            tok = Op(op)
+            tok.fd = fd
+            out.append(tok)
             i += len(op)
             if op in ("<<", "<<-"):
                 expect_delim = op
@@ -895,8 +901,7 @@ def shell_files(cmd, include_skipped=False):
     and here-string text (`<<< text`) is neither."""
     reads, targets = [], []
     segs = shell_segments_ctx(cmd)
-    ran = executed_segments(segs)  # for directory changes
-    read_ok = succeeded_segments(segs)  # a read counts only if its success is established
+    read_ok = succeeded_segments(segs)  # a read or cd counts only if its success is established
     cwd = ""  # repo root; None once a directory change can't be followed
     for k, (op, toks, _cond, depth) in enumerate(segs):
         counts = include_skipped or k in read_ok
@@ -904,12 +909,18 @@ def shell_files(cmd, include_skipped=False):
         if i is None:
             continue
         if prog in ("cd", "pushd", "popd"):
-            # Only a top-level cd that certainly ran is followed; anything else (in a group,
+            # Only a top-level cd that succeeded is followed; anything else (in a group,
             # after || or &&-then-;, pushd/popd, cd -, $VAR) leaves the directory unknown.
             args = [t for t in toks[i + 1:] if not is_redirect(t)]
-            ok = prog == "cd" and depth == 0 and k in ran and cwd is not None
+            # A cd is followed only when its success is established (see succeeded_segments):
+            # a cd that ran but may have failed (cd x || true; cd x; ...) leaves it unknown.
+            ok = prog == "cd" and depth == 0 and k in read_ok and cwd is not None
             cwd = chdir_target(cwd, args) if ok else None
             continue
+        # A read program whose stdout goes to a file or /dev/null returns nothing to the agent.
+        if any(is_redirect(t) and (t == "&>" or (t in (">", ">>", ">|") and t.fd in ("", "1")))
+               for t in toks):
+            counts = include_skipped
         redirect = None
         for t in without_patterns(prog, toks[i + 1:]):
             if redirect is not None:
@@ -1800,7 +1811,8 @@ def self_test():
          and shell_reads("cat /sandbox/workspace/pr-head/.claude/rules/react.md 2>/dev/null || true") == []
          and shell_reads("cat a/b.md; ls") == [] and shell_reads("cat i/j.md | head") == []
          and shell_reads("ls; cat c/d.md") == ["c/d.md"]
-         and shell_reads("cd docs && ls; cat adr/0009-x.md") == ["docs/adr/0009-x.md"]),
+         and shell_reads("cd docs && ls; cat adr/0009-x.md") == []
+         and shell_reads("cd docs && cat adr/0009-x.md") == ["docs/adr/0009-x.md"]),
         ("negated and background reads don't count; a cd in a background job isn't followed",
          shell_reads("! cat .claude/rules/does-not-exist.md") == []
          and shell_reads("cat .claude/rules/does-not-exist.md &") == []
@@ -1814,10 +1826,18 @@ def self_test():
          and shell_reads("true < .claude/rules/react.md") == []
          and shell_reads("cat < .claude/rules/react.md") == [".claude/rules/react.md"]
          and ".claude/rules/react.md" in shell_summary("grep -q flag < .claude/rules/react.md")[1]
-         and shell_reads("cd docs && pwd; true & cat adr/0009-x.md") == ["docs/adr/0009-x.md"]
-         and shell_reads("cd docs; (cat a/b.md; true) & cat adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("true & cd docs && cat adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_reads("(cat a/b.md; true) & cat c/d.md") == ["c/d.md"]
          and shell_reads("(cat a/b.md; cat c/d.md) &") == []
-         and shell_reads("cd docs; (cat a/b.md &); cat adr/0009-x.md") == ["docs/adr/0009-x.md"]),
+         and shell_reads("(cat a/b.md &); cat c/d.md") == ["c/d.md"]),
+        ("a cd is followed only when it succeeded; reads with stdout sent away don't count",
+         shell_reads("cd .claude/rules/no-such-dir || true; cat AGENTS.md") == []
+         and shell_reads("cd .claude/rules; cat react.md") == []
+         and shell_reads("cat .claude/rules/react.md >/dev/null") == []
+         and shell_reads("cat .claude/rules/react.md 1>>out.txt") == []
+         and shell_reads("cat .claude/rules/react.md &>/dev/null") == []
+         and shell_reads("cat .claude/rules/react.md 2>/dev/null") == [".claude/rules/react.md"]
+         and ".claude/rules/react.md" in shell_summary("cat .claude/rules/react.md >/dev/null")[1]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]
@@ -1836,7 +1856,7 @@ def self_test():
          and shell_summary("sed -e 2>/dev/null 's/private/needle/' README.md")[1] == ["README.md"]
          and shell_tokens("cmd 2>err/e.log '2'>out/o.log 2 >x/y.log")
          == ["cmd", Op(">"), "err/e.log", "2", Op(">"), "out/o.log", "2", Op(">"), "x/y.log"]
-         and shell_reads("sed -e 's/a/b/' >/dev/null docs/r.md") == ["docs/r.md"]),
+         and "docs/r.md" in shell_summary("sed -e 's/a/b/' >/dev/null docs/r.md")[1]),
         ("quoted ; | > text never splits segments or creates redirections; skipped < reads don't count",
          shell_summary("echo 'status; cat ssn/123-45-6789 ; done'")[1] == []
          and shell_summary("echo '>' private/needle")[1] == []
@@ -1856,7 +1876,8 @@ def self_test():
          and shell_summary("cat 2>err/e.log docs/a.md")[1] == ["docs/a.md", "err/e.log"]),
         ("sed -f input files count as reads; redirection targets and grep -F/-m patterns don't",
          shell_reads("sed -f t.sed docs/adr/0010-y.md") == ["docs/adr/0010-y.md"]
-         and shell_reads("sed 's/a/b/' src/c.md > .claude/rules/out.md") == ["src/c.md"]
+         and shell_reads("sed 's/a/b/' src/c.md > .claude/rules/out.md") == []
+         and "src/c.md" in shell_summary("sed 's/a/b/' src/c.md > .claude/rules/out.md")[1]
          and shell_summary("grep -F -m 1 internal/customer/acme README.md")[1] == []),
         ("JSON credential redacted", "hunter2pass" not in blob),
         ("CLI flag credential redacted", "tok3nvalue" not in blob),
