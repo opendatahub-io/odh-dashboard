@@ -160,10 +160,14 @@ main ──► ODH v<X.Y.Z>-fixes (opendatahub-io) ──► RHOAI rhoai-<X.Y> (
 1. Confirm the fix is on `main`: `git log --grep="CVE-YYYY-NNNNN" upstream/main`.
 1. Check the release branch's package manager (`packageManager` in its root `package.json`):
    - **Same layout as `main` (pnpm)** — cherry-pick the `main` commit.
-   - **Older npm layout** (per-package `package-lock.json`) — open a direct fix on that branch.
-     For a direct dependency, raise its range in the owning `package.json` if the fixed version is
-     outside it. For a transitive one, add an npm `overrides` entry. Then regenerate that
-     package's `package-lock.json` with `npm install`.
+   - **Older npm layout** (per-package `package-lock.json`) — open a direct fix on that branch, in
+     the owning package's directory:
+     - **Direct dependency**: run `npm install <pkg>@<fixed-version>`. This raises the minimum
+       version in `package.json` even when the fix is inside the current range. A plain
+       `npm install` keeps the locked vulnerable version if it still satisfies the range.
+     - **Transitive dependency**: add an npm `overrides` entry in `package.json`, then run
+       `npm install`.
+     - **Verify**: `npm ls <pkg>` shows only fixed versions, and `package-lock.json` changed.
 1. Open the PR against the ODH `-fixes` branch, validate, merge, then bring the same change into
    the matching downstream `rhoai-*` branch.
 
