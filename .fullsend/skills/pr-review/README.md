@@ -567,7 +567,8 @@ complete, `resend` sends all spans again (the ones already accepted count twice)
 malformed `agent-result.json` doesn't stop the export: the bridge takes the PR identity
 from `output/context/shared.md` when it can (for `session.id` and `fullsend.pr`), and the
 workflow skips the author, coverage and verdict fallback. A lookup that keeps failing (non-404 error, timeout, malformed reply) is retried
-and then stops the job instead of exporting; rerun it. The Actions log shows counts and
+and then stops a normal run instead of exporting; rerun it. `recover: resend` and
+`recover: mark-only` don't wait on the lookup, so they go ahead even when it keeps failing. The Actions log shows counts and
 tags only, never the PR, file or guidance paths.
 
 ## Related files
