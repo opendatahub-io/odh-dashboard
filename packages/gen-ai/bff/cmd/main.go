@@ -123,6 +123,9 @@ func main() {
 	if err := validateAllowLocalModelEndpoints(cfg.AllowLocalModelEndpoints, cfg.DevMode, cfg.Host, certFile); err != nil {
 		os.Exit(1)
 	}
+	if err := validateListenHost(cfg.Host); err != nil {
+		os.Exit(1)
+	}
 
 	if cfg.LogLevel == slog.LevelDebug {
 		log.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -284,7 +287,9 @@ func validateAllowLocalModelEndpoints(allowLocalModelEndpoints bool, devMode boo
 
 // sanitizedHost strips any scheme prefix and userinfo credentials from a
 // configured host before logging, so a password-bearing HOST or --host value
-// never appears in logs.
+// never appears in logs. A host that still carries path or query data after
+// stripping cannot be summarized safely (the path or query may hold a token),
+// so it is replaced with a redacted marker.
 func sanitizedHost(host string) string {
 	if scheme := strings.Index(host, "://"); scheme >= 0 {
 		host = host[scheme+3:]
@@ -292,7 +297,36 @@ func sanitizedHost(host string) string {
 	if at := strings.LastIndex(host, "@"); at >= 0 {
 		host = host[at+1:]
 	}
+	if strings.ContainsAny(host, "/?#") {
+		return "[redacted]"
+	}
 	return host
+}
+
+// validateListenHost rejects listen hosts that embed userinfo credentials or
+// path/query data. Such hosts can never work as listen addresses, and the
+// credentials they carry would otherwise leak through net/http listener errors
+// when startup fails.
+func validateListenHost(host string) error {
+	h := host
+	if scheme := strings.Index(h, "://"); scheme >= 0 {
+		h = h[scheme+3:]
+	}
+	if at := strings.LastIndex(h, "@"); at >= 0 {
+		slog.Error("SECURITY: --host must not contain userinfo credentials",
+			"host", sanitizedHost(host),
+			"fix", "Pass a plain host or IP, e.g. --host localhost",
+		)
+		return errors.New("--host must not contain userinfo credentials")
+	}
+	if strings.ContainsAny(h, "/?#") {
+		slog.Error("SECURITY: --host must not contain path or query data",
+			"host", sanitizedHost(host),
+			"fix", "Pass a plain host or IP, e.g. --host localhost",
+		)
+		return errors.New("--host must not contain path or query data")
+	}
+	return nil
 }
 
 // hostResolvesToLoopback reports whether host is an IP literal that is loopback

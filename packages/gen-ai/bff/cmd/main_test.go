@@ -274,6 +274,10 @@ func TestSanitizedHost(t *testing.T) {
 		{name: "IP literal is unchanged", host: "127.0.0.1", want: "127.0.0.1"},
 		{name: "userinfo credentials are stripped", host: "user:secret-pw@localhost", want: "localhost"},
 		{name: "scheme and userinfo credentials are stripped", host: "https://user:secret-pw@localhost", want: "localhost"},
+		{name: "path data is redacted", host: "localhost/api", want: "[redacted]"},
+		{name: "query data is redacted", host: "localhost?token=secret-pw", want: "[redacted]"},
+		{name: "fragment data is redacted", host: "localhost#token", want: "[redacted]"},
+		{name: "scheme, userinfo, and path data are redacted", host: "https://user:secret-pw@localhost/api?token=secret-pw", want: "[redacted]"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -310,5 +314,32 @@ func TestHostValuesAreSanitizedInLogs(t *testing.T) {
 		addr := net.JoinHostPort(sanitizedHost(passwordHost), strconv.Itoa(8080))
 		assert.Equal(t, "0.0.0.0:8080", addr)
 		assert.NotContains(t, addr, "super-secret-pw")
+	})
+}
+
+func TestListenHostRejected(t *testing.T) {
+	t.Run("userinfo-bearing host is rejected before the listener starts", func(t *testing.T) {
+		logs := captureDefaultLog(t, func() {
+			err := validateListenHost("user:super-secret-pw@0.0.0.0")
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "userinfo credentials")
+		})
+		assert.Contains(t, logs, "SECURITY")
+		assert.NotContains(t, logs, "super-secret-pw")
+	})
+
+	t.Run("path-bearing host is rejected before the listener starts", func(t *testing.T) {
+		logs := captureDefaultLog(t, func() {
+			err := validateListenHost("0.0.0.0/api?token=super-secret-pw")
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "path or query data")
+		})
+		assert.Contains(t, logs, "SECURITY")
+		assert.NotContains(t, logs, "super-secret-pw")
+	})
+
+	t.Run("plain host is accepted", func(t *testing.T) {
+		assert.NoError(t, validateListenHost("localhost"))
+		assert.NoError(t, validateListenHost("0.0.0.0"))
 	})
 }
