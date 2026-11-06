@@ -642,7 +642,8 @@ This phase does **not** run the DevOps skill inline — the user should run it s
 The DevOps automation builds and releases the image but does not register it with ProdSec. CVE `SecurityTracking` tickets are only generated for images registered as a `pscomponent`, so an unregistered image silently misses CVE and security-bulletin work. This happened to `data-connect-hub` and `data-registry` during the eMudhra remediation.
 
 1. Tell the user to request registration of `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B) in ProdSec's product definitions, through `#forum-aipcc`, before the first release that ships the image. Record the request on subtask 9.
-2. After the first downstream build, verify registration. Once ProdSec processes a CVE affecting the image, tracking tickets carry the label, so this JQL returns results:
+2. Before the first release, get ProdSec to confirm in the `#forum-aipcc` request that the key is registered, and record the confirmation on subtask 9. That confirmation is the release gate: the Jira query below returns nothing until a CVE affecting the image has been processed, so an empty result before then proves nothing.
+3. After the first downstream build, once ProdSec processes a CVE affecting the image, use this JQL to check that tracking tickets carry the label:
 
    ```text
    # Type A
@@ -670,7 +671,7 @@ If a tracking epic was created in Phase 1 (or provided via `--jira`), update eac
 - **Subtask 5** (OpenShift CI): Link to the `openshift/release` PR
 - **Subtask 6** (Standalone module manifests): Note whether manifests were created in `manifests/modules/<name>/` (Type A) or N/A (Type B)
 - **Subtask 7** (Operator): Link to the PR if operator registration was done in Phase 5a; note the opendatahub-operator change requires a separate PR reviewed via `#ai-core-platform-requests`
-- **Subtask 9** (ProdSec): Add the pscomponent name to request and the verification JQL from Phase 6
+- **Subtask 9** (ProdSec): Add the registration key requested, ProdSec's confirmation (or that it is still pending), and the Phase 6 JQL for later checks
 
 For subtasks covered by DevOps automation (2, 4, 8), add a comment noting they will be tracked via the DevOps onboarding flow after the user runs `/create-component-onboarding-jira`.
 
@@ -697,7 +698,7 @@ Print a final report:
 - [ ] Standalone module manifests (`manifests/modules/<name>/`): created/already existed/skipped/N/A
 - [ ] OpenShift CI: PR created/skipped
 - [ ] Dashboard-operator registration: done/already registered/skipped/N/A
-- [ ] ProdSec pscomponent registration: requested/verified/pending
+- [ ] ProdSec pscomponent registration: requested/confirmed by ProdSec/pending
 - [ ] Jira subtasks updated: yes/skipped
 
 ### Files Created/Modified
@@ -713,5 +714,5 @@ Print a final report:
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
 8. Open a PR against `opendatahub-io/opendatahub-operator` adding `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `relatedImages()` in `internal/controller/modules/dashboard/support.go`, then request review in `#ai-core-platform-requests` Slack channel
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
-10. Request ProdSec `pscomponent` registration in `#forum-aipcc` for `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B), and verify it with the matching Phase 6 JQL before the first release
+10. Request ProdSec `pscomponent` registration in `#forum-aipcc` for `rhoai/odh-mod-arch-<name>-rhel9` (Type A) or `rhoai/odh-<name>-rhel9` (Type B), and get ProdSec's confirmation before the first release. After the first downstream build, use the matching Phase 6 JQL to check for tracking tickets once ProdSec processes an applicable CVE
 ```
