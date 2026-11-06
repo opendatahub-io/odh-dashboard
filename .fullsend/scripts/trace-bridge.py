@@ -431,7 +431,7 @@ def tool_calls(entries):
 
 
 HEREDOC_RE = re.compile(r"(?<!<)<<(?!<)-?[ \t]{0,4}(['\"]?)([A-Za-z_][\w]{0,40})\1")  # not <<< here-strings
-SHELL_OP_RE = re.compile(r"(\|\||&&|;|\||\n)")
+SHELL_PUNCT = "();<>|&\n"
 READ_PROGS = {"cat", "head", "tail", "less", "more", "bat", "nl", "sed", "awk"}
 # Exported shell "paths" must look like repo files, not other arguments: no @ or :, a
 # relative path's first segment may not look like a hostname (dotted, not a dotfile), and
@@ -439,14 +439,23 @@ READ_PROGS = {"cat", "head", "tail", "less", "more", "bat", "nl", "sed", "awk"}
 REL_PATH_RE = re.compile(r"(?:\.[\w+-]+|[\w+-]+)(?:/[\w.+-]+)+/?")
 FILE_EXTS = r"md|mdx|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|py|go|sh|txt|css|scss|html|toml|mod|sum|lock|snap"
 BARE_FILE_RE = re.compile(r"\.?[\w+-]+(?:\.[\w+-]+)*\.(?:" + FILE_EXTS + r")")
-# Redirection operators. The tokenizer splits unquoted < and > into tokens of their own, so a
-# redirection is a whole token: quoted text such as '>x' stays a word and never matches.
-REDIRECT_RE = re.compile(r"(?:>{1,2}|<{1,3}|<>)")
+
+
+class Op(str):
+    """An unquoted shell operator token (e.g. >, <, <<<). Quoted text is never an Op, so
+    '>' or '; cat x' inside quotes can't be mistaken for a redirection or a separator."""
+
+
+def is_redirect(t):
+    return isinstance(t, Op)
 
 
 def shell_segments(cmd):
     """Split a shell command into (operator-before, tokens) segments. Heredoc bodies are
-    dropped first; tokens come from shlex, falling back to whitespace on bad quoting."""
+    dropped first. The whole command is tokenized at once with quotes kept, so separators
+    (; | && || newline) and redirections are only taken from unquoted operators; words are
+    unquoted afterwards. Redirection tokens are Op instances. Unbalanced quotes leave only
+    plain words (no operators, no quoted text)."""
     lines, kept, end = str(cmd)[:MAX_SCAN * 5].split("\n"), [], None
     for line in lines:
         if end is not None:
@@ -457,21 +466,32 @@ def shell_segments(cmd):
         m = HEREDOC_RE.search(line)
         if m:
             end = m.group(2)
-    parts, segs, op = SHELL_OP_RE.split("\n".join(kept)), [], None
-    for part in parts:
-        if SHELL_OP_RE.fullmatch(part):
-            op = part
+    text = "\n".join(kept)
+    try:
+        # Non-POSIX mode keeps quotes on word tokens, so operators found here are unquoted.
+        lex = shlex.shlex(text, posix=False, punctuation_chars=SHELL_PUNCT)
+        lex.whitespace, lex.whitespace_split = " \t\r", True
+        raw = list(lex)
+    except ValueError:  # unbalanced quotes: keep plain words only, no operators
+        raw = [t for t in text.split() if not set(t) & set(SHELL_PUNCT + "'\"")]
+    segs, op, toks = [], None, []
+    for t in raw:
+        if t and set(t) <= set(SHELL_PUNCT):
+            if "<" in t or ">" in t:
+                toks.append(Op(t))
+                continue
+            if toks:
+                segs.append((op, toks[:200]))
+            op, toks = ("||" if t == "||" else ";"), []
             continue
-        try:
-            # punctuation_chars splits unquoted < and > into their own tokens and keeps quoted
-            # ones inside words, so quote context survives for redirection detection.
-            lex = shlex.shlex(part, posix=True, punctuation_chars="<>")
-            lex.whitespace_split = True
-            toks = list(lex)
-        except ValueError:
-            toks = [t for t in part.split() if "<" not in t and ">" not in t]
-        if toks:
-            segs.append((op, toks[:200]))
+        if "'" in t or '"' in t:
+            try:
+                t = " ".join(shlex.split(t, posix=True))
+            except ValueError:
+                t = t.strip("'\"")
+        toks.append(t)
+    if toks:
+        segs.append((op, toks[:200]))
     return segs
 
 
@@ -575,7 +595,7 @@ def without_patterns(prog, args):
         if skip:
             skip -= 1
             continue
-        if REDIRECT_RE.fullmatch(t):  # callers decide what redirections mean
+        if is_redirect(t):  # callers decide what redirections mean
             redirects.append(t)
             keep_next = True
             continue
@@ -643,11 +663,15 @@ def shell_files(cmd, include_skipped=False):
         redirect = None
         for t in without_patterns(prog, toks[i + 1:]):
             if redirect is not None:
-                if not redirect.startswith("<<"):  # << heredoc word / <<< text are not files
-                    (reads if redirect.startswith("<") else targets).append(t)
+                if redirect == "<":  # input redirection: a read, unless the segment may not run
+                    if include_skipped or op != "||":
+                        reads.append(t)
+                elif ">" in redirect and redirect not in (">&", "<>"):
+                    targets.append(t)
+                # <<, <<< (heredoc word / here-string text), >& and <& (fd numbers): not files
                 redirect = None
                 continue
-            if REDIRECT_RE.fullmatch(t):
+            if is_redirect(t):
                 redirect = t
                 continue
             if prog in READ_PROGS and (include_skipped or op != "||") \
@@ -1370,6 +1394,14 @@ def self_test():
          and shell_summary("sort < in/c.md > out/d.md")[1] == ["in/c.md", "out/d.md"]
          and shell_reads("sed -i.bak s/a/b/ src/c.md") == ["src/c.md"]
          and shell_reads("sed -X 1 docs/x.md") == [] and shell_reads("cat << EOF\nb\nEOF") == []),
+        ("quoted ; | > text never splits segments or creates redirections; skipped < reads don't count",
+         shell_summary("echo 'status; cat ssn/123-45-6789 ; done'")[1] == []
+         and shell_summary("echo '>' private/needle")[1] == []
+         and shell_summary("echo > private/needle")[1] == ["private/needle"]
+         and len(shell_segments("cat a.md | head && sed -n 1p b/c.md; ls")) == 4
+         and shell_reads("true || cat < docs/adr/0009-x.md") == []
+         and shell_reads("cat < docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
+         and shell_summary("cat 'unterminated")[1] == []),
         ("quoted < and > text is not a redirection; here-string text is never a path",
          shell_summary("echo '>private/needle'")[1] == []
          and shell_summary("grep '>internal/customer/acme' README.md")[1] == []
