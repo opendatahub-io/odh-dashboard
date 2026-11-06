@@ -1,7 +1,8 @@
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { ServingContainer } from '@odh-dashboard/model-serving/shared';
-import { translateDisplayNameForK8s, type Volume, type VolumeMount } from '@odh-dashboard/k8s-core';
+import type { Volume, VolumeMount } from '@odh-dashboard/k8s-core';
 import {
+  getNIMPVCK8sName,
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
 } from '../../pages/deploymentWizard/fields/NIMPVCField';
@@ -32,7 +33,7 @@ const addPVCVolumeToRuntime = (
     return deployment;
   }
 
-  const k8sPvcName = translateDisplayNameForK8s(pvcName);
+  const k8sPvcName = pvcName;
   const server = structuredClone(deployment.server);
   const cacheVolumeNames = new Set(
     server.spec.containers.flatMap((c) =>
@@ -85,7 +86,8 @@ const addPVCVolumeToRuntime = (
 export const applyNIMPVCFieldData = (
   deployment: KServeDeployment,
   fieldData: NIMPVCFieldValue,
-): KServeDeployment => addPVCVolumeToRuntime(deployment, fieldData.pvcName, fieldData.subPath);
+): KServeDeployment =>
+  addPVCVolumeToRuntime(deployment, getNIMPVCK8sName(fieldData), fieldData.subPath);
 
 /**
  * Extracts PVC field data from an existing KServe deployment by inspecting
@@ -120,9 +122,11 @@ export const extractNIMPVCFieldData = (
     return undefined;
   }
 
+  const { claimName } = pvcVolume.persistentVolumeClaim;
   return {
     storageMode: NIMPVCStorageMode.EXISTING,
-    pvcName: pvcVolume.persistentVolumeClaim.claimName,
+    pvcName: claimName,
+    pvcK8sName: claimName,
     subPath: cacheMount.subPath ?? '',
     storageClassName: '',
     storageSizeGi: DEFAULT_STORAGE_SIZE_GI,

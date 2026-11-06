@@ -38,12 +38,17 @@ describe('applyNIMPVCFieldData', () => {
     expect(result.model.spec.storage?.pvc?.name).toBe('my-pvc');
   });
 
-  it('should translate display names with spaces into valid k8s names', () => {
-    const result = applyNIMPVCFieldData(
-      makeDeployment(),
-      makeFieldValue({ pvcName: 'pr pvc test' }),
-    );
-    expect(result.model.spec.storage?.pvc?.name).toBe('pr-pvc-test');
+  it('should use pvcK8sName when set, otherwise translate the display name', () => {
+    expect(
+      applyNIMPVCFieldData(
+        makeDeployment(),
+        makeFieldValue({ pvcName: 'My PVC', pvcK8sName: 'custom-pvc' }),
+      ).model.spec.storage?.pvc?.name,
+    ).toBe('custom-pvc');
+    expect(
+      applyNIMPVCFieldData(makeDeployment(), makeFieldValue({ pvcName: 'pr pvc test' })).model.spec
+        .storage?.pvc?.name,
+    ).toBe('pr-pvc-test');
   });
 
   it('should omit subPath when it is empty (default)', () => {
@@ -90,6 +95,7 @@ describe('extractNIMPVCFieldData', () => {
     expect(result).toEqual({
       storageMode: NIMPVCStorageMode.EXISTING,
       pvcName: 'my-pvc',
+      pvcK8sName: 'my-pvc',
       subPath: 'models',
       storageClassName: '',
       storageSizeGi: 50,

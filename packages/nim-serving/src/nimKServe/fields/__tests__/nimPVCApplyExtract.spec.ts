@@ -244,6 +244,7 @@ describe('extractNIMPVCFieldData', () => {
     expect(result).toEqual({
       storageMode: NIMPVCStorageMode.EXISTING,
       pvcName: 'nim-cache',
+      pvcK8sName: 'nim-cache',
       subPath: 'models',
       storageClassName: '',
       storageSizeGi: DEFAULT_STORAGE_SIZE_GI,
