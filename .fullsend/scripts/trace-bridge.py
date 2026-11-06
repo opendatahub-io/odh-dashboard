@@ -750,7 +750,8 @@ def _before_exit(segs):
             ok.difference_update(range(k + 1, scope["end"]))
             continue
         args = [t for t in toks[i + 1:] if not is_redirect(t)]
-        if args and re.fullmatch(r"0*[1-9]\d{0,2}", str(args[0])):
+        # Exit statuses wrap at 256: exit 256 is a successful exit.
+        if args and re.fullmatch(r"\d{1,6}", str(args[0])) and int(str(args[0])) % 256:
             continue
         return ok & set(range(k))
     return ok
@@ -2029,7 +2030,10 @@ def self_test():
          and shell_reads("(exit 3); cat c/d.md") == ["c/d.md"]
          and shell_reads("[ -f x ] && exit 0; cat docs/adr/0009-x.md") == []
          and shell_reads("if [ -f x ]; then exit; fi; cat docs/adr/0009-x.md") == []
-         and shell_reads("true || exit $rc; cat docs/adr/0009-x.md") == []),
+         and shell_reads("true || exit $rc; cat docs/adr/0009-x.md") == []
+         and shell_reads("[ -f x ] || exit 256; cat docs/adr/0009-x.md") == []
+         and shell_reads("[ -f x ] || exit 768; cat docs/adr/0009-x.md") == []
+         and shell_reads("[ -f x ] || exit 257; cat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]),
         ("an exit or return in a subshell or function body doesn't cut the parent shell's reads",
          shell_reads("f() { return; }; cat .claude/rules/react.md") == [".claude/rules/react.md"]
          and shell_reads("(exit 0); cat .claude/rules/react.md") == [".claude/rules/react.md"]
