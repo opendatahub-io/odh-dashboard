@@ -3,6 +3,7 @@ import { Table, DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { getColumns } from './const';
 import TrainJobTableRow from './TrainJobTableRow';
 import RayJobTableRow from './RayJobTableRow';
+import './JobsTable.scss';
 import { JobDisplayState, UnifiedJobKind, isRayJob, isTrainJob } from '../../types';
 
 type JobsTableProps = {
@@ -34,55 +35,58 @@ const JobsTable: React.FC<JobsTableProps> = ({
   const columns = React.useMemo(() => getColumns(nodeCountMap), [nodeCountMap]);
 
   return (
-    <Table
-      data-testid="training-job-table"
-      id="training-job-table"
-      enablePagination
-      data={jobs}
-      columns={columns}
-      onClearFilters={onClearFilters}
-      toolbarContent={toolbarContent}
-      emptyTableView={
-        clearFilters ? <DashboardEmptyTableView onClearFilters={clearFilters} /> : undefined
-      }
-      rowRenderer={(job: UnifiedJobKind) => {
-        const jobId = job.metadata.uid || job.metadata.name;
-        const jobStatus = jobStatuses?.get(jobId);
-        const isExternallyToggling = togglingJobId === jobId;
-
-        if (isRayJob(job)) {
-          return (
-            <RayJobTableRow
-              key={jobId}
-              job={job}
-              jobStatus={jobStatus}
-              isLoadingStatus={isLoadingStatus}
-              nodeCount={nodeCountMap.get(jobId) ?? 0}
-              onStatusUpdate={onStatusUpdate}
-              onSelectJob={(j) => onSelectJob(j)}
-              onDelete={(j) => onDelete(j)}
-              isExternallyToggling={isExternallyToggling}
-            />
-          );
+    <div className="mt-jobs-table">
+      <Table
+        data-testid="training-job-table"
+        id="training-job-table"
+        enablePagination
+        gridBreakPoint=""
+        data={jobs}
+        columns={columns}
+        onClearFilters={onClearFilters}
+        toolbarContent={toolbarContent}
+        emptyTableView={
+          clearFilters ? <DashboardEmptyTableView onClearFilters={clearFilters} /> : undefined
         }
+        rowRenderer={(job: UnifiedJobKind) => {
+          const jobId = job.metadata.uid || job.metadata.name;
+          const jobStatus = jobStatuses?.get(jobId);
+          const isExternallyToggling = togglingJobId === jobId;
 
-        if (isTrainJob(job)) {
-          return (
-            <TrainJobTableRow
-              key={jobId}
-              job={job}
-              jobStatus={jobStatus}
-              onStatusUpdate={onStatusUpdate}
-              onSelectJob={(j) => onSelectJob(j)}
-              onDelete={(trainingJob) => onDelete(trainingJob)}
-              isExternallyToggling={isExternallyToggling}
-            />
-          );
-        }
+          if (isRayJob(job)) {
+            return (
+              <RayJobTableRow
+                key={jobId}
+                job={job}
+                jobStatus={jobStatus}
+                isLoadingStatus={isLoadingStatus}
+                nodeCount={nodeCountMap.get(jobId) ?? 0}
+                onStatusUpdate={onStatusUpdate}
+                onSelectJob={(j) => onSelectJob(j)}
+                onDelete={(j) => onDelete(j)}
+                isExternallyToggling={isExternallyToggling}
+              />
+            );
+          }
 
-        return null;
-      }}
-    />
+          if (isTrainJob(job)) {
+            return (
+              <TrainJobTableRow
+                key={jobId}
+                job={job}
+                jobStatus={jobStatus}
+                onStatusUpdate={onStatusUpdate}
+                onSelectJob={(j) => onSelectJob(j)}
+                onDelete={(trainingJob) => onDelete(trainingJob)}
+                isExternallyToggling={isExternallyToggling}
+              />
+            );
+          }
+
+          return null;
+        }}
+      />
+    </div>
   );
 };
 
