@@ -31,6 +31,7 @@ jest.mock('@patternfly/react-core', () => ({
 jest.mock('../../perses/embeddable/PersesProvider', () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  PersesDashboardGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('../../perses/embeddable/PersesDashboard', () => ({
