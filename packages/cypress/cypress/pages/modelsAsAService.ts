@@ -54,12 +54,32 @@ class APIKeysPage {
 
   getRow(name: string): APIKeyTableRow {
     return new APIKeyTableRow(() =>
-      this.findTable().find('tbody tr').contains('td', name).parents('tr'),
+      this.findTable().find('tr:has(td)').contains('td', name).parents('tr'),
+    );
+  }
+
+  getRowByNamePrefix(prefix: string): APIKeyTableRow {
+    return new APIKeyTableRow(
+      () =>
+        this.findTable()
+          .find<HTMLTableRowElement>('tr:has(td)')
+          .filter((_, row) => row.textContent.includes(prefix))
+          .first() as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
+    );
+  }
+
+  getRowByNamePrefixAndOwner(prefix: string, owner: string): APIKeyTableRow {
+    return new APIKeyTableRow(
+      () =>
+        this.findTable()
+          .find<HTMLTableRowElement>('tr:has(td)')
+          .filter((_, row) => row.textContent.includes(prefix) && row.textContent.includes(owner))
+          .first() as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
     );
   }
 
   findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findTable().find('tbody tr');
+    return this.findTable().find('tr:has(td)');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -122,12 +142,23 @@ class APIKeysPage {
     return this.findTable().find('thead').contains('th', columnLabel).findByRole('button');
   }
 
-  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('username-filter-input');
+  findFilterInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+    return cy.findByTestId('username-filter-input').find('input');
   }
 
   findFilterSearchButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findFilterInput().find('button[type="submit"]');
+    return cy.findByTestId('username-filter-input').find('button[type="submit"]');
+  }
+
+  filterByUsername(username: string): void {
+    this.findFilterInput()
+      .should('be.visible')
+      .click()
+      .clear()
+      .type(username)
+      .should('have.value', username);
+    this.findFilterSearchButton().click();
+    this.findRows().should('be.visible').and('contain.text', username);
   }
 
   findUsernameFilterTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -140,6 +171,44 @@ class APIKeysPage {
 
   findRevokeActionsButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.getRow(rowName).findKebabAction('Revoke');
+  }
+
+  revokeApiKeyIfPresent(name: string): void {
+    this.findTable()
+      .find('tr:has(td)')
+      .then(($rows) => {
+        const row = $rows.toArray().find((candidate) => candidate.textContent.includes(name));
+        if (!row) {
+          return;
+        }
+
+        cy.wrap(row).findByRole('button', { name: 'Kebab toggle' }).click();
+        cy.findByRole('menuitem', { name: /^Revoke$/ }).click();
+        revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(name);
+        revokeAPIKeyModal.findRevokeButton().click();
+        this.findTable().should('not.contain.text', name);
+      });
+  }
+
+  revokeApiKeysByNamePrefix(prefix: string): void {
+    this.findTable()
+      .find('tr:has(td)')
+      .filter((_, row) => row.textContent.includes(prefix))
+      .first()
+      .then(($row) => {
+        if (!$row.length) {
+          return;
+        }
+
+        const name = $row.find('[data-testid="api-key-name"]').text().trim();
+        cy.wrap($row).findByRole('button', { name: 'Kebab toggle' }).click();
+        cy.findByRole('menuitem', { name: /^Revoke$/ }).click();
+        revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(name);
+        revokeAPIKeyModal.findRevokeButton().should('be.enabled').click();
+        revokeAPIKeyModal.shouldBeOpen(false);
+        this.findTable().should('not.contain.text', name);
+        this.revokeApiKeysByNamePrefix(prefix);
+      });
   }
 }
 
@@ -1611,6 +1680,15 @@ class ViewAuthPolicyPage {
 class SubscriptionsTab {
   findToolbar(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscriptions-toolbar');
+  }
+
+  findModelAccessSubscriptionFilter(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('model-access-subscription-filter-toggle');
+  }
+
+  selectModelAccessSubscription(name: string): void {
+    this.findModelAccessSubscriptionFilter().click();
+    cy.findByRole('option', { name: new RegExp(`^${name}$`) }).click();
   }
 
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
