@@ -109,6 +109,37 @@ function stripGoComments(source) {
 }
 
 /**
+ * Returns `source` with the contents of string and rune literals blanked out (same length), so a
+ * search for Go syntax cannot match text that only appears inside a literal.
+ */
+function maskGoLiterals(source) {
+  let out = '';
+  let i = 0;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch === '"' || ch === '`' || ch === "'") {
+      let j = i + 1;
+      while (j < source.length && source[j] !== ch) {
+        if (ch !== '`' && source[j] === '\\') {
+          j++;
+        }
+        if (ch !== '`' && source[j] === '\n') {
+          break;
+        }
+        j++;
+      }
+      const end = Math.min(j + 1, source.length);
+      out += ch + source.slice(i + 1, end - 1).replace(/[^\n]/g, ' ') + source.slice(end - 1, end);
+      i = end;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out;
+}
+
+/**
  * Parses the source of the dashboard-operator moduleRegistry (modules.go) and extracts each
  * module's production service port. Fails closed: returns { entries, errors } where `errors`
  * is non-empty whenever the registry is missing, unrecognized, empty, or has an entry whose
@@ -124,7 +155,8 @@ function parseModuleRegistryContent(content) {
   if (stripped === null) {
     return { entries, errors: ['moduleRegistry contains an unterminated block comment'] };
   }
-  const declStart = stripped.indexOf(MODULE_REGISTRY_DECL);
+  // Locate the declaration in code only: an example inside a string literal must not match.
+  const declStart = maskGoLiterals(stripped).indexOf(MODULE_REGISTRY_DECL);
   if (declStart === -1) {
     return { entries, errors: [`declaration "${MODULE_REGISTRY_DECL}" not found`] };
   }

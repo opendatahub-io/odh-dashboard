@@ -78,7 +78,7 @@ Collect the ports already in use and pick the next free value in each range. The
    Modules scaffolded but not yet registered (registration happens in `/konflux-onboarding`) already claim a port in `module-federation.service.port`, so include those too:
 
    ```bash
-   node -e 'for (const f of require("fs").readdirSync("packages")) { try { const p = require("./packages/" + f + "/package.json")["module-federation"]?.service?.port; if (p) console.log(p); } catch {} }' | sort -n
+   node -e 'const fs = require("fs"); for (const f of fs.readdirSync("packages")) { const m = "./packages/" + f + "/package.json"; if (!fs.existsSync(m)) continue; try { const p = require(m)["module-federation"]?.service?.port; if (p) console.log(p); } catch (e) { console.error("packages/" + f + ": " + e.message); } }' | sort -n
    ```
 
    Existing ports step by 100 (`8043, 8143, … 9243`). Pick the next step above the highest value in either list (e.g. `9343`).

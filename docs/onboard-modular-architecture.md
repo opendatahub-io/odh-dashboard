@@ -25,7 +25,7 @@ This prints every `module-federation.local.port` in the workspace (including `di
 Modules that are scaffolded but not yet registered in the operator (registration happens in `/konflux-onboarding`) already claim a production port in `module-federation.service.port`. List those too, and pick a service port that is free in both lists:
 
 ```bash
-node -e 'for (const f of require("fs").readdirSync("packages")) { try { const p = require("./packages/" + f + "/package.json")["module-federation"]?.service?.port; if (p) console.log(p); } catch {} }' | sort -n
+node -e 'const fs = require("fs"); for (const f of fs.readdirSync("packages")) { const m = "./packages/" + f + "/package.json"; if (!fs.existsSync(m)) continue; try { const p = require(m)["module-federation"]?.service?.port; if (p) console.log(p); } catch (e) { console.error("packages/" + f + ": " + e.message); } }' | sort -n
 ```
 
 `validate:ports` does not cover BFF ports. List the BFF ports already in use separately, and pick a BFF port that does not appear in this list. Ports `4000` (the dashboard backend and the default dev setup) and `4010` (the dashboard shell) are always reserved, even if the list does not show them:
