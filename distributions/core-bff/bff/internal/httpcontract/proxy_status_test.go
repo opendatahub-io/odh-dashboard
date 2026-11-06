@@ -62,6 +62,13 @@ func TestProxyStatusKeepsSecretOperationsConservative(t *testing.T) {
 		"/api/v1/watch/secrets",
 		"/api/v1/proxy/namespaces/project/secrets/example",
 		"/apis/example.io/v1/namespaces/project/secrets/example",
+		"/api/v1//secrets",
+		"/api/v1/./namespaces/project/secrets",
+		"/api/v1/namespaces/project/pods/../secrets",
+		"/api/k8s/api/v1/%2e/namespaces/project/secrets",
+		"/core-bff/api/k8s/api/v1/namespaces/project/pods/%2e%2e/secrets",
+		"/wss/k8s/api/v1/%2e/namespaces/project/secrets?watch=true",
+		"/core-bff/wss/k8s/apis/example.io/v1/namespaces/project/widgets/%2E%2E/secrets",
 	} {
 		t.Run(path, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, path, nil)

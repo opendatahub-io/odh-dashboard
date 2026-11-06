@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"strings"
 	"testing"
 
@@ -255,6 +256,40 @@ func TestProxyStreamFailureThroughRecovery(t *testing.T) {
 	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 	require.Equal(t, first, string(b))
 	require.Equal(t, 200, resp.StatusCode)
+}
+
+func TestEncodedDotSegmentsKeepProxyErrorsConservative(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/api/v1/namespaces/project/secrets", path.Clean(r.URL.Path))
+		w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = io.WriteString(w, `{"kind":"Status","apiVersion":"v1","status":"Failure","code":422,"reason":"Invalid","message":"CANARY_SECRET","details":{"name":"CANARY_NAME","causes":[{"reason":"FieldValueInvalid","field":"data[CANARY_KEY]","message":"CANARY_SECRET"}]}}`)
+	}))
+	defer upstream.Close()
+	app := newTestApp()
+	var err error
+	app.k8sProxy, err = proxy.NewK8sProxyHandler(proxy.K8sProxyConfig{K8sHost: upstream.URL, AllowHTTP: true, Logger: app.logger})
+	require.NoError(t, err)
+	routes := app.Routes()
+	for _, prefix := range []string{"", constants.BFFPathPrefix} {
+		for _, encodedPath := range []string{
+			"/api/k8s/api/v1/%2e/namespaces/project/secrets",
+			"/api/k8s/api/v1/namespaces/project/pods/%2E%2E/secrets",
+		} {
+			t.Run(prefix+encodedPath, func(t *testing.T) {
+				request := httptest.NewRequest(http.MethodGet, prefix+encodedPath, nil)
+				require.NotEmpty(t, request.URL.RawPath)
+				response := httptest.NewRecorder()
+				routes.ServeHTTP(response, request)
+				require.Equal(t, http.StatusUnprocessableEntity, response.Code)
+				require.NotContains(t, response.Body.String(), "CANARY")
+				var status metav1.Status
+				require.NoError(t, json.Unmarshal(response.Body.Bytes(), &status))
+				require.Equal(t, metav1.StatusReasonInvalid, status.Reason)
+				require.Equal(t, "data", status.Details.Causes[0].Field)
+			})
+		}
+	}
 }
 
 func TestRoutineRejectionsLogAtWarn(t *testing.T) {

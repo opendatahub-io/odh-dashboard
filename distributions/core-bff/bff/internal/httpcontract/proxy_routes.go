@@ -46,7 +46,10 @@ func proxyDiagnosticsAllowed(r *http.Request) bool {
 	if len(segments) <= resourceIndex {
 		return false
 	}
-	if slices.Contains(segments, "") {
+	// URL.Path is decoded; upstream normalization could change dot-segment routes.
+	if slices.ContainsFunc(segments, func(segment string) bool {
+		return segment == "" || segment == "." || segment == ".."
+	}) {
 		return false
 	}
 	if segments[resourceIndex] == "watch" || segments[resourceIndex] == "proxy" {
