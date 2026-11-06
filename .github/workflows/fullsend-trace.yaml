@@ -88,14 +88,20 @@ jobs:
           # Only trace runs of this repository's own fullsend.yaml for events that use the base
           # repository's definition. A fork PR can edit fullsend.yaml and run it on
           # pull_request or pull_request_review, and that run's artifact must not reach MLflow.
-          src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '"\(.path) \(.event) \(.repository.full_name)"')
-          read -r src_path src_event src_repo <<< "$src"
+          src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '"\(.path) \(.event) \(.repository.full_name) \(.head_branch // "")"')
+          read -r src_path src_event src_repo src_branch <<< "$src"
+          default_branch=$(gh api "repos/$REPO" --jq '.default_branch')
           case "$src_event" in
             pull_request_target | issue_comment | issues | workflow_dispatch | schedule) ;;
             *) src_event="" ;;
           esac
+          # Except for pull_request_target (the PR's base branch definition), the run must use
+          # the default branch's fullsend.yaml: a dispatch from another ref could run an edited one.
+          if [[ "$src_event" != pull_request_target && "$src_branch" != "$default_branch" ]]; then
+            src_event=""
+          fi
           if [[ "$src_path" != .github/workflows/fullsend.yaml || "$src_repo" != "$REPO" || -z "$src_event" ]]; then
-            echo "::warning::Run $RUN_ID is not a trusted Fullsend run (workflow, event or repository); nothing to trace."
+            echo "::warning::Run $RUN_ID is not a trusted Fullsend run (workflow, event, branch or repository); nothing to trace."
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi

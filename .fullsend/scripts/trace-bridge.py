@@ -867,6 +867,11 @@ SHORT_FLAGS = {  # operand-free short options; any other letter fails closed
 }
 
 
+class _Args(list):
+    """without_patterns' result; unknown is True when it couldn't parse the options."""
+    unknown = False
+
+
 def without_patterns(prog, args):
     """Arguments minus option values, search patterns and scripts. For grep/rg/sed/awk/jq
     the first plain argument is the pattern or script, unless an option such as -e or -f
@@ -874,7 +879,7 @@ def without_patterns(prog, args):
     letter with per-program arities. A long option with an unknown operand count makes the
     segment untrustworthy: only redirections are returned (fail closed)."""
     if prog not in PATTERN_PROGS:
-        return list(args)
+        return _Args(args)
     values, scripts = VALUE_OPTS.get(prog, {}), SCRIPT_OPTS.get(prog, set())
     long_flags, optional = LONG_FLAGS.get(prog, set()), OPTIONAL_ATTACHED.get(prog, set())
     out, redirects, skip, pattern_given, keep_next, failed = [], [], 0, False, False, False
@@ -923,7 +928,11 @@ def without_patterns(prog, args):
             pattern_given = True
             continue
         out.append(t)
-    return redirects if failed else out + redirects
+    if failed:
+        result = _Args(redirects)
+        result.unknown = True  # file operands are unknown, so stdin may not be what's read
+        return result
+    return _Args(out + redirects)
 
 
 def shell_summary(cmd):
@@ -973,6 +982,9 @@ def stdout_reaches_tool(toks):
     Descriptors other than 1 and 2 have unknown destinations."""
     dest = {"1": "out", "2": "err"}
     for j, t in enumerate(toks):
+        if t == "<>" and t.fd not in ("", "0"):
+            dest[t.fd] = "file"  # 1<>f opens f read-write as fd 1: stdout goes to f
+            continue
         if not is_redirect(t) or t in ("<", "<<", "<<-", "<<<", "<>", "<&"):
             continue
         target = str(toks[j + 1]) if j + 1 < len(toks) else ""
@@ -1027,8 +1039,9 @@ def shell_files(cmd, include_skipped=False):
             counts = include_skipped
         redirect = None
         stdin = []  # stdin redirections in order: a path, or None for one that isn't a file
-        has_operand = False  # a file operand: the program reads it, not stdin
-        for t in without_patterns(prog, toks[i + 1:]):
+        parsed = without_patterns(prog, toks[i + 1:])
+        has_operand = parsed.unknown  # a file operand (or unknown ones): it isn't reading stdin
+        for t in parsed:
             if redirect is not None:
                 path = resolve_path(cwd, t)
                 if redirect.fd not in ("", "0") and redirect[0] == "<":
@@ -2072,7 +2085,12 @@ def self_test():
          and shell_reads("cat < /dev/null < AGENTS.md") == ["AGENTS.md"]
          and shell_reads("cat - < AGENTS.md") == ["AGENTS.md"]
          and "AGENTS.md" in shell_summary("cat < AGENTS.md < /dev/null")[1]
-         and "AGENTS.md" in shell_summary("cat c/d.md < AGENTS.md")[1]),
+         and "AGENTS.md" in shell_summary("cat c/d.md < AGENTS.md")[1]
+         and shell_reads("sed --follow-symlinks -n 1p docs/x.md < .claude/rules/react.md") == []
+         and ".claude/rules/react.md" in shell_summary(
+             "sed --follow-symlinks -n 1p docs/x.md < .claude/rules/react.md")[1]
+         and shell_reads("cat .claude/rules/react.md 1<>out.txt") == []
+         and shell_reads("cat .claude/rules/react.md 2<>err.txt") == [".claude/rules/react.md"]),
         ("comments end at the newline; quotes and escapes inside a word never make operators",
          shell_reads("ls # x\ncat docs/adr/0009-x.md") == ["docs/adr/0009-x.md"]
          and shell_reads("# it's 'odd\ncat k/l.md") == ["k/l.md"]

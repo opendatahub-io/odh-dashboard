@@ -559,7 +559,8 @@ retention; anyone who can read the experiment can read these traces.
 **Failure behavior.** The job runs outside the review, so it cannot change a review's
 outcome. Only runs of this repository's `.github/workflows/fullsend.yaml` for events that use the
 base repository's definition (`pull_request_target`, `issue_comment`, `issues`,
-`workflow_dispatch`, `schedule`) are traced; a fork PR could edit that file and run it on
+`workflow_dispatch`, `schedule`; all but `pull_request_target` must run from the default
+branch, since a dispatch from another ref could run an edited file) are traced; a fork PR could edit that file and run it on
 `pull_request` or `pull_request_review`, so those runs are skipped. A run whose artifact
 list has no `fullsend-review` artifact is skipped; an
 artifact API or download error fails the job so it can be rerun. The PR identity comes from a `pull_request_target`
