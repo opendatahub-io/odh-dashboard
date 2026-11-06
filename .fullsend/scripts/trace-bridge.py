@@ -63,7 +63,7 @@ SECRET_KV_RE = re.compile(
     r"(?i)((?<![\w-])[\"']?[\w-]{0,40}" + SENSITIVE + r"[\w-]{0,40}[\"']?[ \t]{0,8}[:=][ \t]{0,8})"
     r"(\"(?:[^\"\\]|\\.){0,2000}\"|'[^']{0,2000}'|[^\s,;&|)}\]]{1,2000})")
 SECRET_FLAG_RE = re.compile(
-    r"(?i)(--[\w-]{0,40}" + SENSITIVE + r"[\w-]{0,40}[ \t]{1,8})(\"(?:[^\"\\]|\\.){0,2000}\"|'[^']{0,2000}'|[^\s-]\S{0,2000})")
+    r"(?i)(--[\w-]{0,40}" + SENSITIVE + r"[\w-]{0,40}[ \t]{1,8})(\"(?:[^\"\\]|\\.){0,2000}\"|'[^']{0,2000}'|(?!--)\S{1,2000})")
 SENSITIVE_KEY_RE = re.compile(r"(?i)" + SENSITIVE)
 # Tool arguments exported as attributes; anything else (file contents for write/edit, prompts) is dropped.
 TOOL_ARG_ALLOWLIST = ("path", "pattern", "glob", "offset", "limit", "description", "subagent_type")
@@ -2074,6 +2074,9 @@ def self_test():
          and "secret-tail" not in clean('--token password="' + "A" * 2500 + ' secret-tail')
          and "tok3nvalue" not in clean('--token tok3nvalue password="unterminated tail')
          and "tok3nvalue" not in clean('--token tok3nvalue password=' + "A" * 2500)
+         and "Xq9secretvalue" not in clean("--api-key -Xq9secretvalue next")
+         and "secretvalue" not in clean("run --token -secretvalue")
+         and clean("--token --verbose") == "--token --verbose"
          and "SensitiveTail" not in clean('password="a\\" SensitiveTail')
          and "SensitiveTail" not in clean('--token "a\\" SensitiveTail')
          and "SensitiveTail" not in clean("password='a SensitiveTail")
