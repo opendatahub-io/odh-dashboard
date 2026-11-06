@@ -453,13 +453,19 @@ SEPARATORS = {"\n", ";", ";;", "&", "&&", "|", "||", "|&", "(", ")"}
 
 
 def shell_tokens(cmd):
-    """Tokenize a shell command the way a shell splits words: single quotes, double quotes
-    and backslash escapes are honoured, and only unquoted operator characters form
+    """Tokenize a shell command the way a shell splits words: single quotes, double quotes,
+    ANSI-C $'...' quotes and backslash escapes are honoured, and only unquoted operator characters form
     operators (returned as Op). # starts a comment only at the start of a word and ends at
     the newline, which still separates commands. Heredoc bodies after an unquoted << are
     skipped. Text after an unclosed quote is dropped."""
     text, out, word, i = str(cmd)[:MAX_SCAN * 5], [], None, 0
     pending, expect_delim = [], False  # heredoc delimiters waiting for the next newline
+
+    def add(chars):
+        nonlocal word
+        if word is None:
+            word = []
+        word.extend(chars)  # in place: rebuilding the list per character is quadratic
 
     def end_word():
         nonlocal word, expect_delim
@@ -477,11 +483,25 @@ def shell_tokens(cmd):
         if c in " \t\r":
             end_word()
             i += 1
+        elif c == "$" and text.startswith("'", i + 1):
+            # ANSI-C quoting $'...': backslash escapes (including \') are allowed inside.
+            buf, j = [], i + 2
+            while j < n and text[j] != "'":
+                if text[j] == "\\" and j + 1 < n:
+                    buf.append(text[j:j + 2])
+                    j += 2
+                else:
+                    buf.append(text[j])
+                    j += 1
+            if j >= n:
+                break  # unclosed quote: drop the rest
+            add(buf)
+            i = j + 1
         elif c == "'":
             j = text.find("'", i + 1)
             if j < 0:
                 break  # unclosed quote: drop the rest
-            word = (word or []) + [text[i + 1:j]]
+            add([text[i + 1:j]])
             i = j + 1
         elif c == '"':
             buf, j = [], i + 1
@@ -494,13 +514,13 @@ def shell_tokens(cmd):
                     j += 1
             if j >= n:
                 break
-            word = (word or []) + buf
+            add(buf)
             i = j + 1
         elif c == "\\":
             if i + 1 < n and text[i + 1] == "\n":
                 i += 2  # line continuation
                 continue
-            word = (word or []) + [text[i + 1:i + 2]]
+            add([text[i + 1:i + 2]])
             i += 2
         elif c == "#" and word is None:
             nl = text.find("\n", i)
@@ -521,7 +541,7 @@ def shell_tokens(cmd):
                             break
                 pending = []
         else:
-            word = (word or []) + [c]
+            add(c)
             i += 1
     end_word()
     return out
@@ -1073,6 +1093,12 @@ def set_mlflow_tags(endpoint, headers, trace_id, tags):
     return len(tags) - failed
 
 
+def _timed(fn):
+    t0 = datetime.datetime.now()
+    fn()
+    return (datetime.datetime.now() - t0).total_seconds()
+
+
 def _self_test_network():
     """Exercise the HTTP paths against a throwaway local server."""
     import http.server
@@ -1427,6 +1453,7 @@ def self_test():
          "heredocBody1" not in blob and "inlineBody2" not in blob and ["cat", "python3", "ls"] in shell_progs
          and "fullsend.tool.command" not in blob),
         ("redaction stays fast on long adversarial input", redact_secs < 2),
+        ("tokenizing a 20,000-character word stays fast", _timed(lambda: shell_tokens("a" * 20000)) < 1),
         ("malformed trace ids rejected", net["bad_id_rejected"]),
         ("plain http to a remote host rejected", net["http_rejected"]),
         ("redirects are not followed", net["redirect_blocked"]),
@@ -1456,6 +1483,8 @@ def self_test():
          and shell_reads("# say \\\"hi\\\" and it\\'s fine\ncat k/l.md") == ["k/l.md"]
          and shell_reads("# cat <<EOF\ncat k/l.md\nEOF") == ["k/l.md"]
          and shell_summary("echo \\> private/needle")[1] == []
+         and shell_summary("echo $'\\' > private/secret.md \\''")[1] == []
+         and shell_reads("echo $'a\\'b' && cat k/l.md") == ["k/l.md"]
          and shell_summary("sed -e >/dev/null 's/private/needle/' README.md")[1] == ["README.md"]
          and shell_reads("sed -e 's/a/b/' >/dev/null docs/r.md") == ["docs/r.md"]),
         ("quoted ; | > text never splits segments or creates redirections; skipped < reads don't count",
