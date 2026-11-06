@@ -750,7 +750,7 @@ func resolveOCIBaseImageWithSource(ctx context.Context, client k8s.KubernetesCli
 		return defaultOCIBaseImage, "bff-default", nil
 	}
 	if _, err := reference.ParseNamed(image); err != nil {
-		return "", "", fmt.Errorf("invalid OCI base image in ConfigMap %s/%s key %s: use a registry-qualified image such as mirror.example.com/library/busybox:1.0: %w", podNamespace, asyncUploadConfigMapName, ociBaseImageConfigMapKey, err)
+		return "", "", fmt.Errorf("invalid OCI base image in ConfigMap %s/%s key %s: use a registry-qualified image reference: %w", podNamespace, asyncUploadConfigMapName, ociBaseImageConfigMapKey, err)
 	}
 	return image, "deployment-config", nil
 }

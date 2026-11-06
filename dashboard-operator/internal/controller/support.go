@@ -35,6 +35,7 @@ var imagesMap = map[string]string{
 	"core-bff-image":                 "RELATED_IMAGE_ODH_CORE_BFF_IMAGE",
 	"ogx-core-image":                 "RELATED_IMAGE_ODH_OGX_CORE_IMAGE",
 	"pgvector-image":                 "RELATED_IMAGE_POSTGRESQL_16_IMAGE",
+	"nginx-126-image":                "RELATED_IMAGE_NGINX_126_IMAGE",
 }
 
 func init() {

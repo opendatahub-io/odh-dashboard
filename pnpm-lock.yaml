@@ -482,6 +482,9 @@ importers:
       '@module-federation/enhanced':
         specifier: ^0.24.1
         version: 0.24.1(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(webpack@5.104.1)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../../packages/app-config
       '@odh-dashboard/jest-config':
         specifier: workspace:*
         version: link:../../../packages/jest-config
@@ -763,6 +766,18 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
+      '@cypress/code-coverage':
+        specifier: ^3.14.7
+        version: 3.14.7(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(babel-loader@10.1.1(@babel/core@7.29.7(supports-color@8.1.1))(@rspack/core@2.2.4(@module-federation/runtime-tools@0.24.1))(webpack@5.104.1))(cypress@15.20.1)(supports-color@8.1.1)(webpack@5.104.1)
+      '@jsdevtools/coverage-istanbul-loader':
+        specifier: ^3.0.5
+        version: 3.0.5(supports-color@8.1.1)
+      '@odh-dashboard/app-config':
+        specifier: workspace:*
+        version: link:../../packages/app-config
+      '@odh-dashboard/cypress':
+        specifier: workspace:*
+        version: link:../../packages/cypress
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
@@ -781,15 +796,30 @@ importers:
       '@rspack/dev-server':
         specifier: ^2.1.0
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
+      '@testing-library/cypress':
+        specifier: ^10.0.1
+        version: 10.1.3(cypress@15.20.1)
+      concurrently:
+        specifier: ^9.2.1
+        version: 9.2.4
       css-loader:
         specifier: ^7.1.4
         version: 7.1.5(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
+      cypress:
+        specifier: ^15.6.0
+        version: 15.20.1
+      cypress-axe:
+        specifier: ^1.5.0
+        version: 1.7.0(axe-core@4.13.0)(cypress@15.20.1)
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.104.1)
       raw-loader:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.104.1)
+      rimraf:
+        specifier: ^3.0.2
+        version: 3.0.2
       rspack-merge:
         specifier: ^1.0.1
         version: 1.0.1
@@ -799,6 +829,9 @@ importers:
       sass-loader:
         specifier: ^16.0.7
         version: 16.0.8(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(sass@1.104.1)(webpack@5.104.1)
+      serve:
+        specifier: ^14.2.4
+        version: 14.2.6(supports-color@8.1.1)
       style-loader:
         specifier: ^2.0.0
         version: 2.0.0(webpack@5.104.1)
@@ -814,6 +847,9 @@ importers:
       url-loader:
         specifier: ^4.1.1
         version: 4.1.1(file-loader@6.2.0(webpack@5.104.1))(webpack@5.104.1)
+      wait-on:
+        specifier: ^7.2.0
+        version: 7.2.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
 
   distributions/rhaii:
     dependencies:
@@ -2890,12 +2926,18 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@monaco-editor/react':
+        specifier: ^4.7.0
+        version: 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../../plugin-core
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
+      '@patternfly/react-code-editor':
+        specifier: 6.6.1
+        version: 6.6.1(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@patternfly/react-component-groups':
         specifier: ~6.7.0
         version: 6.7.0(@patternfly/react-drag-drop@6.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2926,6 +2968,9 @@ importers:
       mod-arch-shared:
         specifier: ^1.21.0
         version: 1.21.0(@types/eslint@9.6.1)(mod-arch-core@1.21.0(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(mod-arch-kubeflow@1.21.0(@mui/material@7.3.11(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/eslint@9.6.1)(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3))(prettier@3.9.6)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)
+      monaco-editor:
+        specifier: ^0.54.0
+        version: 0.54.0
       react:
         specifier: ^18
         version: 18.3.1
@@ -3029,6 +3074,9 @@ importers:
       mocha-junit-reporter:
         specifier: ^2.2.1
         version: 2.2.1(mocha@10.8.2)(supports-color@8.1.1)
+      monaco-editor-webpack-plugin:
+        specifier: ^7.1.1
+        version: 7.1.1(monaco-editor@0.54.0)(webpack@5.104.1)
       postcss:
         specifier: '>=8.5.23 <9.0.0'
         version: 8.5.26
@@ -22971,8 +23019,7 @@ snapshots:
 
   '@xtuc/long@4.2.2': {}
 
-  '@zeit/schemas@2.36.0':
-    optional: true
+  '@zeit/schemas@2.36.0': {}
 
   abab@2.0.6: {}
 
@@ -23063,7 +23110,6 @@ snapshots:
       fast-uri: 3.1.7
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
-    optional: true
 
   ajv@8.20.0:
     dependencies:
@@ -23075,7 +23121,6 @@ snapshots:
   ansi-align@3.0.1:
     dependencies:
       string-width: 4.2.3
-    optional: true
 
   ansi-colors@4.1.3: {}
 
@@ -23116,8 +23161,7 @@ snapshots:
     dependencies:
       default-require-extensions: 3.0.1
 
-  arch@2.2.0:
-    optional: true
+  arch@2.2.0: {}
 
   arch@3.0.0: {}
 
@@ -23125,8 +23169,7 @@ snapshots:
 
   arg@4.1.3: {}
 
-  arg@5.0.2:
-    optional: true
+  arg@5.0.2: {}
 
   argparse@1.0.10:
     dependencies:
@@ -23486,7 +23529,6 @@ snapshots:
       type-fest: 2.19.0
       widest-line: 4.0.1
       wrap-ansi: 8.1.0
-    optional: true
 
   brace-expansion@1.1.18:
     dependencies:
@@ -23565,8 +23607,7 @@ snapshots:
 
   byline@5.0.0: {}
 
-  bytes@3.0.0:
-    optional: true
+  bytes@3.0.0: {}
 
   bytes@3.1.2: {}
 
@@ -23623,8 +23664,7 @@ snapshots:
 
   camelcase@6.3.0: {}
 
-  camelcase@7.0.1:
-    optional: true
+  camelcase@7.0.1: {}
 
   caniuse-api@3.0.0:
     dependencies:
@@ -23657,7 +23697,6 @@ snapshots:
   chalk-template@0.4.0:
     dependencies:
       chalk: 4.1.2
-    optional: true
 
   chalk@2.4.2:
     dependencies:
@@ -23675,8 +23714,7 @@ snapshots:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
 
-  chalk@5.0.1:
-    optional: true
+  chalk@5.0.1: {}
 
   change-file-extension@0.1.1: {}
 
@@ -23741,8 +23779,7 @@ snapshots:
 
   clean-stack@2.2.0: {}
 
-  cli-boxes@3.0.0:
-    optional: true
+  cli-boxes@3.0.0: {}
 
   cli-cursor@5.0.0:
     dependencies:
@@ -23764,7 +23801,6 @@ snapshots:
       arch: 2.2.0
       execa: 5.1.1
       is-wsl: 2.2.0
-    optional: true
 
   cliui@6.0.0:
     dependencies:
@@ -23901,8 +23937,7 @@ snapshots:
 
   connect-history-api-fallback@2.0.0: {}
 
-  content-disposition@0.5.2:
-    optional: true
+  content-disposition@0.5.2: {}
 
   content-disposition@0.5.4:
     dependencies:
@@ -24642,8 +24677,7 @@ snapshots:
       which-collection: 1.0.2
       which-typed-array: 1.1.22
 
-  deep-extend@0.6.0:
-    optional: true
+  deep-extend@0.6.0: {}
 
   deep-is@0.1.4: {}
 
@@ -25953,8 +25987,7 @@ snapshots:
 
   fast-safe-stringify@2.1.1: {}
 
-  fast-uri@3.1.7:
-    optional: true
+  fast-uri@3.1.7: {}
 
   fast-uri@3.1.8: {}
 
@@ -27051,8 +27084,7 @@ snapshots:
     dependencies:
       isobject: 3.0.1
 
-  is-port-reachable@4.0.0:
-    optional: true
+  is-port-reachable@4.0.0: {}
 
   is-potential-custom-element-name@1.0.1: {}
 
@@ -29102,8 +29134,7 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.2
 
-  mime-db@1.33.0:
-    optional: true
+  mime-db@1.33.0: {}
 
   mime-db@1.52.0: {}
 
@@ -29112,7 +29143,6 @@ snapshots:
   mime-types@2.1.18:
     dependencies:
       mime-db: 1.33.0
-    optional: true
 
   mime-types@2.1.35:
     dependencies:
@@ -29849,8 +29879,7 @@ snapshots:
 
   path-is-absolute@1.0.1: {}
 
-  path-is-inside@1.0.2:
-    optional: true
+  path-is-inside@1.0.2: {}
 
   path-key@2.0.1: {}
 
@@ -29870,8 +29899,7 @@ snapshots:
 
   path-to-regexp@0.1.13: {}
 
-  path-to-regexp@3.3.0:
-    optional: true
+  path-to-regexp@3.3.0: {}
 
   path-type@3.0.0:
     dependencies:
@@ -30491,8 +30519,7 @@ snapshots:
 
   rambda@9.4.2: {}
 
-  range-parser@1.2.0:
-    optional: true
+  range-parser@1.2.0: {}
 
   range-parser@1.2.1: {}
 
@@ -30517,7 +30544,6 @@ snapshots:
       ini: 1.3.8
       minimist: 1.2.8
       strip-json-comments: 2.0.1
-    optional: true
 
   react-axe@3.5.4:
     dependencies:
@@ -30807,12 +30833,10 @@ snapshots:
     dependencies:
       rc: 1.2.8
       safe-buffer: 5.2.1
-    optional: true
 
   registry-url@3.1.0:
     dependencies:
       rc: 1.2.8
-    optional: true
 
   regjsgen@0.8.0: {}
 
@@ -31197,7 +31221,6 @@ snapshots:
       path-is-inside: 1.0.2
       path-to-regexp: 3.3.0
       range-parser: 1.2.0
-    optional: true
 
   serve-index@1.9.2(supports-color@8.1.1):
     dependencies:
@@ -31235,7 +31258,6 @@ snapshots:
       update-check: 1.5.4
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   set-blocking@2.0.0: {}
 
@@ -31659,8 +31681,7 @@ snapshots:
     dependencies:
       min-indent: 1.0.1
 
-  strip-json-comments@2.0.1:
-    optional: true
+  strip-json-comments@2.0.1: {}
 
   strip-json-comments@3.1.1: {}
 
@@ -32178,8 +32199,7 @@ snapshots:
 
   type-fest@0.8.1: {}
 
-  type-fest@2.19.0:
-    optional: true
+  type-fest@2.19.0: {}
 
   type-fest@3.13.1: {}
 
@@ -32398,7 +32418,6 @@ snapshots:
     dependencies:
       registry-auth-token: 3.3.2
       registry-url: 3.1.0
-    optional: true
 
   uri-js@4.4.1:
     dependencies:
@@ -33028,7 +33047,6 @@ snapshots:
   widest-line@4.0.1:
     dependencies:
       string-width: 5.1.2
-    optional: true
 
   wildcard@2.0.1: {}
 

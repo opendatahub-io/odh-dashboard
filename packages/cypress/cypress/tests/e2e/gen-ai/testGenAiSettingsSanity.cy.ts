@@ -68,11 +68,9 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       cy.step('Enable MLflow backend (tracking server only — no MF remote check)');
       enableMlflowBackend();
 
-      cy.step(
-        'Log into the application with custom endpoints, prompt management, and guardrails enabled',
-      );
+      cy.step('Log into the application with custom endpoints and guardrails enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false`,
+        '/?devFeatureFlags=aiAssetCustomEndpoints=true,guardrails=true,modelAsService=false',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -124,7 +122,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithGuardrails(projectName);
 
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
@@ -177,7 +175,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithGuardrails(projectName);
       genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
 
       cy.step('Create playground with the endpoint');
@@ -222,8 +220,8 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       tags: ['@GenAI', '@Featureflagged', '@PromptManagement', '@NonConcurrent'],
     },
     () => {
-      cy.step('Navigate to playground with prompt management enabled');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      cy.step('Navigate to playground');
+      genAiPlayground.navigateToPlaygroundWithCustomEndpoints(projectName);
 
       cy.step(`Select ${testData.displayName} model from dropdown`);
       genAiPlayground.selectModelFromDropdown(testData.displayName);
@@ -282,15 +280,17 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
-      cy.step('Navigate to playground with RAG enabled');
-      genAiPlayground.navigateToPlaygroundWithRag(projectName);
+      cy.step('Navigate to playground');
+      genAiPlayground.navigateToPlaygroundWithCustomEndpoints(projectName);
 
       cy.step('Open settings panel and navigate to Knowledge tab');
       genAiPlayground.ensureSettingsPanelOpen();
       genAiPlayground.findKnowledgeTab().should('be.visible').click();
+      genAiPlayground.findRagToggle().should('exist');
 
-      cy.step('Select uploaded documents as the Knowledge source');
-      genAiPlayground.findKnowledgeModeUploadRadio().should('be.visible').click();
+      cy.step('Verify preview-only options are hidden');
+      genAiPlayground.findGuardrailsTab().should('not.exist');
+      genAiPlayground.findExternalKnowledgeModeRadio().should('not.exist');
 
       cy.step('Enable RAG in the Knowledge tab');
       genAiPlayground.findRagToggle().should('not.be.checked').click({ force: true });
@@ -398,7 +398,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
     },
     () => {
       cy.step('Navigate back to AI Assets to delete the endpoint');
-      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
 
       cy.step('Wait for AI models table to load');
       genAiPlayground.findAiModelsTable({ timeout: 30000 }).should('be.visible');
@@ -414,7 +414,7 @@ describe('Verify settings in playground using custom endpoint', SHARED_STATE_SUI
       genAiPlayground.findDeleteModelConfirmButton().click();
 
       cy.step('Reload page and verify endpoint is deleted');
-      genAiPlayground.navigateToAssetsWithPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
       genAiPlayground.findEmptyStateCreateEndpointButton().should('be.visible');
 
       cy.step('Verify ConfigMap and Secret are cleaned up');

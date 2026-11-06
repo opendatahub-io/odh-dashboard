@@ -7,6 +7,8 @@ import type { ComponentCodeRef } from '../core/types';
 export type RouteExtension = Extension<
   'app.route',
   {
+    /** Optional identifier used by distribution overrides and suppression. */
+    id?: string;
     /** The component to render for this route. */
     component: ComponentCodeRef;
     /** The react-router path pattern to match against the current location. */

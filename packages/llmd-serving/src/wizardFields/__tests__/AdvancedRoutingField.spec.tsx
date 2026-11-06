@@ -10,10 +10,9 @@ import {
   type AdvancedRoutingExternalData,
   type AdvancedRoutingFieldData,
 } from '../AdvancedRoutingField';
-import { createHostApiWrapper } from '../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
+const { trackEvent: mockTrackEvent, wrapper } = createTestProviders();
 
 const { getInitialFieldData, validationSchema } = AdvancedRoutingFieldWizardField.reducerFunctions;
 const AdvancedRoutingFieldComponent = AdvancedRoutingFieldWizardField.component;

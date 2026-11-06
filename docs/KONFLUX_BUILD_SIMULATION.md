@@ -126,6 +126,25 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Reports: Total size per module
   - Helps: Track bundle bloat over time
 
+- ✅ **CSS logical-properties lowering guard** (RHOAIENG-100835)
+  - Scans: Emitted production CSS from the ODH host image's `frontend/public`,
+    each changed module image's `/static` output (BFF Build Shards run only for
+    modules the PR touches), and model-serving's standalone federated build when
+    it changes (`model-serving-css-guard` job — model-serving has no
+    `Dockerfile.workspace`, so the module shard never builds it). The RHOAI-mode
+    image is built but not scanned; its frontend uses the same shared
+    production config as the ODH build
+  - Detects: `:lang(ae...)` RTL fallback selectors that LightningCSS emits when
+    it lowers CSS logical properties — bare `:lang(ae)` under the default es6
+    targets, comma-separated lists like `:lang(ae,ar,...)` under older targets
+    (e.g. safari 14) — the production-only lowering that beats PatternFly
+    contextual-override specificity
+  - Local invocation: `bash scripts/check-css-lowering.sh <dist-dir>` after any
+    production build (e.g. `make -C packages/model-serving frontend-build-federated`,
+    then scan `packages/model-serving/frontend/dist`)
+  - Fails: On offending selectors, on scan errors (unreadable output), and on
+    empty scan targets (missing build output) — a missing check never passes
+
 **Note:** This does NOT test runtime proxy endpoints (`/_mf/*` routes) — those proxy to K8s services and require a cluster.
 
 ### Phase 4: Operator Integration (Kind Cluster)

@@ -1149,7 +1149,7 @@ declare global {
           response: OdhResponse<GlobalSearchResponse>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'POST /maas/api/v1/api-keys/search',
+          type: 'POST /maas/api/v1/api-keys/search/tenant',
           response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
         ((
@@ -1170,12 +1170,16 @@ declare global {
           response: OdhResponse<{ data: APIKeyConfig }>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /maas/api/v1/is-maas-admin',
-          response: OdhResponse<{ data: { allowed: boolean } }>,
+          type: 'GET /maas/api/v1/whoami',
+          response: OdhResponse<{ data: { sub: string; isAdmin: boolean } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/user',
           response: OdhResponse<{ data: { userId: string; clusterAdmin: boolean } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/is-maas-admin',
+          response: OdhResponse<{ data: { allowed: boolean } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/namespaces',

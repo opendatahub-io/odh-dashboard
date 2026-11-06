@@ -1,6 +1,18 @@
 import { URL_PREFIX } from './const';
 
 const MAAS_GOVERNANCE_PREFIX = `${URL_PREFIX}/maas-governance`;
+const MAAS_PORTAL_BASE_PATH = '/maas-portal';
+
+export const isMaaSPortalHost = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return (
+    window.location.pathname === MAAS_PORTAL_BASE_PATH ||
+    window.location.pathname.startsWith(`${MAAS_PORTAL_BASE_PATH}/`)
+  );
+};
 
 export type GovernanceSection = 'subscriptions' | 'auth-policies';
 

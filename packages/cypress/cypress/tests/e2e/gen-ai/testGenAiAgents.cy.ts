@@ -72,7 +72,7 @@ describe('Verify agent deployments using a custom endpoint', { testIsolation: fa
 
       cy.step('Log into the application with agent deployment features enabled');
       cy.visitWithLogin(
-        '/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,agentConfigManagement=true,genAiAgentDeployment=true,modelAsService=false',
+        '/?devFeatureFlags=aiAssetCustomEndpoints=true,agentConfigManagement=true,genAiAgentDeployment=true,modelAsService=false',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 

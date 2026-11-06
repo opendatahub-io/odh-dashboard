@@ -44,12 +44,14 @@
   },
   "exports": {
     "./extension-points": "./frontend/src/odh/extension-points/index.ts",
+    "./__mocks__/genAiFixtures": "./frontend/src/__mocks__/genAiFixtures.ts",
     "./types": "./frontend/src/types/index.ts",
     "./extensions/static": "./frontend/src/odh/extensions.ts",
     "./MaaSModelsPageProvider": {
       "types": "./types/MaaSModelsPageProvider.d.ts",
       "default": "./frontend/src/app/pages/MaaSModelsPageProvider.tsx"
-    }
+    },
+    "./testing/pages": "./frontend/src/__tests__/cypress/cypress/pages/index.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "workspace:*",

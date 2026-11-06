@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+  namespace: {{.Namespace}}
+  labels:
+    app: {{.Name}}
+    app.kubernetes.io/part-of: dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: {{.Name}}
+  template:
+    metadata:
+      annotations:
+        opendatahub.io/redirect-config-hash: "{{.ConfigHash}}"
+      labels:
+        app: {{.Name}}
+        app.kubernetes.io/part-of: dashboard
+    spec:
+      containers:
+      - name: nginx
+        image: {{.Image}}
+        command:
+        - /usr/libexec/s2i/run
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: redirect-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: redirect-config
+          mountPath: /opt/app-root/etc/nginx.default.d/redirect.conf
+          subPath: redirect.conf
+        - name: redirect-config
+          mountPath: /opt/app-root/src/deprecation.html
+          subPath: deprecation.html
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+      volumes:
+      - name: redirect-config
+        configMap:
+          name: {{.ConfigMapName}}
