@@ -16,6 +16,8 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -239,11 +241,17 @@ func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integr
 
 // ConfigurableMockTokenClientFactory allows configuring CanListOGXServers behavior
 type ConfigurableMockTokenClientFactory struct {
-	CanListLSDAllowed bool
-	CanListLSDError   error
-	GetClientError    error
-	SecretValues      map[string]map[string]string // secretName → key → value
-	SecretError       error
+	CanListLSDAllowed   bool
+	CanListLSDError     error
+	GetClientError      error
+	SecretValues        map[string]map[string]string // secretName → key → value
+	SecretError         error
+	Service             *corev1.Service
+	ServiceError        error
+	EndpointSlices      []discoveryv1.EndpointSlice
+	EndpointSlicesError error
+	Pod                 *corev1.Pod
+	PodError            error
 }
 
 func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
@@ -251,10 +259,16 @@ func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s
 		return nil, f.GetClientError
 	}
 	return &ConfigurableMockKubernetesClient{
-		CanListLSDAllowed: f.CanListLSDAllowed,
-		CanListLSDError:   f.CanListLSDError,
-		SecretValues:      f.SecretValues,
-		SecretError:       f.SecretError,
+		CanListLSDAllowed:   f.CanListLSDAllowed,
+		CanListLSDError:     f.CanListLSDError,
+		SecretValues:        f.SecretValues,
+		SecretError:         f.SecretError,
+		Service:             f.Service,
+		ServiceError:        f.ServiceError,
+		EndpointSlices:      f.EndpointSlices,
+		EndpointSlicesError: f.EndpointSlicesError,
+		Pod:                 f.Pod,
+		PodError:            f.PodError,
 	}, nil
 }
 
@@ -272,14 +286,67 @@ func (f *ConfigurableMockTokenClientFactory) ValidateRequestIdentity(identity *i
 // ConfigurableMockKubernetesClient allows configuring authorization check behavior
 type ConfigurableMockKubernetesClient struct {
 	k8s.KubernetesClientInterface
-	CanListLSDAllowed bool
-	CanListLSDError   error
-	SecretValues      map[string]map[string]string // secretName → key → value
-	SecretError       error
+	CanListLSDAllowed   bool
+	CanListLSDError     error
+	SecretValues        map[string]map[string]string // secretName → key → value
+	SecretError         error
+	Service             *corev1.Service
+	ServiceError        error
+	EndpointSlices      []discoveryv1.EndpointSlice
+	EndpointSlicesError error
+	Pod                 *corev1.Pod
+	Pods                map[string]*corev1.Pod
+	PodError            error
 }
 
 func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
 	return "mockUser", nil
+}
+
+func (c *ConfigurableMockKubernetesClient) GetService(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.Service, error) {
+	if c.ServiceError != nil {
+		return nil, c.ServiceError
+	}
+	if c.Service != nil {
+		return c.Service, nil
+	}
+	return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "services"}, name)
+}
+
+func (c *ConfigurableMockKubernetesClient) GetServiceEndpointSlices(ctx context.Context, identity *integrations.RequestIdentity, namespace string, serviceName string) ([]discoveryv1.EndpointSlice, error) {
+	if c.EndpointSlicesError != nil {
+		return nil, c.EndpointSlicesError
+	}
+	return c.EndpointSlices, nil
+}
+
+func (c *ConfigurableMockKubernetesClient) ListPods(ctx context.Context, identity *integrations.RequestIdentity, namespace string, selector map[string]string) ([]corev1.Pod, error) {
+	if c.PodError != nil {
+		return nil, c.PodError
+	}
+	var pods []corev1.Pod
+	if c.Pod != nil {
+		pods = append(pods, *c.Pod)
+	}
+	for _, pod := range c.Pods {
+		pods = append(pods, *pod)
+	}
+	// Mirror the API server's label-selector filtering so tests can cover pods
+	// that exist but no longer match the Service selector.
+	filtered := make([]corev1.Pod, 0, len(pods))
+	for _, pod := range pods {
+		matched := true
+		for key, value := range selector {
+			if pod.Labels[key] != value {
+				matched = false
+				break
+			}
+		}
+		if matched {
+			filtered = append(filtered, pod)
+		}
+	}
+	return filtered, nil
 }
 
 func (c *ConfigurableMockKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
