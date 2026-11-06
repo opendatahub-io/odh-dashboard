@@ -1,7 +1,12 @@
 import { VectorStore } from '~/app/types';
 
-const isAutoProvisioned = (store: VectorStore): boolean =>
-  store.metadata.created_by === 'auto-provisioning';
+/** Llama Stack can return stores with no metadata despite the API type. */
+type VectorStoreFromApi = Omit<VectorStore, 'metadata'> & {
+  metadata?: VectorStore['metadata'] | null;
+};
+
+const isAutoProvisioned = (store: VectorStoreFromApi): store is VectorStore =>
+  store.metadata?.created_by === 'auto-provisioning';
 
 /**
  * The playground-local store created for this signed-in user.
@@ -9,11 +14,14 @@ const isAutoProvisioned = (store: VectorStore): boolean =>
  * metadata.username matches that user. An unlabeled store is not used.
  */
 export const findInlineVectorStore = (
-  stores: VectorStore[],
+  stores: VectorStoreFromApi[],
   username?: string,
 ): VectorStore | undefined => {
   if (!username) {
     return undefined;
   }
-  return stores.find((store) => isAutoProvisioned(store) && store.metadata.username === username);
+  return stores.find(
+    (store): store is VectorStore =>
+      isAutoProvisioned(store) && store.metadata.username === username,
+  );
 };

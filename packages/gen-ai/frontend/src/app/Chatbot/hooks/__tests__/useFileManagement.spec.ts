@@ -213,6 +213,34 @@ describe('useFileManagement', () => {
       expect(result.current.currentVectorStoreId).toBe('vs-alice');
     });
 
+    it('should skip stores with null or missing metadata while loading files', async () => {
+      const missingMetadataStore = createMockVectorStore({ id: 'vs-missing' });
+      Reflect.deleteProperty(missingMetadataStore, 'metadata');
+      const nullMetadataStore = { ...createMockVectorStore({ id: 'vs-null' }), metadata: null };
+      const mockOnShowErrorAlert = jest.fn();
+      mockGetVectorStores.mockResolvedValue([
+        missingMetadataStore,
+        nullMetadataStore,
+        mockVectorStore,
+      ]);
+      mockListVectorStoreFiles.mockResolvedValue([mockVectorStoreFile]);
+
+      const { result } = renderHook(() =>
+        useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+      );
+      await waitForLoadingComplete(result);
+
+      expect(mockListVectorStoreFiles).toHaveBeenCalledWith({
+        vector_store_id: VECTOR_STORE_ID,
+        limit: 50,
+        order: 'desc',
+        filter: 'completed',
+      });
+      expect(result.current.files).toHaveLength(1);
+      expect(result.current.error).toBeNull();
+      expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
+    });
+
     it('should ignore an auto-provisioned store that has no username', async () => {
       const unlabeledStore = createMockVectorStore({
         id: 'vs-legacy',
