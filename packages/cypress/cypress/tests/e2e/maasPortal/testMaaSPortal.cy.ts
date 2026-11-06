@@ -45,9 +45,9 @@ const getRequiredPortalConfig = (): {
   };
 };
 
-describe('MaaS Portal access by user role', () => {
+describe('MaaS Portal role access and API-key lifecycle', () => {
   it(
-    'allows admins to view Model Access and limits regular users to API keys',
+    'validates role access, API-key creation and revocation, and revoked-key authorization',
     { tags: ['@Smoke', '@Dashboard', '@MaaS', '@MaaSPortal', '@MaaSAccess'] },
     () => {
       const { portalUrl, subscriptionName, adminUser, portalUser } = getRequiredPortalConfig();
