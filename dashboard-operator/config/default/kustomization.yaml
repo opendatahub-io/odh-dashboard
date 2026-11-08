@@ -20,3 +20,7 @@ namespace: opendatahub
 namePrefix: odh-
 resources:
   - ../base
+# Copies the final metrics Service name into the metrics cert SANs; see
+# config/certmanager/wiring/kustomization.yaml.
+transformers:
+  - ../certmanager/wiring

@@ -12,6 +12,7 @@
 #   resources:
 #     - <path>/config/webhook-enabled
 #   transformers:
+#     - <path>/config/certmanager/wiring
 #     - <path>/config/webhook/wiring
 #
 # The webhook clientConfig.service name and namespace need no replacement:

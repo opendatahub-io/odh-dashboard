@@ -29,6 +29,7 @@ dashboard-operator/
 ├── config/
 │   ├── base/                           # Shared resources (crd, rbac, manager, certmanager); no namespace/prefix
 │   ├── certmanager/                    # Self-signed Issuer + metrics Service/Certificate
+│   │   └── wiring/                     # Transformer: final names into the metrics cert SANs (re-list in parent overlays)
 │   ├── crd/
 │   │   ├── bases/                      # Generated CRD YAML (source of truth; synced to charts/dashboard/crds)
 │   │   └── kustomization.yaml

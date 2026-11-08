@@ -22,6 +22,8 @@ const (
 	webhookCertDir     = "/tmp/k8s-webhook-server/serving-certs"
 	injectCAAnnotation = "cert-manager.io/inject-ca-from"
 	dashboardVWCName   = "dashboard-validating-webhook"
+	metricsCertName    = "dashboard-operator-metrics-cert"
+	metricsServiceName = "dashboard-operator-metrics-service"
 )
 
 // renderedConfig holds the objects of one kustomize build of config/.
@@ -83,6 +85,21 @@ func (r renderedConfig) dashboardVWCs() []admissionregistrationv1.ValidatingWebh
 		}
 	}
 	return out
+}
+
+// certByNameSuffix returns the one rendered Certificate whose name ends in suffix,
+// whatever namePrefix an overlay applied.
+func (r renderedConfig) certByNameSuffix(t *testing.T, suffix string) *unstructured.Unstructured {
+	t.Helper()
+	var found *unstructured.Unstructured
+	for _, cert := range r.certificates {
+		if strings.HasSuffix(cert.GetName(), suffix) {
+			require.Nil(t, found, "more than one Certificate named *%s", suffix)
+			found = cert
+		}
+	}
+	require.NotNil(t, found, "no Certificate named *%s", suffix)
+	return found
 }
 
 func (r renderedConfig) manager(t *testing.T) corev1.Container {
@@ -157,6 +174,14 @@ func TestConfigWebhookGating(t *testing.T) {
 				assert.True(t, found, "unrelated webhook %s is not rendered", name)
 			}
 
+			// The metrics serving cert is in every install; its SANs must name
+			// the rendered metrics Service.
+			metricsCert := cfg.certByNameSuffix(t, metricsCertName)
+			prefix := strings.TrimSuffix(metricsCert.GetName(), metricsCertName)
+			metricsSvc, ok := cfg.services[metricsCert.GetNamespace()+"/"+prefix+metricsServiceName]
+			require.True(t, ok, "metrics Service %s%s is not rendered", prefix, metricsServiceName)
+			assertCertSANs(t, metricsCert, metricsSvc)
+
 			if wantWebhook {
 				assertWebhookWiring(t, cfg, mgr)
 			} else {
@@ -224,9 +249,15 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 	require.True(t, ok, "%s=%q does not name a rendered Certificate", injectCAAnnotation, certKey)
 	secretName, _, _ := unstructured.NestedString(cert.Object, "spec", "secretName")
 	assert.Equal(t, certSecret, secretName, "serving cert Secret mounted by the manager")
+	assertCertSANs(t, cert, svc)
+}
+
+// assertCertSANs checks that cert is valid for both in-cluster names of svc.
+func assertCertSANs(t *testing.T, cert *unstructured.Unstructured, svc corev1.Service) {
+	t.Helper()
 	dnsNames, _, _ := unstructured.NestedStringSlice(cert.Object, "spec", "dnsNames")
 	assert.ElementsMatch(t, []string{
 		fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),
 		fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace),
-	}, dnsNames, "serving cert SANs")
+	}, dnsNames, "%s SANs", cert.GetName())
 }

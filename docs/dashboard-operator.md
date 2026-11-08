@@ -266,6 +266,7 @@ dashboard-operator/
 |-- config/
 |   |-- base/                       # Shared kustomize resources (no namespace/prefix)
 |   |-- certmanager/                # Self-signed Issuer + metrics Service/Certificate
+|   |   +-- wiring/                 # Transformer: final names into the metrics cert SANs
 |   |-- crd/bases/                  # Generated CRD YAML
 |   |-- rbac/role.yaml              # ClusterRole permissions
 |   |-- manager/manager.yaml        # Deployment manifest
@@ -675,7 +676,7 @@ kustomize build config/default | oc apply -f -
 
 Turning it on needs no extra step: apply `config/webhook-enabled`. The webhook Service and Certificate are left behind after switching back to `config/default`; they are harmless and can be deleted the same way.
 
-**Custom namespace or name prefix.** Wrap `config/webhook-enabled` in your own overlay and list `config/webhook/wiring` under `transformers:`. That transformer copies the final Certificate and Service names into `cert-manager.io/inject-ca-from` and the serving cert SANs. kustomize does not rewrite those fields on its own, and a parent overlay's `namespace`/`namePrefix` would otherwise leave them stale:
+**Custom namespace or name prefix.** Wrap `config/default` or `config/webhook-enabled` in your own overlay and list the wiring transformers under `transformers:`. `config/certmanager/wiring` copies the final metrics Service name into the metrics cert SANs; with the webhook on, `config/webhook/wiring` also copies the final Certificate and Service names into `cert-manager.io/inject-ca-from` and the webhook serving cert SANs. kustomize does not rewrite those fields on its own, and a parent overlay's `namespace`/`namePrefix` would otherwise leave them stale:
 
 ```yaml
 namespace: my-ns
@@ -683,10 +684,11 @@ namePrefix: my-
 resources:
   - <path>/dashboard-operator/config/webhook-enabled
 transformers:
-  - <path>/dashboard-operator/config/webhook/wiring
+  - <path>/dashboard-operator/config/certmanager/wiring
+  - <path>/dashboard-operator/config/webhook/wiring   # only with config/webhook-enabled
 ```
 
-`cmd/manager/config_manifests_test.go` (run by `make test`) renders both overlays and such a parent overlay. It fails if the webhook registration and the server flag disagree, or if the port, Service, serving cert, CA annotation or Issuer references drift apart.
+`cmd/manager/config_manifests_test.go` (run by `make test`) renders both overlays and such a parent overlay. It fails if the webhook registration and the server flag disagree, or if the port, Service, serving cert, CA annotation, metrics cert SANs or Issuer references drift apart.
 
 ### Via ODH Operator (Production)
 

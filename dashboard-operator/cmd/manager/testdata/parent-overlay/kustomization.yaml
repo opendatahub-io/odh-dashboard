@@ -10,4 +10,5 @@ resources:
   - ../../../../config/webhook-enabled
   - other-webhook.yaml
 transformers:
+  - ../../../../config/certmanager/wiring
   - ../../../../config/webhook/wiring
