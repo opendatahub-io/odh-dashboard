@@ -1,5 +1,5 @@
 import React from 'react';
-import { init, loadRemote } from '@module-federation/runtime';
+import { init, loadRemote, registerRemotes } from '@module-federation/runtime';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import { allSettledPromises } from '../core/allSettledPromises';
 
@@ -13,13 +13,21 @@ type MFConfig = {
 const EMPTY_EXTENSIONS: AppExtensions = {};
 
 const initRemotes = (remotes: MFConfig[]) => {
-  init({
-    name: 'app',
-    remotes: remotes.map(({ name, remoteEntry }) => ({
-      name,
-      entry: `/_mf/${name}${remoteEntry}`,
-    })),
-  });
+  const registered = init({ name: 'app', remotes: [] }).options.remotes;
+  const changed = remotes
+    .map(({ name, remoteEntry }) => ({ name, entry: `/_mf/${name}${remoteEntry}` }))
+    .filter(
+      ({ name, entry }) =>
+        !registered.some(
+          (remote) => remote.name === name && 'entry' in remote && remote.entry === entry,
+        ),
+    );
+  if (changed.length > 0) {
+    // `init` never replaces a remote that is already registered, so a changed entry URL
+    // would keep serving the old module. `force` swaps the registration and drops its
+    // cached module; remotes whose entry did not change keep theirs.
+    registerRemotes(changed, { force: true });
+  }
 };
 
 const loadModuleExtensions = (moduleName: string): Promise<AppExtensions> =>
@@ -80,6 +88,9 @@ export const useAppExtensions = (
   const [remoteState, setRemoteState] = React.useState<RemoteState | null>(null);
 
   React.useEffect(() => {
+    // Drop results of the previous configuration, so returning to a configuration loaded
+    // earlier (A -> none -> A) waits for the fresh load instead of reusing the old results.
+    setRemoteState(null);
     if (!mfRemotes) {
       return undefined;
     }
@@ -94,7 +105,8 @@ export const useAppExtensions = (
     };
   }, [mfRemotes]);
 
-  // Only results loaded for the current configuration count.
+  // Only results loaded for the current configuration count; this also covers the render
+  // between a configuration change and the effect above clearing the old results.
   const currentRemoteExtensions =
     mfRemotes && remoteState?.forRemotes === mfRemotes ? remoteState.extensions : null;
   const loaded = !mfRemotes || currentRemoteExtensions !== null;

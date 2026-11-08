@@ -7,8 +7,9 @@ import { useExtensions } from '../../core/useExtensions';
 import { ExtensibilityContextProvider } from '../ExtensibilityContext';
 
 jest.mock('@module-federation/runtime', () => ({
-  init: jest.fn(),
+  init: jest.fn(() => ({ options: { remotes: [] } })),
   loadRemote: jest.fn(),
+  registerRemotes: jest.fn(),
 }));
 
 const mockLoadRemote = jest.mocked(loadRemote);

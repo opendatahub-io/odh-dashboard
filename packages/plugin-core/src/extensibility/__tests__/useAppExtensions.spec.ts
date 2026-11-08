@@ -1,15 +1,21 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { init, loadRemote } from '@module-federation/runtime';
+import { init, loadRemote, registerRemotes } from '@module-federation/runtime';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import { useAppExtensions } from '../useAppExtensions';
 
 jest.mock('@module-federation/runtime', () => ({
   init: jest.fn(),
   loadRemote: jest.fn(),
+  registerRemotes: jest.fn(),
 }));
 
 const mockInit = jest.mocked(init);
 const mockLoadRemote = jest.mocked(loadRemote);
+const mockRegisterRemotes = jest.mocked(registerRemotes);
+
+// Stands in for the federation instance's registry: `init` returns it and
+// `registerRemotes` with `force` replaces same-named remotes, as the runtime does.
+let registeredRemotes: { name: string; entry: string }[] = [];
 
 const ext = (type: string): Extension => ({ type, properties: {} });
 const staticExtensions = { staticPlugin: [ext('static')] };
@@ -18,6 +24,17 @@ describe('useAppExtensions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    registeredRemotes = [];
+    mockInit.mockImplementation(
+      () => ({ options: { remotes: registeredRemotes } } as unknown as ReturnType<typeof init>),
+    );
+    mockRegisterRemotes.mockImplementation((remotes) => {
+      const added = remotes as { name: string; entry: string }[];
+      registeredRemotes = [
+        ...registeredRemotes.filter((r) => !added.some((a) => a.name === r.name)),
+        ...added,
+      ];
+    });
   });
 
   afterEach(() => {
@@ -58,13 +75,14 @@ describe('useAppExtensions', () => {
       remoteA: [ext('remoteA/extensions')],
       remoteB: [ext('remoteB/extensions')],
     });
-    expect(mockInit).toHaveBeenCalledWith({
-      name: 'app',
-      remotes: [
+    expect(mockInit).toHaveBeenCalledWith({ name: 'app', remotes: [] });
+    expect(mockRegisterRemotes).toHaveBeenCalledWith(
+      [
         { name: 'remoteA', entry: '/_mf/remoteA/remoteEntry.js' },
         { name: 'remoteB', entry: '/_mf/remoteB/remoteEntry.js' },
       ],
-    });
+      { force: true },
+    );
   });
 
   it('should register a failed remote with no extensions and still finish loading', async () => {
@@ -160,6 +178,57 @@ describe('useAppExtensions', () => {
         ...staticExtensions,
         remoteB: [ext('remoteB/extensions')],
       });
+    });
+    it('should not reuse earlier results when a configuration comes back while reloading', async () => {
+      const { result, rerender } = renderHook(
+        ({ remotes }: { remotes?: string }) => useAppExtensions(staticExtensions, remotes),
+        { initialProps: { remotes: remotesFor('remoteA') } as { remotes?: string } },
+      );
+      await waitFor(() => expect(result.current[0]).toHaveProperty('remoteA'));
+
+      rerender({ remotes: undefined });
+      expect(result.current).toEqual([staticExtensions, true]);
+
+      let resolveReload: (value: { default: Extension[] }) => void = () => undefined;
+      mockLoadRemote.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveReload = resolve;
+          }),
+      );
+      rerender({ remotes: remotesFor('remoteA') });
+      expect(result.current).toEqual([staticExtensions, false]);
+
+      await act(async () => {
+        resolveReload({ default: [ext('remoteA/reloaded')] });
+      });
+      expect(result.current).toEqual([
+        { ...staticExtensions, remoteA: [ext('remoteA/reloaded')] },
+        true,
+      ]);
+    });
+
+    it('should re-register a remote whose entry URL changed and leave unchanged ones alone', async () => {
+      const config = (entryA: string) =>
+        JSON.stringify([
+          { name: 'remoteA', remoteEntry: entryA },
+          { name: 'remoteB', remoteEntry: '/remoteEntry.js' },
+        ]);
+      const { result, rerender } = renderHook(
+        ({ remotes }: { remotes: string }) => useAppExtensions(staticExtensions, remotes),
+        { initialProps: { remotes: config('/v1/remoteEntry.js') } },
+      );
+      await waitFor(() => expect(result.current[1]).toBe(true));
+      mockRegisterRemotes.mockClear();
+
+      rerender({ remotes: config('/v2/remoteEntry.js') });
+      await waitFor(() => expect(result.current[1]).toBe(true));
+
+      expect(mockRegisterRemotes).toHaveBeenCalledTimes(1);
+      expect(mockRegisterRemotes).toHaveBeenCalledWith(
+        [{ name: 'remoteA', entry: '/_mf/remoteA/v2/remoteEntry.js' }],
+        { force: true },
+      );
     });
   });
 });
