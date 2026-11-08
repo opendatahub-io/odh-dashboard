@@ -21,6 +21,7 @@ const (
 	webhookPortFlag    = "--webhook-port="
 	webhookCertDir     = "/tmp/k8s-webhook-server/serving-certs"
 	injectCAAnnotation = "cert-manager.io/inject-ca-from"
+	dashboardVWCName   = "dashboard-validating-webhook"
 )
 
 // renderedConfig holds the objects of one kustomize build of config/.
@@ -72,6 +73,18 @@ func renderConfig(t *testing.T, dir string) renderedConfig {
 	return out
 }
 
+// dashboardVWCs returns the rendered dashboard webhook configurations, whatever
+// namePrefix an overlay applied.
+func (r renderedConfig) dashboardVWCs() []admissionregistrationv1.ValidatingWebhookConfiguration {
+	var out []admissionregistrationv1.ValidatingWebhookConfiguration
+	for _, vwc := range r.vwcs {
+		if strings.HasSuffix(vwc.Name, dashboardVWCName) {
+			out = append(out, vwc)
+		}
+	}
+	return out
+}
+
 func (r renderedConfig) manager(t *testing.T) corev1.Container {
 	t.Helper()
 	for _, c := range r.deployment.Spec.Template.Spec.Containers {
@@ -93,12 +106,18 @@ func TestConfigWebhookGating(t *testing.T) {
 		dir         string
 		wantWebhook bool
 		wantNS      string
+		// otherCARefs are inject-ca-from values of unrelated webhooks in the
+		// overlay, keyed by rendered name; the wiring must leave them alone.
+		otherCARefs map[string]string
 	}{
 		{name: "default", dir: "../../config/default", wantWebhook: false, wantNS: "opendatahub"},
 		{name: "webhook-enabled", dir: "../../config/webhook-enabled", wantWebhook: true, wantNS: "opendatahub"},
 		// A downstream overlay that changes namespace and namePrefix and
 		// re-applies config/webhook/wiring must keep the wiring consistent.
-		{name: "parent-overlay", dir: "testdata/parent-overlay", wantWebhook: true, wantNS: "custom-ns"},
+		{
+			name: "parent-overlay", dir: "testdata/parent-overlay", wantWebhook: true, wantNS: "custom-ns",
+			otherCARefs: map[string]string{"custom-other-validating-webhook": "other-ns/other-cert"},
+		},
 	} {
 		wantWebhook := tc.wantWebhook
 		t.Run(tc.name, func(t *testing.T) {
@@ -113,8 +132,9 @@ func TestConfigWebhookGating(t *testing.T) {
 				}
 			}
 			assert.Equal(t, wantWebhook, flagSet, "%s on the manager", enableWebhookFlag)
-			assert.Equal(t, flagSet, len(cfg.vwcs) > 0,
-				"ValidatingWebhookConfiguration present (%d) must match %s (%v)", len(cfg.vwcs), enableWebhookFlag, flagSet)
+			dashboardVWCs := cfg.dashboardVWCs()
+			assert.Equal(t, flagSet, len(dashboardVWCs) > 0,
+				"dashboard ValidatingWebhookConfiguration present (%d) must match %s (%v)", len(dashboardVWCs), enableWebhookFlag, flagSet)
 
 			for key, cert := range cfg.certificates {
 				kind, _, _ := unstructured.NestedString(cert.Object, "spec", "issuerRef", "kind")
@@ -123,6 +143,18 @@ func TestConfigWebhookGating(t *testing.T) {
 					assert.True(t, cfg.issuers[cert.GetNamespace()+"/"+name],
 						"Certificate %s references Issuer %q, which is not rendered", key, name)
 				}
+			}
+
+			for name, want := range tc.otherCARefs {
+				found := false
+				for _, vwc := range cfg.vwcs {
+					if vwc.Name == name {
+						found = true
+						assert.Equal(t, want, vwc.Annotations[injectCAAnnotation],
+							"unrelated webhook %s: %s rewritten", name, injectCAAnnotation)
+					}
+				}
+				assert.True(t, found, "unrelated webhook %s is not rendered", name)
 			}
 
 			if wantWebhook {
@@ -170,8 +202,9 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 	}
 	require.NotEmpty(t, certSecret, "manager must mount a Secret at %s", webhookCertDir)
 
-	require.Len(t, cfg.vwcs, 1)
-	vwc := cfg.vwcs[0]
+	dashboardVWCs := cfg.dashboardVWCs()
+	require.Len(t, dashboardVWCs, 1)
+	vwc := dashboardVWCs[0]
 	require.Len(t, vwc.Webhooks, 1)
 	ref := vwc.Webhooks[0].ClientConfig.Service
 	require.NotNil(t, ref, "webhook must call an in-cluster Service")

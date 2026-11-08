@@ -11,6 +11,7 @@ replacements:
     targets:
       - select:
           kind: ValidatingWebhookConfiguration
+          name: dashboard-validating-webhook
         fieldPaths:
           - metadata.annotations.[cert-manager.io/inject-ca-from]
         options:
@@ -23,6 +24,7 @@ replacements:
     targets:
       - select:
           kind: ValidatingWebhookConfiguration
+          name: dashboard-validating-webhook
         fieldPaths:
           - metadata.annotations.[cert-manager.io/inject-ca-from]
         options:
