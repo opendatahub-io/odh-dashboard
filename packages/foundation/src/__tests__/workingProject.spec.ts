@@ -40,6 +40,29 @@ describe('orderWorkingProjects', () => {
 });
 
 describe('resolveWorkingProject', () => {
+  it('should not invent a fallback when listing is unavailable', () => {
+    const list = { status: 'listing-unavailable' as const, projects };
+    for (const route of [null, { kind: 'project' as const, name: 'unvalidated' }]) {
+      const result = resolve({ list, route, storedName: 'unvalidated' });
+      expect(result.activeProject).toBeNull();
+      expect(result.orderedProjects).toHaveLength(projects.length);
+      expect(result.removedRouteFallback).toBeNull();
+    }
+  });
+
+  it('should resolve only validated route and stored candidates without listing', () => {
+    const list = { status: 'listing-unavailable' as const, projects };
+    expect(
+      resolve({ list, route: { kind: 'project', name: 'team-10' }, storedName: 'alpha' })
+        .activeProject,
+    ).toBe(projects[0]);
+    expect(resolve({ list, route: null, storedName: 'alpha' }).activeProject).toBe(projects[3]);
+    expect(
+      resolve({ list, route: { kind: 'project', name: 'unvalidated' }, currentName: 'alpha' })
+        .activeProject,
+    ).toBe(projects[3]);
+  });
+
   it('should use a valid route ahead of conflicting storage on entry and browser navigation', () => {
     for (const routeName of ['team-10', 'ai-2']) {
       const result = resolve({

@@ -28,6 +28,7 @@ import {
   StackItem,
   ToggleGroup,
   ToggleGroupItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, InProgressIcon } from '@patternfly/react-icons';
 import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
@@ -48,6 +49,8 @@ import RelativeTimestamp from '~/app/components/RelativeTimestamp';
 import { useConnection } from '~/app/hooks/useConnection';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
+import { getConnectionAccessTooltip } from '~/app/utilities/connectionAccess';
 import {
   DATA_CONNECT_HUB_EVENT_NAMES,
   fireDataConnectHubTrackEvent,
@@ -71,6 +74,15 @@ type ConnectionDetailsContentProps = {
 const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ namespace }) => {
   const { connectionId = '' } = useParams<'connectionId'>();
   const { search } = useLocation();
+  const { isAllowed: canVerifyConnection, loaded: verifyAccessLoaded } = useConnectionAccess(
+    namespace,
+    'create',
+  );
+  const { isAllowed: canDeleteConnection, loaded: deleteAccessLoaded } = useConnectionAccess(
+    namespace,
+    'delete',
+  );
+  const isVerifyAccessDisabled = !canVerifyConnection || !verifyAccessLoaded;
   const [namespaces] = useNamespaces();
   const [connection, loaded, loadError, refresh] = useConnection(namespace, connectionId);
   const [verifying, setVerifying] = React.useState(false);
@@ -98,6 +110,17 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
     Boolean(connectionTypeId),
   );
   const connectionTypeName = connectionType?.resource.name ?? connectionTypeId;
+  const isVerifyDisabled = isVerifyAccessDisabled || !connection || verifying;
+  const verifyButton = (
+    <Button
+      variant="link"
+      data-testid="connection-verify-button"
+      isAriaDisabled={isVerifyDisabled}
+      onClick={() => void handleVerify()}
+    >
+      Verify connection
+    </Button>
+  );
   const dataIngestionCode = snippets.python(namespace, connectionId);
   const restIngestionCode = snippets.bash(namespace, connectionId);
 
@@ -111,7 +134,7 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
   const isDarkMode = useDarkMode();
 
   const handleVerify = async () => {
-    if (!connection || verifying) {
+    if (isVerifyAccessDisabled || !connection || verifying) {
       return;
     }
 
@@ -192,7 +215,16 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
           >
             <DropdownList>
               <DropdownItem
-                isDisabled={verifying}
+                isAriaDisabled={isVerifyAccessDisabled || verifying}
+                tooltipProps={
+                  isVerifyAccessDisabled
+                    ? {
+                        content: verifyAccessLoaded
+                          ? getConnectionAccessTooltip('create')
+                          : 'Checking access...',
+                      }
+                    : undefined
+                }
                 onClick={() => {
                   setActionsOpen(false);
                   void handleVerify();
@@ -202,7 +234,20 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
               </DropdownItem>
               <Divider />
               <DropdownItem
+                isAriaDisabled={!canDeleteConnection || !deleteAccessLoaded}
+                tooltipProps={
+                  !canDeleteConnection || !deleteAccessLoaded
+                    ? {
+                        content: deleteAccessLoaded
+                          ? getConnectionAccessTooltip('delete')
+                          : 'Checking access...',
+                      }
+                    : undefined
+                }
                 onClick={() => {
+                  if (!canDeleteConnection || !deleteAccessLoaded) {
+                    return;
+                  }
                   setActionsOpen(false);
                   fireDataConnectHubTrackEvent({
                     eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
@@ -378,14 +423,19 @@ const ConnectionDetailsContent: React.FC<ConnectionDetailsContentProps> = ({ nam
                 </DescriptionList>
               </CardBody>
               <CardBody>
-                <Button
-                  variant="link"
-                  data-testid="connection-verify-button"
-                  isDisabled={!connection || verifying}
-                  onClick={() => void handleVerify()}
-                >
-                  Verify connection
-                </Button>
+                {isVerifyAccessDisabled ? (
+                  <Tooltip
+                    content={
+                      verifyAccessLoaded
+                        ? getConnectionAccessTooltip('create')
+                        : 'Checking access...'
+                    }
+                  >
+                    {verifyButton}
+                  </Tooltip>
+                ) : (
+                  verifyButton
+                )}
                 {verificationError && (
                   <HelperText>
                     <HelperTextItem variant="error">{verificationError.message}</HelperTextItem>

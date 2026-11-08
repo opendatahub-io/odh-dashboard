@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Controller, FormProvider } from 'react-hook-form';
 import {
+  Alert,
   Button,
   Content,
   Divider,
@@ -62,6 +63,7 @@ type StartEvaluationRunModalProps = {
   trackingSource?: string;
   onSuccess?: () => void;
   description?: React.ReactNode;
+  prerequisite?: string;
   onRunFailure?: (
     error: unknown,
     collection?: Collection,
@@ -83,6 +85,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   trackingSource,
   onSuccess,
   description,
+  prerequisite,
   onRunFailure,
 }) => {
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
@@ -285,6 +288,16 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
           >
             {description}
           </Content>
+        ) : null}
+        {prerequisite ? (
+          <Alert
+            variant="warning"
+            isInline
+            isPlain
+            title={prerequisite}
+            className="pf-v6-u-mb-md"
+            data-testid="start-evaluation-run-prerequisite"
+          />
         ) : null}
         <FormProvider {...form.form}>
           <Form data-testid="start-evaluation-form" aria-busy={isCloning}>

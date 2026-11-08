@@ -103,7 +103,7 @@ Informational `1xx` writes are forwarded without committing the response so a la
 
 ### WebSocket 101 upgrade responses
 
-`SetSecurityHeaders` does **not** cover WebSocket upgrades — `gorilla/websocket`'s `Upgrade` writes the `101 Switching Protocols` response directly. `X-Content-Type-Options: nosniff` is passed via the upgrader's `responseHeader` (see `clientUpgradeResponseHeader` in `ws_proxy.go`), along with the negotiated `Sec-WebSocket-Protocol` when present. Unrelated queued headers are not copied onto the 101.
+`SetSecurityHeaders` does **not** cover WebSocket upgrades — `gorilla/websocket`'s `Upgrade` writes the `101 Switching Protocols` response directly. `X-Content-Type-Options: nosniff` is passed via the upgrader's `responseHeader` (see `clientUpgradeResponseHeader` in `ws_handshake.go`), along with the negotiated `Sec-WebSocket-Protocol` when present. Unrelated queued headers are not copied onto the 101.
 
 ## Endpoints
 

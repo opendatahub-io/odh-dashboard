@@ -220,9 +220,18 @@ class SelectRecordTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 dispatch.select_record([bad], 0)
 
+    def test_rhai_and_rhoaieng_issues_are_accepted(self):
+        for key in ("RHAI-1", "RHOAIENG-1"):
+            with self.subTest(key=key):
+                selected = dispatch.select_record([record(key)], 0)
+                self.assertEqual(selected, {"include": [record(key)]})
+
     def test_other_project_or_tenant_is_rejected(self):
         for bad in (
-            record("RHAI-1"),
+            record("RHAISTRAT-1"),
+            record("AIPCC-1"),
+            record("RHAI-"),
+            record("RHAI-RHOAIENG-1"),
             record("RHOAIENG-1", url="https://other.atlassian.net/browse/RHOAIENG-1"),
             record("RHOAIENG-1", url="https://redhat.atlassian.net/browse/RHOAIENG-2"),
         ):
@@ -323,6 +332,7 @@ class WorkflowContractTests(unittest.TestCase):
         jql = workflow("fullsend-poll-jira.yaml")["jobs"]["poll"]["steps"][2]["env"]["JQL"]
         self.assertIn('(labels = "ready-to-code" OR comment ~ "\\"fs-code\\"")', jql)
         self.assertIn("(labels is EMPTY OR labels not in (", jql)
+        self.assertIn("project in (RHAI, RHOAIENG)", jql)
         for label in ("opt-in-autofix", "jira-autofix", "jira-autofix-pending", "jira-autofix-review"):
             self.assertIn(f'"{label}"', jql)
 
