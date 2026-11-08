@@ -1,4 +1,5 @@
-# Shared resources for every config/ overlay. Has no namespace or name prefix;
+# Shared resources for every config/ overlay (requires cert-manager for the
+# metrics Certificate). Has no namespace or name prefix;
 # the overlays (default, webhook-enabled) set those so that components and
 # replacements see the final names.
 apiVersion: kustomize.config.k8s.io/v1beta1

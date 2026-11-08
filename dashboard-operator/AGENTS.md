@@ -35,6 +35,7 @@ dashboard-operator/
 │   ├── default/                        # Default install, webhook off (matches chart webhook.enabled=false)
 │   │   └── kustomization.yaml
 │   ├── webhook/                        # Kustomize Component: webhook config + --enable-webhook, always together
+│   │   └── wiring/                     # Transformer: final names into inject-ca-from + cert SANs (re-list in parent overlays)
 │   ├── webhook-enabled/                # Opt-in install: base + webhook component (needs cert-manager)
 │   ├── manager/
 │   │   ├── manager.yaml                # Deployment manifest

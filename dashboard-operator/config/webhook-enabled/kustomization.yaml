@@ -1,6 +1,10 @@
 # Opt-in install with the validating webhook, the kustomize equivalent of the
 # Helm chart's webhook.enabled=true with webhook.certManager.enabled=true.
 # Requires cert-manager on the cluster.
+#
+# To wrap this overlay with a different namespace or namePrefix, also list
+# config/webhook/wiring under `transformers:` in your overlay; see
+# config/webhook/wiring/kustomization.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: opendatahub
@@ -9,64 +13,5 @@ resources:
   - ../base
 components:
   - ../webhook
-# Replacements run after namespace and namePrefix, so they copy the final
-# names into the fields kustomize does not rewrite on its own.
-replacements:
-  # cert-manager.io/inject-ca-from: <cert namespace>/<cert name>
-  - source:
-      kind: Certificate
-      name: dashboard-operator-webhook-cert
-      fieldPath: metadata.namespace
-    targets:
-      - select:
-          kind: ValidatingWebhookConfiguration
-        fieldPaths:
-          - metadata.annotations.[cert-manager.io/inject-ca-from]
-        options:
-          delimiter: /
-          index: 0
-  - source:
-      kind: Certificate
-      name: dashboard-operator-webhook-cert
-      fieldPath: metadata.name
-    targets:
-      - select:
-          kind: ValidatingWebhookConfiguration
-        fieldPaths:
-          - metadata.annotations.[cert-manager.io/inject-ca-from]
-        options:
-          delimiter: /
-          index: 1
-  # Serving cert SANs: <service name>.<service namespace>.svc[.cluster.local]
-  - source:
-      kind: Service
-      name: dashboard-operator-webhook-service
-      fieldPath: metadata.name
-    targets:
-      - select:
-          kind: Certificate
-          name: dashboard-operator-webhook-cert
-        fieldPaths:
-          - spec.dnsNames.0
-          - spec.dnsNames.1
-        options:
-          delimiter: .
-          index: 0
-  - source:
-      kind: Service
-      name: dashboard-operator-webhook-service
-      fieldPath: metadata.namespace
-    targets:
-      - select:
-          kind: Certificate
-          name: dashboard-operator-webhook-cert
-        fieldPaths:
-          - spec.dnsNames.0
-          - spec.dnsNames.1
-        options:
-          delimiter: .
-          index: 1
-      - select:
-          kind: ValidatingWebhookConfiguration
-        fieldPaths:
-          - webhooks.0.clientConfig.service.namespace
+transformers:
+  - ../webhook/wiring

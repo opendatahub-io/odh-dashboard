@@ -32,11 +32,13 @@ type renderedConfig struct {
 	issuers      map[string]bool
 }
 
-func renderConfig(t *testing.T, overlay string) renderedConfig {
+// renderConfig runs `kustomize build` on dir (relative to this package) with
+// the default load restrictor, as a user would.
+func renderConfig(t *testing.T, dir string) renderedConfig {
 	t.Helper()
 	k := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
-	resMap, err := k.Run(filesys.MakeFsOnDisk(), "../../config/"+overlay)
-	require.NoError(t, err, "kustomize build config/%s", overlay)
+	resMap, err := k.Run(filesys.MakeFsOnDisk(), dir)
+	require.NoError(t, err, "kustomize build %s", dir)
 
 	out := renderedConfig{
 		services:     map[string]corev1.Service{},
@@ -49,7 +51,7 @@ func renderConfig(t *testing.T, overlay string) renderedConfig {
 		u := &unstructured.Unstructured{Object: obj}
 		switch u.GetKind() {
 		case "Deployment":
-			require.Nil(t, out.deployment, "config/%s renders more than one Deployment", overlay)
+			require.Nil(t, out.deployment, "%s renders more than one Deployment", dir)
 			out.deployment = &appsv1.Deployment{}
 			require.NoError(t, runtime.DefaultUnstructuredConverter.FromUnstructured(obj, out.deployment))
 		case "ValidatingWebhookConfiguration":
@@ -66,7 +68,7 @@ func renderConfig(t *testing.T, overlay string) renderedConfig {
 			out.issuers[u.GetNamespace()+"/"+u.GetName()] = true
 		}
 	}
-	require.NotNil(t, out.deployment, "config/%s renders no Deployment", overlay)
+	require.NotNil(t, out.deployment, "%s renders no Deployment", dir)
 	return out
 }
 
@@ -86,12 +88,22 @@ func (r renderedConfig) manager(t *testing.T) corev1.Container {
 // the webhook server, and vice versa. This mirrors the Helm chart, which gates
 // both on webhook.enabled (default false).
 func TestConfigWebhookGating(t *testing.T) {
-	for overlay, wantWebhook := range map[string]bool{
-		"default":         false,
-		"webhook-enabled": true,
+	for _, tc := range []struct {
+		name        string
+		dir         string
+		wantWebhook bool
+		wantNS      string
+	}{
+		{name: "default", dir: "../../config/default", wantWebhook: false, wantNS: "opendatahub"},
+		{name: "webhook-enabled", dir: "../../config/webhook-enabled", wantWebhook: true, wantNS: "opendatahub"},
+		// A downstream overlay that changes namespace and namePrefix and
+		// re-applies config/webhook/wiring must keep the wiring consistent.
+		{name: "parent-overlay", dir: "testdata/parent-overlay", wantWebhook: true, wantNS: "custom-ns"},
 	} {
-		t.Run(overlay, func(t *testing.T) {
-			cfg := renderConfig(t, overlay)
+		wantWebhook := tc.wantWebhook
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := renderConfig(t, tc.dir)
+			require.Equal(t, tc.wantNS, cfg.deployment.Namespace, "Deployment namespace")
 			mgr := cfg.manager(t)
 
 			flagSet := false
@@ -167,6 +179,7 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 
 	svc, ok := cfg.services[ref.Namespace+"/"+ref.Name]
 	require.True(t, ok, "webhook Service %s/%s is not rendered", ref.Namespace, ref.Name)
+	require.NotEmpty(t, svc.Spec.Selector, "webhook Service must select the manager pods")
 	require.Len(t, svc.Spec.Ports, 1)
 	assert.Equal(t, port, svc.Spec.Ports[0].TargetPort.String(), "webhook Service targetPort")
 	for k, v := range svc.Spec.Selector {
@@ -179,5 +192,8 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 	secretName, _, _ := unstructured.NestedString(cert.Object, "spec", "secretName")
 	assert.Equal(t, certSecret, secretName, "serving cert Secret mounted by the manager")
 	dnsNames, _, _ := unstructured.NestedStringSlice(cert.Object, "spec", "dnsNames")
-	assert.Contains(t, dnsNames, fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace), "serving cert SANs")
+	assert.ElementsMatch(t, []string{
+		fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),
+		fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace),
+	}, dnsNames, "serving cert SANs")
 }
