@@ -666,7 +666,7 @@ kustomize build config/default | oc apply -f -
 kustomize build config/webhook-enabled | oc apply -f -
 ```
 
-**Turning the webhook off, or upgrading an install made before the webhook was gated.** `oc apply` does not delete objects that a new render no longer contains. Delete the registration *before* applying `config/default`, or every Dashboard `CREATE` is rejected while no server answers:
+**Turning the webhook off, or upgrading an install made before the webhook was gated.** `oc apply` does not delete objects that a new render no longer contains. Delete the registration *before* applying `config/default`, or every Dashboard `CREATE` is rejected while no server answers. A parent overlay with its own `namePrefix` renames the registration too: delete `<namePrefix>odh-dashboard-validating-webhook` instead (for example `custom-odh-dashboard-validating-webhook`). `oc get validatingwebhookconfiguration | grep dashboard-validating-webhook` shows the name in use:
 
 ```bash
 oc delete validatingwebhookconfiguration odh-dashboard-validating-webhook --ignore-not-found
