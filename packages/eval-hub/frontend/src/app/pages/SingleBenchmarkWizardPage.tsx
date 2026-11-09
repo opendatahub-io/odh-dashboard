@@ -113,11 +113,6 @@ const SingleBenchmarkWizardPage: React.FC = () => {
     navigate(evaluationRunsRoute(namespace));
   }, [navigate, namespace]);
 
-  const handleDeselectBenchmark = () => {
-    form.form.setValue('benchmarks', [], { shouldDirty: true, shouldValidate: true });
-    setCurrentStep('selectBenchmark');
-  };
-
   const handleRunRequest = React.useCallback(() => {
     if (!configuredBenchmark || !form.isValid) {
       return;
@@ -142,8 +137,9 @@ const SingleBenchmarkWizardPage: React.FC = () => {
     currentStep === 'selectBenchmark' ? (
       <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
     ) : (
-      <>
+      [
         <BreadcrumbItem
+          key="select-benchmark"
           render={() => (
             <button
               type="button"
@@ -154,9 +150,11 @@ const SingleBenchmarkWizardPage: React.FC = () => {
               Select benchmark
             </button>
           )}
-        />
-        <BreadcrumbItem isActive>Benchmark</BreadcrumbItem>
-      </>
+        />,
+        <BreadcrumbItem key="benchmark" isActive>
+          Benchmark
+        </BreadcrumbItem>,
+      ]
     );
 
   return (
@@ -238,7 +236,6 @@ const SingleBenchmarkWizardPage: React.FC = () => {
                     primaryActionTestId="single-benchmark-continue-to-run"
                     showSecondaryAction={false}
                     showBenchmarkNavigation={false}
-                    onDeselectBenchmark={handleDeselectBenchmark}
                     onCancel={form.handleCancel}
                   />
                 </>
