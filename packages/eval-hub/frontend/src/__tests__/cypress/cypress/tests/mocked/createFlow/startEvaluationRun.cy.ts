@@ -661,6 +661,27 @@ describe('Start Evaluation Run - Queue-backed Hardware Profiles', () => {
     cy.wait('@createKueueJob');
     new ToastNotification('Evaluation started').find().should('exist');
   });
+
+  it('should show a hardware profile error state and block submission when the info API fails', () => {
+    cy.intercept(
+      { method: 'GET', pathname: '/eval-hub/api/v1/info' },
+      { statusCode: 500, body: { message: 'Info unavailable' } },
+    ).as('queueInfoError');
+
+    navigateToBenchmarkStart();
+    cy.wait('@queueInfoError');
+
+    startEvaluationRunPage
+      .findHardwareProfileToggle()
+      .should('be.disabled')
+      .and('contain.text', 'Hardware profiles unavailable');
+    startEvaluationRunPage
+      .findHardwareProfileHelperText()
+      .should('contain.text', 'Resolve this error before starting an evaluation.');
+
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().should('be.disabled');
+  });
 });
 
 describe('Start Evaluation Run - Collection Mode', () => {
