@@ -10,7 +10,7 @@ COPY internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/bff ./cmd
 
 # Final minimal image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8-1793862054
 WORKDIR /
 COPY --from=builder /tmp/bff ./
 COPY static/ ./static/
