@@ -181,11 +181,11 @@ cd frontend && pnpm run test:cypress-ci --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                 | Description                          |
-| ------ | -------------------- | ------------------------------------ |
-| GET    | `/healthcheck`       | Liveness probe                       |
-| GET    | `/api/v1/user`       | Returns authenticated user info      |
-| GET    | `/api/v1/namespaces` | List namespaces (dev/mock mode only) |
+| Method | Path                 | Description                                                                                                                     |
+| ------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/healthcheck`       | Liveness probe                                                                                                                  |
+| GET    | `/api/v1/user`       | Returns authenticated user info                                                                                                 |
+| GET    | `/api/v1/namespaces` | List namespaces available to the authenticated user, with an OpenShift Projects fallback when cluster-wide listing is forbidden |
 
 ---
 

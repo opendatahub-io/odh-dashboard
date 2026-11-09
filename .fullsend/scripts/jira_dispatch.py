@@ -20,7 +20,8 @@ import time
 REPOSITORY = os.environ.get("GITHUB_REPOSITORY", "opendatahub-io/odh-dashboard")
 POLL_WORKFLOW = ".github/workflows/fullsend-poll-jira.yaml"
 CODE_WORKFLOW = "fullsend-code-jira.yaml"
-JIRA_PROJECT = "RHOAIENG"
+# RHAI is where new issues go; RHOAIENG stays until it is retired.
+JIRA_PROJECTS = ("RHAI", "RHOAIENG")
 JIRA_BROWSE_URL = "https://redhat.atlassian.net/browse/"
 # launch dispatches seconds after the poll; anything older is a replay.
 MAX_POLL_AGE = timedelta(hours=2)
@@ -96,8 +97,11 @@ def select_record(records, index):
     if event["source"]["system"] != "jira" or event["repo"] != REPOSITORY:
         raise ValueError("Unexpected event source")
     key = event["entity"]["key"]
-    if not key.startswith(JIRA_PROJECT + "-") or event["entity"]["url"] != (
-        JIRA_BROWSE_URL + key
+    project, _, number = key.rpartition("-")
+    if (
+        project not in JIRA_PROJECTS
+        or not number.isdigit()
+        or event["entity"]["url"] != JIRA_BROWSE_URL + key
     ):
         raise ValueError("Unexpected Jira project or tenant")
     return {"include": [record]}

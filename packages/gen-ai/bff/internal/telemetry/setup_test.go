@@ -11,15 +11,57 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 )
 
 var testLogger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+
+func TestDiscoverCollectorEndpointSelection(t *testing.T) {
+	collector := func(name, namespace string) runtime.Object {
+		return &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "opentelemetry.io/v1beta1",
+			"kind":       "OpenTelemetryCollector",
+			"metadata":   map[string]any{"name": name, "namespace": namespace},
+		}}
+	}
+	platform := collector(constants.PlatformCollectorName, "platform-ns")
+	genAI := collector(constants.GenAICollectorName, "gen-ai-ns")
+	for _, tt := range []struct {
+		name    string
+		objects []runtime.Object
+		want    string
+	}{
+		{name: "none"},
+		{
+			name: "platform fallback", objects: []runtime.Object{platform},
+			want: "http://gen-ai-trace-collector-collector.platform-ns.svc:4318",
+		},
+		{
+			name: "existing gen-ai without platform", objects: []runtime.Object{genAI},
+			want: "http://gen-ai-trace-collector-collector.gen-ai-ns.svc:4318",
+		},
+		{
+			name: "gen-ai takes precedence", objects: []runtime.Object{platform, genAI},
+			want: "http://gen-ai-trace-collector-collector.gen-ai-ns.svc:4318",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+				map[schema.GroupVersionResource]string{constants.OTelCollectorGVR: "OpenTelemetryCollectorList"}, tt.objects...)
+			assert.Equal(t, tt.want, discoverCollectorEndpointWithClient(context.Background(), testLogger, dynClient))
+		})
+	}
+}
 
 func TestSetup_WaitsWhenEndpointUnset(t *testing.T) {
 	preserveOTelGlobals(t)

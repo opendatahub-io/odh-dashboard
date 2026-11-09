@@ -10,7 +10,7 @@ import {
   type UserSettings,
 } from 'mod-arch-core';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { API_URL_PREFIX } from '~/app/utilities/const';
+import { API_URL_PREFIX, MAAS_MANDATORY_NAMESPACE } from '~/app/utilities/const';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { AppContext } from '~/app/context/AppContext';
 import { useMaaSSettings } from '~/app/hooks/useMaaSSettings';
@@ -82,10 +82,15 @@ const LegacySettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children 
 };
 
 const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const SettingsLoader = isMaaSPortalHost() ? MaaSSettingsLoader : LegacySettingsLoader;
+  const isPortalHost = isMaaSPortalHost();
+  const SettingsLoader = isPortalHost ? MaaSSettingsLoader : LegacySettingsLoader;
+  // TODO: Remove this portal-specific namespace workaround once the mandatory namespace hack is no longer needed.
+  const config = isPortalHost
+    ? { ...modularArchConfig, mandatoryNamespace: MAAS_MANDATORY_NAMESPACE }
+    : modularArchConfig;
 
   return (
-    <ModularArchContextProvider config={modularArchConfig}>
+    <ModularArchContextProvider config={config}>
       <SettingsLoader>{children}</SettingsLoader>
     </ModularArchContextProvider>
   );

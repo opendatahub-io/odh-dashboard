@@ -264,10 +264,16 @@ dashboard-operator/
 |       |-- dashboard_webhook.go    # Singleton validation webhook
 |       +-- dashboard_webhook_test.go
 |-- config/
+|   |-- base/                       # Shared kustomize resources (no namespace/prefix)
+|   |-- certmanager/                # Self-signed Issuer + metrics Service/Certificate
+|   |   +-- wiring/                 # Transformer: final names into the metrics cert SANs
 |   |-- crd/bases/                  # Generated CRD YAML
 |   |-- rbac/role.yaml              # ClusterRole permissions
 |   |-- manager/manager.yaml        # Deployment manifest
-|   +-- webhook/                    # Webhook configuration
+|   |-- default/                    # Kustomize install, webhook off (chart default)
+|   |-- webhook/                    # Component: webhook config + --enable-webhook together
+|   |   +-- wiring/                 # Transformer: final names into inject-ca-from and cert SANs
+|   +-- webhook-enabled/            # Kustomize install, webhook on
 |-- Dockerfile                      # Multi-stage Go build
 |-- Makefile                        # Build, test, generate, lint targets
 +-- go.mod                          # Go module (separate from the pnpm workspace)
@@ -400,6 +406,8 @@ The operator uses cert-manager for TLS certificate provisioning with a self-sign
 Both certificates reuse the same `selfsigned-issuer` (Issuer kind, namespace-scoped).
 
 ### Webhook TLS
+
+The webhook is optional and off by default: Helm `webhook.enabled` (default `false`) or the kustomize `config/webhook-enabled` overlay turns on the ValidatingWebhookConfiguration and `--enable-webhook` together. Both use `failurePolicy: Fail`, so the registration must never exist without the server (see [Kustomize](#standalone-kustomize)).
 
 The ValidatingWebhookConfiguration uses cert-manager's `inject-ca-from` annotation to inject the CA bundle. The webhook service listens on port 9443 with certificates mounted from the webhook-tls secret.
 
@@ -640,6 +648,48 @@ EOF
 oc get dashboard default-dashboard -o yaml
 ```
 
+### Standalone (Kustomize)
+
+`config/` offers two overlays. Both deploy to `opendatahub` with the `odh-` name prefix and need cert-manager, because the metrics serving Certificate is part of every install.
+
+| Overlay | ValidatingWebhookConfiguration | `--enable-webhook` | Helm equivalent |
+|---|---|---|---|
+| `config/default` | not applied | not set | `webhook.enabled=false` (default) |
+| `config/webhook-enabled` | applied (`failurePolicy: Fail`) | set, with `--webhook-port=9443` and the serving cert mounted | `webhook.enabled=true`, `webhook.certManager.enabled=true` |
+
+```bash
+cd dashboard-operator
+
+# Webhook off (default)
+kustomize build config/default | oc apply -f -
+
+# Webhook on
+kustomize build config/webhook-enabled | oc apply -f -
+```
+
+**Turning the webhook off, or upgrading an install made before the webhook was gated.** `oc apply` does not delete objects that a new render no longer contains. Delete the registration *before* applying `config/default`, or every Dashboard `CREATE` is rejected while no server answers. A parent overlay with its own `namePrefix` renames the registration too: delete `<namePrefix>odh-dashboard-validating-webhook` instead (for example `custom-odh-dashboard-validating-webhook`). `oc get validatingwebhookconfiguration | grep dashboard-validating-webhook` shows the name in use:
+
+```bash
+oc delete validatingwebhookconfiguration odh-dashboard-validating-webhook --ignore-not-found
+kustomize build config/default | oc apply -f -
+```
+
+Turning it on needs no extra step: apply `config/webhook-enabled`. The webhook Service and Certificate are left behind after switching back to `config/default`; they are harmless and can be deleted the same way.
+
+**Custom namespace or name prefix.** Wrap `config/default` or `config/webhook-enabled` in your own overlay and list the wiring transformers under `transformers:`. `config/certmanager/wiring` copies the final metrics Service name into the metrics cert SANs; with the webhook on, `config/webhook/wiring` also copies the final Certificate and Service names into `cert-manager.io/inject-ca-from` and the webhook serving cert SANs. kustomize does not rewrite those fields on its own, and a parent overlay's `namespace`/`namePrefix` would otherwise leave them stale:
+
+```yaml
+namespace: my-ns
+namePrefix: my-
+resources:
+  - <path>/dashboard-operator/config/webhook-enabled
+transformers:
+  - <path>/dashboard-operator/config/certmanager/wiring
+  - <path>/dashboard-operator/config/webhook/wiring   # only with config/webhook-enabled
+```
+
+`cmd/manager/config_manifests_test.go` (run by `make test`) renders both overlays and such a parent overlay. It fails if the webhook registration and the server flag disagree, or if the port, Service, serving cert, CA annotation, metrics cert SANs or Issuer references drift apart.
+
 ### Via ODH Operator (Production)
 
 In production, the ODH Operator manages the dashboard-operator's lifecycle:
@@ -701,6 +751,10 @@ oc delete dashboard <name>
 # Restore CEL validation immediately
 oc apply -f config/crd/bases/
 ```
+
+**Every Dashboard CREATE is rejected by `validate.dashboards.components.platform.opendatahub.io`**
+
+A ValidatingWebhookConfiguration is registered but no webhook server answers. This happens when an older kustomize install is upgraded, or `config/webhook-enabled` is switched to `config/default`. Delete the stale registration: `oc delete validatingwebhookconfiguration odh-dashboard-validating-webhook`. See [Standalone (Kustomize)](#standalone-kustomize).
 
 **Pod in ImagePullBackOff**
 

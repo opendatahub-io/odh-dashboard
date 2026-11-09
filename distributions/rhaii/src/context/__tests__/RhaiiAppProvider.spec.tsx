@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, renderHook, screen, waitFor } from '@testing-library/react';
 import { useK8sWatchResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent, useWatchConnectionTypes } from '@odh-dashboard/plugin-core/host-api';
 import { HardwareProfilesContext } from '@odh-dashboard/ui-core/context/HardwareProfilesContext';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import RhaiiAppProvider from '../RhaiiAppProvider';
@@ -110,5 +110,38 @@ describe('RhaiiAppProvider Tilt fixture composition', () => {
         undefined,
       ),
     );
+  });
+});
+
+describe('RhaiiAppProvider tracking', () => {
+  it('should mount a tracking no-op without accessing or initializing the global SDK', () => {
+    const originalAnalytics = Object.getOwnPropertyDescriptor(window, 'analytics');
+    const sdk = { track: jest.fn() };
+    const analyticsRead = jest.fn(() => sdk);
+    const analyticsWrite = jest.fn();
+
+    try {
+      Object.defineProperty(window, 'analytics', {
+        configurable: true,
+        get: analyticsRead,
+        set: analyticsWrite,
+      });
+      const { result } = renderHook(useTrackEvent, { wrapper: RhaiiAppProvider });
+
+      expect(result.current('custom-event', { outcome: 'submit', success: false })).toBeUndefined();
+      expect(analyticsRead).not.toHaveBeenCalled();
+      expect(analyticsWrite).not.toHaveBeenCalled();
+      expect(sdk.track).not.toHaveBeenCalled();
+
+      Reflect.deleteProperty(window, 'analytics');
+      expect(() => result.current('custom-event', {})).not.toThrow();
+      expect(Object.getOwnPropertyDescriptor(window, 'analytics')).toBeUndefined();
+    } finally {
+      if (originalAnalytics) {
+        Object.defineProperty(window, 'analytics', originalAnalytics);
+      } else {
+        Reflect.deleteProperty(window, 'analytics');
+      }
+    }
   });
 });

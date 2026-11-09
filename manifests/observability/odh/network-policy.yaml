@@ -9,7 +9,6 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # Dashboard pods (in-cluster BFF or direct service calls)
     - from:
         - namespaceSelector:
             matchLabels:
@@ -17,18 +16,6 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/part-of: odh-dashboard
-      ports:
-        - protocol: TCP
-          port: 8080
-    # Observe UI reaches Perses via data-science-gateway HTTPRoute (/perses/api).
-    # Without this peer, NetworkPolicy drops gateway→Perses traffic (silent drop → UI 504).
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: openshift-ingress
-          podSelector:
-            matchLabels:
-              gateway.istio.io/managed: istio.io-gateway-controller
       ports:
         - protocol: TCP
           port: 8080

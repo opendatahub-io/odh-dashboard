@@ -30,6 +30,11 @@ describe('working project storage', () => {
     ['false', 'false'],
     ['{"name":"project-2"}', null],
     ['[]', null],
+    ['"INVALID"', null],
+    ['"has space"', null],
+    ['"../other"', null],
+    [JSON.stringify('a'.repeat(64)), null],
+    [JSON.stringify('a'.repeat(63)), 'a'.repeat(63)],
   ])(
     'should parse stored value %s to %s without treating objects as identities',
     (raw, expected) => {

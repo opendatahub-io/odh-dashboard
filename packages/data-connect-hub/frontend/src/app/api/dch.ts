@@ -27,7 +27,7 @@ const getResponseErrorMessage = (body: string, status: number): string => {
   return body || `Request failed with status ${status}`;
 };
 
-class ConnectionApiError extends Error {
+export class ConnectionApiError extends Error {
   readonly status: number;
 
   constructor(message: string, status: number) {
@@ -36,6 +36,9 @@ class ConnectionApiError extends Error {
     this.status = status;
   }
 }
+
+export const isConnectionAccessForbidden = (error?: Error): error is ConnectionApiError =>
+  error instanceof ConnectionApiError && error.status === 403;
 
 const requireNoContent = async (response: Response): Promise<void> => {
   if (response.status === 204) {
@@ -109,19 +112,37 @@ const isConnectionType = (value: unknown): value is ConnectionType =>
 
 export const getConnections =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string): Promise<Connection[]> =>
-    handleRestFailures(
-      restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/connections`, { namespace }, opts),
-    ).then((response) => {
-      if (
-        isModArchResponse<unknown>(response) &&
-        Array.isArray(response.data) &&
-        response.data.every(isConnection)
-      ) {
-        return response.data;
-      }
+  async (opts: APIOptions, namespace: string): Promise<Connection[]> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connections?${searchParams.toString()}`,
+      {
+        method: 'GET',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    const body = await response.text();
+
+    if (!response.ok) {
+      throw new ConnectionApiError(getResponseErrorMessage(body, response.status), response.status);
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
       throw new Error('Invalid response format');
-    });
+    }
+    if (
+      isModArchResponse<unknown>(parsed) &&
+      Array.isArray(parsed.data) &&
+      parsed.data.every(isConnection)
+    ) {
+      return parsed.data;
+    }
+    throw new Error('Invalid response format');
+  };
 
 export const getConnection =
   (hostPath: string) =>
@@ -160,24 +181,37 @@ export const getConnection =
 
 export const getConnectionTypes =
   (hostPath: string) =>
-  (opts: APIOptions, namespace: string): Promise<ConnectionType[]> =>
-    handleRestFailures(
-      restGET(
-        hostPath,
-        `${URL_PREFIX}/api/${BFF_API_VERSION}/connection-types`,
-        { namespace },
-        opts,
-      ),
-    ).then((response) => {
-      if (
-        isModArchResponse<unknown>(response) &&
-        Array.isArray(response.data) &&
-        response.data.every(isConnectionType)
-      ) {
-        return response.data;
-      }
+  async (opts: APIOptions, namespace: string): Promise<ConnectionType[]> => {
+    const searchParams = new URLSearchParams({ namespace });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connection-types?${searchParams.toString()}`,
+      {
+        method: 'GET',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    const body = await response.text();
+
+    if (!response.ok) {
+      throw new ConnectionApiError(getResponseErrorMessage(body, response.status), response.status);
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
       throw new Error('Invalid response format');
-    });
+    }
+    if (
+      isModArchResponse<unknown>(parsed) &&
+      Array.isArray(parsed.data) &&
+      parsed.data.every(isConnectionType)
+    ) {
+      return parsed.data;
+    }
+    throw new Error('Invalid response format');
+  };
 
 export const createConnection =
   (hostPath: string) =>

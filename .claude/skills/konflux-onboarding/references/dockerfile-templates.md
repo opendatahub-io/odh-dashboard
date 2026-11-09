@@ -30,7 +30,7 @@ ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
 
 # Base images
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest
-ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.24
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.26
 ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal:latest
 
 # UI build stage
@@ -86,82 +86,130 @@ ENTRYPOINT ["/bff"]
 
 ### Downstream — `Dockerfile.konflux.<name>`
 
-Same structure as upstream but with SHA-pinned images and Red Hat labels. Placed at repo root in `red-hat-data-services/odh-dashboard`.
+Copy of `$REF_DOCKERFILE` (normally `Dockerfile.konflux.data-connect-hub`; see SKILL.md Phase 3) on the target downstream branch (`red-hat-data-services/odh-dashboard`, repo root), with the module name replaced. Re-copy from the branch rather than trusting this snapshot: MintMaker refreshes the digests there, and the install steps change with the workspace.
 
-Key differences from upstream:
+Key differences from upstream `Dockerfile.workspace`:
 
-- All base images pinned by SHA digest
-- Red Hat labels added to final stage
+- All base images pinned by SHA digest; runtime is `registry.redhat.io/ubi9/ubi-minimal-pqc`
+- `pnpm install --offline` against the Hermeto-prefetched store, `CYPRESS_INSTALL_BINARY=0`
+- Red Hat labels named after the image: `com.redhat.component="<image>-container"` and `name="managed-open-data-hub/<image>-rhel9"`, where `<image>` is the Phase 0 image name (default `odh-mod-arch-<name>`). The ProdSec registration key is a separate identifier, `rhoai/<image>-rhel9` (see SKILL.md Phase 6)
 - `CACHITO_ENV_FILE` support is optional — Konflux Cachi2 injects this file automatically during hermetic builds when prefetch is enabled; no Dockerfile changes are needed unless you opt into sourcing it explicitly
-- Additional `io.openshift.build.commit.*` labels
+
+The committed downstream file installs with `pnpm install --frozen-lockfile --offline`, which only works with the dependencies Hermeto prefetches in Konflux. A plain local `podman build` / `docker build` of it fails at that step even with network access. For a local smoke test, build a temporary copy with `--offline` replaced by `--prefer-offline` (for example `sed 's/--offline/--prefer-offline/' Dockerfile.konflux.<name> > /tmp/Dockerfile.local`), and keep `--offline` in the committed file.
+
+Snapshot from `rhoai-3.7-ea.1` (digests replaced with placeholders):
 
 ```dockerfile
-# SHA-pinned base images (update digests via Renovate)
+# Multi-stage workspace-aware Dockerfile for Module Federation packages (RHOAI downstream)
+# This Dockerfile is designed to build federated modules that depend on workspace packages
+# Build from repository root: docker build --file ./Dockerfile.konflux.<name> .
+
+# Source code arguments - can be overridden for different modules
 ARG MODULE_NAME=<name>
 ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
 ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
 
+# SHA-pinned base images for RHOAI builds
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:<digest>
-ARG GOLANG_BASE_IMAGE=registry.redhat.io/ubi9/go-toolset@sha256:<digest>
-ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal@sha256:<digest>
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.26@sha256:<digest>
+ARG DISTROLESS_BASE_IMAGE=registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:<digest>
 
-# UI build stage (same as upstream, using SHA-pinned NODE_BASE_IMAGE)
+# UI build stage
 FROM ${NODE_BASE_IMAGE} AS ui-builder
+
 ARG UI_SOURCE_CODE
 ARG MODULE_NAME
+ARG DEPLOYMENT_MODE
+ARG PLATFORM_MODE
+
 WORKDIR /usr/src/workspace
 
+# Install the pinned pnpm CLI from the npm-prefetched bootstrap package.
 COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
-COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY --chown=default:root .npmrc ./
+
+### Workspace setup
+# Copy root workspace manifest and lockfile for pnpm workspace resolution
+# Hermeto rewrites .npmrc to point pnpm at its prefetched, offline tarball mirror.
+COPY --chown=default:root package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+# Copy the frontend workspace manifest so its dependencies can be resolved if referenced
 COPY --chown=default:root frontend/package.json ./frontend/
+# Copy required shared workspace packages needed for module builds
+COPY --chown=default:root packages/app-config/ ./packages/app-config/
+COPY --chown=default:root packages/foundation/ ./packages/foundation/
+COPY --chown=default:root packages/k8s-core/ ./packages/k8s-core/
 COPY --chown=default:root packages/plugin-core/ ./packages/plugin-core/
 COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
-COPY --chown=default:root packages/app-config/ ./packages/app-config/
+COPY --chown=default:root packages/ui-core/ ./packages/ui-core/
+# Copy only the frontend source (not the entire frontend build artifacts) for cross-module imports
 COPY --chown=default:root frontend/src/ ./frontend/src/
+COPY --chown=default:root scripts/ ./scripts/
+
+# Copy the specific module source code
 COPY --chown=default:root ${UI_SOURCE_CODE} ./${UI_SOURCE_CODE}
 
+# Change file ownership to the assemble user
 USER default
+
+# Install pnpm and workspace dependencies. Lifecycle scripts are restricted by
+# pnpm-workspace.yaml allowBuilds; Cypress binary installation is disabled explicitly.
 # Install the pinned pnpm CLI from the npm-prefetched bootstrap package.
 ENV PATH="/usr/src/workspace/prefetch/pnpm/node_modules/.bin:${PATH}"
 RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
-    && test "$(pnpm --version)" = "11.22.0"
-RUN pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
+    && test "$(pnpm --version)" = "11.22.0" # NOSONAR
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --offline # NOSONAR
 
+# Build the module
 WORKDIR /usr/src/workspace/${UI_SOURCE_CODE}
 RUN pnpm run build:prod
 
-# BFF build stage (same as upstream, using SHA-pinned GOLANG_BASE_IMAGE)
+# BFF build stage
 FROM ${GOLANG_BASE_IMAGE} AS bff-builder
+
 ARG BFF_SOURCE_CODE
 ARG TARGETOS
 ARG TARGETARCH
+
 WORKDIR /usr/src/app
 
+# Copy the Go Modules manifests
 COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
+
+# Download dependencies
 RUN go mod download
+
+# Copy the go source files
+COPY pkg/tls/ /pkg/tls/
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
+
+# Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
 
-# Final stage — add Red Hat labels
+# Final stage
 FROM ${DISTROLESS_BASE_IMAGE}
-ARG UI_SOURCE_CODE
 
-LABEL com.redhat.component="odh-<name>-container" \
-      name="managed-open-data-hub/odh-<name>-rhel9" \
-      summary="ODH <Name> Module" \
-      description="<Name> module for Red Hat OpenShift AI Dashboard" \
-      io.k8s.display-name="ODH <Name>" \
-      io.k8s.description="<Name> module for Red Hat OpenShift AI Dashboard" \
-      io.openshift.tags="rhods,rhoai,odh,<name>"
+ARG UI_SOURCE_CODE
 
 WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
+
+# Expose port 8080
 EXPOSE 8080
+
 ENTRYPOINT ["/bff"]
+
+LABEL com.redhat.component="<image>-container" \
+      name="managed-open-data-hub/<image>-rhel9" \
+      description="<image>" \
+      summary="<image>" \
+      maintainer="['managed-open-data-hub@redhat.com']" \
+      io.openshift.expose-services="" \
+      io.k8s.display-name="<image>" \
+      io.k8s.description="<image>" \
+      com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
 ```
 
 ### Hermetic prefetch configuration
@@ -201,7 +249,8 @@ COPY <name>/internal/ internal/
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o /tmp/<binary-name> ./cmd/<entry-dir>
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+# Do not pin a minor tag such as :9.3 upstream: it stops receiving security rebuilds.
 WORKDIR /
 COPY --from=builder /tmp/<binary-name> .
 # Copy any required static assets (e.g., manifests)
@@ -217,7 +266,7 @@ ENTRYPOINT ["/<binary-name>"]
 SHA-pinned, FIPS-compliant, Red Hat labels. Placed at repo root in `red-hat-data-services/odh-dashboard`.
 
 ```dockerfile
-FROM registry.redhat.io/ubi9/go-toolset:<go-version>@sha256:<digest> AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:<go-version>@sha256:<digest> AS builder
 
 USER root
 WORKDIR /usr/src/app
@@ -232,10 +281,10 @@ COPY <name>/internal/ internal/
 # FIPS-compliant build: CGO_ENABLED=1 + strictfipsruntime
 RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntime -o /tmp/<binary-name> ./cmd/<entry-dir>
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest>
+FROM registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:<digest>
 
-LABEL com.redhat.component="odh-<name>-container" \
-      name="managed-open-data-hub/odh-<name>-rhel9" \
+LABEL com.redhat.component="<image>-container" \
+      name="managed-open-data-hub/<image>-rhel9" \
       summary="ODH <Name>" \
       description="<Name> for Red Hat OpenShift AI Dashboard" \
       io.k8s.display-name="ODH <Name>" \
@@ -255,7 +304,7 @@ ENTRYPOINT ["/<binary-name>"]
 
 - **Type A upstream (BFF)**: Uses `ubi9/go-toolset` with `CGO_ENABLED=1 -tags strictfipsruntime` (FIPS-enabled, matching downstream)
 - **Type B upstream (standalone)**: Uses Docker Hub `golang:<version>` with `CGO_ENABLED=0` (static binary, no FIPS)
-- **All downstream**: Uses `registry.redhat.io/ubi9/go-toolset` with `CGO_ENABLED=1 -tags strictfipsruntime`
+- **All downstream**: Uses `registry.access.redhat.com/ubi9/go-toolset` with `CGO_ENABLED=1 -tags strictfipsruntime`
 - `go-toolset` requires `USER root` before writing files (runs as non-root by default)
 - The FIPS runtime tag enables BoringCrypto for FIPS 140-2 compliance
 - Check `go.mod` for the required Go toolchain version
@@ -264,21 +313,23 @@ ENTRYPOINT ["/<binary-name>"]
 
 Downstream Dockerfiles use SHA digests instead of tags. Complete this workflow **before Phase 4** generates the downstream Dockerfile.
 
-### Step 1: Query current digests for each base image
+### Step 1: Take current digests from the target branch
+
+Copy the `ARG *_BASE_IMAGE=` lines from an image that already ships on the target downstream branch. MintMaker keeps those digests current, including security rebuilds such as the eMudhra CA remediation (RHSB-2026-012):
 
 ```bash
-# Node.js base image (Type A only)
-skopeo inspect docker://registry.access.redhat.com/ubi9/nodejs-22:latest \
-  --format '{{.Digest}}'
-
-# Go toolset (Type A BFF or Type B)
-skopeo inspect docker://registry.redhat.io/ubi9/go-toolset:1.25 \
-  --format '{{.Digest}}'
-
-# UBI minimal runtime
-skopeo inspect docker://registry.access.redhat.com/ubi9/ubi-minimal:latest \
-  --format '{{.Digest}}'
+git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:$REF_DOCKERFILE" | grep -E '^ARG .*_BASE_IMAGE='
 ```
+
+Only when no module exists on the branch, query the registry:
+
+```bash
+skopeo inspect docker://registry.access.redhat.com/ubi9/nodejs-22:latest --format '{{.Digest}}'
+skopeo inspect docker://registry.access.redhat.com/ubi9/go-toolset:1.26 --format '{{.Digest}}'
+skopeo inspect docker://registry.redhat.io/ubi9/ubi-minimal-pqc:latest --format '{{.Digest}}'
+```
+
+Use the Go minor version from the `go.mod` of the module actually built: for Type A, `go.mod` under the package Dockerfile's `BFF_SOURCE_CODE` (usually `packages/<name>/bff`, but `packages/model-registry/upstream/bff` for model-registry); for Type B, `<name>/go.mod`.
 
 ### Step 2: Validate digests
 
@@ -286,10 +337,14 @@ Verify each returned digest matches the expected image by pulling and inspecting
 
 ```bash
 # Pull with the digest and confirm the image runs
-podman pull registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest>
-podman inspect registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest> \
+podman pull registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:<digest>
+podman inspect registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:<digest> \
   --format '{{.RepoDigests}}'
+# The runtime must carry the current ca-certificates RPM (Go uses the system trust store)
+podman run --rm registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:<digest> rpm -q ca-certificates
 ```
+
+Compare the `ca-certificates` version with the other dashboard images on the branch; an older one means the digest predates a security rebuild.
 
 ### Step 3: Insert digests into the Dockerfile
 
@@ -297,4 +352,4 @@ Replace all `@sha256:<digest>` placeholders in the downstream Dockerfile with th
 
 ### Step 4: After merge — Renovate takes over
 
-Once the Dockerfile is merged to the downstream repo, Renovate (configured by DevOps onboarding) automatically monitors for base image updates and opens PRs with refreshed digests. No manual digest management is needed after the initial setup.
+Once the Dockerfile is merged to the downstream repo, MintMaker/Renovate (configured by DevOps onboarding) opens "Update Dockerfile Digest Updates" PRs with refreshed digests. Someone still has to review and merge them: during a security bulletin, check that the new file is included in the next digest PR before the rebuild deadline.
