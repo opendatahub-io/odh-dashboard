@@ -33,6 +33,16 @@ export const getResourceNameFromK8sResource = (resource: K8sDSGResource): string
 export const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/description'] || '';
 
+export const PreInstalledName = 'Pre-installed';
+
+export const isOOTB = (resource: K8sResourceCommon): boolean =>
+  !!resource.metadata?.labels?.['platform.opendatahub.io/part-of'];
+
+export const getCreatorFromK8sResource = (resource: K8sDSGResource): string =>
+  isOOTB(resource)
+    ? PreInstalledName
+    : resource.metadata.annotations?.['opendatahub.io/username'] || 'unknown';
+
 type AdditionalCriteriaForTranslation = {
   /**
    * If pure digits, prevent it with this safe string.
