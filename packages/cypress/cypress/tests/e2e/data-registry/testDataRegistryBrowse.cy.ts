@@ -80,7 +80,7 @@ describe('Data Registry browse flow (RHOAI Secret fallback)', () => {
   it(
     'should browse and create, update, and delete Data Registry collections and structured assets',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       cy.step('Log in as the configured Data Registry test user');
