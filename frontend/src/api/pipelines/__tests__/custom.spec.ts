@@ -14,12 +14,15 @@ import {
   getPipelineRecurringRun,
   getPipelineRun,
   getPipelineVersion,
+  getTask,
+  listArtifactTasks,
   listArtifacts,
   listExperiments,
   listPipelineRecurringRuns,
   listPipelineRuns,
   listPipelineVersions,
   listPipelines,
+  listTasks,
   stopPipelineRun,
   updatePipelineRecurringRun,
   uploadPipeline,
@@ -31,7 +34,9 @@ import {
   CreateExperimentKFData,
   CreatePipelineRecurringRunKFData,
   CreatePipelineRunKFData,
+  IOTypeKF,
   RecurringRunMode,
+  RunViewModeKF,
 } from '#~/concepts/pipelines/kfTypes';
 import { PipelineParams } from '#~/concepts/pipelines/types';
 
@@ -223,6 +228,33 @@ describe('getPipelineRun', () => {
     expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
     expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
   });
+
+  it('should pass view=FULL query param when requested', () => {
+    expect(getPipelineRun('hostPath')({}, 'pipelineRunId', RunViewModeKF.FULL)).toBe(
+      mockResultPromise,
+    );
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/runs/pipelineRunId',
+      { view: RunViewModeKF.FULL },
+      {},
+    );
+  });
+});
+
+describe('getTask', () => {
+  it('should call proxyGET and handlePipelineFailures to fetch a task', () => {
+    expect(getTask('hostPath')({}, 'runId', 'taskId')).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/runs/runId/tasks/taskId',
+      {},
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
 });
 
 describe('getPipelineRecurringRun', () => {
@@ -349,6 +381,69 @@ describe('listArtifacts', () => {
       '/apis/v2beta1/artifacts',
       {
         namespace: 'test',
+      },
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
+describe('listTasks', () => {
+  it('should call proxyGET and handlePipelineFailures to list tasks for a run', () => {
+    expect(
+      listTasks('hostPath')({}, 'runId', {
+        parentId: 'parentTask',
+        pageSize: 10,
+        pageToken: 'token',
+        orderBy: 'create_time asc',
+      }),
+    ).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/runs/runId/tasks',
+      {
+        parent_id: 'parentTask',
+        page_size: 10,
+        page_token: 'token',
+        filter: undefined,
+        order_by: 'create_time asc',
+      },
+      {},
+    );
+    expect(handlePipelineFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handlePipelineFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+  });
+});
+
+describe('listArtifactTasks', () => {
+  it('should call proxyGET and handlePipelineFailures to list artifact tasks', () => {
+    expect(
+      listArtifactTasks('hostPath')(
+        {},
+        {
+          runIds: ['run-1'],
+          taskIds: ['task-1'],
+          artifactIds: ['artifact-1'],
+          type: IOTypeKF.OUTPUT,
+          pageSize: 5,
+        },
+      ),
+    ).toBe(mockResultPromise);
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      'hostPath',
+      '/apis/v2beta1/artifact_tasks',
+      {
+        run_ids: ['run-1'],
+        task_ids: ['task-1'],
+        artifact_ids: ['artifact-1'],
+        type: IOTypeKF.OUTPUT,
+        page_size: 5,
+        page_token: undefined,
+        sort_by: undefined,
+        filter: undefined,
       },
       {},
     );

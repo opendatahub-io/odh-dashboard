@@ -18,6 +18,11 @@ import {
   CreatePipelineVersionKFData,
   CreateExperimentKFData,
   GoogleRpcStatusKF,
+  PipelineTaskKF,
+  ListTasksResponseKF,
+  ListArtifactTasksResponseKF,
+  IOTypeKF,
+  RunViewModeKF,
 } from './kfTypes';
 
 export type PipelinesFilter = {
@@ -50,6 +55,30 @@ export type ListArtifactParams = {
   order_by?: 'asc' | 'desc';
   next_page_token?: string;
   namespace: string;
+  /** Prefer page_size/page_token/sort_by/filter for v2beta1 ArtifactService. */
+  page_size?: number;
+  page_token?: string;
+  sort_by?: string;
+  filter?: string;
+};
+
+export type ListTasksParams = {
+  parentId?: string;
+  pageSize?: number;
+  pageToken?: string;
+  filter?: string;
+  orderBy?: string;
+};
+
+export type ListArtifactTasksParams = {
+  taskIds?: string[];
+  runIds?: string[];
+  artifactIds?: string[];
+  type?: IOTypeKF;
+  pageSize?: number;
+  pageToken?: string;
+  sortBy?: string;
+  filter?: string;
 };
 
 export type PipelineParams = {
@@ -104,7 +133,11 @@ export type GetArtifact = (
 ) => Promise<ArtifactStorage>;
 export type GetPipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<PipelineKF>;
 export type GetPipelineByName = (opts: K8sAPIOptions, pipelineName: string) => Promise<PipelineKF>;
-export type GetPipelineRun = (opts: K8sAPIOptions, pipelineRunId: string) => Promise<PipelineRunKF>;
+export type GetPipelineRun = (
+  opts: K8sAPIOptions,
+  pipelineRunId: string,
+  view?: RunViewModeKF,
+) => Promise<PipelineRunKF>;
 export type GetPipelineRecurringRun = (
   opts: K8sAPIOptions,
   pipelineRecurringRunId: string,
@@ -114,6 +147,11 @@ export type GetPipelineVersion = (
   pipelineId: string,
   pipelineVersionId: string,
 ) => Promise<PipelineVersionKF>;
+export type GetTask = (
+  opts: K8sAPIOptions,
+  runId: string,
+  taskId: string,
+) => Promise<PipelineTaskKF>;
 export type DeletePipeline = (opts: K8sAPIOptions, pipelineId: string) => Promise<void>;
 export type DeletePipelineRun = (opts: K8sAPIOptions, runId: string) => Promise<void>;
 export type DeletePipelineRecurringRun = (
@@ -134,6 +172,15 @@ export type ListArtifacts = (
   opts: K8sAPIOptions,
   params?: ListArtifactParams,
 ) => Promise<ListArtifactResponse>;
+export type ListTasks = (
+  opts: K8sAPIOptions,
+  runId: string,
+  params?: ListTasksParams,
+) => Promise<ListTasksResponseKF>;
+export type ListArtifactTasks = (
+  opts: K8sAPIOptions,
+  params?: ListArtifactTasksParams,
+) => Promise<ListArtifactTasksResponseKF>;
 export type ListPipelines = (
   opts: K8sAPIOptions,
   params?: PipelineParams,
@@ -186,6 +233,7 @@ export type PipelineAPIs = {
   getPipelineRun: GetPipelineRun;
   getPipelineRecurringRun: GetPipelineRecurringRun;
   getPipelineVersion: GetPipelineVersion;
+  getTask: GetTask;
   deletePipeline: DeletePipeline;
   deletePipelineRun: DeletePipelineRun;
   deletePipelineRecurringRun: DeletePipelineRecurringRun;
@@ -196,6 +244,8 @@ export type PipelineAPIs = {
   listPipelines: ListPipelines;
   getPipelineByName: GetPipelineByName;
   listArtifacts: ListArtifacts;
+  listTasks: ListTasks;
+  listArtifactTasks: ListArtifactTasks;
   listPipelineRuns: ListPipelineRuns;
   listPipelineActiveRuns: ListPipelineRuns;
   listPipelineArchivedRuns: ListPipelineRuns;

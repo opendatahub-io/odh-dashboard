@@ -445,6 +445,11 @@ export const runtimeStateLabels = {
   [RuntimeStateKF.PAUSED]: 'Paused',
 };
 
+/**
+ * @deprecated Prefer {@link PipelineTaskKF} from `GetRun(view=FULL)` or `ListTasks`.
+ * Upstream KFP removed `RunDetails.task_details` (reserved field). Kept temporarily
+ * for transition until all consumers migrate to `PipelineRunKF.tasks`.
+ */
 export type TaskDetailKF = {
   run_id: string;
   task_id: string;
@@ -484,11 +489,210 @@ export type RuntimeStatusKF = {
   state: RuntimeStateKF;
   error?: GoogleRpcStatusKF;
 };
+
+/**
+ * @deprecated Prefer {@link PipelineRunKF.tasks}. Upstream reserved/removed
+ * `task_details`; only context IDs remain on RunDetails.
+ */
 export type RunDetailsKF = {
   pipeline_context_id?: string;
   pipeline_run_context_id?: string;
-  task_details: TaskDetailKF[];
+  /** @deprecated Use `PipelineRunKF.tasks` instead. */
+  task_details?: TaskDetailKF[];
 };
+
+/** View mode for GetRun / ListRuns task hydration. */
+export enum RunViewModeKF {
+  DEFAULT = 'DEFAULT',
+  FULL = 'FULL',
+}
+
+/** Runtime state of a PipelineTask (KFP v2beta1 task APIs). */
+export enum TaskStateKF {
+  RUNTIME_STATE_UNSPECIFIED = 'RUNTIME_STATE_UNSPECIFIED',
+  RUNNING = 'RUNNING',
+  SUCCEEDED = 'SUCCEEDED',
+  SKIPPED = 'SKIPPED',
+  FAILED = 'FAILED',
+  CACHED = 'CACHED',
+}
+
+/** Structural role of a PipelineTask in the run DAG. */
+export enum TaskTypeKF {
+  TASK_TYPE_UNSPECIFIED = 'TASK_TYPE_UNSPECIFIED',
+  ROOT = 'ROOT',
+  RUNTIME = 'RUNTIME',
+  CONDITION_BRANCH = 'CONDITION_BRANCH',
+  CONDITION = 'CONDITION',
+  LOOP = 'LOOP',
+  EXIT_HANDLER = 'EXIT_HANDLER',
+  IMPORTER = 'IMPORTER',
+  DAG = 'DAG',
+}
+
+/** Pod role attached to a PipelineTask. */
+export enum TaskPodTypeKF {
+  UNSPECIFIED = 'UNSPECIFIED',
+  DRIVER = 'DRIVER',
+  EXECUTOR = 'EXECUTOR',
+}
+
+/**
+ * Artifact type for the v2beta1 Artifact resource.
+ * Distinct from {@link ArtifactType} (MLMD system.* strings).
+ */
+export enum PipelineArtifactTypeKF {
+  TYPE_UNSPECIFIED = 'TYPE_UNSPECIFIED',
+  ARTIFACT = 'Artifact',
+  MODEL = 'Model',
+  DATASET = 'Dataset',
+  HTML = 'HTML',
+  MARKDOWN = 'Markdown',
+  METRIC = 'Metric',
+  CLASSIFICATION_METRIC = 'ClassificationMetric',
+  SLICED_CLASSIFICATION_METRIC = 'SlicedClassificationMetric',
+}
+
+/** I/O relationship between artifacts/parameters and tasks. */
+export enum IOTypeKF {
+  UNSPECIFIED = 'UNSPECIFIED',
+  COMPONENT_DEFAULT_INPUT = 'COMPONENT_DEFAULT_INPUT',
+  TASK_OUTPUT_INPUT = 'TASK_OUTPUT_INPUT',
+  COMPONENT_INPUT = 'COMPONENT_INPUT',
+  RUNTIME_VALUE_INPUT = 'RUNTIME_VALUE_INPUT',
+  COLLECTED_INPUTS = 'COLLECTED_INPUTS',
+  ITERATOR_INPUT = 'ITERATOR_INPUT',
+  ITERATOR_INPUT_RAW = 'ITERATOR_INPUT_RAW',
+  ITERATOR_OUTPUT = 'ITERATOR_OUTPUT',
+  OUTPUT = 'OUTPUT',
+  ONE_OF_OUTPUT = 'ONE_OF_OUTPUT',
+  TASK_FINAL_STATUS_OUTPUT = 'TASK_FINAL_STATUS_OUTPUT',
+}
+
+/** Producer of an IO parameter/artifact (upstream task + optional loop iteration). */
+export type IOProducerKF = {
+  task_name: string;
+  iteration?: number;
+};
+
+/** Driver/executor pod info for a PipelineTask. */
+export type TaskPodKF = {
+  name: string;
+  uid: string;
+  type: TaskPodTypeKF;
+};
+
+/** Type-specific attributes (loop iteration, importer options). */
+export type TaskTypeAttributesKF = {
+  iteration_index?: number;
+  iteration_count?: number;
+  download_to_workspace?: boolean;
+};
+
+/** Dependent child task reference. */
+export type PipelineTaskChildKF = {
+  task_id: string;
+  name: string;
+};
+
+/** Parameter I/O entry on a PipelineTask. */
+export type IOParameterKF = {
+  value?: unknown;
+  type: IOTypeKF;
+  parameter_key: string;
+  producer?: IOProducerKF;
+};
+
+/** Artifact I/O entry on a PipelineTask. */
+export type IOArtifactKF = {
+  artifacts: ArtifactKF[];
+  type: IOTypeKF;
+  artifact_key: string;
+  producer?: IOProducerKF;
+};
+
+/** Inputs or outputs bundle for a PipelineTask. */
+export type TaskInputOutputsKF = {
+  parameters?: IOParameterKF[];
+  artifacts?: IOArtifactKF[];
+};
+
+export type TaskStatusMetadataKF = {
+  message?: string;
+  custom_properties?: Record<string, unknown>;
+};
+
+export type TaskStatusKF = {
+  update_time: DateTimeKF;
+  state: TaskStateKF;
+  error?: GoogleRpcStatusKF;
+};
+
+/**
+ * KFP v2beta1 PipelineTask — replaces MLMD Execution for run topology.
+ * Populated via `GetRun(view=FULL)`, `ListTasks`, or `GetTask`.
+ */
+export type PipelineTaskKF = {
+  name: string;
+  display_name?: string;
+  task_id: string;
+  run_id: string;
+  pods?: TaskPodKF[];
+  cache_fingerprint?: string;
+  create_time?: DateTimeKF;
+  end_time?: DateTimeKF;
+  state?: TaskStateKF;
+  status_metadata?: TaskStatusMetadataKF;
+  state_history?: TaskStatusKF[];
+  type?: TaskTypeKF;
+  type_attributes?: TaskTypeAttributesKF;
+  parent_task_id?: string;
+  child_tasks?: PipelineTaskChildKF[];
+  inputs?: TaskInputOutputsKF;
+  outputs?: TaskInputOutputsKF;
+  scope_path?: string;
+};
+
+/**
+ * KFP v2beta1 Artifact resource (metadata), distinct from {@link ArtifactStorage}
+ * used for download/render URLs.
+ */
+export type ArtifactKF = {
+  artifact_id: string;
+  name: string;
+  description?: string;
+  type: PipelineArtifactTypeKF;
+  uri?: string;
+  metadata?: Record<string, unknown>;
+  number_value?: number;
+  created_at?: DateTimeKF;
+  namespace?: string;
+};
+
+/**
+ * Link between an Artifact and a PipelineTask (replaces MLMD Event).
+ */
+export type ArtifactTaskKF = {
+  id?: string;
+  artifact_id: string;
+  run_id: string;
+  task_id: string;
+  type: IOTypeKF;
+  producer?: IOProducerKF;
+  key?: string;
+};
+
+export type ListTasksResponseKF = PipelineKFCallCommon<{
+  tasks: PipelineTaskKF[];
+}>;
+
+export type ListArtifactsResponseKF = PipelineKFCallCommon<{
+  artifacts: ArtifactKF[];
+}>;
+
+export type ListArtifactTasksResponseKF = PipelineKFCallCommon<{
+  artifact_tasks: ArtifactTaskKF[];
+}>;
 
 export enum MetadataValueRenderTypeKF {
   UNSPECIFIED = 'UNSPECIFIED',
@@ -528,6 +732,11 @@ export type PipelineRunKF = PipelineCoreResourceKF & {
   state: RuntimeStateKF;
   error?: GoogleRpcStatusKF;
   run_details: RunDetailsKF;
+  /**
+   * Populated when GetRun / ListRuns is called with `view=FULL`.
+   * Canonical replacement for the removed `run_details.task_details`.
+   */
+  tasks?: PipelineTaskKF[];
   recurring_run_id?: string;
   state_history: object[];
   plugins_input?: Record<string, Record<string, unknown>>;
