@@ -37,7 +37,7 @@ const readTheme = (): Theme => {
 const readContrastMode = (): ContrastMode => {
   try {
     const value = localStorage.getItem(CONTRAST_MODE_KEY);
-    return value === 'default' || value === 'glass' ? value : 'system';
+    return value === 'default' || value === 'glass' || value === 'high-contrast' ? value : 'system';
   } catch {
     return 'system';
   }
@@ -51,8 +51,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Track OS-level preferences
   useEffect(() => {
-    const transparencyQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
-    const contrastQuery = window.matchMedia('(prefers-contrast: more)');
+    let transparencyQuery;
+    let contrastQuery;
+
+    try {
+      transparencyQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
+      contrastQuery = window.matchMedia('(prefers-contrast: more)');
+    } catch {
+      // Restricted contexts may block matchMedia
+      return;
+    }
 
     const handleTransparency = (e: MediaQueryListEvent) => setPrefersReducedTransparency(e.matches);
     const handleContrast = (e: MediaQueryListEvent) => setPrefersHighContrast(e.matches);

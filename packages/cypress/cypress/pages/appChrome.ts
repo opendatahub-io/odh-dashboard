@@ -45,7 +45,7 @@ class AppChrome {
   }
 
   findDarkThemeToggle() {
-    cy.findByTestId('appearance-settings-button').click();
+    this.openAppearanceSwitcher();
     return cy
       .get('#theme-selector-color-scheme-title')
       .parent()
@@ -53,11 +53,19 @@ class AppChrome {
   }
 
   findLightThemeToggle() {
-    cy.findByTestId('appearance-settings-button').click();
+    this.openAppearanceSwitcher();
     return cy
       .get('#theme-selector-color-scheme-title')
       .parent()
       .findByRole('button', { name: 'Light' });
+  }
+
+  private openAppearanceSwitcher() {
+    cy.findByTestId('appearance-settings-button').then(($btn) => {
+      if ($btn.attr('aria-expanded') !== 'true') {
+        cy.wrap($btn).click();
+      }
+    });
   }
 }
 

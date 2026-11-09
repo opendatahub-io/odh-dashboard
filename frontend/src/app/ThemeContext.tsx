@@ -38,7 +38,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   );
   const [, setMlflowTheme] = useBrowserStorage<boolean>(MLFLOW_DARK_MODE_KEY, false);
 
-  const [prefersDark, setPrefersDark] = React.useState(false);
+  const [prefersDark, setPrefersDark] = React.useState(() => {
+    try {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
   const [prefersReducedTransparency, setPrefersReducedTransparency] = React.useState(false);
   const [prefersHighContrast, setPrefersHighContrast] = React.useState(false);
 

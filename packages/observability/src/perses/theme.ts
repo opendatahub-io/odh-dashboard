@@ -486,14 +486,15 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
       shape: {
         borderRadius: 6,
       },
+      ...mapPatterflyThemeToMUI(theme, currentYear),
       components: {
+        ...(mapPatterflyThemeToMUI(theme, currentYear).components ?? {}),
         MuiButton: {
           styleOverrides: {
             root: { borderRadius: controlRadius },
           },
         },
       },
-      ...mapPatterflyThemeToMUI(theme, currentYear),
     });
 
     // PatternFly default text color as hex (ECharts does not resolve CSS variables)

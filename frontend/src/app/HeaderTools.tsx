@@ -275,19 +275,19 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                     <ToggleGroup aria-labelledby="theme-selector-color-scheme-title">
                       <ToggleGroupItem
                         text="System"
-                        buttonId="system"
+                        buttonId="cs-system"
                         isSelected={colorScheme === 'system'}
                         onChange={() => setColorScheme('system')}
                       />
                       <ToggleGroupItem
                         text="Light"
-                        buttonId="light"
+                        buttonId="cs-light"
                         isSelected={colorScheme === 'light'}
                         onChange={() => setColorScheme('light')}
                       />
                       <ToggleGroupItem
                         text="Dark"
-                        buttonId="dark"
+                        buttonId="cs-dark"
                         isSelected={colorScheme === 'dark'}
                         onChange={() => setColorScheme('dark')}
                       />
@@ -308,25 +308,25 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                     <ToggleGroup aria-labelledby="theme-selector-contrast-title">
                       <ToggleGroupItem
                         text="System"
-                        buttonId="system"
+                        buttonId="cm-system"
                         isSelected={contrastMode === 'system'}
                         onChange={() => setContrastMode('system')}
                       />
                       <ToggleGroupItem
                         text="Default"
-                        buttonId="default"
+                        buttonId="cm-default"
                         isSelected={contrastMode === 'default'}
                         onChange={() => setContrastMode('default')}
                       />
                       <ToggleGroupItem
                         text="High contrast"
-                        buttonId="high-contrast"
+                        buttonId="cm-high-contrast"
                         isSelected={contrastMode === 'high-contrast'}
                         onChange={() => setContrastMode('high-contrast')}
                       />
                       <ToggleGroupItem
                         text="Glass"
-                        buttonId="glass"
+                        buttonId="cm-glass"
                         isSelected={contrastMode === 'glass'}
                         onChange={() => setContrastMode('glass')}
                       />
