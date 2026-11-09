@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { SearchInput } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
@@ -13,6 +14,7 @@ import {
 } from '~/app/types/event-tracking';
 import {
   modelAccessFilterOptions,
+  MODEL_TEXT_FILTER_PREFIX,
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
@@ -35,6 +37,19 @@ const filterByLabelOrValue = (filterValue: string, options: TypeaheadSelectOptio
       String(option.value).toLowerCase().includes(filterValue.toLowerCase()),
   );
 
+const modelTextFilterOption = (text: string): TypeaheadSelectOption => ({
+  value: `${MODEL_TEXT_FILTER_PREFIX}${text}`,
+  content: `Filter by "${text}"`,
+});
+
+const filterModels = (text: string, options: TypeaheadSelectOption[]) => {
+  const models = options.filter(
+    (option) => !String(option.value).startsWith(MODEL_TEXT_FILTER_PREFIX),
+  );
+  const matches = filterByLabelOrValue(text, models);
+  return text.trim() ? [...matches, modelTextFilterOption(text.trim())] : matches;
+};
+
 /** Deduplicates labels by resource name and sorts them for display. */
 const toSelectOptions = (labels: Map<string, string>): TypeaheadSelectOption[] =>
   Array.from(labels.entries())
@@ -48,6 +63,7 @@ type TypeaheadFilterFieldProps = {
   testId: string;
   onChange: (value?: string, label?: string) => void;
   value?: string;
+  allowTextFilter?: boolean;
 };
 
 const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
@@ -57,52 +73,95 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
   testId,
   onChange,
   value,
+  allowTextFilter = false,
+}) => {
+  const [inputText, setInputText] = React.useState('');
+  const textOption =
+    allowTextFilter && value?.startsWith(MODEL_TEXT_FILTER_PREFIX)
+      ? modelTextFilterOption(value.slice(MODEL_TEXT_FILTER_PREFIX.length))
+      : undefined;
+  const inputOption =
+    allowTextFilter && inputText.trim() ? modelTextFilterOption(inputText.trim()) : undefined;
+  const selectOptions = [...options];
+  if (textOption) {
+    selectOptions.push(textOption);
+  }
+  if (inputOption && inputOption.value !== textOption?.value) {
+    selectOptions.push(inputOption);
+  }
+
+  return (
+    <TypeaheadSelect
+      selectOptions={selectOptions}
+      selected={value}
+      onInputChange={setInputText}
+      onSelect={(_event, selection) => {
+        const selectedOption = selectOptions.find((option) => option.value === selection);
+        onChange(String(selection), selectedOption ? String(selectedOption.content) : undefined);
+        setInputText('');
+        fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+          resourceType: EventTrackingResourceType.SUBSCRIPTION,
+          filterAttribute,
+        } satisfies MaaSSettingsListFilteredProperties);
+      }}
+      onClearSelection={() => {
+        onChange('');
+        setInputText('');
+      }}
+      filterFunction={allowTextFilter ? filterModels : filterByLabelOrValue}
+      allowClear
+      isRequired={false}
+      isScrollable
+      placeholder={placeholder}
+      toggleWidth="350px"
+      dataTestId={testId}
+    />
+  );
+};
+
+type TextFilterFieldProps = Omit<TypeaheadFilterFieldProps, 'options'>;
+
+const TextFilterField: React.FC<TextFilterFieldProps> = ({
+  filterAttribute,
+  placeholder,
+  testId,
+  onChange,
+  value,
 }) => (
-  <TypeaheadSelect
-    selectOptions={options}
-    selected={value}
-    onSelect={(_event, selection) => {
-      const selectedOption = options.find((option) => option.value === selection);
-      onChange(String(selection), selectedOption ? String(selectedOption.content) : undefined);
-      fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-        resourceType: EventTrackingResourceType.SUBSCRIPTION,
-        filterAttribute,
-      } satisfies MaaSSettingsListFilteredProperties);
-    }}
-    onClearSelection={() => onChange('')}
-    filterFunction={filterByLabelOrValue}
-    allowClear
-    isRequired={false}
-    isScrollable
+  <SearchInput
+    value={value ?? ''}
+    aria-label={placeholder}
     placeholder={placeholder}
-    toggleWidth="350px"
-    dataTestId={testId}
+    onChange={(_event, text) => onChange(text)}
+    onClear={() => onChange('')}
+    inputProps={{
+      'data-testid': testId,
+      onBlur: () => {
+        fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+          resourceType: EventTrackingResourceType.SUBSCRIPTION,
+          filterAttribute,
+        } satisfies MaaSSettingsListFilteredProperties);
+      },
+    }}
   />
 );
 
-/**
- * Toolbar for the read-only Model Access page: filters the subscriptions table
- * through Subscription / Group / Model typeahead selects where the user picks a
- * value from a list or types to narrow the list and selects an item.
- */
+/** Free-text subscription search with group and model typeahead selections. */
 const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
   filterData,
   onFilterUpdate,
   subscriptions,
 }) => {
-  const { subscriptionOptions, groupOptions, modelOptions } = React.useMemo(() => {
-    const subscriptionLabels = new Map<string, string>();
+  const { groupOptions, modelOptions } = React.useMemo(() => {
     const groupLabels = new Map<string, string>();
     const modelLabels = new Map<string, string>();
     subscriptions.forEach((subscription) => {
-      subscriptionLabels.set(subscription.name, subscription.displayName ?? subscription.name);
       subscription.owner.groups.forEach((group) => groupLabels.set(group.name, group.name));
       subscription.modelRefs.forEach((modelRef) =>
         modelLabels.set(modelRef.name, modelRef.displayName ?? modelRef.name),
       );
     });
     return {
-      subscriptionOptions: toSelectOptions(subscriptionLabels),
       groupOptions: toSelectOptions(groupLabels),
       modelOptions: toSelectOptions(modelLabels),
     };
@@ -114,11 +173,10 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
       filterOptions={modelAccessFilterOptions}
       filterOptionRenders={{
         [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
-          <TypeaheadFilterField
-            options={subscriptionOptions}
+          <TextFilterField
             filterAttribute={EventTrackingFilterAttribute.SUBSCRIPTION}
-            placeholder="Select a subscription"
-            testId="model-access-subscription-filter-toggle"
+            placeholder="Filter by subscription, description, group, or model"
+            testId="model-access-subscription-filter-input"
             onChange={onChange}
             value={value}
           />
@@ -136,6 +194,7 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
         [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={modelOptions}
+            allowTextFilter
             filterAttribute={EventTrackingFilterAttribute.MODEL}
             placeholder="Select a model"
             testId="model-access-model-filter-toggle"
