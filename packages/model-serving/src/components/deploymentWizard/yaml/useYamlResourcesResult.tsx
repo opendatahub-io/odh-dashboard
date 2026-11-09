@@ -78,7 +78,7 @@ export const useFormYamlResources = (
               // We are limiting the YAML to only the model, but we still want to include the server during submit if it exists in the form.
               ...(formResources.server ? { server: formResources.server } : {}),
             }
-          : formResources,
+          : { ...formResources, model: removeManagedFields(formResources.model) },
       error: lastUpdatedSource.current === 'editor' ? yamlResourcesError : formAsYamlError,
     } satisfies UseFormYamlResourcesResult;
   }, [

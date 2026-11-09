@@ -70,7 +70,7 @@ describe('useFormYamlResources', () => {
   it('should return formResources as resources by default', () => {
     const resources: DeploymentAssemblyResources = { model: mockModel };
     const renderResult = testHook(useFormYamlResources)(resources);
-    expect(renderResult.result.current.resources).toBe(resources);
+    expect(renderResult.result.current.resources).toStrictEqual(resources);
   });
 
   it('should return yaml-parsed resources after setYaml is called', () => {
@@ -145,8 +145,8 @@ describe('useFormYamlResources', () => {
     const updatedResources: DeploymentAssemblyResources = { model: updatedModel };
     renderResult.rerender(updatedResources);
 
-    expect(renderResult.result.current.yaml).toBe(stringify(updatedModel));
-    expect(renderResult.result.current.resources).toBe(updatedResources);
+    expect(renderResult.result.current.yaml).toStrictEqual(stringify(updatedModel));
+    expect(renderResult.result.current.resources).toStrictEqual(updatedResources);
   });
 
   it('should not revert to form yaml after setYaml has been called', () => {
