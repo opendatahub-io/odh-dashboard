@@ -38,7 +38,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       href: '/ai-safety/main-view',
       section: 'ai-safety',
       path: '/ai-safety/main-view/*',
-      label: 'Tech Preview',
+      label: 'Dev Preview',
     },
   },
   {
