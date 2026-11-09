@@ -5,7 +5,7 @@ import {
   StatusModifier,
   getEdgeStyleClassModifier,
 } from '@patternfly/react-topology';
-import { getEdgeStyleConfig } from '../edgeStyleUtils';
+import { getEdgeStyleConfig } from '#~/components/lineage/edge/edgeStyleUtils';
 
 // css() is typed string | undefined since react-styles 6.7
 // (patternfly-react#11602). The helpers under test must keep returning
