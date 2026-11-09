@@ -2,13 +2,10 @@ import {
   Alert,
   Button,
   Checkbox,
-  ClipboardCopy,
   ClipboardCopyButton,
   CodeBlock,
   CodeBlockAction,
   CodeBlockCode,
-  Content,
-  ContentVariants,
   DatePicker,
   DescriptionList,
   DescriptionListDescription,
@@ -33,7 +30,6 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
-  Popover,
   Select,
   SelectList,
   SelectOption,
@@ -47,7 +43,7 @@ import {
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import { EyeIcon, EyeSlashIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { z } from 'zod';
 import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
@@ -103,6 +99,7 @@ import {
 } from '~/app/types/event-tracking';
 import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 import CopyableDisabledField from '~/app/shared/CopyableDisabledField';
+import SubscriptionInfoPopover from './SubscriptionInfoPopover';
 
 const createApiKeySchema = (maxDays: number) =>
   z
@@ -161,56 +158,6 @@ type CreateApiKeyModalProps = {
   maxExpirationDays: number;
   apiKeyConfigError?: Error;
 };
-
-const SubscriptionInfoPopover: React.FC<{
-  displayName: string;
-  subscriptionId: string;
-  description?: string;
-}> = ({ displayName, subscriptionId, description }) => (
-  <Popover
-    headerContent={displayName}
-    bodyContent={
-      <div data-testid="api-key-subscription-info-popover-body">
-        <Content
-          component={ContentVariants.small}
-          className="pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
-        >
-          Subscription ID
-        </Content>
-        <ClipboardCopy
-          isReadOnly
-          hoverTip="Copy"
-          clickTip="Copied"
-          data-testid="api-key-subscription-id-copy"
-        >
-          {subscriptionId}
-        </ClipboardCopy>
-        {description ? (
-          <>
-            <Content
-              component={ContentVariants.small}
-              className="pf-v6-u-mt-sm pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
-            >
-              Description
-            </Content>
-            <Content component={ContentVariants.p} className="pf-v6-u-mt-0">
-              {description}
-            </Content>
-          </>
-        ) : null}
-      </div>
-    }
-  >
-    <Button
-      variant="plain"
-      aria-label={`More info about ${displayName}`}
-      className="pf-v6-u-p-0"
-      data-testid="api-key-subscription-info-button"
-    >
-      <OutlinedQuestionCircleIcon />
-    </Button>
-  </Popover>
-);
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   onClose,

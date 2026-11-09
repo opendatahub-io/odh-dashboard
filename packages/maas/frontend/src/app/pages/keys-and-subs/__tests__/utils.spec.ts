@@ -402,8 +402,40 @@ describe('buildApiKeyUsageExample', () => {
       'chat-model',
       'sk-test-key',
     );
-    expect(example).toContain('curl -X POST https://maas.apps.example.com/v1/chat/completions');
+    expect(example).toContain("curl -X POST 'https://maas.apps.example.com/v1/chat/completions'");
     expect(example).not.toContain('/v1/v1/');
+  });
+
+  it('should shell-quote URLs containing shell metacharacters', () => {
+    const example = buildApiKeyUsageExample(
+      'https://gateway.example.com/$(id)',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(example).toContain(
+      `curl -X POST 'https://gateway.example.com/$(id)/v1/chat/completions'`,
+    );
+    // The metacharacters must be inside single quotes, not executed on copy-paste.
+    expect(example).not.toMatch(/curl -X POST [^']/);
+
+    const semicolonExample = buildApiKeyUsageExample(
+      'https://gateway.example.com/a;b',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(semicolonExample).toContain(
+      `curl -X POST 'https://gateway.example.com/a;b/v1/chat/completions'`,
+    );
+
+    const quoteExample = buildApiKeyUsageExample(
+      "https://gateway.example.com/it's",
+      'chat-model',
+      'sk-test-key',
+    );
+    // Embedded single quotes are escaped by ending/restarting the shell quote.
+    expect(quoteExample).toContain(
+      "curl -X POST 'https://gateway.example.com/it'\\''s/v1/chat/completions'",
+    );
   });
 
   it('should return empty string for invalid or incomplete inputs', () => {
