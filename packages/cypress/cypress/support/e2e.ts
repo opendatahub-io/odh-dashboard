@@ -26,6 +26,12 @@ import '../utils/moduleFederationMock';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
+import {
+  createTestTagFilter,
+  installTestTagFilter,
+  mapTestTags,
+  type TestOptions,
+} from './testTags';
 import { asProjectAdminUser } from '../utils/mockUsers';
 import { maskSensitiveInfo } from '../utils/maskSensitiveInfo';
 
@@ -36,22 +42,11 @@ const softAssert = require('soft-assert');
 // Type Definitions
 // ============================
 
-// Define a custom type for test options that includes tags.
-type TestOptions = {
-  tags?: string[];
-  [key: string]: unknown;
-};
-
 // Create type definition for soft-assert
 export interface SoftAssert {
   softAssert: (actual: unknown, expected: unknown, message?: string) => void;
   softAssertAll: () => void;
   softTrue: (condition: boolean, msg?: string) => void;
-}
-
-// Define an interface for the test function that supports retries.
-interface TestWithRetries extends Mocha.TestFunction {
-  retries: (n: number) => void;
 }
 
 /* eslint-disable @typescript-eslint/no-namespace */
@@ -76,6 +71,8 @@ declare global {
     it: Mocha.TestFunction & {
       (name: string, options: TestOptions, fn?: Mocha.AsyncFunc | Mocha.Func): Mocha.Test;
     };
+    describe: Mocha.SuiteFunction;
+    context: Mocha.SuiteFunction;
   }
 }
 /* eslint-enable @typescript-eslint/no-namespace */
@@ -180,88 +177,14 @@ Cypress.on('uncaught:exception', (err) => {
 // Configure grep filtering
 const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
 const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
-
-// Helper function to map test tags
-const mapTestTags = (tags: string[]) =>
-  tags.map((tag: string) => (tag.startsWith('@') ? tag : `@${tag}`));
+const { grepIncludedTags, shouldSkipTest } = createTestTagFilter(grepTags, skipTags);
 
 // eslint-disable-next-line no-console
 console.log(`Support file loaded. \nwatchForFileChanges: ${Cypress.config('watchForFileChanges')}`);
 
-// ============================
-// Test Tags Implementation
-// ============================
-
-function setupTestTags() {
-  const originalIt = window.it;
-
-  // Create a type-safe wrapper for the original it function.
-  const wrappedIt = function it(
-    name: string,
-    options: TestOptions | Mocha.AsyncFunc | Mocha.Func,
-    fn?: Mocha.AsyncFunc | Mocha.Func,
-  ): Mocha.Test {
-    // If called with two arguments and the second is a function, use it directly.
-    if (arguments.length === 2 && typeof options === 'function') {
-      return originalIt(name, options as Mocha.Func);
-    }
-
-    // If options is an object with tags, store them on Cypress.testTags.
-    if (typeof options === 'object' && options.tags) {
-      Cypress.testTags[name] = options.tags;
-    }
-
-    return originalIt(name, options as TestOptions, fn);
-  };
-
-  // Copy properties (like .only and .skip) from the original it.
-  wrappedIt.only = originalIt.only;
-  wrappedIt.skip = originalIt.skip;
-
-  // Handle retries if they exist.
-  (wrappedIt as TestWithRetries).retries = (originalIt as TestWithRetries).retries;
-
-  // Replace window.it with our wrapped version,
-  // casting it to the proper type to satisfy TypeScript.
-  window.it = wrappedIt as Mocha.TestFunction &
-    ((name: string, options: TestOptions, fn?: Mocha.AsyncFunc | Mocha.Func) => Mocha.Test);
-}
-
-// Initialize test tags
-setupTestTags();
-
-// ============================
-// Test Filtering Functions
-// ============================
-
-/**
- * Determines if a test should be skipped based on its tags and environment variables
- * @param testTags Array of tags for a test
- * @returns Boolean indicating if the test should be skipped
- */
-function shouldSkipTest(testTags: string[]): boolean {
-  const mappedTestTags = mapTestTags(testTags);
-
-  // If skip tags are provided and the test has any of them, skip it
-  const shouldSkip =
-    skipTags.length > 0 && skipTags.some((tag: string) => mappedTestTags.includes(tag));
-
-  // If grep tags are provided, the test must match at least one of them
-  // If no grep tags are provided, run all tests
-  const shouldRun =
-    grepTags.length === 0 ||
-    grepTags.some((tag: string) => {
-      const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
-      return mappedTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
-    });
-
-  // If we have grep tags but no tests match them, we should skip all tests
-  if (grepTags.length > 0 && !shouldRun) {
-    return true;
-  }
-
-  return shouldSkip || !shouldRun;
-}
+installTestTagFilter(window, shouldSkipTest, (test, tags) => {
+  Cypress.testTags[test.fullTitle()] = tags;
+});
 
 // ============================
 // Event Handlers
@@ -317,10 +240,10 @@ before(function setupGlobalIntercepts() {
 
 // Root-level before hook to skip suite if no tests match grep tags or if all tests should be skipped
 before(function checkGrepTags() {
-  if (grepTags.length > 0) {
+  if (grepIncludedTags.length > 0) {
     // Collect all test tags
     const allTestTags = Object.values(Cypress.testTags).flat();
-    const hasMatchingTest = grepTags.some((tag: string) => {
+    const hasMatchingTest = grepIncludedTags.some((tag: string) => {
       const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
       return allTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
     });
@@ -366,7 +289,7 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     this.skip();
   }
 
-  const testTags = Cypress.testTags[testTitle] ?? [];
+  const testTags = Cypress.testTags[this.currentTest.fullTitle()] ?? [];
   const mappedTestTags = mapTestTags(testTags);
 
   // Chain Cypress commands

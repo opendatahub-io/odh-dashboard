@@ -11,6 +11,7 @@ import {
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import { ServingRuntimeTemplateFormByName } from '../CustomServingRuntimeAddTemplate';
 import { CustomServingRuntimeContext } from '../CustomServingRuntimeContext';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
 jest.mock('@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor', () => ({
   __esModule: true,
@@ -27,10 +28,6 @@ jest.mock('@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEd
 jest.mock('@odh-dashboard/internal/services/templateService', () => ({
   createServingRuntimeTemplateBackend: jest.fn(),
   updateServingRuntimeTemplateBackend: jest.fn(),
-}));
-
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
 }));
 
 const LIST_PATH =
@@ -61,6 +58,7 @@ const renderByName = (mode: 'edit' | 'duplicate', name: string, templates: Templ
         </Routes>
       </MemoryRouter>
     </CustomServingRuntimeContext.Provider>,
+    { wrapper: createTestProviders({ dashboardNamespace: 'custom-dashboard' }).wrapper },
   );
 
 describe('ServingRuntimeTemplateFormByName', () => {
@@ -104,6 +102,9 @@ describe('ServingRuntimeTemplateFormByName', () => {
     expect(screen.getByTestId('create-button')).toBeEnabled();
     fireEvent.click(screen.getByTestId('create-button'));
     await waitFor(() => expect(updateServingRuntimeTemplateBackend).toHaveBeenCalledTimes(1));
+    expect(jest.mocked(updateServingRuntimeTemplateBackend).mock.calls[0][2]).toBe(
+      'custom-dashboard',
+    );
     expect(createServingRuntimeTemplateBackend).not.toHaveBeenCalled();
   });
 
@@ -115,6 +116,9 @@ describe('ServingRuntimeTemplateFormByName', () => {
     expect(screen.getByTestId('create-button')).toBeEnabled();
     fireEvent.click(screen.getByTestId('create-button'));
     await waitFor(() => expect(createServingRuntimeTemplateBackend).toHaveBeenCalledTimes(1));
+    expect(jest.mocked(createServingRuntimeTemplateBackend).mock.calls[0][1]).toBe(
+      'custom-dashboard',
+    );
     expect(updateServingRuntimeTemplateBackend).not.toHaveBeenCalled();
   });
 

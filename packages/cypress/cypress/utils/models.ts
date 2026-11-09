@@ -5,6 +5,7 @@ import { modelServingSection } from '../pages/modelServing';
 
 // eslint-disable-next-line no-restricted-imports
 export * from '@odh-dashboard/internal/api/models/index';
+export { ServingRuntimeModel } from '@odh-dashboard/model-serving/shared/api/models';
 
 export const NIMAccountModel = {
   apiVersion: 'v1',

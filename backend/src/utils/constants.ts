@@ -84,6 +84,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableFeatureStore: false,
       featureStoreAdmin: false,
       dataRegistry: false,
+      dataConnectHub: false,
       genAiStudio: true,
       genAiTracing: false,
       guardrails: false,

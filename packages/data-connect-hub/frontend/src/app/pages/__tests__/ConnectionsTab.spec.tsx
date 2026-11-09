@@ -7,11 +7,14 @@ import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/Connection
 import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
-import { deleteConnection, verifyConnection } from '~/app/api/dch';
+import { ConnectionApiError, deleteConnection, verifyConnection } from '~/app/api/dch';
+import { ConnectionTypeInstance } from '~/app/components/ConnectionType.tsx';
 
 jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
+jest.mock('~/app/hooks/useConnectionAccess');
 jest.mock('~/app/hooks/useNamespaces');
 jest.mock('~/app/utilities/tracking', () => ({
   DATA_CONNECT_HUB_EVENT_NAMES: {
@@ -31,6 +34,7 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({ success: mockNotificationSuccess, error: jest.fn() }),
 }));
 jest.mock('~/app/api/dch', () => ({
+  ...jest.requireActual<typeof import('~/app/api/dch')>('~/app/api/dch'),
   createConnection: jest.fn(),
   deleteConnection: jest.fn(),
   verifyConnection: jest.fn(),
@@ -62,6 +66,7 @@ jest.mock('@odh-dashboard/ui-core', () => ({
 
 const mockUseConnections = jest.mocked(useConnections);
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
+const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
@@ -98,7 +103,7 @@ const connections = [
 ];
 
 const connectionTypes = [
-  {
+  new ConnectionTypeInstance({
     metadata: {
       id: '550e8400-e29b-41d4-a716-446655440003',
       created_at: '2026-09-08T16:00:00Z',
@@ -113,8 +118,8 @@ const connectionTypes = [
       ],
     },
     status: { flight_ready: true },
-  },
-  {
+  }),
+  new ConnectionTypeInstance({
     metadata: {
       id: '550e8400-e29b-41d4-a716-446655440004',
       created_at: '2026-09-08T16:00:00Z',
@@ -122,7 +127,7 @@ const connectionTypes = [
     },
     resource: { name: 'S3', provider: 's3', credentials_fields: [] },
     status: { flight_ready: true },
-  },
+  }),
 ];
 
 const newConnection = {
@@ -136,14 +141,14 @@ const newConnection = {
   status: { state: 'ready' as const },
 };
 
-const newConnectionType = {
+const newConnectionType = new ConnectionTypeInstance({
   metadata: {
     id: '550e8400-e29b-41d4-a716-446655440006',
     created_at: '2026-09-08T16:00:00Z',
     updated_at: '2026-09-08T16:00:00Z',
   },
   resource: { name: 'Snowflake', provider: 'snowflake', credentials_fields: [] },
-};
+});
 
 describe('ConnectionsTab', () => {
   beforeEach(() => {
@@ -153,6 +158,7 @@ describe('ConnectionsTab', () => {
     mockDeleteConnection.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
     mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
   });
 
@@ -345,6 +351,36 @@ describe('ConnectionsTab', () => {
     });
   });
 
+  it('disables creating a connection when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    const button = screen.getByRole('button', { name: 'Create connection' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    await user.hover(button);
+    expect(
+      screen.getByText(
+        'This action requires the create permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(button);
+    expect(screen.queryByTestId('create-connection-tearsheet')).toBeNull();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith({
+      eventName: 'Connections Add Started',
+      properties: { project: 'test-project', source: 'connections_tab' },
+    });
+  });
+
+  it('disables creating a connection while access is loading', () => {
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: false });
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    const button = screen.getByRole('button', { name: 'Create connection' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('disables connection polling while the Connections tab is inactive', () => {
     renderConnectionsTab({ namespace: 'test-project', isActive: false });
 
@@ -465,7 +501,14 @@ describe('ConnectionsTab', () => {
     renderConnectionsTab({ namespace: 'test-project' });
 
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+    await user.hover(deleteItem);
+    expect(
+      screen.queryByText(
+        'This action requires the delete permission. To request permission, contact your administrator.',
+      ),
+    ).toBeNull();
+    await user.click(deleteItem);
     await user.click(screen.getByTestId('delete-confirm'));
 
     await waitFor(() => expect(refresh).toHaveBeenCalled());
@@ -483,6 +526,65 @@ describe('ConnectionsTab', () => {
       eventName: 'Connections Connection Delete Initiated',
       properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
     });
+  });
+
+  it('disables deleting a connection when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+    expect(deleteItem.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(deleteItem);
+    expect(
+      screen.getByText(
+        'This action requires the delete permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(deleteItem);
+    expect(screen.queryByTestId('delete-modal')).toBeNull();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith({
+      eventName: 'Connections Connection Delete Initiated',
+      properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
+    });
+  });
+
+  it('disables verifying a connection when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
+    const verifyItem = screen.getByRole('menuitem', { name: 'Verify connection' });
+    expect(verifyItem.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(verifyItem);
+    expect(
+      screen.getByText(
+        'This action requires the create permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(verifyItem);
+    expect(mockVerifyConnection).not.toHaveBeenCalled();
+  });
+
+  it('shows the unauthorized state when loading connections is forbidden', () => {
+    mockUseConnections.mockReturnValue([
+      [],
+      false,
+      new ConnectionApiError('Access forbidden', 403),
+      jest.fn(),
+    ]);
+
+    renderConnectionsTab({ namespace: 'test-project' });
+
+    expect(screen.getByTestId('unauthorized-error')).toBeTruthy();
+    expect(screen.getByTestId('unauthorized-error-title')).toBeTruthy();
+    expect(screen.queryByText('Unable to load data connections')).toBeNull();
   });
 
   it('ignores a stale delete completion after the modal is replaced', async () => {

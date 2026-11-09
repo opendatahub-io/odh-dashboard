@@ -1,13 +1,5 @@
 package models
 
-const MaaSOrgsClaim = "https://redhat.com/maas/orgs"
-
-type MaaSOrg struct {
-	OrganizationID   string   `json:"organization_id"`
-	OrganizationName string   `json:"organization_name,omitempty"`
-	Roles            []string `json:"roles"`
-}
-
 type MaaSWhoAmI struct {
 	Sub     string `json:"sub"`
 	Email   string `json:"email,omitempty"`
@@ -15,11 +7,15 @@ type MaaSWhoAmI struct {
 	IsAdmin bool   `json:"isAdmin"`
 }
 
-// MaaSWhoAmIUpstream is the response returned by maas-api /v1/me. The BFF
-// intentionally does not expose the organization claim to its callers.
+// MaaSWhoAmIUpstream is the response returned by maas-api /v1/me. The identity
+// contract is flat: org_id identifies the caller organization, with optional
+// org_name and roles. The BFF intentionally does not expose these claims to its
+// callers.
 type MaaSWhoAmIUpstream struct {
-	Sub   string     `json:"sub"`
-	Email string     `json:"email,omitempty"`
-	Name  string     `json:"name,omitempty"`
-	Orgs  *[]MaaSOrg `json:"https://redhat.com/maas/orgs"`
+	Sub     string   `json:"sub"`
+	Email   string   `json:"email,omitempty"`
+	Name    string   `json:"name,omitempty"`
+	OrgID   string   `json:"org_id,omitempty"`
+	OrgName string   `json:"org_name,omitempty"`
+	Roles   []string `json:"roles,omitempty"`
 }

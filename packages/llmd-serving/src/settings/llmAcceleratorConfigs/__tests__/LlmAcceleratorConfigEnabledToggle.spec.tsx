@@ -7,15 +7,9 @@ import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledTog
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
 import { LlmAcceleratorConfigTrackingEvent } from '../../../tracking/llmdTrackingConstants';
-import { createHostApiWrapper } from '../../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
-
-jest.mock('@odh-dashboard/internal/utilities/useNotification', () => {
-  const mockNotification = { error: jest.fn(), success: jest.fn(), info: jest.fn() };
-  return { __esModule: true, default: () => mockNotification };
-});
+const { trackEvent: mockTrackEvent, notification, wrapper } = createTestProviders();
 
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
@@ -30,10 +24,6 @@ jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking',
 }));
 
 const mockPatchConfig = jest.mocked(patchLLMInferenceServiceConfig);
-
-const mockNotification =
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require('@odh-dashboard/internal/utilities/useNotification').default();
 
 describe('LlmAcceleratorConfigEnabledToggle', () => {
   beforeEach(() => {
@@ -110,7 +100,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     fireEvent.click(screen.getByRole('switch'));
 
     await waitFor(() => {
-      expect(mockNotification.error).toHaveBeenCalledWith(
+      expect(notification.error).toHaveBeenCalledWith(
         'Error updating accelerator configuration',
         'Network error',
       );
@@ -190,7 +180,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
 
     await waitFor(() => {
-      expect(mockNotification.error).toHaveBeenCalled();
+      expect(notification.error).toHaveBeenCalled();
     });
 
     expect(mockTrackEvent).not.toHaveBeenCalledWith(

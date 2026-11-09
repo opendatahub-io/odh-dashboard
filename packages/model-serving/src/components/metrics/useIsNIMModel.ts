@@ -3,8 +3,8 @@ import useFetch, {
   NotReadyError,
   type FetchStateCallbackPromise,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
-import { getServingRuntime } from '@odh-dashboard/internal/api/k8s/servingRuntimes';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { getServingRuntime } from '../../shared/api/servingRuntimes';
 import type { InferenceServiceKind, ServingRuntimeKind } from '../../shared';
 import { isNIMServingRuntime } from '../../shared/utils/nimUtils';
 

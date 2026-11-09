@@ -45,7 +45,7 @@ describe('API keys - Subscription Tab', () => {
       }),
     );
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       const subscriptionFilter = req.body?.data?.filters?.subscription as string | undefined;
       const keys = mockAPIKeys().filter(
         (key) =>
@@ -303,7 +303,7 @@ describe('API keys - Subscription Tab', () => {
         new Date(a.expirationDate ?? 0).getTime() - new Date(b.expirationDate ?? 0).getTime(),
     );
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       req.reply(mockSearchResponse(nameAsc));
     }).as('sortNameAsc');
     mySubscriptionsPage.findColumnSortButton('Name').click();
@@ -322,7 +322,7 @@ describe('API keys - Subscription Tab', () => {
       .eq(1)
       .should('contain.text', 'production-backend');
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       req.reply(mockSearchResponse(expiresAsc));
     }).as('sortExpiresAsc');
     mySubscriptionsPage.findColumnSortButton('Expires').click();
@@ -343,7 +343,7 @@ describe('API keys - Subscription Tab', () => {
 
     const mockReply = () => mockSearchResponse(premiumKeys);
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       req.reply(mockReply());
     }).as('sortCreated');
     mySubscriptionsPage.findColumnSortButton('Created').click();
@@ -351,7 +351,7 @@ describe('API keys - Subscription Tab', () => {
       expect(interception.request.body.data).to.have.nested.property('sort.by', 'created_at');
     });
 
-    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       req.reply(mockReply());
     }).as('sortLastUsed');
     mySubscriptionsPage.findColumnSortButton('Last used').click();

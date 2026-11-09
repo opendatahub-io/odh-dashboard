@@ -40,6 +40,7 @@ export const persistResolvedWorkingProject = <T extends WorkingProjectIdentity>(
     return false;
   }
 
-  const providerKnownProjects = list.status === 'listed' ? list.projects : [];
+  const providerKnownProjects =
+    list.status === 'listed' || list.status === 'listing-unavailable' ? list.projects : [];
   return persistWorkingProject(storage, result.activeProject, providerKnownProjects);
 };

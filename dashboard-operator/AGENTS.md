@@ -27,11 +27,17 @@ dashboard-operator/
 │       ├── crds/
 │       └── templates/
 ├── config/
+│   ├── base/                           # Shared resources (crd, rbac, manager, certmanager); no namespace/prefix
+│   ├── certmanager/                    # Self-signed Issuer + metrics Service/Certificate
+│   │   └── wiring/                     # Transformer: final names into the metrics cert SANs (re-list in parent overlays)
 │   ├── crd/
 │   │   ├── bases/                      # Generated CRD YAML (source of truth; synced to charts/dashboard/crds)
 │   │   └── kustomization.yaml
-│   ├── default/
+│   ├── default/                        # Default install, webhook off (matches chart webhook.enabled=false)
 │   │   └── kustomization.yaml
+│   ├── webhook/                        # Kustomize Component: webhook config + --enable-webhook, always together
+│   │   └── wiring/                     # Transformer: final names into inject-ca-from + cert SANs (re-list in parent overlays)
+│   ├── webhook-enabled/                # Opt-in install: base + webhook component (needs cert-manager)
 │   ├── manager/
 │   │   ├── manager.yaml                # Deployment manifest
 │   │   └── kustomization.yaml
@@ -179,6 +185,8 @@ The Model Registry OCI upload base image is an intentional exception: administra
 | `--metrics-bind-address` | — | `:8080` | Metrics endpoint |
 | `--health-probe-bind-address` | — | `:8081` | Health/ready probes |
 | `--leader-elect` | — | `false` | Leader election for HA |
+| `--enable-webhook` | — | `false` | Start the validating webhook server. Set only together with the webhook config (chart `webhook.enabled`, or `config/webhook-enabled`) |
+| `--webhook-port` | — | `9443` | Webhook server port |
 | `--namespace` | `OPERATOR_NAMESPACE` | (required) | Operator deployment namespace |
 | — | `ODH_PLATFORM_TYPE` | (auto-detect) | Override platform detection |
 
