@@ -3,6 +3,7 @@ package controller
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -48,7 +49,7 @@ func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 				"Models must not use the unavailable kserve_vllm metric family")
 			assert.Contains(t, raw, "name: cluster-prometheus-tenancy-datasource",
 				"Models must pin OCP tenancy for GPU/CPU series")
-			assert.NotContains(t, raw, `namespace=~"$namespace"`,
+			assert.NotRegexp(t, regexp.MustCompile(`namespace\s*=~?\s*"\$(\{namespace\}|namespace)"`), raw,
 				"scoped DS/tenancy already inject namespace=; PromQL must not dual-filter namespace")
 
 			resource := unstructured.Unstructured{}
@@ -63,7 +64,8 @@ func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 			require.NotNil(t, nsVar, "namespace variable required")
 			assert.Equal(t, "TextVariable", nsVar["kind"],
 				"namespace must be a TextVariable stub; Dashboard transform injects ProjectsContext StaticList")
-			nsSpec, _ := nsVar["spec"].(map[string]any)
+			nsSpec, ok := nsVar["spec"].(map[string]any)
+			require.True(t, ok, "namespace variable spec must be a map")
 			_, hasNSCustomAll := nsSpec["customAllValue"]
 			assert.False(t, hasNSCustomAll,
 				"namespace must not set customAllValue (scoped queryParams break on wildcards)")
