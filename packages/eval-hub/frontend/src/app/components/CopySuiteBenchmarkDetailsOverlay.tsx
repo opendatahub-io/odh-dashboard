@@ -12,6 +12,7 @@ type CopySuiteBenchmarkDetailsOverlayProps = {
   onClose: () => void;
   onPrimaryAction: (benchmark: FlatBenchmark) => void;
   primaryActionLabel: string;
+  isPrimaryActionDisabled?: boolean;
 };
 
 const CopySuiteBenchmarkDetailsOverlay: React.FC<CopySuiteBenchmarkDetailsOverlayProps> = ({
@@ -20,6 +21,7 @@ const CopySuiteBenchmarkDetailsOverlay: React.FC<CopySuiteBenchmarkDetailsOverla
   onClose,
   onPrimaryAction,
   primaryActionLabel,
+  isPrimaryActionDisabled = false,
 }) => {
   const overlay = (
     <Backdrop
@@ -50,6 +52,7 @@ const CopySuiteBenchmarkDetailsOverlay: React.FC<CopySuiteBenchmarkDetailsOverla
                 onClose={onClose}
                 onRunBenchmark={onPrimaryAction}
                 primaryActionLabel={primaryActionLabel}
+                isPrimaryActionDisabled={isPrimaryActionDisabled}
               />
             }
           />

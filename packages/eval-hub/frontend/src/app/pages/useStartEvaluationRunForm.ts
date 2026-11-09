@@ -82,6 +82,7 @@ type UseStartEvaluationRunFormParams = {
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
   initialValues?: ReconfigureFormData;
+  initialRunValues?: Partial<StartEvaluationRunFormValues>;
   defaultEvaluationName?: string;
   defaultSourceMode?: SourceMode;
   trackingSource?: string;
@@ -161,6 +162,7 @@ export function useStartEvaluationRunForm({
   experiments,
   experimentsLoaded,
   initialValues,
+  initialRunValues,
   defaultEvaluationName,
   defaultSourceMode,
   trackingSource = 'evaluations_page',
@@ -206,13 +208,16 @@ export function useStartEvaluationRunForm({
   const form = useForm<StartEvaluationRunFormValues>({
     mode: 'onChange',
     resolver: zodResolver(startEvaluationRunSchema),
-    defaultValues: buildInitialFormValues({
-      initialValues,
-      defaultEvaluationName,
-      defaultSourceMode,
-      defaultThreshold,
-      defaultPrimaryMetric,
-    }),
+    defaultValues: {
+      ...buildInitialFormValues({
+        initialValues,
+        defaultEvaluationName,
+        defaultSourceMode,
+        defaultThreshold,
+        defaultPrimaryMetric,
+      }),
+      ...initialRunValues,
+    },
   });
 
   const {
@@ -280,8 +285,14 @@ export function useStartEvaluationRunForm({
     ],
   });
 
-  const thresholdTouched = !!form.formState.dirtyFields.threshold || isReconfigure;
-  const primaryMetricTouched = !!form.formState.dirtyFields.primaryMetric || isReconfigure;
+  const thresholdTouched =
+    !!form.formState.dirtyFields.threshold ||
+    isReconfigure ||
+    initialRunValues?.threshold !== undefined;
+  const primaryMetricTouched =
+    !!form.formState.dirtyFields.primaryMetric ||
+    isReconfigure ||
+    initialRunValues?.primaryMetric !== undefined;
 
   React.useEffect(() => {
     if (!thresholdTouched) {

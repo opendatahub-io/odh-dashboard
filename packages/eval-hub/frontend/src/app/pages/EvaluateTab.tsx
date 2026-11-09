@@ -13,10 +13,10 @@ import {
 import { Link } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
 import {
-  evaluationBenchmarksRoute,
   evaluationBenchmarkSuitesRoute,
   evaluationCreateSuiteRoute,
   evaluationEvaluateNavigationState,
+  evaluationSingleBenchmarkRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
@@ -118,7 +118,11 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
                   <Button
                     variant="secondary"
                     component={(props) => (
-                      <Link {...props} to={evaluationBenchmarksRoute(namespace)} />
+                      <Link
+                        {...props}
+                        to={evaluationSingleBenchmarkRoute(namespace)}
+                        state={evaluationEvaluateNavigationState}
+                      />
                     )}
                     onClick={() =>
                       trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {

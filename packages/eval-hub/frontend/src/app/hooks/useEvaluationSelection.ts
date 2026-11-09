@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Collection, FlatBenchmark } from '~/app/types';
-import { evaluationCreateRoute } from '~/app/routes';
+import { evaluationEvaluateRoute } from '~/app/routes';
 
 const hasBenchmark = (state: unknown): state is { benchmark: FlatBenchmark } =>
   typeof state === 'object' && state !== null && 'benchmark' in state;
@@ -38,7 +38,7 @@ export const useEvaluationSelection = (
 
   React.useEffect(() => {
     if (!skipRedirect && !isBenchmarkFlow && !isCollectionFlow) {
-      navigate(evaluationCreateRoute(namespace), { replace: true });
+      navigate(evaluationEvaluateRoute(namespace), { replace: true });
     }
   }, [skipRedirect, isBenchmarkFlow, isCollectionFlow, navigate, namespace]);
 

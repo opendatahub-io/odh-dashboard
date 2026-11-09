@@ -50,7 +50,7 @@ import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
 import {
   evaluationCopySuiteRoute,
   evaluationCollectionSelectionNavigationState,
-  evaluationCreateRoute,
+  evaluationEvaluateRoute,
   evaluationStartRoute,
   evaluationsBaseRoute,
   projectHomeRoute,
@@ -208,7 +208,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 >
                   <BreadcrumbItem
                     render={() => (
-                      <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
+                      <Link to={evaluationEvaluateRoute(namespace)}>Benchmark collections</Link>
                     )}
                   />
                   <BreadcrumbItem isActive>Select collection</BreadcrumbItem>

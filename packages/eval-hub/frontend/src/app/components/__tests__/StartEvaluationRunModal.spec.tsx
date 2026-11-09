@@ -10,6 +10,7 @@ import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import { createEvaluationJob } from '~/app/api/k8s';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
+import { mockFlatBenchmark } from '~/__mocks__/mockBenchmark';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type {
   Collection,
@@ -164,6 +165,8 @@ const renderModal = (
   onClonePendingChange?: (isPending: boolean) => void,
   options: {
     collection?: Collection;
+    benchmark?: ReturnType<typeof mockFlatBenchmark>;
+    isCollectionFlow?: boolean;
     defaultSourceMode?: SourceMode;
     omitCollection?: boolean;
     prerequisite?: string;
@@ -179,7 +182,8 @@ const renderModal = (
         onClose={onClose}
         namespace="test-namespace"
         collection={modalCollection}
-        isCollectionFlow
+        benchmark={options.benchmark}
+        isCollectionFlow={options.isCollectionFlow ?? true}
         defaultEvaluationName="Copied suite"
         defaultSourceMode={options.defaultSourceMode}
         trackingSource="copy_suite"
@@ -293,7 +297,7 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.getByTestId('model-picker-toggle')).toBeInTheDocument();
   });
 
-  it('should not render benchmark parameters in any modal view', () => {
+  it('should not render benchmark parameters for a collection run', () => {
     renderModal();
 
     expect(screen.queryByTestId('show-additional-args')).not.toBeInTheDocument();
@@ -303,6 +307,31 @@ describe('StartEvaluationRunModal', () => {
 
     expect(screen.queryByTestId('show-additional-args')).not.toBeInTheDocument();
     expect(screen.queryByTestId('additional-args-upload')).not.toBeInTheDocument();
+  });
+
+  it('should show individual benchmark run setup after benchmark configuration', () => {
+    const benchmark = mockFlatBenchmark();
+    renderModal(undefined, undefined, {
+      benchmark,
+      isCollectionFlow: false,
+      omitCollection: true,
+    });
+
+    expect(screen.getByTestId('start-evaluation-run-benchmark-name')).toHaveTextContent(
+      `Benchmark: ${benchmark.name}`,
+    );
+    expect(screen.getByTestId('start-evaluation-run-advanced-toggle')).toHaveTextContent(
+      'Hide advanced configuration',
+    );
+    expect(screen.getByText('MLflow Experiment')).toBeInTheDocument();
+    expect(screen.getByTestId('mlflow-experiment-helper')).toHaveTextContent(
+      'Evaluation metrics are logged to MLflow.',
+    );
+    expect(screen.getByTestId('model-picker-toggle')).toBeInTheDocument();
+    expect(screen.queryByTestId('show-additional-args')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('start-evaluation-run-modal-test-data-ref-toggle'),
+    ).not.toBeInTheDocument();
   });
 
   it('should not render a source selector for a collection with one unknown evaluation target', () => {

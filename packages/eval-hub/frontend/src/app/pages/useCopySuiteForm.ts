@@ -262,6 +262,7 @@ type UseCopySuiteFormParams = {
   providers: Provider[];
   providersLoaded: boolean;
   mode?: 'copy' | 'create' | 'edit';
+  singleBenchmarkFlow?: boolean;
   onSaveAndRunRequest?: () => void;
   cancelRoute?: string;
 };
@@ -690,6 +691,7 @@ export function useCopySuiteForm({
   providers,
   providersLoaded,
   mode = 'copy',
+  singleBenchmarkFlow = false,
   onSaveAndRunRequest,
   cancelRoute,
 }: UseCopySuiteFormParams) {
@@ -721,7 +723,9 @@ export function useCopySuiteForm({
   const form = useForm<CopySuiteFormValues>({
     mode: 'onChange',
     resolver: zodResolver(validationSchema),
-    defaultValues: copySuiteDefaultValues,
+    defaultValues: singleBenchmarkFlow
+      ? { ...copySuiteDefaultValues, suiteName: 'Single benchmark evaluation' }
+      : copySuiteDefaultValues,
   });
   const { isValid: isFormValid } = form.formState;
 
@@ -734,13 +738,23 @@ export function useCopySuiteForm({
     initializedRef.current = true;
     const initialValues = sourceCollection
       ? buildInitialFormValues(sourceCollection, providers, isEditMode ? 'edit' : 'copy')
-      : copySuiteDefaultValues;
+      : singleBenchmarkFlow
+        ? { ...copySuiteDefaultValues, suiteName: 'Single benchmark evaluation' }
+        : copySuiteDefaultValues;
     initialBenchmarksRef.current = initialValues.benchmarks;
     form.reset(initialValues);
     if (sourceCollection) {
       void form.trigger();
     }
-  }, [sourceCollection, providers, providersLoaded, form, isCreateMode, isEditMode]);
+  }, [
+    sourceCollection,
+    providers,
+    providersLoaded,
+    form,
+    isCreateMode,
+    isEditMode,
+    singleBenchmarkFlow,
+  ]);
 
   const [
     suiteName,
@@ -900,10 +914,16 @@ export function useCopySuiteForm({
   );
 
   const isSettingsValid =
-    suiteName.trim() !== '' &&
-    !isSameAsSourceCollectionName(suiteName, mode === 'copy' ? sourceCollection?.name : undefined);
+    singleBenchmarkFlow ||
+    (suiteName.trim() !== '' &&
+      !isSameAsSourceCollectionName(
+        suiteName,
+        mode === 'copy' ? sourceCollection?.name : undefined,
+      ));
 
-  const isValid = isSettingsValid && benchmarks.length > 0 && isFormValid;
+  const isValid = singleBenchmarkFlow
+    ? benchmarks.length === 1 && isFormValid
+    : isSettingsValid && benchmarks.length > 0 && isFormValid;
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const isSaveOnlyInFlightRef = React.useRef(false);

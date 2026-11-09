@@ -78,6 +78,8 @@ export type CopySuiteBenchmarkSelectionStepProps = {
   selectedBenchmarkKeys: string[];
   collectionCategories?: readonly string[];
   prefilterProviders?: boolean;
+  maxSelectionCount?: number;
+  selectionContext?: 'collection' | 'single';
   isInteractionDisabled?: boolean;
   onNext: (selectedKeys: string[]) => void;
   onBack: () => void;
@@ -89,6 +91,8 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   selectedBenchmarkKeys,
   collectionCategories = [],
   prefilterProviders = false,
+  maxSelectionCount = MAX_BENCHMARKS,
+  selectionContext = 'collection',
   isInteractionDisabled = false,
   onNext,
   onBack,
@@ -254,10 +258,10 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   }, [sortedBenchmarks, effectivePage]);
 
   const selectionCount = draftSelectedBenchmarkKeys.length;
-  const remainingSelections = MAX_BENCHMARKS - selectionCount;
-  const isSelectionCountValid = selectionCount >= 1 && selectionCount <= MAX_BENCHMARKS;
-  const isAtSelectionLimit = selectionCount >= MAX_BENCHMARKS;
-  const hasTooManySelections = selectionCount > MAX_BENCHMARKS;
+  const remainingSelections = maxSelectionCount - selectionCount;
+  const isSelectionCountValid = selectionCount >= 1 && selectionCount <= maxSelectionCount;
+  const isAtSelectionLimit = selectionCount >= maxSelectionCount;
+  const hasTooManySelections = selectionCount > maxSelectionCount;
   const hasActiveFilters = hasActiveBenchmarkFilters(filterData);
   const hasAutoPrefilter =
     (initialCategoryFilters.length > 0 || initialFrameworkFilters.length > 0) &&
@@ -309,12 +313,15 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     searchInputTrackingProps.reset();
   }, [searchInputTrackingProps, setFilterDataFromUser]);
 
-  const toggleSelection = React.useCallback((key: string) => {
-    setPage(1);
-    setDraftSelectedBenchmarkKeys((currentKeys) =>
-      toggleBenchmarkSelectionKey(currentKeys, key, MAX_BENCHMARKS),
-    );
-  }, []);
+  const toggleSelection = React.useCallback(
+    (key: string) => {
+      setPage(1);
+      setDraftSelectedBenchmarkKeys((currentKeys) =>
+        toggleBenchmarkSelectionKey(currentKeys, key, maxSelectionCount),
+      );
+    },
+    [maxSelectionCount],
+  );
 
   const handleNext = React.useCallback(() => {
     if (isSelectionCountValid && !isInteractionDisabled) {
@@ -335,10 +342,12 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
       >
         <div className="evalhub-copy-suite-benchmark-catalog__content">
           <Title headingLevel="h1" size="2xl" data-testid="copy-suite-select-benchmarks-title">
-            Select benchmarks
+            {selectionContext === 'single' ? 'Select benchmark' : 'Select benchmarks'}
           </Title>
           <Content component="p">
-            Search and select up to {MAX_BENCHMARKS} benchmarks to include in your collection.
+            {selectionContext === 'single'
+              ? 'Search and select one benchmark to evaluate.'
+              : `Search and select up to ${maxSelectionCount} benchmarks to include in your collection.`}
           </Content>
 
           <Stack hasGutter>
@@ -526,13 +535,16 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                   {hasTooManySelections ? (
                     <strong>
                       Invalid selection: {selectionCount} benchmarks selected. Select no more than{' '}
-                      {MAX_BENCHMARKS}.
+                      {maxSelectionCount}.
                     </strong>
+                  ) : selectionContext === 'single' ? (
+                    <>Select one benchmark to continue.</>
                   ) : (
                     <>
-                      You can select a maximum of {MAX_BENCHMARKS} benchmarks for this collection.{' '}
+                      You can select a maximum of {maxSelectionCount} benchmarks for this
+                      collection.{' '}
                       <strong>
-                        {remainingSelections} out of {MAX_BENCHMARKS} remaining
+                        {remainingSelections} out of {maxSelectionCount} remaining
                       </strong>
                     </>
                   )}
@@ -704,7 +716,12 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
             setDetailsBenchmarkKey(undefined);
           }}
           primaryActionLabel={
-            isDetailsBenchmarkSelected ? 'Deselect benchmark' : 'Select benchmark'
+            selectionContext === 'single' && isDetailsBenchmarkSelected
+              ? 'Selected'
+              : 'Select benchmark'
+          }
+          isPrimaryActionDisabled={
+            selectionContext === 'single' && (isDetailsBenchmarkSelected || isAtSelectionLimit)
           }
         />
       ) : null}

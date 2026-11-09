@@ -23,6 +23,7 @@ type BenchmarkDrawerPanelProps = {
   onClose: () => void;
   onRunBenchmark: (b: FlatBenchmark) => void;
   primaryActionLabel?: string;
+  isPrimaryActionDisabled?: boolean;
 };
 
 const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
@@ -30,6 +31,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
   onClose,
   onRunBenchmark,
   primaryActionLabel = 'Select benchmark',
+  isPrimaryActionDisabled = false,
 }) => {
   if (!benchmark) {
     // DrawerPanelContent must remain in the DOM for PF's slide-in/out CSS transition to work.
@@ -120,6 +122,7 @@ const BenchmarkDrawerPanel: React.FC<BenchmarkDrawerPanelProps> = ({
               variant="primary"
               data-testid="select-benchmark-button"
               onClick={() => onRunBenchmark(benchmark)}
+              isDisabled={isPrimaryActionDisabled}
             >
               {primaryActionLabel}
             </Button>

@@ -30,7 +30,9 @@ class StartEvaluationRunPage {
   }
 
   findBenchmarkNameDisplay() {
-    return cy.findByTestId('benchmark-name-display');
+    return cy.get(
+      '[data-testid="benchmark-name-display"], [data-testid="start-evaluation-run-benchmark-name"]',
+    );
   }
 
   findRunDescription() {

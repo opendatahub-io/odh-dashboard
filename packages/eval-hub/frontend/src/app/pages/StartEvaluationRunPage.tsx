@@ -38,7 +38,7 @@ import {
 } from '@odh-dashboard/internal/concepts/mlflow';
 import {
   evaluationsBaseRoute,
-  evaluationBenchmarksRoute,
+  evaluationSingleBenchmarkRoute,
   evaluationCollectionsRoute,
   projectHomeRoute,
 } from '~/app/routes';
@@ -103,7 +103,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
 
   const previousRoute = isCollectionFlow
     ? evaluationCollectionsRoute(namespace)
-    : evaluationBenchmarksRoute(namespace);
+    : evaluationSingleBenchmarkRoute(namespace);
   const handleCancel = React.useCallback(() => navigate(previousRoute), [navigate, previousRoute]);
 
   const form = useStartEvaluationRunForm({
