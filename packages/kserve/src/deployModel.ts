@@ -136,7 +136,7 @@ export const assembleInferenceService = (
     inferenceService,
     hardwareProfile,
     INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
-    hardwareProfileBinding,
+    { existingBinding: hardwareProfileBinding },
   );
 
   inferenceService = applyAuth(

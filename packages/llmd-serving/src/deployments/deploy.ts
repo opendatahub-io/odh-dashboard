@@ -152,7 +152,7 @@ const assembleLLMInferenceService = (
     llmInferenceService,
     hardwareProfile,
     LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
-    hardwareProfileBinding,
+    { existingBinding: hardwareProfileBinding },
   );
   llmInferenceService = applyReplicas(llmInferenceService, replicas);
   llmInferenceService = applyModelEnvVarsAndArgs(

@@ -1,4 +1,5 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { unset } from 'lodash-es';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   HardwareProfileFeatureVisibility,
@@ -199,6 +200,10 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
     };
     const existingTolerations = [{ key: 'existing-key', value: 'existing-value' }];
     const existingNodeSelector = { 'existing-label': 'existing-value' };
+    const staleFormResources = {
+      requests: { cpu: '2', memory: '4Gi' },
+      limits: { cpu: '2', memory: '4Gi' },
+    };
 
     const resource = createMockResource({
       resources: existingResources,
@@ -209,7 +214,7 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
       formData: {
         selectedProfile: undefined,
         useExistingSettings: true,
-        resources: existingResources,
+        resources: staleFormResources,
       },
       initialHardwareProfile: undefined,
       excludeDRAProfiles: false,
@@ -228,6 +233,17 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
     expect(state.podSpecOptionsState.podSpecOptions.tolerations).toMatchObject(existingTolerations);
     expect(state.podSpecOptionsState.podSpecOptions.nodeSelector).toEqual(existingNodeSelector);
     expect(state.podSpecOptionsState.podSpecOptions.selectedHardwareProfile).toBeUndefined();
+
+    const freshResource = createMockResource({
+      hardwareProfileName: '',
+      hardwareProfileNamespace: undefined,
+      tolerations: undefined,
+      nodeSelector: undefined,
+    });
+    unset(freshResource, paths.containerResourcesPath);
+    expect(getAppliedResources(freshResource)).toBeUndefined();
+    const updatedResource = state.applyToResource(freshResource);
+    expect(getAppliedResources(updatedResource)).toEqual(existingResources);
   });
 
   it(`should include tolerations and nodeSelector in podSpecOptions when hardware profile is selected for ${resourceType}`, () => {

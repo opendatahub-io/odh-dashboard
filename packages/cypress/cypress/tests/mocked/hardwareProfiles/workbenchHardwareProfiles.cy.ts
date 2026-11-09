@@ -16,7 +16,7 @@ import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8s
 import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
-import type { PodKind } from '@odh-dashboard/k8s-core';
+import type { NotebookKind, PodKind } from '@odh-dashboard/k8s-core';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
@@ -667,60 +667,86 @@ describe('Workbench Hardware Profiles', () => {
       cy.findByRole('option', { name: 'Use existing settings' }).should('not.exist');
     });
 
-    it('should auto-select "Use existing settings" when resources do not match any profile', () => {
+    const unmatchedResources = {
+      requests: { cpu: '10', memory: '6Gi' },
+      limits: { cpu: '10', memory: '6Gi' },
+    };
+
+    // Notebook with resources that match no profile and no hardware profile annotation.
+    // Submitting with the default envFrom would need secret intercepts, so submit tests pass none.
+    const initUnmatchedResourcesIntercepts = (
+      envFrom?: Parameters<typeof mockNotebookK8sResource>[0]['envFrom'],
+    ) => {
       initIntercepts();
-      // Mock notebook with non-matching resources and no hardware profile annotation
       cy.interceptK8sList(
         NotebookModel,
         mockK8sResourceList([
           mockNotebookK8sResource({
+            envFrom,
+            resources: unmatchedResources,
             opts: {
-              metadata: {
-                name: 'test-notebook',
-                annotations: {
-                  'openshift.io/display-name': 'Test Notebook',
-                },
-              },
               spec: {
-                template: {
-                  spec: {
-                    containers: [
-                      {
-                        name: 'test-notebook',
-                        resources: {
-                          requests: {
-                            cpu: '10',
-                            memory: '6Gi',
-                          },
-                          limits: {
-                            cpu: '10',
-                            memory: '6Gi',
-                          },
-                        },
-                      },
-                    ],
-                    tolerations: [
-                      {
-                        key: 'some-new-key',
-                      },
-                    ],
-                    nodeSelector: {},
-                  },
-                },
+                template: { spec: { tolerations: [{ key: 'some-new-key' }], nodeSelector: {} } },
               },
             },
           }),
         ]),
       );
-
       cy.interceptK8sList(
         PVCModel,
         mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
       );
+    };
+
+    const submitAndVerifyExistingResourcesKept = () => {
+      cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+      cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
+      editSpawnerPage.findSubmitButton().click();
+
+      const verifyContainerResources = (body: NotebookKind) => {
+        const [container] = body.spec.template.spec.containers;
+        expect(container.name).to.equal('test-notebook');
+        expect(container.resources).to.deep.equal(unmatchedResources);
+      };
+      cy.wait('@editWorkbenchDryRun').then((interception) => {
+        verifyContainerResources(interception.request.body);
+      });
+      cy.wait('@editWorkbench').then((interception) => {
+        verifyContainerResources(interception.request.body);
+      });
+    };
+
+    it('should auto-select "Use existing settings" when resources do not match any profile', () => {
+      initUnmatchedResourcesIntercepts();
 
       editSpawnerPage.visit('test-notebook');
       editSpawnerPage.findAlertMessage().should('not.exist');
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+    });
+
+    it('should keep the existing resources when saving with "Use existing settings"', () => {
+      initUnmatchedResourcesIntercepts([]);
+
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+
+      submitAndVerifyExistingResourcesKept();
+    });
+
+    it('should keep the existing resources after switching to a profile and back', () => {
+      initUnmatchedResourcesIntercepts([]);
+
+      editSpawnerPage.visit('test-notebook');
+      hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.findProfileOption(/Small Profile/).click();
+      hardwareProfileSection.findSelect().should('contain.text', 'Small Profile');
+      hardwareProfileSection.findSelect().click();
+      hardwareProfileSection.findProfileOption(/Use existing settings/).click();
+      hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+
+      submitAndVerifyExistingResourcesKept();
     });
 
     it('should show an assigned DRA hardware profile as selected with the customization section', () => {
