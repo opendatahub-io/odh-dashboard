@@ -550,11 +550,12 @@ export function useStartEvaluationRunForm({
   // Reconfigured jobs can reference profiles or queues that no longer exist. Derive the
   // current selection from the available profiles so hidden, stale form values are never sent.
   // The service only returns queue-backed profiles while their LocalQueue exists in
-  // the tenant namespace, so membership in the list is the availability check.
-  const selectedHardwareProfile =
-    kueueAvailability?.scheduling_ready === true
-      ? hardwareProfiles.find((profile) => profile.name === hardwareProfile)
-      : undefined;
+  // the tenant namespace, so membership in the list is the availability check. Queue
+  // activity is advisory: an inactive or unknown LocalQueue still accepts the submission,
+  // which then waits for admission.
+  const selectedHardwareProfile = hardwareProfiles.find(
+    (profile) => profile.name === hardwareProfile,
+  );
 
   const isValid = React.useMemo(() => {
     if (

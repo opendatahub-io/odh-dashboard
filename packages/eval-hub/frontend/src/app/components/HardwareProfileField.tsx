@@ -80,7 +80,7 @@ const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfileInfo }> 
       shouldOpen={() => setIsVisible(true)}
       shouldClose={closePopover}
       withFocusTrap={false}
-      headerContent={`${profile.display_name} details`}
+      headerContent={`${profile.display_name ?? profile.name} details`}
       bodyContent={
         <Stack hasGutter data-testid="hardware-profile-details-popover-content">
           {profile.description ? <StackItem>{profile.description}</StackItem> : null}
@@ -189,7 +189,14 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   // the tenant namespace, so the list needs no further filtering here.
   const schedulableProfiles = profiles;
   const selected = schedulableProfiles.find((profile) => profile.name === selectedProfile);
-  const hasNoQueues = availability?.enabled === true && !availability.scheduling_ready;
+  // Queue activity is advisory: offered profiles stay selectable when their LocalQueues
+  // are inactive or unknown, and submitted jobs wait for admission. The empty-list
+  // states below are defensive — the service offers at least one queue-backed profile
+  // whenever Kueue scheduling is enabled for the tenant.
+  const hasNoQueues =
+    availability?.enabled === true &&
+    !availability.scheduling_ready &&
+    schedulableProfiles.length === 0;
   const hasNoProfiles = availability?.scheduling_ready === true && schedulableProfiles.length === 0;
   const fieldState = getHardwareProfileFieldState({
     error,
@@ -251,7 +258,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
             onClick={() => setIsOpen((open) => !open)}
             data-testid="hardware-profile-toggle"
           >
-            {selected?.display_name ?? fieldState.placeholder}
+            {selected ? (selected.display_name ?? selected.name) : fieldState.placeholder}
           </MenuToggle>
         )}
       >
@@ -265,7 +272,7 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
               data-testid={`hardware-profile-option-${profile.name}`}
             >
               <Split hasGutter className="pf-v6-u-w-100">
-                <SplitItem isFilled>{profile.display_name}</SplitItem>
+                <SplitItem isFilled>{profile.display_name ?? profile.name}</SplitItem>
                 {profile.compatibility?.compatible === false ? (
                   <SplitItem>
                     <Label

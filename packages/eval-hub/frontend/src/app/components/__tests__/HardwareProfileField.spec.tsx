@@ -46,6 +46,26 @@ describe('HardwareProfileField', () => {
     expect(onSelect).toHaveBeenCalledWith(profile);
   });
 
+  it('falls back to the profile name when display_name is missing', () => {
+    const unnamedProfile: HardwareProfileInfo = {
+      ...profile,
+      display_name: undefined,
+    };
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[unnamedProfile]}
+        loaded
+        selectedProfile={unnamedProfile.name}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toHaveTextContent('gpu-small');
+    fireEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+    expect(screen.getByText('gpu-small details')).toBeInTheDocument();
+  });
+
   it('labels an insufficient profile without disabling its selection', () => {
     const insufficientProfile: HardwareProfileInfo = {
       ...profile,
@@ -232,6 +252,38 @@ describe('HardwareProfileField', () => {
 
     const details = screen.getByTestId('hardware-profile-details-popover-content');
     expect(details).toHaveTextContent('Local queuegpu-default — queue is not active');
+  });
+
+  it('keeps offered profiles selectable when every LocalQueue is inactive or unknown', () => {
+    const onSelect = jest.fn();
+    render(
+      <HardwareProfileField
+        availability={{
+          ...availability,
+          scheduling_ready: false,
+        }}
+        profiles={[
+          {
+            ...profile,
+            queue_availability: {
+              status: 'inactive',
+              reason: 'ClusterQueueIsInactive',
+              message: 'queue is paused',
+            },
+          },
+        ]}
+        loaded
+        onSelect={onSelect}
+      />,
+    );
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('GPU Small'));
+
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ name: profile.name, queue_name: profile.queue_name }),
+    );
   });
 
   it('stays hidden when Kueue is unavailable', () => {

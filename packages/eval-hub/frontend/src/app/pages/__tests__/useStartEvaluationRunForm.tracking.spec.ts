@@ -805,6 +805,41 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
       );
     });
 
+    it('should submit a profile-backed job when every offered LocalQueue is inactive', async () => {
+      mockHardwareProfiles = [
+        {
+          ...mockCompatibleHardwareProfile,
+          queue_availability: {
+            status: 'inactive',
+            reason: 'ClusterQueueIsInactive',
+            message: 'queue is paused',
+          },
+        },
+      ];
+      mockKueueAvailability = { ...mockKueueEnabled, scheduling_ready: false };
+      const renderResult = renderForm();
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+        renderResult.result.current.setExperimentMode('new');
+        renderResult.result.current.setNewExperimentName('EvalHub');
+        renderResult.result.current.setHardwareProfile(mockCompatibleHardwareProfile.name);
+      });
+      await waitFor(() => expect(renderResult.result.current.isValid).toBe(true));
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockGetInfo).toHaveBeenCalledWith('', 'test-ns');
+      expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1);
+      expect(mockCreateEvaluationJob.mock.calls[0][2]).toEqual(
+        expect.objectContaining({
+          hardware_config: { hardware_profile_name: mockCompatibleHardwareProfile.name },
+        }),
+      );
+    });
+
     it('should omit stale profile and queue settings when Kueue is disabled during reconfigure', async () => {
       mockKueueAvailability = {
         ...mockKueueEnabled,

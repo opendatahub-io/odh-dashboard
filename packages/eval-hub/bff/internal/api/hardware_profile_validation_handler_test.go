@@ -356,3 +356,15 @@ func TestFindProfileResourceRejectsAmbiguousExtendedResourceFallback(t *testing.
 		t.Fatalf("generic GPU unexpectedly matched %+v", profileResource)
 	}
 }
+
+// TestFindProfileResourceRejectsSoleUnrelatedExtendedResource verifies that a generic GPU
+// requirement does not fall back to a profile's only extended resource when it is not a GPU.
+func TestFindProfileResourceRejectsSoleUnrelatedExtendedResource(t *testing.T) {
+	resources := map[string]evalhub.HardwareProfileIdentifier{
+		"openshift.io/sriov-nic": {Identifier: "openshift.io/sriov-nic", DefaultCount: "1"},
+	}
+
+	if profileResource, found := findProfileResource(resources, "gpu"); found {
+		t.Fatalf("generic GPU unexpectedly matched %+v", profileResource)
+	}
+}

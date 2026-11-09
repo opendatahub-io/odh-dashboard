@@ -1390,7 +1390,7 @@ func TestEvalHubClient_GetInfo(t *testing.T) {
 	assert.Nil(t, nodeProfile.QueueAvailability)
 }
 
-func TestEvalHubClient_GetInfo_NormalizesNilQueues(t *testing.T) {
+func TestEvalHubClient_GetInfo_NormalizesNilHardwareProfiles(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v1/info", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")

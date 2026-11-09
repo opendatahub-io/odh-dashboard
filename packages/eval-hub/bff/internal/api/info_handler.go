@@ -12,9 +12,9 @@ import (
 type InfoEnvelope Envelope[evalhub.InfoResponse, None]
 
 // InfoHandler proxies the EvalHub service info API: build metadata plus the
-// Kueue LocalQueues available in the caller's tenant namespace. The queue list
-// is the source of truth for queue-backed scheduling availability — the BFF
-// performs no direct Kueue reads.
+// hardware profiles enabled for the caller's tenant namespace, each carrying
+// its queue availability for queue-backed scheduling — the BFF performs no
+// direct Kueue reads.
 func (app *App) InfoHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	evalHubClient, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)

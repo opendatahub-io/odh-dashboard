@@ -288,20 +288,14 @@ func findProfileResource(resources map[string]evalhub.HardwareProfileIdentifier,
 	}
 
 	gpuIdentifiers := make([]string, 0)
-	extendedIdentifiers := make([]string, 0)
 	for identifier := range resources {
 		if strings.Contains(identifier, "gpu") {
 			gpuIdentifiers = append(gpuIdentifiers, identifier)
-		} else if strings.Contains(identifier, "/") {
-			extendedIdentifiers = append(extendedIdentifiers, identifier)
 		}
 	}
 	if len(gpuIdentifiers) > 0 {
 		sort.Strings(gpuIdentifiers)
 		return resources[gpuIdentifiers[0]], true
-	}
-	if len(extendedIdentifiers) == 1 {
-		return resources[extendedIdentifiers[0]], true
 	}
 	return evalhub.HardwareProfileIdentifier{}, false
 }
