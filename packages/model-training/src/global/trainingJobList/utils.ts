@@ -17,6 +17,7 @@ import {
   WorkloadCondition,
   WorkloadKind,
 } from '@odh-dashboard/k8s-core';
+import { isInadmissibleQuotaCondition } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import {
@@ -191,12 +192,7 @@ const extractWorkloadConditions = (
       ({ type, status }) =>
         type === WorkloadConditionType.Preempted && status === ConditionStatus.True,
     ),
-    Inadmissible: conditions.find(
-      ({ type, status, reason }) =>
-        type === WorkloadConditionType.QuotaReserved &&
-        status === ConditionStatus.False &&
-        reason === 'Inadmissible',
-    ),
+    Inadmissible: conditions.find(isInadmissibleQuotaCondition),
     Pending: conditions.find(
       ({ type, status }) =>
         type === WorkloadConditionType.QuotaReserved && status === ConditionStatus.False,

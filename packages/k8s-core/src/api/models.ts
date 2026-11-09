@@ -79,3 +79,10 @@ export const WorkloadModel: K8sModelCommon = {
   kind: 'Workload',
   plural: 'workloads',
 };
+
+export const JobSetModel: K8sModelCommon = {
+  apiVersion: 'v1alpha2',
+  apiGroup: 'jobset.x-k8s.io',
+  kind: 'JobSet',
+  plural: 'jobsets',
+};
