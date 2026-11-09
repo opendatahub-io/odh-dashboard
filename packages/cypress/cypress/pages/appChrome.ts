@@ -45,11 +45,19 @@ class AppChrome {
   }
 
   findDarkThemeToggle() {
-    return cy.findByTestId('dark-theme-toggle');
+    cy.findByTestId('appearance-settings-button').click();
+    return cy
+      .get('#theme-selector-color-scheme-title')
+      .parent()
+      .findByRole('button', { name: 'Dark' });
   }
 
   findLightThemeToggle() {
-    return cy.findByTestId('light-theme-toggle');
+    cy.findByTestId('appearance-settings-button').click();
+    return cy
+      .get('#theme-selector-color-scheme-title')
+      .parent()
+      .findByRole('button', { name: 'Light' });
   }
 }
 

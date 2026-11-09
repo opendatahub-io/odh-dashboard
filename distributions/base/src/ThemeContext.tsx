@@ -47,14 +47,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setThemeState] = useState<Theme>(readTheme);
   const [contrastMode, setContrastModeState] = useState<ContrastMode>(readContrastMode);
   const [prefersReducedTransparency, setPrefersReducedTransparency] = useState(false);
+  const [prefersHighContrast, setPrefersHighContrast] = useState(false);
 
-  // Track the OS-level "Reduce Transparency" preference
+  // Track OS-level preferences
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
-    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedTransparency(e.matches);
-    setPrefersReducedTransparency(mediaQuery.matches);
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    const transparencyQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
+    const contrastQuery = window.matchMedia('(prefers-contrast: more)');
+
+    const handleTransparency = (e: MediaQueryListEvent) => setPrefersReducedTransparency(e.matches);
+    const handleContrast = (e: MediaQueryListEvent) => setPrefersHighContrast(e.matches);
+
+    setPrefersReducedTransparency(transparencyQuery.matches);
+    setPrefersHighContrast(contrastQuery.matches);
+
+    transparencyQuery.addEventListener('change', handleTransparency);
+    contrastQuery.addEventListener('change', handleContrast);
+    return () => {
+      transparencyQuery.removeEventListener('change', handleTransparency);
+      contrastQuery.removeEventListener('change', handleContrast);
+    };
   }, []);
 
   const setTheme = useCallback(
@@ -86,15 +97,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     },
     [theme],
   );
-
   useEffect(() => {
     const html = document.documentElement;
     html.classList.toggle('pf-v6-theme-dark', theme === 'dark');
 
     const shouldUseGlass =
-      contrastMode === 'glass' || (contrastMode === 'system' && !prefersReducedTransparency);
+      contrastMode === 'glass' ||
+      (contrastMode === 'system' && !prefersReducedTransparency && !prefersHighContrast);
+    const shouldUseHighContrast =
+      contrastMode === 'high-contrast' ||
+      (contrastMode === 'system' && prefersHighContrast);
     html.classList.toggle('pf-v6-theme-glass', shouldUseGlass);
-  }, [theme, contrastMode, prefersReducedTransparency]);
+    html.classList.toggle('pf-v6-theme-high-contrast', shouldUseHighContrast);
+  }, [theme, contrastMode, prefersReducedTransparency, prefersHighContrast]);
 
   const value = useMemo(
     () => ({ theme, setTheme, contrastMode, setContrastMode }),

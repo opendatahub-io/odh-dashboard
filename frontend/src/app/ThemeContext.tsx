@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   ThemeContext as SharedThemeContext,
+  type ContrastMode,
   type ThemeContextProps as SharedThemeContextProps,
 } from '@odh-dashboard/ui-core/contexts/ThemeContext';
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
@@ -8,7 +9,6 @@ import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
 
 export type ColorScheme = 'system' | 'light' | 'dark';
-export type ContrastMode = 'system' | 'default' | 'glass' | 'high-contrast';
 
 type ThemeContextProps = {
   theme: string;
@@ -44,9 +44,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Track OS-level preferences
   React.useEffect(() => {
-    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const transparencyQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
-    const contrastQuery = window.matchMedia('(prefers-contrast: more)');
+    let darkQuery;
+    let transparencyQuery;
+    let contrastQuery;
+
+    try {
+      darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      transparencyQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
+      contrastQuery = window.matchMedia('(prefers-contrast: more)');
+    } catch {
+      // Restricted contexts (iframe, private browsing) may block matchMedia
+      return;
+    }
 
     const handleDark = (e: MediaQueryListEvent) => setPrefersDark(e.matches);
     const handleTransparency = (e: MediaQueryListEvent) => setPrefersReducedTransparency(e.matches);
