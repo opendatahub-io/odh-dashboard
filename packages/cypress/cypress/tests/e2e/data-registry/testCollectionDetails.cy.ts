@@ -101,7 +101,7 @@ describe('Data Registry - Collection Details', () => {
   it(
     'should display collection detail page',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       dataRegistryPage.navigateToCollection(
@@ -124,7 +124,7 @@ describe('Data Registry - Collection Details', () => {
   it(
     'should display collection details card with correct information',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       // Navigate directly to collection detail
@@ -149,7 +149,7 @@ describe('Data Registry - Collection Details', () => {
   it(
     'should display data assets table',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
@@ -170,7 +170,7 @@ describe('Data Registry - Collection Details', () => {
   it(
     'should navigate to asset detail from collection assets table',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
@@ -191,7 +191,7 @@ describe('Data Registry - Collection Details', () => {
   it(
     'should show delete collection disabled when collection has assets',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
@@ -200,14 +200,14 @@ describe('Data Registry - Collection Details', () => {
       dataRegistryPage.findCollectionActionsToggle().click();
 
       // Verify delete is disabled
-      dataRegistryPage.findCollectionDeleteAction().should('have.class', 'pf-m-aria-disabled');
+      dataRegistryPage.findCollectionDeleteAction().should('have.attr', 'aria-disabled', 'true');
     },
   );
 
   it(
     'should open register data modal',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
@@ -226,7 +226,7 @@ describe('Data Registry - Collection Details', () => {
   it(
     'should open manage collections modal with all collections',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       dataRegistryPage.navigateToCollection(testData.project, testData.collection, LDAP_ADMIN_USER);
@@ -250,7 +250,7 @@ describe('Data Registry - Collection Details', () => {
   it(
     'should navigate to collection detail from manage collections modal',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       navigateToDataRegistry(testData.project, testData.collection);
@@ -272,7 +272,7 @@ describe('Data Registry - Collection Details', () => {
   it(
     'should show trash icon for delete in manage collections',
     {
-      tags: ['@Dashboard', '@DataRegistry', '@ci-dashboard-regression-tags', '@NonConcurrent'],
+      tags: ['@Dashboard', '@DataRegistry', '@NonConcurrent'],
     },
     () => {
       navigateToDataRegistry(testData.project, testData.collection);
