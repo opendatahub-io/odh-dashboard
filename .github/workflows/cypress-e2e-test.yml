@@ -385,7 +385,7 @@ jobs:
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.npm-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
