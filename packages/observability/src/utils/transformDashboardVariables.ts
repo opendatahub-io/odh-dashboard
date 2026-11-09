@@ -6,22 +6,23 @@ export type NamespaceOption = {
 };
 
 /**
- * Replaces the namespace variable with a StaticListVariable from the given projects
- * so Perses does not race a Prometheus label-values query against Dashboard's project list.
+ * Transforms a dashboard resource by replacing the namespace variable's plugin
+ * with a StaticListVariable for the given project names.
  *
- * For scoped PersesDatasources (`queryParams.namespace: ${namespace:queryparam}`),
- * Project=All must not use a PromQL wildcard customAllValue (".*" / "(a|b)").
- * Omitting customAllValue lets Perses expand All to the concrete list →
- * namespace=a&namespace=b (SAR-checked per namespace).
+ * This prevents Perses from running a Prometheus query when we have project names
+ * to inject, eliminating race conditions between the query and our manual options.
+ *
+ * @param dashboard - The original dashboard resource
+ * @param projects - Array of projects to use as namespace options
+ * @param initialNamespaceValue - Optional initial value for the namespace variable (from URL)
+ * @returns A new dashboard resource with the namespace variable transformed
  */
 export function transformNamespaceVariable(
   dashboard: DashboardResource,
   projects: NamespaceOption[] | string[],
-  initialNamespaceValue?: string | string[] | null,
+  initialNamespaceValue?: string | string[],
 ): DashboardResource {
-  // No project list → leave the CR as-is (Models keeps an empty TextVariable stub).
-  // DashboardView must filter namespace dashboards when projects are empty so the stub
-  // never drives ${namespace:queryparam} queries with value "".
+  // If no project names provided, return dashboard unchanged
   if (projects.length === 0) {
     return dashboard;
   }
@@ -37,72 +38,40 @@ export function transformNamespaceVariable(
     return dashboard;
   }
 
-  const staticListPlugin = {
-    kind: 'StaticListVariable' as const,
-    spec: {
-      values: namespaceOptions.map(({ name, label }) => ({
-        label,
-        value: name,
-      })),
-    },
-  };
-
-  const optionValues = new Set(namespaceOptions.map(({ name }) => name));
-  // Prefer URL / caller value; Perses VariableValue may be null.
-  const preferredDefault = normalizeNamespaceDefault(initialNamespaceValue);
-
+  // Find and transform the namespace variable
   const transformedVariables = variables.map((variable) => {
-    if (!('name' in variable.spec) || variable.spec.name !== 'namespace') {
-      return variable;
-    }
-
-    // ListVariable: preserve allowAllValue / allowMultiple; only drop wildcard All.
-    if (variable.kind === 'ListVariable') {
-      const listSpec = { ...variable.spec };
-      delete listSpec.customAllValue;
-
-      const allowAll = variable.spec.allowAllValue === true;
-      const fallbackDefault = allowAll ? '$__all' : namespaceOptions[0].name;
-      const fromSpec = normalizeNamespaceDefault(variable.spec.defaultValue);
-      const candidate = preferredDefault ?? fromSpec;
-      const defaultValue = isUsableNamespaceDefault(candidate, allowAll, optionValues)
-        ? candidate
-        : fallbackDefault;
-
+    // Check if this is the namespace variable with name 'namespace'
+    if ('name' in variable.spec && variable.spec.name === 'namespace') {
+      // Create a StaticListVariable with the project names
       return {
         kind: 'ListVariable' as const,
         spec: {
-          ...listSpec,
-          defaultValue,
-          plugin: staticListPlugin,
+          name: 'namespace',
+          display: {
+            name: 'Project',
+            description: 'Filter by project',
+          },
+          allowMultiple: true,
+          allowAllValue: true,
+          customAllValue: `(${namespaceOptions.map(({ name }) => name).join('|')})`,
+          // Use the initial value from URL if provided, otherwise keep the original default
+          defaultValue: initialNamespaceValue ?? '$__all',
+          plugin: {
+            kind: 'StaticListVariable',
+            spec: {
+              values: namespaceOptions.map(({ name, label }) => ({
+                label,
+                value: name,
+              })),
+            },
+          },
         },
       };
     }
-
-    // TextVariable / other (e.g. Models dashboard): inject multi-select Project list.
-    // Same default validation as ListVariable — do not special-case "$__all" blindly.
-    const allowAll = true;
-    const fallbackDefault = '$__all';
-    const defaultValue = isUsableNamespaceDefault(preferredDefault, allowAll, optionValues)
-      ? preferredDefault
-      : fallbackDefault;
-
-    return {
-      kind: 'ListVariable' as const,
-      spec: {
-        name: 'namespace',
-        display: {
-          name: 'Project',
-          description: 'Filter by project',
-        },
-        allowMultiple: true,
-        allowAllValue: true,
-        defaultValue,
-        plugin: staticListPlugin,
-      },
-    };
+    return variable;
   });
 
+  // Return a new dashboard resource with transformed variables
   return {
     ...dashboard,
     spec: {
@@ -110,65 +79,4 @@ export function transformNamespaceVariable(
       variables: transformedVariables,
     },
   };
-}
-
-/** Coerce Perses VariableValue (string | string[] | null) to a usable default input. */
-export function normalizeNamespaceDefault(
-  value: string | string[] | null | undefined,
-): string | string[] | undefined {
-  return value === null ? undefined : value;
-}
-
-/**
- * True when a multi-select value is the expanded form of Project=All
- * (every StaticList option selected). Used so URL sync can clear var-namespace
- * instead of writing a comma-joined full list that restores as a pinned selection.
- *
- * Product note: intentionally selecting every project is indistinguishable from All
- * after Perses expansion — URL sync treats both as All (param cleared). That matches
- * scoped SAR (same concrete namespace set) and avoids a false pin on refresh.
- */
-export function isExpandedAllNamespaceSelection(
-  value: string[],
-  optionValues: Iterable<string>,
-): boolean {
-  const options = optionValues instanceof Set ? optionValues : new Set(optionValues);
-  if (options.size === 0) {
-    return false;
-  }
-  // Distinct count first so duplicates like ['a','a'] cannot match options ['a','b'].
-  const selected = new Set(value);
-  if (selected.size !== options.size) {
-    return false;
-  }
-  for (const entry of selected) {
-    if (!options.has(entry)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/** True when the value is a valid ListVariable default for the replacement project list. */
-export function isUsableNamespaceDefault(
-  value: string | string[] | undefined,
-  allowAll: boolean,
-  optionValues: Set<string>,
-): value is string | string[] {
-  if (value === undefined) {
-    return false;
-  }
-  if (value === '$__all') {
-    return allowAll;
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) {
-      return false;
-    }
-    if (value.length === 1 && value[0] === '$__all') {
-      return allowAll;
-    }
-    return value.every((entry) => optionValues.has(entry));
-  }
-  return optionValues.has(value);
 }
