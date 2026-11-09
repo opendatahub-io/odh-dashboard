@@ -105,8 +105,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       contrastMode === 'glass' ||
       (contrastMode === 'system' && !prefersReducedTransparency && !prefersHighContrast);
     const shouldUseHighContrast =
-      contrastMode === 'high-contrast' ||
-      (contrastMode === 'system' && prefersHighContrast);
+      contrastMode === 'high-contrast' || (contrastMode === 'system' && prefersHighContrast);
     html.classList.toggle('pf-v6-theme-glass', shouldUseGlass);
     html.classList.toggle('pf-v6-theme-high-contrast', shouldUseHighContrast);
   }, [theme, contrastMode, prefersReducedTransparency, prefersHighContrast]);
