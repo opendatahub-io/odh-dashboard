@@ -62,8 +62,8 @@ export const getWorkloadForJob = async (job: UnifiedJobKind): Promise<WorkloadKi
             return workloadsByJobSetUID[0];
           }
         }
-      } catch {
-        // JobSet not found or CRD not installed — continue
+      } catch (e) {
+        console.warn(`Failed to resolve JobSet "${job.metadata.name}" for TrainJob:`, e);
       }
     }
 
