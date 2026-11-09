@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -264,27 +265,66 @@ func parseResolvConfServiceSuffixes(path string) []string {
 }
 
 // lookupAbsHostFn reports whether a hostname resolves as an absolute DNS
-// name; a variable so tests can inject deterministic results.
-var lookupAbsHostFn = func(host string) bool {
-	addrs, err := net.LookupHost(host + ".")
+// name; a variable so tests can inject deterministic results. It honors the
+// passed context and bounds the lookup so a slow resolver cannot stall the
+// request.
+var lookupAbsHostFn = func(ctx context.Context, host string) bool {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	addrs, err := net.DefaultResolver.LookupHost(ctx, host+".")
 	return err == nil && len(addrs) > 0
 }
 
-// parseServiceHost identifies the in-cluster Service a URL hostname names:
-// either a fully-qualified <service>.<namespace>.svc.<domain> name (with an
-// optional pod-specific label, and any cluster domain discovered from the
-// search list rather than only cluster.local) or a short
-// <service>.<namespace> name that only the pod's DNS search path resolves.
-// The short form applies only when the name does not resolve as an absolute
-// DNS name, so ordinary external hostnames keep their normal external
-// handling; a one-label name can only complete within the pod's own
-// namespace and is not treated as a Service name here.
-func parseServiceHost(baseURL string) (service string, namespace string, podLabel string, ok bool) {
+// hostClassification is the single parse of a request's base URL host that
+// every trust decision for that request shares: parsing (and its optional
+// DNS lookup for short names) happens once, so the internal,
+// cross-namespace, and cluster-service classifiers can never disagree from
+// reparsing or repeated lookups.
+type hostClassification struct {
+	// host is the canonical hostname (lowercased, trailing root dot removed).
+	host string
+	// loopback reports a localhost/loopback target.
+	loopback bool
+	// service, namespace, and podLabel identify the in-cluster Service a
+	// Kubernetes Service DNS name targets; isServiceName reports whether the
+	// host is such a name in any namespace.
+	service       string
+	namespace     string
+	podLabel      string
+	isServiceName bool
+}
+
+// classifyHost parses baseURL's host and classifies it once.
+func classifyHost(ctx context.Context, baseURL string) hostClassification {
+	var c hostClassification
 	u, err := url.Parse(baseURL)
 	if err != nil {
-		return "", "", "", false
+		return c
 	}
-	h := canonicalClusterDNSName(u.Hostname())
+	c.host = canonicalClusterDNSName(u.Hostname())
+	if ip := net.ParseIP(c.host); ip != nil {
+		c.loopback = ip.IsLoopback()
+		return c
+	}
+	if c.host == "localhost" {
+		c.loopback = true
+		return c
+	}
+	c.service, c.namespace, c.podLabel, c.isServiceName = parseServiceHostName(ctx, c.host)
+	return c
+}
+
+// parseServiceHostName identifies the in-cluster Service a hostname names:
+// either a fully-qualified <service>.<namespace>.svc.<domain> name (with an
+// optional pod-specific label, and any cluster domain discovered from the
+// search list rather than only cluster.local), a bare
+// <service>.<namespace>.svc name completed the same way by the pod's DNS
+// search path, or a short <service>.<namespace> name that only the search
+// path resolves. The short form applies only when the name does not resolve
+// as an absolute DNS name, so ordinary external hostnames keep their normal
+// external handling; a one-label name can only complete within the pod's own
+// namespace and is not treated as a Service name here.
+func parseServiceHostName(ctx context.Context, h string) (service string, namespace string, podLabel string, ok bool) {
 	if net.ParseIP(h) != nil {
 		return "", "", "", false
 	}
@@ -306,55 +346,52 @@ func parseServiceHost(baseURL string) (service string, namespace string, podLabe
 		}
 	}
 	labels := strings.Split(h, ".")
-	if len(labels) == 2 && !lookupAbsHostFn(h) {
+	// A bare name ending in .svc is completed by the pod's search path to the
+	// same Service its fully-qualified form names, so it must be classified
+	// (and namespace-checked) too; leaving it unclassified would let a
+	// cross-namespace Service reach the DNS-based SSRF filter, which a
+	// non-RFC1918 Service CIDR passes.
+	if strings.HasSuffix(h, ".svc") {
+		switch len(labels) {
+		case 3:
+			return labels[0], labels[1], "", true
+		case 4:
+			return labels[1], labels[2], labels[0], true
+		}
+	}
+	if len(labels) == 2 && !lookupAbsHostFn(ctx, h) {
 		return labels[0], labels[1], "", true
 	}
 	return "", "", "", false
 }
 
-// isInternalHost reports whether a URL targets a host trusted for the caller's
-// namespace: loopback (only in local development) or a same-namespace in-cluster
-// Service DNS name. These legitimately resolve to private IPs, so SSRF validation
-// is skipped for them; everything else is untrusted. Recognized cross-namespace
-// and unverifiable Service names are denied with 403 by VerifyExternalModel
-// before any client is constructed, since the caller is only authorized for
-// their own namespace; remaining external hosts are subject to SSRF checks.
-func isInternalHost(baseURL string, allowedNamespace string, allowLoopback bool) bool {
-	u, err := url.Parse(baseURL)
-	if err != nil {
-		return false
-	}
-	h := canonicalClusterDNSName(u.Hostname())
-	ip := net.ParseIP(h)
-	if h == "localhost" || (ip != nil && ip.IsLoopback()) {
+// internalTo reports whether the classified host is trusted for the caller's
+// namespace: loopback (only in local development) or a same-namespace
+// in-cluster Service DNS name. These legitimately resolve to private IPs, so
+// SSRF validation is skipped for them; everything else is untrusted.
+// Recognized cross-namespace and unverifiable Service names are denied with
+// 403 by VerifyExternalModel before any client is constructed, since the
+// caller is only authorized for their own namespace; remaining external
+// hosts are subject to SSRF checks.
+func (c hostClassification) internalTo(allowedNamespace string, allowLoopback bool) bool {
+	if c.loopback {
 		// Loopback endpoints are only exempt from SSRF validation in local
 		// development; in a deployed BFF they would target BFF-local services.
 		return allowLoopback
 	}
 	// TODO: respect OdhDashboardConfig feature flags when available to be fetched from the BFF
 	// Only trust services whose namespace segment matches the caller's authorized namespace.
-	_, namespace, _, ok := parseServiceHost(baseURL)
-	return ok && allowedNamespace != "" && namespace == allowedNamespace
+	return c.isServiceName && allowedNamespace != "" && c.namespace == allowedNamespace
 }
 
-// isCrossNamespaceServiceHost reports whether a URL targets a Kubernetes
+// crossNamespace reports whether the classified host targets a Kubernetes
 // Service DNS name whose namespace differs from the caller's authorized
 // namespace. Such hosts must be denied outright rather than left to the SSRF
 // private-IP filter: clusters can configure a non-RFC1918 Service CIDR (e.g.
 // 100.96.0.0/16), in which case a cross-namespace Service VIP is not a
 // private IP by that filter and the request would pass SSRF validation.
-func isCrossNamespaceServiceHost(baseURL string, allowedNamespace string) bool {
-	_, namespace, _, ok := parseServiceHost(baseURL)
-	return ok && allowedNamespace != "" && namespace != allowedNamespace
-}
-
-// isClusterServiceDNSHost reports whether a URL targets a Kubernetes Service
-// DNS name in any namespace. Recognized in-cluster names whose backing
-// resources failed validation must be rejected outright rather than fall back
-// to DNS-based SSRF validation, which a non-RFC1918 Service CIDR can pass.
-func isClusterServiceDNSHost(baseURL string) bool {
-	_, _, _, ok := parseServiceHost(baseURL)
-	return ok
+func (c hostClassification) crossNamespace(allowedNamespace string) bool {
+	return c.isServiceName && allowedNamespace != "" && c.namespace != allowedNamespace
 }
 
 // resolveTrustedHost decides whether a base URL in the caller's own namespace may
@@ -387,31 +424,24 @@ func resolveTrustedHost(
 	client kubernetes.KubernetesClientInterface,
 	identity *integrations.RequestIdentity,
 	baseURL string,
+	classif hostClassification,
 	namespace string,
 	allowLoopback bool,
 	logger *slog.Logger,
 ) (bool, []string, error) {
-	if !isInternalHost(baseURL, namespace, allowLoopback) {
+	if !classif.internalTo(namespace, allowLoopback) {
 		return false, nil, nil
+	}
+	// localhost/loopback for local development; internalTo already gated this
+	// on the local-development setting.
+	if classif.loopback {
+		return true, nil, nil
 	}
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return false, nil, nil
 	}
-	// localhost/loopback for local development; isInternalHost already gated this
-	// on the local-development setting.
-	host := u.Hostname()
-	ip := net.ParseIP(host)
-	if host == "localhost" || (ip != nil && ip.IsLoopback()) {
-		return true, nil, nil
-	}
-	svcName, svcNamespace, podLabel, ok := parseServiceHost(baseURL)
-	if !ok {
-		// isInternalHost matched the suffix and namespace but the label count is
-		// not a valid Kubernetes service DNS name (e.g. extra intermediate
-		// labels); fail closed rather than treating it as loopback.
-		return false, nil, nil
-	}
+	svcName, svcNamespace, podLabel := classif.service, classif.namespace, classif.podLabel
 	urlPort := u.Port()
 	if urlPort == "" {
 		if u.Scheme == "https" {
@@ -426,7 +456,7 @@ func resolveTrustedHost(
 			return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Service %s/%s, which the caller lacks", svcNamespace, svcName))
 		}
 		logger.Warn("service lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
-		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: getting the Service %s/%s failed: %v", svcNamespace, svcName, err))
+		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: getting the Service %s/%s failed", svcNamespace, svcName))
 	}
 	if svc.Spec.Type == corev1.ServiceTypeExternalName {
 		return false, nil, nil
@@ -496,7 +526,7 @@ func resolveTrustedHost(
 			return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to list EndpointSlices for the Service %s/%s, which the caller lacks", svcNamespace, svcName))
 		}
 		logger.Warn("endpoint slice lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
-		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: listing EndpointSlices for the Service %s/%s failed: %v", svcNamespace, svcName, err))
+		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: listing EndpointSlices for the Service %s/%s failed", svcNamespace, svcName))
 	}
 	// Every endpoint is validated against its referenced Pod and the endpoint
 	// addresses confirmed to belong to that Pod: a targetRef is just a name an
@@ -511,7 +541,7 @@ func resolveTrustedHost(
 			return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to list the Pods of the Service %s/%s, which the caller lacks", svcNamespace, svcName))
 		}
 		logger.Warn("pod list failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
-		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: listing the Pods of the Service %s/%s failed: %v", svcNamespace, svcName, err))
+		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: listing the Pods of the Service %s/%s failed", svcNamespace, svcName))
 	}
 	podByName := make(map[string]*corev1.Pod, len(pods))
 	for i := range pods {
@@ -704,11 +734,14 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	insecureSkipVerify bool,
 	allowLoopback bool,
 ) (*models.VerifyExternalModelResponse, error) {
-	trusted, pinnedAddresses, err := resolveTrustedHost(ctx, client, identity, req.BaseURL, namespace, allowLoopback, logger)
+	// Classify the host once so every trust decision below shares the same
+	// parse (and DNS lookup) result.
+	classif := classifyHost(ctx, req.BaseURL)
+	trusted, pinnedAddresses, err := resolveTrustedHost(ctx, client, identity, req.BaseURL, classif, namespace, allowLoopback, logger)
 	if err != nil {
 		return nil, err
 	}
-	if !trusted && isCrossNamespaceServiceHost(req.BaseURL, namespace) {
+	if !trusted && classif.crossNamespace(namespace) {
 		return nil, forbiddenTrustError(req.BaseURL, fmt.Sprintf(
 			"in-cluster service endpoints are only allowed in your own namespace (%s); the URL targets a service in another namespace", namespace))
 	}
@@ -717,7 +750,7 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	// than fall back to DNS-based SSRF validation: on a non-RFC1918 Service
 	// CIDR the Service VIP passes that filter and the BFF would connect to
 	// manually configured, unvalidated endpoints.
-	if !trusted && isClusterServiceDNSHost(req.BaseURL) {
+	if !trusted && classif.isServiceName {
 		return nil, forbiddenTrustError(req.BaseURL, "in-cluster service endpoint could not be verified against the Kubernetes API (e.g. ExternalName, selectorless, or no verified endpoints)")
 	}
 	modelsClient, err := externalmodels.NewExternalModelsClient(
