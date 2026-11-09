@@ -5,24 +5,24 @@ import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPodK8sResource';
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
-import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
-import type { WorkloadKind } from '#~/k8sTypes';
-import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
 import {
   useKueueConfiguration,
   KueueFilteringState,
-} from '#~/concepts/hardwareProfiles/kueueUtils';
+} from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
 import {
   buildWorkloadMapForDeployments,
   useWatchWorkloads,
   useWatchISPods,
   useWatchLLMISPods,
-} from '#~/api/k8s/workloads';
-import { useKueueStatusForDeployments } from '#~/pages/modelServing/useKueueStatusForDeployments';
+} from '@odh-dashboard/model-serving/shared/kueue/workloads';
+import { useKueueStatusForDeployments } from '@odh-dashboard/model-serving/shared/kueue/useKueueStatusForDeployments';
+import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
+import type { WorkloadKind } from '#~/k8sTypes';
+import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
 
-jest.mock('#~/concepts/hardwareProfiles/kueueUtils');
-jest.mock('#~/api/k8s/workloads', () => ({
-  ...jest.requireActual('#~/api/k8s/workloads'),
+jest.mock('@odh-dashboard/hardware-profiles/shared/kueueUtils');
+jest.mock('@odh-dashboard/model-serving/shared/kueue/workloads', () => ({
+  ...jest.requireActual('@odh-dashboard/model-serving/shared/kueue/workloads'),
   useWatchWorkloads: jest.fn(),
   useWatchISPods: jest.fn(),
   useWatchLLMISPods: jest.fn(),
@@ -125,16 +125,16 @@ describe('useKueueStatusForDeployments', () => {
 
   it('passes project namespace to all three watches when Kueue is active', () => {
     renderHook(() => useKueueStatusForDeployments([inferenceService('my-model')], project));
-    expect(useWatchWorkloadsMock).toHaveBeenCalledWith(NS);
-    expect(useWatchISPodsMock).toHaveBeenCalledWith(NS);
-    expect(useWatchLLMISPodsMock).toHaveBeenCalledWith(NS);
+    expect(useWatchWorkloadsMock).toHaveBeenCalledWith(NS, undefined);
+    expect(useWatchISPodsMock).toHaveBeenCalledWith(NS, undefined);
+    expect(useWatchLLMISPodsMock).toHaveBeenCalledWith(NS, undefined);
   });
 
   it('passes undefined namespace to all three watches when project is undefined', () => {
     renderHook(() => useKueueStatusForDeployments([inferenceService('my-model')], undefined));
-    expect(useWatchWorkloadsMock).toHaveBeenCalledWith(undefined);
-    expect(useWatchISPodsMock).toHaveBeenCalledWith(undefined);
-    expect(useWatchLLMISPodsMock).toHaveBeenCalledWith(undefined);
+    expect(useWatchWorkloadsMock).toHaveBeenCalledWith(undefined, undefined);
+    expect(useWatchISPodsMock).toHaveBeenCalledWith(undefined, undefined);
+    expect(useWatchLLMISPodsMock).toHaveBeenCalledWith(undefined, undefined);
   });
 
   it('passes combined IS+LLMIS pods and llmInferenceServices to buildWorkloadMapForDeployments', () => {

@@ -1,20 +1,20 @@
 import * as React from 'react';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
 import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
 import {
   aggregateKueueStatusForModel,
   KUEUE_QUEUE_LABEL,
 } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
-import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
+import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import {
   buildWorkloadMapForDeployments,
   countActiveModelDeploymentPods,
   useWatchWorkloads,
   useWatchISPods,
   useWatchLLMISPods,
-} from '#~/api/k8s/workloads';
+} from './workloads';
 
 // Avoids importing @odh-dashboard/llmd-serving/types (not a frontend dep).
 type NamedModelResource = { metadata: { name: string; labels?: Record<string, string> } };
@@ -58,6 +58,7 @@ export const useKueueStatusForDeployments = (
   inferenceServices: InferenceServiceKind[],
   project: ProjectKind | undefined,
   llmInferenceServices: NamedModelResource[] = [],
+  opts?: K8sAPIOptions,
 ): KueueStatusForDeploymentsResult => {
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
   const useKueue = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
@@ -65,10 +66,15 @@ export const useKueueStatusForDeployments = (
 
   const [workloads, workloadsLoaded, watchError] = useWatchWorkloads(
     useKueue ? namespace : undefined,
+    opts,
   );
-  const [isPods, isPodsLoaded, isPodsWatchError] = useWatchISPods(useKueue ? namespace : undefined);
+  const [isPods, isPodsLoaded, isPodsWatchError] = useWatchISPods(
+    useKueue ? namespace : undefined,
+    opts,
+  );
   const [llmisPods, llmisPodsLoaded, llmisPodsWatchError] = useWatchLLMISPods(
     useKueue ? namespace : undefined,
+    opts,
   );
 
   const rawKueueStatusByDeploymentKey = React.useMemo(() => {

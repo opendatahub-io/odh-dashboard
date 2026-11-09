@@ -17,8 +17,9 @@ import {
 import { MultiSelection, SelectionOptions } from '@odh-dashboard/ui-core/components/MultiSelection';
 import FieldGroupHelpLabelIcon from '@odh-dashboard/ui-core/components/FieldGroupHelpLabelIcon';
 import { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-fields';
+import type { GatewayOption } from '@odh-dashboard/model-serving/shared/api/gatewayDiscovery';
+import { useGetGatewayOptions } from '@odh-dashboard/model-serving/shared/hooks/useGatewayOptions';
 import { isLLMInferenceServiceActive } from '../../formUtils';
-import { GatewayOption, useGetGatewayOptions } from '../../api/services/gatewayDiscovery';
 
 export type GatewaySelectDependencies = {
   project: ProjectSectionType;

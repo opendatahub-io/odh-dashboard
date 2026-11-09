@@ -18,11 +18,10 @@ jest.mock('../status', () => ({
   ...jest.requireActual('../status'),
   useLLMInferenceServicePods: jest.fn(),
 }));
-jest.mock('@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions', () => ({
+jest.mock('@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions', () => ({
   useKueueStatusWithQueuePositions: jest.fn(() => ({
     kueueStatusByDeploymentKey: {},
     isLoading: false,
-    error: null,
   })),
 }));
 

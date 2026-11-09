@@ -1,8 +1,8 @@
 import * as React from 'react';
-import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
-import type { ProjectKind } from '@odh-dashboard/k8s-core';
+import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
 import type { KueueWorkloadStatusWithMessage } from '@odh-dashboard/k8s-core/kueue/types';
-import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
+import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/kueueUtils';
+import type { InferenceServiceKind } from '@odh-dashboard/model-serving/shared';
 import {
   useKueueStatusForDeployments,
   type KueueStatusForDeploymentsResult,
@@ -20,7 +20,8 @@ export const useKueueStatusWithQueuePositions = (
   inferenceServices: InferenceServiceKind[],
   project: ProjectKind | undefined,
   llmInferenceServices: NamedModelResource[] = [],
-): KueueStatusForDeploymentsResult => {
+  opts?: K8sAPIOptions,
+): Omit<KueueStatusForDeploymentsResult, 'error'> => {
   const { isKueueFeatureEnabled, isProjectKueueEnabled } = useKueueConfiguration(project);
   const useKueue = Boolean(isKueueFeatureEnabled && isProjectKueueEnabled);
   const namespace = project == null ? undefined : project.metadata.name;
@@ -29,14 +30,18 @@ export const useKueueStatusWithQueuePositions = (
     kueueStatusByDeploymentKey: rawKueueStatusByDeploymentKey,
     isLoading,
     error,
-  } = useKueueStatusForDeployments(inferenceServices, project, llmInferenceServices);
+  } = useKueueStatusForDeployments(inferenceServices, project, llmInferenceServices, opts);
 
   const queuePositions = useQueuePositionsForDeployments(
-    useKueue ? namespace : undefined,
+    useKueue && !error ? namespace : undefined,
     rawKueueStatusByDeploymentKey,
+    opts,
   );
 
   const kueueStatusByDeploymentKey = React.useMemo(() => {
+    if (error) {
+      return {};
+    }
     if (Object.keys(queuePositions).length === 0) {
       return rawKueueStatusByDeploymentKey;
     }
@@ -52,11 +57,10 @@ export const useKueueStatusWithQueuePositions = (
           : status;
     }
     return result;
-  }, [rawKueueStatusByDeploymentKey, queuePositions]);
+  }, [rawKueueStatusByDeploymentKey, queuePositions, error]);
 
   return {
     kueueStatusByDeploymentKey,
-    isLoading,
-    error,
+    isLoading: !error && isLoading,
   };
 };

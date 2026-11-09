@@ -1,5 +1,5 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
-import type { GatewayOption } from '../../api/services/gatewayDiscovery';
+import type { GatewayOption } from '@odh-dashboard/model-serving/shared/api/gatewayDiscovery';
 import {
   getLlmdGatewayTrackingProperties,
   getLlmdWizardTrackingProperties,
