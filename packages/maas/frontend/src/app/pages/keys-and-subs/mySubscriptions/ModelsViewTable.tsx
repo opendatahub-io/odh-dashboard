@@ -64,15 +64,18 @@ const ModelGroupRow: React.FC<{
         </Td>
       </Tr>
       <Tr isExpanded={isExpanded}>
-        <Td colSpan={2}>
+        {/* Empty cell under the expand control plus noPadding align the nested table with the parent data columns. */}
+        <Td />
+        <Td noPadding>
           <ExpandableRowContent>
             <Table
               aria-label={`Subscriptions for ${modelGroup.displayName || modelGroup.name}`}
               variant="compact"
               borders={false}
+              isNested
             >
               <Thead>
-                <Tr>
+                <Tr resetOffset>
                   <Th width={40}>Subscription</Th>
                   <Th width={30}>API keys</Th>
                   <Th width={30}>Token limits</Th>
@@ -80,14 +83,19 @@ const ModelGroupRow: React.FC<{
               </Thead>
               <Tbody>
                 {modelGroup.subscriptions.length === 0 ? (
-                  <Tr>
+                  <Tr resetOffset>
                     <Td colSpan={3}>No subscriptions for this model.</Td>
                   </Tr>
                 ) : (
                   modelGroup.subscriptions.map((sub) => (
-                    <Tr key={sub.subscriptionIdHeader} data-testid="model-subscription-row">
+                    <Tr
+                      key={sub.subscriptionIdHeader}
+                      data-testid="model-subscription-row"
+                      resetOffset
+                    >
                       <Td dataLabel="Subscription">
                         <Link
+                          className="pf-v6-u-font-weight-bold"
                           data-testid={`subscription-detail-link-${sub.subscriptionIdHeader}`}
                           to={`${URL_PREFIX}/keys-and-subs/subscriptions/${sub.subscriptionIdHeader}`}
                           onClick={() => {
