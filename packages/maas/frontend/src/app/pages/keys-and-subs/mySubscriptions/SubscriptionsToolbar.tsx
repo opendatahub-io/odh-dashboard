@@ -45,19 +45,6 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
       <ToolbarContent>
         <ToolbarGroup>
           <ToolbarItem>
-            <SearchInput
-              aria-label="Filter by subscription or model name"
-              placeholder="Filter by subscription or model name"
-              style={{ minWidth: '350px' }}
-              data-testid="subscriptions-search-input"
-              value={searchValue}
-              onChange={(_event, value) => onSearchChange(value)}
-              onClear={() => onSearchChange('')}
-            />
-          </ToolbarItem>
-        </ToolbarGroup>
-        <ToolbarGroup>
-          <ToolbarItem>
             <ToggleGroup aria-label="Sort by field" data-testid="subscriptions-sort-toggle">
               <ToggleGroupItem
                 text="Subscription view"
@@ -74,6 +61,19 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
                 data-testid="sort-by-model"
               />
             </ToggleGroup>
+          </ToolbarItem>
+        </ToolbarGroup>
+        <ToolbarGroup>
+          <ToolbarItem>
+            <SearchInput
+              aria-label="Filter by subscription or model name"
+              placeholder="Filter by subscription or model name"
+              style={{ minWidth: '350px' }}
+              data-testid="subscriptions-search-input"
+              value={searchValue}
+              onChange={(_event, value) => onSearchChange(value)}
+              onClear={() => onSearchChange('')}
+            />
           </ToolbarItem>
         </ToolbarGroup>
       </ToolbarContent>
