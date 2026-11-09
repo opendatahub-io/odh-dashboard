@@ -120,6 +120,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Core BFF BFF Docs](distributions/core-bff/bff/README.md) | Go BFF documentation |
 | [Core BFF OpenAPI Spec](distributions/core-bff/bff/openapi/src/core-bff.yaml) | OpenAPI specification (contract-first source of truth) |
 | [Base Distribution README](distributions/base/README.md) | App shell setup, dev environment, environment variables |
+| [RHAII Runtime Audit](distributions/rhaii/docs/runtime-audit.md) | Production bundle inventory, strict dependency boundary check, and remaining runtime qualification |
 
 ---
 

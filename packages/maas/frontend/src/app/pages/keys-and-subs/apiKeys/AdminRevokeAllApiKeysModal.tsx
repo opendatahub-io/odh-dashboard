@@ -24,7 +24,7 @@ import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
-import { searchTenantApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
+import { searchApiKeysForCurrentHost, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
 import { isKeyInactive } from '~/app/utilities/apiKeys';
 import type { APIKey, SubscriptionDetail } from '~/app/types/api-key';
@@ -95,7 +95,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
     setHasSearched(true);
 
     try {
-      const response = await searchTenantApiKeys()({}, { filters: { username: trimmed } });
+      const response = await searchApiKeysForCurrentHost()({}, { filters: { username: trimmed } });
       setApiKeys(response.data);
       setSubscriptionDetails(response.subscriptionDetails);
     } catch (err) {

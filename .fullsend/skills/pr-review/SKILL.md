@@ -1626,12 +1626,13 @@ premise:
 #### 6f. Classify blockers for the host
 
 Merge the reconciled PR-specific findings (from 6e-1) into the
-adjudicated set (step 6d). The host blocks on `medium` and
-above except categories it excludes (see `rating-policy.json`). Do not
-emit a verification table. Classify for your own `todo[]` pass only:
+adjudicated set (step 6d). The host blocks on `blocking_finding_severities`
+and defers `human_judgment_finding_severities` to a human (see
+`rating-policy.json`), except categories it excludes. Do not emit a
+verification table. Classify for your own `todo[]` pass only:
 
-- Any **critical**, **high**, or **medium** finding blocks, except categories the host excludes (today: `protected-path`, which needs a human instead of `request-changes`).
-- **Low** or **info** findings do not block. Preserve concrete follow-up work
+- Any finding at a blocking severity blocks, except categories the host excludes (today: `protected-path`, which needs a human instead of `request-changes`).
+- Findings below the blocking bar do not block. Preserve concrete follow-up work
   with `actionable: true`.
 - The approach is fundamentally wrong — wrong design, unauthorized
   change, or the PR should be closed/completely rethought → `reject`.
@@ -1781,7 +1782,7 @@ Every non-failure result must include:
 - Section members: every name in each selected `section:*` row's `result_fields` (or the section named by `output` when `result_fields` is omitted), projected from `producers.json` `sections`. When that row was not run because its `context_file` was missing or the snapshot `status` was `none` / `error`, write the schema member as `{"status":"none"}` when the schema allows `status`.
 - `checks[]` from `check:*` returns in `producers.json` `checks` (top-level array, not nested under `producers`). Preserve `could-not-verify` rather than converting a check into a finding.
 - `todo`: array of `{category,text}` objects (preferred) or plain strings, synthesized in this final pass from the assembled report (not from one earlier section). The host renders them under sticky `## TODO` grouped by plain-text category labels. Recipe, in order, omit empties:
-  1. `category: "findings"` — one bullet per blocking finding pointing at its remediation (or file + description when remediation is absent).
+  1. `category: "findings"` — one bullet per finding that blocks or needs human judgment, pointing at its remediation (or file + description when remediation is absent).
   2. `category: "checks"` — one bullet per check whose `status` is `fail`, using that check's `summary`.
   3. `category: "judgement"` — concrete human actions for check `could-not-verify`, for signal levels that `.fullsend/rating-policy.json` lists as refuse-approve, and for any assembled section object with `needs_human: true`.
   4. `category: "nits"` — one bullet per `low` or `info` finding with `actionable: true`, using its description.

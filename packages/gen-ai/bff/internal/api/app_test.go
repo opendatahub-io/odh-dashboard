@@ -11,10 +11,48 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestNewAppMockKubernetesDisabledAuth(t *testing.T) {
+	// NewApp loads the OpenAPI document relative to the BFF root. Keep this
+	// test isolated from any local cluster configuration.
+	t.Chdir("../..")
+	t.Setenv("KUBECONFIG", t.TempDir()+"/kubeconfig")
+	t.Setenv("KUBERNETES_SERVICE_HOST", "")
+	t.Setenv("KUBERNETES_SERVICE_PORT", "")
+
+	app, err := NewApp(config.EnvConfig{
+		AuthMethod:     config.AuthMethodDisabled,
+		MockK8sClient:  true,
+		MockLSClient:   true,
+		MockMCPClient:  true,
+		MockNemoClient: true,
+		MockBFFClients: true,
+		MLflowURL:      "http://localhost:5001",
+	}, slog.Default())
+	require.NoError(t, err, "disabled auth must not prevent mock startup")
+	t.Cleanup(func() { assert.NoError(t, app.Shutdown()) })
+	require.Nil(t, app.realKubernetesClientFactory)
+	require.NotNil(t, app.kubernetesClientFactory)
+
+	// Even if an identity is attached, disabled auth retains the empty-user
+	// fallback rather than attempting a real cluster lookup.
+	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey,
+		&integrations.RequestIdentity{Token: "unused-token"})
+	req := httptest.NewRequest(http.MethodGet, constants.UserPath, nil).WithContext(ctx)
+	rr := httptest.NewRecorder()
+	app.GetCurrentUserHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var envelope UserEnvelope
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &envelope))
+	assert.Empty(t, envelope.Data.UserID)
+}
 
 func TestIsAPIRoute(t *testing.T) {
 	// Create a test app

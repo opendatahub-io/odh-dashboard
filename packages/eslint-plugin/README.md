@@ -21,6 +21,7 @@ export default [
 
 | Rule | Description |
 |------|-------------|
+| `no-direct-analytics` | Reject direct feature analytics imports and globals. Enable for migrated files with the [feature analytics preset](../eslint-config/README.md#feature-analytics-guards). |
 | See `rules/` | Custom rules defined in the `rules/` directory |
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

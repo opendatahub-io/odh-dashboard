@@ -1,6 +1,6 @@
 # Module Onboarding — Reference
 
-Supplementary reference for the module-onboarding skill. Read `.claude/rules/module-onboarding.md` for the full manual guide.
+Supplementary reference for the module-onboarding skill. Read `.claude/rules/module-onboarding.md` for the full manual guide. The most recent fully onboarded module, `packages/data-connect-hub/`, is the golden example.
 
 ## Name Transformation Rules
 
@@ -18,57 +18,54 @@ Given a kebab-case module name (e.g., `my-module`):
 | Identifier | Pattern | Example |
 |------------|---------|---------|
 | Package name | `@odh-dashboard/<kebab>` | `@odh-dashboard/my-module` |
+| Frontend package name | `<kebab>-ui` | `my-module-ui` |
 | Directory | `packages/<kebab>/` | `packages/my-module/` |
 | MF name | `<camelCase>` | `myModule` |
 | SupportedArea enum | `PLUGIN_<UPPER_SNAKE>` | `PLUGIN_MY_MODULE` |
 | SupportedArea value | `'plugin-<kebab>'` | `'plugin-my-module'` |
 | Feature flag key | `<camelCase>` | `myModule` |
-| Proxy path | `/<kebab>/api` | `/my-module/api` |
+| Proxy paths | `/<kebab>/api`, `/<kebab>/healthcheck` | `/my-module/api` |
+| Service name | `odh-dashboard-<kebab>-ui` | `odh-dashboard-my-module-ui` |
+| BFF Go module | `github.com/opendatahub-io/<kebab>/bff` | `github.com/opendatahub-io/my-module/bff` |
 | Nav section ID | `<kebab>` | `my-module` |
-| Nav group | `'5_<snake_case>'` | `'5_my_module'` |
+| Nav href / route path | `/<kebab>/main-view`, `/<kebab>/main-view/*` | `/my-module/main-view/*` |
+| Nav title | `<Title Case>` | `My Module` |
 | CSS prefix | `<kebab>-` | `my-module-` |
 
 ## Port Ranges
 
-| Purpose | Range | Config location |
+| Purpose | Range | Source of truth |
 |---------|-------|-----------------|
-| Frontend dev server | 9100–9399 | `package.json` → `module-federation.local.port` |
-| BFF proxy port | 4000–4099 | `Makefile` → `PROXY_PORT` |
-| Production service | 8043–8943 (increments of ~100) | `package.json` → `module-federation.service.port` + `modules.go` |
+| Frontend dev server / MF local | 9100–9399 | `package.json` → `module-federation.local.port` (packages **and** `distributions/`) |
+| BFF local dev port | 4000–4099 | Inline `PORT=` / `PROXY_PORT=` in the package `Makefile` recipes and `cypress:server:dev` script |
+| Production service | 8043, 8143, … (steps of 100) | `dashboard-operator/internal/controller/modules.go` → `Port` (mirrored in `module-federation.service.port`) |
 
-**How to find the next available port:**
+**How to find the next available port** (portable — BSD and GNU grep; never use `grep -P`):
 
 ```bash
-# Frontend ports — scan all packages
-jq -r '."module-federation".local.port // empty' packages/*/package.json 2>/dev/null | awk '$1>=9100 && $1<=9399' | sort -n
+# Frontend + production ports — prints both tables and flags conflicts
+pnpm run validate:ports
 
-# BFF ports — scan Makefiles
-grep -r 'PROXY_PORT=' packages/*/Makefile | grep -oP '\d{4,5}' | sort -n
+# BFF ports
+grep -hoE '(PROXY_)?PORT=40[0-9]{2}' packages/*/Makefile packages/*/package.json distributions/*/Makefile distributions/*/package.json 2>/dev/null | grep -oE '[0-9]+' | sort -n | uniq
 
-# Production service ports — scan operator module registry
-grep 'Port:' dashboard-operator/internal/controller/modules.go | grep -oP '\d{4}' | sort -n
+# Production service ports (operator registry)
+grep -E '^[[:space:]]+Port:[[:space:]]+[0-9]+' dashboard-operator/internal/controller/modules.go | grep -oE '[0-9]+' | sort -n
 ```
 
-Validate after creation: `pnpm run validate:ports`
+Pass the chosen ports to the installer (`--port`, `--bff-port`, `--service-port`); it rewrites `package.json`, the `Makefile` and the frontend scripts.
 
-## Feature Flag Registration (3-File Pattern)
+## Host Registration (5 files)
 
-New modules require changes in **three files** to register their feature flag:
+### 1. `pnpm-workspace.yaml` — workspace member
 
-### 1. `frontend/src/k8sTypes.ts` — Type definition
-
-Add to the `DashboardCommonConfig` type as an optional boolean, in the tech-preview section (after the existing optional flags):
-
-```typescript
-export type DashboardCommonConfig = {
-  // ... existing flags ...
-  myModule?: boolean;  // ← add here
-};
+```yaml
+packages:
+  # ... existing entries ...
+  - packages/my-module/frontend  # ← add here
 ```
 
-### 2. `frontend/src/concepts/areas/types.ts` — SupportedArea enum
-
-Add an entry to the `SupportedArea` enum. Place under the appropriate section comment:
+### 2. `packages/plugin-core/src/areas/types.ts` — SupportedArea enum
 
 ```typescript
 export enum SupportedArea {
@@ -79,21 +76,25 @@ export enum SupportedArea {
 }
 ```
 
-### 3. `frontend/src/concepts/areas/const.ts` — Flag default + state map
+### 3. `packages/k8s-core/src/k8sTypes.ts` — Type definition
 
-**a)** Add the flag default to the appropriate group:
+`frontend/src/k8sTypes.ts` only re-exports from `@odh-dashboard/k8s-core`.
 
 ```typescript
-// For new/experimental modules → devTemporaryFeatureFlags
-export const devTemporaryFeatureFlags = {
+export type DashboardCommonConfig = {
+  // ... existing flags ...
+  myModule?: boolean;  // ← add here
+};
+```
+
+### 4. `frontend/src/concepts/areas/const.ts` — Flag default + state map
+
+```typescript
+export const techPreviewFlags = {
   // ... existing flags ...
   myModule: false,
 } satisfies Partial<DashboardCommonConfig>;
-```
 
-**b)** Add the area to `SupportedAreasStateMap`:
-
-```typescript
 export const SupportedAreasStateMap: SupportedAreasState = {
   // ... existing entries ...
   [SupportedArea.PLUGIN_MY_MODULE]: {
@@ -102,9 +103,19 @@ export const SupportedAreasStateMap: SupportedAreasState = {
 };
 ```
 
+### 5. `manifests/base/crd/odhdashboardconfigs.opendatahub.io.crd.yaml` — CRD property
+
+```yaml
+                    myModule:
+                      type: boolean
+                      description: 'When true, enables the My Module features.'
+```
+
+Plus ownership (`OWNERS`, `OWNERS_ALIASES`, `packages/<name>/OWNERS`) and `.github/dependabot.yml` (`/packages/<name>/bff` in the `gomod` directories).
+
 ## Extension Types Reference
 
-Extensions are defined in `frontend/src/odh/extensions.ts` (federated modules).
+Extensions are defined in `frontend/src/odh/extensions.ts` (federated modules). Import `SupportedArea` from `@odh-dashboard/plugin-core/areas`.
 
 ### `app.area` — Feature area definition
 
@@ -112,8 +123,8 @@ Extensions are defined in `frontend/src/odh/extensions.ts` (federated modules).
 {
   type: 'app.area',
   properties: {
-    id: '<PLUGIN_AREA_CONSTANT>',  // e.g., PLUGIN_MY_MODULE
-    featureFlags: ['<flagName>'],  // e.g., ['myModule']
+    id: SupportedArea.PLUGIN_MY_MODULE,
+    featureFlags: ['myModule'],
   },
 }
 ```
@@ -123,11 +134,11 @@ Extensions are defined in `frontend/src/odh/extensions.ts` (federated modules).
 ```typescript
 {
   type: 'app.navigation/section',
-  flags: { required: ['<PLUGIN_AREA_CONSTANT>'] },
+  flags: { required: [SupportedArea.PLUGIN_MY_MODULE] },
   properties: {
-    id: '<kebab-name>',
-    title: '<Title Case>',
-    group: '5_<snake_case>',
+    id: 'my-module',
+    title: 'My Module',
+    group: '7_my_module_studio',
   },
 }
 ```
@@ -137,12 +148,13 @@ Extensions are defined in `frontend/src/odh/extensions.ts` (federated modules).
 ```typescript
 {
   type: 'app.navigation/href',
-  flags: { required: ['<PLUGIN_AREA_CONSTANT>'] },
+  flags: { required: [SupportedArea.PLUGIN_MY_MODULE] },
   properties: {
-    id: '<kebab-name>-overview',
-    title: 'Overview',
-    href: '/<kebab-name>',
-    section: '<kebab-name>',
+    id: 'my-module-view',
+    title: 'My Module',
+    href: '/my-module/main-view',
+    section: 'my-module',
+    path: '/my-module/main-view/*',
   },
 }
 ```
@@ -152,58 +164,41 @@ Extensions are defined in `frontend/src/odh/extensions.ts` (federated modules).
 ```typescript
 {
   type: 'app.route',
-  flags: { required: ['<PLUGIN_AREA_CONSTANT>'] },
+  flags: { required: [SupportedArea.PLUGIN_MY_MODULE] },
   properties: {
-    path: '/<kebab-name>',
-    component: () => import('./pages/OverviewPage'),
+    path: '/my-module/main-view/*',
+    component: () => import('./MyModuleWrapper'),
   },
 }
 ```
 
 ## Makefile Target Reference
 
-Standard targets for federated modules (see `packages/eval-hub/Makefile` or `packages/gen-ai/Makefile` for examples):
+Standard targets for federated modules (see `packages/data-connect-hub/Makefile`):
 
 | Target | Purpose |
 |--------|---------|
-| `dev-install-dependencies` | Install frontend deps |
-| `dev-frontend-federated` | Run frontend dev server on allocated port |
-| `dev-bff-federated` | Run Go BFF with port forwarding |
-| `dev-start-federated` | Run both BFF and frontend |
-| `dev-bff-e2e-mock` | Start BFF in mock mode for E2E tests |
-| `dev-bff-e2e-cluster` | Start BFF against real cluster for E2E |
-| `docker-build-federated` | Build container image |
+| `dev-install-dependencies` | No-op — dependencies come from the root `pnpm install` |
+| `dev-start` | Standalone mock mode (BFF + frontend) |
+| `dev-frontend-federated` | Frontend dev server on the allocated port (`PORT=<port> PROXY_PORT=<bff-port>`) |
+| `dev-bff-federated` | Go BFF against a real cluster (`PORT=<bff-port>`) |
+| `dev-start-federated` | Both of the above |
+| `dev-bff-e2e-mock` | BFF in mock mode for E2E tests (`PORT=$(E2E_BFF_PORT)`) |
+| `dev-bff-e2e-cluster` | BFF against a real cluster for E2E (`PORT=$(E2E_BFF_PORT)`) |
+| `docker-build-federated` | Container image from `Dockerfile.workspace` (context `../..`) |
 
-Key variables in Makefile:
-
-```makefile
-PORT=<frontend-port>        # e.g., 9110
-PROXY_PORT=<bff-port>       # e.g., 4010
-AUTH_METHOD=user_token
-DEPLOYMENT_MODE=federated
-STYLE_THEME=patternfly
-```
+Ports are inline in the recipes; the only Makefile variable is `E2E_BFF_PORT ?= 8080`, overridden by the package's `cypress:server:e2e` script (`E2E_BFF_PORT=<frontend-port>`).
 
 ## Dockerfile Pattern
 
-Federated modules use `Dockerfile.workspace` — a multi-stage build:
+Federated modules use `Dockerfile.workspace` — a multi-stage build from the repository root:
 
-1. **Stage 1 (Node)**: Build the frontend rspack bundle
-   - Copy root workspace manifests, install deps
-   - Copy package source, run `pnpm run build` with `DEPLOYMENT_MODE=standalone`
-2. **Stage 2 (Go)**: Build the BFF binary (if included)
-   - Copy `bff/` directory, run `go build -o /bff-binary ./cmd`
-3. **Stage 3 (Runtime)**: Minimal image with built artifacts
-   - Copy frontend dist from stage 1
-   - Copy BFF binary from stage 2 (if included)
-   - Set entrypoint
-
-Build from repo root:
+1. **Stage 1 (Node, `ubi9/nodejs-22`)**: install the pinned pnpm from `prefetch/pnpm` (`npm ci --prefix ./prefetch/pnpm`, hermetic for Konflux), copy the root manifests (`package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.npmrc`) and shared packages (`app-config`, `foundation`, `k8s-core`, `plugin-core`, `tsconfig`, `ui-core`), `pnpm install --frozen-lockfile --prefer-offline`, then `pnpm run build:prod` with `DEPLOYMENT_MODE=federated`
+2. **Stage 2 (Go, `ubi9/go-toolset:1.26`)**: `go build -tags strictfipsruntime -o bff ./cmd` (copy `pkg/tls/` too if the BFF uses the shared TLS package)
+3. **Stage 3 (`ubi9-minimal`)**: BFF binary + `dist/` as `./static/`
 
 ```bash
 podman build --file ./packages/<name>/Dockerfile.workspace .
-# or
-docker build --file ./packages/<name>/Dockerfile.workspace .
 ```
 
 ## Module Federation Config in package.json
@@ -215,138 +210,133 @@ docker build --file ./packages/<name>/Dockerfile.workspace .
     "remoteEntry": "/remoteEntry.js",
     "authorize": true,
     "tls": false,
-    "proxy": [{ "path": "/<kebab>/api", "pathRewrite": "/api" }],
+    "proxy": [
+      { "path": "/<kebab>/api", "pathRewrite": "/api" },
+      { "path": "/<kebab>/healthcheck", "pathRewrite": "/healthcheck" }
+    ],
     "local": { "host": "localhost", "port": <frontend-port> },
-    "service": { "name": "odh-dashboard-<slug>-ui", "port": <bff-port> }
+    "service": { "name": "odh-dashboard-<kebab>-ui", "port": <production-service-port> }
   }
 }
 ```
 
 ## Shared Singletons (moduleFederation.js)
 
-`OdhFederationPlugin` applies the shared singleton policy automatically. Do not maintain a manual `shared` map for React / PatternFly / ODH packages. Ensure those packages are listed in the frontend `package.json` `dependencies` (plugin modules) so they are picked up from rspack `compiler.context`.
+`OdhFederationPlugin` (`@odh-dashboard/app-config/rspack`) applies the shared singleton policy automatically. Do not maintain a manual `shared` map for React / PatternFly / ODH packages. Ensure those packages are listed in the frontend `package.json` `dependencies` so they are picked up from rspack `compiler.context`.
 
 Pass `isHost: process.env.DEPLOYMENT_MODE === 'standalone'` so standalone builds eager-share and bundle imports, while federated remotes use `import: false`.
 
 ## Onboarding Checklist
 
-This checklist maps to skill phases. Items marked with a phase are handled automatically.
-
-| # | Item | Skill Phase |
-|---|------|-------------|
-| 1 | Package directory exists under `packages/<name>/` | Phase 2 |
-| 2 | `package.json` has correct name, exports, module-federation config | Phase 2 |
-| 3 | Unique frontend port allocated (9100–9399) | Phase 1 |
-| 4 | Unique BFF port allocated (4000–4099) if BFF included | Phase 1 |
-| 5 | `tsconfig.json`, `jest.config.ts`, `.eslintrc.js` present | Phase 2 |
-| 6 | Rspack configs under `frontend/config/` | Phase 2 |
-| 7 | Extensions file with area, nav, route stubs | Phase 2 |
-| 8 | Feature flag added to `DashboardCommonConfig` in `k8sTypes.ts` | Phase 3 |
-| 9 | `SupportedArea` enum entry added in `types.ts` | Phase 3 |
-| 10 | Flag default + `SupportedAreasStateMap` entry in `const.ts` | Phase 3 |
-| 11 | BFF with `/healthcheck` endpoint (if included) | Phase 2 |
-| 12 | `Dockerfile.workspace` present and builds | Phase 4 |
-| 13 | `Makefile` with standard targets | Phase 2 |
-| 14 | `pnpm install` succeeds | Phase 5 |
-| 15 | `pnpm run validate:ports` passes | Phase 5 |
-| 16 | `pnpm run type-check` passes | Phase 5 |
-| 17 | Container image builds successfully | Phase 5 |
-| 18 | Deployment manifests in `manifests/modules/<name>/` | Phase 6 |
-| 19 | Module registered in operator module registry | Phase 7 |
-| 20 | RELATED_IMAGE entry in Helm chart `values.yaml` | Phase 7 |
-| — | Unit tests in `__tests__/` | Manual (post-skill) |
-| — | E2E tests in `packages/cypress/cypress/tests/e2e/<name>/` | Manual (post-skill) |
-| — | Contract tests in `contract-tests/` (if BFF) | Manual (post-skill) |
-| — | RELATED_IMAGE entry in Helm chart `values.yaml` | `/konflux-onboarding` |
+| # | Item | Owner |
+|---|------|-------|
+| 1 | Unique frontend, BFF and production service ports allocated | `/module-onboarding` Phase 1 |
+| 2 | Package scaffolded under `packages/<name>/` with correct names and ports | Phase 2 |
+| 3 | `package.json`: MF config (incl. healthcheck proxy, service), `cypress:mock:*` (if participating in dashboard Cypress mock tests), `cypress:server:e2e`, `lint`, `type-check`, `workspace:*` deps | Phase 2 |
+| 4 | `moduleFederation.js` uses `OdhFederationPlugin` | Phase 2 |
+| 5 | Extensions file with area, nav, route using `SupportedArea.PLUGIN_<X>` | Phase 2 |
+| 6 | BFF with unique Go module path, `/healthcheck`, no `go.work` | Phase 2 |
+| 7 | `Dockerfile.workspace` with `MODULE_NAME=<name>` and prefetched pnpm | Phase 2 |
+| 8 | `pnpm-workspace.yaml` entry | Phase 3 |
+| 9 | `SupportedArea` entry in `packages/plugin-core/src/areas/types.ts` | Phase 3 |
+| 10 | Flag in `DashboardCommonConfig` (`packages/k8s-core/src/k8sTypes.ts`) | Phase 3 |
+| 11 | Flag default + `SupportedAreasStateMap` entry in `const.ts` | Phase 3 |
+| 12 | Flag in the OdhDashboardConfig CRD | Phase 3 |
+| 13 | `OWNERS`, `OWNERS_ALIASES`, package `OWNERS`, dependabot `gomod` entry | Phase 3 |
+| 14 | `pnpm install`, `validate:ports`, `validate:cypress-mock` pass | Phase 4 |
+| 15 | Lint, type-check, frontend build, BFF build/test pass | Phase 4 |
+| 16 | Container image builds | Phase 4 (optional) |
+| — | Unit, Cypress mock/E2E and contract tests | Manual (post-skill) |
+| — | ODH/RHOAI Dockerfiles, Konflux component, OpenShift CI | `/konflux-onboarding` |
+| — | Standalone manifests `manifests/modules/<name>/` + `manifests/modules/kustomization.yaml` | `/konflux-onboarding` |
+| — | dashboard-operator registry, tests, Helm `relatedImages` | `/konflux-onboarding` |
+| — | `RELATED_IMAGE` in opendatahub-operator | `/konflux-onboarding` (external PR) |
 
 ## Troubleshooting
 
 ### Port conflict after creation
 
-**Symptom**: `pnpm run validate:ports` fails with duplicate port error.
+**Symptom**: `pnpm run validate:ports` or `pnpm run validate:cypress-mock` fails with a duplicate port.
 
-**Fix**: Edit `packages/<name>/package.json` → `module-federation.local.port` to a different value. Re-run validation.
+**Fix**: Change the port in `packages/<name>/package.json` (`module-federation.local.port` and the `cypress:server*` scripts), `frontend/package.json` (`cypress:server`, `test:cypress-ci`) and the `Makefile`. Re-run validation. Remember `distributions/*` packages also own ports in the 91xx range.
 
 ### Type-check fails after area registration
 
-**Symptom**: `pnpm run type-check` reports error in `const.ts` — feature flag name not assignable to `FeatureFlag`.
+**Symptom**: type error in `const.ts` or `extensions.ts` — feature flag name not assignable, or `PLUGIN_<X>` does not exist on `SupportedArea`.
 
-**Cause**: The flag name was not added to `DashboardCommonConfig` in `k8sTypes.ts`.
+**Fix**: Add `<flagName>?: boolean;` to `DashboardCommonConfig` in `packages/k8s-core/src/k8sTypes.ts`, and `PLUGIN_<X>` to `packages/plugin-core/src/areas/types.ts`.
 
-**Fix**: Add `<flagName>?: boolean;` to the `DashboardCommonConfig` type in `frontend/src/k8sTypes.ts`.
+### mod-arch-installer outdated or fails
 
-### mod-arch-installer not found or fails
+**Symptom**: `pnpm dlx mod-arch-installer` fails, or `--help` has no `--service-port` flag (versions before 1.23.0 still scaffold webpack/npm/ESLint 9 output).
 
-**Symptom**: `pnpm dlx mod-arch-installer` fails with ENOENT or network error.
+**Fix**: Use the pinned `pnpm dlx mod-arch-installer@1.23.0` (bump the pin deliberately, after reviewing a new release, in every onboarding doc at once). If the published version is still outdated, fall back to manual scaffolding from `packages/data-connect-hub/`.
 
-**Fix**: The skill falls back to manual scaffolding. Alternatively, run it explicitly with `pnpm dlx mod-arch-installer` and retry.
+### pnpm install does not pick up the module
+
+**Symptom**: `@odh-dashboard/<name>-ui` missing, `Cannot find module '@odh-dashboard/app-config/rspack'`, or the Dockerfile's `--frozen-lockfile` install fails.
+
+**Fix**: Add `packages/<name>/frontend` to `pnpm-workspace.yaml`, run `pnpm install` from the root and commit `pnpm-lock.yaml`.
 
 ### Rspack build fails with "shared module not found"
 
-**Symptom**: Build error mentioning missing shared module.
-
-**Fix**: Verify `frontend/config/moduleFederation.js` uses `OdhFederationPlugin` with `isHost: process.env.DEPLOYMENT_MODE === 'standalone'`. Ensure `@odh-dashboard/plugin-core` and `@odh-dashboard/internal` are in the package's dependencies.
+**Fix**: Verify `frontend/config/moduleFederation.js` uses `OdhFederationPlugin` with `isHost: process.env.DEPLOYMENT_MODE === 'standalone'`, and that `@odh-dashboard/plugin-core` / `@odh-dashboard/app-config` are `workspace:*` deps of the frontend.
 
 ### BFF Go build fails
 
-**Symptom**: `go build ./cmd` fails with import errors.
+**Fix**: `cd packages/<name>/bff && go mod tidy`. Ensure `go.mod` has a unique module path, there is no `go.work`, and the `go` directive is not higher than the toolchain in `Dockerfile.workspace`.
 
-**Fix**: Run `cd packages/<name>/bff && go mod tidy` to resolve dependencies. Ensure `go.mod` has the correct module path.
+## Deployment Manifests (created by `/konflux-onboarding`)
 
-## Deployment Manifests
-
-The module-onboarding skill creates deployment manifests in `manifests/modules/<name>/` during Phase 6. Each module deploys as its own Kubernetes Deployment.
-
-### Required files
+Each module deploys as its own Kubernetes Deployment from `manifests/modules/<name>/`:
 
 | File | Purpose |
 |------|---------|
 | `deployment.yaml` | Independent Deployment with 2 replicas, TLS config, and a dedicated ServiceAccount |
-| `service.yaml` | Service exposing the module's BFF port (name pattern: `odh-dashboard-<slug>-ui`) |
-| `networkpolicy.yaml` | NetworkPolicy for inter-BFF egress (to the odh-dashboard pod for core-bff communication) |
+| `service.yaml` | Service exposing the module's port (name pattern: `odh-dashboard-<slug>-ui`) |
+| `networkpolicy.yaml` | NetworkPolicy for ingress from the dashboard and inter-BFF egress |
 | `service-account.yaml` | Dedicated ServiceAccount for SA isolation |
 | `cluster-role.yaml` | Module-specific ClusterRole |
 | `cluster-role-binding.yaml` | ClusterRoleBinding for the module's ServiceAccount |
 | `kustomization.yaml` | Kustomize entry referencing all resources |
 | `params.env` | Kustomize parameter defaults (image reference) |
 
-### Reference existing modules
+The module directory must also be listed in `manifests/modules/kustomization.yaml`. Reference `manifests/modules/data-connect-hub/` or `manifests/modules/gen-ai/`.
 
-Use the following existing module manifests as patterns when creating manifests (via `/konflux-onboarding`):
-
-- `manifests/modules/gen-ai/` — Gen AI module (has BFF)
-- `manifests/modules/model-registry/` — Model Registry module (has BFF)
-
-## Operator Registration Reference
-
-Operator registration is handled by `/konflux-onboarding` after CI/CD is set up. This section documents the files and patterns involved for reference.
+## Operator Registration Reference (done by `/konflux-onboarding`)
 
 ### Files modified
 
 | File | Change |
 |------|--------|
-| `dashboard-operator/internal/controller/modules.go` | Add entry to `moduleRegistry` map with all fields |
-| `dashboard-operator/internal/controller/modules_test.go` | Update module count and name list assertions |
-| `dashboard-operator/charts/dashboard/values.yaml` | Add `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""` to `relatedImages:` section |
+| `dashboard-operator/internal/controller/modules.go` | Add entry to `moduleRegistry` |
+| `dashboard-operator/internal/controller/modules_test.go` | `TestModuleRegistry` count, `TestModuleNames` list, every `wantLen` in `TestResolveModuleStatuses`, `TestProxyPathsFor` (if custom `ProxyPaths`) |
+| `dashboard-operator/internal/controller/federation_integration_test.go` | Add the slug to the module slug list |
+| `dashboard-operator/charts/dashboard/values.yaml` | Append `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""` to `relatedImages:` (append order, not alphabetical) |
+| `dashboard-operator/charts/dashboard/templates/rbac.yaml` + `config/rbac/role.yaml` | Only if the module ClusterRole grants verbs/resources the operator itself lacks (RBAC escalation prevention) |
 
-**No changes needed** to `module_deploy.go` (proxy paths read from `ModuleDefinition.ProxyPaths`, default generated from `ManifestSlug`) or `support.go` (image map entries are auto-generated from the module registry at init time).
+**No changes needed** to `dashboard_federation.go` / `module_deploy.go` (proxy paths come from `ModuleDefinition.ProxyPaths`, defaulting to `/<ManifestSlug>/api → /api`) or `support.go` (`imagesMap` is filled from the registry in `init()`, key `<ManifestSlug>-ui-image`).
 
-### Naming conventions
+### Registry entry
 
-`ModuleDefinition` is the single source of truth — all fields are set explicitly in the registry entry. Teams have full control over naming.
-
-| Item | Pattern | Example |
-|------|---------|---------|
-| Registry key | `<camelCase>` | `myModule` |
-| Container name | `<kebab>-ui` (convention) | `my-module-ui` |
-| Image env var | `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` | `RELATED_IMAGE_ODH_MOD_ARCH_MY_MODULE_IMAGE` |
-| Manifest slug | `<kebab>` | `my-module` |
-| Proxy path | `/<ManifestSlug>/api` → `/api` (default when `ProxyPaths` is nil) | `/my-module/api` → `/api` |
-| Image map key | `<ManifestSlug>-ui-image` (auto-generated from registry) | `my-module-ui-image` |
+```go
+"<camelCase>": {
+    Name:          "<camelCase>",
+    ContainerName: "<kebab>-ui",
+    Port:          <production-service-port>,
+    ImageEnvVar:   "RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE",
+    ManifestSlug:  "<kebab>",
+    TLS:           true,
+    ProxyPaths: []proxyRoute{
+        {Path: "/<kebab>/api", PathRewrite: "/api"},
+        {Path: "/<kebab>/healthcheck", PathRewrite: "/healthcheck"},
+    },
+    // Optional: RequiredDSCComponents, InterModuleDependencies, InterBFFDeps, RequiredByMaaSPortal.
+    // Omit fields that are empty.
+},
+```
 
 ### DSC component gates
-
-Each module can declare required DataScienceCluster components. If the component is not `Managed` in the Dashboard CR's `spec.components`, the module is disabled. Common gates:
 
 | DSC Component | Used by |
 |---------------|---------|
@@ -354,6 +344,7 @@ Each module can declare required DataScienceCluster components. If the component
 | `aipipelines` | automl, autorag |
 | `trustyai` | evalHub |
 | `mlflowoperator` | mlflow |
+| `dataRegistry` | dataRegistry |
 
 ### External: opendatahub-operator
 

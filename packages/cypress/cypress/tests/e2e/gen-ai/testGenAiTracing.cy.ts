@@ -10,9 +10,11 @@ import {
   stopPortForward,
   waitForResource,
   waitForPodReady,
+  waitForServiceAnyNamespace,
   getServiceNamespace,
   type PortForwardHandle,
 } from '../../../utils/oc_commands/baseCommands';
+import { waitForPlaygroundTracingRoute } from '../../../utils/oc_commands/genAiTracing';
 import {
   disableExternalProviders,
   enableExternalProviders,
@@ -69,7 +71,7 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
 
       cy.step('Log into the application with custom endpoints and tracing enabled');
       cy.visitWithLogin(
-        '/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,modelAsService=false,genAiTracing=true',
+        '/?devFeatureFlags=aiAssetCustomEndpoints=true,modelAsService=false,genAiTracing=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
     });
@@ -172,6 +174,14 @@ describe('Verify tracing and observability in Gen AI Playground', { testIsolatio
 
       cy.step('Verify BFF reports tracing enabled for the playground');
       verifyPlaygroundTracingEnabledViaAPI(projectName);
+
+      cy.step('Wait for the collector Service and this project’s tracing route configuration');
+      // The Service is shared, so it can exist before this project's EnsureRoute
+      // finishes. Wait for the project's route configuration as well; the trace
+      // assertions below still verify actual ingestion into MLflow.
+      waitForServiceAnyNamespace(GENAI_TRACING_COLLECTOR).then((namespace) =>
+        waitForPlaygroundTracingRoute(projectName, namespace),
+      );
 
       // In-cluster BFFs reach the collector directly; only local runs need discovery and a tunnel.
       if ((Cypress.config('baseUrl') || '').includes('localhost')) {

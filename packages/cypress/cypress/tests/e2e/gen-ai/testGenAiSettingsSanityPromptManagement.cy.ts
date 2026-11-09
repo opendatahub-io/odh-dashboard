@@ -106,7 +106,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       })
       .then(() => {
         cy.step('Configure global namespaces');
-        cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
+        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
         setGlobalMLflowNamespaces([globalNamespace], globalMLflowNamespacesBaselines);
         forceDashboardConfigRefresh();
       })
@@ -155,7 +155,7 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
     },
     () => {
       cy.step('Log into the application');
-      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
@@ -177,7 +177,8 @@ describe('Verify Global Prompt Management in Playground Settings', () => {
       });
 
       cy.step('Navigate to playground');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      genAiPlayground.navigate(projectName);
+      genAiPlayground.findMessageInput({ timeout: 120000 }).should('be.visible');
 
       cy.step('Open settings panel and switch to prompt tab');
       genAiPlayground.ensureSettingsPanelOpen();

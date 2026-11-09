@@ -5,7 +5,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import useK8sWatchResourceList from '@odh-dashboard/ui-core/hooks/useK8sWatchResourceList';
-import { ServingRuntimeModel } from '@odh-dashboard/internal/api/models/kserve';
+import { ServingRuntimeModel } from '@odh-dashboard/model-serving/shared/api/models';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { useWatchDeploymentPods, useWatchServingRuntimes } from '../watch';
 
