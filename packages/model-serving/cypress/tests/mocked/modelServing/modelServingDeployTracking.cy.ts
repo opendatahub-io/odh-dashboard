@@ -2,7 +2,7 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
-import { mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
+import { mock200Status, mock404Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockStandardModelServingTemplateK8sResources } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
@@ -35,6 +35,7 @@ import {
   TemplateModel,
 } from '@odh-dashboard/cypress/cypress/utils/models';
 import {
+  deleteModelServingModal,
   modelServingGlobal,
   modelServingWizard,
   modelServingWizardEdit,
@@ -500,5 +501,73 @@ describe('Model Deployment Tracking Events', () => {
       expect(failureCall?.args[1]).not.to.have.property('error');
       expect(failureCall?.args[1]).not.to.have.property('errorMessage');
     });
+  });
+});
+
+describe('Model deletion tracking', () => {
+  beforeEach(() => {
+    initIntercepts();
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+    cy.interceptK8s(
+      'DELETE',
+      { model: InferenceServiceModel, ns: 'test-project', name: 'test-inference-service' },
+      mock200Status({}),
+    ).as('deleteInferenceService');
+    cy.interceptK8s(
+      'DELETE',
+      { model: ServingRuntimeModel, ns: 'test-project', name: 'test-model' },
+      mock200Status({}),
+    ).as('deleteServingRuntime');
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Delete').click();
+    deleteModelServingModal.shouldBeOpen();
+    cy.window().then((win) => {
+      Object.defineProperty(win, 'analytics', {
+        value: { track: cy.stub().as('analyticsTrack') },
+        writable: true,
+        configurable: true,
+      });
+    });
+  });
+
+  it('should emit one Model Deleted submit event after successful deletion', () => {
+    deleteModelServingModal.findInput().type('Test Inference Service');
+    deleteModelServingModal.findSubmitButton().click();
+    cy.wait('@deleteInferenceService');
+    cy.wait('@deleteServingRuntime');
+    deleteModelServingModal.shouldBeOpen(false);
+    cy.get('@analyticsTrack').should((trackStub) => {
+      const calls = trackStub
+        .getCalls()
+        .filter(
+          (call: { args: [string, Record<string, unknown>] }) => call.args[0] === 'Model Deleted',
+        );
+      expect(calls).to.have.length(1);
+      expect(calls[0].args[1]).to.include({ outcome: 'submit', type: 'single' });
+      expect(calls[0].args[1]).not.to.have.property('success');
+    });
+  });
+
+  it('should emit one Model Deleted cancel event when deletion is cancelled', () => {
+    deleteModelServingModal.findCancelButton().click();
+    deleteModelServingModal.shouldBeOpen(false);
+    cy.get('@analyticsTrack').should((trackStub) => {
+      const calls = trackStub
+        .getCalls()
+        .filter(
+          (call: { args: [string, Record<string, unknown>] }) => call.args[0] === 'Model Deleted',
+        );
+      expect(calls).to.have.length(1);
+      expect(calls[0].args[1]).to.include({ outcome: 'cancel', type: 'single' });
+      expect(calls[0].args[1]).not.to.have.property('success');
+    });
+    cy.get('@deleteInferenceService.all').should('have.length', 0);
   });
 });

@@ -1,5 +1,6 @@
 import React from 'react';
-import { SortableData, Table, useAnalytics, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { SortableData, Table, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { DeploymentRow } from './row/DeploymentsTableRow';
 import {
@@ -88,7 +89,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   alertContent,
   ...tableProps
 }) => {
-  const { fireFormTrackingEvent } = useAnalytics();
+  const trackEvent = useTrackEvent();
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
   const isCapabilitiesEnabled = useIsAreaAvailable(SupportedArea.MODEL_CAPABILITIES).status;
   const allColumns: SortableData<Deployment>[] = React.useMemo(
@@ -148,7 +149,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
         <DeleteModelServingModal
           deployment={deleteDeployment}
           onClose={(deleted: boolean) => {
-            fireFormTrackingEvent('Model Deleted', {
+            trackEvent('Model Deleted', {
               outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
               type: 'single',
             });
