@@ -13,11 +13,11 @@ hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profi
 benchmarkCardTitle: Basic science Q&A
 benchmarkProviderId: lm_evaluation_harness
 benchmarkId: arc_easy
+numExamples: 10
 inferenceModelName: evalhub-llm
 mlflowExperimentName: Cy-Evalhub
 additionalBenchmarkParams: |
   {
-    "num_examples": 10,
     "limit": 5,
     "tokenizer": "google/flan-t5-small"
   }

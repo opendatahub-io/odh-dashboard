@@ -142,7 +142,7 @@ describe('Eval Hub E2E', () => {
   });
 
   it(
-    'Eval Hub: start inference evaluation and see it complete',
+    'Eval Hub: select, configure, and complete a single benchmark evaluation',
     {
       retries: { runMode: 0, openMode: 0 },
       tags: ['@EvalHub', '@EvalHubCI', '@Featureflagged'],
@@ -160,6 +160,7 @@ describe('Eval Hub E2E', () => {
         evaluationRunName,
         inferenceServiceName,
         mlflowExperimentName,
+        numExamples: testData.numExamples,
         additionalBenchmarkParams,
       });
       verifyEvaluationProgressModal(evaluationRunName);
