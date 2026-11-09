@@ -9,10 +9,9 @@ export const captureTracking = (): Cypress.Chainable =>
     return cy.wrap({ log, track }).as('trackingCapture');
   });
 
-export const expectSafeTracking = (
+export const expectTrackingEvents = (
   eventName: string,
-  properties: Record<string, unknown>,
-  rawMessage: string,
+  assertEvents: (events: Record<string, unknown>[]) => void,
 ): Cypress.Chainable =>
   cy.get<TrackingCapture>('@trackingCapture').should(({ log, track }) => {
     const events = log
@@ -28,6 +27,15 @@ export const expectSafeTracking = (
         .filter((call) => call.args[0] === eventName)
         .map((call) => call.args[1]),
     );
+    assertEvents(events);
+  });
+
+export const expectSafeTracking = (
+  eventName: string,
+  properties: Record<string, unknown>,
+  rawMessage: string,
+): Cypress.Chainable =>
+  expectTrackingEvents(eventName, (events) => {
     expect(events.length, eventName).to.be.greaterThan(0);
     events.forEach((event) => {
       expect(event).to.deep.include(properties);

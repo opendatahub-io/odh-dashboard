@@ -41,6 +41,10 @@ import {
   modelServingWizardEdit,
 } from '@odh-dashboard/cypress/cypress/pages/modelServing';
 import {
+  captureTracking,
+  expectTrackingEvents,
+} from '@odh-dashboard/cypress/cypress/utils/analytics';
+import {
   ModelLocationSelectOption,
   ModelTypeLabel,
 } from '@odh-dashboard/cypress/cypress/utils/modelServingConstants';
@@ -528,13 +532,7 @@ describe('Model deletion tracking', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Delete').click();
     deleteModelServingModal.shouldBeOpen();
-    cy.window().then((win) => {
-      Object.defineProperty(win, 'analytics', {
-        value: { track: cy.stub().as('analyticsTrack') },
-        writable: true,
-        configurable: true,
-      });
-    });
+    captureTracking();
   });
 
   it('should emit one Model Deleted submit event after successful deletion', () => {
@@ -543,30 +541,20 @@ describe('Model deletion tracking', () => {
     cy.wait('@deleteInferenceService');
     cy.wait('@deleteServingRuntime');
     deleteModelServingModal.shouldBeOpen(false);
-    cy.get('@analyticsTrack').should((trackStub) => {
-      const calls = trackStub
-        .getCalls()
-        .filter(
-          (call: { args: [string, Record<string, unknown>] }) => call.args[0] === 'Model Deleted',
-        );
-      expect(calls).to.have.length(1);
-      expect(calls[0].args[1]).to.include({ outcome: 'submit', type: 'single' });
-      expect(calls[0].args[1]).not.to.have.property('success');
+    expectTrackingEvents('Model Deleted', (events) => {
+      expect(events).to.have.length(1);
+      expect(events[0]).to.include({ outcome: 'submit', type: 'single' });
+      expect(events[0]).not.to.have.property('success');
     });
   });
 
   it('should emit one Model Deleted cancel event when deletion is cancelled', () => {
     deleteModelServingModal.findCancelButton().click();
     deleteModelServingModal.shouldBeOpen(false);
-    cy.get('@analyticsTrack').should((trackStub) => {
-      const calls = trackStub
-        .getCalls()
-        .filter(
-          (call: { args: [string, Record<string, unknown>] }) => call.args[0] === 'Model Deleted',
-        );
-      expect(calls).to.have.length(1);
-      expect(calls[0].args[1]).to.include({ outcome: 'cancel', type: 'single' });
-      expect(calls[0].args[1]).not.to.have.property('success');
+    expectTrackingEvents('Model Deleted', (events) => {
+      expect(events).to.have.length(1);
+      expect(events[0]).to.include({ outcome: 'cancel', type: 'single' });
+      expect(events[0]).not.to.have.property('success');
     });
     cy.get('@deleteInferenceService.all').should('have.length', 0);
   });
