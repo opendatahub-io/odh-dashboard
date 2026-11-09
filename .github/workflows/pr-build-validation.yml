@@ -60,12 +60,12 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Set up Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -276,7 +276,7 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -298,7 +298,7 @@ jobs:
         run: docker save odh-dashboard:odh-test | gzip > /tmp/odh-dashboard-odh.tar.gz
 
       - name: Upload ODH image artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: odh-dashboard-odh-image
           path: /tmp/odh-dashboard-odh.tar.gz
@@ -315,7 +315,7 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -337,7 +337,7 @@ jobs:
         run: docker save odh-dashboard:rhoai-test | gzip > /tmp/odh-dashboard-rhoai.tar.gz
 
       - name: Upload RHOAI image artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: odh-dashboard-rhoai-image
           path: /tmp/odh-dashboard-rhoai.tar.gz
@@ -355,7 +355,7 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -374,7 +374,7 @@ jobs:
         run: docker save odh-core-bff:odh-test | gzip > /tmp/odh-core-bff.tar.gz
 
       - name: Upload Core BFF image artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: odh-core-bff-image
           path: /tmp/odh-core-bff.tar.gz
@@ -393,7 +393,7 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -415,7 +415,7 @@ jobs:
           docker save dashboard-operator:sim-test | gzip > /tmp/dashboard-operator.tar.gz
 
       - name: Upload operator image artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dashboard-operator-image
           path: /tmp/dashboard-operator.tar.gz
@@ -441,7 +441,7 @@ jobs:
       K8S_SCHEMA_VERSION: '1.31.0'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -598,12 +598,12 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Download ODH image
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: odh-dashboard-odh-image
           path: /tmp
@@ -758,12 +758,12 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Download RHOAI image
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: odh-dashboard-rhoai-image
           path: /tmp
@@ -869,7 +869,7 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -879,19 +879,19 @@ jobs:
         uses: ./.github/actions/free-disk-space
 
       - name: Download ODH image
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: odh-dashboard-odh-image
           path: /tmp
 
       - name: Download Core BFF image
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: odh-core-bff-image
           path: /tmp
 
       - name: Download operator image
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: dashboard-operator-image
           path: /tmp
@@ -1297,7 +1297,7 @@ jobs:
       model-serving-changed: ${{ steps.detect.outputs.model-serving-changed }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -1387,7 +1387,7 @@ jobs:
       matrix: ${{ fromJson(needs.detect-bff-changes.outputs.matrix) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -1517,7 +1517,7 @@ jobs:
     if: needs.check-skip.outputs.should-skip != 'true' && needs.detect-bff-changes.outputs.model-serving-changed == 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
