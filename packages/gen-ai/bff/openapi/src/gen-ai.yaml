@@ -695,7 +695,7 @@ paths:
                         type: string
                         example: 'Request timed out connecting to external model'
         '503':
-          description: Connection failed - could not reach the endpoint
+          description: Connection failed - could not reach the endpoint, or a Kubernetes API lookup required to verify an in-cluster endpoint (Service, EndpointSlices, Pods) failed
           content:
             application/json:
               schema:

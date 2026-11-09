@@ -55,7 +55,11 @@ func TestIsInternalHost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := classifyHost(context.Background(), tt.baseURL).internalTo(tt.allowedNamespace, tt.allowLoopback); got != tt.want {
+			classif, err := classifyHost(context.Background(), tt.baseURL)
+			if err != nil {
+				t.Fatalf("classifyHost(%q) error = %v, want nil", tt.baseURL, err)
+			}
+			if got := classif.internalTo(tt.allowedNamespace, tt.allowLoopback); got != tt.want {
 				t.Errorf("classifyHost(%q).internalTo(%q, %v) = %v, want %v", tt.baseURL, tt.allowedNamespace, tt.allowLoopback, got, tt.want)
 			}
 		})
@@ -68,40 +72,51 @@ func withInjectedServiceDNS(t *testing.T, suffixes []string, resolvesAbsolutely 
 	t.Helper()
 	originalSuffixes, originalLookup := clusterServiceSuffixesFn, lookupAbsHostFn
 	clusterServiceSuffixesFn = func() []string { return suffixes }
-	lookupAbsHostFn = func(context.Context, string) bool { return resolvesAbsolutely }
+	lookupAbsHostFn = func(context.Context, string) (bool, error) { return resolvesAbsolutely, nil }
 	t.Cleanup(func() {
 		clusterServiceSuffixesFn = originalSuffixes
 		lookupAbsHostFn = originalLookup
 	})
 }
 
+// classifyOrFatal classifies a URL, failing the test on a classification
+// error.
+func classifyOrFatal(t *testing.T, baseURL string) hostClassification {
+	t.Helper()
+	classif, err := classifyHost(context.Background(), baseURL)
+	if err != nil {
+		t.Fatalf("classifyHost(%q) error = %v, want nil", baseURL, err)
+	}
+	return classif
+}
+
 func TestServiceHostClassificationSearchDomains(t *testing.T) {
 	t.Run("custom cluster domain is classified like cluster.local", func(t *testing.T) {
 		withInjectedServiceDNS(t, []string{"svc.cluster.example.com"}, false)
-		assert.True(t, classifyHost(context.Background(), "https://my-model.my-ns.svc.cluster.example.com:8443/v1").internalTo("my-ns", false),
+		assert.True(t, classifyOrFatal(t, "https://my-model.my-ns.svc.cluster.example.com:8443/v1").internalTo("my-ns", false),
 			"same-namespace service on a custom cluster domain must be trusted")
-		assert.False(t, classifyHost(context.Background(), "https://my-model.other-ns.svc.cluster.example.com:8443/v1").internalTo("my-ns", false),
+		assert.False(t, classifyOrFatal(t, "https://my-model.other-ns.svc.cluster.example.com:8443/v1").internalTo("my-ns", false),
 			"cross-namespace service on a custom cluster domain must not be trusted")
-		assert.True(t, classifyHost(context.Background(), "https://my-model.other-ns.svc.cluster.example.com:8443/v1").crossNamespace("my-ns"),
+		assert.True(t, classifyOrFatal(t, "https://my-model.other-ns.svc.cluster.example.com:8443/v1").crossNamespace("my-ns"),
 			"cross-namespace service on a custom cluster domain must be denied explicitly")
 	})
 
 	t.Run("short cross-namespace name completed by search is classified cross-namespace", func(t *testing.T) {
 		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
-		assert.True(t, classifyHost(context.Background(), "https://my-model.other-ns:8443/v1").crossNamespace("my-ns"),
+		assert.True(t, classifyOrFatal(t, "https://my-model.other-ns:8443/v1").crossNamespace("my-ns"),
 			"a short service.namespace name only the search path resolves must be denied explicitly")
-		assert.False(t, classifyHost(context.Background(), "https://my-model.other-ns:8443/v1").internalTo("my-ns", false))
+		assert.False(t, classifyOrFatal(t, "https://my-model.other-ns:8443/v1").internalTo("my-ns", false))
 	})
 
 	t.Run("short same-namespace name completed by search is trusted", func(t *testing.T) {
 		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
-		assert.True(t, classifyHost(context.Background(), "https://my-model.my-ns:8443/v1").internalTo("my-ns", false),
+		assert.True(t, classifyOrFatal(t, "https://my-model.my-ns:8443/v1").internalTo("my-ns", false),
 			"a short same-namespace service name must go through Service verification")
 	})
 
 	t.Run("external two-label hostname that resolves absolutely stays external", func(t *testing.T) {
 		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, true)
-		classif := classifyHost(context.Background(), "https://example.com:8443/v1")
+		classif := classifyOrFatal(t, "https://example.com:8443/v1")
 		assert.False(t, classif.internalTo("my-ns", false))
 		assert.False(t, classif.crossNamespace("my-ns"))
 		assert.False(t, classif.isServiceName)
@@ -109,7 +124,7 @@ func TestServiceHostClassificationSearchDomains(t *testing.T) {
 
 	t.Run("bare cross-namespace .svc name is classified cross-namespace", func(t *testing.T) {
 		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
-		classif := classifyHost(context.Background(), "https://my-model.other-ns.svc:8443/v1")
+		classif := classifyOrFatal(t, "https://my-model.other-ns.svc:8443/v1")
 		assert.True(t, classif.crossNamespace("my-ns"),
 			"a bare service.namespace.svc name the search path completes must be denied explicitly")
 		assert.False(t, classif.internalTo("my-ns", false))
@@ -117,9 +132,30 @@ func TestServiceHostClassificationSearchDomains(t *testing.T) {
 
 	t.Run("bare same-namespace .svc name is classified as a service name", func(t *testing.T) {
 		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
-		classif := classifyHost(context.Background(), "https://my-model.my-ns.svc:8443/v1")
+		classif := classifyOrFatal(t, "https://my-model.my-ns.svc:8443/v1")
 		assert.True(t, classif.internalTo("my-ns", false),
 			"a bare same-namespace .svc name must go through Service verification")
+	})
+
+	t.Run("transient DNS failure propagates instead of misclassifying", func(t *testing.T) {
+		// A resolver timeout must not collapse into a negative answer, which
+		// would misclassify an external two-label hostname as a Service name
+		// and return a misleading authorization denial.
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		originalLookup := lookupAbsHostFn
+		lookupAbsHostFn = func(context.Context, string) (bool, error) { return false, errors.New("read udp: i/o timeout") }
+		t.Cleanup(func() { lookupAbsHostFn = originalLookup })
+		_, err := classifyHost(context.Background(), "https://example.com:8443/v1")
+		assert.Error(t, err, "a transient DNS failure must propagate as a classification error")
+	})
+
+	t.Run("canceled context propagates from the absolute-name lookup", func(t *testing.T) {
+		// Cancellation is not a definitive negative answer, so it must surface
+		// as an error rather than classify a short name as a Service.
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		_, err := lookupAbsHostFn(ctx, "example.com")
+		assert.Error(t, err, "a canceled context must propagate from the absolute-name lookup")
 	})
 }
 
@@ -715,7 +751,7 @@ func TestResolveTrustedHost(t *testing.T) {
 				baseURL = "https://my-model.my-ns.svc.cluster.local:8443/v1"
 			}
 			client := &recordingServiceClient{ConfigurableMockKubernetesClient: k8smocks.ConfigurableMockKubernetesClient{Service: tt.service, ServiceError: tt.err, EndpointSlices: tt.slices, EndpointSlicesError: tt.slicesErr, Pod: tt.pod, Pods: tt.pods, PodError: tt.podErr}}
-			got, addresses, err := resolveTrustedHost(context.Background(), client, identity, baseURL, classifyHost(context.Background(), baseURL), "my-ns", false, logger)
+			got, addresses, err := resolveTrustedHost(context.Background(), client, identity, baseURL, classifyOrFatal(t, baseURL), "my-ns", false, logger)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("resolveTrustedHost() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -779,7 +815,7 @@ func TestResolveTrustedHostForbiddenLookup(t *testing.T) {
 			trusted, _, err := resolveTrustedHost(
 				context.Background(), tt.client, nil,
 				"https://my-model.my-ns.svc.cluster.local:8443/v1",
-				classifyHost(context.Background(), "https://my-model.my-ns.svc.cluster.local:8443/v1"),
+				classifyOrFatal(t, "https://my-model.my-ns.svc.cluster.local:8443/v1"),
 				"my-ns", false, slog.Default(),
 			)
 			if trusted {
@@ -788,6 +824,31 @@ func TestResolveTrustedHostForbiddenLookup(t *testing.T) {
 			var extErr *externalmodels.ExternalModelError
 			if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
 				t.Errorf("resolveTrustedHost() error = %v, want ExternalModelError with status 403", err)
+			}
+		})
+	}
+}
+
+// TestResolveTrustedHostLoopbackCanonicalization verifies that DNS-equivalent
+// spellings of localhost (uppercase, trailing root dot) keep the
+// local-development loopback exemption instead of losing it between the
+// canonicalized classification and the trust decision.
+func TestResolveTrustedHostLoopbackCanonicalization(t *testing.T) {
+	for _, baseURL := range []string{"http://LOCALHOST:8080", "http://localhost.:8080", "http://localhost:8080"} {
+		t.Run(baseURL, func(t *testing.T) {
+			classif := classifyOrFatal(t, baseURL)
+			trusted, addresses, err := resolveTrustedHost(
+				context.Background(), &k8smocks.ConfigurableMockKubernetesClient{}, nil,
+				baseURL, classif, "my-ns", true, slog.Default(),
+			)
+			if err != nil {
+				t.Fatalf("resolveTrustedHost() error = %v, want nil", err)
+			}
+			if !trusted {
+				t.Errorf("resolveTrustedHost() = false, want loopback trusted with the local-endpoint option enabled")
+			}
+			if len(addresses) != 0 {
+				t.Errorf("resolveTrustedHost() addresses = %v, want none for loopback", addresses)
 			}
 		})
 	}
@@ -1025,6 +1086,27 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "another namespace") {
 			t.Errorf("VerifyExternalModel() error = %v, want cross-namespace denial message", err)
+		}
+	})
+
+	t.Run("transient DNS failure classifying a short name returns an availability error", func(t *testing.T) {
+		// A resolver timeout while distinguishing a short Service name from an
+		// external hostname must fail closed as a 503 rather than misclassify
+		// the host and return a misleading authorization denial.
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		originalLookup := lookupAbsHostFn
+		lookupAbsHostFn = func(context.Context, string) (bool, error) { return false, errors.New("read udp: i/o timeout") }
+		t.Cleanup(func() { lookupAbsHostFn = originalLookup })
+		req := req
+		req.BaseURL = "https://example.com:8443/v1"
+		client := &k8smocks.ConfigurableMockKubernetesClient{}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want availability error")
+		}
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusServiceUnavailable {
+			t.Errorf("VerifyExternalModel() error = %v, want ExternalModelError with status 503", err)
 		}
 	})
 

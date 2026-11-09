@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -267,12 +268,23 @@ func parseResolvConfServiceSuffixes(path string) []string {
 // lookupAbsHostFn reports whether a hostname resolves as an absolute DNS
 // name; a variable so tests can inject deterministic results. It honors the
 // passed context and bounds the lookup so a slow resolver cannot stall the
-// request.
-var lookupAbsHostFn = func(ctx context.Context, host string) bool {
+// request. Only a definitive negative answer (name not found) counts as
+// "does not resolve absolutely": cancellation, timeouts, and transient
+// resolver failures return an error so the caller treats the classification
+// as unknown instead of misclassifying an external hostname as a Service
+// name.
+var lookupAbsHostFn = func(ctx context.Context, host string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	addrs, err := net.DefaultResolver.LookupHost(ctx, host+".")
-	return err == nil && len(addrs) > 0
+	if err == nil {
+		return len(addrs) > 0, nil
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) && dnsErr.IsNotFound {
+		return false, nil
+	}
+	return false, err
 }
 
 // hostClassification is the single parse of a request's base URL host that
@@ -294,24 +306,32 @@ type hostClassification struct {
 	isServiceName bool
 }
 
-// classifyHost parses baseURL's host and classifies it once.
-func classifyHost(ctx context.Context, baseURL string) hostClassification {
+// classifyHost parses baseURL's host and classifies it once. It returns an
+// error only when the classification could not be completed (e.g. a
+// transient DNS failure while distinguishing a short Service name from an
+// external hostname); a host that is definitively not a Service name
+// classifies as unclassified without error.
+func classifyHost(ctx context.Context, baseURL string) (hostClassification, error) {
 	var c hostClassification
 	u, err := url.Parse(baseURL)
 	if err != nil {
-		return c
+		return c, nil
 	}
 	c.host = canonicalClusterDNSName(u.Hostname())
 	if ip := net.ParseIP(c.host); ip != nil {
 		c.loopback = ip.IsLoopback()
-		return c
+		return c, nil
 	}
 	if c.host == "localhost" {
 		c.loopback = true
-		return c
+		return c, nil
 	}
-	c.service, c.namespace, c.podLabel, c.isServiceName = parseServiceHostName(ctx, c.host)
-	return c
+	var classifyErr error
+	c.service, c.namespace, c.podLabel, c.isServiceName, classifyErr = parseServiceHostName(ctx, c.host)
+	if classifyErr != nil {
+		return hostClassification{}, classifyErr
+	}
+	return c, nil
 }
 
 // parseServiceHostName identifies the in-cluster Service a hostname names:
@@ -324,9 +344,9 @@ func classifyHost(ctx context.Context, baseURL string) hostClassification {
 // as an absolute DNS name, so ordinary external hostnames keep their normal
 // external handling; a one-label name can only complete within the pod's own
 // namespace and is not treated as a Service name here.
-func parseServiceHostName(ctx context.Context, h string) (service string, namespace string, podLabel string, ok bool) {
+func parseServiceHostName(ctx context.Context, h string) (service string, namespace string, podLabel string, ok bool, err error) {
 	if net.ParseIP(h) != nil {
-		return "", "", "", false
+		return "", "", "", false, nil
 	}
 	for _, suffix := range clusterServiceSuffixesFn() {
 		if !strings.HasSuffix(h, "."+suffix) {
@@ -340,9 +360,9 @@ func parseServiceHostName(ctx context.Context, h string) (service string, namesp
 		// DNS name the cluster would resolve.
 		switch len(labels) - suffixLabels {
 		case 2:
-			return labels[0], labels[1], "", true
+			return labels[0], labels[1], "", true, nil
 		case 3:
-			return labels[1], labels[2], labels[0], true
+			return labels[1], labels[2], labels[0], true, nil
 		}
 	}
 	labels := strings.Split(h, ".")
@@ -354,15 +374,21 @@ func parseServiceHostName(ctx context.Context, h string) (service string, namesp
 	if strings.HasSuffix(h, ".svc") {
 		switch len(labels) {
 		case 3:
-			return labels[0], labels[1], "", true
+			return labels[0], labels[1], "", true, nil
 		case 4:
-			return labels[1], labels[2], labels[0], true
+			return labels[1], labels[2], labels[0], true, nil
 		}
 	}
-	if len(labels) == 2 && !lookupAbsHostFn(ctx, h) {
-		return labels[0], labels[1], "", true
+	if len(labels) == 2 {
+		resolvesAbsolutely, lookupErr := lookupAbsHostFn(ctx, h)
+		if lookupErr != nil {
+			return "", "", "", false, lookupErr
+		}
+		if !resolvesAbsolutely {
+			return labels[0], labels[1], "", true, nil
+		}
 	}
-	return "", "", "", false
+	return "", "", "", false, nil
 }
 
 // internalTo reports whether the classified host is trusted for the caller's
@@ -735,8 +761,15 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	allowLoopback bool,
 ) (*models.VerifyExternalModelResponse, error) {
 	// Classify the host once so every trust decision below shares the same
-	// parse (and DNS lookup) result.
-	classif := classifyHost(ctx, req.BaseURL)
+	// parse (and DNS lookup) result. A classification that could not complete
+	// (e.g. a transient DNS failure distinguishing a short Service name from
+	// an external hostname) fails closed as an availability error rather than
+	// risking a misclassification.
+	classif, err := classifyHost(ctx, req.BaseURL)
+	if err != nil {
+		logger.Warn("endpoint host classification did not complete", "base_url", req.BaseURL, "error", err)
+		return nil, externalmodels.NewConnectionError(req.BaseURL, "the endpoint host could not be classified because its DNS lookup did not complete")
+	}
 	trusted, pinnedAddresses, err := resolveTrustedHost(ctx, client, identity, req.BaseURL, classif, namespace, allowLoopback, logger)
 	if err != nil {
 		return nil, err
