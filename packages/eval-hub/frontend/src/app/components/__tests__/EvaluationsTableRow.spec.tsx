@@ -31,15 +31,7 @@ const mockOnActionComplete = jest.fn();
 const mockOnShowStatus = jest.fn();
 const mockOnSelectionChange = jest.fn();
 
-const renderJob = (
-  job: EvaluationJob,
-  rowIndex = 0,
-  polledJobData?: EvaluationJob,
-  isKueueWorkloadStatusLoading = false,
-  // Enabled by default so the queued-display tests exercise the enabled path; the
-  // integration is disabled in production (RHOAIENG-99645).
-  isKueueEnabled = true,
-) =>
+const renderJob = (job: EvaluationJob, rowIndex = 0, polledJobData?: EvaluationJob) =>
   render(
     <MemoryRouter>
       <Table aria-label="test">
@@ -54,8 +46,6 @@ const renderJob = (
             onShowStatus={mockOnShowStatus}
             isSelected={false}
             onSelectionChange={mockOnSelectionChange}
-            isKueueWorkloadStatusLoading={isKueueWorkloadStatusLoading}
-            isKueueEnabled={isKueueEnabled}
           />
         </Tbody>
       </Table>
@@ -93,17 +83,20 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Running');
   });
 
-  it('should keep a pending job as Pending until Kueue reports a queued status', () => {
+  it('should render a pending job without a queue assignment as Pending', () => {
     renderRow({ state: 'pending' });
 
     expect(screen.getByTestId('evaluation-status')).toHaveTextContent('Pending');
   });
 
-  it('should show a neutral loading state while Kueue status is being checked', () => {
-    renderJob(mockEvaluationJob({ state: 'pending' }), 0, undefined, true);
+  it('should show Queued for a pending job assigned to a queue', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
 
-    expect(screen.getByTestId('evaluation-status-loading')).toBeInTheDocument();
-    expect(screen.getByTestId('evaluation-status')).not.toHaveTextContent('Pending');
+    renderJob(job);
+
+    expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
   });
 
   it('should preserve Queued when detail polling omits the queue assignment', () => {
@@ -115,16 +108,6 @@ describe('EvaluationsTableRow', () => {
     renderJob(job, 0, polledJob);
 
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
-  });
-
-  it('should show Pending for a queue-assigned job when the Kueue integration is disabled', () => {
-    const job = mockEvaluationJob({ state: 'pending' });
-    // eslint-disable-next-line camelcase -- API field name.
-    job.hardware_config = { queue: { name: 'default' } };
-
-    renderJob(job, 0, undefined, false, false);
-
-    expect(screen.getByTestId('evaluation-status')).toHaveTextContent('Pending');
   });
 
   it('should open status using the latest polled job data', () => {
@@ -197,7 +180,6 @@ describe('EvaluationsTableRow', () => {
               onShowStatus={mockOnShowStatus}
               isSelected={false}
               onSelectionChange={mockOnSelectionChange}
-              isKueueEnabled
             />
           </Tbody>
         </Table>
@@ -447,8 +429,6 @@ describe('EvaluationsTableRow', () => {
               onShowStatus={mockOnShowStatus}
               isSelected={false}
               onSelectionChange={mockOnSelectionChange}
-              isKueueWorkloadStatusLoading={false}
-              isKueueEnabled={false}
             />
           </Tbody>
         </Table>

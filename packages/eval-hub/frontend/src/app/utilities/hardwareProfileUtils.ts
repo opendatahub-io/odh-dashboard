@@ -1,8 +1,8 @@
-import type { HardwareProfile, HardwareProfileResource } from '~/app/types';
+import type { HardwareProfileIdentifier, HardwareProfileInfo } from '~/app/types';
 
 export const formatHardwareProfileResourceValue = (
   value: string,
-  resource: HardwareProfileResource,
+  resource: HardwareProfileIdentifier,
 ): string => {
   const resourceType = (resource.display_name ?? resource.identifier).toLowerCase();
 
@@ -20,34 +20,36 @@ export const formatHardwareProfileResourceValue = (
   return value;
 };
 
-export const formatHardwareProfileResourceSummary = (resource: HardwareProfileResource): string => {
+export const formatHardwareProfileResourceSummary = (
+  resource: HardwareProfileIdentifier,
+): string => {
   const values = [
-    resource.default ? `Default = ${resource.default}` : undefined,
-    resource.minimum ? `Minimum = ${resource.minimum}` : undefined,
-    resource.maximum ? `Maximum = ${resource.maximum}` : undefined,
+    resource.default_count ? `Default = ${resource.default_count}` : undefined,
+    resource.min_count ? `Minimum = ${resource.min_count}` : undefined,
+    resource.max_count ? `Maximum = ${resource.max_count}` : undefined,
   ].filter((value): value is string => value !== undefined);
 
   return `${resource.display_name ?? resource.identifier}: ${values.join(', ')}`;
 };
 
-export const formatHardwareProfileResourceDetails = (resource: HardwareProfileResource): string =>
+export const formatHardwareProfileResourceDetails = (resource: HardwareProfileIdentifier): string =>
   [
-    resource.default
-      ? `Default = ${formatHardwareProfileResourceValue(resource.default, resource)}`
+    resource.default_count
+      ? `Default = ${formatHardwareProfileResourceValue(resource.default_count, resource)}`
       : undefined,
-    resource.minimum
-      ? `Min = ${formatHardwareProfileResourceValue(resource.minimum, resource)}`
+    resource.min_count
+      ? `Min = ${formatHardwareProfileResourceValue(resource.min_count, resource)}`
       : undefined,
-    resource.maximum
-      ? `Max = ${formatHardwareProfileResourceValue(resource.maximum, resource)}`
+    resource.max_count
+      ? `Max = ${formatHardwareProfileResourceValue(resource.max_count, resource)}`
       : undefined,
   ]
     .filter((value): value is string => value !== undefined)
     .join(', ');
 
-export const formatHardwareProfileDetails = (profile: HardwareProfile): string =>
-  (profile.resources ?? [])
-    .filter((resource) => resource.default || resource.minimum || resource.maximum)
+export const formatHardwareProfileDetails = (profile: HardwareProfileInfo): string =>
+  profile.identifiers
+    .filter((resource) => resource.default_count || resource.min_count || resource.max_count)
     .map(formatHardwareProfileResourceSummary)
-    .concat(profile.local_queue_name ? `LocalQueue: ${profile.local_queue_name}` : [])
+    .concat(profile.queue_name ? `LocalQueue: ${profile.queue_name}` : [])
     .join('; ');

@@ -134,6 +134,32 @@ func (m *MockEvalHubClient) ListProviders(_ context.Context, _ string, _, _ int)
 	return evalhub.ProvidersResponse{Items: providers, TotalCount: countBenchmarks(providers)}, nil
 }
 
+// GetInfo returns build metadata and a queue-backed tenant hardware profile
+// for test environments.
+func (m *MockEvalHubClient) GetInfo(_ context.Context, _ string) (*evalhub.InfoResponse, error) {
+	return &evalhub.InfoResponse{
+		Version: "0.0.0-mock",
+		Build:   "mock",
+		HardwareProfiles: []evalhub.HardwareProfileInfo{
+			{
+				Name:           "default-gpu",
+				DisplayName:    "Default GPU",
+				SchedulingType: "queue",
+				QueueName:      "default",
+				Identifiers: []evalhub.HardwareProfileIdentifier{
+					{Identifier: "cpu", DisplayName: "CPU", ResourceType: "cpu", DefaultCount: "1"},
+					{Identifier: "memory", DisplayName: "Memory", ResourceType: "memory", DefaultCount: "4Gi"},
+				},
+				QueueAvailability: &evalhub.QueueAvailability{
+					Status:  "active",
+					Reason:  "Ready",
+					Message: "Can admit new workloads",
+				},
+			},
+		},
+	}, nil
+}
+
 func countBenchmarks(providers []evalhub.Provider) int {
 	total := 0
 	for _, p := range providers {

@@ -36,47 +36,12 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
-  describe('Kueue and HardwareProfile endpoints', () => {
-    it('should return the documented Kueue availability response', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/kueue/availability?namespace=default');
+  describe('Queue and HardwareProfile endpoints', () => {
+    it('should return the documented info response with tenant hardware profiles', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/info?namespace=default');
 
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1kueue~1availability/get/responses/200/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should return the documented Kueue Workload statuses response', async () => {
-      const result = await apiClient.get(
-        '/eval-hub/api/v1/kueue/workloads?namespace=default&evaluation_ids=evaluation-001',
-      );
-
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1kueue~1workloads/get/responses/200/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should return a BadRequest error when evaluation_ids are missing', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/kueue/workloads?namespace=default');
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
-          apiSchema,
-          {
-            ref: '#/components/responses/BadRequest/content/application~1json/schema',
-            status: 400,
-          },
-        );
-      }
-    });
-
-    it('should return the documented compatible HardwareProfiles response', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/hardwareprofiles?namespace=default');
-
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1hardwareprofiles/get/responses/200/content/application~1json/schema',
+        ref: '#/paths/~1eval-hub~1api~1v1~1info/get/responses/200/content/application~1json/schema',
         status: 200,
       });
     });

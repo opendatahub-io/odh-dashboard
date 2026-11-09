@@ -24,7 +24,7 @@ import {
 } from '@patternfly/react-core';
 import { InfoCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
-import type { HardwareProfile, KueueAvailability } from '~/app/types';
+import type { HardwareProfileInfo, KueueAvailability } from '~/app/types';
 import {
   formatHardwareProfileDetails,
   formatHardwareProfileResourceDetails,
@@ -33,12 +33,12 @@ import './HardwareProfileField.scss';
 
 type HardwareProfileFieldProps = {
   availability?: KueueAvailability;
-  profiles: HardwareProfile[];
+  profiles: HardwareProfileInfo[];
   loaded: boolean;
   error?: Error;
   compatibilityError?: Error;
   selectedProfile?: string;
-  onSelect: (profile: HardwareProfile | undefined) => void;
+  onSelect: (profile: HardwareProfileInfo | undefined) => void;
   isRequired?: boolean;
   disabled?: boolean;
   className?: string;
@@ -62,7 +62,7 @@ const renderDetailsSection = (title: string, value: string) => (
   </DescriptionList>
 );
 
-const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfile }> = ({ profile }) => {
+const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfileInfo }> = ({ profile }) => {
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const [isVisible, setIsVisible] = React.useState(false);
 
@@ -84,7 +84,7 @@ const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfile }> = ({
       bodyContent={
         <Stack hasGutter data-testid="hardware-profile-details-popover-content">
           {profile.description ? <StackItem>{profile.description}</StackItem> : null}
-          {(profile.resources ?? []).map((resource) => (
+          {profile.identifiers.map((resource) => (
             <StackItem key={resource.identifier}>
               {renderDetailsSection(
                 resource.display_name ?? resource.identifier,
@@ -92,12 +92,14 @@ const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfile }> = ({
               )}
             </StackItem>
           ))}
-          {profile.local_queue_name ? (
-            <StackItem>{renderDetailsSection('Local queue', profile.local_queue_name)}</StackItem>
-          ) : null}
-          {profile.cluster_queue_name ? (
+          {profile.queue_name ? (
             <StackItem>
-              {renderDetailsSection('Cluster queue', profile.cluster_queue_name)}
+              {renderDetailsSection(
+                'Local queue',
+                profile.queue_availability && profile.queue_availability.status !== 'active'
+                  ? `${profile.queue_name} — ${profile.queue_availability.message ?? 'queue is not active'}`
+                  : profile.queue_name,
+              )}
             </StackItem>
           ) : null}
         </Stack>
@@ -183,13 +185,9 @@ const HardwareProfileField: React.FC<HardwareProfileFieldProps> = ({
   className,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
-  const schedulableProfiles = availability?.enabled
-    ? profiles.filter(
-        (profile) =>
-          !!profile.local_queue_name &&
-          availability.local_queue_names.includes(profile.local_queue_name),
-      )
-    : profiles;
+  // The service only returns queue-backed profiles while their LocalQueue exists in
+  // the tenant namespace, so the list needs no further filtering here.
+  const schedulableProfiles = profiles;
   const selected = schedulableProfiles.find((profile) => profile.name === selectedProfile);
   const hasNoQueues = availability?.enabled === true && !availability.scheduling_ready;
   const hasNoProfiles = availability?.scheduling_ready === true && schedulableProfiles.length === 0;

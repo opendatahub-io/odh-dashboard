@@ -417,6 +417,30 @@ describe('Evaluations Page - Table', () => {
     evaluationsPage.findEvaluationRow(2).should('exist');
   });
 
+  it('should show a queue-assigned pending evaluation as Queued and filter it', () => {
+    const queuedJob = mockEvaluationJob({
+      id: 'eval-004',
+      name: 'Queued_Eval',
+      state: 'pending',
+      modelName: 'llama-3',
+      createdAt: '2026-03-17T08:00:00Z',
+      benchmarkIds: ['hellaswag'],
+      providerId: 'lm_evaluation_harness',
+    });
+    queuedJob.hardware_config = { queue: { name: 'gpu-default' } };
+    initIntercepts({ jobs: [queuedJob, runningJob] });
+
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.findStatusLabel(0).should('contain.text', 'Queued');
+
+    evaluationsPage.findFilterTypeToggle().click();
+    evaluationsPage.findFilterTypeOption('status').click();
+    evaluationsPage.findStatusFilterToggle().click();
+    evaluationsPage.findStatusFilterOption('queued').click();
+    evaluationsPage.findEvaluationRow(0).should('contain.text', 'Queued_Eval');
+    evaluationsPage.findEvaluationRow(1).should('not.exist');
+  });
+
   it('should show a link to results on completed evaluations', () => {
     evaluationsPage.visitRuns(NAMESPACE);
     // Table sorts by date desc: row 0 = running (Mar 16), row 1 = completed (Mar 15)

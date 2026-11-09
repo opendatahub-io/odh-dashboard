@@ -1,22 +1,23 @@
 /* eslint-disable camelcase */
-import type { HardwareProfile } from '~/app/types';
+import type { HardwareProfileInfo } from '~/app/types';
 
-type MockHardwareProfileOptions = Partial<HardwareProfile>;
+type MockHardwareProfileOptions = Partial<HardwareProfileInfo>;
 
-export const mockHardwareProfile = (options: MockHardwareProfileOptions = {}): HardwareProfile => ({
+export const mockHardwareProfile = (
+  options: MockHardwareProfileOptions = {},
+): HardwareProfileInfo => ({
   name: 'gpu-default',
   display_name: 'GPU default',
-  enabled: true,
-  scheduling_type: 'Queue',
-  local_queue_name: 'gpu-default',
-  cluster_queue_name: 'gpu-cluster',
-  resources: [
+  scheduling_type: 'queue',
+  queue_name: 'gpu-default',
+  identifiers: [
     {
       identifier: 'cpu',
       display_name: 'CPU',
-      default: '4',
+      default_count: '4',
     },
   ],
+  queue_availability: { status: 'active', reason: 'Ready' },
   ...options,
 });
 /* eslint-enable camelcase */

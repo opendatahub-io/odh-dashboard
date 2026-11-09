@@ -1,5 +1,4 @@
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
-import type { KueueWorkloadState, KueueWorkloadStatus } from '~/app/types';
 import {
   getEvaluationName,
   getBenchmarkName,
@@ -18,7 +17,6 @@ import {
   getThresholdRequestValue,
   formatDate,
   formatDurationCompact,
-  formatOrdinal,
   getEvaluationDisplayState,
   getLatestEvaluationJob,
   getEvaluationQueue,
@@ -955,83 +953,25 @@ describe('isTerminalState', () => {
   );
 });
 
-const makeKueueWorkloadStatus = (state: KueueWorkloadState): KueueWorkloadStatus => ({
-  // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
-  evaluation_id: 'evaluation-1',
-  // eslint-disable-next-line camelcase -- API payload uses OpenAPI field names.
-  queue_name: 'default',
-  state,
-});
-
 describe('getEvaluationDisplayState', () => {
-  it.each([
-    ['queued', 'queued'],
-    ['preempted', 'queued'],
-  ] as const)('should show the Kueue "%s" resource wait as "%s"', (state, expected) => {
-    expect(
-      getEvaluationDisplayState('pending', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus(state),
-      }),
-    ).toBe(expected);
+  it('should show a queue-assigned pending evaluation as queued', () => {
+    expect(getEvaluationDisplayState('pending', { isQueued: true })).toBe('queued');
   });
 
-  it('should show an inadmissible Kueue workload as inadmissible', () => {
-    expect(
-      getEvaluationDisplayState('pending', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus('inadmissible'),
-      }),
-    ).toBe('inadmissible');
+  it('should show a pending evaluation without a queue as pending', () => {
+    expect(getEvaluationDisplayState('pending', { isQueued: false })).toBe('pending');
   });
 
-  it('should preserve EvalHub Running after Kueue admits the evaluation', () => {
-    expect(
-      getEvaluationDisplayState('running', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus('admitted'),
-      }),
-    ).toBe('running');
-  });
-
-  it.each(['queued', 'preempted', 'inadmissible'] as const)(
-    'should preserve stopping when Kueue reports "%s"',
-    (state) => {
-      expect(
-        getEvaluationDisplayState('stopping', {
-          kueueWorkloadStatus: makeKueueWorkloadStatus(state),
-        }),
-      ).toBe('stopping');
-    },
-  );
-
-  it('should preserve the EvalHub state when Kueue has finished the workload', () => {
-    expect(
-      getEvaluationDisplayState('pending', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus('finished'),
-      }),
-    ).toBe('pending');
-  });
-
-  it('should show a Kueue resource wait over a stale EvalHub running status', () => {
-    expect(
-      getEvaluationDisplayState('running', {
-        kueueWorkloadStatus: makeKueueWorkloadStatus('queued'),
-      }),
-    ).toBe('queued');
+  it('should preserve stopping regardless of the queue assignment', () => {
+    expect(getEvaluationDisplayState('stopping', { isQueued: true })).toBe('stopping');
   });
 
   it.each(['completed', 'failed', 'cancelled'] as const)(
-    'should preserve terminal EvalHub state "%s" over a stale Kueue admission',
+    'should preserve terminal EvalHub state "%s"',
     (state) => {
-      expect(
-        getEvaluationDisplayState(state, {
-          kueueWorkloadStatus: makeKueueWorkloadStatus('admitted'),
-        }),
-      ).toBe(state);
+      expect(getEvaluationDisplayState(state, { isQueued: true })).toBe(state);
     },
   );
-
-  it('should preserve the existing queued status when no Kueue Workload is available', () => {
-    expect(getEvaluationDisplayState('pending', { isQueued: true })).toBe('queued');
-  });
 });
 
 describe('getEvaluationQueue', () => {
@@ -1069,21 +1009,6 @@ describe('getLatestEvaluationJob', () => {
 
     expect(getLatestEvaluationJob(currentJob, refreshedJob)).toBe(refreshedJob);
     expect(getLatestEvaluationJob(refreshedJob, currentJob)).toBe(refreshedJob);
-  });
-});
-
-describe('formatOrdinal', () => {
-  it.each([
-    [1, '1st'],
-    [2, '2nd'],
-    [3, '3rd'],
-    [4, '4th'],
-    [11, '11th'],
-    [12, '12th'],
-    [13, '13th'],
-    [21, '21st'],
-  ])('should format queue position %s as %s', (position, expected) => {
-    expect(formatOrdinal(position)).toBe(expected);
   });
 });
 

@@ -14,7 +14,7 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type {
   Collection,
   CollectionResolution,
-  HardwareProfile,
+  HardwareProfileInfo,
   KueueAvailability,
   SourceMode,
 } from '~/app/types';
@@ -125,17 +125,14 @@ const clonedCollectionResolution: CollectionResolution = {
 const kueueAvailability: KueueAvailability = {
   enabled: true,
   scheduling_ready: true,
-  cluster_enabled: true,
-  namespace_managed: true,
-  local_queues_available: true,
-  local_queue_names: ['default'],
 };
 
-const hardwareProfile: HardwareProfile = {
+const hardwareProfile: HardwareProfileInfo = {
   name: 'default-profile',
   display_name: 'Default profile',
-  enabled: true,
-  local_queue_name: 'default',
+  scheduling_type: 'queue',
+  queue_name: 'default',
+  identifiers: [],
 };
 
 type Deferred<T> = {

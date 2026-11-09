@@ -5,7 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
-import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
+import { createEvaluationJob, getInfo } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
   type RunSourceSelectedProperties,
@@ -549,14 +549,11 @@ export function useStartEvaluationRunForm({
   const requiresHardwareProfile = kueueAvailability?.enabled === true;
   // Reconfigured jobs can reference profiles or queues that no longer exist. Derive the
   // current selection from the available profiles so hidden, stale form values are never sent.
+  // The service only returns queue-backed profiles while their LocalQueue exists in
+  // the tenant namespace, so membership in the list is the availability check.
   const selectedHardwareProfile =
     kueueAvailability?.scheduling_ready === true
-      ? hardwareProfiles.find(
-          (profile) =>
-            profile.name === hardwareProfile &&
-            !!profile.local_queue_name &&
-            kueueAvailability.local_queue_names.includes(profile.local_queue_name),
-        )
+      ? hardwareProfiles.find((profile) => profile.name === hardwareProfile)
       : undefined;
 
   const isValid = React.useMemo(() => {
@@ -674,7 +671,7 @@ export function useStartEvaluationRunForm({
     (profileName: string | undefined) => {
       const profile = hardwareProfiles.find((candidate) => candidate.name === profileName);
       form.setValue('hardwareProfile', profile?.name, { shouldValidate: true });
-      form.setValue('queue', profile?.local_queue_name, { shouldValidate: true });
+      form.setValue('queue', profile?.queue_name, { shouldValidate: true });
     },
     [form, hardwareProfiles],
   );
@@ -901,7 +898,7 @@ export function useStartEvaluationRunForm({
       passCriteriaOverride,
       primaryScoreOverride,
       hardwareProfile: selectedHardwareProfile?.name,
-      queue: selectedHardwareProfile?.local_queue_name,
+      queue: selectedHardwareProfile?.queue_name,
     });
 
     trackEvalHubEvent(
@@ -962,17 +959,19 @@ export function useStartEvaluationRunForm({
       if (selectedHardwareProfile) {
         // Refresh the structural profile and LocalQueue selection without depending on
         // advisory provider compatibility, which may be unavailable or lack provider IDs.
-        const currentProfiles = await getHardwareProfiles(
+        // The service re-filters queue-backed profiles per call, so a deleted
+        // LocalQueue drops its profile from the response.
+        const currentInfo = await getInfo(
           '',
           namespace ?? '',
         )({
           signal: controller.signal,
         });
         if (
-          !currentProfiles.some(
+          !currentInfo.hardware_profiles.some(
             (profile) =>
               profile.name === selectedHardwareProfile.name &&
-              profile.local_queue_name === selectedHardwareProfile.local_queue_name,
+              profile.queue_name === selectedHardwareProfile.queue_name,
           )
         ) {
           throw new Error(
