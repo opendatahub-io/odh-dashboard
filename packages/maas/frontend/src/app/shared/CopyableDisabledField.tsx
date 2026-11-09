@@ -12,6 +12,7 @@ type CopyableDisabledFieldProps = {
   label: string;
   value: string;
   helperText?: React.ReactNode;
+  labelHelp?: React.ReactElement;
 };
 
 const CopyableDisabledField: React.FC<CopyableDisabledFieldProps> = ({
@@ -19,8 +20,9 @@ const CopyableDisabledField: React.FC<CopyableDisabledFieldProps> = ({
   label,
   value,
   helperText,
+  labelHelp,
 }) => (
-  <FormGroup label={label} fieldId={id}>
+  <FormGroup label={label} fieldId={id} labelHelp={labelHelp}>
     <ClipboardCopy
       inputId={id}
       textAriaLabel={label}

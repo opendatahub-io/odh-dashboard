@@ -5,6 +5,7 @@ import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
 import { APIKey } from '~/app/types/api-key';
 import { ApiKeyCreateInitiatedFrom, ApiKeyRevokeInitiatedFrom } from '~/app/types/event-tracking';
 import CreateApiKeyModal from './CreateApiKeyModal';
+import AccessDetailsModal from './AccessDetailsModal';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import RevokeApiKeyModal from './RevokeApiKeyModal';
@@ -13,6 +14,9 @@ import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 const ApiKeysTab: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+  const [accessDetailsApiKey, setAccessDetailsApiKey] = React.useState<APIKey | undefined>(
+    undefined,
+  );
 
   const pageState = useApiKeysPageLoad();
 
@@ -110,6 +114,7 @@ const ApiKeysTab: React.FC = () => {
       <PageSection isFilled>
         <ApiKeysTable
           onRevokeApiKey={setRevokeApiKey}
+          onViewAccessDetails={setAccessDetailsApiKey}
           apiKeys={apiKeys}
           subscriptionDetails={statusSubscriptionDetails}
           accessibleSubscriptionDetails={accessibleSubscriptionDetails}
@@ -143,6 +148,12 @@ const ApiKeysTab: React.FC = () => {
           }
         />
       </PageSection>
+      {accessDetailsApiKey && (
+        <AccessDetailsModal
+          apiKey={accessDetailsApiKey}
+          onClose={() => setAccessDetailsApiKey(undefined)}
+        />
+      )}
       {revokeApiKey && revokeApiKey.name && (
         <RevokeApiKeyModal
           apiKey={revokeApiKey}
