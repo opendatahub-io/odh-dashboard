@@ -53,6 +53,9 @@ func TestIsInternalHost(t *testing.T) {
 		{"too-few labels is not internal", "https://svc.cluster.local", "my-ns", false, false},
 		{"unparseable url is not internal", "://bad-url", "my-ns", false, false},
 	}
+	// Inject the default suffix set with deterministic lookups so the
+	// search-path candidate probes never touch the test machine's resolver.
+	withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			classif, err := classifyHost(context.Background(), tt.baseURL)
@@ -115,11 +118,99 @@ func TestServiceHostClassificationSearchDomains(t *testing.T) {
 	})
 
 	t.Run("external two-label hostname that resolves absolutely stays external", func(t *testing.T) {
-		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, true)
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		originalLookup := lookupAbsHostFn
+		lookupAbsHostFn = func(_ context.Context, host string) (bool, error) {
+			// The name resolves absolutely; no search-path expansion does.
+			return host == "example.com", nil
+		}
+		t.Cleanup(func() { lookupAbsHostFn = originalLookup })
 		classif := classifyOrFatal(t, "https://example.com:8443/v1")
 		assert.False(t, classif.internalTo("my-ns", false))
 		assert.False(t, classif.crossNamespace("my-ns"))
 		assert.False(t, classif.isServiceName)
+	})
+
+	t.Run("two-label hostname resolving both absolutely and as a Service is classified as the Service", func(t *testing.T) {
+		// Under ndots, the resolver tries search-path expansion before the
+		// absolute name, so the Service interpretation is the destination
+		// the connection would actually use and must be namespace-checked.
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		originalLookup := lookupAbsHostFn
+		lookupAbsHostFn = func(_ context.Context, host string) (bool, error) {
+			switch host {
+			case "example.com", "example.com.svc.cluster.local":
+				return true, nil
+			}
+			return false, nil
+		}
+		t.Cleanup(func() { lookupAbsHostFn = originalLookup })
+		classif := classifyOrFatal(t, "https://example.com:8443/v1")
+		assert.True(t, classif.isServiceName, "a name whose Service interpretation resolves must be classified as a Service")
+		assert.Equal(t, "com", classif.namespace)
+		assert.True(t, classif.crossNamespace("my-ns"),
+			"a cross-namespace Service interpretation must be denied explicitly")
+	})
+
+	t.Run("three-label name whose pod-specific Service interpretation resolves is classified as a Service", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		originalLookup := lookupAbsHostFn
+		lookupAbsHostFn = func(_ context.Context, host string) (bool, error) {
+			return host == "pod-a.my-model.my-ns.svc.cluster.local", nil
+		}
+		t.Cleanup(func() { lookupAbsHostFn = originalLookup })
+		classif := classifyOrFatal(t, "https://pod-a.my-model.my-ns:8443/v1")
+		assert.True(t, classif.isServiceName)
+		assert.Equal(t, "my-model", classif.service)
+		assert.Equal(t, "my-ns", classif.namespace)
+		assert.Equal(t, "pod-a", classif.podLabel)
+	})
+
+	t.Run("single-label name resolving in the BFF pod's namespace is classified as a Service there", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		originalPodNS, originalLookup := bffPodNamespaceFn, lookupAbsHostFn
+		bffPodNamespaceFn = func() (string, bool) { return "bff-ns", true }
+		lookupAbsHostFn = func(_ context.Context, host string) (bool, error) {
+			return host == "my-model.bff-ns.svc.cluster.local", nil
+		}
+		t.Cleanup(func() {
+			bffPodNamespaceFn = originalPodNS
+			lookupAbsHostFn = originalLookup
+		})
+		classif := classifyOrFatal(t, "https://my-model:8443/v1")
+		assert.True(t, classif.isServiceName)
+		assert.Equal(t, "my-model", classif.service)
+		assert.Equal(t, "bff-ns", classif.namespace)
+		assert.True(t, classif.crossNamespace("my-ns"),
+			"a caller in another namespace must not reach the BFF pod namespace's Service")
+		assert.True(t, classif.internalTo("bff-ns", false),
+			"a caller authorized for the BFF pod namespace keeps the verified trust path")
+	})
+
+	t.Run("single-label name without an establishable BFF pod namespace is denied", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		originalPodNS := bffPodNamespaceFn
+		bffPodNamespaceFn = func() (string, bool) { return "", false }
+		t.Cleanup(func() { bffPodNamespaceFn = originalPodNS })
+		classif := classifyOrFatal(t, "https://my-model:8443/v1")
+		assert.True(t, classif.mustDeny, "the namespace a single-label name resolves in cannot be established, so it must be denied")
+		assert.False(t, classif.isServiceName)
+	})
+
+	t.Run("trailing root dot makes a short name absolute, so it gets no search completion", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		for _, baseURL := range []string{"https://my-model.my-ns.svc.:8443/v1", "https://my-model.my-ns.:8443/v1"} {
+			classif := classifyOrFatal(t, baseURL)
+			assert.False(t, classif.isServiceName, "%s: an absolute short name is not a Service via search completion", baseURL)
+			assert.False(t, classif.mustDeny)
+		}
+	})
+
+	t.Run("fully qualified Service name with trailing root dot is still classified", func(t *testing.T) {
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		classif := classifyOrFatal(t, "https://my-model.my-ns.svc.cluster.local.:8443/v1")
+		assert.True(t, classif.isServiceName)
+		assert.Equal(t, "my-ns", classif.namespace)
 	})
 
 	t.Run("bare cross-namespace .svc name is classified cross-namespace", func(t *testing.T) {
@@ -1163,6 +1254,28 @@ func TestVerifyExternalModelTrustDecision(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "pinned dial") {
 			t.Errorf("VerifyExternalModel() error = %v, want pinned dial failure for the trusted Service", err)
+		}
+	})
+
+	t.Run("single-label Service name is denied when the BFF pod namespace cannot be established", func(t *testing.T) {
+		// A single-label name resolves (if at all) to a Service in the BFF
+		// pod's own namespace; without a reliable source for that namespace
+		// it must be denied outright rather than fall back to DNS-based SSRF
+		// validation, which a non-RFC1918 Service CIDR passes.
+		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+		originalPodNS := bffPodNamespaceFn
+		bffPodNamespaceFn = func() (string, bool) { return "", false }
+		t.Cleanup(func() { bffPodNamespaceFn = originalPodNS })
+		req := req
+		req.BaseURL = "https://my-model:8443/v1"
+		client := &k8smocks.ConfigurableMockKubernetesClient{}
+		_, err := repo.VerifyExternalModel(logger, context.Background(), client, identity, "my-ns", req, nil, false, false)
+		if err == nil {
+			t.Fatal("VerifyExternalModel() error = nil, want single-label name without an establishable namespace to be denied")
+		}
+		var extErr *externalmodels.ExternalModelError
+		if !errors.As(err, &extErr) || extErr.StatusCode != http.StatusForbidden {
+			t.Errorf("VerifyExternalModel() error = %v, want ExternalModelError with status 403", err)
 		}
 	})
 

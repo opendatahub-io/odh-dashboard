@@ -287,9 +287,34 @@ var lookupAbsHostFn = func(ctx context.Context, host string) (bool, error) {
 	return false, err
 }
 
+// bffPodNamespaceFn returns the namespace of the pod the BFF runs in, read
+// from the service-account namespace file kubelet mounts into every pod; a
+// variable so tests can inject deterministically. The second return is false
+// when the file is absent (e.g. local development outside a cluster).
+var bffPodNamespaceFn = defaultBffPodNamespace
+
+var (
+	bffPodNamespaceOnce sync.Once
+	bffPodNamespace     string
+	bffPodNamespaceOK   bool
+)
+
+func defaultBffPodNamespace() (string, bool) {
+	bffPodNamespaceOnce.Do(func() {
+		data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		if err != nil {
+			return
+		}
+		if ns := strings.TrimSpace(string(data)); ns != "" {
+			bffPodNamespace, bffPodNamespaceOK = ns, true
+		}
+	})
+	return bffPodNamespace, bffPodNamespaceOK
+}
+
 // hostClassification is the single parse of a request's base URL host that
 // every trust decision for that request shares: parsing (and its optional
-// DNS lookup for short names) happens once, so the internal,
+// DNS lookups for short names) happens once, so the internal,
 // cross-namespace, and cluster-service classifiers can never disagree from
 // reparsing or repeated lookups.
 type hostClassification struct {
@@ -304,20 +329,32 @@ type hostClassification struct {
 	namespace     string
 	podLabel      string
 	isServiceName bool
+	// mustDeny marks a host whose Service interpretation cannot be
+	// established (a single-label name without a discoverable BFF pod
+	// namespace); it must be denied outright rather than fall back to
+	// external handling.
+	mustDeny bool
 }
 
 // classifyHost parses baseURL's host and classifies it once. It returns an
 // error only when the classification could not be completed (e.g. a
 // transient DNS failure while distinguishing a short Service name from an
 // external hostname); a host that is definitively not a Service name
-// classifies as unclassified without error.
+// classifies as unclassified without error. On error the returned
+// classification carries at least the parsed host, for logging.
 func classifyHost(ctx context.Context, baseURL string) (hostClassification, error) {
 	var c hostClassification
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return c, nil
 	}
-	c.host = canonicalClusterDNSName(u.Hostname())
+	rawHost := u.Hostname()
+	// A terminal root dot makes the name absolute: the resolver never applies
+	// the search path to it, so search-completion classification must not
+	// either (an absolute short name that does not resolve is simply
+	// unresolvable, not a Service).
+	absolute := strings.HasSuffix(rawHost, ".")
+	c.host = canonicalClusterDNSName(rawHost)
 	if ip := net.ParseIP(c.host); ip != nil {
 		c.loopback = ip.IsLoopback()
 		return c, nil
@@ -326,69 +363,136 @@ func classifyHost(ctx context.Context, baseURL string) (hostClassification, erro
 		c.loopback = true
 		return c, nil
 	}
-	var classifyErr error
-	c.service, c.namespace, c.podLabel, c.isServiceName, classifyErr = parseServiceHostName(ctx, c.host)
-	if classifyErr != nil {
-		return hostClassification{}, classifyErr
+	if classifyErr := c.classifyServiceName(ctx, absolute); classifyErr != nil {
+		return c, classifyErr
 	}
 	return c, nil
 }
 
-// parseServiceHostName identifies the in-cluster Service a hostname names:
-// either a fully-qualified <service>.<namespace>.svc.<domain> name (with an
-// optional pod-specific label, and any cluster domain discovered from the
-// search list rather than only cluster.local), a bare
-// <service>.<namespace>.svc name completed the same way by the pod's DNS
-// search path, or a short <service>.<namespace> name that only the search
-// path resolves. The short form applies only when the name does not resolve
-// as an absolute DNS name, so ordinary external hostnames keep their normal
-// external handling; a one-label name can only complete within the pod's own
-// namespace and is not treated as a Service name here.
-func parseServiceHostName(ctx context.Context, h string) (service string, namespace string, podLabel string, ok bool, err error) {
-	if net.ParseIP(h) != nil {
-		return "", "", "", false, nil
-	}
-	for _, suffix := range clusterServiceSuffixesFn() {
+// classifyServiceName identifies the in-cluster Service the classified host
+// names, mirroring how the pod's resolver actually resolves it:
+//
+//   - a fully-qualified <service>.<namespace>.svc.<domain> name (with an
+//     optional pod-specific label, and any cluster domain discovered from the
+//     search list rather than only cluster.local), valid with or without a
+//     terminal root dot;
+//   - a bare <service>.<namespace>.svc name completed by the domain search
+//     entry;
+//   - a partial name (fewer labels than ndots) whose search-path expansion
+//     resolves: the resolver tries each search entry before the absolute
+//     name, so a name that also resolves absolutely still connects to its
+//     Service interpretation and must be classified as one. One-label names
+//     complete only within the BFF pod's own namespace; two- and three-label
+//     names complete to Service or pod-specific names in the namespace their
+//     labels imply (or the BFF pod's namespace, for the pod-namespace search
+//     entry).
+//
+// Partial names whose search expansions name no Service (four or more labels,
+// or expansions that do not resolve) fall back to their absolute
+// interpretation, so ordinary external hostnames keep their normal external
+// handling.
+func (c *hostClassification) classifyServiceName(ctx context.Context, absolute bool) error {
+	h := c.host
+	labels := strings.Split(h, ".")
+	suffixes := clusterServiceSuffixesFn()
+	for _, suffix := range suffixes {
 		if !strings.HasSuffix(h, "."+suffix) {
 			continue
 		}
 		suffixLabels := strings.Count(suffix, ".") + 1
-		labels := strings.Split(h, ".")
 		// Exactly two labels before the suffix form a Service name
 		// (<service>.<namespace>), three a pod-specific name (the extra label
 		// is the pod hostname). Any other count does not form a Kubernetes
 		// DNS name the cluster would resolve.
 		switch len(labels) - suffixLabels {
 		case 2:
-			return labels[0], labels[1], "", true, nil
+			c.service, c.namespace, c.podLabel, c.isServiceName = labels[0], labels[1], "", true
+			return nil
 		case 3:
-			return labels[1], labels[2], labels[0], true, nil
+			c.service, c.namespace, c.podLabel, c.isServiceName = labels[1], labels[2], labels[0], true
+			return nil
 		}
 	}
-	labels := strings.Split(h, ".")
-	// A bare name ending in .svc is completed by the pod's search path to the
-	// same Service its fully-qualified form names, so it must be classified
-	// (and namespace-checked) too; leaving it unclassified would let a
-	// cross-namespace Service reach the DNS-based SSRF filter, which a
+	if absolute {
+		// Absolute short names get no search-path completion.
+		return nil
+	}
+	// A bare name ending in .svc is completed by the domain search entry to
+	// the same Service its fully-qualified form names, so it must be
+	// classified (and namespace-checked) too; leaving it unclassified would
+	// let a cross-namespace Service reach the DNS-based SSRF filter, which a
 	// non-RFC1918 Service CIDR passes.
 	if strings.HasSuffix(h, ".svc") {
 		switch len(labels) {
 		case 3:
-			return labels[0], labels[1], "", true, nil
+			c.service, c.namespace, c.podLabel, c.isServiceName = labels[0], labels[1], "", true
+			return nil
 		case 4:
-			return labels[1], labels[2], labels[0], true, nil
+			c.service, c.namespace, c.podLabel, c.isServiceName = labels[1], labels[2], labels[0], true
+			return nil
 		}
 	}
+	podNS, podNSKnown := bffPodNamespaceFn()
+	if !podNSKnown && len(labels) == 1 {
+		// A one-label name can only complete to a Service in the BFF pod's
+		// own namespace; when that namespace cannot be established, deny
+		// outright rather than guess.
+		c.mustDeny = true
+		return nil
+	}
+	for _, suffix := range suffixes {
+		// The pod-namespace search entry (<podNS>.svc.<domain>) completes
+		// one-label names to a Service in the BFF pod's namespace and
+		// two-label names to a pod-specific name there.
+		if podNSKnown && (len(labels) == 1 || len(labels) == 2) {
+			resolved, err := lookupAbsHostFn(ctx, h+"."+podNS+"."+suffix)
+			if err != nil {
+				return err
+			}
+			if resolved {
+				if len(labels) == 1 {
+					c.service, c.namespace, c.podLabel, c.isServiceName = labels[0], podNS, "", true
+				} else {
+					c.service, c.namespace, c.podLabel, c.isServiceName = labels[1], podNS, labels[0], true
+				}
+				return nil
+			}
+		}
+		// The service-zone search entry (svc.<domain>) completes two-label
+		// names to a Service in the namespace the second label names and
+		// three-label names to a pod-specific name in the namespace the
+		// third label names.
+		if len(labels) == 2 || len(labels) == 3 {
+			resolved, err := lookupAbsHostFn(ctx, h+"."+suffix)
+			if err != nil {
+				return err
+			}
+			if resolved {
+				if len(labels) == 2 {
+					c.service, c.namespace, c.podLabel, c.isServiceName = labels[0], labels[1], "", true
+				} else {
+					c.service, c.namespace, c.podLabel, c.isServiceName = labels[1], labels[2], labels[0], true
+				}
+				return nil
+			}
+		}
+	}
+	// No search-path Service interpretation resolves. A two-label name that
+	// does not resolve absolutely either is still treated as its
+	// <service>.<namespace> short form: the search path is the only thing
+	// that could resolve it, and failing toward Service classification sends
+	// it to namespace checking and caller-scoped verification rather than
+	// the DNS-based SSRF filter.
 	if len(labels) == 2 {
-		resolvesAbsolutely, lookupErr := lookupAbsHostFn(ctx, h)
-		if lookupErr != nil {
-			return "", "", "", false, lookupErr
+		resolvesAbsolutely, err := lookupAbsHostFn(ctx, h)
+		if err != nil {
+			return err
 		}
 		if !resolvesAbsolutely {
-			return labels[0], labels[1], "", true, nil
+			c.service, c.namespace, c.podLabel, c.isServiceName = labels[0], labels[1], "", true
 		}
 	}
-	return "", "", "", false, nil
+	return nil
 }
 
 // internalTo reports whether the classified host is trusted for the caller's
@@ -767,8 +871,13 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	// risking a misclassification.
 	classif, err := classifyHost(ctx, req.BaseURL)
 	if err != nil {
-		logger.Warn("endpoint host classification did not complete", "base_url", req.BaseURL, "error", err)
+		// Log the parsed hostname only: the raw base URL may carry userinfo
+		// or sensitive path/query data.
+		logger.Warn("endpoint host classification did not complete", "host", classif.host, "error", err)
 		return nil, externalmodels.NewConnectionError(req.BaseURL, "the endpoint host could not be classified because its DNS lookup did not complete")
+	}
+	if classif.mustDeny {
+		return nil, forbiddenTrustError(req.BaseURL, "single-label endpoint hosts cannot be verified because the namespace they would resolve in cannot be established")
 	}
 	trusted, pinnedAddresses, err := resolveTrustedHost(ctx, client, identity, req.BaseURL, classif, namespace, allowLoopback, logger)
 	if err != nil {
