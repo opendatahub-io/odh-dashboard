@@ -1,5 +1,13 @@
 import React from 'react';
+/* eslint-disable no-restricted-imports -- PF Select with SelectGroup+ToggleGroup is required for the PatternFly masthead theme switcher pattern; project wrappers do not support grouped toggle-group content */
 import {
+  Select,
+  SelectGroup,
+  MenuSearch,
+  MenuSearchInput,
+  ToggleGroup,
+  ToggleGroupItem,
+  Divider,
   NotificationBadge,
   Toolbar,
   ToolbarContent,
@@ -11,15 +19,8 @@ import {
   DropdownItem,
   Dropdown,
   DropdownList,
-  Select,
-  SelectGroup,
-  MenuSearch,
-  MenuSearchInput,
-  ToggleGroup,
-  ToggleGroupItem,
-  Icon,
-  Divider,
 } from '@patternfly/react-core';
+/* eslint-enable no-restricted-imports */
 import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import LightBulbIcon from '#~/images/icons/LightBulbIcon';
@@ -32,7 +33,7 @@ import AboutDialog from '#~/app/AboutDialog';
 import { useIsGuidedTourAvailable } from '#~/concepts/whatsNew/useIsGuidedTourAvailable';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
-import { useThemeContext, type ColorScheme } from './ThemeContext';
+import { useThemeContext } from './ThemeContext';
 import { logout } from './appUtils';
 import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './featureFlags/FeatureFlagLauncher';
 import { openWhatsNewTour } from './whatsNew/whatsNewEvent';
@@ -66,7 +67,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const userName: string = useAppSelector((state) => state.user || '');
   const isImpersonating: boolean = useAppSelector((state) => state.isImpersonating || false);
   const { dashboardConfig } = useAppContext();
-  const { theme, colorScheme, setColorScheme, contrastMode, setContrastMode } = useThemeContext();
+  const { colorScheme, setColorScheme, contrastMode, setContrastMode } = useThemeContext();
   const notification = useNotification();
   const isGuidedTourAvailable = useIsGuidedTourAvailable();
   const unifiedProjectSelectorEnabled = useIsAreaAvailable(
