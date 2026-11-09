@@ -1,13 +1,28 @@
-import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { getGatewayOptions, isGatewayOption } from '../gatewayDiscovery';
 
-jest.mock('@odh-dashboard/internal/api/proxyUtils', () => ({
-  proxyGET: jest.fn(),
-}));
-
-const mockProxyGET = jest.mocked(proxyGET);
+const originalFetch = global.fetch;
+const mockBody = jest.fn();
+const fetchMock = jest.fn();
+beforeEach(() => {
+  fetchMock.mockReset().mockImplementation(async () => ({ ok: true, json: mockBody }));
+  global.fetch = fetchMock;
+});
+afterAll(() => {
+  global.fetch = originalFetch;
+});
 
 describe('isGatewayOption', () => {
+  it.each([
+    { name: '', namespace: 'ns' },
+    { name: 'gw', namespace: ' ' },
+    { name: 'gw', namespace: 'ns', listener: 123 },
+    { name: 'gw', namespace: 'ns', displayName: false },
+    { name: 'gw', namespace: 'ns', description: [] },
+    { name: 'gw', namespace: 'ns', status: 'Invalid' },
+    { name: 'gw', namespace: 'ns', status: ['Ready'] },
+  ])('should reject malformed gateway fields: %p', (value) => {
+    expect(isGatewayOption(value)).toBe(false);
+  });
   it('should return true for a valid gateway option with required fields', () => {
     expect(isGatewayOption({ name: 'gw', namespace: 'ns' })).toBe(true);
   });
@@ -59,18 +74,50 @@ describe('getGatewayOptions', () => {
     jest.clearAllMocks();
   });
 
-  it('should call proxyGET with the correct arguments', async () => {
-    mockProxyGET.mockResolvedValue({
+  it.each([403, 404, 502, 503])('should reject HTTP failures (%s)', async (status) => {
+    fetchMock.mockResolvedValue({ ok: false, status });
+    await expect(getGatewayOptions('ns')).rejects.toThrow('Gateway discovery failed.');
+    expect(mockBody).not.toHaveBeenCalled();
+  });
+
+  it.each([null, undefined, [], 'not an object'])(
+    'should reject invalid payloads: %p',
+    async (body) => {
+      mockBody.mockResolvedValue(body);
+      await expect(getGatewayOptions('ns')).rejects.toThrow(
+        'Invalid response from gateway discovery API.',
+      );
+    },
+  );
+
+  it('should preserve cancellation while reading the response', async () => {
+    const error = new DOMException('Cancelled', 'AbortError');
+    mockBody.mockRejectedValueOnce(error);
+    await expect(getGatewayOptions('ns')).rejects.toBe(error);
+  });
+
+  it('should reject malformed JSON', async () => {
+    mockBody.mockRejectedValueOnce(new SyntaxError('Invalid JSON'));
+    await expect(getGatewayOptions('ns')).rejects.toThrow(
+      'Invalid response from gateway discovery API.',
+    );
+  });
+
+  it('should require a namespace before requesting discovery', async () => {
+    await expect(getGatewayOptions(' ')).rejects.toThrow('Namespace is required');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('should call the fixed gateway endpoint with the selected namespace', async () => {
+    mockBody.mockResolvedValue({
       gateways: [{ name: 'gw-1', namespace: 'test-ns' }],
     });
 
     await getGatewayOptions('test-ns');
 
-    expect(mockProxyGET).toHaveBeenCalledWith(
-      '/api/service/model-serving',
-      '/api/v1/gateways',
-      { namespace: 'test-ns' },
-      undefined,
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/service/model-serving/api/v1/gateways?namespace=test-ns',
+      { method: 'GET' },
     );
   });
 
@@ -79,7 +126,7 @@ describe('getGatewayOptions', () => {
       { name: 'gw-1', namespace: 'ns-1', listener: 'https', status: 'Ready' as const },
       { name: 'gw-2', namespace: 'ns-2' },
     ];
-    mockProxyGET.mockResolvedValue({ gateways });
+    mockBody.mockResolvedValue({ gateways });
 
     const result = await getGatewayOptions('ns-1');
 
@@ -87,7 +134,7 @@ describe('getGatewayOptions', () => {
   });
 
   it('should throw when the response is a proxy error', async () => {
-    mockProxyGET.mockResolvedValue({
+    mockBody.mockResolvedValue({
       statusCode: 500,
       error: 'Internal Server Error',
       message: 'something went wrong',
@@ -97,7 +144,7 @@ describe('getGatewayOptions', () => {
   });
 
   it('should throw when gateways is not an array', async () => {
-    mockProxyGET.mockResolvedValue({ gateways: 'not-an-array' });
+    mockBody.mockResolvedValue({ gateways: 'not-an-array' });
 
     await expect(getGatewayOptions('ns')).rejects.toThrow(
       'Invalid response from gateway discovery API.',
@@ -105,7 +152,7 @@ describe('getGatewayOptions', () => {
   });
 
   it('should throw when gateways is missing from the response', async () => {
-    mockProxyGET.mockResolvedValue({});
+    mockBody.mockResolvedValue({});
 
     await expect(getGatewayOptions('ns')).rejects.toThrow(
       'Invalid response from gateway discovery API.',
@@ -113,7 +160,7 @@ describe('getGatewayOptions', () => {
   });
 
   it('should throw when a gateway item fails type validation', async () => {
-    mockProxyGET.mockResolvedValue({
+    mockBody.mockResolvedValue({
       gateways: [{ name: 'valid', namespace: 'ns' }, { name: 123 }],
     });
 
@@ -123,7 +170,7 @@ describe('getGatewayOptions', () => {
   });
 
   it('should throw when a gateway item is missing required fields', async () => {
-    mockProxyGET.mockResolvedValue({
+    mockBody.mockResolvedValue({
       gateways: [{ listener: 'https', status: 'Ready' }],
     });
 
@@ -133,24 +180,22 @@ describe('getGatewayOptions', () => {
   });
 
   it('should return an empty array when gateways is empty', async () => {
-    mockProxyGET.mockResolvedValue({ gateways: [] });
+    mockBody.mockResolvedValue({ gateways: [] });
 
     const result = await getGatewayOptions('ns');
 
     expect(result).toEqual([]);
   });
 
-  it('should forward opts to proxyGET', async () => {
-    mockProxyGET.mockResolvedValue({ gateways: [] });
+  it('should forward cancellation to fetch', async () => {
+    mockBody.mockResolvedValue({ gateways: [] });
     const opts = { signal: new AbortController().signal };
 
     await getGatewayOptions('ns', opts);
 
-    expect(mockProxyGET).toHaveBeenCalledWith(
-      '/api/service/model-serving',
-      '/api/v1/gateways',
-      { namespace: 'ns' },
-      opts,
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/service/model-serving/api/v1/gateways?namespace=ns',
+      { method: 'GET', signal: opts.signal },
     );
   });
 });

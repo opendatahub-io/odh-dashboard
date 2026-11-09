@@ -2146,6 +2146,41 @@ describe('Model Serving Deploy Wizard', () => {
         'This deployment contains custom configuration that cannot be displayed in the form',
       );
     });
+
+    it('should remove managedFields from the YAML editor content', () => {
+      initIntercepts({});
+      initMockConnectionSecretIntercepts({});
+      initMockModelAuthIntercepts({});
+
+      const deploymentWithManagedFields = mockLLMInferenceServiceK8sResource({
+        name: 'managed-fields-model',
+        displayName: 'Managed Fields Model',
+        modelUri: 's3://my-bucket/my-model',
+      });
+      delete deploymentWithManagedFields.metadata.annotations?.['opendatahub.io/model-type'];
+      deploymentWithManagedFields.metadata.managedFields = [{ manager: 'kubectl' }];
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([deploymentWithManagedFields]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([]),
+      );
+      cy.interceptK8s(
+        'GET',
+        { model: LLMInferenceServiceModel, ns: 'test-project', name: 'managed-fields-model' },
+        deploymentWithManagedFields,
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Managed Fields Model').findKebabAction('Edit').click();
+
+      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      yamlEditor.getValue().should('contain', 'name: managed-fields-model');
+      yamlEditor.getValue().should('not.contain', 'managedFields');
+    });
   });
 
   describe('redirect from v2 to v3 route', () => {

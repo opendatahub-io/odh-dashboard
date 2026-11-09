@@ -492,6 +492,48 @@ unlisted category withholds the whole projection.
 The first re-review of a PR whose sticky comment predates the marker runs as a
 first review.
 
+## CodeRabbit coexistence
+
+CodeRabbit (the org-wide GitHub App) is **not** a peer reviewer here.
+Its auto-review is disabled to avoid duplicate review noise.
+
+### What still works
+
+- **CLI findings** — active via the Fullsend adapter
+  (`coderabbit review --agent --deep --remote`)
+- **Chat commands** — `@coderabbitai` works for ad-hoc queries
+- **On-demand pre-merge checks** — `@coderabbitai run pre-merge checks`
+
+### What is disabled
+
+- **Auto-review comments** — no review body or inline comments from
+  CodeRabbit on PRs
+- **Automatic pre-merge checks** — coupled with auto-review in
+  CodeRabbit, cannot be split. These were warning-only and not gating.
+  Migration to Fullsend `check:*` producers is tracked separately.
+
+### CodeRabbit architecture
+
+```
+PR opened/updated (non-draft)
+       |
+       +--> Fullsend (review-of-record)
+       |       +-- CodeRabbit CLI adapter (.fullsend/scripts/)
+       |       +-- Other dimensions (.fullsend/dimensions.json)
+       |       +-- Posts single sticky review
+       |
+       +--> CodeRabbit App (auto-review: DISABLED)
+               +-- No review comments posted
+               +-- Chat commands still work on-demand
+```
+
+### CodeRabbit config reference
+
+- `.coderabbit.yaml` — repo-level CodeRabbit config (auto-review disabled)
+- `.fullsend/dimensions.json` — dimensions including CodeRabbit CLI adapter
+- `.fullsend/scripts/fetch-coderabbit-context.sh` — CLI adapter script
+- Org baseline: `opendatahub-io/coderabbit/.coderabbit.yaml`
+
 ## Related files
 
 | Path | Role |

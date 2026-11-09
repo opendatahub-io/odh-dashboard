@@ -7,7 +7,7 @@ import DeleteLlmAcceleratorConfigModal from '../DeleteLlmAcceleratorConfigModal'
 import { deleteLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
-const { wrapper } = createTestProviders();
+const { wrapper, trackEvent } = createTestProviders();
 
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   deleteLLMInferenceServiceConfig: jest.fn(),
@@ -77,6 +77,11 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
     await waitFor(() => {
       expect(onCloseMock).toHaveBeenCalledWith(true);
     });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+      outcome: 'submit',
+      success: true,
+    });
   });
 
   it('should call onClose(false) on cancel', () => {
@@ -88,6 +93,11 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
     fireEvent.click(cancelButton);
 
     expect(onCloseMock).toHaveBeenCalledWith(false);
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+      outcome: 'cancel',
+    });
+    expect(trackEvent.mock.calls[0][1]).not.toHaveProperty('success');
   });
 
   it('should require the config display name before deleting', () => {
@@ -129,6 +139,11 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
     });
 
     expect(onCloseMock).not.toHaveBeenCalled();
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+      outcome: 'submit',
+      success: false,
+    });
   });
 
   it('should show loading state while deleting', async () => {
