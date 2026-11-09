@@ -706,6 +706,11 @@ func (c *EvalHubClient) GetInfo(ctx context.Context, namespace string) (*InfoRes
 	if resp.HardwareProfiles == nil {
 		resp.HardwareProfiles = []HardwareProfileInfo{}
 	}
+	for i := range resp.HardwareProfiles {
+		if resp.HardwareProfiles[i].Identifiers == nil {
+			resp.HardwareProfiles[i].Identifiers = []HardwareProfileIdentifier{}
+		}
+	}
 	return resp, nil
 }
 

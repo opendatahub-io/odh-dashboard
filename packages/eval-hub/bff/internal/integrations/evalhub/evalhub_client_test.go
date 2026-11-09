@@ -1406,6 +1406,23 @@ func TestEvalHubClient_GetInfo_NormalizesNilQueues(t *testing.T) {
 	assert.Empty(t, resp.HardwareProfiles)
 }
 
+func TestEvalHubClient_GetInfo_NormalizesNilIdentifiers(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/info", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"version":"1.2.3","hardware_profiles":[{"name":"cpu-direct","scheduling_type":"node"}]}`)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	resp, err := client.GetInfo(context.Background(), "my-ns")
+
+	require.NoError(t, err)
+	require.Len(t, resp.HardwareProfiles, 1)
+	require.NotNil(t, resp.HardwareProfiles[0].Identifiers)
+	assert.Empty(t, resp.HardwareProfiles[0].Identifiers)
+}
+
 func TestEvalHubClient_GetInfo_RequiresNamespace(t *testing.T) {
 	client := NewEvalHubClient("http://example.invalid", "", false, nil, "/api/v1")
 	_, err := client.GetInfo(context.Background(), "")
