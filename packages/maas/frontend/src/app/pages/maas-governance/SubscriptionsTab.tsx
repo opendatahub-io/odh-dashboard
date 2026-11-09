@@ -16,6 +16,7 @@ import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/S
 import SubscriptionsToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsToolbar';
 import {
   initialSubscriptionsFilterData,
+  MODEL_TEXT_FILTER_PREFIX,
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
   SubscriptionsFilterSelection,
@@ -38,8 +39,8 @@ type SubscriptionsTabProps = {
    */
   readOnly?: boolean;
   /**
-   * Filter through Subscription / Group / Model typeahead selects (model access viewer)
-   * instead of the free-text keyword search. Filter options derive from the loaded
+   * Search subscription details and select groups or models (model access viewer)
+   * instead of the governance keyword search. Select options derive from the loaded
    * subscriptions, so no additional fetches are required.
    */
   attributeFilters?: boolean;
@@ -80,13 +81,16 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   const filteredSubscriptions = React.useMemo(() => {
     const keyword = filterData[SubscriptionsFilterOptions.keyword];
     const keywordText = typeof keyword === 'string' ? keyword.toLowerCase() : '';
-    const subscriptionFilter = asFilterSelection(
+    const subscriptionText = asFilterSelection(
       filterData[SubscriptionsFilterOptions.subscription],
-    );
+    )?.value.toLowerCase();
     const groupFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.group]);
     const modelFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.model]);
+    const modelText = modelFilter?.value.startsWith(MODEL_TEXT_FILTER_PREFIX)
+      ? modelFilter.value.slice(MODEL_TEXT_FILTER_PREFIX.length).toLowerCase()
+      : undefined;
 
-    if (!keywordText && !subscriptionFilter && !groupFilter && !modelFilter) {
+    if (!keywordText && !subscriptionText && !groupFilter && !modelFilter) {
       return subscriptions;
     }
 
@@ -99,7 +103,16 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
       ) {
         return false;
       }
-      if (subscriptionFilter && subscription.name !== subscriptionFilter.value) {
+      if (
+        subscriptionText &&
+        ![
+          subscription.name,
+          subscription.displayName,
+          subscription.description,
+          ...subscription.owner.groups.map((group) => group.name),
+          ...subscription.modelRefs.flatMap((ref) => [ref.name, ref.displayName]),
+        ].some((text) => text?.toLowerCase().includes(subscriptionText))
+      ) {
         return false;
       }
       if (
@@ -108,7 +121,15 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
       ) {
         return false;
       }
-      if (modelFilter && !subscription.modelRefs.some((ref) => ref.name === modelFilter.value)) {
+      if (
+        modelFilter &&
+        !subscription.modelRefs.some((ref) =>
+          modelText !== undefined
+            ? ref.name.toLowerCase().includes(modelText) ||
+              ref.displayName?.toLowerCase().includes(modelText)
+            : ref.name === modelFilter.value,
+        )
+      ) {
         return false;
       }
       return true;
