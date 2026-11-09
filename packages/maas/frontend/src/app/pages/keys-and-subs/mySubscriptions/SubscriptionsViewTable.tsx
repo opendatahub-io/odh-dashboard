@@ -1,4 +1,4 @@
-import { Flex, FlexItem } from '@patternfly/react-core';
+import { Content, ContentVariants, Flex, FlexItem } from '@patternfly/react-core';
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -78,16 +78,24 @@ const SubscriptionRow: React.FC<{
             </FlexItem>
             <ApiKeyCountLabel keyCount={subscription.key_count ?? 0} />
           </Flex>
+          {subscription.subscription_description && (
+            <Content component={ContentVariants.small}>
+              {subscription.subscription_description}
+            </Content>
+          )}
         </Td>
       </Tr>
       <Tr isExpanded={isExpanded}>
-        <Td colSpan={2}>
+        {/* Empty cell under the expand control plus noPadding align the nested table with the parent data columns. */}
+        <Td />
+        <Td noPadding>
           <ExpandableRowContent>
             <SubscriptionModelsTable
               models={subscription.model_refs}
               ariaLabel={`Models for ${subscription.display_name || subscription.subscription_id_header}`}
               tableTestId={`subscription-models-table-${subscription.subscription_id_header}`}
               context={ModelInfoContext.LIST_SUBSCRIPTION_VIEW}
+              isNested
             />
           </ExpandableRowContent>
         </Td>

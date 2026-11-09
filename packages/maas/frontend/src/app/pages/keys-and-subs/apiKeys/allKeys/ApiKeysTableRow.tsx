@@ -38,7 +38,7 @@ const cellRenderers: Record<string, CellRenderer> = {
   name: ({ apiKey }) => (
     <span data-testid="api-key-name">
       <TableRowTitleDescription
-        title={apiKey.name}
+        title={<span className="pf-v6-u-font-weight-bold">{apiKey.name}</span>}
         description={apiKey.description}
         truncateDescriptionLines={2}
       />
