@@ -31,6 +31,7 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
   return (
     <ApplicationsPage
       title={<TitleWithIcon title="API keys" objectType={ProjectObjectType.apiKeys} />}
+      description="Manage API keys used to authenticate with model endpoints. View your subscriptions and the models they give you access to."
       loaded
       empty={false}
     >
@@ -48,7 +49,7 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
           aria-label="API keys tab"
           data-testid="api-keys-tab"
         >
-          <ApiKeysTab showDescription />
+          <ApiKeysTab />
         </Tab>
         <Tab
           eventKey={SUBSCRIPTIONS_TAB}

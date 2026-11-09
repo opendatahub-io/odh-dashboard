@@ -1,4 +1,4 @@
-import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
+import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import PageLoadErrorState from '~/app/components/PageLoadErrorState';
 import { UserSubscription } from '~/app/types/subscriptions';
@@ -131,9 +131,6 @@ const SubscriptionsTab: React.FC = () => {
 
   return (
     <PageSection isFilled>
-      <Content component={ContentVariants.p}>
-        View your subscriptions and the models they give you access to.
-      </Content>
       <SubscriptionsToolbar
         searchValue={searchValue}
         onSearchChange={setSearchValue}
