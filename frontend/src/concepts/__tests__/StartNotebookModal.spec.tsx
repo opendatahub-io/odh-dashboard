@@ -108,13 +108,6 @@ const renderResourcesModal = ({
   );
 };
 
-const getNotebookWithDescription = (description: string) => {
-  const notebook = structuredClone(mockInitialStates.notebookState.notebook);
-  notebook.metadata.annotations ??= {};
-  notebook.metadata.annotations['openshift.io/description'] = description;
-  return notebook;
-};
-
 describe('Start Notebook modal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -126,11 +119,9 @@ describe('Start Notebook modal', () => {
 
   it('should show initial notebook startup status', async () => {
     const mockData = mockInitialStates;
-    const workbenchDescription = 'Workbench for testing model development';
-    const notebookWithDescription = getNotebookWithDescription(workbenchDescription);
     render(
       <StartNotebookModal
-        notebook={notebookWithDescription}
+        notebook={mockData.notebookState.notebook}
         notebookStatus={mockData.notebookStatus}
         isStarting={mockData.notebookState.isStarting}
         isStopping={mockData.notebookState.isStopping}
@@ -142,9 +133,11 @@ describe('Start Notebook modal', () => {
 
     // Validate the header contents
     const header = screen.getByTestId('notebook-status-modal-header');
-    expect(header).toHaveTextContent('Test Workbench statusStarting');
+    const heading = within(header).getByRole('heading');
+    expect(within(heading).getByText('Test Workbench status', { exact: true })).toBeInTheDocument();
+    expect(within(heading).getByTestId('notebook-status-text')).toHaveTextContent(/^Starting$/);
     expect(within(header).getByTestId('notebook-status-modal-description')).toHaveTextContent(
-      workbenchDescription,
+      /^Workbench status$/,
     );
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
@@ -164,11 +157,16 @@ describe('Start Notebook modal', () => {
     expect(steps[6]).toHaveTextContent('Workbench started');
   });
 
-  it('should not show a description for a whitespace-only workbench description', () => {
+  it('should display the workbench name, status badge, and resource-type description', () => {
     const mockData = mockInitialStates;
+    const description = 'Workbench for testing model development';
+    const notebook = structuredClone(mockData.notebookState.notebook);
+    notebook.metadata.annotations ??= {};
+    notebook.metadata.annotations['openshift.io/description'] = description;
+
     render(
       <StartNotebookModal
-        notebook={getNotebookWithDescription('   ')}
+        notebook={notebook}
         notebookStatus={mockData.notebookStatus}
         isStarting={mockData.notebookState.isStarting}
         isStopping={mockData.notebookState.isStopping}
@@ -178,7 +176,14 @@ describe('Start Notebook modal', () => {
       />,
     );
 
-    expect(screen.queryByTestId('notebook-status-modal-description')).not.toBeInTheDocument();
+    const header = screen.getByTestId('notebook-status-modal-header');
+    const heading = within(header).getByRole('heading');
+    expect(within(heading).getByText('Test Workbench status', { exact: true })).toBeInTheDocument();
+    expect(within(heading).getByTestId('notebook-status-text')).toHaveTextContent(/^Starting$/);
+    expect(within(header).getByTestId('notebook-status-modal-description')).toHaveTextContent(
+      /^Workbench status$/,
+    );
+    expect(within(header).queryByText(description)).not.toBeInTheDocument();
   });
 
   it('should show failed notebook startup status', async () => {
@@ -257,6 +262,10 @@ describe('Start Notebook modal', () => {
     // Validate the header contents
     const header = screen.getByTestId('notebook-status-modal-header');
     expect(header).toHaveTextContent('Test Workbench statusReady');
+    expect(screen.queryByTestId('notebook-latest-status')).not.toBeInTheDocument();
+    expect(
+      within(header).queryByTestId('notebook-status-modal-description'),
+    ).not.toBeInTheDocument();
 
     // 8 top-level steps (pvc_attached surfaced by event); sub-steps collapsed, all SUCCESS.
     const stepper = screen.getByTestId('notebook-startup-steps');
@@ -313,6 +322,9 @@ describe('Start Notebook modal', () => {
 
     const statusLabel = screen.getByTestId('notebook-latest-status');
     expect(statusLabel).toHaveTextContent('Attempt 2');
+    expect(screen.getByTestId('notebook-status-modal-description')).toHaveTextContent(
+      /^Workbench status$/,
+    );
   });
 
   it('should show only queue position in modal header when queue position is available', () => {

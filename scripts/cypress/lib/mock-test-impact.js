@@ -205,7 +205,12 @@ const planMockTestImpact = ({ groups, changes, dependencyIndex }) => {
   };
 };
 
-const buildDependencyIndex = ({ root, specs, supportFile = SUPPORT_FILE }) => {
+const buildDependencyIndex = ({
+  root,
+  specs,
+  supportFile = SUPPORT_FILE,
+  compilerOptions = {},
+}) => {
   // TypeScript's resolver understands workspace exports and package symlinks.
   // Load it lazily so pure planner tests do not need an installed workspace.
   // eslint-disable-next-line global-require
@@ -221,6 +226,7 @@ const buildDependencyIndex = ({ root, specs, supportFile = SUPPORT_FILE }) => {
     resolveJsonModule: true,
     target: ts.ScriptTarget.ES2022,
     jsx: ts.JsxEmit.ReactJSX,
+    ...compilerOptions,
   };
   const cache = ts.createModuleResolutionCache(canonicalRoot, (value) => value, options);
 

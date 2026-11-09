@@ -1,13 +1,14 @@
 name: Fullsend Jira code poll
 
 # Pilot: a person on the jira write list in .fullsend/config.yaml starts the
-# Fullsend code agent on a RHOAIENG dashboard issue by adding ready-to-code or
-# commenting /fs-code. The agent opens a PR in this repository. Guide:
+# Fullsend code agent on a RHAI or RHOAIENG dashboard issue by adding
+# ready-to-code or commenting /fs-code. The agent opens a PR in this
+# repository. Guide:
 # https://github.com/fullsend-ai/fullsend/blob/v0.54.0/docs/guides/user/jira-integration.md
 #
 # To turn it on: create a dedicated Jira account (the token owner's own actions
 # never start a run) with Browse Projects, Edit Issues, Add Comments and Edit
-# Own Comments on RHOAIENG. Store its email and token as the
+# Own Comments on RHAI and RHOAIENG. Store its email and token as the
 # FULLSEND_JIRA_BOT_EMAIL and FULLSEND_JIRA_BOT_TOKEN secrets, then set the
 # variable FULLSEND_JIRA_CODE_ENABLED to "true" (anything else stops it).
 #
@@ -70,20 +71,21 @@ jobs:
           tar -xzf "${dir}/${FULLSEND_ARCHIVE}" -C "${dir}" fullsend
           echo "${dir}" >> "${GITHUB_PATH}"
 
-      - name: Poll RHOAIENG issues
+      - name: Poll RHAI and RHOAIENG issues
         env:
           JIRA_TOKEN: ${{ secrets.FULLSEND_JIRA_BOT_TOKEN }}
           JIRA_USER_EMAIL: ${{ secrets.FULLSEND_JIRA_BOT_EMAIL }}
           JIRA_BASE_URL: https://redhat.atlassian.net
           TARGET_REPO: ${{ github.repository }}
-          # Open dashboard Stories, Tasks and Bugs outside the jira-autofix
-          # flow, updated in the last day, that have ready-to-code or mention
+          # Open dashboard Stories, Tasks and Bugs in RHAI (where new issues
+          # go) or RHOAIENG (being retired), outside the jira-autofix flow,
+          # updated in the last day, that have ready-to-code or mention
           # fs-code in a comment. The poller only processes 5 random
           # candidates per run, so the list has to stay short; the label or
           # the /fs-code comment, from someone on the write list, is what
           # actually starts a run.
           JQL: >-
-            project = RHOAIENG
+            project in (RHAI, RHOAIENG)
             AND component = "AI Core Dashboard"
             AND issuetype in (Story, Task, Bug)
             AND (labels = "ready-to-code" OR comment ~ "\"fs-code\"")
@@ -94,11 +96,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # No --jira-project: it takes one key and is only read for Jira
+          # project roles, which this setup never uses (the jira write list
+          # with labels: allowlist decides who may start a run).
           [[ -n "${JIRA_TOKEN}" && -n "${JIRA_USER_EMAIL}" ]] || { echo 'Configure FULLSEND_JIRA_BOT_TOKEN and FULLSEND_JIRA_BOT_EMAIL Actions secrets.' >&2; exit 1; }
           fullsend poll \
             --input-driver jira-poll \
             --jira-url "${JIRA_BASE_URL}" \
-            --jira-project RHOAIENG \
             --jql "${JQL}" \
             --target-repo "${TARGET_REPO}" \
             --output dispatches.json \

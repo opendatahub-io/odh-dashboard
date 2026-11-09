@@ -57,12 +57,14 @@ describe('Core BFF Operator Subscription Status - OpenShift Platform', () => {
     expect({ status: error.status, data: error.data, headers: error.headers }).toMatchContract(
       apiSchema,
       {
-        ref: '#/components/schemas/ErrorResponse',
+        ref: '#/components/schemas/MessageErrorResponse',
         status: 404,
       },
     );
     expect(error.data).toMatchObject({
-      error: { code: 'NOT_FOUND' },
+      code: 'NOT_FOUND',
+      message: 'the requested resource could not be found',
+      error: 'the requested resource could not be found',
     });
   });
 

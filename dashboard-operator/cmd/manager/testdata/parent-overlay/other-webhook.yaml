@@ -1,0 +1,23 @@
+# An unrelated cert-manager-backed webhook in the same parent overlay. The
+# dashboard wiring must not rewrite its inject-ca-from annotation.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: other-validating-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: other-ns/other-cert
+webhooks:
+  - name: validate.other.example.com
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: other-webhook-service
+        namespace: other-ns
+        path: /validate
+    rules:
+      - apiGroups: ["example.com"]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["others"]

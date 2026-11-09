@@ -60,6 +60,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           install-dependencies: 'false'
 
+      - name: Test module federation port validator
+        run: pnpm run test:validate-ports
+
       - name: Validate module federation ports
         run: pnpm run validate:ports
 
