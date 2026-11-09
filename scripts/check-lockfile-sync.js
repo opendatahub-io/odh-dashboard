@@ -2,10 +2,9 @@
 /**
  * Lockfile sync check: verify that runtime-shared packages resolve to a single
  * version across all workspace importers. Catches the monaco-editor class of
- * bug where a dependency bump updates some workspaces but not others, leaving
- * multiple resolved versions where module federation shares them at runtime.
+ * bug where a dependency bump updates some workspaces but not others.
  *
- * Usage: node scripts/check-lockfile-sync.js [--quiet]
+ * Usage: node scripts/check-lockfile-sync.js
  * Exit 0 = all synced, exit 1 = mismatches found.
  */
 const fs = require('fs');
@@ -14,8 +13,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 
 // Packages that MUST be single-version because they are shared at runtime
-// via module federation singletons or window globals. Add to this list when
-// a new runtime-shared dependency is introduced.
+// via module federation singletons or window globals.
 const CRITICAL_PACKAGES = [
   'monaco-editor',
   '@patternfly/patternfly',
@@ -32,49 +30,60 @@ const CRITICAL_PACKAGES = [
 ];
 
 function parseLockfileImporters(lockfilePath) {
-  const content = fs.readFileSync(lockfilePath, 'utf8');
+  const lines = fs.readFileSync(lockfilePath, 'utf8').split('\n');
   const importers = {};
   let currentImporter = null;
   let inDependencies = false;
+  let lastPackageName = null;
 
-  for (const line of content.split('\n')) {
-    // Importer sections start with 2-space-indented paths
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Importer sections start with 2-space-indented paths (e.g., "  frontend:" or "  packages/foo:")
     const importerMatch = line.match(/^  (\S+):$/);
     if (importerMatch) {
       currentImporter = importerMatch[1];
       importers[currentImporter] = {};
       inDependencies = false;
+      lastPackageName = null;
       continue;
     }
 
     // Dependencies section within an importer
     if (currentImporter && line.match(/^    dependencies:$/)) {
       inDependencies = true;
+      lastPackageName = null;
       continue;
     }
     if (currentImporter && line.match(/^    devDependencies:$/)) {
       inDependencies = false;
-      continue;
-    }
-    // End of importer section (next 2-space indent)
-    if (line.match(/^  \S/) || line.match(/^\S/)) {
-      currentImporter = null;
-      inDependencies = false;
+      lastPackageName = null;
       continue;
     }
 
-    // Parse dependency entries
+    // End of importer section (any line at 2-space or less indent that's not a dep entry)
+    if (currentImporter && !inDependencies && line.match(/^  \S/) && !line.match(/^      /)) {
+      currentImporter = null;
+      lastPackageName = null;
+      continue;
+    }
+
+    // Package name entry: 6-space indented, may be quoted for scoped packages
+    // e.g., "      react:" or "      '@patternfly/react-core':"
     if (currentImporter && inDependencies) {
-      const depMatch = line.match(/^      (\S+):$/);
-      if (depMatch) {
-        const pkgName = depMatch[1];
-        // Next line has the version
-        const nextLines = content
-          .substring(content.indexOf(line) + line.length)
-          .split('\n');
-        const versionMatch = nextLines[0]?.match(/^        version: (.+)$/);
+      const pkgMatch = line.match(/^      '?([^':]+)'?:$/);
+      if (pkgMatch) {
+        lastPackageName = pkgMatch[1];
+        continue;
+      }
+
+      // Version line: 8-space indented, follows the specifier line
+      // e.g., "        version: 18.3.1"
+      if (lastPackageName) {
+        const versionMatch = line.match(/^        version: (.+)$/);
         if (versionMatch) {
-          importers[currentImporter][pkgName] = versionMatch[1].trim();
+          importers[currentImporter][lastPackageName] = versionMatch[1].trim();
+          lastPackageName = null;
         }
       }
     }
