@@ -20,6 +20,7 @@ import (
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/clusterdiscovery"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	genaitypes "github.com/opendatahub-io/gen-ai/internal/types"
@@ -1528,10 +1529,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 // otherwise falls back to the BFF's own OTEL_EXPORTER_OTLP_ENDPOINT env var.
 func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 	if kc.otelConfigManager != nil && kc.otelConfigManager.collectorNamespace != "" {
-		return fmt.Sprintf("http://%s-collector.%s.svc:4318",
-			constants.GenAICollectorName,
-			kc.otelConfigManager.collectorNamespace,
-		)
+		return clusterdiscovery.GenAICollectorEndpoint(kc.otelConfigManager.collectorNamespace)
 	}
 	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 }

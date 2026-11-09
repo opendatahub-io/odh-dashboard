@@ -22,12 +22,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/clusterdiscovery"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 )
 
@@ -36,7 +35,6 @@ const (
 	asgiSpanFilterProcessor = "filter/drop-asgi-events"
 
 	collectorPatchTimeout = 15 * time.Second
-	crDiscoveryTimeout    = 10 * time.Second
 
 	// Reuse the platform collector's SA so the gen-ai collector inherits its
 	// MLflow integration ClusterRoleBinding without needing additional RBAC.
@@ -83,33 +81,25 @@ func mlflowCollectorExporterEndpoint(mlflowServiceURL string) string {
 //
 // The manager creates/patches its own "gen-ai-trace-collector" CR in that
 // namespace, avoiding conflicts with the operator-managed platform collector.
-func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x509.CertPool) (*otelConfigManager, error) {
-	restCfg, err := rest.InClusterConfig()
+func newOTelConfigManager(ctx context.Context, logger *slog.Logger, cfg config.EnvConfig, rootCAs *x509.CertPool) (*otelConfigManager, error) {
+	dynClient, restCfg, err := clusterdiscovery.NewClient()
 	if err != nil {
-		loadedCfg, loadErr := clientcmd.NewDefaultClientConfigLoadingRules().Load()
-		if loadErr != nil {
-			return nil, fmt.Errorf("failed to get cluster config (in-cluster and kubeconfig both failed): %w", loadErr)
-		}
-		restCfg, err = clientcmd.NewDefaultClientConfig(*loadedCfg, &clientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to build kubeconfig client config: %w", err)
-		}
+		return nil, err
 	}
 
-	dynClient, err := dynamic.NewForConfig(restCfg)
+	// Playground provisioning requires the platform collector's namespace
+	// and service account, even when a gen-ai collector already exists.
+	collectors, err := clusterdiscovery.DiscoverCollectors(ctx, dynClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client for collector management: %w", err)
+		return nil, err
 	}
-
-	// Discover the namespace where the platform collector runs.
-	// We create our own collector CR in the same namespace.
-	collectorNS, _, discoverErr := discoverCollectorCR(dynClient, logger, constants.PlatformCollectorName)
-	if discoverErr != nil {
-		logger.Info("platform OpenTelemetryCollector CR not found, trace route management disabled", "error", discoverErr)
+	collectorNS := collectors.PlatformNamespace
+	if collectorNS == "" {
+		logger.Info("platform OpenTelemetryCollector CR not found, trace route management disabled")
 		return nil, nil
 	}
 
-	mlflowURL, err := mlflow.DiscoverMLflowURL()
+	mlflowURL, err := mlflow.DiscoverMLflowURLWithClient(ctx, dynClient)
 	if err != nil {
 		logger.Warn("MLflow CR not found, trace route management disabled", "error", err)
 		return nil, nil
@@ -151,29 +141,6 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x5
 			},
 		},
 	}, nil
-}
-
-// discoverCollectorCR lists OpenTelemetryCollector CRs across all namespaces
-// and returns the namespace and name of the first one matching targetName.
-// Used to locate the platform "data-science-collector" CR so we know which
-// namespace to create our gen-ai collector CR in.
-func discoverCollectorCR(dynClient dynamic.Interface, logger *slog.Logger, targetName string) (string, string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
-	defer cancel()
-
-	list, err := dynClient.Resource(constants.OTelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return "", "", fmt.Errorf("failed to list OpenTelemetryCollector CRs for platform collector discovery: %w", err)
-	}
-
-	for _, item := range list.Items {
-		if item.GetName() == targetName {
-			logger.Info("auto-discovered platform collector CR", "name", item.GetName(), "namespace", item.GetNamespace())
-			return item.GetNamespace(), item.GetName(), nil
-		}
-	}
-
-	return "", "", fmt.Errorf("no platform collector CR named %q found in any namespace", targetName)
 }
 
 // EnsureRoute idempotently adds a routing connector entry, per-namespace

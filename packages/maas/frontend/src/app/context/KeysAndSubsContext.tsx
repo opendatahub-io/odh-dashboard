@@ -3,7 +3,7 @@ import React from 'react';
 import { UserSubscription } from '~/app/types/subscriptions';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
-import { searchTenantApiKeys } from '~/app/api/api-keys';
+import { searchApiKeysForCurrentHost } from '~/app/api/api-keys';
 import { useAppContext } from '~/app/context/AppContext';
 import { useApiKeyConfig } from '~/app/hooks/useApiKeyConfig';
 import { useMaaSGatewayUrl } from '~/app/hooks/useMaaSGatewayUrl';
@@ -53,7 +53,7 @@ export const KeysAndSubsProvider: React.FC<KeysAndSubsProviderProps> = ({ childr
 
   const hasAnyApiKeysCallback = React.useCallback<FetchStateCallbackPromise<boolean>>(
     (opts: APIOptions) =>
-      searchTenantApiKeys()(opts, {
+      searchApiKeysForCurrentHost()(opts, {
         pagination: { limit: 1 },
       }).then((result) => result.data.length > 0),
     [],

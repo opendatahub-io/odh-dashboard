@@ -32,6 +32,10 @@ class ChooseCollectionPage {
     return this.findCollectionCard(collectionId).findByTestId('use-benchmark-suite-button');
   }
 
+  findCuratedSuiteRunModal() {
+    return cy.findByTestId('curated-suite-start-evaluation-run-modal');
+  }
+
   findCustomizeBenchmarkSuiteButton(collectionId: string) {
     return this.findCollectionCard(collectionId).findByTestId('customize-benchmark-suite-button');
   }

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
+import { ConnectionApiError } from '~/app/api/dch';
 import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import ConnectionTypesTab from '~/app/pages/ConnectionTypesTab';
@@ -181,5 +182,19 @@ describe('ConnectionTypesTab', () => {
 
     expect(screen.getByText('Connection types request failed')).toBeTruthy();
     expect(screen.queryByText('Get started with data connection types')).toBeNull();
+  });
+
+  it('should show the unauthorized state when loading connection types is forbidden', () => {
+    mockUseConnectionTypes.mockReturnValue([
+      [],
+      false,
+      new ConnectionApiError('Access forbidden', 403),
+    ]);
+
+    renderTab();
+
+    expect(screen.getByTestId('unauthorized-error')).toBeTruthy();
+    expect(screen.getByTestId('unauthorized-error-title')).toBeTruthy();
+    expect(screen.queryByText('Unable to load data connection types')).toBeNull();
   });
 });

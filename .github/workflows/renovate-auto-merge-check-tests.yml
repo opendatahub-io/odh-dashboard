@@ -1,0 +1,38 @@
+---
+# yamllint disable rule:line-length
+# Tests for .github/scripts/renovate-automerge-check.js, the gate that decides
+# whether a Renovate PR gets Tide's lgtm/approved. A regression here silently
+# widens what auto-merges, so the suite runs on every change to the checker.
+name: Renovate auto-merge check tests
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    paths:
+      - '.github/scripts/renovate-automerge-check.js'
+      - '.github/scripts/__tests__/**'
+      - '.github/renovate.json5'
+      - '.github/workflows/renovate-auto-merge.yml'
+      - '.github/workflows/renovate-auto-merge-check-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      # The checker parses pnpm-lock.yaml with yq and the workflow relies on it
+      # being preinstalled. Assert that here so a runner image change fails
+      # loudly instead of leaving the npm cases silently skipped.
+      - name: Verify yq is available
+        run: yq --version
+
+      - name: Run checker tests
+        run: node --test .github/scripts/__tests__/*.test.js

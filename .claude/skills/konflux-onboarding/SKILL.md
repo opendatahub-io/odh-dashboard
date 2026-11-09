@@ -68,12 +68,13 @@ Parse from `$ARGUMENTS`:
    [ -d "packages/${COMPONENT_NAME}" ] && echo "  Package: OK" || echo "  Package: MISSING"
 
    # Check 2: Feature flag registered
-   CAMEL_CASE=$(echo "$COMPONENT_NAME" | sed -E 's/-([a-z])/\U\1/g')
-   grep -q "${CAMEL_CASE}" frontend/src/k8sTypes.ts 2>/dev/null && echo "  Feature flag: OK" || echo "  Feature flag: MISSING"
+   # Portable camelCase (BSD sed on macOS has no \U)
+   CAMEL_CASE=$(echo "$COMPONENT_NAME" | awk -F- '{printf "%s", $1; for (i = 2; i <= NF; i++) printf "%s", toupper(substr($i, 1, 1)) substr($i, 2)}')
+   grep -q "${CAMEL_CASE}?: boolean" packages/k8s-core/src/k8sTypes.ts 2>/dev/null && echo "  Feature flag: OK" || echo "  Feature flag: MISSING"
 
    # Check 3: SupportedArea registered
    UPPER_SNAKE=$(echo "$COMPONENT_NAME" | tr '[:lower:]-' '[:upper:]_')
-   grep -q "PLUGIN_${UPPER_SNAKE}" frontend/src/concepts/areas/types.ts 2>/dev/null && echo "  SupportedArea: OK" || echo "  SupportedArea: MISSING"
+   grep -q "PLUGIN_${UPPER_SNAKE}" packages/plugin-core/src/areas/types.ts 2>/dev/null && echo "  SupportedArea: OK" || echo "  SupportedArea: MISSING"
 
    ```
 
@@ -104,13 +105,15 @@ Parse from `$ARGUMENTS`:
    - Type A: `odh-mod-arch-<name>` (e.g., `odh-mod-arch-gen-ai`)
    - Type B: `odh-<name>` (e.g., `odh-dashboard-operator`)
 
+   Validate the answer before using it: it must match `^odh-[a-z0-9]+(-[a-z0-9]+)*$` (the DevOps `component_name` rule). It must also be unused by another component. In `ci-operator/config/opendatahub-io/odh-dashboard/opendatahub-io-odh-dashboard-main.yaml` (openshift/release), check the `IMAGE_REPO` values and the Phase 5 identifiers derived from the name: `<image>-image` against `images.items[].to`, and `<image>-pr-image-mirror` / `<image>-image-mirror` against `tests[].as`. Then check the existing `Dockerfile.konflux.*` labels downstream. For example, `odh-mod-arch-modular-architecture` already belongs to model-registry, so a default derived from a module named `modular-architecture` would overwrite its `:main` image. Reuse a name only for the same component. If either check fails, ask for another name. Record the answer as `<image>`. Every later identifier derives from it: the downstream Dockerfile labels (`<image>-container`, `managed-open-data-hub/<image>-rhel9`), the DevOps handoff, and the ProdSec registration key `rhoai/<image>-rhel9`.
+
 ## Phase 1: Clone Tracking Epic
 
 **Goal**: Create a Jira epic in `RHAI` to track the full onboarding workflow by cloning the [RHOAIENG-37060](https://issues.redhat.com/browse/RHOAIENG-37060) template epic (the template lives in legacy `RHOAIENG` — clone cross-project, do not create the new epic there) and all its subtasks.
 
 Skip if: `--skip-jira` flag is set.
 
-If `--jira <EPIC-KEY>` was provided, use that existing epic and skip to Phase 2.
+If `--jira <EPIC-KEY>` was provided, use that existing epic and skip to Phase 2. Epics created before the ProdSec step have only 8 subtasks, so first check for a `Register image as a ProdSec pscomponent` subtask and create it (subtask 9 in Step 1b) if it is missing. Phases 6 and 7 record progress on it.
 
 ### Step 1a: Create the Parent Epic
 
@@ -129,7 +132,7 @@ additional_fields={
 }
 ```
 
-### Step 1b: Create All 8 Subtasks
+### Step 1b: Create All 9 Subtasks
 
 Create the following subtasks under the new epic.
 
@@ -147,6 +150,7 @@ Create the following subtasks under the new epic.
 | 6 | `<name>: Create Standalone Module Manifests` | Major | Create standalone deployment manifests in `manifests/modules/<name>/`. Partially automated by `/konflux-onboarding` Phase 4 (Type A only). |
 | 7 | `<name>: Onboard Module in Operator` | Major | Register the module in `dashboard-operator/internal/controller/modules.go` with all fields and update test assertions in `modules_test.go` and `charts/dashboard/values.yaml`. Proxy paths and imagesMap entries are read from the registry (single source of truth). The **opendatahub-operator** also needs a one-line addition to `relatedImages()` in `internal/controller/modules/dashboard/support.go` — open a PR and request review in `#ai-core-platform-requests` Slack channel. |
 | 8 | `<name>: Track & Verify RHOAI Konflux Onboarding` | Major | Track RHOAI Konflux component onboarding (downstream Quay, release pipeline, Renovate). Automated by DevOps CI. |
+| 9 | `<name>: Register image as a ProdSec pscomponent` | Major | Register `rhoai/<image>-rhel9` with ProdSec before the first release, so CVE `SecurityTracking` tickets are generated for it. Not done by the DevOps automation. See Phase 6 § ProdSec registration. |
 
 For each subtask:
 
@@ -229,27 +233,66 @@ Skip if: `--skip-downstream` flag.
 
 Generate `Dockerfile.konflux.<name>` content for the `red-hat-data-services/odh-dashboard` repo root.
 
+**Before reading anything downstream**, run steps 1–2 of [§ Pushing to the Downstream Repo](#pushing-to-the-downstream-repo): identify `$DOWNSTREAM_REMOTE`, ask for the target RHOAI version to set `$TARGET_BRANCH`, and fetch that branch. The base-image and template reads below depend on both.
+
+### Base images (all types)
+
+Take base images from a module that already ships on the target branch, not from a fresh `:latest` lookup. MintMaker keeps the downstream digests current, including security rebuilds of UBI (for example the eMudhra CA remediation, RHSB-2026-012):
+
+```bash
+REF_DOCKERFILE=$(git ls-tree --name-only "$DOWNSTREAM_REMOTE/$TARGET_BRANCH" | grep -x 'Dockerfile.konflux.data-connect-hub' \
+  || git ls-tree --name-only "$DOWNSTREAM_REMOTE/$TARGET_BRANCH" | grep -E '^Dockerfile\.konflux\.' | grep -vE '\.(core-bff|dashboard-operator|sealights)$|^Dockerfile\.konflux$' | head -1)
+git show "$DOWNSTREAM_REMOTE/$TARGET_BRANCH:$REF_DOCKERFILE" | grep -E '^ARG .*_BASE_IMAGE='
+```
+
+`$REF_DOCKERFILE` is the reference for the rest of this phase: `Dockerfile.konflux.data-connect-hub` when the branch ships it, otherwise another shipped module's Dockerfile. If it comes back empty, no module ships on the branch yet; use the `skopeo` fallback below.
+
+- Builders: `registry.access.redhat.com/ubi9/nodejs-22@sha256:…` and `registry.access.redhat.com/ubi9/go-toolset:<go>@sha256:…`
+- Runtime: `registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:…`. Every shipped dashboard image uses the PQC variant; do not use plain `ubi9-minimal` downstream.
+- Never use Docker Hub, `gcr.io/distroless` or unpinned tags downstream.
+- Check the copied Go builder against the component's `go.mod`. If its Go version is lower than the one `go.mod` requires, use another shipped module's compatible pin, or resolve a pinned `go-toolset:<go-minor>@sha256:…` digest with `skopeo inspect`. Never fall back to an unpinned tag.
+- If the target branch has no module yet (`$REF_DOCKERFILE` is empty), resolve the same repositories with `skopeo inspect` (see [references/dockerfile-templates.md](references/dockerfile-templates.md) § SHA Digest Management). For Type A build structure, start from the downstream Type A snapshot in that reference and adapt it to the package's `Dockerfile.workspace` as described below.
+
 ### Type A
 
-Based on the upstream `Dockerfile.workspace`, generate a downstream variant with:
-- SHA-pinned base images (use `skopeo inspect` to get current digests, or use placeholder `@sha256:<digest>`)
-- Red Hat labels on the final stage
-- Same FIPS flags as upstream (already uses `CGO_ENABLED=1 -tags strictfipsruntime`)
+Combine two sources:
+
+- **From `$REF_DOCKERFILE` (the shipped module Dockerfile picked above, normally `Dockerfile.konflux.data-connect-hub`):** pinned base images, Hermeto/offline install flags (`pnpm install --offline`, `CYPRESS_INSTALL_BINARY=0`, the `prefetch/pnpm` bootstrap), the shared-package and `pkg/tls` `COPY` lines, and the label set.
+- **From the package's own `Dockerfile.workspace`:** its source layout (`UI_SOURCE_CODE` / `BFF_SOURCE_CODE`), any extra `COPY` or build steps, and whether a BFF stage exists at all. For example, `model-registry` builds from `upstream/frontend` and `upstream/bff` with a separate npm frontend install. A UI-only package has no BFF stages, so drop them.
+
+A matching directory layout does not make the build steps interchangeable. Always diff the package's `Dockerfile.workspace` against the reference and keep its extra inputs. For example, `gen-ai` has the same `frontend` + `bff` layout as `data-connect-hub` but also copies `openapi/` into the BFF stage and the final image, and needs extra frontend dependencies. Either way:
+
+- Base images as above
+- Labels use `<image>` from Phase 0 (default `odh-mod-arch-<name>`), not the bare module name:
+
+  ```dockerfile
+  LABEL com.redhat.component="<image>-container" \
+        name="managed-open-data-hub/<image>-rhel9" \
+        description="<image>" \
+        summary="<image>" \
+        maintainer="['managed-open-data-hub@redhat.com']" \
+        io.openshift.expose-services="" \
+        io.k8s.display-name="<image>" \
+        io.k8s.description="<image>" \
+        com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
+  ```
+
+The Dockerfile `name` label (`managed-open-data-hub/<image>-rhel9`) and the ProdSec registration key (`rhoai/<image>-rhel9`, Jira label `pscomponent:rhoai/<image>-rhel9`) are different identifiers that share the `<image>-rhel9` image name. Phase 6 uses the registration key.
 
 See [references/dockerfile-templates.md](references/dockerfile-templates.md) § Downstream Type A.
 
 ### Type B
 
 Generate from the upstream Dockerfile with these changes:
-- Builder: `registry.redhat.io/ubi9/go-toolset:<version>@sha256:<digest>` (not Docker Hub `golang:`)
+- Builder: `registry.access.redhat.com/ubi9/go-toolset:<version>@sha256:<digest>` (not Docker Hub `golang:`)
 - Add `USER root` after FROM in builder stage (go-toolset runs non-root by default)
 - Build flags: `CGO_ENABLED=1 GOOS=linux go build -a -ldflags="-s -w" -tags strictfipsruntime`
-- Runtime: `registry.access.redhat.com/ubi9/ubi-minimal@sha256:<digest>` (SHA-pinned)
+- Runtime: `registry.redhat.io/ubi9/ubi-minimal-pqc@sha256:<digest>` (SHA-pinned, same digest as the other dashboard images on the branch)
 - Red Hat labels on final stage:
 
   ```dockerfile
-  LABEL com.redhat.component="odh-<name>-container" \
-        name="managed-open-data-hub/odh-<name>-rhel9" \
+  LABEL com.redhat.component="<image>-container" \
+        name="managed-open-data-hub/<image>-rhel9" \
         summary="ODH <Display Name>" \
         description="<Description> for Red Hat OpenShift AI" \
         io.k8s.display-name="ODH <Display Name>" \
@@ -333,7 +376,11 @@ For Type A packages, check if `manifests/modules/<name>/` exists. If not, scaffo
 - `kustomization.yaml` — Kustomize entry referencing all resources
 - `params.env` — Kustomize parameter defaults (image reference)
 
-Reference existing modules in `manifests/modules/` (e.g., `gen-ai/`, `model-registry/`) for the exact patterns and field values.
+Reference existing modules in `manifests/modules/` (e.g., `data-connect-hub/`, `gen-ai/`) for the exact patterns and field values. The container/Service port is `module-federation.service.port` from `packages/<name>/package.json`.
+
+Then register the directory in `manifests/modules/kustomization.yaml` (`resources` list).
+
+If the module's ClusterRole (or any Role it ships) grants verbs/resources the dashboard-operator itself does not hold, Kubernetes RBAC escalation prevention will reject it when the operator applies it. Widen the operator's RBAC in both `dashboard-operator/charts/dashboard/templates/rbac.yaml` and `dashboard-operator/config/rbac/role.yaml` in the same PR.
 
 ## Phase 5: OpenShift CI
 
@@ -373,7 +420,7 @@ Read the existing file and add entries for the new component following the exist
    ```yaml
    - context_dir: .
      dockerfile_path: ./packages/<name>/Dockerfile.workspace
-     to: odh-mod-arch-<name>-image
+     to: <image>-image
    ```
 
    For Type B:
@@ -381,36 +428,36 @@ Read the existing file and add entries for the new component following the exist
    ```yaml
    - context_dir: .
      dockerfile_path: ./<name>/Dockerfile
-     to: odh-<name>-image
+     to: <image>-image
    ```
 
 2. **PR image mirror test** — add to `tests[]`:
 
    ```yaml
-   - as: odh-<image-name>-pr-image-mirror
+   - as: <image>-pr-image-mirror
      steps:
        dependencies:
-         SOURCE_IMAGE_REF: odh-<image-name>-image
+         SOURCE_IMAGE_REF: <image>-image
        env:
-         IMAGE_REPO: odh-<image-name>
+         IMAGE_REPO: <image>
        workflow: opendatahub-io-ci-image-mirror
    ```
 
 3. **Postsubmit image mirror test** — add to `tests[]`:
 
    ```yaml
-   - as: odh-<image-name>-image-mirror
+   - as: <image>-image-mirror
      postsubmit: true
      steps:
        dependencies:
-         SOURCE_IMAGE_REF: odh-<image-name>-image
+         SOURCE_IMAGE_REF: <image>-image
        env:
-         IMAGE_REPO: odh-<image-name>
+         IMAGE_REPO: <image>
          RELEASE_VERSION: main
        workflow: opendatahub-io-ci-image-mirror
    ```
 
-For Type A, `<image-name>` is `mod-arch-<name>`. For Type B, `<image-name>` is `dashboard-<name>` (or just the component name if it already has a clear prefix like `dashboard-operator`).
+Every name here derives from the Phase 0 `<image>` (defaults `odh-mod-arch-<name>` for Type A, `odh-<name>` for Type B), so the build output `<image>-image` is the image the mirror steps reference.
 
 Match the naming pattern of existing entries in the file.
 
@@ -509,15 +556,23 @@ Read the file and find the `moduleRegistry` map. Add a new entry with all requir
     Port:                    <production-service-port>,
     ImageEnvVar:             "RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE",
     ManifestSlug:            "<name>",
+    TLS:                     true,
+    ProxyPaths: []proxyRoute{
+        {Path: "/<name>/api", PathRewrite: "/api"},
+        {Path: "/<name>/healthcheck", PathRewrite: "/healthcheck"},
+    },
     RequiredDSCComponents:   []string{<dsc-components>},
     InterModuleDependencies: []string{<dependencies>},
 },
 ```
 
+`TLS: true` is set by every current module. Derive `ProxyPaths` from the package's actual `module-federation.proxy` entries (each `path` and `pathRewrite`): the values above match the installer scaffold (API + healthcheck), but packages with custom routes need their own, for example MLflow's `/_bff/mlflow/api`. Omit the field only when the proxy is exactly the operator default, `/<ManifestSlug>/api` → `/api`.
+
 The production service port is in `packages/<name>/package.json` at `module-federation.service.port`. If `RequiredDSCComponents` or `InterModuleDependencies` are empty, omit them entirely.
 
 Optional fields (only needed for non-standard modules):
-- `ProxyPaths`: set if the module uses a non-standard proxy path (not `/<ManifestSlug>/api` → `/api`)
+- `ProxyPaths`: defaults to `/<ManifestSlug>/api` → `/api` when nil
+- `RequiredByMaaSPortal`: set if the MaaS Portal operand needs this module
 - `InterBFFDeps`: set if this module's BFF needs to call another module's BFF service
 
 **No changes needed** to `module_deploy.go` (proxy paths read from `ModuleDefinition`) or `support.go` (image map auto-generated from registry).
@@ -526,9 +581,12 @@ Optional fields (only needed for non-standard modules):
 
 Read the file and update:
 
-1. `TestModuleRegistry` — increment the `assert.Len` count by 1 (e.g., from `8` to `9`)
+1. `TestModuleRegistry` — increment the `assert.Len` count by 1 (count the current entries in `moduleRegistry`; it was `11` after data-connect-hub)
 2. `TestModuleNames` — add `"<camelCase>"` to the expected sorted name list in the correct alphabetical position
-3. `TestResolveModuleStatuses` — update `wantLen` values: increment the standard case by 1 and the unknown-module case by 1
+3. `TestResolveModuleStatuses` — increment **every** `wantLen` value by 1 (each case resolves all registry modules)
+4. `TestProxyPathsFor` — add a case if the entry sets custom `ProxyPaths`
+
+Also add the slug to the module slug list in `dashboard-operator/internal/controller/federation_integration_test.go`. If the module's `RequiredDSCComponents` includes a component not yet in the `TestIntegration_FederationConfigMap_AllModulesEnabled` fixture, add it there with `ManagementState: "Managed"`. Otherwise the module is gated off and the all-modules assertion fails.
 
 ### Step 4: Helm chart related images — `dashboard-operator/charts/dashboard/values.yaml`
 
@@ -538,7 +596,7 @@ Read the file and find the `relatedImages:` section. Add an entry for the new mo
 RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE: ""
 ```
 
-Place it alphabetically among the existing `RELATED_IMAGE_ODH_MOD_ARCH_*` entries.
+Append it after the last `RELATED_IMAGE_ODH_MOD_ARCH_*` entry (the list is in onboarding order, not alphabetical).
 
 ### Step 5: Verify operator changes
 
@@ -569,7 +627,7 @@ This phase does **not** run the DevOps skill inline — the user should run it s
    2. Run for ODH:
       /create-component-onboarding-jira
       - Product: ODH
-      - Component name: odh-<name> (must start with "odh-")
+      - Component name: <image> (from Phase 0; must start with "odh-")
       - Repo URL: https://github.com/opendatahub-io/odh-dashboard
       - Branch: main
       - Dockerfile: <Type A: packages/<name>/Dockerfile.workspace, Type B: <name>/Dockerfile>
@@ -577,7 +635,7 @@ This phase does **not** run the DevOps skill inline — the user should run it s
    3. Run for RHOAI:
       /create-component-onboarding-jira
       - Product: RHOAI
-      - Component name: odh-<name>
+      - Component name: <image>
       - Repo URL: https://github.com/red-hat-data-services/odh-dashboard
       - Branch: (auto-derived from RHOAI version)
       - Dockerfile: Dockerfile.konflux.<name>
@@ -591,6 +649,20 @@ This phase does **not** run the DevOps skill inline — the user should run it s
    ```
 
 2. **Collect key details** the user will need for the DevOps skill runs and print them together for easy reference.
+
+### ProdSec registration
+
+The DevOps automation builds and releases the image but does not register it with ProdSec. CVE `SecurityTracking` tickets are only generated for images registered as a `pscomponent`, so an unregistered image silently misses CVE and security-bulletin work. This happened to `data-connect-hub` and `data-registry` during the eMudhra remediation.
+
+1. Tell the user to request registration of `rhoai/<image>-rhel9` (`<image>` from Phase 0; defaults `odh-mod-arch-<name>` for Type A, `odh-<name>` for Type B) in ProdSec's product definitions, through `#forum-aipcc`, before the first release that ships the image. Record the request on subtask 9.
+2. Before the first release, get ProdSec to confirm in the `#forum-aipcc` request that the key is registered, and record the confirmation on subtask 9. That confirmation is the release gate: the Jira query below returns nothing until a CVE affecting the image has been processed, so an empty result before then proves nothing.
+3. After the first downstream build, once ProdSec processes a CVE affecting the image, use this JQL to check that tracking tickets carry the label:
+
+   ```text
+   labels = "pscomponent:rhoai/<image>-rhel9"
+   ```
+
+   `<image>` is the Phase 0 value that the Dockerfile `name` label also uses. An empty result is evidence of missing registration only when the CVE is confirmed to affect this image, for example because the image ships the affected package and sibling images with the same dependency (such as `pscomponent:rhoai/odh-mod-arch-gen-ai-rhel9`) received tickets for it. In that case raise it in `#forum-aipcc`.
 
 Read [references/devops-integration.md](references/devops-integration.md) for the full integration guide including Q&A flow, schema validation, and troubleshooting.
 
@@ -609,6 +681,7 @@ If a tracking epic was created in Phase 1 (or provided via `--jira`), update eac
 - **Subtask 5** (OpenShift CI): Link to the `openshift/release` PR
 - **Subtask 6** (Standalone module manifests): Note whether manifests were created in `manifests/modules/<name>/` (Type A) or N/A (Type B)
 - **Subtask 7** (Operator): Link to the PR if operator registration was done in Phase 5a; note the opendatahub-operator change requires a separate PR reviewed via `#ai-core-platform-requests`
+- **Subtask 9** (ProdSec): Add the registration key requested, ProdSec's confirmation (or that it is still pending), and the Phase 6 JQL for later checks
 
 For subtasks covered by DevOps automation (2, 4, 8), add a comment noting they will be tracked via the DevOps onboarding flow after the user runs `/create-component-onboarding-jira`.
 
@@ -622,7 +695,7 @@ Print a final report:
 ### Component Classification
 - Type: A/B
 - Component: <name>
-- Image name: <image-name>
+- Image name: <image>
 
 ### Tracking Epic
 - Epic: <EPIC-KEY> (or "skipped")
@@ -635,6 +708,7 @@ Print a final report:
 - [ ] Standalone module manifests (`manifests/modules/<name>/`): created/already existed/skipped/N/A
 - [ ] OpenShift CI: PR created/skipped
 - [ ] Dashboard-operator registration: done/already registered/skipped/N/A
+- [ ] ProdSec pscomponent registration: requested/confirmed by ProdSec/pending
 - [ ] Jira subtasks updated: yes/skipped
 
 ### Files Created/Modified
@@ -650,4 +724,5 @@ Print a final report:
 7. Verify opendatahub+openshift_ci robot account has push on Quay repo
 8. Open a PR against `opendatahub-io/opendatahub-operator` adding `RELATED_IMAGE_ODH_MOD_ARCH_<UPPER_SNAKE>_IMAGE` to `relatedImages()` in `internal/controller/modules/dashboard/support.go`, then request review in `#ai-core-platform-requests` Slack channel
 9. Verify first build succeeds end-to-end (both ODH and RHOAI)
+10. Request ProdSec `pscomponent` registration in `#forum-aipcc` for `rhoai/<image>-rhel9`, and get ProdSec's confirmation before the first release. After the first downstream build, use the matching Phase 6 JQL to check for tracking tickets once ProdSec processes an applicable CVE
 ```

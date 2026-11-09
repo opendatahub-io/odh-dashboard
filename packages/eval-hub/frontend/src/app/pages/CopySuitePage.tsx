@@ -93,7 +93,7 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
     mode === 'copy' && sourceCollection && !sourceCollection.resource.tenant
       ? getCuratedCollectionConfig(sourceCollection)
       : undefined;
-  const prerequisite = curatedCollectionConfig?.prerequisite.long;
+  const prerequisite = curatedCollectionConfig?.prerequisites.map((part) => part.long).join(' ');
 
   const navigationState = location.state;
   const isEvaluateOrigin =
