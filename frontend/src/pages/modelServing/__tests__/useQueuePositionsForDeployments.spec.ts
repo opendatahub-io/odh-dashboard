@@ -1,10 +1,12 @@
-import { testHook } from '@odh-dashboard/jest-config/hooks';
+import * as React from 'react';
+import { ModelServingDataContext } from '@odh-dashboard/model-serving/shared/contexts/ModelServingDataContext';
+import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import {
   KueueWorkloadStatus,
   type KueueWorkloadStatusWithMessage,
 } from '@odh-dashboard/k8s-core/kueue/types';
+import { useQueuePositionsForDeployments } from '@odh-dashboard/model-serving/shared/kueue/useQueuePositionsForDeployments';
 import { getPendingWorkloads } from '#~/api/k8s/pendingWorkloads';
-import { useQueuePositionsForDeployments } from '#~/pages/modelServing/useQueuePositionsForDeployments';
 import { PendingWorkload } from '#~/k8sTypes';
 
 jest.mock('#~/api/k8s/pendingWorkloads', () => ({
@@ -12,6 +14,14 @@ jest.mock('#~/api/k8s/pendingWorkloads', () => ({
 }));
 
 const getPendingWorkloadsMock = jest.mocked(getPendingWorkloads);
+const wrapper: React.FC<React.PropsWithChildren> = ({ children }) =>
+  React.createElement(
+    ModelServingDataContext.Provider,
+    { value: { getPendingWorkloads } },
+    children,
+  );
+const testPositions = (...args: Parameters<typeof useQueuePositionsForDeployments>) =>
+  renderHook(() => useQueuePositionsForDeployments(...args), { wrapper });
 
 function makeStatus(
   status: KueueWorkloadStatus,
@@ -72,7 +82,7 @@ describe('useQueuePositionsForDeployments', () => {
       },
     ],
   ])('should return empty map and not fetch when %s', (_, ns, statusMap) => {
-    const renderResult = testHook(useQueuePositionsForDeployments)(ns, statusMap);
+    const renderResult = testPositions(ns, statusMap);
     expect(renderResult).hookToStrictEqual({});
     expect(getPendingWorkloadsMock).not.toHaveBeenCalled();
   });
@@ -85,11 +95,13 @@ describe('useQueuePositionsForDeployments', () => {
     const statusMap = {
       'InferenceService/my-model': makeStatus(KueueWorkloadStatus.Queued, 'user-queue', 'wl-1'),
     };
-    const renderResult = testHook(useQueuePositionsForDeployments)('test-ns', statusMap);
+    const renderResult = testPositions('test-ns', statusMap);
 
     await renderResult.waitForNextUpdate();
 
-    expect(getPendingWorkloadsMock).toHaveBeenCalledWith('test-ns', 'user-queue');
+    expect(getPendingWorkloadsMock).toHaveBeenCalledWith('test-ns', 'user-queue', {
+      signal: expect.any(AbortSignal),
+    });
     expect(renderResult).hookToStrictEqual({
       'InferenceService/my-model': { queuePosition: 1, queueTotal: 1 },
     });
@@ -107,7 +119,7 @@ describe('useQueuePositionsForDeployments', () => {
       'InferenceService/bad': makeStatus(KueueWorkloadStatus.Queued, 'bad-queue', 'wl-1'),
       'InferenceService/good': makeStatus(KueueWorkloadStatus.Queued, 'good-queue', 'wl-2'),
     };
-    const renderResult = testHook(useQueuePositionsForDeployments)('test-ns', statusMap);
+    const renderResult = testPositions('test-ns', statusMap);
     await renderResult.waitForNextUpdate();
 
     expect(renderResult).hookToStrictEqual({
@@ -122,7 +134,7 @@ describe('useQueuePositionsForDeployments', () => {
     const statusMap = {
       'InferenceService/my-model': makeStatus(KueueWorkloadStatus.Queued, 'user-queue', 'wl-1'),
     };
-    const renderResult = testHook(useQueuePositionsForDeployments)('test-ns', statusMap);
+    const renderResult = testPositions('test-ns', statusMap);
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual({});
   });
