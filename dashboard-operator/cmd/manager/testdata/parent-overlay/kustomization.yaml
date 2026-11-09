@@ -1,0 +1,14 @@
+# Test fixture: a downstream overlay that wraps config/webhook-enabled with its
+# own namespace and namePrefix, as config/webhook/wiring documents. Used by
+# TestConfigWebhookGating to check the webhook wiring survives customization
+# and leaves other webhooks in the overlay alone.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: custom-ns
+namePrefix: custom-
+resources:
+  - ../../../../config/webhook-enabled
+  - other-webhook.yaml
+transformers:
+  - ../../../../config/certmanager/wiring
+  - ../../../../config/webhook/wiring

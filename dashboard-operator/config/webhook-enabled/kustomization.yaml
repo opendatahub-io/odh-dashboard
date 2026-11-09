@@ -1,0 +1,18 @@
+# Opt-in install with the validating webhook, the kustomize equivalent of the
+# Helm chart's webhook.enabled=true with webhook.certManager.enabled=true.
+# Requires cert-manager on the cluster.
+#
+# To wrap this overlay with a different namespace or namePrefix, also list
+# config/certmanager/wiring and config/webhook/wiring under `transformers:` in
+# your overlay; see config/webhook/wiring/kustomization.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: opendatahub
+namePrefix: odh-
+resources:
+  - ../base
+components:
+  - ../webhook
+transformers:
+  - ../certmanager/wiring
+  - ../webhook/wiring

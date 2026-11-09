@@ -15,12 +15,11 @@ import {
   deleteServingRuntime,
   getInferenceService,
   getInferenceServicePods,
-  resolveKueueStatusForInferenceService,
 } from '@odh-dashboard/internal/api/index';
+import { resolveKueueStatusForInferenceService } from '@odh-dashboard/model-serving/shared/kueue/workloads';
+import { useKueueStatusWithQueuePositions } from '@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { useKueueStatusWithQueuePositions } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
+import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
 import {
   useWatchDeploymentPods,
   useWatchServingRuntimes,
@@ -81,11 +80,12 @@ export const useWatchDeployments = (
     hasInferenceServices,
   );
 
-  const {
-    kueueStatusByDeploymentKey,
-    isLoading: kueueLoading,
-    error: kueueError,
-  } = useKueueStatusWithQueuePositions(filteredInferenceServices, project);
+  const { kueueStatusByDeploymentKey, isLoading: kueueLoading } = useKueueStatusWithQueuePositions(
+    filteredInferenceServices,
+    project,
+    [],
+    opts,
+  );
 
   const deployments: KServeDeployment[] = React.useMemo(
     () =>
@@ -116,21 +116,15 @@ export const useWatchDeployments = (
     (inferenceServiceLoaded || inferenceServiceError) &&
       (servingRuntimeLoaded || servingRuntimeError) &&
       (deploymentPodsLoaded || deploymentPodsError) &&
-      (!kueueLoading || kueueError) &&
+      !kueueLoading &&
       exclusionsResolved,
   );
 
   const errors = React.useMemo(() => {
-    // Kueue watch failures (e.g. 403 for users without kueue.x-k8s.io/workloads list RBAC) are
-    // surfaced here rather than silently dropped — otherwise every deployment would appear to
-    // have no Kueue status with no indication the data is actually just inaccessible.
-    return [
-      inferenceServiceError,
-      servingRuntimeError,
-      deploymentPodsError,
-      kueueError ? new Error(kueueError) : undefined,
-    ].filter((error): error is Error => Boolean(error));
-  }, [inferenceServiceError, servingRuntimeError, deploymentPodsError, kueueError]);
+    return [inferenceServiceError, servingRuntimeError, deploymentPodsError].filter(
+      (error): error is Error => Boolean(error),
+    );
+  }, [inferenceServiceError, servingRuntimeError, deploymentPodsError]);
 
   return [deployments, effectivelyLoaded, errors];
 };
