@@ -267,7 +267,10 @@ export const assemblePodSpecOptions = (
     const { existingContainerResources, existingTolerations, existingNodeSelector } =
       existingResources;
     podSpecOptions = {
-      resources: existingContainerResources,
+      resources: resolveContainerResources(
+        hardwareProfileConfig.formData,
+        existingContainerResources,
+      ),
       tolerations: existingTolerations,
       nodeSelector: existingNodeSelector,
       ...podSpecOptions,
@@ -283,14 +286,34 @@ export const assemblePodSpecOptions = (
   return podSpecOptions;
 };
 
+// The form keeps the last selected profile's values; "Use existing settings" reads the workload's own.
+export const resolveContainerResources = (
+  {
+    useExistingSettings,
+    resources,
+  }: Pick<HardwareProfileConfig, 'useExistingSettings' | 'resources'>,
+  existingContainerResources?: ContainerResources,
+): ContainerResources | undefined => (useExistingSettings ? existingContainerResources : resources);
+
+const hasContainerResources = (resources?: ContainerResources): resources is ContainerResources =>
+  !!resources &&
+  (Object.keys(resources.requests ?? {}).length > 0 ||
+    Object.keys(resources.limits ?? {}).length > 0 ||
+    !!resources.claims?.length);
+
+export type ApplyHardwareProfileConfigOptions = {
+  existingBinding?: HardwareProfileBinding;
+  existingContainerResources?: ContainerResources;
+};
+
 export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   cr: T,
   config: HardwareProfileConfig,
   paths?: CrPathConfig,
-  existingBinding: HardwareProfileBinding = getExistingHardwareProfileData(
-    cr,
-    cr.metadata?.namespace,
-  ),
+  {
+    existingBinding = getExistingHardwareProfileData(cr, cr.metadata?.namespace),
+    existingContainerResources,
+  }: ApplyHardwareProfileConfigOptions = {},
 ): T => {
   const result = structuredClone(cr);
   const { selectedProfile, resources, useExistingSettings } = config;
@@ -313,12 +336,7 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     };
     // Empty resources mean the workload had none. Writing them could create a container that
     // does not exist, for example on an LLMInferenceService whose container comes from baseRef.
-    const hasResources =
-      !!resources &&
-      (Object.keys(resources.requests ?? {}).length > 0 ||
-        Object.keys(resources.limits ?? {}).length > 0 ||
-        !!resources.claims?.length);
-    if (resources && hasResources && paths?.containerResourcesPath) {
+    if (hasContainerResources(resources) && paths?.containerResourcesPath) {
       set(result, paths.containerResourcesPath, resources);
     }
     return result;
@@ -340,9 +358,13 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     delete result.metadata.annotations['opendatahub.io/hardware-profile-resource-version'];
   }
 
-  if (!useExistingSettings && selectedProfile && paths) {
-    if (resources && paths.containerResourcesPath) {
-      set(result, paths.containerResourcesPath, resources);
+  if (paths?.containerResourcesPath && (useExistingSettings || selectedProfile)) {
+    const resourcesToApply = resolveContainerResources(config, existingContainerResources);
+    const canApply = useExistingSettings
+      ? hasContainerResources(resourcesToApply)
+      : !!resourcesToApply;
+    if (canApply) {
+      set(result, paths.containerResourcesPath, structuredClone(resourcesToApply));
     }
   }
   return result;

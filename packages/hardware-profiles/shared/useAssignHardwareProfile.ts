@@ -60,10 +60,15 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
         targetResource,
         hardwareProfileConfig.formData,
         resourcePaths || paths,
-        hardwareProfileConfig.existingBinding,
+        { existingBinding: hardwareProfileConfig.existingBinding, existingContainerResources },
       );
     },
-    [paths, hardwareProfileConfig.formData, hardwareProfileConfig.existingBinding],
+    [
+      paths,
+      hardwareProfileConfig.formData,
+      hardwareProfileConfig.existingBinding,
+      existingContainerResources,
+    ],
   );
 
   const validateHardwareProfileForm = React.useCallback(

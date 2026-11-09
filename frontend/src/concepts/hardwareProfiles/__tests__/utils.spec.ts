@@ -712,6 +712,49 @@ describe('applyHardwareProfileConfig', () => {
     ).toBeUndefined();
   });
 
+  it('should write the existing resources when useExistingSettings is true', () => {
+    const notebook = mockNotebookK8sResource({});
+    delete notebook.spec.template.spec.containers[0].resources;
+    const existingResources = {
+      requests: { cpu: '10', memory: '6Gi' },
+      limits: { cpu: '10', memory: '6Gi' },
+    };
+    const config = {
+      selectedProfile: undefined,
+      useExistingSettings: true,
+      resources: {
+        requests: { cpu: '1', memory: '2Gi' },
+        limits: { cpu: '1', memory: '2Gi' },
+      },
+    };
+
+    const result = applyHardwareProfileConfig(notebook, config, paths, {
+      existingContainerResources: existingResources,
+    });
+
+    expect(result.spec.template.spec.containers[0].resources).toEqual(existingResources);
+    expect(result.metadata.annotations).not.toHaveProperty('opendatahub.io/hardware-profile-name');
+  });
+
+  it('should not create resources when useExistingSettings is true and the existing ones are empty', () => {
+    const notebook = mockNotebookK8sResource({});
+    delete notebook.spec.template.spec.containers[0].resources;
+    const config = {
+      selectedProfile: undefined,
+      useExistingSettings: true,
+      resources: {
+        requests: { cpu: '1', memory: '2Gi' },
+        limits: { cpu: '1', memory: '2Gi' },
+      },
+    };
+
+    const result = applyHardwareProfileConfig(notebook, config, paths, {
+      existingContainerResources: { requests: {}, limits: {} },
+    });
+
+    expect(result.spec.template.spec.containers[0]).not.toHaveProperty('resources');
+  });
+
   it('should not apply resources when useExistingSettings is true', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'test-profile' });
     const notebook = mockNotebookK8sResource({
@@ -899,12 +942,10 @@ describe('applyHardwareProfileConfig', () => {
     const config = { selectedProfile: hardwareProfile, useExistingSettings: false };
 
     const sameBinding = applyHardwareProfileConfig(mockNotebookK8sResource({}), config, paths, {
-      name: 'dra-profile',
-      namespace: 'opendatahub',
+      existingBinding: { name: 'dra-profile', namespace: 'opendatahub' },
     });
     const newBinding = applyHardwareProfileConfig(mockNotebookK8sResource({}), config, paths, {
-      name: 'regular-profile',
-      namespace: 'opendatahub',
+      existingBinding: { name: 'regular-profile', namespace: 'opendatahub' },
     });
 
     expect(
