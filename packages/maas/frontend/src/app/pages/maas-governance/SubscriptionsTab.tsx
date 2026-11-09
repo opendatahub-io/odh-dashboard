@@ -22,7 +22,6 @@ import {
   SubscriptionsFilterSelection,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 import DeleteSubscriptionModal from '~/app/pages/subscriptions/DeleteSubscriptionModal';
-import ModelAccessToolbar from '~/app/pages/model-access/ModelAccessToolbar';
 import {
   EventTrackingResourceType,
   EventTrackingSource,
@@ -38,12 +37,6 @@ type SubscriptionsTabProps = {
    * and the delete confirmation modal. Defaults to false (admin governance page).
    */
   readOnly?: boolean;
-  /**
-   * Search subscription details and select groups or models (model access viewer)
-   * instead of the governance keyword search. Select options derive from the loaded
-   * subscriptions, so no additional fetches are required.
-   */
-  attributeFilters?: boolean;
 
   /** Overrides the subscription name link target. Defaults to the governance view page. */
   getSubscriptionDetailUrl?: (name: string) => string;
@@ -57,7 +50,6 @@ const asFilterSelection = (
 const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   returnTo,
   readOnly = false,
-  attributeFilters = false,
   getSubscriptionDetailUrl,
 }) => {
   const {
@@ -79,8 +71,6 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   const onClearFilters = React.useCallback(() => setFilterData(initialSubscriptionsFilterData), []);
 
   const filteredSubscriptions = React.useMemo(() => {
-    const keyword = filterData[SubscriptionsFilterOptions.keyword];
-    const keywordText = typeof keyword === 'string' ? keyword.toLowerCase() : '';
     const subscriptionText = asFilterSelection(
       filterData[SubscriptionsFilterOptions.subscription],
     )?.value.toLowerCase();
@@ -90,19 +80,11 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
       ? modelFilter.value.slice(MODEL_TEXT_FILTER_PREFIX.length).toLowerCase()
       : undefined;
 
-    if (!keywordText && !subscriptionText && !groupFilter && !modelFilter) {
+    if (!subscriptionText && !groupFilter && !modelFilter) {
       return subscriptions;
     }
 
     return subscriptions.filter((subscription) => {
-      if (
-        keywordText &&
-        !subscription.name.toLowerCase().includes(keywordText) &&
-        !(subscription.displayName ?? '').toLowerCase().includes(keywordText) &&
-        !(subscription.description ?? '').toLowerCase().includes(keywordText)
-      ) {
-        return false;
-      }
       if (
         subscriptionText &&
         ![
@@ -186,20 +168,14 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
             subscriptions={filteredSubscriptions}
             onClearFilters={onClearFilters}
             toolbarContent={
-              attributeFilters ? (
-                <ModelAccessToolbar
-                  filterData={filterData}
-                  onFilterUpdate={onFilterUpdate}
-                  subscriptions={subscriptions}
-                />
-              ) : (
-                <SubscriptionsToolbar
-                  filterData={filterData}
-                  onFilterUpdate={onFilterUpdate}
-                  returnTo={returnTo}
-                  showCreateButton={!readOnly}
-                />
-              )
+              <SubscriptionsToolbar
+                filterData={filterData}
+                onFilterUpdate={onFilterUpdate}
+                subscriptions={subscriptions}
+                returnTo={returnTo}
+                showCreateButton={!readOnly}
+                testIdPrefix={readOnly ? 'model-access' : 'subscriptions'}
+              />
             }
             setDeleteSubscription={setDeleteSubscription}
             returnTo={returnTo}

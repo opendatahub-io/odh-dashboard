@@ -13,13 +13,15 @@ import {
   MaaSSettingsListFilteredProperties,
 } from '~/app/types/event-tracking';
 import {
-  modelAccessFilterOptions,
+  subscriptionsFilterOptions,
   MODEL_TEXT_FILTER_PREFIX,
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 
-type ModelAccessToolbarProps = {
+type SubscriptionsFilterToolbarProps = {
+  testIdPrefix?: string;
+  children?: React.ReactNode;
   filterData: SubscriptionsFilterDataType;
   onFilterUpdate: (
     key: SubscriptionsFilterOptions,
@@ -147,10 +149,12 @@ const TextFilterField: React.FC<TextFilterFieldProps> = ({
 );
 
 /** Free-text subscription search with group and model typeahead selections. */
-const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
+const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   filterData,
   onFilterUpdate,
   subscriptions,
+  testIdPrefix = 'subscriptions',
+  children,
 }) => {
   const { groupOptions, modelOptions } = React.useMemo(() => {
     const groupLabels = new Map<string, string>();
@@ -168,15 +172,15 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
   }, [subscriptions]);
 
   return (
-    <FilterToolbar<keyof typeof modelAccessFilterOptions>
-      testId="model-access-table-toolbar"
-      filterOptions={modelAccessFilterOptions}
+    <FilterToolbar<keyof typeof subscriptionsFilterOptions>
+      testId={`${testIdPrefix}-table-toolbar`}
+      filterOptions={subscriptionsFilterOptions}
       filterOptionRenders={{
         [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
           <TextFilterField
             filterAttribute={EventTrackingFilterAttribute.SUBSCRIPTION}
             placeholder="Filter by subscription, description, group, or model"
-            testId="model-access-subscription-filter-input"
+            testId={`${testIdPrefix}-subscription-filter-input`}
             onChange={onChange}
             value={value}
           />
@@ -186,7 +190,7 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
             options={groupOptions}
             filterAttribute={EventTrackingFilterAttribute.GROUP}
             placeholder="Select a group"
-            testId="model-access-group-filter-toggle"
+            testId={`${testIdPrefix}-group-filter-toggle`}
             onChange={onChange}
             value={value}
           />
@@ -197,7 +201,7 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
             allowTextFilter
             filterAttribute={EventTrackingFilterAttribute.MODEL}
             placeholder="Select a model"
-            testId="model-access-model-filter-toggle"
+            testId={`${testIdPrefix}-model-filter-toggle`}
             onChange={onChange}
             value={value}
           />
@@ -205,8 +209,10 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
       }}
       filterData={filterData}
       onFilterUpdate={onFilterUpdate}
-    />
+    >
+      {children}
+    </FilterToolbar>
   );
 };
 
-export default ModelAccessToolbar;
+export default SubscriptionsFilterToolbar;
