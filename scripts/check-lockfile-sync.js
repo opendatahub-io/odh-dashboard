@@ -4,7 +4,7 @@
  * version across all workspace importers. Catches the monaco-editor class of
  * bug where a dependency bump updates some workspaces but not others.
  *
- * Usage: node scripts/check-lockfile-sync.js
+ * Usage: node scripts/check-lockfile-sync.js [lockfile-path]
  * Exit 0 = all synced, exit 1 = mismatches found.
  */
 const fs = require('fs');
@@ -92,17 +92,10 @@ function parseLockfileImporters(lockfilePath) {
   return importers;
 }
 
-function main() {
-  const lockfilePath = path.join(ROOT, 'pnpm-lock.yaml');
-  if (!fs.existsSync(lockfilePath)) {
-    console.error('pnpm-lock.yaml not found');
-    process.exit(1);
-  }
-
-  const importers = parseLockfileImporters(lockfilePath);
+function findMismatches(importers, criticalPackages = CRITICAL_PACKAGES) {
   const failures = [];
 
-  for (const pkg of CRITICAL_PACKAGES) {
+  for (const pkg of criticalPackages) {
     const resolvedByWorkspace = new Map(); // resolved version -> [workspaces]
 
     for (const [importerPath, deps] of Object.entries(importers)) {
@@ -121,25 +114,43 @@ function main() {
     }
   }
 
-  if (failures.length > 0) {
-    console.error('LOCKFILE SYNC FAILURES:');
-    console.error(
-      'The following runtime-shared packages resolve to multiple versions across workspaces.',
-    );
-    console.error(
-      'This causes runtime conflicts (e.g., whichever federated module loads last wins for window globals).',
-    );
-    console.error('');
-    for (const { pkg, versions } of failures) {
-      console.error(`  ${pkg}:`);
-      for (const [version, workspaces] of Object.entries(versions)) {
-        const shown = workspaces.slice(0, 3).join(', ');
-        const ellipsis = workspaces.length > 3 ? '...' : '';
-        console.error(`    ${version.padEnd(20)} -> ${shown}${ellipsis}`);
-      }
+  return failures;
+}
+
+function formatFailures(failures) {
+  const lines = ['LOCKFILE SYNC FAILURES:'];
+  lines.push(
+    'The following runtime-shared packages resolve to multiple versions across workspaces.',
+  );
+  lines.push(
+    'This causes runtime conflicts (e.g., whichever federated module loads last wins for window globals).',
+  );
+  lines.push('');
+  for (const { pkg, versions } of failures) {
+    lines.push(`  ${pkg}:`);
+    for (const [version, workspaces] of Object.entries(versions)) {
+      const shown = workspaces.slice(0, 3).join(', ');
+      const ellipsis = workspaces.length > 3 ? '...' : '';
+      lines.push(`    ${version.padEnd(20)} -> ${shown}${ellipsis}`);
     }
-    console.error('');
-    console.error('Fix: align the version range in each workspace package.json, then run pnpm install.');
+  }
+  lines.push('');
+  lines.push('Fix: align the version range in each workspace package.json, then run pnpm install.');
+  return lines.join('\n');
+}
+
+function main() {
+  const lockfilePath = process.argv[2] || path.join(ROOT, 'pnpm-lock.yaml');
+  if (!fs.existsSync(lockfilePath)) {
+    console.error('pnpm-lock.yaml not found');
+    process.exit(1);
+  }
+
+  const importers = parseLockfileImporters(lockfilePath);
+  const failures = findMismatches(importers);
+
+  if (failures.length > 0) {
+    console.error(formatFailures(failures));
     process.exit(1);
   } else {
     console.log(
@@ -149,4 +160,8 @@ function main() {
   }
 }
 
-main();
+module.exports = { parseLockfileImporters, findMismatches, formatFailures, CRITICAL_PACKAGES };
+
+if (require.main === module) {
+  main();
+}
