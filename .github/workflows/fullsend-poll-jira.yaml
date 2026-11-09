@@ -77,9 +77,9 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.FULLSEND_JIRA_BOT_EMAIL }}
           JIRA_BASE_URL: https://redhat.atlassian.net
           TARGET_REPO: ${{ github.repository }}
-          # Open dashboard Stories, Tasks and Bugs in RHAI (where new issues
-          # go) or RHOAIENG (being retired), outside the jira-autofix flow,
-          # updated in the last day, that have ready-to-code or mention
+          # Open dashboard Stories, Tasks, Bugs and Epics in RHAI (where new
+          # issues go) or RHOAIENG (being retired), outside the jira-autofix
+          # flow, updated in the last day, that have ready-to-code or mention
           # fs-code in a comment. The poller only processes 5 random
           # candidates per run, so the list has to stay short; the label or
           # the /fs-code comment, from someone on the write list, is what
@@ -87,7 +87,7 @@ jobs:
           JQL: >-
             project in (RHAI, RHOAIENG)
             AND component = "AI Core Dashboard"
-            AND issuetype in (Story, Task, Bug)
+            AND issuetype in (Story, Task, Bug, Epic)
             AND (labels = "ready-to-code" OR comment ~ "\"fs-code\"")
             AND updated >= -1d
             AND (labels is EMPTY OR labels not in ("opt-in-autofix", "jira-autofix", "jira-autofix-pending", "jira-autofix-review"))
