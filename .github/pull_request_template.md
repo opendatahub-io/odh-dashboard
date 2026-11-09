@@ -1,6 +1,3 @@
-<!-- AI Review: Fullsend is the review-of-record for this repo.
-     CodeRabbit auto-review is disabled; CLI findings feed into Fullsend.
-     For on-demand checks: comment @coderabbitai run pre-merge checks -->
 <!-- OPTIONAL — uncomment when there is a tracker: -->
 <!-- Fixes: https://issues.redhat.com/browse/RHOAIENG-123456 -->
 

@@ -20,7 +20,7 @@ reviews:
     # Pre-merge checks are also disabled (coupled with auto-review);
     # they were warning-only and not gating. Follow-up ticket tracks
     # migrating them to Fullsend check:* producers.
-    # See also: .fullsend/README.md
+    # See also: .fullsend/skills/pr-review/README.md (## CodeRabbit coexistence)
     enabled: false
     # Mergify merge-queue drafts are speculative CI targets, not review targets.
     drafts: false
