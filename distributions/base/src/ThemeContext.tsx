@@ -57,37 +57,49 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  const setTheme = useCallback((t: Theme) => {
-    try {
-      localStorage.setItem(THEME_KEY, t);
-    } catch {
-      // no-op: storage unavailable
-    }
-    setThemeState(t);
-    window.dispatchEvent(new CustomEvent('odh-theme-change', { detail: { theme: t, contrastMode } }));
-  }, [contrastMode]);
+  const setTheme = useCallback(
+    (t: Theme) => {
+      try {
+        localStorage.setItem(THEME_KEY, t);
+      } catch {
+        // no-op: storage unavailable
+      }
+      setThemeState(t);
+      window.dispatchEvent(
+        new CustomEvent('odh-theme-change', { detail: { theme: t, contrastMode } }),
+      );
+    },
+    [contrastMode],
+  );
 
-  const setContrastMode = useCallback((mode: ContrastMode) => {
-    try {
-      localStorage.setItem(CONTRAST_MODE_KEY, mode);
-    } catch {
-      // no-op: storage unavailable
-    }
-    setContrastModeState(mode);
-    window.dispatchEvent(new CustomEvent('odh-theme-change', { detail: { theme, contrastMode: mode } }));
-  }, [theme]);
+  const setContrastMode = useCallback(
+    (mode: ContrastMode) => {
+      try {
+        localStorage.setItem(CONTRAST_MODE_KEY, mode);
+      } catch {
+        // no-op: storage unavailable
+      }
+      setContrastModeState(mode);
+      window.dispatchEvent(
+        new CustomEvent('odh-theme-change', { detail: { theme, contrastMode: mode } }),
+      );
+    },
+    [theme],
+  );
 
   useEffect(() => {
     const html = document.documentElement;
     html.classList.toggle('pf-v6-theme-dark', theme === 'dark');
 
     const shouldUseGlass =
-      contrastMode === 'glass' ||
-      (contrastMode === 'system' && !prefersReducedTransparency);
+      contrastMode === 'glass' || (contrastMode === 'system' && !prefersReducedTransparency);
     html.classList.toggle('pf-v6-theme-glass', shouldUseGlass);
   }, [theme, contrastMode, prefersReducedTransparency]);
 
-  const value = useMemo(() => ({ theme, setTheme, contrastMode, setContrastMode }), [theme, setTheme, contrastMode, setContrastMode]);
+  const value = useMemo(
+    () => ({ theme, setTheme, contrastMode, setContrastMode }),
+    [theme, setTheme, contrastMode, setContrastMode],
+  );
   const sharedValue = useMemo<SharedThemeContextProps>(
     () => ({
       theme,
