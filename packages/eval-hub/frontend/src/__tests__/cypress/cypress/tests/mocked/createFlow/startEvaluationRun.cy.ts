@@ -536,7 +536,7 @@ describe('Start Evaluation Run - Queue-backed Hardware Profiles', () => {
     startEvaluationRunPage.findHardwareProfileToggle().should('not.exist');
   });
 
-  it('should disable the HardwareProfile field and explain when no LocalQueue is active', () => {
+  it('should keep offered hardware profiles selectable when no LocalQueue is active', () => {
     mockQueueScheduling({
       profiles: [
         {
@@ -547,12 +547,11 @@ describe('Start Evaluation Run - Queue-backed Hardware Profiles', () => {
     });
     navigateToBenchmarkStart();
 
-    startEvaluationRunPage.findHardwareProfileToggle().should('be.disabled');
-    startEvaluationRunPage
-      .findHardwareProfileHelperText()
-      .should('contain.text', 'No LocalQueues are configured for this project');
+    startEvaluationRunPage.findHardwareProfileToggle().should('be.enabled');
+    startEvaluationRunPage.findHardwareProfileToggle().click();
+    startEvaluationRunPage.findHardwareProfileOption(mockHardwareProfile().name).click();
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().should('be.disabled');
+    startEvaluationRunPage.findSubmitButton().should('be.enabled');
   });
 
   it('should refresh the selected HardwareProfile before submitting its profile-only payload', () => {
