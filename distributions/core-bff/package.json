@@ -57,6 +57,6 @@
     "@odh-dashboard/contract-tests": "workspace:*",
     "@odh-dashboard/eslint-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*",
-    "@redocly/cli": "2.39.0"
+    "@redocly/cli": "2.71.0"
   }
 }
