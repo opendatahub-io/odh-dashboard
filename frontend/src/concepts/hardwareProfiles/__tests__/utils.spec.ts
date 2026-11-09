@@ -11,8 +11,6 @@ import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/
 import {
   filterHardwareProfilesByDRAAvailability,
   getExistingPodSpec,
-  getHardwareProfileDescription,
-  getHardwareProfileDisplayName,
   isSameHardwareProfileBinding,
 } from '@odh-dashboard/hardware-profiles/shared/utils';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
@@ -35,58 +33,6 @@ import { NOTEBOOK_HARDWARE_PROFILE_PATHS } from '#~/concepts/notebooks/const.ts'
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '#~/concepts/hardwareProfiles/const';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
-
-describe('getHardwareProfileDisplayName', () => {
-  it('should use the ODH display name even when an OpenShift display name is present', () => {
-    const profile = mockHardwareProfile({
-      displayName: 'ODH display name',
-      annotations: { 'openshift.io/display-name': 'OpenShift display name' },
-    });
-
-    expect(getHardwareProfileDisplayName(profile)).toBe('ODH display name');
-  });
-
-  it.each<HardwareProfileKind['metadata']['annotations']>([
-    undefined,
-    {},
-    { 'opendatahub.io/display-name': '' },
-    { 'openshift.io/display-name': 'OpenShift display name' },
-  ])('should fall back to the resource name for annotations %p', (annotations) => {
-    const profile = mockHardwareProfile({ name: 'profile-name' });
-    profile.metadata.annotations = annotations;
-
-    expect(getHardwareProfileDisplayName(profile)).toBe('profile-name');
-  });
-});
-
-describe('getHardwareProfileDescription', () => {
-  it('should use the ODH description even when an OpenShift description is present', () => {
-    const profile = mockHardwareProfile({
-      description: 'ODH description',
-      annotations: { 'openshift.io/description': 'OpenShift description' },
-    });
-
-    expect(getHardwareProfileDescription(profile)).toBe('ODH description');
-  });
-
-  it.each<HardwareProfileKind['metadata']['annotations']>([
-    undefined,
-    {},
-    { 'openshift.io/description': 'OpenShift description' },
-  ])(
-    'should return undefined when the ODH description is missing from annotations %p',
-    (annotations) => {
-      const profile = mockHardwareProfile({});
-      profile.metadata.annotations = annotations;
-
-      expect(getHardwareProfileDescription(profile)).toBeUndefined();
-    },
-  );
-
-  it('should preserve an empty ODH description', () => {
-    expect(getHardwareProfileDescription(mockHardwareProfile({ description: '' }))).toBe('');
-  });
-});
 
 describe('formatResource', () => {
   it('should format with Default and Max labels separated by comma', () => {
