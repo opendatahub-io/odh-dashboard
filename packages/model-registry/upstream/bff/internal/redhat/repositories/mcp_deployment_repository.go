@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
@@ -23,9 +24,10 @@ import (
 )
 
 var (
-	ErrMcpDeploymentNotFound   = errors.New("MCP deployment not found")
-	ErrMcpDeploymentConflict   = errors.New("MCP deployment already exists")
-	ErrMcpDeploymentValidation = errors.New("MCP deployment validation failed")
+	ErrMcpDeploymentNotFound       = errors.New("MCP deployment not found")
+	ErrMcpDeploymentConflict       = errors.New("MCP deployment already exists")
+	ErrMcpDeploymentValidation     = errors.New("MCP deployment validation failed")
+	ErrMcpDeploymentCleanupTimeout = errors.New("MCP deployment cleanup did not complete before the timeout")
 )
 
 var k8sNameRegexp = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$`)
@@ -44,10 +46,24 @@ const (
 	mcpRegistryServerAnnotation  = "mcp.opendatahub.io/registry-server"
 	mcpRegistryVersionAnnotation = "mcp.opendatahub.io/registry-version"
 	defaultMcpPort               = int32(8080)
+	mcpDeletionWaitTimeout       = 2 * time.Minute
+	mcpDeletionPollInterval      = 2 * time.Second
+)
+
+var (
+	mcpDeploymentGVR = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+	mcpReplicaSetGVR = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "replicasets"}
+	mcpServiceGVR    = schema.GroupVersionResource{Version: "v1", Resource: "services"}
+	mcpPodGVR        = schema.GroupVersionResource{Version: "v1", Resource: "pods"}
 )
 
 type McpDeploymentRepository struct {
 	logger *slog.Logger
+}
+
+type mcpServerDeletionRef struct {
+	name string
+	uid  string
 }
 
 // DeleteLayer removes only resources created by the Project Matrix Gateway
@@ -77,14 +93,14 @@ func (r *McpDeploymentRepository) DeleteLayer(
 	// idempotent across the development iterations that predated the layer
 	// ownership label, including stale registrations after a direct MCPServer
 	// deletion.
-	serverNames := map[string]struct{}{}
+	serverRefs := map[string]mcpServerDeletionRef{}
 	serverSelector := fmt.Sprintf("%s=%s,%s=%s", projectMatrixManagedByLabel, projectMatrixManager, projectMatrixLayerLabel, layer)
 	serverList, err := dyn.Resource(mcpServerGVR).Namespace(namespace).List(ctx, metav1.ListOptions{LabelSelector: serverSelector})
 	if err != nil {
 		return fmt.Errorf("failed to list Project Matrix MCPServer resources: %w", err)
 	}
 	for _, item := range serverList.Items {
-		serverNames[item.GetName()] = struct{}{}
+		serverRefs[item.GetName()] = mcpServerDeletionRef{name: item.GetName(), uid: string(item.GetUID())}
 	}
 
 	legacySelector := fmt.Sprintf("%s=%s", mcpPrerequisiteManagedByLabel, mcpPrerequisiteManager)
@@ -93,15 +109,17 @@ func (r *McpDeploymentRepository) DeleteLayer(
 		return fmt.Errorf("failed to list owned MCP gateway registrations: %w", err)
 	}
 	for _, item := range registrationList.Items {
-		serverNames[item.GetName()] = struct{}{}
+		if _, found := serverRefs[item.GetName()]; !found {
+			serverRefs[item.GetName()] = mcpServerDeletionRef{name: item.GetName()}
+		}
 	}
 
-	for serverName := range serverNames {
-		if deleteErr := dyn.Resource(mcpServerGVR).Namespace(namespace).Delete(ctx, serverName, metav1.DeleteOptions{}); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
-			return fmt.Errorf("failed to delete MCPServer %q: %w", serverName, deleteErr)
+	for _, serverRef := range serverRefs {
+		if deleteErr := dyn.Resource(mcpServerGVR).Namespace(namespace).Delete(ctx, serverRef.name, metav1.DeleteOptions{}); deleteErr != nil && !apierrors.IsNotFound(deleteErr) {
+			return fmt.Errorf("failed to delete MCPServer %q: %w", serverRef.name, deleteErr)
 		}
-		cleanupOwnedMcpGatewayRegistration(ctx, dyn, serverName)
-		cleanupOwnedMcpPrerequisites(ctx, dyn, namespace, serverName)
+		cleanupOwnedMcpGatewayRegistration(ctx, dyn, serverRef.name)
+		cleanupOwnedMcpPrerequisites(ctx, dyn, namespace, serverRef.name)
 	}
 
 	// A server can be deleted out-of-band before the layer operation runs. Sweep
@@ -125,6 +143,15 @@ func (r *McpDeploymentRepository) DeleteLayer(
 				return fmt.Errorf("failed to delete owned %s %q: %w", resource.Resource, item.GetName(), deleteErr)
 			}
 		}
+	}
+
+	for _, serverRef := range serverRefs {
+		if err := waitForMcpDeploymentDeletion(ctx, dyn, namespace, serverRef); err != nil {
+			return err
+		}
+	}
+	if err := waitForGatewayLayerResourcesGone(ctx, dyn, layer); err != nil {
+		return err
 	}
 
 	return nil
@@ -333,6 +360,14 @@ func (r *McpDeploymentRepository) Delete(
 		return err
 	}
 
+	server, err := dyn.Resource(mcpServerGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return fmt.Errorf("%w: %q in namespace %q", ErrMcpDeploymentNotFound, name, namespace)
+		}
+		return fmt.Errorf("failed to inspect MCPServer %q before deletion: %w", name, err)
+	}
+
 	if err := dyn.Resource(mcpServerGVR).Namespace(namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
 		if apierrors.IsNotFound(err) {
 			return fmt.Errorf("%w: %q in namespace %q", ErrMcpDeploymentNotFound, name, namespace)
@@ -341,8 +376,170 @@ func (r *McpDeploymentRepository) Delete(
 	}
 	cleanupOwnedMcpGatewayRegistration(ctx, dyn, name)
 	cleanupOwnedMcpPrerequisites(ctx, dyn, namespace, name)
+	if err := waitForMcpDeploymentDeletion(ctx, dyn, namespace, mcpServerDeletionRef{name: name, uid: string(server.GetUID())}); err != nil {
+		return err
+	}
 
 	return nil
+}
+
+func waitForMcpDeploymentDeletion(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	namespace string,
+	serverRef mcpServerDeletionRef,
+) error {
+	waitCtx, cancel := context.WithTimeout(ctx, mcpDeletionWaitTimeout)
+	defer cancel()
+
+	ticker := time.NewTicker(mcpDeletionPollInterval)
+	defer ticker.Stop()
+
+	for {
+		gone, err := mcpDeploymentDeletionComplete(waitCtx, dyn, namespace, serverRef)
+		if err != nil {
+			return err
+		}
+		if gone {
+			return nil
+		}
+
+		select {
+		case <-ticker.C:
+		case <-waitCtx.Done():
+			if errors.Is(waitCtx.Err(), context.DeadlineExceeded) {
+				return fmt.Errorf("%w: %s/%s", ErrMcpDeploymentCleanupTimeout, namespace, serverRef.name)
+			}
+			return waitCtx.Err()
+		}
+	}
+}
+
+func mcpDeploymentDeletionComplete(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	namespace string,
+	serverRef mcpServerDeletionRef,
+) (bool, error) {
+	_, err := dyn.Resource(mcpServerGVR).Namespace(namespace).Get(ctx, serverRef.name, metav1.GetOptions{})
+	if err == nil {
+		return false, nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return false, fmt.Errorf("failed to verify MCPServer %q deletion: %w", serverRef.name, err)
+	}
+
+	serverSelector := fmt.Sprintf("%s=%s,%s=%s", mcpPrerequisiteManagedByLabel, mcpPrerequisiteManager, mcpPrerequisiteServerLabel, serverRef.name)
+	for _, resource := range []schema.GroupVersionResource{mcpServerRegistrationGVR, mcpHTTPRouteGVR, mcpReferenceGrantGVR} {
+		found, err := selectorHasResources(ctx, dyn, resource, metav1.NamespaceAll, serverSelector)
+		if err != nil {
+			return false, fmt.Errorf("failed to verify owned %s cleanup for %q: %w", resource.Resource, serverRef.name, err)
+		}
+		if found {
+			return false, nil
+		}
+	}
+	for _, resource := range []schema.GroupVersionResource{roleBindingGVR, configMapGVR, serviceAccountGVR} {
+		found, err := selectorHasResources(ctx, dyn, resource, namespace, serverSelector)
+		if err != nil {
+			return false, fmt.Errorf("failed to verify owned %s cleanup for %q: %w", resource.Resource, serverRef.name, err)
+		}
+		if found {
+			return false, nil
+		}
+	}
+
+	if serverRef.uid != "" {
+		for _, resource := range []schema.GroupVersionResource{mcpDeploymentGVR, mcpServiceGVR, mcpReplicaSetGVR, mcpPodGVR} {
+			found, err := ownerUIDHasResources(ctx, dyn, resource, namespace, serverRef.uid)
+			if err != nil {
+				return false, fmt.Errorf("failed to verify operator-owned %s cleanup for %q: %w", resource.Resource, serverRef.name, err)
+			}
+			if found {
+				return false, nil
+			}
+		}
+	}
+
+	return true, nil
+}
+
+func waitForGatewayLayerResourcesGone(ctx context.Context, dyn dynamic.Interface, layer string) error {
+	waitCtx, cancel := context.WithTimeout(ctx, mcpDeletionWaitTimeout)
+	defer cancel()
+
+	selector := fmt.Sprintf("%s=%s,%s=%s", projectMatrixManagedByLabel, projectMatrixManager, projectMatrixLayerLabel, layer)
+	ticker := time.NewTicker(mcpDeletionPollInterval)
+	defer ticker.Stop()
+
+	for {
+		remaining := false
+		for _, resource := range []schema.GroupVersionResource{
+			mcpServerGVR,
+			mcpServerRegistrationGVR,
+			mcpHTTPRouteGVR,
+			mcpReferenceGrantGVR,
+			roleBindingGVR,
+			configMapGVR,
+			serviceAccountGVR,
+		} {
+			found, err := selectorHasResources(waitCtx, dyn, resource, metav1.NamespaceAll, selector)
+			if err != nil {
+				return fmt.Errorf("failed to verify Project Matrix %s cleanup: %w", resource.Resource, err)
+			}
+			if found {
+				remaining = true
+				break
+			}
+		}
+		if !remaining {
+			return nil
+		}
+
+		select {
+		case <-ticker.C:
+		case <-waitCtx.Done():
+			if errors.Is(waitCtx.Err(), context.DeadlineExceeded) {
+				return fmt.Errorf("%w: Project Matrix layer %q", ErrMcpDeploymentCleanupTimeout, layer)
+			}
+			return waitCtx.Err()
+		}
+	}
+}
+
+func selectorHasResources(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	resource schema.GroupVersionResource,
+	namespace string,
+	selector string,
+) (bool, error) {
+	list, err := dyn.Resource(resource).Namespace(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return false, err
+	}
+	return len(list.Items) > 0, nil
+}
+
+func ownerUIDHasResources(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	resource schema.GroupVersionResource,
+	namespace string,
+	uid string,
+) (bool, error) {
+	list, err := dyn.Resource(resource).Namespace(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+	for _, item := range list.Items {
+		for _, owner := range item.GetOwnerReferences() {
+			if string(owner.UID) == uid {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // addGatewayRegistrationCondition exposes the live MCP Gateway registration
@@ -360,6 +557,13 @@ func (r *McpDeploymentRepository) addGatewayRegistrationCondition(
 	list, err := dyn.Resource(mcpServerRegistrationGVR).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil || len(list.Items) == 0 {
 		return
+	}
+
+	// The MCPServer status address is the backend Service address and is only
+	// reachable from inside the cluster. Resolve the public Gateway endpoint
+	// separately so clients are not given a misleading browser URL.
+	if gatewayURL, err := discoverMcpGatewayPublicEndpoint(ctx, dyn, list.Items[0]); err == nil && gatewayURL != "" {
+		deployment.GatewayAddress = &models.McpDeploymentAddress{URL: gatewayURL}
 	}
 
 	conditions, _, _ := unstructured.NestedSlice(list.Items[0].Object, "status", "conditions")
@@ -384,6 +588,74 @@ func (r *McpDeploymentRepository) addGatewayRegistrationCondition(
 		Reason:  "Pending",
 		Message: "MCP Gateway registration has not reported Ready yet.",
 	})
+}
+
+func discoverMcpGatewayPublicEndpoint(
+	ctx context.Context,
+	dyn dynamic.Interface,
+	registration unstructured.Unstructured,
+) (string, error) {
+	targetRef, found, err := unstructured.NestedMap(registration.Object, "spec", "targetRef")
+	if err != nil || !found {
+		return "", nil
+	}
+	routeName, _, _ := unstructured.NestedString(targetRef, "name")
+	if routeName == "" {
+		return "", nil
+	}
+
+	route, err := dyn.Resource(mcpHTTPRouteGVR).Namespace(registration.GetNamespace()).Get(ctx, routeName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	parentRefs, _, err := unstructured.NestedSlice(route.Object, "spec", "parentRefs")
+	if err != nil {
+		return "", err
+	}
+	for _, rawParent := range parentRefs {
+		parent, ok := rawParent.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		gatewayName, _, _ := unstructured.NestedString(parent, "name")
+		gatewayNamespace, _, _ := unstructured.NestedString(parent, "namespace")
+		if gatewayName == "" {
+			continue
+		}
+		if gatewayNamespace == "" {
+			gatewayNamespace = registration.GetNamespace()
+		}
+
+		extensions, err := dyn.Resource(mcpGatewayExtensionGVR).Namespace(metav1.NamespaceAll).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return "", err
+		}
+		for _, extension := range extensions.Items {
+			ready, conditionErr := isConditionTrue(&extension, "Ready")
+			if conditionErr != nil || !ready {
+				continue
+			}
+			target, targetFound, targetErr := unstructured.NestedMap(extension.Object, "spec", "targetRef")
+			if targetErr != nil || !targetFound {
+				continue
+			}
+			targetName, _, _ := unstructured.NestedString(target, "name")
+			targetNamespace, _, _ := unstructured.NestedString(target, "namespace")
+			if targetName != gatewayName || targetNamespace != gatewayNamespace {
+				continue
+			}
+			host, _, _ := unstructured.NestedString(extension.Object, "spec", "publicHost")
+			if host == "" {
+				continue
+			}
+			if !strings.HasPrefix(host, "http://") && !strings.HasPrefix(host, "https://") {
+				host = "https://" + host
+			}
+			return strings.TrimRight(host, "/") + "/mcp", nil
+		}
+	}
+
+	return "", nil
 }
 
 func validateCreateRequest(req models.McpDeploymentCreateRequest) error {
@@ -418,7 +690,7 @@ func buildMcpServerFromCreateRequest(namespace string, req models.McpDeploymentC
 		APIVersion: mcpServerAPIVersion,
 		Kind:       mcpServerKind,
 		Metadata: models.MCPMetadata{
-			Name: name,
+			Name:   name,
 			Labels: mcpPrerequisiteLabels(name),
 			// Always the URL path parameter, never read from req/YAML, so the caller can't
 			// target a different namespace than the one it was authorized against.

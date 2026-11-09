@@ -1,21 +1,12 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   Content,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   Flex,
   FlexItem,
   Form,
   FormGroup,
-  Label,
   List,
   ListItem,
   Modal,
@@ -36,9 +27,13 @@ import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFie
 import useMcpDeployments from '~/odh/pages/mcpDeployments/useMcpDeployments';
 import { createMcpDeployment } from '~/odh/api/mcpCatalogDeployment/service';
 import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
-import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
-import type { McpDeployment, McpGatewayRegistration } from '~/odh/types/mcpDeploymentTypes';
+import {
+  McpConditionStatus,
+  McpReadyReason,
+  type McpDeployment,
+  type McpGatewayRegistration,
+} from '~/odh/types/mcpDeploymentTypes';
 import { mcpServerCRToYaml } from '~/odh/utils/mcpServerYaml';
 import {
   mcpServerCatalogImage,
@@ -46,7 +41,7 @@ import {
   mcpServerCatalogToCR,
 } from '~/odh/utils/mcpServerCatalog';
 
-type InstallStep = 'preflight' | 'review' | 'installing';
+type InstallStep = 'preflight' | 'installing';
 
 type McpServerInstallModalProps = {
   server: McpServer;
@@ -95,12 +90,14 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   lifecycleLoaded,
   onClose,
 }) => {
-  const navigate = useNavigate();
   const { preferredProject } = useProjectsBridge();
   const [step, setStep] = React.useState<InstallStep>('preflight');
   const [innovationLane, setInnovationLane] = React.useState(false);
   const [selectedNamespace, setSelectedNamespace] = React.useState(preferredProject?.name ?? '');
   const [deploymentName, setDeploymentName] = React.useState<string>();
+  const [createdDeployment, setCreatedDeployment] = React.useState<McpDeployment>();
+  const [installationStartedAt, setInstallationStartedAt] = React.useState<number>();
+  const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const abortControllerRef = React.useRef<AbortController>();
@@ -135,16 +132,50 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
     [],
   );
 
-  const deployment = deployments.find((item) => item.name === deploymentName);
+  // A name-only match can select a previous installation while a new operation
+  // is still reconciling. Match the live list to the object returned by this
+  // create operation whenever a UID is available.
+  const listedDeployment = deployments.find((item) =>
+    createdDeployment?.uid
+      ? item.uid === createdDeployment.uid
+      : item.name === deploymentName &&
+        (!installationStartedAt ||
+          new Date(item.creationTimestamp).getTime() >= installationStartedAt),
+  );
+  const deployment = listedDeployment ?? createdDeployment;
   const readyCondition = conditionFor(deployment, 'Ready');
   const acceptedCondition = conditionFor(deployment, 'Accepted');
   const gatewayRegistrationCondition = conditionFor(deployment, 'GatewayRegistration');
-  const installFailed = readyCondition?.status === 'False' || acceptedCondition?.status === 'False';
-  const gatewayRegistrationFailed = gatewayRegistrationCondition?.status === 'False';
+  const installFailed =
+    acceptedCondition?.status === 'False' ||
+    (readyCondition?.status === 'False' &&
+      readyCondition.reason !== McpReadyReason.INITIALIZING &&
+      readyCondition.reason !== 'Pending');
+  const gatewayRegistrationFailed =
+    gatewayRegistrationCondition?.status === 'False' &&
+    gatewayRegistrationCondition.reason !== 'Pending';
   const installNeedsAttention = installFailed || gatewayRegistrationFailed;
+  const readinessReady = readinessLoaded && !readinessError && !!readiness;
+  const gatewayRequired = readiness?.gatewayRequired === true;
   const installComplete =
-    readyCondition?.status === 'True' &&
-    (!readiness?.gatewayRequired || gatewayRegistrationCondition?.status === 'True');
+    !!listedDeployment &&
+    readinessReady &&
+    readyCondition?.status === McpConditionStatus.TRUE &&
+    (!gatewayRequired || gatewayRegistrationCondition?.status === McpConditionStatus.TRUE);
+  const installationTerminal = installComplete || installNeedsAttention;
+  const installationRunningLong = elapsedSeconds >= 30;
+
+  React.useEffect(() => {
+    if (step !== 'installing' || !installationStartedAt || installationTerminal) {
+      return undefined;
+    }
+
+    const updateElapsed = () =>
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - installationStartedAt) / 1000)));
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 1000);
+    return () => window.clearInterval(timer);
+  }, [installationStartedAt, installationTerminal, step]);
 
   const runtimeState: CheckState = crData?.spec.source.containerImage?.ref ? 'ready' : 'blocked';
   const lifecycleState: CheckState = !lifecycleLoaded
@@ -179,6 +210,9 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
 
     setIsSubmitting(true);
     setSubmitError(undefined);
+    setInstallationStartedAt(Date.now());
+    setElapsedSeconds(0);
+    setCreatedDeployment(undefined);
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -207,6 +241,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
           : undefined,
       });
       setDeploymentName(created.name);
+      setCreatedDeployment(created);
       setStep('installing');
     } catch (error) {
       setSubmitError(
@@ -234,23 +269,30 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
         <CheckRow
           label="Create MCP deployment"
           detail="MCPServer resource submitted to the selected project"
-          state="ready"
+          state={deployment ? 'ready' : 'pending'}
         />
         <CheckRow
           label="Reconcile MCP server"
-          detail={readyCondition?.message || 'Waiting for the MCP Lifecycle operator'}
+          detail={
+            readyCondition?.message ||
+            (acceptedCondition?.status === McpConditionStatus.TRUE
+              ? 'MCPServer accepted; waiting for the server workload to become ready'
+              : 'MCPServer submitted; waiting for the MCP Lifecycle operator to publish status')
+          }
           state={installComplete ? 'ready' : 'pending'}
         />
         <CheckRow
           label="Validate gateway registration"
           detail={
             gatewayRegistrationCondition?.message ||
-            (readiness?.gatewayRequired
-              ? 'Waiting for MCP Gateway registration'
-              : 'Gateway registration is not required for this server')
+            (gatewayRegistrationCondition?.status === McpConditionStatus.TRUE
+              ? 'MCP Gateway registration is ready'
+              : readiness?.gatewayRequired
+                ? 'MCP server is ready; waiting for MCP Gateway registration'
+                : 'Gateway registration is not required for this server')
           }
           state={
-            gatewayRegistrationCondition?.status === 'True'
+            gatewayRegistrationCondition?.status === McpConditionStatus.TRUE
               ? 'ready'
               : readiness?.gatewayRequired
                 ? 'pending'
@@ -262,7 +304,12 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   };
 
   return (
-    <Modal isOpen variant="medium" onClose={onClose} data-testid="mcp-install-modal">
+    <Modal
+      isOpen
+      variant="medium"
+      onClose={step === 'installing' && !installationTerminal ? () => undefined : onClose}
+      data-testid="mcp-install-modal"
+    >
       <ModalHeader
         title={`Install ${displayName}`}
         description="A guided install from the AI Hub MCP catalog. The installer checks prerequisites before it creates resources and follows the deployment until the cluster reports its status."
@@ -294,11 +341,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
             </StackItem>
             <StackItem>
               <Form>
-                <FormGroup
-                  label="Project"
-                  isRequired
-                  fieldId="mcp-install-project-preflight"
-                >
+                <FormGroup label="Project" isRequired fieldId="mcp-install-project-preflight">
                   <NamespaceSelectorFieldWrapper
                     selectedNamespace={selectedNamespace}
                     onSelect={setSelectedNamespace}
@@ -306,8 +349,8 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
                     selectorOnly
                   />
                   <Content component="small">
-                    Choose the project where this MCP server will be installed. The readiness
-                    checks below use this project.
+                    Choose the project where this MCP server will be installed. The readiness checks
+                    below use this project.
                   </Content>
                 </FormGroup>
               </Form>
@@ -366,81 +409,11 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
             )}
             {submitError && (
               <StackItem>
-                <Alert variant="danger" isInline title="Unable to continue">
-                  {submitError.message}
-                </Alert>
-              </StackItem>
-            )}
-          </Stack>
-        )}
-
-        {step === 'review' && (
-          <Stack hasGutter>
-            {submitError && (
-              <StackItem>
                 <Alert variant="danger" isInline title="Unable to start installation">
                   {submitError.message}
                 </Alert>
               </StackItem>
             )}
-            <StackItem>
-              <Title headingLevel="h3" size="lg">
-                Review installation
-              </Title>
-              <Content component="p">
-                The following resources will be created in the selected project using the catalog
-                runtime definition.
-              </Content>
-            </StackItem>
-            <StackItem>
-              <Form>
-                <FormGroup label="Project" isRequired fieldId="mcp-install-project">
-                  <NamespaceSelectorFieldWrapper
-                    selectedNamespace={selectedNamespace}
-                    onSelect={setSelectedNamespace}
-                    isFullWidth
-                    selectorOnly
-                  />
-                </FormGroup>
-              </Form>
-            </StackItem>
-            <StackItem>
-              <Card>
-                <CardHeader>
-                  <Title headingLevel="h4" size="md">
-                    Resources
-                  </Title>
-                </CardHeader>
-                <CardBody>
-                  <DescriptionList isCompact>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Lane</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <Label color={innovationLane ? 'orange' : 'green'}>
-                          {innovationLane ? 'Innovation' : 'Production'}
-                        </Label>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Server</DescriptionListTerm>
-                      <DescriptionListDescription>{displayName}</DescriptionListDescription>
-                    </DescriptionListGroup>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Deployment</DescriptionListTerm>
-                      <DescriptionListDescription>
-                        <Label color="blue">{k8sName}</Label>
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Image</DescriptionListTerm>
-                      <DescriptionListDescription className="pf-v6-u-text-break-word">
-                        {crData?.spec.source.containerImage?.ref}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  </DescriptionList>
-                </CardBody>
-              </Card>
-            </StackItem>
           </Stack>
         )}
 
@@ -458,9 +431,36 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
                 Live status is read from the MCP deployment in the selected project. Lane:{' '}
                 {innovationLane ? 'Innovation' : 'Production'}.
               </Content>
+              <Content component="small">
+                {installComplete
+                  ? 'The MCP server and required Gateway registration are ready.'
+                  : installNeedsAttention
+                    ? 'The cluster reported a blocked installation step.'
+                    : !listedDeployment
+                      ? 'The create request was accepted; waiting for the live deployment record.'
+                      : acceptedCondition?.status !== McpConditionStatus.TRUE
+                        ? 'Waiting for the MCP Lifecycle operator to accept the MCPServer.'
+                        : readyCondition?.status !== McpConditionStatus.TRUE
+                          ? 'The MCPServer is accepted; waiting for its workload to become ready.'
+                          : gatewayRequired &&
+                              gatewayRegistrationCondition?.status !== McpConditionStatus.TRUE
+                            ? 'The MCP server is ready; waiting for Gateway registration to become ready.'
+                            : 'The cluster is publishing the final installation status.'}{' '}
+                {installationStartedAt && !installationTerminal
+                  ? `Elapsed: ${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s.`
+                  : ''}
+              </Content>
+              {!installationTerminal && (
+                <Content component="small">
+                  The dashboard polls the selected project for the live MCPServer status.{' '}
+                  {installationRunningLong
+                    ? 'This phase is taking longer than expected; the modal remains open until the cluster reports success or a blocked condition.'
+                    : 'The controls remain locked until the cluster reports a terminal result.'}
+                </Content>
+              )}
             </StackItem>
             <StackItem>{renderInstallStatus()}</StackItem>
-            {!deployment && !installFailed && (
+            {!listedDeployment && !installFailed && (
               <StackItem>
                 <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                   <FlexItem>
@@ -481,23 +481,8 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
             </Button>
             <Button
               variant="primary"
-              onClick={() => setStep('review')}
-              isDisabled={!preflightReady}
-              data-testid="mcp-install-continue"
-            >
-              Continue to install
-            </Button>
-          </>
-        )}
-        {step === 'review' && (
-          <>
-            <Button variant="link" onClick={() => setStep('preflight')}>
-              Back
-            </Button>
-            <Button
-              variant="primary"
               onClick={handleInstall}
-              isDisabled={!selectedNamespace || !crData || isSubmitting}
+              isDisabled={!preflightReady || isSubmitting}
               isLoading={isSubmitting}
               data-testid="mcp-install-submit"
             >
@@ -505,21 +490,17 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
             </Button>
           </>
         )}
-        {step === 'installing' && (
-          <>
+        {step === 'installing' &&
+          (installationTerminal ? (
             <Button variant="link" onClick={onClose}>
               Close
             </Button>
-            <Button
-              variant="primary"
-              onClick={() => navigate(mcpDeploymentsUrl(selectedNamespace))}
-              isDisabled={!deploymentName}
-              data-testid="mcp-install-view-status"
-            >
-              View installation status
-            </Button>
-          </>
-        )}
+          ) : (
+            <Content component="small">
+              Installation remains open here until the cluster reports success or a blocked
+              condition. No navigation is available during the active install.
+            </Content>
+          ))}
       </ModalFooter>
     </Modal>
   );

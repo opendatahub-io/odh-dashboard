@@ -14,6 +14,7 @@ import {
   getRegisteredVersionSortKey,
   getStatusInfo,
   getStatusSortWeight,
+  isClusterLocalConnectionUrl,
 } from '~/odh/pages/mcpDeployments/utils';
 import {
   createMockDeployment,
@@ -103,11 +104,35 @@ describe('getConnectionUrl', () => {
   });
 });
 
+describe('isClusterLocalConnectionUrl', () => {
+  it('identifies Kubernetes service DNS names', () => {
+    expect(isClusterLocalConnectionUrl('http://server.team.svc.cluster.local:8080/mcp')).toBe(true);
+  });
+
+  it('does not classify an external Gateway endpoint as cluster-local', () => {
+    expect(isClusterLocalConnectionUrl('https://mcp-gateway.example.com/mcp')).toBe(false);
+  });
+});
+
 describe('getStatusInfo', () => {
   it('should return Available for Ready=True', () => {
     const result = getStatusInfo(createReadyConditions());
     expect(result.label).toBe('Available');
     expect(result.status).toBe('success');
+  });
+
+  it('should not report Available while Gateway registration is pending', () => {
+    const result = getStatusInfo([
+      ...createReadyConditions(),
+      {
+        type: McpConditionType.GATEWAY_REGISTRATION,
+        status: McpConditionStatus.FALSE,
+        reason: 'Pending',
+        message: 'Waiting for Gateway registration.',
+      },
+    ]);
+    expect(result.label).toBe('Registering with Gateway');
+    expect(result.status).toBe('info');
   });
 
   it('should return Initializing for Ready=False with Initializing reason', () => {

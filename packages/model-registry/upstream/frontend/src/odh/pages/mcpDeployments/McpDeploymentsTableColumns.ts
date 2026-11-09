@@ -48,7 +48,7 @@ export const getMcpDeploymentColumns = (
   },
   {
     field: 'service',
-    label: 'Service',
+    label: 'Connection',
     sortable: false,
     width: 10,
   },

@@ -107,6 +107,8 @@ explicit implementation gates until their adapters and probes exist.
   `tools/call` through the exposed Gateway path.
 - [x] Live dashboard image rollout and BFF verification on the evaluation
   OpenShift AI instance.
+- [x] Uninstaller waits for owned resources to disappear before reporting
+  success, with an explicit cleanup state and timeout failure.
 - [ ] MaaS Gateway adapter and validation.
 - [ ] Inference Gateway adapter and validation.
 - [ ] Identity, TLS, exposure, routing, quota, and conformance probes.
@@ -128,6 +130,10 @@ Validated on 2026-11-04 against the evaluation OpenShift AI instance:
   identity/exposure, and routing/quotas adapters are not implemented.
 - The remaining shareability gates are browser validation as `JayDi11a`,
   teardown/reinstall evidence, and upstream contribution preparation.
+- Current live module image for uninstall verification:
+  `quay.io/rh-ee-gtrotman/odh-mod-arch-modular-architecture:project-matrix-uninstall-20261109-amd64`
+  at digest
+  `sha256:4ebd80f882577f9cb8f51b7de155fdd77694446a265c4c81af7a3df2bae10948`.
 
 ## Validation sequence
 
@@ -145,6 +151,20 @@ Validated on 2026-11-04 against the evaluation OpenShift AI instance:
    resources.
 7. Repeat the install after teardown and record evidence before committing and
    pushing the milestone.
+
+## Uninstall verification milestone — 2026-11-09
+
+The uninstaller now waits on Kubernetes state rather than treating delete
+request acceptance as completion. It verifies that the owned MCPServer,
+registration, routes, grants, RBAC, configuration, and operator-owned
+dependents are gone. Gateway-layer removal also waits for Project Matrix-owned
+resources to disappear and does not remove shared platform services.
+
+The UI keeps the cleanup operation visible with **Waiting for cluster
+cleanup** messaging. A timeout is reported as a blocked cleanup result. The
+updated federated `model-registry-ui` is live and healthy on the evaluation
+cluster. The image was built through `packages/model-registry/Dockerfile.workspace`
+for Linux/amd64. Fresh install/uninstall browser validation remains open.
 
 ## Evidence and ownership
 

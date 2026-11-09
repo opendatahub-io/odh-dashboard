@@ -37,6 +37,9 @@ type McpDeployment struct {
 	YAML       string                   `json:"yaml,omitempty"`
 	Conditions []McpDeploymentCondition `json:"conditions"`
 	Address    *McpDeploymentAddress    `json:"address,omitempty"`
+	// GatewayAddress is the externally exposed MCP Gateway client endpoint. It
+	// is distinct from Address, which is the cluster-local backend Service URL.
+	GatewayAddress *McpDeploymentAddress `json:"gatewayAddress,omitempty"`
 }
 
 type McpDeploymentList struct {

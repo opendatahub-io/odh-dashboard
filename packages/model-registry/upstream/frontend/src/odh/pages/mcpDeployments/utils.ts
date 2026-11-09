@@ -25,11 +25,21 @@ export const isConditionTrue = (condition: McpDeploymentCondition | undefined): 
   condition?.status === McpConditionStatus.TRUE;
 
 export const getConnectionUrl = (deployment: McpDeployment): string | undefined => {
-  const ready = getCondition(deployment.conditions, McpConditionType.READY);
+  const { conditions, address } = deployment;
+  const ready = getCondition(conditions, McpConditionType.READY);
   if (!isConditionTrue(ready)) {
     return undefined;
   }
-  return deployment.address?.url;
+  return address?.url;
+};
+
+export const isClusterLocalConnectionUrl = (url: string): boolean => {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === 'localhost' || hostname.endsWith('.svc') || hostname.includes('.svc.');
+  } catch {
+    return url.includes('.svc.');
+  }
 };
 
 export const getDeploymentDisplayName = (deployment: McpDeployment): string =>
@@ -52,6 +62,7 @@ export type McpDeploymentStatusInfo = {
 export const getStatusInfo = (conditions: McpDeploymentCondition[]): McpDeploymentStatusInfo => {
   const accepted = getCondition(conditions, McpConditionType.ACCEPTED);
   const ready = getCondition(conditions, McpConditionType.READY);
+  const gatewayRegistration = getCondition(conditions, McpConditionType.GATEWAY_REGISTRATION);
 
   if (accepted && !isConditionTrue(accepted)) {
     return {
@@ -66,6 +77,26 @@ export const getStatusInfo = (conditions: McpDeploymentCondition[]): McpDeployme
       label: 'Scaled to zero',
       status: 'info',
       popoverBody: ready.message || 'This MCP server has been scaled to zero replicas.',
+    };
+  }
+
+  if (
+    ready &&
+    isConditionTrue(ready) &&
+    gatewayRegistration &&
+    !isConditionTrue(gatewayRegistration)
+  ) {
+    const registrationFailed =
+      gatewayRegistration.status === McpConditionStatus.FALSE &&
+      gatewayRegistration.reason !== 'Pending';
+    return {
+      label: registrationFailed ? 'Gateway registration failed' : 'Registering with Gateway',
+      status: registrationFailed ? 'danger' : 'info',
+      popoverBody:
+        gatewayRegistration.message ||
+        (registrationFailed
+          ? 'The MCP server is ready, but its Gateway registration failed.'
+          : 'The MCP server is ready and is waiting for Gateway registration to complete.'),
     };
   }
 

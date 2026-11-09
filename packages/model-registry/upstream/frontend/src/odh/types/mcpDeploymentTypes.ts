@@ -63,6 +63,7 @@ export type MCPServerCR = {
 export enum McpConditionType {
   ACCEPTED = 'Accepted',
   READY = 'Ready',
+  GATEWAY_REGISTRATION = 'GatewayRegistration',
 }
 
 export enum McpConditionStatus {
@@ -115,6 +116,8 @@ export type McpDeployment = {
   yaml?: string;
   conditions: McpDeploymentCondition[];
   address?: McpDeploymentAddress;
+  /** Public MCP Gateway client endpoint, distinct from the cluster-local service address. */
+  gatewayAddress?: McpDeploymentAddress;
 };
 
 export type McpDeploymentList = {

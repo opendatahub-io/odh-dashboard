@@ -143,6 +143,8 @@ func handleMcpDeploymentError(app *api.App, w http.ResponseWriter, r *http.Reque
 		app.NotFound(w, r)
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentConflict):
 		app.Conflict(w, r, err.Error())
+	case errors.Is(err, redhatrepos.ErrMcpDeploymentCleanupTimeout):
+		app.Conflict(w, r, "Cleanup is still in progress; retry after the cluster removes the remaining Project Matrix resources.")
 	case apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err):
 		app.Forbidden(w, r, err.Error())
 	default:

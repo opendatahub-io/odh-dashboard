@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import {
   Bullseye,
@@ -24,6 +24,7 @@ import McpDeploymentsToolbar from './McpDeploymentsToolbar';
 import McpDeploymentsEmptyState from './McpDeploymentsEmptyState';
 import DeleteMcpDeploymentModal from './DeleteMcpDeploymentModal';
 import DeleteMcpGatewayLayerModal from './DeleteMcpGatewayLayerModal';
+import McpDeploymentInstallStatusModal from './McpDeploymentInstallStatusModal';
 import { getDeploymentDisplayName } from './utils';
 
 type McpDeploymentsPageProps = {
@@ -36,8 +37,21 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
   const [deleteTarget, setDeleteTarget] = React.useState<McpDeployment | undefined>();
   const [deleteGatewayLayer, setDeleteGatewayLayer] = React.useState(false);
   const [editingDeployment, setEditingDeployment] = React.useState<McpDeployment>();
+  const [statusDeployment, setStatusDeployment] = React.useState<McpDeployment>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { updatePreferredProject, projects } = useProjectsBridge();
   const navigate = useNavigate();
+
+  const installationName = searchParams.get('installation');
+  React.useEffect(() => {
+    if (!loaded || !installationName) {
+      return;
+    }
+    const target = deployments.items.find((deployment) => deployment.name === installationName);
+    if (target) {
+      setStatusDeployment(target);
+    }
+  }, [deployments.items, installationName, loaded]);
 
   const handleProjectSelect = React.useCallback(
     (ns: string) => {
@@ -55,6 +69,19 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
   const handleEditClick = React.useCallback((deployment: McpDeployment) => {
     setEditingDeployment(deployment);
   }, []);
+
+  const handleViewStatus = React.useCallback((deployment: McpDeployment) => {
+    setStatusDeployment(deployment);
+  }, []);
+
+  const closeStatus = React.useCallback(() => {
+    setStatusDeployment(undefined);
+    if (searchParams.has('installation')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('installation');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filteredDeployments = React.useMemo(() => {
     if (!filterText) {
@@ -145,7 +172,11 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
         onClearFilters={clearFilters}
         onDeleteClick={handleDeleteClick}
         onEditClick={handleEditClick}
+        onViewStatus={handleViewStatus}
       />
+      {statusDeployment && (
+        <McpDeploymentInstallStatusModal deployment={statusDeployment} onClose={closeStatus} />
+      )}
       {deleteTarget && namespace && (
         <DeleteMcpDeploymentModal
           deployment={deleteTarget}

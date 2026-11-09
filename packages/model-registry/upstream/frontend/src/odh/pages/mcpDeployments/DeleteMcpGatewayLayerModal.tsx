@@ -43,9 +43,9 @@ const DeleteMcpGatewayLayerModal: React.FC<DeleteMcpGatewayLayerModalProps> = ({
     >
       <Stack hasGutter>
         <StackItem>
-          This removes Project Matrix Gateway-layer resources created in <strong>{namespace}</strong>:
-          MCP server deployments, gateway registrations, HTTPRoutes, ReferenceGrants, and
-          installer-created prerequisites.
+          This removes Project Matrix Gateway-layer resources created in{' '}
+          <strong>{namespace}</strong>: MCP server deployments, gateway registrations, HTTPRoutes,
+          ReferenceGrants, and installer-created prerequisites.
         </StackItem>
         <StackItem>
           <Alert isInline variant="warning" title="Shared platform services are preserved">
@@ -53,6 +53,19 @@ const DeleteMcpGatewayLayerModal: React.FC<DeleteMcpGatewayLayerModalProps> = ({
             shared OpenShift AI services are not removed.
           </Alert>
         </StackItem>
+        {isDeleting && (
+          <StackItem>
+            <Alert
+              isInline
+              variant="info"
+              title="Waiting for Gateway layer cleanup"
+              data-testid="delete-layer-cleanup-progress-alert"
+            >
+              The removal request was accepted. The installer is verifying that all Project Matrix
+              Gateway-layer resources are gone. Shared platform services remain untouched.
+            </Alert>
+          </StackItem>
+        )}
         <StackItem>Type GATEWAY to confirm.</StackItem>
       </Stack>
     </DeleteModal>

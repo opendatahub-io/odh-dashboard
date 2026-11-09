@@ -16,6 +16,7 @@ type McpDeploymentsTableRowProps = {
   showRegisteredVersion: boolean;
   onDeleteClick: (deployment: McpDeployment) => void;
   onEditClick: (deployment: McpDeployment) => void;
+  onViewStatus: (deployment: McpDeployment) => void;
 };
 
 const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
@@ -23,6 +24,7 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
   showRegisteredVersion,
   onDeleteClick,
   onEditClick,
+  onViewStatus,
 }) => {
   const actions: IAction[] = React.useMemo(
     () => [
@@ -34,8 +36,12 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
         title: 'Delete',
         onClick: () => onDeleteClick(deployment),
       },
+      {
+        title: 'View installation status',
+        onClick: () => onViewStatus(deployment),
+      },
     ],
-    [deployment, onDeleteClick, onEditClick],
+    [deployment, onDeleteClick, onEditClick, onViewStatus],
   );
 
   return (
@@ -62,7 +68,7 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
       <Td dataLabel="Status" data-testid="mcp-deployment-status">
         <McpDeploymentStatusLabel conditions={deployment.conditions} />
       </Td>
-      <Td dataLabel="Service" data-testid="mcp-deployment-service">
+      <Td dataLabel="Connection" data-testid="mcp-deployment-service">
         <McpDeploymentServicePopover deployment={deployment} />
       </Td>
       <Td isActionCell>
