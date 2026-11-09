@@ -5,6 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { restGET } from 'mod-arch-core';
 import '@testing-library/jest-dom';
 import ModelAccessPage from '~/app/pages/model-access/ModelAccessPage';
+import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
+import { MaaSGovernanceProvider } from '~/app/context/MaaSGovernanceContext';
 import type { MaaSSubscription } from '~/app/types/subscriptions';
 
 jest.mock('mod-arch-core', () => ({
@@ -187,6 +189,56 @@ describe('ModelAccessPage', () => {
     expect(screen.getByTestId('model-access-table-toolbar-option-model')).toHaveTextContent(
       'Model',
     );
+  });
+
+  it('should use the same three filters by default on the management subscriptions table', async () => {
+    const user = userEvent.setup();
+    mockRestGET.mockResolvedValue({ data: [subscription(), basicSubscription()] });
+    render(
+      <MemoryRouter>
+        <MaaSGovernanceProvider subscriptionsOnly>
+          <SubscriptionsTab />
+        </MaaSGovernanceProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByRole('link', { name: 'Premium Team' });
+    expect(screen.getByTestId('create-subscription-button')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument();
+
+    await user.type(screen.getByTestId('subscriptions-subscription-filter-input'), 'ANITE 3');
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    await user.click(screen.getByTestId('subscriptions-table-toolbar-dropdown'));
+    for (const filter of ['subscription', 'group', 'model']) {
+      expect(
+        screen.getByTestId(`subscriptions-table-toolbar-option-${filter}`),
+      ).toBeInTheDocument();
+    }
+    await user.click(
+      within(screen.getByTestId('subscriptions-table-toolbar-option-model')).getByRole('menuitem'),
+    );
+    const modelInput = within(screen.getByTestId('subscriptions-table-toolbar')).getByRole(
+      'combobox',
+    );
+    await user.type(modelInput, 'ANITE');
+    await user.click(screen.getByRole('option', { name: 'Filter by "ANITE"' }));
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
+    await user.click(screen.getByTestId('subscriptions-table-toolbar-dropdown'));
+    await user.click(
+      within(screen.getByTestId('subscriptions-table-toolbar-option-group')).getByRole('menuitem'),
+    );
+    await user.click(
+      within(screen.getByTestId('subscriptions-table-toolbar')).getByRole('combobox'),
+    );
+    await user.click(
+      screen.getByRole('option', { name: '42c3e46f-2477-44d7-a85b-d3b43f6b31fa/ai-grid-users' }),
+    );
+    expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
   });
 
   it('should filter the table by subscription text', async () => {

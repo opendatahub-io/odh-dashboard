@@ -1,17 +1,11 @@
 export enum SubscriptionsFilterOptions {
-  keyword = 'keyword',
   subscription = 'subscription',
   group = 'group',
   model = 'model',
 }
 
-/** MaaS governance subscriptions tab: free-text keyword search. */
+/** Shared subscriptions filters: subscription text search, plus group and model selections. */
 export const subscriptionsFilterOptions = {
-  [SubscriptionsFilterOptions.keyword]: 'Keyword',
-};
-
-/** Model access viewer: subscription text search, plus group and model selections. */
-export const modelAccessFilterOptions = {
   [SubscriptionsFilterOptions.subscription]: 'Subscription',
   [SubscriptionsFilterOptions.group]: 'Group',
   [SubscriptionsFilterOptions.model]: 'Model',
@@ -28,7 +22,6 @@ export type SubscriptionsFilterDataType = Record<
 >;
 
 export const initialSubscriptionsFilterData: SubscriptionsFilterDataType = {
-  [SubscriptionsFilterOptions.keyword]: '',
   [SubscriptionsFilterOptions.subscription]: undefined,
   [SubscriptionsFilterOptions.group]: undefined,
   [SubscriptionsFilterOptions.model]: undefined,
