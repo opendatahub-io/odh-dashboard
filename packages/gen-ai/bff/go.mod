@@ -9,14 +9,14 @@ require (
 	github.com/kserve/kserve v0.16.1-0.20251105234326-d5a3f748882c
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/ogx-ai/ogx-k8s-operator v0.9.0
-	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	github.com/openai/openai-go/v2 v2.7.1
 	github.com/opendatahub-io/mlflow-go v0.0.0-20261021182736-53f4a2e43ff7
 	github.com/opendatahub-io/odh-dashboard/pkg/tls v0.0.0-00010101000000-000000000000
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rs/cors v1.11.1
-	github.com/shirou/gopsutil/v4 v4.26.9
+	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/stretchr/testify v1.12.1
 	github.com/trustyai-explainability/trustyai-service-operator v1.38.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0
@@ -60,7 +60,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/ebitengine/purego v0.11.1 // indirect
+	github.com/ebitengine/purego v0.11.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
