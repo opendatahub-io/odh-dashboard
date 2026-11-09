@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -834,6 +835,13 @@ func TestResolveTrustedHost(t *testing.T) {
 			wantErr:  true,
 			wantName: "my-model",
 		},
+		{
+			name:     "NotFound Service lookup is untrusted without an error",
+			err:      apierrors.NewNotFound(schema.GroupResource{Resource: "services"}, "my-model"),
+			want:     false,
+			wantErr:  false,
+			wantName: "my-model",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -942,6 +950,46 @@ func TestResolveTrustedHostLoopbackCanonicalization(t *testing.T) {
 				t.Errorf("resolveTrustedHost() addresses = %v, want none for loopback", addresses)
 			}
 		})
+	}
+}
+
+// TestResolveTrustedHostDoesNotLogSensitiveSelectorValues verifies that trust
+// lookup failures log only a safe error category: raw Kubernetes error
+// messages can embed caller-controlled label selectors, which must not reach
+// the logs.
+func TestResolveTrustedHostDoesNotLogSensitiveSelectorValues(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+	// A Service whose selector carries a sensitive value; the pod list fails
+	// with an error whose message embeds that selector, as Kubernetes API
+	// errors do.
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "my-ns", Name: "my-model"},
+		Spec: corev1.ServiceSpec{
+			Type:     corev1.ServiceTypeClusterIP,
+			Selector: map[string]string{"app": "secret-selector-value"},
+			Ports:    []corev1.ServicePort{{Name: "https", Port: 8443, TargetPort: intstr.FromInt32(8443)}},
+		},
+	}
+	client := &k8smocks.ConfigurableMockKubernetesClient{
+		Service:        service,
+		EndpointSlices: []discoveryv1.EndpointSlice{controllerManagedSlice("my-ns")},
+		PodError:       fmt.Errorf("pods is forbidden: labelSelector app=secret-selector-value: connection refused"),
+	}
+	_, _, err := resolveTrustedHost(
+		context.Background(), client, nil,
+		"https://my-model.my-ns.svc.cluster.local:8443/v1",
+		classifyOrFatal(t, "https://my-model.my-ns.svc.cluster.local:8443/v1"),
+		"my-ns", false, logger,
+	)
+	if err == nil {
+		t.Fatal("resolveTrustedHost() error = nil, want availability error")
+	}
+	if strings.Contains(buf.String(), "secret-selector-value") {
+		t.Errorf("trust lookup logs leaked the sensitive selector value: %s", buf.String())
+	}
+	if !strings.Contains(buf.String(), "pod list failed") {
+		t.Errorf("trust lookup failure was not logged: %s", buf.String())
 	}
 }
 

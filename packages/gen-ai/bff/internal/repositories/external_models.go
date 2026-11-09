@@ -585,7 +585,15 @@ func resolveTrustedHost(
 		if apierrors.IsForbidden(err) {
 			return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to get the Service %s/%s, which the caller lacks", svcNamespace, svcName))
 		}
-		logger.Warn("service lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
+		if apierrors.IsNotFound(err) {
+			// A missing Service is a definitive negative answer, not an
+			// availability failure: the name simply does not name a
+			// verifiable in-cluster endpoint.
+			return false, nil, nil
+		}
+		// Log only a safe error category: raw Kubernetes errors can embed
+		// caller-controlled label selectors in their message.
+		logger.Warn("service lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error_reason", string(apierrors.ReasonForError(err)))
 		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: getting the Service %s/%s failed", svcNamespace, svcName))
 	}
 	if svc.Spec.Type == corev1.ServiceTypeExternalName {
@@ -655,7 +663,9 @@ func resolveTrustedHost(
 		if apierrors.IsForbidden(err) {
 			return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to list EndpointSlices for the Service %s/%s, which the caller lacks", svcNamespace, svcName))
 		}
-		logger.Warn("endpoint slice lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
+		// Log only a safe error category: raw Kubernetes errors can embed
+		// caller-controlled label selectors in their message.
+		logger.Warn("endpoint slice lookup failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error_reason", string(apierrors.ReasonForError(err)))
 		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: listing EndpointSlices for the Service %s/%s failed", svcNamespace, svcName))
 	}
 	// Every endpoint is validated against its referenced Pod and the endpoint
@@ -670,7 +680,9 @@ func resolveTrustedHost(
 		if apierrors.IsForbidden(err) {
 			return false, nil, forbiddenTrustError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires permission to list the Pods of the Service %s/%s, which the caller lacks", svcNamespace, svcName))
 		}
-		logger.Warn("pod list failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error", err)
+		// Log only a safe error category: raw Kubernetes errors can embed
+		// caller-controlled label selectors in their message.
+		logger.Warn("pod list failed during trusted host resolution", "service", svcName, "namespace", svcNamespace, "error_reason", string(apierrors.ReasonForError(err)))
 		return false, nil, externalmodels.NewConnectionError(baseURL, fmt.Sprintf("verifying an in-cluster endpoint requires the Kubernetes API: listing the Pods of the Service %s/%s failed", svcNamespace, svcName))
 	}
 	podByName := make(map[string]*corev1.Pod, len(pods))
