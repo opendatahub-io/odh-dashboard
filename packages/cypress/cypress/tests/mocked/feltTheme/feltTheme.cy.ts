@@ -90,6 +90,7 @@ describe('Felt theme (RHAI-19115)', () => {
     // Open the appearance switcher
     cy.findByTestId('appearance-settings-button').click();
     cy.get('#theme-selector-color-scheme-title').should('be.visible');
+    cy.testA11y();
     cy.screenshot('felt-theme-switcher-open');
 
     // Toggle dark mode via color scheme
@@ -116,6 +117,7 @@ describe('Felt theme (RHAI-19115)', () => {
     // Felt stays on regardless of color scheme or contrast mode
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
     getControlRadiusToken().should('equal', FELT_CONTROL_RADIUS);
+    cy.testA11y();
     cy.screenshot('felt-theme-glass-on');
 
     // Switch to Default (solid backgrounds, no glass)
