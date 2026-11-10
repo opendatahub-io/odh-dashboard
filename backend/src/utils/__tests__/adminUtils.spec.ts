@@ -1,32 +1,38 @@
-import type { V1ResourceAttributes } from '@kubernetes/client-node';
-import type { KubeFastifyInstance, OauthFastifyRequest } from '../../types';
+import type { V1ResourceAttributes, V1SelfSubjectAccessReview } from '@kubernetes/client-node';
+import type { AuthKind, KubeFastifyInstance, OauthFastifyRequest } from '../../types';
 import { AUTH_SINGLETON_NAME } from '../constants';
+import { createSelfSubjectAccessReview } from '../authUtils';
+import { getAuth } from '../resourceUtils';
+import { ResourceWatcher } from '../resourceWatcher';
+import { isUserAdmin, isUserAllowed } from '../adminUtils';
 
-const createSelfSubjectAccessReview = jest.fn();
-const getAuth = jest.fn();
+jest.mock('../authUtils');
+jest.mock('../resourceUtils');
 
-jest.mock('../authUtils', () => ({
-  createSelfSubjectAccessReview: (...args: unknown[]) => createSelfSubjectAccessReview(...args),
-}));
-
-jest.mock('../resourceUtils', () => ({
-  getAuth: () => getAuth(),
-}));
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { isUserAdmin, isUserAllowed } = require('../adminUtils');
+const mockCreateSSAR = jest.mocked(createSelfSubjectAccessReview);
+const mockGetAuth = jest.mocked(getAuth);
 
 const fastify = {} as KubeFastifyInstance;
 const request = {} as OauthFastifyRequest;
 
+const authWith = (allowedGroups: string[]): AuthKind =>
+  ({ spec: { adminGroups: ['odh-admins'], allowedGroups } } as AuthKind);
+
+const ssarResult = (allowed: boolean): V1SelfSubjectAccessReview => ({
+  apiVersion: 'authorization.k8s.io/v1',
+  kind: 'SelfSubjectAccessReview',
+  spec: {},
+  status: { allowed },
+});
+
 const lastResourceAttributes = (): V1ResourceAttributes =>
-  createSelfSubjectAccessReview.mock.calls[0][2];
+  mockCreateSSAR.mock.calls[0][2] as V1ResourceAttributes;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  createSelfSubjectAccessReview.mockResolvedValue({ status: { allowed: true } });
+  mockCreateSSAR.mockResolvedValue(ssarResult(true));
   // No escape hatch, so isUserAllowed is forced down the SSAR path.
-  getAuth.mockReturnValue({ spec: { adminGroups: ['odh-admins'], allowedGroups: ['some-group'] } });
+  mockGetAuth.mockReturnValue(authWith(['some-group']));
 });
 
 /**
@@ -66,17 +72,78 @@ describe('adminUtils SSAR targets the Auth singleton', () => {
     await isUserAdmin(fastify, request);
     await isUserAllowed(fastify, request);
 
-    const [adminCall, allowedCall] = createSelfSubjectAccessReview.mock.calls;
-    expect(adminCall[2].name).toBe(allowedCall[2].name);
+    const [adminCall, allowedCall] = mockCreateSSAR.mock.calls;
+    expect((adminCall[2] as V1ResourceAttributes).name).toBe(
+      (allowedCall[2] as V1ResourceAttributes).name,
+    );
   });
 
   it('should skip the SSAR when system:authenticated is in allowedGroups', async () => {
-    getAuth.mockReturnValue({
-      spec: { adminGroups: ['odh-admins'], allowedGroups: ['system:authenticated'] },
-    });
+    mockGetAuth.mockReturnValue(authWith(['system:authenticated']));
 
     await expect(isUserAllowed(fastify, request)).resolves.toBe(true);
-    expect(createSelfSubjectAccessReview).not.toHaveBeenCalled();
+    expect(mockCreateSSAR).not.toHaveBeenCalled();
+  });
+
+  it('should deny admin when the SSAR is not allowed', async () => {
+    mockCreateSSAR.mockResolvedValue(ssarResult(false));
+
+    await expect(isUserAdmin(fastify, request)).resolves.toBe(false);
+  });
+
+  it('should deny allowed when the SSAR is not allowed', async () => {
+    mockCreateSSAR.mockResolvedValue(ssarResult(false));
+
+    await expect(isUserAllowed(fastify, request)).resolves.toBe(false);
+  });
+
+  it('should fail closed when the SSAR rejects', async () => {
+    mockCreateSSAR.mockRejectedValue(new Error('api server unreachable'));
+
+    await expect(isUserAdmin(fastify, request)).resolves.toBe(false);
+    await expect(isUserAllowed(fastify, request)).resolves.toBe(false);
+  });
+});
+
+/**
+ * The other half of the invariant: the SSAR above is only correct if the CR read uses the
+ * same name. Asserting one side alone would still permit the two to drift apart, which is
+ * precisely the bug this guards against.
+ */
+describe('resourceUtils reads the Auth CR by the same name', () => {
+  it('should GET the singleton named AUTH_SINGLETON_NAME', async () => {
+    const getClusterCustomObject = jest
+      .fn()
+      .mockResolvedValue({ body: { spec: { adminGroups: [], allowedGroups: [] } } });
+
+    const authFastify = {
+      kube: { customObjectsApi: { getClusterCustomObject } },
+      log: { error: jest.fn(), warn: jest.fn(), info: jest.fn() },
+    } as unknown as KubeFastifyInstance;
+
+    // fetchAuthKind is private; it reaches the API as a ResourceWatcher getter. Stubbing
+    // the watcher captures every registered getter without starting any watch timers, so
+    // the genuine fetchAuthKind can then be invoked directly.
+    const getters: ((fastify: KubeFastifyInstance) => Promise<unknown>)[] = [];
+    const watcherSpy = jest
+      .spyOn(ResourceWatcher.prototype, 'startWatching')
+      .mockImplementation(function captureGetter(this: { getter: never }) {
+        getters.push(this.getter);
+      });
+
+    try {
+      const { initializeWatchedResources } =
+        jest.requireActual<typeof import('../resourceUtils')>('../resourceUtils');
+      initializeWatchedResources(authFastify);
+
+      await Promise.allSettled(getters.map((getter) => getter(authFastify)));
+    } finally {
+      watcherSpy.mockRestore();
+    }
+
+    const authCall = getClusterCustomObject.mock.calls.find((call) => call[2] === 'auths');
+    expect(authCall).toBeDefined();
+    expect(authCall?.[3]).toBe(AUTH_SINGLETON_NAME);
   });
 });
 
