@@ -1,6 +1,8 @@
 import React from 'react';
 import {
+  Badge,
   Button,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -27,43 +29,56 @@ import {
 import { EllipsisVIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternfly/react-icons';
 import { t_global_icon_color_status_info_default as InfoIconColor } from '@patternfly/react-tokens';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { DeleteModal } from '@odh-dashboard/ui-core';
-import { createConnection, deleteConnection, verifyConnection } from '~/app/api/dch';
+import { Link, useLocation } from 'react-router-dom';
+import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
+import { createConnection, isConnectionAccessForbidden, verifyConnection } from '~/app/api/dch';
+import ConnectionDeleteModal from '~/app/components/ConnectionDeleteModal';
+import CreateConnectionButton from '~/app/components/CreateConnectionButton';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
+import { ConnectionTypeLabel } from '~/app/components/ConnectionType';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnections } from '~/app/hooks/useConnections';
 import type { Connection } from '~/app/types';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+  getConnectionTypeProvider,
+} from '~/app/utilities/tracking';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
+import { getConnectionAccessTooltip } from '~/app/utilities/connectionAccess';
+import {
+  hasVerificationOutcome,
+  isValidTimestamp,
+  statusVariant,
+} from '~/app/utilities/connectionStatus';
 import emptyStateImage from '~/images/RHOAI-Noconnections-RGB.svg';
 
 type ConnectionsTabProps = { namespace: string; isActive?: boolean };
 
 export const synchronizeTypeSelection = (
   current: string[] | null,
-  previousIds: string[],
   availableIds: string[],
 ): string[] | null => {
-  if (current === null) {
-    return availableIds.length > 0 ? availableIds : null;
+  if (current === null || current.length === 0) {
+    return current;
   }
-  const newIds = availableIds.filter((id) => !previousIds.includes(id));
-  const next = Array.from(new Set([...current, ...newIds])).filter((id) =>
-    availableIds.includes(id),
-  );
+  const next = current.filter((id) => availableIds.includes(id));
   return next.length === current.length && next.every((id, index) => id === current[index])
     ? current
     : next;
 };
 
-const statusVariant = {
-  ready: 'success',
-  ingestion_not_ready: 'danger',
-  not_ready: 'danger',
-} as const;
-
-const isValidTimestamp = (timestamp?: string): timestamp is string =>
-  Boolean(timestamp && !Number.isNaN(new Date(timestamp).getTime()));
-
 const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = true }) => {
+  const { search } = useLocation();
+  const { isAllowed: canVerifyConnection, loaded: verifyAccessLoaded } = useConnectionAccess(
+    namespace,
+    'create',
+  );
+  const { isAllowed: canDeleteConnection, loaded: deleteAccessLoaded } = useConnectionAccess(
+    namespace,
+    'delete',
+  );
+  const isVerifyAccessDisabled = !canVerifyConnection || !verifyAccessLoaded;
   const [connections, loaded, error, refresh] = useConnections(namespace, isActive);
   const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace, isActive);
   const [nameFilter, setNameFilter] = React.useState('');
@@ -78,14 +93,28 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     Map<string, string | undefined>
   >(new Map());
   const [deleteTarget, setDeleteTarget] = React.useState<Connection>();
-  const [deleteError, setDeleteError] = React.useState<Error>();
-  const [deleting, setDeleting] = React.useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const nameFilterTrackingTimerRef = React.useRef<number>();
   const [sortColumn, setSortColumn] = React.useState<'name' | 'type' | 'status'>('name');
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
-  const deleteOperationRef = React.useRef(0);
-
-  const typeNames = new Map(connectionTypes.map((type) => [type.metadata.id, type.resource.name]));
+  const trackListFilterApplied = React.useCallback(
+    (filterType: 'type' | 'name') => {
+      fireDataConnectHubTrackEvent({
+        eventName: DATA_CONNECT_HUB_EVENT_NAMES.listFilterApplied,
+        properties: { filterType, project: namespace },
+      });
+    },
+    [namespace],
+  );
+  React.useEffect(
+    () => () => {
+      if (nameFilterTrackingTimerRef.current !== undefined) {
+        clearTimeout(nameFilterTrackingTimerRef.current);
+      }
+    },
+    [],
+  );
+  const connectionTypesMap = new Map(connectionTypes.map((type) => [type.metadata.id, type]));
   const typeIds = React.useMemo(
     () =>
       Array.from(
@@ -93,13 +122,11 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       ),
     [connections],
   );
-  const activeTypes = (selectedTypes ?? typeIds).filter((typeId) => typeIds.includes(typeId));
-  const previousTypeIds = React.useRef<string[]>([]);
+  const selectedTypeIds = (selectedTypes ?? []).filter((typeId) => typeIds.includes(typeId));
+  const hasTypeFilter = selectedTypeIds.length > 0;
+  const filterTypes = hasTypeFilter ? selectedTypeIds : typeIds;
   React.useEffect(() => {
-    const previousIds = previousTypeIds.current;
-    previousTypeIds.current = typeIds;
-
-    setSelectedTypes((current) => synchronizeTypeSelection(current, previousIds, typeIds));
+    setSelectedTypes((current) => synchronizeTypeSelection(current, typeIds));
   }, [typeIds]);
 
   const previousConnections = React.useRef(connections);
@@ -130,6 +157,9 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     return null;
   }
   if (error || typesError) {
+    if (isConnectionAccessForbidden(error) || isConnectionAccessForbidden(typesError)) {
+      return <UnauthorizedError accessDomain="connections" />;
+    }
     return (
       <PageSection isFilled hasBodyWrapper={false}>
         <EmptyState
@@ -156,12 +186,12 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     );
   }
 
-  const getTypeName = (id: string) => typeNames.get(id) ?? id;
+  const getType = (id: string) => connectionTypesMap.get(id);
 
   const filtered = connections.filter(
     (connection) =>
       connection.resource.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
-      activeTypes.includes(connection.resource.data_connection_type_id),
+      filterTypes.includes(connection.resource.data_connection_type_id),
   );
 
   const sorted = filtered.toSorted((left, right) => {
@@ -169,13 +199,15 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
       sortColumn === 'name'
         ? left.resource.name
         : sortColumn === 'type'
-          ? getTypeName(left.resource.data_connection_type_id)
+          ? (getType(left.resource.data_connection_type_id)?.resource.name ??
+            left.resource.data_connection_type_id)
           : left.status.state;
     const rightValue =
       sortColumn === 'name'
         ? right.resource.name
         : sortColumn === 'type'
-          ? getTypeName(right.resource.data_connection_type_id)
+          ? (getType(right.resource.data_connection_type_id)?.resource.name ??
+            right.resource.data_connection_type_id)
           : right.status.state;
     const result = leftValue.localeCompare(rightValue);
     return sortDirection === 'asc' ? result : -result;
@@ -189,15 +221,44 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     },
     columnIndex: index,
   });
-  const hasFilters = nameFilter !== '' || activeTypes.length < typeIds.length;
-  const toggleType = (id: string) =>
+  const hasFilters = nameFilter !== '' || hasTypeFilter;
+  const toggleType = (id: string) => {
+    trackListFilterApplied('type');
     setSelectedTypes((current) => {
-      const values = current ?? typeIds;
+      const values = current ?? [];
       return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
     });
+  };
+  const handleCreateConnection = (source: 'connections_tab' | 'empty_state') => {
+    fireDataConnectHubTrackEvent({
+      eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
+      properties: { project: namespace, source },
+    });
+    setIsCreateModalOpen(true);
+  };
+  const handleNameFilterChange = (value: string) => {
+    setNameFilter(value);
+    if (nameFilterTrackingTimerRef.current !== undefined) {
+      clearTimeout(nameFilterTrackingTimerRef.current);
+    }
+    nameFilterTrackingTimerRef.current = window.setTimeout(() => {
+      nameFilterTrackingTimerRef.current = undefined;
+      trackListFilterApplied('name');
+    }, 750);
+  };
+  const handleNameFilterClear = () => {
+    if (nameFilterTrackingTimerRef.current !== undefined) {
+      clearTimeout(nameFilterTrackingTimerRef.current);
+      nameFilterTrackingTimerRef.current = undefined;
+    }
+    if (nameFilter !== '') {
+      setNameFilter('');
+      trackListFilterApplied('name');
+    }
+  };
 
   const handleVerify = async (id: string) => {
-    if (verifyingIdsRef.current.has(id)) {
+    if (isVerifyAccessDisabled || verifyingIdsRef.current.has(id)) {
       return;
     }
     verifyingIdsRef.current.add(id);
@@ -255,42 +316,11 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) {
-      return;
-    }
-    const operation = ++deleteOperationRef.current;
-    const requestNamespace = namespace;
-    const connectionId = deleteTarget.metadata.id;
-    setDeleting(true);
-    setDeleteError(undefined);
-    try {
-      await deleteConnection('')({}, requestNamespace, connectionId);
-      if (deleteOperationRef.current !== operation || namespace !== requestNamespace) {
-        return;
-      }
-      setDeleteTarget(undefined);
-      refresh();
-    } catch (deleteFailure) {
-      if (deleteOperationRef.current !== operation || namespace !== requestNamespace) {
-        return;
-      }
-      setDeleteError(
-        deleteFailure instanceof Error ? deleteFailure : new Error('Unable to delete connection'),
-      );
-    } finally {
-      if (deleteOperationRef.current === operation && namespace === requestNamespace) {
-        setDeleting(false);
-      }
-    }
-  };
-
   return (
     <PageSection isFilled>
       <p className="pf-v6-u-mb-md">
-        View and manage the data connections available in this project. This registry provides a
-        structured way to store and configure namespace-scoped connections for use by catalog assets
-        and workloads.
+        View and manage connections to external data sources. Connections enable you to securely
+        store credentials, and can be used in workbenches, pipelines, and to create data assets.
       </p>
       <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-md">
         Data connections
@@ -311,10 +341,16 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                           ref={ref}
                           icon={<FilterIcon />}
                           onClick={() => setTypeOpen((open) => !open)}
+                          badge={
+                            hasTypeFilter ? (
+                              <Badge isRead data-testid="connections-type-filter-badge">
+                                {selectedTypeIds.length}
+                              </Badge>
+                            ) : undefined
+                          }
+                          data-testid="connection-type-filter-toggle"
                         >
-                          {activeTypes.length === typeIds.length
-                            ? 'Type'
-                            : `Type: ${activeTypes.length} selected`}
+                          Type
                         </MenuToggle>
                       )}
                     >
@@ -324,13 +360,13 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                             key={id}
                             value={id}
                             hasCheckbox
-                            isSelected={activeTypes.includes(id)}
+                            isSelected={selectedTypeIds.includes(id)}
                             onClick={(event) => {
                               event.stopPropagation();
                               toggleType(id);
                             }}
                           >
-                            {getTypeName(id)}
+                            {getType(id)?.resource.name ?? id}
                           </DropdownItem>
                         ))}
                       </DropdownList>
@@ -343,27 +379,28 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                   aria-label="Filter by name"
                   placeholder="Filter by name..."
                   value={nameFilter}
-                  onChange={(_event, value) => setNameFilter(value)}
-                  onClear={() => setNameFilter('')}
+                  onChange={(_event, value) => handleNameFilterChange(value)}
+                  onClear={handleNameFilterClear}
                 />
               </ToolbarItem>
             </>
           )}
           {connections.length > 0 ? (
             <ToolbarItem>
-              <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
-                Create connection
-              </Button>
+              <CreateConnectionButton
+                namespace={namespace}
+                onCreate={() => handleCreateConnection('connections_tab')}
+              />
             </ToolbarItem>
           ) : null}
         </ToolbarContent>
-        {connections.length > 0 && activeTypes.length < typeIds.length && (
+        {connections.length > 0 && hasTypeFilter && (
           <ToolbarContent>
             <ToolbarItem>
-              <LabelGroup categoryName="Type">
-                {activeTypes.map((id) => (
+              <LabelGroup categoryName="Type" data-testid="connections-type-filter-labels">
+                {selectedTypeIds.map((id) => (
                   <Label key={id} variant="outline" onClose={() => toggleType(id)}>
-                    {getTypeName(id)}
+                    {getType(id)?.resource.name ?? id}
                   </Label>
                 ))}
               </LabelGroup>
@@ -383,9 +420,10 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
           </EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>
-                Create connection
-              </Button>
+              <CreateConnectionButton
+                namespace={namespace}
+                onCreate={() => handleCreateConnection('empty_state')}
+              />
             </EmptyStateActions>
           </EmptyStateFooter>
         </EmptyState>
@@ -395,7 +433,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
             <Tr>
               <Th sort={getSort(0)}>Name</Th>
               <Th sort={getSort(1)}>Type</Th>
-              <Th sort={getSort(2)}>Status</Th>
+              <Th sort={getSort(2)}>Verification status</Th>
               <Th screenReaderText="Actions" />
             </Tr>
           </Thead>
@@ -418,8 +456,12 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                         <Button
                           variant="link"
                           onClick={() => {
+                            if (nameFilterTrackingTimerRef.current !== undefined) {
+                              clearTimeout(nameFilterTrackingTimerRef.current);
+                              nameFilterTrackingTimerRef.current = undefined;
+                            }
                             setNameFilter('');
-                            setSelectedTypes(typeIds);
+                            setSelectedTypes(null);
                           }}
                         >
                           Clear all filters
@@ -430,122 +472,168 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                 </Td>
               </Tr>
             ) : (
-              sorted.map((connection) => (
-                <Tr key={connection.metadata.id}>
-                  <Td dataLabel="Name">{connection.resource.name}</Td>
-                  <Td dataLabel="Type">
-                    {getTypeName(connection.resource.data_connection_type_id)}
-                  </Td>
-                  <Td dataLabel="Status">
-                    {verifying.has(connection.metadata.id) ? (
-                      <Label
-                        color="blue"
-                        variant="outline"
-                        icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
+              sorted.map((connection) => {
+                const connectionTypeId = connection.resource.data_connection_type_id;
+                const connectionType = getType(connectionTypeId);
+
+                return (
+                  <Tr key={connection.metadata.id}>
+                    <Td dataLabel="Name">
+                      <Link
+                        className="pf-v6-u-font-weight-bold"
+                        to={{ pathname: encodeURIComponent(connection.metadata.id), search }}
                       >
-                        Verifying
-                      </Label>
-                    ) : isValidTimestamp(connection.status.updated_at) ? (
-                      <>
-                        <Label variant="outline" status={statusVariant[connection.status.state]}>
-                          {connection.status.state === 'ready' ? 'Verified' : 'Verification failed'}
+                        {connection.resource.name}
+                      </Link>
+                    </Td>
+                    <Td dataLabel="Type">
+                      {connectionType?.resource.name ?? connectionTypeId}
+                      {connectionType && connectionType?.status?.flight_ready && (
+                        <ConnectionTypeLabel
+                          className="pf-v6-u-ml-sm"
+                          connectionType={connectionType}
+                        />
+                      )}
+                    </Td>
+                    <Td dataLabel="Verification status">
+                      {verifying.has(connection.metadata.id) ? (
+                        <Label
+                          color="blue"
+                          variant="outline"
+                          icon={<InProgressIcon color={InfoIconColor.var} className="ai-u-spin" />}
+                        >
+                          Verifying
                         </Label>
+                      ) : isValidTimestamp(connection.status.updated_at) &&
+                        hasVerificationOutcome(connection) ? (
+                        <>
+                          <Label variant="outline" status={statusVariant[connection.status.state]}>
+                            {connection.status.state === 'ready' ? 'Verified' : 'Failed'}
+                          </Label>
+                          <HelperText>
+                            <HelperTextItem>
+                              Last tested {new Date(connection.status.updated_at).toLocaleString()}
+                            </HelperTextItem>
+                          </HelperText>
+                        </>
+                      ) : (
+                        <Label variant="outline" color="grey">
+                          Unverified
+                        </Label>
+                      )}
+                      {verificationErrors.has(connection.metadata.id) && (
                         <HelperText>
-                          <HelperTextItem>
-                            Last tested {new Date(connection.status.updated_at).toLocaleString()}
+                          <HelperTextItem variant="error">
+                            {verificationErrors.get(connection.metadata.id)?.message}
                           </HelperTextItem>
                         </HelperText>
-                      </>
-                    ) : (
-                      <Label variant="outline" color="grey">
-                        Unverified
-                      </Label>
-                    )}
-                    {verificationErrors.has(connection.metadata.id) && (
-                      <HelperText>
-                        <HelperTextItem variant="error">
-                          {verificationErrors.get(connection.metadata.id)?.message}
-                        </HelperTextItem>
-                      </HelperText>
-                    )}
-                  </Td>
-                  <Td isActionCell>
-                    <Dropdown
-                      isOpen={actionsFor === connection.metadata.id}
-                      onOpenChange={(open) =>
-                        setActionsFor(open ? connection.metadata.id : undefined)
-                      }
-                      popperProps={{ placement: 'bottom-end' }}
-                      toggle={(ref) => (
-                        <MenuToggle
-                          ref={ref}
-                          variant="plain"
-                          aria-label={`Actions for ${connection.resource.name}`}
-                          onClick={() =>
-                            setActionsFor(
-                              actionsFor === connection.metadata.id
-                                ? undefined
-                                : connection.metadata.id,
-                            )
-                          }
-                        >
-                          <EllipsisVIcon />
-                        </MenuToggle>
                       )}
-                    >
-                      <DropdownList>
-                        <DropdownItem
-                          isDisabled={verifying.has(connection.metadata.id)}
-                          onClick={() => void handleVerify(connection.metadata.id)}
-                        >
-                          Verify connection
-                        </DropdownItem>
-                        <DropdownItem
-                          onClick={() => {
-                            setActionsFor(undefined);
-                            deleteOperationRef.current += 1;
-                            setDeleteTarget(connection);
-                            setDeleteError(undefined);
-                            setDeleting(false);
-                          }}
-                        >
-                          Delete
-                        </DropdownItem>
-                      </DropdownList>
-                    </Dropdown>
-                  </Td>
-                </Tr>
-              ))
+                    </Td>
+                    <Td isActionCell>
+                      <Dropdown
+                        isOpen={actionsFor === connection.metadata.id}
+                        onOpenChange={(open) =>
+                          setActionsFor(open ? connection.metadata.id : undefined)
+                        }
+                        popperProps={{ placement: 'bottom-end' }}
+                        toggle={(ref) => (
+                          <MenuToggle
+                            ref={ref}
+                            variant="plain"
+                            aria-label={`Actions for ${connection.resource.name}`}
+                            onClick={() =>
+                              setActionsFor(
+                                actionsFor === connection.metadata.id
+                                  ? undefined
+                                  : connection.metadata.id,
+                              )
+                            }
+                          >
+                            <EllipsisVIcon />
+                          </MenuToggle>
+                        )}
+                      >
+                        <DropdownList>
+                          <DropdownItem
+                            isAriaDisabled={
+                              isVerifyAccessDisabled || verifying.has(connection.metadata.id)
+                            }
+                            tooltipProps={
+                              isVerifyAccessDisabled
+                                ? {
+                                    content: verifyAccessLoaded
+                                      ? getConnectionAccessTooltip('create')
+                                      : 'Checking access...',
+                                  }
+                                : undefined
+                            }
+                            onClick={() => void handleVerify(connection.metadata.id)}
+                          >
+                            Verify connection
+                          </DropdownItem>
+                          <Divider />
+                          <DropdownItem
+                            isAriaDisabled={!canDeleteConnection || !deleteAccessLoaded}
+                            tooltipProps={
+                              !canDeleteConnection || !deleteAccessLoaded
+                                ? {
+                                    content: deleteAccessLoaded
+                                      ? getConnectionAccessTooltip('delete')
+                                      : 'Checking access...',
+                                  }
+                                : undefined
+                            }
+                            onClick={() => {
+                              if (!canDeleteConnection || !deleteAccessLoaded) {
+                                return;
+                              }
+                              setActionsFor(undefined);
+                              fireDataConnectHubTrackEvent({
+                                eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
+                                properties: {
+                                  project: namespace,
+                                  connectionTypeProvider:
+                                    getConnectionTypeProvider(
+                                      connectionTypes.find(
+                                        (type) =>
+                                          type.metadata.id ===
+                                          connection.resource.data_connection_type_id,
+                                      ),
+                                    ) ?? 'unknown',
+                                },
+                              });
+                              setDeleteTarget(connection);
+                            }}
+                          >
+                            Delete
+                          </DropdownItem>
+                        </DropdownList>
+                      </Dropdown>
+                    </Td>
+                  </Tr>
+                );
+              })
             )}
           </Tbody>
         </Table>
       )}
       {deleteTarget && (
-        <DeleteModal
-          title={`Permanently delete connection "${deleteTarget.resource.name}"?`}
-          deleteName={deleteTarget.resource.name}
-          deleting={deleting}
-          error={deleteError}
-          onClose={() => {
-            deleteOperationRef.current += 1;
-            setDeleteTarget(undefined);
-            setDeleteError(undefined);
-            setDeleting(false);
-          }}
-          onDelete={() => void handleDelete()}
-        >
-          Deleting this connection will not delete the external data source, but any linked data
-          assets will lose access. Additional active workloads or resources using this connection
-          may also lose access.
-        </DeleteModal>
+        <ConnectionDeleteModal
+          key={`${namespace}:${deleteTarget.metadata.id}`}
+          connection={deleteTarget}
+          namespace={namespace}
+          onClose={() => setDeleteTarget(undefined)}
+          onSuccess={refresh}
+        />
       )}
       <CreateConnectionWizard
         isOpen={isCreateModalOpen}
         namespace={namespace}
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={async (data, selectedNamespace) => {
-          await createConnection('')({}, selectedNamespace, data);
+          const connection = await createConnection('')({}, selectedNamespace, data);
           refresh();
+          return connection;
         }}
       />
     </PageSection>

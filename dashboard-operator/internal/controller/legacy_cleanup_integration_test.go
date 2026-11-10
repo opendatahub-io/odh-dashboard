@@ -19,11 +19,12 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
-// TestIntegration_LegacySidecarCleanup verifies that a normal reconcile removes the
-// resources left behind by the now-removed sidecar deployment mode (upgrade safety),
+// TestIntegration_LegacyResourceCleanup verifies that a normal reconcile removes
+// resources left behind by removed manifests (upgrade safety),
 // while leaving unrelated resources in the namespace untouched. (RHOAIENG-83648)
-func TestIntegration_LegacySidecarCleanup(t *testing.T) {
+func TestIntegration_LegacyResourceCleanup(t *testing.T) {
 	seedLegacySidecarResources(t)
+	seedLegacyMonitoringBindings(t)
 
 	// An unrelated ConfigMap that must survive the legacy sweep.
 	survivor := &corev1.ConfigMap{
@@ -49,23 +50,42 @@ func TestIntegration_LegacySidecarCleanup(t *testing.T) {
 		cleanupModuleResources(t)
 	})
 
-	// cleanupLegacySidecarResources runs first in the deployment pipeline.
+	// cleanupLegacyResources runs first in the deployment pipeline.
 	reconcile(t, r)
 	reconcile(t, r)
 
-	// All six legacy resources must be gone.
+	// All legacy resources must be gone.
 	assertNotFound(t, &corev1.ServiceAccount{}, types.NamespacedName{Name: "odh-dashboard-modules", Namespace: integrationNamespace})
 	assertNotFound(t, &corev1.Secret{}, types.NamespacedName{Name: "odh-dashboard-modules-token", Namespace: integrationNamespace})
 	assertNotFound(t, &networkingv1.NetworkPolicy{}, types.NamespacedName{Name: "odh-dashboard-allow-ports", Namespace: integrationNamespace})
 	assertNotFound(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "sidecar-params", Namespace: integrationNamespace})
 	assertNotFound(t, &rbacv1.ClusterRole{}, types.NamespacedName{Name: "odh-dashboard-modules"})
 	assertNotFound(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "odh-dashboard-modules"})
+	assertNotFound(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "odh-dashboard-monitoring"})
+	assertNotFound(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "rhods-dashboard-monitoring"})
 
 	// The unrelated ConfigMap must still exist.
 	require.NoError(t, k8sClient.Get(ctx, types.NamespacedName{
 		Name:      "unrelated-config",
 		Namespace: integrationNamespace,
 	}, &corev1.ConfigMap{}), "unrelated ConfigMap should survive the legacy cleanup")
+}
+
+func seedLegacyMonitoringBindings(t *testing.T) {
+	t.Helper()
+	ctx := context.Background()
+	for _, name := range []string{"odh-dashboard-monitoring", "rhods-dashboard-monitoring"} {
+		binding := &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: rbacv1.GroupName,
+				Kind:     "ClusterRole",
+				Name:     "cluster-monitoring-view",
+			},
+		}
+		require.NoError(t, k8sClient.Create(ctx, binding))
+		t.Cleanup(func() { deleteIgnoreNotFound(t, binding) })
+	}
 }
 
 // seedLegacySidecarResources creates the six resources the removed sidecar mode used

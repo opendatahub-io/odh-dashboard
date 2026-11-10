@@ -42,7 +42,7 @@ import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared/k
 import { useAccessReview, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { KUEUE_STATUSES_OVERRIDE_MODEL_DEPLOYMENT } from '@odh-dashboard/k8s-core/kueue/types';
 import {
@@ -333,7 +333,8 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
                 state={deployment.status?.state ?? ModelDeploymentState.UNKNOWN}
                 stoppedStates={deployment.status?.stoppedStates}
                 kueueStatus={deployment.status?.kueueStatus}
-                variant="filled"
+                isCompact
+                variant="outline"
               />
             </FlexItem>
           </Flex>

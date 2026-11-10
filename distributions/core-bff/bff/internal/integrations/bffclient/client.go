@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
@@ -118,7 +119,7 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body any,
 		return err
 	}
 
-	if statusCode >= 400 {
+	if statusCode >= http.StatusBadRequest {
 		return c.handleErrorResponse(statusCode, respBody)
 	}
 
@@ -142,14 +143,14 @@ func (c *HTTPBFFClient) buildRequest(ctx context.Context, method, path string, b
 	if body != nil {
 		bodyBytes, err := json.Marshal(body)
 		if err != nil {
-			return nil, NewBFFClientErrorWithTarget(ErrCodeInternalError, fmt.Sprintf("failed to marshal request body: %v", err), c.target, 500)
+			return nil, NewBFFClientErrorWithTarget(ErrCodeInternalError, fmt.Sprintf("failed to marshal request body: %v", err), c.target, http.StatusInternalServerError)
 		}
 		bodyReader = bytes.NewBuffer(bodyBytes)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 	if err != nil {
-		return nil, NewBFFClientErrorWithTarget(ErrCodeInternalError, fmt.Sprintf("failed to create request: %v", err), c.target, 500)
+		return nil, NewBFFClientErrorWithTarget(ErrCodeInternalError, fmt.Sprintf("failed to create request: %v", err), c.target, http.StatusInternalServerError)
 	}
 
 	if body != nil {
@@ -159,7 +160,7 @@ func (c *HTTPBFFClient) buildRequest(ctx context.Context, method, path string, b
 
 	authHeader := c.authTokenHeader
 	if authHeader == "" {
-		authHeader = "x-forwarded-access-token"
+		authHeader = config.DefaultAuthTokenHeader
 	}
 	if c.authToken != "" {
 		req.Header.Set(authHeader, c.authTokenPrefix+c.authToken)
@@ -216,7 +217,7 @@ func (c *HTTPBFFClient) handleErrorResponse(statusCode int, body []byte) error {
 	case http.StatusServiceUnavailable:
 		return NewServerUnavailableError(c.target)
 	default:
-		if statusCode >= 500 {
+		if statusCode >= http.StatusInternalServerError {
 			return NewServerUnavailableError(c.target)
 		}
 		return NewBFFClientErrorWithTarget(ErrCodeInternalError, message, c.target, statusCode)

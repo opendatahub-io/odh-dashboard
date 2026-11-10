@@ -21,6 +21,37 @@ configMapGenerator:
   name: kubeflow-workspaces-gateway-config
 
 replacements:
+# overlays/openshift replacements bake serverName while that child still has
+# namespace: kubeflow-workspaces. This overlay (and workbenches-operator /
+# make deploy-gateway) then rewrites metadata.namespace. Recompute serverName
+# from the ServiceMonitor namespace after that transformer so TLS matches the
+# serving-cert SAN: workspaces-controller-metrics-service.<ns>.svc
+- source:
+    fieldPath: metadata.name
+    kind: Service
+    name: workspaces-controller-metrics-service
+  targets:
+  - fieldPaths:
+    - spec.endpoints.0.tlsConfig.serverName
+    options:
+      delimiter: "."
+      index: 0
+    select:
+      kind: ServiceMonitor
+      name: workspaces-controller-metrics-monitor
+- source:
+    fieldPath: metadata.namespace
+    kind: ServiceMonitor
+    name: workspaces-controller-metrics-monitor
+  targets:
+  - fieldPaths:
+    - spec.endpoints.0.tlsConfig.serverName
+    options:
+      delimiter: "."
+      index: 1
+    select:
+      kind: ServiceMonitor
+      name: workspaces-controller-metrics-monitor
 - source:
     fieldPath: metadata.namespace
     kind: ServiceAccount

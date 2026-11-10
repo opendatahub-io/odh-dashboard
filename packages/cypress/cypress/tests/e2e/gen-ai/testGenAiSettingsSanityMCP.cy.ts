@@ -60,9 +60,9 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
       cy.step('Enable MLflow backend');
       enableMlflowBackend();
 
-      cy.step('Log into the application with custom endpoints and MCP enabled');
+      cy.step('Log into the application with custom endpoints enabled');
       cy.visitWithLogin(
-        `/?devFeatureFlags=genAiStudio=true,aiAssetCustomEndpoints=true,promptManagement=true,guardrails=true,modelAsService=false`,
+        '/?devFeatureFlags=aiAssetCustomEndpoints=true,modelAsService=false',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
@@ -113,11 +113,11 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
   it(
     'Create custom endpoint and wait for playground to be ready',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to AI asset endpoints page');
-      genAiPlayground.navigateToAssetsWithGuardrailsAndPromptManagement(projectName);
+      genAiPlayground.navigateToAssetsWithCustomEndpoints(projectName);
 
       cy.step('Force backend to refresh config from cluster');
       forceDashboardConfigRefresh();
@@ -161,8 +161,8 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
       genAiPlayground.findCreateExternalModelModal().should('not.exist');
       genAiPlayground.findAiModelsTable().should('contain', testData.displayName);
 
-      cy.step('Add endpoint to playground');
-      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
+      cy.step('Create playground with the endpoint');
+      genAiPlayground.findCreatePlaygroundButton({ timeout: 30000 }).should('be.visible').click();
       genAiPlayground.findConfigurationTable().should('be.visible');
       genAiPlayground.ensureModelCheckboxIsChecked(testData.modelId);
       genAiPlayground.findCreateButtonInDialog().should('be.enabled').click();
@@ -189,11 +189,11 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
   it(
     'Verify Manual Connection — connect to ConfigMap MCP server and query from playground',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent'],
     },
     () => {
       cy.step('Navigate to playground');
-      genAiPlayground.navigateToPlaygroundWithPromptManagementRetry(projectName);
+      genAiPlayground.navigateToPlaygroundWithCustomEndpoints(projectName);
 
       cy.step(`Select ${testData.displayName} model from dropdown`);
       genAiPlayground.selectModelFromDropdown(testData.displayName);
@@ -218,7 +218,7 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
   it(
     'Verify MCP Registry — register server, verify Registered section, and query from playground',
     {
-      tags: ['@GenAI', '@FeatureFlagged', '@NonConcurrent', '@MCPRegistry'],
+      tags: ['@GenAI', '@Featureflagged', '@NonConcurrent', '@MCPRegistry'],
     },
     () => {
       const registryServerName = 'io.kubernetes/mcp-server-e2e';
@@ -247,6 +247,12 @@ describe('Verify MCP in playground using custom endpoint', { testIsolation: fals
           );
         }
       });
+
+      cy.step('Verify registered MCP servers stay hidden while the preview flag is disabled');
+      genAiPlayground.navigateToPlaygroundWithCustomEndpoints(projectName);
+      genAiPlayground.openMCPTab();
+      genAiPlayground.findMCPManualSection().should('be.visible');
+      genAiPlayground.findMCPRegisteredSection().should('not.exist');
 
       cy.step('Navigate to playground with registered MCP servers enabled');
       genAiPlayground.navigateToPlaygroundWithMCPRegistry(projectName);

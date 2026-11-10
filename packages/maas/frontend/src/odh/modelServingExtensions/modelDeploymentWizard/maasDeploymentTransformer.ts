@@ -25,7 +25,9 @@ export const applyMaaSEndpointData = (
   const filteredRefs = existingRefs.filter((ref) => !isMaaSGateway(ref));
 
   if (fieldData.isChecked) {
-    // Add the MaaS gateway and remove the enable-auth annotation — MaaS manages auth externally
+    // MaaS keeps Gen AI Studio visibly selected to reflect its forced UI state.
+    // This transformer runs after the shared availability applicators, so remove their Gen AI
+    // metadata here and let MaaSModelRef provide subscribed-user discovery.
     result.model.spec.router = {
       ...result.model.spec.router,
       gateway: {
@@ -34,6 +36,8 @@ export const applyMaaSEndpointData = (
       },
     };
     delete result.model.metadata.annotations?.['security.opendatahub.io/enable-auth'];
+    delete result.model.metadata.labels?.['opendatahub.io/genai-asset'];
+    delete result.model.metadata.annotations?.['opendatahub.io/genai-use-case'];
   } else if (filteredRefs.length > 0) {
     // Keep other gateways if they exist
     result.model.spec.router = {

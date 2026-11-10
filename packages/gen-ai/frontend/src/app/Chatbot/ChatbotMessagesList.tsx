@@ -28,7 +28,7 @@ type ChatbotMessagesListProps = {
   /** Called when the user clicks "View trace" on a bot message with a traceId */
   onViewTrace?: (traceId: string) => void;
   /** Called when the user opens a sent document attachment */
-  onViewDocument?: (attachment: DocumentAttachment) => void;
+  onViewDocument?: (attachment: DocumentAttachment, documentCount: number) => void;
   /** Whether compare mode is active */
   compareMode?: boolean;
   /** Config ID string for tracking: 'default', '1', or '2' */
@@ -115,7 +115,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                         <img src={RhUiResourceIcon} alt="" />
                       </span>
                     }
-                    onClick={() => onViewDocument?.(attachment)}
+                    onClick={() => onViewDocument?.(attachment, documentAttachments.length)}
                     variant="outline"
                     data-testid={`sent-document-attachment-${attachment.file_id}`}
                   >
@@ -183,7 +183,10 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         const updateExpandedDetail = (section: ResponseDetailSection) => (isExpanded: boolean) =>
           setExpandedResponseDetail(isExpanded ? { messageId: message.id ?? '', section } : null);
         const isToolsExpanded = isToolCallPhase || isDetailExpanded('tools');
-        if (message.role === 'bot' && (toolCalls || fileSearchData || metrics || traceId)) {
+        if (
+          message.role === 'bot' &&
+          (toolCalls || fileSearchData || (metrics && isResponseComplete) || traceId)
+        ) {
           extraContent.endContent = (
             <>
               <Flex
@@ -203,13 +206,12 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                     />
                   </FlexItem>
                 )}
-                {!errorClassification && metrics && (
+                {!errorClassification && metrics && isResponseComplete && (
                   <FlexItem>
                     <ChatbotMessagesMetrics
                       metrics={metrics}
                       isExpanded={isDetailExpanded('metrics')}
                       onExpandedChange={updateExpandedDetail('metrics')}
-                      isDisabled={!isResponseComplete}
                       showContent={false}
                       {...metricsDetailIds}
                     />
@@ -248,6 +250,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
                         onViewTrace(traceId);
                       }}
                       data-testid="view-trace-link"
+                      data-trace-id={traceId}
                     >
                       <small>View trace</small>
                     </Button>

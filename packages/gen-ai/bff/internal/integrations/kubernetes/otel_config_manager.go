@@ -22,12 +22,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/clusterdiscovery"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 )
 
@@ -36,7 +35,6 @@ const (
 	asgiSpanFilterProcessor = "filter/drop-asgi-events"
 
 	collectorPatchTimeout = 15 * time.Second
-	crDiscoveryTimeout    = 10 * time.Second
 
 	// Reuse the platform collector's SA so the gen-ai collector inherits its
 	// MLflow integration ClusterRoleBinding without needing additional RBAC.
@@ -48,14 +46,31 @@ const (
 // the platform "data-science-collector" CR, whose spec.config is fully rendered
 // from a Go template by an operator on reconciliation, so this avoids our changes being overwritten.
 type otelConfigManager struct {
-	mu                  sync.Mutex // serializes read-modify-write on the collector CR
-	dynClient           dynamic.Interface
-	logger              *slog.Logger
-	collectorNamespace  string
-	mlflowK8sServiceURL string // in-cluster K8s service URL for collector exporter, e.g. "https://mlflow.opendatahub.svc:8443"
-	mlflowURL           string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
-	httpClient          *http.Client
-	bearerToken         string // from kubeconfig (local dev) or SA token (in-cluster)
+	mu                      sync.Mutex // serializes read-modify-write on the collector CR
+	dynClient               dynamic.Interface
+	logger                  *slog.Logger
+	collectorNamespace      string
+	mlflowCollectorEndpoint string // MLflow endpoint for collector exporters, includes the /mlflow static prefix, e.g. "https://mlflow.opendatahub.svc:8443/mlflow"
+	mlflowURL               string // URL reachable from BFF for API calls, e.g. "https://localhost:5001" or same as K8s service URL
+	httpClient              *http.Client
+	bearerToken             string // from kubeconfig (local dev) or SA token (in-cluster)
+}
+
+// mlflowCollectorExporterEndpoint returns the MLflow endpoint for the
+// collector's otlphttp exporters.
+//
+// MLflow serves all of its routes under the /mlflow static prefix, and since
+// MLflow 3.16 (mlflow/mlflow#24511) that includes the OTLP trace ingestion
+// endpoint: /mlflow/v1/traces. The otlphttp exporter appends /v1/traces to
+// its endpoint, so the exporter must target <service>/mlflow. A prefix-less
+// endpoint makes the collector POST to /v1/traces, which MLflow answers with
+// 404 — silently dropping every span (RHOAIENG-101620).
+//
+// The discovered service URL may or may not already carry the /mlflow path;
+// the result always targets the prefixed endpoint.
+func mlflowCollectorExporterEndpoint(mlflowServiceURL string) string {
+	root := strings.TrimSuffix(strings.TrimSuffix(mlflowServiceURL, "/"), "/mlflow")
+	return root + "/mlflow"
 }
 
 // newOTelConfigManager creates a manager that owns a dedicated gen-ai
@@ -66,60 +81,55 @@ type otelConfigManager struct {
 //
 // The manager creates/patches its own "gen-ai-trace-collector" CR in that
 // namespace, avoiding conflicts with the operator-managed platform collector.
-func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x509.CertPool) (*otelConfigManager, error) {
-	restCfg, err := rest.InClusterConfig()
+func newOTelConfigManager(ctx context.Context, logger *slog.Logger, cfg config.EnvConfig, rootCAs *x509.CertPool) (*otelConfigManager, error) {
+	dynClient, restCfg, err := clusterdiscovery.NewClient()
 	if err != nil {
-		loadedCfg, loadErr := clientcmd.NewDefaultClientConfigLoadingRules().Load()
-		if loadErr != nil {
-			return nil, fmt.Errorf("failed to get cluster config (in-cluster and kubeconfig both failed): %w", loadErr)
-		}
-		restCfg, err = clientcmd.NewDefaultClientConfig(*loadedCfg, &clientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to build kubeconfig client config: %w", err)
-		}
+		return nil, err
 	}
 
-	dynClient, err := dynamic.NewForConfig(restCfg)
+	// Playground provisioning requires the platform collector's namespace
+	// and service account, even when a gen-ai collector already exists.
+	collectors, err := clusterdiscovery.DiscoverCollectors(ctx, dynClient)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client for collector management: %w", err)
+		return nil, err
 	}
-
-	// Discover the namespace where the platform collector runs.
-	// We create our own collector CR in the same namespace.
-	collectorNS, _, discoverErr := discoverCollectorCR(dynClient, logger, constants.PlatformCollectorName)
-	if discoverErr != nil {
-		logger.Info("platform OpenTelemetryCollector CR not found, trace route management disabled", "error", discoverErr)
+	collectorNS := collectors.PlatformNamespace
+	if collectorNS == "" {
+		logger.Info("platform OpenTelemetryCollector CR not found, trace route management disabled")
 		return nil, nil
 	}
 
-	mlflowURL, err := mlflow.DiscoverMLflowURL()
+	mlflowURL, err := mlflow.DiscoverMLflowURLWithClient(ctx, dynClient)
 	if err != nil {
 		logger.Warn("MLflow CR not found, trace route management disabled", "error", err)
 		return nil, nil
 	}
 
-	// The collector exporter always uses the in-cluster service URL.
-	mlflowK8sSvc := strings.TrimSuffix(strings.TrimSuffix(mlflowURL, "/mlflow"), "/")
+	// The collector exporter always uses the in-cluster service URL, with the
+	// /mlflow static prefix included — see mlflowCollectorExporterEndpoint.
+	mlflowCollectorEndpoint := mlflowCollectorExporterEndpoint(mlflowURL)
 
+	// The BFF's own API calls use the service root (their request paths carry
+	// the /mlflow prefix) or the local dev override when set.
 	mlflowBFFURL := strings.TrimSuffix(cfg.MLflowURL, "/")
 	if mlflowBFFURL == "" {
-		mlflowBFFURL = mlflowK8sSvc
+		mlflowBFFURL = strings.TrimSuffix(strings.TrimSuffix(mlflowURL, "/mlflow"), "/")
 	}
 
 	logger.Info("OTel config manager initialized",
 		"collectorNamespace", collectorNS,
 		"collectorCR", constants.GenAICollectorName,
-		"mlflowK8sServiceURL", mlflowK8sSvc,
+		"mlflowCollectorEndpoint", mlflowCollectorEndpoint,
 		"mlflowURL", mlflowBFFURL,
 	)
 
 	return &otelConfigManager{
-		dynClient:           dynClient,
-		logger:              logger,
-		collectorNamespace:  collectorNS,
-		mlflowK8sServiceURL: mlflowK8sSvc,
-		mlflowURL:           mlflowBFFURL,
-		bearerToken:         restCfg.BearerToken,
+		dynClient:               dynClient,
+		logger:                  logger,
+		collectorNamespace:      collectorNS,
+		mlflowCollectorEndpoint: mlflowCollectorEndpoint,
+		mlflowURL:               mlflowBFFURL,
+		bearerToken:             restCfg.BearerToken,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
@@ -131,29 +141,6 @@ func newOTelConfigManager(logger *slog.Logger, cfg config.EnvConfig, rootCAs *x5
 			},
 		},
 	}, nil
-}
-
-// discoverCollectorCR lists OpenTelemetryCollector CRs across all namespaces
-// and returns the namespace and name of the first one matching targetName.
-// Used to locate the platform "data-science-collector" CR so we know which
-// namespace to create our gen-ai collector CR in.
-func discoverCollectorCR(dynClient dynamic.Interface, logger *slog.Logger, targetName string) (string, string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), crDiscoveryTimeout)
-	defer cancel()
-
-	list, err := dynClient.Resource(constants.OTelCollectorGVR).Namespace("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return "", "", fmt.Errorf("failed to list OpenTelemetryCollector CRs for platform collector discovery: %w", err)
-	}
-
-	for _, item := range list.Items {
-		if item.GetName() == targetName {
-			logger.Info("auto-discovered platform collector CR", "name", item.GetName(), "namespace", item.GetNamespace())
-			return item.GetNamespace(), item.GetName(), nil
-		}
-	}
-
-	return "", "", fmt.Errorf("no platform collector CR named %q found in any namespace", targetName)
 }
 
 // EnsureRoute idempotently adds a routing connector entry, per-namespace
@@ -193,7 +180,7 @@ func (m *otelConfigManager) EnsureRoute(ctx context.Context, namespace string, u
 		}
 
 		changed := ensureRoutingConnector(collectorCfg)
-		changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowK8sServiceURL, experimentID) || changed
+		changed = addNamespaceRoute(collectorCfg, namespace, m.mlflowCollectorEndpoint, experimentID) || changed
 
 		if !changed {
 			m.logger.Info("collector config already has route for namespace, no patch needed", "namespace", namespace)
@@ -471,8 +458,13 @@ func (m *otelConfigManager) getAuthToken() string {
 }
 
 func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace string, token string) (string, error) {
-	filterString := url.QueryEscape(fmt.Sprintf("name='%s'", mlflowExperimentName))
-	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter_string=%s", m.mlflowURL, mlflowExperimentsAPI, filterString)
+	// MLflow's REST API reads the experiment filter from the "filter"
+	// query parameter. "filter_string" is the Python SDK's kwarg name — the
+	// SDK translates it to "filter" on the wire — so sending "filter_string"
+	// directly makes MLflow ignore the filter and return the first
+	// experiments in the workspace (RHOAIENG-101622).
+	filterValue := url.QueryEscape(fmt.Sprintf("name='%s'", mlflowExperimentName))
+	url := fmt.Sprintf("%s/mlflow%s/search?max_results=1&filter=%s", m.mlflowURL, mlflowExperimentsAPI, filterValue)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -494,16 +486,22 @@ func (m *otelConfigManager) searchExperiment(ctx context.Context, workspace stri
 	var result struct {
 		Experiments []struct {
 			ExperimentID string `json:"experiment_id"`
+			Name         string `json:"name"`
 		} `json:"experiments"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", err
 	}
 
-	if len(result.Experiments) > 0 {
-		return result.Experiments[0].ExperimentID, nil
+	// Only accept an experiment whose name actually matches. If the filter
+	// were ever ignored again (e.g., a mis-addressed query parameter), an
+	// unfiltered search result must not be mistaken for a match.
+	for _, exp := range result.Experiments {
+		if exp.Name == mlflowExperimentName {
+			return exp.ExperimentID, nil
+		}
 	}
-	return "", fmt.Errorf("no experiments found")
+	return "", fmt.Errorf("no experiment named %q found", mlflowExperimentName)
 }
 
 func (m *otelConfigManager) createExperiment(ctx context.Context, workspace string, token string) (string, error) {

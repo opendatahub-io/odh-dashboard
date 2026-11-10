@@ -131,6 +131,10 @@ func (h *S3Handler) handleS3RepoError(w http.ResponseWriter, r *http.Request, er
 		conflictResponse(h.logger, w, r, fmt.Sprintf("object key %q already exists in S3 (upload conflict); retry with a different key", key))
 		return
 	}
+	if errors.Is(err, s3.ErrUploadChecksumRejected) {
+		badRequestResponse(h.logger, w, r, s3.UploadChecksumRejectedMessage)
+		return
+	}
 
 	// DSPA server-side misconfiguration (missing bucket, secret name, endpoint, credentials)
 	if errors.Is(err, repositories.ErrDSPAConfiguration) {

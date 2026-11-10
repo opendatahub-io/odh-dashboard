@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { GenAiAPIs, MCPServer } from '~/app/types';
 import useTokenValidation, { ValidationResult } from '~/app/Chatbot/mcp/hooks/useTokenValidation';
 
@@ -230,4 +231,51 @@ describe('useTokenValidation', () => {
     expect(result.current.validationErrors.has('https://server1.com')).toBe(false);
     expect(result.current.validationErrors.size).toBe(0);
   });
+});
+
+describe('MCP failure tracking', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it.each(['raw_error', 'message', 'rejection'])(
+    'should preserve %s in UI state and exclude it from telemetry',
+    async (source) => {
+      const marker = 'review-secret-95482';
+      const request = jest.fn();
+      if (source === 'rejection') {
+        request.mockRejectedValue(new Error(marker));
+      } else {
+        request.mockResolvedValue({
+          status: 'error',
+          message: source === 'message' ? marker : 'Generic failure',
+          // eslint-disable-next-line camelcase
+          error_details: source === 'raw_error' ? { raw_error: marker } : undefined,
+        });
+      }
+      const { result } = renderHook(() =>
+        useTokenValidation({
+          api: { getMCPServerStatus: request } as unknown as GenAiAPIs,
+          apiAvailable: true,
+          transformedServers: [],
+          checkServerStatus: jest.fn(),
+          onTokenUpdate: jest.fn(),
+          getToken: jest.fn(),
+          onFetchTools: jest.fn(),
+          onConfigModalOpen: jest.fn(),
+          onConfigModalClose: jest.fn(),
+          onSuccessModalOpen: jest.fn(),
+        }),
+      );
+      let response: ValidationResult | undefined;
+      await act(async () => {
+        response = await result.current.validateServerToken('https://review.invalid', marker);
+      });
+      expect(response).toEqual({ success: false, error: marker });
+      expect(result.current.validationErrors.get('https://review.invalid')).toBe(marker);
+      expect(fireFormTrackingEvent).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ success: false, error: 'unknown_error' }),
+      );
+      expect(JSON.stringify(jest.mocked(fireFormTrackingEvent).mock.calls)).not.toContain(marker);
+    },
+  );
 });

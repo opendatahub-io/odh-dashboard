@@ -1,0 +1,282 @@
+import * as React from 'react';
+import { act, renderHook } from '@testing-library/react';
+import useAgentDeploymentPolling from '~/app/Chatbot/hooks/useAgentDeploymentPolling';
+import type { AgentDeploymentSummary } from '~/app/agentProfile/types';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import { useNotification } from '~/app/hooks/useNotification';
+import { ApiErrorClass } from '~/app/types';
+
+jest.mock('~/app/hooks/useGenAiAPI', () => ({
+  useGenAiAPI: jest.fn(),
+}));
+
+jest.mock('~/app/hooks/useNotification', () => ({
+  useNotification: jest.fn(),
+}));
+
+const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
+const mockUseNotification = jest.mocked(useNotification);
+
+const createResponse = {
+  llamaStackConfigMapName: 'llama-stack-config-profile-a1b2',
+  wrapperAppConfigMapName: 'wrapper-app-profile-c3d4',
+  sandboxName: 'hr-chatbot-a1b2',
+  namespace: 'my-project',
+  routeUrl: 'https://hr-chatbot-a1b2-my-project.apps.example.com',
+  agentProfileId: 'profile-id',
+};
+
+describe('useAgentDeploymentPolling', () => {
+  const notification = {
+    success: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warning: jest.fn(),
+    remove: jest.fn(),
+  };
+  const onStarted = jest.fn();
+  const onComplete = jest.fn();
+  const onCreated = jest.fn();
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+    mockUseNotification.mockReturnValue(notification);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const startOptions = {
+    name: 'hr-chatbot',
+    agentProfileId: 'profile-id',
+    namespace: 'my-project',
+    onCreated,
+    onStarted,
+    onComplete,
+  };
+
+  it('should notify success when the deployment becomes ready during the initial polls', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockResolvedValue({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'ready',
+      routeUrl: createResponse.routeUrl,
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result } = renderHook(() => useAgentDeploymentPolling());
+    await act(async () => result.current.startAgentDeployment(startOptions));
+
+    expect(createAgentDeployment).toHaveBeenCalledWith({
+      name: 'hr-chatbot',
+      agentProfileId: 'profile-id',
+    });
+    expect(getAgentDeployment).toHaveBeenCalledWith({ id: createResponse.sandboxName });
+    expect(onCreated).toHaveBeenCalledTimes(1);
+    expect(notification.success).toHaveBeenCalledWith('hr-chatbot deployed successfully');
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onStarted).not.toHaveBeenCalled();
+  });
+
+  it('should poll when mounted in Strict Mode', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockResolvedValue({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'ready',
+      routeUrl: createResponse.routeUrl,
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const wrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+      <React.StrictMode>{children}</React.StrictMode>
+    );
+    const { result } = renderHook(() => useAgentDeploymentPolling(), { wrapper });
+    await act(async () => result.current.startAgentDeployment(startOptions));
+
+    expect(getAgentDeployment).toHaveBeenCalledTimes(1);
+    expect(notification.success).toHaveBeenCalledWith('hr-chatbot deployed successfully');
+  });
+
+  it('should close the modal and notify started after three creating polls', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockResolvedValue({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'creating',
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result } = renderHook(() => useAgentDeploymentPolling());
+    await act(async () => result.current.startAgentDeployment(startOptions));
+    await act(async () => jest.advanceTimersByTimeAsync(3000));
+    await act(async () => jest.advanceTimersByTimeAsync(3000));
+
+    expect(getAgentDeployment).toHaveBeenCalledTimes(3);
+    expect(notification.info).toHaveBeenCalledWith('Deploying hr-chatbot to my-project...');
+    expect(onStarted).toHaveBeenCalledTimes(1);
+  });
+
+  it('should notify failure when the deployment reaches a failed state', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockResolvedValue({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'failed',
+      lastError: 'Sandbox image pull failed',
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result } = renderHook(() => useAgentDeploymentPolling());
+    await act(async () => result.current.startAgentDeployment(startOptions));
+
+    expect(notification.error).toHaveBeenCalledWith(
+      'hr-chatbot failed to deploy',
+      'Sandbox image pull failed',
+    );
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reset modal loading without stopping background polling', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockResolvedValue({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'creating',
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result } = renderHook(() => useAgentDeploymentPolling());
+    await act(async () => result.current.startAgentDeployment(startOptions));
+    expect(result.current.isDeploying).toBe(true);
+
+    act(() => result.current.resetDeploymentLoading());
+    expect(result.current.isDeploying).toBe(false);
+
+    await act(async () => jest.advanceTimersByTimeAsync(3000));
+    expect(getAgentDeployment).toHaveBeenCalledTimes(2);
+  });
+
+  it('should stop polling when the deployment is not found', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockRejectedValue(
+      new ApiErrorClass({
+        component: 'bff',
+        code: 'not_found',
+        message: 'agent deployment not found',
+        retriable: false,
+      }),
+    );
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result } = renderHook(() => useAgentDeploymentPolling());
+    await act(async () => result.current.startAgentDeployment(startOptions));
+
+    expect(getAgentDeployment).toHaveBeenCalledTimes(1);
+    expect(notification.error).toHaveBeenCalledWith(
+      'hr-chatbot failed to deploy',
+      'The deployment could not be found. It may have been deleted.',
+    );
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('should stop polling and warn after 100 attempts', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    const getAgentDeployment = jest.fn().mockResolvedValue({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'creating',
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result } = renderHook(() => useAgentDeploymentPolling());
+    await act(async () => result.current.startAgentDeployment(startOptions));
+    await act(async () => jest.advanceTimersByTimeAsync(99 * 3000));
+
+    expect(getAgentDeployment).toHaveBeenCalledTimes(100);
+    expect(notification.warning).toHaveBeenCalledWith(
+      'hr-chatbot is still deploying',
+      'Check the deployment status later.',
+    );
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('should not restart polling when an in-flight request resolves after unmount', async () => {
+    const createAgentDeployment = jest.fn().mockResolvedValue(createResponse);
+    let resolveDeployment: (deployment: AgentDeploymentSummary) => void = () => undefined;
+    const deploymentRequest = new Promise<AgentDeploymentSummary>((resolve) => {
+      resolveDeployment = resolve;
+    });
+    const getAgentDeployment = jest.fn().mockReturnValue(deploymentRequest);
+    mockUseGenAiAPI.mockReturnValue({
+      apiAvailable: true,
+      api: { createAgentDeployment, getAgentDeployment },
+      refreshAllAPI: jest.fn(),
+    } as unknown as ReturnType<typeof useGenAiAPI>);
+
+    const { result, unmount } = renderHook(() => useAgentDeploymentPolling());
+    let startDeployment: Promise<void> = Promise.resolve();
+    await act(async () => {
+      startDeployment = result.current.startAgentDeployment(startOptions);
+      await Promise.resolve();
+    });
+
+    unmount();
+    resolveDeployment({
+      name: createResponse.sandboxName,
+      namespace: 'my-project',
+      agentProfileId: 'profile-id',
+      state: 'creating',
+      createdAt: '2026-10-02T00:00:00Z',
+    });
+    await act(async () => startDeployment);
+
+    expect(jest.getTimerCount()).toBe(0);
+    expect(notification.info).not.toHaveBeenCalled();
+  });
+});

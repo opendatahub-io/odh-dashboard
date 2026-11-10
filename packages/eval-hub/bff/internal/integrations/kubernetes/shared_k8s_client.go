@@ -2,8 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -12,6 +14,8 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -120,6 +124,99 @@ func validateServiceURL(raw string) error {
 		return fmt.Errorf("service name %q does not match expected EvalHub service prefix", serviceName)
 	}
 	return nil
+}
+
+// listEvalHubCRs lists EvalHub CRs preferring v1 (the CRD storage version, whose
+// reads are served directly by the API server) and falling back to v1alpha1 on
+// clusters running older trustyai-service-operator releases where v1 is not served.
+//
+// The fallback triggers on NotFound (the version is not served at all) and on
+// conversion failures (see isConversionFailure): the storage version only
+// governs writes, so objects created before the v1 promotion can remain stored
+// as v1alpha1, and listing those at v1 requires the conversion webhook. When
+// that webhook is unavailable, the version matching the stored objects still
+// lists them directly, so the other version is tried before giving up.
+//
+// Each version attempt runs on its own share of the context's remaining time
+// (see attemptBudget), so a hung webhook on one version cannot consume the
+// caller's whole budget before the other version is tried. All other errors
+// (e.g. RBAC denials) are surfaced immediately.
+func listEvalHubCRs(ctx context.Context, dynClient dynamic.Interface, namespace string) (*unstructured.UnstructuredList, error) {
+	var lastErr error
+	for i, gvr := range EvalHubGVRs {
+		list, err := listEvalHubCRsAtVersion(ctx, dynClient, namespace, gvr, len(EvalHubGVRs)-i)
+		if err == nil {
+			return list, nil
+		}
+		if !k8serrors.IsNotFound(err) && !isConversionFailure(err) {
+			return nil, err
+		}
+		// A conversion failure is an operational problem: do not let a later
+		// NotFound (version not served) replace it — callers treat NotFound as
+		// non-fatal and would silently swallow the webhook failure.
+		if lastErr == nil || (k8serrors.IsNotFound(lastErr) && !k8serrors.IsNotFound(err)) {
+			lastErr = err
+		}
+	}
+	return nil, lastErr
+}
+
+// listEvalHubCRsAtVersion lists EvalHub CRs at a single API version, bounded by
+// an even share of the context's remaining time so a hung conversion webhook on
+// one version fails fast enough for the other version — which lists the stored
+// objects directly — to be tried within the caller's deadline.
+func listEvalHubCRsAtVersion(ctx context.Context, dynClient dynamic.Interface, namespace string, gvr schema.GroupVersionResource, remainingAttempts int) (*unstructured.UnstructuredList, error) {
+	if budget := attemptBudget(ctx, remainingAttempts); budget > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, budget)
+		defer cancel()
+	}
+	return dynClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
+}
+
+// attemptBudget returns an even share of the time remaining before the
+// context's deadline for the given number of remaining attempts. Returns 0 when
+// the context has no deadline, no time is left, or there are no attempts left;
+// callers then pass the context through unmodified.
+func attemptBudget(ctx context.Context, remainingAttempts int) time.Duration {
+	if remainingAttempts <= 0 {
+		return 0
+	}
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return 0
+	}
+	return time.Until(deadline) / time.Duration(remainingAttempts)
+}
+
+// isConversionFailure reports whether err indicates a List failed because the
+// API server could not convert existing objects to the requested version — most
+// commonly because the EvalHub CRD conversion webhook is unavailable. Conversion
+// failures surface as request timeouts, server timeouts, 503s, or internal
+// errors (optionally mentioning the conversion webhook), depending on how the
+// webhook call failed.
+func isConversionFailure(err error) bool {
+	if k8serrors.IsTimeout(err) || k8serrors.IsServerTimeout(err) ||
+		k8serrors.IsServiceUnavailable(err) || k8serrors.IsInternalError(err) {
+		return true
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	// A client-side timeout (e.g. a hung webhook connection) surfaces as a
+	// net.Error with Timeout() true, not as an API status error.
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	// Restrict the message heuristic to server-side failures: a client error
+	// (e.g. Forbidden) whose message happens to mention the conversion webhook
+	// must still surface immediately instead of triggering the fallback.
+	var statusErr *k8serrors.StatusError
+	if errors.As(err, &statusErr) {
+		return statusErr.Status().Code >= 500 && strings.Contains(err.Error(), "conversion webhook")
+	}
+	return strings.Contains(err.Error(), "conversion webhook")
 }
 
 func ParseEvalHubCRStatus(item *unstructured.Unstructured) (*models.EvalHubCRStatus, error) {

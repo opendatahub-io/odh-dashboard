@@ -75,16 +75,33 @@ jest.mock(
     __esModule: true,
     default: ({
       selectedCollections,
+      setSelectedCollections,
       allCollections,
     }: {
       selectedCollections: ExternalVectorStoreSummary[];
+      setSelectedCollections: (next: ExternalVectorStoreSummary[]) => void;
       allCollections: ExternalVectorStoreSummary[];
     }) => (
       <div data-testid="collections-table">
-        {JSON.stringify({
-          selected: selectedCollections.map((c) => c.vector_store_id),
-          all: allCollections.map((c) => c.vector_store_id),
-        })}
+        <span data-testid="collections-json">
+          {JSON.stringify({
+            selected: selectedCollections.map((c) => c.vector_store_id),
+            all: allCollections.map((c) => c.vector_store_id),
+          })}
+        </span>
+        {selectedCollections.map((c) => (
+          <button
+            key={c.vector_store_id}
+            type="button"
+            onClick={() =>
+              setSelectedCollections(
+                selectedCollections.filter((s) => s.vector_store_id !== c.vector_store_id),
+              )
+            }
+          >
+            {`Deselect ${c.vector_store_id}`}
+          </button>
+        ))}
       </div>
     ),
   }),
@@ -141,6 +158,7 @@ type RenderModalProps = {
   extraSelectedCollections?: ExternalVectorStoreSummary[];
   lsdStatus?: LlamaStackDistributionModel | null;
   initialStepId?: string;
+  onUpdateInitiated?: () => void;
 };
 
 const renderModal = (props: RenderModalProps) =>
@@ -156,6 +174,7 @@ const renderModal = (props: RenderModalProps) =>
         existingCollections={props.existingCollections}
         extraSelectedCollections={props.extraSelectedCollections}
         initialStepId={props.initialStepId}
+        onUpdateInitiated={props.onUpdateInitiated}
       />
     </MemoryRouter>,
   );
@@ -174,6 +193,7 @@ const renderModalWithContext = (props: RenderModalProps) =>
           existingCollections={props.existingCollections}
           extraSelectedCollections={props.extraSelectedCollections}
           initialStepId={props.initialStepId}
+          onUpdateInitiated={props.onUpdateInitiated}
         />
       </MemoryRouter>
     </GenAiContext.Provider>,
@@ -188,13 +208,13 @@ const getSelectedModelNames = (): string[] => {
 };
 
 const getSelectedCollectionIds = (): string[] => {
-  const json = screen.getByTestId('collections-table').textContent || '{}';
+  const json = screen.getByTestId('collections-json').textContent || '{}';
   const parsed = JSON.parse(json) as { selected: string[]; all: string[] };
   return parsed.selected;
 };
 
 const getAllCollectionIds = (): string[] => {
-  const json = screen.getByTestId('collections-table').textContent || '{}';
+  const json = screen.getByTestId('collections-json').textContent || '{}';
   const parsed = JSON.parse(json) as { selected: string[]; all: string[] };
   return parsed.all;
 };
@@ -750,7 +770,7 @@ describe('ChatbotConfigurationModal form tracking', () => {
         expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Setup', {
           outcome: 'submit',
           success: false,
-          error: 'install failed',
+          error: 'unknown_error',
           namespace: 'test-namespace',
         });
       });
@@ -823,6 +843,7 @@ describe('ChatbotConfigurationModal form tracking', () => {
         apiAvailable: true,
         api: { installLSD: mockInstallLSD, deleteLSD: mockDeleteLSD },
       });
+      (useTracingEnabled as jest.Mock).mockReturnValue(true);
 
       renderModalWithContext({
         allModels,
@@ -838,7 +859,9 @@ describe('ChatbotConfigurationModal form tracking', () => {
         ],
       });
 
-      await user.click(screen.getByRole('button', { name: /configure/i }));
+      // Introduce an actual change — the submit button is disabled without one
+      await user.click(screen.getByTestId('enable-tracing-switch'));
+      await user.click(screen.getByTestId('modal-submit-button'));
 
       await waitFor(() => {
         expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Config Update', {
@@ -860,10 +883,13 @@ describe('ChatbotConfigurationModal form tracking', () => {
         apiAvailable: true,
         api: { installLSD: mockInstallLSD, deleteLSD: mockDeleteLSD },
       });
+      (useTracingEnabled as jest.Mock).mockReturnValue(true);
 
       renderModalWithContext({ allModels, lsdStatus });
 
-      await user.click(screen.getByRole('button', { name: /configure/i }));
+      // Introduce an actual change — the submit button is disabled without one
+      await user.click(screen.getByTestId('enable-tracing-switch'));
+      await user.click(screen.getByTestId('modal-submit-button'));
 
       await waitFor(() => {
         expect(mockDeleteLSD).toHaveBeenCalledWith({
@@ -885,6 +911,41 @@ describe('ChatbotConfigurationModal form tracking', () => {
         outcome: 'cancel',
         namespace: 'test-namespace',
       });
+    });
+
+    it('calls onUpdateInitiated when an existing playground update is submitted', async () => {
+      const user = userEvent.setup();
+      const onUpdateInitiated = jest.fn();
+      const mockDeleteLSD = jest.fn().mockResolvedValue({ data: null });
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: true,
+        api: { installLSD: mockInstallLSD, deleteLSD: mockDeleteLSD },
+      });
+      (useTracingEnabled as jest.Mock).mockReturnValue(true);
+
+      renderModalWithContext({ allModels, lsdStatus, onUpdateInitiated });
+
+      // Introduce an actual change — the submit button is disabled without one
+      await user.click(screen.getByTestId('enable-tracing-switch'));
+      await user.click(screen.getByTestId('modal-submit-button'));
+
+      await waitFor(() => {
+        expect(onUpdateInitiated).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('does not call onUpdateInitiated when creating a new playground', async () => {
+      const user = userEvent.setup();
+      const onUpdateInitiated = jest.fn();
+
+      renderModalWithContext({ allModels, onUpdateInitiated });
+
+      await user.click(screen.getByTestId('modal-submit-button'));
+
+      await waitFor(() => {
+        expect(mockInstallLSD).toHaveBeenCalledTimes(1);
+      });
+      expect(onUpdateInitiated).not.toHaveBeenCalled();
     });
   });
 });
@@ -987,6 +1048,179 @@ describe('ChatbotConfigurationModal tracing configuration', () => {
       expect(mockInstallLSD).toHaveBeenCalledWith(
         expect.not.objectContaining({ enable_tracing: true }),
       );
+    });
+  });
+});
+
+// ─── Playground restart warning ──────────────────────────────────────────────
+
+describe('ChatbotConfigurationModal playground restart warning', () => {
+  const allModels = [createAIModel({ model_name: 'test-model' })];
+  const passthroughLsdStatus: LlamaStackDistributionModel = {
+    name: 'lsd-playground',
+    phase: 'Ready',
+    version: '0.1.0',
+    distributionConfig: {
+      activeDistribution: 'rh',
+      providers: [
+        {
+          provider_id: 'genai-bff-proxy',
+          api: 'inference',
+          health: { status: 'Ready', message: '' },
+        },
+      ],
+      availableDistributions: {},
+    },
+  };
+
+  it('shows "Update and restart playground" and the restart alert when tracing changes', async () => {
+    const user = userEvent.setup();
+    (useTracingEnabled as jest.Mock).mockReturnValue(true);
+    renderModalWithContext({ allModels, lsdStatus: passthroughLsdStatus });
+
+    // No changes yet — plain Configure, no alert
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent('Configure');
+    expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('enable-tracing-switch'));
+
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent(
+      'Update and restart playground',
+    );
+    const alert = screen.getByTestId('playground-restart-required-alert');
+    expect(alert).toHaveTextContent('Playground restart required');
+    expect(alert).toHaveTextContent(
+      'To make this change the playground service will need to restart.',
+    );
+  });
+
+  it('shows "Update and restart playground" and the restart alert when vector stores change', () => {
+    (useAiAssetVectorStoresEnabled as jest.Mock).mockReturnValue(true);
+    const embedModel = createAIModel({ model_name: 'embed-model', model_id: 'embed-model' });
+    const vs1 = createCollection({ vector_store_id: 'vs-1', embedding_model: 'embed-model' });
+    const vs2 = createCollection({ vector_store_id: 'vs-2', embedding_model: 'embed-model' });
+
+    renderModalWithContext({
+      allModels: [embedModel],
+      allCollections: [vs1, vs2],
+      collectionsLoaded: true,
+      existingCollections: [createLSDVectorStore('vs-1')],
+      // A new store is selected in addition to the existing one
+      extraSelectedCollections: [vs2],
+      lsdStatus: passthroughLsdStatus,
+      initialStepId: 'collections',
+    });
+
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent(
+      'Update and restart playground',
+    );
+    expect(screen.getByTestId('playground-restart-required-alert')).toBeInTheDocument();
+  });
+
+  it('shows plain "Configure" without the restart alert when nothing requires a restart', () => {
+    (useAiAssetVectorStoresEnabled as jest.Mock).mockReturnValue(true);
+    const embedModel = createAIModel({ model_name: 'embed-model', model_id: 'embed-model' });
+    const vs1 = createCollection({ vector_store_id: 'vs-1', embedding_model: 'embed-model' });
+
+    renderModalWithContext({
+      allModels: [embedModel],
+      allCollections: [vs1],
+      collectionsLoaded: true,
+      existingCollections: [createLSDVectorStore('vs-1')],
+      lsdStatus: passthroughLsdStatus,
+      initialStepId: 'collections',
+    });
+
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent('Configure');
+    expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
+  });
+
+  it('does not show the restart alert in create mode', () => {
+    renderModalWithContext({ allModels });
+
+    expect(screen.getByTestId('modal-submit-button')).toHaveTextContent('Create');
+    expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
+  });
+
+  describe('Add to playground deselect', () => {
+    const embedModel = createAIModel({ model_name: 'embed-model', model_id: 'embed-model' });
+    const vs1 = createCollection({ vector_store_id: 'vs-1', embedding_model: 'embed-model' });
+    const vs2 = createCollection({ vector_store_id: 'vs-2', embedding_model: 'embed-model' });
+
+    const renderAddToPlayground = (lsdStatus: LlamaStackDistributionModel) => {
+      (useAiAssetVectorStoresEnabled as jest.Mock).mockReturnValue(true);
+      renderModalWithContext({
+        allModels: [embedModel],
+        allCollections: [vs1, vs2],
+        collectionsLoaded: true,
+        existingCollections: [createLSDVectorStore('vs-1')],
+        // Opened via "Add to playground" on the vs-2 row
+        extraSelectedCollections: [vs2],
+        lsdStatus,
+        initialStepId: 'collections',
+      });
+    };
+
+    it('disables the submit button when the added vector store is deselected again (passthrough playground)', async () => {
+      const user = userEvent.setup();
+      renderAddToPlayground(passthroughLsdStatus);
+
+      const submitButton = screen.getByTestId('modal-submit-button');
+      expect(submitButton).toBeEnabled();
+      expect(submitButton).toHaveTextContent('Update and restart playground');
+
+      await user.click(screen.getByRole('button', { name: 'Deselect vs-2' }));
+
+      expect(submitButton).toBeDisabled();
+      expect(submitButton).toHaveTextContent('Configure');
+      expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
+    });
+
+    it('disables the submit button when the added vector store is deselected again (playground without passthrough provider)', async () => {
+      const user = userEvent.setup();
+      const nonPassthroughLsdStatus: LlamaStackDistributionModel = {
+        ...passthroughLsdStatus,
+        distributionConfig: {
+          ...passthroughLsdStatus.distributionConfig,
+          providers: [],
+        },
+      };
+      renderAddToPlayground(nonPassthroughLsdStatus);
+
+      const submitButton = screen.getByTestId('modal-submit-button');
+      expect(submitButton).toBeEnabled();
+
+      await user.click(screen.getByRole('button', { name: 'Deselect vs-2' }));
+
+      expect(submitButton).toBeDisabled();
+      expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
+    });
+
+    it('disables the submit button after deselecting when the playground has non-AAE vector stores registered', async () => {
+      const user = userEvent.setup();
+      (useAiAssetVectorStoresEnabled as jest.Mock).mockReturnValue(true);
+      // The LSD vector store list also contains the auto-provisioned
+      // document-upload store, which is not an AAE collection and can never
+      // be part of the selection
+      renderModalWithContext({
+        allModels: [embedModel],
+        allCollections: [vs1, vs2],
+        collectionsLoaded: true,
+        existingCollections: [createLSDVectorStore('vs-1'), createLSDVectorStore('user-doc-store')],
+        extraSelectedCollections: [vs2],
+        lsdStatus: passthroughLsdStatus,
+        initialStepId: 'collections',
+      });
+
+      const submitButton = screen.getByTestId('modal-submit-button');
+      expect(submitButton).toBeEnabled();
+      expect(submitButton).toHaveTextContent('Update and restart playground');
+
+      await user.click(screen.getByRole('button', { name: 'Deselect vs-2' }));
+
+      expect(submitButton).toBeDisabled();
+      expect(submitButton).toHaveTextContent('Configure');
+      expect(screen.queryByTestId('playground-restart-required-alert')).not.toBeInTheDocument();
     });
   });
 });

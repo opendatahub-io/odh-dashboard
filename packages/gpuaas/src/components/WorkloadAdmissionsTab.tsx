@@ -1,0 +1,367 @@
+import * as React from 'react';
+import { Charts } from '@patternfly/react-charts/echarts';
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent } from 'echarts/components';
+import { SVGRenderer } from 'echarts/renderers';
+import { Alert, Content, Skeleton, getResizeObserver } from '@patternfly/react-core';
+import {
+  chart_global_FontFamily as chartGlobalFontFamily,
+  chart_global_FontSize_sm as chartGlobalFontSizeSm,
+  t_chart_color_blue_300 as chartBlue,
+  t_chart_color_orange_300 as chartOrange,
+} from '@patternfly/react-tokens';
+import useWorkloadAdmissionMetrics, { getWindowConfig } from '../hooks/useWorkloadAdmissionMetrics';
+import { getAdmissionChartGridLeft } from '../utils/admissionMetrics';
+import {
+  buildAdmissionMetrics,
+  formatAdmissionMetricHeadline,
+  formatAdmissionTimestamp,
+  formatAdmissionMetricValue,
+  getAdmissionMetricHeadlineValue,
+  getAdmissionMetricsXDomain,
+  getAdmissionMetricYBounds,
+  getAdmissionMetricYInterval,
+  getAdmissionTickInterval,
+  getValidAdmissionMetricPoints,
+  type AdmissionMetric,
+} from '../utils/workloadAdmissions';
+
+let echartsRegistered = false;
+
+const getCSSVar = (name: string, fallback: string): string => {
+  if (typeof document === 'undefined') {
+    return fallback;
+  }
+
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+const getAdmissionChartTheme = (): Record<string, unknown> => ({
+  textStyle: {
+    fontFamily: getCSSVar(
+      chartGlobalFontFamily.name,
+      String(chartGlobalFontFamily.value).replace(/"/g, "'"),
+    ),
+    fontSize: chartGlobalFontSizeSm.value,
+  },
+});
+
+type WorkloadAdmissionsTabProps = {
+  metrics: ReturnType<typeof useWorkloadAdmissionMetrics>;
+  timeWindow: string;
+  canAccessAdminMetrics: boolean;
+  isActive: boolean;
+};
+
+const AdmissionMetricChartComponent: React.FC<{
+  metric: AdmissionMetric;
+  gridLeft: number;
+  xDomain: [number, number];
+  animateOnMount: boolean;
+  timeWindow: string;
+}> = ({ metric, gridLeft, xDomain, animateOnMount, timeWindow }) => {
+  if (!echartsRegistered) {
+    echarts.use([LineChart, GridComponent, TooltipComponent, SVGRenderer]);
+    echartsRegistered = true;
+  }
+
+  const chartContainerRef = React.useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = React.useState(240);
+  const theme = React.useMemo(() => getAdmissionChartTheme(), []);
+  const data = getValidAdmissionMetricPoints(metric.data);
+  const { yMin, yMax, yPadding } = getAdmissionMetricYBounds(data);
+  const yDomain = React.useMemo<[number, number]>(
+    () => [Math.max(0, yMin - yPadding), yMax + yPadding],
+    [yMax, yMin, yPadding],
+  );
+  const option = React.useMemo(() => {
+    return {
+      animation: animateOnMount,
+      animationDuration: animateOnMount ? 1200 : 0,
+      animationEasing: animateOnMount ? ('cubicOut' as const) : undefined,
+      animationDurationUpdate: 0,
+      grid: {
+        left: gridLeft,
+        right: 0,
+        top: 8,
+        bottom: 28,
+        containLabel: false,
+      },
+      xAxis: {
+        type: 'value' as const,
+        min: xDomain[0],
+        max: xDomain[1],
+        interval: getAdmissionTickInterval(timeWindow),
+        axisLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
+        axisTick: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--subtle)',
+          fontSize: 10,
+          hideOverlap: true,
+          showMinLabel: true,
+          showMaxLabel: false,
+          margin: 8,
+          formatter: (timestamp: number) =>
+            formatAdmissionTimestamp(timestamp, timeWindow, xDomain),
+        },
+        splitLine: {
+          show: false,
+          lineStyle: { type: 'dotted' as const },
+        },
+      },
+      yAxis: {
+        type: 'value' as const,
+        min: yDomain[0],
+        max: yDomain[1],
+        splitNumber: 3,
+        ...(getAdmissionMetricYInterval(metric.id, yMax) !== undefined && {
+          interval: getAdmissionMetricYInterval(metric.id, yMax),
+        }),
+        axisLine: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
+        axisTick: { lineStyle: { color: 'var(--pf-t--global--border--color--default)' } },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--subtle)',
+          fontSize: 10,
+          formatter: (value: number) => formatAdmissionMetricValue(metric.id, value),
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'var(--pf-t--global--border--color--default)',
+            type: 'dashed' as const,
+            width: 1,
+            opacity: 0.65,
+          },
+          show: true,
+        },
+      },
+      tooltip: {
+        trigger: 'axis' as const,
+        confine: true,
+        position: 'top' as const,
+        axisPointer: { type: 'line' as const },
+        formatter: (params: unknown) => {
+          const point = Array.isArray(params) ? params[0] : params;
+          if (!point || typeof point !== 'object' || !('value' in point)) {
+            return '';
+          }
+          const { value } = point;
+          if (!Array.isArray(value) || value.length < 2) {
+            return '';
+          }
+          const formattedValue = formatAdmissionMetricValue(metric.id, Number(value[1]));
+          const tooltipValue =
+            metric.id === 'waiting-workloads'
+              ? `${formattedValue} waiting`
+              : metric.id === 'active-workloads'
+              ? `${formattedValue} active`
+              : formattedValue;
+
+          return `${formatAdmissionTimestamp(
+            Number(value[0]),
+            timeWindow,
+            xDomain,
+          )}<br/>${tooltipValue}`;
+        },
+      },
+      series: [
+        {
+          type: 'line' as const,
+          data: data.map((point) => [point.x, point.y]),
+          showSymbol: false,
+          smooth: metric.interpolation !== 'stepAfter',
+          step: metric.interpolation === 'stepAfter' ? ('end' as const) : undefined,
+          lineStyle: { color: metric.color, width: 2 },
+          itemStyle: { color: metric.color },
+          areaStyle: { color: metric.color, opacity: 0.25 },
+          emphasis: { disabled: true },
+        },
+      ],
+    };
+  }, [
+    data,
+    animateOnMount,
+    metric.color,
+    metric.id,
+    metric.interpolation,
+    timeWindow,
+    xDomain,
+    yMax,
+    yDomain,
+    gridLeft,
+  ]);
+
+  React.useEffect(() => {
+    const element = chartContainerRef.current;
+    if (!element) {
+      return undefined;
+    }
+    const handleResize = () => {
+      if (element.clientWidth > 0) {
+        setChartWidth(element.clientWidth);
+      }
+    };
+    const cleanup = getResizeObserver(element, handleResize);
+    handleResize();
+    return cleanup;
+  }, []);
+
+  return (
+    <div ref={chartContainerRef} className="gpuaas-workload-overview__admission-chart">
+      <Charts
+        theme={theme}
+        nodeSelector="html"
+        height={140}
+        width={chartWidth}
+        option={option}
+        isSvgRenderer
+      />
+    </div>
+  );
+};
+
+const AdmissionMetricChart = React.memo(
+  AdmissionMetricChartComponent,
+  (previous, next) =>
+    previous.metric.id === next.metric.id &&
+    previous.gridLeft === next.gridLeft &&
+    previous.metric.color === next.metric.color &&
+    previous.metric.data === next.metric.data &&
+    previous.xDomain[0] === next.xDomain[0] &&
+    previous.xDomain[1] === next.xDomain[1] &&
+    previous.animateOnMount === next.animateOnMount &&
+    previous.timeWindow === next.timeWindow,
+);
+
+const AdmissionMetricChartLoading: React.FC<{ label: string }> = ({ label }) => (
+  <div data-testid={`admission-metric-chart-loading-${label.toLowerCase().replaceAll(' ', '-')}`}>
+    <Skeleton width="100%" height="140px" screenreaderText={`Loading ${label} chart`} />
+  </div>
+);
+
+const AdmissionMetricHeaderLoading: React.FC<{ label: string }> = ({ label }) => (
+  <div className="gpuaas-workload-overview__admission-header-loading">
+    <div data-testid={`admission-metric-value-loading-${label.toLowerCase().replaceAll(' ', '-')}`}>
+      <Skeleton width="80px" height="24px" screenreaderText={`Loading ${label} value`} />
+    </div>
+    <Skeleton width="120px" height="16px" screenreaderText={`Loading ${label} label`} />
+  </div>
+);
+
+const AdmissionMetricCard: React.FC<{
+  metric: AdmissionMetric;
+  xDomain: [number, number];
+  isLoading: boolean;
+  animateOnMount: boolean;
+  timeWindow: string;
+}> = ({ metric, xDomain, isLoading, animateOnMount, timeWindow }) => {
+  const formattedValue = formatAdmissionMetricHeadline(
+    metric,
+    getAdmissionMetricHeadlineValue(metric),
+  );
+  const validPoints = getValidAdmissionMetricPoints(metric.data);
+  const { yMin, yMax, yPadding } = getAdmissionMetricYBounds(validPoints);
+  const yAxisLabelWidth = Math.max(
+    ...[Math.max(0, yMin - yPadding), yMax + yPadding].map(
+      (value) => formatAdmissionMetricValue(metric.id, value).length,
+    ),
+  );
+  const gridLeft = getAdmissionChartGridLeft(metric.id, yAxisLabelWidth);
+
+  return (
+    <div
+      className="gpuaas-workload-overview__admission-metric"
+      data-testid={`admission-metric-card-${metric.id}`}
+    >
+      {isLoading ? (
+        <>
+          <AdmissionMetricHeaderLoading label={metric.label} />
+          <AdmissionMetricChartLoading label={metric.label} />
+        </>
+      ) : (
+        <>
+          <div className="gpuaas-workload-overview__admission-header">
+            <div data-testid={`admission-metric-value-${metric.id}`}>
+              <Content component="h3" className="gpuaas-workload-overview__admission-value">
+                {formattedValue}
+              </Content>
+            </div>
+            <Content component="p">{metric.label}</Content>
+          </div>
+        </>
+      )}
+      {!isLoading && (
+        <AdmissionMetricChart
+          metric={metric}
+          gridLeft={gridLeft}
+          xDomain={xDomain}
+          animateOnMount={animateOnMount}
+          timeWindow={timeWindow}
+        />
+      )}
+    </div>
+  );
+};
+
+const WorkloadAdmissionsTab: React.FC<WorkloadAdmissionsTabProps> = ({
+  metrics,
+  timeWindow,
+  canAccessAdminMetrics,
+  isActive,
+}) => {
+  const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
+  const isLoading = isActive && metrics.loading;
+  const animateOnMount = !hasLoadedOnce;
+
+  React.useEffect(() => {
+    if (isActive && !metrics.loading && (metrics.loaded || metrics.error)) {
+      setHasLoadedOnce(true);
+    }
+  }, [isActive, metrics.error, metrics.loaded, metrics.loading]);
+
+  const metricSeries = buildAdmissionMetrics(
+    metrics,
+    { blue: chartBlue.var, orange: chartOrange.var },
+    canAccessAdminMetrics,
+  );
+  const xDomain = getAdmissionMetricsXDomain(getWindowConfig(timeWindow).span, metrics.endInMs);
+
+  return (
+    <div
+      className="gpuaas-workload-overview__admissions"
+      data-testid="workload-overview-admissions"
+    >
+      {metrics.error && (
+        <Alert
+          variant="danger"
+          isInline
+          title="Unable to load admission metrics"
+          className="gpuaas-workload-overview__admissions-error"
+          data-testid="admission-metrics-error"
+        >
+          Some metrics could not be loaded. Refresh to try again.
+        </Alert>
+      )}
+      <div
+        className={`gpuaas-workload-overview__admission-metrics ${
+          canAccessAdminMetrics ? '' : 'gpuaas-workload-overview__admission-metrics--two'
+        }`}
+        data-testid="admission-metric-charts"
+      >
+        {metricSeries.map((metric) => (
+          <AdmissionMetricCard
+            key={metric.id}
+            metric={metric}
+            xDomain={xDomain}
+            isLoading={isLoading}
+            animateOnMount={animateOnMount}
+            timeWindow={timeWindow}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default WorkloadAdmissionsTab;

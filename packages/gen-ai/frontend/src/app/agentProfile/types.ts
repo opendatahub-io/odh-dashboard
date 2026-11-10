@@ -141,8 +141,24 @@ export type AgentProfileUpdateResponse = {
 
 export type AgentDeploymentState = 'ready' | 'creating' | 'failed';
 
+export type AgentDeploymentCreateRequest = {
+  name: string;
+  agentProfileId: string;
+  mcpServerAuth?: Record<string, string>;
+};
+
+export type AgentDeploymentCreateResponse = {
+  llamaStackConfigMapName: string;
+  wrapperAppConfigMapName: string;
+  sandboxName: string;
+  namespace: string;
+  routeUrl: string;
+  agentProfileId: string;
+};
+
 export type AgentDeploymentSummary = {
   name: string;
+  displayName?: string;
   namespace: string;
   agentProfileId: string;
   routeUrl?: string;

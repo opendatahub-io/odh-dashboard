@@ -20,7 +20,9 @@ Central index of key documentation in the ODH Dashboard monorepo.
 |-----|-------------|
 | [Architecture](docs/architecture.md) | Overall system architecture |
 | [Architecture Decisions](docs/architecture-decisions.md) | Key architecture decisions (monorepo, Module Federation, Turbo) |
+| [Architecture Decision Records](docs/adr/) | Historical decisions and their rationale; use the [template](docs/adr/template.md) and [writing workflow](.claude/skills/writing-adrs/SKILL.md) for new ADRs |
 | [Module Federation](docs/module-federation.md) | Module Federation implementation |
+| [Community Plugin Registration](docs/community-plugin-registration.md) | Fixed ConfigMap contract for installer-owned community federation entries |
 | [Extensibility](docs/extensibility.md) | Plugin/extension system |
 | [Quality Gates](docs/modular-architecture-quality-gates.md) | Modular architecture quality standards |
 
@@ -39,6 +41,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Prototype Reading Skills](docs/prototype-reading.md) | `/prototype-tickets` and `/prototype-spec` — extracting PF component details from UX prototype forks |
 | [Upstream Sync](docs/upstream-sync.md) | How to sync upstream changes into monorepo packages |
 | [Konflux Build Simulation](docs/KONFLUX_BUILD_SIMULATION.md) | PR build validation, hermetic pnpm install checks, Docker builds, and runtime checks |
+| [Workspace Dockerfiles](docs/workspace-dockerfiles.md) | Workspace-aware module builds with prefetched pnpm and offline dependencies |
 
 ---
 
@@ -102,6 +105,8 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | Doc | Description |
 |-----|-------------|
 | [Operator Architecture](docs/dashboard-operator.md) | CRD design, reconciliation pipeline, module registry, dependency resolution, manifest management, local development, cluster deployment, troubleshooting |
+| [Model Registry OCI Upload Base Image](docs/model-registry-oci-base-image.md) | Optional Dashboard CR setting, defaults, administrator commands, and verification for upload Job base images |
+| [MaaS Portal](docs/maas-portal.md) | Independent portal lifecycle, routing, federation, subscription RBAC, resource migration, and rollout |
 | [Controller AGENTS.md](dashboard-operator/AGENTS.md) | Go operator conventions, controller-runtime patterns, CRD types, Makefile targets, reconciliation pipeline |
 
 ---
@@ -115,6 +120,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Core BFF BFF Docs](distributions/core-bff/bff/README.md) | Go BFF documentation |
 | [Core BFF OpenAPI Spec](distributions/core-bff/bff/openapi/src/core-bff.yaml) | OpenAPI specification (contract-first source of truth) |
 | [Base Distribution README](distributions/base/README.md) | App shell setup, dev environment, environment variables |
+| [RHAII Runtime Audit](distributions/rhaii/docs/runtime-audit.md) | Production bundle inventory, strict dependency boundary check, and remaining runtime qualification |
 
 ---
 

@@ -323,7 +323,7 @@ describe('AutoML API Contract Tests', () => {
           undefined,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application/json/schema',
+          ref: '#/components/responses/EnableManagedPipelinesResponse/content/application~1json/schema',
           status: 200,
         });
       });
@@ -344,6 +344,31 @@ describe('AutoML API Contract Tests', () => {
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(404);
       });
+    });
+  });
+
+  describe('Pipeline Server Status Endpoint', () => {
+    it('should return 200 with a ready status on a namespace with a DSPA', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+    });
+
+    it('should return 200 with a not-found status when no DSPA exists in namespace', async () => {
+      const result = await apiClient.get(`/api/v1/pipeline-server/status?namespace=${NS_NO_DSPA}`);
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/PipelineServerStatusResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expect((result.response.data as { data: { status: string } }).data.status).toBe('not-found');
+    });
+
+    it('should return 400 when namespace query parameter is missing', async () => {
+      const result = await apiClient.get('/api/v1/pipeline-server/status');
+      expect(result.success).toBe(false);
+      expect(result.error?.status).toBe(400);
     });
   });
 
@@ -579,6 +604,22 @@ describe('AutoML API Contract Tests', () => {
           preset: 'speed',
           eval_metric: 'roc_auc_ovo',
           top_n: 5,
+        });
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',
+          status: 200,
+        });
+      });
+
+      it('should create a tabular pipeline run with the quality preset', async () => {
+        const result = await apiClient.post(`/api/v1/pipeline-runs?namespace=${NS}`, {
+          display_name: 'contract-test-tabular-quality',
+          train_data_secret_name: SECRET,
+          train_data_bucket_name: BUCKET,
+          train_data_file_key: TABULAR_CSV_FILE,
+          label_column: 'target',
+          task_type: 'binary',
+          preset: 'quality',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application~1json/schema',

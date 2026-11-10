@@ -23,13 +23,16 @@ import { Table, Tbody, Td, Th, Thead, Tr, type ThProps } from '@patternfly/react
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { MaaSModelRefSummary, ModelSubscriptionRef } from '~/app/types/subscriptions';
 import { formatTokenLimits } from '~/app/pages/subscriptions/viewSubscription/utils';
+import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
+import { PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 
-type ModelColumnKey = 'name' | 'project' | 'tokenLimits';
+type ModelColumnKey = 'name' | 'project' | 'status' | 'tokenLimits';
 
 const COLUMNS: { key: ModelColumnKey; label: string; width?: ThProps['width'] }[] = [
-  { key: 'name', label: 'Name', width: 50 },
-  { key: 'project', label: 'Project', width: 25 },
-  { key: 'tokenLimits', label: 'Token limits', width: 25 },
+  { key: 'name', label: 'Name', width: 30 },
+  { key: 'project', label: 'Project', width: 20 },
+  { key: 'tokenLimits', label: 'Token limits', width: 20 },
+  { key: 'status', label: 'Status', width: 15 }, //model status
 ];
 
 export type MaasModelsSectionProps = {
@@ -116,6 +119,21 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
             project: (
               <Td key="project" dataLabel="Project">
                 {modelRef.namespace}
+              </Td>
+            ),
+            status: (
+              <Td key="status" dataLabel="Status">
+                <PhaseLabel
+                  phase={modelRef.phase}
+                  resourceType={PhaseResourceType.MODEL}
+                  resourceName={modelRef.displayName ?? modelRef.name}
+                  reason={modelRef.reason}
+                  statusMessage={modelRef.statusMessage}
+                  status={modelRef.status}
+                  conditionType={modelRef.conditionType}
+                  lastTransitionTime={modelRef.lastTransitionTime}
+                  testId={`model-status-${modelRef.name}`}
+                />
               </Td>
             ),
             tokenLimits: (

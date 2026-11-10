@@ -1,6 +1,6 @@
 import { appChrome } from '../appChrome';
 
-const AUTORAG_DEV_FEATURE_FLAGS = 'devFeatureFlags=autorag=true,genAiStudio=true';
+const AUTORAG_DEV_FEATURE_FLAGS = 'devFeatureFlags=genAiStudio=true';
 
 class AutoragExperimentsPage {
   pathWithDevFlags(): string {

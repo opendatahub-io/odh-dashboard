@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { deleteServer } from '#~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { getPipelineServerName } from '#~/concepts/pipelines/context/PipelinesContext';
 
 type DeletePipelineServerModalProps = {
@@ -52,7 +53,7 @@ const DeletePipelineServerModal: React.FC<DeletePipelineServerModalProps> = ({
             fireFormTrackingEvent(eventName, {
               outcome: TrackingOutcome.submit,
               success: false,
-              error: caughtError.message,
+              error: errorCategory(caughtError),
             });
           });
       }}

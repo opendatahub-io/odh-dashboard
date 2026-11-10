@@ -10,70 +10,46 @@ import {
 } from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore, wasSetupPerformed } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { isRHOAI } from '../../../utils/oc_commands/applications';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { createRegistryStep, deleteFeastRegistryFiles } from '../../../utils/oc_commands/s3Cleanup';
 
 describe('Verify RBAC scoped Feature Store discovery by namespace access', () => {
   let testData: FeatureStoreTestData;
   let projectName: string;
-  let skipTest = false;
   const uuid = generateTestUUID();
-
-  const shouldSkip = () => {
-    if (skipTest) {
-      cy.log('Skipping test - Feature Store is RHOAI-specific and not available on ODH.');
-      return true;
-    }
-    return false;
-  };
 
   retryableBefore(() => {
     cy.step('Ensure admin oc session for setup');
     ensureAdminOcSession();
 
-    cy.step('Check if the operator is RHOAI');
-    isRHOAI().then((rhoai) => {
-      if (!rhoai) {
-        cy.log('ODH detected, skipping RHOAI-specific test.');
-        skipTest = true;
-      }
-    });
+    cy.fixture('e2e/featureStoreResources/testFeatureStoreResources.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as FeatureStoreTestData;
+        projectName = `${testData.projectName}-${uuid}`;
+      })
+      .then(() => {
+        cy.step(`Create namespace: ${projectName}`);
+        createCleanProject(projectName);
 
-    cy.then(() => {
-      if (skipTest) {
-        return;
-      }
-
-      cy.fixture('e2e/featureStoreResources/testFeatureStoreResources.yaml', 'utf8')
-        .then((yamlContent: string) => {
-          testData = yaml.load(yamlContent) as FeatureStoreTestData;
-          projectName = `${testData.projectName}-${uuid}`;
-        })
-        .then(() => {
-          cy.step(`Create namespace: ${projectName}`);
-          createCleanProject(projectName);
-
-          // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
-          // in the permitted namespace (the dashboard login user reads the registry).
-          return addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin');
-        })
-        .then(() => {
-          cy.step(`Apply FeatureStore CR in namespace: ${projectName}`);
-          createRegistryStep(projectName);
-          createFeatureStoreCR(projectName, testData.feastInstanceName);
-        })
-        .then(() => {
-          return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
-            namespaces: [projectName],
-          });
+        // Feast NamespaceBasedPolicy only authorizes users with admin RoleBindings
+        // in the permitted namespace (the dashboard login user reads the registry).
+        return addUserToProject(projectName, LDAP_ADMIN_USER.USERNAME, 'admin');
+      })
+      .then(() => {
+        cy.step(`Apply FeatureStore CR in namespace: ${projectName}`);
+        createRegistryStep(projectName);
+        createFeatureStoreCR(projectName, testData.feastInstanceName);
+      })
+      .then(() => {
+        return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
+          namespaces: [projectName],
         });
-    });
+      });
   });
 
   after(() => {
-    if (!wasSetupPerformed() || shouldSkip()) {
-      cy.log('Skipping cleanup: Setup was not performed or tests were skipped');
+    if (!wasSetupPerformed()) {
+      cy.log('Skipping cleanup: Setup was not performed');
       return;
     }
     cy.step('Restore admin oc session for cleanup');
@@ -90,10 +66,6 @@ describe('Verify RBAC scoped Feature Store discovery by namespace access', () =>
     'Admin user can discover the Feature Store project',
     { tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Smoke', '@SmokeSet1'] },
     () => {
-      if (shouldSkip()) {
-        return;
-      }
-
       cy.step('Log in as admin user');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
@@ -114,10 +86,6 @@ describe('Verify RBAC scoped Feature Store discovery by namespace access', () =>
     'Non-admin user without namespace access cannot discover the Feature Store project',
     { tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Smoke', '@SmokeSet1'] },
     () => {
-      if (shouldSkip()) {
-        return;
-      }
-
       cy.step('Log in as non-admin user (no access to the test namespace)');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 

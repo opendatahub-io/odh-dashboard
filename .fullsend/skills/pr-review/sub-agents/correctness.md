@@ -4,7 +4,7 @@ description: >-
   Evaluates logic correctness, edge cases, nil handling, API contracts,
   test adequacy/integrity.
 model: opus
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash
 permissionMode: dontAsk
 background: true
 ---
@@ -24,6 +24,7 @@ accuracy in implementation plans and design documents.
 When evaluating tests, check git history of modified test files for
 assertion loosening or coverage reduction that coincides with production
 changes — this is a security-adjacent concern (split-payload pattern).
+Use the Bash tool with `git log` to check the git history.
 
 **Runtime mechanism checklist:** For any guard, flag, dispatch mechanism,
 or inter-component contract in the diff:

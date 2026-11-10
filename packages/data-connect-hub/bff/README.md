@@ -12,7 +12,7 @@ This trimmed service exposes ONLY:
 
 - GET `/healthcheck` – liveness probe
 - GET `/api/v1/user` – returns the authenticated (mock) user
-- GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+- GET `/api/v1/namespaces` – list namespaces available to the authenticated user, using core Namespaces when cluster-wide listing succeeds and OpenShift Projects when that listing is forbidden
 
 All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
 
@@ -49,7 +49,7 @@ make run LOG_LEVEL=DEBUG
 |------|---------|-------------|
 | `-port` | `PORT` | Listen port (default 4000) |
 | `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
+| `-dev-mode` | `DEV_MODE` | Enables development-only behaviors, including local cluster access |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
 | `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
@@ -62,7 +62,11 @@ make run LOG_LEVEL=DEBUG
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
 | `-mock-bff-clients` | `MOCK_BFF_CLIENTS` | Use mock BFF clients (no real HTTP calls to other BFFs) |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ## Running the linter locally
 
@@ -98,7 +102,7 @@ Only three JSON endpoints are available plus static asset serving (index.html fa
 ```text
 GET /healthcheck
 GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/namespaces
 ```
 
 ### Sample local calls
@@ -108,7 +112,7 @@ When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user 
 ```shell
 curl -i localhost:4000/healthcheck
 curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces
 ```
 
 ### Inter-BFF Communication

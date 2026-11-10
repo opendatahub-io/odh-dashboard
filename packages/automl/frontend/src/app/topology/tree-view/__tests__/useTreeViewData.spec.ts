@@ -96,4 +96,43 @@ describe('useTreeViewData', () => {
 
     expect(result.current.selectedModel).toBe('model_b');
   });
+
+  it('should alias ranks by display name without replacing existing model-key ranks', () => {
+    const models = {
+      model_a: createModel('model_b'),
+      model_b: createModel('Display Name B'),
+      model_c: createModel('   '),
+    };
+
+    const { result } = renderHook(() => useTreeViewData(models));
+
+    expect(result.current.modelRanks).toEqual({
+      model_a: 1,
+      model_b: 2,
+      model_c: 3,
+      'Display Name B': 2,
+    });
+  });
+
+  it('should preserve model-key ranks when display names are missing or non-string', () => {
+    const models = {
+      model_a: { ...createModel('Model A'), name: 42 },
+      model_b: { ...createModel('Model B'), name: undefined },
+    } as unknown as Record<string, AutomlModel>;
+
+    const { result } = renderHook(() => useTreeViewData(models));
+
+    expect(result.current.modelRanks).toEqual({ model_a: 1, model_b: 2 });
+  });
+
+  it('should skip null models when adding name aliases and preserve their key ranks', () => {
+    const models = {
+      model_a: null,
+      model_b: createModel('Model B'),
+    } as unknown as Record<string, AutomlModel>;
+
+    const { result } = renderHook(() => useTreeViewData(models));
+
+    expect(result.current.modelRanks).toEqual({ model_a: 1, model_b: 2, 'Model B': 2 });
+  });
 });

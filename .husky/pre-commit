@@ -11,8 +11,8 @@ fi
 
 echo "🔍 Running lint-staged to check staged files..."
 
-# If any package.json or federation manifest is staged, validate port uniqueness
-if git diff --cached --name-only | grep -qE 'package\.json$|federation-configmap\.yaml$'; then
+# If any package.json or the dashboard-operator module registry is staged, validate port uniqueness
+if git diff --cached --name-only | grep -qE 'package\.json$|dashboard-operator/internal/controller/modules\.go$'; then
     echo "📦 Port-related file changed — validating module federation ports..."
     if ! node scripts/validate-module-ports.js; then
         echo ""
@@ -24,7 +24,8 @@ if git diff --cached --name-only | grep -qE 'package\.json$|federation-configmap
 fi
 
 # Run lint-staged and if it fails, show helpful instructions
-if ! pnpm exec lint-staged; then
+# Bound each ESLint process and run batches serially to limit TypeScript project memory.
+if ! pnpm exec cross-env NODE_OPTIONS=--max-old-space-size=8192 lint-staged --concurrent 1 --max-arg-length 8000; then
     echo ""
     echo "💥 Lint checks failed! Here's how to fix the issues:"
     echo ""
@@ -56,4 +57,4 @@ if ! pnpm exec lint-staged; then
 fi
 
 echo "🎉 All lint checks passed!"
-exit 0 
+exit 0

@@ -2,11 +2,16 @@ import {
   toTitleCase,
   capitalizeFirst,
   getCategoryColor,
+  getCategoryTileColor,
+  CATEGORY_TILE_COLORS,
   formatCategory,
   getCollectionCategoryValues,
   formatCollectionMetadataValue,
   getMetricDisplayName,
   toSafeExternalUrl,
+  getBenchmarkDisplayName,
+  getBenchmarkNameMap,
+  getVisibleMetricCount,
 } from '~/app/components/benchmarkUtils';
 
 describe('toTitleCase', () => {
@@ -72,12 +77,73 @@ describe('getCategoryColor', () => {
   });
 
   it('should return a consistent color for the same category', () => {
-    const color = getCategoryColor('safety');
-    expect(getCategoryColor('safety')).toBe(color);
+    const color = getCategoryColor('unknown-category');
+    expect(getCategoryColor('unknown-category')).toBe(color);
   });
 
   it('should be case-insensitive', () => {
-    expect(getCategoryColor('Safety')).toBe(getCategoryColor('safety'));
+    expect(getCategoryColor('Unknown-Category')).toBe(getCategoryColor('unknown-category'));
+  });
+
+  it('should not resolve Object.prototype members', () => {
+    const palette = ['blue', 'teal', 'green', 'purple', 'orange', 'red', 'yellow'];
+    expect(palette).toContain(getCategoryColor('constructor'));
+    expect(palette).toContain(getCategoryColor('__proto__'));
+    expect(palette).toContain(getCategoryColor('toString'));
+  });
+
+  it.each([
+    ['knowledge_and_reasoning', 'purple'],
+    ['grounded_document_understanding', 'blue'],
+    ['instruction_and_output_reliability', 'green'],
+    ['tool_use_and_function_calling', 'orange'],
+    ['software', 'teal'],
+    ['trustworthiness', 'red'],
+    ['multilingual', 'grey'],
+    ['multimodal', 'yellow'],
+  ])('maps %s to the matching PatternFly label family', (category, color) => {
+    expect(getCategoryColor(category)).toBe(color);
+  });
+});
+
+describe('getCategoryTileColor', () => {
+  it.each([
+    ['knowledge_and_reasoning', 'lavender', '#D0C4F3'],
+    ['grounded_document_understanding', 'light-blue', '#B9DCF7'],
+    ['instruction_and_output_reliability', 'light-green', '#C8EFB5'],
+    ['tool_use_and_function_calling', 'apricot', '#FFD0A0'],
+    ['software', 'mint-teal', '#BCE8DF'],
+    ['trustworthiness', 'soft-pink', '#F5C1C1'],
+    ['multilingual', 'pale-cyan', '#B9E5E5'],
+    ['multimodal', 'soft-mint-yellow', '#E6E6A8'],
+  ])('maps %s to the %s tile colour', (category, color, hex) => {
+    expect(getCategoryTileColor(category)).toBe(color);
+    expect(CATEGORY_TILE_COLORS[getCategoryTileColor(category)]).toBe(hex);
+  });
+
+  it('assigns a unique swatch to every supported EvalHub category', () => {
+    const categoryColors = [
+      'knowledge_and_reasoning',
+      'grounded_document_understanding',
+      'instruction_and_output_reliability',
+      'tool_use_and_function_calling',
+      'software',
+      'trustworthiness',
+      'multilingual',
+      'multimodal',
+    ].map((category) => getCategoryTileColor(category));
+
+    expect(new Set(categoryColors).size).toBe(categoryColors.length);
+  });
+
+  it('uses the light-blue swatch for an unknown category', () => {
+    expect(getCategoryTileColor(undefined)).toBe('light-blue');
+  });
+
+  it('should not resolve Object.prototype members', () => {
+    expect(getCategoryTileColor('constructor')).toBe('light-blue');
+    expect(getCategoryTileColor('__proto__')).toBe('light-blue');
+    expect(getCategoryTileColor('toString')).toBe('light-blue');
   });
 });
 
@@ -156,6 +222,20 @@ describe('getMetricDisplayName', () => {
   });
 });
 
+describe('getVisibleMetricCount', () => {
+  it('should keep the overflow label within the available width', () => {
+    expect(getVisibleMetricCount([165, 175, 109], [48, 48, 48], 308, 4)).toBe(1);
+  });
+
+  it('should show all metrics when they fit without an overflow label', () => {
+    expect(getVisibleMetricCount([65, 80, 110], [48, 48, 48], 300, 4)).toBe(3);
+  });
+
+  it('should preserve the maximum visible metric count', () => {
+    expect(getVisibleMetricCount([40, 40, 40, 40], [48, 48, 48, 48], 300, 4)).toBe(3);
+  });
+});
+
 describe('toSafeExternalUrl', () => {
   it('should return undefined for undefined input', () => {
     expect(toSafeExternalUrl(undefined)).toBeUndefined();
@@ -182,3 +262,53 @@ describe('toSafeExternalUrl', () => {
     expect(toSafeExternalUrl('not-a-url')).toBeUndefined();
   });
 });
+
+/* eslint-disable camelcase */
+describe('benchmark name lookups', () => {
+  it('should resolve provider-qualified and unique benchmark names', () => {
+    const benchmarkNameMap = getBenchmarkNameMap([
+      {
+        resource: { id: 'provider-one' },
+        name: 'Provider One',
+        benchmarks: [{ id: 'benchmark-one', name: 'Benchmark One' }],
+      },
+      {
+        resource: { id: 'provider-two' },
+        name: 'Provider Two',
+        benchmarks: [{ id: 'benchmark-two', name: 'Benchmark Two' }],
+      },
+    ]);
+
+    expect(
+      getBenchmarkDisplayName(
+        { id: 'benchmark-one', provider_id: 'provider-one' },
+        benchmarkNameMap,
+      ),
+    ).toBe('Benchmark One');
+    expect(getBenchmarkDisplayName({ id: 'benchmark-two' }, benchmarkNameMap)).toBe(
+      'Benchmark Two',
+    );
+    expect(getBenchmarkDisplayName({ id: 'unknown' }, benchmarkNameMap)).toBe('unknown');
+  });
+
+  it('should use the ID when a provider-agnostic benchmark name is ambiguous', () => {
+    const benchmarkNameMap = getBenchmarkNameMap([
+      {
+        resource: { id: 'provider-one' },
+        name: 'Provider One',
+        benchmarks: [{ id: 'shared', name: 'Shared One' }],
+      },
+      {
+        resource: { id: 'provider-two' },
+        name: 'Provider Two',
+        benchmarks: [{ id: 'shared', name: 'Shared Two' }],
+      },
+    ]);
+
+    expect(getBenchmarkDisplayName({ id: 'shared' }, benchmarkNameMap)).toBe('shared');
+    expect(
+      getBenchmarkDisplayName({ id: 'shared', provider_id: 'provider-two' }, benchmarkNameMap),
+    ).toBe('Shared Two');
+  });
+});
+/* eslint-enable camelcase */

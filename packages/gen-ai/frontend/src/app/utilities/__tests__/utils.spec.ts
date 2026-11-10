@@ -2,6 +2,7 @@
 import type { AAModelResponse, AIModel, LlamaModel } from '~/app/types';
 import {
   convertMaaSModelToAIModel,
+  getAIAssetModelIDFromPlaygroundModel,
   getCapabilityDisplay,
   getSourceLabel,
   getVisibleCapabilities,
@@ -431,6 +432,20 @@ describe('isPlaygroundModelMatchForAIModel', () => {
     const playground = makeLlamaModel({ id: 'custom-ep/my-model', modelId: 'my-model' });
     const aiModel = makeModel({ model_id: 'my-model', model_source_type: 'custom_endpoint' });
     expect(isPlaygroundModelMatchForAIModel(playground, aiModel)).toBe(true);
+  });
+});
+
+describe('getAIAssetModelIDFromPlaygroundModel', () => {
+  it('should preserve the catalog ID for a proxy-routed MaaS model', () => {
+    expect(
+      getAIAssetModelIDFromPlaygroundModel({
+        id: 'genai-bff-proxy/openai-gpt-4o-mini',
+        modelId: 'openai-gpt-4o-mini',
+        object: 'model',
+        created: 0,
+        owned_by: '',
+      }),
+    ).toBe('openai-gpt-4o-mini');
   });
 });
 

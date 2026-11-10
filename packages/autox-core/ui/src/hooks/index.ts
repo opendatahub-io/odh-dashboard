@@ -27,6 +27,10 @@ export { useSecretsQuery } from './k8s/useSecretsQuery';
 export { useCreateSecretMutation } from './k8s/useCreateSecretMutation';
 
 export { usePipelineRuns, type PipelineRunsResult } from './pipelines/usePipelineRuns';
+export {
+  usePipelineServerStatus,
+  type PipelineServerStatus,
+} from './pipelines/usePipelineServerStatus';
 export { usePipelineRunQuery, usePipelineRunCacheActions } from './pipelines/usePipelineRunQuery';
 export { useCreatePipelineRunMutation } from './pipelines/useCreatePipelineRunMutation';
 export { useTerminatePipelineRunMutation } from './pipelines/useTerminatePipelineRunMutation';
@@ -34,6 +38,20 @@ export { useRetryPipelineRunMutation } from './pipelines/useRetryPipelineRunMuta
 export { useDeletePipelineRunMutation } from './pipelines/useDeletePipelineRunMutation';
 export { usePipelineServerReadinessQuery } from './pipelines/usePipelineServerReadinessQuery';
 export { useEnableManagedPipelinesMutation } from './pipelines/useEnableManagedPipelinesMutation';
+export {
+  componentIdToTaskId,
+  matchesComponentTaskName,
+  isKfpDriverTaskName,
+  findComponentTaskInRunDetails,
+  findComponentTasksInRunDetails,
+  findFirstFailedTaskKey,
+  findTaskDirPrefix,
+} from './pipelines/taskMatching';
+export {
+  useTaskExecutorError,
+  type UseTaskExecutorErrorOptions,
+  type TaskExecutorError,
+} from './pipelines/useTaskExecutorError';
 
 export {
   useS3FileFetchers,

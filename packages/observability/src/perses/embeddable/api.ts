@@ -6,5 +6,6 @@ export { default as PersesVariables } from './PersesVariables';
 export type { PersesVariablesProps } from './PersesVariables';
 export { default as PersesTimeControls } from './PersesTimeControls';
 export { usePersesDashboard } from './usePersesDashboard';
+export type { UsePersesDashboardOptions } from './usePersesDashboard';
 export type { PersesProviderProps } from './PersesProvider';
 export type { DashboardResource } from '@perses-dev/core';

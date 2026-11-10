@@ -3,6 +3,7 @@ import * as React from 'react';
 export type ModelsExpandContextValue = {
   modelsExpanded: boolean;
   showToggle: boolean;
+  modelCount: number;
   onToggle: () => void;
 };
 

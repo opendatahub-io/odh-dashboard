@@ -28,20 +28,11 @@ jest.mock('../components/ChatbotErrorAlert', () => ({
 
 jest.mock('../ChatbotMessagesMetrics', () => ({
   ChatbotMessagesMetrics: jest.fn(
-    ({
-      metrics,
-      isDisabled,
-      isExpanded,
-      onExpandedChange,
-      showToggle = true,
-      toggleId,
-      contentId,
-    }) =>
+    ({ metrics, isExpanded, onExpandedChange, showToggle = true, toggleId, contentId }) =>
       showToggle ? (
         <div data-testid="metrics">
           <button
             aria-controls={contentId}
-            disabled={isDisabled}
             id={toggleId}
             onClick={() => onExpandedChange?.(!isExpanded)}
           >
@@ -202,7 +193,7 @@ describe('ChatbotMessages', () => {
 
       expect(screen.getByTestId('tool-calls')).toBeInTheDocument();
       expect(screen.getByTestId('tool-calls')).toHaveAttribute('data-expanded', 'true');
-      expect(screen.getByRole('button', { name: 'Response metrics' })).toBeDisabled();
+      expect(screen.queryByTestId('metrics')).not.toBeInTheDocument();
     });
 
     it('should collapse tool calls while answer text is streaming', () => {
@@ -305,7 +296,7 @@ describe('ChatbotMessages', () => {
     });
   });
 
-  it('should render sent documents before the prompt and open the extracted text viewer', () => {
+  it('should render sent documents and audio before the prompt and open the extracted text viewer', () => {
     const attachment = {
       // eslint-disable-next-line camelcase -- matches the document-attachment API contract
       file_id: 'file-1',
@@ -324,6 +315,7 @@ describe('ChatbotMessages', () => {
             id: 'message-1',
             role: 'user',
             content: 'Summarize this policy',
+            extraContent: { beforeMainContent: <div data-testid="sent-audio-tile" /> },
             attachments: [{ id: attachment.file_id, name: attachment.filename }],
             documentAttachments: [attachment],
           },
@@ -338,12 +330,13 @@ describe('ChatbotMessages', () => {
     expect(sentAttachment).toHaveTextContent('PDF');
     const attachmentContainer = screen.getByTestId('before-main-content');
     expect(attachmentContainer).toContainElement(sentAttachment);
+    expect(attachmentContainer).toContainElement(screen.getByTestId('sent-audio-tile'));
     expect(attachmentContainer.compareDocumentPosition(screen.getByTestId('message-content'))).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
     fireEvent.click(screen.getByRole('button', { name: /policy\.pdf/i }));
 
-    expect(onViewDocument).toHaveBeenCalledWith(attachment);
+    expect(onViewDocument).toHaveBeenCalledWith(attachment, 1);
   });
 
   describe('Full Failure Error Pattern', () => {
@@ -638,6 +631,25 @@ describe('ChatbotMessages', () => {
 
       expect(screen.getByTestId('end-content')).toBeInTheDocument();
       expect(screen.getByTestId('metrics')).toBeInTheDocument();
+    });
+
+    it('should not render metrics or endContent while the response is still streaming', () => {
+      const messages: ChatbotMessageProps[] = [
+        {
+          id: 'msg-1',
+          role: 'bot',
+          content: 'Partial answer',
+          isTextStreaming: true,
+          isToolCallStreamComplete: false,
+          // eslint-disable-next-line camelcase
+          metrics: { latency_ms: 500 },
+        },
+      ];
+
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
+
+      expect(screen.queryByTestId('metrics')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('end-content')).not.toBeInTheDocument();
     });
 
     it('should not render extraContent when no metrics or errors', () => {

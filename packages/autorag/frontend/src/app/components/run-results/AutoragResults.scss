@@ -20,3 +20,9 @@
     background-color: var(--pf-t--global--background--color--primary--default);
   }
 }
+
+// The results page renders without an ApplicationsPage header; keep the standard
+// page-section block spacing under the breadcrumb without inline insets.
+.autorag-results {
+  margin-block-start: var(--pf-t--global--spacer--md);
+}

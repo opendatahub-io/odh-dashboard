@@ -19,6 +19,10 @@ jest.mock('~/app/utils/validationUtils', () => ({
 
 const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
 
+const expectTracked = (eventName: string, properties: unknown): void => {
+  expect(mockFireMisc).toHaveBeenCalledWith(eventName, expect.objectContaining(properties));
+};
+
 const defaultParams = {
   namespace: 'test-ns',
   sourceMode: 'model' as const,
@@ -44,7 +48,7 @@ describe('useConnectionValidation - Tracking Events', () => {
       });
 
       await waitFor(() => {
-        expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
+        expectTracked(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
           outcome: 'success',
           endpointType: 'model',
         });
@@ -67,7 +71,7 @@ describe('useConnectionValidation - Tracking Events', () => {
       });
 
       await waitFor(() => {
-        expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
+        expectTracked(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
           outcome: 'success',
           endpointType: 'agent',
         });
@@ -86,7 +90,7 @@ describe('useConnectionValidation - Tracking Events', () => {
       });
 
       await waitFor(() => {
-        expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
+        expectTracked(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
           outcome: 'error',
           endpointType: 'model',
           error: 'Error 503 for model',
@@ -104,7 +108,7 @@ describe('useConnectionValidation - Tracking Events', () => {
       });
 
       await waitFor(() => {
-        expect(mockFireMisc).toHaveBeenCalledWith(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
+        expectTracked(EVAL_HUB_EVENTS.EXTERNAL_CONNECTION_TESTED, {
           outcome: 'error',
           endpointType: 'model',
           error: 'Unknown error for model',

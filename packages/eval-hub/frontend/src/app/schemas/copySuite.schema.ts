@@ -1,6 +1,9 @@
 import * as z from 'zod';
-import { SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import { MODEL_EVALUATION_TARGETS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import { getBenchmarkParameterLabel } from '~/app/components/benchmarkUtils';
 import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
+import { refineTestDataRef, testDataRefFormSchema } from '~/app/schemas/testDataRef.schema';
+import { benchmarkRequiresTestData } from '~/app/utilities/testDataRefRequirements';
 
 export const copySuiteBenchmarkParameterTypeSchema = z.enum(['number', 'boolean', 'text']);
 export type CopySuiteBenchmarkParameterType = z.infer<typeof copySuiteBenchmarkParameterTypeSchema>;
@@ -28,6 +31,9 @@ export type CopySuiteBenchmarkParameter = z.infer<typeof copySuiteBenchmarkParam
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isMissingRequiredValue = (value: CopySuiteBenchmarkParameter['value']): boolean =>
+  value == null || (typeof value === 'string' && value.trim() === '');
 
 export const getAdditionalParametersError = (
   value: string | undefined,
@@ -70,6 +76,7 @@ export const copySuiteBenchmarkSchema = z
     additionalParameters: z.string().optional(),
     threshold: z.number().min(0),
     availableMetrics: z.array(z.string()),
+    testDataRef: testDataRefFormSchema,
   })
   .superRefine((benchmark, ctx) => {
     if (isPercentageMetric(benchmark.primaryMetric) && benchmark.threshold > 100) {
@@ -79,11 +86,17 @@ export const copySuiteBenchmarkSchema = z
         path: ['threshold'],
       });
     }
+    refineTestDataRef(
+      benchmark.testDataRef,
+      ctx,
+      ['testDataRef'],
+      benchmarkRequiresTestData(benchmark.providerId, benchmark.id),
+    );
   });
 
 export const copySuiteSchema = z
   .object({
-    suiteName: z.string().trim().min(1, 'Suite name is required'),
+    suiteName: z.string().trim().min(1, 'Collection name is required'),
     suiteDescription: z.string(),
     suiteDomains: z.array(z.string()),
     suiteTasks: z.array(z.string()),
@@ -109,6 +122,41 @@ export const copySuiteSchema = z
     });
   });
 
+export const SOURCE_COLLECTION_NAME_ERROR =
+  'Collection name must be different from the source collection name.';
+
+export const isSameAsSourceCollectionName = (
+  suiteName: string,
+  sourceCollectionName: string | undefined,
+): boolean =>
+  Boolean(sourceCollectionName?.trim()) && suiteName.trim() === sourceCollectionName?.trim();
+
+export const getCopySuiteSchema = (
+  sourceCollectionName?: string,
+  requiredParameterKeys: ReadonlySet<string> = new Set(),
+): typeof copySuiteSchema =>
+  copySuiteSchema.superRefine((data, ctx) => {
+    if (isSameAsSourceCollectionName(data.suiteName, sourceCollectionName)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: SOURCE_COLLECTION_NAME_ERROR,
+        path: ['suiteName'],
+      });
+    }
+
+    data.benchmarks.forEach((benchmark, benchmarkIndex) => {
+      benchmark.parameters.forEach((parameter, parameterIndex) => {
+        if (requiredParameterKeys.has(parameter.key) && isMissingRequiredValue(parameter.value)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `${getBenchmarkParameterLabel(parameter.key)} is required.`,
+            path: ['benchmarks', benchmarkIndex, 'parameters', parameterIndex, 'value'],
+          });
+        }
+      });
+    });
+  });
+
 export type CopySuiteFormValues = z.infer<typeof copySuiteSchema>;
 export type CopySuiteBenchmarkFormValues = z.infer<typeof copySuiteBenchmarkSchema>;
 
@@ -119,7 +167,9 @@ export const copySuiteDefaultValues: CopySuiteFormValues = {
   suiteTasks: [],
   suiteModalities: [],
   suiteIndustries: [],
-  suiteEvaluates: [],
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // suiteEvaluates: [],
+  suiteEvaluates: [...MODEL_EVALUATION_TARGETS],
   suiteThreshold: 70,
   benchmarks: [],
 };

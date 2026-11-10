@@ -1,8 +1,13 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import type { DashboardConfigKind, DataScienceClusterKindStatus } from '@odh-dashboard/k8s-core';
+import type {
+  DashboardConfigKind,
+  DataScienceClusterKindStatus,
+  ManagementState,
+  OperatorSubscriptionStatus,
+} from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { FetchState } from '@odh-dashboard/ui-core/hooks/useFetchState';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
@@ -10,7 +15,7 @@ import { ClusterState, UserState } from '#~/redux/selectors/types';
 import { useUser, useClusterInfo } from '#~/redux/selectors';
 import { useAppContext } from '#~/app/AppContext';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
-import { BuildStatus, SubscriptionStatusData } from '#~/types';
+import { BuildStatus } from '#~/types';
 import { StorageClassKind } from '#~/k8sTypes';
 import AboutDialog from '#~/app/AboutDialog';
 import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
@@ -56,8 +61,8 @@ describe('AboutDialog', () => {
   const clusterInfo: ClusterState = { serverURL: 'https://test-server.com' };
   let dscStatus: DataScienceClusterKindStatus;
   let dscFetchStatus: FetchState<DataScienceClusterKindStatus>;
-  let operatorSubscriptionStatus: SubscriptionStatusData;
-  let operatorSubscriptionFetchStatus: FetchState<SubscriptionStatusData>;
+  let operatorSubscriptionStatus: OperatorSubscriptionStatus;
+  let operatorSubscriptionFetchStatus: FetchState<OperatorSubscriptionStatus>;
 
   beforeEach(() => {
     dashboardConfig = mockDashboardConfig({});
@@ -194,5 +199,71 @@ describe('AboutDialog', () => {
       (row) => row.textContent.includes('KServe') && row.textContent.includes('1.12.0'),
     );
     expect(hasComponentReleasesMetadata).toBe(true);
+  });
+
+  it.each<{ featureStore: ManagementState; dataRegistry: ManagementState }>([
+    { featureStore: 'Managed', dataRegistry: 'Removed' },
+    { featureStore: 'Removed', dataRegistry: 'Managed' },
+    { featureStore: 'Removed', dataRegistry: 'Removed' },
+    { featureStore: 'Managed', dataRegistry: 'Managed' },
+  ])(
+    'should show independent data components and the shared Feast release: Feature Store $featureStore / Data Registry $dataRegistry',
+    ({ featureStore, dataRegistry }) => {
+      const sharedDataManaged = featureStore === 'Managed' || dataRegistry === 'Managed';
+      dscStatus.components = {
+        ...dscStatus.components,
+        [DataScienceStackComponent.FEAST_OPERATOR]: {
+          managementState: sharedDataManaged ? 'Managed' : 'Removed',
+          releases: [
+            { name: 'Feast', version: '0.64.0', repoUrl: 'https://github.com/feast-dev/feast' },
+          ],
+        },
+        [DataScienceStackComponent.FEATURE_STORE]: { managementState: featureStore },
+        [DataScienceStackComponent.DATA_REGISTRY]: { managementState: dataRegistry },
+      };
+      useAppContextMock.mockReturnValue(appContext);
+      useUserMock.mockReturnValue(userInfo);
+      useClusterInfoMock.mockReturnValue(clusterInfo);
+      useFetchDscStatusMock.mockReturnValue(dscFetchStatus);
+      useWatchOperatorSubscriptionStatusMock.mockReturnValue(operatorSubscriptionFetchStatus);
+
+      render(<AboutDialog onClose={jest.fn()} />);
+
+      const table = within(screen.getByTestId('component-releases-table'));
+      expect(table.queryAllByRole('cell', { name: 'Feature Store' })).toHaveLength(
+        featureStore === 'Managed' ? 1 : 0,
+      );
+      expect(table.queryAllByRole('cell', { name: 'Data Registry' })).toHaveLength(
+        dataRegistry === 'Managed' ? 1 : 0,
+      );
+      expect(table.queryAllByRole('cell', { name: 'Feast operator' })).toHaveLength(
+        sharedDataManaged ? 1 : 0,
+      );
+      expect(table.queryAllByRole('link', { name: 'Feast' })).toHaveLength(
+        sharedDataManaged ? 1 : 0,
+      );
+      expect(table.queryAllByRole('cell', { name: '0.64.0' })).toHaveLength(
+        sharedDataManaged ? 1 : 0,
+      );
+    },
+  );
+
+  it('should show subscription request failures', () => {
+    const subscriptionError = new Error('subscription status unavailable');
+    useAppContextMock.mockReturnValue(appContext);
+    useUserMock.mockReturnValue(userInfo);
+    useClusterInfoMock.mockReturnValue(clusterInfo);
+    useFetchDscStatusMock.mockReturnValue(dscFetchStatus);
+    useWatchOperatorSubscriptionStatusMock.mockReturnValue([
+      operatorSubscriptionStatus,
+      false,
+      subscriptionError,
+      () => Promise.resolve(operatorSubscriptionStatus),
+    ]);
+
+    render(<AboutDialog onClose={jest.fn()} />);
+
+    expect(screen.getByText('Problem loading product information')).toBeInTheDocument();
+    expect(screen.getByText('subscription status unavailable')).toBeInTheDocument();
   });
 });

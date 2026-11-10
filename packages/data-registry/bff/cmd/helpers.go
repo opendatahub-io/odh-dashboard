@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log/slog"
 	"os"
@@ -33,6 +34,21 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 	return defaultVal
 }
 
+func registerDevModeFlag(flagSet *flag.FlagSet, devMode *bool) {
+	flagSet.BoolVar(devMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
+}
+
+func validateBFFTransportTLSConfig(devMode, allowInsecureHTTP, dchEnabled, dchTLSEnabled bool) error {
+	if allowInsecureHTTP && !devMode {
+		return fmt.Errorf("BFF_CLIENTS_ALLOW_INSECURE_HTTP is only permitted when DEV_MODE=true")
+	}
+	if dchEnabled && !dchTLSEnabled && !devMode {
+		return fmt.Errorf("BFF_DCH_TLS_ENABLED=false is only permitted when DEV_MODE=true")
+	}
+
+	return nil
+}
+
 func parseLevel(s string) slog.Level {
 	var level slog.Level
 	err := level.UnmarshalText([]byte(s))
@@ -43,14 +59,23 @@ func parseLevel(s string) slog.Level {
 }
 
 func newOriginParser(allowList *[]string, defaultVal string) func(s string) error {
-	return func(s string) error {
-		value := defaultVal
+	if defaultVal != "" {
+		for _, str := range strings.Split(defaultVal, ",") {
+			*allowList = append(*allowList, strings.TrimSpace(str))
+		}
+	}
 
-		if s != "" {
-			value = s
+	flagInitialized := false
+	return func(s string) error {
+		// The default was applied when the parser was created so env values work even
+		// when the flag is omitted. If the flag is supplied, replace that default,
+		// including when the explicit value is empty.
+		if !flagInitialized {
+			*allowList = nil
+			flagInitialized = true
 		}
 
-		if value == "" {
+		if s == "" {
 			return nil
 		}
 

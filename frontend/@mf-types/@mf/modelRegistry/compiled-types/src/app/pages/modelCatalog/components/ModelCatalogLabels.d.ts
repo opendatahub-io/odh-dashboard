@@ -1,6 +1,7 @@
 import * as React from 'react';
 type ModelCatalogLabelsProps = {
     tasks?: string[];
+    validatedTasks?: string[];
     provider?: string;
     labels?: string[];
     numLabels: number;

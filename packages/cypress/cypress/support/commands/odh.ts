@@ -40,6 +40,7 @@ import type {
   RegisteredModelList,
 } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import type {
+  AIHubNamespaceResponse,
   ConfigMapKind,
   ConnectionTypeConfigMap,
   DashboardConfigKind,
@@ -47,6 +48,7 @@ import type {
   DataScienceClusterKindStatus,
   NotebookKind,
   OdhApplication,
+  OperatorSubscriptionStatus,
   RoleBindingKind,
   SecretKind,
   TemplateKind,
@@ -72,7 +74,6 @@ import type {
   OdhDocument,
   PrometheusQueryResponse,
   ResponseStatus,
-  SubscriptionStatusData,
 } from '@odh-dashboard/internal/types';
 import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import type { PrometheusQueryRangeResponse } from '@odh-dashboard/ui-core/types/metrics';
@@ -273,12 +274,16 @@ declare global {
           response: OdhResponse<DataScienceClusterKindStatus>,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'GET /api/aihub',
+          response: OdhResponse<AIHubNamespaceResponse | null>,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/status',
           response: OdhResponse<StatusResponse>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/operator-subscription-status',
-          response: OdhResponse<SubscriptionStatusData>,
+          response: OdhResponse<OperatorSubscriptionStatus>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/status/openshift-ai-notebooks/allowedUsers',
@@ -1148,6 +1153,10 @@ declare global {
           response: { data: OdhResponse<APIKeyListResponse> },
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'POST /maas/api/v1/api-keys/search/tenant',
+          response: { data: OdhResponse<APIKeyListResponse> },
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'POST /maas/api/v1/api-keys/bulk-revoke',
           response: { data: OdhResponse<BulkRevokeResponse> },
         ) => Cypress.Chainable<null>) &
@@ -1165,12 +1174,16 @@ declare global {
           response: OdhResponse<{ data: APIKeyConfig }>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /maas/api/v1/is-maas-admin',
-          response: OdhResponse<{ data: { allowed: boolean } }>,
+          type: 'GET /maas/api/v1/whoami',
+          response: OdhResponse<{ data: { sub: string; isAdmin: boolean } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/user',
           response: OdhResponse<{ data: { userId: string; clusterAdmin: boolean } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/is-maas-admin',
+          response: OdhResponse<{ data: { allowed: boolean } }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /maas/api/v1/namespaces',
@@ -1303,6 +1316,31 @@ declare global {
           type: 'GET /maas/api/v1/subscriptions/:id',
           options: { path: { id: string } },
           response: OdhResponse<{ data: UserSubscription }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/gateway-url',
+          response: OdhResponse<{ data: { url: string } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/models',
+          response: OdhResponse<{
+            data: {
+              object: string;
+              data: Array<{
+                id: string;
+                object: string;
+                created: number;
+                owned_by: string;
+                ready: boolean;
+                url?: string;
+                subscriptions?: Array<{
+                  name: string;
+                  displayName?: string;
+                  description?: string;
+                }>;
+              }>;
+            };
+          }>,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PUT /api/mlflow-global-namespace',

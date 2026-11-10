@@ -21,7 +21,7 @@ import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormVal
 import { APIOptions } from 'mod-arch-core';
 import { z } from 'zod';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
@@ -277,7 +277,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({
           <>
             <MaasModelsSection
               modelRefSummaries={selectedModels}
-              hideColumns={['tokenLimits']}
+              hideColumns={['tokenLimits', 'status']}
               editable
               onAddModels={() => setIsAddModelsModalOpen(true)}
               onRemoveModel={(index) => {

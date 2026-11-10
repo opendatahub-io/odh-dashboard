@@ -1,26 +1,37 @@
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { MetricsTabKeys } from './types';
+import { useIsNIMModel } from './useIsNIMModel';
+import type { InferenceServiceKind } from '../../shared';
 
-const useMetricsPageEnabledTabs = (): MetricsTabKeys[] => {
-  const enabledTabs: MetricsTabKeys[] = [];
-  //check availability of Bias metrics
+type MetricsPageEnabledTabs = {
+  enabledTabs: MetricsTabKeys[];
+  /** Known tabs remain usable while loading. */
+  loading: boolean;
+  error?: Error;
+};
+
+const useMetricsPageEnabledTabs = (model: InferenceServiceKind): MetricsPageEnabledTabs => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
-  //check availability of Performance metrics
   const performanceMetricsAreaAvailable = useIsAreaAvailable(
     SupportedArea.PERFORMANCE_METRICS,
   ).status;
-  //check availability of NIM metrics
-  const nimMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
+  const kserveMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+  const { isNIMModel, loading, error } = useIsNIMModel(model);
+  const enabledTabs: MetricsTabKeys[] = [];
   if (performanceMetricsAreaAvailable) {
     enabledTabs.push(MetricsTabKeys.PERFORMANCE);
   }
   if (biasMetricsAreaAvailable) {
     enabledTabs.push(MetricsTabKeys.BIAS);
   }
-  if (nimMetricsAreaAvailable) {
+  if (kserveMetricsAreaAvailable && isNIMModel) {
     enabledTabs.push(MetricsTabKeys.NIM);
   }
-  return enabledTabs;
+  return {
+    enabledTabs,
+    loading: kserveMetricsAreaAvailable && loading,
+    error: kserveMetricsAreaAvailable ? error : undefined,
+  };
 };
 
 export default useMetricsPageEnabledTabs;

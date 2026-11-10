@@ -17,11 +17,10 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
 }));
 
 // Mock Kueue status - not under test here, exercised by useKueueStatusForDeployments.spec.ts
-jest.mock('@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions', () => ({
+jest.mock('@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions', () => ({
   useKueueStatusWithQueuePositions: jest.fn(() => ({
     kueueStatusByDeploymentKey: {},
     isLoading: false,
-    error: null,
   })),
 }));
 
@@ -29,7 +28,7 @@ const mockUseWatchInferenceServices = watchModule.useWatchInferenceServices as j
 const mockUseWatchServingRuntimes = watchModule.useWatchServingRuntimes as jest.Mock;
 const mockUseWatchDeploymentPods = watchModule.useWatchDeploymentPods as jest.Mock;
 const mockUseKueueStatusWithQueuePositions = jest.requireMock(
-  '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions',
+  '@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions',
 ).useKueueStatusWithQueuePositions as jest.Mock;
 
 // Type helper for hook return value
@@ -118,6 +117,22 @@ describe('useWatchDeployments', () => {
     expect(deployments).toHaveLength(0);
     expect(loaded).toBe(true);
     expect(error).toHaveLength(0);
+    expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, undefined, false);
+    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, undefined, false);
+  });
+
+  it('should skip secondary resource watches when no inference services are returned', () => {
+    mockUseWatchInferenceServices.mockReturnValue([[], true, undefined]);
+
+    const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+    const [deployments, loaded, error] = renderResult.result.current as DeploymentHookResult;
+
+    expect(deployments).toHaveLength(0);
+    expect(loaded).toBe(true);
+    expect(error).toHaveLength(0);
+    expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, undefined, false);
+    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, undefined, false);
   });
 
   it('should match serving runtimes to inference services', () => {
@@ -195,19 +210,18 @@ describe('useWatchDeployments', () => {
     expect(errors).toContain(mockError);
   });
 
-  it('should surface Kueue watch errors (e.g. 403 for missing RBAC) instead of silently dropping them', () => {
+  it('should keep deployments available without optional Kueue enrichment', () => {
     mockUseKueueStatusWithQueuePositions.mockReturnValue({
       kueueStatusByDeploymentKey: {},
       isLoading: false,
-      error: 'Forbidden',
     });
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 
-    const [, , errors] = renderResult.result.current as DeploymentHookResult;
-
-    expect(errors).toHaveLength(1);
-    expect(errors?.[0].message).toBe('Forbidden');
+    const [deployments, loaded, errors] = renderResult.result.current as DeploymentHookResult;
+    expect(deployments).toHaveLength(3);
+    expect(loaded).toBe(true);
+    expect(errors).toHaveLength(0);
   });
 
   it('should update deployments when filterFn changes', () => {
@@ -267,7 +281,6 @@ describe('useWatchDeployments', () => {
     mockUseKueueStatusWithQueuePositions.mockReturnValue({
       kueueStatusByDeploymentKey: {},
       isLoading: false,
-      error: null,
     });
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
@@ -318,8 +331,14 @@ describe('useWatchDeployments', () => {
     testHook(useWatchDeployments)(mockProject, undefined, undefined, opts);
 
     expect(mockUseWatchInferenceServices).toHaveBeenCalledWith(mockProject, undefined, opts);
-    expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, opts);
-    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, opts);
+    expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, opts, true);
+    expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, opts, true);
+    expect(mockUseKueueStatusWithQueuePositions).toHaveBeenCalledWith(
+      mockInferenceServices,
+      mockProject,
+      [],
+      opts,
+    );
   });
 
   it('should handle complex filterFn logic', () => {

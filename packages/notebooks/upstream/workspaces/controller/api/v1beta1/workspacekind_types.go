@@ -238,6 +238,10 @@ type WorkspaceKindPodTemplate struct {
 	// +kubebuilder:validation:Optional
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
+	// metadata for the Workspace StatefulSet (MUTABLE)
+	// +kubebuilder:validation:Optional
+	StatefulSetMetadata *WorkspaceKindStatefulSetMetadata `json:"statefulSetMetadata,omitempty"`
+
 	// service account configs for Workspace Pods
 	//  - each Workspace runs as its own ServiceAccount, which is created and owned by
 	//    the controller and named "ws-{WORKSPACE_NAME}"
@@ -295,6 +299,17 @@ type WorkspaceKindPodTemplate struct {
 	// +kubebuilder:validation:Optional
 	ContainerSecurityContext *v1.SecurityContext `json:"containerSecurityContext,omitempty"`
 
+	// the name of the scheduler to use for Workspace Pods (MUTABLE)
+	//  - this is the default for all Workspaces of this WorkspaceKind, it may be
+	//    overridden by the `schedulerName` of a pod config value
+	//  - if not set here, or on the pod config value, the Kubernetes API server
+	//    will default to the "default-scheduler"
+	//  - no character/length validation, matching Kubernetes which applies none
+	//    to PodSpec.SchedulerName; an empty value means the default scheduler
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example="default-scheduler"
+	SchedulerName *string `json:"schedulerName,omitempty"`
+
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
 	Options WorkspaceKindPodOptions `json:"options"`
 }
@@ -321,12 +336,24 @@ type WorkspaceKindPort struct {
 	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 }
 
+// WorkspaceKindPodMetadata defines labels and annotations applied to the Workspace Pod.
 type WorkspaceKindPodMetadata struct {
 	// labels to be applied to the Pod resource
 	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Pod resource
+	// +kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// WorkspaceKindStatefulSetMetadata defines labels and annotations applied to the Workspace StatefulSet.
+type WorkspaceKindStatefulSetMetadata struct {
+	// labels to be applied to the Workspace StatefulSet resource
+	// +kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// annotations to be applied to the Workspace StatefulSet resource
 	// +kubebuilder:validation:Optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
@@ -428,7 +455,7 @@ type ActivityProbePodExec struct {
 	//    precedence and `last_activity` is totally ignored (the probe does not fail).
 	//    The fields are evaluated to update the Workspace status field `status.activity.lastActivity` as follows:
 	//      - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
-	//      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`).
+	//      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`). If `status.activity.lastActivity` was not previously set (0), it is initialized to `status.lastRunningTime` to treat the Workspace as inactive since startup.
 	//      - If `last_activity` (ISO 8601 string) is provided (and `has_activity` is omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=2048
@@ -549,7 +576,7 @@ type ImageConfigValue struct {
 type ImageConfigSpec struct {
 	// the container image to use
 	// +kubebuilder:validation:MinLength:=2
-	// +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0"
+	// +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1"
 	Image string `json:"image"`
 
 	// the pull policy for the container image
@@ -638,6 +665,16 @@ type PodConfigSpec struct {
 	// resource configs for the "main" container in the pod
 	// +kubebuilder:validation:Optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+
+	// the name of the scheduler to use for the pod
+	//  - this takes precedence over the `schedulerName` of the pod template
+	//  - set this to "default-scheduler" to have this pod config use the
+	//    default Kubernetes scheduler, even if the pod template sets another one
+	//  - no character/length validation, matching Kubernetes which applies none
+	//    to PodSpec.SchedulerName; an empty value means the default scheduler
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example="volcano"
+	SchedulerName *string `json:"schedulerName,omitempty"`
 }
 
 type OptionsSpawnerConfig struct {

@@ -1,15 +1,15 @@
 import { APIKey, APIKeyDisplayStatus, SubscriptionDetail } from '~/app/types/api-key';
+import type { UserSubscription } from '~/app/types/subscriptions';
 
 /**
  * Determines whether an API key should be displayed as "inactive".
  *
  * A key is inactive when it has `active` status on the server but its
- * subscription no longer appears in the enrichment map returned alongside the
- * key list — meaning the subscription was deleted or is otherwise unavailable.
+ * subscription no longer appears in the BFF search `subscriptionDetails` map —
+ * meaning the subscription was deleted or is otherwise unavailable.
  *
- * When `subscriptionDetails` is `undefined` (enrichment was not returned at
- * all, e.g. due to a transient fetch failure), no key is classified as
- * inactive so we avoid false positives.
+ * When `subscriptionDetails` is `undefined` (enrichment skipped / failed),
+ * no key is classified as inactive so we avoid false positives.
  */
 export const isKeyInactive = (
   key: APIKey,
@@ -19,6 +19,20 @@ export const isKeyInactive = (
   !!key.subscription &&
   subscriptionDetails != null &&
   !(key.subscription in subscriptionDetails);
+
+/** Build a map from MaaS API "my subscriptions" (used for My Subscriptions link gating). */
+export const subscriptionDetailsFromUserSubscriptions = (
+  subscriptions: UserSubscription[],
+): Record<string, SubscriptionDetail> => {
+  const details: Record<string, SubscriptionDetail> = {};
+  for (const sub of subscriptions) {
+    details[sub.subscription_id_header] = {
+      displayName: sub.display_name ?? sub.subscription_id_header,
+      models: sub.model_refs.map((ref) => ref.display_name || ref.name),
+    };
+  }
+  return details;
+};
 
 export type InactiveFilterResult = {
   data: APIKey[];

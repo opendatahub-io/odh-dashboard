@@ -7,6 +7,7 @@ stringData:
   AWS_ACCESS_KEY_ID: ${awsAccessKey}
   AWS_SECRET_ACCESS_KEY: ${awsSecretKey}
   AWS_DEFAULT_REGION: ${awsDefaultRegion}
+  ${s3EndpointEnv}
 ---
 kind: Secret
 apiVersion: v1

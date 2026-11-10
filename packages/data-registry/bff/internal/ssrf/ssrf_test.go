@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func testLogger() *slog.Logger {
@@ -180,5 +181,47 @@ func TestSafeDialContext_UnresolvableHost(t *testing.T) {
 	_, err := dial(context.Background(), "tcp", "this-hostname-does-not-exist-12345.invalid:443")
 	if err == nil {
 		t.Fatal("expected error for unresolvable host, got nil")
+	}
+}
+
+func TestDialResolvedIPsSkipsIncompatibleFamilyAndFallsBack(t *testing.T) {
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Listen() error = %v", err)
+	}
+	defer listener.Close()
+	_, port, err := net.SplitHostPort(listener.Addr().String())
+	if err != nil {
+		t.Fatalf("SplitHostPort() error = %v", err)
+	}
+
+	accepted := make(chan error, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if conn != nil {
+			_ = conn.Close()
+		}
+		accepted <- err
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	ips := []net.IPAddr{
+		{IP: net.ParseIP("::1")},
+		{IP: net.ParseIP("127.0.0.1")},
+	}
+	conn, err := dialResolvedIPs(ctx, "tcp4", "example.test", port, ips, true)
+	if err != nil {
+		t.Fatalf("dialResolvedIPs() error = %v", err)
+	}
+	_ = conn.Close()
+
+	select {
+	case err := <-accepted:
+		if err != nil {
+			t.Fatalf("Accept() error = %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for the IPv4 fallback connection")
 	}
 }

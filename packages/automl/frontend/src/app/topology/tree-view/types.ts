@@ -15,6 +15,8 @@ export type PipelineVisualizationData = {
   winnerModelLabel?: string;
   /** Nodes from buildStageMapTopology — tree renders these 1:1 when present. */
   stageMapNodes?: PipelineNodeModelExpanded[];
+  /** Leaderboard ranks keyed by model name/key. */
+  modelRanks?: Record<string, number>;
 };
 
 // Output types for the topology

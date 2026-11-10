@@ -1,0 +1,478 @@
+import { PluginStore } from '@odh-dashboard/plugin-core';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import {
+  SUPPRESS_EXTENSION_TYPE,
+  PATCH_EXTENSION_TYPE,
+} from '@odh-dashboard/plugin-core/extension-points';
+import localExtensions from '../extensions';
+
+// Package extension modules use package-local `~/` imports that Jest/tsc cannot
+// resolve from this distribution. Fixtures mirror the (type, id) contract.
+const mockGenAiExtensions: Extension[] = [
+  {
+    type: 'app.navigation/section',
+    flags: { required: ['plugin-gen-ai'] },
+    properties: {
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      group: '4_gen_ai_studio',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['chatPlayground'] },
+    properties: {
+      id: 'chat-playground',
+      title: 'Playground',
+      href: '/gen-ai-studio/playground',
+      path: '/gen-ai-studio/playground/*',
+      section: 'gen-ai-studio',
+      label: 'Tech Preview',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['plugin-gen-ai'] },
+    properties: {
+      id: 'ai-assets',
+      title: 'AI asset endpoints',
+      href: '/gen-ai-studio/assets',
+      path: '/gen-ai-studio/assets/*',
+      section: 'gen-ai-studio',
+      label: 'Tech Preview',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: { required: ['plugin-gen-ai'] },
+    properties: {
+      path: '/gen-ai-studio/*',
+      component: jest.fn(),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: { required: ['plugin-gen-ai'] },
+    properties: {
+      id: 'models',
+      title: 'Models',
+      component: jest.fn(),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: { required: ['plugin-gen-ai'] },
+    properties: {
+      id: 'mcpservers',
+      title: 'MCP servers',
+      component: jest.fn(),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: { required: ['plugin-gen-ai', 'externalVectorStores'] },
+    properties: {
+      id: 'vectorstores',
+      title: 'Vector stores',
+      component: jest.fn(),
+    },
+  },
+  {
+    type: 'gen-ai.ai-assets/tab',
+    flags: { required: ['plugin-gen-ai', 'agentConfigManagement'] },
+    properties: {
+      id: 'agentprofile',
+      title: 'Agents',
+      component: jest.fn(),
+    },
+  },
+];
+
+const mockMaasExtensions: Extension[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: 'modelAsService',
+      featureFlags: ['modelAsService'],
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['modelAsService', 'ADMIN_USER'] },
+    properties: {
+      id: 'maas-governance-view',
+      title: 'MaaS governance',
+      href: '/maas/maas-governance',
+      section: 'settings',
+      path: '/maas/maas-governance/*',
+    },
+  },
+  {
+    type: 'app.navigation/section',
+    flags: { required: ['modelAsService'] },
+    properties: {
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      group: '4_gen_ai_studio',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['modelAsService'], disallowed: ['mySubscriptions'] },
+    properties: {
+      id: 'maas-tokens-view',
+      title: 'API keys',
+      href: '/maas/tokens',
+      section: 'gen-ai-studio',
+      path: '/maas/tokens/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: { required: ['modelAsService'] },
+    properties: {
+      id: 'maas-tokens-subscriptions-view',
+      title: 'API keys',
+      href: '/maas/keys-and-subs',
+      section: 'gen-ai-studio',
+      path: '/maas/keys-and-subs/*',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: { required: ['modelAsService'] },
+    properties: {
+      path: '/maas/keys-and-subs/*',
+      component: jest.fn(),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: { required: ['modelAsService', 'ADMIN_USER'] },
+    properties: {
+      path: '/maas/maas-governance/*',
+      component: jest.fn(),
+    },
+  },
+];
+
+const buildCatalog = (): Record<string, Extension[]> => ({
+  '@odh-dashboard/maas': mockMaasExtensions,
+  '@odh-dashboard/gen-ai': mockGenAiExtensions,
+  'maas-portal': localExtensions,
+});
+
+describe('MaaS Portal extensions', () => {
+  let warnSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  const enablePortalFlags = (store: PluginStore): void => {
+    store.setFeatureFlags({
+      modelAsService: true,
+      mySubscriptions: true,
+      genAiStudio: true,
+      'plugin-gen-ai': true,
+      chatPlayground: true,
+      externalVectorStores: true,
+      agentConfigManagement: true,
+      observabilityDashboard: true,
+    });
+  };
+
+  it('should suppress AI assets and expose the Models page by default', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    const extensions = store.getExtensions();
+    expect(
+      extensions.filter((e) => e.type === 'app.navigation/href' && e.properties.id === 'ai-assets'),
+    ).toHaveLength(0);
+    expect(
+      extensions.filter(
+        (e) => e.type === 'app.navigation/href' && e.properties.id === 'maas-models',
+      ),
+    ).toHaveLength(1);
+    expect(
+      extensions.filter((e) => e.type === 'app.route' && e.properties.path === '/maas/models/*'),
+    ).toHaveLength(1);
+  });
+
+  it('should preserve the Gen AI feature gate for AAE navigation', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ 'plugin-gen-ai': false });
+
+    expect(
+      store
+        .getExtensions()
+        .filter((e) => e.type === 'app.navigation/href' && e.properties.id === 'ai-assets'),
+    ).toHaveLength(0);
+  });
+
+  it('should suppress only the MCP servers AI asset tab', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const aiAssetTabs = store
+      .getExtensions()
+      .filter((e) => e.type === 'gen-ai.ai-assets/tab')
+      .map((e) => e.properties.id);
+
+    expect(aiAssetTabs).toEqual(['models', 'vectorstores', 'agentprofile']);
+    expect(aiAssetTabs).not.toContain('mcpservers');
+  });
+
+  it('should produce no orphaned nav items under suppressed or absent sections', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const exts = store.getExtensions();
+
+    const sectionIds = new Set(
+      exts.filter((e) => e.type === 'app.navigation/section').map((e) => e.properties.id as string),
+    );
+
+    const orphaned = exts.filter((e) => {
+      const { section } = e.properties;
+      return typeof section === 'string' && !sectionIds.has(section);
+    });
+
+    expect(orphaned).toHaveLength(0);
+  });
+
+  it('should place API keys at the top level', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const exts = store.getExtensions();
+
+    const aiAssets = exts.find(
+      (e) => e.type === 'app.navigation/href' && e.properties.id === 'ai-assets',
+    );
+    const apiKeys = exts.find(
+      (e) =>
+        e.type === 'app.navigation/href' && e.properties.id === 'maas-tokens-subscriptions-view',
+    );
+
+    expect(aiAssets).toBeUndefined();
+
+    expect(apiKeys).toBeDefined();
+    expect(apiKeys?.properties.section).toBeUndefined();
+    expect(apiKeys?.properties.group).toBe('2_api_keys');
+    expect(apiKeys?.properties.title).toBe('API keys');
+
+    expect(apiKeys?.properties.title).toBe('API keys');
+  });
+
+  it('should suppress the Playground navigation item in the MaaS Portal', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    expect(
+      store
+        .getExtensions()
+        .some((e) => e.type === 'app.navigation/href' && e.properties.id === 'chat-playground'),
+    ).toBe(false);
+  });
+
+  it('should suppress the legacy MaaS governance navigation item but retain its admin route', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: true });
+
+    const governanceNavigation = store
+      .getExtensions()
+      .find((e) => e.type === 'app.navigation/href' && e.properties.id === 'maas-governance-view');
+    const governanceRoute = store
+      .getExtensions()
+      .find((e) => e.type === 'app.route' && e.properties.path === '/maas/maas-governance/*');
+
+    expect(governanceNavigation).toBeUndefined();
+    expect(governanceRoute).toBeDefined();
+  });
+
+  it('should expose the read-only Model Access page route to MaaS admins', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: false, MAAS_MODEL_ACCESS_ADMIN: true });
+
+    const modelAccessRoute = store
+      .getExtensions()
+      .find((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*');
+
+    expect(modelAccessRoute).toBeDefined();
+  });
+
+  it('should hide the read-only Model Access page route from non-admins', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: false });
+
+    expect(
+      store
+        .getExtensions()
+        .some((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*'),
+    ).toBe(false);
+  });
+
+  it('should keep the read-only Model Access page route available to admins', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
+
+    const modelAccessRoutes = store
+      .getExtensions()
+      .filter((e) => e.type === 'app.route' && e.properties.path === '/maas/model-access/*');
+
+    expect(modelAccessRoutes).toHaveLength(1);
+  });
+
+  it('should select the portal Model Access navigation item for the read-only route', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
+
+    const portalModelAccessNavigation = store
+      .getExtensions()
+      .find(
+        (e) => e.type === 'app.navigation/href' && e.properties.id === 'maas-model-access-portal',
+      );
+
+    expect(portalModelAccessNavigation?.properties.href).toBe('/maas/model-access');
+    expect(portalModelAccessNavigation?.properties.path).toBe('/maas/model-access/*');
+  });
+
+  it('should not expose legacy MaaS governance in the top-level navigation', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: true });
+
+    const navigation = store
+      .getExtensions()
+      .filter((e) => e.type === 'app.navigation/href' && e.properties.section === undefined)
+      .toSorted((a, b) =>
+        String(a.properties.group ?? '5_default').localeCompare(
+          String(b.properties.group ?? '5_default'),
+        ),
+      )
+      .map((e) => e.properties.id);
+
+    expect(navigation).not.toContain('maas-governance-view');
+  });
+
+  it('should hide the MaaS governance navigation item and route when MaaS admin access is absent', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+    store.setFeatureFlags({ ADMIN_USER: false });
+
+    const governanceExtensions = store
+      .getExtensions()
+      .filter(
+        (e) =>
+          (e.type === 'app.navigation/href' && e.properties.id === 'maas-governance-view') ||
+          (e.type === 'app.route' && e.properties.path === '/maas/maas-governance/*'),
+      );
+
+    expect(governanceExtensions).toHaveLength(0);
+  });
+
+  it('should show Model Access navigation and route only for whoami administrators', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const modelAccessExtensions = (): Extension[] =>
+      store
+        .getExtensions()
+        .filter(
+          (extension) =>
+            extension.type === 'app.navigation/href' &&
+            extension.properties.id === 'maas-model-access-portal',
+        );
+
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: false });
+    expect(modelAccessExtensions()).toHaveLength(0);
+
+    store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
+    expect(modelAccessExtensions()).toHaveLength(1);
+
+    expect(
+      store
+        .getExtensions()
+        .some(
+          (extension) =>
+            extension.type === 'app.navigation/href' &&
+            extension.properties.id === 'maas-model-access-portal',
+        ),
+    ).toBe(true);
+  });
+
+  it('should not contain the gen-ai-studio section', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const exts = store.getExtensions();
+
+    const genAiSection = exts.find(
+      (e) => e.type === 'app.navigation/section' && e.properties.id === 'gen-ai-studio',
+    );
+
+    expect(genAiSection).toBeUndefined();
+  });
+
+  it('should fail if a future upstream nav item references a suppressed section', () => {
+    const futureExtensions: Extension[] = [
+      ...mockGenAiExtensions,
+      {
+        type: 'app.navigation/href',
+        flags: { required: ['plugin-gen-ai'] },
+        properties: {
+          id: 'future-item',
+          title: 'Future Feature',
+          href: '/gen-ai-studio/future',
+          section: 'gen-ai-studio',
+        },
+      },
+    ];
+
+    const catalog: Record<string, Extension[]> = {
+      '@odh-dashboard/maas': mockMaasExtensions,
+      '@odh-dashboard/gen-ai': futureExtensions,
+      'maas-portal': localExtensions,
+    };
+
+    const store = new PluginStore(catalog);
+    enablePortalFlags(store);
+
+    const exts = store.getExtensions();
+
+    const sectionIds = new Set(
+      exts.filter((e) => e.type === 'app.navigation/section').map((e) => e.properties.id as string),
+    );
+
+    const orphaned = exts.filter((e) => {
+      const { section } = e.properties;
+      return typeof section === 'string' && !sectionIds.has(section);
+    });
+
+    // This test documents expected behavior: the future item IS orphaned
+    // because gen-ai-studio section is suppressed. The MaaS distribution
+    // maintainer must suppress, patch, or reassign this item.
+    expect(orphaned.length).toBeGreaterThan(0);
+    expect(orphaned[0].properties.id).toBe('future-item');
+  });
+
+  it('should not include suppress or patch extensions in visible output', () => {
+    const store = new PluginStore(buildCatalog());
+    enablePortalFlags(store);
+
+    const exts = store.getExtensions();
+    expect(exts.filter((e) => e.type === SUPPRESS_EXTENSION_TYPE)).toHaveLength(0);
+    expect(exts.filter((e) => e.type === PATCH_EXTENSION_TYPE)).toHaveLength(0);
+  });
+});

@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
@@ -16,10 +17,13 @@ const setupAdminMocks = (configOverrides: Partial<DashboardCommonConfig> = {}) =
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: 'odh-model-registries',
         },
       },
     }),
+  );
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: 'team-a-model-registry' }),
   );
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptOdh(

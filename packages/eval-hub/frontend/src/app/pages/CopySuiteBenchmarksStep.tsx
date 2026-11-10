@@ -6,6 +6,7 @@ import {
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
+  Form,
   JumpLinks,
   JumpLinksItem,
   Sidebar,
@@ -13,12 +14,17 @@ import {
   SidebarPanel,
 } from '@patternfly/react-core';
 import { useModularArchContext } from 'mod-arch-core';
+import type { CuratedCollectionParameterConfig } from '~/app/curatedSuiteConfig';
 import CopySuiteBenchmarkDetailsOverlay from '~/app/components/CopySuiteBenchmarkDetailsOverlay';
 import CopySuiteBenchmarkSection from '~/app/components/CopySuiteBenchmarkSection';
 import BenchmarkWeightsModal from '~/app/components/BenchmarkWeightsModal';
 import type { WeightSegment } from '~/app/components/WeightDistributionBar';
 import { getBenchmarkKey, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
 import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
+import {
+  toTestDataRefFieldErrors,
+  type TestDataRefFormField,
+} from '~/app/schemas/testDataRef.schema';
 import type { Provider } from '~/app/types';
 import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
 import { getEvalHubScrollContainer } from '~/app/utilities/scrollContainer';
@@ -35,6 +41,7 @@ type CopySuiteBenchmarksStepProps = {
   isValid: boolean;
   isSubmitting: boolean;
   isInteractionDisabled?: boolean;
+  parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
   onUpdateBenchmark: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
   onWeightsChange: (weights: number[]) => void;
   onSaveAndRun: () => void;
@@ -56,6 +63,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   isValid,
   isSubmitting,
   isInteractionDisabled = false,
+  parameterConfig,
   onUpdateBenchmark,
   onWeightsChange,
   onSaveAndRun,
@@ -63,7 +71,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   onBack,
   primaryActionLabel = 'Save and run',
   primaryActionTestId = 'copy-suite-save-and-run',
-  secondaryActionLabel = 'Add to my benchmark suites',
+  secondaryActionLabel = 'Add to my collections',
   showSecondaryAction = true,
   onCancel,
 }) => {
@@ -87,6 +95,27 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   );
 
   const flatBenchmarkByKey = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
+
+  const getParameterErrors = (index: number): Record<string, string> | undefined => {
+    const parameterErrors = errors.benchmarks?.[index]?.parameters;
+    if (!Array.isArray(parameterErrors)) {
+      return undefined;
+    }
+    const result: Record<string, string> = {};
+    parameterErrors.forEach((parameterError, parameterIndex) => {
+      const message = parameterError?.value?.message;
+      const key = benchmarks[index]?.parameters[parameterIndex]?.key;
+      if (typeof message === 'string' && key) {
+        result[key] = message;
+      }
+    });
+    return Object.keys(result).length > 0 ? result : undefined;
+  };
+
+  const getTestDataRefErrors = (
+    index: number,
+  ): Partial<Record<TestDataRefFormField, string>> | undefined =>
+    toTestDataRefFieldErrors(errors.benchmarks?.[index]?.testDataRef);
 
   const detailsBenchmark = detailsBenchmarkKey
     ? flatBenchmarkByKey.get(detailsBenchmarkKey)
@@ -175,40 +204,45 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
               </JumpLinks>
             </SidebarPanel>
             <SidebarContent>
-              <div
-                className="evalhub-copy-suite-benchmarks-step__sections"
-                data-testid="copy-suite-benchmark-sections"
-              >
-                {benchmarks.map((benchmark, index) => (
-                  <CopySuiteBenchmarkSection
-                    key={`${benchmark.id}-${index}`}
-                    benchmark={benchmark}
-                    index={index}
-                    showWeightEdit={showWeightEdit}
-                    weightRatio={weightRatios[index] ?? 1}
-                    totalWeightRatio={totalWeightRatio}
-                    additionalParametersError={
-                      errors.benchmarks?.[index]?.additionalParameters?.message
-                    }
-                    isInteractionDisabled={isInteractionDisabled}
-                    onUpdate={(updatedIndex, field, value) => {
-                      if (!isInteractionDisabled) {
-                        onUpdateBenchmark(updatedIndex, field, value);
+              <Form onSubmit={(event) => event.preventDefault()}>
+                <div
+                  className="evalhub-copy-suite-benchmarks-step__sections"
+                  data-testid="copy-suite-benchmark-sections"
+                >
+                  {benchmarks.map((benchmark, index) => (
+                    <CopySuiteBenchmarkSection
+                      key={`${benchmark.id}-${index}`}
+                      benchmark={benchmark}
+                      index={index}
+                      showWeightEdit={showWeightEdit}
+                      weightRatio={weightRatios[index] ?? 1}
+                      totalWeightRatio={totalWeightRatio}
+                      additionalParametersError={
+                        errors.benchmarks?.[index]?.additionalParameters?.message
                       }
-                    }}
-                    onEditWeights={() => {
-                      if (!isInteractionDisabled) {
-                        setIsWeightsModalOpen(true);
-                      }
-                    }}
-                    onOpenDetails={(benchmarkKey) => {
-                      if (!isInteractionDisabled) {
-                        setDetailsBenchmarkKey(benchmarkKey);
-                      }
-                    }}
-                  />
-                ))}
-              </div>
+                      parameterErrors={getParameterErrors(index)}
+                      parameterConfig={parameterConfig}
+                      testDataRefErrors={getTestDataRefErrors(index)}
+                      isInteractionDisabled={isInteractionDisabled}
+                      onUpdate={(updatedIndex, field, value) => {
+                        if (!isInteractionDisabled) {
+                          onUpdateBenchmark(updatedIndex, field, value);
+                        }
+                      }}
+                      onEditWeights={() => {
+                        if (!isInteractionDisabled) {
+                          setIsWeightsModalOpen(true);
+                        }
+                      }}
+                      onOpenDetails={(benchmarkKey) => {
+                        if (!isInteractionDisabled) {
+                          setDetailsBenchmarkKey(benchmarkKey);
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              </Form>
             </SidebarContent>
           </Sidebar>
         ) : (
@@ -290,7 +324,7 @@ const EmptyBenchmarksState: React.FC<EmptyBenchmarksStateProps> = ({ onBack }) =
     headingLevel="h3"
     titleText="No benchmarks added"
   >
-    <EmptyStateBody>No benchmarks have been added to this suite.</EmptyStateBody>
+    <EmptyStateBody>No benchmarks have been added to this collection.</EmptyStateBody>
     <EmptyStateFooter>
       <EmptyStateActions>
         <Button variant="primary" data-testid="copy-suite-empty-back-btn" onClick={onBack}>

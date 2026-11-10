@@ -137,7 +137,8 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({
           nodes,
           edges,
         },
-        false,
+        // Keep elements with stable IDs attached while observers process the updated model.
+        true,
       );
 
       // Drop selections for node IDs that are no longer in the applied model.

@@ -45,6 +45,7 @@ export type CreateNodeOptions = {
   runAfterTasks?: string[];
   runStatus?: RunStatus;
   activeIconVariant?: ActiveIconVariant;
+  patternKey?: string;
 };
 
 export const createNode = ({
@@ -54,6 +55,7 @@ export const createNode = ({
   runAfterTasks,
   runStatus,
   activeIconVariant,
+  patternKey,
 }: CreateNodeOptions): PipelineNodeModelExpanded => ({
   id,
   label,
@@ -65,5 +67,6 @@ export const createNode = ({
     pipelineTask,
     runStatus,
     activeIconVariant,
+    patternKey,
   },
 });

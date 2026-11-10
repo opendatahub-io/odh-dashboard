@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { stripBasename } from '../utils/stripBasename';
 
 /**
  * Check if a URL is a relative link (starts with / but not //)
@@ -17,12 +18,12 @@ const isRelativeLink = (href: string): boolean => href.startsWith('/') && !href.
  *
  * @example
  * ```tsx
- * const linkHandlerRef = useRelativeLinkHandler();
+ * const linkHandlerRef = useRelativeLinkHandler('/portal');
  *
  * return <div ref={linkHandlerRef}>{markdownContent}</div>;
  * ```
  */
-const useRelativeLinkHandler = (): React.RefCallback<HTMLElement> => {
+const useRelativeLinkHandler = (basename = ''): React.RefCallback<HTMLElement> => {
   const navigate = useNavigate();
   const [node, setNode] = React.useState<HTMLElement | null>(null);
 
@@ -53,7 +54,7 @@ const useRelativeLinkHandler = (): React.RefCallback<HTMLElement> => {
       // Only intercept relative links
       if (href && isRelativeLink(href)) {
         event.preventDefault();
-        navigate(href);
+        navigate(stripBasename(href, basename));
       }
     };
 
@@ -62,7 +63,7 @@ const useRelativeLinkHandler = (): React.RefCallback<HTMLElement> => {
     return () => {
       node.removeEventListener('click', handleClick);
     };
-  }, [node, navigate]);
+  }, [basename, node, navigate]);
 
   return setNode;
 };

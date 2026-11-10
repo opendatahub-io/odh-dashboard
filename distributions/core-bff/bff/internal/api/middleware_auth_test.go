@@ -2,8 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"syscall"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -357,7 +361,7 @@ func TestSecureAdminRoute_GetClientFailureReturns500(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
-func TestSecureRoute_GetUserFailureReturns401(t *testing.T) {
+func TestSecureRoute_GetUserUnexpectedFailureReturns500(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.kubernetesClientFactory = &failingGetUserFactory{}
 	})
@@ -375,10 +379,10 @@ func TestSecureRoute_GetUserFailureReturns401(t *testing.T) {
 	handler(rr, req, nil)
 
 	assert.False(t, *called, "handler must not be invoked when GetUser fails")
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
-func TestSecureAdminRoute_GetUserFailureReturns401(t *testing.T) {
+func TestSecureAdminRoute_GetUserUnexpectedFailureReturns500(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.kubernetesClientFactory = &failingGetUserFactory{}
 	})
@@ -396,7 +400,30 @@ func TestSecureAdminRoute_GetUserFailureReturns401(t *testing.T) {
 	handler(rr, req, nil)
 
 	assert.False(t, *called, "handler must not be invoked when GetUser fails")
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+func TestSecureRoutes_KubernetesTransportFailureReturns503(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		wrap func(*App, httprouter.Handle) httprouter.Handle
+	}{
+		{"authenticated route", (*App).secureRoute},
+		{"admin route", (*App).secureAdminRoute},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &namespacePreflightClient{userErr: fmt.Errorf("failed to get user identity: %w", &url.Error{
+				Op: "Post", URL: "https://k8s.example", Err: &net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED},
+			})}
+			app := newTestApp(func(a *App) { a.kubernetesClientFactory = namespaceStubFactory{client: client} })
+			handle, called := trackingHandle()
+			rr := httptest.NewRecorder()
+			tc.wrap(app, handle)(rr, reqWithIdentity(httptest.NewRequest(http.MethodGet, "/api/config", nil), &k8s.RequestIdentity{Token: k8s.NewBearerToken("token")}), nil)
+			assert.False(t, *called)
+			assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+			assert.Contains(t, rr.Body.String(), `"code":"SERVICE_UNAVAILABLE"`)
+		})
+	}
 }
 
 func TestSecureAdminRoute_AdminCheckErrorReturns500(t *testing.T) {

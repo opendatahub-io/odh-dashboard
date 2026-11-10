@@ -147,12 +147,12 @@ const GlobalModelsPage: React.FC = () => {
   }, [hasDeploymentSubTabs, location.pathname, namespace, navigate]);
 
   const onSelect = React.useCallback(
-    (tabKey: string) => {
+    (tabKey: string, options?: { replace?: boolean }) => {
       if (tabKey === EXTERNAL_MODELS_TAB_ID) {
-        navigate(deploymentsExternalPath(namespace));
+        navigate(deploymentsExternalPath(namespace), { replace: options?.replace });
         return;
       }
-      navigate(deploymentsInternalPath(namespace));
+      navigate(deploymentsInternalPath(namespace), { replace: options?.replace });
     },
     [namespace, navigate],
   );

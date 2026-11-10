@@ -11,10 +11,10 @@ const makeDeployment = (
 };
 
 describe('applyGatewaySelectData', () => {
-  it('should add the gateway ref when a selection is provided', () => {
+  it('should add gateway refs when selections are provided', () => {
     const deployment = makeDeployment();
     const result = applyGatewaySelectData(deployment, {
-      selection: { name: 'my-gw', namespace: 'gw-ns' },
+      selections: [{ name: 'my-gw', namespace: 'gw-ns' }],
     });
 
     expect(result.model.spec.router?.gateway).toEqual({
@@ -22,7 +22,24 @@ describe('applyGatewaySelectData', () => {
     });
   });
 
-  it('should replace existing gateway refs with the new selection', () => {
+  it('should apply multiple gateway refs from selections', () => {
+    const deployment = makeDeployment();
+    const result = applyGatewaySelectData(deployment, {
+      selections: [
+        { name: 'gw-1', namespace: 'ns-a' },
+        { name: 'gw-2', namespace: 'ns-b' },
+      ],
+    });
+
+    expect(result.model.spec.router?.gateway).toEqual({
+      refs: [
+        { name: 'gw-1', namespace: 'ns-a' },
+        { name: 'gw-2', namespace: 'ns-b' },
+      ],
+    });
+  });
+
+  it('should replace existing gateway refs with the new selections', () => {
     const deployment = makeDeployment({
       refs: [
         { name: 'old-gw-1', namespace: 'ns-a' },
@@ -31,7 +48,7 @@ describe('applyGatewaySelectData', () => {
     });
 
     const result = applyGatewaySelectData(deployment, {
-      selection: { name: 'new-gw', namespace: 'ns-c' },
+      selections: [{ name: 'new-gw', namespace: 'ns-c' }],
     });
 
     expect(result.model.spec.router?.gateway).toEqual({
@@ -39,12 +56,12 @@ describe('applyGatewaySelectData', () => {
     });
   });
 
-  it('should set gateway to an empty object when no selection is provided', () => {
+  it('should set gateway to an empty object when selections are empty', () => {
     const deployment = makeDeployment({
       refs: [{ name: 'existing-gw', namespace: 'ns-1' }],
     });
 
-    const result = applyGatewaySelectData(deployment, { selection: undefined });
+    const result = applyGatewaySelectData(deployment, { selections: [] });
 
     expect(result.model.spec.router?.gateway).toEqual({});
   });
@@ -65,7 +82,7 @@ describe('applyGatewaySelectData', () => {
     });
 
     applyGatewaySelectData(deployment, {
-      selection: { name: 'new-gw', namespace: 'new-ns' },
+      selections: [{ name: 'new-gw', namespace: 'new-ns' }],
     });
 
     expect(deployment.model.spec.router?.gateway?.refs).toEqual([{ name: 'gw', namespace: 'ns' }]);
@@ -73,7 +90,7 @@ describe('applyGatewaySelectData', () => {
 });
 
 describe('extractGatewaySelectData', () => {
-  it('should extract the first gateway ref from the deployment', () => {
+  it('should extract all gateway refs from the deployment', () => {
     const deployment = makeDeployment({
       refs: [
         { name: 'gw-alpha', namespace: 'ns-1' },
@@ -82,7 +99,10 @@ describe('extractGatewaySelectData', () => {
     });
 
     expect(extractGatewaySelectData(deployment)).toEqual({
-      selection: { name: 'gw-alpha', namespace: 'ns-1' },
+      selections: [
+        { name: 'gw-alpha', namespace: 'ns-1' },
+        { name: 'gw-beta', namespace: 'ns-2' },
+      ],
     });
   });
 
@@ -98,17 +118,19 @@ describe('extractGatewaySelectData', () => {
     expect(extractGatewaySelectData(deployment)).toBeUndefined();
   });
 
-  it('should return undefined when a ref is missing name', () => {
+  it('should skip invalid refs and return valid selections', () => {
     const deployment = makeDeployment({
-      refs: [{ namespace: 'ns-1' }],
+      refs: [{ namespace: 'ns-1' }, { name: 'gw-valid', namespace: 'ns-2' }],
     });
 
-    expect(extractGatewaySelectData(deployment)).toBeUndefined();
+    expect(extractGatewaySelectData(deployment)).toEqual({
+      selections: [{ name: 'gw-valid', namespace: 'ns-2' }],
+    });
   });
 
-  it('should return undefined when a ref is missing namespace', () => {
+  it('should return undefined when all refs are invalid', () => {
     const deployment = makeDeployment({
-      refs: [{ name: 'gw-alpha' }],
+      refs: [{ namespace: 'ns-1' }, { name: 'gw-alpha' }],
     });
 
     expect(extractGatewaySelectData(deployment)).toBeUndefined();

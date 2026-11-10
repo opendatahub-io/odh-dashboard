@@ -1,11 +1,30 @@
 // Modules -------------------------------------------------------------------->
 
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem, PageSection, Skeleton } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Flex,
+  PageSection,
+  Skeleton,
+  Split,
+  SplitItem,
+} from '@patternfly/react-core';
 import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import ApplicationsPage from '~/app/components/ApplicationsPage';
+import CreateConnectionButton from '~/app/components/CreateConnectionButton';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
-import { ConnectionTypeIcon, ConnectionTypeValues } from '~/app/components/ConnectionType.tsx';
+import {
+  ConnectionTypeIcon,
+  ConnectionTypeLabel,
+  ConnectionTypeValues,
+} from '~/app/components/ConnectionType.tsx';
+import { createConnection } from '~/app/api/dch.ts';
+import CreateConnectionWizard from '~/app/components/CreateConnectionWizard.tsx';
+import {
+  DATA_CONNECT_HUB_EVENT_NAMES,
+  fireDataConnectHubTrackEvent,
+} from '~/app/utilities/tracking';
 
 // Types ---------------------------------------------------------------------->
 
@@ -24,6 +43,13 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
   const { connectionTypeId = '' } = useParams<'connectionTypeId'>();
   const { search } = useLocation();
   const [connectionType, loaded, loadError] = useConnectionType(namespace, connectionTypeId);
+  const [isConnectionWizardOpen, setIsConnectionWizardOpen] = React.useState<boolean>(false);
+  const selectedConnectionTypeId = connectionType?.id;
+  const initialFormData = React.useMemo(
+    () =>
+      selectedConnectionTypeId ? { data_connection_type_id: selectedConnectionTypeId } : undefined,
+    [selectedConnectionTypeId],
+  );
 
   const loadingSkeleton = <Skeleton screenreaderText="Loading connection type" />;
 
@@ -32,7 +58,7 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
 
   if (connectionType) {
     title = (
-      <>
+      <Flex alignItems={{ default: 'alignItemsCenter' }}>
         <ConnectionTypeIcon
           connectionType={connectionType}
           iconProps={{
@@ -40,8 +66,9 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
             className: 'pf-v6-u-mr-md',
           }}
         />
-        {connectionType.resource.name}
-      </>
+        <span className="pf-v6-u-mr-md">{connectionType.resource.name}</span>
+        <ConnectionTypeLabel connectionType={connectionType} />
+      </Flex>
     );
     description = <>{connectionType.resource.description ?? ''}</>;
   }
@@ -62,6 +89,25 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
           </BreadcrumbItem>
         </Breadcrumb>
       }
+      headerAction={
+        loaded && !loadError && connectionType ? (
+          <Split hasGutter>
+            <SplitItem>
+              <CreateConnectionButton
+                namespace={namespace}
+                onCreate={() => {
+                  fireDataConnectHubTrackEvent({
+                    eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
+                    properties: { project: namespace, source: 'connection_type_catalog' },
+                  });
+                  setIsConnectionWizardOpen(true);
+                }}
+                testId="connection-type-details-create-connection"
+              />
+            </SplitItem>
+          </Split>
+        ) : undefined
+      }
       loaded={loaded}
       loadError={loadError}
       errorMessage="Unable to load connection type"
@@ -73,6 +119,17 @@ const ConnectionTypeDetailsContent: React.FC<ConnectionTypeDetailsContentProps> 
         data-connection-type-id={connectionType?.metadata.id}
       >
         {connectionType && <ConnectionTypeValues connectionType={connectionType} />}
+        {loaded && !loadError && connectionType && (
+          <CreateConnectionWizard
+            isOpen={isConnectionWizardOpen}
+            namespace={namespace}
+            onClose={() => setIsConnectionWizardOpen(false)}
+            onCreate={(data, selectedNamespace) =>
+              createConnection('')({}, selectedNamespace, data)
+            }
+            initialFormData={initialFormData}
+          />
+        )}
       </PageSection>
     </ApplicationsPage>
   );
@@ -83,11 +140,11 @@ const ConnectionTypeDetails: React.FC = () => {
   const [searchParams] = useSearchParams();
   const namespace = searchParams.get('project');
 
-  return namespace ? (
-    <ConnectionTypeDetailsContent namespace={namespace} />
-  ) : (
-    <Navigate to={{ pathname: '..', search }} relative="path" replace />
-  );
+  if (namespace) {
+    return <ConnectionTypeDetailsContent key={namespace} namespace={namespace} />;
+  }
+
+  return <Navigate to={{ pathname: '..', search }} relative="path" replace />;
 };
 
 // Public --------------------------------------------------------------------->

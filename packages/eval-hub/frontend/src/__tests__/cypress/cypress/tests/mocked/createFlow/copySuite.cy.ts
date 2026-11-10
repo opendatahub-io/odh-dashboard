@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
@@ -34,6 +35,7 @@ const provider = mockProvider({
 const sourceCollection = mockCollection({
   id: 'source-suite',
   name: 'Source suite',
+  domains: ['trustworthiness'],
   benchmarkIds: ['bench-alpha'],
 });
 
@@ -98,5 +100,195 @@ describe('Suite editor benchmark selection', () => {
 
     copySuitePage.findBenchmarkCheckbox('bench-alpha').should('be.checked');
     copySuitePage.findBenchmarkCheckbox('bench-beta').should('not.be.checked');
+  });
+
+  it('should update an existing suite through the edit flow', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections/:collectionId',
+      { path: { ...API_VERSION, collectionId: sourceCollection.resource.id } },
+      sourceCollection,
+    );
+    cy.intercept(
+      {
+        method: 'PATCH',
+        pathname: `/eval-hub/api/v1/evaluations/collections/${sourceCollection.resource.id}`,
+      },
+      {
+        statusCode: 200,
+        body: mockModArchResponse({ ...sourceCollection, name: 'Updated suite' }),
+      },
+    ).as('updateSuite');
+
+    copySuitePage.visitEdit(NAMESPACE, sourceCollection.resource.id);
+    copySuitePage.findSuiteNameInput().clear().type('Updated suite');
+    copySuitePage.findSettingsNextButton().click();
+    copySuitePage.findBenchmarkCheckbox('bench-alpha').should('be.checked');
+    copySuitePage.findSelectBenchmarksNextButton().click();
+    copySuitePage.findConfigurationStep().should('be.visible');
+    copySuitePage.findSaveOnlyButton().click();
+
+    cy.wait('@updateSuite').then((interception) => {
+      expect(interception.request.body).to.deep.include({
+        op: 'replace',
+        path: '/name',
+        value: 'Updated suite',
+      });
+    });
+    cy.url().should('include', `/evaluation/${NAMESPACE}/collections`);
+  });
+});
+
+describe('Suite editor benchmark test data', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should configure an s3 test data ref on a benchmark and send it in the clone request', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections/:collectionId',
+      { path: { ...API_VERSION, collectionId: 'source-suite' } },
+      {
+        ...sourceCollection,
+        benchmarks: [{ id: 'bench-alpha', provider_id: 'test-provider' }],
+      },
+    );
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/eval-hub/api/v1/evaluations/collections/source-suite/clones',
+      },
+      {
+        statusCode: 201,
+        body: mockModArchResponse({
+          ...sourceCollection,
+          resource: { ...sourceCollection.resource, id: 'source-suite-copy' },
+        }),
+      },
+    ).as('cloneSuite');
+
+    copySuitePage.visitCopy(NAMESPACE, 'source-suite');
+    copySuitePage.findSettingsNextButton().click();
+    copySuitePage.findSelectBenchmarksNextButton().click();
+    copySuitePage.findConfigurationStep().should('be.visible');
+
+    copySuitePage
+      .findBenchmarkTestDataRefSourceToggle(0)
+      .should('contain.text', 'None (use benchmark default data)');
+    copySuitePage.findSaveOnlyButton().should('be.enabled');
+
+    copySuitePage.findBenchmarkTestDataRefSourceToggle(0).click();
+    copySuitePage.findBenchmarkTestDataRefOption('S3 — object storage').click();
+
+    copySuitePage.findBenchmarkTestDataRefField(0, 'bucket').type('eval-data');
+    copySuitePage.findBenchmarkTestDataRefField(0, 'key').type('ragas/dataset.jsonl');
+    copySuitePage.findBenchmarkTestDataRefField(0, 'secretRef').type('my-s3-secret');
+
+    copySuitePage.findSaveOnlyButton().should('be.enabled').click();
+
+    cy.wait('@cloneSuite').then((interception) => {
+      expect(interception.request.body.benchmarks[0].test_data_ref).to.deep.equal({
+        type: 'data_set',
+        s3: {
+          bucket: 'eval-data',
+          key: 'ragas/dataset.jsonl',
+          secret_ref: 'my-s3-secret',
+        },
+      });
+    });
+  });
+
+  it('should block submission when required test data fields are empty', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections/:collectionId',
+      { path: { ...API_VERSION, collectionId: 'source-suite' } },
+      {
+        ...sourceCollection,
+        benchmarks: [{ id: 'bench-alpha', provider_id: 'test-provider' }],
+      },
+    );
+
+    copySuitePage.visitCopy(NAMESPACE, 'source-suite');
+    copySuitePage.findSettingsNextButton().click();
+    copySuitePage.findSelectBenchmarksNextButton().click();
+    copySuitePage.findConfigurationStep().should('be.visible');
+
+    copySuitePage.findBenchmarkTestDataRefSourceToggle(0).click();
+    copySuitePage.findBenchmarkTestDataRefOption('S3 — object storage').click();
+
+    copySuitePage.findBenchmarkTestDataRefField(0, 'bucket').type('eval-data');
+    copySuitePage.findBenchmarkTestDataRefField(0, 'key').type('ragas/dataset.jsonl').clear();
+    copySuitePage.findBenchmarkTestDataRefField(0, 'secretRef').type('my-secret').clear();
+
+    copySuitePage
+      .findBenchmarkTestDataRefFieldError(0, 'key')
+      .should('contain.text', 'Key is required.');
+    copySuitePage.findSaveOnlyButton().should('be.disabled');
+  });
+});
+
+describe('Suite editor curated collection prerequisites', () => {
+  beforeEach(() => {
+    initIntercepts();
+  });
+
+  it('should require a judge model when customizing a curated collection', () => {
+    const curatedCollection = mockCollection({
+      id: 'trustworthiness-v1',
+      name: 'Trustworthiness Suite',
+      domains: ['trustworthiness'],
+      benchmarkIds: ['bench-alpha'],
+      judgeModel: true,
+    });
+    cy.interceptApi(
+      'GET /api/:apiVersion/evaluations/collections/:collectionId',
+      { path: { ...API_VERSION, collectionId: 'trustworthiness-v1' } },
+      curatedCollection,
+    );
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: '/eval-hub/api/v1/evaluations/collections/trustworthiness-v1/clones',
+      },
+      {
+        statusCode: 201,
+        body: mockModArchResponse({
+          ...curatedCollection,
+          resource: { ...curatedCollection.resource, id: 'trustworthiness-copy' },
+        }),
+      },
+    ).as('cloneCuratedSuite');
+
+    copySuitePage.visitCopy(NAMESPACE, 'trustworthiness-v1');
+    copySuitePage.findSettingsNextButton().click();
+
+    copySuitePage.findBenchmarkCheckbox('bench-alpha').should('be.checked');
+    copySuitePage.findSelectBenchmarksNextButton().click();
+    copySuitePage.findConfigurationStep().should('exist');
+
+    // The judge model field comes from the source benchmark's parameters, and the
+    // validation error only surfaces after the field is edited.
+    copySuitePage.findBenchmarkParameterInput(0, 'judge_model').should('have.value', '');
+    copySuitePage.findBenchmarkParameterError(0, 'judge_model').should('not.exist');
+    copySuitePage.findSaveOnlyButton().should('be.disabled');
+
+    copySuitePage.findBenchmarkParameterInput(0, 'judge_model').type('gpt-4o');
+    copySuitePage.findBenchmarkParameterError(0, 'judge_model').should('not.exist');
+
+    copySuitePage.findBenchmarkParameterInput(0, 'judge_model').clear();
+    copySuitePage
+      .findBenchmarkParameterError(0, 'judge_model')
+      .should('contain.text', 'Judge model is required.');
+    copySuitePage.findSaveOnlyButton().should('be.disabled');
+
+    copySuitePage.findBenchmarkParameterInput(0, 'judge_model').type('gpt-4o');
+    copySuitePage.findBenchmarkParameterError(0, 'judge_model').should('not.exist');
+    copySuitePage.findSaveOnlyButton().should('be.enabled').click();
+
+    cy.wait('@cloneCuratedSuite').then((interception) => {
+      expect(interception.request.body.benchmarks[0].parameters).to.deep.include({
+        judge_model: 'gpt-4o',
+      });
+    });
+    cy.url().should('include', `/evaluation/${NAMESPACE}/collections`);
   });
 });

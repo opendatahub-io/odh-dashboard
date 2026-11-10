@@ -160,7 +160,7 @@ const McpServerTagsField: React.FC<McpServerTagsFieldProps> = ({ tags, onChange 
   };
 
   const handleBlurKey = (index: number) => {
-    const tag = tags.at(index);
+    const tag = tags.find((_tag, tagIndex) => tagIndex === index);
     if (!tag) {
       return;
     }
@@ -171,7 +171,7 @@ const McpServerTagsField: React.FC<McpServerTagsFieldProps> = ({ tags, onChange 
   };
 
   const handleBlurValue = (index: number) => {
-    const tag = tags.at(index);
+    const tag = tags.find((_tag, tagIndex) => tagIndex === index);
     if (!tag) {
       return;
     }

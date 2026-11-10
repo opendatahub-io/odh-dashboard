@@ -9,11 +9,12 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { deleteModelRegistryBackend } from '#~/services/modelRegistrySettingsService';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type DeleteModelRegistryModalProps = {
   modelRegistry: ModelRegistryKind;
@@ -64,7 +65,7 @@ const DeleteModelRegistryModal: React.FC<DeleteModelRegistryModalProps> = ({
       fireFormTrackingEvent(eventName, {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: e instanceof Error ? e.message : 'unknown error',
+        error: errorCategory(e),
       });
       setIsSubmitting(false);
     }

@@ -7,6 +7,7 @@ import { ClusterVersionModel, InfrastructureModel } from './models';
  * Cluster details fetched from OpenShift ClusterVersion and Infrastructure resources
  */
 export type ClusterDetails = {
+  apiServer: string;
   openshiftVersion: string;
   infrastructureProvider: string;
 };
@@ -23,6 +24,7 @@ type ClusterVersionKind = K8sResourceCommon & {
  */
 type InfrastructureKind = K8sResourceCommon & {
   status?: {
+    apiServerURL?: string;
     platformStatus?: {
       type?: string;
     };
@@ -30,6 +32,7 @@ type InfrastructureKind = K8sResourceCommon & {
 };
 
 const DEFAULT_CLUSTER_DETAILS: ClusterDetails = {
+  apiServer: 'Unknown',
   openshiftVersion: 'Unknown',
   infrastructureProvider: 'Unknown',
 };
@@ -37,7 +40,7 @@ const DEFAULT_CLUSTER_DETAILS: ClusterDetails = {
 /**
  * Fetches cluster details from the OpenShift ClusterVersion and Infrastructure resources
  */
-const fetchClusterDetails = async (): Promise<ClusterDetails> => {
+export const fetchClusterDetails = async (): Promise<ClusterDetails> => {
   const [clusterVersion, infrastructure] = await Promise.all([
     k8sGetResource<ClusterVersionKind>({
       model: ClusterVersionModel,
@@ -56,6 +59,7 @@ const fetchClusterDetails = async (): Promise<ClusterDetails> => {
   const infrastructureProvider = infrastructure?.status?.platformStatus?.type ?? 'Unknown';
 
   return {
+    apiServer: infrastructure?.status?.apiServerURL ?? 'Unknown',
     openshiftVersion,
     infrastructureProvider,
   };

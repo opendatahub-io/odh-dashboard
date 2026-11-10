@@ -98,15 +98,16 @@ const PipelinesContext = React.createContext<PipelineContext>({
 type PipelineContextProviderProps = {
   children: React.ReactNode;
   namespace: string;
+  syncPreferredProject?: boolean;
 };
 
 export const PipelineContextProvider = conditionalArea<PipelineContextProviderProps>(
   SupportedArea.DS_PIPELINES,
   true,
-)(({ children, namespace }) => {
+)(({ children, namespace, syncPreferredProject = true }) => {
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
-  useSyncPreferredProject(project);
+  useSyncPreferredProject(project, !syncPreferredProject);
 
   const startingStatusModalOpenRef = React.useRef<string | null>(null);
 

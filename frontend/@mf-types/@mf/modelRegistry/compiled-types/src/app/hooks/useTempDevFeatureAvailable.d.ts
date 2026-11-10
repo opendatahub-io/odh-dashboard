@@ -3,7 +3,7 @@
  *
  * This hook provides a browser storage-backed feature flag that can be toggled
  * via the browser console using:
- *     window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable(true/false);
+ *     window.setTempFeatureFlagAvailable(true/false);
  * The state persists across page reloads using browser storage.
  *
  * Each TempDevFeature and corresponding window.set* here should be removed once that feature is ready.
@@ -13,7 +13,7 @@
  */
 declare global {
     interface Window {
-        setTempDevCatalogHuggingFaceApiKeyFeatureAvailable?: (enabled: boolean) => void;
+        setTempFeatureFlagAvailable?: (enabled: boolean) => void;
     }
 }
 export declare enum TempDevFeature {

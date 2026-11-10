@@ -18,11 +18,14 @@ import type { AIAssetsTabExtension } from '~/odh/extension-points';
 export const PLUGIN_GEN_AI = 'plugin-gen-ai';
 export const CHAT_PLAYGROUND = 'chatPlayground';
 export const GEN_AI_STUDIO = 'genAiStudio';
+export const GEN_AI_IMAGE_UPLOAD = 'genAiImageUpload';
+export const GEN_AI_AUDIO_UPLOAD = 'genAiAudioUpload';
 export const GEN_AI_TRACING = 'genAiTracing';
 export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
 export const GUARDRAILS = 'guardrails';
 export const PROMPT_MANAGEMENT = 'promptManagement';
+export const PROMPT_MODEL_ASSOCIATIONS = 'promptModelAssociations';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
 export const AGENT_CONFIG_MANAGEMENT = 'agentConfigManagement';
@@ -61,6 +64,22 @@ const extensions: (
   {
     type: 'app.area',
     properties: {
+      id: GEN_AI_IMAGE_UPLOAD,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_IMAGE_UPLOAD],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: GEN_AI_AUDIO_UPLOAD,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [GEN_AI_AUDIO_UPLOAD],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
       id: GUARDRAILS,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [GUARDRAILS],
@@ -84,6 +103,14 @@ const extensions: (
       id: PROMPT_MANAGEMENT,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [PROMPT_MANAGEMENT],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: PROMPT_MODEL_ASSOCIATIONS,
+      reliantAreas: [PROMPT_MANAGEMENT],
+      devFlags: [PROMPT_MODEL_ASSOCIATIONS],
     },
   },
   {
@@ -173,7 +200,6 @@ const extensions: (
       href: chatPlaygroundRootPath,
       section: 'gen-ai-studio',
       path: globChatPlaygroundAll,
-      label: 'Tech Preview',
     },
   },
   {
@@ -187,7 +213,6 @@ const extensions: (
       href: aiAssetsRootPath,
       section: 'gen-ai-studio',
       path: globAiAssetsAll,
-      label: 'Tech Preview',
     },
   },
   {
@@ -196,6 +221,7 @@ const extensions: (
       required: [PLUGIN_GEN_AI],
     },
     properties: {
+      id: 'gen-ai-routes',
       path: globGenAiAll,
       component: () => import('./GenAiWrapper'),
     },

@@ -6,11 +6,16 @@ import (
 	"net/http"
 	"strconv"
 
+	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 )
 
 type ErrorEnvelope struct {
 	Error *integrations.HTTPError `json:"error"`
+}
+
+func sanitizeErrorForLog(err error) string {
+	return helper.SafeErrorForLog(err)
 }
 
 func logError(logger *slog.Logger, r *http.Request, err error) {
@@ -19,7 +24,7 @@ func logError(logger *slog.Logger, r *http.Request, err error) {
 		uri    = r.URL.Path
 	)
 
-	logger.Error(err.Error(), "method", method, "uri", uri)
+	logger.Error(sanitizeErrorForLog(err), "method", method, "uri", uri)
 }
 
 func payloadTooLargeResponse(logger *slog.Logger, w http.ResponseWriter, r *http.Request, message string) {

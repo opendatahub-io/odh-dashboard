@@ -1,0 +1,61 @@
+apiVersion: builtin
+kind: ReplacementTransformer
+metadata:
+  name: dashboard-webhook-wiring
+replacements:
+  # cert-manager.io/inject-ca-from: <cert namespace>/<cert name>
+  - source:
+      kind: Certificate
+      name: dashboard-operator-webhook-cert
+      fieldPath: metadata.namespace
+    targets:
+      - select:
+          kind: ValidatingWebhookConfiguration
+          name: dashboard-validating-webhook
+        fieldPaths:
+          - metadata.annotations.[cert-manager.io/inject-ca-from]
+        options:
+          delimiter: /
+          index: 0
+  - source:
+      kind: Certificate
+      name: dashboard-operator-webhook-cert
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: ValidatingWebhookConfiguration
+          name: dashboard-validating-webhook
+        fieldPaths:
+          - metadata.annotations.[cert-manager.io/inject-ca-from]
+        options:
+          delimiter: /
+          index: 1
+  # Serving cert SANs: <service name>.<service namespace>.svc[.cluster.local]
+  - source:
+      kind: Service
+      name: dashboard-operator-webhook-service
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: Certificate
+          name: dashboard-operator-webhook-cert
+        fieldPaths:
+          - spec.dnsNames.0
+          - spec.dnsNames.1
+        options:
+          delimiter: .
+          index: 0
+  - source:
+      kind: Service
+      name: dashboard-operator-webhook-service
+      fieldPath: metadata.namespace
+    targets:
+      - select:
+          kind: Certificate
+          name: dashboard-operator-webhook-cert
+        fieldPaths:
+          - spec.dnsNames.0
+          - spec.dnsNames.1
+        options:
+          delimiter: .
+          index: 1

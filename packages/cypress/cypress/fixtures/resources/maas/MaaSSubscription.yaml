@@ -17,4 +17,4 @@ spec:
     groups:
       - name: rhods-admins
       - name: rhods-users
-  priority: 1
+  inferencePriority: 1

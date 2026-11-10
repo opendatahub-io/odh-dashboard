@@ -8,6 +8,22 @@ import type {
 } from './k8sTypes';
 import { AccessMode } from './types';
 
+/** Checks a named resource's identity fields, not its resource-specific spec. */
+export const hasK8sIdentity = (value: unknown): value is K8sResourceCommon =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  'apiVersion' in value &&
+  typeof value.apiVersion === 'string' &&
+  'kind' in value &&
+  typeof value.kind === 'string' &&
+  'metadata' in value &&
+  typeof value.metadata === 'object' &&
+  value.metadata !== null &&
+  !Array.isArray(value.metadata) &&
+  'name' in value.metadata &&
+  typeof value.metadata.name === 'string';
+
 export const isK8sDSGResource = (x?: K8sResourceCommon): x is K8sDSGResource =>
   x?.metadata?.name != null;
 export const getDisplayNameFromK8sResource = (resource: K8sDSGResource): string =>
@@ -16,6 +32,16 @@ export const getResourceNameFromK8sResource = (resource: K8sDSGResource): string
   resource.metadata.name;
 export const getDescriptionFromK8sResource = (resource: K8sDSGResource): string =>
   resource.metadata.annotations?.['openshift.io/description'] || '';
+
+export const PreInstalledName = 'Pre-installed';
+
+export const isOOTB = (resource: K8sResourceCommon): boolean =>
+  !!resource.metadata?.labels?.['platform.opendatahub.io/part-of'];
+
+export const getCreatorFromK8sResource = (resource: K8sDSGResource): string =>
+  isOOTB(resource)
+    ? PreInstalledName
+    : resource.metadata.annotations?.['opendatahub.io/username'] || 'unknown';
 
 type AdditionalCriteriaForTranslation = {
   /**

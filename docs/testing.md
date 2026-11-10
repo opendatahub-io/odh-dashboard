@@ -158,11 +158,122 @@ pnpm run cypress:open
 
 Use the custom command `cy.visitWithLogin` to visit a page and perform the login procedure steps if the user is not already logged in. The default user is not an ODH admin. `cy.visitWithLogin` can be used to login with different users by supplying the user auth configuration as a parameter.
 
+#### Selective E2E tests
+
+The E2E workflow uses the versioned path-impact map in
+`scripts/cypress/e2e-path-impact.json`, not a Turbo-only package query. The map is
+ordered, supports exact paths plus `**`, `*`, and `?` globs, and explicitly covers
+Cypress specs and support code, packages, frontend areas, manifests, the operator,
+CI configuration, build contracts, deployment scripts, documentation, and repository
+fallback. Package paths derive tags from `e2eCiTags`, module network policies derive
+tags from their owning module, and frontend areas derive tags from
+`.github/frontend-ci-tags.json`.
+
+The planner always runs changed Cypress specs, computes the executable reverse impact
+of changed Cypress support code, and validates selected tags before starting browser
+jobs. Small impact sets run as explicit specs, broad sets use package CI tags, and
+only unmappable broad impact or support deletion falls back to the canonical Smoke
+and Sanity tag groups. If those canonical groups do not cover every required test,
+the planner schedules the residual specs explicitly rather than dropping them. It
+fails selection for empty tags, unmatched impactful paths, unschedulable specs, and
+all-skipped selections, and reports executed, failed, and skipped counts after the
+run. Dashboard base and RHOAI network-policy changes run
+the Pipelines, Workbenches, and Feature Store suites because those flows exercise
+dashboard egress to the pipeline server, Thanos, and Feast.
+
+The **Select Cypress E2E CI tags and specs for this PR** job publishes
+**Cypress E2E CI selection for this PR**: the CI tags and specs selected for the PR
+under test, their selection reasons, and expected executions. The summary includes
+default regression checks when enabled. It describes a limited automated CI check,
+not a comprehensive test plan or full feature/release validation.
+Global support changes can affect most CI-runnable specs and trigger broad
+Smoke/Sanity coverage when package CI tags cannot cover the impact. Any remaining
+specs run explicitly. Counts are per-job test executions and can overlap across
+jobs. **Build Cypress application assets** jobs prepare code for Cypress; they do
+not execute tests. **Browser E2E** jobs run the selected dashboard journeys, and
+**Validate browser E2E results against the plan** checks each job's reported counts.
+
+New packages under the pnpm workspace patterns are discovered automatically. Declare
+`e2eCiTags` in the package's `package.json` and use those tags on executable Cypress
+specs. Specs under the central `packages/cypress/cypress/tests/e2e` tree are discovered
+automatically; package-owned specs also need a `cypress.e2e` pattern in their package
+metadata. Buildable Cypress packages expose `cypress:server:build:coverage`, which the
+workflow discovers for asset builds. No workflow entry or central capability tag
+registration is needed for each new package.
+
+Package tags are additive to the default dashboard regression suite, and executable
+tags from dependent packages can also be selected. Model Registry currently declares
+both `@ModelRegistryCI` and `@ModelCatalogCI`, so a Model Registry-only code change
+selects both suites plus the default regression job. Manual runs can use
+`skip_default` to omit the default job. A new package without CI tags falls back to
+dashboard regression; a declared tag with no executable tests fails selection.
+
+The planner verifies actual tag/spec discovery and the reported per-job testcase
+counts. It does not infer product compatibility, environment coverage, or terminal
+assertions from a separate declaration file. See
+`packages/cypress/cypress/tests/e2e/README.md` for the selection rules.
+
 ### Mocked Tests
 
 Cypress mocked tests run against a standalone frontend while mocking all network requests.
 
-Single command to run all Cypress mock tests or a specific test (build frontend, start HTTP server, run Cypress):
+#### Selective mock tests
+
+The main test workflow compares the Git change with an application-aware Cypress matrix.
+Documentation-only changes skip the Cypress mock matrix. Changes to individual specs and
+transitively imported Cypress helpers run only their affected groups.
+
+Within the dashboard application, application and build inputs remain on the complete dashboard
+matrix because its mock suites execute against the complete dashboard host. Non-code fixtures,
+unresolved imports, missing consumers, and deleted or renamed files also fall back to the complete
+dashboard matrix.
+
+The `cypress-mock` Codecov flag is updated whenever the complete dashboard matrix runs,
+independently of standalone application selection. Each standalone suite updates its own
+`cypress-mock-<application>` flag when it runs. Skipped suites and partial dashboard runs use
+their configured carryforward coverage.
+
+To inspect a selection locally, compare any two Git revisions:
+
+```bash
+pnpm run plan:cypress-mock-impact \
+  --base <base-revision> \
+  --head <head-revision> \
+  --matrix /tmp/cypress-mock-matrix.json
+```
+
+#### Application runners
+
+[The application registry](../scripts/cypress/mock-test-applications.json) configures which
+applications join the shared `Cypress-Mock-Tests` job. Each entry provides an application name,
+workspace, target package, runner, and results path.
+
+- `dashboard-shards` uses the existing shard selector, shared federation build artifacts, and coverage
+  aggregation. Dashboard builds run only when dashboard shards are selected.
+- `standalone-app` uses transitive workspace dependency selection and runs the workspace
+  `test:cypress-ci` script with `pnpm --dir <workspace>`. The application owns its build, server,
+  Cypress project, and cleanup. Its results are uploaded separately. CI enables `COVERAGE=true`;
+  each workspace writes its coverage report to `<results>/coverage/coverage-final.json`.
+  Coverage artifacts from all runners feed the combined report. Standalone suites upload
+  directly to their own Codecov flags.
+
+To add a standalone application, add a `standalone-app` entry and implement
+`test:cypress-ci` in that workspace, including coverage collection when `COVERAGE=true`. Keep
+its results path inside the workspace and configure its `cypress-mock-<application>` flag
+with `carryforward: true` in `.codecov.yml`. Include shared source paths covered by the suite
+as well as the application itself. Files inside
+registered standalone workspaces belong to those applications; shared dependencies outside
+those roots still pass through the dashboard selector. No application-specific workflow job
+or final status condition is needed.
+
+The shared planner combines selected dashboard shards and workspace applications into one
+matrix. If none are selected, a no-op entry succeeds. Selection failures run the affected
+application conservatively. Coverage is merged whenever any application runs, including
+portal-only selections, and is included in the combined coverage artifact. Codecov uploads
+remain separate by suite: the dashboard flag contains only dashboard shard coverage, while
+`cypress-mock-maas-portal` contains portal coverage, including exercised shared sources.
+
+Run the dashboard mock tests, or a specific dashboard spec (build frontend, start HTTP server, run Cypress):
 
 ```bash
 pnpm run test:cypress-ci
@@ -252,6 +363,15 @@ Cypress uses several environment variables to control test behavior and configur
 - **Effect**: Loads test variables and configuration from a YAML file
 - **Usage**: `export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'`
 - **Required**: Yes, for e2e tests
+
+#### CYPRESS_DSPA_S3_ENDPOINT
+
+- **Purpose**: Overrides the S3 endpoint used by AutoX end-to-end provisioning
+- **Values**: A complete HTTP or HTTPS endpoint, such as `http://minio.<namespace>.svc.cluster.local:9000`
+- **Effect**: Uses the endpoint for the AutoX DSPA configuration, AutoX data-connection Secret, and AutoX S3 cleanup. This keeps disconnected-cluster tests on the cluster-internal MinIO service instead of the external route. Feature Store `BUCKET_1` operations use their own S3 endpoint and CA-bundle configuration.
+- **Fallback**: Uses the selected bucket's `S3.*.ENDPOINT` value when the variable is unset or blank
+- **Usage**: `export CYPRESS_DSPA_S3_ENDPOINT='http://minio.<namespace>.svc.cluster.local:9000'`
+- **Required**: No
 
 #### CY_MOCK
 

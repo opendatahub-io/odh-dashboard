@@ -1,3 +1,4 @@
+import type { DatabaseProvider } from '@odh-dashboard/autox-core/ui/api/k8s/types';
 import { SecretListItem } from '~/app/types';
 
 type MockSecretListItemOptions = {
@@ -5,6 +6,7 @@ type MockSecretListItemOptions = {
   name?: string;
   type?: string;
   data?: Record<string, string>;
+  databaseProviders?: DatabaseProvider[];
   displayName?: string;
   description?: string;
 };
@@ -19,6 +21,7 @@ export const mockSecretListItem = ({
     AWS_DEFAULT_REGION: '[REDACTED]',
     AWS_S3_ENDPOINT: '[REDACTED]',
   },
+  databaseProviders,
   displayName,
   description,
 }: MockSecretListItemOptions = {}): SecretListItem => ({
@@ -26,6 +29,7 @@ export const mockSecretListItem = ({
   name,
   ...(type && { type }),
   data,
+  ...(databaseProviders && { databaseProviders }),
   ...(displayName && { displayName }),
   ...(description && { description }),
 });
@@ -65,6 +69,7 @@ export const mockMaaSSecret = (overrides: MockSecretListItemOptions = {}): Secre
 export const mockVectorDbSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
   mockSecretListItem({
     type: 'vector-db',
+    databaseProviders: ['milvus'],
     data: {
       MILVUS_URI: '[REDACTED]',
     },
@@ -74,6 +79,7 @@ export const mockVectorDbSecret = (overrides: MockSecretListItemOptions = {}): S
 export const mockPgvectorSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
   mockSecretListItem({
     type: 'vector-db',
+    databaseProviders: ['pgvector'],
     data: {
       PGVECTOR_HOST: '[REDACTED]',
       PGVECTOR_PORT: '[REDACTED]',

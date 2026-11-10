@@ -10,18 +10,31 @@ func timePtr(t time.Time) *time.Time {
 	return &t
 }
 
+func int32Ptr(v int32) *int32 {
+	return &v
+}
+
+func boolPtr(v bool) *bool {
+	return &v
+}
+
 // GetMockMaaSSubscriptions returns mock MaaSSubscription resources.
 func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 	return []models.MaaSSubscription{
 		{
-			Name:          "premium-team-sub",
-			Namespace:     "maas-system",
-			DisplayName:   "Premium Team Subscription",
-			Description:   "High-priority subscription for the premium team with extended token limits.",
-			Phase:         "Active",
-			StatusMessage: "successfully reconciled",
-			Reason:        "Reconciled",
-			Priority:      10,
+			Name:              "premium-team-sub",
+			Namespace:         "maas-system",
+			DisplayName:       "Premium Team Subscription",
+			Description:       "High-priority subscription for the premium team with extended token limits.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
+			InferencePriority: int32Ptr(10),
+			InferenceObjectivesReady: &models.ConditionSummary{
+				Type:   "InferenceObjectivesReady",
+				Status: "True",
+				Reason: "Reconciled",
+			},
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "premium-users"},
@@ -36,6 +49,11 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 100000, Window: "24h"},
 					},
+					ObjectiveName: "maas-models-as-a-service-gold-granite-3-8b-instruct-inference-pool-a1b2c3d4e5",
+					TargetPool:    "granite-3-8b-instruct-inference-pool",
+					Ready:         boolPtr(true),
+					Reason:        "ObjectiveReconciled",
+					Message:       "InferenceObjective sets priority 10",
 				},
 				{
 					Name:        "flan-t5-small",
@@ -45,6 +63,11 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 200000, Window: "24h"},
 					},
+					ObjectiveName: "maas-models-as-a-service-gold-flan-t5-small-inference-pool-b2c3d4e5f6",
+					TargetPool:    "flan-t5-small-inference-pool",
+					Ready:         boolPtr(true),
+					Reason:        "ObjectiveReconciled",
+					Message:       "InferenceObjective sets priority 10",
 				},
 				{
 					Name:        "gpt-4o-external",
@@ -54,6 +77,57 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 50000, Window: "24h"},
 					},
+					Ready:   boolPtr(false),
+					Reason:  "PendingPoolDiscovery",
+					Message: "Waiting for InferencePool discovery",
+				},
+				{
+					Name:        "failed-reconcile-model",
+					Namespace:   "maas-models",
+					DisplayName: "Failed Reconcile Model",
+					Description: "Failed to reconcile model.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 100000, Window: "24h"},
+					},
+					Ready:   boolPtr(false),
+					Reason:  "ObjectiveFailure",
+					Message: "Failed to reconcile InferenceObjective",
+				},
+				{
+					Name:        "not-applicable-model",
+					Namespace:   "maas-models",
+					DisplayName: "Not Applicable Model",
+					Description: "Not applicable model.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 100000, Window: "24h"},
+					},
+					Ready:   boolPtr(true),
+					Reason:  "NotApplicable",
+					Message: "Not applicable model",
+				},
+				{
+					Name:        "unsupported-model",
+					Namespace:   "maas-models",
+					DisplayName: "Unsupported Model",
+					Description: "Unsupported model.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 100000, Window: "24h"},
+					},
+					Ready:   boolPtr(false),
+					Reason:  "Unsupported",
+					Message: "Unsupported model",
+				},
+				{
+					Name:        "no-objective-required-model",
+					Namespace:   "maas-models",
+					DisplayName: "No Objective Required Model",
+					Description: "No objective required model.",
+					TokenRateLimits: []models.TokenRateLimit{
+						{Limit: 100000, Window: "24h"},
+					},
+					Ready:   boolPtr(true),
+					Reason:  "NoObjectiveRequired",
+					Message: "No objective required model",
 				},
 			},
 			TokenMetadata: &models.TokenMetadata{
@@ -69,8 +143,12 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 			Description:   "Standard subscription for general team access.",
 			Phase:         "Active",
 			StatusMessage: "successfully reconciled",
-			Reason:        "Reconciled",
-			Priority:      0,
+			InferenceObjectivesReady: &models.ConditionSummary{
+				Type:   "InferenceObjectivesReady",
+				Status: "True",
+				Reason: "Reconciled",
+			},
+			Reason: "Reconciled",
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
@@ -85,19 +163,27 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 10000, Window: "24h"},
 					},
+					Ready:   boolPtr(true),
+					Reason:  "Reconciled",
+					Message: "InferenceObjective sets priority 0",
 				},
 			},
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
 		},
 		{
-			Name:          "multi-group-llama-sub",
-			Namespace:     "maas-system",
-			DisplayName:   "Enterprise Multi-Group Llama Access",
-			Description:   "Broad access to Llama 3 70B for multiple teams across the organization.",
-			Phase:         "Active",
-			StatusMessage: "successfully reconciled",
-			Reason:        "Reconciled",
-			Priority:      5,
+			Name:              "multi-group-llama-sub",
+			Namespace:         "maas-system",
+			DisplayName:       "Enterprise Multi-Group Llama Access",
+			Description:       "Broad access to Llama 3 70B for multiple teams across the organization.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
+			InferencePriority: int32Ptr(5),
+			InferenceObjectivesReady: &models.ConditionSummary{
+				Type:   "InferenceObjectivesReady",
+				Status: "True",
+				Reason: "Reconciled",
+			},
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "platform-admins"},
@@ -123,19 +209,29 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 						{Limit: 80000, Window: "1h"},
 						{Limit: 600000, Window: "24h"},
 					},
+					ObjectiveName: "maas-models-as-a-service-gold-llama-3-70b-instruct-inference-pool-c3d4e5f6a7",
+					TargetPool:    "llama-3-70b-instruct-inference-pool",
+					Ready:         boolPtr(true),
+					Reason:        "ObjectiveReconciled",
+					Message:       "InferenceObjective sets priority 5",
 				},
 			},
 			CreationTimestamp: timePtr(time.Date(2025, 4, 1, 9, 0, 0, 0, time.UTC)),
 		},
 		{
-			Name:          "negative-priority-sub",
-			Namespace:     "maas-system",
-			DisplayName:   "Negative Priority Subscription",
-			Description:   "Negative priority subscription for testing.",
-			Phase:         "Active",
-			StatusMessage: "successfully reconciled",
-			Reason:        "Reconciled",
-			Priority:      -10,
+			Name:              "negative-priority-sub",
+			Namespace:         "maas-system",
+			DisplayName:       "Negative Priority Subscription",
+			Description:       "Negative priority subscription for testing.",
+			Phase:             "Active",
+			StatusMessage:     "successfully reconciled",
+			Reason:            "Reconciled",
+			InferencePriority: int32Ptr(-10),
+			InferenceObjectivesReady: &models.ConditionSummary{
+				Type:   "InferenceObjectivesReady",
+				Status: "False",
+				Reason: "ObjectiveFailure",
+			},
 			Owner: models.OwnerSpec{
 				Groups: []models.GroupReference{
 					{Name: "system:authenticated"},
@@ -151,6 +247,9 @@ func GetMockMaaSSubscriptions() []models.MaaSSubscription {
 					TokenRateLimits: []models.TokenRateLimit{
 						{Limit: 10000, Window: "24h"},
 					},
+					Ready:   boolPtr(false),
+					Reason:  "ObjectiveFailure",
+					Message: "Failed to reconcile InferenceObjective",
 				},
 			},
 			CreationTimestamp: timePtr(time.Date(2025, 2, 15, 8, 0, 0, 0, time.UTC)),
@@ -325,6 +424,62 @@ func GetMockMaaSModelRefSummaries() []models.MaaSModelRefSummary {
 			StatusMessage:      "Published external GPT-4o model",
 			Reason:             "Reconciled",
 			GovernanceAttached: true,
+		},
+		{
+			Name:        "failed-reconcile-model",
+			Namespace:   "maas-models",
+			DisplayName: "Failed Reconcile Model",
+			Description: "Failed to reconcile model.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "failed-reconcile-model",
+			},
+			Phase:         "Failed",
+			StatusMessage: "failed to reconcile model",
+			Reason:        "ObjectiveFailure",
+			Endpoint:      "https://failed-reconcile-model.example.com",
+		},
+		{
+			Name:        "not-applicable-model",
+			Namespace:   "maas-models",
+			DisplayName: "Not Applicable Model",
+			Description: "Not applicable model.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "not-applicable-model",
+			},
+			Phase:         "Pending",
+			StatusMessage: "Awaiting governance pairing and backend readiness",
+			Reason:        "BackendNotReady",
+			Endpoint:      "https://not-applicable-model.example.com",
+		},
+		{
+			Name:        "unsupported-model",
+			Namespace:   "maas-models",
+			DisplayName: "Unsupported Model",
+			Description: "Unsupported model.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "unsupported-model",
+			},
+			Phase:         "Pending",
+			StatusMessage: "Waiting for HTTPRoute to be created",
+			Reason:        "BackendNotReady",
+			Endpoint:      "https://unsupported-model.example.com",
+		},
+		{
+			Name:        "no-objective-required-model",
+			Namespace:   "maas-models",
+			DisplayName: "No Objective Required Model",
+			Description: "No objective required model.",
+			ModelRef: models.ModelReference{
+				Kind: "LLMInferenceService",
+				Name: "no-objective-required-model",
+			},
+			Phase:         "Ready",
+			StatusMessage: "no objective required model",
+			Reason:        "NoObjectiveRequired",
+			Endpoint:      "https://no-objective-required-model.example.com",
 		},
 	}
 }

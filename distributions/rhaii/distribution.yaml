@@ -10,5 +10,9 @@ packages:
       extensionsPath: ./extensions
       featureFlags:
         kserve: true
+    - package: '@odh-dashboard/llmd-serving'
+      extensionsPath: ./extensions
+      featureFlags:
+        llmd-serving: true
 
 featureFlags: {}

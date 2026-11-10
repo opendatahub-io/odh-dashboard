@@ -86,6 +86,13 @@ describe('serving runtime catalog services', () => {
     );
   });
 
+  it('should return null for a runtime 404 envelope', async () => {
+    restGETMock.mockResolvedValueOnce({ error: { code: '404', message: 'Not found' } });
+
+    await expect(getServingRuntime(host, namespace)({}, 'missing')).resolves.toBeNull();
+    expect(handleRestFailuresMock).not.toHaveBeenCalled();
+  });
+
   it('should fetch paginated versions for the selected runtime', async () => {
     const list = {
       items: [{ artifactType: 'serving-runtime-version', version: '1', image: 'example/image:1' }],
@@ -124,12 +131,13 @@ describe('serving runtime catalog services', () => {
     );
   });
 
-  it('should propagate backend failures', async () => {
-    handleRestFailuresMock.mockRejectedValue(
-      new Error('serving runtime catalog is only available in catalog mock mode'),
-    );
+  it('should propagate a runtime 500 envelope', async () => {
+    restGETMock.mockResolvedValueOnce({ error: { code: '500', message: 'Catalog unavailable' } });
+    handleRestFailuresMock.mockRejectedValue(new Error('Catalog unavailable'));
+
     await expect(getServingRuntime(host, namespace)({}, '1')).rejects.toThrow(
-      'only available in catalog mock mode',
+      'Catalog unavailable',
     );
+    expect(handleRestFailuresMock).toHaveBeenCalled();
   });
 });

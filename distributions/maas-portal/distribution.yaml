@@ -1,0 +1,24 @@
+name: maas-portal
+productName: "MaaS Portal"
+
+packages:
+  local:
+    - name: maas-portal
+      extensionsPath: ./extensions
+  bundled:
+    - package: '@odh-dashboard/observability'
+      extensionsPath: './extensions/static'
+      featureFlags:
+        observabilityDashboard: true
+    - package: '@odh-dashboard/maas'
+      extensionsPath: './extensions/static'
+      featureFlags:
+        modelAsService: true
+        mySubscriptions: true
+    - package: '@odh-dashboard/gen-ai'
+      extensionsPath: './extensions/static'
+      featureFlags:
+        genAiStudio: true
+        plugin-gen-ai: true
+        chatPlayground: true
+        modelAsService: true

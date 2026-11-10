@@ -15,7 +15,7 @@ const mockSubscriptionInfo: SubscriptionInfoResponse = {
     name: 'premium-team-sub',
     namespace: 'maas-system',
     phase: 'Active',
-    priority: 10,
+    inferencePriority: 10,
     owner: {
       groups: [{ name: 'premium-users' }],
     },

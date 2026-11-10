@@ -120,7 +120,7 @@ func (app *App) TestConnectionHandler(w http.ResponseWriter, r *http.Request, _ 
 	case app.probeSemaphore <- struct{}{}:
 		defer func() { <-app.probeSemaphore }()
 	case <-time.After(probeQueueTimeout):
-		w.Header().Set("Retry-After", "5")
+		w.Header().Set(constants.HeaderRetryAfter, "5")
 		httpError := &HTTPError{
 			StatusCode: http.StatusServiceUnavailable,
 			Error:      ErrorPayload{Code: "PROBE_BUSY", Message: "Connection test queue is full, please retry later"},

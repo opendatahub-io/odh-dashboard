@@ -194,7 +194,9 @@ func (c *baseClient) DiscoverResourceGVR(
 }
 
 // getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
-// namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
+// namespace listing is forbidden. Projects are namespace-backed and carry the metadata
+// (name, labels, annotations) used by namespace callers, so they are returned directly —
+// this avoids one Namespace GET per visible Project.
 // This method expects the caller to have already set an appropriate timeout on the context.
 func (c *baseClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
 	projectGVR := schema.GroupVersionResource{
@@ -210,24 +212,13 @@ func (c *baseClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Name
 
 	namespaces := make([]v1.Namespace, 0, len(projectList.Items))
 	for _, project := range projectList.Items {
-		projectName := project.GetName()
-
-		ns, err := c.Clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
-		if err != nil {
-			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
-				namespaces = append(namespaces, v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        projectName,
-						Annotations: project.GetAnnotations(),
-						Labels:      project.GetLabels(),
-					},
-				})
-			} else {
-				return nil, err
-			}
-		} else {
-			namespaces = append(namespaces, *ns)
-		}
+		namespaces = append(namespaces, v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        project.GetName(),
+				Annotations: project.GetAnnotations(),
+				Labels:      project.GetLabels(),
+			},
+		})
 	}
 
 	return namespaces, nil

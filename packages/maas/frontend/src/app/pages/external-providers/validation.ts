@@ -43,7 +43,7 @@ export const createExternalProviderFormSchema = z
       if (!data.secretValue?.trim()) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'API key value is required when creating a new secret',
+          message: 'Required',
           path: ['secretValue'],
         });
       }

@@ -1,4 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockConfigMapsSecrets } from '@odh-dashboard/internal/__mocks__';
@@ -16,6 +17,8 @@ import {
 import { pageNotfound } from '../../../pages/pageNotFound';
 import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { verifyRelativeURL } from '../../../utils/url';
+import { captureTracking, expectSafeTracking } from '../../../utils/analytics';
+import { Modal } from '../../../pages/components/Modal';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -27,7 +30,7 @@ const groupSubjects: RoleBindingSubject[] = [
 
 const sampleCertificatePath = './cypress/tests/mocked/modelRegistrySettings/mockCertificate.pem';
 const unSupportedFilePath = './cypress/tests/mocked/modelRegistrySettings/unSupportedFile.txt';
-const MODEL_REGISTRIES_NAMESPACE = Cypress.env('APPLICATIONS_NAMESPACE') || 'odh-model-registries';
+const MODEL_REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 const setupMocksForMRSettingAccess = ({
   hasModelRegistries = true,
@@ -36,6 +39,7 @@ const setupMocksForMRSettingAccess = ({
   secrets = [{ name: 'sampleSecret', keys: ['foo.crt', 'bar.crt'] }],
   configMaps = [{ name: 'foo-bar', keys: ['bar.crt'] }],
   failedToLoadCertificates = false,
+  aiHubExists = true,
 }: {
   hasModelRegistries?: boolean;
   hasDatabasePassword?: boolean;
@@ -43,6 +47,7 @@ const setupMocksForMRSettingAccess = ({
   secrets?: ConfigSecretItem[];
   configMaps?: ConfigSecretItem[];
   failedToLoadCertificates?: boolean;
+  aiHubExists?: boolean;
 }) => {
   asProductAdminUser();
   cy.interceptOdh(
@@ -58,11 +63,16 @@ const setupMocksForMRSettingAccess = ({
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
         },
       },
     }),
   );
+  cy.interceptOdh(
+    'GET /api/aihub',
+    aiHubExists
+      ? mockAIHubNamespaceResponse({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE })
+      : { statusCode: 200, headers: { 'content-type': 'application/json' }, body: null },
+  ).as('getAIHub');
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptOdh('POST /api/modelRegistries', mockModelRegistry({})).as('createModelRegistry');
   cy.interceptOdh(
@@ -312,6 +322,20 @@ it('Model registry settings should be available for product admins with capabili
   modelRegistrySettings.findNavItem().should('exist');
 });
 
+it('Shows an error when the AIHub resource is absent', () => {
+  setupMocksForMRSettingAccess({ aiHubExists: false });
+  modelRegistrySettings.visit(false);
+  cy.wait('@getAIHub').then(({ response }) => {
+    expect(response?.statusCode).to.equal(200);
+    expect(response?.body).to.equal(null);
+  });
+  modelRegistrySettings
+    .findErrorState()
+    .should('contain.text', 'Could not load component state')
+    .and('contain.text', 'No registries namespace could be found');
+  cy.testA11y();
+});
+
 it('Model registry settings should not be available when model registry is disabled', () => {
   asProductAdminUser();
   cy.interceptOdh(
@@ -326,10 +350,13 @@ it('Model registry settings should not be available when model registry is disab
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
         },
       },
     }),
+  );
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: MODEL_REGISTRIES_NAMESPACE }),
   );
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   modelRegistrySettings.visit(false);
@@ -1497,6 +1524,75 @@ describe('ManagePermissions', () => {
       .findByText('Manage permissions')
       .trigger('mouseenter');
     modelRegistrySettings.findManagePermissionsTooltip().should('be.visible');
+  });
+});
+
+describe('Model registry failure tracking', () => {
+  const message = 'Private registry diagnostic 95482';
+  const modal = new Modal(/model registry/i);
+
+  beforeEach(() => setupMocksForMRSettingAccess({}));
+
+  it('should keep create diagnostics out of telemetry', () => {
+    cy.intercept('POST', '/api/modelRegistries', { statusCode: 500, body: { message } }).as(
+      'failure',
+    );
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings.findCreateButton().click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).type('default-db-registry');
+    captureTracking();
+    modelRegistrySettings.findSubmitButton().click();
+    cy.wait('@failure');
+    modal.find().should('contain.text', message);
+    expectSafeTracking(
+      'Model Registry Created',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
+  });
+
+  it('should keep update diagnostics out of telemetry', () => {
+    cy.intercept('PATCH', '/api/modelRegistries/test-registry-1', {
+      statusCode: 500,
+      body: { message },
+    }).as('failure');
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-1')
+      .findKebabAction('Edit model registry')
+      .click();
+    modelRegistrySettings.findFormField(FormFieldSelector.NAME).clear().type('Updated registry');
+    captureTracking();
+    modelRegistrySettings.findSubmitButton().click();
+    cy.wait('@failure');
+    modal.find().should('contain.text', message);
+    expectSafeTracking(
+      'Model Registry Updated',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
+  });
+
+  it('should keep delete diagnostics out of telemetry', () => {
+    cy.intercept('DELETE', '/api/modelRegistries/test-registry-1', {
+      statusCode: 500,
+      body: { message },
+    }).as('failure');
+    modelRegistrySettings.visit(true);
+    modelRegistrySettings
+      .findModelRegistryRow('test-registry-1')
+      .findKebabAction('Delete model registry')
+      .click();
+    modelRegistrySettings.findConfirmDeleteNameInput().type('test-registry-1');
+    captureTracking();
+    modelRegistrySettings.findSubmitButton().click();
+    cy.wait('@failure');
+    modal.find().should('contain.text', message);
+    expectSafeTracking(
+      'Model Registry Deleted',
+      { success: false, error: 'unknown_error' },
+      message,
+    );
   });
 });
 

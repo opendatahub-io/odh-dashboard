@@ -9,6 +9,7 @@ import fastifyAccepts from '@fastify/accepts';
 import type { FastifyInstance, FastifyRegisterOptions } from 'fastify';
 import ejs from 'ejs';
 import { getCacheControlForStaticFile } from './utils/cacheHeaders';
+import { applySecurityHeaders, X_CONTENT_TYPE_OPTIONS } from './utils/securityHeaders';
 import { registerPlugins, registerRoutes } from './register-routes';
 
 const publicDir = process.env.ODH_STATIC_DIR
@@ -24,9 +25,24 @@ export const initializeApp = async (
     fs.mkdirSync(LOG_DIR);
   }
 
+  fastify.addHook('onSend', async (request, reply, payload) => {
+    applySecurityHeaders(request, reply);
+    return payload;
+  });
+
   fastify.register(fastifySensible);
 
   fastify.register(fastifyWebsocket);
+
+  // The ws server writes the 101 Switching Protocols response directly — Fastify's
+  // onSend hook does not run for WebSocket routes. Inject nosniff via the ws 'headers'
+  // event to match the normal-response security headers and OpenShift Console's approach
+  // for gorilla/websocket upgrade responses (console#17376).
+  fastify.after(() => {
+    fastify.websocketServer.on('headers', (headers: string[]) => {
+      headers.push(`X-Content-Type-Options: ${X_CONTENT_TYPE_OPTIONS}`);
+    });
+  });
 
   fastify.register(fastifyStatic, {
     root: publicDir,

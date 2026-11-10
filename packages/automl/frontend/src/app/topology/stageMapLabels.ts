@@ -42,4 +42,7 @@ export const resolveStepLabel = (stepId: string): string =>
     ? STEP_DISPLAY_NAMES[stepId]
     : fallbackStageLabel(stepId);
 
+/** Branch-order labels in the expanded table (Model 1, Model 2, …). */
+export const getModelRowLabel = (index: number): string => `Model ${index + 1}`;
+
 /* eslint-enable camelcase */

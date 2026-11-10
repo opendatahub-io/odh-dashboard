@@ -8,6 +8,7 @@ import { UserSubscription } from '~/app/types/subscriptions';
 
 export type UseApiKeysPageLoadReturn = UseApiKeysTableStateReturn & {
   isMaasAdmin: boolean;
+  adminControlsEnabled: boolean;
   isMaasAdminLoaded: boolean;
   maxExpirationDays: number;
   apiKeyConfigLoaded: boolean;
@@ -49,6 +50,7 @@ export const useApiKeysPageLoad = (): UseApiKeysPageLoadReturn => {
   return {
     ...tableState,
     isMaasAdmin,
+    adminControlsEnabled: isMaasAdmin,
     isMaasAdminLoaded,
     maxExpirationDays,
     apiKeyConfigLoaded,

@@ -131,7 +131,7 @@ export const createMockModelsForLabel = (
   });
 
 /**
- * Intercepts models by label using regex to handle filterQuery parameters
+ * Intercepts models by label while allowing additional filterQuery parameters
  */
 export const interceptModelsByLabel = (
   sources: CatalogSource[],
@@ -146,16 +146,12 @@ export const interceptModelsByLabel = (
         modelsPerCategory,
         useValidatedModel,
       );
-      const encodedLabel = encodeURIComponent(label);
-
-      // Use regex-based intercept to match requests with this sourceLabel
-      // This handles both basic requests and requests with filterQuery
+      // Match the decoded query so both '+' and '%20' encodings of spaces work.
       cy.intercept(
         {
           method: 'GET',
-          url: new RegExp(
-            `/model-registry/api/${MODEL_CATALOG_API_VERSION}/model_catalog/models.*sourceLabel=${encodedLabel}`,
-          ),
+          pathname: `/model-registry/api/${MODEL_CATALOG_API_VERSION}/model_catalog/models`,
+          query: { sourceLabel: label },
         },
         mockModArchResponse(mockModels),
       ).as(`getModels-${label}`);

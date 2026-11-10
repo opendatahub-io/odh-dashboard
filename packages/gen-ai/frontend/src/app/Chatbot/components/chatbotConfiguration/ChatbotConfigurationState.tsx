@@ -11,11 +11,14 @@ import { genAiChatPlaygroundRoute } from '~/app/utilities/routes';
 type ChatbotConfigurationStateProps = {
   redirectToPlayground?: boolean;
   onClose?: () => void;
+  /** True when configuring an existing playground (update/restart) rather than creating a new one */
+  isExistingPlayground?: boolean;
 };
 
 const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
   redirectToPlayground,
   onClose,
+  isExistingPlayground = false,
 }) => {
   const { namespace } = React.useContext(GenAiContext);
   const navigate = useNavigate();
@@ -76,17 +79,17 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
         <ExclamationCircleIcon />
       </Icon>
     );
-    title = 'Playground creation failed';
+    title = isExistingPlayground ? 'Playground update failed' : 'Playground creation failed';
   } else if (playgroundReady) {
     icon = (
       <Icon iconSize="2xl" size="2xl" status="success">
         <CheckCircleIcon />
       </Icon>
     );
-    title = 'Playground created';
+    title = isExistingPlayground ? 'Playground updated' : 'Playground created';
   } else {
     icon = <Spinner size="xl" />;
-    title = 'Creating playground';
+    title = isExistingPlayground ? 'Updating playground' : 'Creating playground';
   }
 
   return (

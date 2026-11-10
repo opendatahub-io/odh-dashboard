@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -169,7 +170,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <MaasModelsSection
                 modelRefSummaries={viewModelRefSummaries(policyInfo)}
-                hideColumns={['tokenLimits']}
+                hideColumns={['tokenLimits', 'status']}
                 resourceType="authorization policy"
               />
             </PageSection>

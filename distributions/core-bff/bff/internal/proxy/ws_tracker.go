@@ -61,10 +61,11 @@ type connectionMetrics struct {
 }
 
 type trackedConnection struct {
-	id      string
-	client  *websocket.Conn
-	target  *websocket.Conn
-	metrics *connectionMetrics
+	id        string
+	requestID string
+	client    *websocket.Conn
+	target    *websocket.Conn
+	metrics   *connectionMetrics
 }
 
 // ConnectionTracker manages active WebSocket connections and performs stale connection cleanup.
@@ -73,6 +74,7 @@ type ConnectionTracker struct {
 	connections map[string]*trackedConnection
 	nextID      int
 	stopCh      chan struct{}
+	stopOnce    sync.Once
 	wg          sync.WaitGroup
 	logger      *slog.Logger
 }
@@ -89,7 +91,7 @@ func NewConnectionTracker(logger *slog.Logger) *ConnectionTracker {
 }
 
 // Track registers a client-target WebSocket pair and returns its connection ID.
-func (ct *ConnectionTracker) Track(client, target *websocket.Conn) string {
+func (ct *ConnectionTracker) Track(client, target *websocket.Conn, requestID string) string {
 	ct.mu.Lock()
 	defer ct.mu.Unlock()
 
@@ -97,16 +99,17 @@ func (ct *ConnectionTracker) Track(client, target *websocket.Conn) string {
 	id := fmt.Sprintf("ws-%d", ct.nextID)
 	now := time.Now()
 	ct.connections[id] = &trackedConnection{
-		id:     id,
-		client: client,
-		target: target,
+		id:        id,
+		requestID: requestID,
+		client:    client,
+		target:    target,
 		metrics: &connectionMetrics{
 			Created:             now,
 			LastMessageReceived: now,
 			LastMessageSent:     now,
 		},
 	}
-	ct.logger.Debug("WebSocket connection tracked", slog.String("id", id))
+	ct.logger.Debug("WebSocket connection tracked", slog.String("id", id), slog.String("request_id", ct.connections[id].requestID))
 	return id
 }
 
@@ -114,8 +117,12 @@ func (ct *ConnectionTracker) Track(client, target *websocket.Conn) string {
 func (ct *ConnectionTracker) Untrack(id string) {
 	ct.mu.Lock()
 	defer ct.mu.Unlock()
+	requestID := ""
+	if tc := ct.connections[id]; tc != nil {
+		requestID = tc.requestID
+	}
 	delete(ct.connections, id)
-	ct.logger.Debug("WebSocket connection untracked", slog.String("id", id))
+	ct.logger.Debug("WebSocket connection untracked", slog.String("id", id), slog.String("request_id", requestID))
 }
 
 // ActiveCount returns the number of currently tracked connections.
@@ -126,21 +133,27 @@ func (ct *ConnectionTracker) ActiveCount() int {
 }
 
 // Stop terminates the cleanup goroutine and closes all tracked connections.
-func (ct *ConnectionTracker) Stop() {
+func (ct *ConnectionTracker) Stop() { ct.stopOnce.Do(ct.stop) }
+func (ct *ConnectionTracker) stop() {
 	close(ct.stopCh)
 	ct.wg.Wait()
 
 	ct.mu.Lock()
-	defer ct.mu.Unlock()
+	connections := ct.connections
+	ct.connections = make(map[string]*trackedConnection)
+	ct.mu.Unlock()
 
-	for id, tc := range ct.connections {
+	deadline := time.Now().Add(writeControlTimeout)
+	for id, tc := range connections {
+		ct.logger.Info("WebSocket shutdown", "id", id, "request_id", tc.requestID)
+		sendCloseMessageForShutdown(tc.client, deadline)
+		sendCloseMessageForShutdown(tc.target, deadline)
 		if tc.client != nil {
 			tc.client.Close()
 		}
 		if tc.target != nil {
 			tc.target.Close()
 		}
-		delete(ct.connections, id)
 	}
 	ct.logger.Info("ConnectionTracker stopped, all connections closed")
 }
@@ -175,6 +188,7 @@ func (ct *ConnectionTracker) cleanupStale() {
 		if now.Sub(lastActivity) > wsStaleConnectionTime {
 			ct.logger.Info("Closing stale WebSocket connection",
 				slog.String("id", id),
+				slog.String("request_id", tc.requestID),
 				slog.Duration("idle", now.Sub(lastActivity)))
 			stale = append(stale, tc)
 			delete(ct.connections, id)
@@ -229,4 +243,8 @@ func (ct *ConnectionTracker) updateResourceVersion(id string, rv string) {
 	if tc, ok := ct.connections[id]; ok {
 		tc.metrics.LastResourceVersion = rv
 	}
+}
+
+func (ct *ConnectionTracker) logClose(id, requestID string, err error) {
+	ct.logger.Info("WebSocket closing", "id", id, "request_id", requestID, "close_code", closeCodeFromError(err))
 }

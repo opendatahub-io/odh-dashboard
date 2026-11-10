@@ -1,5 +1,7 @@
 /* eslint-disable camelcase -- keys match backend stage IDs */
 
+import { formatPatternName } from '~/app/utilities/utils';
+
 export const STAGE_DISPLAY_NAMES: Record<string, string> = {
   validate_inputs: 'Validate inputs',
   download_and_sample: 'Download and sample',
@@ -18,7 +20,7 @@ export const STAGE_DISPLAY_NAMES: Record<string, string> = {
   write_patterns: 'Write patterns',
   build_requests: 'Build requests',
   write_artifacts: 'Write artifacts',
-  build_leaderboard: 'Select best pattern',
+  build_leaderboard: 'Build leaderboard',
 };
 
 export const STEP_DISPLAY_NAMES: Record<string, string> = {
@@ -26,7 +28,7 @@ export const STEP_DISPLAY_NAMES: Record<string, string> = {
   embedding: 'Generate embeddings',
   retrieval: 'Retrieve documents',
   generation: 'Generate responses',
-  evaluation: 'Evaluate results',
+  evaluation: 'Score pattern',
 };
 
 const fallbackStageLabel = (stageId: string): string => {
@@ -46,5 +48,9 @@ export const resolveStepLabel = (stepId: string): string =>
   Object.hasOwn(STEP_DISPLAY_NAMES, stepId)
     ? STEP_DISPLAY_NAMES[stepId]
     : fallbackStageLabel(stepId);
+
+/** Branch-order labels in the expanded table (Pattern A, Pattern B, …). */
+export const getPatternRowLabel = (index: number): string =>
+  formatPatternName(`Pattern${index + 1}`);
 
 /* eslint-enable camelcase */

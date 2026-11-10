@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	helper "github.com/opendatahub-io/data-registry/bff/internal/helpers"
@@ -27,6 +28,10 @@ type HTTPClient struct {
 	Headers   http.Header
 }
 
+const httpClientTimeout = 30 * time.Second
+
+const maxResponseBodySize = 10 << 20
+
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
@@ -38,14 +43,17 @@ type HTTPError struct {
 }
 
 func (e *HTTPError) Error() string {
-	return fmt.Sprintf("HTTP %d: %s - %s", e.StatusCode, e.Code, e.Message)
+	return fmt.Sprintf("upstream HTTP %d response", e.StatusCode)
 }
 
 func NewHTTPClient(logger *slog.Logger, RequestID string, baseURL string, headers http.Header, insecureSkipVerify bool) (HTTPClientInterface, error) {
 	return &HTTPClient{
-		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify},
-		}},
+		client: &http.Client{
+			Timeout: httpClientTimeout,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify},
+			},
+		},
 		baseURL:   baseURL,
 		RequestID: RequestID,
 		logger:    logger,
@@ -76,8 +84,8 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	body, err := io.ReadAll(response.Body)
-	logUpstreamResp(c.logger, requestId, response, body)
+	body, err := readResponseBody(response.Body)
+	logUpstreamResp(c.logger, requestId, response)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
@@ -88,8 +96,7 @@ func (c *HTTPClient) GET(url string) ([]byte, error) {
 			// If we can't unmarshal as JSON, create a generic error response with the raw body
 			c.logger.Warn("received non-JSON error response",
 				"status_code", response.StatusCode,
-				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(body[:min(len(body), 200)]))
+				"content_type", response.Header.Get("Content-Type"))
 
 			errorResponse = ErrorResponse{
 				Code:    strconv.Itoa(response.StatusCode),
@@ -131,8 +138,8 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	responseBody, err := io.ReadAll(response.Body)
-	logUpstreamResp(c.logger, requestId, response, responseBody)
+	responseBody, err := readResponseBody(response.Body)
+	logUpstreamResp(c.logger, requestId, response)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
@@ -143,8 +150,7 @@ func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
 			// If we can't unmarshal as JSON, create a generic error response with the raw body
 			c.logger.Warn("received non-JSON error response",
 				"status_code", response.StatusCode,
-				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(responseBody[:min(len(responseBody), 200)]))
+				"content_type", response.Header.Get("Content-Type"))
 
 			errorResponse = ErrorResponse{
 				Code:    strconv.Itoa(response.StatusCode),
@@ -186,8 +192,8 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	responseBody, err := io.ReadAll(response.Body)
-	logUpstreamResp(c.logger, requestId, response, responseBody)
+	responseBody, err := readResponseBody(response.Body)
+	logUpstreamResp(c.logger, requestId, response)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
@@ -198,8 +204,7 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 			// If we can't unmarshal as JSON, create a generic error response with the raw body
 			c.logger.Warn("received non-JSON error response",
 				"status_code", response.StatusCode,
-				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(responseBody[:min(len(responseBody), 200)]))
+				"content_type", response.Header.Get("Content-Type"))
 
 			errorResponse = ErrorResponse{
 				Code:    strconv.Itoa(response.StatusCode),
@@ -229,10 +234,18 @@ func (c *HTTPClient) applyHeaders(req *http.Request) {
 	}
 }
 
+func readResponseBody(body io.Reader) ([]byte, error) {
+	responseBody, err := io.ReadAll(io.LimitReader(body, maxResponseBodySize+1))
+	if len(responseBody) > maxResponseBodySize {
+		return nil, fmt.Errorf("upstream response body exceeds the %d-byte limit", maxResponseBodySize)
+	}
+	return responseBody, err
+}
+
 func logUpstreamReq(logger *slog.Logger, reqId string, req *http.Request) {
 	logger.Debug("Making upstream HTTP request", slog.String("request_id", reqId), slog.Any("request", helper.RequestLogValuer{Request: req}))
 }
 
-func logUpstreamResp(logger *slog.Logger, reqId string, resp *http.Response, body []byte) {
+func logUpstreamResp(logger *slog.Logger, reqId string, resp *http.Response) {
 	logger.Debug("Received upstream HTTP response", slog.String("request_id", reqId), slog.Any("response", helper.ResponseLogValuer{Response: resp}))
 }

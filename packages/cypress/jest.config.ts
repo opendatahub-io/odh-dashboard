@@ -1,3 +1,1 @@
-const config = require('../jest-config/jest.config.ts');
-
-export default config.default;
+export { default } from '@odh-dashboard/jest-config';

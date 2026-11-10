@@ -5,9 +5,21 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMockUploadFileReturnsValidID(t *testing.T) {
+	client := NewMockLlamaStackClient()
+	result, err := client.UploadFile(context.Background(), llamastack.UploadFileParams{})
+	require.NoError(t, err)
+	require.NoError(t, llamastack.ValidateFileID(result.FileID))
+
+	file, err := client.GetFile(context.Background(), result.FileID)
+	require.NoError(t, err)
+	assert.Equal(t, result.FileID, file.ID)
+}
 
 func TestMockListModels_IncludesMaaSPrefixedModels(t *testing.T) {
 	client := NewMockLlamaStackClient()

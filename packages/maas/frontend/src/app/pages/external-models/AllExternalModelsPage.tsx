@@ -1,12 +1,14 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalModel } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
 import { ExternalModelDeletedProperties, MaaSEvents } from '~/app/types/event-tracking';
 import { convertStringToPhaseStatus } from '~/app/utilities/phaseLabelUtils';
+import { MaaSPublishedExternalPostDeployAlert } from '~/odh/modelServingExtensions/MaaSPublishedPostDeployAlert';
 import EmptyExternalModelsPage from './EmptyExternalModelsPage';
 import NoProjectsPage from './NoProjectsPage';
 import {
@@ -80,23 +82,26 @@ const AllExternalModelsPage: React.FC = () => {
         data-testid="all-external-models-page"
       >
         {!noProjects && resolvedNamespace && externalModelsLoaded && !externalModelsError && (
-          <ExternalModelsTable
-            externalModels={filteredExternalModels}
-            onClearFilters={onClearFilters}
-            setDeleteExternalModel={setDeleteExternalModel}
-            toolbarContent={
-              <ExternalModelsToolBar
-                namespace={resolvedNamespace}
-                filterData={filterData}
-                onFilterUpdate={onFilterUpdate}
-              />
-            }
-            emptyTableView={
-              filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
-                <EmptyExternalModelsPage namespace={resolvedNamespace} />
-              )
-            }
-          />
+          <>
+            <MaaSPublishedExternalPostDeployAlert />
+            <ExternalModelsTable
+              externalModels={filteredExternalModels}
+              onClearFilters={onClearFilters}
+              setDeleteExternalModel={setDeleteExternalModel}
+              toolbarContent={
+                <ExternalModelsToolBar
+                  namespace={resolvedNamespace}
+                  filterData={filterData}
+                  onFilterUpdate={onFilterUpdate}
+                />
+              }
+              emptyTableView={
+                filterData[ExternalModelsFilterOptions.keyword] ? undefined : (
+                  <EmptyExternalModelsPage namespace={resolvedNamespace} />
+                )
+              }
+            />
+          </>
         )}
         {deleteExternalModel && (
           <DeleteExternalModelModal

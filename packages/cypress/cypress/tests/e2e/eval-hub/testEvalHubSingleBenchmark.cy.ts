@@ -51,6 +51,8 @@ describe('Eval Hub E2E', () => {
   let evalHubInstanceYamlPath = '';
   let mlflowInstanceYamlPath = '';
   let benchmarkCardTitle = '';
+  let benchmarkProviderId = '';
+  let benchmarkId = '';
   let mlflowExperimentName = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
@@ -66,6 +68,8 @@ describe('Eval Hub E2E', () => {
         evalHubInstanceYamlPath = testData.evalHubInstanceResourceYamlPath;
         mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
         benchmarkCardTitle = testData.benchmarkCardTitle;
+        benchmarkProviderId = testData.benchmarkProviderId;
+        benchmarkId = testData.benchmarkId;
         additionalBenchmarkParams = testData.additionalBenchmarkParams;
         projectNamePrefix = testData.projectNamePrefix;
         evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
@@ -151,6 +155,8 @@ describe('Eval Hub E2E', () => {
 
       submitSingleBenchmarkEvaluation({
         benchmarkCardTitle,
+        benchmarkProviderId,
+        benchmarkId,
         evaluationRunName,
         inferenceServiceName,
         mlflowExperimentName,

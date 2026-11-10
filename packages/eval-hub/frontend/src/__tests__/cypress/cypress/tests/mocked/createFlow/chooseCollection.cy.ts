@@ -3,6 +3,7 @@ import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
 import { mockCollection, mockCollectionsListResponse } from '~/__mocks__/mockCollection';
 import { chooseCollectionPage } from '~/__tests__/cypress/cypress/pages/chooseCollectionPage';
+import { startEvaluationRunPage } from '~/__tests__/cypress/cypress/pages/startEvaluationRunPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import type { Collection } from '~/app/types';
 
@@ -62,6 +63,24 @@ const accuracySuite = mockCollection({
   benchmarkIds: ['truthfulqa_mc1'],
 });
 
+const trustworthinessSuite = mockCollection({
+  id: 'trustworthiness-v1',
+  name: 'Trustworthiness Suite',
+  category: 'Trustworthiness',
+  description: 'Trustworthiness evaluation collection.',
+  benchmarkIds: ['truthfulqa_mc1'],
+  judgeModel: true,
+});
+
+const tenantTrustworthinessSuite = mockCollection({
+  id: 'trustworthiness-v1',
+  name: 'Tenant Trustworthiness Suite',
+  category: 'Trustworthiness',
+  description: 'Tenant-owned trustworthiness collection.',
+  benchmarkIds: ['truthfulqa_mc1'],
+  tenant: NAMESPACE,
+});
+
 describe('Choose Collection Page', () => {
   beforeEach(() => {
     initIntercepts({ collections: [safetySuite, reasoningSuite, accuracySuite] });
@@ -69,7 +88,7 @@ describe('Choose Collection Page', () => {
 
   it('should display collection cards in the gallery', () => {
     chooseCollectionPage.visit(NAMESPACE);
-    chooseCollectionPage.findTitle().should('contain.text', 'Select benchmark suite');
+    chooseCollectionPage.findTitle().should('contain.text', 'Select collection');
     chooseCollectionPage.findCollectionsGallery().should('exist');
     chooseCollectionPage.findCollectionCard('col-safety').should('exist');
     chooseCollectionPage.findCollectionCard('col-safety').should('contain.text', 'Safety Suite');
@@ -101,7 +120,9 @@ describe('Choose Collection Page', () => {
     chooseCollectionPage.findNameFilterInput().type('nonexistent');
 
     chooseCollectionPage.findCollectionsEmptyState().should('exist');
-    chooseCollectionPage.findCollectionsEmptyState().should('contain.text', 'No collections match');
+    chooseCollectionPage
+      .findCollectionsEmptyState()
+      .should('contain.text', 'No collections match the current filters.');
   });
 
   it('should open and close the collection drawer panel', () => {
@@ -119,7 +140,7 @@ describe('Choose Collection Page', () => {
     chooseCollectionPage.findCollectionDrawerPanel().should('not.exist');
   });
 
-  it('should navigate to start page when clicking "Select benchmark suite"', () => {
+  it('should navigate to start page when clicking "Select collection"', () => {
     chooseCollectionPage.visit(NAMESPACE);
 
     chooseCollectionPage.findUseBenchmarkSuiteButton('col-safety').click();
@@ -127,6 +148,125 @@ describe('Choose Collection Page', () => {
     cy.url().should('include', `${NAMESPACE}/create/start`);
     cy.url().should('include', 'type=collection');
     cy.url().should('include', 'collectionId=col-safety');
+  });
+});
+
+const toolUseSuite = mockCollection({
+  id: 'tool-use-v1',
+  name: 'Tool Use Suite',
+  category: 'Tool Use / Agents',
+  description: 'Tool use evaluation collection.',
+  benchmarkIds: ['tau_bench'],
+});
+
+const multimodalSuite = mockCollection({
+  id: 'multimodal-v1',
+  name: 'Multimodal Suite',
+  category: 'Multimodal',
+  description: 'Multimodal evaluation collection.',
+  benchmarkIds: ['mmlu_visual'],
+});
+
+describe('Choose Collection Page - curated run modal', () => {
+  beforeEach(() => {
+    initIntercepts({ collections: [toolUseSuite, multimodalSuite] });
+    cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, []);
+    cy.interceptApi(
+      'GET /api/:apiVersion/inferenceservices',
+      { path: API_VERSION },
+      {
+        items: [],
+      },
+    );
+    cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
+      body: { data: { experiments: [] } },
+    });
+  });
+
+  it('should open the curated run modal with its prerequisite from the card', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findUseBenchmarkSuiteButton('tool-use-v1').click();
+
+    chooseCollectionPage.findCuratedSuiteRunModal().should('be.visible');
+    startEvaluationRunPage
+      .findRunPrerequisite()
+      .should(
+        'contain.text',
+        'The model you are evaluating must support multiple tool/function calls.',
+      );
+    cy.url().should('include', `${NAMESPACE}/create/collections`);
+  });
+
+  it('should open the curated run modal with its prerequisite from the drawer', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findCollectionCard('multimodal-v1').findByText('Multimodal Suite').click();
+    chooseCollectionPage.findCollectionDrawerPanel().should('exist');
+
+    chooseCollectionPage
+      .findCollectionDrawerPanel()
+      .findByTestId('use-benchmark-suite-button')
+      .click();
+
+    chooseCollectionPage.findCuratedSuiteRunModal().should('be.visible');
+    startEvaluationRunPage
+      .findRunPrerequisite()
+      .should(
+        'contain.text',
+        'The model you are evaluating must be a vision-language model that supports image inputs.',
+      );
+  });
+});
+
+describe('Choose Collection Page - curated prerequisites', () => {
+  beforeEach(() => {
+    initIntercepts({ collections: [trustworthinessSuite] });
+  });
+
+  it('should route curated suites through customization from the card', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findCustomizeBenchmarkSuiteButton('trustworthiness-v1').click();
+
+    cy.url().should('include', `${NAMESPACE}/create/collections/trustworthiness-v1/copy`);
+  });
+
+  it('should show the prerequisite and customization action in the drawer', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage
+      .findCollectionCard('trustworthiness-v1')
+      .findByText('Trustworthiness Suite')
+      .click();
+
+    chooseCollectionPage
+      .findCollectionDrawerPanel()
+      .should('contain.text', 'Requires a judge model in addition to the model you are evaluating.')
+      .findByTestId('use-benchmark-suite-button')
+      .should('not.exist');
+    chooseCollectionPage
+      .findCollectionDrawerPanel()
+      .findByTestId('customize-benchmark-suite-button')
+      .should('exist');
+  });
+
+  it('should keep a tenant collection with a curated ID on the select flow', () => {
+    initIntercepts({ collections: [tenantTrustworthinessSuite] });
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage
+      .findCollectionCard('trustworthiness-v1')
+      .findByTestId('customize-benchmark-suite-button')
+      .should('not.exist');
+
+    chooseCollectionPage
+      .findCollectionCard('trustworthiness-v1')
+      .findByTestId('use-benchmark-suite-button')
+      .should('exist')
+      .click();
+
+    cy.url().should('include', `${NAMESPACE}/create/start`);
   });
 });
 
@@ -305,6 +445,6 @@ describe('Choose Collection Page - Empty', () => {
     chooseCollectionPage.findCollectionsEmptyState().should('exist');
     chooseCollectionPage
       .findCollectionsEmptyState()
-      .should('contain.text', 'No collections available');
+      .should('contain.text', 'No collections available.');
   });
 });

@@ -34,6 +34,7 @@ export type AWSS3BucketDetails = {
 export type AWSS3Buckets = {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
+  AWS_CA_BUNDLE?: string;
   BUCKET_1: AWSS3BucketDetails;
   BUCKET_2: AWSS3BucketDetails;
   BUCKET_3: AWSS3BucketDetails;
@@ -160,6 +161,26 @@ export type KueueQuotaUsageNavigationTestData = {
   clusterQueueTypeLabel: string;
 };
 
+export type InfrastructureWorkloadsTestData = {
+  managedProjectName: string;
+  nonKueueProjectName: string;
+  emptyProjectName: string;
+  trainJobName: string;
+  trainingRuntimeName: string;
+  managedProjectWorkbenchName: string;
+  nonKueueProjectWorkbenchName: string;
+  resourceFlavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  initialCpuQuota: number;
+  memoryQuota: number;
+  notebookImage: string;
+  hardwareProfileName: string;
+  nonKueueLabel: string;
+  priorityClassColumnLabel: string;
+  expectedQueuePosition: number;
+};
+
 export type WBControlSuiteTestData = {
   controlSuiteTestNamespace: string;
   controlSuiteTestDescription: string;
@@ -199,6 +220,23 @@ export type WBTolerationsTestData = {
   deletedStatusBadge: string;
 };
 
+export type WBNodeSelectorsTestData = {
+  testNamespace: string;
+  testDescription: string;
+  workbenchNameA: string;
+  workbenchNameB: string;
+  notebookImageName: string;
+  resourceYamlPathA: string;
+  resourceYamlPathB: string;
+  hardwareProfileNameA: string;
+  hardwareProfileNameB: string;
+  hardwareProfileDeploymentSizeA: string;
+  hardwareProfileDeploymentSizeB: string;
+  nodeSelectorKey: string;
+  nodeSelectorValue: string;
+  tolerationValue: string;
+};
+
 export type ModifyHardwareProfileTestData = {
   wbTolerationsTestNamespace: string;
   wbTolerationsTestDescription: string;
@@ -223,6 +261,9 @@ export type WBStatusTestData = {
   wbStatusTestDescription: string;
   notebookImage: string;
   hardwareProfileName: string;
+  createdContainerEventPattern: string;
+  startedContainerEventPattern: string;
+  pulledImageEventText: string;
 };
 
 export type WBStorageClassesTestData = {
@@ -239,6 +280,7 @@ export type WBStorageClassesTestData = {
   mountPathA: string;
   mountPathB: string;
   mountPathC: string;
+  isS390x?: boolean;
 };
 
 export type ClusterStorageAccessModesTestData = {
@@ -275,14 +317,18 @@ export type CommandLineResult = {
   stderr: string;
 };
 
+export type FileMapping = Record<string, string>;
+
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  ODH_DASHBOARD_CANONICAL_URL?: string;
   OCP_API_URL?: string;
   TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
   TEST_USER_5: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
   S3: AWSS3Buckets;
+  AWS_CLI_IMAGE?: string;
   APPLICATIONS_NAMESPACE: NamespaceConfig;
   ODH_DASHBOARD_PROJECT_NAME: string;
   PIP_INDEX_URL: string;
@@ -299,6 +345,7 @@ export type TestConfig = {
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
+  FILEMAPPING?: FileMapping;
 };
 
 export type DataScienceProjectData = {
@@ -339,6 +386,7 @@ export type DataScienceProjectData = {
   resourceApiVersion: string;
   existingImage: string;
   replaceImage: string;
+  replaceImageArm64?: string;
   serviceAccountName1: string;
   serviceAccountName2: string;
   connectionNameSuffix: string;
@@ -349,6 +397,7 @@ export type DataScienceProjectData = {
   userSubjectKind: string;
   groupSubjectKind: string;
   yamlEditorModelName: string;
+  yamlEditorModelPathArm64?: string;
   legacyServingRuntime?: string;
   legacyModelLocationURI?: string;
   legacyHardwareProfileName?: string;
@@ -386,12 +435,44 @@ export type RoutingTestData = DataScienceProjectData & {
   defaultRoutingLabel: string;
 };
 
+/** Gateway MultiSelection option identity (UI label is `${name} | ${namespace}`). */
+export type MultiGatewayFixtureRef = {
+  name: string;
+  namespace: string;
+};
+
+export type MultiGatewayTestData = DataScienceProjectData & {
+  gatewayA: MultiGatewayFixtureRef;
+  gatewayB: MultiGatewayFixtureRef;
+  cpuContainerImage: string;
+};
+
 export type AcceleratorTestData = DataScienceProjectData & {
   unsupportedAcceleratorConfigFixturePath: string;
   acceleratorConfigName: string;
   version: string;
   replaceSourceString: string;
   replaceTargetString: string;
+};
+
+export type RuntimeLibraryInstallTestData = {
+  searchTerm: string;
+  resourceNamePrefix: string;
+  displayNamePrefix: string;
+  resourceKind: string;
+  resourceApiVersion: string;
+  listPath: string;
+};
+
+export type RuntimeLibraryTemplateTestData = RuntimeLibraryInstallTestData & {
+  templateKind: string;
+  templateApiVersion: string;
+  modelServingSupport: string[];
+};
+
+export type RuntimeLibraryAcceleratorTestData = RuntimeLibraryInstallTestData & {
+  editedVersion: string;
+  configType: string;
 };
 
 export type ServingRuntimeSettingsTestData = DataScienceProjectData & {
@@ -487,7 +568,7 @@ export type NamespaceConfig = {
   APPLICATIONS_NAMESPACE: string;
 };
 
-enum OOTBConnectionTypes {
+export enum OOTBConnectionTypes {
   s3 = 'S3 compatible object storage - v1',
   uri = 'URI - v1',
   oci = 'OCI compliant registry - v1',
@@ -537,9 +618,15 @@ export type ModelTolerationsTestData = {
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
   modelName: string;
+  dataConnectionName: string;
   modelFilePath: string;
   modelFormat: string;
   servingRuntime: string;
+  clusterRole?: string;
+  isS390x?: boolean;
+  servingRuntimeName?: string;
+  servingRuntimeYamlPath?: string;
+  inferenceServicePatch?: string;
 };
 
 export type NotebookTolerationsTestData = {
@@ -583,13 +670,24 @@ export type ModelRegistryTestData = {
   servingRuntime: string;
   servingRuntimeS390x: string;
   servingRuntimeX86: string;
+  servingRuntimeArm64: string;
+  servingRuntimeArm64YamlPath: string;
   // New version registration (Versions view)
   version2Name: string;
   version2Description: string;
   modelFormatTensorflow: string;
   formatVersion3_0: string;
   uriVersion2: string;
+  /** Standard KServe (Knative/Serverless) — status.deploymentMode is 'Standard'. */
   deploymentType: string;
+  /**
+   * KServe RawDeployment — status.deploymentMode is 'RawDeployment'.
+   * Terminal load failures are signalled by:
+   *   targetModelState === 'FailedToLoad'
+   *   transitionStatus === 'BlockedByFailedLoad'
+   *   modelStatus.lastFailureInfo.reason / .message
+   */
+  rawDeploymentType: string;
 
   newNameSuffix: string;
   newDescription: string;
@@ -758,6 +856,9 @@ export type GenAiTestData = {
   inferenceServiceName: string;
   modelType: string;
   servingRuntime: string;
+  servingRuntimeArm64: string;
+  servingRuntimeYamlPath: string;
+  servingRuntimeArm64YamlPath: string;
   testMessage: string;
   cpuRequested: number;
   cpuLimit: number;
@@ -769,6 +870,33 @@ export type GenAiTestData = {
   configMapName: string;
   playgroundServiceName: string;
   servingRuntimesPath: string;
+};
+
+export type GenAiMaaSTestData = {
+  llmInferenceServiceFixturePath: string;
+  subscriptionFixturePath: string;
+  authPolicyFixturePath: string;
+  phase: string;
+  playgroundServiceName: string;
+  playgroundPodPrefix: string;
+  playgroundPodReadyTimeout: string;
+  testMessage: string;
+};
+
+export type GenAiTracingTestData = {
+  modelId: string;
+  modelType: string;
+  displayName: string;
+  endpointUrl: string;
+  lsdServiceName: string;
+  lsdPodPrefix: string;
+  lsdPodReadyTimeout: string;
+  tracing: {
+    testPrompt: string;
+    mlflowTraceDetailExpectedSpans: string[];
+    openTelemetryCondition: string;
+    tempoCondition: string;
+  };
 };
 
 export type CustomEndpointTestData = {
@@ -818,6 +946,43 @@ export type CustomEndpointTestData = {
   };
 };
 
+export type ExternalVectorStoreTestData = {
+  model: {
+    id: string;
+    displayName: string;
+    endpointUrl: string;
+  };
+  provider: {
+    id: string;
+    type: string;
+    resourceName: string;
+    credentialsSecretName: string;
+    database: string;
+    user: string;
+    password: string;
+  };
+  vectorStore: {
+    id: string;
+    name: string;
+    description: string;
+    embeddingModel: string;
+    embeddingModelId: string;
+    embeddingDimension: number;
+  };
+  seed: {
+    id: string;
+    fileId: string;
+    fileName: string;
+    content: string;
+    question: string;
+    expectedContentFragment: string;
+  };
+  llamaStack: {
+    deploymentName: string;
+    serviceName: string;
+  };
+};
+
 /** Shared fixture fields used by the Eval Hub E2E tests. */
 export type EvalHubTestData = {
   projectNamePrefix: string;
@@ -826,6 +991,10 @@ export type EvalHubTestData = {
   mlflowInstanceResourceYamlPath: string;
   /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
   benchmarkCardTitle: string;
+  /** Provider ID of the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkProviderId: string;
+  /** Benchmark ID of the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkId: string;
   /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
   inferenceModelName: string;
   /** MLflow experiment name entered when starting an evaluation. */
@@ -842,7 +1011,10 @@ export type EvalHubTestData = {
   hardwareProfileResourceYamlPath: string;
 };
 
-export type EvalHubBenchmarkSuiteTestData = Omit<EvalHubTestData, 'benchmarkCardTitle'> & {
+export type EvalHubBenchmarkSuiteTestData = Omit<
+  EvalHubTestData,
+  'benchmarkCardTitle' | 'benchmarkProviderId' | 'benchmarkId'
+> & {
   /** Base name for the tenant suite created by this spec. */
   suiteName: string;
   /** Category IDs assigned to suites created from this fixture. */
@@ -876,7 +1048,6 @@ export type ModelAsAServiceTestData = {
   singleModelName: string;
   singleModelDescription: string;
   llmInferenceServiceConfigName: string;
-  llmInferenceServiceConfigDisplayName: string;
   llmInferenceServiceConfigContainerImage: string;
   llmInferenceServiceFixturePath: string;
   hardwareProfileName: string;
@@ -994,6 +1165,7 @@ export type RayJobE2eTestData = {
   gpuQuota: number;
   workerGroupName: string;
   rayImage: string;
+  rayImageArm64: string;
   rayVersion: string;
 };
 
@@ -1001,6 +1173,7 @@ export type RayJobTestData = {
   projectName: string;
   rayJobName: string;
   rayImage: string;
+  rayImageArm64: string;
   flavorName: string;
   clusterQueueName: string;
   localQueueName: string;
@@ -1075,6 +1248,11 @@ export type MlflowExperimentsTestData = {
   nonExistentExperiment: string;
 };
 
+export type MlflowAgentObservabilityTestData = {
+  projectName: string;
+  experimentName: string;
+};
+
 export type AutoragTestData = {
   projectNamePrefix: string;
   dspaSecretName: string;
@@ -1088,6 +1266,15 @@ export type AutoragTestData = {
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
   maxRagPatterns: number;
   optimizationMetric?: string;
+};
+
+export type AgentRuntimesTestData = {
+  pageTitle: string;
+  projectResourceName: string;
+  filterSearchTerm: string;
+  filterOptionStatus: string;
+  statusPending: string;
+  statusReady: string;
 };
 
 export type MlflowIrisRunData = {

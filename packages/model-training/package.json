@@ -15,6 +15,11 @@
     "./extensions": "./extensions.ts",
     "./types": "./src/types.ts",
     "./k8sTypes": "./src/k8sTypes.ts",
+    "./status": "./src/global/trainingJobList/utils.ts",
+    "./components/TrainingJobStatus": "./src/global/trainingJobList/components/TrainingJobStatus.tsx",
+    "./components/RayJobStatus": "./src/global/trainingJobList/components/RayJobStatus.tsx",
+    "./components/TrainingJobStatusModal": "./src/global/trainingJobList/TrainingJobStatusModal.tsx",
+    "./components/RayJobStatusModal": "./src/global/trainingJobList/RayJobStatusModal.tsx",
     "./__mocks__/*": [
       "./src/__mocks__/*",
       "./src/__mocks__/*.ts"

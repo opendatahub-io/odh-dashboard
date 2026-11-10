@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Grid } from '@patternfly/react-core';
-import { ContainerResourceAttributes, type ContainerResources } from '@odh-dashboard/k8s-core';
+import { ContainerResourceAttributes } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { CPUFieldWithCheckbox } from '@odh-dashboard/ui-core/components/CPUField';
 import { MemoryFieldWithCheckbox } from '@odh-dashboard/ui-core/components/MemoryField';
@@ -11,7 +11,7 @@ type ServingRuntimeSizeExpandedFieldProps = {
   setData: (value: ModelServingSize) => void;
 };
 
-type ResourceKeys = keyof ContainerResources;
+type ResourceKeys = 'requests' | 'limits';
 
 const ServingRuntimeSizeExpandedField = ({
   data,

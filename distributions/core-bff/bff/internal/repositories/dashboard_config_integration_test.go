@@ -1,10 +1,16 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,6 +38,7 @@ func newFakeDynClientWithDashboardConfig(disableProjects bool) *dynamicfake.Fake
 				"dashboardConfig": map[string]any{
 					"disableProjects": disableProjects,
 					"disableKServe":   true,
+					"dataRegistry":    true,
 				},
 			},
 		},
@@ -63,6 +70,9 @@ func TestGetDashboardConfig_PrivilegedRead_ReturnsRealConfig(t *testing.T) {
 
 	// Defaults are merged in for fields not in the CR
 	assert.True(t, config.Spec.DashboardConfig.Enablement)
+
+	// New feature flags are preserved through the typed core-bff model.
+	assert.True(t, config.Spec.DashboardConfig.DataRegistry)
 }
 
 func TestGetDashboardConfig_CRDAbsent_FallsBackToDefaults(t *testing.T) {
@@ -179,4 +189,27 @@ func TestGetDashboardConfig_XKSPlatform_OverridesCRValues(t *testing.T) {
 
 	assert.True(t, config.Spec.DashboardConfig.DisableProjects)
 	assert.True(t, config.Spec.DashboardConfig.DisableBYONImageStream)
+}
+
+func TestConfigBootstrapFailureLogsAreSafeAndCorrelated(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	previous := slog.Default()
+	slog.SetDefault(logger)
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	client := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+	client.PrependReactor("create", models.DashboardConfigGVR.Resource, func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewForbidden(models.DashboardConfigGVR.GroupResource(), "dashboard-config", errors.New("CANARY_SECRET upstream detail"))
+	})
+	repo := NewDashboardConfigRepository(config.PlatformOpenShift, client)
+	handler := httpcontract.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		result, err := repo.GetDashboardConfig(r.Context(), "test", "dashboard-config", nil)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	}), logger)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/config", nil))
+	require.NotContains(t, logs.String(), "CANARY_SECRET")
+	require.Contains(t, logs.String(), `"code":"Forbidden"`)
+	require.Contains(t, logs.String(), response.Header().Get(httpcontract.RequestIDHeader))
 }

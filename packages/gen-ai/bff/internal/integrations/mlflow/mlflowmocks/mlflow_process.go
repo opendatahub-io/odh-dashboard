@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	defaultMLflowPort         = 5001
-	defaultMLflowVersion      = "3.15.1"
+	defaultMLflowPort = 5001
+	// defaultMLflowVersion tracks the MLflow version shipped in the RHOAI
+	// stable channel so mock-mode tests exercise production server behavior.
+	defaultMLflowVersion      = "3.17.0"
 	healthTimeout             = 90 * time.Second
 	healthPoll                = 2 * time.Second
 	shutdownWait              = 5 * time.Second

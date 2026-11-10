@@ -20,14 +20,13 @@ const useAdminDefaultStorageClassInternal = (): FetchState<StorageClassKind | nu
     React.useCallback(
       () =>
         new Promise((resolve, reject) => {
-          if (!isStorageClassesAvailable) {
+          if (!isStorageClassesAvailable || storageClassesError) {
             resolve(null);
+            return;
           }
           if (!storageClassesLoaded) {
             reject(new NotReadyError('Storage classes are not loaded'));
-          }
-          if (storageClassesError) {
-            resolve(null);
+            return;
           }
 
           const enabledStorageClasses = storageClasses.filter(
@@ -38,11 +37,7 @@ const useAdminDefaultStorageClassInternal = (): FetchState<StorageClassKind | nu
             (sc) => getStorageClassConfig(sc)?.isDefault === true,
           );
 
-          if (defaultSc) {
-            resolve(defaultSc);
-          } else {
-            resolve(null);
-          }
+          resolve(defaultSc ?? null);
         }),
       [storageClasses, storageClassesLoaded, storageClassesError, isStorageClassesAvailable],
     );
@@ -125,27 +120,29 @@ export const useDefaultStorageClass = (
   let loaded = true;
 
   // 1. First priority: admin storage class (from Dashboard Admin Configuration)
-  if (
-    isStorageClassesAvailable &&
-    adminDefaultStorageClassLoaded &&
-    !adminDefaultStorageClassError
-  ) {
-    storageClass = adminDefaultStorageClass;
-    loaded = adminDefaultStorageClassLoaded;
+  if (isStorageClassesAvailable) {
+    if (!adminDefaultStorageClassLoaded && !adminDefaultStorageClassError) {
+      // Admin default is still loading -- report not loaded so consumers wait
+      // for the highest-priority source before acting on a lower-priority fallback.
+      // If there is an error, allow fallthrough to lower-priority defaults.
+      loaded = false;
+    } else if (adminDefaultStorageClassLoaded && !adminDefaultStorageClassError) {
+      storageClass = adminDefaultStorageClass;
+    }
   }
 
   // 2. Second priority: preferred storage class (from OdhDashboardConfig CR)
-  if (!storageClass && preferredStorageClass) {
+  if (!storageClass && loaded && preferredStorageClass) {
     storageClass = preferredStorageClass;
   }
 
   // 3. Third priority: OpenShift default storage class
-  if (!storageClass && openshiftDefaultStorageClass) {
+  if (!storageClass && loaded && openshiftDefaultStorageClass) {
     storageClass = openshiftDefaultStorageClass;
   }
 
   // 4. Fourth priority: first storage class in the list (if fallbackToFirst is true)
-  if (!storageClass && fallbackToFirst && (storageClassesLoaded || storageClassesError)) {
+  if (!storageClass && loaded && fallbackToFirst && (storageClassesLoaded || storageClassesError)) {
     storageClass = storageClasses[0] || null;
     error = storageClassesError;
     loaded = storageClassesLoaded;

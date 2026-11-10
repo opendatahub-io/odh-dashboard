@@ -1,5 +1,5 @@
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared';
 import {
   ServingRuntimeTemplateTrackingEvent,
@@ -38,6 +38,61 @@ describe('fireServingRuntimeTemplateCreated', () => {
         apiProtocol: ServingRuntimeAPIProtocol.REST,
         modelTypes: 'predictive,generative',
       },
+    );
+  });
+
+  it('should attribute install submit and cancel to the install source without user content', () => {
+    fireServingRuntimeTemplateCreated({
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: 'install',
+      apiProtocol: ServingRuntimeAPIProtocol.REST,
+      modelTypes: 'generative',
+    });
+    fireServingRuntimeTemplateCreated({
+      outcome: TrackingOutcome.cancel,
+      mode: 'install',
+    });
+    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
+      1,
+      ServingRuntimeTemplateTrackingEvent.CREATED,
+      {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        mode: 'create',
+        source: 'install',
+        apiProtocol: ServingRuntimeAPIProtocol.REST,
+        modelTypes: 'generative',
+      },
+    );
+    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
+      2,
+      ServingRuntimeTemplateTrackingEvent.CREATED,
+      { outcome: TrackingOutcome.cancel, mode: 'create', source: 'install' },
+    );
+  });
+
+  it('should normalize Add form mode to the existing create analytics value', () => {
+    fireServingRuntimeTemplateCreated({
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: 'add',
+    });
+    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+      ServingRuntimeTemplateTrackingEvent.CREATED,
+      { outcome: TrackingOutcome.submit, success: true, mode: 'create' },
+    );
+  });
+
+  it('should retain install attribution when submission fails', () => {
+    fireServingRuntimeTemplateCreated({
+      outcome: TrackingOutcome.submit,
+      success: false,
+      mode: 'install',
+    });
+    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+      ServingRuntimeTemplateTrackingEvent.CREATED,
+      { outcome: TrackingOutcome.submit, success: false, mode: 'create', source: 'install' },
     );
   });
 

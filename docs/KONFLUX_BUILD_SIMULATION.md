@@ -66,6 +66,11 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Output: Saved as the `dashboard-operator-image` artifact for reuse in the Phase 4 Kind cluster (no rebuild)
   - Triggers: Runs when the PR touches `dashboard-operator/**` (alongside frontend/backend/manifest changes)
 
+- ✅ **Core BFF image build** (`distributions/core-bff/Dockerfile.workspace`)
+  - Builds: The Core BFF from the PR checkout
+  - Output: Saved as an artifact and loaded into the Phase 4 Kind cluster
+  - Why: Keeps the simulator independent of the mutable published Core BFF `:main` image
+
 ### Phase 2: Runtime Validation
 - ✅ **Container startup health**
   - Starts container and waits 30 seconds
@@ -121,16 +126,37 @@ Runs BEFORE Docker build to catch issues in <1 minute:
   - Reports: Total size per module
   - Helps: Track bundle bloat over time
 
+- ✅ **CSS logical-properties lowering guard** (RHOAIENG-100835)
+  - Scans: Emitted production CSS from the ODH host image's `frontend/public`,
+    each changed module image's `/static` output (BFF Build Shards run only for
+    modules the PR touches), and model-serving's standalone federated build when
+    it changes (`model-serving-css-guard` job — model-serving has no
+    `Dockerfile.workspace`, so the module shard never builds it). The RHOAI-mode
+    image is built but not scanned; its frontend uses the same shared
+    production config as the ODH build
+  - Detects: `:lang(ae...)` RTL fallback selectors that LightningCSS emits when
+    it lowers CSS logical properties — bare `:lang(ae)` under the default es6
+    targets, comma-separated lists like `:lang(ae,ar,...)` under older targets
+    (e.g. safari 14) — the production-only lowering that beats PatternFly
+    contextual-override specificity
+  - Local invocation: `bash scripts/check-css-lowering.sh <dist-dir>` after any
+    production build (e.g. `make -C packages/model-serving frontend-build-federated`,
+    then scan `packages/model-serving/frontend/dist`)
+  - Fails: On offending selectors, on scan errors (unreadable output), and on
+    empty scan targets (missing build output) — a missing check never passes
+
 **Note:** This does NOT test runtime proxy endpoints (`/_mf/*` routes) — those proxy to K8s services and require a cluster.
 
 ### Phase 4: Operator Integration (Kind Cluster)
 - ✅ **Kind cluster creation**
   - Creates: Temporary local Kubernetes cluster
-  - Loads: Built dashboard Docker image and the dashboard-operator image (from the Phase 1 artifacts)
+  - Loads: Built dashboard, Core BFF, and dashboard-operator images from Phase 1 artifacts
 
 - ✅ **Manifest application**
-  - Applies: Kustomize overlays (`manifests/odh`)
+  - Renders: The current `manifests/odh` through a CI-only Kind overlay
+  - Adapts: Dashboard deployment images and resources for Kind, and the existing dashboard RBAC binding subjects for the Kind namespace without changing production manifests
   - Tests: CRD installation, ConfigMap generation
+  - Note: Missing OpenShift and Gateway API mappings are expected in Kind
 
 - ✅ **Deployment validation**
   - Waits: Up to 5 minutes for pod to be ready
@@ -176,7 +202,7 @@ Runs only when a PR changes files in a package that has a `Dockerfile.workspace`
 Runs independently of the Docker build (no image needed), so it fails fast on manifest regressions.
 
 - ✅ **Kustomize build testing**
-  - Builds: The set the `dashboard-operator` actually renders — the platform overlays (`manifests/base`, `manifests/odh`, `manifests/rhoai`), the observability overlays (`manifests/observability/{odh,rhoai}`), the MaaS consumer-portal distribution (`manifests/distributions/maas-consumer-portal`), and every module overlay under `manifests/modules/<slug>` (discovered automatically, so a new module needs no workflow edit). The ConsoleLink overlays are covered transitively through the platform overlays.
+  - Builds: The set the `dashboard-operator` actually renders — the platform overlays (`manifests/base`, `manifests/odh`, `manifests/rhoai`), the observability overlays (`manifests/observability/{odh,rhoai}`), the MaaS Portal distribution (`manifests/distributions/maas-portal`), and every module overlay under `manifests/modules/<slug>` (discovered automatically, so a new module needs no workflow edit). The ConsoleLink overlays are covered transitively through the platform overlays.
   - Validates: YAML syntax, kustomization references, resource generation
   - Catches: Missing files, broken `resources:`/`patches:` paths, ConfigMapGenerator errors
 

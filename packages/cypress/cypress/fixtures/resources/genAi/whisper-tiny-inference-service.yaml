@@ -1,0 +1,30 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: whisper-tiny
+  annotations:
+    opendatahub.io/model-capabilities: '["audio-transcription"]'
+    openshift.io/display-name: E2E Audio Transcription Model
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: 'true'
+    opendatahub.io/genai-asset: 'true'
+spec:
+  predictor:
+    automountServiceAccountToken: false
+    maxReplicas: 1
+    minReplicas: 1
+    model:
+      modelFormat:
+        name: vLLM
+      resources:
+        limits:
+          cpu: '4'
+          memory: 6Gi
+        requests:
+          cpu: '2'
+          memory: 4Gi
+      runtime: whisper-tiny-runtime
+      # This multilingual ModelCar supports language detection when the caller
+      # omits `language`, as the Gen AI BFF does for audio transcriptions.
+      storageUri: oci://registry.redhat.io/rhai/modelcar-redhatai-whisper-tiny@sha256:866c36f1603afc25d64e5da41c8063993b70a7d0243622864384220269796a5c

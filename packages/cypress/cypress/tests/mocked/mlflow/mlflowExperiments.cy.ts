@@ -4,13 +4,18 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel } from '../../../utils/models';
-import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
+import {
+  asClusterAdminUser,
+  asProductAdminUser,
+  asProjectEditUser,
+} from '../../../utils/mockUsers';
 import {
   interceptMlflowEmbeddedRemoteFailure,
   interceptMlflowStatus,
   interceptMlflowStatusError,
 } from '../../../utils/mlflowUtils';
 import { mlflowExperiments } from '../../../pages/mlflowExperiments';
+import { homePage } from '../../../pages/home/home';
 import { appChrome } from '../../../pages/appChrome';
 
 const PROJECT_A = 'test-project-a';
@@ -99,12 +104,13 @@ describe('MLflow Experiments page wrapper', () => {
     });
 
     it('should show admin not-configured empty state when MLflow BFF reports unconfigured', () => {
-      initIntercepts({ mlflowConfigured: false });
+      initIntercepts({ mlflowConfigured: false, userSetup: asClusterAdminUser });
       mlflowExperiments.visit(PROJECT_A);
       mlflowExperiments.findNotConfiguredAdminEmptyState().should('be.visible');
       mlflowExperiments.findNotConfiguredEmptyState().should('not.exist');
       mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
       mlflowExperiments.findMlflowUnavailableState().should('not.exist');
+      mlflowExperiments.findLaunchMlflowButton().should('not.exist');
     });
 
     it('should show non-admin not-configured empty state when MLflow BFF reports unconfigured', () => {
@@ -114,6 +120,13 @@ describe('MLflow Experiments page wrapper', () => {
       mlflowExperiments.findNotConfiguredAdminLink().should('be.visible');
       mlflowExperiments.findNotConfiguredAdminEmptyState().should('not.exist');
       mlflowExperiments.findMlflowUnavailableState().should('not.exist');
+    });
+
+    it('should show non-admin guidance to a dashboard admin without MLflow CR access', () => {
+      initIntercepts({ mlflowConfigured: false, userSetup: asProductAdminUser });
+      mlflowExperiments.visit(PROJECT_A);
+      mlflowExperiments.findNotConfiguredEmptyState().should('be.visible');
+      mlflowExperiments.findNotConfiguredAdminEmptyState().should('not.exist');
     });
 
     it('should show unavailable empty state when MLflow BFF status check fails', () => {
@@ -135,7 +148,8 @@ describe('MLflow Experiments page wrapper', () => {
       mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
     });
 
-    it('should hide nav item when MLflow operator is removed', () => {
+    it('should show setup guidance when MLflow operator is removed', () => {
+      initIntercepts({ userSetup: asClusterAdminUser });
       const dscStatus = mockDscStatus({});
       dscStatus.components = {
         ...dscStatus.components,
@@ -143,8 +157,14 @@ describe('MLflow Experiments page wrapper', () => {
       };
       cy.interceptOdh('GET /api/dsc/status', dscStatus);
 
-      cy.visitWithLogin('/');
-      mlflowExperiments.findNavItem().should('not.exist');
+      homePage.visit();
+      homePage.findTaskShortcut('develop-experiments').should('not.exist');
+      mlflowExperiments.visit(PROJECT_A);
+      mlflowExperiments.findNavItem().should('be.visible');
+      mlflowExperiments
+        .findNotConfiguredAdminEmptyState()
+        .should('be.visible')
+        .should('contain', 'Enable experiments');
     });
   });
 });

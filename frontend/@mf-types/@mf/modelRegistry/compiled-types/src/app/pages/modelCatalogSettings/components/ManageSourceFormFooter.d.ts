@@ -9,6 +9,7 @@ type ManageSourceFormFooterProps = {
     isPreviewDisabled: boolean;
     isPreviewLoading: boolean;
     onPreview: () => void;
+    previewDisabledTooltip?: string;
 };
 declare const ManageSourceFormFooter: React.FC<ManageSourceFormFooterProps>;
 export default ManageSourceFormFooter;

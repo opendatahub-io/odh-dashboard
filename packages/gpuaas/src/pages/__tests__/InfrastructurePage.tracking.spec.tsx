@@ -8,12 +8,26 @@ import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useA
 import {
   GPUAAS_EVENTS,
   QUOTA_USAGE_INTERACTION_TYPES,
+  WORKLOADS_INTERACTION_TYPES,
 } from '../../tracking/gpuaasTrackingConstants';
 import type { ClusterMetrics } from '../../hooks/useInfrastructureMetrics';
 import InfrastructurePage from '../InfrastructurePage';
 
+type InfrastructureLocationState = {
+  tab?: string;
+};
+
+const mockUseLocation = jest.fn(() => ({
+  state: undefined as InfrastructureLocationState | undefined,
+}));
+
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+}));
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useLocation: () => mockUseLocation(),
 }));
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
@@ -120,6 +134,7 @@ describe('InfrastructurePage - Tracking Events', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentMetrics = { ...mockMetrics, refresh: mockRefresh };
+    mockUseLocation.mockReturnValue({ state: undefined });
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
       devFlags: null,
@@ -213,6 +228,19 @@ describe('InfrastructurePage - Tracking Events', () => {
     });
   });
 
+  it('selects the Workloads tab from location state after access loads', async () => {
+    mockUseLocation.mockReturnValue({ state: { tab: 'workloads' } });
+
+    render(<InfrastructurePage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('infrastructure-tab-workloads')).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+    });
+  });
+
   describe('Infrastructure Data Refresh', () => {
     it('renders just now with lowercase after the Updated prefix', () => {
       render(<InfrastructurePage />);
@@ -250,6 +278,27 @@ describe('InfrastructurePage - Tracking Events', () => {
       expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, expect.any(Object));
       expect(mockRefresh).toHaveBeenCalled();
       expect(mockBorrowingRefresh).toHaveBeenCalled();
+    });
+
+    it('tracks workloads refresh on refresh button click', async () => {
+      const user = userEvent.setup();
+      render(<InfrastructurePage />);
+
+      await user.click(screen.getByTestId('infrastructure-tab-workloads'));
+      const refreshButton = within(
+        screen.getByTestId('infrastructure-workloads-refresh'),
+      ).getByRole('button', { name: 'Refresh' });
+      await user.click(refreshButton);
+
+      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, {
+        refreshSource: 'workloads',
+        outcome: 'click',
+        secondsSinceLastUpdate: expect.any(Number),
+      });
+      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_INTERACTED, {
+        interactionType: WORKLOADS_INTERACTION_TYPES.refresh,
+        secondsSinceTabLoad: expect.any(Number),
+      });
     });
 
     it('tracks quota usage refresh on refresh button click', async () => {

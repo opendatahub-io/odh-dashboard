@@ -14,6 +14,8 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { PencilAltIcon } from '@patternfly/react-icons';
+import type { CuratedCollectionParameterConfig } from '~/app/curatedSuiteConfig';
+import BenchmarkTestDataRefFields from '~/app/components/BenchmarkTestDataRefFields';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { getMetricDisplayName } from '~/app/components/benchmarkUtils';
 import DynamicBenchmarkParameterFields from '~/app/components/DynamicBenchmarkParameterFields';
@@ -22,6 +24,8 @@ import {
   updateBenchmarkParameter,
   type CopySuiteBenchmark,
 } from '~/app/pages/useCopySuiteForm';
+import type { TestDataRefFormField } from '~/app/schemas/testDataRef.schema';
+import { benchmarkRequiresTestData } from '~/app/utilities/testDataRefRequirements';
 
 import './CopySuiteBenchmarkSection.scss';
 
@@ -32,6 +36,9 @@ type CopySuiteBenchmarkSectionProps = {
   weightRatio: number;
   totalWeightRatio: number;
   additionalParametersError?: string;
+  parameterErrors?: Record<string, string>;
+  parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
+  testDataRefErrors?: Partial<Record<TestDataRefFormField, string>>;
   isInteractionDisabled?: boolean;
   onUpdate: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
   onEditWeights: () => void;
@@ -45,6 +52,9 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
   weightRatio,
   totalWeightRatio,
   additionalParametersError,
+  parameterErrors,
+  parameterConfig,
+  testDataRefErrors,
   isInteractionDisabled = false,
   onUpdate,
   onEditWeights,
@@ -172,17 +182,18 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
           </FormGroup>
         ) : null}
 
-        <DynamicBenchmarkParameterFields
-          parameters={benchmark.parameters}
-          itemId={itemId}
+        <BenchmarkTestDataRefFields
+          value={benchmark.testDataRef}
+          idPrefix={itemId}
+          testIdPrefix={`benchmark-test-data-ref-${index}`}
           isDisabled={isInteractionDisabled}
-          onChange={(key, value) =>
-            onUpdate(
-              index,
-              'parameters',
-              updateBenchmarkParameter(benchmark.parameters, key, value),
-            )
-          }
+          isRequired={benchmarkRequiresTestData(benchmark.providerId, benchmark.id)}
+          errors={testDataRefErrors}
+          onChange={(value) => {
+            if (!isInteractionDisabled) {
+              onUpdate(index, 'testDataRef', value);
+            }
+          }}
         />
 
         <BenchmarkThresholdField
@@ -197,6 +208,21 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
           fieldId={`${itemId}-threshold`}
           metric={benchmark.primaryMetric}
           isDisabled={isInteractionDisabled}
+        />
+
+        <DynamicBenchmarkParameterFields
+          parameters={benchmark.parameters}
+          itemId={itemId}
+          isDisabled={isInteractionDisabled}
+          parameterConfig={parameterConfig}
+          parameterErrors={parameterErrors}
+          onChange={(key, value) =>
+            onUpdate(
+              index,
+              'parameters',
+              updateBenchmarkParameter(benchmark.parameters, key, value),
+            )
+          }
         />
 
         <ExpandableSection

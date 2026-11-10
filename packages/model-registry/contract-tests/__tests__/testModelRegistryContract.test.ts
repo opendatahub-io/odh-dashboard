@@ -13,13 +13,13 @@ describe('Model Registry List Endpoint', () => {
     },
   });
 
-  // Option 2: Load OpenAPI schema (recommended approach)
-  const apiSchema = loadOpenAPISchema('upstream/api/openapi/mod-arch.yaml');
+  const openApiPath = process.env.CONTRACT_OPENAPI_PATH || 'upstream/api/openapi/mod-arch.yaml';
+  const apiSchema = loadOpenAPISchema(openApiPath, 'components');
 
   it('should successfully retrieve model registries list', async () => {
     const result = await apiClient.get('/api/v1/model_registry?namespace=default');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
+      ref: '#/components/responses/ModelRegistryResponse/content/application~1json/schema',
       status: 200,
     });
   });
@@ -27,7 +27,7 @@ describe('Model Registry List Endpoint', () => {
   it('should handle empty registry list', async () => {
     const result = await apiClient.get('/api/v1/model_registry?namespace=nonexistent');
     expect(result).toMatchContract(apiSchema, {
-      ref: '#/components/responses/ModelRegistryResponse/content/application/json/schema',
+      ref: '#/components/responses/ModelRegistryResponse/content/application~1json/schema',
       status: 200,
     });
   });

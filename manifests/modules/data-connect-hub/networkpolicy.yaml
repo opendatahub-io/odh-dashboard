@@ -13,6 +13,14 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Direct Data Registry BFF calls use the DCH UI/BFF service port.
+    - from:
+        - podSelector:
+            matchLabels:
+              deployment: data-registry-ui
+      ports:
+        - port: 9243
+          protocol: TCP
     - ports:
         - port: 9243
           protocol: TCP

@@ -1,6 +1,6 @@
 import { SortableData } from 'mod-arch-shared';
 import { CatalogPerformanceMetricsArtifact, PerformanceMetricsCustomProperties } from '~/app/modelCatalogTypes';
-export type HardwareConfigColumnField = keyof PerformanceMetricsCustomProperties;
+export type HardwareConfigColumnField = keyof PerformanceMetricsCustomProperties | 'cold_start_load_time' | 'runtime_command';
 export type HardwareConfigColumn = Omit<SortableData<CatalogPerformanceMetricsArtifact>, 'field'> & {
     field: HardwareConfigColumnField;
 };

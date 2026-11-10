@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Content, Flex, FlexItem, Skeleton, Title } from '@patternfly/react-core';
+import { Alert, Content, Flex, Skeleton, Title } from '@patternfly/react-core';
 import ContentModal, { ButtonAction } from '@odh-dashboard/ui-core/components/ContentModal';
 import RayJobStatus from './components/RayJobStatus';
 import { getRayJobStatusSync, getStatusFlags, getRayJobStatusAlert } from './utils';
@@ -57,15 +57,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
         <Skeleton height="20px" width="80%" />
       )}
     </Alert>
-  ) : (
-    <Content data-testid="ray-job-status-no-info">
-      {isComplete
-        ? 'The job completed successfully.'
-        : isDeleting
-        ? 'The job is being deleted.'
-        : 'No additional status information is available for this job.'}
-    </Content>
-  );
+  ) : null;
 
   const showDeleteButton = !isDeleting && !isComplete;
 
@@ -109,9 +101,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
           <Title headingLevel="h2" size="lg">
             Ray job progress
           </Title>
-          <FlexItem>
-            <RayJobStatus job={job} jobStatus={status} />
-          </FlexItem>
+          <RayJobStatus job={job} jobStatus={status} />
         </Flex>
       }
       contents={bodyContent}

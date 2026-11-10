@@ -23,13 +23,17 @@ const (
 	sandboxConfigMount   = "/etc/ogx"
 	sandboxWrapperMount  = "/opt/custom"
 
-	agentProfileIDLabel = "opendatahub.io/agent-profile-id"
+	agentProfileIDLabel             = "opendatahub.io/agent-profile-id"
+	deploymentDisplayNameAnnotation = "opendatahub.io/agent-deployment-display-name"
 )
 
 // SandboxCROptions holds all parameters for building a Sandbox CR.
 type SandboxCROptions struct {
 	// Name is used as the Sandbox CR name and app.kubernetes.io/instance label.
 	Name string
+	// DisplayName is the user-provided deployment name, retained independently from the generated
+	// Sandbox resource name.
+	DisplayName string
 	// ProfileID is stored as a label so list/get can use a label selector.
 	ProfileID               string
 	LlamaStackConfigMapName string
@@ -52,6 +56,11 @@ type SandboxCROptions struct {
 	MCPServersJSON string
 	// ModelAuthSecret is set for custom endpoint models and injected as AGENT_MODEL_API_KEY.
 	ModelAuthSecret *SandboxSecretEnvVar
+	// EmbeddingAuthSecret is set when a vector store's embedding model is a keyed custom
+	// endpoint model and injected as AGENT_EMBEDDING_API_KEY. The wrapper forwards it as
+	// passthrough_api_key provider data so remote::passthrough embedding providers
+	// authenticate with it.
+	EmbeddingAuthSecret *SandboxSecretEnvVar
 	// VectorStoreIDsJSON describes the vector stores selected by the profile. The
 	// wrapper uses it to add a file_search tool to every Responses API request.
 	VectorStoreIDsJSON string
@@ -128,6 +137,9 @@ func (kc *TokenKubernetesClient) CreateSandboxCR(
 			"metadata": map[string]interface{}{
 				"name":      opts.Name,
 				"namespace": namespace,
+				"annotations": map[string]interface{}{
+					deploymentDisplayNameAnnotation: opts.DisplayName,
+				},
 				"labels": map[string]interface{}{
 					dashboardLabel:      "true",
 					agentProfileIDLabel: opts.ProfileID,
@@ -217,7 +229,6 @@ func buildSandboxEnvVars(opts SandboxCROptions, namespace, pgvectorHost, pgvecto
 	vars := []interface{}{
 		sandboxEnvVar("OGX_CONFIG", "/etc/ogx/config.yaml"),
 		sandboxEnvVar("OGX_CONFIG_DIR", "/opt/app-root/src/.ogx/distributions/rh/"),
-		sandboxEnvVar("VLLM_TLS_VERIFY", "false"),
 		sandboxEnvVar("FAISS_STORE_DIR", "/opt/app-root/.llama/faiss"),
 		sandboxEnvVar("MAAS_GATEWAY_URL", opts.MaaSGatewayURL),
 		sandboxEnvVar("MAAS_SUBSCRIPTION", opts.MaaSSubscription),
@@ -244,6 +255,9 @@ func buildSandboxEnvVars(opts SandboxCROptions, namespace, pgvectorHost, pgvecto
 	}
 	if opts.ModelAuthSecret != nil {
 		vars = append(vars, sandboxEnvVarFromSecret(opts.ModelAuthSecret.Name, opts.ModelAuthSecret.SecretName, sandboxMCPAuthSecretKey))
+	}
+	if opts.EmbeddingAuthSecret != nil {
+		vars = append(vars, sandboxEnvVarFromSecret(opts.EmbeddingAuthSecret.Name, opts.EmbeddingAuthSecret.SecretName, sandboxMCPAuthSecretKey))
 	}
 
 	return vars

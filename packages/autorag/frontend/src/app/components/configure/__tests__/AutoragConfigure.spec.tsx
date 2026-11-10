@@ -2,7 +2,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
@@ -39,6 +39,13 @@ const mockNotificationWarning = jest.fn();
 
 const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
 let mockConnectionModalProps: ConnectionModalProps | undefined;
+let mockS3FileExplorerProps:
+  | {
+      selectableExtensions?: string[];
+      unselectableReason?: string;
+      modalDescription?: React.ReactNode;
+    }
+  | undefined;
 
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
@@ -230,13 +237,21 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
     isOpen,
     onSelectFiles,
     onClose,
+    selectableExtensions,
+    unselectableReason,
+    modalDescription,
   }: {
     isOpen: boolean;
     onSelectFiles: (files: ExplorerFiles) => void;
     onClose: () => void;
-  }) =>
-    isOpen ? (
+    selectableExtensions?: string[];
+    unselectableReason?: string;
+    modalDescription?: React.ReactNode;
+  }) => {
+    mockS3FileExplorerProps = { selectableExtensions, unselectableReason, modalDescription };
+    return isOpen ? (
       <div data-testid="file-explorer-modal">
+        <div data-testid="file-explorer-modal-description">{modalDescription}</div>
         <button
           data-testid="file-explorer-select-file"
           onClick={() => {
@@ -262,7 +277,8 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
           Cancel
         </button>
       </div>
-    ) : null,
+    ) : null;
+  },
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
@@ -423,6 +439,7 @@ describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockConnectionModalProps = undefined;
+    mockS3FileExplorerProps = undefined;
     mockNotificationError.mockClear();
     mockNotificationWarning.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
@@ -658,6 +675,15 @@ describe('AutoragConfigure', () => {
       ).toBeInTheDocument();
     });
 
+    it('should expose supported file types from the knowledge setup heading', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      const helpButton = screen.getByRole('button', { name: 'View supported file types' });
+      fireEvent.click(helpButton);
+      expect(screen.getByText('Supported file types')).toBeInTheDocument();
+    });
+
     it('should NOT show document input toggle when no secret is selected', () => {
       renderComponent();
 
@@ -715,6 +741,11 @@ describe('AutoragConfigure', () => {
 
       // Verify the "Select file or folder" section is displayed
       expect(screen.getByRole('heading', { name: 'Select file or folder' })).toBeInTheDocument();
+      expect(
+        screen.getAllByText(
+          'Select or upload documents to use as the knowledge for your experiment.',
+        ).length,
+      ).toBeGreaterThan(0);
     });
 
     it('should display the "Browse bucket" button when a secret is selected', () => {
@@ -749,6 +780,24 @@ describe('AutoragConfigure', () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
       expect(screen.getByText(/Drop a file here or browse to select a file/)).toBeInTheDocument();
+    });
+
+    it('should expose supported file types from both knowledge setup headings', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(screen.getAllByRole('button', { name: 'View supported file types' })).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      expect(
+        within(screen.getByTestId('file-explorer-modal-description')).getByRole('button', {
+          name: 'View supported file types',
+        }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('file-explorer-cancel'));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+      expect(screen.getAllByRole('button', { name: 'View supported file types' })).toHaveLength(1);
     });
 
     it('should not upload an oversized file and should show a notification', () => {
@@ -871,6 +920,25 @@ describe('AutoragConfigure', () => {
         expect(mockNotificationError).not.toHaveBeenCalled();
       });
 
+      it('should upload an allowed audio file dropped on the zone', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const audioFile = new File(['audio'], 'recording.WAV', {
+          type: 'application/octet-stream',
+        });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([audioFile]);
+
+        await waitFor(() => {
+          expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+            expect.objectContaining({ key: 'recording.WAV', file: audioFile }),
+          );
+        });
+        expect(mockNotificationError).not.toHaveBeenCalled();
+      });
+
       it('should not upload a valid file when dropped together with an invalid file', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
@@ -915,6 +983,63 @@ describe('AutoragConfigure', () => {
         );
       });
       expect(mockNotificationError).not.toHaveBeenCalled();
+    });
+
+    it('should upload an allowed audio file from the native file input', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const audioFile = new File(['audio'], 'recording.m4a', { type: '' });
+      getMockS3MutateAsync().mockClear();
+      fireEvent.change(fileInput!, { target: { files: [audioFile] } });
+
+      await waitFor(() => {
+        expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+          expect.objectContaining({ key: 'recording.m4a', file: audioFile }),
+        );
+      });
+      expect(mockNotificationError).not.toHaveBeenCalled();
+    });
+
+    it('should pass audio-inclusive extensions and the supported-format reason to the S3 explorer', () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      expect(mockS3FileExplorerProps?.selectableExtensions).toEqual([
+        'pdf',
+        'docx',
+        'pptx',
+        'md',
+        'markdown',
+        'html',
+        'htm',
+        'txt',
+        'odt',
+        'odp',
+        'adoc',
+        'tex',
+        'epub',
+        'eml',
+        'msg',
+        'qmd',
+        'Rmd',
+        'xhtml',
+        'jpg',
+        'jpeg',
+        'png',
+        'tif',
+        'tiff',
+        'mp3',
+        'wav',
+        'm4a',
+      ]);
+      expect(mockS3FileExplorerProps?.unselectableReason).toBe(
+        'You can only select PDF, DOCX, PPTX, Markdown, HTML, Plain text, OpenDocument Text, OpenDocument Presentation, AsciiDoc, LaTeX, EPUB, EML, MSG, Markdown (Quarto), R Markdown, XHTML, JPEG, PNG, TIFF, MP3, WAV, or M4A files',
+      );
     });
 
     it('should show human-readable error for max collision attempts (409)', async () => {
@@ -1021,10 +1146,10 @@ describe('AutoragConfigure', () => {
       expect(screen.getByTestId('selected-models-warning')).toBeInTheDocument();
       expect(screen.getByTestId('selected-models-warning')).toHaveClass('pf-v6-c-alert');
       expect(screen.queryByRole('heading', { name: 'Selected models' })).not.toBeInTheDocument();
-      expect(screen.getByText('Selected models')).toHaveClass('pf-v6-c-alert__title');
+      expect(screen.getByText('No models selected')).toHaveClass('pf-v6-c-alert__title');
       expect(
         screen.getByText(
-          'No models selected. Select chat and embedding models to run the experiment.',
+          'To run the experiment, select a foundation model and an embedding model.',
         ),
       ).toBeInTheDocument();
       expect(screen.queryByText('No foundation models selected')).not.toBeInTheDocument();

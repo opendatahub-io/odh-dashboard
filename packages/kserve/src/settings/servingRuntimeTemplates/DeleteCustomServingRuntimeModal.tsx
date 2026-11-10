@@ -1,14 +1,13 @@
 import * as React from 'react';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getTemplateEnabled,
   setListDisabled,
 } from '@odh-dashboard/model-serving/shared';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
-import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import DeleteModal from '@odh-dashboard/ui-core/components/DeleteModal';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { deleteTemplateBackend } from '@odh-dashboard/internal/services/templateService';
 import { patchDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';

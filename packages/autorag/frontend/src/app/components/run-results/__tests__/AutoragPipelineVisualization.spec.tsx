@@ -146,4 +146,19 @@ describe('AutoragPipelineVisualization', () => {
     expect(screen.getByTestId('show-details')).toBeInTheDocument();
     expect(screen.getByTestId('selected-ids')).toHaveTextContent('node-a');
   });
+
+  it('should render the module icon beside the run title', () => {
+    render(
+      <AutoragPipelineVisualization
+        runTitle="AutoRAG pipeline run"
+        runState="RUNNING"
+        treeViewData={treeViewData}
+      />,
+    );
+
+    expect(screen.getByTestId('run-title-icon')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'AutoRAG pipeline run' }),
+    ).toBeInTheDocument();
+  });
 });

@@ -27,6 +27,8 @@ const testConfig: TestConfig | undefined = env.CY_TEST_CONFIG
 export const BASE_URL = env.CYPRESS_E2E_PROXY
   ? `http://localhost:${env.PROXY_PORT || '4040'}`
   : testConfig?.ODH_DASHBOARD_URL || env.BASE_URL || '';
+const ODH_DASHBOARD_CANONICAL_URL =
+  testConfig?.ODH_DASHBOARD_CANONICAL_URL || env.ODH_DASHBOARD_CANONICAL_URL;
 
 const LDAP_CONTRIBUTOR_USER: UserAuthConfig = testConfig?.TEST_USER_3 ?? {
   AUTH_TYPE: env.TEST_USER_3_AUTH_TYPE || '',
@@ -81,10 +83,13 @@ const AWS_PIPELINES: AWSS3Buckets = {
     testConfig?.S3.AWS_ACCESS_KEY_ID || env.AWS_PIPELINES_BUCKET_ACCESS_KEY_ID || '',
   AWS_SECRET_ACCESS_KEY:
     testConfig?.S3.AWS_SECRET_ACCESS_KEY || env.AWS_PIPELINES_BUCKET_SECRET_ACCESS_KEY || '',
+  AWS_CA_BUNDLE: testConfig?.S3.AWS_CA_BUNDLE || env.AWS_PIPELINES_BUCKET_CA_BUNDLE || '',
   BUCKET_1: AWS_PIPELINES_BUCKET_1,
   BUCKET_2: AWS_PIPELINES_BUCKET_2,
   BUCKET_3: AWS_PIPELINES_BUCKET_3,
 };
+
+const AWS_CLI_IMAGE = testConfig?.AWS_CLI_IMAGE || env.AWS_CLI_IMAGE || '';
 
 const APPLICATIONS_NAMESPACE = testConfig?.APPLICATIONS_NAMESPACE;
 const PRODUCT_NAME = testConfig?.ODH_DASHBOARD_PROJECT_NAME;
@@ -108,6 +113,8 @@ const HF_API_KEY = testConfig?.HF_API_KEY;
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
 
+const { FILEMAPPING } = testConfig ?? {};
+
 // spread the cypressEnv variables into the cypress config
 export const cypressEnv = {
   LDAP_CONTRIBUTOR_USER,
@@ -115,7 +122,9 @@ export const cypressEnv = {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CLUSTER_ADMIN_USER,
   TEST_USER: LDAP_ADMIN_USER,
+  ODH_DASHBOARD_CANONICAL_URL,
   AWS_PIPELINES,
+  AWS_CLI_IMAGE,
   APPLICATIONS_NAMESPACE,
   PRODUCT_NAME,
   PIP_INDEX_URL,
@@ -131,6 +140,7 @@ export const cypressEnv = {
   MAAS_GENERATION_MODEL_ID,
   MAAS_EMBEDDING_MODEL_ID,
   CLUSTER_AUTH,
+  FILEMAPPING,
 };
 
 // re-export the updated process env

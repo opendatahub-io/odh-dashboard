@@ -84,22 +84,27 @@ type App struct {
 	repositories            *repositories.Repositories
 	openAPI                 *OpenAPIHandler
 	kubernetesClientFactory k8s.KubernetesClientFactory
-	llamaStackClientFactory llamastack.LlamaStackClientFactory
-	nemoClientFactory       nemopkg.NemoClientFactory
-	mcpClientFactory        mcp.MCPClientFactory
-	mlflowClientFactory     mlflowpkg.MLflowClientFactory
-	mlflowExternalURL       string
-	nemoGuardrailsURL       string
-	bffClientFactory        bffclient.BFFClientFactory
-	httpClient              *http.Client
-	dashboardNamespace      string
-	memoryStore             cache.MemoryStore
-	rootCAs                 *x509.CertPool
-	sandboxMu               sync.RWMutex
-	sandboxesAvailable      bool
-	sandboxWatcherDone      chan struct{}
-	sandboxWatcherWg        sync.WaitGroup
-	fileUploadJobTracker    *services.FileUploadJobTracker
+	// realKubernetesClientFactory is a non-mock factory used by user lookup
+	// even when kubernetesClientFactory is mocked. Created once and shared so
+	// the per-request handler does not rebuild (and re-run OTel discovery on)
+	// a factory for every call.
+	realKubernetesClientFactory k8s.KubernetesClientFactory
+	llamaStackClientFactory     llamastack.LlamaStackClientFactory
+	nemoClientFactory           nemopkg.NemoClientFactory
+	mcpClientFactory            mcp.MCPClientFactory
+	mlflowClientFactory         mlflowpkg.MLflowClientFactory
+	mlflowExternalURL           string
+	nemoGuardrailsURL           string
+	bffClientFactory            bffclient.BFFClientFactory
+	httpClient                  *http.Client
+	dashboardNamespace          string
+	memoryStore                 cache.MemoryStore
+	rootCAs                     *x509.CertPool
+	sandboxMu                   sync.RWMutex
+	sandboxesAvailable          bool
+	sandboxWatcherDone          chan struct{}
+	sandboxWatcherWg            sync.WaitGroup
+	fileUploadJobTracker        *services.FileUploadJobTracker
 	// cleanupFuncs holds shutdown callbacks for mock processes (envtest, MLflow, LlamaStack)
 	cleanupFuncs []func()
 }
@@ -221,6 +226,29 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client factory: %w", err)
+	}
+
+	// Ensure token factories stop their background OTel discovery retry on
+	// shutdown.
+	stopFactory := func(f k8s.KubernetesClientFactory) {
+		if tcf, ok := f.(*k8s.TokenClientFactory); ok {
+			tcf.Stop()
+		}
+	}
+	cleanupFuncs = append(cleanupFuncs, func() { stopFactory(k8sFactory) })
+
+	// Authenticated user lookup uses a real (non-mock) Kubernetes client,
+	// even in mock mode. Disabled auth needs no user-lookup factory and is
+	// not supported by NewKubernetesClientFactory.
+	realK8sFactory := k8sFactory
+	if cfg.AuthMethod == config.AuthMethodDisabled {
+		realK8sFactory = nil
+	} else if cfg.MockK8sClient {
+		realK8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger, rootCAs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create real Kubernetes client factory: %w", err)
+		}
+		cleanupFuncs = append(cleanupFuncs, func() { stopFactory(realK8sFactory) })
 	}
 
 	// Initialize MCP client factory
@@ -374,24 +402,25 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	app := &App{
-		config:                  cfg,
-		logger:                  logger,
-		repositories:            repositories.NewRepositoriesWithMCP(mcpFactory, logger),
-		openAPI:                 openAPIHandler,
-		kubernetesClientFactory: k8sFactory,
-		llamaStackClientFactory: llamaStackClientFactory,
-		nemoClientFactory:       nemoClientFactory,
-		mcpClientFactory:        mcpFactory,
-		mlflowClientFactory:     mlflowFactory,
-		mlflowExternalURL:       mlflowExternalURL,
-		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
-		bffClientFactory:        bffFactory,
-		httpClient:              httpClient,
-		dashboardNamespace:      dashboardNamespace,
-		memoryStore:             memStore,
-		rootCAs:                 rootCAs,
-		fileUploadJobTracker:    fileUploadJobTracker,
-		cleanupFuncs:            cleanupFuncs,
+		config:                      cfg,
+		logger:                      logger,
+		repositories:                repositories.NewRepositoriesWithMCP(mcpFactory, logger),
+		openAPI:                     openAPIHandler,
+		kubernetesClientFactory:     k8sFactory,
+		realKubernetesClientFactory: realK8sFactory,
+		llamaStackClientFactory:     llamaStackClientFactory,
+		nemoClientFactory:           nemoClientFactory,
+		mcpClientFactory:            mcpFactory,
+		mlflowClientFactory:         mlflowFactory,
+		mlflowExternalURL:           mlflowExternalURL,
+		nemoGuardrailsURL:           cfg.NemoGuardrailsURL,
+		bffClientFactory:            bffFactory,
+		httpClient:                  httpClient,
+		dashboardNamespace:          dashboardNamespace,
+		memoryStore:                 memStore,
+		rootCAs:                     rootCAs,
+		fileUploadJobTracker:        fileUploadJobTracker,
+		cleanupFuncs:                cleanupFuncs,
 	}
 
 	// Seed sandbox availability synchronously at startup, then keep it current via watcher.
@@ -474,6 +503,14 @@ func (app *App) Routes() http.Handler {
 	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
 	apiRouter.POST(constants.ResponsesPassthroughPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.LlamaStackPassthroughResponseHandler))))
 
+	// Responses relay — forwards embedded-playground requests to a same-origin
+	// target endpoint via the externally accessed gateway route. Deliberately
+	// registered without namespace/SSAR middleware: the relay performs no k8s
+	// operations, the embedded namespace belongs to the target service, and the
+	// user's own bearer token is forwarded so every hop after this one
+	// (kube-rbac-proxy, module proxy, target BFF) re-authenticates it.
+	apiRouter.POST(constants.ResponsesRelayPath, app.ResponsesRelayHandler)
+
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoresHandler))))
 	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackCreateVectorStoreHandler))))
@@ -502,7 +539,7 @@ func (app *App) Routes() http.Handler {
 
 	// AI Assets Models (Kubernetes + MaaS)
 	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
+	apiRouter.GET(constants.ModelsAAPath, app.AttachOptionalNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.ModelsAAHandler))))
 	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
 	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
 

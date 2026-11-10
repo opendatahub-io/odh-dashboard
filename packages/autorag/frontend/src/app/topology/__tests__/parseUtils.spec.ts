@@ -186,6 +186,19 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('documents-discovery')).toBe('Pending');
   });
 
+  it('does not infer a failed task for a canceled run', () => {
+    const taskIds = ['publish-component-stage-map', 'test-data-loader'];
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, undefined),
+      RuntimeStateKF.CANCELED,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('publish-component-stage-map')).toBeUndefined();
+    expect(statuses.get('test-data-loader')).toBeUndefined();
+  });
+
   it('keeps later tasks pending after an explicit task failure', () => {
     const taskIds = ['test-data-loader', 'documents-sampling', 'text-extraction'];
     const runDetails = makeRunDetails(
@@ -256,7 +269,7 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('merge')).toBe('Pending');
   });
 
-  it('infers run-level failure on all eligible parallel branches after a succeeded root', () => {
+  it('does not infer a failure when multiple parallel branches are reachable', () => {
     const taskIds = ['root', 'branch-b', 'branch-a', 'merge'];
     const depsByTaskId = new Map<string, string[]>([
       ['root', []],
@@ -277,9 +290,9 @@ describe('resolveTaskTopologyRunStatuses', () => {
     );
 
     expect(statuses.get('root')).toBe('Succeeded');
-    expect(statuses.get('branch-a')).toBe('Failed');
-    expect(statuses.get('branch-b')).toBe('Failed');
-    expect(statuses.get('merge')).toBe('Pending');
+    expect(statuses.get('branch-a')).toBeUndefined();
+    expect(statuses.get('branch-b')).toBeUndefined();
+    expect(statuses.get('merge')).toBeUndefined();
   });
 
   it('preserves explicit in-progress branch statuses after a succeeded root on a failed run', () => {
@@ -306,6 +319,44 @@ describe('resolveTaskTopologyRunStatuses', () => {
     expect(statuses.get('branch-a')).toBe('InProgress');
     expect(statuses.get('branch-b')).toBe('Pending');
     expect(statuses.get('merge')).toBeUndefined();
+  });
+
+  it('does not infer an upstream failure when a downstream task is running', () => {
+    const taskIds = ['root', 'child', 'grandchild'];
+    const runDetails = makeRunDetails({
+      task_id: 'grandchild',
+      display_name: 'grandchild',
+      state: RuntimeStateKF.RUNNING,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('root')).toBeUndefined();
+    expect(statuses.get('child')).toBeUndefined();
+    expect(statuses.get('grandchild')).toBe('InProgress');
+  });
+
+  it('does not infer an upstream failure when a downstream task succeeded', () => {
+    const taskIds = ['root', 'child', 'grandchild'];
+    const runDetails = makeRunDetails({
+      task_id: 'grandchild',
+      display_name: 'grandchild',
+      state: RuntimeStateKF.SUCCEEDED,
+    });
+    const statuses = resolveTaskTopologyRunStatuses(
+      taskIds,
+      buildTaskRuntimeById(taskIds, runDetails),
+      RuntimeStateKF.FAILED,
+      linearDeps(taskIds),
+    );
+
+    expect(statuses.get('root')).toBeUndefined();
+    expect(statuses.get('child')).toBeUndefined();
+    expect(statuses.get('grandchild')).toBe('Succeeded');
   });
 
   it('ignores malformed run-level states when resolving task statuses', () => {

@@ -32,6 +32,8 @@ import {
   type WizardFormAction,
 } from './useDeploymentWizardReducer';
 import type { ExternalDataMap } from './ExternalDataLoader';
+import { useIsDRAHardwareProfileSupported } from './deploying/useIsDRAHardwareProfileSupported';
+import type { DeployMethodActivationInput } from '../../../extension-points/deployment-wizard';
 import {
   type InitialWizardFormData,
   type WizardField,
@@ -52,6 +54,7 @@ export type UseModelDeploymentWizardState = WizardFormData & {
     shouldAutoCheckTokens: boolean;
   };
   computedOverrides: WizardStateOverrides;
+  deployMethodActivationInput: DeployMethodActivationInput;
   dispatch: React.Dispatch<WizardFormAction>;
   fields: WizardField<unknown>[];
 };
@@ -111,7 +114,6 @@ export const useModelDeploymentWizard = (
     regexp: INFERENCE_SERVICE_NAME_REGEX,
     invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   });
-  const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
   const modelFormatState = useModelFormatField(
     initialData?.modelFormat,
     modelType.data,
@@ -119,11 +121,6 @@ export const useModelDeploymentWizard = (
   );
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
-
-  // loaded state
-  const modelDeploymentLoaded = React.useMemo(() => {
-    return hardwareProfileConfig.profilesLoaded;
-  }, [hardwareProfileConfig.profilesLoaded]);
 
   // Step 3: Advanced Options - Individual Fields
   const modelAvailability = useModelAvailabilityFields(
@@ -177,12 +174,11 @@ export const useModelDeploymentWizard = (
 
   // Step 4: Summary
 
-  const mergedFormState: WizardFormData['state'] = React.useMemo(
+  const stateWithoutHardwareProfile = React.useMemo(
     () => ({
       project,
       modelType,
       k8sNameDesc,
-      hardwareProfileConfig,
       modelFormatState,
       modelLocationData: {
         ...modelLocationData,
@@ -206,7 +202,6 @@ export const useModelDeploymentWizard = (
       project,
       modelType,
       k8sNameDesc,
-      hardwareProfileConfig,
       modelFormatState,
       modelLocationData,
       createConnectionData,
@@ -225,6 +220,49 @@ export const useModelDeploymentWizard = (
     ],
   );
 
+  const deployMethodActivationInput: DeployMethodActivationInput = React.useMemo(
+    () => ({
+      deploymentMethod: formState.deploymentMethod,
+      modelLocationData: { data: modelLocationData.data },
+    }),
+    [formState.deploymentMethod, modelLocationData.data],
+  );
+  const isDRAHardwareProfileSupported = useIsDRAHardwareProfileSupported(
+    deployMethodActivationInput,
+  );
+  const [
+    hardwareProfileName,
+    hardwareProfileResources,
+    hardwareProfileTolerations,
+    hardwareProfileNodeSelector,
+    hardwareProfileVisibleIn,
+    hardwareProfileResourceNamespace,
+    hardwareProfileNamespace,
+  ] = initialData?.hardwareProfile ?? [];
+  const hardwareProfileConfig = useHardwareProfileConfig(
+    hardwareProfileName,
+    hardwareProfileResources,
+    hardwareProfileTolerations,
+    hardwareProfileNodeSelector,
+    hardwareProfileVisibleIn,
+    hardwareProfileResourceNamespace,
+    hardwareProfileNamespace,
+    {
+      allowDRAProfiles: isDRAHardwareProfileSupported ?? 'pending',
+      project: project.projectName,
+    },
+  );
+
+  // loaded state
+  const modelDeploymentLoaded = React.useMemo(() => {
+    return hardwareProfileConfig.profilesLoaded && isDRAHardwareProfileSupported !== undefined;
+  }, [hardwareProfileConfig.profilesLoaded, isDRAHardwareProfileSupported]);
+
+  const mergedFormState: WizardFormData['state'] = React.useMemo(
+    () => ({ ...stateWithoutHardwareProfile, hardwareProfileConfig, ...formState }),
+    [stateWithoutHardwareProfile, hardwareProfileConfig, formState],
+  );
+
   // The reducer manages dynamic field state and computes active fields from merged state
   const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
     useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
@@ -234,9 +272,21 @@ export const useModelDeploymentWizard = (
     [computedOverrides.tokenAuthentication],
   );
   const tokenAuthDisabled = tokenAuthOverrides.isDisabled ?? false;
+  const modelAvailabilityOverrides = React.useMemo(
+    () => computedOverrides.modelAvailability ?? {},
+    [computedOverrides.modelAvailability],
+  );
   const stateWithOverrides: WizardFormData['state'] = React.useMemo(
     () => ({
       ...state,
+      modelAvailability: {
+        ...state.modelAvailability,
+        isDisabled: modelAvailabilityOverrides.isDisabled,
+        isMaaSSubscriptionSelected: modelAvailabilityOverrides.isMaaSSubscriptionSelected,
+        data: modelAvailabilityOverrides.forceSaveAsAiAsset
+          ? { ...state.modelAvailability.data, saveAsAiAsset: true }
+          : state.modelAvailability.data,
+      },
       tokenAuthentication: {
         ...state.tokenAuthentication,
         ...tokenAuthOverrides,
@@ -248,13 +298,14 @@ export const useModelDeploymentWizard = (
         ...computedOverrides['llmd-serving/gateway'],
       },
     }),
-    [state, tokenAuthDisabled, tokenAuthOverrides, computedOverrides],
+    [state, tokenAuthDisabled, tokenAuthOverrides, modelAvailabilityOverrides, computedOverrides],
   );
 
   return {
     initialData,
     state: stateWithOverrides,
     computedOverrides,
+    deployMethodActivationInput,
     dispatch,
     fields,
     loaded: {

@@ -46,6 +46,7 @@ const (
 )
 
 const (
+	observabilityComponent         = "observability"
 	persesServiceName              = "data-science-perses"
 	persesServicePort        int32 = 8080
 	rhoaiMonitoringNamespace       = "redhat-ods-monitoring"
@@ -73,7 +74,7 @@ func (r *DashboardReconciler) autoDetectObservability(ctx context.Context, dashb
 
 	svc := &corev1.Service{}
 	key := types.NamespacedName{Name: persesServiceName, Namespace: monitoringNS}
-	if err := r.Get(ctx, key, svc); err != nil {
+	if err := r.apiReader().Get(ctx, key, svc); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return nil
 		}
@@ -137,6 +138,32 @@ func remapDataConnectHubGatewayRBAC(resources []unstructured.Unstructured, appli
 			}
 		}
 	}
+}
+
+// setMaaSUsageDashboardRoleBindingNamespace binds the MaaS BFF service account
+// from the operator's configured applications namespace, not a fixed platform namespace.
+func setMaaSUsageDashboardRoleBindingNamespace(resources []unstructured.Unstructured, applicationsNamespace string) error {
+	for i := range resources {
+		resource := &resources[i]
+		if resource.GetKind() != "RoleBinding" || resource.GetName() != "odh-dashboard-maas-usage-dashboards" {
+			continue
+		}
+		subjects, found, err := unstructured.NestedSlice(resource.Object, "subjects")
+		if err != nil {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding has invalid subjects: %w", err)
+		}
+		if !found || len(subjects) != 1 {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding must have one subject")
+		}
+		subject, ok := subjects[0].(map[string]interface{})
+		if !ok || subject["kind"] != "ServiceAccount" || subject["name"] != "odh-dashboard-maas" {
+			return fmt.Errorf("MaaS usage dashboard RoleBinding has unexpected subject")
+		}
+		subject["namespace"] = applicationsNamespace
+		return unstructured.SetNestedSlice(resource.Object, subjects, "subjects")
+	}
+	// Some test and custom observability overlays contain no MaaS RBAC.
+	return nil
 }
 
 func dataConnectHubGatewayRBACForPlatform(platform cluster.Platform) (string, string) {
@@ -229,6 +256,9 @@ func manifestSets(basePath string, platform cluster.Platform) []render.ManifestI
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
 	computed := computeKustomizeVariables(dashboard, platform)
 	maps.Copy(computed, resolveImageParams())
+	// The operator applies the upload ConfigMap separately after validating the
+	// CR value. Render a safe placeholder, including after a previous reconcile.
+	computed[ociBaseImageParam] = ""
 
 	for _, m := range manifests {
 		manifestPath := m.String()
@@ -242,7 +272,7 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 	return nil
 }
 
-func extractDashboardURL(ctx context.Context, cli client.Client, dashboard *v1alpha1.Dashboard, namespace string, platform cluster.Platform) (string, error) {
+func extractDashboardURL(ctx context.Context, reader client.Reader, dashboard *v1alpha1.Dashboard, namespace string, platform cluster.Platform) (string, error) {
 	if platform == cluster.XKS {
 		return "", nil
 	}
@@ -252,15 +282,23 @@ func extractDashboardURL(ctx context.Context, cli client.Client, dashboard *v1al
 	}
 
 	rl := &routev1.RouteList{}
-	if err := cli.List(ctx, rl,
+	if err := reader.List(ctx, rl,
 		client.InNamespace(namespace),
 		client.MatchingLabels{labels.PlatformPartOf: strings.ToLower(v1alpha1.DashboardKind)},
 	); err != nil {
 		return "", fmt.Errorf("failed to list routes: %w", err)
 	}
 
-	if len(rl.Items) == 1 && len(rl.Items[0].Status.Ingress) > 0 {
-		ingress := rl.Items[0].Status.Ingress[0]
+	routes := rl.Items[:0]
+	for i := range rl.Items {
+		if rl.Items[i].Labels["app"] == dashboardRedirectName {
+			continue
+		}
+		routes = append(routes, rl.Items[i])
+	}
+
+	if len(routes) == 1 && len(routes[0].Status.Ingress) > 0 {
+		ingress := routes[0].Status.Ingress[0]
 
 		admitted := false
 		for _, cond := range ingress.Conditions {
@@ -284,9 +322,11 @@ func extractDashboardURL(ctx context.Context, cli client.Client, dashboard *v1al
 func deployObservabilityManifests(
 	ctx context.Context,
 	cli client.Client,
+	reader client.Reader,
 	dashboard *v1alpha1.Dashboard,
 	basePath string,
 	platform cluster.Platform,
+	applicationsNamespace string,
 ) error {
 	logger := log.FromContext(ctx)
 
@@ -301,7 +341,7 @@ func deployObservabilityManifests(
 	// Use a discovery-based check to avoid requiring apiextensions.k8s.io RBAC.
 	persesList := &unstructured.UnstructuredList{}
 	persesList.SetGroupVersionKind(persesdashboardGVK)
-	if err := cli.List(ctx, persesList, client.Limit(1)); err != nil {
+	if err := reader.List(ctx, persesList, client.Limit(1)); err != nil {
 		if meta.IsNoMatchError(err) {
 			return ErrPersesCRDNotFound
 		}
@@ -315,18 +355,32 @@ func deployObservabilityManifests(
 	}
 
 	m := observabilityManifestInfo(basePath, platform)
-	engine := kustomize.NewEngine()
-
-	rendered, err := engine.Render(m.String(), kustomize.WithNamespace(obsNamespace))
+	rendered, err := kustomize.NewEngine().Render(m.String(), kustomize.WithNamespace(obsNamespace))
 	if err != nil {
 		return fmt.Errorf("failed to render observability manifests from %s: %w", m, err)
 	}
 
+	if maasPortalSupportedPlatform(platform) {
+		if err := setMaaSUsageDashboardRoleBindingNamespace(rendered, applicationsNamespace); err != nil {
+			return err
+		}
+		if err := setMaaSPortalPersesIngressNamespace(rendered, applicationsNamespace); err != nil {
+			return err
+		}
+		if err := preserveLegacyMaaSPortalNetworkAccess(ctx, reader, rendered, applicationsNamespace); err != nil {
+			return err
+		}
+	}
+
 	logger.Info("Deploying observability manifests", "namespace", obsNamespace, "resources", len(rendered))
+	if err := revertServicePortDrift(ctx, reader, cli, rendered); err != nil {
+		return fmt.Errorf("repairing observability Service port drift: %w", err)
+	}
 
 	deployer := deploy.NewDeployer(
 		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
+		deploy.WithLabel(moduleComponentLabel, observabilityComponent),
 		deploy.WithApplyOrder(),
 	)
 

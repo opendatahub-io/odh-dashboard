@@ -5,7 +5,10 @@ class ChooseBenchmarkPage {
   }
 
   private waitForLoad() {
-    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').should('be.visible');
+    cy.get('[data-testid="benchmarks-gallery"], [data-testid="benchmarks-empty-state"]')
+      .filter(':visible')
+      .should('have.length.at.least', 1);
     cy.testA11y();
   }
 
@@ -19,6 +22,19 @@ class ChooseBenchmarkPage {
 
   findBenchmarkCard(providerId: string, benchmarkId: string) {
     return cy.findByTestId(`benchmark-card-${providerId}-${benchmarkId}`);
+  }
+
+  findBenchmarkCards() {
+    // Exclude the nested title/body click-region testids, which share the card prefix.
+    return cy.findAllByTestId(/^benchmark-card-(?!title-region-|body-region-)/);
+  }
+
+  findBenchmarkCardTitleRegion(providerId: string, benchmarkId: string) {
+    return cy.findByTestId(`benchmark-card-title-region-${providerId}-${benchmarkId}`);
+  }
+
+  findBenchmarkCardBodyRegion(providerId: string, benchmarkId: string) {
+    return cy.findByTestId(`benchmark-card-body-region-${providerId}-${benchmarkId}`);
   }
 
   findBenchmarkDrawerPanel() {
@@ -67,7 +83,9 @@ class ChooseBenchmarkPage {
   }
 
   findCategoryOption(category: string) {
-    return cy.findByTestId(`benchmarks-category-option-${category}`);
+    return cy
+      .findByTestId('benchmarks-category-filter-select')
+      .findByTestId(`benchmarks-category-filter-option-${category}`);
   }
 
   selectCategoryOption(category: string) {
@@ -77,7 +95,9 @@ class ChooseBenchmarkPage {
   }
 
   findMetricsOption(metric: string) {
-    return cy.findByTestId(`benchmarks-metrics-option-${metric}`);
+    return cy
+      .findByTestId('benchmarks-metrics-filter-select')
+      .findByTestId(`benchmarks-metrics-filter-option-${metric}`);
   }
 
   selectMetricsOption(metric: string) {

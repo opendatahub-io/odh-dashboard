@@ -1,1 +1,1 @@
-export type { NamespaceKind, SecretListItem } from './types';
+export type { DatabaseProvider, NamespaceKind, SecretListItem } from './types';

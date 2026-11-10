@@ -1,13 +1,24 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
-import type { McpDeployModalData } from '~/odh/types/mcpDeploymentTypes';
+import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
+import {
+  McpDeployReadinessReason,
+  type McpDeployModalData,
+  type McpServerDeployReadiness,
+} from '~/odh/types/mcpDeploymentTypes';
 import McpRegistryServerDeployAction from '~/odh/components/McpRegistryServerDeployAction';
+import { MCP_GATEWAY_SETUP_DOCS_URL } from '~/odh/const';
 
 jest.mock('~/odh/hooks/useMcpServerDeployAvailable', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('~/odh/hooks/useMcpImageDeployReadiness', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -41,6 +52,36 @@ jest.mock('~/odh/components/McpDeployModal', () => {
 });
 
 const mockUseMcpServerDeployAvailable = jest.mocked(useMcpServerDeployAvailable);
+const mockUseMcpImageDeployReadiness = jest.mocked(useMcpImageDeployReadiness);
+
+const setReadiness = (
+  data: McpServerDeployReadiness | null,
+  loaded: boolean,
+  error?: Error,
+): void => {
+  mockUseMcpImageDeployReadiness.mockReturnValue([data, loaded, error, jest.fn()]);
+};
+
+const openShiftDeployData: McpDeployModalData = {
+  registryServer: 'io.example/renamed-openshift-mcp-server',
+  registryVersion: '1.0.0',
+  displayName: 'OpenShift MCP - 1.0.0',
+  namespace: 'test-project',
+  image: 'registry.redhat.io/openshift-mcp/openshift-mcp-server-rhel9:1.0',
+};
+
+/** Advance fake timers in small steps so React renders between PatternFly's chained timers. */
+const advance = async (ms: number) => {
+  for (let elapsed = 0; elapsed < ms; elapsed += 50) {
+    // eslint-disable-next-line no-await-in-loop
+    await act(() => {
+      jest.advanceTimersByTime(50);
+    });
+  }
+};
+
+const NO_GATEWAY_TOOLTIP =
+  'This MCP server requires an MCP gateway, and none is available. Ask your cluster administrator to set up an MCP gateway.';
 
 const mockDeployData: McpDeployModalData = {
   registryServer: 'kubernetes-mcp',
@@ -64,6 +105,7 @@ describe('McpRegistryServerDeployAction', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseMcpServerDeployAvailable.mockReturnValue({ available: true, loaded: true });
+    setReadiness({ gatewayRequired: false, deployable: true }, true);
   });
 
   it('should render an enabled Deploy button when deploy data is provided and MCP is available', () => {
@@ -171,5 +213,278 @@ describe('McpRegistryServerDeployAction', () => {
       </MemoryRouter>,
     );
     expect(container.querySelector('[data-testid="mcp-registry-deploy-action-button"]')).toBeNull();
+  });
+  it('should check deploy readiness for the prefilled namespace and image only', () => {
+    renderAction({ deployData: openShiftDeployData });
+
+    expect(mockUseMcpImageDeployReadiness).toHaveBeenCalledWith(
+      'test-project',
+      'registry.redhat.io/openshift-mcp/openshift-mcp-server-rhel9:1.0',
+    );
+  });
+
+  it.each([
+    ['loading', { available: false, loaded: false }],
+    ['not available', { available: false, loaded: true }],
+  ])('should not check deploy readiness while MCP Lifecycle is %s', (_, lifecycle) => {
+    mockUseMcpServerDeployAvailable.mockReturnValue(lifecycle);
+    renderAction({ deployData: openShiftDeployData });
+
+    expect(mockUseMcpImageDeployReadiness).toHaveBeenCalledWith(
+      undefined,
+      'registry.redhat.io/openshift-mcp/openshift-mcp-server-rhel9:1.0',
+    );
+    expect(mockUseMcpImageDeployReadiness).not.toHaveBeenCalledWith(
+      'test-project',
+      expect.anything(),
+    );
+  });
+
+  it('should leave the gateway check to the BFF when the version has no image', async () => {
+    // Never-loading readiness: it must not be consulted without an image.
+    setReadiness(null, false);
+    renderAction({ deployData: { ...openShiftDeployData, image: '' } });
+
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    expect(button).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    await userEvent.click(button);
+    expect(screen.getByTestId('mcp-deploy-modal-stub')).toBeInTheDocument();
+  });
+
+  it.each([
+    [McpDeployReadinessReason.NO_GATEWAY_AVAILABLE, NO_GATEWAY_TOOLTIP],
+    [
+      McpDeployReadinessReason.OPERATOR_NOT_READY,
+      'This MCP server requires an MCP gateway, but the MCP lifecycle operator is not ready. Try again later or contact your cluster administrator.',
+    ],
+    [
+      McpDeployReadinessReason.GATEWAY_STATUS_UNAVAILABLE,
+      'This MCP server requires an MCP gateway, but MCP gateway availability could not be determined. Try again later or contact your cluster administrator.',
+    ],
+  ])('should block Deploy with an explanation and docs link for %s', async (reason, tooltip) => {
+    setReadiness({ gatewayRequired: true, deployable: false, reason }, true);
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    renderAction({ deployData: openShiftDeployData });
+
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByTestId('mcp-deploy-gateway-docs-link')).not.toBeInTheDocument();
+
+    // Hovering opens a popover with the reason and the docs link, not a plain tooltip.
+    await userEvent.hover(button);
+    const popover = await screen.findByTestId('mcp-deploy-gateway-popover');
+    expect(popover).toHaveTextContent('MCP gateway required');
+    expect(popover).toHaveTextContent(tooltip);
+
+    await userEvent.click(button);
+    expect(screen.queryByTestId('mcp-deploy-modal-stub')).not.toBeInTheDocument();
+
+    const docsLink = await screen.findByTestId('mcp-deploy-gateway-docs-link');
+    expect(docsLink).toHaveTextContent('How to set up an MCP gateway');
+    await userEvent.click(docsLink);
+    expect(openSpy).toHaveBeenCalledWith(MCP_GATEWAY_SETUP_DOCS_URL);
+    openSpy.mockRestore();
+  });
+
+  it('should let keyboard users reach the docs link from the blocked Deploy button', async () => {
+    setReadiness(
+      {
+        gatewayRequired: true,
+        deployable: false,
+        reason: McpDeployReadinessReason.NO_GATEWAY_AVAILABLE,
+      },
+      true,
+    );
+    renderAction({ deployData: openShiftDeployData });
+
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    // Screen readers announce the explanation with the button, so it must not depend on the
+    // popover, which only opens after the button gets focus.
+    expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+    expect(button).toHaveAccessibleDescription(NO_GATEWAY_TOOLTIP);
+
+    await userEvent.tab();
+    expect(button).toHaveFocus();
+    const popover = await screen.findByTestId('mcp-deploy-gateway-popover');
+    expect(popover).toHaveTextContent(NO_GATEWAY_TOOLTIP);
+
+    await userEvent.tab();
+    expect(screen.getByTestId('mcp-deploy-gateway-docs-link')).toHaveFocus();
+    expect(screen.getByTestId('mcp-deploy-gateway-popover')).toBeInTheDocument();
+
+    // Escape closes the popover and returns focus to Deploy.
+    await userEvent.keyboard('{Escape}');
+    expect(button).toHaveFocus();
+    await waitFor(() =>
+      expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('should keep the popover open while the pointer moves from Deploy onto it', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    try {
+      setReadiness(
+        {
+          gatewayRequired: true,
+          deployable: false,
+          reason: McpDeployReadinessReason.NO_GATEWAY_AVAILABLE,
+        },
+        true,
+      );
+      renderAction({ deployData: openShiftDeployData });
+
+      const button = screen.getByTestId('mcp-registry-deploy-action-button');
+      await user.hover(button);
+      await advance(100);
+      const popover = screen.getByTestId('mcp-deploy-gateway-popover');
+
+      // A slow pointer is still crossing the gap after the popover's 300ms fade-out would end.
+      await user.unhover(button);
+      await advance(400);
+      expect(popover).toBeInTheDocument();
+      expect(popover).toHaveStyle({ opacity: '1' });
+      await user.hover(popover);
+      await advance(1000);
+      expect(popover).toBeInTheDocument();
+      expect(popover).toHaveStyle({ opacity: '1' });
+
+      // It closes once the pointer leaves the popover as well.
+      await user.unhover(popover);
+      await advance(1000);
+      expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it.each([
+    [
+      'keep the popover open while focus is on the docs link after the pointer leaves',
+      'pointer-leaves',
+    ],
+    ['keep the popover open while the pointer is over it after focus leaves', 'focus-leaves'],
+  ])('should %s', async (_label, scenario) => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    try {
+      setReadiness(
+        {
+          gatewayRequired: true,
+          deployable: false,
+          reason: McpDeployReadinessReason.NO_GATEWAY_AVAILABLE,
+        },
+        true,
+      );
+      renderAction({ deployData: openShiftDeployData });
+      const button = screen.getByTestId('mcp-registry-deploy-action-button');
+
+      // Pointer and keyboard both inside: pointer on the popover, focus on the docs link.
+      await user.hover(button);
+      await advance(100);
+      const popover = screen.getByTestId('mcp-deploy-gateway-popover');
+      await user.hover(popover);
+      await user.tab();
+      await user.tab();
+      expect(screen.getByTestId('mcp-deploy-gateway-docs-link')).toHaveFocus();
+
+      if (scenario === 'pointer-leaves') {
+        await user.unhover(popover);
+        await advance(1000);
+        expect(popover).toBeInTheDocument();
+        expect(popover).toHaveStyle({ opacity: '1' });
+        // Moving focus out closes it.
+        await user.tab();
+      } else {
+        await user.tab();
+        await advance(1000);
+        expect(popover).toBeInTheDocument();
+        expect(popover).toHaveStyle({ opacity: '1' });
+        // Moving the pointer out closes it.
+        await user.unhover(popover);
+      }
+      await advance(1000);
+      expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should enable Deploy when a required gateway is available', async () => {
+    setReadiness({ gatewayRequired: true, deployable: true }, true);
+    renderAction({ deployData: openShiftDeployData });
+
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    expect(button).not.toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(button);
+    expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+    await userEvent.click(button);
+    expect(screen.getByTestId('mcp-deploy-modal-stub')).toBeInTheDocument();
+  });
+
+  it('should show a loading state while deploy readiness is checked', () => {
+    setReadiness(null, false);
+    renderAction({ deployData: openShiftDeployData });
+
+    expect(screen.getByTestId('mcp-registry-deploy-action-button')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should block Deploy without a docs link when the readiness check fails', async () => {
+    setReadiness(null, false, new Error('Service Unavailable'));
+    renderAction({ deployData: openShiftDeployData });
+
+    const button = screen.getByTestId('mcp-registry-deploy-action-button');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(button);
+    expect(
+      await screen.findByText(
+        'Unable to check the deployment prerequisites for this MCP server. Try again later.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+  });
+
+  it('should keep the page and MCP Lifecycle reasons ahead of the gateway check', async () => {
+    setReadiness(
+      {
+        gatewayRequired: true,
+        deployable: false,
+        reason: McpDeployReadinessReason.NO_GATEWAY_AVAILABLE,
+      },
+      true,
+    );
+    const { unmount } = renderAction({
+      deployData: openShiftDeployData,
+      disabledReason: 'Change this version to Active before deploying',
+    });
+    await userEvent.hover(screen.getByTestId('mcp-registry-deploy-action-button'));
+    expect(
+      await screen.findByText('Change this version to Active before deploying'),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('mcp-deploy-gateway-popover')).not.toBeInTheDocument();
+    unmount();
+
+    mockUseMcpServerDeployAvailable.mockReturnValue({ available: false, loaded: true });
+    renderAction({ deployData: openShiftDeployData });
+    await userEvent.hover(screen.getByTestId('mcp-registry-deploy-action-button'));
+    expect(
+      await screen.findByText('MCP Lifecycle is not available in this cluster.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(NO_GATEWAY_TOOLTIP)).not.toBeInTheDocument();
+  });
+
+  it('should keep Deploy disabled without deploy data', () => {
+    renderAction({ deployData: undefined });
+
+    expect(screen.getByTestId('mcp-registry-deploy-action-button')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 });

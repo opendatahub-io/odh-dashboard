@@ -1,5 +1,5 @@
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   MaaSEvents,
   ModelDeploymentMode,
@@ -65,7 +65,7 @@ const buildProperties = (
 
 /**
  * Fires the Model as Maas Published event once per wizard session when the
- * Publish as MaaS checkbox field is active.
+ * Subscribed users field is active.
  */
 export const fireMaaSPublishTrackingEvent = (
   outcome: TrackingOutcome,

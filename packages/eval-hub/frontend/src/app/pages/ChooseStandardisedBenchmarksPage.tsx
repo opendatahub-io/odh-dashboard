@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -30,13 +29,19 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { useProviders } from '~/app/hooks/useProviders';
+import useSearchInputTracking from '~/app/hooks/useSearchInputTracking';
 import { FlatBenchmark } from '~/app/types';
-import { evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { evaluationStartRoute, evaluationsBaseRoute, projectHomeRoute } from '~/app/routes';
+import {
+  EVAL_HUB_EVENTS,
+  type BenchmarkCatalogFilterType,
+} from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import BenchmarkDrawerPanel from '~/app/components/BenchmarkDrawerPanel';
 import BenchmarkCard from '~/app/components/BenchmarkCard';
 import { formatCategory, getMetricDisplayName } from '~/app/components/benchmarkUtils';
@@ -63,15 +68,23 @@ const PAGE_SIZES = [12, 24, 36];
 const ChooseStandardisedBenchmarksPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const { providers, loaded, loadError } = useProviders(namespace ?? '');
 
   const handleRunBenchmark = React.useCallback(
     (b: FlatBenchmark) => {
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-        runType: 'single',
-        benchmarkTypes: JSON.stringify([b.id]),
-        countOfBenchmarks: 1,
-      });
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+        {
+          runType: 'single',
+          benchmarkTypes: JSON.stringify([b.id]),
+          countOfBenchmarks: 1,
+        },
+        {
+          collectionType: 'system',
+          providerType: b.providerId,
+        },
+      );
       const params = new URLSearchParams({
         type: 'benchmark',
         providerId: b.providerId,
@@ -124,7 +137,41 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
     [allBenchmarks],
   );
 
-  const onClearFilters = React.useCallback(() => setFilterData(initialBenchmarkFilterData), []);
+  const trackBenchmarkCatalogFilter = React.useCallback(
+    (filterType: BenchmarkCatalogFilterType, selectedValues: string[]) => {
+      const normalizedSelectedValues = [
+        ...new Set(selectedValues.map((value) => value.trim()).filter(Boolean)),
+      ].toSorted((first, second) =>
+        first.localeCompare(second, undefined, { sensitivity: 'base' }),
+      );
+
+      if (normalizedSelectedValues.length === 0) {
+        return;
+      }
+
+      trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_FILTER_APPLIED, {
+        filterType,
+        value: normalizedSelectedValues.join(', '),
+      });
+    },
+    [],
+  );
+
+  const handleSearchCommit = React.useCallback(
+    (trimmedLength: number) => {
+      trackBenchmarkCatalogFilter('search', [String(trimmedLength)]);
+    },
+    [trackBenchmarkCatalogFilter],
+  );
+  const searchInputTrackingProps = useSearchInputTracking(
+    handleSearchCommit,
+    filterData[BenchmarkFilterOptions.name],
+  );
+
+  const onClearFilters = React.useCallback(() => {
+    setFilterData(initialBenchmarkFilterData);
+    searchInputTrackingProps.reset();
+  }, [searchInputTrackingProps]);
 
   const filteredBenchmarks = React.useMemo<FlatBenchmark[]>(
     () => filterBenchmarks(allBenchmarks, filterData),
@@ -146,9 +193,17 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
   }, [sortedBenchmarks, page, perPage]);
 
   const handleSelectBenchmark = (benchmark: FlatBenchmark) => {
-    setSelectedBenchmark((prev) =>
-      prev?.id === benchmark.id && prev.providerId === benchmark.providerId ? undefined : benchmark,
-    );
+    const isClosingSelectedBenchmark =
+      selectedBenchmark?.id === benchmark.id &&
+      selectedBenchmark.providerId === benchmark.providerId;
+
+    if (!isClosingSelectedBenchmark) {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
+        source: 'catalogTable',
+      });
+    }
+
+    setSelectedBenchmark(isClosingSelectedBenchmark ? undefined : benchmark);
   };
   const hasActiveFilters = hasActiveBenchmarkFilters(filterData);
 
@@ -168,12 +223,14 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
             title="Select benchmark"
             description="Select a benchmark to run on your model, agent, or dataset."
             breadcrumb={
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-                />
+              <ContextBreadcrumb
+                pageName="Evaluations"
+                projectDisplayName={projectDisplayName}
+                homePath={evaluationsBaseRoute(namespace)}
+                projectHomePath={projectHomeRoute(namespace)}
+              >
                 <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
-              </Breadcrumb>
+              </ContextBreadcrumb>
             }
             loaded={loaded}
             loadError={loadError}
@@ -238,30 +295,33 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                                   ? [filterData[BenchmarkFilterOptions.name]]
                                   : []
                               }
-                              deleteLabel={() =>
+                              deleteLabel={() => {
                                 setFilterData((prev) => ({
                                   ...prev,
                                   [BenchmarkFilterOptions.name]: '',
-                                }))
-                              }
+                                }));
+                                searchInputTrackingProps.reset();
+                              }}
                               categoryName="Name or ID"
                             >
                               <SearchInput
                                 aria-label="Filter by name or ID"
                                 placeholder="Filter by name or ID"
                                 value={filterData[BenchmarkFilterOptions.name]}
-                                onChange={(_event, value) =>
+                                onChange={(_event, value) => {
                                   setFilterData((prev) => ({
                                     ...prev,
                                     [BenchmarkFilterOptions.name]: value,
-                                  }))
-                                }
-                                onClear={() =>
+                                  }));
+                                }}
+                                inputProps={searchInputTrackingProps.inputProps}
+                                onClear={() => {
                                   setFilterData((prev) => ({
                                     ...prev,
                                     [BenchmarkFilterOptions.name]: '',
-                                  }))
-                                }
+                                  }));
+                                  searchInputTrackingProps.reset();
+                                }}
                                 data-testid="benchmarks-name-filter"
                               />
                             </ToolbarFilter>
@@ -270,24 +330,23 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                               options={availableCategories}
                               selected={filterData[BenchmarkFilterOptions.category]}
                               formatLabel={formatCategory}
-                              onToggleOption={(value) =>
+                              onToggleOption={(value) => {
+                                const selectedValues = filterData[BenchmarkFilterOptions.category];
+                                const nextSelectedValues = selectedValues.includes(value)
+                                  ? selectedValues.filter((item) => item !== value)
+                                  : [...selectedValues, value];
                                 setFilterData((prev) => ({
                                   ...prev,
-                                  [BenchmarkFilterOptions.category]: prev[
-                                    BenchmarkFilterOptions.category
-                                  ].includes(value)
-                                    ? prev[BenchmarkFilterOptions.category].filter(
-                                        (c) => c !== value,
-                                      )
-                                    : [...prev[BenchmarkFilterOptions.category], value],
-                                }))
-                              }
-                              onClearAll={() =>
+                                  [BenchmarkFilterOptions.category]: nextSelectedValues,
+                                }));
+                                trackBenchmarkCatalogFilter('category', nextSelectedValues);
+                              }}
+                              onClearAll={() => {
                                 setFilterData((prev) => ({
                                   ...prev,
                                   [BenchmarkFilterOptions.category]: [],
-                                }))
-                              }
+                                }));
+                              }}
                               testIdPrefix="benchmarks-category"
                             />
                             <SearchableMultiSelectFilter
@@ -295,24 +354,23 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                               options={availableFrameworks}
                               selected={filterData[BenchmarkFilterOptions.framework]}
                               formatLabel={(value) => value}
-                              onToggleOption={(value) =>
+                              onToggleOption={(value) => {
+                                const selectedValues = filterData[BenchmarkFilterOptions.framework];
+                                const nextSelectedValues = selectedValues.includes(value)
+                                  ? selectedValues.filter((item) => item !== value)
+                                  : [...selectedValues, value];
                                 setFilterData((prev) => ({
                                   ...prev,
-                                  [BenchmarkFilterOptions.framework]: prev[
-                                    BenchmarkFilterOptions.framework
-                                  ].includes(value)
-                                    ? prev[BenchmarkFilterOptions.framework].filter(
-                                        (framework) => framework !== value,
-                                      )
-                                    : [...prev[BenchmarkFilterOptions.framework], value],
-                                }))
-                              }
-                              onClearAll={() =>
+                                  [BenchmarkFilterOptions.framework]: nextSelectedValues,
+                                }));
+                                trackBenchmarkCatalogFilter('framework', nextSelectedValues);
+                              }}
+                              onClearAll={() => {
                                 setFilterData((prev) => ({
                                   ...prev,
                                   [BenchmarkFilterOptions.framework]: [],
-                                }))
-                              }
+                                }));
+                              }}
                               testIdPrefix="benchmarks-framework"
                             />
                             <SearchableMultiSelectFilter
@@ -320,24 +378,23 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                               options={availableMetrics}
                               selected={filterData[BenchmarkFilterOptions.metrics]}
                               formatLabel={getMetricDisplayName}
-                              onToggleOption={(value) =>
+                              onToggleOption={(value) => {
+                                const selectedValues = filterData[BenchmarkFilterOptions.metrics];
+                                const nextSelectedValues = selectedValues.includes(value)
+                                  ? selectedValues.filter((item) => item !== value)
+                                  : [...selectedValues, value];
                                 setFilterData((prev) => ({
                                   ...prev,
-                                  [BenchmarkFilterOptions.metrics]: prev[
-                                    BenchmarkFilterOptions.metrics
-                                  ].includes(value)
-                                    ? prev[BenchmarkFilterOptions.metrics].filter(
-                                        (m) => m !== value,
-                                      )
-                                    : [...prev[BenchmarkFilterOptions.metrics], value],
-                                }))
-                              }
-                              onClearAll={() =>
+                                  [BenchmarkFilterOptions.metrics]: nextSelectedValues,
+                                }));
+                                trackBenchmarkCatalogFilter('metric', nextSelectedValues);
+                              }}
+                              onClearAll={() => {
                                 setFilterData((prev) => ({
                                   ...prev,
                                   [BenchmarkFilterOptions.metrics]: [],
-                                }))
-                              }
+                                }));
+                              }}
                               testIdPrefix="benchmarks-metrics"
                             />
                           </ToolbarGroup>

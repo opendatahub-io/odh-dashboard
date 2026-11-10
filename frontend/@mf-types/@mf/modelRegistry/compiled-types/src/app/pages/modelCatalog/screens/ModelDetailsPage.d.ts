@@ -1,7 +1,7 @@
 import React from 'react';
-import { ModelDetailsTab } from '~/concepts/modelCatalog/const';
 type ModelDetailsPageProps = {
-    tab: ModelDetailsTab;
+    tab: string;
+    customNoRegistriesButton?: (variant: 'primary' | 'secondary') => React.ReactNode;
 };
 declare const ModelDetailsPage: React.FC<ModelDetailsPageProps>;
 export default ModelDetailsPage;

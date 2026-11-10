@@ -2,7 +2,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   AUTORAG_EVENTS,
   AUTORAG_FAILURE_CATEGORY,
@@ -29,8 +29,9 @@ import {
   fireAutoragRunStopped,
   fireAutoragRunTriggered,
   fireAutoragS3ConnectionCreated,
+  fireAutoragStarterKitDownloaded,
   fireAutoragVectorStoreConfigured,
-  getVectorStoreProviderTypeFromSecretData,
+  getVectorStoreProviderTypeFromDatabaseProviders,
   isAutoragResultsNavigationState,
   mapOptimizationMetric,
   mapOptimizationMetricEvaluator,
@@ -273,44 +274,35 @@ describe('toVectorStoreProviderType', () => {
   });
 });
 
-describe('getVectorStoreProviderTypeFromSecretData', () => {
-  it('should infer Milvus from redacted key metadata', () => {
-    expect(getVectorStoreProviderTypeFromSecretData({ MILVUS_URI: '[REDACTED]' })).toBe('milvus');
+describe('getVectorStoreProviderTypeFromDatabaseProviders', () => {
+  it('should map authoritative Milvus metadata', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['milvus'])).toBe('milvus');
   });
 
   it('should infer PGVector from its complete redacted key metadata', () => {
-    expect(
-      getVectorStoreProviderTypeFromSecretData({
-        PGVECTOR_HOST: '[REDACTED]',
-        PGVECTOR_PORT: '[REDACTED]',
-        PGVECTOR_DB: '[REDACTED]',
-        PGVECTOR_USER: '[REDACTED]',
-        PGVECTOR_PASSWORD: '[REDACTED]',
-      }),
-    ).toBe('pgvector');
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['pgvector'])).toBe('pgvector');
   });
 
   it('should omit provider type for ambiguous or incomplete metadata', () => {
-    expect(
-      getVectorStoreProviderTypeFromSecretData({
-        MILVUS_URI: '[REDACTED]',
-        PGVECTOR_HOST: '[REDACTED]',
-        PGVECTOR_PORT: '[REDACTED]',
-        PGVECTOR_DB: '[REDACTED]',
-        PGVECTOR_USER: '[REDACTED]',
-        PGVECTOR_PASSWORD: '[REDACTED]',
-      }),
-    ).toBeUndefined();
-    expect(getVectorStoreProviderTypeFromSecretData({})).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['milvus', 'pgvector'])).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromDatabaseProviders([])).toBeUndefined();
   });
 
   it('should omit provider type when Neo4j credentials are mixed with vector credentials', () => {
-    expect(
-      getVectorStoreProviderTypeFromSecretData({
-        MILVUS_URI: '[REDACTED]',
-        NEO4J_URI: '[REDACTED]',
-      }),
-    ).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['milvus', 'neo4j'])).toBeUndefined();
+  });
+
+  it('should reject Neo4j URI-only and legacy Milvus metadata', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders([])).toBeUndefined();
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(undefined)).toBeUndefined();
+  });
+
+  it('should infer Neo4j from complete metadata mixed with the legacy Milvus key', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['neo4j'])).toBe('neo4j');
+  });
+
+  it('should infer PGVector from complete metadata mixed with the legacy Milvus key', () => {
+    expect(getVectorStoreProviderTypeFromDatabaseProviders(['pgvector'])).toBe('pgvector');
   });
 });
 
@@ -798,6 +790,16 @@ describe('fireAutoragNotebookDownloaded', () => {
   );
 });
 
+describe('fireAutoragStarterKitDownloaded', () => {
+  it('should fire AutoRAG Starter Kit Downloaded with the starter kit type', () => {
+    fireAutoragStarterKitDownloaded();
+
+    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.STARTER_KIT_DOWNLOADED, {
+      downloadType: 'starterKit',
+    });
+  });
+});
+
 describe('fireAutoragResultsColumnToggled', () => {
   it.each([
     ['rank', true],
@@ -846,7 +848,7 @@ describe('fireAutoragPatternDetailsDownloadInitiated', () => {
 });
 
 describe('fireAutoragCodeSnippetsExported', () => {
-  it.each(['playground', 'resultsTable', 'patternDetails', 'other'] as const)(
+  it.each(['resultsTable', 'patternDetails', 'other'] as const)(
     'should fire AutoRAG Code Snippets Exported with action: viewed and entrySource: %s',
     (entrySource) => {
       fireAutoragCodeSnippetsExported('viewed', entrySource);

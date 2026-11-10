@@ -202,4 +202,64 @@ describe('ChatbotConfigurationState', () => {
 
     expect(screen.queryByText('Go to playground')).not.toBeInTheDocument();
   });
+
+  describe('update mode', () => {
+    const mockLsdStatus = (phase: 'Initializing' | 'Ready' | 'Failed') =>
+      mockUseFetchLSDStatus.mockReturnValue({
+        data: {
+          phase,
+          name: 'test-lsd',
+          version: '1.0.0',
+          distributionConfig: {
+            activeDistribution: 'test-dist',
+            providers: [],
+            availableDistributions: {},
+          },
+        },
+        loaded: true,
+        error: undefined,
+        refresh: jest.fn(),
+      });
+
+    it('renders updating state instead of creating state', () => {
+      mockLsdStatus('Initializing');
+
+      render(
+        <TestWrapper>
+          <ChatbotConfigurationState isExistingPlayground />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Updating playground')).toBeInTheDocument();
+      expect(screen.queryByText('Creating playground')).not.toBeInTheDocument();
+    });
+
+    it('renders updated state when ready', async () => {
+      mockLsdStatus('Ready');
+
+      render(
+        <TestWrapper>
+          <ChatbotConfigurationState isExistingPlayground />
+        </TestWrapper>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Playground updated')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Playground created')).not.toBeInTheDocument();
+    });
+
+    it('renders update failed state', () => {
+      mockLsdStatus('Failed');
+
+      render(
+        <TestWrapper>
+          <ChatbotConfigurationState isExistingPlayground />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Playground update failed')).toBeInTheDocument();
+      expect(screen.queryByText('Playground creation failed')).not.toBeInTheDocument();
+    });
+  });
 });

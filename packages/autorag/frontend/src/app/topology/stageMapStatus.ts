@@ -290,6 +290,39 @@ export type SelectedPatternsResult = {
   isPlaceholder: boolean;
 };
 
+/** Resolve a stage-map pattern identifier to the loaded pattern record key. */
+const normalizePatternIdentifier = (value: string): string =>
+  value.replace(/[\s_-]+/g, '').toLowerCase();
+
+export const resolvePatternRecordKey = (
+  patternRecords: Record<string, { name?: string } | null | undefined>,
+  patternIdentifier?: string,
+): string | undefined => {
+  if (!patternIdentifier) {
+    return undefined;
+  }
+  if (
+    Object.hasOwn(patternRecords, patternIdentifier) &&
+    patternRecords[patternIdentifier] != null
+  ) {
+    return patternIdentifier;
+  }
+  const exactNameMatches = Object.entries(patternRecords)
+    .filter(([, record]) => record?.name === patternIdentifier)
+    .map(([key]) => key);
+  if (exactNameMatches.length > 0) {
+    return exactNameMatches.length === 1 ? exactNameMatches[0] : undefined;
+  }
+  const normalizedIdentifier = normalizePatternIdentifier(patternIdentifier);
+  const matches = Object.entries(patternRecords).filter(
+    ([key, record]) =>
+      record != null &&
+      (normalizePatternIdentifier(key) === normalizedIdentifier ||
+        (record.name != null && normalizePatternIdentifier(record.name) === normalizedIdentifier)),
+  );
+  return matches.length === 1 ? matches[0][0] : undefined;
+};
+
 /** Coerce maxPatterns to a safe placeholder count for branch topology before real patterns load. */
 export const resolvePlaceholderPatternCount = (maxPatterns?: number): number => {
   if (maxPatterns == null || !Number.isFinite(maxPatterns)) {

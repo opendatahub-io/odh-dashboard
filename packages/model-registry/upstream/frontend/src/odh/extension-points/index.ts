@@ -10,3 +10,4 @@ export * from './mcp-catalog-settings-url';
 export * from './namespace-selector';
 export * from './projects-bridge';
 export * from './user-interaction';
+export * from './runtime-image-install-action';

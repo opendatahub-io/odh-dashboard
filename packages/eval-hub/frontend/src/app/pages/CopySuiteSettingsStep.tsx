@@ -1,8 +1,12 @@
 import * as React from 'react';
 import {
+  Alert,
   Button,
   Form,
+  FormHelperText,
   FormGroup,
+  HelperText,
+  HelperTextItem,
   Label,
   LabelGroup,
   MenuToggle,
@@ -19,12 +23,20 @@ import { TimesIcon } from '@patternfly/react-icons';
 import { Controller, useFormContext, type Control } from 'react-hook-form';
 import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
 import { formatCollectionMetadataValue } from '~/app/components/benchmarkUtils';
-import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_MENU_OPTIONS } from '~/app/pages/const';
-import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
+// TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+// import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_MENU_OPTIONS } from '~/app/pages/const';
+import { COLLECTION_METADATA_OPTIONS } from '~/app/pages/const';
+import {
+  isSameAsSourceCollectionName,
+  SOURCE_COLLECTION_NAME_ERROR,
+  type CopySuiteFormValues,
+} from '~/app/schemas/copySuite.schema';
 
 type CopySuiteSettingsStepProps = {
   onNext: () => void;
   onCancel: () => void;
+  prerequisite?: string;
+  sourceCollectionName?: string;
 };
 
 type CollectionMetadataFieldName =
@@ -274,11 +286,18 @@ const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) 
   );
 };
 
-const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, onCancel }) => {
+const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
+  onNext,
+  onCancel,
+  prerequisite,
+  sourceCollectionName,
+}) => {
   const { control, watch } = useFormContext<CopySuiteFormValues>();
   const suiteName = watch('suiteName');
   const suiteDomains = watch('suiteDomains');
-  const isSettingsValid = suiteName.trim() !== '' && suiteDomains.length > 0;
+  const isSourceNameConflict = isSameAsSourceCollectionName(suiteName, sourceCollectionName);
+  const isSettingsValid =
+    suiteName.trim() !== '' && suiteDomains.length > 0 && !isSourceNameConflict;
 
   return (
     <div
@@ -287,21 +306,49 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
       data-testid="copy-suite-step-settings"
     >
       <Form id="copy-suite-form" style={{ maxWidth: 840 }} data-testid="copy-suite-form">
-        <FormGroup label="Suite name" isRequired fieldId="suite-name">
+        {prerequisite ? (
+          <Alert
+            variant="warning"
+            isInline
+            title="Prerequisite"
+            data-testid="copy-suite-prerequisite-alert"
+          >
+            {prerequisite}
+          </Alert>
+        ) : null}
+        <FormGroup label="Collection name" isRequired fieldId="suite-name">
           <Controller
             name="suiteName"
             control={control}
-            render={({ field }) => (
-              <TextInput
-                id="suite-name"
-                data-testid="suite-name-input"
-                placeholder="Enter suite name"
-                value={field.value}
-                onChange={(_event, value) => field.onChange(value)}
-                onBlur={field.onBlur}
-                isRequired
-              />
-            )}
+            render={({ field, fieldState }) => {
+              const errorMessage =
+                fieldState.error?.message ??
+                (isSameAsSourceCollectionName(field.value, sourceCollectionName)
+                  ? SOURCE_COLLECTION_NAME_ERROR
+                  : undefined);
+
+              return (
+                <>
+                  <TextInput
+                    id="suite-name"
+                    data-testid="suite-name-input"
+                    placeholder="Enter collection name"
+                    value={field.value}
+                    onChange={(_event, value) => field.onChange(value)}
+                    onBlur={field.onBlur}
+                    isRequired
+                    validated={errorMessage ? 'error' : undefined}
+                  />
+                  {errorMessage ? (
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem variant="error">{errorMessage}</HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  ) : null}
+                </>
+              );
+            }}
           />
         </FormGroup>
 
@@ -313,7 +360,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
               <TextArea
                 id="suite-description"
                 data-testid="suite-description-input"
-                placeholder="Enter suite description"
+                placeholder="Enter collection description"
                 value={field.value}
                 onChange={(_event, value) => field.onChange(value)}
                 onBlur={field.onBlur}
@@ -323,6 +370,8 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
           />
         </FormGroup>
 
+        {/* TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added. */}
+        {/*
         <CollectionMetadataField
           name="suiteEvaluates"
           label="Evaluates"
@@ -331,6 +380,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
           testId="suite-evaluates"
           options={SUITE_EVALUATES_MENU_OPTIONS}
         />
+        */}
 
         <CollectionMetadataField
           name="suiteDomains"
@@ -375,8 +425,8 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ onNext, o
             <BenchmarkThresholdField
               value={field.value}
               onChange={field.onChange}
-              label="Suite threshold"
-              description="Set the minimum passing score for this suite. Results below this threshold are marked as failing."
+              label="Collection threshold"
+              description="Set the minimum passing score for this collection. Results below this threshold are marked as failing."
               fieldId="suite-threshold"
             />
           )}

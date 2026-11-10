@@ -11,6 +11,8 @@ class CreateEvaluationPage {
     return cy.findByTestId('suite-description-input');
   }
 
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   findSuiteEvaluatesToggle() {
     return cy.findByTestId('suite-evaluates-toggle');
   }
@@ -26,6 +28,7 @@ class CreateEvaluationPage {
   closeSuiteEvaluatesMenu() {
     this.findSuiteEvaluatesInput().type('{esc}').should('have.attr', 'aria-expanded', 'false');
   }
+  */
 
   findSuiteCategoryInput() {
     return cy.findByTestId('suite-domains-input');
@@ -146,13 +149,11 @@ class CreateEvaluationPage {
     return cy.findByTestId('benchmarks-gallery', options);
   }
 
-  findBenchmarkCardByTitle(displayTitle: string) {
-    const cardRoot = '[data-testid^="benchmark-card-"]';
-    return this.findBenchmarksGallery({ timeout: 30000 })
-      .find(cardRoot, { timeout: 30000 })
-      .contains('button', displayTitle)
-      .parents(cardRoot)
-      .first();
+  findBenchmarkCard(providerId: string, benchmarkId: string) {
+    return this.findBenchmarksGallery({ timeout: 30000 }).find(
+      `[data-testid="benchmark-card-${providerId}-${benchmarkId}"]`,
+      { timeout: 30000 },
+    );
   }
 
   findSelectBenchmarkButton() {

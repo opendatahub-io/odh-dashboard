@@ -242,6 +242,30 @@ describe('getStageMapDetails', () => {
     );
   });
 
+  it('formats numbered patterns in optimize_templates stage details', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: mockComponentStageMap.components[0].stages.map((stage) =>
+            stage.id === 'optimize_templates'
+              ? { ...stage, selected_patterns: ['Pattern1', 'Pattern10'] }
+              : stage,
+          ),
+        },
+      ],
+    };
+    const parsed = parseStageMapNodeId('rag_optimization__optimize_templates');
+    const details = getStageMapDetails(parsed!, stageMap);
+
+    expect(details).toEqual(
+      expect.arrayContaining([
+        { label: 'Selected patterns', value: 'Pattern\u00a0A, Pattern\u00a0J' },
+      ]),
+    );
+  });
+
   it('includes selected patterns nested under stage metadata', () => {
     const stageMap: ComponentStageMap = {
       ...mockComponentStageMap,
@@ -328,6 +352,33 @@ describe('getStageMapDetails', () => {
         { label: 'Duration', value: '8 s' },
         { label: 'Selected pattern', value: 'PatternHyDE' },
       ]),
+    );
+  });
+
+  it('formats numbered selected patterns in branch step details', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          ...mockComponentStageMap.components[0],
+          stages: mockComponentStageMap.components[0].stages.map((stage) =>
+            stage.id === 'optimize_templates'
+              ? { ...stage, selected_patterns: ['Pattern1', 'Pattern10'] }
+              : stage,
+          ),
+        },
+      ],
+    };
+    const firstBranch = parseStageMapNodeId('rag_optimization__step__chunking__branch-0');
+    const secondBranch = parseStageMapNodeId('rag_optimization__step__chunking__branch-1');
+    const firstBranchDetails = getStageMapDetails(firstBranch!, stageMap);
+    const secondBranchDetails = getStageMapDetails(secondBranch!, stageMap);
+
+    expect(firstBranchDetails).toEqual(
+      expect.arrayContaining([{ label: 'Selected pattern', value: 'Pattern\u00a0A' }]),
+    );
+    expect(secondBranchDetails).toEqual(
+      expect.arrayContaining([{ label: 'Selected pattern', value: 'Pattern\u00a0J' }]),
     );
   });
 
@@ -590,6 +641,67 @@ describe('getStageMapDetails', () => {
     );
 
     expect(details).toEqual([{ label: 'Duration', value: '21 s' }]);
+  });
+
+  it('uses the latest task attempt when failed stage timestamps predate its retry', () => {
+    const stageMap: ComponentStageMap = {
+      ...mockComponentStageMap,
+      components: [
+        {
+          id: 'rag_data_loader',
+          description: 'Load and sample documents',
+          stages: [
+            {
+              id: 'validate_inputs',
+              description: 'Validate inputs',
+              status: 'completed',
+              timestamp: '2024-09-15T18:35:30Z',
+            },
+            {
+              id: 'download_and_sample',
+              description: 'Download and sample',
+              status: 'failed',
+              timestamp: '2024-09-15T18:36:00Z',
+            },
+            {
+              id: 'prepare_data',
+              description: 'Prepare data',
+              status: 'completed',
+              timestamp: '2024-09-15T18:37:00Z',
+            },
+          ],
+        },
+      ],
+    };
+    const pipelineRun = {
+      run_id: 'run-123',
+      display_name: 'Test Run',
+      state: 'FAILED',
+      created_at: '2024-09-15T18:35:00Z',
+      run_details: {
+        task_details: [
+          {
+            task_id: 'rag-data-loader',
+            display_name: 'rag-data-loader',
+            create_time: '2024-09-15T18:35:00Z',
+            start_time: '2024-09-15T18:35:10Z',
+            end_time: '2024-10-05T18:37:51Z',
+            state: 'FAILED',
+            state_history: [
+              { state: 'RUNNING', update_time: '2024-09-15T18:35:10Z' },
+              { state: 'FAILED', update_time: '2024-09-15T18:40:00Z' },
+              { state: 'PENDING', update_time: '2024-10-05T18:35:55Z' },
+              { state: 'RUNNING', update_time: '2024-10-05T18:36:01Z' },
+              { state: 'FAILED', update_time: '2024-10-05T18:37:51Z' },
+            ],
+          },
+        ],
+      },
+    } as never;
+    const parsed = parseStageMapNodeId('rag_data_loader__download_and_sample');
+    const details = getStageMapDetails(parsed!, stageMap, pipelineRun, undefined, 'failed');
+
+    expect(details?.[0]).toEqual({ label: 'Duration', value: '1 m 56 s' });
   });
 
   it('prefers component started_at over task create_time when task start_time is missing', () => {

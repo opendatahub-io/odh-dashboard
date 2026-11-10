@@ -32,6 +32,8 @@ export type SelectionOptions = Omit<SelectOptionProps, 'id'> & {
   selected?: boolean;
   hideChip?: boolean;
   chipOnly?: boolean;
+  /** Optional PatternFly Label color for the selected chip */
+  chipColor?: React.ComponentProps<typeof Label>['color'];
 };
 
 export type GroupSelectionOptions = {
@@ -543,6 +545,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
             {visibleChips.map((selection) => (
               <Label
                 variant={isDisabled ? 'filled' : 'outline'}
+                color={selection.chipColor}
                 key={normalizeOptionId(selection.id)}
                 closeBtnProps={{
                   isDisabled,

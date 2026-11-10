@@ -46,7 +46,7 @@ const MCPServerTableRow: React.FC<MCPServerTableRowProps> = ({
         isLoading={isStatusLoading}
       />
     </Td>
-    <Td dataLabel="Endpoint" className="pf-v6-u-align-content-center">
+    <Td dataLabel="Access details" className="pf-v6-u-align-content-center">
       <MCPServerEndpointPopover connectionUrl={server.connectionUrl} source={server.source}>
         <Button variant="link" style={{ textDecoration: 'none' }}>
           {server.endpoint}

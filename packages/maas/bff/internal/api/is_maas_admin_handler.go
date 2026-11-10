@@ -36,32 +36,45 @@ func extractBearerToken(authHeader string) string {
 	return ""
 }
 
-// IsMaasAdminHandler handles GET /api/v1/is-maas-admin
-// It checks whether the requesting user can create maasauthpolicies in the
-// models-as-a-service namespace, which is the signal for MaaS admin access.
-//
-// Token selection follows the same priority as AccessReviewHandler:
+// requestToken returns the caller token used for SelfSubjectAccessReview checks.
+// Priority matches AccessReviewHandler / IsMaasAdminHandler:
 //  1. Authorization: Bearer <token> — correctly substituted when using ODH impersonation
 //  2. x-forwarded-access-token — fallback for standalone federated dev mode
-func IsMaasAdminHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
-
+func requestToken(r *http.Request) string {
 	token := extractBearerToken(r.Header.Get("Authorization"))
 	if token == "" {
 		token = r.Header.Get("x-forwarded-access-token")
 	}
+	return token
+}
+
+// checkIsMaasAdmin reports whether the caller can create maasauthpolicies in the
+// models-as-a-service namespace (MaaS admin signal). Returns false when no token
+// is present so callers can fall back without failing the request.
+func checkIsMaasAdmin(app *App, r *http.Request) (bool, error) {
+	token := requestToken(r)
 	if token == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("no authentication token found in Authorization or x-forwarded-access-token headers"))
-		return
+		return false, nil
 	}
 
 	client, err := k8s.NewTokenKubernetesClient(token, app.logger)
 	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to create Kubernetes client: %w", err))
+		return false, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	return client.CheckSelfAccess(r.Context(), maasAdminGroup, maasAdminResource, maasAdminVerb, maasAdminNamespace)
+}
+
+// IsMaasAdminHandler handles GET /api/v1/is-maas-admin
+// It checks whether the requesting user can create maasauthpolicies in the
+// models-as-a-service namespace, which is the signal for MaaS admin access.
+func IsMaasAdminHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if requestToken(r) == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("no authentication token found in Authorization or x-forwarded-access-token headers"))
 		return
 	}
 
-	allowed, err := client.CheckSelfAccess(ctx, maasAdminGroup, maasAdminResource, maasAdminVerb, maasAdminNamespace)
+	allowed, err := checkIsMaasAdmin(app, r)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

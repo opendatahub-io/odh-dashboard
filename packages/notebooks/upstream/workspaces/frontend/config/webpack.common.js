@@ -18,7 +18,7 @@ const FAVICON = process.env.FAVICON;
 const PRODUCT_NAME = process.env.PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/workspaces' : PUBLIC_PATH;
+const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/workspaces/' : PUBLIC_PATH;
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(
@@ -46,7 +46,16 @@ module.exports = (env) => ({
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
-            ? { loader: 'swc-loader' }
+            ? {
+                loader: 'swc-loader',
+                options: {
+                  jsc: {
+                    transform: {
+                      react: { development: true },
+                    },
+                  },
+                },
+              }
             : {
                 loader: 'ts-loader',
                 options: {

@@ -1,0 +1,29 @@
+model:
+  id: 'gemini-2.5-flash'
+  displayName: 'E2E External Vector Store Model'
+  endpointUrl: 'https://generativelanguage.googleapis.com/v1beta/openai'
+provider:
+  id: 'e2e-pgvector-provider'
+  type: 'remote::pgvector'
+  resourceName: 'external-pgvector-e2e'
+  credentialsSecretName: 'external-pgvector-e2e-credentials'
+  database: 'vectordb'
+  user: 'vectoruser'
+  password: 'external-vector-store-e2e-password'
+vectorStore:
+  id: 'vs_71240000-0000-4000-8000-000000000001'
+  name: 'Crimson Lighthouse Knowledge Base'
+  description: 'Deterministic external vector store fixture for the Playground E2E test'
+  embeddingModel: 'ibm-granite/granite-embedding-125m-english'
+  embeddingModelId: 'sentence-transformers/ibm-granite/granite-embedding-125m-english'
+  embeddingDimension: 768
+seed:
+  id: '71240000-0000-4000-8000-000000000002'
+  fileId: 'file-crimson-lighthouse'
+  fileName: 'crimson-lighthouse.txt'
+  content: 'The Crimson lighthouse transmits on exactly 173.45 MHz. Its maintenance window begins at 03:17 UTC every Tuesday.'
+  question: 'According to the knowledge base, what frequency does the Crimson lighthouse use?'
+  expectedContentFragment: '173.45'
+llamaStack:
+  deploymentName: 'lsd-genai-playground'
+  serviceName: 'lsd-genai-playground-service'

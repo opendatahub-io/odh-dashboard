@@ -27,7 +27,7 @@ func (app *App) ServerError(w http.ResponseWriter, r *http.Request, err error) {
 }
 
 // NotImplemented sends a 501 Not Implemented response for features not yet available.
-// This is used to create placeholder handlers that downstream code can override.
+// This can be used by downstream builds when explicitly registering a placeholder route.
 func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature string) { //nolint:unused
 	httpError := &HTTPError{
 		StatusCode: http.StatusNotImplemented,
@@ -39,8 +39,9 @@ func (app *App) NotImplemented(w http.ResponseWriter, r *http.Request, feature s
 	app.errorResponse(w, r, httpError)
 }
 
-// EndpointNotImplementedHandler creates a handler that returns 501 Not Implemented.
-// Use this to define routes in upstream that downstream can override with actual implementations.
+// EndpointNotImplementedHandler creates a handler that returns 501 Not Implemented. It does not
+// register a route; downstream builds must add it explicitly in their route table and replace that
+// registration when they implement the endpoint.
 //
 // Example usage:
 //

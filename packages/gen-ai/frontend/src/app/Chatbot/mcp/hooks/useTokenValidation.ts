@@ -3,7 +3,8 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { GenAiAPIs, MCPServer, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 
@@ -134,7 +135,7 @@ const useTokenValidation = ({
         fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
           outcome: TrackingOutcome.submit,
           success: false,
-          error: errorMsg,
+          error: errorCategory(status),
         });
         return { success: false, error: errorMsg };
       } catch (error) {
@@ -143,7 +144,7 @@ const useTokenValidation = ({
         fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
           outcome: TrackingOutcome.submit,
           success: false,
-          error: errorMsg,
+          error: errorCategory(error),
         });
         return { success: false, error: errorMsg };
       } finally {

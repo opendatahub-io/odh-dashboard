@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/opendatahub-io/autorag-library/bff/internal/database"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
@@ -31,25 +32,6 @@ var maasTypeRequiredKeys = map[string][]string{
 	},
 }
 
-var vectorDBTypeRequiredKeys = map[string][]string{
-	"milvus": {"MILVUS_URI"},
-	"pgvector": {
-		"PGVECTOR_HOST",
-		"PGVECTOR_PORT",
-		"PGVECTOR_DB",
-		"PGVECTOR_USER",
-		"PGVECTOR_PASSWORD",
-	},
-}
-
-var databaseTypeRequiredKeys = map[string][]string{
-	"milvus":   {"MILVUS_URI"},
-	"pgvector": vectorDBTypeRequiredKeys["pgvector"],
-	"neo4j":    {"NEO4J_URI"},
-}
-
-var databaseProviderOrder = []string{"milvus", "pgvector", "neo4j"}
-
 var allowedSecretKeys = map[string]bool{
 	"AWS_S3_BUCKET": true,
 }
@@ -61,13 +43,7 @@ func NewK8sRepository() *K8sRepository {
 }
 
 func matchingDatabaseProviders(secret kubernetes.SecretInfo) []string {
-	providers := make([]string, 0, len(databaseProviderOrder))
-	for _, provider := range databaseProviderOrder {
-		if kubernetes.SecretInfoHasAllKeys(secret, databaseTypeRequiredKeys[provider]) {
-			providers = append(providers, provider)
-		}
-	}
-	return providers
+	return database.ClassifyStrings(secret.Data)
 }
 
 func filterDatabaseSecretInfos(
@@ -83,6 +59,26 @@ func filterDatabaseSecretInfos(
 		filtered = append(filtered, secret)
 	}
 	return filtered
+}
+
+func filterVectorDBSecretInfos(secretInfos []kubernetes.SecretInfo) []kubernetes.SecretInfo {
+	filtered := make([]kubernetes.SecretInfo, 0, len(secretInfos))
+	for _, secret := range secretInfos {
+		providers := matchingDatabaseProviders(secret)
+		if containsProvider(providers, database.Milvus) || containsProvider(providers, database.PGVector) {
+			filtered = append(filtered, secret)
+		}
+	}
+	return filtered
+}
+
+func containsProvider(providers []string, provider string) bool {
+	for _, candidate := range providers {
+		if candidate == provider {
+			return true
+		}
+	}
+	return false
 }
 
 // GetFilteredSecrets retrieves secrets from a namespace and filters them based on secretType.
@@ -125,7 +121,7 @@ func (r *K8sRepository) GetFilteredSecretsByProvider(
 	case "maas":
 		filtered = kubernetes.FilterSecretInfos(secretInfos, maasTypeRequiredKeys)
 	case "vector-db":
-		filtered = kubernetes.FilterSecretInfos(secretInfos, vectorDBTypeRequiredKeys)
+		filtered = filterVectorDBSecretInfos(secretInfos)
 	case "database":
 		filtered = filterDatabaseSecretInfos(secretInfos, provider)
 	default:
@@ -138,12 +134,13 @@ func (r *K8sRepository) GetFilteredSecretsByProvider(
 		redactedData := kubernetes.RedactSecretData(secret.Data, allowedSecretKeys)
 
 		result = append(result, models.SecretListItem{
-			UUID:        secret.UUID,
-			Name:        secret.Name,
-			Type:        responseType,
-			Data:        redactedData,
-			DisplayName: secret.DisplayName,
-			Description: secret.Description,
+			UUID:              secret.UUID,
+			Name:              secret.Name,
+			Type:              responseType,
+			Data:              redactedData,
+			DatabaseProviders: matchingDatabaseProviders(secret),
+			DisplayName:       secret.DisplayName,
+			Description:       secret.Description,
 		})
 	}
 

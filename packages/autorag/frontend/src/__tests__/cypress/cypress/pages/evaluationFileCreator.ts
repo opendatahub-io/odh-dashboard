@@ -100,6 +100,82 @@ class FileExplorer {
 }
 
 class AutoragConfigurePage {
+  visit(namespace: string) {
+    cy.visit(`/gen-ai-studio/autorag/configure/${namespace}`);
+  }
+
+  findNameInput() {
+    return cy.findByTestId('autorag-name-input');
+  }
+
+  findNextButton() {
+    return cy.findByTestId('autorag-next-button');
+  }
+
+  findConfigureStepSubtitle() {
+    return cy.findByTestId('configure-step-subtitle');
+  }
+
+  findSelectModelsButton() {
+    return cy.findByTestId('select-models-button');
+  }
+
+  findModelSelectionModal() {
+    return cy.findByTestId('experiment-settings-modal');
+  }
+
+  findModelTab(modelType: 'foundation' | 'embedding') {
+    return cy.findByTestId(`${modelType}-models-tab`);
+  }
+
+  findModelCheckbox(modelType: 'llm' | 'embedding', modelId: string) {
+    return cy.findByTestId(`${modelType}-model-checkbox-${modelId}`);
+  }
+
+  findDisabledModelTooltip(modelType: 'llm' | 'embedding', modelId: string) {
+    return cy.findByTestId(`${modelType}-disabled-model-tooltip-${modelId}`);
+  }
+
+  findDisabledModelTooltipContent(modelType: 'llm' | 'embedding', modelId: string) {
+    return cy.findByTestId(`${modelType}-disabled-model-tooltip-${modelId}-content`);
+  }
+
+  findTooltip() {
+    return cy.findByRole('tooltip');
+  }
+
+  findMaaSSecretSelector(options?: { timeout?: number }) {
+    return cy.findByTestId('maas-secret-selector', options);
+  }
+
+  findMaaSSecretInput() {
+    return this.findMaaSSecretSelector().find('input');
+  }
+
+  findStorageSecretSelector(options?: { timeout?: number }) {
+    return cy.findByTestId('aws-secret-selector', options);
+  }
+
+  findStorageSecretInput() {
+    return this.findStorageSecretSelector().find('input');
+  }
+
+  findSecretOption(secretName: string) {
+    return cy.findByRole('option', { name: new RegExp(`^${secretName}$`, 'i') });
+  }
+
+  findInputDataUploadToggle() {
+    return cy.findByTestId('input-data-source-upload-toggle');
+  }
+
+  findInputDataUploadFile() {
+    return cy.findByTestId('autorag-upload-file-input');
+  }
+
+  findUploadedInputDataFile() {
+    return cy.findByTestId('uploaded-file-cell');
+  }
+
   selectMaaSSecret(secretName: string) {
     const selectorTestId = 'maas-secret-selector';
     cy.findByTestId(selectorTestId).click();

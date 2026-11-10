@@ -50,6 +50,25 @@ requesting user's identity:
 Data Registry is supported as an ODH/RHOAI Dashboard module. Its federated deployment and local
 federated development configuration use the same user-token authentication path.
 
+## Connection Lookup
+
+Data Registry uses DCH connections when the DCH BFF is configured and both its connection
+and connection-type lookups succeed. An unconfigured or unavailable DCH integration falls back
+to the existing project Secret lookup; a 404 from either DCH collection endpoint is treated as
+unavailable so clusters can fall back while the DCH backend API is absent. An empty DCH list is a
+successful result. Authorization denials, other 4xx responses and malformed responses remain
+errors; unresolved connector types produce a warning and omit only the affected connections.
+
+Names and provider labels are temporary display information. Asset requests contain only
+the source and stable identifier. Existing references are preserved when unavailable,
+and unrelated edits omit `connection_ref` so they can proceed without a successful lookup.
+
+See [BFF connection configuration](bff/README.md#dch-connection-lookup) for setup and local
+mock testing. Production deployment requires the DCH onboarding changes that use port 9243. Volume connection replacement additionally requires a Data Registry server implementing
+`UpdateVolumeRequest.connection_ref` from API contract 0.8.0. This Dashboard change alone
+does not implement server persistence. Verify replacement and omission with write-and-read
+tests against that server before cluster acceptance.
+
 ## Environment Variables
 
 The following environment variables are used to configure the deployment and development environment for the Data Registry UI. These variables should be defined in a `.env.local` file in the `clients/ui` directory of the project. **This values will affect the build and push commands**.

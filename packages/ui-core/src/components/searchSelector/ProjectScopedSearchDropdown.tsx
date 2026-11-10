@@ -13,6 +13,7 @@ export type ProjectScopedSearchDropdownProps<T> = {
   globalScopedItems: T[];
   renderMenuItem: (item: T, index: number, scope: 'project' | 'global') => React.ReactNode;
   searchValue: string;
+  searchFocusOnOpen?: boolean;
   onSearchChange: (value: string) => void;
   onSearchClear: () => void;
   toggleContent: React.ReactNode;
@@ -112,6 +113,7 @@ function ProjectScopedSearchDropdown<T>({
   globalScopedItems,
   renderMenuItem,
   searchValue,
+  searchFocusOnOpen,
   onSearchChange,
   onSearchClear,
   toggleContent,
@@ -137,6 +139,7 @@ function ProjectScopedSearchDropdown<T>({
       onSearchChange={onSearchChange}
       onSearchClear={onSearchClear}
       searchValue={searchValue}
+      searchFocusOnOpen={searchFocusOnOpen}
       toggleContent={toggleContent}
       appendTo={appendTo}
     >

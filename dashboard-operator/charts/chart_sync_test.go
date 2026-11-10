@@ -239,6 +239,27 @@ func TestDashboardChartRBACInSync(t *testing.T) {
 	}
 }
 
+func TestDashboardChartRBACAllowsCustomRouteHosts(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm not installed")
+	}
+
+	rules, err := renderChartClusterRoleRules(filepath.Join("..", "charts", "dashboard"))
+	if err != nil {
+		t.Fatalf("render chart ClusterRole: %v", err)
+	}
+
+	for _, rule := range rules {
+		if stringSliceContains(rule.APIGroups, "route.openshift.io") &&
+			stringSliceContains(rule.Resources, "routes/custom-host") &&
+			stringSliceContains(rule.Verbs, "create") {
+			return
+		}
+	}
+
+	t.Fatal("expected create permission for route.openshift.io routes/custom-host")
+}
+
 func loadClusterRoleRules(path string) ([]rbacv1.PolicyRule, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -302,7 +323,8 @@ func rulesEqual(a, b []rbacv1.PolicyRule) bool {
 func policyRuleEqual(a, b rbacv1.PolicyRule) bool {
 	return stringSliceEqual(a.APIGroups, b.APIGroups) &&
 		stringSliceEqual(a.Resources, b.Resources) &&
-		stringSliceEqual(a.Verbs, b.Verbs)
+		stringSliceEqual(a.Verbs, b.Verbs) &&
+		stringSliceEqual(a.ResourceNames, b.ResourceNames)
 }
 
 func stringSliceEqual(a, b []string) bool {
@@ -315,4 +337,13 @@ func stringSliceEqual(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+func stringSliceContains(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }

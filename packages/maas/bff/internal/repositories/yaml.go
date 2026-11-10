@@ -92,7 +92,7 @@ func subscriptionModelToUnstructured(sub models.MaaSSubscription) *unstructured.
 		sub.Owner,
 		sub.ModelRefs,
 		sub.TokenMetadata,
-		sub.Priority,
+		sub.InferencePriority,
 	)
 }
 

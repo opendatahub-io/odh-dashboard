@@ -31,12 +31,14 @@ import {
   mockSecretK8sResource,
 } from '@odh-dashboard/k8s-core/__mocks__/mockSecretK8sResource';
 import { mockPVCK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPVCK8sResource';
+import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/mockResourceClaimTemplate';
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
 import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,
 } from '@odh-dashboard/cypress/cypress/utils/modelServingUtils';
 import {
+  ResourceClaimTemplateModel,
   RoleBindingModel,
   RoleModel,
   SecretModel,
@@ -67,10 +69,12 @@ const initIntercepts = ({
   modelType,
   rejectAddSupportServingPlatformProject = false,
   vLLMDeploymentOnMaaS = false,
+  hardwareProfileDRA = false,
 }: {
   modelType?: ServingRuntimeModelType;
   rejectAddSupportServingPlatformProject?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
+  hardwareProfileDRA?: boolean;
 }) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -91,6 +95,7 @@ const initIntercepts = ({
       deploymentWizardYAMLViewer: true,
       vLLMDeploymentOnMaaS,
       genAiStudio: true,
+      hardwareProfileDRA,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -423,11 +428,9 @@ describe('Model Serving Deploy Wizard', () => {
     // Step 3: Advanced Options
     // Model access & Token authentication
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
-    // AI Asset
+    // Gen AI Studio is enabled by default
     modelServingWizard.findSaveAiAssetCheckbox().should('exist');
-    modelServingWizard.findSaveAiAssetCheckbox().should('not.be.checked');
-    modelServingWizard.findUseCaseInput().should('not.exist');
-    modelServingWizard.findSaveAiAssetCheckbox().click();
+    modelServingWizard.findSaveAiAssetCheckbox().should('be.checked');
     modelServingWizard.findUseCaseInput().should('exist');
     modelServingWizard.findUseCaseInput().should('be.enabled');
     modelServingWizard.findUseCaseInput().type('test');
@@ -838,6 +841,66 @@ describe('Model Serving Deploy Wizard', () => {
     cy.get('@createServingRuntime.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
+  });
+
+  it('Block deploying with a newly selected project-scoped DRA hardware profile once its claim template is removed', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE, hardwareProfileDRA: true });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: HardwareProfileModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockHardwareProfile({
+          name: 'project-dra-profile',
+          displayName: 'Project DRA Profile',
+          namespace: 'test-project',
+          dra: { resourceClaimTemplateName: 'single-gpu' },
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: ResourceClaimTemplateModel, ns: 'test-project' },
+      mockK8sResourceList([mockResourceClaimTemplate({ name: 'single-gpu' })]),
+    ).as('resourceClaimTemplates');
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
+    modelServingWizard.findExistingConnectionSelect().click();
+    modelServingWizard.findExistingConnectionSelectOption('Test URI Secret').click();
+    modelServingWizard.findNextButton().should('be.enabled').click();
+
+    modelServingWizard.findModelDeploymentNameInput().type('test-model');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+    modelServingWizard.findGlobalScopedTemplateOption('OpenVINO').click();
+    modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').click();
+    cy.wait('@resourceClaimTemplates');
+    hardwareProfileSection.findHardwareProfileSearchSelector().click();
+    hardwareProfileSection.selectProjectScopedProfile(/Project DRA Profile/);
+    hardwareProfileSection.findClaimTemplateMissingError().should('not.exist');
+    modelServingWizard.findNextButton().should('be.enabled');
+
+    cy.wsK8s(
+      'DELETED',
+      ResourceClaimTemplateModel,
+      mockResourceClaimTemplate({ name: 'single-gpu' }),
+    );
+
+    hardwareProfileSection
+      .findClaimTemplateMissingError()
+      .should(
+        'contain.text',
+        'The claim template single-gpu does not exist in this project. Ask your administrator to create it, or select a different hardware profile.',
+      );
+    modelServingWizard.findNextButton().should('be.disabled');
+    cy.testA11y();
   });
 
   it('Do not deploy KServe model when user cannot edit namespace (only one serving platform enabled)', () => {
@@ -2082,6 +2145,41 @@ describe('Model Serving Deploy Wizard', () => {
         'contain.text',
         'This deployment contains custom configuration that cannot be displayed in the form',
       );
+    });
+
+    it('should remove managedFields from the YAML editor content', () => {
+      initIntercepts({});
+      initMockConnectionSecretIntercepts({});
+      initMockModelAuthIntercepts({});
+
+      const deploymentWithManagedFields = mockLLMInferenceServiceK8sResource({
+        name: 'managed-fields-model',
+        displayName: 'Managed Fields Model',
+        modelUri: 's3://my-bucket/my-model',
+      });
+      delete deploymentWithManagedFields.metadata.annotations?.['opendatahub.io/model-type'];
+      deploymentWithManagedFields.metadata.managedFields = [{ manager: 'kubectl' }];
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([deploymentWithManagedFields]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([]),
+      );
+      cy.interceptK8s(
+        'GET',
+        { model: LLMInferenceServiceModel, ns: 'test-project', name: 'managed-fields-model' },
+        deploymentWithManagedFields,
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Managed Fields Model').findKebabAction('Edit').click();
+
+      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      yamlEditor.getValue().should('contain', 'name: managed-fields-model');
+      yamlEditor.getValue().should('not.contain', 'managedFields');
     });
   });
 

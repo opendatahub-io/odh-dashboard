@@ -1,10 +1,24 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { mockCuratedBenchmarkSuiteCollections } from '~/app/mockBenchmarkSuiteCollections';
 import CuratedBenchmarkSuitesPage from '~/app/pages/CuratedBenchmarkSuitesPage';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockUseCollectionsQuery = jest.fn();
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  createEvalHubTrackingScope: () => ({ trackEventOnce: jest.fn(), clear: jest.fn() }),
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
+
+const clickFilterOption = (testId: string) => {
+  fireEvent.click(within(screen.getByTestId(testId)).getByRole('checkbox'));
+};
 
 jest.mock('~/app/hooks/collections', () => ({
   useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
@@ -16,9 +30,28 @@ jest.mock('~/app/hooks/collections', () => ({
   }),
 }));
 
+jest.mock('~/app/hooks/useProviders', () => ({
+  useProviders: () => ({ providers: [], loaded: true, loadError: undefined }),
+}));
+
+jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
+  useNamespaceSelectorWithPersistence: () => ({
+    namespaces: [{ name: 'test-project', displayName: 'Test Project' }],
+    namespacesLoaded: true,
+  }),
+}));
+
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
   ...require('~/__tests__/unit/testUtils/mocks').mockApplicationsPageModule(),
+}));
+
+jest.mock('~/app/components/CuratedSuiteRunModal', () => ({
+  __esModule: true,
+  default: ({ collection, isOpen }: { collection: { name: string }; isOpen: boolean }) =>
+    isOpen ? (
+      <div data-testid="curated-suite-start-evaluation-run-modal">{collection.name}</div>
+    ) : null,
 }));
 
 const renderPage = (evaluationTarget = 'agent') =>
@@ -65,19 +98,17 @@ describe('CuratedBenchmarkSuitesPage', () => {
   it('should render agent curated benchmark suites', () => {
     renderPage();
 
-    expect(screen.getByText('Agent benchmark suites')).toBeInTheDocument();
-    expect(
-      screen.getByText('Select a benchmark suite to evaluate your agent.'),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('create-benchmark-suite-button')).toBeInTheDocument();
-    expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent(
-      'All categories',
-    );
+    expect(screen.getByText('Agent collections')).toBeInTheDocument();
+    expect(screen.getByText('Select a collection to evaluate your agent.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create collection' })).toBeInTheDocument();
+    expect(screen.getByTestId('benchmark-suites-category-filter')).toHaveTextContent('Category');
+    expect(screen.getByTestId('benchmark-suites-category-filter-icon')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-evaluates-filter')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-pagination-top')).toBeInTheDocument();
     expect(screen.queryByTestId('benchmark-suites-pagination-bottom')).not.toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suite-card-clawbench')).toBeInTheDocument();
-    expect(screen.getAllByText('Customize')).toHaveLength(5);
+    expect(screen.getAllByText('Run')).toHaveLength(5);
+    expect(screen.queryByText('Customize')).not.toBeInTheDocument();
     expect(mockUseCollectionsQuery).toHaveBeenCalledWith(
       'test-project',
       'system',
@@ -101,16 +132,85 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     renderPage('model');
 
-    expect(screen.getByText('Model benchmark suites')).toBeInTheDocument();
-    expect(
-      screen.getByText('Select a benchmark suite to evaluate your model.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Model collections')).toBeInTheDocument();
+    expect(screen.getByText('Select a collection to evaluate your model.')).toBeInTheDocument();
     expect(
       screen.getByTestId('benchmark-suite-card-curated-open-llm-leaderboard-v2'),
     ).toBeInTheDocument();
   });
 
-  it('should link Customize to the collection copy route', () => {
+  it.each(['agent', 'model'] as const)(
+    'should open the details drawer when selecting a %s suite name',
+    (evaluationTarget) => {
+      const [collection] = mockCuratedBenchmarkSuiteCollections(evaluationTarget);
+      mockUseCollectionsQuery.mockReturnValue({
+        data: {
+          items: mockCuratedBenchmarkSuiteCollections(evaluationTarget),
+          // eslint-disable-next-line camelcase
+          total_count: 5,
+        },
+        isLoading: false,
+        error: null,
+      });
+
+      renderPage(evaluationTarget);
+
+      fireEvent.click(screen.getByTestId(`benchmark-suite-card-name-${collection.resource.id}`));
+
+      expect(screen.getByTestId('collection-drawer-panel')).toBeVisible();
+      expect(screen.getByTestId('collection-drawer-panel')).toHaveTextContent(collection.name);
+      expect(screen.getByTestId('use-benchmark-suite-button')).toBeInTheDocument();
+      expect(screen.getByTestId('customize-benchmark-suite-button')).toBeInTheDocument();
+    },
+  );
+
+  it('should route judge-model curated suites through customization', () => {
+    const ids = ['trustworthiness-v1', 'tool-use-v1', 'multimodal-v1'];
+    const collections = mockCuratedBenchmarkSuiteCollections('model')
+      .slice(0, ids.length)
+      .map((collection, index) => ({
+        ...collection,
+        resource: { ...collection.resource, id: ids[index] },
+        benchmarks: collection.benchmarks?.map((benchmark, benchmarkIndex) =>
+          index === 0 && benchmarkIndex === 0
+            ? { ...benchmark, parameters: { ...benchmark.parameters, judge_model: '' } }
+            : benchmark,
+        ),
+      }));
+    mockUseCollectionsQuery.mockReturnValue({
+      data: {
+        items: collections,
+        // eslint-disable-next-line camelcase
+        total_count: collections.length,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage('model');
+
+    const judgeModelAction = screen.getByTestId(
+      'benchmark-suite-card-primary-action-trustworthiness-v1',
+    );
+    expect(judgeModelAction).toHaveTextContent('Customize');
+    expect(judgeModelAction).toHaveAttribute(
+      'href',
+      '/evaluation/test-project/create/collections/trustworthiness-v1/copy',
+    );
+    expect(
+      screen.queryByTestId('benchmark-suite-card-dropdown-toggle-trustworthiness-v1'),
+    ).not.toBeInTheDocument();
+
+    ['tool-use-v1', 'multimodal-v1'].forEach((collectionId) => {
+      const runAction = screen.getByTestId(`benchmark-suite-card-primary-action-${collectionId}`);
+      expect(runAction).toHaveTextContent('Run');
+      expect(
+        screen.getByTestId(`benchmark-suite-card-dropdown-toggle-${collectionId}`),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('should link Customize in the action menu to the collection copy route', () => {
     mockUseCollectionsQuery.mockReturnValue({
       data: {
         items: mockCuratedBenchmarkSuiteCollections('model'),
@@ -123,11 +223,38 @@ describe('CuratedBenchmarkSuitesPage', () => {
 
     renderPage('model');
 
-    expect(
-      screen.getByTestId('benchmark-suite-card-primary-action-safety-and-fairness-v1'),
-    ).toHaveAttribute(
+    fireEvent.click(
+      screen.getByTestId('benchmark-suite-card-dropdown-toggle-safety-and-fairness-v1'),
+    );
+
+    const customizeAction = screen.getByTestId(
+      'benchmark-suite-card-dropdown-action-safety-and-fairness-v1',
+    );
+    expect(within(customizeAction).getByRole('menuitem')).toHaveAttribute(
       'href',
       '/evaluation/test-project/create/collections/safety-and-fairness-v1/copy',
+    );
+
+    fireEvent.click(within(customizeAction).getByRole('menuitem'));
+
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
+      expect.objectContaining({
+        collectionName: 'Safety and fairness',
+        surface: 'curated_gallery',
+      }),
+      expect.objectContaining({ collectionType: 'custom' }),
+    );
+    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('should open the run modal from a curated suite card', () => {
+    renderPage('model');
+
+    fireEvent.click(screen.getByTestId('benchmark-suite-card-primary-action-clawbench'));
+
+    expect(screen.getByTestId('curated-suite-start-evaluation-run-modal')).toHaveTextContent(
+      'ClawBench',
     );
   });
 
@@ -210,9 +337,10 @@ describe('CuratedBenchmarkSuitesPage', () => {
     renderPage();
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
+    fireEvent.click(screen.getByTestId('benchmark-suites-more-filters-toggle'));
     fireEvent.click(screen.getByTestId('benchmark-suites-industry-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Government' }));
+    clickFilterOption('benchmark-suites-industry-filter-option-government');
 
     expect(screen.getByTestId('benchmark-suites-empty-state')).toBeInTheDocument();
     expect(screen.getByTestId('benchmark-suites-industry-filter')).toBeInTheDocument();
@@ -261,7 +389,7 @@ describe('CuratedBenchmarkSuitesPage', () => {
     );
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
-    fireEvent.click(screen.getByRole('option', { name: 'Code' }));
+    clickFilterOption('benchmark-suites-category-filter-option-code');
     expect(
       screen.getByTestId('benchmark-suite-card-software-engineering-agent-suite'),
     ).toBeInTheDocument();

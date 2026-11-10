@@ -8,10 +8,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
+
+func int32Ptr(v int32) *int32 {
+	return &v
+}
 
 // newTestClient spins up an httptest.Server with the given handler and wires it to a MaasClient.
 func newTestClient(t *testing.T, handler http.Handler) *MaasClient {
@@ -37,6 +42,91 @@ func jsonHandler(t *testing.T, v any) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(b)
 	})
+}
+
+func TestGetWhoAmIUpstreamErrorPreservesStatus(t *testing.T) {
+	tests := []struct {
+		name       string
+		statusCode int
+		body       string
+		message    string
+	}{
+		{name: "string error", statusCode: http.StatusUnauthorized, body: `{"error":"invalid token"}`, message: "invalid token"},
+		{name: "object error", statusCode: http.StatusUnauthorized, body: `{"error":{"message":"Authentication required","type":"authentication_error","code":401}}`, message: "Authentication required"},
+		{name: "object error without message", statusCode: http.StatusUnauthorized, body: `{"error":{"code":401}}`, message: http.StatusText(http.StatusUnauthorized)},
+		{name: "malformed error", statusCode: http.StatusForbidden, body: `not-json`, message: http.StatusText(http.StatusForbidden)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.statusCode)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			_, err := client.GetWhoAmI(context.Background())
+			var upstreamErr *MaasUpstreamError
+			if !errors.As(err, &upstreamErr) {
+				t.Fatalf("error = %v, want MaasUpstreamError", err)
+			}
+			if upstreamErr.StatusCode != tt.statusCode || upstreamErr.Message != tt.message {
+				t.Fatalf("upstream error = %#v, want status %d and message %q", upstreamErr, tt.statusCode, tt.message)
+			}
+		})
+	}
+}
+
+func TestNewMaasClient_ProxyFromEnvironmentOnlyInE2E(t *testing.T) {
+	// Go caches proxy environment settings on first use, so test their values
+	// in a fresh process rather than relying on the order of other tests.
+	if os.Getenv("MAAS_PROXY_TEST_CHILD") != "1" {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestNewMaasClient_ProxyFromEnvironmentOnlyInE2E$")
+		cmd.Env = append(os.Environ(),
+			"MAAS_PROXY_TEST_CHILD=1",
+			"E2E_USE_PROXY_FROM_ENV=",
+			"HTTPS_PROXY=http://squid.example.test:3128",
+			"https_proxy=",
+			"NO_PROXY=.cluster.local",
+			"no_proxy=",
+		)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("MaaS proxy environment subprocess failed: %v\n%s", err, output)
+		}
+		return
+	}
+
+	t.Setenv("E2E_USE_PROXY_FROM_ENV", "")
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	client, err := NewMaasClient(logger, "https://maas.example.test/maas-api")
+	if err != nil {
+		t.Fatalf("NewMaasClient without E2E proxy: %v", err)
+	}
+	transport := client.httpClient.Transport.(*http.Transport)
+	if transport.Proxy != nil {
+		t.Fatal("MaaS client must not use the runner proxy by default")
+	}
+
+	t.Setenv("E2E_USE_PROXY_FROM_ENV", "true")
+	client, err = NewMaasClient(logger, "https://maas.example.test/maas-api")
+	if err != nil {
+		t.Fatalf("NewMaasClient with E2E proxy: %v", err)
+	}
+	transport = client.httpClient.Transport.(*http.Transport)
+	if transport.Proxy == nil {
+		t.Fatal("MaaS client must honor proxy environment in E2E mode")
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "https://maas.example.test/maas-api/v1/models", nil)
+	proxyURL, err := transport.Proxy(request)
+	if err != nil || proxyURL == nil || proxyURL.String() != "http://squid.example.test:3128" {
+		t.Fatalf("unexpected proxy for MaaS API: %v, %v", proxyURL, err)
+	}
+
+	request = httptest.NewRequest(http.MethodGet, "https://maas.svc.cluster.local/maas-api/v1/models", nil)
+	proxyURL, err = transport.Proxy(request)
+	if err != nil || proxyURL != nil {
+		t.Fatalf("NO_PROXY target should bypass Squid: %v, %v", proxyURL, err)
+	}
 }
 
 func TestSearchAPIKeys_NilDataNormalized(t *testing.T) {
@@ -66,7 +156,7 @@ func TestListSubscriptionsForApiKeys_NilModelRefsNormalized(t *testing.T) {
 		{
 			"subscription_id_header":   "test-sub",
 			"subscription_description": "Test",
-			"priority":                 1,
+			"inference_priority":       1,
 			"model_refs":               nil,
 		},
 	}
@@ -93,7 +183,7 @@ func TestListSubscriptionsForApiKeys_NilTokenRateLimitsNormalized(t *testing.T) 
 		{
 			"subscription_id_header":   "test-sub",
 			"subscription_description": "Test",
-			"priority":                 1,
+			"inference_priority":       1,
 			"model_refs": []map[string]any{
 				{
 					"name":              "my-model",
@@ -125,7 +215,7 @@ func TestListSubscriptionsForApiKeys_ValidDataPassedThrough(t *testing.T) {
 	body := []models.SubscriptionListItem{
 		{
 			SubscriptionIDHeader: "premium-sub",
-			Priority:             10,
+			InferencePriority:    int32Ptr(10),
 			ModelRefs: []models.ModelRefInfo{
 				{
 					Name: "granite-3-8b",
@@ -148,6 +238,36 @@ func TestListSubscriptionsForApiKeys_ValidDataPassedThrough(t *testing.T) {
 	got := result[0].ModelRefs[0].TokenRateLimits[0]
 	if got.Limit != 1000 || got.Window != "1h" {
 		t.Errorf("rate limit data was altered: got %+v", got)
+	}
+}
+
+func TestListSubscriptionsForApiKeys_ModelNamePassedThrough(t *testing.T) {
+	// Upstream JSON includes model_name; BFF must keep it for catalog id resolution in the UI.
+	const catalogID = "publishers/llm/models/Qwen/Qwen2.5-0.5B-Instruct"
+	raw := `[{
+		"subscription_id_header": "qwen25-free-subscription",
+		"subscription_description": "Qwen free",
+		"model_refs": [{
+			"name": "qwen2-5-0-5b-instruct",
+			"model_name": "` + catalogID + `",
+			"namespace": "llm",
+			"token_rate_limits": []
+		}]
+	}]`
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(raw))
+	}))
+
+	result, err := client.ListSubscriptionsForApiKeys(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) != 1 || len(result[0].ModelRefs) != 1 {
+		t.Fatalf("expected 1 subscription with 1 model_ref, got %+v", result)
+	}
+	if got := result[0].ModelRefs[0].ModelName; got != catalogID {
+		t.Errorf("model_name = %q, want %q", got, catalogID)
 	}
 }
 

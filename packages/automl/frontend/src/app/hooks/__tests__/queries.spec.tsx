@@ -645,6 +645,15 @@ describe('useModelEvaluationArtifactsQuery', () => {
     importance: { feature_a: 0.8, feature_b: 0.2 },
   };
 
+  const mockFeatureImportanceWithUnavailableStatistics = {
+    importance: { feature_a: 0.8, feature_b: null },
+    stddev: { feature_a: null, feature_b: 0.1 },
+    p_value: { feature_a: 0.2, feature_b: null },
+    n: { feature_a: null, feature_b: 10 },
+    p99_high: { feature_a: null, feature_b: 0.9 },
+    p99_low: { feature_a: 0.1, feature_b: null },
+  };
+
   const mockConfusionMatrix = {
     cat: { cat: 10, dog: 2 },
     dog: { cat: 1, dog: 15 },
@@ -733,6 +742,25 @@ describe('useModelEvaluationArtifactsQuery', () => {
     expect(result.current.confusionMatrix).toBeUndefined();
     expect(result.current.curves).toBeUndefined();
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should preserve null values for unavailable feature importance statistics', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockBlobJsonResponse(mockFeatureImportanceWithUnavailableStatistics),
+    );
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
+      { wrapper: createWrapper().Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toEqual(
+      mockFeatureImportanceWithUnavailableStatistics,
+    );
   });
 
   it('should load all artifacts for classification runs (isClassification=true)', async () => {
@@ -944,6 +972,30 @@ describe('useModelEvaluationArtifactsQuery', () => {
         result.current[artifact as 'featureImportance' | 'confusionMatrix' | 'backTesting'],
       ).toBeUndefined();
       expect(global.fetch).toHaveBeenCalledTimes(responses.length);
+    },
+  );
+
+  it.each(['importance', 'stddev', 'p_value', 'n', 'p99_high', 'p99_low'])(
+    'should reject non-numeric values in %s',
+    async (name) => {
+      const invalidFeatureImportance = {
+        importance: { feature_a: 0.8 },
+        [name]: { feature_a: 'invalid' },
+      };
+      (global.fetch as jest.Mock).mockResolvedValueOnce(
+        mockBlobJsonResponse(invalidFeatureImportance),
+      );
+
+      const { result } = renderHook(
+        () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
+        { wrapper: createWrapper().Wrapper },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.featureImportance).toBeUndefined();
     },
   );
 

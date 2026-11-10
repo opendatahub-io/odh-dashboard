@@ -834,6 +834,102 @@ func TestEnableManagedPipelinesHandler(t *testing.T) {
 	}
 }
 
+// ---------- PipelineServerStatusHandler ----------
+
+func TestPipelineServerStatusHandler(t *testing.T) {
+	ns := "test-ns"
+
+	tests := []struct {
+		name           string
+		namespace      string
+		repoResult     *pipelines.DSPAStatus
+		repoErr        error
+		wantStatusCode int
+		wantBodySubstr string
+	}{
+		{
+			name:      "ready",
+			namespace: ns,
+			repoResult: &pipelines.DSPAStatus{
+				Status:   pipelines.DSPAStatusReady,
+				DSPAName: "dspa",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"status": "ready"`,
+		},
+		{
+			name:      "starting",
+			namespace: ns,
+			repoResult: &pipelines.DSPAStatus{
+				Status:   pipelines.DSPAStatusStarting,
+				DSPAName: "dspa",
+			},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"status": "starting"`,
+		},
+		{
+			name:           "not-found",
+			namespace:      ns,
+			repoResult:     &pipelines.DSPAStatus{Status: pipelines.DSPAStatusNotFound},
+			wantStatusCode: http.StatusOK,
+			wantBodySubstr: `"status": "not-found"`,
+		},
+		{
+			name:           "invalid DSPA conditions",
+			namespace:      ns,
+			repoErr:        pipelines.ErrInvalidDSPAConditions,
+			wantStatusCode: http.StatusInternalServerError,
+			wantBodySubstr: `"code": "500"`,
+		},
+		{
+			name:           "forbidden",
+			namespace:      ns,
+			repoErr:        kubernetes.ErrForbidden,
+			wantStatusCode: http.StatusForbidden,
+			wantBodySubstr: `"code": "403"`,
+		},
+		{
+			name:           "server error",
+			namespace:      ns,
+			repoErr:        errors.New("k8s list failed"),
+			wantStatusCode: http.StatusInternalServerError,
+			wantBodySubstr: `"code": "500"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, repo := newTestPipelinesHandler()
+
+			repo.On("GetPipelineServerStatus", mock.Anything, tt.namespace).
+				Return(tt.repoResult, tt.repoErr)
+
+			req := pipelineRequestWithNamespace(http.MethodGet, "/api/v1/pipeline-server/status", tt.namespace, "")
+			rr := httptest.NewRecorder()
+
+			h.PipelineServerStatusHandler(rr, req, nil)
+
+			assert.Equal(t, tt.wantStatusCode, rr.Code)
+			if tt.wantBodySubstr != "" {
+				assert.Contains(t, rr.Body.String(), tt.wantBodySubstr)
+			}
+			repo.AssertExpectations(t)
+		})
+	}
+
+	t.Run("missing namespace", func(t *testing.T) {
+		h, repo := newTestPipelinesHandler()
+
+		req := pipelineRequestWithNamespace(http.MethodGet, "/api/v1/pipeline-server/status", "", "")
+		rr := httptest.NewRecorder()
+
+		h.PipelineServerStatusHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		repo.AssertNotCalled(t, "GetPipelineServerStatus", mock.Anything, mock.Anything)
+	})
+}
+
 // ---------- CreateIndexingPipelineRunHandler ----------
 
 func TestCreateIndexingPipelineRunHandler(t *testing.T) {
@@ -904,6 +1000,15 @@ func TestCreateIndexingPipelineRunHandler(t *testing.T) {
 			setupRepo:      false,
 			wantStatusCode: http.StatusBadRequest,
 			wantBodySubstr: "single JSON object",
+		},
+		{
+			name:      "handler-level graph extraction validation",
+			namespace: ns,
+			body: `{"display_name":"index-run","parameters":{"embedding_model_id":"embed","input_data_secret_name":"sec","input_data_bucket_name":"bucket","maas_secret_name":"maas","db_secret_name":"vector-db",` +
+				`"graph_extraction_config":{"mode":"constrained","max_entities_per_chunk":2}}}`,
+			setupRepo:      false,
+			wantStatusCode: http.StatusBadRequest,
+			wantBodySubstr: "not allowed in constrained mode",
 		},
 		{
 			name:           "repo validation error",

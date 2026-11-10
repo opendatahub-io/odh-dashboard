@@ -1,5 +1,7 @@
 import { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
 
+export { HardwareProfileModel } from '@odh-dashboard/k8s-core/api/models';
+
 export const ODHDashboardConfigModel: K8sModelCommon = {
   apiVersion: 'v1alpha',
   apiGroup: 'opendatahub.io',
@@ -19,13 +21,6 @@ export const AcceleratorProfileModel: K8sModelCommon = {
   apiGroup: 'dashboard.opendatahub.io',
   kind: 'AcceleratorProfile',
   plural: 'acceleratorprofiles',
-};
-
-export const HardwareProfileModel: K8sModelCommon = {
-  apiVersion: 'v1',
-  apiGroup: 'infrastructure.opendatahub.io',
-  kind: 'HardwareProfile',
-  plural: 'hardwareprofiles',
 };
 
 export const NIMAccountModel: K8sModelCommon = {

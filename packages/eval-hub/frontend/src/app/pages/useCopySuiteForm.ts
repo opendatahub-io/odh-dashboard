@@ -1,8 +1,10 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import isEqual from 'lodash-es/isEqual';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import {
   getThresholdInputValue,
@@ -14,18 +16,37 @@ import { weightsToPercentages } from '~/app/utilities/weightDistributionUtils';
 import { evaluationBenchmarkSuitesRoute, evaluationsBaseRoute } from '~/app/routes';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
-import { cloneCollection, createCollection } from '~/app/api/k8s';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
+import { hasCuratedIndex } from '~/app/components/BenchmarkSuitesGallery';
+import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
+import {
+  EVAL_HUB_EVENTS,
+  type CollectionSavedProperties,
+} from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
+// TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+// import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
+import {
+  isCollectionCategory,
+  MODEL_EVALUATION_TARGETS,
+  type SuiteEvaluatesOption,
+} from '~/app/pages/const';
 import {
   copySuiteDefaultValues,
-  copySuiteSchema,
+  getCopySuiteSchema,
+  isSameAsSourceCollectionName,
   type CopySuiteBenchmarkParameter,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
+import {
+  parseTestDataRef,
+  serializeTestDataRef,
+  testDataRefDefaultValues,
+} from '~/app/schemas/testDataRef.schema';
 import type {
   Collection,
   CollectionBenchmark,
+  CollectionPatchOperation,
   CreateCollectionRequest,
   Provider,
   ProviderBenchmark,
@@ -33,9 +54,54 @@ import type {
 
 const DEFAULT_SUITE_THRESHOLD = 70;
 const MIN_WEIGHT_PERCENT = 5;
-export const MAX_BENCHMARKS = 10;
+export const MAX_BENCHMARKS = 20;
+const EDIT_AFTER_RUN_ERROR = 'Collections cannot be edited after they have been run.';
 
 export type CopySuiteBenchmark = CopySuiteFormValues['benchmarks'][number];
+
+type CollectionSavedFormState = Pick<
+  CollectionSavedProperties,
+  | 'suiteDomains'
+  | 'suiteTasks'
+  | 'suiteModalities'
+  | 'suiteIndustries'
+  | 'suiteEvaluates'
+  | 'suiteThreshold'
+  | 'benchmarkCount'
+  | 'benchmarks'
+  | 'benchmarkParameterKeys'
+  | 'hasAdditionalParameters'
+>;
+
+/**
+ * Form tracking only accepts primitive property values, so list-valued fields are
+ * kept as JSON strings and the benchmark selection as an alpha-ordered name list.
+ * Free-text fields (suite name/description) and parameter values are never emitted —
+ * only parameter keys and whether advanced additional parameters exist.
+ */
+export const serializeCollectionSavedFormState = (
+  values: CopySuiteFormValues,
+): CollectionSavedFormState => ({
+  suiteDomains: JSON.stringify(values.suiteDomains),
+  suiteTasks: JSON.stringify(values.suiteTasks),
+  suiteModalities: JSON.stringify(values.suiteModalities),
+  suiteIndustries: JSON.stringify(values.suiteIndustries),
+  suiteEvaluates: JSON.stringify(values.suiteEvaluates),
+  suiteThreshold: values.suiteThreshold,
+  benchmarkCount: values.benchmarks.length,
+  benchmarks: values.benchmarks
+    .map((benchmark) => benchmark.name)
+    .toSorted((first, second) => first.localeCompare(second, undefined, { sensitivity: 'base' }))
+    .join(', '),
+  benchmarkParameterKeys: JSON.stringify(
+    [
+      ...new Set(values.benchmarks.flatMap((benchmark) => benchmark.parameters.map((p) => p.key))),
+    ].toSorted((first, second) => first.localeCompare(second)),
+  ),
+  hasAdditionalParameters: values.benchmarks.some(
+    (benchmark) => (benchmark.additionalParameters ?? '').trim() !== '',
+  ),
+});
 
 export const getBenchmarkKey = (benchmark: { providerId: string; id: string }): string =>
   `${benchmark.providerId}:${benchmark.id}`;
@@ -195,7 +261,7 @@ type UseCopySuiteFormParams = {
   sourceCollection: Collection | undefined;
   providers: Provider[];
   providersLoaded: boolean;
-  mode?: 'copy' | 'create';
+  mode?: 'copy' | 'create' | 'edit';
   onSaveAndRunRequest?: () => void;
   cancelRoute?: string;
 };
@@ -221,7 +287,8 @@ export const buildPendingCollection = ({
   suiteTasks,
   suiteModalities,
   suiteIndustries,
-  suiteEvaluates,
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // suiteEvaluates,
   suiteThreshold,
   benchmarks,
 }: BuildPendingCollectionParams): Collection => {
@@ -238,6 +305,7 @@ export const buildPendingCollection = ({
         : undefined,
       pass_criteria: { threshold: getThresholdRequestValue(b.threshold, b.primaryMetric) },
       parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+      test_data_ref: serializeTestDataRef(b.testDataRef),
     };
   });
   /* eslint-enable camelcase */
@@ -250,8 +318,11 @@ export const buildPendingCollection = ({
     tasks: suiteTasks,
     modalities: suiteModalities,
     industries: suiteIndustries,
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
     // eslint-disable-next-line camelcase
-    evaluation_targets: suiteEvaluates,
+    // evaluation_targets: suiteEvaluates,
+    // eslint-disable-next-line camelcase
+    evaluation_targets: [...MODEL_EVALUATION_TARGETS],
     custom: buildCustomMetadata(baseCollection.custom),
     // eslint-disable-next-line camelcase
     pass_criteria: { threshold: suiteThreshold / 100 },
@@ -340,6 +411,8 @@ const normalizeWeights = (weights: number[]): number[] => {
   return weightsWithMinimum;
 };
 
+// TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+/*
 const resolveInitialEvaluates = (
   collection: Collection,
   providers: Provider[],
@@ -350,7 +423,7 @@ const resolveInitialEvaluates = (
   };
 
   const evaluationTargets = normalizeEvaluates(collection.evaluation_targets);
-  if (evaluationTargets.length > 0) {
+  if (collection.evaluation_targets !== undefined) {
     return evaluationTargets;
   }
 
@@ -369,6 +442,8 @@ const resolveInitialEvaluates = (
 
   return [];
 };
+*/
+const resolveInitialEvaluates = (): SuiteEvaluatesOption[] => [...MODEL_EVALUATION_TARGETS];
 
 const buildBenchmarkFromProvider = (
   provider: Provider,
@@ -401,6 +476,7 @@ const buildBenchmarkFromProvider = (
         )
       : DEFAULT_SUITE_THRESHOLD,
     availableMetrics: providerBenchmark.metrics ?? [],
+    testDataRef: { ...testDataRefDefaultValues },
   };
 };
 
@@ -450,9 +526,65 @@ const buildInitialBenchmarks = (
           ? getThresholdInputValue(cb.pass_criteria.threshold, primaryScore?.metric)
           : DEFAULT_SUITE_THRESHOLD,
         availableMetrics: pb?.metrics ?? [],
+        testDataRef: parseTestDataRef(cb.test_data_ref),
       };
     }),
   );
+};
+
+const findSourceBenchmark = (
+  sourceBenchmarks: CollectionBenchmark[],
+  benchmark: CopySuiteBenchmark,
+): CollectionBenchmark | undefined => {
+  const matchingBenchmarks = sourceBenchmarks.filter(({ id }) => id === benchmark.id);
+  /* eslint-disable camelcase */
+  const sourceBenchmark = matchingBenchmarks.find(
+    ({ provider_id }) => provider_id === benchmark.providerId,
+  );
+  /* eslint-enable camelcase */
+  return sourceBenchmark ?? (matchingBenchmarks.length === 1 ? matchingBenchmarks[0] : undefined);
+};
+
+type BuildEditBenchmarksPatchParams = {
+  sourceCollection: Collection;
+  initialBenchmarks: CopySuiteBenchmark[];
+  currentBenchmarks: CopySuiteBenchmark[];
+  requestBenchmarks: CollectionBenchmark[];
+};
+
+const buildEditBenchmarksPatch = ({
+  sourceCollection,
+  initialBenchmarks,
+  currentBenchmarks,
+  requestBenchmarks,
+}: BuildEditBenchmarksPatchParams): CollectionBenchmark[] | undefined => {
+  const initialKeys = initialBenchmarks.map(getBenchmarkKey);
+  const currentKeys = currentBenchmarks.map(getBenchmarkKey);
+  const selectionChanged =
+    initialKeys.length !== currentKeys.length ||
+    initialKeys.some((key, index) => key !== currentKeys[index]);
+  const initialBenchmarksByKey = new Map(
+    initialBenchmarks.map((benchmark) => [getBenchmarkKey(benchmark), benchmark]),
+  );
+  const sourceBenchmarks = sourceCollection.benchmarks ?? [];
+  let hasChanges = selectionChanged;
+
+  const patchedBenchmarks = requestBenchmarks.map((requestBenchmark, index) => {
+    const currentBenchmark = currentBenchmarks[index];
+    const initialBenchmark = initialBenchmarksByKey.get(getBenchmarkKey(currentBenchmark));
+    const benchmarkChanged = !initialBenchmark || !isEqual(currentBenchmark, initialBenchmark);
+    const sourceBenchmark = findSourceBenchmark(sourceBenchmarks, currentBenchmark);
+
+    hasChanges ||= benchmarkChanged || sourceBenchmark === undefined;
+
+    if (!benchmarkChanged && sourceBenchmark) {
+      return sourceBenchmark;
+    }
+
+    return sourceBenchmark ? { ...sourceBenchmark, ...requestBenchmark } : requestBenchmark;
+  });
+
+  return hasChanges ? patchedBenchmarks : undefined;
 };
 
 export const equalWeights = (count: number): number[] => {
@@ -484,21 +616,72 @@ const buildDefaultSuiteName = (sourceName: string): string =>
 const buildInitialFormValues = (
   sourceCollection: Collection,
   providers: Provider[],
+  mode: 'copy' | 'edit',
 ): CopySuiteFormValues => ({
-  suiteName: buildDefaultSuiteName(sourceCollection.name),
+  suiteName: mode === 'edit' ? sourceCollection.name : buildDefaultSuiteName(sourceCollection.name),
   suiteDescription: sourceCollection.description ?? '',
   suiteDomains: uniqueCollectionMetadata(
-    sourceCollection.domains ?? (sourceCollection.category ? [sourceCollection.category] : []),
+    sourceCollection.domains ??
+      (isCollectionCategory(sourceCollection.category) ? [sourceCollection.category] : []),
   ),
   suiteTasks: uniqueCollectionMetadata(sourceCollection.tasks),
   suiteModalities: uniqueCollectionMetadata(sourceCollection.modalities),
   suiteIndustries: uniqueCollectionMetadata(sourceCollection.industries),
-  suiteEvaluates: resolveInitialEvaluates(sourceCollection, providers),
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // suiteEvaluates: resolveInitialEvaluates(sourceCollection, providers),
+  suiteEvaluates: resolveInitialEvaluates(),
   suiteThreshold: sourceCollection.pass_criteria
     ? normalizeThreshold(sourceCollection.pass_criteria.threshold)
     : DEFAULT_SUITE_THRESHOLD,
   benchmarks: buildInitialBenchmarks(sourceCollection, providers),
 });
+
+type EditableCollectionRequest = {
+  name: string;
+  description?: string;
+  domains?: string[];
+  tasks?: string[];
+  modalities?: string[];
+  industries?: string[];
+  evaluation_targets?: string[];
+  pass_criteria?: { threshold: number };
+  benchmarks?: CollectionBenchmark[];
+};
+
+export const buildCollectionPatchOperations = (
+  request: EditableCollectionRequest,
+): CollectionPatchOperation[] => {
+  const operations: CollectionPatchOperation[] = [
+    { op: 'replace', path: '/name', value: request.name },
+    { op: 'add', path: '/description', value: request.description ?? '' },
+    { op: 'add', path: '/domains', value: request.domains ?? [] },
+    { op: 'add', path: '/tasks', value: request.tasks ?? [] },
+    { op: 'add', path: '/modalities', value: request.modalities ?? [] },
+    { op: 'add', path: '/industries', value: request.industries ?? [] },
+    {
+      op: 'add',
+      // eslint-disable-next-line camelcase
+      path: '/evaluation_targets',
+      // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+      // eslint-disable-next-line camelcase
+      // value: request.evaluation_targets ?? [],
+      value: [...MODEL_EVALUATION_TARGETS],
+    },
+    {
+      op: 'add',
+      // eslint-disable-next-line camelcase
+      path: '/pass_criteria',
+      // eslint-disable-next-line camelcase
+      value: request.pass_criteria ?? { threshold: 0 },
+    },
+  ];
+
+  if (request.benchmarks !== undefined) {
+    operations.push({ op: 'add', path: '/benchmarks', value: request.benchmarks });
+  }
+
+  return operations;
+};
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function useCopySuiteForm({
@@ -514,27 +697,50 @@ export function useCopySuiteForm({
   const notification = useNotification();
   const { refresh: refreshCollections } = useCollectionsContext();
   const isCreateMode = mode === 'create';
+  const isEditMode = mode === 'edit';
+  const requiredParameterKeys = React.useMemo(() => {
+    if (mode !== 'copy' || !sourceCollection || sourceCollection.resource.tenant) {
+      return new Set<string>();
+    }
+    const parameters = getCuratedCollectionConfig(sourceCollection)?.parameters ?? {};
+    return new Set(
+      Object.entries(parameters)
+        .filter(([, config]) => config.required)
+        .map(([key]) => key),
+    );
+  }, [mode, sourceCollection]);
+  const validationSchema = React.useMemo(
+    () =>
+      getCopySuiteSchema(
+        mode === 'copy' ? sourceCollection?.name : undefined,
+        requiredParameterKeys,
+      ),
+    [mode, sourceCollection?.name, requiredParameterKeys],
+  );
 
   const form = useForm<CopySuiteFormValues>({
     mode: 'onChange',
-    resolver: zodResolver(copySuiteSchema),
+    resolver: zodResolver(validationSchema),
     defaultValues: copySuiteDefaultValues,
   });
   const { isValid: isFormValid } = form.formState;
 
   const initializedRef = React.useRef(false);
+  const initialBenchmarksRef = React.useRef<CopySuiteBenchmark[]>([]);
   React.useEffect(() => {
     if (initializedRef.current || !providersLoaded || (!isCreateMode && !sourceCollection)) {
       return;
     }
     initializedRef.current = true;
-    form.reset(
-      sourceCollection
-        ? buildInitialFormValues(sourceCollection, providers)
-        : copySuiteDefaultValues,
-    );
-    void form.trigger();
-  }, [sourceCollection, providers, providersLoaded, form, isCreateMode]);
+    const initialValues = sourceCollection
+      ? buildInitialFormValues(sourceCollection, providers, isEditMode ? 'edit' : 'copy')
+      : copySuiteDefaultValues;
+    initialBenchmarksRef.current = initialValues.benchmarks;
+    form.reset(initialValues);
+    if (sourceCollection) {
+      void form.trigger();
+    }
+  }, [sourceCollection, providers, providersLoaded, form, isCreateMode, isEditMode]);
 
   const [
     suiteName,
@@ -588,9 +794,20 @@ export function useCopySuiteForm({
     (value: string) => form.setValue('suiteDescription', value, { shouldValidate: true }),
     [form],
   );
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  /*
   const setSuiteEvaluates = React.useCallback(
     (value: SuiteEvaluatesOption[]) =>
       form.setValue('suiteEvaluates', value, { shouldValidate: true }),
+    [form],
+  );
+  */
+  const setSuiteEvaluates = React.useCallback(
+    (value: SuiteEvaluatesOption[]) => {
+      void value;
+      // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+      form.setValue('suiteEvaluates', [...MODEL_EVALUATION_TARGETS], { shouldValidate: true });
+    },
     [form],
   );
   const handleSuiteThresholdChange = React.useCallback(
@@ -647,7 +864,13 @@ export function useCopySuiteForm({
       }
 
       const nextBenchmarks = [...selectedKeySet]
-        .map((key) => previousByKey.get(key) ?? createBenchmarkFromKey(key, providers))
+        .map((key) => {
+          const previousBenchmark = previousByKey.get(key);
+          if (previousBenchmark) {
+            return previousBenchmark;
+          }
+          return createBenchmarkFromKey(key, providers);
+        })
         .filter((benchmark): benchmark is CopySuiteBenchmark => benchmark !== undefined);
 
       if (nextBenchmarks.length === 0) {
@@ -676,7 +899,9 @@ export function useCopySuiteForm({
     [form],
   );
 
-  const isSettingsValid = suiteName.trim() !== '';
+  const isSettingsValid =
+    suiteName.trim() !== '' &&
+    !isSameAsSourceCollectionName(suiteName, mode === 'copy' ? sourceCollection?.name : undefined);
 
   const isValid = isSettingsValid && benchmarks.length > 0 && isFormValid;
 
@@ -705,6 +930,7 @@ export function useCopySuiteForm({
           : undefined,
         pass_criteria: { threshold: getThresholdRequestValue(b.threshold, b.primaryMetric) },
         parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+        test_data_ref: serializeTestDataRef(b.testDataRef),
       };
     });
     /* eslint-enable camelcase */
@@ -716,8 +942,11 @@ export function useCopySuiteForm({
       tasks: values.suiteTasks,
       modalities: values.suiteModalities,
       industries: values.suiteIndustries,
+      // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
       // eslint-disable-next-line camelcase
-      evaluation_targets: values.suiteEvaluates,
+      // evaluation_targets: values.suiteEvaluates,
+      // eslint-disable-next-line camelcase
+      evaluation_targets: [...MODEL_EVALUATION_TARGETS],
       custom: buildCustomMetadata(sourceCollection?.custom),
       // eslint-disable-next-line camelcase
       pass_criteria: { threshold: values.suiteThreshold / 100 },
@@ -732,6 +961,24 @@ export function useCopySuiteForm({
     }),
     [buildCloneRequest],
   );
+
+  const buildPatchOperations = React.useCallback(() => {
+    const request = buildCloneRequest();
+    if (!isEditMode || !sourceCollection) {
+      return buildCollectionPatchOperations(request);
+    }
+
+    const currentBenchmarks = form.getValues('benchmarks');
+    return buildCollectionPatchOperations({
+      ...request,
+      benchmarks: buildEditBenchmarksPatch({
+        sourceCollection,
+        initialBenchmarks: initialBenchmarksRef.current,
+        currentBenchmarks,
+        requestBenchmarks: request.benchmarks,
+      }),
+    });
+  }, [buildCloneRequest, form, isEditMode, sourceCollection]);
 
   const getPendingCollection = React.useCallback((): Collection | undefined => {
     const values = form.getValues();
@@ -749,6 +996,36 @@ export function useCopySuiteForm({
     });
   }, [sourceCollection, form]);
 
+  // Curated gallery collections are system collections with curation_order > 0; clones reset it to 0.
+  const isSourceCollectionCurated =
+    sourceCollection !== undefined && hasCuratedIndex(sourceCollection);
+
+  const trackCollectionSaved = React.useCallback(
+    (
+      values: CopySuiteFormValues,
+      action: CollectionSavedProperties['action'],
+      result: Pick<CollectionSavedProperties, 'success' | 'collectionName' | 'error_category'>,
+    ) => {
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.COLLECTION_SAVED,
+        {
+          outcome: TrackingOutcome.submit,
+          saveMode: isCreateMode ? 'create' : isEditMode ? 'edit' : 'copy',
+          action,
+          fromCurated: isSourceCollectionCurated,
+          countOfEvaluatesAssetTypes: values.suiteEvaluates.length,
+          ...(isCreateMode || isEditMode
+            ? {}
+            : { sourceCollectionId: sourceCollection?.resource.id }),
+          ...serializeCollectionSavedFormState(values),
+          ...result,
+        },
+        { collectionType: 'custom' },
+      );
+    },
+    [isCreateMode, isEditMode, isSourceCollectionCurated, sourceCollection],
+  );
+
   const cloneCollectionForRun = React.useCallback(
     async (parentSignal?: AbortSignal): Promise<Collection | undefined> => {
       if (
@@ -761,18 +1038,31 @@ export function useCopySuiteForm({
         return undefined;
       }
 
+      if (isEditMode && (sourceCollection.status?.run_count ?? 0) > 0) {
+        notification.error('Failed to update collection', EDIT_AFTER_RUN_ERROR);
+        return undefined;
+      }
+
       const controller = new AbortController();
       abortControllerRef.current = controller;
       const abortClone = () => controller.abort();
       parentSignal?.addEventListener('abort', abortClone, { once: true });
 
       try {
-        const clonedCollection = await cloneCollection(
-          '',
-          namespace,
-          sourceCollection.resource.id,
-          buildCloneRequest(),
-        )({ signal: controller.signal });
+        const formValues = form.getValues();
+        const savedCollection = isEditMode
+          ? await patchCollection(
+              '',
+              namespace,
+              sourceCollection.resource.id,
+              buildPatchOperations(),
+            )({ signal: controller.signal })
+          : await cloneCollection(
+              '',
+              namespace,
+              sourceCollection.resource.id,
+              buildCloneRequest(),
+            )({ signal: controller.signal });
 
         if (controller.signal.aborted) {
           return undefined;
@@ -780,18 +1070,38 @@ export function useCopySuiteForm({
 
         refreshCollections();
 
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-          runType: 'collection',
-          collectionName: clonedCollection.name,
-          benchmarkTypes: JSON.stringify((clonedCollection.benchmarks ?? []).map((b) => b.id)),
-          countOfBenchmarks: clonedCollection.benchmarks?.length ?? 0,
+        trackCollectionSaved(formValues, 'save_and_run', {
+          success: true,
+          collectionName: savedCollection.name,
         });
 
-        return clonedCollection;
+        trackEvalHubEvent(
+          EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+          {
+            runType: 'collection',
+            collectionName: savedCollection.name,
+            benchmarkTypes: JSON.stringify((savedCollection.benchmarks ?? []).map((b) => b.id)),
+            countOfBenchmarks: savedCollection.benchmarks?.length ?? 0,
+          },
+          {
+            collectionType: savedCollection.resource.read_only ? 'system' : 'custom',
+            providerType: savedCollection.benchmarks?.[0]?.provider_id,
+          },
+        );
+
+        return savedCollection;
       } catch (e) {
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-          notification.error('Failed to copy suite', message);
+          trackCollectionSaved(form.getValues(), 'save_and_run', {
+            success: false,
+            // eslint-disable-next-line camelcase -- API tracking field name.
+            error_category: e instanceof Error ? e.name : 'unknown_error',
+          });
+          notification.error(
+            isEditMode ? 'Failed to update collection' : 'Failed to copy collection',
+            message,
+          );
         }
         return undefined;
       } finally {
@@ -801,7 +1111,17 @@ export function useCopySuiteForm({
         }
       }
     },
-    [sourceCollection, namespace, form, buildCloneRequest, notification, refreshCollections],
+    [
+      sourceCollection,
+      namespace,
+      form,
+      isEditMode,
+      buildCloneRequest,
+      buildPatchOperations,
+      trackCollectionSaved,
+      notification,
+      refreshCollections,
+    ],
   );
 
   const createCollectionForRun = React.useCallback(
@@ -822,6 +1142,7 @@ export function useCopySuiteForm({
       parentSignal?.addEventListener('abort', abortCreate, { once: true });
 
       try {
+        const formValues = form.getValues();
         const createdCollection = await createCollection(
           '',
           namespace,
@@ -836,18 +1157,35 @@ export function useCopySuiteForm({
 
         refreshCollections();
 
-        fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-          runType: 'collection',
+        trackCollectionSaved(formValues, 'save_and_run', {
+          success: true,
           collectionName: createdCollection.name,
-          benchmarkTypes: JSON.stringify((createdCollection.benchmarks ?? []).map((b) => b.id)),
-          countOfBenchmarks: createdCollection.benchmarks?.length ?? 0,
         });
+
+        trackEvalHubEvent(
+          EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+          {
+            runType: 'collection',
+            collectionName: createdCollection.name,
+            benchmarkTypes: JSON.stringify((createdCollection.benchmarks ?? []).map((b) => b.id)),
+            countOfBenchmarks: createdCollection.benchmarks?.length ?? 0,
+          },
+          {
+            collectionType: createdCollection.resource.read_only ? 'system' : 'custom',
+            providerType: createdCollection.benchmarks?.[0]?.provider_id,
+          },
+        );
 
         return createdCollection;
       } catch (e) {
         if (!controller.signal.aborted) {
           const message = e instanceof Error ? e.message : 'An unknown error occurred.';
-          notification.error('Failed to create suite', message);
+          trackCollectionSaved(form.getValues(), 'save_and_run', {
+            success: false,
+            // eslint-disable-next-line camelcase -- API tracking field name.
+            error_category: e instanceof Error ? e.name : 'unknown_error',
+          });
+          notification.error('Failed to create collection', message);
         }
         return undefined;
       } finally {
@@ -857,7 +1195,15 @@ export function useCopySuiteForm({
         }
       }
     },
-    [isCreateMode, namespace, form, buildCreateRequest, notification, refreshCollections],
+    [
+      isCreateMode,
+      namespace,
+      form,
+      buildCreateRequest,
+      trackCollectionSaved,
+      notification,
+      refreshCollections,
+    ],
   );
 
   const handleSaveAndRun = React.useCallback(() => {
@@ -877,32 +1223,65 @@ export function useCopySuiteForm({
     let controller: AbortController | undefined;
 
     try {
+      if (isEditMode && (sourceCollection?.status?.run_count ?? 0) > 0) {
+        notification.error('Failed to update collection', EDIT_AFTER_RUN_ERROR);
+        return;
+      }
+
       if (!(await form.trigger())) {
         return;
       }
 
+      const formValues = form.getValues();
       controller = new AbortController();
       abortControllerRef.current = controller;
       const savedCollection = isCreateMode
         ? await createCollection('', namespace, buildCreateRequest())({ signal: controller.signal })
-        : await cloneCollection(
-            '',
-            namespace,
-            sourceCollection!.resource.id,
-            buildCloneRequest(),
-          )({ signal: controller.signal });
+        : isEditMode
+          ? await patchCollection(
+              '',
+              namespace,
+              sourceCollection!.resource.id,
+              buildPatchOperations(),
+            )({ signal: controller.signal })
+          : await cloneCollection(
+              '',
+              namespace,
+              sourceCollection!.resource.id,
+              buildCloneRequest(),
+            )({ signal: controller.signal });
+
+      trackCollectionSaved(formValues, 'save', {
+        success: true,
+        collectionName: savedCollection.name,
+      });
 
       notification.success(
-        isCreateMode ? 'Suite created' : 'Suite saved',
-        `"${savedCollection.name}" has been added to your benchmark suites.`,
+        isCreateMode
+          ? 'Collection created'
+          : isEditMode
+            ? 'Collection updated'
+            : 'Collection saved',
+        isEditMode
+          ? `"${savedCollection.name}" has been updated.`
+          : `"${savedCollection.name}" has been added to your collections.`,
       );
       refreshCollections();
       navigate(evaluationBenchmarkSuitesRoute(namespace));
     } catch (e) {
       if (controller && !controller.signal.aborted) {
         const message = e instanceof Error ? e.message : 'An unknown error occurred.';
+        trackCollectionSaved(form.getValues(), 'save', {
+          success: false,
+          // eslint-disable-next-line camelcase -- API tracking field name.
+          error_category: e instanceof Error ? e.name : 'unknown_error',
+        });
         notification.error(
-          isCreateMode ? 'Failed to create suite' : 'Failed to copy suite',
+          isCreateMode
+            ? 'Failed to create collection'
+            : isEditMode
+              ? 'Failed to update collection'
+              : 'Failed to copy collection',
           message,
         );
       }
@@ -915,11 +1294,14 @@ export function useCopySuiteForm({
     }
   }, [
     isCreateMode,
+    isEditMode,
     sourceCollection,
     namespace,
     form,
     buildCreateRequest,
     buildCloneRequest,
+    buildPatchOperations,
+    trackCollectionSaved,
     navigate,
     notification,
     refreshCollections,

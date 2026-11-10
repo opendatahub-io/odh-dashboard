@@ -15,7 +15,7 @@ import type {
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { z } from 'zod';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import { isTopologyTypeFieldData } from './TopologyTypeField';
@@ -100,6 +100,7 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   externalData,
   dependencies,
 }) => {
+  const trackEvent = useTrackEvent();
   const topologyType = dependencies?.topologyType?.topologyType;
   const routerConfigs = externalData?.data.routerConfigs;
   const isLoaded = externalData?.loaded ?? false;
@@ -208,7 +209,7 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
             options={options}
             onChange={(key, isPlaceholder) => {
               if (!key || isPlaceholder || key === DEFAULT_ROUTING_KEY) {
-                fireRoutingSelected({
+                fireRoutingSelected(trackEvent, {
                   routingConfigurationId: DEFAULT_ROUTING_KEY,
                   isDefaultRouting: true,
                 });
@@ -216,7 +217,7 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
                 return;
               }
               const config = (routerConfigs ?? []).find((c) => c.metadata.name === key);
-              fireRoutingSelected({
+              fireRoutingSelected(trackEvent, {
                 routingConfigurationId: key,
                 isDefaultRouting: false,
               });

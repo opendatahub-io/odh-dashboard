@@ -160,6 +160,9 @@ type EnvConfig struct {
 	// Namespace is the Kubernetes namespace where the dashboard is deployed.
 	Namespace string
 
+	// OperatorNamespace is an optional preferred namespace for the data science operator subscription.
+	OperatorNamespace string
+
 	// WorkbenchNamespace is the Kubernetes namespace for workbenches.
 	// Defaults to Namespace if not set. Used in namespace allowlist validation.
 	WorkbenchNamespace string

@@ -1,11 +1,11 @@
 /* eslint-disable camelcase */
 import yaml from 'js-yaml';
+import { mockAAModels } from '~/__mocks__/genAiFixtures';
 import {
   mockNamespaces,
   mockNamespace,
   mockEmptyList,
   mockStatus,
-  mockAAModels,
   mockMCPServers,
   mockMCPServer,
   mockMCPStatusInterceptor,
@@ -122,7 +122,7 @@ export const setupBaseMCPServerMocks = (
   }).as('lsdModels');
 
   // Mock user endpoint to prevent k8s client errors in test environment
-  cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
+  cy.interceptGenAi('GET /api/v1/user', { data: { userId: 'test-user' } });
 };
 
 export const loadMCPTestConfig = (): Cypress.Chainable<MCPTestConfig> => {

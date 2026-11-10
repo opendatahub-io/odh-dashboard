@@ -8,6 +8,10 @@ type MonacoModel = {
 type MonacoGlobal = {
   editor: {
     getModels: () => MonacoModel[];
+    getEditors: () => {
+      getDomNode: () => HTMLElement | null;
+      getModel: () => MonacoModel | null;
+    }[];
   };
 };
 
@@ -32,6 +36,28 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
   containsText(text: string): Cypress.Chainable<JQuery<HTMLElement>> {
     // .contains() command normalizes &nbsp; to regular spaces while the assertion does not
     return this.find().contains(text);
+  }
+
+  getValue(): Cypress.Chainable<string> {
+    this.waitForReady();
+    return this.find().then(($container) =>
+      cy.window().then((win) => {
+        const { monaco } = win as unknown as { monaco?: MonacoGlobal };
+        if (!monaco) {
+          throw new Error('Monaco editor was not found on window');
+        }
+        const editors = monaco.editor.getEditors().filter((editor) => {
+          const node = editor.getDomNode();
+          return node !== null && $container[0].contains(node);
+        });
+        expect(editors, 'Monaco editor inside the requested code editor').to.have.length(1);
+        const model = editors[0].getModel();
+        if (!model) {
+          throw new Error('The code editor has no Monaco model');
+        }
+        return model.getValue();
+      }),
+    );
   }
 
   clear(): void {

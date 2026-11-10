@@ -1,11 +1,11 @@
 /* eslint-disable camelcase */
+import { mockAAModels } from '~/__mocks__/genAiFixtures';
 import {
   mockMLflowPromptVersion,
   mockMLflowPromptVersionsResponse,
   mockMLflowPromptsList,
   mockNamespace,
   mockNamespaces,
-  mockEmptyList,
   mockStatus,
 } from '~/__tests__/cypress/cypress/__mocks__';
 import type { AgentProfile, AgentProfileSummary } from '~/app/agentProfile/types';
@@ -24,7 +24,7 @@ export const setupPlaygroundBase = (namespace: string): void => {
     ...mockNamespaces().data.filter((ns) => ns.name !== namespace),
   ];
   cy.interceptGenAi('GET /api/v1/namespaces', { data: namespacesData });
-  cy.interceptGenAi('GET /api/v1/user', { data: { username: 'test-user' } });
+  cy.interceptGenAi('GET /api/v1/user', { data: { userId: 'test-user' } });
   cy.interceptGenAi('GET /api/v1/config', {
     data: { isCustomLSD: false, sandboxesAvailable: true },
   });
@@ -46,7 +46,17 @@ export const setupPlaygroundBase = (namespace: string): void => {
       ],
     },
   );
-  cy.interceptGenAi('GET /api/v1/aaa/models', { query: { namespace } }, mockEmptyList());
+  cy.interceptGenAi(
+    'GET /api/v1/aaa/models',
+    { query: { namespace } },
+    mockAAModels([
+      {
+        model_name: 'llama-3.1-8b-instruct',
+        model_id: 'llama-3.1-8b-instruct',
+        endpoints: [`http://llama-3.1-8b-instruct.${namespace}.svc.cluster.local:8080`],
+      },
+    ]),
+  );
   cy.interceptGenAi(
     'GET /api/v1/aaa/mcps',
     { query: { namespace } },

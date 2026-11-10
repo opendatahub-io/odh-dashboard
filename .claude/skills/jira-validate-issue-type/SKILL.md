@@ -214,7 +214,7 @@ Given issue RHOAIENG-55000 ("Add dark mode toggle to cluster settings") with typ
 {
   "metadata": {
     "generated": "2026-03-25T10:00:00Z",
-    "query": "project = RHOAIENG AND component = \"AI Core Dashboard\" AND status = New",
+    "query": "project in (RHAI, RHOAIENG) AND component = \"AI Core Dashboard\" AND status = New",
     "issueCount": 1
   },
   "operations": [
@@ -249,7 +249,7 @@ Given issue RHOAIENG-55002 ("Pipeline run table shows wrong status after cancell
 {
   "metadata": {
     "generated": "2026-03-25T10:00:00Z",
-    "query": "project = RHOAIENG AND component = \"AI Core Dashboard\" AND status = New",
+    "query": "project in (RHAI, RHOAIENG) AND component = \"AI Core Dashboard\" AND status = New",
     "issueCount": 1
   },
   "operations": [

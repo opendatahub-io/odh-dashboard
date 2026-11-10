@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhaii-dashboard
+spec:
+  # The XKS auth Gateway is provisioned independently of this distribution.
+  # Future dashboard-operator integration supplies its name and namespace
+  # through kustomize replacements. The Gateway owns the external hostname.
+  parentRefs:
+    - name: gateway-name
+      kind: Gateway
+      namespace: gateway-namespace
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rhaii-dashboard
+          port: 8443

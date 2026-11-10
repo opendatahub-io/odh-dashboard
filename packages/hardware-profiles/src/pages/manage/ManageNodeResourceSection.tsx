@@ -2,33 +2,18 @@ import React from 'react';
 import { FormSection, Flex, FlexItem, Button, Alert, AlertVariant } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
-import { type Identifier, IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { type Identifier } from '@odh-dashboard/k8s-core';
 import { ManageHardwareProfileSectionID } from './types';
+import { hasCPUandMemory } from './utils';
 import NodeResourceTable from '../nodeResource/NodeResourceTable';
 import ManageNodeResourceModal from '../nodeResource/ManageNodeResourceModal';
 import { ManageHardwareProfileSectionTitles, CPU_MEMORY_MISSING_WARNING } from '../const';
-import {
-  DEFAULT_CPU_IDENTIFIER,
-  DEFAULT_MEMORY_IDENTIFIER,
-  EMPTY_IDENTIFIER,
-} from '../nodeResource/const';
+import { EMPTY_IDENTIFIER } from '../nodeResource/const';
 
 type ManageNodeResourceSectionProps = {
   nodeResources: Identifier[];
   setNodeResources: (identifiers: Identifier[]) => void;
 };
-
-export const hasCPUandMemory = (nodeResources: Identifier[]): boolean =>
-  nodeResources.some(
-    (identifier) =>
-      identifier.resourceType === IdentifierResourceType.CPU ||
-      identifier.identifier === DEFAULT_CPU_IDENTIFIER,
-  ) &&
-  nodeResources.some(
-    (identifier) =>
-      identifier.resourceType === IdentifierResourceType.MEMORY ||
-      identifier.identifier === DEFAULT_MEMORY_IDENTIFIER,
-  );
 
 const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
   nodeResources,

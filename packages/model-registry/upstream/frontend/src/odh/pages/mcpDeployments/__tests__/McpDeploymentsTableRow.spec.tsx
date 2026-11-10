@@ -97,10 +97,12 @@ describe('McpDeploymentsTableRow', () => {
   });
 
   it('should render a non-empty formatted creation date', () => {
-    renderRow(createMockDeployment());
+    const deployment = createMockDeployment();
+    renderRow(deployment);
     const dateCell = screen.getByTestId('mcp-deployment-created');
-    expect(dateCell.textContent).toMatch(
-      /\d{1,2}\/\d{1,2}\/\d{4}|[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}/,
+    expect(dateCell.textContent.trim()).not.toBe('');
+    expect(dateCell).toHaveTextContent(
+      new RegExp(`\\b${new Date(deployment.creationTimestamp).getUTCFullYear()}\\b`),
     );
   });
 

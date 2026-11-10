@@ -28,6 +28,14 @@ const sampleImportance: FeatureImportanceData = {
   },
 };
 
+const sampleImportanceWithUnavailableStatistics: FeatureImportanceData = {
+  importance: { color: 0.183, hair_length: 0.125 },
+  stddev: { color: null, hair_length: null },
+  p_value: { color: null, hair_length: null },
+  p99_high: { color: null, hair_length: null },
+  p99_low: { color: null, hair_length: null },
+};
+
 describe('FeatureSummaryTab', () => {
   it('should render skeleton loading state when isArtifactsLoading is true', () => {
     const { container } = render(<FeatureSummaryTab {...defaultProps} isArtifactsLoading />);
@@ -51,6 +59,21 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByText('bone_length')).toBeInTheDocument();
   });
 
+  it('should render mixed numeric and null importance values', () => {
+    const mixedImportance: FeatureImportanceData = {
+      importance: { numeric_feature: 0.5, null_feature: null },
+    };
+
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={mixedImportance} />);
+
+    expect(screen.getByText('numeric_feature')).toBeInTheDocument();
+    expect(screen.getByText('null_feature')).toBeInTheDocument();
+    expect(screen.getByText('50.0%')).toBeInTheDocument();
+    expect(screen.getByText('N/A')).toBeInTheDocument();
+    expect(screen.getByTestId('feature-importance-bar-numeric_feature')).toBeInTheDocument();
+    expect(screen.queryByTestId('feature-importance-bar-null_feature')).not.toBeInTheDocument();
+  });
+
   it('should display importance as percentage with one decimal', () => {
     render(<FeatureSummaryTab {...defaultProps} featureImportance={sampleImportance} />);
 
@@ -58,6 +81,21 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByText('12.5%')).toBeInTheDocument();
     expect(screen.getByText('9.8%')).toBeInTheDocument();
     expect(screen.getByText('7.6%')).toBeInTheDocument();
+  });
+
+  it('should render feature importance when unused statistics are null', () => {
+    render(
+      <FeatureSummaryTab
+        {...defaultProps}
+        featureImportance={sampleImportanceWithUnavailableStatistics}
+      />,
+    );
+
+    expect(screen.getByText('color')).toBeInTheDocument();
+    expect(screen.getByText('hair_length')).toBeInTheDocument();
+    expect(screen.getByText('18.3%')).toBeInTheDocument();
+    expect(screen.getByText('12.5%')).toBeInTheDocument();
+    expect(screen.queryByTestId('feature-no-data-empty-state')).not.toBeInTheDocument();
   });
 
   it('should sort features by importance descending by default', () => {
@@ -96,6 +134,45 @@ describe('FeatureSummaryTab', () => {
       (row) => within(row).getByText(/color|hair_length|has_soul|bone_length/).textContent,
     );
     expect(featureNames).toEqual(['bone_length', 'has_soul', 'hair_length', 'color']);
+  });
+
+  it('should sort null importance values last in both directions and preserve equal-value order', async () => {
+    const user = userEvent.setup();
+    const mixedImportance: FeatureImportanceData = {
+      importance: {
+        null_first: null,
+        numeric_low: 0.1,
+        numeric_equal_a: 0.2,
+        numeric_equal_b: 0.2,
+        null_second: null,
+      },
+    };
+
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={mixedImportance} />);
+
+    const getFeatureNames = () =>
+      screen
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => within(row).getByText(/^(null_|numeric_)/).textContent);
+
+    expect(getFeatureNames()).toEqual([
+      'numeric_equal_a',
+      'numeric_equal_b',
+      'numeric_low',
+      'null_first',
+      'null_second',
+    ]);
+
+    await user.click(screen.getByText('Importance'));
+
+    expect(getFeatureNames()).toEqual([
+      'numeric_low',
+      'numeric_equal_a',
+      'numeric_equal_b',
+      'null_first',
+      'null_second',
+    ]);
   });
 
   it('should filter features by search input', async () => {
@@ -186,6 +263,17 @@ describe('FeatureSummaryTab', () => {
     expect(screen.getByTestId('feature-no-data-empty-state')).toBeInTheDocument();
     expect(screen.getByText('No feature data available')).toBeInTheDocument();
     expect(screen.queryByTestId('feature-search-empty-state')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Search by feature name')).not.toBeInTheDocument();
+  });
+
+  it('should show no-data empty state and hide search when all importance values are null', () => {
+    const allNullImportance: FeatureImportanceData = {
+      importance: { feature_a: null, feature_b: null },
+    };
+
+    render(<FeatureSummaryTab {...defaultProps} featureImportance={allNullImportance} />);
+
+    expect(screen.getByTestId('feature-no-data-empty-state')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Search by feature name')).not.toBeInTheDocument();
   });
 

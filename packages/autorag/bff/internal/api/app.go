@@ -1,7 +1,10 @@
 package api
 
 import (
+	"bytes"
+	"context"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,6 +12,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	maas "github.com/opendatahub-io/autorag-library/bff/internal/integrations/maas"
@@ -16,6 +20,7 @@ import (
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 	k8sclient "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
@@ -43,10 +48,37 @@ const (
 	IndexingPipelineRunsPath = ApiPathPrefix + "/indexing-pipeline-runs"
 	ManagedPipelinesListPath = ApiPathPrefix + "/managed-pipelines"
 	ManagedPipelinesPath     = ApiPathPrefix + "/managed-pipelines/enable"
+	PipelineServerStatusPath = ApiPathPrefix + "/pipeline-server/status"
 )
 
 var hashPattern = regexp.MustCompile(`[.\-][0-9a-f]{8,}`)
 var staticAssetPattern = regexp.MustCompile(`(?i)\.(woff2?|ttf|eot|png|jpe?g|gif|svg|ico|webp|avif|bmp)$`)
+
+var getKubeconfig = helper.GetKubeconfig
+var newK8sClientset = func(restCfg *rest.Config) (k8sclient.Interface, error) {
+	return k8sclient.NewForConfig(restCfg)
+}
+var newPortForwardManager = k8s.NewPortForwardManager
+var newInClusterK8sClient = k8s.NewInClusterClient
+
+func initPortForwardManager(cfg config.EnvConfig, logger *slog.Logger) *k8s.PortForwardManager {
+	if !cfg.DevMode || cfg.MockK8sClient {
+		return nil
+	}
+
+	restCfg, err := getKubeconfig()
+	if err != nil {
+		logger.Warn("could not initialize dynamic port-forwarding", "error", err)
+		return nil
+	}
+	clientset, err := newK8sClientset(restCfg)
+	if err != nil {
+		logger.Warn("could not initialize dynamic port-forwarding", "error", err)
+		return nil
+	}
+	logger.Info("dynamic port-forwarding enabled — in-cluster URLs will be forwarded to localhost")
+	return newPortForwardManager(restCfg, clientset, logger)
+}
 
 func isHashedAsset(filePath string) bool {
 	match := hashPattern.FindString(path.Base(filePath))
@@ -76,6 +108,8 @@ type App struct {
 	rootCAs *x509.CertPool
 	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
 	portForwardManager *k8s.PortForwardManager
+	// routerCACancel stops the background refresh of the installation router CA.
+	routerCACancel context.CancelFunc
 
 	// Handler-composition middleware (namespace extraction, RBAC)
 	mw *Middleware
@@ -86,9 +120,13 @@ type App struct {
 	s3          *S3Handler
 	pipelines   *PipelinesHandler
 	maas        *MaaSHandler
+	responses   *ResponsesHandler
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
 	var err error
 	var rootCAs *x509.CertPool
@@ -127,6 +165,22 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
+	// Synchronize the OpenShift router CA when the installation exposes a
+	// configured gateway domain. The source Secret is read with the AutoRAG
+	// service account; public MaaS endpoints remain usable if synchronization
+	// is unavailable, while private gateway TLS fails closed until trust exists.
+	// Synchronization is intentionally asynchronous so a missing Kubernetes API
+	// or router Secret cannot block BFF startup; private calls may be temporarily
+	// unavailable while the first refresh completes.
+	var routerCACancel context.CancelFunc
+	var routerCARefreshEnabled bool
+	var maasRootCAPool *maas.DynamicRootCAPool
+	if cfg.GatewayDomain != "" && cfg.PodNamespace != "" {
+		routerCARefreshEnabled = true
+		rootCAs = ensureRootCAPool(rootCAs)
+		maasRootCAPool = maas.NewDynamicRootCAPool(rootCAs)
+	}
+
 	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
 	// and a real K8s client is in use. This rewrites in-cluster service URLs
 	// (*.svc.cluster.local) to localhost via SPDY tunnels, eliminating the need
@@ -135,21 +189,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// ForwardURL call sites in the middleware are no-ops.
 	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
 	// since port-forwards are long-lived and shared across requests.
-	var pfManager *k8s.PortForwardManager
-	if cfg.DevMode && !cfg.MockK8sClient {
-		restCfg, pfErr := helper.GetKubeconfig()
-		if pfErr != nil {
-			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
-		} else {
-			clientset, csErr := k8sclient.NewForConfig(restCfg)
-			if csErr != nil {
-				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
-			} else {
-				pfManager = k8s.NewPortForwardManager(restCfg, clientset, logger)
-				logger.Info("dynamic port-forwarding enabled — in-cluster URLs will be forwarded to localhost")
-			}
-		}
-	}
+	pfManager := initPortForwardManager(cfg, logger)
 
 	// Create autox-core Kubernetes client and service.
 	var k8sClient kubernetes.Client
@@ -208,17 +248,52 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	s3Service := s3.NewService(s3.ServiceConfig{Logger: logger}, s3Client)
 
 	var maasClient maas.MaaSClientInterface
+	maasCfg := maas.MaaSClientConfig{
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		RootCAs:            rootCAs,
+	}
+	if maasRootCAPool != nil {
+		maasCfg.RootCAPool = maasRootCAPool.Current
+	}
+	if pfManager != nil {
+		maasCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+	}
+	maasHTTPClient := maas.NewDefaultHTTPClient(maasCfg)
 	if cfg.MockMaaSClient {
 		maasClient = &fake.MaaSClient{}
 	} else {
-		maasCfg := maas.MaaSClientConfig{
-			InsecureSkipVerify: cfg.InsecureSkipVerify,
-			RootCAs:            rootCAs,
+		maasClient = maas.NewMaaSClient(maasHTTPClient)
+	}
+
+	var gatewayResolver maas.GatewayHostResolver
+	if cfg.PodNamespace != "" && cfg.BFFMaaSServiceName != "" {
+		gatewayResolver = maas.NewCachedGatewayHostResolver(maas.NewHTTPGatewayHostResolver(maas.GatewayResolverConfig{
+			ServiceName:     cfg.BFFMaaSServiceName,
+			ServicePort:     cfg.BFFMaaSServicePort,
+			Namespace:       cfg.PodNamespace,
+			TLSEnabled:      cfg.BFFMaaSTLSEnabled,
+			AuthTokenHeader: cfg.BFFMaaSAuthTokenHeader,
+			AuthTokenPrefix: cfg.BFFMaaSAuthTokenPrefix,
+			RootCAs:         rootCAs,
+			RootCAPool:      rootCAPoolProvider(maasRootCAPool),
+		}))
+	}
+
+	// The Responses repository uses the same configured MaaS transport as discovery.
+	responsesFactory := maas.NewClientFactoryWithHTTPClient(maasHTTPClient)
+	if cfg.MockMaaSClient {
+		responsesFactory = func(string, string) (*maas.Client, error) {
+			return nil, errors.New("MaaS Responses are unavailable with the mock MaaS client")
 		}
-		if pfManager != nil {
-			maasCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
-		}
-		maasClient = maas.NewDefaultMaaSClient(maasCfg)
+	}
+	var responsesRepo *repositories.ResponsesRepository
+	if pfManager != nil {
+		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactoryAndGatewayResolver(logger, k8sService, responsesFactory, gatewayResolver, pfManager)
+	} else {
+		responsesRepo = repositories.NewResponsesRepositoryWithMaaSClientFactoryAndGatewayResolver(logger, k8sService, responsesFactory, gatewayResolver)
+	}
+	if routerCARefreshEnabled {
+		routerCACancel = startRouterCARefresh(cfg.PodNamespace, maasRootCAPool, logger)
 	}
 
 	app := &App{
@@ -227,6 +302,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		k8sService:         k8sService,
 		rootCAs:            rootCAs,
 		portForwardManager: pfManager,
+		routerCACancel:     routerCACancel,
 		mw: &Middleware{
 			logger:     logger,
 			config:     cfg,
@@ -255,14 +331,148 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		},
 		maas: &MaaSHandler{
 			logger: logger,
-			repo:   repositories.NewMaaSRepository(logger, maasClient, k8sService),
+			repo:   repositories.NewMaaSRepository(logger, maasClient, k8sService, gatewayResolver),
+		},
+		responses: &ResponsesHandler{
+			logger: logger,
+			repo:   responsesRepo,
 		},
 	}
 	return app, nil
 }
 
+func ensureRootCAPool(rootCAs *x509.CertPool) *x509.CertPool {
+	if rootCAs == nil {
+		if systemPool, err := x509.SystemCertPool(); err == nil && systemPool != nil {
+			rootCAs = systemPool
+		} else {
+			rootCAs = x509.NewCertPool()
+		}
+	}
+	return rootCAs
+}
+
+const (
+	routerCARefreshInterval = 5 * time.Minute
+)
+
+var routerCAInitialRetryDelays = []time.Duration{
+	time.Second,
+	2 * time.Second,
+	4 * time.Second,
+	8 * time.Second,
+	16 * time.Second,
+	30 * time.Second,
+}
+
+func rootCAPoolProvider(pool *maas.DynamicRootCAPool) func() *x509.CertPool {
+	if pool == nil {
+		return nil
+	}
+	return pool.Current
+}
+
+func syncRouterCAOnce(
+	ctx context.Context,
+	namespace string,
+	client k8sclient.Interface,
+	logger *slog.Logger,
+) []byte {
+	syncContext, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	certificate, syncErr := k8s.SyncRouterCABundle(syncContext, client, namespace)
+	if syncErr != nil {
+		logger.Warn("router CA ConfigMap synchronization failed", "error", syncErr)
+	}
+	if len(certificate) == 0 {
+		return nil
+	}
+	return certificate
+}
+
+func startRouterCARefresh(
+	namespace string,
+	rootCAPool *maas.DynamicRootCAPool,
+	logger *slog.Logger,
+) context.CancelFunc {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		lastCertificate := []byte(nil)
+		refresh := func() bool {
+			if ctx.Err() != nil {
+				return false
+			}
+			client, clientErr := newInClusterK8sClient()
+			if clientErr != nil {
+				logger.Warn("router CA refresh unavailable", "error", clientErr)
+				return false
+			}
+			certificate := syncRouterCAOnce(ctx, namespace, client, logger)
+			if ctx.Err() != nil || len(certificate) == 0 {
+				return false
+			}
+			if bytes.Equal(lastCertificate, certificate) {
+				return len(lastCertificate) > 0
+			}
+			if updateErr := rootCAPool.Update(certificate); updateErr != nil {
+				logger.Warn("router CA could not be added to MaaS trust", "error", updateErr)
+				return false
+			}
+			lastCertificate = append(lastCertificate[:0], certificate...)
+			return true
+		}
+
+		retryRouterCARefresh(ctx, refresh, routerCAInitialRetryDelays)
+		ticker := time.NewTicker(routerCARefreshInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				refresh()
+			}
+		}
+	}()
+	return func() {
+		cancel()
+		<-done
+	}
+}
+
+func retryRouterCARefresh(ctx context.Context, refresh func() bool, delays []time.Duration) bool {
+	if refresh() {
+		return true
+	}
+	for _, delay := range delays {
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			return false
+		case <-timer.C:
+		}
+		if refresh() {
+			return true
+		}
+	}
+	return false
+}
+
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.routerCACancel != nil {
+		app.routerCACancel()
+	}
 	if app.portForwardManager != nil {
 		app.portForwardManager.Close()
 	}
@@ -310,6 +520,10 @@ func (app *App) Routes() http.Handler {
 	// Managed pipelines — list discovered pipelines / enable AutoRAG pipeline definitions on an existing DSPA
 	apiRouter.GET(ManagedPipelinesListPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.ListManagedPipelinesHandler)))
 	apiRouter.POST(ManagedPipelinesPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.EnableManagedPipelinesHandler)))
+	apiRouter.GET(PipelineServerStatusPath, app.mw.AttachNamespace(app.mw.RequireAccessToService(app.pipelines.PipelineServerStatusHandler)))
+
+	// RAG responses — vector search + MaaS generation
+	apiRouter.POST(ApiPathPrefix+"/responses", app.mw.AttachNamespace(app.mw.RequireAccessToService(app.responses.HandleResponsesEndpoint)))
 
 	// App Router
 	appMux := http.NewServeMux()

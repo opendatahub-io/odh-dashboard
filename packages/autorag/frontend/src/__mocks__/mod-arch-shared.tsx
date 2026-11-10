@@ -20,6 +20,8 @@ interface TypeaheadSelectProps {
   toggleProps?: {
     status?: string;
   };
+  provider?: string;
+  allowedProviders?: readonly string[];
 }
 
 // Mock TypeaheadSelect component for testing
@@ -32,6 +34,8 @@ export const TypeaheadSelect: React.FC<TypeaheadSelectProps> = ({
   isDisabled,
   toggleWidth,
   toggleProps,
+  provider,
+  allowedProviders,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const selectedOption = selectOptions.find((opt) => opt.value === selected);
@@ -74,6 +78,8 @@ export const TypeaheadSelect: React.FC<TypeaheadSelectProps> = ({
           toggleProps?.status === 'danger' ? 'pf-m-danger' : ''
         }`}
         data-testid={dataTestId}
+        data-provider={provider}
+        data-allowed-providers={allowedProviders?.join(',')}
         disabled={isDisabled}
         onClick={handleToggleClick}
         aria-label={placeholder}

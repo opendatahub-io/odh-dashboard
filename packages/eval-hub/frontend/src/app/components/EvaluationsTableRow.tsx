@@ -2,9 +2,9 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Button, Checkbox, Tooltip } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import {
   formatDate,
   getAllBenchmarkNames,
@@ -36,6 +36,7 @@ type EvaluationsTableRowProps = {
   onSelectionChange: (checked: boolean) => void;
   kueueWorkloadStatus?: KueueWorkloadStatus;
   isKueueWorkloadStatusLoading?: boolean;
+  isKueueEnabled: boolean;
 };
 
 const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
@@ -52,6 +53,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   onSelectionChange,
   kueueWorkloadStatus,
   isKueueWorkloadStatusLoading = false,
+  isKueueEnabled,
 }) => {
   const navigate = useNavigate();
   const [showStopModal, setShowStopModal] = React.useState(false);
@@ -77,7 +79,9 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   // Keep the list assignment available so a queued run does not briefly fall back to Pending.
   const queue =
     getEvaluationQueue(effectiveJob) ?? getEvaluationQueue(job) ?? kueueWorkloadStatus?.queue_name;
-  const isQueued = currentState === 'pending' && Boolean(queue);
+  // RHOAIENG-99645: queue assignments can persist in evaluation responses after the Kueue
+  // integration is disabled — only surface the queued display when the integration is enabled.
+  const isQueued = isKueueEnabled && currentState === 'pending' && Boolean(queue);
   const isKueueStatusLoading =
     currentState === 'pending' && isKueueWorkloadStatusLoading && !kueueWorkloadStatus && !queue;
 
@@ -94,14 +98,14 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     benchmarkTypes: JSON.stringify(allBenchmarkNames),
     createdAt: job.resource.created_at,
     updatedAt: job.resource.updated_at,
-    errorMessage: job.status.message?.message,
+    statusMessage: job.status.message,
   });
   completionTrackingDataRef.current = {
     evaluationName,
     benchmarkTypes: JSON.stringify(allBenchmarkNames),
     createdAt: job.resource.created_at,
     updatedAt: job.resource.updated_at,
-    errorMessage: job.status.message?.message,
+    statusMessage: job.status.message,
   };
 
   const prevStateRef = React.useRef<EvaluationJobState>(job.status.state);
@@ -117,7 +121,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         benchmarkTypes,
         createdAt,
         updatedAt,
-        errorMessage,
+        statusMessage,
       } = completionTrackingDataRef.current;
 
       const durationMs =
@@ -132,12 +136,12 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             ? 'cancelled'
             : 'failed';
 
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_COMPLETED, {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_COMPLETED, {
         evaluationName: evalName,
         runOutcome,
         durationMs,
         benchmarkTypes,
-        error: errorMessage,
+        error: statusMessage,
       });
     }
   }, [job.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -156,7 +160,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
     setActionError(null);
     try {
       await deleteEvaluationJob('', namespace, job.resource.id)({});
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_DELETED, {
+      trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_DELETED, {
         evaluationName,
         previousState: job.status.state,
       });
@@ -186,7 +190,13 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
       ? [
           {
             title: 'Reconfigure',
-            onClick: () => navigate(evaluationReconfigureRoute(namespace, job.resource.id)),
+            onClick: () => {
+              trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RECONFIGURE_SELECTED, {
+                evaluationName,
+                previousState: currentState,
+              });
+              navigate(evaluationReconfigureRoute(namespace, job.resource.id));
+            },
           },
         ]
       : []),
@@ -221,6 +231,11 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
               isInline
               data-testid={`evaluation-link-${rowIndex}`}
               component={(props) => <Link {...props} to={`results/${job.resource.id}`} />}
+              onClick={() =>
+                trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RESULTS_VIEWED, {
+                  evaluationName,
+                })
+              }
             >
               {evaluationName}
             </Button>
@@ -228,7 +243,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             evaluationName
           )}
         </Td>
-        <Td dataLabel="Status" data-testid="evaluation-status">
+        <Td dataLabel="Job status" data-testid="evaluation-status">
           <EvaluationStatusLabel
             state={displayState}
             isQueued={isQueued}

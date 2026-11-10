@@ -1,16 +1,22 @@
 import * as React from 'react';
-import { Button, Form, FormGroup } from '@patternfly/react-core';
-import { AddCircleOIcon } from '@patternfly/react-icons';
+import { Button, DrawerCloseButton, Form, FormGroup, Tooltip } from '@patternfly/react-core';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import SystemPromptFormGroup from '~/app/Chatbot/components/SystemInstructionFormGroup';
 import PromptAssistantFormGroup from '~/app/Chatbot/components/PromptAssistantFormGroup';
-import { useChatbotConfigStore, selectDirtyPrompt, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
+import RhUiUploadIcon from '~/app/images/icons/RhUiUploadIcon';
+import {
+  useChatbotConfigStore,
+  selectActivePrompt,
+  selectDirtyPrompt,
+  DEFAULT_CONFIG_ID,
+} from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
 import { PROMPT_MANAGEMENT } from '~/odh/extensions';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 
 interface PromptTabContentProps {
   configId?: string;
@@ -24,7 +30,9 @@ function PromptTabContent({
   onSystemInstructionChange,
 }: PromptTabContentProps): React.ReactNode {
   const { openModal } = usePlaygroundStore();
+  const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
+  const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
   const isEdited = usePromptEdited(configId);
 
   const [promptManagementEnabled] = useFeatureFlag(PROMPT_MANAGEMENT);
@@ -46,6 +54,29 @@ function PromptTabContent({
     });
   }
 
+  function handleClearPromptClick() {
+    confirm(
+      () => {
+        clearPromptState(configId, null);
+        onSystemInstructionChange(DEFAULT_SYSTEM_INSTRUCTIONS);
+        fireMiscTrackingEvent('Playground Prompt Cleared', {
+          outcome: 'submit',
+          hadLoadedPrompt: !!activePrompt,
+        });
+      },
+      {
+        title: 'Clear loaded prompt?',
+        message: 'The loaded prompt and any unsaved changes will be removed.',
+        confirmLabel: 'Clear',
+        onCancelTracking: () =>
+          fireMiscTrackingEvent('Playground Prompt Cleared', {
+            outcome: 'cancel',
+            hadLoadedPrompt: !!activePrompt,
+          }),
+      },
+    );
+  }
+
   function buildHeaderActions() {
     if (!promptManagementEnabled) {
       return null;
@@ -54,7 +85,7 @@ function PromptTabContent({
       <Button
         data-testid="load-prompt-button"
         variant="link"
-        icon={<AddCircleOIcon aria-hidden="true" />}
+        icon={<RhUiUploadIcon aria-hidden="true" />}
         onClick={handleLoadPromptClick}
         isDisabled={false}
       >
@@ -66,7 +97,25 @@ function PromptTabContent({
   return (
     <>
       {confirmationModal}
-      <TabContentWrapper title="Prompt" headerActions={buildHeaderActions()}>
+      <TabContentWrapper
+        title={dirtyPrompt?.name || 'New Prompt'}
+        titleTestId="prompt-name-title"
+        titleActions={
+          activePrompt && (
+            <Tooltip content="Clear loaded prompt" position="top">
+              <span>
+                <DrawerCloseButton
+                  data-testid="clear-loaded-prompt-button"
+                  aria-label="Clear loaded prompt"
+                  onClick={handleClearPromptClick}
+                  title="Clear loaded prompt"
+                />
+              </span>
+            </Tooltip>
+          )
+        }
+        headerActions={buildHeaderActions()}
+      >
         <Form>
           {!promptManagementEnabled && (
             <FormGroup fieldId="system-instructions" data-testid="system-instructions-section">

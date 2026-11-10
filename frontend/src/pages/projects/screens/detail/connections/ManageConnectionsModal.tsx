@@ -23,7 +23,6 @@ import {
 import type { K8sNameDescriptionFieldData, ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ConnectionTypeForm from '#~/concepts/connectionTypes/ConnectionTypeForm';
 import {
   Connection,
@@ -36,6 +35,11 @@ import {
 } from '#~/concepts/connectionTypes/types';
 import ConnectionTestStatusLabel from '#~/concepts/connectionTypes/ConnectionTestStatusLabel';
 import { testConnection } from '#~/services/connectionTestService';
+import {
+  CONNECTION_TEST_UNSUPPORTED_TOOLTIP,
+  isConnectionTestSupported,
+} from '#~/concepts/connectionTypes/connectionTestUtils';
+import ExtendedButton from '#~/components/ExtendedButton';
 import {
   fireConnectionTestInitiated,
   fireConnectionTestCompleted,
@@ -90,8 +94,6 @@ export const ManageConnectionModal: React.FC<Props> = ({
   onSubmit,
   isEdit = false,
 }) => {
-  const isConnectionTestEnabled = useIsAreaAvailable(SupportedArea.CONNECTION_TEST).status;
-
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isModified, setIsModified] = React.useState(false);
@@ -313,18 +315,12 @@ export const ManageConnectionModal: React.FC<Props> = ({
     >
       <ModalHeader
         title={
-          isConnectionTestEnabled ? (
-            <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem>{isEdit ? 'Edit connection' : 'Create connection'}</FlexItem>
-              <FlexItem>
-                <ConnectionTestStatusLabel status={testStatus} />
-              </FlexItem>
-            </Flex>
-          ) : isEdit ? (
-            'Edit connection'
-          ) : (
-            'Create connection'
-          )
+          <Flex gap={{ default: 'gapMd' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>{isEdit ? 'Edit connection' : 'Create connection'}</FlexItem>
+            <FlexItem>
+              <ConnectionTestStatusLabel status={testStatus} />
+            </FlexItem>
+          </Flex>
         }
         description="Configure your connection to an external resource"
       />
@@ -383,7 +379,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
       </ModalBody>
       <ModalFooter>
         <Stack hasGutter className="pf-v6-u-flex-grow-1">
-          {isConnectionTestEnabled && testStatus === ConnectionTestStatus.VERIFIED && testResult ? (
+          {testStatus === ConnectionTestStatus.VERIFIED && testResult ? (
             <StackItem>
               <Alert
                 data-testid="connection-test-success-alert"
@@ -395,7 +391,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
               </Alert>
             </StackItem>
           ) : null}
-          {isConnectionTestEnabled && testStatus === ConnectionTestStatus.FAILED && testResult ? (
+          {testStatus === ConnectionTestStatus.FAILED && testResult ? (
             <StackItem>
               <Alert
                 data-testid="connection-test-failure-alert"
@@ -438,20 +434,23 @@ export const ManageConnectionModal: React.FC<Props> = ({
                     {isEdit ? 'Save' : 'Create'}
                   </Button>
                 </ActionListItem>
-                {isConnectionTestEnabled ? (
-                  <ActionListItem>
-                    <Button
-                      key="test"
-                      variant="secondary"
-                      onClick={handleTestConnection}
-                      isLoading={isTesting}
-                      isDisabled={isTesting || !connectionTypeName}
-                      data-testid="test-connection-button"
-                    >
-                      {isTesting ? 'Verifying...' : 'Verify connection'}
-                    </Button>
-                  </ActionListItem>
-                ) : null}
+                <ActionListItem>
+                  <ExtendedButton
+                    key="test"
+                    variant="secondary"
+                    onClick={handleTestConnection}
+                    isLoading={isTesting}
+                    isDisabled={isTesting || !connectionTypeName}
+                    tooltipProps={
+                      connectionTypeName && !isConnectionTestSupported(connectionTypeName)
+                        ? { isEnabled: true, content: CONNECTION_TEST_UNSUPPORTED_TOOLTIP }
+                        : { isEnabled: false }
+                    }
+                    data-testid="test-connection-button"
+                  >
+                    {isTesting ? 'Verifying...' : 'Verify connection'}
+                  </ExtendedButton>
+                </ActionListItem>
                 <ActionListItem>
                   <Button
                     key="cancel"

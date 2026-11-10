@@ -238,6 +238,21 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
+// AttachOptionalNamespace stores the namespace query parameter when provided. Endpoints that
+// support a namespace-free operation remain responsible for validating when a namespace is required.
+func (app *App) AttachOptionalNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		namespace := r.URL.Query().Get(string(constants.NamespaceQueryParameterKey))
+		if namespace != "" {
+			ctx := context.WithValue(r.Context(), constants.NamespaceQueryParameterKey, namespace)
+			setActiveSpanNamespace(ctx, namespace)
+			r = r.WithContext(ctx)
+		}
+
+		next(w, r, ps)
+	}
+}
+
 // AttachNamespaceFromPath reads the :namespace path parameter (used by proxy routes)
 // and stores it in context under the same key as AttachNamespace so downstream
 // middleware (RequireAccessToService) can find it.

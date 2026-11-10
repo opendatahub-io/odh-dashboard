@@ -259,6 +259,7 @@ export class OdhDatasourceApi implements DatasourceApi {
       selector.kind,
       selector.name ? undefined : true,
       selector.name,
+      this.basePath,
     ).then((list) => {
       if (!Array.isArray(list) || list.length === 0) {
         return undefined;
@@ -274,6 +275,7 @@ export class OdhDatasourceApi implements DatasourceApi {
       selector.kind,
       selector.name ? undefined : true,
       selector.name,
+      this.basePath,
     ).then((list) => {
       if (!Array.isArray(list) || list.length === 0) {
         return undefined;
@@ -283,10 +285,10 @@ export class OdhDatasourceApi implements DatasourceApi {
   };
 
   listDatasources(project: string, pluginKind?: string): Promise<DatasourceResource[]> {
-    return fetchDatasourceList(project, pluginKind);
+    return fetchDatasourceList(project, pluginKind, undefined, undefined, this.basePath);
   }
 
   listGlobalDatasources(pluginKind?: string): Promise<GlobalDatasourceResource[]> {
-    return fetchGlobalDatasourceList(pluginKind);
+    return fetchGlobalDatasourceList(pluginKind, undefined, undefined, this.basePath);
   }
 }

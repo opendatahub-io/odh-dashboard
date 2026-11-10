@@ -1,10 +1,11 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { deleteProject } from '#~/api';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type DeleteProjectModalProps = {
   onClose: (deleted: boolean) => void;
@@ -46,7 +47,7 @@ const DeleteProjectModal: React.FC<DeleteProjectModalProps> = ({ deleteData, onC
             fireFormTrackingEvent(deleteProjectEventType, {
               outcome: TrackingOutcome.submit,
               success: false,
-              error: e,
+              error: errorCategory(e),
             });
             setError(e);
             setDeleting(false);

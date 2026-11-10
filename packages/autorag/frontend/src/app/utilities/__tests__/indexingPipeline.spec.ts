@@ -65,13 +65,13 @@ const patternWithSpec: AutoragPattern = {
 describe('indexingPipeline utilities', () => {
   it('builds a default run name from the pattern and source AutoRAG run', () => {
     expect(defaultIndexingRunName('Pattern1', 'My AutoRAG Run')).toBe(
-      'Index build - My AutoRAG Run - Pattern\u00a01',
+      'Index build - My AutoRAG Run - Pattern\u00a0A',
     );
   });
 
   it('falls back to pattern-only default when source run name is missing', () => {
-    expect(defaultIndexingRunName('Pattern1')).toBe('Index build - Pattern\u00a01');
-    expect(defaultIndexingRunName('Pattern1', '   ')).toBe('Index build - Pattern\u00a01');
+    expect(defaultIndexingRunName('Pattern1')).toBe('Index build - Pattern\u00a0A');
+    expect(defaultIndexingRunName('Pattern1', '   ')).toBe('Index build - Pattern\u00a0A');
   });
 
   it('truncates default run names that exceed the API max length', () => {

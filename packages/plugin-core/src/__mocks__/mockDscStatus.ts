@@ -47,7 +47,7 @@ export const mockDscStatus = ({
       workbenchNamespace: 'openshift-ai-notebooks',
     },
   },
-  conditions = [],
+  conditions = [{ type: 'FeastOperatorReady', status: 'True' }],
   phase = 'Ready',
   release = { name: 'Open Data Hub', version: '2.28.0' },
 }: MockDscStatus): DataScienceClusterKindStatus => ({

@@ -3,6 +3,23 @@ class AutoragRunResultsPage {
     cy.visit(`/gen-ai-studio/autorag/results/${namespace}/${runId}`);
   }
 
+  // Breadcrumb
+  findResultsBreadcrumbRunName() {
+    return cy.findByTestId('results-breadcrumb-run-name');
+  }
+
+  findRunDetailsButton() {
+    return cy.findByTestId('run-details-button');
+  }
+
+  findReconfigureButton() {
+    return cy.findByTestId('reconfigure-run-button');
+  }
+
+  findStarterKitDownloadButton() {
+    return cy.findByTestId('starter-kit-download-button');
+  }
+
   findLeaderboardTable() {
     return cy.findByTestId('leaderboard-table');
   }

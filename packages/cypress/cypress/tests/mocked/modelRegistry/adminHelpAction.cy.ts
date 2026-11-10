@@ -1,4 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
@@ -14,6 +15,7 @@ import { asClusterAdminUser, asProjectEditUser } from '../../../utils/mockUsers'
 
 const MODEL_REGISTRY_API_VERSION = 'v1';
 const REGISTRY_SETTINGS_URL = '/settings/model-resources-operations/model-registry';
+const REGISTRIES_NAMESPACE = 'team-a-model-registry';
 
 const initCommon = () => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableModelRegistry: false }));
@@ -23,10 +25,13 @@ const initCommon = () => {
       components: {
         [DataScienceStackComponent.MODEL_REGISTRY]: {
           managementState: 'Managed',
-          registriesNamespace: 'odh-model-registries',
         },
       },
     }),
+  );
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: REGISTRIES_NAMESPACE }),
   );
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptK8sList(
@@ -36,7 +41,7 @@ const initCommon = () => {
   cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/namespaces`,
     { path: { apiVersion: MODEL_REGISTRY_API_VERSION } },
-    { data: [{ metadata: { name: 'odh-model-registries' } }] },
+    { data: [{ metadata: { name: REGISTRIES_NAMESPACE } }] },
   );
   cy.interceptOdh(
     `GET /model-registry/api/:apiVersion/user`,

@@ -1,6 +1,7 @@
 name: Test / AutoML Frontend Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'packages/automl/**'
       - '.github/workflows/automl-frontend-tests.yml'

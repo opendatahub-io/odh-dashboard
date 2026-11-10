@@ -12,22 +12,32 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-arch-core';
-import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
+import {
+  ConfigSettings,
+  DeploymentMode,
+  UserSettings,
+  logout,
+  useModularArchContext,
+} from 'mod-arch-core';
 import AppRoutes from '~/app/AppRoutes';
 import { AppContext } from '~/app/context/AppContext';
+import { useMaaSSettings } from '~/app/hooks/useMaaSSettings';
 
-const App: React.FC = () => {
-  const {
-    configSettings,
-    userSettings,
-    loaded: configLoaded,
-    loadError: configError,
-  } = useSettings();
+type AppShellProps = {
+  configSettings: ConfigSettings | null;
+  userSettings: UserSettings | null;
+  loaded: boolean;
+  loadError: Error | undefined;
+  showLogoutAction?: boolean;
+};
 
-  const { namespacesLoaded, namespacesLoadError, initializationError } =
-    useNamespaceSelectorWithPersistence();
-
+const AppShell: React.FC<AppShellProps> = ({
+  configSettings,
+  userSettings,
+  loaded,
+  loadError,
+  showLogoutAction,
+}) => {
   const { config } = useModularArchContext();
   const { deploymentMode } = config;
   const isStandalone = deploymentMode === DeploymentMode.Standalone;
@@ -43,47 +53,38 @@ const App: React.FC = () => {
     [configSettings, userSettings],
   );
 
-  const error = configError || namespacesLoadError || initializationError;
-
   const sidebar = <PageSidebar isSidebarOpen={false} />;
 
-  // We lack the critical data to startup the app
-  if (error) {
-    // There was an error fetching critical data
+  if (loadError) {
     return (
       <Page sidebar={sidebar}>
         <PageSection>
           <Stack hasGutter>
             <StackItem>
               <Alert variant="danger" isInline title="General loading error">
-                <p>
-                  {configError?.message ||
-                    namespacesLoadError?.message ||
-                    initializationError?.message ||
-                    'Unknown error occurred during startup'}
-                </p>
-                <p>Logging out and logging back in may solve the issue</p>
+                <p>{loadError.message || 'Unknown error occurred during startup'}</p>
+                {showLogoutAction ? (
+                  <p>Logging out and logging back in may solve the issue</p>
+                ) : null}
               </Alert>
             </StackItem>
-            <StackItem>
-              <Button
-                variant="secondary"
-                onClick={() => logout().then(() => window.location.reload())}
-              >
-                Logout
-              </Button>
-            </StackItem>
+            {showLogoutAction ? (
+              <StackItem>
+                <Button
+                  variant="secondary"
+                  onClick={() => logout().then(() => window.location.reload())}
+                >
+                  Logout
+                </Button>
+              </StackItem>
+            ) : null}
           </Stack>
         </PageSection>
       </Page>
     );
   }
 
-  // Waiting on the API to finish
-  const loading =
-    !configLoaded || !userSettings || !configSettings || !contextValue || !namespacesLoaded;
-
-  return loading ? (
+  return !loaded || !contextValue ? (
     <Bullseye>
       <Spinner />
     </Bullseye>
@@ -95,5 +96,20 @@ const App: React.FC = () => {
     </AppContext.Provider>
   );
 };
+
+const AppContent: React.FC = () => {
+  const { configSettings, userSettings, loaded, loadError } = useMaaSSettings();
+
+  return (
+    <AppShell
+      configSettings={configSettings}
+      userSettings={userSettings}
+      loaded={loaded}
+      loadError={loadError}
+    />
+  );
+};
+
+const App: React.FC = () => <AppContent />;
 
 export default App;

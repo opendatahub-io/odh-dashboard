@@ -3,7 +3,10 @@ import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 import { MCPServerFromAPI } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
-import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
+import {
+  convertMaaSModelToAIModel,
+  resolveAIModelForPlaygroundSelection,
+} from '~/app/utilities/utils';
 import { serializeToAgentProfileSpec } from './serialize';
 import type { AgentProfileSpec } from './types';
 
@@ -80,12 +83,13 @@ const useIsProfileDirty = (
     [aiModels, maasModels],
   );
 
-  const aiModel = React.useMemo(() => {
-    const llamaModel = playgroundModels.find((m) => m.id === config?.selectedModel);
-    return llamaModel
-      ? allAIModels.find((ai) => isPlaygroundModelMatchForAIModel(llamaModel, ai))
-      : undefined;
-  }, [playgroundModels, config?.selectedModel, allAIModels]);
+  const aiModel = React.useMemo(
+    () =>
+      config?.selectedModel
+        ? resolveAIModelForPlaygroundSelection(config.selectedModel, playgroundModels, allAIModels)
+        : undefined,
+    [playgroundModels, config?.selectedModel, allAIModels],
+  );
 
   const asrModel = React.useMemo(
     () =>

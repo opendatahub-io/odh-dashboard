@@ -88,6 +88,7 @@ jest.mock('~/app/utilities/utils', () => ({
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
   useFetchS3File: jest.fn(() => mockFetchS3File),
+  useTaskExecutorError: jest.fn(() => ({ isLoading: false, isError: false })),
 }));
 
 const mockPipelineRun: PipelineRun = {
@@ -173,7 +174,14 @@ describe('AutomlResults', () => {
   it('should pass fallback topology nodes to useTreeViewData when stage map is unavailable', () => {
     renderWithContext(mockPipelineRun);
     const fallbackNodes = useAutomlTaskTopologyMock.mock.results[0]?.value;
-    expect(useTreeViewDataMock).toHaveBeenCalledWith({}, fallbackNodes, undefined, undefined);
+    expect(useTreeViewDataMock).toHaveBeenCalledWith(
+      {},
+      fallbackNodes,
+      undefined,
+      undefined,
+      'timeseries',
+      undefined,
+    );
   });
 
   it('should render gracefully when pipelineRun is undefined', () => {
@@ -536,6 +544,8 @@ describe('AutomlResults', () => {
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
+        'timeseries',
+        undefined,
       );
     });
 
@@ -590,6 +600,8 @@ describe('AutomlResults', () => {
         buildStageMapTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
+        'timeseries',
+        undefined,
       );
     });
 
@@ -623,6 +635,8 @@ describe('AutomlResults', () => {
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
         undefined,
+        'timeseries',
+        undefined,
       );
     });
 
@@ -636,6 +650,8 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        'timeseries',
         undefined,
       );
     });
@@ -651,6 +667,8 @@ describe('AutomlResults', () => {
         {},
         useAutomlTaskTopologyMock.mock.results.slice(-1)[0]?.value,
         undefined,
+        undefined,
+        'timeseries',
         undefined,
       );
     });

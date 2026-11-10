@@ -23,6 +23,7 @@ export const buildBranchExpandOptions = (
   winnerResolved: options?.winnerResolved === true && !!data.selectedModel,
   winnerModelLabel: data.winnerModelLabel,
   winnerModelKey: data.selectedModel,
+  modelRanks: data.modelRanks,
 });
 
 export const transformPipelineData = (

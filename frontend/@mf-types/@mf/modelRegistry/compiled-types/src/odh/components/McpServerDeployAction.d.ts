@@ -1,3 +1,8 @@
 import React from 'react';
-declare const McpServerDeployAction: React.FC;
+import type { McpServer } from '~/app/mcpServerCatalogTypes';
+declare const McpServerDeployAction: React.FC<{
+    server: {
+        data: McpServer | null;
+    };
+}>;
 export default McpServerDeployAction;

@@ -53,6 +53,7 @@ export const stripDuplicatingAnnotations = (
   delete result['internal.config.kubernetes.io/previousNamespaces'];
   delete result['internal.config.kubernetes.io/previousKinds'];
   delete result['internal.config.kubernetes.io/previousNames'];
+  delete result['opendatahub.io/installed-from-catalog'];
   return result;
 };
 

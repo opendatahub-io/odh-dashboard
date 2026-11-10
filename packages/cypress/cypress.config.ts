@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 // @ts-expect-error: Types are not available for this third-party library
 import registerCypressGrep from '@cypress/grep/src/plugin';
@@ -22,6 +23,7 @@ import { logToConsole, LogLevel } from './cypress/utils/logger';
 import { getCypressTestPatterns } from './cypress/utils/discoverTestPatterns';
 import { createAutomlCleanupTasks } from './src/automlCleanupManifest';
 import { createAwsCliPodTask } from './src/awsCliPodTask';
+import { setupDataRegistryTasks } from './cypress/utils/api/dataRegistryNodeTask';
 
 const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   return Object.fromEntries(
@@ -31,7 +33,11 @@ const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
   );
 };
 
-const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
+const resultsDir = path.resolve(
+  __dirname,
+  env.CY_RESULTS_DIR || 'results',
+  env.CY_MOCK ? 'mocked' : 'e2e',
+);
 
 const isCI = !!env.CI;
 
@@ -45,6 +51,7 @@ export default defineConfig({
     reporterEnabled: 'cypress-mochawesome-reporter, mocha-junit-reporter',
     mochaJunitReporterReporterOptions: {
       mochaFile: `${resultsDir}/junit/junit-[hash].xml`,
+      includePending: true,
     },
     cypressMochawesomeReporterReporterOptions: {
       charts: true,
@@ -94,6 +101,14 @@ export default defineConfig({
       : ['cypress/tests/e2e/**/*.cy.ts', ...getCypressTestPatterns('e2e')],
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
+      const ociSecretFiles = new Set<string>();
+      const deleteOCISecretFile = (filePath: string): void => {
+        if (ociSecretFiles.has(filePath)) {
+          fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
+          ociSecretFiles.delete(filePath);
+        }
+      };
+
       registerCypressGrep(config);
       cypressHighResolution(on, config);
       // Rspack MF runtime is a data:text/javascript URI; nyc HTML reports ENAMETOOLONG on it.
@@ -132,6 +147,7 @@ export default defineConfig({
         ),
         runAwsCliInCluster: createAwsCliPodTask(),
       });
+      setupDataRegistryTasks(on, config);
 
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.family === 'chromium' && isCI) {
@@ -144,6 +160,23 @@ export default defineConfig({
       });
 
       on('task', {
+        createOCISecretFile(content: Record<string, unknown>) {
+          const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'oci-data-connection-secret-'));
+          const filePath = path.join(directory, 'secret.json');
+          try {
+            fs.chmodSync(directory, 0o700);
+            fs.writeFileSync(filePath, JSON.stringify(content), { flag: 'wx', mode: 0o600 });
+            ociSecretFiles.add(filePath);
+            return filePath;
+          } catch (error) {
+            fs.rmSync(directory, { recursive: true, force: true });
+            throw error;
+          }
+        },
+        deleteOCISecretFile(filePath: string) {
+          deleteOCISecretFile(filePath);
+          return null;
+        },
         readJSON(filePath: string) {
           const absPath = path.resolve(__dirname, filePath);
           if (fs.existsSync(absPath)) {
@@ -197,6 +230,9 @@ export default defineConfig({
 
       // Delete videos for specs without failing or retried tests
       on('after:spec', (_, results) => {
+        for (const filePath of ociSecretFiles) {
+          deleteOCISecretFile(filePath);
+        }
         if (results.video) {
           const failures =
             !Array.isArray(results.tests) ||
@@ -228,8 +264,8 @@ export default defineConfig({
         }
 
         try {
-          const outputFile = path.join(__dirname, resultsDir, 'junit-report.xml');
-          const inputFiles = [`./${resultsDir}/junit/*.xml`];
+          const outputFile = path.join(resultsDir, 'junit-report.xml');
+          const inputFiles = [path.join(resultsDir, 'junit', '*.xml')];
           await mergeFiles(outputFile, inputFiles);
         } catch (e) {
           console.warn('junit report merge failed:', e);

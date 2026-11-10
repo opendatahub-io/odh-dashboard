@@ -104,6 +104,20 @@ type EnvConfig struct {
 	// When true, BFF clients return mock responses instead of making real HTTP calls.
 	MockBFFClients bool
 
+	// BFFClientsAllowInsecureHTTP disables TLS for the four built-in inter-BFF targets.
+	// It is permitted only in development because forwarded bearer tokens travel in plaintext.
+	BFFClientsAllowInsecureHTTP bool
+
+	// An empty service name disables DCH and preserves the Secret-based lookup.
+	BFFDCHServiceName      string
+	BFFDCHServiceNamespace string
+	BFFDCHServicePort      int
+	BFFDCHTLSEnabled       bool
+	BFFDCHAuthTokenHeader  string
+	BFFDCHAuthTokenPrefix  string
+	BFFDCHDevURL           string
+	BFFDCHTimeoutSeconds   int
+
 	// ─── DATA REGISTRY API ────────────────────────────────────────
 	// DataRegistryAPIURL is the base URL of the upstream Data Registry API
 	// (Iceberg REST-compatible). When set via flag/env, it takes precedence over

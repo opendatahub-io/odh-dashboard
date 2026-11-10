@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
@@ -8,6 +8,7 @@ import useDeleteStatuses from '#~/concepts/pipelines/content/useDeleteStatuses';
 import DeletePipelineModalExpandableSection from '#~/concepts/pipelines/content/DeletePipelineModalExpandableSection';
 import { getPipelineAndVersionDeleteString } from '#~/concepts/pipelines/content/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type DeletePipelinesModalProps = {
   toDeletePipelines?: PipelineKF[];
@@ -131,7 +132,7 @@ const DeletePipelinesModal: React.FC<DeletePipelinesModalProps> = ({
               fireFormTrackingEventForPipeline({
                 outcome: TrackingOutcome.submit,
                 success: false,
-                error: e,
+                error: errorCategory(e),
               });
             });
         } else {

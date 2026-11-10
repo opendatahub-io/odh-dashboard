@@ -26,6 +26,9 @@ const TEST_PROJECT = 'test-project';
 const setupCommonIntercepts = () => {
   asProductAdminUser();
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ modelAsService: true }));
+  cy.interceptOdh('GET /maas/api/v1/whoami', {
+    data: { sub: 'test-user', isAdmin: false },
+  });
   cy.interceptOdh('GET /maas/api/v1/user', {
     data: { userId: 'test-user', clusterAdmin: false },
   });
@@ -451,10 +454,7 @@ describe('External providers', () => {
       createExternalProviderModal.findSecretValueInput().type('API-Key');
       createExternalProviderModal.findSecretValueInput().clear();
       createExternalProviderModal.findSecretValueInput().blur();
-      createExternalProviderModal
-        .find()
-        .contains('API key value is required when creating a new secret: error status;')
-        .should('exist');
+      createExternalProviderModal.find().contains('Required: error status;').should('exist');
       createExternalProviderModal.findSubmitButton().should('be.disabled');
       createExternalProviderModal.findSecretValueInput().type('API-Key');
       createExternalProviderModal.findSubmitButton().should('be.enabled');

@@ -21,9 +21,10 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { searchApiKeys, bulkRevokeApiKeys } from '~/app/api/api-keys';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
+import { searchApiKeysForCurrentHost, bulkRevokeApiKeys } from '~/app/api/api-keys';
 import { useNotification } from '~/app/hooks/useNotification';
 import { isKeyInactive } from '~/app/utilities/apiKeys';
 import type { APIKey, SubscriptionDetail } from '~/app/types/api-key';
@@ -94,7 +95,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
     setHasSearched(true);
 
     try {
-      const response = await searchApiKeys()({}, { filters: { username: trimmed } });
+      const response = await searchApiKeysForCurrentHost()({}, { filters: { username: trimmed } });
       setApiKeys(response.data);
       setSubscriptionDetails(response.subscriptionDetails);
     } catch (err) {
@@ -126,7 +127,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
       fireFormTrackingEvent(MaaSEvents.API_KEYS_BULK_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: false,
-        error: message,
+        error: errorCategory(err),
         bulkMode: ApiKeyBulkRevokeMode.ALL_FOR_USER,
         keyCount: activeKeys.length,
         isAdmin: true,

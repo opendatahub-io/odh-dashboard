@@ -1,20 +1,20 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigTableRow from '../LlmAcceleratorConfigTableRow';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
+
+const { wrapper } = createTestProviders();
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: jest.fn(() => jest.fn()),
 }));
 
-jest.mock('@odh-dashboard/internal/utilities/useNotification', () => ({
-  __esModule: true,
-  default: () => ({ error: jest.fn(), success: jest.fn(), info: jest.fn() }),
-}));
-
 jest.mock('@odh-dashboard/ui-core', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core'),
   ResourceNameTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
@@ -38,6 +38,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     expect(screen.getByText('Custom Display Name')).toBeInTheDocument();
@@ -54,6 +55,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     expect(screen.getByTestId('pre-installed-label')).toBeInTheDocument();
@@ -71,9 +73,45 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     expect(screen.queryByTestId('pre-installed-label')).not.toBeInTheDocument();
+  });
+
+  it('should show a purple From library label when the origin annotation is present', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({});
+    config.metadata.annotations = {
+      ...config.metadata.annotations,
+      [MetadataAnnotation.InstalledFromCatalog]: 'true',
+    };
+
+    render(
+      <table>
+        <tbody>
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
+        </tbody>
+      </table>,
+      { wrapper },
+    );
+
+    expect(screen.getByTestId('from-library-label')).toHaveTextContent('From library');
+    expect(screen.queryByTestId('pre-installed-label')).not.toBeInTheDocument();
+  });
+
+  it('should not show From library label without the origin annotation', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({});
+
+    render(
+      <table>
+        <tbody>
+          <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
+        </tbody>
+      </table>,
+      { wrapper },
+    );
+
+    expect(screen.queryByTestId('from-library-label')).not.toBeInTheDocument();
   });
 
   it('should show Limited support label for unsupported configs', () => {
@@ -87,6 +125,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     expect(screen.getByTestId('limited-support-label')).toBeInTheDocument();
@@ -104,6 +143,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     expect(screen.queryByTestId('limited-support-label')).not.toBeInTheDocument();
@@ -121,6 +161,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     expect(screen.getByTestId('pre-installed-label')).toBeInTheDocument();
@@ -139,6 +180,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     const toggle = screen.getByTestId('llm-accelerator-config-enabled-toggle-my-config');
@@ -158,6 +200,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     const toggle = screen.getByTestId('llm-accelerator-config-enabled-toggle-enabled-config');
@@ -173,6 +216,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     expect(screen.getByRole('button', { name: /kebab toggle/i })).toBeInTheDocument();
@@ -189,6 +233,7 @@ describe('LlmAcceleratorConfigTableRow', () => {
           <LlmAcceleratorConfigTableRow obj={config} rowIndex={0} onDeleteConfig={jest.fn()} />
         </tbody>
       </table>,
+      { wrapper },
     );
 
     expect(

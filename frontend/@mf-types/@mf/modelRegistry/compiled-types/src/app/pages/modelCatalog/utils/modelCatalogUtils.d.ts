@@ -1,5 +1,7 @@
-import { CatalogArtifacts, CatalogFilterOptionsList, CatalogLabel, CatalogLabelList, CatalogModel, CatalogModelDetailsParams, CatalogSource, CatalogSourceList, ModelCatalogFilterStates, ModelCatalogStringFilterValueType, ModelCatalogFilterKey } from '~/app/modelCatalogTypes';
-import { ModelCatalogStringFilterKey, ModelCatalogNumberFilterKey, LatencyMetricFieldName, ModelCatalogSortOption } from '~/concepts/modelCatalog/const';
+import type { DeployPrefillData } from '@odh-dashboard/model-serving/shared/types/deploy-prefill';
+import { CatalogArtifacts, CatalogFilterOptionsList, CatalogLabel, CatalogLabelList, CatalogModel, CatalogModelDetailsParams, CatalogSource, CatalogSourceList, ModelCatalogFilterStates, ModelCatalogFilterKey, ToolCallingConfig } from '~/app/modelCatalogTypes';
+import { LatencyMetricFieldName, ModelCatalogSortOption } from '~/concepts/modelCatalog/const';
+import { ModelRegistryCustomProperties } from '~/app/types';
 export declare const extractVersionTag: (tags?: string[]) => string | undefined;
 export declare const filterNonVersionTags: (tags?: string[]) => string[] | undefined;
 export declare const getModelName: (modelName: string) => string;
@@ -18,17 +20,29 @@ export declare const hasModelArtifacts: (artifacts: CatalogArtifacts[]) => boole
  */
 export declare const getArchitecturesFromArtifacts: (artifacts: CatalogArtifacts[]) => string[];
 export declare const hasPerformanceArtifacts: (artifacts: CatalogArtifacts[]) => boolean;
+export type HfAccessLabelVariant = 'private' | 'gated' | 'gated-denied';
+export declare const isGatedAccessType: (accessType: string) => boolean;
+export declare const isHfGatedAccessDeniedFromFields: (accessType?: string | null, gatedAccessGranted?: boolean | null) => boolean;
+export declare const getHfGatedAccessGranted: (model: CatalogModel) => boolean;
+export declare const getHfAccessType: (model: CatalogModel) => string | null;
+export declare const getHfAccessLabelVariant: (model: CatalogModel) => HfAccessLabelVariant | null;
+export declare const isHfGatedAccessDenied: (model: CatalogModel) => boolean;
+export declare const getHuggingFaceModelUrl: (model: CatalogModel) => string;
 export declare const isModelValidated: (model: CatalogModel) => boolean;
 export declare const isRedHatModel: (model: CatalogModel) => boolean;
 export declare const shouldShowValidatedInsights: (model: CatalogModel, artifacts: CatalogArtifacts[]) => boolean;
-export declare const useCatalogStringFilterState: <K extends ModelCatalogStringFilterKey>(filterKey: K) => {
-    isSelected: (value: ModelCatalogStringFilterValueType[K]) => boolean;
-    setSelected: (value: string, selected: boolean) => void;
-};
-export declare const useCatalogNumberFilterState: (filterKey: ModelCatalogNumberFilterKey) => {
-    value: number | undefined;
-    setValue: (value: number | undefined) => void;
-};
+export declare const hasValidatedToolCalling: (model: CatalogModel) => boolean;
+export declare const getToolCallingArgs: (config?: ToolCallingConfig) => string;
+/**
+ * Builds the `validatedConfigurations` entries to prefill into the deployment wizard for a
+ * catalog model. Catalog UI (labels, filters, details card) is always on. Wizard prefill is
+ * gated here — currently tool calling is included only when the `toolCalling` flag is on and
+ * the model has validated tool-calling args. The wizard renders whatever it receives.
+ *
+ * Returns both the available configurations and a pre-selection record so that validated
+ * options are checked by default when the wizard opens.
+ */
+export declare const getValidatedConfigurationsForModel: (model: CatalogModel, isToolCallingEnabled: boolean) => Pick<DeployPrefillData, "validatedConfigurations" | "selectedValidatedConfigurations">;
 /**
  * Gets the active latency field name from the filter state (if any)
  */
@@ -65,10 +79,12 @@ export type FilterQueryTarget = 'models' | 'artifacts';
  * @param target - The target endpoint:
  *   - 'models': Include all filters (except RPS), use filter keys directly
  *   - 'artifacts': Only include artifact-prefixed filters, strip the prefix in output
+ * @param includeColdStart - Whether to include the cold-start filter in the AND clause.
+ *   Should be true only when performance view is enabled.
  *
  * Note: RPS is NOT included in filterQuery for either target - it's passed as targetRPS param.
  */
-export declare const filtersToFilterQuery: (filterData: ModelCatalogFilterStates, options: CatalogFilterOptionsList, target?: FilterQueryTarget) => string;
+export declare const filtersToFilterQuery: (filterData: ModelCatalogFilterStates, options: CatalogFilterOptionsList, target?: FilterQueryTarget, includeColdStart?: boolean) => string;
 /**
  * Returns a copy of filterData with only basic (non-performance) filters.
  * Used when performance view is disabled to exclude performance filters from API queries.
@@ -143,3 +159,11 @@ export declare const getActiveSourceLabels: (catalogSources: CatalogSourceList |
  * @returns Formatted display string for the model type
  */
 export declare const formatModelTypeDisplay: (modelTypeRaw: string | null) => string;
+/**
+ * Returns model registry customProperties entries to prefill `model_type` when registering
+ * from the catalog. Recognized values (generative, predictive, unknown) are copied;
+ * unrecognized or missing values yield {}.
+ */
+export declare const getCatalogModelTypePropertyForRegistration: (customProperties?: ModelRegistryCustomProperties) => ModelRegistryCustomProperties;
+export declare const getModelSizeFromCustomProperties: (customProperties?: ModelRegistryCustomProperties) => string;
+export declare const getMinimumVramFromCustomProperties: (customProperties?: ModelRegistryCustomProperties) => string;

@@ -14,7 +14,11 @@ ARG BUILD_MODE
 
 WORKDIR /usr/src/app
 
-RUN npm install -g pnpm@11.22.0
+# Install the pinned pnpm CLI from the npm-prefetched bootstrap package.
+COPY --chown=default:root prefetch/pnpm/package.json prefetch/pnpm/package-lock.json ./prefetch/pnpm/
+ENV PATH="/usr/src/app/prefetch/pnpm/node_modules/.bin:${PATH}"
+RUN npm ci --prefix ./prefetch/pnpm --prefer-offline --ignore-scripts --no-audit --no-fund --no-progress \
+    && test "$(pnpm --version)" = "11.22.0"
 
 ## Copying in source code
 COPY --chown=default:root ${SOURCE_CODE} /usr/src/app
@@ -22,7 +26,7 @@ COPY --chown=default:root ${SOURCE_CODE} /usr/src/app
 # Change file ownership to the assemble user
 USER default
 
-RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --prefer-offline
 
 ENV TURBO_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS=--max-old-space-size=8192
@@ -45,10 +49,8 @@ RUN . /tmp/env.sh && pnpm run build
 
 FROM ${MINIMAL_IMAGE} AS runtime
 
-# The curl binary is required in the final image, as it's used for
-# liveness and readiness probes
-USER root
-RUN microdnf install -y curl-minimal && microdnf clean all && curl --version
+# The base image includes curl for liveness and readiness probes.
+RUN curl --version
 USER 1001:0
 
 WORKDIR /usr/src/app

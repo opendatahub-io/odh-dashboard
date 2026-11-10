@@ -139,12 +139,12 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9104 PROXY_PORT=8081 pnpm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
 	@$(resolve_maas_api_url) \
-	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
+	cd bff && make run PORT=8081 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" MAAS_API_URL="$$MAAS_URL"
 
 .PHONY: dev-bff-federated-mock
 dev-bff-federated-mock:
@@ -152,7 +152,7 @@ dev-bff-federated-mock:
 
 .PHONY: dev-frontend-federated-mock
 dev-frontend-federated-mock:
-	cd frontend && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9104 PROXY_PORT=8081 pnpm run start:dev
+	cd frontend && AUTH_METHOD=internal DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9104 PROXY_PORT=8081 pnpm run start:dev
 
 .PHONY: dev-start-mock-federated
 dev-start-mock-federated:
@@ -173,7 +173,7 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
 	@$(resolve_maas_api_url) \
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
+	cd bff && E2E_USE_PROXY_FROM_ENV=true make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
 
 ############ Build ############
 
@@ -245,5 +245,4 @@ build: frontend-build bff-build
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
 	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
-
 

@@ -149,6 +149,39 @@ export const addUserToProject = (
   });
 };
 
+export const addClusterRoleToUser = (
+  clusterRole: string,
+  userName: string,
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc adm policy add-cluster-role-to-user ${clusterRole} ${userName} -n ${projectName}`;
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      cy.log(`ERROR adding cluster role ${clusterRole} to user *** in ${projectName}
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
+    }
+    return result;
+  });
+};
+
+export const removeClusterRoleFromUser = (
+  clusterRole: string,
+  userName: string,
+  projectName: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc adm policy remove-cluster-role-from-user ${clusterRole} ${userName} -n ${projectName}`;
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      cy.log(`ERROR removing cluster role ${clusterRole} from user *** in ${projectName}
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
+    }
+    return result;
+  });
+};
+
 export const deleteInferenceService = (
   projectName: string,
   options: {

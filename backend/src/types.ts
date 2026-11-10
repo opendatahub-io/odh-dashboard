@@ -50,6 +50,8 @@ export type DashboardConfig = K8sResourceCommon & {
       disableLMEval: boolean;
       disableFeatureStore: boolean;
       featureStoreAdmin: boolean;
+      dataRegistry: boolean;
+      dataConnectHub: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
       genAiTracing: boolean;
@@ -57,10 +59,12 @@ export type DashboardConfig = K8sResourceCommon & {
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
+      inferencePriorityField: boolean;
       mlflow: boolean;
       workbenchesV2: boolean;
       mcpCatalog: boolean;
       mcpRegistry: boolean;
+      skillRegistry: boolean;
       genAiMcpRegistryServers: boolean;
       agentOps: boolean;
       agentsCatalog: boolean;
@@ -73,14 +77,15 @@ export type DashboardConfig = K8sResourceCommon & {
       externalVectorStores: boolean;
       agentConfigManagement: boolean;
       genAiAgentDeployment: boolean;
+      genAiImageUpload: boolean;
+      genAiAudioUpload: boolean;
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
       globalProjectPrompts: boolean;
+      hardwareProfileDRA: boolean;
       gpuaas: boolean;
-      connectionTest: boolean;
       modelCapabilities: boolean;
-      runtimeCatalog: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
     };
@@ -275,6 +280,32 @@ export type CSVKind = {
   status: {
     phase?: string;
     reason?: string;
+  };
+} & K8sResourceCommon;
+
+// Minimal type for OLM v1 ClusterExtensions (olm.operatorframework.io/v1, cluster-scoped).
+// On OLM v1 clusters the install lifecycle is represented by a ClusterExtension instead of
+// an OLM Classic Subscription/CSV pair.
+export type ClusterExtensionKind = {
+  spec: {
+    namespace?: string;
+    source?: {
+      sourceType?: string;
+      catalog?: {
+        packageName?: string;
+        channels?: string[];
+        version?: string;
+      };
+    };
+  };
+  status?: {
+    install?: {
+      bundle?: {
+        name?: string;
+        version?: string;
+      };
+    };
+    conditions?: K8sCondition[];
   };
 } & K8sResourceCommon;
 
@@ -894,6 +925,7 @@ export type ContainerResources = {
     cpu?: string | number;
     memory?: string;
   } & Record<string, unknown>;
+  claims?: { name: string; request?: string }[];
 };
 
 export type PodAffinity = {
@@ -970,6 +1002,9 @@ export type HardwareProfileKind = K8sResourceCommon & {
       resourceType?: string;
     }[];
     nodeSelector?: NodeSelector;
+    dra?: {
+      resourceClaimTemplateName: string;
+    };
   };
 };
 
@@ -1015,8 +1050,20 @@ export type DataScienceClusterKindStatus = {
   };
 };
 
+export type DataScienceClusterComponentSpec = {
+  managementState?: ManagementState;
+};
+
+export type DataScienceClusterKindSpec = {
+  components?: {
+    feastoperator?: DataScienceClusterComponentSpec & {
+      dataRegistry?: DataScienceClusterComponentSpec;
+    };
+  };
+};
+
 export type DataScienceClusterKind = K8sResourceCommon & {
-  spec: unknown; // we should never need to look into this
+  spec: DataScienceClusterKindSpec;
   status: DataScienceClusterKindStatus;
 };
 
@@ -1051,8 +1098,17 @@ export type DataScienceClusterInitializationList = {
 export type SubscriptionStatusData = {
   channel?: string;
   installedCSV?: string;
+  // OLM package name (OLM v1 only). The installed bundle name is not guaranteed to be derived
+  // from the package name, so this is the stable identity used to match OLM v1 installs.
+  packageName?: string;
   installPlanRefNamespace?: string;
   lastUpdated?: string;
+  // Which OLM generation this entry was resolved from. Absent is treated as OLM v0 for
+  // backwards compatibility. OLM v1 entries are derived from a ClusterExtension and have
+  // no backing ClusterServiceVersion to read.
+  source?: 'OLMv0' | 'OLMv1';
+  // For OLM v1 entries only: whether the ClusterExtension reports a successful install.
+  installed?: boolean;
 };
 
 export type CronJobKind = {

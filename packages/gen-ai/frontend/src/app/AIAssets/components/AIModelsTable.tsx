@@ -15,8 +15,6 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
-import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
-import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import useChatPlaygroundEnabled from '~/app/hooks/useChatPlaygroundEnabled';
 import {
   AssetsFilterColors,
@@ -32,6 +30,8 @@ type AIModelsTableProps = {
   lsdStatus: LlamaStackDistributionModel | null;
   toolbarActions?: React.ReactNode;
   onDelete?: (modelId: string) => Promise<void>;
+  showPlaygroundColumn?: boolean;
+  showModelStatusPopover?: boolean;
 };
 
 const dontSeeModelPopoverContent: React.ReactNode = (
@@ -117,11 +117,11 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   lsdStatus,
   toolbarActions,
   onDelete,
+  showPlaygroundColumn = true,
+  showModelStatusPopover = true,
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
-  const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
   const isChatPlaygroundEnabled = useChatPlaygroundEnabled();
-  const [existingCollections] = useFetchVectorStores();
 
   // Check if any models are custom endpoints to determine if we need the action column
   const hasCustomEndpoints = models.some((model) => model.model_source_type === 'custom_endpoint');
@@ -129,10 +129,10 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
   // Filter columns based on playground availability
   const visibleColumns = React.useMemo(
     () =>
-      isChatPlaygroundEnabled
+      isChatPlaygroundEnabled && showPlaygroundColumn
         ? aiModelColumns
         : aiModelColumns.filter((col) => col.field !== 'playground'),
-    [isChatPlaygroundEnabled],
+    [isChatPlaygroundEnabled, showPlaygroundColumn],
   );
 
   return (
@@ -150,7 +150,11 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           filterData={filterData}
           filterOptions={assetsFilterOptions}
           filterColors={AI_FILTER_COLORS}
-          infoPopover={<AIModelStatusPopover modelsVisibleCount={filteredModels.length} />}
+          infoPopover={
+            showModelStatusPopover ? (
+              <AIModelStatusPopover modelsVisibleCount={filteredModels.length} />
+            ) : undefined
+          }
           onClearFilters={onClearFilters}
           resultsCount={filteredModels.length}
           toolbarActions={toolbarActions}
@@ -162,14 +166,10 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           lsdStatus={lsdStatus}
           key={`${model.model_source_type}-${model.model_id}`}
           model={model}
-          allModels={models}
           playgroundModels={playgroundModels}
           onDelete={onDelete}
           showActionColumn={hasCustomEndpoints && !!onDelete}
-          showPlaygroundColumn={isChatPlaygroundEnabled}
-          allCollections={allCollections}
-          collectionsLoaded={collectionsLoaded}
-          existingCollections={existingCollections}
+          showPlaygroundColumn={isChatPlaygroundEnabled && showPlaygroundColumn}
         />
       )}
     />

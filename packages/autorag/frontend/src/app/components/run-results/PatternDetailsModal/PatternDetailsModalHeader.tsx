@@ -25,6 +25,7 @@ import {
   metricLabel,
 } from '~/app/utilities/metricUtils';
 import { patternHasIndexingPipelineSpec } from '~/app/utilities/indexingPipeline';
+import { canUseResponsesForPattern } from '~/app/utilities/responses';
 
 type PatternDetailsModalHeaderProps = {
   patterns: AutoragPattern[];
@@ -37,12 +38,13 @@ type PatternDetailsModalHeaderProps = {
   onTryPattern?: (patternName: string) => void;
   onViewCode?: (patternName: string) => void;
   onRunIndexingPipeline?: (patternName: string) => void;
+  databaseSecretName?: string;
+  maasSecretName?: string;
   comparisonEnabled?: boolean;
   comparisonPatternIndex?: number | null;
 };
 
-// Keep the OGX callbacks wired for the upcoming Results reintroduction without exposing actions.
-const OGX_ACTIONS_ENABLED = false;
+const VIEW_CODE_ACTION_ENABLED = true;
 
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   patterns,
@@ -57,11 +59,28 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   onRunIndexingPipeline,
   comparisonEnabled,
   comparisonPatternIndex,
+  databaseSecretName,
+  maasSecretName,
 }) => {
   const [isPatternDropdownOpen, setIsPatternDropdownOpen] = React.useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = React.useState(false);
 
   const data = patterns[selectedIndex];
+  // Historical results can outlive the pattern lookup used to render them.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!data) {
+    return null;
+  }
+  const canViewCode = Boolean(
+    /* eslint-disable camelcase */
+    databaseSecretName?.trim() &&
+    maasSecretName?.trim() &&
+    canUseResponsesForPattern(
+      { db_secret_name: databaseSecretName, maas_secret_name: maasSecretName },
+      data,
+    ),
+    /* eslint-enable camelcase */
+  );
 
   return (
     <>
@@ -190,7 +209,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
               >
                 <DropdownList>
                   {/* eslint-disable @typescript-eslint/no-unnecessary-condition */}
-                  {OGX_ACTIONS_ENABLED && data.inference?.responses_template && onTryPattern && (
+                  {onTryPattern && canViewCode && (
                     <DropdownItem
                       key="try-pattern"
                       value="try-pattern"
@@ -199,7 +218,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       Try this pattern
                     </DropdownItem>
                   )}
-                  {OGX_ACTIONS_ENABLED && data.inference?.responses_template && onViewCode && (
+                  {VIEW_CODE_ACTION_ENABLED && canViewCode && onViewCode && (
                     <DropdownItem
                       key="view-code"
                       value="view-code"

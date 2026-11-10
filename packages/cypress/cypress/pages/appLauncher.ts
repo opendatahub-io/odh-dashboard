@@ -14,6 +14,12 @@ class ApplicationLauncherMenuGroup extends Contextual<HTMLElement> {
   findApplicationLauncherItem(name: string) {
     return this.find().findAllByTestId('application-launcher-item').contains(name);
   }
+
+  findApplicationLauncherItemImage(name: string) {
+    return this.findApplicationLauncherItem(name)
+      .closest('[data-testid="application-launcher-item"]')
+      .find('img');
+  }
 }
 
 export class ApplicationLauncher extends Contextual<HTMLElement> {

@@ -193,7 +193,7 @@ describe('ClusterSettings', () => {
     expect(mockFireFormTrackingEvent).not.toHaveBeenCalled();
   });
 
-  it('should fire a failure tracking event with the error message when the update API rejects', async () => {
+  it('should fire a failure tracking event with a controlled error category when the update API rejects', async () => {
     const error = new Error('Update failed');
     mockUpdateClusterSettings.mockRejectedValue(error);
 
@@ -209,7 +209,7 @@ describe('ClusterSettings', () => {
           outcome: 'submit',
           success: false,
           globalProjectName: 'Added',
-          error: error.message,
+          error: 'unknown_error',
         },
       );
     });
@@ -230,7 +230,7 @@ describe('ClusterSettings', () => {
           outcome: 'submit',
           success: false,
           globalProjectName: 'Added',
-          error: 'Rejected by server',
+          error: 'unknown_error',
         },
       );
     });

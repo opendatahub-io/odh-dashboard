@@ -17,20 +17,7 @@ type ModelsAAEnvelope Envelope[[]models.AAModel, None]
 
 func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-
-	// Get namespace from context
-	namespace, ok := r.Context().Value(constants.NamespaceQueryParameterKey).(string)
-	if !ok || namespace == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in the context"))
-		return
-	}
-
-	// Get the request identity from context
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
-	if !ok || identity == nil {
-		app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
+	namespace, hasNamespace := ctx.Value(constants.NamespaceQueryParameterKey).(string)
 
 	// Parse sources query parameter
 	// Supports both formats:
@@ -60,6 +47,20 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	// Validate that no invalid sources were provided
 	if len(invalidSources) > 0 {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid source(s): %s", strings.Join(invalidSources, ", ")))
+		return
+	}
+
+	// Namespace and custom endpoint models are project-scoped. MaaS models are subscription-scoped
+	// and can be listed without a namespace.
+	if (requestedSources[models.ModelSourceTypeNamespace] || requestedSources[models.ModelSourceTypeCustomEndpoint]) && (!hasNamespace || namespace == "") {
+		app.badRequestResponse(w, r, fmt.Errorf("missing namespace in the context"))
+		return
+	}
+
+	// Get the request identity from context
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		app.unauthorizedResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 		return
 	}
 

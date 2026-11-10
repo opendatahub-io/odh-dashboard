@@ -16,7 +16,7 @@ type CatalogCategorySectionProps<T> = {
     loadError: Error | undefined;
     pageSize: number;
     onShowMore: (label: string) => void;
-    renderCard: (item: T) => React.ReactNode;
+    renderCard: (item: T, index: number) => React.ReactNode;
     getItemKey: (item: T) => string;
     gridSpans?: CatalogGridSpans;
     showAllThreshold?: number;

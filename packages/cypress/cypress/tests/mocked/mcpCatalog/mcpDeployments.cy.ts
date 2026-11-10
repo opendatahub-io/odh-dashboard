@@ -1,4 +1,5 @@
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
+import { mockAIHubNamespaceResponse } from '@odh-dashboard/k8s-core/__mocks__/mockAIHub';
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
@@ -43,6 +44,10 @@ const initBaseIntercepts = (dscStatus: ReturnType<typeof mockDscStatus> = mockDs
   );
 
   cy.interceptOdh('GET /api/dsc/status', dscStatus);
+  cy.interceptOdh(
+    'GET /api/aihub',
+    mockAIHubNamespaceResponse({ instancesNamespace: 'odh-model-registries' }),
+  );
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
 
@@ -416,12 +421,23 @@ describe('MCP Deployments server and registered version columns', () => {
 const TEST_SERVER_ID = 'kubernetes-server-1';
 const TEST_SERVER_IMAGE = 'ghcr.io/kubernetes/mcp-server:latest';
 
+type DeployReadinessResponse = {
+  gatewayRequired: boolean;
+  deployable: boolean;
+  reason?: string;
+  message?: string;
+};
+
+const NOT_GATED_READINESS: DeployReadinessResponse = { gatewayRequired: false, deployable: true };
+
 const initDeployIntercepts = ({
   mcpLifecycleManagementState = 'Managed',
   artifacts = [{ uri: TEST_SERVER_IMAGE }],
+  readiness = NOT_GATED_READINESS,
 }: {
   mcpLifecycleManagementState?: 'Managed' | 'Unmanaged' | 'Removed';
   artifacts?: { uri: string }[];
+  readiness?: DeployReadinessResponse;
 } = {}) => {
   const defaultDscStatus = mockDscStatus({});
   initBaseIntercepts(
@@ -527,6 +543,10 @@ const initDeployIntercepts = ({
       }),
     },
   }).as('getConverter');
+
+  cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/deploy_readiness*`, {
+    body: { data: readiness },
+  }).as('getDeployReadiness');
 };
 
 describe('MCP Deploy from Catalog', () => {
@@ -604,13 +624,170 @@ describe('MCP Deploy from Catalog', () => {
     });
   });
 
+  describe('MCP gateway prerequisite', () => {
+    const NO_GATEWAY_TOOLTIP =
+      'This MCP server requires an MCP gateway, and none is available. Ask your cluster administrator to set up an MCP gateway.';
+    const BLOCKED_READINESS: DeployReadinessResponse = {
+      gatewayRequired: true,
+      deployable: false,
+      reason: 'NO_GATEWAY_AVAILABLE',
+      message: 'No MCP gateway is available on this cluster.',
+    };
+
+    it('should not show gateway messaging for a server that does not require a gateway', () => {
+      initDeployIntercepts();
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadiness');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled', 'true');
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+    });
+
+    it('should enable deploy when a required gateway is available', () => {
+      initDeployIntercepts({ readiness: { gatewayRequired: true, deployable: true } });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadiness');
+      mcpServerDetailsPage.clickDeployButton();
+      mcpDeployModal.shouldBeOpen();
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+    });
+
+    it('should block deploy with an explanation and a docs link when no gateway is available', () => {
+      initDeployIntercepts({ readiness: BLOCKED_READINESS });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadiness');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('be.visible')
+        .and('have.attr', 'aria-disabled', 'true');
+      // The docs link is in the popover, not next to the button.
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+      // Screen readers get the explanation with the button, before the popover opens.
+      // The button is also aria-disabled while readiness loads, so retry until it is described.
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('have.attr', 'aria-describedby')
+        .then((id) => {
+          cy.get(`[id="${String(id)}"]`).should('have.text', NO_GATEWAY_TOOLTIP);
+        });
+
+      mcpServerDetailsPage.findDeployButton().trigger('mouseover');
+      mcpServerDetailsPage
+        .findGatewayPopover()
+        .should('be.visible')
+        .and('contain.text', 'MCP gateway required')
+        .and('contain.text', NO_GATEWAY_TOOLTIP);
+      mcpServerDetailsPage.findDeployButton().trigger('mouseout');
+      mcpServerDetailsPage.findGatewayPopover().should('not.exist');
+
+      // The explanation and the docs link are also reachable by keyboard.
+      mcpServerDetailsPage.findDeployButton().focus();
+      mcpServerDetailsPage.findGatewayPopover().should('contain.text', NO_GATEWAY_TOOLTIP);
+      mcpServerDetailsPage
+        .findGatewayDocsLink()
+        .should('be.visible')
+        .and('contain.text', 'How to set up an MCP gateway');
+      cy.testA11y();
+
+      mcpServerDetailsPage.findDeployButton().click({ force: true });
+      mcpDeployModal.shouldNotExist();
+    });
+
+    it('should enable deploy without a page reload once a gateway becomes available', () => {
+      initDeployIntercepts({ readiness: BLOCKED_READINESS });
+      // Only fake intervals so the readiness poll can be advanced without slowing the app.
+      cy.clock(Date.now(), ['setInterval', 'clearInterval']);
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      // The first load, then the immediate re-check when polling switches on.
+      cy.wait(['@getDeployReadiness', '@getDeployReadiness']);
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('have.attr', 'aria-disabled', 'true')
+        .and('have.attr', 'aria-describedby');
+
+      cy.intercept(
+        'GET',
+        `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/deploy_readiness*`,
+        { body: { data: { gatewayRequired: true, deployable: true } } },
+      ).as('getDeployReadinessReady');
+      // Nothing re-checks until the poll interval elapses.
+      cy.get('@getDeployReadinessReady.all').should('have.length', 0);
+      cy.tick(30000);
+
+      cy.wait('@getDeployReadinessReady');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('not.have.attr', 'aria-disabled', 'true')
+        .and('not.have.attr', 'aria-describedby');
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+    });
+
+    it('should block deploy when the readiness check fails', () => {
+      initDeployIntercepts();
+      cy.intercept(
+        'GET',
+        `${BFF_PREFIX}/mcp_catalog/mcp_servers/${TEST_SERVER_ID}/deploy_readiness*`,
+        { statusCode: 500, body: { error: { code: '500', message: 'internal server error' } } },
+      ).as('getDeployReadinessError');
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      cy.wait('@getDeployReadinessError');
+      mcpServerDetailsPage
+        .findDeployButton()
+        .should('have.attr', 'aria-disabled', 'true')
+        .trigger('mouseenter');
+      cy.findByRole('tooltip').should(
+        'contain.text',
+        'Unable to check the deployment prerequisites for this MCP server. Try again later.',
+      );
+      mcpServerDetailsPage.findGatewayDocsLink().should('not.exist');
+    });
+
+    it('should show the server-side gateway rejection in the deploy modal', () => {
+      // The BFF re-checks the gateway when creating, so a gateway that disappears after the
+      // page loaded (or a changed image) is rejected and the modal explains why.
+      const rejection =
+        'This MCP server requires an MCP gateway. No MCP gateway is available on this cluster.';
+      initDeployIntercepts({ readiness: { gatewayRequired: true, deployable: true } });
+      cy.intercept('POST', `${MCP_DEPLOYMENTS_API}*`, {
+        statusCode: 409,
+        body: { error: { code: '409', message: rejection } },
+      }).as('createDeploymentRejected');
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+      mcpServerDetailsPage.clickDeployButton();
+      cy.wait('@getConverter');
+      mcpDeployModal.shouldBeOpen();
+      mcpDeployModal.findNameInput().type('OpenShift MCP');
+      mcpDeployModal.selectProject('Test Project');
+      mcpDeployModal.findSubmitButton().click();
+
+      cy.wait('@createDeploymentRejected');
+      mcpDeployModal.findSubmitError().should('contain.text', rejection);
+      mcpDeployModal.shouldBeOpen();
+      cy.testA11y();
+    });
+  });
+
   it('should open deploy modal with pre-filled data from server details', () => {
     initDeployIntercepts();
 
     cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
 
-    mcpServerDetailsPage.findDeployButton().should('be.visible').and('not.be.disabled');
-    mcpServerDetailsPage.findDeployButton().click();
+    // Wait until the button is actually enabled (it is aria-disabled while availability and
+    // deploy readiness load), otherwise the click is ignored on slow runners.
+    mcpServerDetailsPage.clickDeployButton();
 
     cy.wait('@getConverter');
     mcpDeployModal.shouldBeOpen();

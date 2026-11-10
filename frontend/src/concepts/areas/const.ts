@@ -2,36 +2,46 @@ import type { DashboardCommonConfig } from '@odh-dashboard/k8s-core';
 import {
   SupportedArea,
   type SupportedAreasState,
+  type CustomConditionFunction,
   DataScienceStackComponent,
 } from '@odh-dashboard/plugin-core/areas';
 
+// Shared operator readiness does not establish per-child backend reachability.
+const isFeastOperatorReady: CustomConditionFunction = ({ dscStatus }) => {
+  const conditions = dscStatus?.conditions;
+  return (
+    conditions?.some(
+      (condition) => condition.type === 'FeastOperatorReady' && condition.status === 'True',
+    ) ?? false
+  );
+};
+
 export const techPreviewFlags = {
-  genAiStudio: false,
+  genAiImageUpload: false,
+  genAiAudioUpload: false,
   genAiTracing: false,
-  automl: false,
-  autorag: false,
   guardrails: false,
   modelAsService: true,
+  inferencePriorityField: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
   mcpRegistry: false,
+  skillRegistry: false,
   genAiMcpRegistryServers: false,
   toolCalling: false,
   modelCapabilities: false,
-  runtimeCatalog: false,
   deploymentWizardYAMLViewer: false,
   externalVectorStores: false,
   agentConfigManagement: false,
   genAiAgentDeployment: false,
   vLLMDeploymentOnMaaS: false,
   llmdTemplates: false,
-  llmGatewayField: false,
-  promptManagement: false,
+  llmGatewayField: true,
   globalProjectPrompts: false,
   agentOps: false,
-  connectionTest: false,
   dataRegistry: false,
   dataConnectHub: false,
+  hardwareProfileDRA: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -85,6 +95,10 @@ export const modelServingFlags = {
 
 // Group 4: Advanced AI/ML Features & Pipelines
 export const advancedAIMLFlags = {
+  genAiStudio: true,
+  promptManagement: true,
+  automl: true,
+  autorag: true,
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: false,
@@ -110,6 +124,11 @@ const allFeatureFlagsConfig = {
 } satisfies DashboardCommonConfig;
 
 export const definedFeatureFlags: string[] = Object.keys(allFeatureFlagsConfig);
+
+// Defaults for dev-only area flags that are unset in flagState. Unlisted dev flags default to off.
+export const devFlagDefaults: Partial<Record<string, boolean>> = {
+  guidedTour: true,
+};
 
 export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
@@ -232,11 +251,16 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
-    requiredComponents: [DataScienceStackComponent.FEAST_OPERATOR],
+    requiredComponents: [DataScienceStackComponent.FEATURE_STORE],
+    customCondition: isFeastOperatorReady,
   },
   [SupportedArea.FEATURE_STORE_ADMIN]: {
     featureFlags: ['featureStoreAdmin'],
     reliantAreas: [SupportedArea.FEATURE_STORE],
+  },
+  [SupportedArea.DATA_REGISTRY]: {
+    requiredComponents: [DataScienceStackComponent.DATA_REGISTRY],
+    customCondition: isFeastOperatorReady,
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['trainingJobs'],
@@ -266,6 +290,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['mcpRegistry'],
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
+  [SupportedArea.SKILL_REGISTRY]: {
+    featureFlags: ['skillRegistry'],
+    requiredComponents: [DataScienceStackComponent.MLFLOW],
+  },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
   },
@@ -291,12 +319,20 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.PLUGIN_GEN_AI]: {
     featureFlags: ['genAiStudio'],
   },
+  [SupportedArea.PLUGIN_AUTOML]: {
+    featureFlags: ['automl', 'disablePipelines'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+  },
+  [SupportedArea.PLUGIN_AUTORAG]: {
+    featureFlags: ['autorag', 'disablePipelines'],
+    requiredComponents: [DataScienceStackComponent.DS_PIPELINES],
+    reliantAreas: [SupportedArea.PLUGIN_GEN_AI],
+  },
   [SupportedArea.GPUAAS_INFRASTRUCTURE]: {
     featureFlags: ['gpuaas'],
-    requiredComponents: [DataScienceStackComponent.KUEUE],
   },
-  [SupportedArea.CONNECTION_TEST]: {
-    featureFlags: ['connectionTest'],
+  [SupportedArea.HARDWARE_PROFILE_DRA]: {
+    featureFlags: ['hardwareProfileDRA'],
   },
   [SupportedArea.MODEL_CAPABILITIES]: {
     featureFlags: ['modelCapabilities'],
@@ -307,17 +343,21 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_DATA_REGISTRY]: {
     featureFlags: ['dataRegistry'],
+    reliantAreas: [SupportedArea.DATA_REGISTRY],
   },
   [SupportedArea.GUIDED_TOUR]: {
-    // Dev-only flag — not in OdhDashboardConfig CRD. Off by default.
+    // Dev-only flag — not in OdhDashboardConfig CRD. On by default via devFlagDefaults;
+    // useIsGuidedTourAvailable additionally hides the tour on ODH regardless of this flag.
     devFlags: ['guidedTour'],
   },
-  [SupportedArea.RUNTIME_CATALOG]: {
-    // Tech preview — not in OdhDashboardConfig CRD yet. Off by default.
-    featureFlags: ['runtimeCatalog'],
-    reliantAreas: [SupportedArea.MODEL_SERVING, SupportedArea.K_SERVE],
+  [SupportedArea.UNIFIED_PROJECT_SELECTOR]: {
+    // Dev-only gate — not in OdhDashboardConfig CRD. Off by default.
+    devFlags: ['unifiedProjectSelector'],
   },
   [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
     featureFlags: ['dataConnectHub'],
+  },
+  [SupportedArea.INFERENCE_PRIORITY_FIELD]: {
+    featureFlags: ['inferencePriorityField'],
   },
 };

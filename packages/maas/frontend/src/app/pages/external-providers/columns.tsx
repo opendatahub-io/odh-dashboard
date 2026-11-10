@@ -14,14 +14,14 @@ const authMechanismPopoverContent: React.ReactNode = (
     The method by which the system authenticates with the provider.
     <List>
       <ListItem>
-        <strong>API key:</strong> A secret token used to authenticate API requests.
+        <strong>API key</strong> is a secret token used to authenticate API requests.
       </ListItem>
       <ListItem>
-        <strong>Signature Version 4:</strong> Uses AWS credentials (access key and secret) to sign
+        <strong>Signature Version 4</strong> uses AWS credentials (access key and secret) to sign
         requests.
       </ListItem>
       <ListItem>
-        <strong>OAuth 2:</strong> Authenticates using an OAuth 2.0 client credentials flow.
+        <strong>OAuth 2</strong> authenticates using an OAuth 2.0 client credentials flow.
       </ListItem>
     </List>
   </>

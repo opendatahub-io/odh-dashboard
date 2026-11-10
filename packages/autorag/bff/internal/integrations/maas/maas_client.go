@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,15 +32,16 @@ type MaaSClient struct {
 type MaaSClientConfig struct {
 	InsecureSkipVerify bool
 	RootCAs            *x509.CertPool
-	WrapTransport      func(http.RoundTripper) http.RoundTripper
-	LookupIP           func(context.Context, string) ([]net.IP, error)
+	// RootCAPool provides immutable, atomically published pools for new TLS
+	// connections. It is used when the installation router CA can rotate.
+	RootCAPool    func() *x509.CertPool
+	WrapTransport func(http.RoundTripper) http.RoundTripper
+	LookupIP      func(context.Context, string) ([]net.IP, error)
+	DialContext   func(context.Context, string, string) (net.Conn, error)
 }
 
-func NewMaaSClient(httpClient httpClientInterface) *MaaSClient {
-	return &MaaSClient{httpClient: httpClient}
-}
-
-func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
+// NewDefaultHTTPClient creates the configured transport shared by MaaS clients.
+func NewDefaultHTTPClient(cfg MaaSClientConfig) *http.Client {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // controlled by development-only config
 		MinVersion:         tls.VersionTLS12,
@@ -51,21 +53,50 @@ func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
 			return net.DefaultResolver.LookupIP(ctx, "ip", host)
 		}
 	}
-	dialer := &net.Dialer{}
-	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
-		DialContext:     maaSSafeDialContext(dialer.DialContext, lookupIP),
+	baseDialContext := cfg.DialContext
+	if baseDialContext == nil {
+		baseDialContext = (&net.Dialer{}).DialContext
 	}
-	var rt http.RoundTripper = transport
-	if cfg.WrapTransport != nil {
-		rt = cfg.WrapTransport(rt)
+	safeDialContext := maaSSafeDialContext(baseDialContext, lookupIP)
+	newTransport := func() http.RoundTripper {
+		transport := &http.Transport{
+			TLSClientConfig: tlsConfig.Clone(),
+			DialContext:     safeDialContext,
+		}
+		if cfg.RootCAPool != nil {
+			transport.DialTLSContext = dynamicTLSDialContext(safeDialContext, transport.TLSClientConfig, cfg.RootCAPool)
+		}
+		var rt http.RoundTripper = transport
+		if cfg.WrapTransport != nil {
+			rt = cfg.WrapTransport(rt)
+		}
+		return rt
 	}
-	return NewMaaSClient(&http.Client{
+	var rt http.RoundTripper = newOriginPartitionedTransport(newTransport)
+	rt = limitMaaSResponseBody(rt)
+	return &http.Client{
 		Transport: rt,
+		// Backstop for callers that don't set their own deadline (e.g. Embed).
+		// Chat completions and streams are already bounded per request by
+		// maasRequestTimeout; ListModels applies its own shorter 30s deadline.
+		Timeout: maasRequestTimeout,
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
-	})
+	}
+}
+
+func NewMaaSClient(httpClient httpClientInterface) *MaaSClient {
+	if client, ok := httpClient.(*http.Client); ok {
+		clone := *client
+		clone.Transport = limitMaaSResponseBody(client.Transport)
+		httpClient = &clone
+	}
+	return &MaaSClient{httpClient: httpClient}
+}
+
+func NewDefaultMaaSClient(cfg MaaSClientConfig) *MaaSClient {
+	return NewMaaSClient(NewDefaultHTTPClient(cfg))
 }
 
 func (c *MaaSClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.MaaSNativeModel, error) {
@@ -109,38 +140,50 @@ func (c *MaaSClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]
 }
 
 func buildModelsURL(rawBaseURL string) (string, error) {
-	parsed, err := url.Parse(strings.TrimSpace(rawBaseURL))
+	parsed, err := ValidateBaseURL(rawBaseURL)
 	if err != nil {
-		return "", fmt.Errorf("invalid MaaS base URL")
-	}
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return "", fmt.Errorf("invalid MaaS URL scheme")
-	}
-	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Hostname() == "" {
-		return "", fmt.Errorf("MaaS base URL must not contain credentials, query, fragment, or an empty host")
-	}
-	if parsed.Scheme == "http" && !isLocalMaaSHost(parsed.Hostname()) {
-		return "", fmt.Errorf("MaaS base URL must use HTTPS for non-local endpoints")
-	}
-	if parsed.Scheme != "http" || !isLocalMaaSHost(parsed.Hostname()) {
-		if err := validateMaaSHost(parsed.Hostname()); err != nil {
-			return "", err
-		}
+		return "", err
 	}
 	return parsed.JoinPath("v1", "models").String(), nil
 }
 
-func isLocalMaaSHost(host string) bool {
-	return strings.EqualFold(host, "localhost") || host == "127.0.0.1" || host == "::1"
+// ValidateBaseURL validates and returns the sanitized URL used by every MaaS
+// client. DNS addresses are validated immediately before dialing by
+// maaSSafeDialContext, while literal addresses are rejected here.
+func ValidateBaseURL(rawBaseURL string) (*url.URL, error) {
+	parsed, err := url.Parse(strings.TrimSpace(rawBaseURL))
+	if err != nil || parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return nil, fmt.Errorf("invalid MaaS base URL")
+	}
+	host := parsed.Hostname()
+	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || host == "" || parsed.Opaque != "" {
+		return nil, fmt.Errorf("MaaS base URL contains unsupported credentials, query, fragment, host, or path")
+	}
+	if parsed.Scheme == "http" {
+		return nil, fmt.Errorf("MaaS base URL must use HTTPS")
+	}
+	if strings.EqualFold(strings.TrimSuffix(host, "."), "localhost") {
+		return nil, fmt.Errorf("MaaS host resolves to a blocked address")
+	}
+	if port := parsed.Port(); port != "" {
+		portNumber, err := strconv.Atoi(port)
+		if err != nil || portNumber < 1 || portNumber > 65535 {
+			return nil, fmt.Errorf("MaaS base URL contains an unsupported port")
+		}
+	}
+	if strings.Contains(parsed.Path, "\\") || strings.Contains(parsed.Path, "/../") || strings.HasSuffix(parsed.Path, "/..") {
+		return nil, fmt.Errorf("MaaS base URL contains an unsupported path")
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		if err := validateMaaSIP(ip, false); err != nil {
+			return nil, err
+		}
+	}
+	return parsed, nil
 }
 
-func validateMaaSHost(host string) error {
-	if ip := net.ParseIP(host); ip != nil {
-		return validateMaaSIP(ip)
-	}
-	// Hostnames are resolved and validated by maaSSafeDialContext immediately
-	// before dialing. Resolving here as well would create a DNS rebinding window.
-	return nil
+func isLocalMaaSHost(host string) bool {
+	return strings.EqualFold(host, "localhost") || host == "127.0.0.1" || host == "::1"
 }
 
 func maaSSafeDialContext(
@@ -153,9 +196,10 @@ func maaSSafeDialContext(
 			return nil, fmt.Errorf("invalid MaaS address %q: %w", addr, err)
 		}
 
-		// URL validation covers IP literals. Leave them unchanged so transport
-		// wrappers such as the development port-forwarder can use localhost.
 		if ip := net.ParseIP(host); ip != nil {
+			if err := validateMaaSIP(ip, false); err != nil {
+				return nil, err
+			}
 			return baseDialContext(ctx, network, addr)
 		}
 
@@ -164,6 +208,8 @@ func maaSSafeDialContext(
 			return nil, fmt.Errorf("MaaS host %q cannot be resolved: %w", host, err)
 		}
 		allowLocalhost := strings.EqualFold(host, "localhost")
+		trustedOrigin, hasTrustedOrigin := trustedMaaSOriginFromContext(ctx)
+		allowPrivate := hasTrustedOrigin && trustedOrigin.Host == strings.TrimSuffix(strings.ToLower(host), ".") && trustedOrigin.Port == port
 		for _, ip := range ips {
 			if allowLocalhost {
 				if !ip.IsLoopback() {
@@ -171,7 +217,7 @@ func maaSSafeDialContext(
 				}
 				continue
 			}
-			if err := validateMaaSIP(ip); err != nil {
+			if err := validateMaaSIP(ip, allowPrivate); err != nil {
 				return nil, fmt.Errorf("MaaS host %q resolves to blocked address: %w", host, err)
 			}
 		}
@@ -192,8 +238,8 @@ func maaSSafeDialContext(
 	}
 }
 
-func validateMaaSIP(ip net.IP) error {
-	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() || ip.IsMulticast() {
+func validateMaaSIP(ip net.IP, allowPrivate bool) error {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() || ip.IsMulticast() || (!allowPrivate && ip.IsPrivate()) {
 		return fmt.Errorf("MaaS host resolves to a blocked address")
 	}
 	return nil

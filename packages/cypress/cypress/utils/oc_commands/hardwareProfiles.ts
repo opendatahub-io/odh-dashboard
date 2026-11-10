@@ -36,16 +36,26 @@ export const cleanupHardwareProfiles = (
  * Creates a clean hardware profile by first cleaning up any existing profile with the same name,
  * then creating a new one.
  *
- * @param hardwareProfile - The name or path of the hardware profile to create
- *
- * This function performs the following steps:
- * 1. Cleans up any existing hardware profile with the given name by calling `cleanupHardwareProfiles`.
- * 2. Creates a new hardware profile using the provided name or path.
+ * @param hardwareProfileYamlPath - Fixture path for the HardwareProfile YAML
+ * @param hardwareProfileName - Optional `metadata.name` substring for cleanup. Prefer this over the
+ *   YAML path — cleanup searches resource names, not file paths.
  */
-export const createCleanHardwareProfile = (hardwareProfile: string): void => {
-  cy.log(`Cleaning up and creating Hardware Profile: ${hardwareProfile}`);
-  cleanupHardwareProfiles(hardwareProfile).then(() => {
-    cy.log(`Creating Hardware Profile: ${hardwareProfile}`);
-    createCustomResource(applicationNamespace, hardwareProfile);
+export const createCleanHardwareProfile = (
+  hardwareProfileYamlPath: string,
+  hardwareProfileName?: string,
+): void => {
+  const cleanupKey = hardwareProfileName ?? hardwareProfileYamlPath;
+  cy.log(
+    `Cleaning up and creating Hardware Profile: path=${hardwareProfileYamlPath}, cleanup=${cleanupKey}`,
+  );
+  cleanupHardwareProfiles(cleanupKey).then(() => {
+    cy.log(`Creating Hardware Profile: ${hardwareProfileYamlPath}`);
+    createCustomResource(applicationNamespace, hardwareProfileYamlPath).then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Failed to create HardwareProfile in ${applicationNamespace} from ${hardwareProfileYamlPath}: ${result.stderr}`,
+        );
+      }
+    });
   });
 };

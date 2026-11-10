@@ -14,7 +14,7 @@ import {
   t_global_color_brand_hover,
   t_global_spacer_md,
 } from '@patternfly/react-tokens';
-import { useThemeContext } from '@odh-dashboard/internal/app/ThemeContext';
+import { useThemeContext } from '@odh-dashboard/ui-core/contexts/ThemeContext';
 
 // Extend MUI theme to include x-date-pickers components
 declare module '@mui/material/styles' {

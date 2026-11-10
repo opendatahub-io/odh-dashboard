@@ -25,16 +25,27 @@ const mockTemplate: ResponsesTemplate = {
       vector_store_ids: ['vs-1'],
       max_num_results: 5,
       ranking_options: {
-        search_mode: 'hybrid',
-        ranker_strategy: 'rrf',
-        ranker_k: 60,
-        ranker_alpha: 0.5,
+        ranker: 'rrf',
+        alpha: 0.5,
       },
     },
   ],
   tool_choice: { type: 'file_search' },
   include: ['file_search_call.results'],
 };
+
+const genericAutoToolChoiceTemplate: ResponsesTemplate = {
+  ...mockTemplate,
+  tools: [],
+  metadata: {},
+  tool_choice: { type: 'auto' },
+};
+
+describe('ResponsesTemplate generic boundary', () => {
+  it('accepts an inert generic auto tool choice template', () => {
+    expect(genericAutoToolChoiceTemplate.tool_choice).toEqual({ type: 'auto' });
+  });
+});
 
 describe('buildRequestBody', () => {
   it('should substitute the placeholder with the user query', () => {

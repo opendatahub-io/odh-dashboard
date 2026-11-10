@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -17,6 +19,25 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func TestMiddleware_EnableTelemetryDoesNotLogRequestBody(t *testing.T) {
+	const sensitive = "credential=secret-prompt-and-document-text"
+	var logs bytes.Buffer
+	app := &App{
+		logger: slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
+	}
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/responses?dbSecretName=database", strings.NewReader(sensitive))
+	rr := httptest.NewRecorder()
+	app.EnableTelemetry(next).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNoContent, rr.Code)
+	assert.NotContains(t, logs.String(), sensitive)
+	assert.Contains(t, logs.String(), "path=/api/v1/responses")
+}
 
 func TestMiddleware_AttachNamespace(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))

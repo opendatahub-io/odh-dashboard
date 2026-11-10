@@ -3,6 +3,7 @@ package bffclient
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -172,6 +173,70 @@ func TestHTTPBFFClient_Call_InvalidResponseJSON(t *testing.T) {
 	var bffErr *BFFClientError
 	require.ErrorAs(t, err, &bffErr)
 	assert.Equal(t, ErrCodeInvalidResponse, bffErr.Code)
+}
+
+type countingResponseBody struct {
+	remaining int64
+	bytesRead int64
+}
+
+func (b *countingResponseBody) Read(p []byte) (int, error) {
+	if b.remaining == 0 {
+		return 0, io.EOF
+	}
+	n := len(p)
+	if int64(n) > b.remaining {
+		n = int(b.remaining)
+	}
+	for i := 0; i < n; i++ {
+		p[i] = 'x'
+	}
+	b.remaining -= int64(n)
+	b.bytesRead += int64(n)
+	return n, nil
+}
+
+func (*countingResponseBody) Close() error { return nil }
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestHTTPBFFClient_Call_OversizedResponse(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		status     string
+		statusCode int
+	}{
+		{name: "2xx response", status: "200 OK", statusCode: http.StatusOK},
+		{name: "5xx response", status: "500 Internal Server Error", statusCode: http.StatusInternalServerError},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			body := &countingResponseBody{remaining: int64(maxBFFResponseBytes + 2)}
+			client := NewHTTPBFFClient("http://bff.example", BFFTargetDCH, "", false, nil)
+			client.httpClient.Transport = roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					Status:        tt.status,
+					StatusCode:    tt.statusCode,
+					Header:        make(http.Header),
+					Body:          body,
+					ContentLength: -1,
+					Request:       req,
+				}, nil
+			})
+
+			err := client.Call(context.Background(), http.MethodGet, "/test", nil, nil)
+
+			require.Error(t, err)
+			var bffErr *BFFClientError
+			require.ErrorAs(t, err, &bffErr)
+			assert.Equal(t, ErrCodeInvalidResponse, bffErr.Code)
+			assert.Equal(t, http.StatusBadGateway, bffErr.StatusCode)
+			assert.Equal(t, int64(maxBFFResponseBytes+1), body.bytesRead)
+		})
+	}
 }
 
 func TestHTTPBFFClient_IsAvailable(t *testing.T) {

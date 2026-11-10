@@ -3,7 +3,7 @@ import { AgentProfileSummary } from '~/app/agentProfile/types';
 
 const endpointColumn: SortableData<AgentProfileSummary> = {
   field: 'endpoints',
-  label: 'Endpoint(s)',
+  label: 'Access details',
   sortable: false,
   width: 15,
 };

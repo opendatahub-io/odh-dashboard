@@ -45,6 +45,13 @@ func main() {
 	// If not provided via flag, it can be set via BUNDLE_PATHS env var (comma-separated). Defaults to empty.
 	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
 	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
+	flag.StringVar(&cfg.GatewayDomain, "gateway-domain", getEnvAsString("GATEWAY_DOMAIN", ""), "Dashboard gateway domain used for router CA synchronization")
+	flag.StringVar(&cfg.PodNamespace, "pod-namespace", getEnvAsString("POD_NAMESPACE", ""), "Namespace where the AutoRAG pod is running")
+	flag.StringVar(&cfg.BFFMaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard-maas-ui"), "In-cluster MaaS BFF service name")
+	flag.IntVar(&cfg.BFFMaaSServicePort, "bff-maas-service-port", getEnvAsInt("BFF_MAAS_SERVICE_PORT", 8243), "In-cluster MaaS BFF service port")
+	flag.BoolVar(&cfg.BFFMaaSTLSEnabled, "bff-maas-tls-enabled", getEnvAsBool("BFF_MAAS_TLS_ENABLED", true), "Use TLS for in-cluster MaaS BFF calls")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenHeader, "bff-maas-auth-token-header", getEnvAsString("BFF_MAAS_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header used to forward the authenticated user token to MaaS BFF")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenPrefix, "bff-maas-auth-token-prefix", getEnvAsString("BFF_MAAS_AUTH_TOKEN_PREFIX", ""), "Prefix used when forwarding the authenticated user token to MaaS BFF")
 	if err := cfg.AuthMethod.Set(getEnvAsString("AUTH_METHOD", config.AuthMethodUser.String())); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
@@ -61,6 +68,11 @@ func main() {
 	flag.BoolVar(&cfg.FederatedPlatform, "federated-platform", false, "DEPRECATED: Use -deployment-mode=federated instead")
 
 	flag.Parse()
+
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
@@ -93,11 +105,6 @@ func main() {
 
 	// Prevent disabling TLS verification in production — all authenticated outbound
 	// clients (pipelines and S3) send bearer or SA tokens over TLS.
-	if cfg.InsecureSkipVerify && !cfg.DevMode {
-		logger.Error("insecure-skip-verify can only be enabled in development mode (set -dev-mode flag)")
-		os.Exit(1)
-	}
-
 	// In dev mode, auto-disable auth when any mock client is active for testing convenience.
 	if cfg.DevMode &&
 		(cfg.MockK8sClient || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockMaaSClient) &&
@@ -133,54 +140,48 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      app.Routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
-	}
+	srv := newHTTPServer(cfg.Port, app.Routes(), logger)
 
-	if certFile != "" && keyFile != "" {
-		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
-		if err != nil {
-			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
-			os.Exit(1)
-		}
-		srv.TLSConfig = tlsCfg
-	}
+	tlsEnabled := certFile != "" && keyFile != ""
 
-	// Start the server in a goroutine
+	// signalCtx is cancelled on the first shutdown signal; both the HTTPS reload
+	// loop and the graceful-shutdown sequence below key off it.
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer stop()
+
+	var serveErr error
+	serverClosed := make(chan struct{})
 	go func() {
-		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
-		var err error
-		if certFile != "" && keyFile != "" {
-			err = srv.ListenAndServeTLS(certFile, keyFile)
+		defer close(serverClosed)
+		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", tlsEnabled)
+		if tlsEnabled {
+			// Serve HTTPS and gracefully restart the listener whenever the
+			// cluster TLS profile changes, so policy updates apply without a pod restart.
+			serveErr = tlsprofile.ListenAndServeTLSWithReload(signalCtx, logger, srv, certFile, keyFile)
 		} else {
-			err = srv.ListenAndServe()
+			serveErr = srv.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server ListenAndServe", "error", err)
+		if serveErr != nil && serveErr != http.ErrServerClosed {
+			logger.Error("HTTP server failed", "error", serveErr)
+			stop() // trigger graceful shutdown of the rest of the process
 		}
 	}()
 
-	// Graceful shutdown setup
-	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	// Wait for shutdown signal
-	<-shutdownCh
+	// Wait for a shutdown signal or a fatal server error.
+	<-signalCtx.Done()
 	logger.Info("shutting down gracefully...")
 
-	// Create a context with timeout for the shutdown process
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Shutdown the HTTP server gracefully
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("server shutdown failed", "error", err)
+	// The reload loop shuts its own listener down when signalCtx is cancelled;
+	// the plain listener needs an explicit shutdown.
+	if !tlsEnabled {
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Error("server shutdown failed", "error", err)
+		}
 	}
+	<-serverClosed
 
 	// Shutdown the App gracefully
 	if err := app.Shutdown(); err != nil {
@@ -188,5 +189,34 @@ func main() {
 	}
 
 	logger.Info("server stopped")
+	if serveErr != nil && serveErr != http.ErrServerClosed {
+		os.Exit(1)
+	}
 	os.Exit(0)
+}
+
+func newHTTPServer(port int, handler http.Handler, logger *slog.Logger) *http.Server {
+	return newHTTPServerWithWriteTimeout(port, handler, logger, nonStreamingWriteTimeout)
+}
+
+const nonStreamingWriteTimeout = 130 * time.Second
+
+func newHTTPServerWithWriteTimeout(port int, handler http.Handler, logger *slog.Logger, writeTimeout time.Duration) *http.Server {
+	return &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: withWriteDeadline(handler, writeTimeout),
+		// A finite per-request deadline protects both ordinary and streaming responses.
+		IdleTimeout: time.Minute,
+		ReadTimeout: 30 * time.Second,
+		ErrorLog:    slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	}
+}
+
+func withWriteDeadline(handler http.Handler, timeout time.Duration) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if timeout > 0 {
+			_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(timeout))
+		}
+		handler.ServeHTTP(w, r)
+	})
 }

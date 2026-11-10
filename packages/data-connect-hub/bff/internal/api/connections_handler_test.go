@@ -85,24 +85,316 @@ func TestGetConnectionsHandlerReturnsMockConnections(t *testing.T) {
 	require.Equal(t, "warehouse", envelope.Data[0].Resource.Name)
 }
 
+func TestGetConnectionsHandlerNormalizesMissingProperties(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{"items":[{
+			"metadata":{"id":"550e8400-e29b-41d4-a716-446655440001"},
+			"resource":{"name":"warehouse","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular","credentials_ref":{"secret":"warehouse"}},
+			"status":{"state":"ready"}
+		}]}`))
+		require.NoError(t, err)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections?namespace=test-project")
+
+	app.GetConnectionsHandler(response, request, httprouter.Params{})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	body, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	var envelope ConnectionsEnvelope
+	require.NoError(t, json.Unmarshal(body, &envelope))
+	require.Len(t, envelope.Data, 1)
+	require.Equal(t, "warehouse", envelope.Data[0].Resource.CredentialsRef.Secret)
+	require.Equal(t, map[string]string{}, envelope.Data[0].Resource.Properties)
+}
+
+func TestGetConnectionHandlerReturnsMockConnection(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, "550e8400-e29b-41d4-a716-446655440001", envelope.Data.Metadata.ID)
+	require.Equal(t, "warehouse", envelope.Data.Resource.Name)
+	require.Equal(t, "2026-09-07T16:00:00Z", envelope.Data.Metadata.CreatedAt)
+	require.Equal(t, "2026-09-08T16:00:00Z", envelope.Data.Metadata.UpdatedAt)
+}
+
+func TestGetConnectionHandlerNormalizesUUIDCasingInMockMode(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550E8400-E29B-41D4-A716-446655440001?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550E8400-E29B-41D4-A716-446655440001"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, "550e8400-e29b-41d4-a716-446655440001", envelope.Data.Metadata.ID)
+}
+
+func TestGetConnectionHandlerReturnsNotFoundInMockMode(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440009?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440009"}})
+
+	require.Equal(t, http.StatusNotFound, response.Code)
+}
+
+func TestGetConnectionHandlerValidatesRequest(t *testing.T) {
+	tests := []struct {
+		name   string
+		path   string
+		params httprouter.Params
+	}{
+		{name: "missing namespace", path: "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001", params: httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}}},
+		{name: "invalid namespace", path: "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=Not_Valid", params: httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}}},
+		{name: "missing connection id", path: "/api/v1/connections/?namespace=test-project"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+			response, request := requestWithIdentity(t, http.MethodGet, tt.path)
+
+			app.GetConnectionHandler(response, request, tt.params)
+
+			require.Equal(t, http.StatusBadRequest, response.Code)
+		})
+	}
+}
+
+func TestConnectionMutationHandlersRejectInvalidPathIDs(t *testing.T) {
+	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
+	tests := []struct {
+		name   string
+		method string
+		path   string
+		invoke func(*App, *httptest.ResponseRecorder, *http.Request, httprouter.Params)
+	}{
+		{
+			name:   "get connection",
+			method: http.MethodGet,
+			path:   "/api/v1/connections/invalid-id?namespace=test-project",
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.GetConnectionHandler(w, r, p)
+			},
+		},
+		{
+			name:   "delete connection",
+			method: http.MethodDelete,
+			path:   "/api/v1/connections/invalid-id?namespace=test-project",
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.DeleteConnectionHandler(w, r, p)
+			},
+		},
+		{
+			name:   "verify connection readiness",
+			method: http.MethodPost,
+			path:   "/api/v1/connections/invalid-id/readiness?namespace=test-project",
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.CheckConnectionReadinessHandler(w, r, p)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			response, request := requestWithIdentity(t, tt.method, tt.path)
+
+			tt.invoke(app, response, request, httprouter.Params{{Key: "id", Value: "invalid-id"}})
+
+			require.Equal(t, http.StatusBadRequest, response.Code)
+		})
+	}
+}
+
+func TestGetConnectionHandlerForwardsUpstreamRequest(t *testing.T) {
+	var requestedPath string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestedPath = r.URL.EscapedPath()
+		require.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		require.Equal(t, "test-project", r.Header.Get("X-Tenant-ID"))
+		require.Equal(t, "test-user", r.Header.Get("X-Remote-User"))
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{
+			"metadata":{"id":"550e8400-e29b-41d4-a716-446655440001","tenant_id":"test-project","created_at":"2026-09-07T16:00:00Z","updated_at":"2026-09-08T16:00:00Z"},
+			"resource":{"name":"warehouse","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular","credentials_ref":{"secret":"warehouse"},"properties":{}},
+			"status":{"state":"ready"}
+		}`))
+		require.NoError(t, err)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	require.Equal(t, "/api/v1alpha1/data/connections/550e8400-e29b-41d4-a716-446655440001", requestedPath)
+	responseBody, err := io.ReadAll(response.Body)
+	require.NoError(t, err)
+	var envelope ConnectionResponse
+	require.NoError(t, json.Unmarshal(responseBody, &envelope))
+	require.Equal(t, "warehouse", envelope.Data.Resource.CredentialsRef.Secret)
+	require.Equal(t, "550e8400-e29b-41d4-a716-446655440001", envelope.Data.Metadata.ID)
+	require.Equal(t, "2026-09-07T16:00:00Z", envelope.Data.Metadata.CreatedAt)
+	require.Equal(t, "2026-09-08T16:00:00Z", envelope.Data.Metadata.UpdatedAt)
+}
+
+func TestGetConnectionHandlerNormalizesMissingProperties(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{
+			"metadata":{"id":"550e8400-e29b-41d4-a716-446655440001"},
+			"resource":{"name":"warehouse","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular"},
+			"status":{"state":"ready"}
+		}`))
+		require.NoError(t, err)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, map[string]string{}, envelope.Data.Resource.Properties)
+}
+
+func TestGetConnectionHandlerAcceptsEquivalentUUIDCasing(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte(`{
+			"metadata":{"id":"550e8400-e29b-41d4-a716-446655440001"},
+			"resource":{"name":"warehouse","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular"},
+			"status":{"state":"ready"}
+		}`))
+		require.NoError(t, err)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550E8400-E29B-41D4-A716-446655440001?namespace=test-project")
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550E8400-E29B-41D4-A716-446655440001"}})
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var envelope ConnectionResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&envelope))
+	require.Equal(t, "550e8400-e29b-41d4-a716-446655440001", envelope.Data.Metadata.ID)
+}
+
+func TestGetConnectionHandlerHandlesUpstreamFailures(t *testing.T) {
+	tests := []struct {
+		name           string
+		upstreamStatus int
+		upstreamBody   string
+		expectedStatus int
+	}{
+		{
+			name:           "malformed response",
+			upstreamStatus: http.StatusOK,
+			upstreamBody:   `{"metadata":`,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "invalid response",
+			upstreamStatus: http.StatusOK,
+			upstreamBody:   `{}`,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "mismatched response ID",
+			upstreamStatus: http.StatusOK,
+			upstreamBody: `{
+				"metadata":{"id":"550e8400-e29b-41d4-a716-446655440002"},
+				"resource":{"name":"warehouse","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular"},
+				"status":{"state":"ready"}
+			}`,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "not found",
+			upstreamStatus: http.StatusNotFound,
+			upstreamBody:   `{"code":"connection_not_found","message":"connection does not exist"}`,
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.upstreamStatus)
+				_, err := w.Write([]byte(tt.upstreamBody))
+				require.NoError(t, err)
+			}))
+			defer upstream.Close()
+
+			app := &App{
+				config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+				logger:                  slog.Default(),
+				kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+				repositories:            repositories.NewRepositories(),
+			}
+			response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project")
+
+			app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}})
+
+			require.Equal(t, tt.expectedStatus, response.Code)
+		})
+	}
+}
+
 func TestMutationHandlersReturnNoContentInMockMode(t *testing.T) {
 	app := &App{config: config.EnvConfig{MockHTTPClient: true, MockK8Client: true}, logger: slog.Default()}
 
-	readinessResponse, readinessRequest := requestWithIdentity(t, http.MethodPost, "/api/v1/connections/connection-1/readiness?namespace=test-project")
-	app.CheckConnectionReadinessHandler(readinessResponse, readinessRequest, httprouter.Params{{Key: "id", Value: "connection-1"}})
+	readinessResponse, readinessRequest := requestWithIdentity(t, http.MethodPost, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001/readiness?namespace=test-project")
+	app.CheckConnectionReadinessHandler(readinessResponse, readinessRequest, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}})
 	require.Equal(t, http.StatusNoContent, readinessResponse.Code)
 
-	deleteResponse, deleteRequest := requestWithIdentity(t, http.MethodDelete, "/api/v1/connections/connection-1?namespace=test-project")
-	app.DeleteConnectionHandler(deleteResponse, deleteRequest, httprouter.Params{{Key: "id", Value: "connection-1"}})
+	deleteResponse, deleteRequest := requestWithIdentity(t, http.MethodDelete, "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project")
+	app.DeleteConnectionHandler(deleteResponse, deleteRequest, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}})
 	require.Equal(t, http.StatusNoContent, deleteResponse.Code)
 
 	testResponse, testRequest := requestWithIdentity(t, http.MethodPost, "/api/v1/test/credentials?namespace=test-project")
-	testRequest.Body = io.NopCloser(bytes.NewBufferString(`{"data_connection_type_id":"postgresql","credentials":{"URI":"postgres://example"}}`))
+	testRequest.Body = io.NopCloser(bytes.NewBufferString(`{"data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","credentials":{"URI":"postgres://example"}}`))
 	app.TestCredentialsHandler(testResponse, testRequest, httprouter.Params{})
 	require.Equal(t, http.StatusNoContent, testResponse.Code)
 
 	createResponse, createRequest := requestWithIdentity(t, http.MethodPost, "/api/v1/connections?namespace=test-project")
-	createRequest.Body = io.NopCloser(bytes.NewBufferString(`{"name":"new-connection","data_connection_type_id":"postgresql","format":"tabular","credentials":{"secret":"new-connection","properties":{"URI":"postgres://example"}},"properties":{}}`))
+	createRequest.Body = io.NopCloser(bytes.NewBufferString(`{"name":"new-connection","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular","credentials":{"secret":"new-connection","properties":{"URI":"postgres://example"}},"properties":{}}`))
 	app.CreateConnectionHandler(createResponse, createRequest, httprouter.Params{})
 	require.Equal(t, http.StatusCreated, createResponse.Code)
 }
@@ -128,7 +420,7 @@ func TestTestCredentialsHandlerDeniesReadOnlyAccessBeforeUpstreamCall(t *testing
 		"/api/v1/test/credentials?namespace=test-project",
 	)
 	request.Body = io.NopCloser(bytes.NewBufferString(
-		`{"data_connection_type_id":"postgresql","credentials":{"URI":"postgres://example"}}`,
+		`{"data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","credentials":{"URI":"postgres://example"}}`,
 	))
 
 	app.TestCredentialsHandler(response, request, httprouter.Params{})
@@ -137,10 +429,40 @@ func TestTestCredentialsHandlerDeniesReadOnlyAccessBeforeUpstreamCall(t *testing
 	require.Zero(t, upstreamCalls)
 }
 
+func TestTestCredentialsHandlerRejectsInvalidConnectionTypeID(t *testing.T) {
+	upstreamCalls := 0
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		upstreamCalls++
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config: config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger: slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{
+			client: &authorizationTestClient{allowed: true},
+		},
+	}
+	response, request := requestWithIdentity(
+		t,
+		http.MethodPost,
+		"/api/v1/test/credentials?namespace=test-project",
+	)
+	request.Body = io.NopCloser(bytes.NewBufferString(
+		`{"data_connection_type_id":"postgresql","credentials":{"URI":"postgres://example"}}`,
+	))
+
+	app.TestCredentialsHandler(response, request, httprouter.Params{})
+
+	require.Equal(t, http.StatusBadRequest, response.Code)
+	require.Zero(t, upstreamCalls)
+}
+
 func TestCreateConnectionRequestValidation(t *testing.T) {
 	valid := CreateConnectionRequest{
 		Name:                 "connection",
-		DataConnectionTypeID: "postgresql",
+		DataConnectionTypeID: "550e8400-e29b-41d4-a716-446655440003",
 		Format:               "tabular",
 		Properties:           map[string]string{},
 	}
@@ -166,12 +488,12 @@ func TestCreateConnectionRequestValidation(t *testing.T) {
 	}
 
 	require.NoError(t, validateCreateConnectionRequest(valid))
-	require.Error(t, validateCreatedConnection(Connection{}))
-	require.NoError(t, validateCreatedConnection(mockConnections("test-project")[0]))
+	require.Error(t, validateConnection(Connection{}))
+	require.NoError(t, validateConnection(mockConnections("test-project")[0]))
 }
 
 func TestCreateConnectionHandlerNegativePaths(t *testing.T) {
-	validBody := `{"name":"new-connection","data_connection_type_id":"postgresql","format":"tabular","credentials":{"secret":"new-connection","properties":{"URI":"postgres://example"}},"properties":{}}`
+	validBody := `{"name":"new-connection","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular","credentials":{"secret":"new-connection","properties":{"URI":"postgres://example"}},"properties":{}}`
 
 	tests := []struct {
 		name           string
@@ -201,6 +523,12 @@ func TestCreateConnectionHandlerNegativePaths(t *testing.T) {
 		{
 			name:           "unsupported format",
 			body:           strings.Replace(validBody, `"tabular"`, `"json"`, 1),
+			allowed:        true,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "invalid connection type ID",
+			body:           strings.Replace(validBody, `550e8400-e29b-41d4-a716-446655440003`, `postgresql`, 1),
 			allowed:        true,
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -323,8 +651,8 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 		{
 			name:             "connection type",
 			method:           http.MethodGet,
-			path:             "/api/v1/connection-types/postgresql?namespace=test-project",
-			params:           httprouter.Params{{Key: "connection_type_id", Value: "postgresql"}},
+			path:             "/api/v1/connection-types/550e8400-e29b-41d4-a716-446655440003?namespace=test-project",
+			params:           httprouter.Params{{Key: "connection_type_id", Value: "550e8400-e29b-41d4-a716-446655440003"}},
 			expectedVerb:     "get",
 			expectedResource: "data-connection-types",
 			expectedStatus:   http.StatusOK,
@@ -333,10 +661,22 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 			},
 		},
 		{
+			name:             "connection",
+			method:           http.MethodGet,
+			path:             "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project",
+			params:           httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}},
+			expectedVerb:     "get",
+			expectedResource: "data-connections",
+			expectedStatus:   http.StatusOK,
+			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
+				app.GetConnectionHandler(w, r, p)
+			},
+		},
+		{
 			name:             "readiness",
 			method:           http.MethodPost,
-			path:             "/api/v1/connections/id/readiness?namespace=test-project",
-			params:           httprouter.Params{{Key: "id", Value: "id"}},
+			path:             "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001/readiness?namespace=test-project",
+			params:           httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}},
 			expectedVerb:     "create",
 			expectedResource: "data-connections",
 			expectedStatus:   http.StatusNoContent,
@@ -352,15 +692,15 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 			expectedResource: "data-connections",
 			expectedStatus:   http.StatusNoContent,
 			invoke: func(app *App, w *httptest.ResponseRecorder, r *http.Request, p httprouter.Params) {
-				r.Body = io.NopCloser(bytes.NewBufferString(`{"data_connection_type_id":"postgresql","credentials":{"URI":"postgres://example"}}`))
+				r.Body = io.NopCloser(bytes.NewBufferString(`{"data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","credentials":{"URI":"postgres://example"}}`))
 				app.TestCredentialsHandler(w, r, p)
 			},
 		},
 		{
 			name:             "delete",
 			method:           http.MethodDelete,
-			path:             "/api/v1/connections/id?namespace=test-project",
-			params:           httprouter.Params{{Key: "id", Value: "id"}},
+			path:             "/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project",
+			params:           httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}},
 			expectedVerb:     "delete",
 			expectedResource: "data-connections",
 			expectedStatus:   http.StatusNoContent,
@@ -403,6 +743,31 @@ func TestConnectionEndpointAuthorization(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetConnectionHandlerAuthorizationDoesNotReachUpstream(t *testing.T) {
+	var upstreamCalls int
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		upstreamCalls++
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: false}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(
+		t,
+		http.MethodGet,
+		"/api/v1/connections/550e8400-e29b-41d4-a716-446655440001?namespace=test-project",
+	)
+
+	app.GetConnectionHandler(response, request, httprouter.Params{{Key: "id", Value: "550e8400-e29b-41d4-a716-446655440001"}})
+
+	require.Equal(t, http.StatusForbidden, response.Code)
+	require.Zero(t, upstreamCalls)
 }
 
 func TestDataConnectHubHeadersUsesServiceAccountTokenForInternalAuth(t *testing.T) {

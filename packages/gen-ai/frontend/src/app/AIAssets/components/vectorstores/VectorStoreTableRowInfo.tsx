@@ -35,12 +35,13 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
         shouldClose={() => setIsOpen(false)}
         headerContent="Vector store details"
         bodyContent={
-          <Stack hasGutter>
+          <Stack hasGutter data-testid={`vector-store-details-${store.vector_store_id}`}>
             <StackItem>
               <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
                 Provider ID
               </Content>
               <ClipboardCopy
+                data-testid={`vector-store-provider-id-${store.vector_store_id}`}
                 hoverTip="Copy provider ID"
                 clickTip="Copied"
                 aria-label="Copy provider ID"
@@ -59,6 +60,7 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
                 Provider type
               </Content>
               <ClipboardCopy
+                data-testid={`vector-store-provider-type-${store.vector_store_id}`}
                 hoverTip="Copy provider type"
                 clickTip="Copied"
                 aria-label="Copy provider type"
@@ -77,6 +79,7 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
                 Vector store ID
               </Content>
               <ClipboardCopy
+                data-testid={`vector-store-id-${store.vector_store_id}`}
                 hoverTip="Copy ID"
                 clickTip="Copied"
                 aria-label="Copy vector store ID"
@@ -96,6 +99,7 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
         <Button
           variant={ButtonVariant.plain}
           aria-label="More info"
+          data-testid={`vector-store-info-${store.vector_store_id}`}
           style={{ paddingTop: 0, paddingBottom: 0 }}
         >
           <InfoCircleIcon />

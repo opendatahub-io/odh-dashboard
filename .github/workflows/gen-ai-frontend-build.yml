@@ -1,6 +1,7 @@
 name: Test / Gen AI Frontend Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'packages/gen-ai/**'
       - '.github/workflows/gen-ai-frontend-build.yml'

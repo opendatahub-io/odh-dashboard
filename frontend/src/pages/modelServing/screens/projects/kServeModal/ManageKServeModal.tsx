@@ -30,7 +30,7 @@ import { getServingRuntimeFromName } from '@odh-dashboard/model-serving/shared';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {
@@ -119,14 +119,16 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
       editInfo?.servingRuntimeEditInfo?.servingRuntime,
       editInfo?.secrets,
     );
+  const currentProjectName = projectContext?.currentProject.metadata.name;
+  const namespace = currentProjectName || createDataInferenceService.project;
+
   const { podSpecOptionsState, validateHardwareProfileForm, applyToResource } =
     useAssignHardwareProfile(editInfo?.inferenceServiceEditInfo, {
       visibleIn: MODEL_SERVING_VISIBILITY,
       paths: INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+      allowDRAProfiles: true,
+      project: namespace || undefined,
     });
-
-  const currentProjectName = projectContext?.currentProject.metadata.name;
-  const namespace = currentProjectName || createDataInferenceService.project;
 
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,

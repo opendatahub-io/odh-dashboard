@@ -1,5 +1,10 @@
 import React from 'react';
-import { APIState, useAPIState, useQueryParamNamespaces } from 'mod-arch-core';
+import {
+  APIState,
+  useAPIState,
+  useModularArchContext,
+  useQueryParamNamespaces,
+} from 'mod-arch-core';
 import {
   getServingRuntime,
   getServingRuntimeFilterOptionList,
@@ -14,19 +19,25 @@ export type ServingRuntimeCatalogAPIState = APIState<ServingRuntimeCatalogAPIs>;
 const SERVING_RUNTIME_CATALOG_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/serving_runtime_catalog`;
 
 export const useServingRuntimeCatalogAPI = (): ServingRuntimeCatalogAPIState => {
+  const { config } = useModularArchContext();
   const queryParams = useQueryParamNamespaces();
+  const namespace = queryParams.namespace ?? config.mandatoryNamespace;
+  const requestQueryParams = React.useMemo(
+    () => (namespace ? { ...queryParams, namespace } : queryParams),
+    [namespace, queryParams],
+  );
   const createAPI = React.useCallback(
     (path: string): ServingRuntimeCatalogAPIs => ({
-      getServingRuntimeList: getServingRuntimeList(path, queryParams),
-      getServingRuntime: getServingRuntime(path, queryParams),
-      getServingRuntimeVersions: getServingRuntimeVersions(path, queryParams),
-      getServingRuntimeFilterOptionList: getServingRuntimeFilterOptionList(path, queryParams),
+      getServingRuntimeList: getServingRuntimeList(path, requestQueryParams),
+      getServingRuntime: getServingRuntime(path, requestQueryParams),
+      getServingRuntimeVersions: getServingRuntimeVersions(path, requestQueryParams),
+      getServingRuntimeFilterOptionList: getServingRuntimeFilterOptionList(
+        path,
+        requestQueryParams,
+      ),
     }),
-    [queryParams],
+    [requestQueryParams],
   );
-  const [apiState] = useAPIState(
-    queryParams.namespace ? SERVING_RUNTIME_CATALOG_PATH : null,
-    createAPI,
-  );
+  const [apiState] = useAPIState(namespace ? SERVING_RUNTIME_CATALOG_PATH : null, createAPI);
   return apiState;
 };

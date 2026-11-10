@@ -1,9 +1,12 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import {
+  fireFormTrackingEvent,
+  fireMiscTrackingEvent,
+} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { cloneCollection, createCollection } from '~/app/api/k8s';
+import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
@@ -12,10 +15,12 @@ import {
   updateBenchmarkParameter,
   useCopySuiteForm,
 } from '~/app/pages/useCopySuiteForm';
+import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, Provider } from '~/app/types';
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
   fireMiscTrackingEvent: jest.fn(),
 }));
 
@@ -26,6 +31,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('~/app/api/k8s', () => ({
   cloneCollection: jest.fn(),
   createCollection: jest.fn(),
+  patchCollection: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useNotification', () => ({
@@ -47,9 +53,11 @@ const mockNotification = {
 
 const mockCloneCollection = jest.mocked(cloneCollection);
 const mockCreateCollection = jest.mocked(createCollection);
+const mockPatchCollection = jest.mocked(patchCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
+const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 const mockRefreshCollections = jest.fn();
 const defaultSuiteNamePattern =
@@ -60,7 +68,8 @@ const sourceCollection: Collection = {
   name: 'Curated suite',
   description: 'A curated description',
   category: 'language',
-  domains: ['reasoning', 'safety'],
+  curation_order: 1,
+  domains: ['reasoning', 'trustworthiness'],
   tasks: ['text-generation'],
   modalities: ['text'],
   industries: ['technology'],
@@ -200,7 +209,7 @@ describe('createBenchmarkFromKey', () => {
       buildPendingCollection({
         suiteName: 'New suite',
         suiteDescription: 'A new description',
-        suiteDomains: ['safety'],
+        suiteDomains: ['trustworthiness'],
         suiteTasks: [],
         suiteModalities: [],
         suiteIndustries: [],
@@ -216,6 +225,60 @@ describe('createBenchmarkFromKey', () => {
         benchmarks: [expect.objectContaining({ id: 'benchmark-one' })],
       }),
     );
+  });
+
+  it('serializes test_data_ref from the benchmark form values', () => {
+    const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', providers)!;
+
+    expect(
+      buildPendingCollection({
+        suiteName: 'New suite',
+        suiteDescription: '',
+        suiteDomains: [],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [
+          {
+            ...benchmark,
+            testDataRef: {
+              ...testDataRefDefaultValues,
+              source: 's3',
+              bucket: 'eval-data',
+              key: 'ragas/dataset.jsonl',
+              secretRef: 'my-s3-secret',
+            },
+          },
+        ],
+      }).benchmarks?.[0].test_data_ref,
+    ).toEqual({
+      type: 'data_set',
+      s3: {
+        bucket: 'eval-data',
+        key: 'ragas/dataset.jsonl',
+        secret_ref: 'my-s3-secret',
+      },
+    });
+  });
+
+  it('omits test_data_ref when the source is none', () => {
+    const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', providers)!;
+
+    expect(
+      buildPendingCollection({
+        suiteName: 'New suite',
+        suiteDescription: '',
+        suiteDomains: [],
+        suiteTasks: [],
+        suiteModalities: [],
+        suiteIndustries: [],
+        suiteEvaluates: ['model'],
+        suiteThreshold: 70,
+        benchmarks: [benchmark],
+      }).benchmarks?.[0].test_data_ref,
+    ).toBeUndefined();
   });
 
   it('should preserve raw metric thresholds from provider benchmarks', () => {
@@ -257,7 +320,7 @@ describe('useCopySuiteForm', () => {
     );
 
     expect(result.result.current.suiteDescription).toBe('A curated description');
-    expect(result.result.current.suiteDomains).toEqual(['reasoning', 'safety']);
+    expect(result.result.current.suiteDomains).toEqual(['reasoning', 'trustworthiness']);
     expect(result.result.current.suiteTasks).toEqual(['text-generation']);
     expect(result.result.current.suiteModalities).toEqual(['text']);
     expect(result.result.current.suiteIndustries).toEqual(['technology']);
@@ -280,6 +343,199 @@ describe('useCopySuiteForm', () => {
       }),
     ]);
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
+  });
+
+  it('should hydrate test data refs from the source collection benchmarks', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            ...sourceCollection.benchmarks![0],
+            test_data_ref: {
+              type: 'data_set',
+              s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+            },
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+    expect(result.result.current.benchmarks[0].testDataRef).toEqual({
+      ...testDataRefDefaultValues,
+      source: 's3',
+      type: 'data_set',
+      bucket: 'eval-data',
+      key: 'ragas',
+      secretRef: 's3-secret',
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      type: 'data_set',
+      s3: { bucket: 'eval-data', key: 'ragas', secret_ref: 's3-secret' },
+    });
+  });
+
+  it('should preserve a pre_recorded_data test data ref through hydrate and serialize', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        benchmarks: [
+          {
+            ...sourceCollection.benchmarks![0],
+            test_data_ref: {
+              type: 'pre_recorded_data',
+              pvc: { claim_name: 'responses' },
+            },
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+    expect(result.result.current.benchmarks[0].testDataRef).toEqual({
+      ...testDataRefDefaultValues,
+      source: 'pvc',
+      type: 'pre_recorded_data',
+      claimName: 'responses',
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      type: 'pre_recorded_data',
+      pvc: { claim_name: 'responses' },
+    });
+  });
+
+  it('should update a benchmark test data ref through updateBenchmark', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.benchmarks[0].id).toBe('benchmark-one'));
+
+    act(() => {
+      result.result.current.updateBenchmark(0, 'testDataRef', {
+        ...testDataRefDefaultValues,
+        source: 'pvc',
+        claimName: 'eval-datasets-pvc',
+        subPath: 'benchmark-a',
+      });
+    });
+
+    const pending = result.result.current.buildPendingCollection();
+    expect(pending?.benchmarks?.[0].test_data_ref).toEqual({
+      type: 'data_set',
+      pvc: { claim_name: 'eval-datasets-pvc', sub_path: 'benchmark-a' },
+    });
+  });
+
+  it('should reuse the suite editor to update an unrun source collection', async () => {
+    const patchFetcher = jest.fn().mockResolvedValue({
+      ...sourceCollection,
+      name: 'Updated suite',
+    });
+    mockPatchCollection.mockReturnValue(patchFetcher);
+    const result = renderForm({ mode: 'edit' });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    act(() => {
+      result.result.current.setSuiteName('Updated suite');
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockPatchCollection).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      sourceCollection.resource.id,
+      expect.any(Array),
+    );
+    expect(mockPatchCollection.mock.calls[0]?.[3]).toEqual(
+      expect.arrayContaining([{ op: 'replace', path: '/name', value: 'Updated suite' }]),
+    );
+    expect(mockPatchCollection.mock.calls[0]?.[3]).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: '/benchmarks' })]),
+    );
+    expect(mockCloneCollection).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
+  });
+
+  it('should preserve untouched source benchmark settings when another benchmark is edited', async () => {
+    const editSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          ...sourceCollection.benchmarks![0],
+          weight: 0.8,
+          pass_criteria: { threshold: 0.755 },
+        },
+        {
+          id: 'benchmark-two',
+          provider_id: 'provider-two',
+          weight: 0.2,
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+          pass_criteria: { threshold: 0.645 },
+          parameters: { num_examples: 42 },
+        },
+      ],
+    };
+    const patchFetcher = jest.fn().mockResolvedValue({
+      ...editSourceCollection,
+      name: 'Updated suite',
+    });
+    mockPatchCollection.mockReturnValue(patchFetcher);
+    const result = renderForm({ mode: 'edit', sourceCollection: editSourceCollection });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(editSourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    act(() => {
+      result.result.current.updateBenchmark(0, 'threshold', 80);
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    const benchmarkOperation = mockPatchCollection.mock.calls[0]?.[3].find(
+      (operation) => operation.path === '/benchmarks',
+    );
+    expect(benchmarkOperation).toEqual({
+      op: 'add',
+      path: '/benchmarks',
+      value: [
+        expect.objectContaining({
+          id: 'benchmark-one',
+          pass_criteria: { threshold: 0.8 },
+        }),
+        editSourceCollection.benchmarks![1],
+      ],
+    });
+  });
+
+  it('should reject save-only edits after the source collection has been run', async () => {
+    const result = renderForm({
+      mode: 'edit',
+      sourceCollection: { ...sourceCollection, status: { run_count: 1 } },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(mockPatchCollection).not.toHaveBeenCalled();
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to update collection',
+      'Collections cannot be edited after they have been run.',
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('should fall back to another provider when the matching provider lacks the benchmark', async () => {
@@ -332,7 +588,9 @@ describe('useCopySuiteForm', () => {
     );
   });
 
-  it('should preserve multiple valid evaluates values while removing duplicates and invalid values', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should preserve multiple valid evaluates values while removing duplicates and invalid values', async () => {
+  it('should initialize copied suites with the model evaluation target', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -342,10 +600,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['model', 'agent']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should fall back to legacy evaluates metadata when evaluation targets are empty', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should preserve an explicitly empty evaluation targets array', async () => {
+  it('should initialize copied suites with the model target when source targets are empty', async () => {
     const result = renderForm({
       sourceCollection: {
         ...sourceCollection,
@@ -356,7 +618,9 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
   it('should remove duplicate collection metadata values on initialization', async () => {
@@ -378,14 +642,28 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteIndustries).toEqual(['technology']);
   });
 
-  it('should fall back to the source category when domains are absent', async () => {
+  it('should fall back to a supported source category when domains are absent', async () => {
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        domains: undefined,
+        category: 'trustworthiness',
+      },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    expect(result.result.current.suiteDomains).toEqual(['trustworthiness']);
+  });
+
+  it('should not copy a legacy category into domains when it is not supported', async () => {
     const result = renderForm({
       sourceCollection: { ...sourceCollection, domains: undefined, category: 'safety' },
     });
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteDomains).toEqual(['safety']);
+    expect(result.result.current.suiteDomains).toEqual([]);
   });
 
   it('should preserve an explicitly empty domains array instead of falling back to category', async () => {
@@ -408,28 +686,45 @@ describe('useCopySuiteForm', () => {
     const result = renderForm({ mode: 'create', sourceCollection: undefined });
 
     await waitFor(() => expect(result.result.current.suiteName).toBe(''));
-    expect(result.result.current.suiteEvaluates).toEqual([]);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
 
     act(() => {
       result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
       result.result.current.form.setValue('suiteDescription', 'A new suite', {
         shouldValidate: true,
       });
-      result.result.current.form.setValue('suiteDomains', ['safety', 'reasoning'], {
+      result.result.current.form.setValue('suiteDomains', ['trustworthiness', 'reasoning'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteTasks', ['classification'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteModalities', ['text'], {
+        shouldValidate: true,
+      });
+      result.result.current.form.setValue('suiteIndustries', ['technology'], {
         shouldValidate: true,
       });
       result.result.current.form.setValue('suiteEvaluates', ['model'], {
         shouldValidate: true,
       });
+      result.result.current.form.setValue('suiteThreshold', 85, { shouldValidate: true });
       result.result.current.form.setValue('benchmarks', [
         {
           id: 'benchmark-one',
           providerId: 'provider-one',
           name: 'Benchmark One',
           weight: 1,
-          parameters: [],
+          primaryMetric: 'accuracy',
+          lowerIsBetter: false,
+          metricDirections: { accuracy: false },
+          parameters: [{ key: 'num_examples', type: 'number', value: 250 }],
+          additionalParameters: '{"seed":42,"labels":["nightly"]}',
           threshold: 70,
-          availableMetrics: [],
+          availableMetrics: ['accuracy'],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -444,7 +739,7 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({
         name: 'New suite',
         description: 'A new suite',
-        domains: ['safety', 'reasoning'],
+        domains: ['trustworthiness', 'reasoning'],
         evaluation_targets: ['model'],
         benchmarks: [
           expect.objectContaining({
@@ -461,14 +756,43 @@ describe('useCopySuiteForm', () => {
     );
     expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(mockNotification.success).toHaveBeenCalledWith(
-      'Suite created',
-      '"New suite" has been added to your benchmark suites.',
+      'Collection created',
+      '"New suite" has been added to your collections.',
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
     expect(mockCloneCollection).not.toHaveBeenCalled();
+
+    const savedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(savedCall?.[1]).toEqual(
+      expect.objectContaining({
+        outcome: 'submit',
+        success: true,
+        saveMode: 'create',
+        action: 'save',
+        fromCurated: false,
+        countOfEvaluatesAssetTypes: 1,
+        suiteDomains: JSON.stringify(['trustworthiness', 'reasoning']),
+        suiteTasks: JSON.stringify(['classification']),
+        suiteModalities: JSON.stringify(['text']),
+        suiteIndustries: JSON.stringify(['technology']),
+        suiteEvaluates: JSON.stringify(['model']),
+        suiteThreshold: 85,
+        benchmarkCount: 1,
+        benchmarks: 'Benchmark One',
+        benchmarkParameterKeys: JSON.stringify(['num_examples']),
+        hasAdditionalParameters: true,
+      }),
+    );
+    expect(savedCall?.[1]).not.toHaveProperty('sourceCollectionId');
+    expect(savedCall?.[1]).not.toHaveProperty('suiteName');
+    expect(savedCall?.[1]).not.toHaveProperty('suiteDescription');
   });
 
-  it('should submit an empty evaluation_targets array for a create suite with no evaluates selected', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should submit an empty evaluation_targets array for a create suite with no evaluates selected', async () => {
+  it('should submit the model evaluation target for a create suite', async () => {
     const createFetcher = jest.fn().mockResolvedValue({
       resource: { id: 'created-collection' },
       name: 'New suite',
@@ -489,6 +813,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -501,7 +826,9 @@ describe('useCopySuiteForm', () => {
       '',
       'test-namespace',
       expect.objectContaining({
-        evaluation_targets: [],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: [],
+        evaluation_targets: ['model'],
       }),
     );
     expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('category');
@@ -533,6 +860,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -549,15 +877,30 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({ name: 'New suite' }),
     );
     expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+    const runSelectedCall = mockFireMiscTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+    );
+    expect(runSelectedCall?.[1]).toEqual(
       expect.objectContaining({
         runType: 'collection',
-        collectionName: 'New suite',
         benchmarkTypes: JSON.stringify(['benchmark-one']),
         countOfBenchmarks: 1,
+        collection_type: 'custom',
       }),
     );
+    expect(runSelectedCall?.[1]).not.toHaveProperty('collectionName');
+    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(saveAndRunCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'create',
+        action: 'save_and_run',
+        fromCurated: false,
+      }),
+    );
+    expect(saveAndRunCall?.[1]).not.toHaveProperty('sourceCollectionId');
     expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
   });
 
@@ -579,6 +922,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -587,7 +931,10 @@ describe('useCopySuiteForm', () => {
       await result.result.current.handleSaveOnly();
     });
 
-    expect(mockNotification.error).toHaveBeenCalledWith('Failed to create suite', 'Create failed');
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to create collection',
+      'Create failed',
+    );
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(result.result.current.isSubmitting).toBe(false);
   });
@@ -616,7 +963,9 @@ describe('useCopySuiteForm', () => {
     }
   });
 
-  it('should fall back to legacy custom evaluates metadata when evaluation_targets is absent', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should fall back to legacy custom evaluates metadata when evaluation_targets is absent', async () => {
+  it('should use the model target when legacy custom evaluates metadata is present', async () => {
     const legacySourceCollection: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -626,10 +975,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should leave evaluates blank when the source has no evaluates metadata', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should leave evaluates blank when the source has no evaluates metadata', async () => {
+  it('should use the model target when the source has no evaluates metadata', async () => {
     const sourceWithoutEvaluates: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -639,10 +992,14 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual([]);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual([]);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
-  it('should fall back to provider evaluates metadata when collection metadata is absent', async () => {
+  // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+  // it('should fall back to provider evaluates metadata when collection metadata is absent', async () => {
+  it('should use the model target when provider evaluates metadata is present', async () => {
     const sourceWithoutEvaluates: Collection = {
       ...sourceCollection,
       evaluation_targets: undefined,
@@ -659,7 +1016,9 @@ describe('useCopySuiteForm', () => {
 
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
-    expect(result.result.current.suiteEvaluates).toEqual(['guardrails']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['guardrails']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
   });
 
   it('should map returned primitive parameters to fields and keep other parameters in JSON', async () => {
@@ -883,7 +1242,9 @@ describe('useCopySuiteForm', () => {
 
     expect(result.result.current.suiteName).toBe('Updated suite');
     expect(result.result.current.suiteDescription).toBe('Updated description');
-    expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+    // expect(result.result.current.suiteEvaluates).toEqual(['traces']);
+    expect(result.result.current.suiteEvaluates).toEqual(['model']);
     expect(result.result.current.suiteThreshold).toBe(65);
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({
@@ -1092,6 +1453,43 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.benchmarks[1].id).toBe('benchmark-two');
   });
 
+  it('should show the judge model field only on benchmarks that define it', async () => {
+    const trustworthinessCollection: Collection = {
+      ...sourceCollection,
+      resource: { id: 'trustworthiness-v1' },
+      benchmarks: [
+        {
+          ...sourceCollection.benchmarks![0],
+          parameters: { ...sourceCollection.benchmarks![0].parameters, judge_model: '' },
+        },
+      ],
+    };
+    const result = renderForm({ sourceCollection: trustworthinessCollection });
+    await waitFor(() => expect(result.result.current.benchmarks).toHaveLength(1));
+
+    expect(result.result.current.benchmarks[0].parameters).toEqual([
+      { key: 'judge_model', type: 'text', value: '' },
+      { key: 'num_examples', type: 'number', value: 250 },
+      { key: 'num_few_shot', type: 'number', value: 3 },
+    ]);
+
+    act(() =>
+      result.result.current.applyBenchmarkSelection([
+        'provider-one:benchmark-one',
+        'provider-two:benchmark-two',
+      ]),
+    );
+
+    expect(result.result.current.benchmarks).toHaveLength(2);
+    const addedBenchmark = result.result.current.benchmarks.find(
+      ({ id }) => id === 'benchmark-two',
+    );
+    expect(addedBenchmark?.parameters).toEqual([
+      { key: 'num_examples', type: 'number', value: 100 },
+      { key: 'num_few_shot', type: 'number', value: 2 },
+    ]);
+  });
+
   it('should preserve nonuniform weights when saving an unchanged catalog selection', async () => {
     const collectionWithNonuniformWeights: Collection = {
       ...sourceCollection,
@@ -1215,6 +1613,29 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.isValid).toBe(false);
   });
 
+  it('should not show validation errors when a blank create form is initialized', async () => {
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+
+    expect(result.result.current.form.formState.errors).toEqual({});
+  });
+
+  it('should reject a copy that keeps the source benchmark suite name', async () => {
+    const result = renderForm();
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    act(() => result.result.current.setSuiteName(sourceCollection.name));
+
+    await waitFor(() =>
+      expect(result.result.current.form.formState.errors.suiteName?.message).toBe(
+        'Collection name must be different from the source collection name.',
+      ),
+    );
+    expect(result.result.current.isSettingsValid).toBe(false);
+    expect(result.result.current.isValid).toBe(false);
+  });
+
   it('should invoke onSaveAndRunRequest instead of cloning when provided', async () => {
     const onSaveAndRunRequest = jest.fn();
     const result = renderForm({ onSaveAndRunRequest });
@@ -1310,11 +1731,13 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({
         name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
-        domains: ['reasoning', 'safety'],
+        domains: ['reasoning', 'trustworthiness'],
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
-        evaluation_targets: ['traces'],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: ['traces'],
+        evaluation_targets: ['model'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
@@ -1332,7 +1755,41 @@ describe('useCopySuiteForm', () => {
     expect(cloneFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(cloned).toEqual(clonedCollection);
     expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
+    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(saveAndRunCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save_and_run',
+        sourceCollectionId: 'source-collection',
+        fromCurated: true,
+      }),
+    );
     expect(mockRefreshCollections).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reject edit-mode save and run after the source collection has been run', async () => {
+    const result = renderForm({
+      mode: 'edit',
+      sourceCollection: { ...sourceCollection, status: { run_count: 1 } },
+    });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(sourceCollection.name));
+    await waitFor(() => expect(result.result.current.isValid).toBe(true));
+
+    let savedCollection: Collection | undefined;
+    await act(async () => {
+      savedCollection = await result.result.current.cloneCollectionForRun();
+    });
+
+    expect(savedCollection).toBeUndefined();
+    expect(mockPatchCollection).not.toHaveBeenCalled();
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to update collection',
+      'Collections cannot be edited after they have been run.',
+    );
   });
 
   it('should send explicit empty metadata arrays when all values are removed', async () => {
@@ -1365,7 +1822,9 @@ describe('useCopySuiteForm', () => {
         tasks: [],
         modalities: [],
         industries: [],
-        evaluation_targets: [],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: [],
+        evaluation_targets: ['model'],
       }),
     );
   });
@@ -1425,6 +1884,7 @@ describe('useCopySuiteForm', () => {
           parameters: [],
           threshold: 70,
           availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
         },
       ]);
     });
@@ -1464,11 +1924,13 @@ describe('useCopySuiteForm', () => {
         name: expect.stringMatching(defaultSuiteNamePattern),
         description: 'A curated description',
         category: 'language',
-        domains: ['reasoning', 'safety'],
+        domains: ['reasoning', 'trustworthiness'],
         tasks: ['text-generation'],
         modalities: ['text'],
         industries: ['technology'],
-        evaluation_targets: ['guardrails'],
+        // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
+        // evaluation_targets: ['guardrails'],
+        evaluation_targets: ['model'],
         custom: { source: 'curated' },
         pass_criteria: { threshold: 0.8 },
         benchmarks: [
@@ -1539,10 +2001,56 @@ describe('useCopySuiteForm', () => {
     });
 
     expect(mockNotification.success).toHaveBeenCalledWith(
-      'Suite saved',
-      '"Saved suite" has been added to your benchmark suites.',
+      'Collection saved',
+      '"Saved suite" has been added to your collections.',
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
+    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(copiedCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save',
+        sourceCollectionId: 'source-collection',
+        fromCurated: true,
+      }),
+    );
+  });
+
+  it('should report fromCurated false when copying a non-curated collection', async () => {
+    const clonedCollection: Collection = {
+      resource: { id: 'saved-collection' },
+      name: 'Saved suite',
+    };
+    const cloneFetcher = jest.fn().mockResolvedValue(clonedCollection);
+    mockCloneCollection.mockReturnValue(cloneFetcher);
+    const result = renderForm({
+      sourceCollection: {
+        ...sourceCollection,
+        resource: { ...sourceCollection.resource, tenant: 'test-tenant' },
+        curation_order: undefined,
+      },
+    });
+    await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+      ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
+    );
+    expect(copiedCall?.[1]).toEqual(
+      expect.objectContaining({
+        success: true,
+        saveMode: 'copy',
+        action: 'save',
+        sourceCollectionId: 'source-collection',
+        fromCurated: false,
+      }),
+    );
   });
 
   it('should remain submitting while a save-only clone is pending', async () => {
@@ -1630,7 +2138,10 @@ describe('useCopySuiteForm', () => {
       cloned = await result.result.current.cloneCollectionForRun();
     });
 
-    expect(mockNotification.error).toHaveBeenCalledWith('Failed to copy suite', 'Clone failed');
+    expect(mockNotification.error).toHaveBeenCalledWith(
+      'Failed to copy collection',
+      'Clone failed',
+    );
     expect(cloned).toBeUndefined();
   });
 
@@ -1643,12 +2154,16 @@ describe('useCopySuiteForm', () => {
     expect(mockCloneCollection).not.toHaveBeenCalled();
   });
 
-  it('should navigate back to evaluations when a create suite is cancelled', () => {
-    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+  it('should navigate back to the benchmark suites tab when a create suite is cancelled', () => {
+    const result = renderForm({
+      mode: 'create',
+      sourceCollection: undefined,
+      cancelRoute: '/evaluation/test-namespace?tab=evaluate',
+    });
 
     act(() => result.result.current.handleCancel());
 
-    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace');
+    expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace?tab=evaluate');
   });
 
   it('should navigate back to the originating suite page when a cancel route is provided', () => {

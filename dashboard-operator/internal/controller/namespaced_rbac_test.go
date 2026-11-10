@@ -32,6 +32,7 @@ func newReconciler(t *testing.T, platform cluster.Platform, objects ...client.Ob
 	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).Build()
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
+		APIReader:             cli,
 		Scheme:                s,
 		ManifestsBasePath:     t.TempDir(),
 		Platform:              platform,

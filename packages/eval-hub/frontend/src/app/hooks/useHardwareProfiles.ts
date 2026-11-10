@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getHardwareProfiles, validateHardwareProfiles } from '~/app/api/k8s';
+import { KUEUE_INTEGRATION_ENABLED } from '~/app/utilities/const';
 import type { HardwareProfile } from '~/app/types';
 
 type UseHardwareProfilesResult = {
@@ -19,7 +20,7 @@ export const useHardwareProfiles = (
 
   const hardwareProfilesQuery = useQuery<HardwareProfile[], Error>({
     queryKey: ['hardwareProfiles', namespace],
-    enabled: Boolean(namespace),
+    enabled: KUEUE_INTEGRATION_ENABLED && Boolean(namespace),
     queryFn: ({ signal }) => {
       if (!namespace) {
         throw new Error('Namespace is required to load HardwareProfiles');
@@ -52,6 +53,14 @@ export const useHardwareProfiles = (
   });
 
   const hardwareProfilesLoaded = hardwareProfilesQuery.isSuccess || hardwareProfilesQuery.isError;
+
+  // RHOAIENG-99645: the Kueue integration is disabled — report the off state without
+  // fetching. `loaded: true` is load-bearing: the start-evaluation form gates submit
+  // validity on it, so a permanently-pending query would block every submission.
+  if (!KUEUE_INTEGRATION_ENABLED) {
+    return { profiles: [], loaded: true, error: undefined, compatibilityError: undefined };
+  }
+
   const compatibilityByProfile = new Map(
     (hardwareProfileValidationQuery.data?.items ?? []).map((compatibility) => [
       compatibility.hardware_profile,

@@ -35,19 +35,17 @@ describe('EvalHubEmptyState', () => {
   it('should render the description body', () => {
     renderWithRouter();
     expect(screen.getByTestId('eval-hub-empty-state-body')).toHaveTextContent(
-      'Start an evaluation run, or select a different project to view its runs.',
+      'Go to collections to create a collection or run an individual benchmark, or select a different project to view its runs.',
     );
   });
 
-  it('should render the create evaluation button', () => {
+  it('should render the view collections button', () => {
     renderWithRouter();
     expect(screen.getByTestId('create-evaluation-button')).toBeInTheDocument();
-    expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
-      'Start evaluation run',
-    );
+    expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent('View collections');
   });
 
-  it('should return to the Evaluate tab when starting an evaluation run', () => {
+  it('should return to the Benchmark collections tab when viewing collections', () => {
     renderWithRouter();
     fireEvent.click(screen.getByTestId('create-evaluation-button'));
 

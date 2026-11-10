@@ -20,7 +20,10 @@ export declare const registerVersion: (apiState: ModelRegistryAPIState, register
         [key: string]: Error | undefined;
     };
 }>;
-export declare const isRegisterModelSubmitDisabled: (formData: RegisterModelFormData, registeredModels: RegisteredModelList, namespaceHasAccess?: boolean, isNamespaceAccessLoading?: boolean) => boolean;
+/** Submit disabled check for register-model flow. Pass `{ requireModelType: true }` when the UI collects model type. */
+export declare const isRegisterModelSubmitDisabled: (formData: RegisterModelFormData, registeredModels: RegisteredModelList, namespaceHasAccess?: boolean, isNamespaceAccessLoading?: boolean, options?: {
+    requireModelType?: boolean;
+}) => boolean;
 export declare const isRegisterVersionSubmitDisabled: (formData: RegisterVersionFormData, namespaceHasAccess?: boolean, isNamespaceAccessLoading?: boolean) => boolean;
 export declare const isRegisterCatalogModelSubmitDisabled: (formData: RegisterCatalogModelFormData, registeredModels: RegisteredModelList, namespaceHasAccess?: boolean, isNamespaceAccessLoading?: boolean) => boolean;
 export declare const isNameValid: (name: string) => boolean;

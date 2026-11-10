@@ -28,7 +28,7 @@ describe('BenchmarkWeightsModal', () => {
       'evalhub-benchmark-weights-modal__input-label',
     );
     expect(
-      screen.getByText('Set how much each benchmark counts toward the suite score.'),
+      screen.getByText('Set how much each benchmark counts toward the collection score.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Set a weight for each benchmark')).toBeInTheDocument();
     expect(

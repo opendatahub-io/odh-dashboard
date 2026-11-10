@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSecretOps } from '@odh-dashboard/plugin-core';
-import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
-import { getServingRuntimeFromTemplate } from '@odh-dashboard/model-serving/shared';
+import { getServingRuntimeFromTemplate, isTemplateKind } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
@@ -9,7 +8,10 @@ import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidatio
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
 import { Deployment } from '../../../../extension-points';
-import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
+import {
+  DeploymentAssemblyResources,
+  DeployMethodActivationInput,
+} from '../../../../extension-points/deployment-wizard';
 import { InitialWizardFormData } from '../../../shared/types/form-data';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
@@ -23,6 +25,7 @@ import { useModelDeployedTracking } from '../../../shared/tracking/useModelDeplo
  */
 export const useModelDeploymentSubmit = (
   formState: WizardFormState, // Need initial data for existing auth secrets
+  deployMethodActivationInput: DeployMethodActivationInput,
   resources: DeploymentAssemblyResources<Deployment>,
   validation: ModelDeploymentWizardValidation,
   externalData: ExternalDataMap,
@@ -36,19 +39,23 @@ export const useModelDeploymentSubmit = (
   onSave: (overwrite?: boolean) => Promise<void>;
   onOverwrite?: () => Promise<void>;
   isLoading: boolean;
+  isReady: boolean;
+  isReadinessLoading: boolean;
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
-  const { deployMethod, deployMethodLoaded } = useDeployMethod(formState, resources);
+  const { deployMethod, deployMethodLoaded } = useDeployMethod(
+    deployMethodActivationInput,
+    resources,
+  );
   const { fireModelDeployedTracking } = useModelDeployedTracking(
     formState,
     initialWizardData,
     deployMethod?.properties.platform,
     !!existingDeployment,
     externalData,
-    resources.model?.kind === 'LLMInferenceService' ? 'llmInferenceService' : 'inferenceService',
-    resources.model?.metadata.labels?.[KUEUE_QUEUE_LABEL],
+    resources,
   );
   const { applyAllFieldDataFn, applyExtensionsLoaded } = useWizardFieldApply(
     formState,
@@ -56,6 +63,13 @@ export const useModelDeploymentSubmit = (
   );
   const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
+
+  const isReadinessLoading =
+    !deployMethodLoaded ||
+    !applyExtensionsLoaded ||
+    !preDeployExtensionsLoaded ||
+    !postDeployExtensionsLoaded;
+  const isReady = !isReadinessLoading && !!deployMethod;
 
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -85,27 +99,26 @@ export const useModelDeploymentSubmit = (
             'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha2',
           );
         }
-        if (
-          !deployMethodLoaded ||
-          !deployMethod ||
-          !applyExtensionsLoaded ||
-          !preDeployExtensionsLoaded ||
-          !postDeployExtensionsLoaded
-        ) {
+        if (!isReady) {
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
         }
 
-        const serverResourceTemplateName = formState.modelServer?.data?.selection?.name;
-        const allModelServerTemplates = formState.modelFormatState.templatesFilteredForModelType;
-        const serverResource = serverResourceTemplateName
-          ? getServingRuntimeFromTemplate(
-              allModelServerTemplates?.find(
-                (template) => template.metadata.name === serverResourceTemplateName,
-              ),
-            )
-          : undefined;
+        // Prefer the Template on the shared model-server selection (spokes attach it).
+        // Fall back to modelFormatState lookup — existing tech debt for predictive flows.
+        const selection = formState.modelServer?.data?.selection;
+        const serverResourceTemplateName = selection?.name;
+        const templateFromSelection =
+          selection?.template && isTemplateKind(selection.template)
+            ? selection.template
+            : undefined;
+        const serverResource = getServingRuntimeFromTemplate(
+          templateFromSelection ??
+            formState.modelFormatState.templatesFilteredForModelType?.find(
+              (template) => template.metadata.name === serverResourceTemplateName,
+            ),
+        );
 
         await deployModel(
           formState,
@@ -147,11 +160,8 @@ export const useModelDeploymentSubmit = (
       viewMode,
       externalData,
       validation.isAllValid,
-      deployMethodLoaded,
+      isReady,
       deployMethod,
-      applyExtensionsLoaded,
-      preDeployExtensionsLoaded,
-      postDeployExtensionsLoaded,
       formState,
       secretOps,
       resources,
@@ -172,9 +182,18 @@ export const useModelDeploymentSubmit = (
       onSave,
       onOverwrite: deployMethod?.properties.supportsOverwrite ? () => onSave(true) : undefined,
       isLoading,
+      isReady,
+      isReadinessLoading,
       submitError,
       clearSubmitError: () => setSubmitError(null),
     }),
-    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError],
+    [
+      onSave,
+      deployMethod?.properties.supportsOverwrite,
+      isLoading,
+      isReady,
+      isReadinessLoading,
+      submitError,
+    ],
   );
 };

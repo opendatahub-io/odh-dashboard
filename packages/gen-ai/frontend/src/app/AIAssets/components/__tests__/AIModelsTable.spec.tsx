@@ -157,5 +157,34 @@ describe('AIModelsTable', () => {
 
       expect(screen.queryByText('Playground')).not.toBeInTheDocument();
     });
+
+    it('should exclude Playground column when no project is selected', () => {
+      const models = [createMockAIModel({ model_id: 'model-1', display_name: 'Model 1' })];
+
+      mockUseAIModelsFilter.mockReturnValue({
+        filterData: {},
+        onFilterUpdate: jest.fn(),
+        onClearFilters: jest.fn(),
+        filteredModels: models,
+      });
+
+      render(
+        <TestWrapper>
+          <AIModelsTable {...defaultProps} models={models} showPlaygroundColumn={false} />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByText('Playground')).not.toBeInTheDocument();
+    });
+
+    it('should hide the model status popover when no project is selected', () => {
+      render(
+        <TestWrapper>
+          <AIModelsTable {...defaultProps} showModelStatusPopover={false} />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByTestId('dont-see-model-button')).not.toBeInTheDocument();
+    });
   });
 });

@@ -86,6 +86,9 @@ public-cypress/
 *.out
 *.test
 
+# Generated self-signed e2e TLS certs
+packages/notebooks/.e2e-tls/
+
 # Package manager caches
 .npm/
 vendor/

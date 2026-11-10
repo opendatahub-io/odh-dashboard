@@ -245,6 +245,25 @@ describe('AutomlModelDetailsModal', () => {
     expect(downloadButton).toBeEnabled();
   });
 
+  it('should enable download button when feature importance artifact is all null', () => {
+    const { useModelEvaluationArtifactsQuery } = jest.requireMock(
+      '~/app/hooks/useModelEvaluationArtifactsQuery',
+    );
+    useModelEvaluationArtifactsQuery.mockReturnValue({
+      featureImportance: { importance: { feature_a: null } },
+      confusionMatrix: undefined,
+      isLoading: false,
+    });
+
+    render(
+      <AutomlResultsContext.Provider value={mockTabularContext}>
+        <AutomlModelDetailsModal {...defaultProps} />
+      </AutomlResultsContext.Provider>,
+    );
+
+    expect(screen.getByTestId('model-details-download')).toBeEnabled();
+  });
+
   it('should disable download button for non-timeseries without feature importance', () => {
     const { useModelEvaluationArtifactsQuery } = jest.requireMock(
       '~/app/hooks/useModelEvaluationArtifactsQuery',

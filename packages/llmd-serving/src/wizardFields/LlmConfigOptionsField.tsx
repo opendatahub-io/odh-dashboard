@@ -10,17 +10,16 @@ import {
   ModelServerSelectFieldData,
   modelServerSelectFieldSchema,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { getDisplayNameFromK8sResource, isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
-import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import {
   isUnsupportedUnaccepted,
   RUNTIME_VERSION_ANNOTATION,
 } from '@odh-dashboard/model-serving/concepts/versions';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
 import { LLMInferenceServiceConfigKind } from '../types';
-import { isLLMInferenceServiceActive, isSimpleLLMInferenceService } from '../formUtils';
+import { isSimpleLLMInferenceService } from '../formUtils';
 
 // External data hook
 
@@ -156,13 +155,13 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
   );
 };
 
-// When llmdTemplates disabled: show for ALL llm-d methods (single-node fallback)
-export const LLMConfigOptionsFieldNoTemplates: LLMConfigOptionsFieldType = {
+// Simple vLLM only. llm-d uses AcceleratorConfigField (with or without llmdTemplates).
+export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
   id: 'llmd-serving/modelServer',
   step: 'modelDeployment',
   type: 'replacement',
   stateKey: 'modelServer',
-  isActive: isLLMInferenceServiceActive,
+  isActive: isSimpleLLMInferenceService,
   reducerFunctions: {
     resolveDependencies: (formData) => ({
       hardwareProfile: formData.hardwareProfileConfig.formData.selectedProfile,
@@ -199,10 +198,4 @@ export const LLMConfigOptionsFieldNoTemplates: LLMConfigOptionsFieldType = {
   component: LLMConfigOptionsField,
   externalDataHook: useLLMConfigOptions,
   getReviewSections,
-};
-
-// When llmdTemplates enabled: show only for simple vLLM (non-llm-d), topology fields handle the rest
-export const LLMConfigOptionsFieldWithTemplates: LLMConfigOptionsFieldType = {
-  ...LLMConfigOptionsFieldNoTemplates,
-  isActive: isSimpleLLMInferenceService,
 };

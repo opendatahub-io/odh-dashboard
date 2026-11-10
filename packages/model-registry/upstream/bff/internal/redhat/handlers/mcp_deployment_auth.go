@@ -20,7 +20,14 @@ func requireMcpDeploymentAccess(app *api.App, w http.ResponseWriter, r *http.Req
 	if app.Config().AuthMethod != config.AuthMethodInternal {
 		return true
 	}
+	return requireMcpServersAccess(app, w, r, namespace, verb)
+}
 
+// requireMcpServersAccess checks that the requesting user has the given verb on
+// mcpservers in the namespace, for every auth method. Use it when the handler reads
+// data with the BFF service account instead of the user's token, so the K8s API
+// server cannot enforce the user's permissions.
+func requireMcpServersAccess(app *api.App, w http.ResponseWriter, r *http.Request, namespace, verb string) bool {
 	client, err := app.KubernetesClientFactory().GetClient(r.Context())
 	if err != nil {
 		app.ServerError(w, r, fmt.Errorf("failed to get Kubernetes client for MCP access check: %w", err))

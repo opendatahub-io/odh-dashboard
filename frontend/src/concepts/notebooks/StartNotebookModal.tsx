@@ -49,8 +49,8 @@ import {
   InProgressIcon,
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
-import { getDescriptionFromK8sResource, type PodContainerStatus } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { type PodContainerStatus, type ProjectKind } from '@odh-dashboard/k8s-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import useClusterQueue from '@odh-dashboard/ui-core/hooks/useClusterQueue';
@@ -64,7 +64,7 @@ import {
 import {
   getHumanReadableKueueMessage,
   getRequeuedMessage,
-  formatQueuePosition,
+  getQueuePosition,
 } from '@odh-dashboard/k8s-core/kueue/messageUtils';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
@@ -74,6 +74,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useNotebookProgress, getNotebookDisplayName } from '#~/utilities/notebookControllerUtils';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
 import { EventStatus, NotebookStatus } from '#~/types';
+import { QueueNameText, QueuePositionText } from '#~/concepts/kueue/KueueSubtitleText';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
@@ -122,6 +123,8 @@ type StartNotebookModalButtonsContext = {
 
 type StartNotebookModalProps = {
   notebook?: NotebookKind;
+  infrastructureWorkloadProject?: ProjectKind;
+  infrastructureWorkloadClusterQueueName?: string;
   isStarting: boolean;
   isRunning: boolean;
   isStopping: boolean;
@@ -145,6 +148,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   notebookStatus,
   events,
   notebook = null,
+  infrastructureWorkloadProject,
+  infrastructureWorkloadClusterQueueName,
   isStarting,
   isRunning,
   isStopping,
@@ -157,7 +162,6 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
-  const workbenchDescription = notebook ? getDescriptionFromK8sResource(notebook).trim() : '';
   const notebookProgress = useNotebookProgress(
     notebook,
     isRunning,
@@ -196,7 +200,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   }, [notebookProgress, userCollapsedIds]);
 
   const inProgress = isStarting || isStopping;
-  const { currentProject: project, localQueues } = React.useContext(ProjectDetailsContext);
+  const { currentProject: contextProject, localQueues } = React.useContext(ProjectDetailsContext);
+  const project = infrastructureWorkloadProject ?? contextProject;
   const { isProjectKueueEnabled, isKueueFeatureEnabled } = useKueueConfiguration(project);
   const [canViewClusterQueue] = useAccessReview(
     { group: ClusterQueueModel.apiGroup, resource: ClusterQueueModel.plural, verb: 'get' },
@@ -235,7 +240,9 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     }
   }, [showResourcesTab, activeTab]);
   const localQueueName = notebook?.metadata.labels?.[KUEUE_QUEUE_LABEL];
-  const clusterQueueName = getClusterQueueNameFromLocalQueues(localQueueName, localQueues);
+  const clusterQueueName =
+    infrastructureWorkloadClusterQueueName ??
+    getClusterQueueNameFromLocalQueues(localQueueName, localQueues);
   const shouldShowResources = Boolean(
     showResourcesTab && isProjectKueueEnabled && localQueueName && clusterQueueName,
   );
@@ -313,7 +320,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           color = RegularColor.var;
       }
     }
-    let kueueTitle: string | null = null;
+    let kueueTitle: string | React.ReactNode = null;
     if (showKueueMessage) {
       const message =
         kueueStatus.status === KueueWorkloadStatus.Requeued
@@ -323,18 +330,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               kueueStatus.message,
               kueueStatus.queueName,
             );
-      if (
-        kueueStatus.queuePosition != null &&
-        kueueStatus.queueName &&
-        (kueueStatus.status === KueueWorkloadStatus.Queued ||
-          kueueStatus.status === KueueWorkloadStatus.Inadmissible)
-      ) {
-        kueueTitle = `${message} (${formatQueuePosition(
-          kueueStatus.queuePosition,
-          kueueStatus.queueName,
-        )})`;
+      const queuePosition = getQueuePosition(kueueStatus);
+      if (queuePosition) {
+        kueueTitle = <QueuePositionText {...queuePosition} />;
       } else {
-        kueueTitle = message;
+        kueueTitle = <QueueNameText text={message} queue={kueueStatus.queueName} />;
       }
     }
     const workbenchTitle =
@@ -561,7 +561,11 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
                       : undefined
                   }
                 >
-                  {sub.label}
+                  {sub.stepKind === 'kueue' ? (
+                    <QueueNameText text={sub.label} queue={kueueStatus?.queueName} />
+                  ) : (
+                    sub.label
+                  )}
                 </span>
                 {sub.description && <Content component="small">{sub.description}</Content>}
               </FlexItem>
@@ -645,6 +649,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     }
   };
 
+  const lastUpdate = renderLastUpdate();
+
   return (
     <Modal
       appendTo={document.body}
@@ -656,13 +662,13 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       <ModalHeader
         data-testid="notebook-status-modal-header"
         description={
-          workbenchDescription ? (
+          lastUpdate ? (
             <Content
               component="p"
               data-testid="notebook-status-modal-description"
               style={{ color: Gray60.value }}
             >
-              {workbenchDescription}
+              Workbench status
             </Content>
           ) : undefined
         }
@@ -673,6 +679,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
             </FlexItem>
             <FlexItem>
               <NotebookStatusLabel
+                isCompact
                 isStarting={isStarting && !isRunning}
                 isStopping={isStopping}
                 isRunning={isRunning}
@@ -685,7 +692,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       />
       <ModalBody className="start-notebook-modal__content-height">
         <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {renderLastUpdate()}
+          {lastUpdate}
           {renderStatus()}
           <StackItem>
             <Tabs

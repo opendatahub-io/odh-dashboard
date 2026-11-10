@@ -93,6 +93,13 @@ describe('Evaluation Results Page - Single Benchmark', () => {
     evaluationResultsPage.findMetadata().should('contain.text', 'claude-3-opus');
   });
 
+  it('should link to the Runs tab from the breadcrumb', () => {
+    evaluationResultsPage.visit(NAMESPACE, singleJob.resource.id);
+    evaluationResultsPage
+      .findRunsBreadcrumb()
+      .should('have.attr', 'href', `/evaluation/${NAMESPACE}?tab=runs`);
+  });
+
   it('should display evaluation score', () => {
     evaluationResultsPage.visit(NAMESPACE, singleJob.resource.id);
     evaluationResultsPage.findScoreValue().should('contain.text', '30%');

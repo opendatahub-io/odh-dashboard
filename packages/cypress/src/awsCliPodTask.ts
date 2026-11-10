@@ -5,6 +5,9 @@ const DNS_LABEL = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 const OC_CLEANUP_TIMEOUT_MS = 30000;
 const MAX_OUTPUT_LENGTH = 4 * 1024 * 1024;
 export const AWS_CLI_TASK_CLEANUP_HEADROOM_MS = 180000;
+const CA_BUNDLE_MOUNT_DIR = '/tmp/s3-ca';
+const CA_BUNDLE_FILE = 'ca.pem';
+const CA_BUNDLE_SECRET_KEY = 'AWS_CA_BUNDLE_PEM';
 
 export type AwsCliPodTaskOptions = {
   namespace: string;
@@ -13,6 +16,7 @@ export type AwsCliPodTaskOptions = {
   region: string;
   awsAccessKeyId: string;
   awsSecretAccessKey: string;
+  awsCaBundle?: string;
   awsCliArgs: string[];
   command?: string[];
   timeout: number;
@@ -103,6 +107,7 @@ export const createAwsCliPodTask =
       region,
       awsAccessKeyId,
       awsSecretAccessKey,
+      awsCaBundle,
       awsCliArgs,
       command,
       timeout,
@@ -115,38 +120,63 @@ export const createAwsCliPodTask =
       throw new Error('Invalid AWS CLI pod task timeout');
     }
 
+    const stringData: Record<string, string> = {
+      AWS_ACCESS_KEY_ID: awsAccessKeyId,
+      AWS_SECRET_ACCESS_KEY: awsSecretAccessKey,
+      AWS_DEFAULT_REGION: region,
+    };
+    if (awsCaBundle) {
+      stringData[CA_BUNDLE_SECRET_KEY] = awsCaBundle;
+    }
     const secretManifest = JSON.stringify({
       apiVersion: 'v1',
       kind: 'Secret',
       metadata: { name: secretName, namespace },
-      stringData: {
-        AWS_ACCESS_KEY_ID: awsAccessKeyId,
-        AWS_SECRET_ACCESS_KEY: awsSecretAccessKey,
-        AWS_DEFAULT_REGION: region,
-      },
+      stringData,
     });
     // Keep a server-side backstop in case the Cypress Node process exits before cleanup finishes.
     const activeDeadlineSeconds = Math.ceil(timeout / 1000) + 120;
+    const container: Record<string, unknown> = {
+      name: podName,
+      image,
+      ...(command ? { command } : {}),
+      args: awsCliArgs,
+      envFrom: [{ secretRef: { name: secretName } }],
+      securityContext: {
+        runAsUser: 1001,
+        runAsGroup: 1001,
+        runAsNonRoot: true,
+        allowPrivilegeEscalation: false,
+        seccompProfile: { type: 'RuntimeDefault' },
+        capabilities: { drop: ['ALL'] },
+      },
+    };
+    if (awsCaBundle) {
+      container.env = [
+        {
+          name: 'AWS_CA_BUNDLE',
+          value: `${CA_BUNDLE_MOUNT_DIR}/${CA_BUNDLE_FILE}`,
+        },
+      ];
+      container.volumeMounts = [{ name: 's3-ca', mountPath: CA_BUNDLE_MOUNT_DIR, readOnly: true }];
+    }
     const podOverrides = JSON.stringify({
       spec: {
         activeDeadlineSeconds,
-        containers: [
-          {
-            name: podName,
-            image,
-            ...(command ? { command } : {}),
-            args: awsCliArgs,
-            envFrom: [{ secretRef: { name: secretName } }],
-            securityContext: {
-              runAsUser: 1001,
-              runAsGroup: 1001,
-              runAsNonRoot: true,
-              allowPrivilegeEscalation: false,
-              seccompProfile: { type: 'RuntimeDefault' },
-              capabilities: { drop: ['ALL'] },
-            },
-          },
-        ],
+        containers: [container],
+        ...(awsCaBundle
+          ? {
+              volumes: [
+                {
+                  name: 's3-ca',
+                  secret: {
+                    secretName,
+                    items: [{ key: CA_BUNDLE_SECRET_KEY, path: CA_BUNDLE_FILE }],
+                  },
+                },
+              ],
+            }
+          : {}),
       },
     });
 

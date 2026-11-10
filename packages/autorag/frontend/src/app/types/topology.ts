@@ -41,6 +41,8 @@ export type StandardTaskNodeData = {
   runStatus?: RunStatus;
   activeIconVariant?: ActiveIconVariant;
   badge?: string;
+  patternKey?: string;
+  inferredFailure?: boolean;
 };
 
 export type PipelineNodeModelExpanded = PipelineNodeModel & {

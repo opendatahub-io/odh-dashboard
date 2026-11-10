@@ -70,6 +70,23 @@ describe('useRelativeLinkHandler', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard/settings');
     });
 
+    it('should remove the router basename from already-prefixed links', () => {
+      const renderResult = testHook(useRelativeLinkHandler)('/custom-base');
+      const anchor = document.createElement('a');
+      anchor.setAttribute('href', '/custom-base/observe-and-monitor/dashboard?dashboard=models');
+      container.appendChild(anchor);
+
+      act(() => {
+        renderResult.result.current(container);
+      });
+
+      const event = createClickEvent();
+      anchor.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(mockNavigate).toHaveBeenCalledWith('/observe-and-monitor/dashboard?dashboard=models');
+    });
+
     it('should intercept clicks on nested elements within anchor tags', () => {
       const renderResult = testHook(useRelativeLinkHandler)();
       const anchor = document.createElement('a');

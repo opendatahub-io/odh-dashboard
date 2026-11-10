@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   RenderHookOptions,
   RenderHookResult,
@@ -61,15 +62,45 @@ export const renderHook = <
   options?: RenderHookOptions<Props, Q, Container, BaseElement>,
 ): RenderHookResultExt<Result, Props> => {
   let updateCount = 0;
+  let publishedCount = 0;
   let prevResult: Result;
   let currentResult: Result;
+  // Set after renderHookRTL returns; effects may run before then, so flush pending publishes.
+  const deferred: {
+    resultRef: { current: Result | null } | undefined;
+    unpublished: { value: Result } | null;
+  } = {
+    resultRef: undefined,
+    unpublished: null,
+  };
+
+  const flushPublish = (): void => {
+    if (!deferred.resultRef || !deferred.unpublished) {
+      return;
+    }
+    // Write before bumping so waitForNextUpdate never resolves on a lagging ref.
+    // Our effect runs before RTL's; RTL then writes the same value again.
+    deferred.resultRef.current = deferred.unpublished.value;
+    deferred.unpublished = null;
+    publishedCount += 1;
+  };
 
   const renderResult = renderHookRTL((props) => {
     updateCount++;
     prevResult = currentResult;
     currentResult = render(props);
+    const rendered = currentResult;
+
+    React.useEffect(() => {
+      deferred.unpublished = { value: rendered };
+      flushPublish();
+    });
+
     return currentResult;
   }, options);
+
+  deferred.resultRef = renderResult.result;
+  flushPublish();
 
   const renderResultExt: RenderHookResultExt<Result, Props> = {
     ...renderResult,
@@ -79,9 +110,9 @@ export const renderHook = <
     getUpdateCount: () => updateCount,
 
     waitForNextUpdate: async (currentOptions) => {
-      const expected = updateCount;
+      const expected = publishedCount;
       try {
-        await waitFor(() => expect(updateCount).toBeGreaterThan(expected), currentOptions);
+        await waitFor(() => expect(publishedCount).toBeGreaterThan(expected), currentOptions);
       } catch {
         throw new Error('waitForNextUpdate timed out');
       }

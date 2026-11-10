@@ -1,10 +1,15 @@
+import { getPipelineTaskTiming } from '@odh-dashboard/autox-core/ui/utils';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import {
   componentIdToTaskId,
   findComponentTaskInRunDetails,
 } from '~/app/hooks/useComponentStatuses';
 import type { PipelineRun, PipelineRunTaskDetail } from '~/app/types';
-import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabels';
+import {
+  getPatternRowLabel,
+  resolveStageLabel,
+  resolveStepLabel,
+} from '~/app/topology/stageMapLabels';
 import { formatDurationBetween } from '~/app/utilities/utils';
 import {
   getStageDescriptionFromMap,
@@ -126,7 +131,8 @@ const getDetailsFromPipelineRun = (nodeId: string, pipelineRun?: PipelineRun): S
     return DEFAULT_DETAILS;
   }
 
-  const duration = formatDurationBetween(task.start_time ?? task.create_time, task.end_time);
+  const { start, end } = getPipelineTaskTiming(task);
+  const duration = formatDurationBetween(start, end);
   const details: StepDetail[] = [{ label: 'Duration', value: duration ?? '—' }];
 
   if (task.error?.message) {
@@ -218,9 +224,15 @@ export const getStepMetadata = (
     });
   }
 
-  if (/^.+__pattern__branch-\d+$/.test(nodeId)) {
+  const parsedNodeId = parseStageMapNodeId(nodeId);
+  if (parsedNodeId?.type === 'branch_pattern') {
+    const displayLabel = label.trim();
+    const patternLabel =
+      displayLabel && displayLabel !== '.'
+        ? displayLabel
+        : getPatternRowLabel(parsedNodeId.branchIndex);
     return resolveMetadata({
-      description: `Pattern path for ${label}.`,
+      description: `Pattern path for ${patternLabel}.`,
       details: DEFAULT_DETAILS,
     });
   }

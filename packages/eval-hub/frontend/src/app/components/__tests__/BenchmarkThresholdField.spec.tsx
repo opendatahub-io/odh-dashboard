@@ -12,10 +12,10 @@ describe('BenchmarkThresholdField', () => {
 
   it('should render with custom label', () => {
     render(
-      <BenchmarkThresholdField value={70} onChange={jest.fn()} label="Benchmark suite threshold" />,
+      <BenchmarkThresholdField value={70} onChange={jest.fn()} label="Collection threshold" />,
     );
 
-    expect(screen.getByText('Benchmark suite threshold')).toBeInTheDocument();
+    expect(screen.getByText('Collection threshold')).toBeInTheDocument();
   });
 
   it('should render slider with correct min/max range', () => {

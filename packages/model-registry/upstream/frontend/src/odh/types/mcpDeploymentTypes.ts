@@ -159,3 +159,20 @@ export type McpDeployModalData = {
   image: string;
   yaml?: string;
 };
+
+/** Why a catalog MCP server cannot be deployed (from the BFF deploy readiness endpoint). */
+export enum McpDeployReadinessReason {
+  OPERATOR_NOT_READY = 'OPERATOR_NOT_READY',
+  GATEWAY_STATUS_UNAVAILABLE = 'GATEWAY_STATUS_UNAVAILABLE',
+  NO_GATEWAY_AVAILABLE = 'NO_GATEWAY_AVAILABLE',
+}
+
+export type McpServerDeployReadiness = {
+  /** True when the server can only be deployed with an MCP gateway. */
+  gatewayRequired: boolean;
+  /** False when a deploy prerequisite is missing. */
+  deployable: boolean;
+  /** Set only when `deployable` is false. */
+  reason?: McpDeployReadinessReason;
+  message?: string;
+};

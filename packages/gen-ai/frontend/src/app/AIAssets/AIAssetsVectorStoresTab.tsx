@@ -19,9 +19,9 @@ const AIAssetsVectorStoresTab: React.FC = () => {
     undefined, // lsdNotReady
     true, // includeEmbeddingModels
   );
-  const { models: allModels } = useMergedModels();
+  const { models: allModels, loaded: modelsLoaded } = useMergedModels();
 
-  if (!loaded && !error) {
+  if ((!loaded && !error) || !modelsLoaded) {
     return (
       <Bullseye>
         <Spinner />

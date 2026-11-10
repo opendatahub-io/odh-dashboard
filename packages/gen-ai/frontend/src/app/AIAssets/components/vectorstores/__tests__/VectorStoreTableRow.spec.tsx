@@ -128,6 +128,19 @@ describe('VectorStoreTableRow', () => {
     jest.clearAllMocks();
   });
 
+  it('adds stable test IDs to the row and playground action', () => {
+    renderRow();
+
+    expect(screen.getByTestId('vector-store-row-vs-test-1')).toBeInTheDocument();
+    expect(screen.getByTestId('vector-store-add-to-playground-vs-test-1')).toBeInTheDocument();
+  });
+
+  it('adds a stable test ID to the try in playground action', () => {
+    renderRow({ existingCollections: [createVectorStore('vs-test-1')] });
+
+    expect(screen.getByTestId('vector-store-try-in-playground-vs-test-1')).toBeInTheDocument();
+  });
+
   describe('Available Endpoints Playground Launched tracking', () => {
     it('fires tracking event when "Try in playground" button is clicked', () => {
       renderRow({ existingCollections: [createVectorStore('vs-test-1')] });

@@ -12,7 +12,11 @@ import {
   PlayIcon,
 } from '@patternfly/react-icons';
 import { AlertVariant, LabelProps } from '@patternfly/react-core';
-import { getDisplayNameFromK8sResource, WorkloadCondition } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  WorkloadCondition,
+  WorkloadKind,
+} from '@odh-dashboard/k8s-core';
 import type { JobsFilterDataType } from './const';
 import { TrainJobKind, RayJobKind, RayClusterKind, RayClusterSpec } from '../../k8sTypes';
 import {
@@ -248,6 +252,59 @@ const getBasicJobStatus = (job: TrainJobKind): TrainingJobState => {
   }
 };
 
+export const getTrainingJobStatusWithWorkload = (
+  job: TrainJobKind,
+  workload: WorkloadKind,
+  basicStatus: TrainingJobState,
+): { status: TrainingJobState; isLoading: boolean } => {
+  const conditions = workload.status?.conditions || [];
+  const workloadConditionsMap = extractWorkloadConditions(conditions);
+
+  // System rejection (takes priority over failure states)
+  if (workloadConditionsMap.Inadmissible) {
+    return { status: TrainingJobState.INADMISSIBLE, isLoading: false };
+  }
+
+  // TrainJob failure (takes priority over Workload queued state)
+  if (basicStatus === TrainingJobState.FAILED) {
+    return { status: TrainingJobState.FAILED, isLoading: false };
+  }
+
+  // Terminal and active states (checked in priority order)
+  if (workloadConditionsMap.Failed) {
+    return { status: TrainingJobState.FAILED, isLoading: false };
+  }
+  if (workloadConditionsMap.Succeeded) {
+    return { status: TrainingJobState.SUCCEEDED, isLoading: false };
+  }
+
+  // Paused (user action - checked before PREEMPTED)
+  if (workload.spec.active === false || job.spec.suspend === true) {
+    return { status: TrainingJobState.PAUSED, isLoading: false };
+  }
+
+  if (workloadConditionsMap.Evicted || workloadConditionsMap.Preempted) {
+    return { status: TrainingJobState.PREEMPTED, isLoading: false };
+  }
+
+  // Running: PodsReady=True OR any jobsStatus has active > 0
+  const hasActiveJobs = job.status?.jobsStatus?.some((js) => (js.active ?? 0) > 0);
+  if (workloadConditionsMap.Running || hasActiveJobs) {
+    return { status: TrainingJobState.RUNNING, isLoading: false };
+  }
+
+  // Pending: QuotaReserved=True means resources allocated, waiting for pods
+  const quotaReservedCondition = conditions.find(
+    (c) => c.type === WorkloadConditionType.QuotaReserved && c.status === ConditionStatus.True,
+  );
+  if (quotaReservedCondition) {
+    return { status: TrainingJobState.PENDING, isLoading: false };
+  }
+
+  // Queued: Simple fallback for everything else
+  return { status: TrainingJobState.QUEUED, isLoading: false };
+};
+
 /**
  * Get training job status with pause/resume support (async)
  *
@@ -344,52 +401,7 @@ export const getTrainingJobStatus = async (
     const workload = await getWorkloadForJob(job);
 
     if (workload) {
-      const conditions = workload.status?.conditions || [];
-      const workloadConditionsMap = extractWorkloadConditions(conditions);
-
-      // System rejection (takes priority over failure states)
-      if (workloadConditionsMap.Inadmissible) {
-        return { status: TrainingJobState.INADMISSIBLE, isLoading: false };
-      }
-
-      // TrainJob failure (takes priority over Workload queued state)
-      if (basicStatus === TrainingJobState.FAILED) {
-        return { status: TrainingJobState.FAILED, isLoading: false };
-      }
-
-      // Terminal and active states (checked in priority order)
-      if (workloadConditionsMap.Failed) {
-        return { status: TrainingJobState.FAILED, isLoading: false };
-      }
-      if (workloadConditionsMap.Succeeded) {
-        return { status: TrainingJobState.SUCCEEDED, isLoading: false };
-      }
-
-      // Paused (user action - checked before PREEMPTED)
-      if (workload.spec.active === false || job.spec.suspend === true) {
-        return { status: TrainingJobState.PAUSED, isLoading: false };
-      }
-
-      if (workloadConditionsMap.Evicted || workloadConditionsMap.Preempted) {
-        return { status: TrainingJobState.PREEMPTED, isLoading: false };
-      }
-
-      // Running: PodsReady=True OR any jobsStatus has active > 0
-      const hasActiveJobs = job.status?.jobsStatus?.some((js) => (js.active ?? 0) > 0);
-      if (workloadConditionsMap.Running || hasActiveJobs) {
-        return { status: TrainingJobState.RUNNING, isLoading: false };
-      }
-
-      // Pending: QuotaReserved=True means resources allocated, waiting for pods
-      const quotaReservedCondition = conditions.find(
-        (c) => c.type === WorkloadConditionType.QuotaReserved && c.status === ConditionStatus.True,
-      );
-      if (quotaReservedCondition) {
-        return { status: TrainingJobState.PENDING, isLoading: false };
-      }
-
-      // Queued: Simple fallback for everything else
-      return { status: TrainingJobState.QUEUED, isLoading: false };
+      return getTrainingJobStatusWithWorkload(job, workload, basicStatus);
     }
 
     // Kueue-enabled but workload not created yet

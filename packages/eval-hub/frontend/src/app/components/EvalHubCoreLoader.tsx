@@ -36,7 +36,9 @@ const EvalHubCoreLoader: React.FC<EvalHubCoreLoaderProps> = ({ getInvalidRedirec
     if (foundProject) {
       return (
         <CollectionsContextProvider namespace={namespace}>
-          <Outlet />
+          {/* Keying by namespace remounts the page on project switch so namespace-scoped
+              page state (drawer selection, run selection, filters) cannot leak across projects */}
+          <Outlet key={namespace} />
         </CollectionsContextProvider>
       );
     }

@@ -1,10 +1,7 @@
 import { McpCatalogSourceConfig, McpCatalogSourcePreviewRequest, McpCatalogSourcePreviewAsset, McpCatalogSourcePreviewSummary } from '~/app/mcpServerCatalogTypes';
 import { McpCatalogSettingsAPIState } from '~/app/hooks/mcpCatalogSettings/useMcpCatalogSettingsAPIState';
+import { CatalogSettingsPreviewTab } from '~/app/shared/catalogSettings/hooks/previewTypes';
 import { ManageMcpSourceFormData } from './useManageMcpSourceData';
-export declare enum McpPreviewTab {
-    INCLUDED = "included",
-    EXCLUDED = "excluded"
-}
 export type McpPreviewTabState = {
     items: McpCatalogSourcePreviewAsset[];
     nextPageToken?: string;
@@ -14,10 +11,10 @@ export type McpPreviewState = {
     isLoadingInitial: boolean;
     isLoadingMore: boolean;
     summary?: McpCatalogSourcePreviewSummary;
-    tabStates: Record<McpPreviewTab, McpPreviewTabState>;
+    tabStates: Record<CatalogSettingsPreviewTab, McpPreviewTabState>;
     error?: Error;
     lastPreviewedData?: McpCatalogSourcePreviewRequest;
-    activeTab: McpPreviewTab;
+    activeTab: CatalogSettingsPreviewTab;
 };
 export interface UseMcpSourcePreviewOptions {
     formData: ManageMcpSourceFormData;
@@ -28,7 +25,7 @@ export interface UseMcpSourcePreviewOptions {
 export interface UseMcpSourcePreviewResult {
     previewState: McpPreviewState;
     handlePreview: () => Promise<void>;
-    handleTabChange: (tab: McpPreviewTab) => void;
+    handleTabChange: (tab: CatalogSettingsPreviewTab) => void;
     handleLoadMore: () => void;
     hasFormChanged: boolean;
     canPreview: boolean;

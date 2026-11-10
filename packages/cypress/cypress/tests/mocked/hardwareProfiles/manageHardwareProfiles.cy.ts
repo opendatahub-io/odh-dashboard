@@ -1046,4 +1046,29 @@ describe('Manage Hardware Profile', () => {
       });
     });
   });
+
+  it('should not allow editing or duplicating a hardware profile that uses DRA', () => {
+    cy.interceptK8s(
+      { model: HardwareProfileModel, ns: 'opendatahub', name: 'dra-profile' },
+      mockHardwareProfile({
+        name: 'dra-profile',
+        namespace: 'opendatahub',
+        displayName: 'DRA Profile',
+        dra: { resourceClaimTemplateName: 'single-gpu' },
+      }),
+    );
+
+    editHardwareProfile.visit('dra-profile');
+    editHardwareProfile
+      .findDRANotSupportedState()
+      .should('contain.text', 'This hardware profile cannot be edited');
+    editHardwareProfile.findViewAllHardwareProfilesButton().should('exist');
+    editHardwareProfile.findSubmitButton().should('not.exist');
+
+    duplicateHardwareProfile.visit('dra-profile');
+    duplicateHardwareProfile
+      .findDRANotSupportedState()
+      .should('contain.text', 'This hardware profile cannot be duplicated');
+    duplicateHardwareProfile.findSubmitButton().should('not.exist');
+  });
 });

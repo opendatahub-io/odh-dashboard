@@ -27,6 +27,7 @@ const (
 	VectorStoresDeletePath   = ApiPathPrefix + "/lsd/vectorstores/delete"
 	ResponsesPath            = ApiPathPrefix + "/lsd/responses"
 	ResponsesPassthroughPath = ApiPathPrefix + "/lsd/responses/passthrough"
+	ResponsesRelayPath       = ApiPathPrefix + "/lsd/responses/relay"
 	FilesListPath            = ApiPathPrefix + "/lsd/files"
 	FilesUploadPath          = ApiPathPrefix + "/lsd/files/upload"
 	FilesUploadStatusPath    = ApiPathPrefix + "/lsd/files/upload/status"

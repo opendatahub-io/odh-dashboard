@@ -8,23 +8,24 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 )
 
 const (
 	// PathPrefix is the URL prefix for BFF-scoped paths.
-	PathPrefix = "/core-bff"
+	PathPrefix = constants.BFFPathPrefix
 	// APIPathPrefix is the base API path prefix.
-	APIPathPrefix = "/api"
+	APIPathPrefix = constants.APIPathPrefix
 	// APIVersion is the API version path segment.
-	APIVersion = "/v1"
+	APIVersion = constants.APIVersion
 )
 
 // Routes builds the full HTTP handler tree: API router, proxies, static files, and middleware.
 func (app *App) Routes() http.Handler {
 	serviceMux := app.newServiceMux()
 	staticHandler := app.newStaticHandler()
-	return app.newCombinedMux(serviceMux, staticHandler)
+	return httpcontract.Middleware(app.EnableTelemetry(app.SetSecurityHeaders(app.RecoverPanic(app.EnableCORS(app.newCombinedMux(serviceMux, staticHandler))))), app.logger)
 }
 
 // Auth contract: apiRouter routes require a token (InjectRequestIdentity).
@@ -67,24 +68,27 @@ func (app *App) newServiceMux() *http.ServeMux {
 }
 
 // newStaticHandler creates the SPA static file server with index.html fallback.
+// Cache-Control mirrors Node: SPA shell (`/` and missing-path fallback) is no-store;
+// real static files use getCacheControlForStaticFile (hashed / short / no-cache).
 func (app *App) newStaticHandler() http.Handler {
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helpers.GetContextLoggerFromReq(r)
-		if r.URL.Path == "/" || r.URL.Path == "/"+constants.IndexHTMLFileName {
-			// The SPA entry point must revalidate after gateway logout so a cached
-			// document cannot render with an expired authentication session.
-			w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
-		}
 		if f, err := staticDir.Open(r.URL.Path); err == nil {
 			f.Close()
+			if r.URL.Path == "/" {
+				// SPA shell under `/` — document cache policy (Node setNoStoreCacheHeaders on /*).
+				w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
+			} else {
+				w.Header().Set(constants.HeaderCacheControl, getCacheControlForStaticFile(r.URL.Path))
+			}
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return
 		}
 		ctxLogger.Debug("Static asset not found, serving index.html", slog.String("path", r.URL.Path))
-		w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
+		w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNoStore)
 		http.ServeFile(w, r, path.Join(app.config.StaticAssetsDir, constants.IndexHTMLFileName))
 	})
 }
@@ -92,7 +96,7 @@ func (app *App) newStaticHandler() http.Handler {
 // newCombinedMux wires public and authenticated routes into the top-level mux.
 // New service prefixes are secure by default - only publicRoute paths skip auth.
 func (app *App) newCombinedMux(serviceMux *http.ServeMux, staticHandler http.Handler) *http.ServeMux {
-	authedHandler := app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(serviceMux))))
+	authedHandler := app.InjectRequestIdentity(serviceMux)
 
 	mux := http.NewServeMux()
 

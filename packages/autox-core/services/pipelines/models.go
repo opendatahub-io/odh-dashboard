@@ -96,6 +96,7 @@ type CreatePipelineRunInput struct {
 	Description              string                    `json:"description,omitempty"`
 	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
 	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
+	PluginsInput             map[string]map[string]any `json:"plugins_input,omitempty"`
 }
 
 // PipelineRunResponse wraps a list of pipeline runs with pagination.
@@ -174,6 +175,27 @@ type EnableManagedPipelinesResult struct {
 type PaginatedRuns struct {
 	Runs      []PipelineRun
 	TotalSize int32
+}
+
+// DSPAStatusCode is an observed readiness state of a DSPipelineApplication.
+type DSPAStatusCode string
+
+// DSPA status codes reported by GetDSPAStatus.
+const (
+	// DSPAStatusReady: a DSPA's Ready condition is True for its current generation.
+	DSPAStatusReady DSPAStatusCode = "ready"
+	// DSPAStatusStarting: a DSPA exists in the namespace but is not ready.
+	DSPAStatusStarting DSPAStatusCode = "starting"
+	// DSPAStatusNotFound: no DSPA exists in the namespace.
+	DSPAStatusNotFound DSPAStatusCode = "not-found"
+)
+
+// DSPAStatus is the observed readiness state of the pipeline server (DSPA) in a
+// namespace, from a fresh (uncached) resource list. "not-found" and "starting" are
+// ordinary status values, not errors, so callers can distinguish them from failures.
+type DSPAStatus struct {
+	Status   DSPAStatusCode `json:"status"`
+	DSPAName string         `json:"dspa_name,omitempty"`
 }
 
 // DiscoveredDSPA holds the resolved state of a ready DSPipelineApplication instance.

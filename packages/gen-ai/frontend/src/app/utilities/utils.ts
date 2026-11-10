@@ -66,6 +66,10 @@ export const isMaasLlamaModelId = (llamaModelId: string): boolean => {
   return providerId.startsWith('maas-') || id.startsWith('maas-');
 };
 
+/** Returns the AI Asset catalog ID represented by a Llama Stack runtime model. */
+export const getAIAssetModelIDFromPlaygroundModel = (playgroundModel: LlamaModel): string =>
+  playgroundModel.modelId;
+
 /**
  * Returns true if a playground LlamaModel corresponds to the given AIModel.
  * Model IDs are unique across sources, so the normalized model ID is sufficient to identify a
@@ -76,10 +80,29 @@ export const isPlaygroundModelMatchForAIModel = (
   aiModel: AIModel,
 ): boolean => {
   // For passthrough MaaS models, modelId has a "maas-" prefix that the AIModel doesn't.
-  const playgroundModelId = playgroundModel.modelId.startsWith('maas-')
-    ? playgroundModel.modelId.slice(5)
-    : playgroundModel.modelId;
+  const playgroundModelId = getAIAssetModelIDFromPlaygroundModel(playgroundModel);
   return playgroundModelId === aiModel.model_id;
+};
+
+/**
+ * Resolves an AI Asset model for a Playground selection. A loaded AgentProfile can
+ * briefly hold its catalog ID before the Llama Stack runtime ID is resolved, so
+ * fall back to the normalized selected ID when no runtime model is present.
+ */
+export const resolveAIModelForPlaygroundSelection = (
+  selectedModel: string,
+  playgroundModels: LlamaModel[],
+  aiModels: AIModel[],
+): AIModel | undefined => {
+  const playgroundModel = playgroundModels.find((model) => model.id === selectedModel);
+  const matchedModel = playgroundModel
+    ? aiModels.find((model) => isPlaygroundModelMatchForAIModel(playgroundModel, model))
+    : undefined;
+  if (matchedModel) {
+    return matchedModel;
+  }
+
+  return aiModels.find((model) => model.model_id === selectedModel);
 };
 
 export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): string => {

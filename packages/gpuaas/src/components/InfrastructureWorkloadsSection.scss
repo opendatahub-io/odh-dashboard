@@ -1,0 +1,201 @@
+.gpuaas-infrastructure-workloads__header-section {
+  background-color: var(--pf-t--global--background--color--primary--default);
+  padding-block-end: var(--pf-t--global--spacer--md);
+}
+
+.gpuaas-workload-overview {
+  --pf-v6-c-button--m-link--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--m-link--hover--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--m-link--m-clicked--Color: var(--pf-t--global--text--color--regular);
+
+  .pf-v6-c-button,
+  .pf-v6-c-button__text,
+  .pf-v6-c-button__icon {
+    color: var(--pf-t--global--text--color--regular);
+  }
+
+  --pf-v6-c-accordion--m-plain__item--m-expanded__toggle--BackgroundColor: var(
+    --pf-t--global--background--color--action--plain--clicked
+  );
+
+  &__toggle {
+    width: fit-content;
+    color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-link--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-link--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-link--m-clicked--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-accordion__toggle--BackgroundColor: var(
+      --pf-t--global--background--color--action--plain--clicked
+    );
+    --pf-v6-c-accordion__toggle--hover--BackgroundColor: var(
+      --pf-t--global--background--color--action--plain--clicked
+    );
+
+    .pf-v6-c-button,
+    .pf-v6-c-button__text,
+    .pf-v6-c-button__icon {
+      color: var(--pf-t--global--text--color--regular);
+    }
+  }
+
+  &__detached-toggle {
+    --pf-v6-c-button--m-link--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-link--hover--Color: var(--pf-t--global--text--color--regular);
+    --pf-v6-c-button--m-link--m-clicked--Color: var(--pf-t--global--text--color--regular);
+
+    .pf-v6-c-button,
+    .pf-v6-c-button__text,
+    .pf-v6-c-button__icon {
+      color: var(--pf-t--global--text--color--regular);
+    }
+  }
+
+  &__status {
+    padding-block-start: var(--pf-t--global--spacer--lg);
+  }
+
+  &__tabs-row {
+    border-block-end: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+
+    .pf-v6-c-tabs {
+      --pf-v6-c-tabs--before--BorderBlockEndWidth: 0;
+    }
+  }
+
+  &__admissions {
+    padding-block-start: var(--pf-t--global--spacer--lg);
+  }
+
+  &__admissions-error {
+    margin-block-end: var(--pf-t--global--spacer--md);
+  }
+
+  &__admission-time-window-toggle {
+    min-width: 11rem;
+  }
+
+  &__admission-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    &--two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  &__admission-metric {
+    min-width: 0;
+    padding: var(--pf-t--global--spacer--md);
+    border-inline-end: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+
+    &:last-child {
+      border-inline-end: 0;
+    }
+  }
+
+  &__admission-header,
+  &__admission-header-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  &__admission-header {
+    min-height: 3.25rem;
+
+    h3,
+    p {
+      margin-block: 0;
+    }
+  }
+
+  &__admission-value {
+    margin-bottom: 0 !important;
+  }
+
+  &__admission-header-loading {
+    min-height: 3.25rem;
+    gap: var(--pf-t--global--spacer--xs);
+  }
+
+  &__admission-chart {
+    width: 100%;
+    min-height: 7.5rem;
+    min-width: 0;
+    overflow: hidden;
+    border-radius: var(--pf-t--global--border--radius--small);
+    background-color: var(--pf-t--global--background--color--primary--default);
+  }
+
+  &__counts {
+    padding-block: var(--pf-t--global--spacer--lg);
+  }
+
+  &__total,
+  &__count {
+    flex: 1;
+    text-align: center;
+  }
+
+  &__total-label {
+    color: var(--pf-t--global--text--color--subtle);
+  }
+
+  &__total {
+    border-inline-end: var(--pf-t--global--border--width--regular) solid
+      var(--pf-t--global--border--color--default);
+  }
+
+  &__bar {
+    display: flex;
+    width: 100%;
+    min-height: 3rem;
+    margin-block: var(--pf-t--global--spacer--lg);
+  }
+
+  &__bar-item {
+    display: flex;
+    flex-basis: 0;
+    min-width: 0;
+  }
+
+  &__segment {
+    width: 100%;
+    border: 0;
+    color: var(--pf-t--global--text--color--on-brand--default);
+    cursor: pointer;
+
+    &[data-status='waiting'] {
+      color: var(--pf-t--global--text--color--regular);
+    }
+
+    &:focus-visible {
+      outline: var(--pf-t--global--border--width--strong) solid
+        var(--pf-t--global--color--brand--default);
+      outline-offset: 2px;
+      z-index: 1;
+    }
+  }
+
+  &__legend {
+    padding-block-end: var(--pf-t--global--spacer--sm);
+  }
+
+  &__swatch {
+    display: inline-block;
+    width: var(--pf-t--global--spacer--sm);
+    height: var(--pf-t--global--spacer--sm);
+    margin-inline-end: var(--pf-t--global--spacer--sm);
+  }
+}
+
+.gpuaas-workloads-table {
+  width: 100%;
+  color: var(--pf-t--global--text--color--regular);
+
+  &__toggle-content {
+    color: var(--pf-t--global--text--color--regular);
+  }
+}

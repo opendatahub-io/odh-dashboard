@@ -1,4 +1,5 @@
 import * as React from 'react';
+import debounce from 'lodash-es/debounce';
 import {
   Alert,
   Button,
@@ -22,9 +23,12 @@ import { DashboardEmptyTableView } from '@odh-dashboard/ui-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
-import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import {
+  EVAL_HUB_EVENTS,
+  type EvaluationRunsFilterAttribute,
+} from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import {
   getEvaluationName,
   getBenchmarkName,
@@ -52,7 +56,17 @@ import usePageVisibility from '~/app/hooks/usePageVisibility';
 import EvaluationsTableRow from './EvaluationsTableRow';
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
+type TextFilterOption = Exclude<FilterOption, 'status'>;
 type StatusFilter = Exclude<ReturnType<typeof getEvaluationDisplayState>, 'not_started'>;
+
+const getRunsFilterAttribute = (
+  filter: TextFilterOption,
+): Exclude<EvaluationRunsFilterAttribute, 'status'> => {
+  if (filter === 'name') {
+    return 'name';
+  }
+  return 'type';
+};
 
 const FILTER_LABELS: Record<FilterOption, string> = {
   name: 'Evaluation name',
@@ -81,13 +95,17 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 const KUEUE_STATUS_FILTERS: StatusFilter[] = ['queued', 'admitted', 'inadmissible'];
 
+// RHOAIENG-99645: queue assignments can persist in evaluation responses after the Kueue
+// integration is disabled — only classify a run as queued when the integration is enabled,
+// so it stays reachable through the Pending filter.
 const matchesStatusFilter = (
   job: EvaluationJob,
   selectedStatus: StatusFilter,
   kueueWorkloadStatus: KueueWorkloadStatus | undefined,
+  isKueueEnabled: boolean,
 ) => {
   const displayState = getEvaluationDisplayState(job.status.state, {
-    isQueued: isEvaluationJobQueued(job),
+    isQueued: isKueueEnabled && isEvaluationJobQueued(job),
     isPreStartFailure: isPreStartFailure(job),
     kueueWorkloadStatus,
   });
@@ -106,13 +124,14 @@ const getSortableValue = (
   job: EvaluationJob,
   columnIndex: number,
   kueueWorkloadStatus: KueueWorkloadStatus | undefined,
+  isKueueEnabled: boolean,
 ): string | number => {
   switch (columnIndex) {
     case 0:
       return getEvaluationName(job).toLowerCase();
     case 1:
       return getEvaluationDisplayState(job.status.state, {
-        isQueued: isEvaluationJobQueued(job),
+        isQueued: isKueueEnabled && isEvaluationJobQueued(job),
         isPreStartFailure: isPreStartFailure(job),
         kueueWorkloadStatus,
       });
@@ -198,6 +217,28 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   });
   const [selectedEvaluationIds, setSelectedEvaluationIds] = React.useState<Set<string>>(new Set());
 
+  // Text filter values are user-entered names — track only a redacted shape, debounced so
+  // analytics fire when typing pauses instead of on every keystroke.
+  const trackTextFilterApplied = React.useCallback((filter: TextFilterOption, value: string) => {
+    const normalizedValue = value.trim();
+    if (!normalizedValue) {
+      return;
+    }
+
+    trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED, {
+      filterAttribute: getRunsFilterAttribute(filter),
+      valueShape: `string(${normalizedValue.length})`,
+    });
+  }, []);
+  const trackTextFilterAppliedDebounced = React.useMemo(
+    () => debounce(trackTextFilterApplied, 500),
+    [trackTextFilterApplied],
+  );
+  React.useEffect(
+    () => () => trackTextFilterAppliedDebounced.cancel(),
+    [trackTextFilterAppliedDebounced],
+  );
+
   React.useEffect(() => {
     if (!isKueueEnabled && KUEUE_STATUS_FILTERS.some((status) => status === selectedStatus)) {
       setSelectedStatus('');
@@ -215,6 +256,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
             job,
             selectedStatus,
             kueueWorkloadStatusesByEvaluationID.get(job.resource.id),
+            isKueueEnabled,
           );
         }
         if (!filterValue) {
@@ -231,6 +273,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
       selectedStatus,
       collectionNameMap,
       kueueWorkloadStatusesByEvaluationID,
+      isKueueEnabled,
     ],
   );
 
@@ -240,11 +283,13 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         a,
         sortConfig.index,
         kueueWorkloadStatusesByEvaluationID.get(a.resource.id),
+        isKueueEnabled,
       );
       const bVal = getSortableValue(
         b,
         sortConfig.index,
         kueueWorkloadStatusesByEvaluationID.get(b.resource.id),
+        isKueueEnabled,
       );
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return aVal - bVal;
@@ -252,7 +297,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
       return String(aVal).localeCompare(String(bVal));
     });
     return sortConfig.direction === 'desc' ? sorted.reverse() : sorted;
-  }, [filteredEvaluations, kueueWorkloadStatusesByEvaluationID, sortConfig]);
+  }, [filteredEvaluations, kueueWorkloadStatusesByEvaluationID, sortConfig, isKueueEnabled]);
 
   const paginatedEvaluations = React.useMemo(
     () => sortedEvaluations.slice(perPage * (page - 1), perPage * page),
@@ -327,9 +372,10 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   }, [filterValue, activeFilter, selectedStatus]);
 
   const handleClearFilters = React.useCallback(() => {
+    trackTextFilterAppliedDebounced.cancel();
     setFilterValue('');
     setSelectedStatus('');
-  }, []);
+  }, [trackTextFilterAppliedDebounced]);
 
   const handleSelectionChange = React.useCallback(
     (jobId: string, checked: boolean) => {
@@ -343,7 +389,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
 
         const job = evaluations.find((j) => j.resource.id === jobId);
         if (job) {
-          fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED, {
+          trackEvalHubEvent(EVAL_HUB_EVENTS.COMPARE_RUN_SELECTED, {
             evaluationName: getEvaluationName(job),
             evaluationType: isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Benchmark',
             isSelected: checked,
@@ -367,7 +413,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     const allSuites = selectedJobs.every(isBenchmarkSuiteRun);
     const allBenchmarks = selectedJobs.every((job) => !isBenchmarkSuiteRun(job));
 
-    fireMiscTrackingEvent(EVAL_HUB_EVENTS.COMPARE_INITIATED, {
+    trackEvalHubEvent(EVAL_HUB_EVENTS.COMPARE_INITIATED, {
       countOfRuns: selectedJobs.length,
       runTypes: allBenchmarks ? 'all_benchmarks' : allSuites ? 'all_suites' : 'mixed',
       hasCollections: hasSuiteSelections,
@@ -463,6 +509,9 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     ) {
                       setActiveFilter(key);
                     }
+                    // Switching filter type discards the text filter, so its pending
+                    // debounced event must not fire for the discarded value.
+                    trackTextFilterAppliedDebounced.cancel();
                     setFilterValue('');
                     setSelectedStatus('');
                     setIsFilterSelectOpen(false);
@@ -498,6 +547,12 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     onSelect={(_event, value: string | number | undefined) => {
                       const matched = STATUS_OPTIONS.find((o) => o.value === String(value));
                       setSelectedStatus(matched ? matched.value : '');
+                      if (matched) {
+                        trackEvalHubEvent(EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED, {
+                          filterAttribute: 'status',
+                          value: matched.value,
+                        });
+                      }
                       setIsStatusSelectOpen(false);
                     }}
                     onOpenChange={setIsStatusSelectOpen}
@@ -522,8 +577,14 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                     aria-label={FILTER_PLACEHOLDERS[activeFilter] ?? ''}
                     placeholder={FILTER_PLACEHOLDERS[activeFilter] ?? ''}
                     value={filterValue}
-                    onChange={(_event, value) => setFilterValue(value)}
-                    onClear={() => setFilterValue('')}
+                    onChange={(_event, value) => {
+                      setFilterValue(value);
+                      trackTextFilterAppliedDebounced(activeFilter, value);
+                    }}
+                    onClear={() => {
+                      trackTextFilterAppliedDebounced.cancel();
+                      setFilterValue('');
+                    }}
                     data-testid="filter-toolbar-text-field"
                   />
                 )}
@@ -617,12 +678,12 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 Name
               </Th>
               <Th sort={getSortParams(1)} modifier="nowrap">
-                Status
+                Job status
               </Th>
               <Th
                 modifier="nowrap"
                 info={{
-                  popover: 'The benchmark or benchmark suite used for this evaluation.',
+                  popover: 'The benchmark or collection used for this evaluation.',
                 }}
               >
                 Evaluation
@@ -642,7 +703,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 modifier="nowrap"
                 info={{
                   popover:
-                    'The primary metric score for this evaluation run. For benchmark suites, this is the weighted average of all benchmark scores.',
+                    'The primary metric score for this evaluation run. For collections, this is the weighted average of all benchmark scores.',
                 }}
               >
                 Result
@@ -667,6 +728,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 isKueueWorkloadStatusLoading={
                   !kueueAvailabilityLoaded || (isKueueEnabled && isKueueWorkloadStatusesLoading)
                 }
+                isKueueEnabled={isKueueEnabled}
               />
             ))}
           </Tbody>

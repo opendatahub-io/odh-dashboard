@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { getDirectCallOptions } from '../../../utils/directCallUtils';
 import { getAccessToken } from '../../../utils/directCallUtils';
+import { getProxyAgent } from '../../../utils/httpUtils';
 import { ClientRequest, IncomingMessage } from 'http';
 import https from 'https';
 
@@ -117,6 +118,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         const serverAddress = fastify.server.address();
         const target = new WebSocket(url, subprotocols, {
+          agent: getProxyAgent(url),
           headers: {
             host: req.headers.host,
             origin:

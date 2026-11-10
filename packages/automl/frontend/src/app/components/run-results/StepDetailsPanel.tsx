@@ -1,5 +1,6 @@
 import {
   Alert,
+  Button,
   Content,
   ContentVariants,
   DescriptionList,
@@ -24,8 +25,11 @@ import {
 import { ExclamationCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import React from 'react';
+import { ExecutorLogsTearsheet } from '@odh-dashboard/autox-core/ui/components/feature';
+import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 import type { PipelineRun } from '~/app/types';
 import { getSelectedModels, BRANCHING_STAGE_ID } from '~/app/topology/stageMapStatus';
 import type { PipelineStatusFilter } from '~/app/topology/tree-view/types';
@@ -60,6 +64,8 @@ type StepDetailsPanelProps = {
   componentStageMap?: ComponentStageMap;
   pipelineRun?: PipelineRun;
   showStageMapUnavailableNotice?: boolean;
+  /** Namespace of the run — used to fetch executor logs for failed steps. */
+  namespace?: string;
   onClose?: () => void;
 };
 
@@ -192,6 +198,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
   componentStageMap,
   pipelineRun,
   showStageMapUnavailableNotice = false,
+  namespace,
   onClose,
 }) => {
   const { models, parameters } = useAutomlResultsContext();
@@ -199,6 +206,22 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     () => getPipelineSummaryDetails(pipelineRun, componentStageMap, models, parameters),
     [pipelineRun, componentStageMap, models, parameters],
   );
+
+  // Hooks must run unconditionally, above the early return below.
+  const parsedNodeId = selectedNodeId ? parseStageMapNodeId(selectedNodeId) : undefined;
+  const { rootDir } = useAutomlOutputDir(pipelineRun);
+  // Stage-map nodes resolve to their component; fallback-topology node ids are
+  // the KFP task names themselves.
+  const taskKey = selectedNodeId ? (parsedNodeId?.componentId ?? selectedNodeId) : undefined;
+  const executorError = useTaskExecutorError({
+    namespace,
+    runId: pipelineRun?.run_id,
+    pipelineRun,
+    taskKey,
+    rootDir,
+    enabled: nodeData?.stepState === 'failed',
+  });
+  const [isLogsTearsheetOpen, setIsLogsTearsheetOpen] = React.useState(false);
 
   if (!selectedNodeId || !nodeData) {
     const resolvedStatusFilter = statusFilter ?? 'loading';
@@ -263,7 +286,6 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
     );
   }
 
-  const parsedNodeId = parseStageMapNodeId(selectedNodeId);
   const metadata = getStepMetadata(selectedNodeId, nodeData.label ?? '', nodeData.stepState, {
     componentStageMap,
     pipelineRun,
@@ -296,6 +318,7 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
             <StackItem>
               <Alert
                 variant="danger"
+                isInline
                 title="This step failed"
                 customIcon={<ExclamationCircleIcon />}
                 data-testid="step-failed-alert"
@@ -304,6 +327,39 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
                 {isBranchingStage
                   ? ' Branch steps are reported as a single group — remaining steps were not run.'
                   : null}
+                {executorError.isLoading ? (
+                  <div
+                    className="automl-step-details__error-status"
+                    data-testid="step-failed-error-loading"
+                  >
+                    <Spinner size="sm" /> Retrieving failure details…
+                  </div>
+                ) : executorError.logText ? (
+                  <div className="automl-step-details__logs-action">
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => setIsLogsTearsheetOpen(true)}
+                      data-testid="step-failed-view-logs"
+                    >
+                      View logs
+                    </Button>
+                  </div>
+                ) : null}
+              </Alert>
+            </StackItem>
+          )}
+          {nodeData.stepState === 'unreached' && (
+            <StackItem>
+              <Alert
+                variant="warning"
+                isInline
+                title="Step not attempted"
+                data-testid="step-not-attempted-alert"
+              >
+                {statusFilter === 'error'
+                  ? 'This step was not attempted because the pipeline failed at an earlier step.'
+                  : 'This step was skipped and was not attempted.'}
               </Alert>
             </StackItem>
           )}
@@ -337,6 +393,14 @@ const StepDetailsPanel: React.FC<StepDetailsPanelProps> = ({
           )}
         </Stack>
       </DrawerPanelBody>
+      {executorError.logText ? (
+        <ExecutorLogsTearsheet
+          logText={executorError.logText}
+          isOpen={isLogsTearsheetOpen}
+          onClose={() => setIsLogsTearsheetOpen(false)}
+          stepLabel={panelTitle}
+        />
+      ) : null}
     </>
   );
 };

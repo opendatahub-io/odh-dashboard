@@ -6,6 +6,7 @@ import {
   WizardFieldExtension,
   WizardFieldExtractorExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import { ModelServingDeploymentsBannerExtension } from '@odh-dashboard/model-serving/extension-points';
 import { MODEL_AS_SERVICE_ID } from '~/odh/odhExtensions/odhExtensions';
 import type { MaaSFieldType, MaaSFieldValue } from './modelDeploymentWizard/MaaSEndpointCheckbox';
 
@@ -15,7 +16,8 @@ export type ModelServingExtensions =
   | WizardFieldExtension<MaaSFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<MaaSFieldValue, LLMdDeployment>
   | WizardFieldExtractorExtension<MaaSFieldValue, LLMdDeployment>
-  | WizardFieldDeploymentFunctionsExtension<MaaSFieldValue, LLMdDeployment>;
+  | WizardFieldDeploymentFunctionsExtension<MaaSFieldValue, LLMdDeployment>
+  | ModelServingDeploymentsBannerExtension;
 
 const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
   {
@@ -71,6 +73,19 @@ const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
         import('./modelDeploymentWizard/maas-model-ref').then((m) => m.preDeployMaaSModelRef),
       postDeploy: () =>
         import('./modelDeploymentWizard/maas-model-ref').then((m) => m.postDeployMaaSModelRef),
+    },
+  },
+  {
+    type: 'model-serving.deployments/banner',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID],
+    },
+    properties: {
+      id: 'maas-published-post-deploy-alert',
+      component: () =>
+        import('./MaaSPublishedPostDeployAlert').then(
+          (m) => m.MaaSPublishedInternalPostDeployAlert,
+        ),
     },
   },
 ];

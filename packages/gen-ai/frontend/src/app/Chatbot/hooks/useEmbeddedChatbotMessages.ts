@@ -14,7 +14,7 @@ export const USER_QUERY_PLACEHOLDER = '<user_query_placeholder>';
 /** A single message entry in the Responses API input array. */
 type ResponsesInputMessage = {
   type: 'message';
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: Array<{ type: 'input_text'; text: string }>;
 };
 
@@ -81,6 +81,8 @@ type UseEmbeddedChatbotMessagesProps = {
   namespace: string;
   secretName: string;
   responsesTemplate: ResponsesTemplate;
+  responsesEndpointUrl?: string;
+  additionalMetadata?: Record<string, string>;
   username?: string;
 };
 
@@ -94,6 +96,8 @@ const useEmbeddedChatbotMessages = ({
   namespace,
   secretName,
   responsesTemplate,
+  responsesEndpointUrl,
+  additionalMetadata,
   username,
 }: UseEmbeddedChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
@@ -196,7 +200,28 @@ const useEmbeddedChatbotMessages = ({
       let botMessageId: string | undefined;
 
       try {
-        const requestBody = buildRequestBodyFn(message, messagesRef.current);
+        const rawRequestBody = buildRequestBodyFn(message, messagesRef.current);
+
+        // Extract system message from additionalMetadata — inject into input, not metadata.
+        // user_message_text is handled entirely by the BFF (context + question concatenation).
+        const { system_message_text: systemMessageText, ...metadataForBFF } =
+          additionalMetadata ?? {};
+
+        const systemInputMessage: ResponsesInputMessage | undefined = systemMessageText
+          ? {
+              type: 'message',
+              role: 'system',
+              content: [{ type: 'input_text', text: systemMessageText }],
+            }
+          : undefined;
+
+        const requestBody = {
+          ...rawRequestBody,
+          input: systemInputMessage
+            ? [systemInputMessage, ...rawRequestBody.input]
+            : rawRequestBody.input,
+          metadata: { ...rawRequestBody.metadata, ...metadataForBFF },
+        };
 
         abortControllerRef.current = new AbortController();
 
@@ -266,6 +291,7 @@ const useEmbeddedChatbotMessages = ({
             }
           },
           abortControllerRef.current.signal,
+          responsesEndpointUrl,
         );
 
         if (timeoutRef.current) {
@@ -400,7 +426,16 @@ const useEmbeddedChatbotMessages = ({
         abortControllerRef.current = null;
       }
     },
-    [buildRequestBodyFn, bffBasePath, namespace, secretName, username, modelDisplayName],
+    [
+      buildRequestBodyFn,
+      bffBasePath,
+      namespace,
+      secretName,
+      username,
+      modelDisplayName,
+      additionalMetadata,
+      responsesEndpointUrl,
+    ],
   );
 
   handleMessageSendRef.current = handleMessageSend;

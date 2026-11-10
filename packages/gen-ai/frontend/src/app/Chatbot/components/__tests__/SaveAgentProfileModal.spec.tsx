@@ -118,6 +118,18 @@ describe('SaveAgentProfileModal', () => {
       renderModal('save-as');
       expect(screen.getByText('Save as new agent')).toBeInTheDocument();
       expect(screen.getByTestId('save-agent-profile-name-input')).toHaveValue('');
+      expect(
+        screen.getByText('Save your model, prompt, RAG, and MCP servers as a reusable agent.'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('RAG')).toBeInTheDocument();
+    });
+
+    it('should identify a missing RAG source when external RAG is enabled', () => {
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+      useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+      renderModal('save-as');
+
+      expect(screen.getByText('No RAG source selected')).toBeInTheDocument();
     });
 
     it('should explain that guardrails are not saved with the agent', () => {

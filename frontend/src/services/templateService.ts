@@ -37,9 +37,16 @@ export const createServingRuntimeTemplateBackend = async (
   namespace: string,
   apiProtocol: ServingRuntimeAPIProtocol | undefined,
   modelTypes: ServingRuntimeModelType[],
+  installedFromCatalog?: boolean,
 ): Promise<TemplateKind> => {
   try {
-    const template = assembleServingRuntimeTemplate(body, namespace, apiProtocol, modelTypes);
+    const template = assembleServingRuntimeTemplate(
+      body,
+      namespace,
+      apiProtocol,
+      modelTypes,
+      installedFromCatalog,
+    );
     const servingRuntime = template.objects[0];
     const servingRuntimeName = servingRuntime.metadata.name;
 

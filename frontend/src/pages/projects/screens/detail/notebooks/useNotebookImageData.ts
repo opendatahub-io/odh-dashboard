@@ -7,6 +7,7 @@ import {
   getImageStreamDisplayName,
   isBYONImageStream,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageStreamSpecTagAnnotation } from '#~/types';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImageData } from './types';
 
@@ -240,7 +241,7 @@ const getImageStatus = (
   imageVersion: ImageStreamSpecTagType,
 ): NotebookImageStatus | undefined => {
   if (
-    imageVersion.annotations?.['opendatahub.io/image-tag-outdated'] === 'true' ||
+    imageVersion.annotations?.[ImageStreamSpecTagAnnotation.OUTDATED] === 'true' ||
     isNotebookImageOutdated(notebook, imageStream)
   ) {
     return NotebookImageStatus.DEPRECATED;

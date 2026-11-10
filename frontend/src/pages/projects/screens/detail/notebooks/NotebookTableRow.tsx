@@ -8,7 +8,7 @@ import {
   Popover,
   Split,
   SplitItem,
-  Tooltip,
+  Stack,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { InfoCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
@@ -21,6 +21,8 @@ import {
 import { useIsAreaAvailable, SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { getDescriptionFromK8sResource } from '@odh-dashboard/k8s-core';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
+import DRAHardwareProfileDetailsSection from '@odh-dashboard/hardware-profiles/shared/DRAHardwareProfileDetailsSection';
+import { useIsDRAHardwareProfileEnabled } from '@odh-dashboard/hardware-profiles/shared/useIsDRAHardwareProfileEnabled';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
 import { NotebookKind } from '#~/k8sTypes';
@@ -39,11 +41,14 @@ import { isWorkbenchMigrated, useNotebookHardwareProfile } from '#~/concepts/not
 import { UseAssignHardwareProfileResult } from '#~/concepts/hardwareProfiles/useAssignHardwareProfile';
 import { useHardwareProfileBindingState } from '#~/concepts/hardwareProfiles/useHardwareProfileBindingState';
 import useNotification from '#~/utilities/useNotification';
-import { getDeletedHardwareProfilePatches } from '#~/concepts/hardwareProfiles/utils';
+import {
+  getDeletedHardwareProfilePatches,
+  getDRAHardwareProfileDetails,
+} from '#~/concepts/hardwareProfiles/utils';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';
 import { useWorkbenchFeatureStores } from '#~/pages/projects/screens/spawner/featureStore/useWorkbenchFeatureStores';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
-import { NotebookImageStatus } from './const';
+import { KUEUE_ANOMALY_POPOVER_BODY, NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
 import NotebookFeatureStoreList from './NotebookFeatureStoreList';
@@ -79,6 +84,12 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [dontShowModalValue] = useStopNotebookModalAvailability();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isKueueAnomalyPopoverVisible, setIsKueueAnomalyPopoverVisible] = React.useState(false);
+  const setKueueAnomalyPopoverVisibility = (visible: boolean) => {
+    setIsKueueAnomalyPopoverVisible((previousVisible) =>
+      previousVisible === visible ? previousVisible : visible,
+    );
+  };
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const notification = useNotification();
@@ -86,6 +97,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const [bindingStateInfo, bindingStateLoaded, bindingStateLoadError] =
     useHardwareProfileBindingState(obj.notebook, WORKBENCH_VISIBILITY);
   const showMigrationRequired = !isWorkbenchMigrated(obj.notebook);
+  const isDRAEnabled = useIsDRAHardwareProfileEnabled();
+  const draDetails =
+    isDRAEnabled && bindingStateInfo?.profile
+      ? getDRAHardwareProfileDetails(bindingStateInfo.profile, obj.notebook.spec.template.spec)
+      : undefined;
 
   const isMlflowAvailable = useIsAreaAvailable(SupportedArea.MLFLOW).status;
   const isFeatureStoreAvailable = useIsAreaAvailable(SupportedArea.FEATURE_STORE).status;
@@ -231,17 +247,26 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                 )}
                 {showKueueAnomalyIndicator && (
                   <FlexItem>
-                    <Tooltip content="This workbench is not managed by Kueue. It was created without a queue assignment and will bypass queue-based resource management in this Kueue-enabled project.">
-                      <Icon
-                        role="button"
-                        status="warning"
+                    <Popover
+                      alertSeverityVariant="warning"
+                      headerIcon={<ExclamationTriangleIcon />}
+                      bodyContent={KUEUE_ANOMALY_POPOVER_BODY}
+                      showClose
+                      withFocusTrap={false}
+                      isVisible={isKueueAnomalyPopoverVisible}
+                      shouldOpen={() => setKueueAnomalyPopoverVisibility(true)}
+                      shouldClose={() => setKueueAnomalyPopoverVisibility(false)}
+                    >
+                      <DashboardPopupIconButton
                         data-testid="kueue-anomaly-indicator"
                         aria-label="Workbench bypasses Kueue queue management"
-                        tabIndex={0}
-                      >
-                        <ExclamationTriangleIcon />
-                      </Icon>
-                    </Tooltip>
+                        icon={
+                          <Icon status="warning">
+                            <ExclamationTriangleIcon />
+                          </Icon>
+                        }
+                      />
+                    </Popover>
                   </FlexItem>
                 )}
               </Flex>
@@ -311,7 +336,6 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                   bindingStateLoaded,
                   loadError: bindingStateLoadError,
                 }}
-                onExpandRow={() => setExpanded(true)}
               />
             </FlexItem>
           </Flex>
@@ -351,11 +375,14 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             )}
           </ExpandableRowContent>
         </Td>
-        <Td dataLabel="Limits">
+        <Td dataLabel="Limits" data-testid="notebook-limits-details">
           <ExpandableRowContent>
-            <NotebookSizeDetails
-              notebookContainerSize={podSpecOptionsState.podSpecOptions.resources}
-            />
+            <Stack hasGutter>
+              <NotebookSizeDetails
+                notebookContainerSize={podSpecOptionsState.podSpecOptions.resources}
+              />
+              {draDetails && <DRAHardwareProfileDetailsSection details={draDetails} />}
+            </Stack>
           </ExpandableRowContent>
         </Td>
         {isFeatureStoreAvailable ? (

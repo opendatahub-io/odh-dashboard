@@ -9,6 +9,11 @@ class CopySuitePage {
     this.waitForLoad();
   }
 
+  visitEdit(namespace: string, collectionId: string) {
+    cy.visit(`/evaluation/${namespace}/create/collections/${collectionId}/edit`);
+    this.waitForLoad();
+  }
+
   private waitForLoad() {
     cy.findByTestId('copy-suite-editor').should('exist');
   }
@@ -57,6 +62,34 @@ class CopySuitePage {
 
   findConfigurationStep() {
     return cy.findByTestId('copy-suite-step-benchmarks');
+  }
+
+  findBenchmarkParameterInput(index: number, parameterKey: string) {
+    return cy.findByTestId(`benchmark-${index}-parameter-input-${parameterKey}`);
+  }
+
+  findBenchmarkParameterError(index: number, parameterKey: string) {
+    return cy.findByTestId(`benchmark-${index}-parameter-error-${parameterKey}`);
+  }
+
+  findBenchmarkTestDataRefSourceToggle(index: number) {
+    return cy.findByTestId(`benchmark-test-data-ref-${index}-source-toggle`);
+  }
+
+  findBenchmarkTestDataRefOption(optionLabel: string) {
+    return cy.findByRole('option', { name: optionLabel });
+  }
+
+  findBenchmarkTestDataRefField(index: number, field: string) {
+    return cy.findByTestId(`benchmark-test-data-ref-${index}-${field}`);
+  }
+
+  findBenchmarkTestDataRefFieldError(index: number, field: string) {
+    return cy.findByTestId(`benchmark-test-data-ref-${index}-${field}-error`);
+  }
+
+  findSaveOnlyButton() {
+    return cy.findByTestId('copy-suite-save-only');
   }
 
   findConfigurationBackButton() {

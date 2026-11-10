@@ -11,6 +11,10 @@ class EvaluationsPage {
     return cy.findByTestId('create-evaluation-button', options);
   }
 
+  findEvaluateTab(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('evaluate-tab', options);
+  }
+
   findEvaluateTabContent(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('evaluate-tab-content', options);
   }
@@ -20,7 +24,9 @@ class EvaluationsPage {
   }
 
   findBenchmarkSuitesGallery(options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId('benchmark-suites-gallery', options);
+    // Scope to the Evaluate tab content — mountOnEnter keeps the Gallery tab's gallery in the
+    // DOM with the same test ID, so an unscoped query matches both galleries.
+    return this.findEvaluateTabContent(options).findByTestId('benchmark-suites-gallery', options);
   }
 
   findCreateSuiteButton(options?: Partial<Cypress.Timeoutable>) {
@@ -28,10 +34,21 @@ class EvaluationsPage {
   }
 
   findBenchmarkSuiteCardByName(suiteName: string, options?: Partial<Cypress.Timeoutable>) {
+    // Derive the collection ID from the name element's test ID and resolve the card root exactly.
+    // A prefix-matching .parents() query would match nearer ancestors first — the clickable title
+    // region (benchmark-suite-card-title-region-<id>) sits between the name and the card root.
     return this.findBenchmarkSuitesGallery(options)
       .contains('[data-testid^="benchmark-suite-card-name-"]', suiteName, options)
-      .parents('[data-testid^="benchmark-suite-card-"]')
-      .first();
+      .then(($name) => {
+        const collectionId = ($name.attr('data-testid') ?? '').replace(
+          'benchmark-suite-card-name-',
+          '',
+        );
+        return cy.wrap(
+          $name.closest(`[data-testid="benchmark-suite-card-${collectionId}"]`),
+          options,
+        );
+      });
   }
 
   findBenchmarkSuitePrimaryActionByName(suiteName: string, options?: Partial<Cypress.Timeoutable>) {

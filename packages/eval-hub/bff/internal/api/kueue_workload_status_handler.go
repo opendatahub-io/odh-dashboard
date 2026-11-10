@@ -6,38 +6,24 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
-	kubernetes "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 )
 
 type KueueWorkloadStatusesEnvelope Envelope[models.KueueWorkloadStatusesResponse, None]
 
+// RHOAIENG-99645: the Kueue integration is disabled. Validate the request shape (the
+// contract pins the 400 paths), then return an empty status set without querying the cluster.
 func (app *App) KueueWorkloadStatusesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	evaluationIDs, err := parseEvaluationIDs(r.URL.Query().Get("evaluation_ids"))
-	if err != nil {
+	if _, err := parseEvaluationIDs(r.URL.Query().Get("evaluation_ids")); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	ctx := r.Context()
-	client, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-		return
+	statuses := models.KueueWorkloadStatusesResponse{
+		// Non-nil so the field marshals to [] rather than null, per the OpenAPI contract.
+		Items: []models.KueueWorkloadStatus{},
 	}
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
-	if !ok || identity == nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-	statuses, err := client.GetKueueWorkloadStatuses(ctx, identity, namespace, evaluationIDs)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to list Kueue Workloads: %w", err))
-		return
-	}
-	if err := app.WriteJSON(w, http.StatusOK, KueueWorkloadStatusesEnvelope{Data: *statuses}, nil); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, KueueWorkloadStatusesEnvelope{Data: statuses}, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

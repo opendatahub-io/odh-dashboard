@@ -285,6 +285,8 @@ func (m *ModelCatalogClientMock) GetCatalogLabels(client httpclient.HTTPClientIn
 		labels = GetMcpServerCatalogLabelListMock()
 	case "agents":
 		labels = GetAgentCatalogLabelListMock()
+	case "serving_runtimes":
+		labels = GetServingRuntimeCatalogLabelListMock()
 	default:
 		labels = GetCatalogLabelListMock()
 	}
@@ -649,18 +651,14 @@ func (m *ModelCatalogClientMock) GetAllServingRuntimes(_ httpclient.HTTPClientIn
 	var err error
 	items, err = filterRuntimeMockItems(items, query.Get("filterQuery"), func(item models.ServingRuntime, key string) ([]string, bool) {
 		switch key {
-		case "hardware":
-			return servingRuntimeMockHardware(item), true
-		case "modelFormat":
-			formats := make([]string, 0, len(item.SupportedModelFormats))
-			for _, format := range item.SupportedModelFormats {
-				formats = append(formats, format.Name)
-			}
-			return formats, true
+		case servingRuntimeAcceleratorsFilterKey:
+			return servingRuntimeMockAccelerators(item), true
+		case servingRuntimeModelFormatsFilterKey:
+			return servingRuntimeMockModelFormats(item), true
 		default:
 			return nil, false
 		}
-	}, []string{"hardware", "modelFormat"})
+	}, []string{servingRuntimeAcceleratorsFilterKey, servingRuntimeModelFormatsFilterKey})
 	if err != nil {
 		return nil, err
 	}

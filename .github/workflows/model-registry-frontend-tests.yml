@@ -1,6 +1,7 @@
 name: Test / Model Registry Frontend Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
       - 'packages/model-registry/**'
       - '.github/workflows/model-registry-frontend-tests.yml'

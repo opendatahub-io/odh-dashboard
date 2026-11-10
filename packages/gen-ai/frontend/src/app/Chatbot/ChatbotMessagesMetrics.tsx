@@ -1,20 +1,17 @@
 import * as React from 'react';
 import {
-  Button,
   ExpandableSection,
   ExpandableSectionToggle,
   Flex,
   FlexItem,
   Label,
 } from '@patternfly/react-core';
-import CaretDownIcon from '@patternfly/react-icons/dist/esm/icons/rh-microns-caret-down-icon';
 import { ResponseMetrics } from '~/app/types';
 
 interface ChatbotMessagesMetricsProps {
   metrics: ResponseMetrics;
   isExpanded?: boolean;
   onExpandedChange?: (isExpanded: boolean) => void;
-  isDisabled?: boolean;
   showToggle?: boolean;
   showContent?: boolean;
   toggleId?: string;
@@ -69,7 +66,6 @@ export const ChatbotMessagesMetrics: React.FC<ChatbotMessagesMetricsProps> = ({
   metrics,
   isExpanded: controlledIsExpanded,
   onExpandedChange,
-  isDisabled = false,
   showToggle = true,
   showContent = true,
   toggleId: providedToggleId,
@@ -90,11 +86,7 @@ export const ChatbotMessagesMetrics: React.FC<ChatbotMessagesMetricsProps> = ({
 
   return (
     <div data-testid="chatbot-message-metrics">
-      {showToggle && isDisabled ? (
-        <Button variant="plain" icon={<CaretDownIcon />} isDisabled>
-          <small>Response metrics</small>
-        </Button>
-      ) : showToggle ? (
+      {showToggle ? (
         <ExpandableSectionToggle
           isExpanded={isExpanded}
           onToggle={toggleExpanded}

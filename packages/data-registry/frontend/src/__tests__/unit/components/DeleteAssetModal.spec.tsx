@@ -5,7 +5,6 @@ import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 describe('DeleteAssetModal', () => {
   const defaultProps = {
     assetName: 'my-table',
-    assetType: 'table' as const,
     onDelete: jest.fn().mockResolvedValue(undefined),
     onClose: jest.fn(),
   };
@@ -14,21 +13,34 @@ describe('DeleteAssetModal', () => {
     jest.clearAllMocks();
   });
 
-  it('should render asset name and type', () => {
+  it('should render the deletion confirmation copy', () => {
     render(<DeleteAssetModal {...defaultProps} />);
-    expect(screen.getByText('Permanently delete "my-table" structured asset?')).toBeTruthy();
+    expect(screen.getByText('Delete data asset?')).toBeTruthy();
+    expect(screen.getByTestId('delete-asset-modal')).toHaveTextContent(
+      'The my-table data asset will be deleted.',
+    );
+    expect(screen.getByTestId('delete-asset-modal')).toHaveTextContent(
+      'To confirm deletion, type my-table:',
+    );
+    const confirmation = screen.getByRole('textbox', {
+      name: 'To confirm deletion, type my-table:',
+    });
+    expect(
+      confirmation
+        .closest('.pf-v6-c-form__group')
+        ?.querySelector('.pf-v6-u-text-color-status-danger'),
+    ).toHaveTextContent('*');
+    expect(confirmation).toHaveAttribute('id', 'delete-asset-confirmation');
+    expect(confirmation).toHaveAttribute('required');
     expect(screen.getAllByText('my-table')).toHaveLength(2);
-  });
-
-  it('should render volume type', () => {
-    render(<DeleteAssetModal {...defaultProps} assetType="volume" />);
-    expect(screen.getByText('Permanently delete "my-table" unstructured asset?')).toBeTruthy();
   });
 
   it('should require the exact asset name before deleting', async () => {
     render(<DeleteAssetModal {...defaultProps} />);
     const deleteButton = screen.getByTestId('delete-asset-confirm');
-    const confirmation = screen.getByTestId('delete-asset-confirmation');
+    const confirmation = screen.getByRole('textbox', {
+      name: 'To confirm deletion, type my-table:',
+    });
 
     expect(deleteButton).toBeDisabled();
     fireEvent.change(confirmation, { target: { value: 'my' } });

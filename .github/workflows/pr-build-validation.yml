@@ -8,6 +8,9 @@ on:
       - 'frontend/**'
       - 'backend/**'
       - 'packages/**'
+      - 'distributions/**'
+      - 'pkg/tls/**'
+      - 'prefetch/**'
       - 'Dockerfile'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -16,6 +19,7 @@ on:
       - 'dashboard-operator/**'
       - '.github/workflows/pr-build-validation.yml'
       - '.github/pr-build-simulation/**'
+      - 'scripts/check-css-lowering.sh'
 
 env:
   NODE_VERSION: '22'
@@ -29,7 +33,7 @@ jobs:
   # Gate job: Centralized skip condition check
   # All other jobs depend on this to avoid duplicating the skip logic
   check-skip:
-    name: "Check Skip Condition"
+    name: 'Check Skip Condition'
     runs-on: ubuntu-latest
     outputs:
       should-skip: ${{ steps.check.outputs.skip }}
@@ -48,7 +52,7 @@ jobs:
 
   # Phase 0: Early Static Checks (runs first, fails fast)
   hermetic-preflight:
-    name: "Phase 0: Hermetic Build Preflight"
+    name: 'Phase 0: Hermetic Build Preflight'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -262,12 +266,12 @@ jobs:
 
   # Phase 1: Docker Build Validation
   docker-build-odh:
-    name: "Phase 1: Docker Build (ODH mode)"
+    name: 'Phase 1: Docker Build (ODH mode)'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
-      actions: write  # for upload-artifact
+      actions: write # for upload-artifact
     needs: [check-skip, hermetic-preflight]
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
@@ -301,12 +305,12 @@ jobs:
           retention-days: 1
 
   docker-build-rhoai:
-    name: "Phase 1: Docker Build (RHOAI mode)"
+    name: 'Phase 1: Docker Build (RHOAI mode)'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
-      actions: write  # for upload-artifact
+      actions: write # for upload-artifact
     needs: [check-skip, hermetic-preflight]
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
@@ -339,12 +343,49 @@ jobs:
           path: /tmp/odh-dashboard-rhoai.tar.gz
           retention-days: 1
 
+  # Phase 1 (Core BFF): Build from this checkout so Phase 4 does not pull the
+  # mutable quay.io/.../odh-core-bff:main image.
+  core-bff-build:
+    name: 'Phase 1: Core BFF Image Build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    needs: [check-skip, hermetic-preflight]
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Build Core BFF image
+        run: |
+          set -euo pipefail
+          docker build \
+            --tag odh-core-bff:odh-test \
+            --file distributions/core-bff/Dockerfile.workspace \
+            .
+
+      - name: Save Core BFF image
+        run: docker save odh-core-bff:odh-test | gzip > /tmp/odh-core-bff.tar.gz
+
+      - name: Upload Core BFF image artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: odh-core-bff-image
+          path: /tmp/odh-core-bff.tar.gz
+          retention-days: 1
+
   # Phase 1 (operator): Build the dashboard-operator container image.
   # The operator Dockerfile is built from the repo root because it COPYs both
   # dashboard-operator/ sources and manifests/ into the image. The resulting image
   # is loaded into the Kind cluster in Phase 4 for CRD/CR reconciliation validation.
   operator-build:
-    name: "Phase 1: Operator Image Build"
+    name: 'Phase 1: Operator Image Build'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -386,7 +427,7 @@ jobs:
   # resource schemas before they reach a cluster. CRDs without public schemas (Dashboard,
   # OdhDashboardConfig, etc.) are skipped via -ignore-missing-schemas.
   manifest-validation:
-    name: "Phase 5: Manifest Validation"
+    name: 'Phase 5: Manifest Validation'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -428,9 +469,9 @@ jobs:
           set -euo pipefail
           # Overlays that must render and schema-validate cleanly. This set mirrors what the
           # dashboard-operator actually renders at runtime (see dashboard-operator/internal/
-          # controller/{actions,support,module_deploy,maas_consumer_portal}.go): the platform
+          # controller/{actions,support,module_deploy,maas_portal}.go): the platform
           # base overlays (which pull in the ConsoleLink via manifests/{base,rhoai}/consolelink),
-          # the observability manifests, the MaaS consumer-portal distribution, and every module
+          # the observability manifests, the MaaS Portal distribution, and every module
           # overlay (rendered per enabled module). Keeping these in sync means a broken
           # resources: path in any of them is caught here instead of at deploy time.
           OVERLAYS=(
@@ -439,7 +480,7 @@ jobs:
             manifests/rhoai
             manifests/observability/odh
             manifests/observability/rhoai
-            manifests/distributions/maas-consumer-portal
+            manifests/distributions/maas-portal
           )
 
           # Dynamically append every module overlay (manifests/modules/<slug>) so newly
@@ -548,11 +589,11 @@ jobs:
 
   # Phase 2 & 3: Runtime and Module Federation Validation
   runtime-validation-odh:
-    name: "Phase 2-3: Runtime & Module Federation (ODH)"
+    name: 'Phase 2-3: Runtime & Module Federation (ODH)'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read  # for download-artifact
+      actions: read # for download-artifact
     needs: [check-skip, docker-build-odh]
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
@@ -687,6 +728,15 @@ jobs:
           du -sh /tmp/odh-dist
           echo "::endgroup::"
 
+          # Guard (RHOAIENG-100835): LightningCSS logical-properties lowering must
+          # never re-enter built CSS — the :lang() RTL fallback selectors it emits
+          # carry specificity that beats PatternFly's contextual overrides.
+          echo "::group::Guarding CSS logical-properties lowering"
+          if ! bash scripts/check-css-lowering.sh /tmp/odh-dist; then
+            FAILURES=$((FAILURES + 1))
+          fi
+          echo "::endgroup::"
+
           if [ $FAILURES -gt 0 ]; then
             echo ""
             echo "❌ TOTAL FAILURES: $FAILURES"
@@ -699,11 +749,11 @@ jobs:
           echo "✅ PASS: Default ODH build produces correct artifacts and branding"
 
   runtime-validation-rhoai:
-    name: "Phase 2-3: Runtime & Module Federation (RHOAI)"
+    name: 'Phase 2-3: Runtime & Module Federation (RHOAI)'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read  # for download-artifact
+      actions: read # for download-artifact
     needs: [check-skip, docker-build-rhoai]
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
@@ -810,12 +860,12 @@ jobs:
 
   # Phase 4: Operator Integration (Kind cluster)
   operator-integration:
-    name: "Phase 4: Operator Integration"
+    name: 'Phase 4: Operator Integration'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: read  # for download-artifact
-    needs: [check-skip, runtime-validation-odh, runtime-validation-rhoai, operator-build]
+      actions: read # for download-artifact
+    needs: [check-skip, runtime-validation-odh, runtime-validation-rhoai, core-bff-build, operator-build]
     if: needs.check-skip.outputs.should-skip != 'true'
     steps:
       - name: Checkout code
@@ -823,7 +873,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # This job loads two images into Kind (dashboard + operator) and the operator
+      # This job loads three images into Kind (dashboard, Core BFF, and operator) and the operator
       # reconcile applies the base manifests, so free up runner disk before starting.
       - name: Free disk space
         uses: ./.github/actions/free-disk-space
@@ -832,6 +882,12 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
         with:
           name: odh-dashboard-odh-image
+          path: /tmp
+
+      - name: Download Core BFF image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        with:
+          name: odh-core-bff-image
           path: /tmp
 
       - name: Download operator image
@@ -861,7 +917,9 @@ jobs:
         run: |
           set -euo pipefail
           docker load < /tmp/odh-dashboard-odh.tar.gz
+          docker load < /tmp/odh-core-bff.tar.gz
           kind load docker-image odh-dashboard:odh-test --name odh-test
+          kind load docker-image odh-core-bff:odh-test --name odh-test
 
       - name: Create opendatahub namespace
         run: |
@@ -911,64 +969,26 @@ jobs:
 
           echo "✅ Mock OpenShift ConfigMaps ready"
 
-      - name: Apply manifests
+      - name: Render and apply Kind simulation overlay
         run: |
           set -euo pipefail
-          # Apply base manifests to opendatahub namespace
-          # Try overlay first, fall back to base, fail if both are invalid
-          APPLY_EXIT=0
+          # Keep Kind-only adaptations out of production manifests. The overlay renders
+          # this checkout's manifests/odh with test images, reduced resources, and valid
+          # ServiceAccount namespaces on the existing ClusterRoleBindings.
+          RENDERED_MANIFESTS=/tmp/odh-kind-manifests.yaml
+          kubectl kustomize --load-restrictor LoadRestrictionsNone \
+            .github/pr-build-simulation/odh > "$RENDERED_MANIFESTS"
 
-          if [ -d "manifests/odh" ]; then
-            echo "Applying manifests/odh..."
-            if ! kubectl apply -k manifests/odh -n opendatahub 2>&1; then
-              APPLY_EXIT=$?
-              echo "::error::Manifest application failed with exit code $APPLY_EXIT"
-              echo "::group::Recent cluster events"
-              kubectl get events --sort-by='.lastTimestamp' -n opendatahub | tail -20 || true
-              echo "::endgroup::"
-              exit $APPLY_EXIT
-            fi
-          else
-            echo "❌ FAIL: No kustomize manifests found"
-            exit 1
-          fi
-
-          echo "✅ Manifests applied successfully"
-
-      - name: Patch deployment for Kind resource constraints
-        run: |
-          set -euo pipefail
-
-          # Apply image, imagePullPolicy, resource limits, and replica count in a single
-          # JSON patch so only one rollout is triggered.
-          #
-          # Why image + imagePullPolicy: Never?
-          #   The manifests hardcode imagePullPolicy: Always, so Kubernetes would pull the
-          #   live quay.io:main image even if it's loaded into Kind. "Never" forces it to
-          #   use only what was loaded locally, guaranteeing we test the PR's built image.
-          #
-          # The full patch is attempted first. If it fails (e.g. resource paths differ
-          # across manifest versions), we fall back to the essential image-only patch so
-          # the job does not fail due to resource-constraint differences.
-          echo "Applying combined patch (image + imagePullPolicy + resources + replicas)..."
-          if kubectl patch deployment odh-dashboard -n opendatahub --type=json -p='[
-            {"op": "replace", "path": "/spec/replicas",                                          "value": 1},
-            {"op": "replace", "path": "/spec/template/spec/containers/0/image",                  "value": "odh-dashboard:odh-test"},
-            {"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy",        "value": "Never"},
-            {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "128Mi"},
-            {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/cpu",    "value": "50m"},
-            {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/memory", "value": "64Mi"},
-            {"op": "replace", "path": "/spec/template/spec/containers/1/resources/requests/cpu",    "value": "50m"}
-          ]' 2>/dev/null; then
-            echo "✅ Full patch applied — single rollout triggered"
-          else
-            echo "⚠️  Full patch failed (resource paths may differ); applying essential patch..."
-            kubectl patch deployment odh-dashboard -n opendatahub --type=json -p='[
-              {"op": "replace", "path": "/spec/replicas",                                   "value": 1},
-              {"op": "replace", "path": "/spec/template/spec/containers/0/image",           "value": "odh-dashboard:odh-test"},
-              {"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Never"}
-            ]'
-            echo "✅ Essential patch applied (image + imagePullPolicy + replicas)"
+          # Kind intentionally lacks several OpenShift/Gateway API resources in this
+          # overlay, so apply can be partial. Show the complete output; the subsequent
+          # rollout and container checks validate the dashboard resources Phase 4 needs.
+          set +e
+          kubectl apply -f "$RENDERED_MANIFESTS" > /tmp/odh-kind-apply.log 2>&1
+          APPLY_STATUS=$?
+          set -e
+          cat /tmp/odh-kind-apply.log
+          if [ "$APPLY_STATUS" -ne 0 ]; then
+            echo "::warning::Kind skipped OpenShift/Gateway resources; verifying required dashboard resources below"
           fi
 
       - name: Wait for pods to attempt starting
@@ -987,12 +1007,34 @@ jobs:
             sleep 5
           done
 
-          # Wait for the rollout to complete rather than a fixed sleep.
-          # This correctly handles the single rollout triggered by the combined patch and
-          # avoids the race condition where a fixed sleep may expire before the new pod
-          # has fully replaced the old one.
+          # Wait for the rollout to complete rather than a fixed sleep. The Kind overlay
+          # creates one desired revision, avoiding the race where a fixed sleep expires
+          # before the new pod has fully replaced the old one.
           echo "Waiting for rollout to complete..."
-          kubectl rollout status deployment/odh-dashboard -n opendatahub --timeout=120s
+          if ! kubectl rollout status deployment/odh-dashboard -n opendatahub --timeout=120s; then
+            echo "❌ FAIL: dashboard rollout did not complete within timeout"
+            echo "::group::Dashboard deployment and pod state"
+            kubectl get deployment,replicaset,pods -n opendatahub -o wide || true
+            kubectl describe deployment odh-dashboard -n opendatahub || true
+            kubectl describe pods -n opendatahub -l app=odh-dashboard || true
+            echo "::endgroup::"
+            echo "::group::Dashboard container logs (current + previous)"
+            PODS=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
+              -o jsonpath='{range .items[*]}{.metadata.name}{" "}{end}' 2>/dev/null || true)
+            for POD in $PODS; do
+              for CONTAINER in odh-dashboard kube-rbac-proxy core-bff; do
+                echo "--- ${POD}/${CONTAINER} (current) ---"
+                kubectl logs -n opendatahub "$POD" -c "$CONTAINER" --tail=50 || true
+                echo "--- ${POD}/${CONTAINER} (previous) ---"
+                kubectl logs -n opendatahub "$POD" -c "$CONTAINER" --previous --tail=50 || true
+              done
+            done
+            echo "::endgroup::"
+            echo "::group::Recent dashboard events"
+            kubectl get events -n opendatahub --sort-by='.lastTimestamp' | tail -30 || true
+            echo "::endgroup::"
+            exit 1
+          fi
 
           # rollout status exits as soon as new pods are Ready, but old pods from the
           # previous revision can still be in Terminating state for their gracePeriod.
@@ -1000,10 +1042,9 @@ jobs:
           # a Terminating pod as items[0] and produce a false health-check failure.
           echo "Waiting for any Terminating pods to clear..."
           for i in {1..12}; do
-            TERM_COUNT=$(kubectl get pods -n opendatahub -l app=odh-dashboard \
-              -o jsonpath='{range .items[*]}{.metadata.deletionTimestamp}{"\n"}{end}' 2>/dev/null \
-              | grep -vc '^$' || echo "0")
-            if [ "${TERM_COUNT:-0}" -eq 0 ]; then
+            TERM_COUNT=$(kubectl get pods -n opendatahub -l app=odh-dashboard -o json 2>/dev/null \
+              | jq '[.items[] | select(.metadata.deletionTimestamp != null)] | length')
+            if [ "$TERM_COUNT" -eq 0 ]; then
               echo "✅ No Terminating pods"
               break
             fi
@@ -1188,13 +1229,12 @@ jobs:
           # Note on the dashboard image during reconcile: the operator SSA-applies the base
           # manifests, taking ownership of the dashboard Deployment's image + imagePullPolicy
           # (MergeDeployments only preserves resources/replicas). Because the operator's
-          # RELATED_IMAGE_ODH_DASHBOARD_IMAGE is pinned to the loaded PR tag
-          # (odh-dashboard:odh-test), it writes that tag instead of quay.io/.../:main — so no
-          # large :main image is pulled. The dashboard pod may ErrImagePull the local-only
-          # tag (base sets imagePullPolicy: Always, which the operator re-owns each reconcile,
-          # so patching it is futile); that is expected and irrelevant here — this step only
-          # asserts operator reconcile evidence, not dashboard pod health (already validated
-          # above against the PR image).
+          # RELATED_IMAGE_ODH_DASHBOARD_IMAGE and RELATED_IMAGE_ODH_CORE_BFF_IMAGE are pinned
+          # to the loaded PR tags, so the operator writes them instead of quay.io/.../:main.
+          # The dashboard pod may ErrImagePull the local-only tags (base sets imagePullPolicy:
+          # Always, which the operator re-owns each reconcile, so patching it is futile); that
+          # is expected and irrelevant here — this step only asserts operator reconcile
+          # evidence, not dashboard pod health (already validated above against the PR images).
           echo "Polling for reconciliation evidence (finalizer + observedGeneration)..."
           RECONCILED=false
           for i in {1..24}; do
@@ -1245,7 +1285,7 @@ jobs:
   # Catches startup regressions (e.g. Go protobuf panics) that only surface when the
   # BFF binary runs, not when it compiles.
   detect-bff-changes:
-    name: "Detect BFF Module Changes"
+    name: 'Detect BFF Module Changes'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1254,6 +1294,7 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix }}
       has-changes: ${{ steps.detect.outputs.has-changes }}
+      model-serving-changed: ${{ steps.detect.outputs.model-serving-changed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
@@ -1278,6 +1319,17 @@ jobs:
             echo "Root build files changed — all BFF modules will be built"
           fi
 
+          # model-serving has no Dockerfile.workspace (it is built standalone,
+          # outside the module shard) — track it separately so its dedicated
+          # CSS guard job knows when to run. app-config changes are included
+          # because the shared LightningCSS minimizer options live there, and
+          # guard-script changes because the job invokes the script directly.
+          MODEL_SERVING_CHANGED=false
+          if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qE '^(packages/model-serving/|packages/app-config/|scripts/check-css-lowering\.sh)'; then
+            MODEL_SERVING_CHANGED=true
+          fi
+          echo "model-serving-changed=${MODEL_SERVING_CHANGED}" >> "$GITHUB_OUTPUT"
+
           # Dynamically discover workspace modules and distributions with Dockerfile.workspace
           MATRIX_ITEMS="[]"
           while IFS= read -r dockerfile; do
@@ -1291,8 +1343,11 @@ jobs:
               continue
             fi
 
-            # Check if this package has changed files, or root build files changed
-            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qF "${PKG_DIR}/"; then
+            # Check if this package has changed files, root build files changed,
+            # the shared app-config rspack exports changed (every module's
+            # production minimizer consumes them — RHOAIENG-100835), or the CSS
+            # guard script changed (every module shard invokes it)
+            if [ "$ROOT_BUILD_CHANGED" = "true" ] || echo "$CHANGED_FILES" | grep -qE "^(${PKG_DIR}/|packages/app-config/|scripts/check-css-lowering\.sh)"; then
               MATRIX_ITEMS=$(echo "$MATRIX_ITEMS" | jq -c --arg name "$MODULE_NAME" --arg dockerfile "$dockerfile" '. + [{"module": $name, "dockerfile": $dockerfile}]')
               echo "Will build: $MODULE_NAME ($dockerfile)"
             fi
@@ -1300,9 +1355,20 @@ jobs:
 
           COUNT=$(echo "$MATRIX_ITEMS" | jq 'length')
           if [ "$COUNT" -gt 0 ]; then
+            # Limit the number of GitHub check runs while retaining parallel
+            # builds. Modules within each shard are validated sequentially.
+            SHARDS=$(echo "$MATRIX_ITEMS" | jq -c '
+              . as $items
+              | [range(0; ([length, 3] | min)) as $shard
+                | {
+                    shard: ($shard + 1),
+                    modules: [$items | to_entries[] | select(.key % 3 == $shard) | .value]
+                  }
+                ]
+            ')
             echo "has-changes=true" >> "$GITHUB_OUTPUT"
-            echo "matrix={\"include\":$MATRIX_ITEMS}" >> "$GITHUB_OUTPUT"
-            echo "Found $COUNT BFF module(s) to build"
+            echo "matrix={\"include\":$SHARDS}" >> "$GITHUB_OUTPUT"
+            echo "Found $COUNT BFF module(s) to build in $(echo "$SHARDS" | jq 'length') shard(s)"
           else
             echo "has-changes=false" >> "$GITHUB_OUTPUT"
             echo "matrix={\"include\":[]}" >> "$GITHUB_OUTPUT"
@@ -1310,7 +1376,7 @@ jobs:
           fi
 
   bff-build-validation:
-    name: "BFF Build: ${{ matrix.module }}"
+    name: 'BFF Build Shard ${{ matrix.shard }}'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1328,93 +1394,146 @@ jobs:
       - name: Free disk space
         uses: ./.github/actions/free-disk-space
 
-      - name: Build BFF image
+      - name: Build and validate BFF images
         env:
-          MODULE: ${{ matrix.module }}
-          DOCKERFILE: ${{ matrix.dockerfile }}
+          MODULES: ${{ toJson(matrix.modules) }}
         run: |
           set -euo pipefail
-          echo "::group::Building ${MODULE} from ${DOCKERFILE}"
-          docker build \
-            --no-cache \
-            --file "${DOCKERFILE}" \
-            --tag "bff-${MODULE}:test" \
-            .
-          echo "::endgroup::"
-          echo "Build completed for ${MODULE}"
+          while IFS= read -r item; do
+            MODULE=$(jq -r '.module' <<<"$item")
+            DOCKERFILE=$(jq -r '.dockerfile' <<<"$item")
+            CONTAINER_NAME="bff-${MODULE}-test"
+            IMAGE="bff-${MODULE}:test"
 
-      - name: Validate BFF startup
-        env:
-          MODULE: ${{ matrix.module }}
-        run: |
-          set -euo pipefail
-          CONTAINER_NAME="bff-${MODULE}-test"
-          IMAGE="bff-${MODULE}:test"
+            echo "::group::Building ${MODULE} from ${DOCKERFILE}"
+            docker build \
+              --no-cache \
+              --file "${DOCKERFILE}" \
+              --tag "$IMAGE" \
+              .
+            echo "::endgroup::"
 
-          # Run the container with no special flags. BFFs will likely exit quickly
-          # because there is no Kubernetes cluster in CI — that is expected.
-          # We only care that the binary does not *crash* (panic, segfault, etc.).
-          echo "::group::Starting $MODULE BFF container"
-          docker run -d --name "$CONTAINER_NAME" "$IMAGE"
-          echo "::endgroup::"
+            # Run the container with no special flags. BFFs will likely exit quickly
+            # because there is no Kubernetes cluster in CI — that is expected.
+            # We only care that the binary does not *crash* (panic, segfault, etc.).
+            echo "::group::Starting $MODULE BFF container"
+            docker run -d --name "$CONTAINER_NAME" "$IMAGE"
+            echo "::endgroup::"
 
-          echo "Waiting 5 seconds for BFF startup..."
-          sleep 5
+            echo "Waiting 5 seconds for BFF startup..."
+            sleep 5
 
-          echo "::group::Container status"
-          RUNNING=$(docker inspect --format '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null || echo "false")
-          EXIT_CODE=$(docker inspect --format '{{.State.ExitCode}}' "$CONTAINER_NAME" 2>/dev/null || echo "-1")
-          echo "Running: $RUNNING"
-          echo "Exit code: $EXIT_CODE"
-          echo "::endgroup::"
+            echo "::group::Container status"
+            RUNNING=$(docker inspect --format '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null || echo "false")
+            EXIT_CODE=$(docker inspect --format '{{.State.ExitCode}}' "$CONTAINER_NAME" 2>/dev/null || echo "-1")
+            echo "Running: $RUNNING"
+            echo "Exit code: $EXIT_CODE"
+            echo "::endgroup::"
 
-          echo "::group::Container logs"
-          LOGS=$(docker logs "$CONTAINER_NAME" 2>&1 || echo "")
-          echo "$LOGS"
-          echo "::endgroup::"
+            echo "::group::Container logs"
+            LOGS=$(docker logs "$CONTAINER_NAME" 2>&1 || echo "")
+            echo "$LOGS"
+            echo "::endgroup::"
 
-          # Scan logs for Go runtime crash patterns only.
-          # Clean exits (missing kubeconfig, no cluster, invalid config) are fine —
-          # they prove the binary compiled, loaded, and ran its init logic.
-          FAILURES=0
-          CRASH_PATTERNS=(
-            "panic:"
-            "fatal error:"
-            "runtime error:"
-            "signal: segmentation fault"
-            "SIGSEGV"
-          )
+            # Scan logs for Go runtime crash patterns only.
+            # Clean exits (missing kubeconfig, no cluster, invalid config) are fine —
+            # they prove the binary compiled, loaded, and ran its init logic.
+            FAILURES=0
+            CRASH_PATTERNS=(
+              "panic:"
+              "fatal error:"
+              "runtime error:"
+              "signal: segmentation fault"
+              "SIGSEGV"
+            )
 
-          for pattern in "${CRASH_PATTERNS[@]}"; do
-            if echo "$LOGS" | grep -q "$pattern"; then
-              echo "::error::$MODULE BFF logs contain crash indicator: $pattern"
-              echo "$LOGS" | grep "$pattern" | head -5
+            for pattern in "${CRASH_PATTERNS[@]}"; do
+              if echo "$LOGS" | grep -q "$pattern"; then
+                echo "::error::$MODULE BFF logs contain crash indicator: $pattern"
+                echo "$LOGS" | grep "$pattern" | head -5
+                FAILURES=$((FAILURES + 1))
+              fi
+            done
+
+            # Guard (RHOAIENG-100835): scan the module image's frontend output
+            # for LightningCSS logical-properties lowering, same as the host.
+            echo "::group::Guarding CSS logical-properties lowering (${MODULE})"
+            CSS_TMP=$(mktemp -d)
+            CSS_CONTAINER=$(docker create "$IMAGE")
+            # Every module in this matrix packages its frontend under /static
+            # (all packages/*/Dockerfile.workspace and distributions/core-bff's
+            # COPY ... ./static/), so a failed extraction is always a real
+            # failure — an unrunnable guard must never read as a pass. If a
+            # BFF-only module ever joins the matrix, list it here explicitly
+            # instead of inferring the exemption from a failed docker cp.
+            BFF_ONLY_MODULES=""
+            if docker cp "$CSS_CONTAINER":/static "$CSS_TMP/static" 2>"$CSS_TMP/cp-error.log"; then
+              if ! bash scripts/check-css-lowering.sh "$CSS_TMP/static"; then
+                echo "::error::$MODULE emitted CSS contains LightningCSS logical-properties lowering"
+                FAILURES=$((FAILURES + 1))
+              fi
+            elif [[ " $BFF_ONLY_MODULES " == *" $MODULE "* ]]; then
+              echo "ℹ️  INFO: $MODULE is BFF-only (explicit exemption) — no frontend output to scan"
+            else
+              echo "::error::$MODULE: could not extract /static from the image — the CSS guard could not run"
+              cat "$CSS_TMP/cp-error.log" >&2 || true
               FAILURES=$((FAILURES + 1))
             fi
-          done
+            docker rm "$CSS_CONTAINER" >/dev/null 2>&1 || true
+            rm -rf "$CSS_TMP"
+            echo "::endgroup::"
 
-          if [ "$RUNNING" = "true" ]; then
-            echo "INFO: $MODULE BFF is still running after 5s"
-          else
-            echo "INFO: $MODULE exited (exit code: $EXIT_CODE) — expected without a Kubernetes cluster"
-          fi
+            if [ "$RUNNING" = "true" ]; then
+              echo "INFO: $MODULE BFF is still running after 5s"
+            else
+              echo "INFO: $MODULE exited (exit code: $EXIT_CODE) — expected without a Kubernetes cluster"
+            fi
 
-          # Clean up
-          docker stop "$CONTAINER_NAME" 2>/dev/null || true
-          docker rm "$CONTAINER_NAME" 2>/dev/null || true
-          docker rmi "$IMAGE" 2>/dev/null || true
+            # Clean up
+            docker stop "$CONTAINER_NAME" 2>/dev/null || true
+            docker rm "$CONTAINER_NAME" 2>/dev/null || true
+            docker rmi "$IMAGE" 2>/dev/null || true
 
-          if [ "$FAILURES" -gt 0 ]; then
-            echo ""
-            echo "::error::$MODULE BFF startup validation failed with $FAILURES issue(s)"
-            echo "Check the container logs above for the root cause."
-            exit 1
-          fi
+            if [ "$FAILURES" -gt 0 ]; then
+              echo ""
+              echo "::error::$MODULE BFF startup validation failed with $FAILURES issue(s)"
+              echo "Check the container logs above for the root cause."
+              exit 1
+            fi
 
-          echo "PASS: $MODULE BFF built and started without crashes"
+            echo "PASS: $MODULE BFF built and started without crashes"
+          done < <(jq -c '.[]' <<<"$MODULES")
+
+  model-serving-css-guard:
+    name: 'Model Serving CSS Guard'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [check-skip, detect-bff-changes]
+    # model-serving has no Dockerfile.workspace, so the BFF module shard never
+    # builds or scans it — guard its independently emitted production CSS here
+    # (RHOAIENG-100835). Runs when model-serving, app-config (shared minimizer
+    # options), or root build files change.
+    if: needs.check-skip.outputs.should-skip != 'true' && needs.detect-bff-changes.outputs.model-serving-changed == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm and install dependencies
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build and guard model-serving UI
+        run: |
+          set -euo pipefail
+          make -C packages/model-serving frontend-build-federated
+          bash scripts/check-css-lowering.sh packages/model-serving/frontend/dist
 
   summary:
-    name: "Build Validation Summary"
+    name: 'Build Validation Summary'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1423,6 +1542,7 @@ jobs:
       - hermetic-preflight
       - docker-build-odh
       - docker-build-rhoai
+      - core-bff-build
       - operator-build
       - manifest-validation
       - runtime-validation-odh
@@ -1430,6 +1550,7 @@ jobs:
       - operator-integration
       - detect-bff-changes
       - bff-build-validation
+      - model-serving-css-guard
     # Run summary even when jobs are skipped, but not when workflow is skipped
     if: always() && needs.check-skip.outputs.should-skip != 'true'
     steps:
@@ -1441,6 +1562,7 @@ jobs:
           echo "Phase 0 (Hermetic Preflight): ${{ needs.hermetic-preflight.result }}"
           echo "Phase 1 (Docker Build ODH): ${{ needs.docker-build-odh.result }}"
           echo "Phase 1 (Docker Build RHOAI): ${{ needs.docker-build-rhoai.result }}"
+          echo "Phase 1 (Core BFF Image Build): ${{ needs.core-bff-build.result }}"
           echo "Phase 1 (Operator Image Build): ${{ needs.operator-build.result }}"
           echo "Phase 2-3 (Runtime ODH): ${{ needs.runtime-validation-odh.result }}"
           echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
@@ -1448,6 +1570,7 @@ jobs:
           echo "Phase 5 (Manifest Validation): ${{ needs.manifest-validation.result }}"
           echo "BFF Detection: ${{ needs.detect-bff-changes.result }}"
           echo "BFF Build Validation: ${{ needs.bff-build-validation.result }}"
+          echo "Model Serving CSS Guard: ${{ needs.model-serving-css-guard.result }}"
 
           # Accept "success" and "skipped" as passing states
           # "skipped" occurs when upstream job was skipped (normal dependency chain)
@@ -1456,13 +1579,15 @@ jobs:
           for result in "${{ needs.hermetic-preflight.result }}" \
                         "${{ needs.docker-build-odh.result }}" \
                         "${{ needs.docker-build-rhoai.result }}" \
+                        "${{ needs.core-bff-build.result }}" \
                         "${{ needs.operator-build.result }}" \
                         "${{ needs.manifest-validation.result }}" \
                         "${{ needs.runtime-validation-odh.result }}" \
                         "${{ needs.runtime-validation-rhoai.result }}" \
                         "${{ needs.operator-integration.result }}" \
                         "${{ needs.detect-bff-changes.result }}" \
-                        "${{ needs.bff-build-validation.result }}"; do
+                        "${{ needs.bff-build-validation.result }}" \
+                        "${{ needs.model-serving-css-guard.result }}"; do
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               FAILED=true
               break

@@ -390,6 +390,14 @@ describe('ManageNIMServingModal', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
       expect(screen.queryByTestId('storage-class-select')).not.toBeInTheDocument();
     });
+
+    it('should exclude DRA hardware profiles', () => {
+      render(<ManageNIMServingModal onClose={mockOnClose} editInfo={mockEditInfo} />);
+      expect(mockUseInferenceServiceHardwareProfile).toHaveBeenCalledWith(
+        mockEditInfo.inferenceServiceEditInfo,
+        expect.not.objectContaining({ allowDRAProfiles: true }),
+      );
+    });
   });
 
   describe('Storage Class Selection', () => {

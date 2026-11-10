@@ -17,6 +17,7 @@ import {
   getEvalHubCRStatus,
   validateHardwareProfiles,
   getKueueWorkloadStatuses,
+  getEvaluationJobs,
   getEvaluationJob,
   getProviders,
   createEvaluationJob,
@@ -351,7 +352,7 @@ describe('getCollection', () => {
       data: {
         name: 'Test',
         resource: { id: 'col-1' },
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         evaluation_targets: 'model',
         industries: [null, 'healthcare'],
       },
@@ -361,7 +362,7 @@ describe('getCollection', () => {
     const result = await getCollection('', 'test-ns', 'col-1')({});
 
     expect(result).toMatchObject({
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: undefined,
       industries: ['healthcare'],
     });
@@ -369,7 +370,7 @@ describe('getCollection', () => {
 
   it('should reject with an error when collectionId is empty', async () => {
     await expect(getCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'collectionId must not be empty',
+      'Collection ID must not be empty',
     );
 
     expect(mockRestGET).not.toHaveBeenCalled();
@@ -455,6 +456,14 @@ describe('deleteCollection', () => {
     await expect(deleteCollection('', 'my-ns', 'col-1')({})).resolves.toBeUndefined();
   });
 
+  it('should reject when the BFF returns an error body', async () => {
+    mockRestDELETE.mockResolvedValue('{"message":"Delete failed"}');
+
+    await expect(deleteCollection('', 'my-ns', 'col-1')({})).rejects.toThrow(
+      '{"message":"Delete failed"}',
+    );
+  });
+
   it('should encode the collection ID in the URL', async () => {
     mockRestDELETE.mockResolvedValue({});
 
@@ -471,7 +480,7 @@ describe('deleteCollection', () => {
 
   it('should reject when collectionId is empty', async () => {
     await expect(deleteCollection('', 'test-ns', '')({})).rejects.toThrow(
-      'collectionId must not be empty',
+      'Collection ID must not be empty',
     );
 
     expect(mockRestDELETE).not.toHaveBeenCalled();
@@ -523,7 +532,7 @@ describe('patchCollection', () => {
   it('should reject when collectionId is empty', async () => {
     await expect(
       patchCollection('', 'test-ns', '', [{ op: 'replace', path: '/name', value: 'Test' }])({}),
-    ).rejects.toThrow('collectionId must not be empty');
+    ).rejects.toThrow('Collection ID must not be empty');
 
     expect(mockRestPATCH).not.toHaveBeenCalled();
   });
@@ -549,6 +558,24 @@ describe('cloneCollection', () => {
       cloneCollection('', 'test-ns', 'col-1', { name: 'Cloned suite' })({}),
     ).rejects.toThrow('Invalid collection: benchmarks contains an invalid entry');
   });
+
+  it('should send an empty override object when cloning a collection as-is', async () => {
+    const collection = {
+      name: 'Cloned suite',
+      resource: { id: 'cloned-col-1' },
+    };
+    mockRestCREATE.mockResolvedValue({ data: collection });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(cloneCollection('', 'test-ns', 'col-1', {})({})).resolves.toEqual(collection);
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/col-1/clones',
+      {},
+      { namespace: 'test-ns' },
+      {},
+    );
+  });
 });
 
 describe('createCollection', () => {
@@ -560,14 +587,14 @@ describe('createCollection', () => {
   it('should create a collection with metadata and evaluation target arrays', async () => {
     const request: CreateCollectionRequest = {
       name: 'New suite',
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: ['model'],
       benchmarks: [{ id: 'benchmark-001' }],
     };
     const collection: Collection = {
       resource: { id: 'created-collection' },
       name: 'New suite',
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       evaluation_targets: ['model'],
       benchmarks: [{ id: 'benchmark-001' }],
     };
@@ -687,7 +714,7 @@ describe('getCollections', () => {
       {
         resource: { id: 'col-1' },
         name: 'Collection',
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         evaluation_targets: 'model',
         industries: [null, 'healthcare'],
       },
@@ -697,7 +724,7 @@ describe('getCollections', () => {
 
     const result = await getCollections('', { namespace: 'ns' })({});
 
-    expect(result.items[0].domains).toEqual(['safety']);
+    expect(result.items[0].domains).toEqual(['trustworthiness']);
     expect(result.items[0].evaluation_targets).toBeUndefined();
     expect(result.items[0].industries).toEqual(['healthcare']);
   });
@@ -709,7 +736,7 @@ describe('getCollections', () => {
         name: 'Collection',
         category: 123,
         tags: ['curated', null],
-        domains: ['safety', 123],
+        domains: ['trustworthiness', 123],
         tasks: ['question_answering', false],
         modalities: ['text', {}],
         industries: ['healthcare', undefined],
@@ -731,7 +758,7 @@ describe('getCollections', () => {
     expect(result.items[0]).toMatchObject({
       category: undefined,
       tags: ['curated'],
-      domains: ['safety'],
+      domains: ['trustworthiness'],
       tasks: ['question_answering'],
       modalities: ['text'],
       industries: ['healthcare'],
@@ -1073,6 +1100,47 @@ describe('getProviders', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].benchmarks).toBeUndefined();
+  });
+});
+
+describe('getEvaluationJobs', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  it('should bypass cached responses while preserving request options', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+    const opts = { headers: { 'X-Test': 'value' } };
+
+    const result = await getEvaluationJobs('', { namespace: 'my-ns' })(opts);
+
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/jobs',
+      { namespace: 'my-ns' },
+      {
+        headers: {
+          'X-Test': 'value',
+          'Cache-Control': 'no-cache',
+        },
+      },
+    );
+    expect(result).toEqual({ jobs: [], totalCount: 0, truncated: false });
+  });
+
+  it('should parse list metadata from the BFF response envelope', async () => {
+    const job = { resource: { id: 'job-1' } } as EvaluationJob;
+    mockRestGET.mockResolvedValue({
+      data: [job],
+      metadata: { total_count: 2500, truncated: true },
+    });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getEvaluationJobs('', { namespace: 'my-ns' })({});
+
+    expect(result).toEqual({ jobs: [job], totalCount: 2500, truncated: true });
   });
 });
 

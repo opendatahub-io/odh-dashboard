@@ -1,23 +1,24 @@
 name: Test / AutoRAG BFF Tests
 on:
   push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
     paths:
-      - "packages/autorag/**"
-      - "packages/autox-core/**"
-      - "!LICENSE*"
-      - "!DOCKERFILE*"
-      - "!**.gitignore"
-      - "!**.md"
+      - 'packages/autorag/**'
+      - 'packages/autox-core/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
 
   pull_request:
     paths:
-      - "packages/autorag/**"
-      - "packages/autox-core/**"
-      - ".github/workflows/autorag-bff-tests.yml"
-      - "!LICENSE*"
-      - "!DOCKERFILE*"
-      - "!**.gitignore"
-      - "!**.md"
+      - 'packages/autorag/**'
+      - 'packages/autox-core/**'
+      - '.github/workflows/autorag-bff-tests.yml'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
 
 jobs:
   test:
@@ -29,7 +30,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
-          go-version: "1.26.x"
+          go-version: '1.26.x'
 
       - name: Lint
         working-directory: packages/autorag/bff

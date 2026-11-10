@@ -48,6 +48,13 @@ const (
 	// workspacekind configs
 	workspaceKindName = "jupyterlab"
 
+	// statefulSetMetadata configured on the sample WorkspaceKind
+	//  - see manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml
+	stsMetadataLabelKey        = "my-workspace-kind-sts-label"
+	stsMetadataLabelValue      = "my-value"
+	stsMetadataAnnotationKey   = "my-workspace-kind-sts-annotation"
+	stsMetadataAnnotationValue = "my-value"
+
 	// curl image
 	curlImage = "curlimages/curl:8.9.1"
 
@@ -82,6 +89,10 @@ const (
 	// stale activity test configs
 	staleWorkspaceKindName = "jupyterlab-stale"
 	staleWorkspaceName     = "jupyterlab-workspace-stale"
+
+	// has_activity: false test configs
+	hasActivityFalseWorkspaceKindName = "jupyterlab-has-activity-false"
+	hasActivityFalseWorkspaceName     = "jupyterlab-workspace-has-activity-false"
 
 	// probe test configs
 	probeWorkspaceKindName = "jupyterlab-probe"
@@ -373,6 +384,58 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(verifyWorkspaceVirtualService, timeout, interval).Should(Succeed())
 
+			By("validating that the StatefulSet carries the statefulSetMetadata from the WorkspaceKind")
+			// the sample WorkspaceKind sets spec.podTemplate.statefulSetMetadata, which the controller
+			// applies to the generated StatefulSet's own metadata (alongside the workspace-name label)
+			verifyStatefulSetMetadata := func(g Gomega) {
+				stsSelector := fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName)
+
+				cmd := exec.Command("kubectl", "get", "statefulsets",
+					"-l", stsSelector,
+					"-n", workspaceNamespace,
+					"-o", fmt.Sprintf("jsonpath={.items[0].metadata.labels['%s']}", stsMetadataLabelKey),
+				)
+				labelValue, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(labelValue).To(Equal(stsMetadataLabelValue), "expected statefulSetMetadata label on the StatefulSet")
+
+				cmd = exec.Command("kubectl", "get", "statefulsets",
+					"-l", stsSelector,
+					"-n", workspaceNamespace,
+					"-o", fmt.Sprintf("jsonpath={.items[0].metadata.annotations['%s']}", stsMetadataAnnotationKey),
+				)
+				annotationValue, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(annotationValue).To(
+					Equal(stsMetadataAnnotationValue),
+					"expected statefulSetMetadata annotation on the StatefulSet",
+				)
+			}
+			Eventually(verifyStatefulSetMetadata, timeout, interval).Should(Succeed())
+
+			By("ensuring invalid statefulSetMetadata labels are rejected by the WorkspaceKind webhook")
+			// the webhook validates statefulSetMetadata labels and annotations (like podMetadata),
+			// so an invalid label key must be rejected before the controller can act on it
+			rejectInvalidStatefulSetMetadataLabel := func(g Gomega) {
+				invalidKey := "!bad-key!"
+				labelsPath := "/spec/podTemplate/statefulSetMetadata/labels"
+				patch := fmt.Sprintf(
+					`[{"op": "replace", "path": %q, "value": {%q: "value"}}]`,
+					labelsPath, invalidKey,
+				)
+				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
+					"--type=json",
+					"-p", patch,
+				)
+				output, err := utils.Run(cmd)
+				g.Expect(err).To(HaveOccurred(), "expected the webhook to reject the invalid statefulSetMetadata label")
+				g.Expect(output).To(ContainSubstring("spec.podTemplate.statefulSetMetadata.labels"),
+					"expected the rejection to point at spec.podTemplate.statefulSetMetadata.labels")
+				g.Expect(output).To(ContainSubstring(invalidKey),
+					"expected the rejection to mention the invalid label key")
+			}
+			Eventually(rejectInvalidStatefulSetMetadataLabel, timeout, interval).Should(Succeed())
+
 			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			removeInUseImageConfig := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
@@ -486,6 +549,19 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("deleting the stale activity WorkspaceKind")
 			cmd = exec.Command("kubectl", "delete", "workspacekind", staleWorkspaceKindName,
+				"--ignore-not-found=true",
+			)
+			_, _ = utils.Run(cmd)
+
+			By("deleting the has_activity: false Workspace")
+			cmd = exec.Command("kubectl", "delete", "workspace", hasActivityFalseWorkspaceName,
+				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+				fmt.Sprintf("--timeout=%s", timeout),
+			)
+			_, _ = utils.Run(cmd)
+
+			By("deleting the has_activity: false WorkspaceKind")
+			cmd = exec.Command("kubectl", "delete", "workspacekind", hasActivityFalseWorkspaceKindName,
 				"--ignore-not-found=true",
 			)
 			_, _ = utils.Run(cmd)
@@ -1023,6 +1099,170 @@ var _ = Describe("controller", Ordered, func() {
 				return nil
 			}
 			Eventually(verifyPaused, activityTimeout, interval).Should(Succeed())
+		})
+
+		It("should automatically pause an inactive Workspace when podExec probe reports has_activity: false", func() {
+
+			By("creating an activity-rules-enabled WorkspaceKind (podExec probe reporting has_activity: false)")
+			hasActivityFalseWorkspaceKindYAML, err := utils.RenderActivityWorkspaceKind(
+				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
+				hasActivityFalseWorkspaceKindName,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			applyKind := func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", "-")
+				cmd.Stdin = strings.NewReader(hasActivityFalseWorkspaceKindYAML)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(applyKind, timeout, interval).Should(Succeed())
+
+			By("overriding the activityProbe with a fast podExec probe reporting has_activity: false")
+			// - has_activity: false causes parsePodExecOutput to return nil LastActivity
+			// - because lastActivity is initially 0 (unset), the controller initializes it
+			//   to status.lastRunningTime, allowing the Workspace to become eligible for pause
+			const hasActivityFalseProbeScript = `#!/usr/bin/env bash\n` +
+				`echo '{\"has_activity\": false}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
+			probePatch := `[` +
+				`{"op":"replace","path":"/spec/podTemplate/activityProbe","value":{` +
+				`"minProbeIntervalSeconds":1,` +
+				`"probeIntervalSeconds":10,` +
+				`"podExec":{"timeoutSeconds":30,"script":"` + hasActivityFalseProbeScript + `"}` +
+				`}}]`
+			patchProbe := func() error {
+				cmd := exec.Command("kubectl", "patch", "workspacekind", hasActivityFalseWorkspaceKindName,
+					"--type=json", "-p", probePatch)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(patchProbe, timeout, interval).Should(Succeed())
+
+			By("overriding the activityRules with a single fast catch-all pause rule")
+			// - secondsSinceActive=16 (minimum allowed)
+			// - minRunningSeconds=15
+			rulesPatch := `[` +
+				`{"op":"replace","path":"/spec/activityRules","value":[` +
+				`{"config":{"secondsSinceActive":16,"minRunningSeconds":15},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`]}]`
+			patchRules := func() error {
+				cmd := exec.Command("kubectl", "patch", "workspacekind", hasActivityFalseWorkspaceKindName,
+					"--type=json", "-p", rulesPatch)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(patchRules, timeout, interval).Should(Succeed())
+
+			By("creating a Workspace of the has_activity: false WorkspaceKind")
+			hasActivityFalseWorkspaceYAML, err := utils.RenderActivityWorkspace(
+				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
+				hasActivityFalseWorkspaceName,
+				hasActivityFalseWorkspaceKindName,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			applyWorkspace := func() error {
+				cmd := exec.Command("kubectl", "apply", "-n", workspaceNamespace, "-f", "-")
+				cmd.Stdin = strings.NewReader(hasActivityFalseWorkspaceYAML)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(applyWorkspace, timeout, interval).Should(Succeed())
+
+			By("waiting for the Workspace to reach 'Running' state")
+			verifyRunning := func(g Gomega) error {
+				statusState, err := utils.GetWorkspaceJSONPath(hasActivityFalseWorkspaceName, workspaceNamespace, "{.status.state}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if statusState != string(kubefloworgv1beta1.WorkspaceStateRunning) {
+					return fmt.Errorf("workspace not running yet, current state: %q", statusState)
+				}
+				return nil
+			}
+			Eventually(verifyRunning, timeout, interval).Should(Succeed())
+
+			By("validating that the probe runs successfully and initializes lastActivity to lastRunningTime")
+			verifyActivityInitialized := func(g Gomega) error {
+				probeResult, err := utils.GetWorkspaceJSONPath(
+					hasActivityFalseWorkspaceName, workspaceNamespace, "{.status.activity.lastProbe.result}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if probeResult != string(kubefloworgv1beta1.WorkspaceProbeResultSuccess) {
+					return fmt.Errorf("probe result is %q (not Success)", probeResult)
+				}
+
+				lastRunningTime, err := utils.GetWorkspaceJSONPath(
+					hasActivityFalseWorkspaceName, workspaceNamespace, "{.status.lastRunningTime}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if lastRunningTime == "" || lastRunningTime == "0" {
+					return fmt.Errorf("lastRunningTime not populated yet")
+				}
+
+				lastActivity, err := utils.GetWorkspaceJSONPath(
+					hasActivityFalseWorkspaceName, workspaceNamespace, "{.status.activity.lastActivity}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if lastActivity != lastRunningTime {
+					return fmt.Errorf("lastActivity (%q) does not match lastRunningTime (%q)", lastActivity, lastRunningTime)
+				}
+
+				eligibleAfter, err := utils.GetWorkspaceJSONPath(
+					hasActivityFalseWorkspaceName, workspaceNamespace, "{.status.activity.rules.pauseWorkspace.eligibleAfter}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if eligibleAfter == "" || eligibleAfter == "0" {
+					return fmt.Errorf("eligibleAfter not populated yet")
+				}
+
+				return nil
+			}
+			Eventually(verifyActivityInitialized, activityTimeout, interval).Should(Succeed())
+
+			By("validating that the Workspace is automatically paused due to inactivity")
+			verifyPaused := func(g Gomega) error {
+				paused, err := utils.GetWorkspaceJSONPath(hasActivityFalseWorkspaceName, workspaceNamespace, "{.spec.paused}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if paused != "true" {
+					return fmt.Errorf("workspace not paused yet, spec.paused=%q", paused)
+				}
+				return nil
+			}
+			Eventually(verifyPaused, activityTimeout, interval).Should(Succeed())
+
+			By("validating that the Workspace reaches the 'Paused' state")
+			verifyPausedState := func(g Gomega) error {
+				statusState, err := utils.GetWorkspaceJSONPath(hasActivityFalseWorkspaceName, workspaceNamespace, "{.status.state}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if statusState != string(kubefloworgv1beta1.WorkspaceStatePaused) {
+					return fmt.Errorf("workspace not in Paused state yet, current state: %q", statusState)
+				}
+				return nil
+			}
+			Eventually(verifyPausedState, activityTimeout, interval).Should(Succeed())
+
+			By("unpausing/restarting the paused Workspace")
+			unpauseWorkspace := func() error {
+				cmd := exec.Command("kubectl", "patch", "workspace", hasActivityFalseWorkspaceName,
+					"-n", workspaceNamespace, "--type=merge", "-p", `{"spec":{"paused":false}}`)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(unpauseWorkspace, timeout, interval).Should(Succeed())
+
+			By("waiting for the restarted Workspace to reach 'Running' state again")
+			Eventually(verifyRunning, timeout, interval).Should(Succeed())
+
+			By("verifying that the restarted Workspace stays Running and is not immediately paused")
+			verifyStaysRunning := func(g Gomega) error {
+				paused, err := utils.GetWorkspaceJSONPath(hasActivityFalseWorkspaceName, workspaceNamespace, "{.spec.paused}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if paused == "true" {
+					return fmt.Errorf("workspace was immediately paused after restart")
+				}
+				statusState, err := utils.GetWorkspaceJSONPath(hasActivityFalseWorkspaceName, workspaceNamespace, "{.status.state}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if statusState != string(kubefloworgv1beta1.WorkspaceStateRunning) {
+					return fmt.Errorf("workspace state is %q, expected Running", statusState)
+				}
+				return nil
+			}
+			Consistently(verifyStaysRunning, 10*time.Second, interval).Should(Succeed())
 		})
 	})
 

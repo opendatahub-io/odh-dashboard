@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
@@ -14,6 +15,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
@@ -93,10 +95,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:                  logger,
 		kubernetesClientFactory: k8sResult.factory,
 		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
-			Platform:    resolvedPlatform,
-			SADynClient: k8sResult.saDynClient,
-			SAClientset: k8sResult.saClientset,
-			Namespace:   cfg.Namespace,
+			Platform:          resolvedPlatform,
+			SADynClient:       k8sResult.saDynClient,
+			SAClientset:       k8sResult.saClientset,
+			Namespace:         cfg.Namespace,
+			OperatorNamespace: cfg.OperatorNamespace,
 			Prometheus: repositories.PrometheusConfig{
 				Host:               cfg.PrometheusHost,
 				Namespace:          cfg.PrometheusNamespace,
@@ -157,6 +160,8 @@ func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupR
 		if kcErr != nil {
 			return result, fmt.Errorf("failed to get kubeconfig for SA client: %w", kcErr)
 		}
+		kubeconfig = rest.CopyConfig(kubeconfig)
+		kubeconfig.Wrap(httpcontract.WrapTransport)
 		result.saDynClient, err = dynamic.NewForConfig(kubeconfig)
 		if err != nil {
 			return result, fmt.Errorf("failed to create SA dynamic client: %w", err)

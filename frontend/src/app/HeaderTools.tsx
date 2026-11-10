@@ -23,12 +23,14 @@ import { updateImpersonateSettings } from '#~/services/impersonateService';
 import { AppNotification } from '#~/redux/types';
 import { useAppSelector } from '#~/redux/hooks';
 import AboutDialog from '#~/app/AboutDialog';
+import { useIsGuidedTourAvailable } from '#~/concepts/whatsNew/useIsGuidedTourAvailable';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';
 import { logout } from './appUtils';
 import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './featureFlags/FeatureFlagLauncher';
 import { openWhatsNewTour } from './whatsNew/whatsNewEvent';
+import MastheadProjectSelector from './MastheadProjectSelector';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -46,7 +48,10 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const { dashboardConfig } = useAppContext();
   const { theme, setAllThemes } = useThemeContext();
   const notification = useNotification();
-  const isGuidedTourAvailable = useIsAreaAvailable(SupportedArea.GUIDED_TOUR).status;
+  const isGuidedTourAvailable = useIsGuidedTourAvailable();
+  const unifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
 
   React.useEffect(() => {
     const htmlElement = document.getElementsByTagName('html')[0];
@@ -152,6 +157,11 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   return (
     <Toolbar isFullHeight>
       <ToolbarContent>
+        {unifiedProjectSelectorEnabled && (
+          <ToolbarItem>
+            <MastheadProjectSelector />
+          </ToolbarItem>
+        )}
         <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
           {isGuidedTourAvailable ? (
             <ToolbarItem>

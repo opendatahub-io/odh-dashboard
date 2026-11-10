@@ -6,6 +6,7 @@ import type {
   DisplayNameAnnotations,
   NodeSelector,
   PodAffinity,
+  PodSpec,
   SecretKind,
   SupportedModelFormats,
   Toleration,
@@ -159,6 +160,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
       annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
+      resourceClaims?: PodSpec['resourceClaims'];
       timeout?: number;
       deploymentStrategy?: {
         type: 'RollingUpdate' | 'Recreate';

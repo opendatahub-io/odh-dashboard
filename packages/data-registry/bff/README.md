@@ -49,27 +49,32 @@ make run LOG_LEVEL=DEBUG
 
 ## Flags / Environment Variables
 
-| Flag | Env Var | Description |
-|------|---------|-------------|
-| `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `federated` (default `standalone`) |
-| `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
-| `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in‑memory stub for namespace/user resolution |
-| `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single‑page frontend assets |
-| `-log-level` | `LOG_LEVEL` | ERROR, WARN, INFO, DEBUG (default INFO) |
-| `-allowed-origins` | `ALLOWED_ORIGINS` | Comma separated CORS origins |
-| `-auth-method` | `AUTH_METHOD` | `user_token` only; uses the authenticated RHOAI/ODH user token |
-| `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read token from (default `x-forwarded-access-token` for ODH) |
-| `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default empty for ODH; use `Bearer` with standard `Authorization`) |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
-| `-key-file` | `KEY_FILE` | TLS key path |
-| `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
-| `-mock-bff-clients` | `MOCK_BFF_CLIENTS` | Use mock BFF clients (no real HTTP calls to other BFFs) |
-| `-data-registry-api-url` | `DATA_REGISTRY_API_URL` | Base URL of the upstream Data Registry API. Overrides the ConfigMap lookup when set (local dev/tests) |
+| Flag                            | Env Var                        | Description                                                                                                           |
+| ------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `-port`                         | `PORT`                         | Listen port (default 4000)                                                                                            |
+| `-deployment-mode`              | `DEPLOYMENT_MODE`              | `standalone` or `federated` (default `standalone`)                                                                    |
+| `-dev-mode`                     | `DEV_MODE`                     | Enables relaxed behaviors (namespaces listing, etc.)                                                                  |
+| `-mock-k8s-client`              | `MOCK_K8S_CLIENT`              | Use in‑memory stub for namespace/user resolution                                                                      |
+| `-static-assets-dir`            | `STATIC_ASSETS_DIR`            | Directory to serve single‑page frontend assets                                                                        |
+| `-log-level`                    | `LOG_LEVEL`                    | ERROR, WARN, INFO, DEBUG (default INFO)                                                                               |
+| `-allowed-origins`              | `ALLOWED_ORIGINS`              | Comma separated CORS origins                                                                                          |
+| `-auth-method`                  | `AUTH_METHOD`                  | `user_token` only; uses the authenticated RHOAI/ODH user token                                                        |
+| `-auth-token-header`            | `AUTH_TOKEN_HEADER`            | Header to read token from (default `x-forwarded-access-token` for ODH)                                                |
+| `-auth-token-prefix`            | `AUTH_TOKEN_PREFIX`            | Expected value prefix (default empty for ODH; use `Bearer` with standard `Authorization`)                             |
+| `-cert-file`                    | `CERT_FILE`                    | TLS certificate path (enables TLS when paired with key)                                                               |
+| `-key-file`                     | `KEY_FILE`                     | TLS key path                                                                                                          |
+| `-insecure-skip-verify`         | `INSECURE_SKIP_VERIFY`         | Skip upstream TLS verify (dev only)                                                                                   |
+| `-mock-bff-clients`             | `MOCK_BFF_CLIENTS`             | Use mock BFF clients (no real HTTP calls to other BFFs)                                                               |
+| `-bff-clients-allow-insecure-http` | `BFF_CLIENTS_ALLOW_INSECURE_HTTP` | Allow plaintext inter-BFF HTTP in development only; default `false`                                                   |
+| `-data-registry-api-url`        | `DATA_REGISTRY_API_URL`        | HTTPS base URL for remote upstreams; HTTP is allowed only for loopback IP literals in local dev/tests. Overrides ConfigMap lookup when set |
 | `-data-registry-configmap-name` | `DATA_REGISTRY_CONFIGMAP_NAME` | Name of the ConfigMap (in the pod's own namespace) holding the Data Registry API URL (default `data-registry-config`) |
-| `-data-registry-configmap-key` | `DATA_REGISTRY_CONFIGMAP_KEY` | Key within that ConfigMap holding the URL (default `apiURL`) |
+| `-data-registry-configmap-key`  | `DATA_REGISTRY_CONFIGMAP_KEY`  | Key within that ConfigMap holding the URL (default `apiURL`)                                                          |
 
-TLS: If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+### TLS
+
+If both `cert-file` and `key-file` are provided the server starts with HTTPS.
+
+When TLS is enabled (`-cert-file` and `-key-file` both set), the HTTPS listener resolves its TLS policy (minimum version and cipher suites) from the OpenShift cluster-wide TLS security profile (`apiservers.config.openshift.io/cluster`) instead of using a fixed configuration. The listener re-reads the profile periodically and gracefully restarts to apply changes without a pod restart. This requires permission to read (`get`) the `apiservers` resource in the `config.openshift.io` API group (granted via the module's ClusterRole). Startup fails closed if the profile read is denied (403/401) or the profile is malformed. On non-OpenShift clusters (the API group is absent) and on transient API errors, the listener falls back to Mozilla Intermediate defaults (TLS 1.2). Note the startup vs. reload distinction: the Intermediate fallback on transient errors applies only at **startup**; during a periodic **reload**, any failed profile read (transient, denied, or malformed) instead **retains the current configuration** and keeps serving, re-applying automatically on the next clean read. The cluster profile's cipher list governs only TLS 1.2 and earlier — Go always manages TLS 1.3 cipher suites itself, so they cannot be restricted through the profile (this applies to Custom profiles too). The reload retention described here applies to *failed* reads; a successful read that finds the APIServer config API absent (`NotFound`) resolves to Intermediate rather than retaining the previous policy.
 
 ## Running the linter locally
 
@@ -170,18 +175,25 @@ authorization, data persistence, or business logic of its own. See
   string matters for e.g. `/api/v1/{project}/search`). Headers are forwarded unchanged **except**
   `Authorization` (always rebuilt, see above), the configured incoming auth-token header (e.g.
   `x-forwarded-access-token` — see `-auth-token-header` above; never relayed verbatim either, for
-  the same reason as `Authorization`), and `X-User` plus legacy Kubeflow identity headers (always
-  stripped) — the upstream contract trusts those identity headers for attribution, so a
-  caller-supplied value is never relayed as-is. The upstream response
+  the same reason as `Authorization`), and caller-supplied `X-User` plus legacy Kubeflow identity
+  headers — the upstream contract trusts those identity headers for attribution, so caller values
+  are always stripped. The BFF sets `X-User` from the verified Kubernetes identity; service
+  accounts retain the canonical `system:serviceaccount:<namespace>:<name>` form so equal names in
+  different namespaces remain distinguishable. The upstream response
   status, body, and headers are relayed back verbatim by `httputil.ReverseProxy` — including error
   responses, so Iceberg REST error shapes (`{"error": {"message", "type", "code"}}`) reach the
   frontend untransformed.
 - **Configuration**: the upstream base URL comes from `-data-registry-api-url`/`DATA_REGISTRY_API_URL`
   when set (local dev/tests), otherwise from a ConfigMap in the pod's own namespace, resolved via a
   bounded-timeout lookup at startup (name/key configurable, see flags table above). Validation
-  (`internal/helpers/url.go`, `ValidateUpstreamURL`) requires an absolute `http`/`https` URL with
-  no userinfo, query, or fragment; a base path (if any) is preserved and prepended to every
-  forwarded request.
+  (`internal/helpers/url.go`, `ValidateUpstreamURL`) requires an absolute HTTPS URL with no
+  userinfo, query, or fragment. Plain HTTP is accepted only for loopback IP literals such as
+  `127.0.0.1` and `::1` for local development and tests; use `http://127.0.0.1:PORT` or
+  `http://[::1]:PORT` for these endpoints. `http://localhost:PORT` is rejected because only IP
+  literals qualify for the plaintext exception. Remote HTTP is rejected because the BFF forwards
+  the caller's bearer token. A base path (if any) is preserved and prepended to every
+  forwarded request. HTTPS verification uses system roots and private CA bundles configured with
+  `BUNDLE_PATHS`; keep `INSECURE_SKIP_VERIFY` disabled outside local development.
   If the ConfigMap isn't available yet at startup — e.g. the Data Registry backend from
   [RHAISTRAT-2381](https://redhat.atlassian.net/browse/RHAISTRAT-2381) hasn't been deployed —
   the BFF logs a warning, every `/api/v1/*` proxy route returns `503 Service Unavailable`, and a
@@ -206,7 +218,7 @@ The BFF includes a `bffclient` package (`internal/integrations/bffclient/`) that
 │         │                  │                    │            │
 │  ┌──────────────┐          │                    │            │
 │  │  MLflow BFF  │──────────┴────────────────────┘            │
-│  │    :8343     │     Inter-BFF HTTP Calls                   │
+│  │    :8343     │     Inter-BFF HTTPS Calls (default)         │
 │  └──────────────┘  (K8s service DNS or localhost)            │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -220,6 +232,19 @@ The BFF includes a `bffclient` package (`internal/integrations/bffclient/`) that
 5. Wire routes in `Routes()`
 
 See the `bffclient` package README and the implementation spec for detailed guidance.
+
+#### Inter-BFF transport security
+
+The built-in MaaS, Gen-AI, Model Registry and MLflow clients use HTTPS by default. Keep TLS
+certificate verification enabled and add private service CA bundles through `BUNDLE_PATHS` when
+needed.
+
+For local development against a BFF that only serves HTTP, set
+`BFF_CLIENTS_ALLOW_INSECURE_HTTP=true` (or `--bff-clients-allow-insecure-http`) together with
+`DEV_MODE=true`. This opt-out is rejected outside development mode. Plaintext HTTP exposes
+forwarded bearer tokens to anyone who can observe the connection, so do not enable it in a
+deployed environment. The separate DCH client also uses HTTPS by default; its local-only opt-out
+is `BFF_DCH_TLS_ENABLED=false`, which is accepted only when DCH is enabled and `DEV_MODE=true`.
 
 ### Authentication
 
@@ -259,7 +284,7 @@ X-Forwarded-Access-Token: <your-token>
 
 ### Enabling CORS
 
-When serving the UI directly from the BFF there is no need for any CORS headers to be served, by default they are turned off for security reasons.
+When serving the UI directly from the BFF, same-origin requests need no CORS headers. By default, the BFF grants no CORS access to other origins; configure `ALLOWED_ORIGINS` to allow specific cross-origin browser clients. Simple cross-origin requests may still reach the BFF, so this setting does not replace CSRF protections.
 
 If you need to enable CORS for any reasons you can add origins to the allow-list in several ways:
 
@@ -306,7 +331,7 @@ For local Kubeflow installations with self-signed certificates, you may need to 
 ```yaml
 env:
   - name: INSECURE_SKIP_VERIFY
-    value: "true"
+    value: 'true'
 ```
 
 **Local development:**
@@ -318,3 +343,57 @@ export INSECURE_SKIP_VERIFY=true
 ```
 
 > **Warning:** Only use in development. Keep TLS verification enabled in production.
+
+## DCH Connection Lookup
+
+`GET /api/v1/connections/{namespace}` returns `ConnectionRef` objects in `data`, with
+optional `name` and `connectionType` display fields. Partial type resolution is reported
+through `metadata.warnings`. It calls the DCH BFF's `/api/v1/connections` and
+`/api/v1/connection-types` concurrently with the user's token and selected project.
+The project is distinct from the namespace hosting either BFF. Asset routes remain proxies.
+
+An empty `BFF_DCH_SERVICE_NAME` disables DCH. The federated manifest sets it to
+`odh-dashboard-data-connect-hub-ui`, with HTTPS on **9243**, matching the DCH UI/BFF image
+and Service in this repository's `main` branch. The DCH Service, container listener and
+federation configuration must use that port before enabling this integration.
+`BFF_DCH_SERVICE_NAMESPACE` defaults to the caller's
+pod namespace; set it explicitly for a different module namespace. The checked-in
+NetworkPolicies allow communication between the two module pods in the same namespace.
+For different namespaces, add appropriately scoped namespace selectors on both policies.
+
+The client trusts the CA bundles already loaded by `--bundle-paths`. It forwards the raw
+user token through `x-forwarded-access-token`. For a standalone DCH BFF expecting a different
+header, set `BFF_DCH_AUTH_TOKEN_HEADER=Authorization` and `BFF_DCH_AUTH_TOKEN_PREFIX="Bearer "`.
+`BFF_DCH_DEV_URL` overrides the service URL for local testing and must include `/api/v1`;
+the service name must still be set. Set `BFF_DCH_TLS_ENABLED=false` only for local HTTP testing
+with `DEV_MODE=true`; startup rejects this setting outside development mode when DCH is enabled.
+Production must keep TLS enabled and certificate verification on.
+
+`BFF_DCH_TIMEOUT_SECONDS` bounds both requests together (default 5 seconds). Network errors,
+timeouts, upstream 5xx, and 404 responses from either DCH collection endpoint trigger Secret
+fallback using the original request context. Treating collection-endpoint 404s as unavailable
+supports clusters where the DCH BFF is present before its backend API is installed. 401/403,
+other 4xx (excluding these collection-endpoint 404s), and invalid contracts do not trigger
+fallback. DCH authentication failures return 401, access denials return 403, and other
+non-fallback errors return 502.
+A missing connector type omits that connection and returns a warning. The service does not
+probe DCH during startup, cache user connection lists, or convert saved references.
+
+Structured `Connection lookup` events record namespace, source, outcome, reason, count and
+elapsed milliseconds. Aggregate these events for success/failure rates, fallback frequency
+and latency. Upstream bodies and user tokens are excluded. Tune the deadline after measuring
+cluster latency and connection counts; ensure fallback is not hiding connectivity failures.
+
+For a mock DCH response with opaque type ID resolution, start the BFF with
+`--mock-bff-clients --bff-dch-service-name=mock-dch` alongside the usual development flags.
+Leaving the service name unset exercises the Secret path. Contract tests can exercise both:
+
+```bash
+pnpm run test:contract
+BFF_DCH_SERVICE_NAME=mock-dch MOCK_BFF_CLIENTS=true pnpm run test:contract
+```
+
+The shared API contract is manually synchronized from `data-registry-production`. Version
+0.8.0 requires the upstream server to discard display fields on writes and support volume
+connection replacement. Those server changes and cluster write-and-read tests are separate
+from the BFF's connection lookup and must be completed before declaring the integration ready.

@@ -13,7 +13,7 @@ import {
   RhUiGearGroupIcon,
   RhUiInstallIcon,
   SearchIcon,
-  StarIcon,
+  RhUiStarIcon,
 } from '@patternfly/react-icons';
 import type { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 import { parseStageMapNodeId } from './stageMapStepMetadata';
@@ -39,7 +39,7 @@ export const STAGE_TASK_ICONS: Record<string, TaskIconComponent> = {
   write_patterns: PficonTemplateIcon,
   build_requests: CommentsIcon,
   write_artifacts: InfrastructureIcon,
-  build_leaderboard: StarIcon, // rh-ui-icon-star-fill / Select best pattern
+  build_leaderboard: RhUiStarIcon, // rh-ui-icon-star (outlined)
 };
 
 export const STEP_TASK_ICONS: Record<string, TaskIconComponent> = {

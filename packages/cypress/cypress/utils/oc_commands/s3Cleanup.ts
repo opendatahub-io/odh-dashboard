@@ -1,3 +1,4 @@
+import { getFeastS3Config, getS3CaBundle } from './feastS3';
 import { DEFAULT_AWS_CLI_IMAGE } from '../../../src/automlCleanupCommands';
 import {
   AWS_CLI_TASK_CLEANUP_HEADROOM_MS,
@@ -31,11 +32,8 @@ type AwsCliPodOptions = {
 /**
  * Run the AWS CLI in an ephemeral in-cluster pod.
  *
- * Credentials are mounted from a temporary Secret via `--overrides`
- * (`envFrom.secretRef`), so the `oc run` argv (and therefore Cypress `[EXEC]`
- * logs) never contain the keys.
- * A Node-side task applies the Secret, runs `oc`, collects failure diagnostics,
- * and deletes the pod and Secret in `finally` even if Cypress times out.
+ * The Node-side task creates the credential Secret and pod, collects failure
+ * diagnostics, then deletes both resources even if the pod command fails.
  */
 export const runAwsCliInCluster = ({
   namespace,
@@ -53,8 +51,10 @@ export const runAwsCliInCluster = ({
   assertK8sDnsLabel('secret name', secretName);
 
   const buckets = getAwsPipelines();
-  const image = (Cypress.env('CY_S3_CLEANUP_IMAGE') as string | undefined) || DEFAULT_AWS_CLI_IMAGE;
-  // Leave time after the subprocess timeout for the Node task's finally cleanup.
+  const image =
+    (Cypress.env('CY_S3_CLEANUP_IMAGE') as string | undefined) ||
+    (Cypress.env('AWS_CLI_IMAGE') as string | undefined) ||
+    DEFAULT_AWS_CLI_IMAGE;
   const taskOptions: AwsCliPodTaskOptions = {
     namespace,
     podName,
@@ -62,6 +62,7 @@ export const runAwsCliInCluster = ({
     region,
     awsAccessKeyId: buckets.AWS_ACCESS_KEY_ID,
     awsSecretAccessKey: buckets.AWS_SECRET_ACCESS_KEY,
+    awsCaBundle: getS3CaBundle(),
     awsCliArgs,
     command,
     timeout,
@@ -82,8 +83,7 @@ export const runAwsCliInCluster = ({
       }
       return cy
         .log(
-          `WARNING: AWS CLI pod ${podName} or its cleanup failed; ` +
-            `S3 objects or temporary resources may remain. Pod diagnostics: ${detail}`,
+          `WARNING: AWS CLI pod ${podName} or its cleanup failed; S3 objects or temporary resources may remain. Pod diagnostics: ${detail}`,
         )
         .then(() => cy.wrap(result, { log: false }));
     });
@@ -92,19 +92,11 @@ export const runAwsCliInCluster = ({
 /**
  * Delete S3 objects whose keys match a given prefix pattern.
  *
- * Runs an ephemeral pod with the AWS CLI image to execute
- * `aws s3 rm --recursive`. The helper removes the pod after collecting
- * diagnostics when startup or deletion fails.
+ * Best-effort — failures are logged but do not fail the test run so that
+ * project cleanup can still proceed.
  *
- * Best-effort — failures are logged but do not fail the test run so
- * that project cleanup can still proceed.
- *
- * Must be called **before** `deleteOpenShiftProject` because the pod
- * runs inside that namespace.
- *
- * @param namespace  Namespace to run the cleanup pod in
- * @param bucketKey  Which bucket config to use
- * @param prefix     S3 key prefix glob to delete (e.g. `*<uuid>*`)
+ * Must be called before deleting the OpenShift project because the pod runs
+ * inside that namespace.
  */
 export const deleteS3TestFiles = (
   namespace: string,
@@ -147,64 +139,45 @@ const assertValidNamespace = (namespace: string): void => {
   }
 };
 
-const requireBucket1 = (): AWSS3Buckets => {
-  const buckets = getAwsPipelines();
-  if (!buckets.BUCKET_1.NAME) {
-    throw new Error(
-      'AWS_PIPELINES.BUCKET_1.NAME is empty. Export CY_TEST_CONFIG to packages/cypress/test-variables.yml (S3.BUCKET_1) before running E2E.',
-    );
-  }
-  return buckets;
-};
-
 const endpointArgs = (endpoint: string): string[] => (endpoint ? ['--endpoint-url', endpoint] : []);
 
 /**
- * Creates an empty S3 prefix for the namespace-scoped Feast registry.
+ * Creates the namespace-scoped Feast registry prefix in S3.
  *
- * Path: `s3://<bucket>/feast-test/<namespace>/credit_scoring_local/`
- *
- * Does not seed registry.pb — the FeatureStore CR (`feast.yaml`) creates the
- * registry object, and later test steps (e.g. saved dataset) write into it.
- *
- * Must run after the OpenShift project exists and before `createFeatureStoreCR`.
- *
- * @param namespace The test namespace (S3 path segment and pod namespace)
+ * Must run after the OpenShift project exists and before createFeatureStoreCR.
  */
 export const createRegistryStep = (namespace: string): void => {
   assertValidNamespace(namespace);
 
-  const buckets = requireBucket1();
-  const bucketConfig = buckets.BUCKET_1;
+  const config = getFeastS3Config();
   const podName = `feast-s3-create-${Date.now()}`;
   const prefixKey = `feast-test/${namespace}/credit_scoring_local/`;
 
-  cy.step(`Create Feast registry folder: s3://${bucketConfig.NAME}/${prefixKey}`);
+  cy.step(`Create Feast registry folder: s3://${config.bucket}/${prefixKey}`);
   runAwsCliInCluster({
     namespace,
     podName,
-    region: bucketConfig.REGION,
+    region: config.region,
     awsCliArgs: [
       's3api',
       'put-object',
       '--bucket',
-      bucketConfig.NAME,
+      config.bucket,
       '--key',
       prefixKey,
-      ...endpointArgs(bucketConfig.ENDPOINT),
+      ...endpointArgs(config.endpoint),
     ],
     failOnNonZeroExit: true,
+  }).then(() => {
+    cy.log(`Created Feast registry folder s3://${config.bucket}/${prefixKey}`);
   });
-  cy.log(`Created Feast registry folder s3://${bucketConfig.NAME}/${prefixKey}`);
 };
 
 /**
  * Delete the Feast registry files for a given test namespace from S3.
  *
- * Removes `feast-test/<namespace>/` recursively from BUCKET_1.
- * Must be called before `deleteOpenShiftProject` (pod runs in that namespace).
- *
- * @param namespace The test namespace (also used as the S3 path segment)
+ * Must be called before deleting the OpenShift project because the pod runs
+ * inside that namespace.
  */
 export const deleteFeastRegistryFiles = (namespace: string): void => {
   assertValidNamespace(namespace);

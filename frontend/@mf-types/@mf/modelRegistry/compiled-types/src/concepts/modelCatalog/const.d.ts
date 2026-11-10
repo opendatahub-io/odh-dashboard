@@ -4,12 +4,16 @@ export declare enum ModelCatalogStringFilterKey {
     LICENSE = "license",
     LANGUAGE = "language",
     TENSOR_TYPE = "tensor_type.string_value",
+    VALIDATED_CONFIGURATION = "validated_tasks",
     HARDWARE_TYPE = "artifacts.hardware_type.string_value",
     HARDWARE_CONFIGURATION = "artifacts.hardware_configuration.string_value",
     USE_CASE = "artifacts.use_case.string_value"
 }
 export declare enum ModelCatalogNumberFilterKey {
-    MAX_RPS = "artifacts.requests_per_second.double_value"
+    MAX_RPS = "artifacts.requests_per_second.double_value",
+    COLD_START_LOAD_TIME = "artifacts.cold_start_time_to_load_seconds.double_value",
+    MIN_VRAM = "min_vram_gb.double_value",
+    IMAGE_SIZE = "modelcar_image_size.double_value"
 }
 /**
  * Short property keys for accessing artifact customProperties directly.
@@ -103,6 +107,10 @@ export declare const MODEL_CATALOG_TASK_NAME_MAPPING: {
     "tool-calling": string;
     "video-to-text": string;
 };
+export declare enum ValidatedConfiguration {
+    TOOL_CALLING = "tool-calling"
+}
+export declare const MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING: Record<ValidatedConfiguration, string>;
 export declare const MODEL_CATALOG_TASK_DESCRIPTION: {
     "audio-to-text": string;
     "image-text-to-text": string;
@@ -159,17 +167,52 @@ export declare enum ModelCatalogTensorType {
     INT8 = "INT8",
     MXFP4 = "MXFP4"
 }
-export declare const MODEL_CATALOG_POPOVER_MESSAGES: {
-    readonly VALIDATED: "Validated models are benchmarked for performance and quality using leading open source evaluation datasets.";
-    readonly RED_HAT: "Red Hat AI models are provided and supported by Red Hat.";
+export declare const MODEL_CATALOG_GATED_ACCESS_REQUIRED_COPY: {
+    readonly INTRO: "This model is gated on Hugging Face.";
+    readonly USERNAME_PROMPT: "Log in to the Hugging Face account";
+    readonly USERNAME_ACTION: "and request access.";
+    readonly GENERIC_ACTION: "Request access on Hugging Face.";
+    readonly OUTRO: "After access is granted on Hugging Face, it might take a few hours for this model to show as available in the catalog.";
 };
+export declare const MODEL_CATALOG_GATED_ACCESS_REQUIRED: {
+    readonly DESCRIPTION_NON_ADMIN: "You do not have access to this model, so it cannot be deployed or registered. To request access, contact your administrator.";
+    readonly REQUEST_ACCESS_LINK_TEXT: "Request access on Hugging Face";
+    readonly REGISTER_BUTTON_TOOLTIP: "Model access is required to deploy or register this model.";
+    readonly INTRO: "This model is gated on Hugging Face.";
+    readonly USERNAME_PROMPT: "Log in to the Hugging Face account";
+    readonly USERNAME_ACTION: "and request access.";
+    readonly GENERIC_ACTION: "Request access on Hugging Face.";
+    readonly OUTRO: "After access is granted on Hugging Face, it might take a few hours for this model to show as available in the catalog.";
+    readonly TITLE: "Model access required";
+};
+export declare const HUGGING_FACE_BASE_URL = "https://huggingface.co";
+export declare const MODEL_CATALOG_POPOVER_MESSAGES: {
+    readonly VALIDATED: "Validated models undergo comprehensive benchmarking to ensure reliable performance and compatibility. Some of these include validated runtime arguments for enabling additional capabilities.";
+    readonly RED_HAT: "Red Hat AI models are provided and supported by Red Hat.";
+    readonly HF_PRIVATE: "Private Hugging Face model configured by admin.";
+    readonly HF_GATED: "This model is gated on Hugging Face. Accept the model license on Hugging Face and configure an access token to access full metadata.";
+    readonly HF_GATED_ACCESS_DENIED: "You do not have access to this gated model on Hugging Face. Request access on Hugging Face before you can deploy or download model files.";
+};
+export declare enum HfAccessType {
+    PUBLIC = "public",
+    PRIVATE = "private",
+    GATED_AUTO = "gated_auto",
+    GATED_MANUAL = "gated_manual"
+}
 export declare enum CatalogModelCustomPropertyKey {
+    HF_ACCESS_TYPE = "hf_access_type",
+    HF_GATED_ACCESS_GRANTED = "hf_gated_access_granted",
     VALIDATED_ON = "validated_on",
     TENSOR_TYPE = "tensor_type",
     SIZE = "size",
     ARCHITECTURE = "architecture",
-    MODEL_TYPE = "model_type"
+    MODEL_TYPE = "model_type",
+    MODEL_SIZE = "model_size",
+    MINIMUM_VRAM = "min_vram_gb",
+    HARDWARE_CONFIGURATIONS = "cold_start_matrix",
+    HARDWARE_TAG = "hardware_tag"
 }
+export declare const CATALOG_VALUE_LABEL_KEYS: CatalogModelCustomPropertyKey[];
 export declare enum ModelType {
     GENERATIVE = "generative",
     PREDICTIVE = "predictive",
@@ -369,7 +412,20 @@ export declare const isCatalogFilterKey: (key: string) => key is ModelCatalogFil
  */
 export declare const BASIC_FILTER_KEYS: ModelCatalogFilterKey[];
 /**
- * Performance filter keys that are shown when performance view is enabled.
+ * Filters that use AND logic when multiple values are selected.
+ * Standard filters use OR (IN operator): items matching ANY selected value.
+ * AND filters require items to match ALL selected values.
+ * Add a filter key here to switch it from OR to AND behavior.
+ */
+export declare const MATCH_ALL_FILTER_KEYS: ModelCatalogStringFilterKey[];
+/**
+ * Prefixes used to identify deployment resource entries within validated_on.
+ * Entries starting with any of these prefixes are categorized as deployment resources
+ * rather than certified platforms.
+ */
+export declare const DEPLOYMENT_RESOURCE_PREFIXES: string[];
+/**
+ * Performance filter keys that are shown as chips in the performance toolbar.
  * These filters should reset to default values (from namedQueries) instead of clearing.
  * Note: HARDWARE_CONFIGURATION is NOT included here because it should clear normally
  * like basic filters, not reset to defaults.
@@ -416,6 +472,9 @@ export declare const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFil
 export declare const MODEL_CATALOG_FILTER_CHIP_PREFIXES: {
     readonly WORKLOAD_TYPE: "Workload type:";
     readonly MAX_RPS: "Max RPS:";
+    readonly COLD_START_LOAD_TIME: "Cold start load time: ≤";
+    readonly MIN_VRAM: "Minimum vRAM: ≤";
+    readonly IMAGE_SIZE: "Container image size: ≤";
     readonly LATENCY_METRIC: "Metric:";
     readonly LATENCY_PERCENTILE: "Percentile:";
     readonly LATENCY_THRESHOLD: "Under";
@@ -427,12 +486,15 @@ export declare enum ModelDetailsTab {
 export declare const EMPTY_CUSTOM_PROPERTY_VALUE = "-";
 export declare enum ModelCatalogSortOption {
     RECENT_PUBLISH = "recent_publish",
-    LOWEST_LATENCY = "lowest_latency"
+    LOWEST_LATENCY = "lowest_latency",
+    LOWEST_COLD_START = "lowest_cold_start"
 }
 export declare enum SortOrder {
     ASC = "ASC",
     DESC = "DESC"
 }
 export declare enum SortField {
-    LAST_UPDATE_TIME = "LAST_UPDATE_TIME"
+    LAST_UPDATE_TIME = "LAST_UPDATE_TIME",
+    RECOMMENDED = "RECOMMENDED"
 }
+export declare const RESET_ALL_FILTERS_LABEL = "Reset all filters";

@@ -12,7 +12,11 @@ import {
   mySubscriptionsPage,
   subscriptionsTab,
 } from '../../../pages/modelsAsAService';
-import { mockAPIKeys, mockSubscriptionListItems } from '../../../utils/maasUtils';
+import {
+  mockAPIKeys,
+  mockSubscriptionListItems,
+  mockSubscriptions,
+} from '../../../utils/maasUtils';
 
 describe('API keys - Subscription Tab', () => {
   beforeEach(() => {
@@ -24,10 +28,11 @@ describe('API keys - Subscription Tab', () => {
       }),
     );
 
+    cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: true } });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/user', {
       data: { userId: 'test-user', clusterAdmin: false },
     });
-    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
     cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
 
     cy.interceptOdh(
@@ -53,6 +58,9 @@ describe('API keys - Subscription Tab', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    }).as('getAllSubscriptions');
 
     cy.interceptOdh('GET /maas/api/v1/api-keys-config', {
       data: {
@@ -187,7 +195,8 @@ describe('API keys - Subscription Tab', () => {
           subscription_description: 'Subscription with no keys',
           // eslint-disable-next-line camelcase
           display_name: 'No Keys Sub',
-          priority: 1,
+          // eslint-disable-next-line camelcase
+          inference_priority: 1,
           // eslint-disable-next-line camelcase
           key_count: 0,
           // eslint-disable-next-line camelcase

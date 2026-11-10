@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odh-dashboard
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: odh-dashboard
+          image: odh-dashboard:odh-test
+          imagePullPolicy: Never
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+        - name: kube-rbac-proxy
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+        - name: core-bff
+          image: odh-core-bff:odh-test
+          imagePullPolicy: Never
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi

@@ -4,6 +4,7 @@ import type {
   ModelServingDeleteModal,
   ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
+import type { RuntimeImageInstallTargetExtension } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
 import type {
   WizardFieldExtension,
   WizardFieldApplyExtension,
@@ -14,6 +15,7 @@ import type {
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploymentTransformExtension,
   WizardFieldDeploymentFunctionsExtension,
+  WizardTrackingPropertiesExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import type {
@@ -78,8 +80,9 @@ const createRedirectComponent = (args: { from: string; to: string }) => () =>
     default: () => module.buildV2RedirectElement(args),
   }));
 
-// When vLLMOnMaaS enabled + llmdTemplates disabled: show accelerator config for all llm-d (single-node fallback)
-const llmConfigOptionsFieldExtensionNoTemplates: WizardFieldExtension<
+// Simple vLLM only — llm-d uses AcceleratorConfigField (avoids duplicate fields when
+// llmdTemplates is off).
+const llmConfigOptionsFieldExtension: WizardFieldExtension<
   LLMConfigOptionsFieldType,
   LLMdDeployment
 > = {
@@ -88,30 +91,11 @@ const llmConfigOptionsFieldExtensionNoTemplates: WizardFieldExtension<
     platform: LLMD_SERVING_ID,
     field: () =>
       import('../src/wizardFields/LlmConfigOptionsField').then(
-        (m) => m.LLMConfigOptionsFieldNoTemplates,
+        (m) => m.LLMConfigOptionsFieldWizardField,
       ),
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS],
-    disallowed: [SupportedArea.LLMD_TOPOLOGY_CONFIGS],
-  },
-};
-
-// When vLLMOnMaaS enabled + llmdTemplates enabled: show accelerator config only for simple vLLM (non-llm-d)
-const llmConfigOptionsFieldExtensionWithTemplates: WizardFieldExtension<
-  LLMConfigOptionsFieldType,
-  LLMdDeployment
-> = {
-  type: 'model-serving.deployment/wizard-field',
-  properties: {
-    platform: LLMD_SERVING_ID,
-    field: () =>
-      import('../src/wizardFields/LlmConfigOptionsField').then(
-        (m) => m.LLMConfigOptionsFieldWithTemplates,
-      ),
-  },
-  flags: {
-    required: [LLMD_SERVING_ID, SupportedArea.VLLM_ON_MAAS, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
   },
 };
 
@@ -157,6 +141,18 @@ const gatewaySelectExtractorExtension: WizardFieldExtractorExtension<
       import('../src/wizardFields/gateway/gatewaySelectApplyExtract').then(
         (m) => m.extractGatewaySelectData,
       ),
+  },
+  flags: {
+    required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
+  },
+};
+
+const llmdTrackingPropertiesExtension: WizardTrackingPropertiesExtension<LLMdDeployment> = {
+  type: 'model-serving.deployment/tracking-properties',
+  properties: {
+    platform: LLMD_SERVING_ID,
+    getProperties: () =>
+      import('../src/tracking/llmdWizardTracking').then((m) => m.getLlmdWizardTrackingProperties),
   },
   flags: {
     required: [LLMD_SERVING_ID, SupportedArea.LLMD_GATEWAY_FIELD],
@@ -408,10 +404,12 @@ const extensions: (
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<{ method: string }, LLMdDeployment>
+  | WizardTrackingPropertiesExtension<LLMdDeployment>
   | TopologyConfigsExtensionsType
   | HrefNavItemExtension
   | RouteExtension
   | TabRouteTabExtension
+  | RuntimeImageInstallTargetExtension
 )[] = [
   {
     type: 'app.area',
@@ -502,6 +500,7 @@ const extensions: (
       platform: LLMD_SERVING_ID,
       priority: 100,
       supportsOverwrite: true,
+      supportsDRAHardwareProfiles: true,
       isActive: () => import('../src/formUtils').then((m) => m.isLLMInferenceServiceActive),
       deploy: () => import('../src/deployments/deploy').then((m) => m.deployLLMdDeployment),
     },
@@ -602,12 +601,12 @@ const extensions: (
       required: [LLMD_SERVING_ID],
     },
   },
-  llmConfigOptionsFieldExtensionNoTemplates,
-  llmConfigOptionsFieldExtensionWithTemplates,
+  llmConfigOptionsFieldExtension,
   ...topologyConfigsExtensions,
   gatewaySelectFieldExtension,
   gatewaySelectApplyExtension,
   gatewaySelectExtractorExtension,
+  llmdTrackingPropertiesExtension,
   deploymentMethodExtractorExtensionLllmdOnly,
   deploymentMethodExtractorExtensionvLLMOnMaaS,
   {
@@ -658,6 +657,24 @@ const extensions: (
         from: `${ROUTING_CONFIGS_STANDALONE_PATH}/*`,
         to: `${ROUTING_CONFIGS_TAB_PATH}/*`,
       }),
+    },
+  },
+  {
+    type: 'model-serving.runtime-image/install-target',
+    flags: {
+      required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
+    },
+    properties: {
+      id: 'llmInferenceServiceConfig',
+      label: 'LLM accelerator configuration',
+      description:
+        'Install as an LLMInferenceServiceConfig for LLM inference service deployments. Compatible with Models as a Service.',
+      selectedState: {
+        listName: 'LLM accelerator configurations',
+        description: 'and the LLM inference service deployment wizard.',
+      },
+      installTargetName: 'LLM accelerator configuration',
+      component: () => import('../src/runtimeImageInstall/LlmAcceleratorInstallTarget'),
     },
   },
   {

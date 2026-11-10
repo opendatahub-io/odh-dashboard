@@ -46,27 +46,12 @@ func (s *service) DiscoverReadyDSPA(ctx context.Context, namespace string) (*Dis
 	}
 
 	for _, dspa := range dspas.Items {
-		conditions, found, err := unstructured.NestedSlice(dspa.Object, "status", "conditions")
-		if err != nil || !found {
-			continue
-		}
-
 		// Ready is the aggregate condition set by the DSPA controller — it is True
 		// only when all sub-conditions (APIServerReady, DatabaseReady,
-		// PersistenceAgentReady, etc.) are also True.
-		isReady := false
-		for _, cond := range conditions {
-			condMap, ok := cond.(map[string]any)
-			if !ok {
-				continue
-			}
-			if condMap["type"] == "Ready" && condMap["status"] == "True" {
-				isReady = true
-				break
-			}
-		}
-
-		if !isReady {
+		// PersistenceAgentReady, etc.) are also True. A malformed conditions list or
+		// a stale-generation Ready makes this DSPA unusable; skip it.
+		ready, err := isDSPAReady(dspa.Object)
+		if err != nil || !ready {
 			continue
 		}
 

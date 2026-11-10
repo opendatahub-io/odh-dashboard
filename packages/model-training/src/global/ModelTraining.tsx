@@ -1,17 +1,26 @@
 import React, { useRef, useState } from 'react';
 import {
+  Button,
   EmptyStateBody,
   EmptyStateVariant,
   EmptyState,
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Popover,
 } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { ApplicationsPage, ProjectObjectType } from '@odh-dashboard/ui-core';
+import {
+  ApplicationsPage,
+  DashboardPopupIconButton,
+  ProjectObjectType,
+} from '@odh-dashboard/ui-core';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { useUser } from '@odh-dashboard/internal/redux/selectors/user';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import { ModelTrainingContext } from './ModelTrainingContext';
@@ -26,6 +35,7 @@ import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSele
 import { RayClusterKind } from '../k8sTypes';
 import { JobDisplayState, UnifiedJobKind, isTrainJob, isRayJob } from '../types';
 import { useRayClusters } from '../api';
+import ModelTrainingAllProjectsBanner from '../components/ModelTrainingAllProjectsBanner';
 
 const title = 'Jobs';
 const description =
@@ -35,6 +45,10 @@ const ModelTraining = (): React.ReactElement => {
   const navigate = useNavigate();
   const { trainJobs, rayJobs, project, preferredProject, projects } =
     React.useContext(ModelTrainingContext);
+  const { isAdmin } = useUser();
+  const isUnifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
   const storedProject = getStoredPreferredProject(projects ?? []);
   const [trainJobData, trainJobLoaded, trainJobLoadError] = trainJobs;
   const [rayJobData, rayJobLoaded, rayJobLoadError] = rayJobs;
@@ -163,6 +177,47 @@ const ModelTraining = (): React.ReactElement => {
     />
   );
 
+  const allProjectsBanner =
+    !project && isUnifiedProjectSelectorEnabled && isAdmin ? (
+      <ModelTrainingAllProjectsBanner
+        onExit={() => {
+          const redirectProject = storedProject ?? preferredProject ?? projects?.[0];
+          if (redirectProject) {
+            navigate(`/develop-train/training-jobs/${redirectProject.metadata.name}`);
+          }
+        }}
+      />
+    ) : null;
+
+  const pageDescription = (
+    <>
+      {description}{' '}
+      {project && isUnifiedProjectSelectorEnabled && isAdmin && (
+        <>
+          <Button
+            variant="link"
+            isInline
+            onClick={() => navigate('/develop-train/training-jobs?allProjects=true')}
+            data-testid="training-jobs-view-all-projects"
+          >
+            View across all projects
+          </Button>
+          <Popover
+            showClose
+            hasAutoWidth
+            maxWidth="370px"
+            bodyContent="See jobs across every project you have access to."
+          >
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More information about viewing jobs across all projects"
+            />
+          </Popover>
+        </>
+      )}
+    </>
+  );
+
   return (
     <Drawer
       onExpand={() => drawerRef.current && drawerRef.current.focus()}
@@ -177,13 +232,17 @@ const ModelTraining = (): React.ReactElement => {
             title={
               <TitleWithIcon title={title} objectType={ProjectObjectType.modelCustomization} />
             }
-            description={description}
+            description={pageDescription}
             loadError={allJobsLoadError}
             loaded={allJobsLoaded}
             headerContent={
-              <ModelTrainingProjectSelector
-                getRedirectPath={(ns: string) => `/develop-train/training-jobs/${ns}`}
-              />
+              !project && isUnifiedProjectSelectorEnabled ? (
+                allProjectsBanner
+              ) : (
+                <ModelTrainingProjectSelector
+                  getRedirectPath={(ns: string) => `/develop-train/training-jobs/${ns}`}
+                />
+              )
             }
             provideChildrenPadding
             loadingContent={

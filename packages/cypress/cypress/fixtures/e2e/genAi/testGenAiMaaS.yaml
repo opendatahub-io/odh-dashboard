@@ -1,0 +1,9 @@
+# Uses the same CPU-only inference simulator as the MaaS API key E2E tests.
+llmInferenceServiceFixturePath: resources/maas/llmInferenceServiceSimulatorPremium.yaml
+subscriptionFixturePath: resources/genAi/MaaSSubscription.yaml
+authPolicyFixturePath: resources/genAi/MaaSAuthPolicy.yaml
+phase: Active
+playgroundServiceName: lsd-genai-playground-service
+playgroundPodPrefix: lsd-genai-playground
+playgroundPodReadyTimeout: 300s
+testMessage: Test message, expecting simulated response.

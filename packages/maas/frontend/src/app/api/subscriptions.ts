@@ -61,7 +61,12 @@ const isMaaSSubscriptionRef = (v: unknown): v is ModelSubscriptionRef =>
   typeof v.namespace === 'string' &&
   (v.tokenRateLimits == null ||
     (Array.isArray(v.tokenRateLimits) && v.tokenRateLimits.every(isTokenRateLimit))) &&
-  (v.billingRate === undefined || typeof v.billingRate === 'object');
+  (v.billingRate === undefined || typeof v.billingRate === 'object') &&
+  (v.objectiveName === undefined || typeof v.objectiveName === 'string') &&
+  (v.targetPool === undefined || typeof v.targetPool === 'string') &&
+  (v.ready === undefined || typeof v.ready === 'boolean') &&
+  (v.reason === undefined || typeof v.reason === 'string') &&
+  (v.message === undefined || typeof v.message === 'string');
 
 const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   isRecord(v) &&
@@ -69,7 +74,8 @@ const isMaaSSubscription = (v: unknown): v is MaaSSubscription =>
   (v.displayName === undefined || typeof v.displayName === 'string') &&
   (v.description === undefined || typeof v.description === 'string') &&
   typeof v.namespace === 'string' &&
-  (v.priority === undefined || typeof v.priority === 'number') &&
+  (v.inferencePriority === undefined || typeof v.inferencePriority === 'number') &&
+  (v.resourceVersion === undefined || typeof v.resourceVersion === 'string') &&
   isOwnerSpec(v.owner) &&
   Array.isArray(v.modelRefs) &&
   v.modelRefs.every(isMaaSSubscriptionRef) &&
@@ -130,6 +136,7 @@ const isTokenRateLimitInfo = (v: unknown): v is TokenRateLimitInfo =>
 const isModelRefInfo = (v: unknown): v is ModelRefInfo =>
   isRecord(v) &&
   typeof v.name === 'string' &&
+  (v.model_name === undefined || typeof v.model_name === 'string') &&
   (v.namespace === undefined || typeof v.namespace === 'string') &&
   (v.token_rate_limits == null ||
     (Array.isArray(v.token_rate_limits) && v.token_rate_limits.every(isTokenRateLimitInfo)));
@@ -138,7 +145,8 @@ const isUserSubscription = (v: unknown): v is UserSubscription =>
   isRecord(v) &&
   typeof v.subscription_id_header === 'string' &&
   typeof v.subscription_description === 'string' &&
-  typeof v.priority === 'number' &&
+  (v.priority === undefined || typeof v.priority === 'number') &&
+  (v.inference_priority === undefined || typeof v.inference_priority === 'number') &&
   Array.isArray(v.model_refs) &&
   v.model_refs.every(isModelRefInfo);
 
@@ -147,18 +155,42 @@ const isCreateSubscriptionResponse = (v: unknown): v is CreateSubscriptionRespon
   isMaaSSubscription(v.subscription) &&
   (v.authPolicy === undefined || isMaaSAuthPolicy(v.authPolicy));
 
-/** GET /api/v1/all-subscriptions - List all subscriptions */
-export const listSubscriptions =
-  (hostPath = '') =>
+/**
+ * Subscriptions endpoints that return the same `MaaSSubscription[]` payload.
+ *
+ * - `all-subscriptions`: governance/admin view used by the MaaS governance page
+ *   (reads MaaSSubscription CRs from Kubernetes).
+ * - `admin-subscriptions`: read-only view backed by the maas-api `/v1/subscriptions`
+ *   passthrough, unfiltered. Same payload shape, kept as a separate contract so it can
+ *   diverge (scoping, RBAC) without changing the all-subscriptions consumers. Note the
+ *   payload is sanitised upstream: `owner.groups` is always empty and no status/phase
+ *   is available.
+ */
+export type SubscriptionsEndpoint = 'all-subscriptions' | 'admin-subscriptions';
+
+type SubscriptionFetcher = (opts: APIOptions) => Promise<MaaSSubscription[]>;
+
+const fetchSubscriptions =
+  (endpoint: SubscriptionsEndpoint, hostPath = '') =>
   (opts: APIOptions): Promise<MaaSSubscription[]> =>
     handleRestFailures(
-      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/all-subscriptions`, {}, opts),
+      restGET(hostPath, `${API_URL_PREFIX}/api/${BFF_API_VERSION}/${endpoint}`, {}, opts),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && Array.isArray(response.data)) {
         return response.data.filter(isMaaSSubscription).map(normalizeSubscription);
       }
       throw new Error('Invalid response format');
     });
+
+/** GET /api/v1/all-subscriptions - List all subscriptions */
+export const listSubscriptions = (hostPath = ''): SubscriptionFetcher =>
+  fetchSubscriptions('all-subscriptions', hostPath);
+
+/** List subscriptions from the requested endpoint. Defaults to all-subscriptions. */
+export const listSubscriptionsFrom = (
+  endpoint: SubscriptionsEndpoint = 'all-subscriptions',
+  hostPath = '',
+): SubscriptionFetcher => fetchSubscriptions(endpoint, hostPath);
 
 export const deleteSubscription =
   (hostPath = '') =>

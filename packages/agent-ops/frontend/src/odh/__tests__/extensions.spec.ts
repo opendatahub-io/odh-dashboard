@@ -1,32 +1,20 @@
-import type { RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
 import extensions from '~/odh/extensions';
 import {
   agentDeployWizardPath,
   agentDeploymentsPath,
   agentOpsDeploymentDetailRoute,
-  agentOpsSandboxDetailPath,
-  agentOpsWorkspaceDetailPath,
-  agentOpsWorkspacesPath,
 } from '~/app/utilities/routes';
 
 const AGENT_OPS = 'agent-ops';
 const AGENT_OPS_DEPLOY = 'agent-ops-deploy';
 
-const getDeployRouteExtensions = (): RouteExtension[] =>
-  extensions.filter(
-    (extension): extension is RouteExtension =>
-      extension.type === 'app.route' &&
-      Boolean(extension.flags?.required?.includes(AGENT_OPS_DEPLOY)),
-  );
-
 describe('agent-ops extensions', () => {
   it('should register area, tab-route tab, and route extensions', () => {
-    expect(extensions).toHaveLength(6);
+    expect(extensions).toHaveLength(5);
     expect(extensions.map((extension) => extension.type)).toEqual([
       'app.area',
       'app.area',
       'app.tab-route/tab',
-      'app.route',
       'app.route',
       'app.route',
     ]);
@@ -47,7 +35,8 @@ describe('agent-ops extensions', () => {
 
   it('should register the deploy mode area with feature flag', () => {
     const area = extensions.find(
-      (extension) => extension.type === 'app.area' && extension.properties.id === AGENT_OPS_DEPLOY,
+      (extension) =>
+        extension.type === 'app.area' && extension.properties.id === AGENT_OPS_DEPLOY,
     );
     expect(area).toMatchObject({
       type: 'app.area',
@@ -58,7 +47,7 @@ describe('agent-ops extensions', () => {
     });
   });
 
-  it('should register workspaces tab for the agents tab page', () => {
+  it('should register deployments tab for the agents tab page', () => {
     const tab = extensions.find((extension) => extension.type === 'app.tab-route/tab');
     expect(tab).toMatchObject({
       type: 'app.tab-route/tab',
@@ -67,39 +56,24 @@ describe('agent-ops extensions', () => {
       },
       properties: {
         pageId: 'agents-tab-page',
-        id: 'workspaces',
-        title: 'Workspaces',
-        group: '1_workspaces',
+        id: 'deployments',
+        title: 'Deployments',
+        group: '1_deployments',
       },
     });
     expect(tab?.type === 'app.tab-route/tab' && tab.properties.component).toBeTruthy();
   });
 
-  it('should register workspace detail route', () => {
-    const workspaceRoute = extensions.find(
-      (extension) =>
-        extension.type === 'app.route' &&
-        extension.properties.path === '/ai-hub/agents/workspaces/:workspaceId/*',
-    );
-    expect(workspaceRoute).toMatchObject({
-      type: 'app.route',
-      flags: {
-        required: [AGENT_OPS],
-      },
-    });
-    expect(
-      workspaceRoute?.type === 'app.route' && workspaceRoute.properties.component,
-    ).toBeTruthy();
-  });
-
-  it('standalone deploy route paths match routes.ts constants', () => {
-    const paths = getDeployRouteExtensions().map((extension) => extension.properties.path);
+  it('standalone route paths match routes.ts constants', () => {
+    const paths = extensions
+      .filter((extension) => extension.type === 'app.route')
+      .map((extension) => extension.properties.path);
     expect(paths).toContain(agentDeployWizardPath);
     expect(paths).toContain(`${agentDeploymentsPath}/:namespace/:agentId/*`);
   });
 
-  it('should register deploy breakout routes gated on agentOpsDeploy', () => {
-    const routes = getDeployRouteExtensions();
+  it('should register standalone breakout routes outside the tab layout', () => {
+    const routes = extensions.filter((extension) => extension.type === 'app.route');
     expect(routes).toHaveLength(2);
     expect(routes.map((route) => route.properties.path)).toEqual([
       `${agentDeploymentsPath}/:namespace/:agentId/*`,
@@ -117,11 +91,11 @@ describe('agent-ops extensions', () => {
   });
 
   it('should keep extension route paths in sync with utilities/routes.ts', () => {
-    expect(agentOpsWorkspacesPath).toBe('/ai-hub/agents/workspaces');
-    expect(agentOpsWorkspaceDetailPath('team1')).toBe('/ai-hub/agents/workspaces/team1');
-    expect(agentOpsSandboxDetailPath('team1', 'sandbox-a')).toBe(
-      '/ai-hub/agents/workspaces/team1/sandboxes/sandbox-a',
-    );
+    const routes = extensions.filter((extension) => extension.type === 'app.route');
+    expect(routes.map((route) => route.properties.path)).toEqual([
+      `${agentDeploymentsPath}/:namespace/:agentId/*`,
+      agentDeployWizardPath,
+    ]);
     expect(agentOpsDeploymentDetailRoute('team1', 'my-agent')).toBe(
       `${agentDeploymentsPath}/team1/my-agent`,
     );

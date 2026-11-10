@@ -1,4 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   PhaseLabelLocation,
   PhaseResourceType,
@@ -308,7 +308,7 @@ export type SubscriptionCreatedSuccessProperties = {
   modelCountAvailable: number;
   hasDescription: boolean;
   hasMatchingPolicy: boolean;
-  priority: number;
+  priority?: number;
   prefillSource?: EventTrackingPrefillSource;
 };
 
@@ -329,7 +329,7 @@ export type SubscriptionUpdatedSuccessProperties = {
   modelCount: number;
   hasDescription: boolean;
   hasMatchingPolicy?: boolean;
-  priority: number;
+  priority?: number;
   editSource?: EventTrackingEditSource;
 };
 

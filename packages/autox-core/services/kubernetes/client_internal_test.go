@@ -295,13 +295,22 @@ func TestInternalClient_GetNamespaces(t *testing.T) {
 					{Object: map[string]interface{}{
 						"apiVersion": "project.openshift.io/v1",
 						"kind":       "Project",
-						"metadata":   map[string]interface{}{"name": "proj1"},
+						"metadata": map[string]interface{}{
+							"name": "proj1",
+							"annotations": map[string]interface{}{
+								"openshift.io/display-name": "Project One",
+							},
+						},
 					}},
 				},
 			}, nil
 		})
 
+		// Counting these calls guards against regressing to one Namespace GET per
+		// visible Project (N+1).
+		namespaceGets := 0
 		cs.PrependReactor("get", "namespaces", func(action k8stesting.Action) (bool, runtime.Object, error) {
+			namespaceGets++
 			return true, nil, k8serrors.NewNotFound(schema.GroupResource{Resource: "namespaces"}, "proj1")
 		})
 
@@ -311,6 +320,12 @@ func TestInternalClient_GetNamespaces(t *testing.T) {
 		}
 		if len(namespaces) != 1 || namespaces[0].Name != "proj1" {
 			t.Errorf("expected [proj1], got %v", namespaces)
+		}
+		if namespaces[0].Annotations["openshift.io/display-name"] != "Project One" {
+			t.Errorf("expected project display-name annotation to be carried over, got %v", namespaces[0].Annotations)
+		}
+		if namespaceGets != 0 {
+			t.Errorf("expected 0 per-project Namespace GETs, got %d (N+1 regression)", namespaceGets)
 		}
 	})
 }

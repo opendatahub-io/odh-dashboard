@@ -7,6 +7,7 @@ export default {
     'mcp-registry/**/*.{ts,tsx}',
     'experiments/**/*.{ts,tsx}',
     'prompts/**/*.{ts,tsx}',
+    'skill-registry/**/*.{ts,tsx}',
     'shared/**/*.{ts,tsx}',
     '!**/__tests__/**',
     '!**/__mocks__/**',

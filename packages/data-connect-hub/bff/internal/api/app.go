@@ -219,7 +219,8 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(ConnectionTypePath, app.GetConnectionTypeHandler)
 	apiRouter.POST(ConnectionReadinessPath, app.CheckConnectionReadinessHandler)
 	apiRouter.POST(TestCredentialsPath, app.TestCredentialsHandler)
-	apiRouter.DELETE(ConnectionDeletePath, app.DeleteConnectionHandler)
+	apiRouter.GET(ConnectionPath, app.GetConnectionHandler)
+	apiRouter.DELETE(ConnectionPath, app.DeleteConnectionHandler)
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

@@ -127,6 +127,16 @@ describe('TabRoutePage', () => {
       expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     });
 
+    it('should render the page description beneath the page title when provided', () => {
+      const tab = createTabExtension({ id: 'only-tab', title: 'Only Tab' });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({ description: 'Page description' });
+
+      renderWithRouter(extension, '/test/only-tab');
+
+      expect(screen.getByTestId('app-tab-page-description')).toHaveTextContent('Page description');
+    });
+
     it('should render singleTabTitle instead of generic page title when provided', () => {
       const tab = createTabExtension({
         id: 'only-tab',
@@ -156,6 +166,45 @@ describe('TabRoutePage', () => {
       const titleWithIcon = screen.getByTestId('title-with-icon');
       expect(titleWithIcon).toHaveTextContent('Model deployments');
       expect(titleWithIcon).toHaveAttribute('data-object-type', 'registered-models');
+    });
+
+    it('should hide the page title on configured nested paths', () => {
+      const tab = createTabExtension({ id: 'only-tab' });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({
+        hidePageTitleOnPaths: ['only-tab/assets'],
+      });
+
+      renderWithRouter(extension, '/test/only-tab/assets/table/project/collection/asset');
+
+      expect(screen.queryByTestId('app-tab-page-title')).not.toBeInTheDocument();
+      expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
+    });
+
+    it('should hide the page title on an exact configured path', () => {
+      const tab = createTabExtension({ id: 'only-tab' });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({
+        hidePageTitleOnPaths: ['only-tab/assets'],
+      });
+
+      renderWithRouter(extension, '/test/only-tab/assets');
+
+      expect(screen.queryByTestId('app-tab-page-title')).not.toBeInTheDocument();
+      expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
+    });
+
+    it('should not hide the page title for a configured path prefix near miss', () => {
+      const tab = createTabExtension({ id: 'only-tab' });
+      mockUseExtensions.mockReturnValue([tab]);
+      const extension = createPageExtension({
+        hidePageTitleOnPaths: ['only-tab/assets'],
+      });
+
+      renderWithRouter(extension, '/test/only-tab/assets-extra/table/project/collection/asset');
+
+      expect(screen.getByTestId('app-tab-page-title')).toBeInTheDocument();
+      expect(screen.getByTestId('lazy-content')).toBeInTheDocument();
     });
 
     it('should use tab objectType over page objectType when provided', () => {

@@ -28,6 +28,12 @@ import { ProjectModel } from '../../../utils/models';
 export const projectName = 'test-model-training-project';
 export const projectDisplayName = 'Test Model Training Project';
 
+export const modelTrainingTestIds = {
+  allProjectsBanner: 'training-jobs-all-projects-banner',
+  exitAllProjectsView: 'training-jobs-exit-all-projects',
+  viewAcrossAllProjects: 'training-jobs-view-all-projects',
+} as const;
+
 const trainJobConfigs = [
   {
     name: 'image-classification-job',
@@ -143,6 +149,19 @@ const trainJobConfigs = [
 
 export const mockTrainJobs = mockTrainJobK8sResourceList(trainJobConfigs);
 
+export const mockAllProjectsTrainJobs = [
+  ...mockTrainJobs,
+  ...mockTrainJobK8sResourceList([
+    {
+      name: 'other-project-training-job',
+      namespace: 'other-project',
+      status: TrainingJobState.RUNNING,
+      numNodes: 1,
+      creationTimestamp: '2024-01-20T10:00:00Z',
+    },
+  ]),
+];
+
 export const mockRayJobs = mockRayJobK8sResourceList([
   {
     name: 'ray-data-processing',
@@ -159,6 +178,19 @@ export const mockRayJobs = mockRayJobK8sResourceList([
     succeeded: 1,
   },
 ]);
+
+export const mockAllProjectsRayJobs = [
+  ...mockRayJobs,
+  ...mockRayJobK8sResourceList([
+    {
+      name: 'other-project-ray-job',
+      namespace: 'other-project',
+      jobStatus: RayJobStatusValue.RUNNING,
+      jobDeploymentStatus: RayJobDeploymentStatus.RUNNING,
+      entrypoint: 'python other_project.py',
+    },
+  ]),
+];
 
 export const mockLocalQueues = [
   mockLocalQueueK8sResource({
@@ -407,7 +439,13 @@ export const initInterceptsForStatusModal = (
   );
 };
 
-export const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}): void => {
+export const initIntercepts = ({
+  isEmpty = false,
+  allProjects = false,
+}: {
+  isEmpty?: boolean;
+  allProjects?: boolean;
+} = {}): void => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
@@ -495,6 +533,24 @@ export const initIntercepts = ({ isEmpty = false }: { isEmpty?: boolean } = {}):
         ns: projectName,
       },
       mockK8sResourceList(mockWorkloads),
+    );
+  }
+
+  if (allProjects) {
+    cy.interceptK8sList(
+      {
+        model: TrainJobModel,
+        ns: '',
+      },
+      mockK8sResourceList(mockAllProjectsTrainJobs),
+    );
+
+    cy.interceptK8sList(
+      {
+        model: RayJobModel,
+        ns: '',
+      },
+      mockK8sResourceList(mockAllProjectsRayJobs),
     );
   }
 };

@@ -112,6 +112,8 @@ const (
 	McpServersToolListPath        = McpServerPath + "/tools"
 	McpServerLogoPath             = McpServerPath + "/logo"
 	MCPServerConverterPath        = McpServerPath + "/mcpserver"
+	// Downstream-only: deploy prerequisites for a catalog MCP server.
+	McpServerDeployReadinessPath = McpServerPath + "/deploy_readiness"
 
 	// Swagger UI (interactive API docs)
 	SwaggerPath    = ApiPathPrefix + "/swagger"
@@ -129,6 +131,9 @@ const (
 	McpDeploymentName     = "mcp_deployment_name"
 	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
 	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
+
+	// Deploy readiness for an MCP server image (downstream-only implementation)
+	McpDeployReadinessPath = ApiPathPrefix + "/mcp_deploy_readiness"
 )
 
 const (
@@ -155,6 +160,10 @@ const (
 	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
 	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
 	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
+
+	// MCP server deploy readiness handler - downstream-only
+	handlerMcpServerDeployReadinessGetID HandlerID = "mcpServer:deployReadiness:get"
+	handlerMcpDeployReadinessGetID       HandlerID = "mcpDeployment:readiness:get"
 )
 
 type App struct {
@@ -282,6 +291,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 	}
+	app.repositories.ModelRegistry.OCIBaseImageConfigNamespace = strings.TrimSpace(cfg.OCIBaseImageConfigNamespace)
 	return app, nil
 }
 
@@ -466,6 +476,19 @@ func (app *App) Routes() http.Handler {
 					app.EndpointNotImplementedHandler("MCPServer converter")))
 			}),
 		)
+		apiRouter.GET(
+			McpServerDeployReadinessPath,
+			app.handlerWithOverride(handlerMcpServerDeployReadinessGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(
+					app.EndpointNotImplementedHandler("MCP server deploy readiness"))))
+			}),
+		)
+		apiRouter.GET(
+			McpDeployReadinessPath,
+			app.handlerWithOverride(handlerMcpDeployReadinessGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deploy readiness"))
+			}),
+		)
 
 		//SettingsPath: Certificate endpoints
 		apiRouter.GET(CertificatesPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.GetCertificatesHandler)))
@@ -492,7 +515,7 @@ func (app *App) Routes() http.Handler {
 		apiRouter.DELETE(ModelCatalogSettingsSourceConfigCredentialsPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.ClearCatalogSourceCredentialsHandler)))
 		apiRouter.POST(CatalogSourcePreviewPath, app.AttachNamespace(app.RequireListServiceAccessInNamespace(app.AttachModelCatalogRESTClient(app.CreateCatalogSourcePreviewHandler))))
 
-		// Serving runtime catalog endpoints - downstream extensions, mock-only for now.
+		// Serving runtime catalog endpoints - downstream implementations.
 		apiRouter.GET(ServingRuntimeListPath, app.handlerWithOverride(handlerServingRuntimeListID, func() httprouter.Handle {
 			return app.AttachNamespace(app.EndpointNotImplementedHandler("Serving runtime catalog list"))
 		}))

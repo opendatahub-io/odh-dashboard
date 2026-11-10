@@ -48,7 +48,7 @@ describe('Verify user can manage model capabilities in deployment wizard and dep
 
   it(
     'Verify user can add capabilities',
-    { tags: ['@Dashboard', '@ModelServing', '@FeatureFlagged', '@ModelCapabilities'] },
+    { tags: ['@Dashboard', '@ModelServing', '@Featureflagged', '@ModelCapabilities'] },
     () => {
       cy.visitWithLogin(`/?devFeatureFlags=modelCapabilities=true`, LDAP_ADMIN_USER);
 

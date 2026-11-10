@@ -15,7 +15,7 @@ describe('Core BFF Infrastructure', () => {
     it('should return health status from infrastructure endpoint', async () => {
       const result = await apiClient.get('/healthcheck');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
+        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -23,7 +23,7 @@ describe('Core BFF Infrastructure', () => {
     it('should return health status from API endpoint', async () => {
       const result = await apiClient.get('/api/v1/healthcheck');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
+        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -31,7 +31,7 @@ describe('Core BFF Infrastructure', () => {
     it('should not require auth for infrastructure healthcheck', async () => {
       const result = await unauthenticatedClient.get('/healthcheck');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/HealthCheckResponse/content/application/json/schema',
+        ref: '#/components/responses/HealthCheckResponse/content/application~1json/schema',
         status: 200,
       });
     });
@@ -41,7 +41,7 @@ describe('Core BFF Infrastructure', () => {
     it('should return current user identity', async () => {
       const result = await apiClient.get('/api/v1/user');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/UserResponse/content/application/json/schema',
+        ref: '#/components/responses/UserResponse/content/application~1json/schema',
         status: 200,
       });
       const { response } = expectSuccess(result);
@@ -67,13 +67,9 @@ describe('Core BFF Infrastructure', () => {
     it('should return accessible namespaces for cluster admin', async () => {
       const result = await apiClient.get('/api/v1/namespaces');
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/NamespacesResponse/content/application/json/schema',
+        ref: '#/components/responses/NamespacesResponse/content/application~1json/schema',
         status: 200,
       });
-      const { response } = expectSuccess(result);
-      const body = response.data as { data: { name: string }[] };
-      expect(Array.isArray(body.data)).toBe(true);
-      expect(body.data.length).toBeGreaterThan(0);
     });
 
     it('should return 401 when no auth token is provided', async () => {
@@ -86,6 +82,49 @@ describe('Core BFF Infrastructure', () => {
           status: 401,
         },
       );
+    });
+
+    it('should return 403 for a user without cluster-wide list access', async () => {
+      const err = expectError(await restrictedClient.get('/api/v1/namespaces'), 403);
+      expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
+        apiSchema,
+        {
+          ref: '#/components/responses/BFFForbidden/content/application~1json/schema',
+          status: 403,
+        },
+      );
+    });
+
+    it('should look up an exact namespace with the same selector shape', async () => {
+      const listResult = await apiClient.get('/api/v1/namespaces');
+      const { response: listResponse } = expectSuccess(listResult);
+      const list = (listResponse.data as { data: Record<string, unknown>[] }).data;
+      const listedNamespace = list.find((namespace) => namespace.name === 'opendatahub');
+      expect(listedNamespace).toBeDefined();
+
+      const result = await apiClient.get('/api/v1/namespaces/opendatahub');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/NamespaceResponse/content/application~1json/schema',
+        status: 200,
+      });
+      const { response } = expectSuccess(result);
+      const { data: lookup } = response.data as { data: Record<string, unknown> };
+      expect(lookup).toEqual(listedNamespace);
+    });
+
+    it('should look up a named namespace without list access but deny other names', async () => {
+      const result = await restrictedClient.get('/api/v1/namespaces/test-ns-b');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/NamespaceResponse/content/application~1json/schema',
+        status: 200,
+      });
+      expectError(await restrictedClient.get('/api/v1/namespaces/test-ns-a'), 403);
+    });
+
+    it('should reject invalid names, missing namespaces, and unauthenticated lookups', async () => {
+      expectError(await apiClient.get('/api/v1/namespaces/Invalid'), 400);
+      expectError(await apiClient.get('/api/v1/namespaces/nonexistent-namespace-12345'), 404);
+      expectError(await unauthenticatedClient.get('/api/v1/namespaces/opendatahub'), 401);
     });
   });
 
@@ -106,7 +145,7 @@ describe('Core BFF Infrastructure', () => {
       it('should proxy GET to K8s API and return namespaces', async () => {
         const result = await apiClient.get('/api/k8s/api/v1/namespaces');
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/K8sProxySuccess/content/application/json/schema',
+          ref: '#/components/responses/K8sProxySuccess/content/application~1json/schema',
           status: 200,
         });
       });
@@ -198,7 +237,7 @@ describe('Core BFF Infrastructure', () => {
           data: { key: 'updated' },
         });
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/K8sProxySuccess/content/application/json/schema',
+          ref: '#/components/responses/K8sProxySuccess/content/application~1json/schema',
           status: 200,
         });
         const { response } = expectSuccess(result);
@@ -224,7 +263,7 @@ describe('Core BFF Infrastructure', () => {
       it('should delete a ConfigMap via K8s proxy', async () => {
         const result = await apiClient.delete(`${configMapPath}/${configMapName}`);
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/K8sProxySuccess/content/application/json/schema',
+          ref: '#/components/responses/K8sProxySuccess/content/application~1json/schema',
           status: 200,
         });
       });
@@ -244,32 +283,34 @@ describe('Core BFF Infrastructure', () => {
   });
 
   describe('Unmatched API Path', () => {
-    it('should return 404 with ErrorResponse shape for GET /api/nonexistent', async () => {
+    it('should return 404 with displayable messages for GET /api/nonexistent', async () => {
       const result = await apiClient.get('/api/nonexistent-path-12345');
       const err = expectError(result, 404);
       expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
         apiSchema,
         {
-          ref: '#/components/schemas/ErrorResponse',
+          ref: '#/components/schemas/MessageErrorResponse',
           status: 404,
         },
       );
-      const body = err.data as { error: { code: string; message: string } };
-      expect(body.error.code).toBe('NOT_FOUND');
+      const body = err.data as { code: string; message: string; error: string };
+      expect(body.code).toBe('NOT_FOUND');
+      expect(body.error).toBe(body.message);
     });
 
-    it('should return 405 with ErrorResponse shape for wrong method on known path', async () => {
+    it('should return 405 with displayable messages for wrong method on known path', async () => {
       const result = await apiClient.delete('/api/config');
       const err = expectError(result, 405);
       expect({ status: err.status, data: err.data, headers: err.headers }).toMatchContract(
         apiSchema,
         {
-          ref: '#/components/schemas/ErrorResponse',
+          ref: '#/components/schemas/MessageErrorResponse',
           status: 405,
         },
       );
-      const body = err.data as { error: { code: string } };
-      expect(body.error.code).toBe('METHOD_NOT_ALLOWED');
+      const body = err.data as { code: string; message: string; error: string };
+      expect(body.code).toBe('METHOD_NOT_ALLOWED');
+      expect(body.error).toBe(body.message);
     });
 
     it('should return 401 for unauthenticated request to non-existent API path', async () => {
@@ -315,8 +356,11 @@ describe('Core BFF Infrastructure', () => {
   describe('WebSocket Proxy Path', () => {
     it('should return 400 for non-upgrade HTTP request to WebSocket path', async () => {
       const err = expectError(await apiClient.get('/wss/k8s/api/v1/namespaces'), 400);
-      const body = typeof err.data === 'string' ? err.data : JSON.stringify(err.data);
-      expect(body).toContain('WebSocket upgrade required');
+      expect(err).toMatchContract(apiSchema, {
+        ref: '#/components/responses/BadRequest/content/application~1json/schema',
+        status: 400,
+      });
+      expect((err.data as { error: { code: string } }).error.code).toBe('BAD_REQUEST');
     });
 
     it('should return 401 for unauthenticated WebSocket path request', async () => {

@@ -1,3 +1,4 @@
+import { getPipelineTaskTiming } from '@odh-dashboard/autox-core/ui/utils';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import {
   componentIdToTaskId,
@@ -123,7 +124,8 @@ const getDetailsFromPipelineRun = (nodeId: string, pipelineRun?: PipelineRun): S
     return DEFAULT_DETAILS;
   }
 
-  const duration = formatDurationBetween(task.start_time ?? task.create_time, task.end_time);
+  const { start, end } = getPipelineTaskTiming(task);
+  const duration = formatDurationBetween(start, end);
   const details: StepDetail[] = [{ label: 'Duration', value: duration ?? '—' }];
 
   if (task.error?.message) {

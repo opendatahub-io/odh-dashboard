@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,57 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 )
+
+func TestSanitizeErrorForLog(t *testing.T) {
+	tests := []struct {
+		name  string
+		input error
+		want  string
+	}{
+		{
+			name:  "http URL credentials query and fragment",
+			input: errors.New("request failed for http://user:pass@example.com:8080/path?token=secret#fragment"),
+			want:  "request failed for http://<redacted>@example.com:8080",
+		},
+		{
+			name:  "https URL",
+			input: errors.New("request failed for https://user:pass@example.com:8443/path?api_key=secret#fragment"),
+			want:  "request failed for https://<redacted>@example.com:8443",
+		},
+		{
+			name:  "milvus URL",
+			input: errors.New("dial milvus://user:pass@milvus.example:19530/path?token=secret#fragment"),
+			want:  "dial milvus://<redacted>@milvus.example:19530",
+		},
+		{
+			name:  "grpc URL and multiple URLs",
+			input: errors.New("grpc://user:pass@one.example:443?token=one; http://two.example:80/?token=two"),
+			want:  "grpc://<redacted>@one.example:443; http://two.example:80",
+		},
+		{
+			name:  "scheme-less endpoint",
+			input: errors.New("dial user:pass@milvus.example:19530?token=secret#fragment"),
+			want:  "dial <redacted>@milvus.example:19530",
+		},
+		{
+			name:  "no URL",
+			input: errors.New("connection refused while waiting for response"),
+			want:  "connection refused while waiting for response",
+		},
+		{
+			name: "nil error",
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sanitizeErrorForLog(tt.input); got != tt.want {
+				t.Fatalf("sanitizeErrorForLog() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestRedactDetails(t *testing.T) {
 	tests := []struct {

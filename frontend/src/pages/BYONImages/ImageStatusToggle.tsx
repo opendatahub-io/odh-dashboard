@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { BYONImage } from '#~/types';
 import useNotification from '#~/utilities/useNotification';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';

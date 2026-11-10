@@ -1,0 +1,170 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: __CREDENTIALS_SECRET_NAME__
+  labels:
+    app.kubernetes.io/name: __RESOURCE_NAME__
+    app.kubernetes.io/part-of: external-vector-store-e2e
+type: Opaque
+stringData:
+  password: __DATABASE_PASSWORD__
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: __RESOURCE_NAME__-init
+  labels:
+    app.kubernetes.io/name: __RESOURCE_NAME__
+    app.kubernetes.io/part-of: external-vector-store-e2e
+data:
+  enable-pgvector.sh: |
+    #!/bin/bash
+    psql -U postgres -d "${POSTGRESQL_DATABASE}" -c "CREATE EXTENSION IF NOT EXISTS vector;"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __RESOURCE_NAME__
+  labels:
+    app.kubernetes.io/name: __RESOURCE_NAME__
+    app.kubernetes.io/part-of: external-vector-store-e2e
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: __RESOURCE_NAME__
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: __RESOURCE_NAME__
+        app.kubernetes.io/part-of: external-vector-store-e2e
+    spec:
+      containers:
+        - name: postgresql
+          image: __PGVECTOR_IMAGE__
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          env:
+            - name: POSTGRESQL_DATABASE
+              value: __DATABASE_NAME__
+            - name: POSTGRESQL_USER
+              value: __DATABASE_USER__
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: __CREDENTIALS_SECRET_NAME__
+                  key: password
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:
+            exec:
+              command: ['pg_isready', '-U', '__DATABASE_USER__', '-d', '__DATABASE_NAME__']
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            exec:
+              command: ['pg_isready', '-U', '__DATABASE_USER__', '-d', '__DATABASE_NAME__']
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ['pg_isready', '-U', '__DATABASE_USER__', '-d', '__DATABASE_NAME__']
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/pgsql/data
+            - name: init-scripts
+              mountPath: /opt/app-root/src/postgresql-start
+              readOnly: true
+      volumes:
+        - name: pgdata
+          emptyDir: {}
+        - name: init-scripts
+          configMap:
+            name: __RESOURCE_NAME__-init
+            defaultMode: 493
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: __RESOURCE_NAME__
+  labels:
+    app.kubernetes.io/name: __RESOURCE_NAME__
+    app.kubernetes.io/part-of: external-vector-store-e2e
+spec:
+  selector:
+    app.kubernetes.io/name: __RESOURCE_NAME__
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: __RESOURCE_NAME__
+  labels:
+    app.kubernetes.io/name: __RESOURCE_NAME__
+    app.kubernetes.io/part-of: external-vector-store-e2e
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: __RESOURCE_NAME__
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: lsd-genai-playground
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gen-ai-aa-vector-stores
+  labels:
+    app.kubernetes.io/part-of: external-vector-store-e2e
+data:
+  config.yaml: |
+    providers:
+      vector_io:
+        - provider_id: __PROVIDER_ID__
+          provider_type: __PROVIDER_TYPE__
+          config:
+            host: __RESOURCE_NAME__.__PROJECT_NAME__.svc.cluster.local
+            port: 5432
+            db: __DATABASE_NAME__
+            user: __DATABASE_USER__
+            distance_metric: COSINE
+            vector_index:
+              type: HNSW
+              m: 16
+              ef_construction: 64
+            custom_gen_ai:
+              credentials:
+                secretRefs:
+                  - name: __CREDENTIALS_SECRET_NAME__
+                    key: password
+    registered_resources:
+      vector_stores:
+        - provider_id: __PROVIDER_ID__
+          vector_store_id: __VECTOR_STORE_ID__
+          embedding_model: __EMBEDDING_MODEL__
+          embedding_dimension: __EMBEDDING_DIMENSION__
+          vector_store_name: __VECTOR_STORE_NAME__
+          metadata:
+            description: __VECTOR_STORE_DESCRIPTION__

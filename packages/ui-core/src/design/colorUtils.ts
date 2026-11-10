@@ -54,8 +54,10 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-general--IconColor)';
     case ProjectObjectType.distributedWorkload:
     case ProjectObjectType.mcpCatalog:
+    case ProjectObjectType.skillRegistry:
     case ProjectObjectType.agentsCatalog:
     case ProjectObjectType.agentOps:
+    case ProjectObjectType.agentObservability:
       return 'var(--ai-serving--IconColor)';
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.hardwareProfile:
@@ -133,8 +135,10 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-general--BackgroundColor)';
     case ProjectObjectType.distributedWorkload:
     case ProjectObjectType.mcpCatalog:
+    case ProjectObjectType.skillRegistry:
     case ProjectObjectType.agentsCatalog:
     case ProjectObjectType.agentOps:
+    case ProjectObjectType.agentObservability:
       return 'var(--ai-serving--BackgroundColor)';
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.hardwareProfile:
@@ -193,8 +197,10 @@ export const typedColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.group:
       return 'var(--ai-group--Color)';
     case ProjectObjectType.mcpCatalog:
+    case ProjectObjectType.skillRegistry:
     case ProjectObjectType.agentsCatalog:
     case ProjectObjectType.agentOps:
+    case ProjectObjectType.agentObservability:
       return 'var(--ai-serving--Color)';
     default:
       return '';

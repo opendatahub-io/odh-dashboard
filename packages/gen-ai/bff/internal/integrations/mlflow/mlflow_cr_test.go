@@ -1,12 +1,92 @@
 package mlflow
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/rest"
 )
+
+func TestDiscoverMLflowURLWithClient(t *testing.T) {
+	cr := func(name, url string) runtime.Object {
+		return &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "mlflow.opendatahub.io/v1",
+			"kind":       "MLflow",
+			"metadata":   map[string]any{"name": name},
+			"status":     map[string]any{"address": map[string]any{"url": url}},
+		}}
+	}
+	for _, tt := range []struct {
+		name    string
+		objects []runtime.Object
+		want    string
+		wantErr string
+	}{
+		{name: "missing CR", wantErr: "no MLflow CR"},
+		{name: "not ready", objects: []runtime.Object{cr("mlflow", "")}, wantErr: "empty status.address.url"},
+		{
+			name: "ready", objects: []runtime.Object{cr("mlflow", "https://mlflow.svc:8443/mlflow")},
+			want: "https://mlflow.svc:8443/mlflow",
+		},
+		{
+			name: "ambiguous", objects: []runtime.Object{cr("one", "https://one.svc"), cr("two", "https://two.svc")},
+			wantErr: "multiple MLflow CRs",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+				map[schema.GroupVersionResource]string{MLflowGVR: "MLflowList"}, tt.objects...)
+			got, err := DiscoverMLflowURLWithClient(context.Background(), dynClient)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestDiscoverMLflowURLCancellation(t *testing.T) {
+	started := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+	dynClient, err := dynamic.NewForConfig(&rest.Config{Host: server.URL})
+	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		_, err := DiscoverMLflowURLWithClient(ctx, dynClient)
+		done <- err
+	}()
+
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("MLflow discovery did not issue a request")
+	}
+	cancel()
+	select {
+	case err := <-done:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(time.Second):
+		t.Fatal("MLflow discovery ignored cancellation")
+	}
+}
 
 func TestParseAddressURL(t *testing.T) {
 	tests := []struct {

@@ -2,6 +2,7 @@ import {
   getExistingVersionsForImageStream,
   getRelatedVersionDescription,
   checkVersionRecommended,
+  formatContainerResourcesForTracking,
   getVersion,
   isEnvVariableDataValid,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
@@ -326,5 +327,30 @@ describe('isEnvVariableDataValid', () => {
       ]),
     ];
     expect(isEnvVariableDataValid(envVars)).toBe(true);
+  });
+});
+
+describe('formatContainerResourcesForTracking', () => {
+  it('should format requests and limits', () => {
+    expect(
+      formatContainerResourcesForTracking({
+        requests: { cpu: '1', memory: '2Gi' },
+        limits: { cpu: 2, memory: '4Gi' },
+      }),
+    ).toBe('requests.cpu: 1,requests.memory: 2Gi, limits.cpu: 2,limits.memory: 4Gi');
+  });
+
+  it('should leave out claims', () => {
+    expect(
+      formatContainerResourcesForTracking({
+        requests: { cpu: '1' },
+        claims: [{ name: 'gpu' }],
+      }),
+    ).toBe('requests.cpu: 1');
+  });
+
+  it('should return an empty string when there are no resources', () => {
+    expect(formatContainerResourcesForTracking(undefined)).toBe('');
+    expect(formatContainerResourcesForTracking({})).toBe('');
   });
 });

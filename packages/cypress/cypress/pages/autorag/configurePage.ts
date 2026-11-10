@@ -1,3 +1,5 @@
+import { getExactDatabaseOptionRegex } from '../../utils/autoragDatabaseOptionRegex';
+
 export const normalizeVisibleOptionLabel = (label: string): string =>
   label.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 
@@ -30,6 +32,14 @@ class AutoragConfigurePage {
   private wait() {
     cy.findByTestId('app-page-title');
     cy.testA11y();
+  }
+
+  findPageTitle() {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findPageBody() {
+    return cy.get('body');
   }
 
   // Step 1 - Create
@@ -168,14 +178,6 @@ class AutoragConfigurePage {
   }
 
   // Step 2 - Database connection
-  findSimpleRagRadio() {
-    return cy.findByTestId('autorag-rag-mode-simple');
-  }
-
-  findGraphRagRadio() {
-    return cy.findByTestId('autorag-rag-mode-graph');
-  }
-
   findDatabaseSelector(options?: Partial<Cypress.Loggable & Cypress.Timeoutable>) {
     return cy.findByTestId('database-secret-selector', options);
   }
@@ -190,6 +192,10 @@ class AutoragConfigurePage {
 
   findAddPgvectorConnectionOption() {
     return cy.findByTestId('add-pgvector-connection-option');
+  }
+
+  findAddNeo4jConnectionOption() {
+    return cy.findByTestId('add-neo4j-connection-option');
   }
 
   findPgvectorConnectionNameInput() {
@@ -236,6 +242,13 @@ class AutoragConfigurePage {
 
   findSelectOption(name: string) {
     return cy.findByRole('option', { name: getExactVisibleOptionRegex(name) });
+  }
+
+  findDatabaseOption(name: string) {
+    return cy
+      .findAllByRole('option', { name: getExactDatabaseOptionRegex(name) })
+      .filter(':not([aria-disabled="true"])')
+      .should('have.length', 1);
   }
 
   // Evaluation dataset — PF FileUpload renders input with id from field.name

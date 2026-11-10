@@ -2,6 +2,11 @@ import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { logRequestDetails } from '../../../utils/fileUtils';
 import { getNIMAccount } from '../integrations/nim/nimUtils';
+import {
+  ensureEditNamespacePermission,
+  ensureNIMFeatureFlagEnabled,
+  ensureProjectNIMAnnotation,
+} from '../namespaces/namespaceUtils';
 import { get } from 'lodash';
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
@@ -13,10 +18,26 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
   fastify.get(
     '/:nimResource',
-    async (request: OauthFastifyRequest<{ Params: { nimResource: string } }>) => {
+    async (
+      request: OauthFastifyRequest<{
+        Params: { nimResource: string };
+        Querystring: { projectNamespace?: string };
+      }>,
+    ) => {
       logRequestDetails(fastify, request);
       const { nimResource } = request.params;
-      const { coreV1Api, namespace } = fastify.kube;
+      const { coreV1Api, namespace: dashboardNamespace } = fastify.kube;
+      const isRequestingSecret = nimResource === 'apiKeySecret' || nimResource === 'nimPullSecret';
+
+      if (isRequestingSecret) {
+        const { projectNamespace } = request.query;
+        if (!projectNamespace) {
+          throw createCustomError('Invalid request', 'Project namespace is required', 400);
+        }
+        ensureNIMFeatureFlagEnabled(); // Synchronous, OdhDashboardConfig is already in memory
+        await ensureEditNamespacePermission(fastify, request, projectNamespace);
+        await ensureProjectNIMAnnotation(fastify, request, projectNamespace);
+      }
 
       // Fetch the Account CR to determine the actual resource name dynamically
       const account = await getNIMAccount(fastify);
@@ -38,8 +59,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       try {
         const result =
           resourceInfo.type === 'Secret'
-            ? await coreV1Api.readNamespacedSecret(resourceName, namespace)
-            : await coreV1Api.readNamespacedConfigMap(resourceName, namespace);
+            ? await coreV1Api.readNamespacedSecret(resourceName, dashboardNamespace)
+            : await coreV1Api.readNamespacedConfigMap(resourceName, dashboardNamespace);
         return { body: result.body };
       } catch (e: any) {
         fastify.log.error(

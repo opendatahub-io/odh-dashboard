@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type DeleteExperimentModalProps = {
   experiment: ExperimentKF;
@@ -39,8 +40,8 @@ const DeleteExperimentModal: React.FC<DeleteExperimentModalProps> = ({ experimen
           }
           fireFormTrackingEvent(eventName, {
             outcome: TrackingOutcome.submit,
-            success: true,
-            error: e instanceof Error ? e.message : 'unknown error',
+            success: false,
+            error: errorCategory(e),
           });
 
           setDeleting(false);

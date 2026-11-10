@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   Button,
@@ -39,15 +38,26 @@ import {
 import { ExclamationCircleIcon, FilterIcon, SortAmountDownIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useProviders } from '~/app/hooks/useProviders';
+import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
 import { Collection } from '~/app/types';
+import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
-import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
+import CuratedSuiteRunModal from '~/app/components/CuratedSuiteRunModal';
+import {
+  evaluationCopySuiteRoute,
+  evaluationCollectionSelectionNavigationState,
+  evaluationCreateRoute,
+  evaluationStartRoute,
+  evaluationsBaseRoute,
+  projectHomeRoute,
+} from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 import {
   formatCategory,
   getCategoryColor,
@@ -63,10 +73,12 @@ const isCollectionSortOption = (value: unknown): value is BenchmarkSortOption =>
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const navigate = useNavigate();
+  const projectDisplayName = useProjectDisplayName(namespace);
   const [selectedCollection, setSelectedCollection] = React.useState<Collection | undefined>(
     undefined,
   );
   const [isSortOpen, setIsSortOpen] = React.useState(false);
+  const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
 
   const {
     collections,
@@ -104,14 +116,9 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     return map;
   }, [providers]);
 
-  const handleRunCollection = React.useCallback(
+  // The drawer tracks BENCHMARK_RUN_SELECTED itself before invoking this callback
+  const navigateToRun = React.useCallback(
     (c: Collection) => {
-      fireMiscTrackingEvent(EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED, {
-        runType: 'collection',
-        collectionName: c.name,
-        benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
-        countOfBenchmarks: c.benchmarks?.length ?? 0,
-      });
       const params = new URLSearchParams({
         type: 'collection',
         collectionId: c.resource.id,
@@ -123,266 +130,209 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
     [navigate, namespace],
   );
 
+  const handleRunCollection = React.useCallback(
+    (c: Collection) => {
+      const curatedConfig = c.resource.tenant ? undefined : getCuratedCollectionConfig(c);
+      trackEvalHubEvent(
+        EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
+        {
+          runType: 'collection',
+          collectionName: c.name,
+          benchmarkTypes: JSON.stringify((c.benchmarks ?? []).map((b) => b.id)),
+          countOfBenchmarks: c.benchmarks?.length ?? 0,
+        },
+        {
+          collectionType: c.resource.read_only ? 'system' : 'custom',
+          providerType: c.benchmarks?.[0]?.provider_id,
+        },
+      );
+      if (curatedConfig) {
+        setCollectionToRun(c);
+      } else {
+        navigateToRun(c);
+      }
+    },
+    [navigateToRun],
+  );
+
+  const handleDrawerRunCollection = React.useCallback(
+    (c: Collection) => {
+      const curatedConfig = c.resource.tenant ? undefined : getCuratedCollectionConfig(c);
+      if (curatedConfig) {
+        setCollectionToRun(c);
+      } else {
+        navigateToRun(c);
+      }
+    },
+    [navigateToRun],
+  );
+
+  const handleRunSuccess = React.useCallback(() => {
+    setCollectionToRun(undefined);
+    navigate({ pathname: evaluationsBaseRoute(namespace), search: '?tab=runs' });
+  }, [navigate, namespace]);
+
+  const handleCustomizeCollection = React.useCallback(
+    (collection: Collection) => {
+      navigate(evaluationCopySuiteRoute(namespace, collection.resource.id), {
+        state: evaluationCollectionSelectionNavigationState,
+      });
+    },
+    [navigate, namespace],
+  );
+
   return (
-    <Drawer isExpanded={!!selectedCollection}>
-      <DrawerContent
-        panelContent={
-          <CollectionDrawerPanel
-            collection={selectedCollection}
-            benchmarkDetailsMap={benchmarkDetailsMap}
-            onClose={() => setSelectedCollection(undefined)}
-            onRunCollection={handleRunCollection}
-          />
-        }
-      >
-        <DrawerContentBody>
-          <ApplicationsPage
-            title="Select benchmark suite"
-            description="Select a benchmark suite to evaluate your model, agent, or dataset."
-            breadcrumb={
-              <Breadcrumb>
-                <BreadcrumbItem
-                  render={() => <Link to={evaluationsBaseRoute(namespace)}>Evaluations</Link>}
-                />
-                <BreadcrumbItem
-                  render={() => (
-                    <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
-                  )}
-                />
-                <BreadcrumbItem isActive>Select benchmark suite</BreadcrumbItem>
-              </Breadcrumb>
-            }
-            loaded={loaded}
-            loadError={loadError}
-            loadErrorPage={
+    <>
+      <Drawer isExpanded={!!selectedCollection}>
+        <DrawerContent
+          panelContent={
+            <CollectionDrawerPanel
+              collection={selectedCollection}
+              benchmarkDetailsMap={benchmarkDetailsMap}
+              onClose={() => setSelectedCollection(undefined)}
+              onRunCollection={handleDrawerRunCollection}
+              onCustomizeCollection={handleCustomizeCollection}
+            />
+          }
+        >
+          <DrawerContentBody>
+            <ApplicationsPage
+              title="Select collection"
+              description="Select a collection to evaluate your model, agent, or dataset."
+              breadcrumb={
+                <ContextBreadcrumb
+                  pageName="Evaluations"
+                  projectDisplayName={projectDisplayName}
+                  homePath={evaluationsBaseRoute(namespace)}
+                  projectHomePath={projectHomeRoute(namespace)}
+                >
+                  <BreadcrumbItem
+                    render={() => (
+                      <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
+                    )}
+                  />
+                  <BreadcrumbItem isActive>Select collection</BreadcrumbItem>
+                </ContextBreadcrumb>
+              }
+              loaded={loaded}
+              loadError={loadError}
+              loadErrorPage={
+                <PageSection hasBodyWrapper={false} isFilled>
+                  <EmptyState
+                    headingLevel="h2"
+                    icon={ExclamationCircleIcon}
+                    status="danger"
+                    titleText="Collections unavailable"
+                    variant={EmptyStateVariant.lg}
+                    data-testid="benchmark-suites-load-error"
+                  >
+                    <EmptyStateBody>
+                      We could not load the collections right now. Please try again later.
+                    </EmptyStateBody>
+                    <EmptyStateFooter>
+                      <EmptyStateActions>
+                        <Button variant="primary" onClick={refresh}>
+                          Try again
+                        </Button>
+                      </EmptyStateActions>
+                    </EmptyStateFooter>
+                  </EmptyState>
+                </PageSection>
+              }
+              empty={false}
+            >
               <PageSection hasBodyWrapper={false} isFilled>
-                <EmptyState
-                  headingLevel="h2"
-                  icon={ExclamationCircleIcon}
-                  status="danger"
-                  titleText="Benchmark suites unavailable"
-                  variant={EmptyStateVariant.lg}
-                  data-testid="benchmark-suites-load-error"
+                {isTruncated && (
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="Not all collections are shown"
+                    data-testid="collections-truncation-alert"
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+                  >
+                    This namespace has more collections than the display limit. Contact your
+                    administrator or use the API directly to access the full list.
+                  </Alert>
+                )}
+                <Toolbar
+                  clearAllFilters={() => {
+                    setNameFilter('');
+                    setCategoryFilter([]);
+                  }}
                 >
-                  <EmptyStateBody>
-                    We could not load the benchmark suites right now. Please try again later.
-                  </EmptyStateBody>
-                  <EmptyStateFooter>
-                    <EmptyStateActions>
-                      <Button variant="primary" onClick={refresh}>
-                        Try again
-                      </Button>
-                    </EmptyStateActions>
-                  </EmptyStateFooter>
-                </EmptyState>
-              </PageSection>
-            }
-            empty={false}
-          >
-            <PageSection hasBodyWrapper={false} isFilled>
-              {isTruncated && (
-                <Alert
-                  variant="warning"
-                  isInline
-                  title="Not all collections are shown"
-                  data-testid="collections-truncation-alert"
-                  style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-                >
-                  This namespace has more benchmark suites than the display limit. Contact your
-                  administrator or use the API directly to access the full list.
-                </Alert>
-              )}
-              <Toolbar
-                clearAllFilters={() => {
-                  setNameFilter('');
-                  setCategoryFilter([]);
-                }}
-              >
-                <ToolbarContent>
-                  <ToolbarItem>
-                    <Select
-                      isOpen={isSortOpen}
-                      selected={sortOption}
-                      onSelect={(_event, value) => {
-                        if (isCollectionSortOption(value)) {
-                          setSortOption(value);
-                        }
-                        setIsSortOpen(false);
-                      }}
-                      onOpenChange={setIsSortOpen}
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          onClick={() => setIsSortOpen((prev) => !prev)}
-                          isExpanded={isSortOpen}
-                          icon={<SortAmountDownIcon />}
-                          data-testid="collections-sort-toggle"
-                        >
-                          {benchmarkSortLabels[sortOption]}
-                        </MenuToggle>
-                      )}
-                      data-testid="collections-sort-select"
-                    >
-                      <SelectList>
-                        {Object.values(BenchmarkSortOption).map((opt) => (
-                          <SelectOption
-                            key={opt}
-                            value={opt}
-                            isSelected={sortOption === opt}
-                            data-testid={`collections-sort-option-${opt}`}
-                          >
-                            {benchmarkSortLabels[opt]}
-                          </SelectOption>
-                        ))}
-                      </SelectList>
-                    </Select>
-                  </ToolbarItem>
-                  <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
-                    <ToolbarGroup variant="filter-group">
-                      <ToolbarFilter
-                        labels={nameFilter ? [nameFilter] : []}
-                        deleteLabel={() => setNameFilter('')}
-                        categoryName="Name"
-                      >
-                        <SearchInput
-                          aria-label="Filter by name"
-                          placeholder="Filter by name"
-                          value={nameFilter}
-                          onChange={(_, value) => setNameFilter(value)}
-                          onClear={() => setNameFilter('')}
-                          style={{ width: '220px' }}
-                          data-testid="collections-name-filter"
-                        />
-                      </ToolbarFilter>
-                      <SearchableMultiSelectFilter
-                        categoryName="Category"
-                        options={availableCategories}
-                        selected={categoryFilter}
-                        formatLabel={formatCategory}
-                        onToggleOption={(value) =>
-                          setCategoryFilter(
-                            categoryFilter.includes(value)
-                              ? categoryFilter.filter((c) => c !== value)
-                              : [...categoryFilter, value],
-                          )
-                        }
-                        onClearAll={() => setCategoryFilter([])}
-                        testIdPrefix="collections-category"
-                      />
-                    </ToolbarGroup>
-                  </ToolbarToggleGroup>
-                  <ToolbarItem align={{ default: 'alignEnd' }}>
-                    <Pagination
-                      itemCount={totalCount}
-                      perPage={pageSize}
-                      page={page}
-                      onSetPage={(_, newPage) => setPage(newPage)}
-                      onPerPageSelect={(_, newPageSize) => setPageSize(newPageSize)}
-                      perPageOptions={[
-                        { title: '6', value: 6 },
-                        { title: '12', value: 12 },
-                        { title: '24', value: 24 },
-                      ]}
-                      variant="top"
-                    />
-                  </ToolbarItem>
-                </ToolbarContent>
-              </Toolbar>
-
-              {!loaded ? (
-                <Bullseye>
-                  <Spinner />
-                </Bullseye>
-              ) : collections.length === 0 ? (
-                <Bullseye data-testid="collections-empty-state">
-                  <Content component="p">
-                    {nameFilter || categoryFilter.length > 0
-                      ? 'No collections match the current filters.'
-                      : 'No collections available.'}
-                  </Content>
-                </Bullseye>
-              ) : (
-                <Gallery
-                  hasGutter
-                  minWidths={{ default: '280px' }}
-                  data-testid="collections-gallery"
-                >
-                  {collections.map((collection) => {
-                    const benchmarkCount = collection.benchmarks?.length ?? 0;
-                    const isSelected = selectedCollection?.resource.id === collection.resource.id;
-                    const collectionCategory = getCollectionCategoryValues(collection)[0];
-                    return (
-                      <Card
-                        key={collection.resource.id}
-                        isSelected={isSelected}
-                        data-testid={`collection-card-${collection.resource.id}`}
-                      >
-                        {collectionCategory && (
-                          <CardHeader>
-                            <Label color={getCategoryColor(collectionCategory)} isCompact>
-                              {formatCategory(collectionCategory)}
-                            </Label>
-                          </CardHeader>
-                        )}
-                        <CardTitle>
-                          <Button
-                            variant="link"
-                            isInline
-                            style={{
-                              display: 'block',
-                              textDecoration: 'none',
-                              fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
-                            }}
-                            onClick={() =>
-                              setSelectedCollection(isSelected ? undefined : collection)
-                            }
-                          >
-                            {collection.name}
-                          </Button>
-                          {benchmarkCount > 0 && (
-                            <Content
-                              component="small"
-                              style={{
-                                marginTop: 'var(--pf-t--global--spacer--xs)',
-                                fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                              }}
-                            >
-                              {benchmarkCount} benchmark{benchmarkCount !== 1 ? 's' : ''}
-                            </Content>
-                          )}
-                        </CardTitle>
-                        <CardBody>
-                          {collection.description && (
-                            <Content
-                              component="p"
-                              style={{
-                                fontSize: 'var(--pf-t--global--font--size--sm)',
-                                color: 'var(--pf-t--global--text--color--subtle)',
-                              }}
-                            >
-                              {collection.description}
-                            </Content>
-                          )}
-                        </CardBody>
-                        <CardFooter>
-                          <Button
-                            variant="secondary"
-                            isInline
-                            data-testid="use-benchmark-suite-button"
-                            onClick={() => handleRunCollection(collection)}
-                          >
-                            Select benchmark suite
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    );
-                  })}
-                </Gallery>
-              )}
-
-              {totalCount > pageSize && (
-                <Toolbar>
                   <ToolbarContent>
+                    <ToolbarItem>
+                      <Select
+                        isOpen={isSortOpen}
+                        selected={sortOption}
+                        onSelect={(_event, value) => {
+                          if (isCollectionSortOption(value)) {
+                            setSortOption(value);
+                          }
+                          setIsSortOpen(false);
+                        }}
+                        onOpenChange={setIsSortOpen}
+                        toggle={(toggleRef) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => setIsSortOpen((prev) => !prev)}
+                            isExpanded={isSortOpen}
+                            icon={<SortAmountDownIcon />}
+                            data-testid="collections-sort-toggle"
+                          >
+                            {benchmarkSortLabels[sortOption]}
+                          </MenuToggle>
+                        )}
+                        data-testid="collections-sort-select"
+                      >
+                        <SelectList>
+                          {Object.values(BenchmarkSortOption).map((opt) => (
+                            <SelectOption
+                              key={opt}
+                              value={opt}
+                              isSelected={sortOption === opt}
+                              data-testid={`collections-sort-option-${opt}`}
+                            >
+                              {benchmarkSortLabels[opt]}
+                            </SelectOption>
+                          ))}
+                        </SelectList>
+                      </Select>
+                    </ToolbarItem>
+                    <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
+                      <ToolbarGroup variant="filter-group">
+                        <ToolbarFilter
+                          labels={nameFilter ? [nameFilter] : []}
+                          deleteLabel={() => setNameFilter('')}
+                          categoryName="Name"
+                        >
+                          <SearchInput
+                            aria-label="Filter by name"
+                            placeholder="Filter by name"
+                            value={nameFilter}
+                            onChange={(_, value) => setNameFilter(value)}
+                            onClear={() => setNameFilter('')}
+                            style={{ width: '220px' }}
+                            data-testid="collections-name-filter"
+                          />
+                        </ToolbarFilter>
+                        <SearchableMultiSelectFilter
+                          categoryName="Category"
+                          options={availableCategories}
+                          selected={categoryFilter}
+                          formatLabel={formatCategory}
+                          onToggleOption={(value) =>
+                            setCategoryFilter(
+                              categoryFilter.includes(value)
+                                ? categoryFilter.filter((c) => c !== value)
+                                : [...categoryFilter, value],
+                            )
+                          }
+                          onClearAll={() => setCategoryFilter([])}
+                          testIdPrefix="collections-category"
+                        />
+                      </ToolbarGroup>
+                    </ToolbarToggleGroup>
                     <ToolbarItem align={{ default: 'alignEnd' }}>
                       <Pagination
                         itemCount={totalCount}
@@ -395,17 +345,152 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           { title: '12', value: 12 },
                           { title: '24', value: 24 },
                         ]}
-                        variant="bottom"
+                        variant="top"
                       />
                     </ToolbarItem>
                   </ToolbarContent>
                 </Toolbar>
-              )}
-            </PageSection>
-          </ApplicationsPage>
-        </DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+
+                {!loaded ? (
+                  <Bullseye>
+                    <Spinner />
+                  </Bullseye>
+                ) : collections.length === 0 ? (
+                  <Bullseye data-testid="collections-empty-state">
+                    <Content component="p">
+                      {nameFilter || categoryFilter.length > 0
+                        ? 'No collections match the current filters.'
+                        : 'No collections available.'}
+                    </Content>
+                  </Bullseye>
+                ) : (
+                  <Gallery
+                    hasGutter
+                    minWidths={{ default: '280px' }}
+                    data-testid="collections-gallery"
+                  >
+                    {collections.map((collection) => {
+                      const benchmarkCount = collection.benchmarks?.length ?? 0;
+                      const isSelected = selectedCollection?.resource.id === collection.resource.id;
+                      const collectionCategory = getCollectionCategoryValues(collection)[0];
+                      const curatedConfig = collection.resource.tenant
+                        ? undefined
+                        : getCuratedCollectionConfig(collection);
+                      const requiresConfiguration = Boolean(curatedConfig?.requiresConfiguration);
+                      return (
+                        <Card
+                          key={collection.resource.id}
+                          isSelected={isSelected}
+                          data-testid={`collection-card-${collection.resource.id}`}
+                        >
+                          {collectionCategory && (
+                            <CardHeader>
+                              <Label color={getCategoryColor(collectionCategory)} isCompact>
+                                {formatCategory(collectionCategory)}
+                              </Label>
+                            </CardHeader>
+                          )}
+                          <CardTitle>
+                            <Button
+                              variant="link"
+                              isInline
+                              style={{
+                                display: 'block',
+                                textDecoration: 'none',
+                                fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+                              }}
+                              onClick={() =>
+                                setSelectedCollection(isSelected ? undefined : collection)
+                              }
+                            >
+                              {collection.name}
+                            </Button>
+                            {benchmarkCount > 0 && (
+                              <Content
+                                component="small"
+                                style={{
+                                  marginTop: 'var(--pf-t--global--spacer--xs)',
+                                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                                }}
+                              >
+                                {benchmarkCount} benchmark{benchmarkCount !== 1 ? 's' : ''}
+                              </Content>
+                            )}
+                          </CardTitle>
+                          <CardBody>
+                            {collection.description && (
+                              <Content
+                                component="p"
+                                style={{
+                                  fontSize: 'var(--pf-t--global--font--size--sm)',
+                                  color: 'var(--pf-t--global--text--color--subtle)',
+                                }}
+                              >
+                                {collection.description}
+                              </Content>
+                            )}
+                          </CardBody>
+                          <CardFooter>
+                            <Button
+                              variant="secondary"
+                              isInline
+                              data-testid={
+                                requiresConfiguration
+                                  ? 'customize-benchmark-suite-button'
+                                  : 'use-benchmark-suite-button'
+                              }
+                              onClick={() =>
+                                requiresConfiguration
+                                  ? handleCustomizeCollection(collection)
+                                  : handleRunCollection(collection)
+                              }
+                            >
+                              {requiresConfiguration ? 'Customize' : 'Select collection'}
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      );
+                    })}
+                  </Gallery>
+                )}
+
+                {totalCount > pageSize && (
+                  <Toolbar>
+                    <ToolbarContent>
+                      <ToolbarItem align={{ default: 'alignEnd' }}>
+                        <Pagination
+                          itemCount={totalCount}
+                          perPage={pageSize}
+                          page={page}
+                          onSetPage={(_, newPage) => setPage(newPage)}
+                          onPerPageSelect={(_, newPageSize) => setPageSize(newPageSize)}
+                          perPageOptions={[
+                            { title: '6', value: 6 },
+                            { title: '12', value: 12 },
+                            { title: '24', value: 24 },
+                          ]}
+                          variant="bottom"
+                        />
+                      </ToolbarItem>
+                    </ToolbarContent>
+                  </Toolbar>
+                )}
+              </PageSection>
+            </ApplicationsPage>
+          </DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+      {collectionToRun ? (
+        <CuratedSuiteRunModal
+          isOpen
+          onClose={() => setCollectionToRun(undefined)}
+          namespace={namespace}
+          collection={collectionToRun}
+          trackingSource="collection_chooser"
+          onSuccess={handleRunSuccess}
+        />
+      ) : null}
+    </>
   );
 };
 

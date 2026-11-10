@@ -2,7 +2,7 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { NIMAccountStatus } from '../../../api/accounts/hooks';
 import { createNIMResources, createOrReplaceSecret } from '../../../api/accounts/api';
 import {

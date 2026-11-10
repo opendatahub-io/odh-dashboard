@@ -83,7 +83,7 @@ filters:
       - 'area/model-registry'
 
   # Model Serving
-  '(frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)|packages/(model-serving|model-serving-kserve|kserve|llmd-serving))/.*':
+  '(frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)|packages/(model-serving|kserve|llmd-serving))/.*':
     approvers:
       - model-serving-metrics-approvers
     reviewers:
@@ -185,6 +185,15 @@ filters:
       - autorag-reviewers
     labels:
       - 'area/autorag'
+
+  # AutoX Core (shared by AutoML and AutoRAG)
+  'packages/autox-core/.*':
+    approvers:
+      - automl-approvers
+      - autorag-approvers
+    reviewers:
+      - automl-reviewers
+      - autorag-reviewers
 
   # AutoML
   '(packages/automl|manifests/modules/automl)/.*':

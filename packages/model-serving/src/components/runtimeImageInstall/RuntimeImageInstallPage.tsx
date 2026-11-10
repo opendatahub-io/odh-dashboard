@@ -1,0 +1,172 @@
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  ActionList,
+  ActionListGroup,
+  ActionListItem,
+  Breadcrumb,
+  BreadcrumbItem,
+  Button,
+  Wizard,
+  WizardFooterWrapper,
+  WizardStep,
+  useWizardContext,
+} from '@patternfly/react-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import type { RuntimeImageInstallActionData } from '@mf/modelRegistry/extension-points';
+import RuntimeImageInstallPageUnavailable from './RuntimeImageInstallPageUnavailable';
+import RuntimeImageInstallWizardConfigureStep from './RuntimeImageInstallWizardConfigureStep';
+import RuntimeImageInstallWizardTargetStep from './RuntimeImageInstallWizardTargetStep';
+import { getInstallTargets, getAvailableInstallTargets, getMatchingInstallTarget } from './utils';
+import { GENERAL_SETTINGS_PATH } from './const';
+import {
+  isRuntimeImageInstallTargetExtension,
+  type RuntimeImageInstallTargetExtension,
+  type RuntimeImageInstallTargetId,
+} from '../../../extension-points/runtime-image-install-target';
+
+const InstallWizardFooter: React.FC<{
+  selected: RuntimeImageInstallTargetId | undefined;
+  canInstall: boolean;
+}> = ({ selected, canInstall }) => {
+  const { activeStep, goToNextStep, close } = useWizardContext();
+  // The selected platform owns all controls on Step 2, including its action bar.
+  if (activeStep.index !== 1) {
+    return null;
+  }
+  return (
+    <WizardFooterWrapper>
+      <ActionList>
+        <ActionListGroup>
+          <ActionListItem>
+            <Button variant="secondary" isDisabled>
+              Back
+            </Button>
+          </ActionListItem>
+          <ActionListItem>
+            <Button
+              data-testid="runtime-image-install-next"
+              variant="primary"
+              isDisabled={!selected || !canInstall}
+              onClick={goToNextStep}
+            >
+              Next
+            </Button>
+          </ActionListItem>
+        </ActionListGroup>
+        <ActionListGroup>
+          <ActionListItem>
+            <Button variant="link" onClick={close}>
+              Cancel
+            </Button>
+          </ActionListItem>
+        </ActionListGroup>
+      </ActionList>
+    </WizardFooterWrapper>
+  );
+};
+
+const InstallWizard: React.FC<{
+  data: RuntimeImageInstallActionData;
+  installTargetExtensions: RuntimeImageInstallTargetExtension[];
+}> = ({ data, installTargetExtensions }) => {
+  const navigate = useNavigate();
+  const installTargets = getInstallTargets(installTargetExtensions);
+  const availableTargets = getAvailableInstallTargets(data, installTargets);
+  const availableTargetIds = availableTargets.map((target) => target.properties.id);
+  const { cancelReturnRoute } = data;
+  const [chosenTarget, setSelected] = React.useState<RuntimeImageInstallTargetId>();
+  const selected =
+    chosenTarget && availableTargetIds.includes(chosenTarget)
+      ? chosenTarget
+      : availableTargets.length === 1
+      ? availableTargets[0].properties.id
+      : undefined;
+  const selectedTarget = selected
+    ? getMatchingInstallTarget(availableTargets, selected)
+    : undefined;
+  const targetData = selected ? data.deploymentResources[selected] : undefined;
+
+  if (installTargets.length === 0) {
+    return (
+      <RuntimeImageInstallPageUnavailable
+        title="Create runtime"
+        message="No runtime image install target extensions are available."
+        returnRoute={cancelReturnRoute}
+      />
+    );
+  }
+
+  return (
+    <ApplicationsPage
+      title="Create runtime"
+      description="Choose the type of runtime to create from the runtime image, and customize its configuration."
+      breadcrumb={
+        <Breadcrumb>
+          <BreadcrumbItem
+            render={() => <Link to={GENERAL_SETTINGS_PATH}>Model deployment settings</Link>}
+          />
+          <BreadcrumbItem
+            render={() => <Link to={data.libraryReturnRoute}>Runtime library</Link>}
+          />
+          <BreadcrumbItem
+            render={() => <Link to={cancelReturnRoute}>{data.runtimeImageName}</Link>}
+          />
+          <BreadcrumbItem isActive>Create</BreadcrumbItem>
+        </Breadcrumb>
+      }
+      loaded
+      empty={false}
+    >
+      <Wizard
+        onClose={() => navigate(cancelReturnRoute)}
+        footer={
+          <InstallWizardFooter selected={selected} canInstall={selectedTarget !== undefined} />
+        }
+      >
+        <WizardStep name="Runtime type" id="install-target">
+          <RuntimeImageInstallWizardTargetStep
+            installTargets={installTargets}
+            availableTargetIds={availableTargetIds}
+            selected={selected}
+            onSelect={setSelected}
+          />
+        </WizardStep>
+        <WizardStep name="Configure" id="configure-install" isDisabled={!selectedTarget}>
+          <RuntimeImageInstallWizardConfigureStep
+            selectedTarget={selectedTarget}
+            targetData={targetData}
+            cancelReturnRoute={cancelReturnRoute}
+          />
+        </WizardStep>
+      </Wizard>
+    </ApplicationsPage>
+  );
+};
+
+const RuntimeImageInstallPage: React.FC = () => {
+  const location = useLocation();
+  const installTargetExtensions = useExtensions(isRuntimeImageInstallTargetExtension);
+  const actionData: RuntimeImageInstallActionData | undefined = location.state?.actionData;
+
+  if (!actionData) {
+    return (
+      <RuntimeImageInstallPageUnavailable
+        title="Create runtime"
+        message="The installation data is missing. Return to the runtime library and try again."
+        returnRoute={GENERAL_SETTINGS_PATH}
+      />
+    );
+  }
+
+  return (
+    <InstallWizard
+      key={actionData.runtimeImageId}
+      data={actionData}
+      installTargetExtensions={installTargetExtensions}
+    />
+  );
+};
+
+export default RuntimeImageInstallPage;

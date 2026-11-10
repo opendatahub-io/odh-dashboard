@@ -2,7 +2,7 @@
 import { aiAssetsPage } from '~/__tests__/cypress/cypress/pages/aiAssetsPage';
 import { modelsTabPage } from '~/__tests__/cypress/cypress/pages/modelsTabPage';
 import { setupModelsTabIntercepts } from '~/__tests__/cypress/cypress/support/helpers/modelsTab/modelsTabTestHelpers';
-import { mockAAModel } from '~/__tests__/cypress/cypress/__mocks__/mockAAModels';
+import { mockAAModel } from '~/__mocks__/genAiFixtures';
 
 const TEST_NAMESPACE = 'test-namespace';
 
@@ -85,7 +85,7 @@ describe('AI Assets - Models Tab', () => {
       internalRow.findUseCaseCell().should('contain.text', 'text-generation');
       internalRow.findStatusCell().should('contain.text', 'Ready');
       internalRow.findEndpointCell().findByTestId('endpoint-view-button').should('exist');
-      internalRow.findPlaygroundCell().should('contain.text', 'Add to playground');
+      internalRow.findPlaygroundCell().findByTestId('try-playground-button').should('be.enabled');
 
       cy.step('Verify External model row');
       const externalRow = modelsTabPage.getRow('GPT-4 External');

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import DeleteModal from '~/app/shared/DeleteModal';
@@ -53,7 +54,7 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
                 outcome: TrackingOutcome.submit,
                 success: false,
                 namespace: namespace?.name,
-                error: e.message,
+                error: errorCategory(e),
               });
               setError(e);
             })

@@ -1,0 +1,307 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Renovate owns VERSION updates for npm, gomod, github-actions and
+  // Dockerfiles. Dependabot keeps SECURITY updates only (.github/dependabot.yml
+  // sets open-pull-requests-limit: 0 per ecosystem), so the two bots never
+  // propose the same change.
+  //
+  // Runner:   .github/workflows/renovate.yml (self-hosted, odh-dashboard-agent
+  //           GitHub App). Do not also enable the Mend app on this repo.
+  // Merging:  Tide. Renovate never merges. Each tier below adds a
+  //           `renovate/<tier>` label; .github/workflows/renovate-auto-merge.yml
+  //           re-validates the PR and applies lgtm/approved for eligible tiers.
+  //           Editing a tier here changes what can auto-merge — review
+  //           changes to this file accordingly.
+  // Runbook:  .github/security-audit-triage.md#renovate
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "extends": ["config:recommended"],
+
+  // Tide owns merges — never let Renovate or GitHub merge directly.
+  "platformAutomerge": false,
+  "automerge": false,
+
+  "enabledManagers": ["npm", "gomod", "github-actions", "dockerfile"],
+  // Base-image DIGESTS are pinned downstream by MintMaker on the
+  // Dockerfile.konflux* files; upstream only manages versions.
+  "pinDigests": false,
+
+  // Upstream-synced trees are managed by upstream-sync, not dependency bots.
+  // .claude/** holds agent-skill example files that the dockerfile manager's
+  // broad default match picks up (verified by dry-run: nothing under .claude/
+  // is a build input).
+  "ignorePaths": ["**/upstream/**", ".claude/**"],
+
+  // "dependencies" keeps PRs exempt from stale.yml's auto-close.
+  "labels": ["dependencies"],
+  // Issues are disabled on this repo, so there is no Dependency Dashboard.
+  // Consequence: nothing in this file may rely on dashboard approval.
+  "dependencyDashboard": false,
+  "configMigration": true,
+  "semanticCommits": "enabled",
+  // Create commits through the platform API so every commit on a renovate/*
+  // branch is attributable to odh-dashboard-agent. renovate-auto-merge.yml
+  // refuses to auto-merge unless every commit is attributable to the app, which
+  // is what makes the diff checker a classifier of bot output rather than an
+  // adversary-proof sandbox. Do not disable without removing that check too.
+  "platformCommit": "enabled",
+  "timezone": "UTC",
+
+  // New PRs only in the Monday window. Daily runs outside it still rebase and
+  // refresh existing PRs (updateNotScheduled defaults to true) and close
+  // superseded ones. This MUST live here, not in the runner env: `schedule`
+  // has no env support, and repo config overrides runner config. Manual
+  // "force_updates" dispatches override it via --schedule on the CLI, which
+  // Renovate applies on top of this file (forceCli).
+  "schedule": ["before 4am on Monday"],
+
+  // At most 10 open Renovate PRs; prPriority below decides which tiers get
+  // the slots first.
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 0,
+
+  // CVE PRs stay on Dependabot (security updates) — prevents duplicates.
+  "vulnerabilityAlerts": { "enabled": false },
+  "osvVulnerabilityAlerts": false,
+
+  // Parity with Dependabot versioning-strategy: increase-if-necessary.
+  "npm": { "rangeStrategy": "update-lockfile" },
+
+  // Renovate does not run `go mod tidy` by default.
+  "gomod": { "postUpdateOptions": ["gomodTidy"] },
+
+  // ── Update tiers ─────────────────────────────────────────────────────────
+  // Every tier is one PR, one revert unit, and one trust decision. Tier rules
+  // MUST NOT overlap: `addLabels` is mergeable, so an update matching two
+  // tier rules would carry both labels. Stable/pre-1.0 splits therefore use
+  // complementary matchCurrentVersion ranges rather than overrides. An update
+  // whose current version cannot be determined matches neither and becomes an
+  // unlabeled single PR (human review) — the safe default.
+  // Eligible tiers (auto-merged after CI):
+  //   renovate/npm-patch, renovate/go-patch,
+  //   renovate/npm-minor, renovate/go-minor   (only deps already >= 1.0.0)
+  // The label is only a request: renovate-auto-merge.yml re-derives the
+  // update class from the actual diff and refuses anything that does not
+  // match. Everything else (actions, docker, pre-1.0 minors, Go digests,
+  // majors) needs a human /lgtm + /approve, as it did under Dependabot.
+  "packageRules": [
+    // Patches first, so they always get PR slots ahead of riskier tiers.
+    {
+      "description": "npm patch updates across the pnpm workspace",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "npm patch",
+      "groupSlug": "npm-patch",
+      "addLabels": ["renovate/npm-patch"],
+      "minimumReleaseAge": "14 days",
+      "prPriority": 10
+    },
+    {
+      "description": "npm minor updates for stable (>=1.0.0) packages",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": ">=1.0.0",
+      "groupName": "npm minor",
+      "groupSlug": "npm-minor",
+      "addLabels": ["renovate/npm-minor"],
+      "minimumReleaseAge": "14 days",
+      "prPriority": 5
+    },
+    {
+      "description": "Go patch updates across all go.mod modules",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "go patch",
+      "groupSlug": "go-patch",
+      "addLabels": ["renovate/go-patch"],
+      "minimumReleaseAge": "3 days",
+      "prPriority": 10
+    },
+    {
+      "description": "Go minor updates for stable (>=1.0.0) modules",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": ">=1.0.0",
+      "groupName": "go minor",
+      "groupSlug": "go-minor",
+      "addLabels": ["renovate/go-minor"],
+      "minimumReleaseAge": "7 days",
+      "prPriority": 5
+    },
+    {
+      // Workflow edits are human-reviewed (they change what runs with repo
+      // secrets). One PR instead of one per action.
+      "description": "GitHub Actions non-major and digest updates, one PR",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "github actions",
+      "groupSlug": "actions",
+      "addLabels": ["renovate/actions"],
+      "minimumReleaseAge": "7 days",
+      // Digest-only refreshes carry no release timestamp; without this they
+      // would stay pending forever under minimumReleaseAge.
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
+      "prPriority": 8
+    },
+    {
+      "description": "Dockerfile base-image version bumps (digests stay downstream)",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "docker base images",
+      "groupSlug": "docker-base-images",
+      "addLabels": ["renovate/docker"],
+      "minimumReleaseAge": "7 days",
+      // Registries do not always expose a tag's publish date. Without this the
+      // update would stay pending forever instead of being reviewed.
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
+      "prPriority": 2
+    },
+
+    // ── Human-reviewed tiers ────────────────────────────────────────────────
+    {
+      // Pre-1.0 minors can break; keep them out of the eligible minor groups.
+      "description": "npm minor updates of pre-1.0 packages: separate, human-reviewed",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "<1.0.0",
+      "groupName": "npm minor (pre-1.0)",
+      "groupSlug": "npm-minor-pre1",
+      "addLabels": ["renovate/npm-minor-pre1"]
+    },
+    {
+      "description": "Go minor updates of v0 modules: separate, human-reviewed",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "<1.0.0",
+      "groupName": "go minor (v0)",
+      "groupSlug": "go-minor-v0",
+      "addLabels": ["renovate/go-minor-v0"]
+    },
+    {
+      // Pseudo-version bumps (no tags) — unreleased code, human-reviewed.
+      "description": "Go pseudo-version (digest) updates, one PR",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["digest"],
+      "groupName": "go digests",
+      "groupSlug": "go-digests",
+      "addLabels": ["renovate/go-digests"],
+      "prPriority": 0
+    },
+    {
+      "description": "Majors: one PR per dependency, after the cooldown, human-reviewed",
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["renovate/major"],
+      "prPriority": -5
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "minimumReleaseAge": "30 days"
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      // Package renames (e.g. npm-run-all -> npm-run-all2) touch many
+      // manifests and change runtime behaviour; without a dependency dashboard
+      // there is no approval gate, so they are disabled and done by hand.
+      "description": "Replacement PRs are disabled; do replacements manually",
+      "matchUpdateTypes": ["replacement"],
+      "enabled": false
+    },
+
+    // ── Policy exclusions (enabled:false, so they cannot add labels) ────────
+    {
+      // A prerelease specifier cannot be classified by the patch/minor tiers.
+      // The resolved version can already be stable (e.g. `^0.54.0-beta.2`
+      // resolves 0.54.0), which Renovate reports as a `patch` while
+      // renovate-automerge-check.js correctly refuses it as "not a
+      // stable-release change". One such dependency would mark its whole
+      // grouped patch PR ineligible. Upgrade prerelease pins by hand.
+      "description": "Prerelease-track npm dependencies: upgrade by hand",
+      "matchManagers": ["npm"],
+      "matchCurrentValue": "/-/",
+      "enabled": false
+    },
+    {
+      // Root pnpm-workspace.yaml `overrides` are hand-maintained pins (CVE
+      // fixes, PatternFly/MUI alignment, transitive selectors like
+      // `a>b`). Bumping them silently changes what every package resolves.
+      // Found in the fork rehearsal: npm-patch/npm-minor picked up 12 of them.
+      "description": "Never touch pnpm-workspace.yaml overrides; they are maintained by hand",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["pnpm-workspace.overrides"],
+      "enabled": false
+    },
+    {
+      // npm-style `overrides` blocks in individual package.json files are
+      // ignored by pnpm (only the root pnpm-workspace.yaml overrides apply),
+      // so bumping them changes nothing in the lockfile. Leftovers from the
+      // npm era; edit or remove them by hand.
+      "description": "Never touch per-package npm overrides (inert under pnpm)",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["overrides"],
+      "enabled": false
+    },
+    {
+      // These packages are pinned to an EXACT version in the root
+      // pnpm-workspace.yaml `overrides` AND in many package.json files, and
+      // must move together (by hand, like the PatternFly 6.6.1 bump in #9500).
+      // Bumping only package.json leaves the override winning, so the PR
+      // claims 2.2.4 -> 2.2.8 while the lockfile still resolves 2.2.4 (seen in
+      // the fork rehearsal; the auto-merge check refused it). Range-style
+      // overrides (e.g. ws: '^8.21.0') don't have this problem and stay
+      // managed. Keep this list in sync with the exact pins in
+      // pnpm-workspace.yaml.
+      "description": "Exact-pinned root overrides: upgrade by hand (override + package.json together)",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "/^@patternfly\\//",
+        "@openshift/dynamic-plugin-sdk-utils",
+        "webpack",
+        "@rspack/core",
+        "@rspack/cli",
+        "@types/minimatch"
+      ],
+      "enabled": false
+    },
+    {
+      // pnpm itself is pinned in 3 coupled places (root packageManager,
+      // prefetch/pnpm for hermetic Konflux builds, and the
+      // `pnpm --version` check in ~20 Dockerfiles); see prefetch/pnpm/README.md.
+      // A partial bump breaks image builds, so upgrade it by hand.
+      "description": "pnpm upgrades are manual (packageManager + prefetch/pnpm + Dockerfiles move together)",
+      "matchPackageNames": ["pnpm"],
+      "enabled": false
+    },
+    {
+      "description": "React majors: manual coordination",
+      "matchPackageNames": ["react", "react-dom"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "autox-core is managed via upstream sync (RHOAIENG-59135)",
+      "matchManagers": ["gomod"],
+      "matchFileNames": ["packages/autox-core/**"],
+      "enabled": false
+    },
+    {
+      // v0.3.17 renamed its module path to github.com/kubeflow/hub/pkg/openapi,
+      // so the in-place bump cannot build (go mod tidy fails). Migrating to the
+      // new path is a code change; in the rehearsal this one failure broke the
+      // whole go-patch group.
+      "description": "kubeflow/model-registry openapi moved to kubeflow/hub; migrate by hand",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/kubeflow/model-registry/pkg/openapi"],
+      "enabled": false
+    }
+
+    // NOTE: Renovate's gomod manager skips `// indirect` requires by design;
+    // CVEs in indirect deps are still raised by Dependabot security updates.
+  ]
+}

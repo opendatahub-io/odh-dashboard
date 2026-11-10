@@ -168,7 +168,6 @@ const useWorkloadRows = (
     { mode: 'namespace', workloads: [] },
     { refreshRate, initialPromisePurity: true },
   );
-
   const clusterQueuesRefresh = React.useCallback(async (): Promise<
     WorkloadRowsFetchResult | undefined
   > => {

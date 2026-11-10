@@ -2,13 +2,15 @@ import * as React from 'react';
 import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
 import TitleWithIcon from '@odh-dashboard/ui-core/design/TitleWithIcon';
-import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type {
   ClusterSettingsType,
   ModelServingPlatformEnabled,
 } from '@odh-dashboard/plugin-core/host-api';
 import { useAppContext } from '#~/app/AppContext';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import { addNotification } from '#~/redux/actions/actions';
 import { useAppDispatch } from '#~/redux/hooks';
@@ -179,7 +181,7 @@ const ClusterSettings: React.FC = () => {
           outcome: TrackingOutcome.submit,
           success: false,
           globalProjectName,
-          error: error instanceof Error ? error.message : 'unknown error',
+          error: errorCategory(error),
         });
       }
 

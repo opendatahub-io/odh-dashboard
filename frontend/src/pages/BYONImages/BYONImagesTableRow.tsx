@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { upperFirst } from 'lodash-es';
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import {
   DescriptionList,
@@ -8,12 +9,13 @@ import {
   TimestampTooltipVariant,
   Truncate,
 } from '@patternfly/react-core';
+import { PreInstalledName } from '@odh-dashboard/k8s-core';
 import { BYONImage } from '#~/types';
 import { relativeTime } from '#~/utilities/time';
+import { getImageTierColor } from '#~/pages/projects/screens/spawner/imageSelector/imageTierUtils';
 import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
 import { TableRowTitleDescription } from '#~/components/table';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { PreInstalledName } from '#~/concepts/k8s/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { updateBYONImageStream, patchOOTBImageStreamHidden } from '#~/api/k8s/imageStreams';
 import ImageErrorStatus from './ImageErrorStatus';
@@ -42,6 +44,7 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [isExpanded, setExpanded] = React.useState(false);
+  const tier = obj.tier || 'custom';
 
   const handleToggle = React.useCallback(
     async (visible: boolean) => {
@@ -80,11 +83,19 @@ const BYONImagesTableRow: React.FC<BYONImagesTableRowProps> = ({
             titleIcon={obj.isOOTB ? undefined : <ImageErrorStatus image={obj} />}
             wrapResourceTitle={false}
           />
-          {obj.isOOTB && (
-            <LabelGroup>
+          <LabelGroup>
+            {obj.isOOTB ? (
               <Label data-testid="pre-installed-label">{PreInstalledName}</Label>
-            </LabelGroup>
-          )}
+            ) : null}
+            <Label data-testid="image-tier-label" color={getImageTierColor(tier)}>
+              {upperFirst(tier)}
+            </Label>
+            {obj.deprecated ? (
+              <Label data-testid="deprecated-image-label" color="yellow">
+                Deprecated
+              </Label>
+            ) : null}
+          </LabelGroup>
         </Td>
         <Td dataLabel="Enable" modifier="nowrap">
           <ImageStatusToggle

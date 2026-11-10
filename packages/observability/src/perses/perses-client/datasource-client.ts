@@ -40,11 +40,13 @@ export function fetchDatasourceList(
   kind?: string,
   defaultDatasource?: boolean,
   name?: string,
+  basePath?: string,
 ): Promise<DatasourceResource[]> {
   const url = buildURL({
     resource,
     project,
     queryParams: buildDatasourceQueryParameters(kind, defaultDatasource, name),
+    basePath,
   });
   return odhPersesFetchJson<DatasourceResource[]>(url);
 }

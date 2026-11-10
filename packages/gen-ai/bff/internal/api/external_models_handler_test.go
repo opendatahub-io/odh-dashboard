@@ -4,17 +4,48 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+// deleteSecretFailureClient wraps a KubernetesClientInterface so Secret cleanup
+// fails, simulating a leaked Secret after a rejected duplicate registration.
+type deleteSecretFailureClient struct {
+	kubernetes.KubernetesClientInterface
+}
+
+func (c *deleteSecretFailureClient) DeleteSecret(_ context.Context, _ *integrations.RequestIdentity, _ string, _ string) error {
+	return errors.New("simulated secret deletion failure")
+}
+
+// deleteSecretFailureFactory serves a fixed client while delegating identity
+// handling to the wrapped factory.
+type deleteSecretFailureFactory struct {
+	kubernetes.KubernetesClientFactory
+	client kubernetes.KubernetesClientInterface
+}
+
+func (f *deleteSecretFailureFactory) GetClient(context.Context) (kubernetes.KubernetesClientInterface, error) {
+	return f.client, nil
+}
 
 var _ = Describe("CreateExternalModelHandler", func() {
 	var app App
@@ -476,6 +507,138 @@ var _ = Describe("CreateExternalModelHandler", func() {
 		caps, ok := data["capabilities"].([]interface{})
 		assert.True(t, ok, "capabilities should be an array")
 		assert.NotContains(t, caps, "vision", "user-supplied capabilities should be stripped for embedding models")
+	})
+
+	It("should return 409 when the model_id is already registered", func() {
+		t := GinkgoT()
+
+		// Seed an isolated fake client with an existing registration so the shared
+		// envtest client is not mutated.
+		existingConfigYAML := `providers:
+  inference:
+  - provider_id: endpoint-1
+    provider_type: remote::openai
+    config:
+      base_url: https://example.com/v1
+registered_resources:
+  models:
+  - provider_id: endpoint-1
+    model_id: gpt-4o
+    model_type: llm
+    metadata:
+      display_name: Existing model`
+		fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: "duplicate-model-namespace",
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		factory, err := k8smocks.NewTokenClientFactory(fakeClient, testCfg, slog.Default())
+		require.NoError(t, err)
+		dupApp := App{
+			config:                  config.EnvConfig{Port: 4000},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: factory,
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		requestBody := models.ExternalModelRequest{
+			ModelID:          "gpt-4o",
+			ModelDisplayName: "Duplicate Model",
+			BaseURL:          "https://api.example.com",
+			ModelType:        models.ModelTypeLLM,
+		}
+		bodyBytes, marshalErr := json.Marshal(requestBody)
+		require.NoError(t, marshalErr)
+
+		req, reqErr := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external", bytes.NewReader(bodyBytes))
+		require.NoError(t, reqErr)
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "duplicate-model-namespace")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		dupApp.CreateExternalModelHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusConflict, rr.Code)
+		body, readErr := io.ReadAll(rr.Result().Body)
+		require.NoError(t, readErr)
+		assert.Contains(t, string(body), "gpt-4o")
+		assert.Contains(t, string(body), "endpoint-1")
+		assert.Contains(t, string(body), "already registered")
+	})
+
+	It("should return 500, not 409, when duplicate detection is followed by failed Secret cleanup", func() {
+		t := GinkgoT()
+
+		// Same duplicate fixture as the 409 spec, but keyed (SecretValue set) so a
+		// Secret is created and must be cleaned up when the duplicate is rejected.
+		// If that cleanup fails, the leaked Secret is a server-side failure — the
+		// duplicate conflict must not mask it as a 409.
+		existingConfigYAML := `providers:
+  inference:
+  - provider_id: endpoint-1
+    provider_type: remote::openai
+    config:
+      base_url: https://example.com/v1
+registered_resources:
+  models:
+  - provider_id: endpoint-1
+    model_id: gpt-4o
+    model_type: llm
+    metadata:
+      display_name: Existing model`
+		fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: "duplicate-model-namespace",
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		factory, err := k8smocks.NewTokenClientFactory(fakeClient, testCfg, slog.Default())
+		require.NoError(t, err)
+
+		identity := &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"}
+		clientCtx := context.WithValue(context.Background(), constants.RequestIdentityKey, identity)
+		clientCtx = context.WithValue(clientCtx, constants.NamespaceQueryParameterKey, "duplicate-model-namespace")
+		underlying, getClientErr := factory.GetClient(clientCtx)
+		require.NoError(t, getClientErr)
+		cleanupFailApp := App{
+			config: config.EnvConfig{Port: 4000},
+			logger: slog.Default(),
+			kubernetesClientFactory: &deleteSecretFailureFactory{
+				KubernetesClientFactory: factory,
+				client:                  &deleteSecretFailureClient{KubernetesClientInterface: underlying},
+			},
+			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+			repositories:            repositories.NewRepositories(),
+		}
+
+		requestBody := models.ExternalModelRequest{
+			ModelID:          "gpt-4o",
+			ModelDisplayName: "Duplicate Model",
+			BaseURL:          "https://api.example.com",
+			SecretValue:      "sk-test-leaked-key",
+			ModelType:        models.ModelTypeLLM,
+		}
+		bodyBytes, marshalErr := json.Marshal(requestBody)
+		require.NoError(t, marshalErr)
+
+		req, reqErr := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/models/external", bytes.NewReader(bodyBytes))
+		require.NoError(t, reqErr)
+		req = req.WithContext(clientCtx)
+
+		rr := httptest.NewRecorder()
+		cleanupFailApp.CreateExternalModelHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code,
+			"a failed Secret cleanup is a server-side failure and must not be classified as a duplicate conflict")
+		// serverErrorResponse intentionally omits internal error details from the
+		// response body (they are logged); the status code is the contract.
+		assert.NotEqual(t, http.StatusConflict, rr.Code)
 	})
 })
 

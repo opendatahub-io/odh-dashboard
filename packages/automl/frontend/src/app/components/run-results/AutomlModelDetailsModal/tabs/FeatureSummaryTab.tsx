@@ -16,6 +16,16 @@ import type { TabContentProps } from '~/app/components/run-results/AutomlModelDe
 
 type SortColumn = 'name' | 'importance';
 
+const compareImportance = (a: number | null, b: number | null, direction: 1 | -1): number => {
+  if (a === null) {
+    return b === null ? 0 : 1;
+  }
+  if (b === null) {
+    return -1;
+  }
+  return direction * (a - b);
+};
+
 const FeatureSummaryTab: React.FC<TabContentProps> = ({
   featureImportance,
   isArtifactsLoading,
@@ -26,14 +36,11 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
 
   const allEntries = React.useMemo(
-    () =>
-      featureImportance
-        ? Object.entries(featureImportance.importance).toSorted(([, a], [, b]) => b - a)
-        : [],
+    () => (featureImportance ? Object.entries(featureImportance.importance) : []),
     [featureImportance],
   );
 
-  const hasFeatureData = allEntries.length > 0;
+  const hasFeatureData = allEntries.some(([, importance]) => importance !== null);
 
   React.useEffect(() => {
     if (!hasFeatureData) {
@@ -101,8 +108,10 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
     if (sortColumn === 'name') {
       return mult * nameA.localeCompare(nameB);
     }
-    return mult * (impA - impB);
+    return compareImportance(impA, impB, mult);
   });
+
+  const visibleEntries = hasFeatureData ? entries : [];
 
   return (
     <>
@@ -139,7 +148,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
           </Tr>
         </Thead>
         <Tbody>
-          {entries.length === 0 ? (
+          {visibleEntries.length === 0 ? (
             <Tr>
               <Td colSpan={2}>
                 <Bullseye>
@@ -169,24 +178,28 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
               </Td>
             </Tr>
           ) : (
-            entries.map(([name, importance]) => (
+            visibleEntries.map(([name, importance]) => (
               <Tr key={name}>
                 <Td dataLabel="Feature name">{name}</Td>
                 <Td dataLabel="Importance">
-                  <div className="automl-feature-importance-cell">
-                    <div className="automl-feature-importance-track">
-                      <div
-                        className={`automl-feature-importance-bar${importance !== 0 ? ' m-has-value' : ''}${importance < 0 && Math.abs(importance * 100) >= 0.005 ? ' m-negative' : ''}`}
-                        data-testid={`feature-importance-bar-${name}`}
-                        style={{
-                          width: `${Math.min(Math.abs(importance) * 100, 100)}%`,
-                        }}
-                      />
+                  {importance === null ? (
+                    'N/A'
+                  ) : (
+                    <div className="automl-feature-importance-cell">
+                      <div className="automl-feature-importance-track">
+                        <div
+                          className={`automl-feature-importance-bar${importance !== 0 ? ' m-has-value' : ''}${importance < 0 && Math.abs(importance * 100) >= 0.005 ? ' m-negative' : ''}`}
+                          data-testid={`feature-importance-bar-${name}`}
+                          style={{
+                            width: `${Math.min(Math.abs(importance) * 100, 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <span>
+                        {(Math.abs(importance * 100) < 0.005 ? 0 : importance * 100).toFixed(1)}%
+                      </span>
                     </div>
-                    <span>
-                      {(Math.abs(importance * 100) < 0.005 ? 0 : importance * 100).toFixed(1)}%
-                    </span>
-                  </div>
+                  )}
                 </Td>
               </Tr>
             ))

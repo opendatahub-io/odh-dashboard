@@ -11,6 +11,7 @@ export type BenchmarkFilterable = {
   metrics?: string[];
   providerId?: string;
   framework?: string;
+  targetTypes?: string[];
 };
 
 export const BENCHMARK_SORT_VALUES: readonly string[] = Object.values(BenchmarkSortOption);
@@ -30,9 +31,14 @@ export const getAvailableFrameworks = (benchmarks: BenchmarkFilterable[]): strin
   // eslint-disable-next-line no-restricted-properties
   [...new Set(benchmarks.map((b) => b.framework).filter((f): f is string => Boolean(f)))].sort();
 
+export const getAvailableEvaluates = (benchmarks: BenchmarkFilterable[]): string[] =>
+  // eslint-disable-next-line no-restricted-properties
+  [...new Set(benchmarks.flatMap((b) => b.targetTypes ?? []).filter(Boolean))].sort();
+
 export const hasActiveBenchmarkFilters = (filterData: BenchmarkFilterDataType): boolean =>
   filterData[BenchmarkFilterOptions.name].trim() !== '' ||
   filterData[BenchmarkFilterOptions.category].length > 0 ||
+  filterData[BenchmarkFilterOptions.evaluates].length > 0 ||
   filterData[BenchmarkFilterOptions.metrics].length > 0 ||
   filterData[BenchmarkFilterOptions.framework].length > 0;
 
@@ -59,6 +65,7 @@ export const filterBenchmarks = <T extends BenchmarkFilterable>(
 ): T[] => {
   const nameFilter = filterData[BenchmarkFilterOptions.name].toLowerCase().trim() || undefined;
   const categoryFilters = filterData[BenchmarkFilterOptions.category];
+  const evaluatesFilters = filterData[BenchmarkFilterOptions.evaluates];
   const metricsFilters = filterData[BenchmarkFilterOptions.metrics];
   const frameworkFilters = filterData[BenchmarkFilterOptions.framework];
 
@@ -71,6 +78,12 @@ export const filterBenchmarks = <T extends BenchmarkFilterable>(
       return false;
     }
     if (categoryFilters.length > 0 && !categoryFilters.includes(b.category ?? '')) {
+      return false;
+    }
+    if (
+      evaluatesFilters.length > 0 &&
+      !(b.targetTypes?.some((targetType) => evaluatesFilters.includes(targetType)) ?? false)
+    ) {
       return false;
     }
     if (

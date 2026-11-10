@@ -52,8 +52,8 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
         </Tab>
         <Tab
           eventKey={SUBSCRIPTIONS_TAB}
-          title={<TabTitleText>Subscriptions</TabTitleText>}
-          aria-label="Subscriptions tab"
+          title={<TabTitleText>My subscriptions</TabTitleText>}
+          aria-label="My subscriptions tab"
           data-testid="subscriptions-tab"
         >
           <SubscriptionsTab />

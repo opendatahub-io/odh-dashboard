@@ -3,8 +3,10 @@ import { UserSettings, ConfigSettings } from 'mod-arch-core';
 
 type AppContextProps = {
   config: ConfigSettings;
-  user: UserSettings;
+  user: AppUserSettings;
 };
+
+export type AppUserSettings = UserSettings & { isAdmin?: boolean };
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const AppContext = React.createContext({} as AppContextProps);

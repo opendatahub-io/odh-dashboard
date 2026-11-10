@@ -68,6 +68,12 @@ func (r *PipelinesRepository) EnableManagedPipelines(ctx context.Context, namesp
 	return r.core.EnableManagedPipelines(ctx, namespace)
 }
 
+// --- Pipeline Server Status ---
+
+func (r *PipelinesRepository) GetPipelineServerStatus(ctx context.Context, namespace string) (*pipelines.DSPAStatus, error) {
+	return r.core.GetDSPAStatus(ctx, namespace)
+}
+
 // --- Pipeline Discovery ---
 
 func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namespace string) (map[string]*pipelines.DiscoveredPipeline, error) {
@@ -529,5 +535,6 @@ func BuildPipelineRunInput(req models.CreateAutoMLRunRequest, pipelineID, pipeli
 		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: params,
 		},
+		PluginsInput: pipelines.DisabledMLflowPluginInput(),
 	}
 }

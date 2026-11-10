@@ -43,6 +43,7 @@ export type PipelineRunTaskDetail = {
   start_time?: string;
   end_time?: string;
   state?: string;
+  state_history?: PipelineRunStateHistoryEntry[];
   execution_id?: string;
   child_tasks?: { pod_name?: string; task_id?: string }[];
   error?: PipelineRunError;
@@ -90,4 +91,14 @@ export type GetPipelineRunsFromBFFParams = {
   pipelineVersionId?: string;
   pageSize?: number;
   page?: number;
+};
+
+/**
+ * Response shape from the BFF pipeline-server status API. `status` reflects a
+ * fresh (uncached) read of the DSPipelineApplication, so a restarting server
+ * is never reported with stale readiness.
+ */
+export type PipelineServerStatusResponse = {
+  status: 'ready' | 'starting' | 'not-found';
+  dspa_name?: string;
 };

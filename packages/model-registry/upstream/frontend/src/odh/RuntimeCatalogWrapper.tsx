@@ -2,15 +2,10 @@ import React from 'react';
 import {
   BrowserStorageContextProvider,
   NotificationContextProvider,
-  ModularArchContextProvider,
-  ModularArchConfig,
-  DeploymentMode,
   useSettings,
 } from 'mod-arch-core';
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { Bullseye } from '@patternfly/react-core';
-import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
-import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import { ModelCatalogContextProvider } from '~/app/context/modelCatalog/ModelCatalogContext';
 import RuntimeCatalogTabRoutes from '~/odh/pages/runtimeCatalog/RuntimeCatalogTabRoutes';
@@ -18,6 +13,7 @@ import RuntimeCatalogDetailsRoutes from '~/odh/pages/runtimeCatalog/RuntimeCatal
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
 import UserInteractionProviderWrapper from '~/odh/components/UserInteractionProviderWrapper';
+import OdhWrapper from '~/odh/OdhWrapper';
 
 const RuntimeCatalogWrapperContent: React.FC<React.PropsWithChildren> = ({ children }) => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -50,20 +46,11 @@ const RuntimeCatalogWrapperContent: React.FC<React.PropsWithChildren> = ({ child
   ) : null;
 };
 
-export const RuntimeCatalogProviders: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [dscStatus] = useFetchDscStatus();
-  const modularArchConfig: ModularArchConfig = {
-    deploymentMode: DeploymentMode.Federated,
-    URL_PREFIX,
-    BFF_API_VERSION,
-    mandatoryNamespace: dscStatus?.components?.modelregistry?.registriesNamespace,
-  };
-  return (
-    <ModularArchContextProvider config={modularArchConfig}>
-      <RuntimeCatalogWrapperContent>{children}</RuntimeCatalogWrapperContent>
-    </ModularArchContextProvider>
-  );
-};
+export const RuntimeCatalogProviders: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <OdhWrapper>
+    <RuntimeCatalogWrapperContent>{children}</RuntimeCatalogWrapperContent>
+  </OdhWrapper>
+);
 
 const RuntimeCatalogWrapper: React.FC = () => (
   <RuntimeCatalogProviders>

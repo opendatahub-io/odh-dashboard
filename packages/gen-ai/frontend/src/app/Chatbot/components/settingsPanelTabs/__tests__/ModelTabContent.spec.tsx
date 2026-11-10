@@ -5,6 +5,13 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import ModelTabContent from '~/app/Chatbot/components/settingsPanelTabs/ModelTabContent';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
+const mockUseGenAiAudioUploadEnabled = jest.fn(() => true);
+
+jest.mock('~/app/hooks/useGenAiAudioUploadEnabled', () => ({
+  __esModule: true,
+  default: () => mockUseGenAiAudioUploadEnabled(),
+}));
+
 const mockWorkspaceCapabilities = {
   hasVisionModel: false,
   hasASRModel: true,
@@ -107,6 +114,7 @@ describe('ModelTabContent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseGenAiAudioUploadEnabled.mockReturnValue(true);
     mockWorkspaceCapabilities.hasVisionModel = false;
     mockWorkspaceCapabilities.hasASRModel = true;
     mockWorkspaceCapabilities.capabilitiesReady = true;
@@ -200,7 +208,15 @@ describe('ModelTabContent', () => {
     expect(screen.getByTestId('transcription-model-section')).toBeInTheDocument();
   });
 
-  it('clears ASR store state when capabilities are ready and no ASR models exist', () => {
+  it('does not render TranscriptionModelSection when audio upload is disabled', () => {
+    mockUseGenAiAudioUploadEnabled.mockReturnValue(false);
+
+    render(<ModelTabContent {...defaultProps} />);
+
+    expect(screen.queryByTestId('transcription-model-section')).not.toBeInTheDocument();
+  });
+
+  it('keeps the selected transcription model when no models are tagged', () => {
     mockWorkspaceCapabilities.hasASRModel = false;
     mockWorkspaceCapabilities.capabilitiesReady = true;
     mockWorkspaceCapabilities.capabilitiesError = false;
@@ -215,8 +231,10 @@ describe('ModelTabContent', () => {
 
     render(<ModelTabContent {...defaultProps} configId="default" />);
 
-    expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(false);
-    expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe('');
+    expect(useChatbotConfigStore.getState().configurations.default?.isAsrModelEnabled).toBe(true);
+    expect(useChatbotConfigStore.getState().configurations.default?.selectedAsrModel).toBe(
+      'whisper-large-v3',
+    );
   });
 
   it('does not clear ASR store state when capabilities errored', () => {

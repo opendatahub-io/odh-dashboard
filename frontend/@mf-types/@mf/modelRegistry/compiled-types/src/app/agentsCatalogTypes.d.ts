@@ -1,5 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
-import { PaginationParams } from './shared/types/catalogTypes';
+import { CatalogListParams, PaginationParams } from './shared/types/catalogTypes';
 import { CatalogFilterOptionsList } from './modelCatalogTypes';
 export type AgentArtifact = {
     uri: string;
@@ -31,14 +31,10 @@ export type Agent = {
 export type AgentList = PaginationParams & {
     items?: Agent[];
 };
-export type AgentListParams = {
+export type AgentListParams = CatalogListParams & {
     sourceLabel?: string;
     pageSize?: number;
-    nextPageToken?: string;
-    filterQuery?: string;
     namedQuery?: string;
-    orderBy?: string;
-    sortOrder?: string;
     q?: string;
 };
 export type GetAgentList = (opts: APIOptions, listParams?: AgentListParams) => Promise<AgentList>;

@@ -699,6 +699,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: source
           description: |-
             Filter models by source. This parameter may be included multiple
@@ -747,6 +748,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
       responses:
         "200":
           $ref: "#/components/responses/FilterOptionsResponse"
@@ -767,6 +769,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - $ref: "#/components/parameters/name"
         - $ref: "#/components/parameters/assetType"
         - $ref: "#/components/parameters/pageSize"
@@ -796,6 +799,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - $ref: "#/components/parameters/assetType"
         - $ref: "#/components/parameters/pageSize"
         - $ref: "#/components/parameters/orderBy"
@@ -823,6 +827,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -854,6 +859,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -888,6 +894,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -924,6 +931,7 @@ paths:
         - ModelCatalogService
       parameters:
         - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/modelCatalogNamespace"
         - name: sourceId
           description: A unique identifier for a `CatalogSource`.
           schema:
@@ -1098,6 +1106,78 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       operationId: getMcpServerTools
       description: Gets the list of tools exposed by an `McpServer`.
+  /api/v1/mcp_catalog/mcp_servers/{server_id}/deploy_readiness:
+    description: >-
+      The REST endpoint/path used to check whether an `McpServer` can be deployed
+      (downstream-only).
+    get:
+      summary: Check deploy prerequisites for an MCP server
+      tags:
+        - MCPCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/serverId"
+      responses:
+        "200":
+          $ref: "#/components/responses/McpServerDeployReadinessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getMcpServerDeployReadiness
+      description: >-
+        Reports whether the `McpServer` requires an MCP gateway and whether it can be
+        deployed now. Gateway checks fail closed: when availability cannot be determined,
+        the response is `deployable: false` with a reason.
+
+  /api/v1/mcp_deploy_readiness:
+    description: >-
+      The REST endpoint/path used to check whether an MCP server image can be deployed to a
+      namespace, for deploy entry points without a catalog server ID such as an MCP registry
+      (downstream-only).
+    get:
+      summary: Check deploy prerequisites for an MCP server image
+      tags:
+        - MCPCatalogService
+      parameters:
+        - $ref: "#/components/parameters/kubeflowUserId"
+        - $ref: "#/components/parameters/namespace"
+        - name: image
+          in: query
+          required: true
+          description: Container image to deploy.
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/McpServerDeployReadinessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: >-
+            The image requires an MCP gateway and the caller cannot create MCP servers in the
+            namespace.
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getMcpDeployReadiness
+      description: >-
+        Reports whether deploying the image requires an MCP gateway and whether it can be
+        deployed now. Only the image decides; MCP registry names are not used. For an image
+        that requires a gateway, the caller must be allowed to create `mcpservers` in the
+        namespace; other images are reported as deployable without a permission check.
+        Gateway checks fail closed: when availability cannot be determined, the response is
+        `deployable: false` with a reason.
 
   # Agent catalog endpoints
   /api/v1/agent_catalog/agents:
@@ -2375,6 +2455,14 @@ components:
         - $ref: "#/components/schemas/BaseArtifactCreate"
         - $ref: "#/components/schemas/ModelArtifactUpdate"
     Error:
+      description: BFF error response envelope.
+      required:
+        - error
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorDetail"
+    ErrorDetail:
       description: Error code and message.
       required:
         - code
@@ -2948,13 +3036,18 @@ components:
               description: Environment variables the runtime accepts (discovery hints; no secret values).
               items:
                 $ref: "#/components/schemas/ServingRuntimeEnvVar"
-            template:
+            servingRuntimeTemplate:
               type: string
               description: >-
                 Optional full ServingRuntime (KServe v1alpha1) manifest for this
                 version, as a JSON-encoded string, ready for review/edit before
                 creation. If omitted, the consumer generates the manifest from the
                 fields above.
+            llmInferenceServiceConfig:
+              type: string
+              description: >-
+                Optional full LLMInferenceServiceConfig manifest for this version,
+                as a JSON-encoded string, ready for review/edit before creation.
             deprecated:
               type: boolean
               description: Whether this version is deprecated and should be de-emphasized in the UI.
@@ -4040,6 +4133,29 @@ components:
           type: string
         tool:
           $ref: "#/components/schemas/McpTool"
+    McpServerDeployReadiness:
+      description: Deploy prerequisites for a catalog MCP server.
+      type: object
+      required:
+        - gatewayRequired
+        - deployable
+      properties:
+        gatewayRequired:
+          type: boolean
+          description: True when the server can only be deployed with an MCP gateway.
+        deployable:
+          type: boolean
+          description: False when a deploy prerequisite is missing.
+        reason:
+          type: string
+          description: Why the server cannot be deployed. Set only when `deployable` is false.
+          enum:
+            - OPERATOR_NOT_READY
+            - GATEWAY_STATUS_UNAVAILABLE
+            - NO_GATEWAY_AVAILABLE
+        message:
+          type: string
+          description: Human-readable explanation. Set only when `deployable` is false.
     McpToolList:
       description: List of MCP tools (with server context).
       allOf:
@@ -4899,37 +5015,67 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogModelArtifactList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogModelArtifactList"
       description: A response containing a list of CatalogArtifact entities.
     CatalogModelListResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogModelList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogModelList"
       description: A response containing a list of CatalogModel entities.
     CatalogModelResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogModel"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogModel"
       description: A response containing a `CatalogModel` entity.
     CatalogSourceListResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogSourceList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogSourceList"
       description: A response containing a list of CatalogSource entities.
     CatalogLabelListResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CatalogLabelList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/CatalogLabelList"
       description: A response containing a list of CatalogLabel entities.
     FilterOptionsResponse:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/FilterOptionsList"
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: "#/components/schemas/FilterOptionsList"
       description: A response containing options for a `filterQuery` parameter.
     CatalogSourcePreviewResponse:
       content:
@@ -5050,6 +5196,15 @@ components:
               data:
                 $ref: "#/components/schemas/McpServer"
       description: A response containing a single `McpServer` entity.
+    McpServerDeployReadinessResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/McpServerDeployReadiness"
+      description: A response containing deploy prerequisites for an `McpServer`.
     McpServerToolListResponse:
       content:
         application/json:
@@ -5260,6 +5415,14 @@ components:
         type: string
       in: query
       required: false
+    modelCatalogNamespace:
+      name: namespace
+      description: The namespace to read Model Catalog resources from.
+      schema:
+        type: string
+        minLength: 1
+      in: query
+      required: true
     filterQuery:
       examples:
         filterQuery:

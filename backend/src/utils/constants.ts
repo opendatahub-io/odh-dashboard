@@ -15,6 +15,20 @@ export const DEV_IMPERSONATE_TOKEN = DEV_MODE ? process.env.DEV_IMPERSONATE_TOKE
 export const DEV_OAUTH_PREFIX = process.env.DEV_OAUTH_PREFIX || 'oauth-openshift.apps';
 export const APP_ENV = process.env.APP_ENV;
 
+/**
+ * The only valid name for the cluster-scoped `Auth` singleton
+ * (`services.platform.opendatahub.io/v1alpha1`).
+ *
+ * The operator pins this via `AuthInstanceName`, and the CRD enforces it with the CEL rule
+ * `self.metadata.name == 'auth'` ("Auth name must be auth"), so the API server rejects any
+ * other name at admission.
+ *
+ * Use this for BOTH reading the CR and naming it in a SelfSubjectAccessReview. An SSAR
+ * naming a different resource authorizes against an object that cannot exist -- it only
+ * returns allowed=true while the granting ClusterRole omits `resourceNames`.
+ */
+export const AUTH_SINGLETON_NAME = 'auth';
+
 export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
 export const KUBE_RBAC_USER_HEADER = 'x-auth-request-user';
 export const KUBE_RBAC_GROUPS_HEADER = 'x-auth-request-groups';
@@ -83,12 +97,15 @@ export const blankDashboardCR: DashboardConfig = {
       disableAdminConnectionTypes: false,
       disableFeatureStore: false,
       featureStoreAdmin: false,
-      genAiStudio: false,
+      dataRegistry: false,
+      dataConnectHub: false,
+      genAiStudio: true,
       genAiTracing: false,
       guardrails: false,
-      automl: false,
-      autorag: false,
+      automl: true,
+      autorag: true,
       modelAsService: true,
+      inferencePriorityField: false,
       aiAssetCustomEndpoints: false,
       disableFineTuning: true,
       disableKueue: true,
@@ -97,6 +114,7 @@ export const blankDashboardCR: DashboardConfig = {
       workbenchesV2: false,
       mcpCatalog: false,
       mcpRegistry: false,
+      skillRegistry: false,
       genAiMcpRegistryServers: false,
       agentOps: false,
       agentsCatalog: false,
@@ -109,14 +127,15 @@ export const blankDashboardCR: DashboardConfig = {
       externalVectorStores: false,
       agentConfigManagement: false,
       genAiAgentDeployment: false,
+      genAiImageUpload: false,
+      genAiAudioUpload: false,
       vLLMDeploymentOnMaaS: false,
-      llmGatewayField: false,
-      promptManagement: false,
+      llmGatewayField: true,
+      promptManagement: true,
       globalProjectPrompts: false,
+      hardwareProfileDRA: false,
       gpuaas: true,
-      connectionTest: false,
       modelCapabilities: false,
-      runtimeCatalog: false,
       observabilityDashboard: true,
       nimWizard: true,
     },

@@ -1,0 +1,68 @@
+{
+  "filters": {
+    "capabilities.multiModel": {
+      "type": "boolean",
+      "values": [
+        false,
+        true
+      ]
+    },
+    "capabilities.requiresGPU": {
+      "type": "boolean",
+      "values": [
+        false,
+        true
+      ]
+    },
+    "capabilities.supportedAccelerators": {
+      "type": "string",
+      "values": [
+        "amd.com/gpu",
+        "habana.ai/gaudi",
+        "ibm.com/spyre_pf",
+        "ibm.com/spyre_vf",
+        "nvidia.com/gpu"
+      ]
+    },
+    "provider": {
+      "type": "string",
+      "values": [
+        "Red Hat, Inc."
+      ]
+    },
+    "supportedModelFormats": {
+      "type": "string",
+      "values": [
+        "autogluon",
+        "guardrails-detector-hf-runtime",
+        "lightgbm",
+        "onnx",
+        "openvino_ir",
+        "paddle",
+        "pytorch",
+        "sklearn",
+        "tensorflow",
+        "vLLM",
+        "xgboost"
+      ]
+    },
+    "tags": {
+      "type": "string",
+      "values": [
+        "kserve",
+        "kserve-ovms",
+        "multi-node",
+        "rhoai",
+        "rhods",
+        "servingruntime"
+      ]
+    },
+    "versionCount": {
+      "range": {
+        "max": 1,
+        "min": 1
+      },
+      "type": "number"
+    }
+  }
+}

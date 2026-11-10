@@ -1,4 +1,8 @@
-import { resolveStageLabel, resolveStepLabel } from '~/app/topology/stageMapLabels';
+import {
+  getModelRowLabel,
+  resolveStageLabel,
+  resolveStepLabel,
+} from '~/app/topology/stageMapLabels';
 
 describe('resolveStageLabel', () => {
   it('returns mapped display names for known stage IDs', () => {
@@ -35,5 +39,13 @@ describe('resolveStepLabel', () => {
   it('ignores inherited prototype keys and falls back', () => {
     expect(resolveStepLabel('toString')).toBe('ToString');
     expect(resolveStepLabel('constructor')).toBe('Constructor');
+  });
+});
+
+describe('getModelRowLabel', () => {
+  it('should number branches from Model 1', () => {
+    expect(getModelRowLabel(0)).toBe('Model 1');
+    expect(getModelRowLabel(8)).toBe('Model 9');
+    expect(getModelRowLabel(25)).toBe('Model 26');
   });
 });

@@ -1,4 +1,4 @@
-const TOGGLEABLE_FLAGS = ['promptManagement', 'guardrails'];
+const TOGGLEABLE_FLAGS = ['promptManagement', 'guardrails', 'promptModelAssociations'];
 
 const buildFeatureFlagParams = (featureFlags?: string[]): string => {
   if (!featureFlags) {

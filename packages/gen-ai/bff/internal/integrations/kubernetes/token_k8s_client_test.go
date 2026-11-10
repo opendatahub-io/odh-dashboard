@@ -2,7 +2,12 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -39,6 +44,86 @@ import (
 
 type noMatchListClient struct {
 	client.Client
+}
+
+func TestGetNamespacesUsesProjectsWithoutNamespaceGets(t *testing.T) {
+	const projectCount = 298
+
+	projects := &unstructured.UnstructuredList{}
+	projects.SetAPIVersion("project.openshift.io/v1")
+	projects.SetKind("ProjectList")
+	for i := range projectCount {
+		project := unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "project.openshift.io/v1",
+			"kind":       "Project",
+			"metadata": map[string]any{
+				"name": "project-" + strconv.Itoa(i),
+				"annotations": map[string]any{
+					"openshift.io/display-name": "Project " + strconv.Itoa(i),
+				},
+			},
+		}}
+		projects.Items = append(projects.Items, project)
+	}
+
+	var namespaceListRequests, namespaceGetRequests, projectListRequests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api":
+			_ = json.NewEncoder(w).Encode(metav1.APIVersions{Versions: []string{"v1"}})
+		case "/api/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{
+				GroupVersion: "v1",
+				APIResources: []metav1.APIResource{{Name: "namespaces", Kind: "Namespace"}},
+			})
+		case "/apis":
+			projectVersion := metav1.GroupVersionForDiscovery{
+				GroupVersion: "project.openshift.io/v1",
+				Version:      "v1",
+			}
+			_ = json.NewEncoder(w).Encode(metav1.APIGroupList{Groups: []metav1.APIGroup{{
+				Name:             "project.openshift.io",
+				Versions:         []metav1.GroupVersionForDiscovery{projectVersion},
+				PreferredVersion: projectVersion,
+			}}})
+		case "/apis/project.openshift.io/v1":
+			_ = json.NewEncoder(w).Encode(metav1.APIResourceList{
+				GroupVersion: "project.openshift.io/v1",
+				APIResources: []metav1.APIResource{{Name: "projects", Kind: "Project"}},
+			})
+		case "/api/v1/namespaces":
+			namespaceListRequests++
+			http.Error(w, "forbidden", http.StatusForbidden)
+		case "/apis/project.openshift.io/v1/projects":
+			projectListRequests++
+			if err := json.NewEncoder(w).Encode(projects); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+		default:
+			if len(r.URL.Path) > len("/api/v1/namespaces/") && r.URL.Path[:len("/api/v1/namespaces/")] == "/api/v1/namespaces/" {
+				namespaceGetRequests++
+			}
+			http.Error(w, "unexpected request", http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	kc := &TokenKubernetesClient{
+		Client: fake.NewClientBuilder().Build(),
+		Config: &rest.Config{Host: server.URL},
+		Logger: slog.Default(),
+	}
+
+	namespaces, err := kc.GetNamespaces(context.Background(), &integrations.RequestIdentity{Token: "user-token"})
+
+	require.NoError(t, err)
+	require.Len(t, namespaces, projectCount)
+	assert.Equal(t, "project-0", namespaces[0].Name)
+	assert.Equal(t, "Project 0", namespaces[0].Annotations["openshift.io/display-name"])
+	assert.Equal(t, 1, namespaceListRequests)
+	assert.Equal(t, 1, projectListRequests)
+	assert.Zero(t, namespaceGetRequests)
 }
 
 func TestGetExternalModelsConfigUsesRequestClient(t *testing.T) {
@@ -78,6 +163,92 @@ registered_resources:
 	require.NoError(t, err)
 	require.Len(t, config.RegisteredResources.Models, 1)
 	assert.Equal(t, "example-model", config.RegisteredResources.Models[0].ModelID)
+}
+
+func TestCreateOrUpdateExternalModelConfigMapRejectsDuplicateModelIDs(t *testing.T) {
+	const namespace = "test-namespace"
+
+	existingConfigYAML := `providers:
+  inference:
+  - provider_id: endpoint-1
+    provider_type: remote::openai
+    config:
+      base_url: https://example.com/v1
+registered_resources:
+  models:
+  - provider_id: endpoint-1
+    model_id: example-model
+    model_type: llm
+    metadata:
+      display_name: Example model`
+
+	newRequest := func(modelID string) models.ExternalModelRequest {
+		return models.ExternalModelRequest{
+			ModelID:          modelID,
+			ModelDisplayName: "New model",
+			BaseURL:          "https://new-endpoint.com/v1",
+			ModelType:        models.ModelTypeLLM,
+		}
+	}
+
+	t.Run("duplicate model ID under another provider: rejected without modifying the ConfigMap", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "2", "", newRequest("example-model"))
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "'example-model' is already registered")
+		assert.Contains(t, err.Error(), "endpoint-1")
+
+		// The ConfigMap must be unchanged — no provider or model appended.
+		config, getConfigErr := kc.GetExternalModelsConfig(context.Background(), namespace)
+		require.NoError(t, getConfigErr)
+		require.Len(t, config.RegisteredResources.Models, 1)
+		require.Len(t, config.Providers.Inference, 1)
+	})
+
+	t.Run("re-submitting the same model ID under the same provider: rejected", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "1", "", newRequest("example-model"))
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "'example-model' is already registered")
+	})
+
+	t.Run("unique model ID: appended", func(t *testing.T) {
+		client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: namespace,
+			},
+			Data: map[string]string{"config.yaml": existingConfigYAML},
+		}).Build()
+		kc := &TokenKubernetesClient{Client: client, Logger: slog.Default()}
+
+		err := kc.CreateOrUpdateExternalModelConfigMap(context.Background(), &integrations.RequestIdentity{Token: "user-token"}, namespace, "2", "", newRequest("another-model"))
+
+		require.NoError(t, err)
+
+		config, getConfigErr := kc.GetExternalModelsConfig(context.Background(), namespace)
+		require.NoError(t, getConfigErr)
+		require.Len(t, config.RegisteredResources.Models, 2)
+		require.Len(t, config.Providers.Inference, 2)
+	})
 }
 
 func (c noMatchListClient) List(context.Context, client.ObjectList, ...client.ListOption) error {
@@ -531,7 +702,7 @@ func TestRequiresPassthroughProvider(t *testing.T) {
 		{name: "custom endpoint LLM", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeLLM)}, want: true},
 		{name: "namespace embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeNamespace, ModelType: string(models.ModelTypeEmbedding)}},
 		{name: "MaaS embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeEmbedding)}},
-		{name: "custom endpoint embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeEmbedding)}},
+		{name: "custom endpoint embedding", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeCustomEndpoint, ModelType: string(models.ModelTypeEmbedding)}, want: true},
 		{name: "transcription", model: models.InstallModel{ModelSourceType: models.ModelSourceTypeMaaS, ModelType: string(models.ModelTypeTranscription)}},
 	}
 
@@ -1257,6 +1428,227 @@ registered_resources:
 		assert.Error(t, err)
 		assert.Empty(t, result)
 		assert.Contains(t, err.Error(), "cannot find external model")
+	})
+}
+
+// externalEmbeddingConfigMapYAML returns a gen-ai-aa-custom-model-endpoints ConfigMap body
+// declaring an embedding model. keyed controls only the presence of
+// custom_gen_ai.api_key.secretRef on the provider — the BFF's generated output must be
+// identical either way (RHOAIENG-100933: keyed and keyless take the same proxy-routed path).
+func externalEmbeddingConfigMapYAML(keyed bool) string {
+	credentials := ""
+	if keyed {
+		credentials = `
+        custom_gen_ai:
+          api_key:
+            secretRef:
+              name: "endpoint-api-key-1"
+              key: "api_key"
+`
+	}
+	return `
+providers:
+  inference:
+    - provider_id: "gemini-embedding-provider"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"` + credentials + `
+registered_resources:
+  models:
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding"
+        embedding_dimension: 3072
+`
+}
+
+// externalEmbeddingVectorStore returns a validated vector store whose embedding model is
+// the custom-endpoint embedding model declared by externalEmbeddingConfigMapYAML.
+func externalEmbeddingVectorStore() ValidatedVectorStore {
+	return ValidatedVectorStore{
+		Provider: models.VectorIOProvider{
+			ProviderID:   "pgvector-provider",
+			ProviderType: "remote::pgvector",
+			Config: models.VectorIOProviderConfig{
+				Extra: map[string]interface{}{
+					"host": "pgvector2.pgvect.svc.cluster.local",
+					"db":   "vectordb",
+				},
+			},
+		},
+		RegisteredStore: models.RegisteredVectorStore{
+			VectorStoreID:      "vs-signoff-001",
+			ProviderID:         "pgvector-provider",
+			EmbeddingModel:     "gemini-embedding-001",
+			EmbeddingDimension: 3072,
+			VectorStoreName:    "Example Team Data",
+		},
+	}
+}
+
+func TestGenerateLlamaStackConfigWithExternalEmbeddingModels(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	newConfigMap := func(yaml string) *corev1.ConfigMap {
+		return &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      constants.ExternalModelsConfigMapName,
+				Namespace: "test-namespace",
+			},
+			Data: map[string]string{"config.yaml": yaml},
+		}
+	}
+
+	installModels := []models.InstallModel{
+		{
+			ModelName:       "gemini-embedding-001",
+			ModelSourceType: models.ModelSourceTypeCustomEndpoint,
+			ModelType:       string(models.ModelTypeEmbedding),
+		},
+	}
+
+	t.Run("GatewayDomain set: registers embedding model under genai-bff-proxy, no direct provider", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(true))).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			Client:    fakeClient,
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+		}
+
+		result, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.NoError(t, err)
+
+		var cfg LlamaStackConfig
+		require.NoError(t, cfg.FromYAML(result))
+
+		// No direct provider entry for the ConfigMap provider — the model routes via genai-bff-proxy.
+		for _, p := range cfg.Providers.Inference {
+			assert.NotEqual(t, "gemini-embedding-provider", p.ProviderID,
+				"no direct provider entry should be created for the custom-endpoint embedding model")
+		}
+
+		// The model is registered under genai-bff-proxy with the embedding dimension preserved.
+		var registered *Model
+		for i := range cfg.RegisteredResources.Models {
+			if cfg.RegisteredResources.Models[i].ModelID == "gemini-embedding-001" {
+				registered = &cfg.RegisteredResources.Models[i]
+			}
+		}
+		require.NotNil(t, registered, "embedding model should be registered")
+		assert.Equal(t, constants.PassthroughProviderID, registered.ProviderID)
+		assert.Equal(t, string(models.ModelTypeEmbedding), registered.ModelType)
+		assert.Equal(t, 3072, registered.Metadata["embedding_dimension"])
+
+		// The vector store binds to the proxy-routed identifier.
+		require.Len(t, cfg.RegisteredResources.VectorStores, 1)
+		assert.Equal(t, constants.PassthroughProviderID+"/gemini-embedding-001",
+			cfg.RegisteredResources.VectorStores[0].EmbeddingModel)
+
+		// The genai-bff-proxy passthrough provider entry is present.
+		var proxyProvider *Provider
+		for i := range cfg.Providers.Inference {
+			if cfg.Providers.Inference[i].ProviderID == constants.PassthroughProviderID {
+				proxyProvider = &cfg.Providers.Inference[i]
+			}
+		}
+		require.NotNil(t, proxyProvider, "genai-bff-proxy provider should be present")
+		assert.Equal(t, constants.PassthroughProviderType, proxyProvider.ProviderType)
+	})
+
+	t.Run("keyed and keyless providers generate identical output", func(t *testing.T) {
+		generate := func(keyed bool) string {
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(keyed))).
+				Build()
+
+			client := &TokenKubernetesClient{
+				Logger:    slog.Default(),
+				Client:    fakeClient,
+				EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+			}
+
+			result, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+			require.NoError(t, err)
+			return result
+		}
+
+		assert.Equal(t, generate(true), generate(false),
+			"keyed and keyless custom-endpoint embedding models must produce identical generated config")
+	})
+
+	t.Run("GatewayDomain empty: install fails fast with a clear error", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(externalEmbeddingConfigMapYAML(true))).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		_, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.Error(t, err)
+		// Custom-endpoint embedding models require the genai-bff-proxy passthrough provider,
+		// so a missing GATEWAY_DOMAIN fails the install before any config is emitted.
+		assert.Contains(t, err.Error(), "GATEWAY_DOMAIN is not configured")
+		assert.Contains(t, err.Error(), "gemini-embedding-001")
+	})
+
+	t.Run("duplicate model_id across providers: install fails fast with a clear error", func(t *testing.T) {
+		// Proxy-routed registration keeps only the native model ID, so a model_id
+		// declared under two custom-endpoint providers cannot be resolved at query
+		// time (ResolveCustomEndpointModelProvider reports it as ambiguous). The
+		// install must reject the configuration instead of silently failing retrieval.
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newConfigMap(`
+providers:
+  inference:
+    - provider_id: "gemini-embedding-provider"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    - provider_id: "gemini-embedding-provider-eu"
+      provider_type: "remote::passthrough"
+      config:
+        base_url: "https://eu.example.com/v1"
+registered_resources:
+  models:
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding"
+        embedding_dimension: 3072
+    - model_id: "gemini-embedding-001"
+      provider_id: "gemini-embedding-provider-eu"
+      model_type: "embedding"
+      metadata:
+        display_name: "Gemini Embedding (EU)"
+        embedding_dimension: 3072
+`)).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger:    slog.Default(),
+			Client:    fakeClient,
+			EnvConfig: config.EnvConfig{GatewayDomain: "apps.cluster.example.com"},
+		}
+
+		_, err := client.generateLlamaStackConfig(context.Background(), "test-namespace", installModels, []ValidatedVectorStore{externalEmbeddingVectorStore()}, nil, "", nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "gemini-embedding-001")
+		assert.Contains(t, err.Error(), "registered under 2 providers")
+		assert.Contains(t, err.Error(), "gemini-embedding-provider, gemini-embedding-provider-eu")
 	})
 }
 
@@ -2322,6 +2714,37 @@ func TestOgxCommand_TracingEnabled(t *testing.T) {
 	assert.Contains(t, cmd[2], "--traces_exporter=otlp_proto_http")
 	assert.Contains(t, cmd[2], "--disabled_instrumentations=sqlite3,sqlalchemy,asyncpg,requests,urllib,urllib3,httpx,httpx2")
 	assert.Contains(t, cmd[2], "ogx run /etc/ogx/config.yaml")
+	// The office MIME types must also be registered through a .pth file in
+	// site-packages: opentelemetry-instrument prepends its own directory (which
+	// contains a sitecustomize.py) to PYTHONPATH for the main process and for
+	// multiprocessing workers, shadowing the office MIME-types sitecustomize.
+	assert.Contains(t, cmd[2], fmt.Sprintf("printf '%%s\\n' '%s' > \"$d/%s\"", officeMIMETypesPTHRegistration, officeMIMETypesPTHName))
+	assert.Contains(t, cmd[2], "for d in /opt/app-root/lib*/python*/site-packages")
+	// The MIME registration must not import the OTel auto-instrumentation hook,
+	// which would initialize instrumentation twice in worker processes.
+	assert.NotContains(t, officeMIMETypesPTHRegistration, "opentelemetry")
+}
+
+// officeMIMETypesRegistrations is the authoritative list of Office MIME types
+// that must be registered for the OGX file processor to route .docx/.pptx
+// uploads to MarkItDown. Both registration mechanisms — the ConfigMap's
+// sitecustomize module and the .pth file — must cover every entry.
+var officeMIMETypesRegistrations = []struct {
+	mimeType  string
+	extension string
+}{
+	{"application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"},
+	{"application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx"},
+}
+
+func TestOfficeMIMETypesRegistrationsInSync(t *testing.T) {
+	for _, r := range officeMIMETypesRegistrations {
+		call := fmt.Sprintf("mimetypes.add_type(%q, %q)", r.mimeType, r.extension)
+		assert.Contains(t, officeMIMETypesConfigMapContents, call,
+			"officeMIMETypesConfigMapContents must register %s", r.extension)
+		assert.Contains(t, officeMIMETypesPTHRegistration, call,
+			"officeMIMETypesPTHRegistration must register %s", r.extension)
+	}
 }
 
 func TestEnsureOGXGatewayCABundle(t *testing.T) {

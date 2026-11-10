@@ -53,6 +53,8 @@ export enum V1URIScheme {
 export enum V1TolerationOperator {
   TolerationOpExists = 'Exists',
   TolerationOpEqual = 'Equal',
+  TolerationOpLt = 'Lt',
+  TolerationOpGt = 'Gt',
 }
 
 export enum V1TaintEffect {
@@ -231,8 +233,10 @@ export enum FieldErrorType {
   ErrorTypeForbidden = 'FieldValueForbidden',
   ErrorTypeTooLong = 'FieldValueTooLong',
   ErrorTypeTooMany = 'FieldValueTooMany',
+  ErrorTypeTooFew = 'FieldValueTooFew',
   ErrorTypeInternal = 'InternalError',
   ErrorTypeTypeInvalid = 'FieldValueTypeInvalid',
+  ErrorTypeTooShort = 'FieldValueTooShort',
 }
 
 export enum AssetsImageRefErrorCode {
@@ -388,6 +392,10 @@ export interface ApiWorkspaceKindListEnvelope {
 
 export interface ApiWorkspaceListEnvelope {
   data: WorkspacesWorkspaceListItem[];
+}
+
+export interface ApiWorkspaceResourceUsageEnvelope {
+  data: ResourcesWorkspaceResourceUsage;
 }
 
 export interface AssetsImageRef {
@@ -647,6 +655,33 @@ export interface PvcsWorkspaceInfo {
 
 export interface ResourceQuantity {
   Format?: 'DecimalExponent' | 'BinarySI' | 'DecimalSI';
+}
+
+export interface ResourcesContainerResourceUsage {
+  /**
+   * MetricsFromMetricsServer holds live usage metrics. It is nil when metrics
+   * are pending (e.g., pod just started).
+   */
+  metricsFromMetricsServer?: ResourcesMetricsFromMetricsServer;
+  /** Resources holds the configured resource requirements from the pod spec. */
+  resources: V1ResourceRequirements;
+}
+
+export interface ResourcesMetricsFromMetricsServer {
+  /** Timestamp is the RFC3339 timestamp of when the sample was collected. */
+  timestamp: string;
+  /** Usage is the current resource consumption. */
+  usage: ResourcesResourceValues;
+}
+
+export interface ResourcesResourceValues {
+  cpu?: string;
+  memory?: string;
+}
+
+export interface ResourcesWorkspaceResourceUsage {
+  /** Containers holds the per-container resource data, keyed by container name. */
+  containers: Record<string, ResourcesContainerResourceUsage>;
 }
 
 export interface SecretsSecretCreate {
@@ -2060,7 +2095,7 @@ export interface V1PersistentVolumeClaimSpec {
   dataSourceRef?: V1TypedObjectReference;
   /**
    * resources represents the minimum resources the volume should have.
-   * If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+   * Users are allowed to specify resource requirements
    * that are lower than previous value but must still be higher than capacity recorded in the
    * status field of the claim.
    * More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -2346,6 +2381,22 @@ export interface V1PodCertificateProjection {
    * +required
    */
   signerName?: string;
+  /**
+   * userAnnotations allow pod authors to pass additional information to
+   * the signer implementation.  Kubernetes does not restrict or validate this
+   * metadata in any way.
+   *
+   * These values are copied verbatim into the `spec.unverifiedUserAnnotations` field of
+   * the PodCertificateRequest objects that Kubelet creates.
+   *
+   * Entries are subject to the same validation as object metadata annotations,
+   * with the addition that all keys must be domain-prefixed. No restrictions
+   * are placed on values, except an overall size limitation on the entire field.
+   *
+   * Signers should document the keys and values they support. Signers should
+   * deny requests that contain keys they do not recognize.
+   */
+  userAnnotations?: Record<string, string>;
 }
 
 export interface V1PodSecurityContext {
@@ -2982,7 +3033,6 @@ export interface V1SecurityContext {
    * procMount denotes the type of proc mount to use for the containers.
    * The default value is Default which uses the container runtime defaults for
    * readonly paths and masked paths.
-   * This requires the ProcMountType feature flag to be enabled.
    * Note that this field cannot be set when spec.os.name is windows.
    * +optional
    */
@@ -3148,9 +3198,10 @@ export interface V1Toleration {
   key?: string;
   /**
    * Operator represents a key's relationship to the value.
-   * Valid operators are Exists and Equal. Defaults to Equal.
+   * Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
    * Exists is equivalent to wildcard for value, so that a pod can
    * tolerate all taints of a particular category.
+   * Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
    * +optional
    */
   operator?: V1TolerationOperator;
@@ -3359,10 +3410,9 @@ export interface V1Volume {
    * A failure to resolve or pull the image during pod startup will block containers from starting and may add significant latency. Failures will be retried using normal volume backoff and will be reported on the pod reason and message.
    * The types of objects that may be mounted by this volume are defined by the container runtime implementation on a host machine and at minimum must include all valid types supported by the container image field.
    * The OCI object gets mounted in a single directory (spec.containers[*].volumeMounts.mountPath) by merging the manifest layers in the same way as for container images.
-   * The volume will be mounted read-only (ro) and non-executable files (noexec).
+   * The volume will be mounted read-only (ro).
    * Sub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath) before 1.33.
    * The field spec.securityContext.fsGroupChangePolicy has no effect on this volume type.
-   * +featureGate=ImageVolume
    * +optional
    */
   image?: V1ImageVolumeSource;
@@ -3400,8 +3450,7 @@ export interface V1Volume {
   /**
    * portworxVolume represents a portworx volume attached and mounted on kubelets host machine.
    * Deprecated: PortworxVolume is deprecated. All operations for the in-tree portworxVolume type
-   * are redirected to the pxd.portworx.com CSI driver when the CSIMigrationPortworx feature-gate
-   * is on.
+   * are redirected to the pxd.portworx.com CSI driver.
    * +optional
    */
   portworxVolume?: V1PortworxVolumeSource;
@@ -3487,8 +3536,6 @@ export interface V1VolumeMount {
    * None (or be unspecified, which defaults to None).
    *
    * If this field is not specified, it is treated as an equivalent of Disabled.
-   *
-   * +featureGate=RecursiveReadOnlyMounts
    * +optional
    */
   recursiveReadOnly?: V1RecursiveReadOnlyMode;
@@ -3574,7 +3621,8 @@ export interface V1VolumeProjection {
    * issues; consult the signer implementation's documentation to learn how to
    * use the certificates it issues.
    *
-   * +featureGate=PodCertificateProjection +optional
+   * +featureGate=PodCertificateProjection
+   * +optional
    */
   podCertificate?: V1PodCertificateProjection;
   /**
@@ -3738,7 +3786,7 @@ export interface V1Beta1ActivityProbePodExec {
    *    precedence and `last_activity` is totally ignored (the probe does not fail).
    *    The fields are evaluated to update the Workspace status field `status.activity.lastActivity` as follows:
    *      - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
-   *      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`).
+   *      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`). If `status.activity.lastActivity` was not previously set (0), it is initialized to `status.lastRunningTime` to treat the Workspace as inactive since startup.
    *      - If `last_activity` (ISO 8601 string) is provided (and `has_activity` is omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
    * +kubebuilder:validation:MinLength:=1
    * +kubebuilder:validation:MaxLength:=2048
@@ -3841,7 +3889,7 @@ export interface V1Beta1ImageConfigSpec {
   /**
    * the container image to use
    * +kubebuilder:validation:MinLength:=2
-   * +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1"
+   * +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy@sha256:6bf26b8dd45fc0f54aa3d85a141f80967e73d64d8a980f367c1e67a10b0e31a1"
    */
   image: string;
   /**
@@ -4039,6 +4087,17 @@ export interface V1Beta1PodConfigSpec {
    */
   resources?: V1ResourceRequirements;
   /**
+   * the name of the scheduler to use for the pod
+   *  - this takes precedence over the `schedulerName` of the pod template
+   *  - set this to "default-scheduler" to have this pod config use the
+   *    default Kubernetes scheduler, even if the pod template sets another one
+   *  - no character/length validation, matching Kubernetes which applies none
+   *    to PodSpec.SchedulerName; an empty value means the default scheduler
+   * +kubebuilder:validation:Optional
+   * +kubebuilder:example="volcano"
+   */
+  schedulerName?: string;
+  /**
    * toleration configs for the pod
    * +kubebuilder:validation:Optional
    */
@@ -4220,6 +4279,18 @@ export interface V1Beta1WorkspaceKindPodTemplate {
    */
   probes?: V1Beta1WorkspaceKindProbes;
   /**
+   * the name of the scheduler to use for Workspace Pods (MUTABLE)
+   *  - this is the default for all Workspaces of this WorkspaceKind, it may be
+   *    overridden by the `schedulerName` of a pod config value
+   *  - if not set here, or on the pod config value, the Kubernetes API server
+   *    will default to the "default-scheduler"
+   *  - no character/length validation, matching Kubernetes which applies none
+   *    to PodSpec.SchedulerName; an empty value means the default scheduler
+   * +kubebuilder:validation:Optional
+   * +kubebuilder:example="default-scheduler"
+   */
+  schedulerName?: string;
+  /**
    * security context for Workspace Pods (MUTABLE)
    * +kubebuilder:validation:Optional
    */
@@ -4232,6 +4303,11 @@ export interface V1Beta1WorkspaceKindPodTemplate {
    * +kubebuilder:validation:Optional
    */
   serviceAccount?: V1Beta1WorkspaceKindServiceAccount;
+  /**
+   * metadata for the Workspace StatefulSet (MUTABLE)
+   * +kubebuilder:validation:Optional
+   */
+  statefulSetMetadata?: V1Beta1WorkspaceKindStatefulSetMetadata;
   /** volume mount paths */
   volumeMounts: V1Beta1WorkspaceKindVolumeMounts;
 }
@@ -4345,6 +4421,19 @@ export interface V1Beta1WorkspaceKindSpawner {
   logo: V1Beta1WorkspaceKindAsset;
 }
 
+export interface V1Beta1WorkspaceKindStatefulSetMetadata {
+  /**
+   * annotations to be applied to the Workspace StatefulSet resource
+   * +kubebuilder:validation:Optional
+   */
+  annotations?: Record<string, string>;
+  /**
+   * labels to be applied to the Workspace StatefulSet resource
+   * +kubebuilder:validation:Optional
+   */
+  labels?: Record<string, string>;
+}
+
 export interface V1Beta1WorkspaceKindVolumeMounts {
   /**
    * the path to mount the home PVC (NOT MUTABLE)
@@ -4415,11 +4504,17 @@ export interface WorkspacekindsPodTemplate {
   /** TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views */
   options: OptionsPodTemplateOptions;
   podMetadata: WorkspacekindsPodMetadata;
+  statefulSetMetadata: WorkspacekindsStatefulSetMetadata;
   volumeMounts: WorkspacekindsPodVolumeMounts;
 }
 
 export interface WorkspacekindsPodVolumeMounts {
   home: string;
+}
+
+export interface WorkspacekindsStatefulSetMetadata {
+  annotations: Record<string, string>;
+  labels: Record<string, string>;
 }
 
 export interface WorkspacekindsWorkspaceKindCreate {

@@ -4,16 +4,19 @@ const (
 	ApiPathPrefix = "/api/v1"
 
 	// API Keys routes
-	APIKeyCreatePath     = ApiPathPrefix + "/api-keys"
-	APIKeySearchPath     = ApiPathPrefix + "/api-keys/search"
-	APIKeyBulkRevokePath = ApiPathPrefix + "/api-keys/bulk-revoke"
-	APIKeyByIDPath       = ApiPathPrefix + "/api-keys/:id"
+	APIKeyCreatePath       = ApiPathPrefix + "/api-keys"
+	APIKeySearchPath       = ApiPathPrefix + "/api-keys/search"
+	APIKeyTenantSearchPath = ApiPathPrefix + "/api-keys/search/tenant"
+	APIKeyBulkRevokePath   = ApiPathPrefix + "/api-keys/bulk-revoke"
+	APIKeyByIDPath         = ApiPathPrefix + "/api-keys/:id"
 	// APIKeyConfigPath is a sibling of /api-keys (not /api-keys/config) so it does not
 	// conflict with httprouter's GET /api-keys/:id registration.
 	APIKeyConfigPath = ApiPathPrefix + "/api-keys-config"
 
 	// Access review
-	IsMaasAdminPath = ApiPathPrefix + "/is-maas-admin"
+	IsMaasAdminPath     = ApiPathPrefix + "/is-maas-admin"
+	WhoAmIPath          = ApiPathPrefix + "/whoami"
+	UsageDashboardsPath = ApiPathPrefix + "/usage-dashboards"
 
 	// Gateway discovery
 	MaaSGatewayURLPath = ApiPathPrefix + "/gateway-url"
@@ -23,11 +26,12 @@ const (
 	SubscriptionByIDPassthroughPath = ApiPathPrefix + "/subscriptions/:id"
 
 	// Subscription routes
-	SubscriptionListPath   = ApiPathPrefix + "/all-subscriptions"
-	SubscriptionInfoPath   = ApiPathPrefix + "/subscription-info/:name"
-	SubscriptionCreatePath = ApiPathPrefix + "/new-subscription"
-	SubscriptionUpdatePath = ApiPathPrefix + "/update-subscription/:name"
-	SubscriptionDeletePath = ApiPathPrefix + "/subscription/:name"
+	SubscriptionListPath      = ApiPathPrefix + "/all-subscriptions"
+	AdminSubscriptionListPath = ApiPathPrefix + "/admin-subscriptions"
+	SubscriptionInfoPath      = ApiPathPrefix + "/subscription-info/:name"
+	SubscriptionCreatePath    = ApiPathPrefix + "/new-subscription"
+	SubscriptionUpdatePath    = ApiPathPrefix + "/update-subscription/:name"
+	SubscriptionDeletePath    = ApiPathPrefix + "/subscription/:name"
 
 	// Policy routes
 	PolicyListPath   = ApiPathPrefix + "/all-policies"

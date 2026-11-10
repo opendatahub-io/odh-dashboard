@@ -33,10 +33,10 @@ import {
 } from '#~/k8sTypes';
 import { updatePipelineSettings } from '#~/api/pipelines/k8s';
 import useNotification from '#~/utilities/useNotification';
-import { useAppContext } from '#~/app/AppContext';
 import useIsMlflowCRAvailable from '#~/concepts/mlflow/hooks/useIsMlflowCRAvailable';
+import useIsManagedPipelinesAvailable from '#~/concepts/pipelines/hooks/useIsManagedPipelinesAvailable';
 import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
-import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
+import { DISABLE_MANAGED_PIPELINES_ANNOTATION, MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
 import ManagedPipelinesSettingsSection from './configurePipelinesServer/ManagedPipelinesSettingsSection';
 import MlflowTrackingSection from './configurePipelinesServer/MlflowTrackingSection';
@@ -51,7 +51,6 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   pipelineNamespaceCR,
 }) => {
   const { namespace, refreshState } = usePipelinesAPI();
-  const { dashboardConfig } = useAppContext();
   const notification = useNotification();
   const [pipelineResult] = useNamespaceSecret(
     namespace,
@@ -62,9 +61,13 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
 
   const initCachingEnabled = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled || false;
+  const managedPipelines = pipelineNamespaceCR?.spec.apiServer?.managedPipelines;
+  const managedPipelinesDisabledByAnnotation =
+    pipelineNamespaceCR?.metadata.annotations?.[DISABLE_MANAGED_PIPELINES_ANNOTATION] === 'true';
+  const managedPipelinesEnabled =
+    managedPipelines && 'enabled' in managedPipelines ? managedPipelines.enabled : undefined;
   const initManagedPipelinesEnabled =
-    !!pipelineNamespaceCR?.spec.apiServer?.managedPipelines &&
-    !('instructLab' in pipelineNamespaceCR.spec.apiServer.managedPipelines);
+    !managedPipelinesDisabledByAnnotation && managedPipelinesEnabled !== false;
 
   const initMlflow: DSPipelineMlflowKind = React.useMemo(
     () => ({
@@ -79,8 +82,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     ],
   );
 
-  const isManagedPipelinesAvailable =
-    dashboardConfig.spec.dashboardConfig.automl || dashboardConfig.spec.dashboardConfig.autorag;
+  const isManagedPipelinesAvailable = useIsManagedPipelinesAvailable();
 
   const { available: isMlflowCRAvailable } = useIsMlflowCRAvailable();
   const isMlflowPipelinesAreaAvailable = useIsAreaAvailable(SupportedArea.MLFLOW_PIPELINES).status;
@@ -124,7 +126,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     }
 
     if (isManagedPipelinesAvailable && enableManagedPipelines !== initManagedPipelinesEnabled) {
-      settings.managedPipelines = enableManagedPipelines ? {} : undefined;
+      settings.managedPipelines = { enabled: enableManagedPipelines };
     }
 
     if (mlflowChanged) {
@@ -287,6 +289,12 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
                   <ManagedPipelinesSettingsSection
                     enableManagedPipelines={enableManagedPipelines}
                     setEnableManagedPipelines={setEnableManagedPipelines}
+                    isDisabled={managedPipelinesDisabledByAnnotation}
+                    disabledReason={
+                      managedPipelinesDisabledByAnnotation
+                        ? 'Managed pipelines are disabled by an annotation on this pipeline server and cannot be changed here.'
+                        : undefined
+                    }
                     variant="description"
                   />
                 )}

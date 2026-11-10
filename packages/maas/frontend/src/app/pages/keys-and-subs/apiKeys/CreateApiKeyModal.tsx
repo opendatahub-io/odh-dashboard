@@ -1,10 +1,14 @@
 import {
   Alert,
   Button,
-  Card,
-  CardBody,
-  CardTitle,
+  Checkbox,
+  ClipboardCopy,
   ClipboardCopyButton,
+  CodeBlock,
+  CodeBlockAction,
+  CodeBlockCode,
+  Content,
+  ContentVariants,
   DatePicker,
   DescriptionList,
   DescriptionListDescription,
@@ -15,6 +19,8 @@ import {
   Form,
   FormGroup,
   FormHelperText,
+  Divider,
+  ExpandableSection,
   HelperText,
   HelperTextItem,
   InputGroup,
@@ -27,6 +33,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  Popover,
   Select,
   SelectList,
   SelectOption,
@@ -34,22 +41,24 @@ import {
   StackItem,
   TextArea,
   TextInput,
-  Title,
+  Tooltip,
   yyyyMMddFormat,
 } from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
-import { CheckCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
+import { EyeIcon, EyeSlashIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { z } from 'zod';
+import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import {
   EXPIRATION_MODE_VALUES,
   formatApiKeyError,
@@ -71,13 +80,19 @@ import {
   validateExpirationDate,
   DATE_PICKER_MAX_DAYS,
   type ExpirationMode,
+  buildApiKeyUsageExample,
+  findMaaSModelBySubscriptionRef,
+  getApiKeyUsageExampleEndpointPath,
+  resolveApiKeyUsageExampleKind,
 } from '~/app/pages/keys-and-subs/utils';
 import { createApiKey } from '~/app/api/api-keys';
+import { getMaaSModelsList } from '~/app/api/maas-models';
 import {
   MaaSModelRefSummary,
   ModelSubscriptionRef,
   UserSubscription,
 } from '~/app/types/subscriptions';
+import { MaaSModel } from '~/app/types/maas-model';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import {
   ApiKeyCreateInitiatedFrom,
@@ -87,6 +102,7 @@ import {
   MaaSEvents,
 } from '~/app/types/event-tracking';
 import { useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
+import CopyableDisabledField from '~/app/shared/CopyableDisabledField';
 
 const createApiKeySchema = (maxDays: number) =>
   z
@@ -146,6 +162,56 @@ type CreateApiKeyModalProps = {
   apiKeyConfigError?: Error;
 };
 
+const SubscriptionInfoPopover: React.FC<{
+  displayName: string;
+  subscriptionId: string;
+  description?: string;
+}> = ({ displayName, subscriptionId, description }) => (
+  <Popover
+    headerContent={displayName}
+    bodyContent={
+      <div data-testid="api-key-subscription-info-popover-body">
+        <Content
+          component={ContentVariants.small}
+          className="pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
+        >
+          Subscription ID
+        </Content>
+        <ClipboardCopy
+          isReadOnly
+          hoverTip="Copy"
+          clickTip="Copied"
+          data-testid="api-key-subscription-id-copy"
+        >
+          {subscriptionId}
+        </ClipboardCopy>
+        {description ? (
+          <>
+            <Content
+              component={ContentVariants.small}
+              className="pf-v6-u-mt-sm pf-v6-u-mb-0 pf-v6-u-font-weight-bold"
+            >
+              Description
+            </Content>
+            <Content component={ContentVariants.p} className="pf-v6-u-mt-0">
+              {description}
+            </Content>
+          </>
+        ) : null}
+      </div>
+    }
+  >
+    <Button
+      variant="plain"
+      aria-label={`More info about ${displayName}`}
+      className="pf-v6-u-p-0"
+      data-testid="api-key-subscription-info-button"
+    >
+      <OutlinedQuestionCircleIcon />
+    </Button>
+  </Popover>
+);
+
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   onClose,
   initialSubscription,
@@ -175,7 +241,9 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     afterDays: String(DEFAULT_AFTER_DAYS),
     subscription: initialSubscription?.subscription_id_header ?? '',
   });
-  const [isModeSelectOpen, setIsModeSelectOpen] = React.useState(false);
+  const [isModeSelectOpen, setIsModeSelectOpen] = React.useState(false); // mode of expiration
+  const [isModelSelectOpen, setIsModelSelectOpen] = React.useState(false); // model selection dropdown
+  const [selectedModel, setSelectedModel] = React.useState<string | undefined>();
   const [isCreating, setIsCreating] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
@@ -210,7 +278,11 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   );
 
   const sortedSubscriptions = React.useMemo(
-    () => subscriptions.toSorted((a, b) => b.priority - a.priority),
+    () =>
+      subscriptions.toSorted(
+        (a, b) =>
+          (b.priority ?? b.inference_priority ?? 0) - (a.priority ?? a.inference_priority ?? 0),
+      ),
     [subscriptions],
   );
 
@@ -274,6 +346,24 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     [selectedSubscription],
   );
 
+  const availableModelOptions = React.useMemo(
+    () =>
+      (selectedSubscription?.model_refs ?? []).map((ref) => ({
+        value: ref.name,
+        label: ref.display_name?.trim() || ref.name,
+      })),
+    [selectedSubscription],
+  );
+
+  const effectiveSelectedModel =
+    selectedModel !== undefined && availableModelOptions.some((opt) => opt.value === selectedModel)
+      ? selectedModel
+      : (availableModelOptions[0]?.value ?? 'No models available');
+
+  const selectedModelOption = availableModelOptions.find(
+    (opt) => opt.value === effectiveSelectedModel,
+  );
+
   const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
     formData,
     createApiKeySchemaMemo,
@@ -314,8 +404,22 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     }) satisfies ApiKeyCreatedProperties;
 
   const [isTokenVisible, setIsTokenVisible] = React.useState(false);
-  const [isCopyTipCopied, setIsCopyTipCopied] = React.useState(false);
+  const [isAccessDetailsExpanded, setIsAccessDetailsExpanded] = React.useState(false);
+  const [isUsageExampleKeyVisible, setIsUsageExampleKeyVisible] = React.useState(false);
+  const [hasAcknowledgedKeyCopy, setHasAcknowledgedKeyCopy] = React.useState(false);
+  const [copiedFieldId, setCopiedFieldId] = React.useState<string | undefined>();
   const hasCopiedKey = React.useRef(false);
+
+  const modelsCallback = React.useCallback<FetchStateCallbackPromise<MaaSModel[]>>(
+    (opts: APIOptions) => {
+      if (!createdToken) {
+        return Promise.resolve([]);
+      }
+      return getMaaSModelsList()(opts);
+    },
+    [createdToken],
+  );
+  const [maasModels] = useFetchState(modelsCallback, []);
 
   const fireKeyCopiedEvent = (copied: boolean) => {
     fireMiscTrackingEvent(MaaSEvents.API_KEY_COPIED, {
@@ -324,7 +428,19 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     } satisfies ApiKeyCopiedProperties);
   };
 
+  const handleFieldCopy = (id: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedFieldId(id);
+    if (id === 'api-key-token' || id === 'api-key-usage-example') {
+      hasCopiedKey.current = true;
+      fireKeyCopiedEvent(true);
+    }
+  };
+
   const handleClose = (created?: boolean) => {
+    if (createdToken && !hasAcknowledgedKeyCopy) {
+      return;
+    }
     if (!createdToken) {
       fireFormTrackingEvent(
         MaaSEvents.API_KEY_CREATED,
@@ -378,7 +494,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
       const formatted = formatApiKeyError(msg);
       fireFormTrackingEvent(
         MaaSEvents.API_KEY_CREATED,
-        getCreateTrackingProps(TrackingOutcome.submit, false, formatted),
+        getCreateTrackingProps(TrackingOutcome.submit, false, errorCategory(err)),
       );
       setError(new Error(formatted));
     } finally {
@@ -393,6 +509,42 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
       : formatExpirationLabel(expirationDays, formData.expirationMode);
 
   const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
+  const subscriptionIdHeader = selectedSubscription?.subscription_id_header ?? '';
+  const selectedModelRef =
+    availableModelOptions.length > 0
+      ? selectedSubscription?.model_refs.find((ref) => ref.name === effectiveSelectedModel)
+      : undefined;
+  const selectedMaaSModel =
+    availableModelOptions.length > 0
+      ? findMaaSModelBySubscriptionRef(maasModels, {
+          refName: effectiveSelectedModel,
+          refNamespace: selectedModelRef?.namespace,
+          catalogModelId: selectedModelRef?.model_name,
+          subscriptionId: subscriptionIdHeader,
+          subscriptionModelRefCount: selectedSubscription?.model_refs.length,
+        })
+      : undefined;
+  const usageExampleModelId = selectedMaaSModel?.id ?? '';
+  const usageExampleBaseUrl = selectedMaaSModel?.url;
+  const usageExampleKind = resolveApiKeyUsageExampleKind(
+    selectedMaaSModel?.modelDetails?.modelCapabilities,
+  );
+  const usageExampleEndpointPath = getApiKeyUsageExampleEndpointPath(usageExampleKind);
+  const usageExampleVisibilityLabel = isUsageExampleKeyVisible
+    ? 'Hide API key in usage example'
+    : 'Show API key in usage example';
+  const usageExampleForCopy = buildApiKeyUsageExample(
+    usageExampleBaseUrl,
+    usageExampleModelId,
+    createdToken ?? '',
+    usageExampleKind,
+  );
+  const usageExampleDisplay = buildApiKeyUsageExample(
+    usageExampleBaseUrl,
+    usageExampleModelId,
+    isUsageExampleKeyVisible ? (createdToken ?? '') : hiddenToken,
+    usageExampleKind,
+  );
 
   const handleExpirationModeChange = (mode: ExpirationMode) => {
     if (mode === 'max' && !hasKnownMaxExpiration) {
@@ -411,7 +563,18 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   };
 
   return (
-    <Modal variant={ModalVariant.medium} isOpen onClose={() => handleClose()}>
+    <Modal
+      variant={ModalVariant.medium}
+      isOpen
+      // Hide the header X after key creation — close is only via the footer button once acknowledged.
+      {...(createdToken
+        ? {
+            onEscapePress: () => {
+              handleClose(true);
+            },
+          }
+        : { onClose: () => handleClose() })}
+    >
       <ModalHeader title={createdToken ? 'API key created' : 'Create API key'} />
       <ModalBody>
         {createdToken ? (
@@ -427,24 +590,12 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
               </Alert>
             </StackItem>
             <StackItem>
-              <Card>
-                <CardTitle>
-                  <Flex
-                    alignItems={{ default: 'alignItemsCenter' }}
-                    spaceItems={{ default: 'spaceItemsSm' }}
-                  >
-                    <FlexItem>
-                      <CheckCircleIcon color="green" />
-                    </FlexItem>
-                    <FlexItem>
-                      <Title headingLevel="h3"> Your API key </Title>
-                    </FlexItem>
-                  </Flex>
-                </CardTitle>
-                <CardBody>
+              <Form>
+                <FormGroup label="API key" fieldId="api-key-token">
                   <InputGroup data-testid="api-key-token-copy-section">
                     <InputGroupItem isFill>
                       <TextInput
+                        id="api-key-token"
                         readOnly
                         aria-label="API key"
                         value={isTokenVisible ? createdToken : hiddenToken}
@@ -469,56 +620,203 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                         hasNoPadding
                         onClick={() => {
                           if (createdToken) {
-                            navigator.clipboard.writeText(createdToken);
-                            hasCopiedKey.current = true;
-                            fireKeyCopiedEvent(true);
+                            handleFieldCopy('api-key-token', createdToken);
                           }
-                          setIsCopyTipCopied(true);
                         }}
-                        onTooltipHidden={() => setIsCopyTipCopied(false)}
+                        onTooltipHidden={() => setCopiedFieldId(undefined)}
                       >
-                        {isCopyTipCopied ? 'Copied' : 'Copy'}
+                        {copiedFieldId === 'api-key-token' ? 'Copied' : 'Copy'}
                       </ClipboardCopyButton>
                     </InputGroupItem>
                   </InputGroup>
-                </CardBody>
-              </Card>
+                </FormGroup>
+              </Form>
             </StackItem>
             <StackItem>
-              <Card>
-                <CardBody>
-                  <DescriptionList isHorizontal isCompact>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Name</DescriptionListTerm>
-                      <DescriptionListDescription data-testid="api-key-display-name">
-                        {formData.name}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                    {formData.description && (
-                      <DescriptionListGroup>
-                        <DescriptionListTerm>Description</DescriptionListTerm>
-                        <DescriptionListDescription data-testid="api-key-display-description">
-                          {formData.description}
-                        </DescriptionListDescription>
-                      </DescriptionListGroup>
-                    )}
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Subscription</DescriptionListTerm>
-                      <DescriptionListDescription data-testid="api-key-display-subscription">
+              <DescriptionList isHorizontal isCompact>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>API key name</DescriptionListTerm>
+                  <DescriptionListDescription data-testid="api-key-display-name">
+                    {formData.name}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                {formData.description && (
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Description</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="api-key-display-description">
+                      {formData.description}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                )}
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Subscription</DescriptionListTerm>
+                  <DescriptionListDescription data-testid="api-key-display-subscription">
+                    <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+                      <FlexItem>
                         {selectedSubscription?.display_name ??
                           selectedSubscription?.subscription_id_header ??
                           formData.subscription}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                    <DescriptionListGroup>
-                      <DescriptionListTerm>Expiration</DescriptionListTerm>
-                      <DescriptionListDescription data-testid="api-key-display-expiration">
-                        {expirationLabel}
-                      </DescriptionListDescription>
-                    </DescriptionListGroup>
-                  </DescriptionList>
-                </CardBody>
-              </Card>
+                      </FlexItem>
+                      {(selectedSubscription?.subscription_id_header || formData.subscription) && (
+                        <FlexItem>
+                          <SubscriptionInfoPopover
+                            displayName={
+                              selectedSubscription?.display_name ??
+                              selectedSubscription?.subscription_id_header ??
+                              formData.subscription
+                            }
+                            subscriptionId={
+                              selectedSubscription?.subscription_id_header ?? formData.subscription
+                            }
+                            description={
+                              selectedSubscription?.subscription_description || undefined
+                            }
+                          />
+                        </FlexItem>
+                      )}
+                    </Flex>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Expiration</DescriptionListTerm>
+                  <DescriptionListDescription data-testid="api-key-display-expiration">
+                    {expirationLabel}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
+              <Divider className="pf-v6-u-mt-md" />
+            </StackItem>
+            <StackItem>
+              <ExpandableSection
+                toggleText="Access details"
+                isExpanded={isAccessDetailsExpanded}
+                onToggle={(_event, expanded) => setIsAccessDetailsExpanded(expanded)}
+                data-testid="api-key-access-details"
+              >
+                <Form>
+                  {usageExampleBaseUrl && (
+                    <CopyableDisabledField
+                      id="api-key-base-url"
+                      label="Base URL"
+                      value={usageExampleBaseUrl}
+                      helperText="Universal MaaS gateway base URL (shared across models)."
+                    />
+                  )}
+                  <FormGroup label="Available models" fieldId="api-key-available-models">
+                    <Select
+                      id="api-key-available-models"
+                      isOpen={isModelSelectOpen}
+                      onOpenChange={(open) => setIsModelSelectOpen(open)}
+                      selected={effectiveSelectedModel}
+                      onSelect={(_event, value) => {
+                        if (typeof value === 'string') {
+                          setSelectedModel(value);
+                        }
+                        setIsModelSelectOpen(false);
+                      }}
+                      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsModelSelectOpen(!isModelSelectOpen)}
+                          isExpanded={isModelSelectOpen}
+                          isFullWidth
+                          isDisabled={availableModelOptions.length === 0}
+                          data-testid="api-key-available-models-toggle"
+                        >
+                          {selectedModelOption?.label ?? 'No models available'}
+                        </MenuToggle>
+                      )}
+                    >
+                      <SelectList>
+                        {availableModelOptions.map((opt) => (
+                          <SelectOption
+                            key={opt.value}
+                            value={opt.value}
+                            data-testid={`api-key-available-models-option-${opt.value}`}
+                          >
+                            {opt.label}
+                          </SelectOption>
+                        ))}
+                      </SelectList>
+                    </Select>
+                    <FormHelperText>
+                      <HelperText>
+                        <HelperTextItem>
+                          These models are available with your subscription. Select a model to
+                          update the model ID and usage.
+                        </HelperTextItem>
+                      </HelperText>
+                    </FormHelperText>
+                  </FormGroup>
+                  {usageExampleModelId && (
+                    <CopyableDisabledField
+                      id="api-key-model-id"
+                      label="Model ID"
+                      value={usageExampleModelId}
+                    />
+                  )}
+                  {usageExampleDisplay && (
+                    <FormGroup label="Usage example" fieldId="api-key-usage-example">
+                      <CodeBlock
+                        actions={
+                          <>
+                            <CodeBlockAction>
+                              <Tooltip content={usageExampleVisibilityLabel}>
+                                <Button
+                                  variant="plain"
+                                  data-testid="api-key-usage-example-visibility-toggle"
+                                  aria-label={usageExampleVisibilityLabel}
+                                  onClick={() => setIsUsageExampleKeyVisible((v) => !v)}
+                                >
+                                  {isUsageExampleKeyVisible ? <EyeSlashIcon /> : <EyeIcon />}
+                                </Button>
+                              </Tooltip>
+                            </CodeBlockAction>
+                            <CodeBlockAction>
+                              <ClipboardCopyButton
+                                id="api-key-usage-example-copy"
+                                data-testid="api-key-usage-example-copy-button"
+                                aria-label="Copy usage example"
+                                exitDelay={copiedFieldId === 'api-key-usage-example' ? 1500 : 600}
+                                onClick={() => {
+                                  handleFieldCopy('api-key-usage-example', usageExampleForCopy);
+                                }}
+                                onTooltipHidden={() => setCopiedFieldId(undefined)}
+                                variant="plain"
+                              >
+                                {copiedFieldId === 'api-key-usage-example' ? 'Copied' : 'Copy'}
+                              </ClipboardCopyButton>
+                            </CodeBlockAction>
+                          </>
+                        }
+                      >
+                        <CodeBlockCode data-testid="api-key-usage-example">
+                          {usageExampleDisplay}
+                        </CodeBlockCode>
+                      </CodeBlock>
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem>
+                            Use the eye icon to show or hide the API key in this example. Copying
+                            includes the key, so store the copied code securely.
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    </FormGroup>
+                  )}
+                  {usageExampleDisplay && (
+                    <Alert
+                      variant="info"
+                      isInline
+                      title="Endpoint compatibility"
+                      data-testid="api-key-endpoint-compatibility-alert"
+                    >
+                      This example uses the standard OpenAI-compatible {usageExampleEndpointPath}{' '}
+                      endpoint. For other model types, consult the MaaS documentation.
+                    </Alert>
+                  )}
+                </Form>
+              </ExpandableSection>
             </StackItem>
           </Stack>
         ) : (
@@ -647,7 +945,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       <MaasModelsSection
                         modelRefSummaries={modelRefSummaries}
                         modelRefsWithRateLimits={subscriptionModelRefs}
-                        hideColumns={['project']}
+                        hideColumns={['project', 'status']}
                         titleHeadingLevel="h3"
                         titleSize="md"
                         resourceType="subscription"
@@ -790,14 +1088,28 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
       </ModalBody>
       <ModalFooter>
         {createdToken ? (
-          <Button
-            key="close"
-            variant="primary"
-            onClick={() => handleClose(true)}
-            data-testid="close-api-key-button"
-          >
-            Close
-          </Button>
+          <Stack hasGutter>
+            <StackItem>
+              <Checkbox
+                id="api-key-copied-acknowledgement"
+                data-testid="api-key-copied-acknowledgement"
+                isChecked={hasAcknowledgedKeyCopy}
+                onChange={(_event, checked) => setHasAcknowledgedKeyCopy(checked)}
+                label="I copied my API key and understand it won't be available again after I close this modal."
+              />
+            </StackItem>
+            <StackItem>
+              <Button
+                key="close"
+                variant="primary"
+                onClick={() => handleClose(true)}
+                isDisabled={!hasAcknowledgedKeyCopy}
+                data-testid="close-api-key-button"
+              >
+                Close
+              </Button>
+            </StackItem>
+          </Stack>
         ) : (
           <Stack hasGutter>
             {error && (

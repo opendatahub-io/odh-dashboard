@@ -14,6 +14,7 @@ import { deploymentsInternalPath, deploymentsLegacyPath } from './deploymentsPat
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { isModelServingPlatformExtension } from '../../../extension-points';
 import EmptyModelServingPlatform from '../projectDetails/EmptyModelServingPlatform';
+import DeploymentsBannerSlot from '../deployments/DeploymentsBannerSlot';
 
 type GlobalDeploymentsViewProps = {
   projects: ProjectKind[];
@@ -114,6 +115,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
         removeChildrenTopPadding={useSubTabPaths}
         provideChildrenPadding
       >
+        <DeploymentsBannerSlot />
         <GlobalDeploymentsTable deployments={deployments ?? []} loaded />
       </ApplicationsPage>
     </>

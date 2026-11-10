@@ -4,7 +4,7 @@ import { useFetchState } from 'mod-arch-core';
 import { useEvaluationJobs } from '~/app/hooks/useEvaluationJobs';
 import { getEvaluationJobs } from '~/app/api/k8s';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import type { EvaluationJob } from '~/app/types';
+import type { EvaluationJobsResult } from '~/app/types';
 
 jest.mock('mod-arch-core', () => ({
   useFetchState: jest.fn(),
@@ -22,46 +22,52 @@ jest.mock('~/app/api/k8s', () => ({
 const mockUseFetchState = jest.mocked(useFetchState);
 const mockGetEvaluationJobs = jest.mocked(getEvaluationJobs);
 
+const emptyResult: EvaluationJobsResult = { jobs: [], totalCount: 0, truncated: false };
+
 describe('useEvaluationJobs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetEvaluationJobs.mockReturnValue(jest.fn());
-    mockUseFetchState.mockReturnValue([[], false, undefined, jest.fn()]);
+    mockUseFetchState.mockReturnValue([emptyResult, false, undefined, jest.fn()]);
   });
 
-  it('should return loading state with empty array initially', () => {
+  it('should return loading state with empty result initially', () => {
     const renderResult = testHook(useEvaluationJobs)({ namespace: 'test-ns' });
 
-    expect(renderResult).hookToStrictEqual([[], false, undefined, expect.any(Function)]);
+    expect(renderResult).hookToStrictEqual([emptyResult, false, undefined, expect.any(Function)]);
     expect(renderResult).hookToHaveUpdateCount(1);
   });
 
-  it('should return evaluation jobs when loaded', () => {
-    const jobs: EvaluationJob[] = [];
-    mockUseFetchState.mockReturnValue([jobs, true, undefined, jest.fn()]);
+  it('should return evaluation jobs result when loaded', () => {
+    const result: EvaluationJobsResult = {
+      jobs: [],
+      totalCount: 5,
+      truncated: false,
+    };
+    mockUseFetchState.mockReturnValue([result, true, undefined, jest.fn()]);
 
     const renderResult = testHook(useEvaluationJobs)({ namespace: 'test-ns' });
 
-    expect(renderResult).hookToStrictEqual([jobs, true, undefined, expect.any(Function)]);
+    expect(renderResult).hookToStrictEqual([result, true, undefined, expect.any(Function)]);
   });
 
   it('should return error when fetch fails', () => {
     const fetchError = new Error('Failed to fetch');
-    mockUseFetchState.mockReturnValue([[], false, fetchError, jest.fn()]);
+    mockUseFetchState.mockReturnValue([emptyResult, false, fetchError, jest.fn()]);
 
     const renderResult = testHook(useEvaluationJobs)({ namespace: 'test-ns' });
 
-    expect(renderResult).hookToStrictEqual([[], false, fetchError, expect.any(Function)]);
+    expect(renderResult).hookToStrictEqual([emptyResult, false, fetchError, expect.any(Function)]);
   });
 
   it('should call getEvaluationJobs with the provided params when evalHubNotReady is false', () => {
-    const mockFetcher = jest.fn().mockResolvedValue([]);
+    const mockFetcher = jest.fn().mockResolvedValue(emptyResult);
     mockGetEvaluationJobs.mockReturnValue(mockFetcher);
 
     testHook(useEvaluationJobs)({ namespace: 'my-ns' }, false);
 
     const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
-      (opts: unknown) => Promise<EvaluationJob[]>,
+      (opts: unknown) => Promise<EvaluationJobsResult>,
     ];
     const mockOpts = {};
     fetchCallback(mockOpts);
@@ -71,13 +77,13 @@ describe('useEvaluationJobs', () => {
   });
 
   it('should reject with NotReadyError when evalHubNotReady is true', async () => {
-    const mockFetcher = jest.fn().mockResolvedValue([]);
+    const mockFetcher = jest.fn().mockResolvedValue(emptyResult);
     mockGetEvaluationJobs.mockReturnValue(mockFetcher);
 
     testHook(useEvaluationJobs)({ namespace: 'test-ns' }, true);
 
     const [fetchCallback] = mockUseFetchState.mock.calls[0] as unknown as [
-      (opts: unknown) => Promise<EvaluationJob[]>,
+      (opts: unknown) => Promise<EvaluationJobsResult>,
     ];
 
     await expect(fetchCallback({})).rejects.toThrow('EvalHub is not ready');
@@ -87,7 +93,7 @@ describe('useEvaluationJobs', () => {
   it('should pass initialPromisePurity option to useFetchState', () => {
     testHook(useEvaluationJobs)({ namespace: 'test-ns' });
 
-    expect(mockUseFetchState).toHaveBeenCalledWith(expect.any(Function), [], {
+    expect(mockUseFetchState).toHaveBeenCalledWith(expect.any(Function), emptyResult, {
       initialPromisePurity: true,
       refreshRate: expect.any(Number),
     });
@@ -98,7 +104,7 @@ describe('useEvaluationJobs', () => {
 
     expect(mockUseFetchState).toHaveBeenCalledWith(
       expect.any(Function),
-      [],
+      emptyResult,
       expect.objectContaining({ refreshRate: 30000 }),
     );
   });
@@ -108,7 +114,7 @@ describe('useEvaluationJobs', () => {
 
     expect(mockUseFetchState).toHaveBeenCalledWith(
       expect.any(Function),
-      [],
+      emptyResult,
       expect.objectContaining({ refreshRate: 0 }),
     );
   });

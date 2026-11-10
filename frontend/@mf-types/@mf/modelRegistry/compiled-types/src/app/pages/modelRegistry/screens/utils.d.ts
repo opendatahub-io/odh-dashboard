@@ -9,6 +9,7 @@ export type ObjectStorageFields = {
 };
 export type ModelRegistryEditableCustomProperties = Record<string, ModelRegistryCustomPropertyString | ModelRegistryCustomPropertyInt | ModelRegistryCustomPropertyDouble>;
 export declare const getLabels: <T extends ModelRegistryCustomProperties>(customProperties: T) => string[];
+export declare const getValueLabels: (customProperties: ModelRegistryCustomProperties, keys: string[]) => string[];
 export declare const mergeUpdatedLabels: (customProperties: ModelRegistryCustomProperties, updatedLabels: string[]) => ModelRegistryCustomProperties;
 export declare const getPropertyValue: (prop: ModelRegistryCustomPropertyString | ModelRegistryCustomPropertyInt | ModelRegistryCustomPropertyDouble) => string;
 export declare const getProperties: <T extends ModelRegistryCustomProperties>(customProperties: T) => ModelRegistryEditableCustomProperties;
@@ -29,8 +30,10 @@ export declare const getCustomPropString: <T extends Record<string, ModelRegistr
 export declare const filterModelVersions: (unfilteredModelVersions: ModelVersion[], filterData: ModelRegistryVersionsFilterDataType) => ModelVersion[];
 export declare const sortModelVersionsByCreateTime: (registeredModels: ModelVersion[]) => ModelVersion[];
 export declare const filterRegisteredModels: (unfilteredRegisteredModels: RegisteredModel[], unfilteredModelVersions: ModelVersion[], filterData: ModelRegistryFilterDataType) => RegisteredModel[];
+export declare const getTextValue: (v: string | string[]) => string | undefined;
 export declare const getServerAddress: (resource: ModelRegistry) => string;
 export declare const isValidHttpUrl: (value: string) => boolean;
 export declare const isCompanyUri: (uri: string) => boolean;
 export declare const getLatestVersionForRegisteredModel: (modelVersions: ModelVersion[], rmId: string) => ModelVersion | undefined;
 export declare const getValidatedOnPlatforms: <T extends ModelRegistryCustomProperties>(customProperties: T | undefined) => string[];
+export declare const getValidatedDeploymentResources: <T extends ModelRegistryCustomProperties>(customProperties: T | undefined) => string[];

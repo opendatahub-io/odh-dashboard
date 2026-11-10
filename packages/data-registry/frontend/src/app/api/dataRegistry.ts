@@ -28,6 +28,7 @@ import {
   UnstructuredFormat,
 } from '~/app/types';
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
+import { connectionRefSchema } from '~/app/schemas/connection.schema';
 
 const registryUrl = (path: string) => `${URL_PREFIX}/api/${BFF_API_VERSION}${path}`;
 
@@ -37,12 +38,6 @@ const schemaFieldSchema = z.object({
   description: z.string().optional(),
   nullable: z.boolean().optional(),
 });
-
-const connectionRefSchema = z.union([
-  z.object({ type: z.literal('dch'), id: z.string() }),
-  // eslint-disable-next-line camelcase
-  z.object({ type: z.literal('rhai'), secret_name: z.string() }),
-]);
 
 const assetResponseBaseSchema = {
   name: z.string(),

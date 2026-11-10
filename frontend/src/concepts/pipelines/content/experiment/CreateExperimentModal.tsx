@@ -15,7 +15,7 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useCreateExperimentData from '#~/concepts/pipelines/content/experiment/useCreateExperimentData';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
@@ -25,6 +25,7 @@ import {
 } from '#~/concepts/pipelines/content/const';
 import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';
 
 type CreateExperimentModalProps = {
   onClose: (experiment?: ExperimentKF) => void;
@@ -148,7 +149,7 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({
                 fireFormTrackingEvent(eventName, {
                   outcome: TrackingOutcome.submit,
                   success: false,
-                  error: e,
+                  error: errorCategory(e),
                 });
               });
           }}

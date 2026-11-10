@@ -1,10 +1,12 @@
 import * as React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { EvaluationJob } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import EvaluationsTable from '~/app/components/EvaluationsTable';
+import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
 const mockUseKueueAvailability = jest.fn();
 const mockUseKueueWorkloadStatuses = jest.fn();
@@ -35,6 +37,12 @@ jest.mock('~/app/hooks/useKueueAvailability', () => ({
 jest.mock('~/app/hooks/useKueueWorkloadStatuses', () => ({
   useKueueWorkloadStatuses: (...args: unknown[]) => mockUseKueueWorkloadStatuses(...args),
 }));
+
+jest.mock('~/app/tracking/evalhubTracking', () => ({
+  trackEvalHubEvent: jest.fn(),
+}));
+
+const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -151,6 +159,7 @@ describe('EvaluationsTable', () => {
   it('should render the table with rows', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
     expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Job status' })).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-1')).toBeInTheDocument();
     expect(screen.getByTestId('evaluation-row-2')).toBeInTheDocument();
@@ -341,6 +350,37 @@ describe('EvaluationsTable', () => {
       expect(screen.queryByText('Gamma Evaluation')).not.toBeInTheDocument();
     });
 
+    it('should classify a queue-assigned pending job as Pending when the Kueue integration is disabled', () => {
+      // Default availability mock (availability undefined) models the disabled integration.
+      const queuedJob = mockEvaluationJob({
+        id: 'job-4',
+        name: 'Delta Evaluation',
+        state: 'pending',
+      });
+      // eslint-disable-next-line camelcase -- API field name.
+      queuedJob.hardware_config = { queue: { name: 'default' } };
+
+      renderTable({ evaluations: [...mockJobs, queuedJob], loaded: true });
+
+      const deltaRow = screen.getByText('Delta Evaluation').closest('tr');
+      expect(deltaRow).not.toBeNull();
+      expect(within(deltaRow!).getByTestId('evaluation-status-button')).toHaveTextContent(
+        'Pending',
+      );
+
+      // The Queued filter is hidden, and the run stays reachable through the Pending filter.
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      fireEvent.click(screen.getByTestId('filter-status-toggle'));
+      expect(screen.queryByTestId('filter-status-option-queued')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('option', { name: 'Pending' }));
+
+      expect(screen.getByText('Delta Evaluation')).toBeInTheDocument();
+      expect(screen.queryByText('Alpha Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Beta Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Gamma Evaluation')).not.toBeInTheDocument();
+    });
+
     it('should filter by evaluation name', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
       const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
@@ -348,6 +388,86 @@ describe('EvaluationsTable', () => {
 
       expect(screen.getByTestId('evaluation-row-0')).toBeInTheDocument();
       expect(screen.queryByTestId('evaluation-row-1')).not.toBeInTheDocument();
+    });
+
+    it('should track redacted text filter shapes after a debounce and ignore clearing filters', () => {
+      jest.useFakeTimers();
+      try {
+        renderTable({ evaluations: mockJobs, loaded: true });
+        const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
+
+        fireEvent.change(searchInput, { target: { value: '  Alpha  ' } });
+        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+        expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+          EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
+          { filterAttribute: 'name', valueShape: 'string(5)' },
+        );
+
+        mockTrackEvalHubEvent.mockClear();
+        fireEvent.change(searchInput, { target: { value: '' } });
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByTestId('filter-type-toggle'));
+        fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+        fireEvent.click(screen.getByTestId('filter-status-toggle'));
+        fireEvent.click(screen.getByRole('option', { name: 'Failed' }));
+
+        expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+          EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
+          { filterAttribute: 'status', value: 'failed' },
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('should cancel pending text filter tracking when the filter type changes', () => {
+      jest.useFakeTimers();
+      try {
+        renderTable({ evaluations: mockJobs, loaded: true });
+        const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
+
+        fireEvent.change(searchInput, { target: { value: 'Alpha' } });
+        fireEvent.click(screen.getByTestId('filter-type-toggle'));
+        fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+
+        expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+          EVAL_HUB_EVENTS.EVALUATION_RUNS_FILTER_APPLIED,
+          expect.objectContaining({ filterAttribute: 'name' }),
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('should cancel pending text filter tracking when filters are cleared', () => {
+      jest.useFakeTimers();
+      try {
+        renderTable({ evaluations: mockJobs, loaded: true });
+        const searchInput = screen.getByTestId('filter-toolbar-text-field').querySelector('input')!;
+
+        fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+        fireEvent.click(screen.getByTestId('clear-filters-button'));
+
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+
+        expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should show empty filter state when no matches', () => {
@@ -465,7 +585,7 @@ describe('EvaluationsTable', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
       const table = screen.getByTestId('evaluations-table');
       expect(table).toHaveTextContent('Name');
-      expect(table).toHaveTextContent('Status');
+      expect(table).toHaveTextContent('Job status');
       expect(table).toHaveTextContent('Evaluation');
       expect(table).toHaveTextContent('Evaluated');
       expect(table).toHaveTextContent('Date');

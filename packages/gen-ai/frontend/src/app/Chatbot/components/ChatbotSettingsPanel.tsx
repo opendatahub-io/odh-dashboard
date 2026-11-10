@@ -1,12 +1,14 @@
 import * as React from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
+  AlertGroup,
   Button,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelContent,
   DrawerPanelBody,
-  Badge,
   Flex,
   FlexItem,
   Icon,
@@ -15,12 +17,22 @@ import {
   ModalFooter,
   ModalHeader,
   Popover,
+  Tab,
+  Tabs,
   Title,
   ToggleGroup,
   ToggleGroupItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  ExclamationTriangleIcon,
+  OutlinedQuestionCircleIcon,
+  RhUiAiModelIcon,
+  RhUiMcpServerIcon,
+  RhUiSecurityIcon,
+  RhUiStorageDomainIcon,
+  RhUiTaskIcon,
+} from '@patternfly/react-icons';
 import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
@@ -31,14 +43,13 @@ import {
   selectSystemInstruction,
   selectTemperature,
   selectStreamingEnabled,
-  selectSelectedMcpServerIds,
   selectSelectedModel,
   selectSelectedSubscription,
-  selectRagEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
+import { ALERT_TIMEOUT_MS } from '~/app/Chatbot/const';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
@@ -68,6 +79,7 @@ interface ChatbotSettingsPanelProps {
   mcpRegistryAvailable?: boolean;
   mcpServerTokens: Map<string, TokenInfo>;
   onMcpServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
+  onMcpMissingAuthServersChange?: (serverNames: string[]) => void;
   checkMcpServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
   // Guardrails props
   onCloseClick?: () => void;
@@ -76,6 +88,8 @@ interface ChatbotSettingsPanelProps {
   onSave?: () => void;
   onSaveAs?: () => void;
   onResetToLastSaved?: () => void;
+  isDefaultConfigDirty?: boolean;
+  onRevertToDefaults?: (configId: string) => void;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
   defaultActiveTabKey?: string | number;
@@ -87,6 +101,38 @@ interface ChatbotSettingsPanelProps {
 const SETTINGS_PANEL_WIDTH = 'chatbot-settings-panel-width';
 const DEFAULT_WIDTH = '550px';
 const AUTO_CLOSE_WIDTH_THRESHOLD = 150;
+const COMPACT_TABS_WIDTH_THRESHOLD = 440;
+const MCP_TOOLS_WARNING_TEXT = 'Performance may be degraded with more than 40 active tools';
+const MCP_TOOLS_WARNING_ICON = (
+  <Icon status="warning" data-testid="mcp-tools-warning-icon">
+    <ExclamationTriangleIcon />
+  </Icon>
+);
+
+const renderTabTitle = (
+  areTabsCompact: boolean,
+  label: string,
+  icon: React.ReactNode,
+  status?: React.ReactNode,
+) => (
+  <Flex
+    direction={{ default: areTabsCompact ? 'row' : 'column' }}
+    alignItems={{ default: 'alignItemsCenter' }}
+    justifyContent={{ default: 'justifyContentCenter' }}
+    gap={{ default: areTabsCompact ? 'gapXs' : 'gapNone' }}
+  >
+    <FlexItem>{icon}</FlexItem>
+    {!areTabsCompact && (
+      <FlexItem>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+          <FlexItem>{label}</FlexItem>
+          {status && <FlexItem>{status}</FlexItem>}
+        </Flex>
+      </FlexItem>
+    )}
+    {areTabsCompact && status && <FlexItem>{status}</FlexItem>}
+  </Flex>
+);
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
   configId = DEFAULT_CONFIG_ID,
@@ -100,6 +146,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   mcpRegistryAvailable,
   mcpServerTokens,
   onMcpServerTokensChange,
+  onMcpMissingAuthServersChange,
   checkMcpServerStatus,
   onCloseClick,
   onActiveConfigChange,
@@ -111,10 +158,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   onSave,
   onSaveAs,
   onResetToLastSaved,
+  isDefaultConfigDirty = false,
+  onRevertToDefaults,
 }) => {
   const [showMcpToolsWarning, setShowMcpToolsWarning] = React.useState(false);
   const [, setActiveToolsCount] = React.useState(0);
   const [showResetModal, setShowResetModal] = React.useState(false);
+  const [showRevertedAlert, setShowRevertedAlert] = React.useState(false);
   const isProfileDirty = useIsProfileDirty(configId, mcpServers);
 
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
@@ -124,17 +174,27 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const loadedProfileWarnings = useChatbotConfigStore((s) => s.loadedProfileWarnings);
   const hasWarnings = !!loadedProfileWarnings?.length;
 
+  // Loading an agent profile supersedes the revert — drop the stale toast
+  React.useEffect(() => {
+    if (profileApplied) {
+      setShowRevertedAlert(false);
+    }
+  }, [profileApplied]);
+
   const configIds = useChatbotConfigStore(selectConfigIds);
   const isCompareMode = configIds.length > 1;
+  // In compare mode the save actions stay hidden, but Revert remains available for the
+  // active pane — the footer shows whenever it has any content
+  const showFooterActions =
+    agentConfigManagementEnabled &&
+    (!isCompareMode || (!profileApplied && isDefaultConfigDirty && onRevertToDefaults));
 
   // Consume store directly using configId (controlled by parent)
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
-  const selectedMcpServerIds = useChatbotConfigStore(selectSelectedMcpServerIds(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
   const selectedSubscription = useChatbotConfigStore(selectSelectedSubscription(configId));
-  const isRagEnabled = useChatbotConfigStore(selectRagEnabled(configId));
 
   // Get updater functions from store
   const updateSystemInstruction = useChatbotConfigStore((state) => state.updateSystemInstruction);
@@ -186,9 +246,25 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     const storedWidth = sessionStorage.getItem(SETTINGS_PANEL_WIDTH);
     return storedWidth || DEFAULT_WIDTH;
   });
-
+  const tabsContainerRef = React.useRef<HTMLDivElement>(null);
+  const [areTabsCompact, setAreTabsCompact] = React.useState(
+    Number.parseFloat(panelWidth) < COMPACT_TABS_WIDTH_THRESHOLD,
+  );
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
+
+  React.useEffect(() => {
+    const tabsContainer = tabsContainerRef.current;
+    if (!tabsContainer) {
+      return undefined;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setAreTabsCompact(entry.contentRect.width < COMPACT_TABS_WIDTH_THRESHOLD);
+    });
+    observer.observe(tabsContainer);
+    return () => observer.disconnect();
+  }, [panelSizeKey]);
+
   // Tracks the last resize width so the auto-close logic only fires once per
   // threshold crossing, instead of on every resize callback while below it.
   const lastWidthRef = React.useRef<number>(AUTO_CLOSE_WIDTH_THRESHOLD);
@@ -223,7 +299,13 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // (e.g. "1") must be normalized here or they'd silently deselect every tab.
   const parsedActiveTabKey =
     typeof rawActiveTabKey === 'string' ? Number(rawActiveTabKey) : rawActiveTabKey;
-  const activeTabKey = Number.isInteger(parsedActiveTabKey) ? parsedActiveTabKey : 0;
+  // The Guardrails tab (eventKey 4) is unmounted when its feature is disabled — clamp
+  // out-of-range keys so every panel is not left hidden at once.
+  const maxTabKey = isGuardrailsFeatureEnabled ? 4 : 3;
+  const activeTabKey = Math.min(
+    Number.isInteger(parsedActiveTabKey) ? parsedActiveTabKey : 0,
+    maxTabKey,
+  );
   const handleTabSelect = (tabIndex: string | number) => {
     // Only update internal state when uncontrolled so it doesn't diverge from the prop
     if (activeTabKeyProp === undefined) {
@@ -239,6 +321,16 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         overflow: 'hidden',
       }
     : undefined;
+
+  // In compact mode the tab tooltip carries both the MCP label and the warning text; the
+  // warning icon keeps its own tooltip only in wide mode so the two triggers never nest.
+  const mcpToolsWarningStatus = showMcpToolsWarning ? (
+    areTabsCompact ? (
+      MCP_TOOLS_WARNING_ICON
+    ) : (
+      <Tooltip content={MCP_TOOLS_WARNING_TEXT}>{MCP_TOOLS_WARNING_ICON}</Tooltip>
+    )
+  ) : undefined;
 
   return (
     <DrawerPanelContent
@@ -309,79 +401,69 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
       <DrawerPanelBody
         style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
       >
-        <ToggleGroup
-          isFill
-          aria-label="Chatbot settings page tabs"
-          data-testid="chatbot-settings-page-tabs"
-        >
-          <ToggleGroupItem
-            text="Model"
-            isSelected={activeTabKey === 0}
-            onChange={() => handleTabSelect(0)}
-            data-testid="chatbot-settings-page-tab-model"
-          />
-          <ToggleGroupItem
-            text="Prompt"
-            isSelected={activeTabKey === 1}
-            onChange={() => handleTabSelect(1)}
-            data-testid="chatbot-settings-page-tab-prompt"
-          />
-          <ToggleGroupItem
-            text={
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                flexWrap={{ default: 'nowrap' }}
-              >
-                <FlexItem>Knowledge</FlexItem>
-                <FlexItem>
-                  <Badge isRead={!isRagEnabled} data-testid="knowledge-status-badge">
-                    {isRagEnabled ? 'On' : 'Off'}
-                  </Badge>
-                </FlexItem>
-              </Flex>
-            }
-            isSelected={activeTabKey === 2}
-            onChange={() => handleTabSelect(2)}
-            data-testid="chatbot-settings-page-tab-knowledge"
-          />
-          <ToggleGroupItem
-            text={
-              <Flex
-                alignItems={{ default: 'alignItemsCenter' }}
-                gap={{ default: 'gapSm' }}
-                flexWrap={{ default: 'nowrap' }}
-              >
-                <FlexItem>MCP</FlexItem>
-                {selectedMcpServerIds.length > 0 && (
-                  <FlexItem>
-                    <Badge>{selectedMcpServerIds.length}</Badge>
-                  </FlexItem>
-                )}
-                {showMcpToolsWarning && (
-                  <FlexItem>
-                    <Tooltip content="Performance may be degraded with more than 40 active tools">
-                      <Icon status="warning" data-testid="mcp-tools-warning-icon">
-                        <ExclamationTriangleIcon />
-                      </Icon>
-                    </Tooltip>
-                  </FlexItem>
-                )}
-              </Flex>
-            }
-            isSelected={activeTabKey === 3}
-            onChange={() => handleTabSelect(3)}
-            data-testid="chatbot-settings-page-tab-mcp"
-          />
-          {isGuardrailsFeatureEnabled && (
-            <ToggleGroupItem
-              text="Guardrails"
-              isSelected={activeTabKey === 4}
-              onChange={() => handleTabSelect(4)}
-              data-testid="chatbot-settings-page-tab-guardrails"
+        <div ref={tabsContainerRef}>
+          <Tabs
+            isFilled
+            activeKey={activeTabKey}
+            onSelect={(_, key) => handleTabSelect(key)}
+            aria-label="Chatbot settings page tabs"
+            data-testid="chatbot-settings-page-tabs"
+          >
+            <Tab
+              eventKey={0}
+              tabContentId="chatbot-settings-page-tab-content-model"
+              title={renderTabTitle(areTabsCompact, 'Model', <RhUiAiModelIcon />)}
+              aria-label="Model"
+              tooltip={areTabsCompact ? <Tooltip content="Model" /> : undefined}
+              data-testid="chatbot-settings-page-tab-model"
             />
-          )}
-        </ToggleGroup>
+            <Tab
+              eventKey={1}
+              tabContentId="chatbot-settings-page-tab-content-prompt"
+              title={renderTabTitle(areTabsCompact, 'Prompt', <RhUiTaskIcon />)}
+              aria-label="Prompt"
+              tooltip={areTabsCompact ? <Tooltip content="Prompt" /> : undefined}
+              data-testid="chatbot-settings-page-tab-prompt"
+            />
+            <Tab
+              eventKey={2}
+              tabContentId="chatbot-settings-page-tab-content-knowledge"
+              title={renderTabTitle(areTabsCompact, 'RAG', <RhUiStorageDomainIcon />)}
+              aria-label="RAG"
+              tooltip={areTabsCompact ? <Tooltip content="RAG" /> : undefined}
+              data-testid="chatbot-settings-page-tab-knowledge"
+            />
+            <Tab
+              eventKey={3}
+              tabContentId="chatbot-settings-page-tab-content-mcp"
+              title={renderTabTitle(
+                areTabsCompact,
+                'MCP',
+                <RhUiMcpServerIcon />,
+                mcpToolsWarningStatus,
+              )}
+              aria-label="MCP"
+              tooltip={
+                areTabsCompact ? (
+                  <Tooltip
+                    content={showMcpToolsWarning ? `MCP: ${MCP_TOOLS_WARNING_TEXT}` : 'MCP'}
+                  />
+                ) : undefined
+              }
+              data-testid="chatbot-settings-page-tab-mcp"
+            />
+            {isGuardrailsFeatureEnabled && (
+              <Tab
+                eventKey={4}
+                tabContentId="chatbot-settings-page-tab-content-guardrails"
+                title={renderTabTitle(areTabsCompact, 'Guardrails', <RhUiSecurityIcon />)}
+                aria-label="Guardrails"
+                tooltip={areTabsCompact ? <Tooltip content="Guardrails" /> : undefined}
+                data-testid="chatbot-settings-page-tab-guardrails"
+              />
+            )}
+          </Tabs>
+        </div>
 
         {/* Keep all tab content mounted to preserve lifecycle state (data fetches, etc.)
            and toggle visibility via an inline `display: none` (NOT the `pf-v6-u-display-none`
@@ -395,6 +477,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
            its overflow:hidden (minHeight: 0 is required so the flex item can actually shrink
            below its content's natural size and hand scrolling to the inner overflow: auto). */}
         <div
+          id="chatbot-settings-page-tab-content-model"
+          role="tabpanel"
+          tabIndex={activeTabKey === 0 ? 0 : -1}
+          aria-label="Model settings"
           style={{
             display: activeTabKey !== 0 ? 'none' : 'block',
             flex: '1 1 auto',
@@ -416,6 +502,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
+          id="chatbot-settings-page-tab-content-prompt"
+          role="tabpanel"
+          tabIndex={activeTabKey === 1 ? 0 : -1}
+          aria-label="Prompt settings"
           style={{
             display: activeTabKey !== 1 ? 'none' : 'block',
             flex: '1 1 auto',
@@ -431,6 +521,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
+          id="chatbot-settings-page-tab-content-knowledge"
+          role="tabpanel"
+          tabIndex={activeTabKey === 2 ? 0 : -1}
+          aria-label="RAG settings"
           style={{
             display: activeTabKey !== 2 ? 'none' : 'block',
             flex: '1 1 auto',
@@ -447,6 +541,10 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           />
         </div>
         <div
+          id="chatbot-settings-page-tab-content-mcp"
+          role="tabpanel"
+          tabIndex={activeTabKey === 3 ? 0 : -1}
+          aria-label="MCP settings"
           style={{
             display: activeTabKey !== 3 ? 'none' : 'block',
             flex: '1 1 auto',
@@ -467,10 +565,15 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             initialServerStatuses={initialServerStatuses}
             onActiveToolsCountChange={setActiveToolsCount}
             onToolsWarningChange={setShowMcpToolsWarning}
+            onMissingAuthServersChange={onMcpMissingAuthServersChange}
           />
         </div>
         {isGuardrailsFeatureEnabled && (
           <div
+            id="chatbot-settings-page-tab-content-guardrails"
+            role="tabpanel"
+            tabIndex={activeTabKey === 4 ? 0 : -1}
+            aria-label="Guardrails settings"
             style={{
               display: activeTabKey !== 4 ? 'none' : 'block',
               flex: '1 1 auto',
@@ -483,7 +586,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           </div>
         )}
       </DrawerPanelBody>
-      {agentConfigManagementEnabled && !isCompareMode && (
+      {showFooterActions && (
         <div
           style={{
             display: 'flex',
@@ -493,7 +596,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             borderTop: '1px solid var(--pf-t--global--border--color--default)',
           }}
         >
-          {profileApplied &&
+          {!isCompareMode &&
+            profileApplied &&
             (hasWarnings ? (
               <Tooltip
                 content="You don't have permission to access every model, vector store, or prompt in this agent."
@@ -508,24 +612,26 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 Save
               </Button>
             ))}
-          <Button
-            variant={profileApplied ? 'secondary' : 'primary'}
-            onClick={() => {
-              fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
-                agentID: loadedProfileId ?? '',
-                triggerContext: 'settings_drawer_button',
-              });
-              onSaveAs?.();
-            }}
-            data-testid="settings-panel-save-as-button"
-          >
-            Save as new agent
-          </Button>
-          {profileApplied && onResetToLastSaved && (
+          {!isCompareMode && (
+            <Button
+              variant={profileApplied ? 'secondary' : 'primary'}
+              onClick={() => {
+                fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.SAVE_COPY_SELECTED, {
+                  agentID: loadedProfileId ?? '',
+                  triggerContext: 'settings_drawer_button',
+                });
+                onSaveAs?.();
+              }}
+              data-testid="settings-panel-save-as-button"
+            >
+              Save as new agent
+            </Button>
+          )}
+          {((profileApplied && isProfileDirty && onResetToLastSaved) ||
+            (!profileApplied && isDefaultConfigDirty && onRevertToDefaults)) && (
             <Button
               variant="link"
               isDanger
-              isDisabled={!isProfileDirty}
               onClick={() => setShowResetModal(true)}
               data-testid="settings-panel-reset-button"
             >
@@ -544,16 +650,25 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
           data-testid="reset-agent-modal"
         >
           <ModalHeader
-            title="Revert to last saved agent?"
+            title={profileApplied ? 'Revert to last saved agent?' : 'Revert to default settings?'}
             labelId="reset-agent-modal-title"
             titleIconVariant="warning"
           />
-          <ModalBody>Your settings will return to the last saved version of this agent.</ModalBody>
+          <ModalBody>
+            {profileApplied
+              ? 'Your settings will return to the last saved version of this agent.'
+              : 'Your settings will return to their default values.'}
+          </ModalBody>
           <ModalFooter>
             <Button
               variant="primary"
               onClick={() => {
-                onResetToLastSaved?.();
+                if (profileApplied) {
+                  onResetToLastSaved?.();
+                } else {
+                  onRevertToDefaults?.(configId);
+                  setShowRevertedAlert(true);
+                }
                 setShowResetModal(false);
               }}
               data-testid="reset-agent-confirm-button"
@@ -565,6 +680,18 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             </Button>
           </ModalFooter>
         </Modal>
+      )}
+      {showRevertedAlert && (
+        <AlertGroup isToast isLiveRegion>
+          <Alert
+            variant="info"
+            title="Settings reverted to defaults"
+            timeout={ALERT_TIMEOUT_MS}
+            actionClose={<AlertActionCloseButton onClose={() => setShowRevertedAlert(false)} />}
+            onTimeout={() => setShowRevertedAlert(false)}
+            data-testid="settings-reverted-alert"
+          />
+        </AlertGroup>
       )}
     </DrawerPanelContent>
   );

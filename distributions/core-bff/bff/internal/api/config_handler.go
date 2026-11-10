@@ -33,7 +33,7 @@ func (app *App) GetConfigHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	w.Header().Set(constants.HeaderCacheControl, constants.CacheControlNo)
+	// Cache-Control comes from SetSecurityHeaders (no-store on /api paths).
 	if err := app.WriteJSON(w, http.StatusOK, config, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

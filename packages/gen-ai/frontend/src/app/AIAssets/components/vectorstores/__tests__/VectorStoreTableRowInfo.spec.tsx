@@ -28,6 +28,23 @@ describe('VectorStoreTableRowInfo', () => {
     jest.clearAllMocks();
   });
 
+  it('adds stable test IDs to the info trigger and details content', () => {
+    render(<VectorStoreTableRowInfo store={createStore()} />);
+
+    fireEvent.click(screen.getByTestId('vector-store-info-vs-test-1'));
+
+    expect(screen.getByTestId('vector-store-details-vs-test-1')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('vector-store-provider-id-vs-test-1').querySelector('input'),
+    ).toHaveValue('milvus-provider');
+    expect(
+      screen.getByTestId('vector-store-provider-type-vs-test-1').querySelector('input'),
+    ).toHaveValue('inline::milvus');
+    expect(screen.getByTestId('vector-store-id-vs-test-1').querySelector('input')).toHaveValue(
+      'vs-test-1',
+    );
+  });
+
   describe('Available Endpoints Vector Store Info Viewed tracking', () => {
     it('fires tracking event when info button is clicked to open', () => {
       render(<VectorStoreTableRowInfo store={createStore()} />);

@@ -1,22 +1,10 @@
 import React from 'react';
-import {
-  Checkbox,
-  TextInput,
-  StackItem,
-  Stack,
-  FormGroup,
-  Label,
-  Flex,
-  FlexItem,
-  Content,
-} from '@patternfly/react-core';
+import { Checkbox, TextInput, StackItem, Stack, FormGroup, Popover } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import { ModelTypeFieldData } from './ModelTypeSelectField';
-import { GenericFieldRenderer } from './GenericFieldRenderer';
-import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
-import type { ExternalDataMap } from '../ExternalDataLoader';
 
 export type ModelAvailabilityFieldsData = {
   saveAsAiAsset: boolean;
@@ -29,6 +17,8 @@ export type ModelAvailabilityFields = {
   isGenAiEnabled: boolean;
   showField?: boolean;
   showSaveAsMaaS?: boolean;
+  isDisabled?: boolean;
+  isMaaSSubscriptionSelected?: boolean;
 };
 
 export const isValidModelAvailabilityFieldsData = (): boolean => {
@@ -48,7 +38,7 @@ export const useModelAvailabilityFields = (
 
   const [data, setData] = React.useState<ModelAvailabilityFieldsData>(
     existingData ?? {
-      saveAsAiAsset: false,
+      saveAsAiAsset: true,
       useCase: '',
     },
   );
@@ -74,20 +64,18 @@ export const useModelAvailabilityFields = (
   };
 };
 
-type AvailableAiAssetsFieldsComponentProps = {
+type GenAiStudioAvailabilityFieldsProps = {
   data: ModelAvailabilityFieldsData;
   setData: (data: ModelAvailabilityFieldsData) => void;
-  isGenAiEnabled: boolean;
-  wizardState: UseModelDeploymentWizardState;
-  externalData?: ExternalDataMap;
+  isDisabled?: boolean;
+  showUseCase?: boolean;
 };
 
-export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsComponentProps> = ({
+export const GenAiStudioAvailabilityFields: React.FC<GenAiStudioAvailabilityFieldsProps> = ({
   data,
   setData,
-  isGenAiEnabled,
-  wizardState,
-  externalData,
+  isDisabled = false,
+  showUseCase = true,
 }) => {
   const setDataWithClearUseCase = React.useCallback(
     (newData: ModelAvailabilityFieldsData) => {
@@ -103,41 +91,33 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
   return (
     <StackItem>
       <Stack hasGutter>
-        {isGenAiEnabled && (
+        <StackItem>
+          <Checkbox
+            id="save-as-ai-asset-checkbox"
+            data-testid="save-as-ai-asset-checkbox"
+            label="Gen AI studio"
+            description={
+              <>
+                Model endpoints are accessible from the <b>AI asset endpoints</b> page, which makes
+                the model available on the <b>Playground</b> page.
+              </>
+            }
+            isChecked={data.saveAsAiAsset}
+            isDisabled={isDisabled}
+            onChange={(_, checked) => setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })}
+          />
+        </StackItem>
+        {showUseCase && data.saveAsAiAsset && (
           <StackItem>
-            <Checkbox
-              id="save-as-ai-asset-checkbox"
-              data-testid="save-as-ai-asset-checkbox"
-              label={
-                <>
-                  <div className="pf-v6-c-form__label-text">Add as AI asset endpoint</div>
-                  <Flex>
-                    <FlexItem>
-                      Publishing as an AI asset endpoint allows users with access to your project to
-                      test the model in the{' '}
-                      <span className="pf-v6-c-form__label-text">Playground</span>.
-                    </FlexItem>
-                    <Label isCompact color="yellow" variant="outline">
-                      Tech preview
-                    </Label>
-                  </Flex>
-                </>
-              }
-              isChecked={data.saveAsAiAsset}
-              onChange={(_, checked) =>
-                setDataWithClearUseCase({ ...data, saveAsAiAsset: checked })
-              }
-            />
-          </StackItem>
-        )}
-        {isGenAiEnabled && data.saveAsAiAsset && (
-          <StackItem>
-            <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
-              <FormGroup label="Use case">
-                <Content style={{ marginTop: '-8px' }}>
-                  Enter the types of tasks that your model performs, such as chat, multimodal, or
-                  natural language processing.
-                </Content>
+            <div className="pf-v6-u-ml-lg">
+              <FormGroup
+                label="Use case"
+                labelHelp={
+                  <Popover bodyContent="Enter the types of tasks that your model performs, such as chat, multimodal, or natural language processing.">
+                    <OutlinedQuestionCircleIcon />
+                  </Popover>
+                }
+              >
                 <TextInput
                   id="use-case-input"
                   data-testid="use-case-input"
@@ -148,11 +128,6 @@ export const AvailableAiAssetsFieldsComponent: React.FC<AvailableAiAssetsFieldsC
             </div>
           </StackItem>
         )}
-        <GenericFieldRenderer
-          parentId="model-playground-availability"
-          wizardState={wizardState}
-          externalData={externalData}
-        />
       </Stack>
     </StackItem>
   );

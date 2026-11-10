@@ -20,17 +20,27 @@ import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useAppContext } from '#~/app/AppContext';
 import { FlagState, getFlags, isAreaAvailable } from '#~/concepts/areas/utils';
 import { SupportedAreasStateMap } from '#~/concepts/areas/const';
+import useFetchAIHub from '#~/concepts/areas/useFetchAIHub';
 
 export { AreaContext } from '@odh-dashboard/plugin-core/areas';
 
 type InnerProps = {
+  aiHubInstancesNamespace?: string;
+  aiHubError?: Error;
   dscStatus: DataScienceClusterKindStatus | null;
   dsciStatus: DataScienceClusterInitializationKindStatus | null;
   flags?: FlagState | null;
   children: React.ReactNode;
 };
 
-const Inner: React.FC<InnerProps> = ({ dscStatus, dsciStatus, flags, children }) => {
+const Inner: React.FC<InnerProps> = ({
+  aiHubInstancesNamespace,
+  aiHubError,
+  dscStatus,
+  dsciStatus,
+  flags,
+  children,
+}) => {
   const { dashboardConfig } = useAppContext();
   const dashboardConfigSpecSafe = useDeepCompareMemoize(dashboardConfig.spec);
   const dscStatusSafe = useDeepCompareMemoize(dscStatus);
@@ -84,8 +94,8 @@ const Inner: React.FC<InnerProps> = ({ dscStatus, dsciStatus, flags, children })
   );
 
   const contextValue = React.useMemo(
-    () => ({ dscStatus, dsciStatus, areasStatus }),
-    [dscStatus, dsciStatus, areasStatus],
+    () => ({ aiHubInstancesNamespace, aiHubError, dscStatus, dsciStatus, areasStatus }),
+    [aiHubInstancesNamespace, aiHubError, dscStatus, dsciStatus, areasStatus],
   );
 
   return <AreaContext.Provider value={contextValue}>{children}</AreaContext.Provider>;
@@ -97,11 +107,14 @@ type AreaContextProps = {
 };
 
 const AreaContextProvider: React.FC<AreaContextProps> = ({ flags, children }) => {
+  const [aiHub, loadedAIHub, errorAIHub] = useFetchAIHub();
   const [dscStatus, loadedDsc, errorDsc] = useFetchDscStatus();
   const [dsciStatus, loadedDsci, errorDsci] = useFetchDsciStatus();
 
   const error = errorDsc || errorDsci;
-  const loaded = loadedDsc && loadedDsci;
+  // An AIHub failure is surfaced by the namespace consumers rather than
+  // preventing unrelated dashboard areas from rendering.
+  const loaded = (loadedAIHub || Boolean(errorAIHub)) && loadedDsc && loadedDsci;
 
   if (error || (loaded && (!dscStatus || Object.keys(dscStatus).length === 0))) {
     return (
@@ -125,7 +138,13 @@ const AreaContextProvider: React.FC<AreaContextProps> = ({ flags, children }) =>
   }
 
   return (
-    <Inner dscStatus={dscStatus} dsciStatus={dsciStatus} flags={flags}>
+    <Inner
+      aiHubInstancesNamespace={aiHub?.instancesNamespace}
+      aiHubError={errorAIHub}
+      dscStatus={dscStatus}
+      dsciStatus={dsciStatus}
+      flags={flags}
+    >
       {children}
     </Inner>
   );

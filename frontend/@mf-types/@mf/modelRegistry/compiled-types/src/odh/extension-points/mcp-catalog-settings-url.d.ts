@@ -1,4 +1,4 @@
-import type { Extension, ExtensionPredicate } from '@openshift/dynamic-plugin-sdk';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
 /**
  * Extension point for providing the MCP catalog settings URL.
  * This allows ODH to inject its own settings URL for the MCP catalog settings page
@@ -14,4 +14,4 @@ export type McpCatalogSettingsUrlExtension = Extension<'mcp-catalog.settings/url
      */
     title: string;
 }>;
-export declare const isMcpCatalogSettingsUrlExtension: ExtensionPredicate<McpCatalogSettingsUrlExtension>;
+export declare const isMcpCatalogSettingsUrlExtension: import("@openshift/dynamic-plugin-sdk").ExtensionPredicate<McpCatalogSettingsUrlExtension>;

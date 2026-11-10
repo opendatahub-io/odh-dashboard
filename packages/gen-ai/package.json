@@ -38,14 +38,20 @@
     "cypress:server:wait": "wait-on -i 1000 http-get://localhost:9102/healthcheck",
     "cypress:server:e2e:wait": "pnpm run cypress:server:wait",
     "prepare:e2e": "cd bff && go mod download",
-    "cypress:server:e2e": "LLAMA_STACK_URL=${LLAMA_STACK_URL:-http://localhost:8321} STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9102",
+    "cypress:server:e2e": "LLAMA_STACK_URL=${LLAMA_STACK_URL:-http://localhost:8321} STATIC_ASSETS_DIR=../frontend/public-cypress make dev-bff-e2e-cluster E2E_BFF_PORT=9102 ASR_MODEL_URL=http://localhost:8790",
     "lint": "cd frontend && pnpm run lint",
     "lint:fix": "cd frontend && pnpm run lint:fix"
   },
   "exports": {
     "./extension-points": "./frontend/src/odh/extension-points/index.ts",
+    "./__mocks__/genAiFixtures": "./frontend/src/__mocks__/genAiFixtures.ts",
     "./types": "./frontend/src/types/index.ts",
-    "./extensions/static": "./frontend/src/odh/extensions.ts"
+    "./extensions/static": "./frontend/src/odh/extensions.ts",
+    "./MaaSModelsPageProvider": {
+      "types": "./types/MaaSModelsPageProvider.d.ts",
+      "default": "./frontend/src/app/pages/MaaSModelsPageProvider.tsx"
+    },
+    "./testing/pages": "./frontend/src/__tests__/cypress/cypress/pages/index.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "workspace:*",

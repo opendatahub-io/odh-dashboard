@@ -1,0 +1,119 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Deliberately namespace-neutral: the future operator or installer supplies
+# the applications namespace when rendering/applying this bundle.
+resources:
+  - service-account.yaml
+  - role.yaml
+  - role-binding.yaml
+  - cluster-role.yaml
+  - cluster-role-binding.yaml
+  - deployment.yaml
+  - pdb.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  - httproute.yaml
+configMapGenerator:
+  - name: rhaii-dashboard-params
+    env: params.env
+generatorOptions:
+  disableNameSuffixHash: true
+labels:
+  - pairs:
+      app.kubernetes.io/component: rhaii-dashboard
+      app.kubernetes.io/name: rhaii-dashboard
+      app.kubernetes.io/part-of: rhaii-dashboard
+      platform.opendatahub.io/part-of: rhaii-dashboard
+    includeSelectors: false
+replacements:
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.rhaii-dashboard-image
+    targets:
+      - select:
+          kind: Deployment
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=rhaii-dashboard].image
+  # Keep the HTTPRoute backend reference synchronized with the Service port.
+  # The Service targetPort and pod probes use the named `dashboard` port.
+  - source:
+      kind: Service
+      name: rhaii-dashboard
+      fieldPath: spec.ports.[name=dashboard].port
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.rules.0.backendRefs.[name=rhaii-dashboard].port
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.gateway-name
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.parentRefs.[kind=Gateway].name
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.gateway-namespace
+    targets:
+      - select:
+          group: gateway.networking.k8s.io
+          version: v1
+          kind: HTTPRoute
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.parentRefs.[kind=Gateway].namespace
+      # NetworkPolicy ingress rules and peers are anonymous lists. Its sole,
+      # first ingress rule is deliberately reserved for the configured Gateway;
+      # retain that ordering when adding additional ingress rules.
+      - select:
+          group: networking.k8s.io
+          version: v1
+          kind: NetworkPolicy
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.gateway-name
+    targets:
+      - select:
+          group: networking.k8s.io
+          version: v1
+          kind: NetworkPolicy
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.ingress.0.from.0.podSelector.matchLabels.[gateway.networking.k8s.io/gateway-name]
+  # ClusterRoleBindings are cluster-scoped, so their ServiceAccount subject
+  # must be supplied explicitly rather than inferred from metadata.namespace.
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.rhaii-dashboard-namespace
+    targets:
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: RoleBinding
+          name: rhaii-dashboard
+        fieldPaths:
+          - subjects.[name=rhaii-dashboard].namespace
+      - select:
+          group: rbac.authorization.k8s.io
+          version: v1
+          kind: ClusterRoleBinding
+          name: rhaii-dashboard
+        fieldPaths:
+          - subjects.[name=rhaii-dashboard].namespace

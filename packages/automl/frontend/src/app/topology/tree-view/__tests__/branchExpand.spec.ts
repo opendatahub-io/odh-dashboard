@@ -12,18 +12,26 @@ import { RunStatus } from '@patternfly/react-topology';
 import type { PipelineNodeModelExpanded } from '~/app/types/topology';
 import {
   canShowModelsExpandToggle,
+  countModelBranches,
   isBranchingStageNodeId,
+  isModelTerminusId,
   matchesWinnerModel,
+  resolveModelRank,
   resolveVisibleBranchIndices,
   resolveWinnerBranchIndex,
 } from '~/app/topology/tree-view/branchExpand';
 
-const makeNode = (id: string, label: string, runStatus?: RunStatus): PipelineNodeModelExpanded =>
+const makeNode = (
+  id: string,
+  label: string,
+  runStatus?: RunStatus,
+  modelKey?: string,
+): PipelineNodeModelExpanded =>
   ({
     id,
     label,
     type: 'DEFAULT_TASK_NODE',
-    data: runStatus ? { runStatus } : undefined,
+    data: runStatus || modelKey ? { runStatus, modelKey } : undefined,
   }) as PipelineNodeModelExpanded;
 
 describe('branchExpand', () => {
@@ -94,5 +102,58 @@ describe('branchExpand', () => {
     expect(
       resolveVisibleBranchIndices([0, 1], branches, { ...options, modelsExpanded: true }),
     ).toEqual([0, 1]);
+  });
+
+  it('should not choose the first branch when winner labels are ambiguous', () => {
+    const branches = new Map<number, PipelineNodeModelExpanded[]>([
+      [0, [makeNode('training__model__branch-0', 'shared-model')]],
+      [1, [makeNode('training__model__branch-1', 'shared-model')]],
+    ]);
+
+    expect(
+      resolveWinnerBranchIndex(branches, [0, 1], {
+        winnerModelLabel: 'shared-model',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('should prefer the exact winner model key over label matches', () => {
+    const branches = new Map<number, PipelineNodeModelExpanded[]>([
+      [0, [makeNode('training__model__branch-0', 'Other', undefined, 'winner')]],
+      [1, [makeNode('training__model__branch-1', 'winner', undefined, 'other')]],
+    ]);
+
+    expect(
+      resolveWinnerBranchIndex(branches, [0, 1], {
+        winnerModelLabel: 'winner',
+        winnerModelKey: 'winner',
+      }),
+    ).toBe(0);
+  });
+
+  it('should resolve top-3 model ranks from the leaderboard map', () => {
+    const node = makeNode('training__model__branch-1', 'lightgbm');
+    expect(
+      resolveModelRank(node, {
+        lightgbm: 2,
+        xgboost: 1,
+      }),
+    ).toBe(2);
+    expect(resolveModelRank(node, { xgboost: 1 })).toBeUndefined();
+  });
+
+  it('should not count fan-in spacer ids as model branches', () => {
+    const spacerId =
+      'training__model__branch-0|training__model__branch-1|training__model__branch-2';
+    expect(isModelTerminusId('training__model__branch-0')).toBe(true);
+    expect(isModelTerminusId(spacerId)).toBe(false);
+    expect(
+      countModelBranches([
+        makeNode('training__model__branch-0', 'xgboost'),
+        makeNode('training__model__branch-1', 'lightgbm'),
+        makeNode('training__model__branch-2', 'catboost'),
+        makeNode(spacerId, ''),
+      ]),
+    ).toBe(3);
   });
 });

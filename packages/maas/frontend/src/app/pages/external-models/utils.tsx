@@ -105,3 +105,6 @@ export const getProviderRefResource = (providerRef: ProviderRef): K8sResourceCom
     name: providerRef.providerName,
   },
 });
+
+/** True when the referenced ExternalProvider CR is missing (e.g. deleted). */
+export const isProviderRefMissing = (providerRef: ProviderRef): boolean => !providerRef.provider;

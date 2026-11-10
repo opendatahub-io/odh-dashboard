@@ -3,6 +3,11 @@ import { DashboardResource } from '@perses-dev/core';
 import useFetch, { type FetchStateObject } from '@odh-dashboard/ui-core/hooks/useFetch';
 import { fetchPersesDashboard } from '../perses-client';
 
+export type UsePersesDashboardOptions = {
+  /** Same-origin Perses proxy used to fetch the dashboard. */
+  persesProxyBasePath?: string;
+};
+
 type UsePersesDashboardResult = Omit<FetchStateObject<DashboardResource | undefined>, 'data'> & {
   dashboard: DashboardResource | undefined;
 };
@@ -12,14 +17,18 @@ type UsePersesDashboardResult = Omit<FetchStateObject<DashboardResource | undefi
  *
  * @param project - The Perses project name
  * @param dashboardName - The dashboard name within the project
+ * @param options - Optional host-specific Perses proxy path
  */
 export const usePersesDashboard = (
   project: string,
   dashboardName: string,
+  options?: UsePersesDashboardOptions,
 ): UsePersesDashboardResult => {
+  const persesProxyBasePath = options?.persesProxyBasePath;
   const fetchDashboard = React.useCallback(
-    (opts: { signal?: AbortSignal }) => fetchPersesDashboard(project, dashboardName, opts.signal),
-    [project, dashboardName],
+    (opts: { signal?: AbortSignal }) =>
+      fetchPersesDashboard(project, dashboardName, opts.signal, persesProxyBasePath),
+    [project, dashboardName, persesProxyBasePath],
   );
 
   const {

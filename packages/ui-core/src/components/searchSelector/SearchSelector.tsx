@@ -15,6 +15,7 @@ import {
   SearchInput,
   Spinner,
   Truncate,
+  onToggleArrowKeydownDefault,
 } from '@patternfly/react-core';
 import './SearchSelector.scss';
 
@@ -67,6 +68,12 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   const toggleRef = React.useRef(null);
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
+  React.useEffect(() => {
+    if (isOpen && searchFocusOnOpen) {
+      searchRef.current?.focus();
+    }
+  }, [isOpen, searchFocusOnOpen]);
+
   const popperProps = { minWidth, maxWidth: 'trigger', appendTo };
   const toggleValueId = toggleLabelledBy ? `${dataTestId}-toggle-value` : undefined;
   const toggleContents =
@@ -126,8 +133,13 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
               <SearchInput
                 ref={searchRef}
                 data-testid={`${dataTestId}-search`}
-                autoFocus={searchFocusOnOpen}
                 aria-label="Filter content"
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.stopPropagation();
+                    onToggleArrowKeydownDefault(event.nativeEvent, menuRef);
+                  }
+                }}
                 onChange={(e, value) => onSearchChange(value)}
                 onClear={(e) => {
                   e.stopPropagation();

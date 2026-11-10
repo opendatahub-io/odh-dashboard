@@ -69,6 +69,11 @@ type KubernetesClientInterface interface {
 	// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
 	GetInferenceServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelName string) (string, error)
 
+	// GetServingModelDetails returns the internal endpoint URL and the served model ID for
+	// an InferenceService or LLMInferenceService. The reference may match the K8s resource
+	// name or the served model name (spec.model.name) of an LLMInferenceService.
+	GetServingModelDetails(ctx context.Context, namespace string, modelRef string) (string, string, error)
+
 	// AgentProfile operations
 	ListAgentProfiles(ctx context.Context, namespace string) (*models.AgentProfileListResponse, error)
 	CreateAgentProfile(ctx context.Context, namespace string, profile *models.AgentProfile) (*models.AgentProfileCreateResponse, error)
@@ -78,6 +83,7 @@ type KubernetesClientInterface interface {
 
 	// Agent Deployment operations
 	ListAgentDeployments(ctx context.Context, namespace, agentProfileID string) (*models.AgentDeploymentListResponse, error)
+	IsAgentDeploymentDisplayNameTaken(ctx context.Context, namespace, displayName string) (bool, error)
 	GetAgentDeployment(ctx context.Context, namespace, name string) (*models.AgentDeploymentSummary, error)
 	DeleteAgentDeployment(ctx context.Context, namespace, name string) error
 	CreateSandboxConfigMap(ctx context.Context, namespace string, profileID string, configYAML string) (*corev1.ConfigMap, error)

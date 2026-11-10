@@ -80,6 +80,9 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     }),
     getWorkspacePodTemplateLogsBatch: async (_namespace, _workspaceName, query) =>
       buildMockWorkspaceLogs(Math.min(query?.tailLines ?? 20, 50)),
+    getWorkspacePodTemplateResources: async () => ({
+      data: { containers: {} },
+    }),
     updateWorkspacePauseState: async (_namespace, _workspaceName, body) => {
       await delay(1500);
       return {

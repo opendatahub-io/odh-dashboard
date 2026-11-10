@@ -28,13 +28,15 @@ const McpSupportTierLabel: React.FC<McpCatalogCardLabelProps> = ({ server }) => 
   if (!('string_value' in prop) || typeof prop.string_value !== 'string') {
     return null;
   }
-  if (!isSupportTier(prop.string_value)) {
+  // Typed as string so the guard narrows it even when the federated McpServer type is unresolved.
+  const tier: string = prop.string_value;
+  if (!isSupportTier(tier)) {
     return null;
   }
 
   return (
     <Label data-testid={`mcp-catalog-card-support-tier-${server.id}`}>
-      {SUPPORT_TIER_DISPLAY[prop.string_value]}
+      {SUPPORT_TIER_DISPLAY[tier]}
     </Label>
   );
 };

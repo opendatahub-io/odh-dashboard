@@ -1,9 +1,9 @@
-export declare const MCP_CATALOG_SETTINGS_PAGE_TITLE = "MCP catalog settings";
-export declare const MCP_CATALOG_SETTINGS_DESCRIPTION = "Add and manage MCP catalog sources. Each source is a YAML catalog file that can contain multiple MCP servers for users in your organization.";
-export declare const MCP_ADD_SOURCE_TITLE = "Add a source";
+export declare const MCP_CATALOG_SETTINGS_PAGE_TITLE = "MCP catalog sources";
+export declare const MCP_CATALOG_SETTINGS_DESCRIPTION = "Add and manage sources that populate the MCP catalog for users in your organization. Each source is a YAML file that can contain multiple servers.";
+export declare const MCP_ADD_SOURCE_TITLE = "Add source";
 export declare const MCP_ADD_SOURCE_DESCRIPTION = "Add a new MCP catalog source to your organization.";
 export declare const MCP_MANAGE_SOURCE_TITLE = "Manage source";
-export declare const MCP_MANAGE_SOURCE_DESCRIPTION = "Configure which MCP servers from this pre-loaded catalog source are visible in the MCP catalog.";
+export declare const MCP_MANAGE_SOURCE_DESCRIPTION = "Configure which servers from this source appear in the MCP catalog.";
 export declare const mcpCatalogSettingsUrl: () => string;
 export declare const mcpAddSourceUrl: () => string;
 export declare const mcpManageSourceUrl: (catalogSourceId: string) => string;

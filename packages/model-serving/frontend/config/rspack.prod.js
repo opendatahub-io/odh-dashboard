@@ -2,6 +2,7 @@
 const path = require('path');
 const { merge } = require('rspack-merge');
 const { rspack } = require('@rspack/core');
+const { lightningCssMinimizerOptions } = require('@odh-dashboard/app-config/rspack');
 const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 const getRsdoctorPlugin = () => {
@@ -50,7 +51,9 @@ module.exports = merge(
       minimize: true,
       minimizer: [
         new rspack.SwcJsMinimizerRspackPlugin(),
-        new rspack.LightningCssMinimizerRspackPlugin(),
+        new rspack.LightningCssMinimizerRspackPlugin({
+          minimizerOptions: lightningCssMinimizerOptions,
+        }),
       ],
     },
     plugins: [

@@ -28,7 +28,6 @@ const initAllTabs = () => {
       disableCustomServingRuntimes: false,
       llmdTemplates: true,
       vLLMDeploymentOnMaaS: true,
-      runtimeCatalog: true,
     }),
   );
   // Serving-runtime templates list + llmd config list, so tab content mounts without 500s.
@@ -51,7 +50,7 @@ const TABS = [
   { name: 'LLM accelerator configurations', path: `${BASE}/llm-accelerator-configurations` },
   { name: 'llm-d topology configurations', path: `${BASE}/topology-configurations` },
   { name: 'llm-d routing configurations', path: `${BASE}/routing-configurations` },
-  { name: 'Runtime image library', path: `${BASE}/serving-runtime-catalog` },
+  { name: 'Runtime library', path: `${BASE}/serving-runtime-catalog` },
 ];
 
 describe('Model deployment settings tab navigation', () => {

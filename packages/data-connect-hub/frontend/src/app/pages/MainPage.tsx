@@ -126,13 +126,13 @@ const MainPage: React.FC<MainPageProps> = ({ activeTabKey }) => {
         >
           <Tab
             eventKey="connection-types"
-            title={<TabTitleText>Catalog</TabTitleText>}
+            title={<TabTitleText>Connection types</TabTitleText>}
             tabContentId="tab-content-connection-types"
             data-testid="tab-connection-types"
           />
           <Tab
             eventKey="connections"
-            title={<TabTitleText>Registry</TabTitleText>}
+            title={<TabTitleText>Connections</TabTitleText>}
             tabContentId="tab-content-connections"
             data-testid="tab-connections"
           />

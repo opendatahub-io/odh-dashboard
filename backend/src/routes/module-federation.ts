@@ -1,6 +1,11 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { getModuleFederationConfigs, type ModuleFederationConfig } from '@odh-dashboard/app-config';
-import { addDefaultCacheControl, registerProxy } from '../utils/proxy';
+import { registerProxy } from '../utils/proxy';
+import {
+  rewriteNoStoreCacheHeaders,
+  rewriteStaticProxyCacheHeaders,
+  staticProxyCacheOnResponse,
+} from '../utils/securityHeaders';
 import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from '../utils/constants';
 import { errorHandler } from '../utils';
@@ -29,7 +34,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           },
           local: backend.localService,
           headers: backend.headers,
-          rewriteHeaders: addDefaultCacheControl,
+          rewriteHeaders: rewriteStaticProxyCacheHeaders,
+          onResponse: staticProxyCacheOnResponse,
           onError: (reply, error) => {
             if (
               'code' in error.error &&
@@ -63,6 +69,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
           },
           local: proxy.localService,
           headers: proxy.headers,
+          rewriteHeaders: rewriteNoStoreCacheHeaders,
         });
       });
     });
