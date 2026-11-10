@@ -102,6 +102,8 @@ describe('updateProjectQueryParam', () => {
 
 describe('useWorkingProjectRouteSync', () => {
   const navigate = jest.fn();
+  const selectProject = jest.fn();
+  const projects = [{ name: 'project-a' }, { name: 'project-b' }];
   type NoNavigationCase = {
     name: string;
     activeProjectName: string;
@@ -118,21 +120,28 @@ describe('useWorkingProjectRouteSync', () => {
       search: '',
       hash: '',
     } as ReturnType<typeof useLocation>);
+    selectProject.mockReset();
   });
 
   it('should replace the route when the active project differs', () => {
-    renderHook(() =>
-      useWorkingProjectRouteSync({
-        activeProjectName: 'project-b',
-        routeProjectName: 'project-a',
-        enabled: true,
-        getProjectLocation: (name) => ({
-          pathname: `/assets/${name}/models`,
-          search: '?tab=models',
-          hash: '#details',
+    const { rerender } = renderHook(
+      ({ activeProjectName }: { activeProjectName: string }) =>
+        useWorkingProjectRouteSync({
+          activeProjectName,
+          routeProjectName: 'project-a',
+          projects,
+          selectProject,
+          enabled: true,
+          getProjectLocation: (name) => ({
+            pathname: `/assets/${name}/models`,
+            search: '?tab=models',
+            hash: '#details',
+          }),
         }),
-      }),
+      { initialProps: { activeProjectName: 'project-a' } },
     );
+
+    rerender({ activeProjectName: 'project-b' });
 
     expect(navigate).toHaveBeenCalledWith(
       {
@@ -150,6 +159,8 @@ describe('useWorkingProjectRouteSync', () => {
         useWorkingProjectRouteSync({
           activeProjectName,
           routeProjectName: 'project-a',
+          projects,
+          selectProject,
           enabled: true,
           getProjectLocation: (projectName) => ({
             pathname: `/assets/${projectName}/models`,
@@ -166,6 +177,22 @@ describe('useWorkingProjectRouteSync', () => {
       { pathname: '/assets/project-b/models' },
       { replace: true },
     );
+  });
+
+  it('should select a valid route project once on entry', () => {
+    renderHook(() =>
+      useWorkingProjectRouteSync({
+        activeProjectName: 'project-a',
+        routeProjectName: 'project-b',
+        projects,
+        selectProject,
+        enabled: true,
+        getProjectLocation: (projectName) => ({ pathname: `/assets/${projectName}` }),
+      }),
+    );
+
+    expect(selectProject).toHaveBeenCalledWith(projects[1]);
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   const noNavigationCases: NoNavigationCase[] = [
@@ -220,6 +247,8 @@ describe('useWorkingProjectRouteSync', () => {
         useWorkingProjectRouteSync({
           activeProjectName,
           routeProjectName,
+          projects,
+          selectProject,
           enabled,
           getProjectLocation,
         }),

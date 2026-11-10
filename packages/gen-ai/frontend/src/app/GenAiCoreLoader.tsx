@@ -1,6 +1,10 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
+import { resolveWorkingProject } from '@odh-dashboard/foundation';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useWorkingProjectRouteSync } from '@odh-dashboard/plugin-core/routing';
+import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { useNamespaceSelectorWithPersistence } from './hooks/useNamespaceSelectorWithPersistence';
 import GenAiCoreNoProjects from './GenAiCoreNoProjects';
 import GenAiCoreInvalidProject from './GenAiCoreInvalidProject';
@@ -33,6 +37,21 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   const { namespace } = useParams<{ namespace: string }>();
   const { namespaces, namespacesLoaded, preferredNamespace } =
     useNamespaceSelectorWithPersistence();
+  const { activeProject, projects: workingProjects, selectProject } = useWorkingProject();
+  const isUnifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
+
+  useWorkingProjectRouteSync({
+    activeProjectName: activeProject?.name,
+    routeProjectName: namespace,
+    projects: workingProjects,
+    selectProject,
+    enabled: isUnifiedProjectSelectorEnabled,
+    getProjectLocation: (projectName) => ({
+      pathname: getInvalidRedirectPath(projectName),
+    }),
+  });
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (namespaces.length === 0) {
@@ -52,13 +71,12 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
     if (foundProject) {
       // Render the content
       return (
-        <GenAiContextProvider namespaceParam={namespace}>
+        <GenAiContextProvider key={namespace} namespaceParam={namespace}>
           <Outlet />
         </GenAiContextProvider>
       );
     }
 
-    // They ended up on a non-valid project path
     renderStateProps = {
       empty: true,
       emptyStatePage: (
@@ -66,8 +84,23 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
       ),
     };
   } else {
-    const redirectNamespace = preferredNamespace ?? namespaces[0];
-    return <Navigate to={getInvalidRedirectPath(redirectNamespace.name)} replace />;
+    const activeNamespace = isUnifiedProjectSelectorEnabled
+      ? namespaces.find((candidate) => candidate.name === activeProject?.name)
+      : undefined;
+    const redirectNamespace = resolveWorkingProject({
+      list: { status: 'listed', projects: namespaces },
+      route: null,
+      storedName: activeNamespace?.name ?? preferredNamespace?.name,
+    }).activeProject;
+
+    if (redirectNamespace) {
+      return <Navigate to={getInvalidRedirectPath(redirectNamespace.name)} replace />;
+    }
+
+    renderStateProps = {
+      empty: true,
+      emptyStatePage: <GenAiCoreNoProjects />,
+    };
   }
 
   return (
