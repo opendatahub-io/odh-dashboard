@@ -91,6 +91,24 @@ Before you begin, ensure you have the following installed:
 
 ## Running Tests
 
+### Data Registry E2E cluster prerequisites
+
+The Data Registry browser test runs against a live cluster. The cluster must have
+the Data Registry services and a ready Feast operator installed, with the
+`featurestores.feast.dev` CRD available. The test discovers the Data Registry namespace by the
+`dataregistry.opendatahub.io/enabled=true` label applied by the Feast module operator, so its name
+can vary.
+It creates `FeatureStore/data-registry` in that namespace if it does not already
+exist; the fixture sets `spec.feastProject` to `data_registry`. The test fixture
+uses the `default` collection in its generated project, so that collection must
+be available to new test projects.
+
+The browse flow tests RHOAI Secret fallback. The Data Registry connections API
+must return the generated RHOAI connection in `data`, which requires DCH to be
+unconfigured or its connection-list lookup to hit a fallback-eligible failure.
+A successful DCH list response, including an empty one, keeps RHOAI connections
+as display metadata only and does not satisfy this test.
+
 ### Run Tests in Interactive Mode
 
 Use the Cypress Test Runner for an interactive GUI:
