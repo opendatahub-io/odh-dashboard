@@ -1,8 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import {
-  buildProjectDeleteRequest,
-  deleteOpenShiftProjectWithUid,
-} from '../automlProjectDeletion';
+import { buildProjectDeleteRequest, deleteOpenShiftProjectWithUid } from '../automlProjectDeletion';
 
 describe('AutoX project deletion', () => {
   it('builds a Project API delete request with the recorded UID precondition', () => {
@@ -49,13 +46,17 @@ describe('AutoX project deletion', () => {
   });
 
   it('preserves a UID precondition conflict instead of deleting a replacement project', async () => {
-    const startProxy = jest.fn().mockResolvedValue({
-      baseUrl: 'http://127.0.0.1:12345',
-      close: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-    });
-    const fetch = jest
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValue({ ok: false, status: 409, text: async () => 'UID precondition failed' } as Response);
+    const startProxy = jest
+      .fn<(context?: string) => Promise<{ baseUrl: string; close: () => Promise<void> }>>()
+      .mockResolvedValue({
+        baseUrl: 'http://127.0.0.1:12345',
+        close: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      });
+    const fetch = jest.fn<typeof globalThis.fetch>().mockResolvedValue({
+      ok: false,
+      status: 409,
+      text: async () => 'UID precondition failed',
+    } as Response);
 
     await expect(
       deleteOpenShiftProjectWithUid('cy-e2e-automl-123-1', 'namespace-uid-123', undefined, {

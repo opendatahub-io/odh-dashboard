@@ -1,6 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import { randomBytes } from 'crypto';
-import type { CommandLineResult } from '../cypress/types';
 import {
   AUTOML_RECOVERY_MANAGED_BY,
   AUTOML_RECOVERY_MANAGED_BY_LABEL,
@@ -9,6 +8,7 @@ import {
   buildRecoverySecretManifest,
   buildRecoverySecretOwnerReference,
 } from './automlCleanupRecovery';
+import type { CommandLineResult } from '../cypress/types';
 
 const DNS_LABEL = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 const OC_CLEANUP_TIMEOUT_MS = 30000;
@@ -111,8 +111,7 @@ const getJobState = (job: Record<string, unknown>): 'complete' | 'failed' | 'run
   const conditions = Array.isArray(status.conditions) ? status.conditions : [];
   const hasCondition = (type: 'Complete' | 'Failed'): boolean =>
     conditions.some(
-      (condition) =>
-        isRecord(condition) && condition.type === type && condition.status === 'True',
+      (condition) => isRecord(condition) && condition.type === type && condition.status === 'True',
     );
   if (hasCondition('Complete')) {
     return 'complete';
@@ -213,7 +212,7 @@ export const createAwsCliPodTask =
             if (!isRecord(response) || !isRecord(response.metadata)) {
               throw new Error(`Invalid AWS CLI Job response for ${jobName}`);
             }
-            const metadata = response.metadata;
+            const { metadata } = response;
             const labels = isRecord(metadata.labels) ? metadata.labels : {};
             if (
               typeof metadata.uid !== 'string' ||
@@ -296,10 +295,7 @@ export const createAwsCliPodTask =
       result = commandFailure(error);
     } finally {
       const cleanupCommands: [string, string[]][] = [
-        [
-          'Job',
-          ['delete', 'job', jobName, '-n', namespace, '--wait=false', '--ignore-not-found'],
-        ],
+        ['Job', ['delete', 'job', jobName, '-n', namespace, '--wait=false', '--ignore-not-found']],
         [
           'credential Secret',
           ['delete', 'secret', secretName, '-n', namespace, '--ignore-not-found'],

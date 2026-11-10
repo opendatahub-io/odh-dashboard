@@ -4,10 +4,7 @@ import { createDSPASecret, createDSPA } from './oc_commands/dspa';
 import { AWS_BUCKETS, parseS3Endpoint } from './s3Buckets';
 import { createAndVerifyProject, createCleanProject } from './projectChecker';
 import { pollUntilSuccess, waitForNamespace } from './oc_commands/baseCommands';
-import {
-  buildAutoXProjectManifest,
-  shellQuote,
-} from '../../src/automlCleanupCommands';
+import { buildAutoXProjectManifest, shellQuote } from '../../src/automlCleanupCommands';
 import type {
   DataConnectionReplacements,
   DspaReplacements,
@@ -89,11 +86,7 @@ export const provisionProjectForAutoX = (
   const { host, scheme } = parseS3Endpoint(s3Endpoint);
 
   if (cleanupOwnership) {
-    createOwnedAutoXProject(
-      projectName,
-      cleanupOwnership.token,
-      cleanupOwnership.onOwned,
-    );
+    createOwnedAutoXProject(projectName, cleanupOwnership.token, cleanupOwnership.onOwned);
   } else if (deleteExistingProject) {
     createCleanProject(projectName);
   } else {

@@ -206,7 +206,11 @@ const deleteAndVerifyProject = (
     .then((result): Cypress.Chainable<boolean> => {
       if (!result.deleted) {
         return cy
-          .log(`Could not request deletion of AutoX project ${namespace}: ${result.error}`)
+          .log(
+            `Could not request deletion of AutoX project ${namespace}: ${
+              result.error ?? 'unknown error'
+            }`,
+          )
           .then(() => cy.wrap(false));
       }
       return poll(1);

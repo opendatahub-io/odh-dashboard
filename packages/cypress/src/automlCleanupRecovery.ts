@@ -94,8 +94,7 @@ export const buildRecoveryJobManifest = (options: RecoveryJobOptions): Record<st
   if (options.script === undefined && options.args === undefined) {
     throw new Error('A recovery Job script or container args are required');
   }
-  const containerArgs =
-    options.args ?? (options.script === undefined ? [] : [options.script]);
+  const containerArgs = options.args ?? (options.script === undefined ? [] : [options.script]);
   const labels = {
     [AUTOML_RECOVERY_MANAGED_BY_LABEL]: AUTOML_RECOVERY_MANAGED_BY,
     [AUTOML_RECOVERY_RUN_ID_LABEL]: options.jobName.replace('autox-s3-', ''),

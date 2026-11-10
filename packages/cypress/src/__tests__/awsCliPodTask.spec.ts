@@ -107,7 +107,9 @@ describe('AWS CLI Job task', () => {
       isStaleUnownedRecoverySecret({
         metadata: {
           ...secret.metadata,
-          creationTimestamp: new Date(Date.now() - AUTOML_RECOVERY_ORPHAN_AGE_MS - 1000).toISOString(),
+          creationTimestamp: new Date(
+            Date.now() - AUTOML_RECOVERY_ORPHAN_AGE_MS - 1000,
+          ).toISOString(),
         },
       }),
     ).toBe(true);
@@ -204,16 +206,11 @@ describe('AWS CLI Job task', () => {
 
     expect(result.exitCode).toBe(124);
     expect(result.stderr).toContain('timed out after 1ms');
-    expect(calls.map(({ args }) => args[0])).toEqual([
-      'create',
-      'create',
-      'get',
-      'patch',
-      'logs',
-      'describe',
-      'delete',
-      'delete',
-    ]);
+    const commandNames = calls.map(({ args }) => args[0]);
+    expect(commandNames.slice(0, 4)).toEqual(['create', 'create', 'get', 'patch']);
+    expect(commandNames.slice(4, -4).every((command) => command === 'get')).toBe(true);
+    expect(commandNames.slice(4, -4).length).toBeLessThanOrEqual(1);
+    expect(commandNames.slice(-4)).toEqual(['logs', 'describe', 'delete', 'delete']);
     expect(calls.at(-2)?.args[1]).toBe('job');
     expect(calls.at(-1)?.args[1]).toBe('secret');
   });

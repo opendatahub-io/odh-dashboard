@@ -100,13 +100,13 @@ const startOcProxy = (context?: string): Promise<ProxySession> =>
         resolve({ baseUrl: `http://127.0.0.1:${match[1]}`, close: () => stopProcess(child) });
       }
     };
-    child.stdout?.on('data', handleOutput);
-    child.stderr?.on('data', handleOutput);
+    child.stdout.on('data', handleOutput);
+    child.stderr.on('data', handleOutput);
   });
 
 const defaultDependencies: DeletionDependencies = {
   startProxy: startOcProxy,
-  fetch,
+  fetch: (input, init) => globalThis.fetch(input, init),
 };
 
 /** Delete a project only if its current UID still matches the recorded attempt. */
@@ -127,12 +127,14 @@ export const deleteOpenShiftProjectWithUid = async (
     };
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
   try {
     const response = await dependencies.fetch(`${proxy.baseUrl}${request.path}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request.body),
-      signal: AbortSignal.timeout(API_REQUEST_TIMEOUT_MS),
+      signal: controller.signal,
     });
     if (response.ok || response.status === 404) {
       return { deleted: true };
@@ -148,6 +150,7 @@ export const deleteOpenShiftProjectWithUid = async (
       error: error instanceof Error ? error.message : String(error),
     };
   } finally {
+    clearTimeout(timeout);
     await proxy.close();
   }
 };

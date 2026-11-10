@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 
 const PACKAGE_ROOT = path.resolve(__dirname, '../..');
 const CLEANUP_SCRIPT = path.join(PACKAGE_ROOT, 'scripts/cleanup-automl.ts');
@@ -172,8 +172,7 @@ const makeFixture = (
     OC_LOG: ocLog,
     OC_PROJECT_NAMESPACE: PROJECT_NAMESPACE,
     OC_CLUSTER_SERVER: options.clusterServer ?? CLUSTER_SERVER,
-    CYPRESS_DSPA_S3_ENDPOINT:
-      options.dspaEndpoint ?? 'https://provisioned-s3.example.test',
+    CYPRESS_DSPA_S3_ENDPOINT: options.dspaEndpoint ?? 'https://provisioned-s3.example.test',
     ...(options.reuseProject ? { OC_REUSE_PROJECT: '1' } : {}),
     ...(options.failJobCreate ? { OC_FAIL_JOB_CREATE: '1' } : {}),
     ...(options.failSecretPatch ? { OC_FAIL_SECRET_PATCH: '1' } : {}),
@@ -184,24 +183,17 @@ const makeFixture = (
 
 type CleanupResult = { status: number | null; stdout: string; stderr: string };
 
-const runCleanup = (
-  fixture: ReturnType<typeof makeFixture>,
-  args: string[],
-): CleanupResult => {
-  const result = spawnSync(
-    process.execPath,
-    ['--import', 'tsx', CLEANUP_SCRIPT, ...args],
-    {
-      cwd: PACKAGE_ROOT,
-      env: fixture.environment,
-      encoding: 'utf8',
-      timeout: 30000,
-    },
-  );
+const runCleanup = (fixture: ReturnType<typeof makeFixture>, args: string[]): CleanupResult => {
+  const result = spawnSync(process.execPath, ['--import', 'tsx', CLEANUP_SCRIPT, ...args], {
+    cwd: PACKAGE_ROOT,
+    env: fixture.environment,
+    encoding: 'utf8',
+    timeout: 30000,
+  });
   return {
     status: result.status,
-    stdout: String(result.stdout ?? ''),
-    stderr: String(result.stderr ?? ''),
+    stdout: result.stdout,
+    stderr: result.stderr,
   };
 };
 
@@ -307,11 +299,12 @@ describe('AutoML cleanup recovery CLI', () => {
     const commands = readOcLog(fixture.ocLog);
     const jobManifest = commands
       .filter(({ args, input }) => args[0] === 'create' && input)
-      .map(({ input }) =>
-        JSON.parse(input) as {
-          kind?: string;
-          spec?: { template?: { spec?: { containers?: { args?: string[] }[] } } };
-        },
+      .map(
+        ({ input }) =>
+          JSON.parse(input) as {
+            kind?: string;
+            spec?: { template?: { spec?: { containers?: { args?: string[] }[] } } };
+          },
       )
       .find((manifest) => manifest.kind === 'Job');
     expect(jobManifest).toBeDefined();
@@ -324,7 +317,7 @@ describe('AutoML cleanup recovery CLI', () => {
       "s3 rm 's3://automl-test-bucket/autogluon-tabular-training-pipeline/run-42/' --recursive",
     );
     expect(cleanupScript).toContain(
-      "s3://automl-test-bucket/autogluon-tabular-training-pipeline/run-42/",
+      's3://automl-test-bucket/autogluon-tabular-training-pipeline/run-42/',
     );
     expect(
       commands.some(

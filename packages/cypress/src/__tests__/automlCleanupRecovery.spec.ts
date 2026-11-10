@@ -29,28 +29,19 @@ describe('AutoML cleanup recovery resources', () => {
     };
 
     expect(() =>
-      assertAutomlCleanupTarget(
-        project,
-        'https://api.example.test:6443',
-        'automl-test-bucket',
-        ['https://s3.example.test'],
-      ),
+      assertAutomlCleanupTarget(project, 'https://api.example.test:6443', 'automl-test-bucket', [
+        'https://s3.example.test',
+      ]),
     ).not.toThrow();
     expect(() =>
-      assertAutomlCleanupTarget(
-        project,
-        'https://other.example.test:6443',
-        'automl-test-bucket',
-        ['https://s3.example.test'],
-      ),
+      assertAutomlCleanupTarget(project, 'https://other.example.test:6443', 'automl-test-bucket', [
+        'https://s3.example.test',
+      ]),
     ).toThrow('Cluster mismatch');
     expect(() =>
-      assertAutomlCleanupTarget(
-        project,
-        'https://api.example.test:6443',
-        'other-bucket',
-        ['https://s3.example.test'],
-      ),
+      assertAutomlCleanupTarget(project, 'https://api.example.test:6443', 'other-bucket', [
+        'https://s3.example.test',
+      ]),
     ).toThrow('S3 bucket mismatch');
     expect(() =>
       assertAutomlCleanupTarget(
