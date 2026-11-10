@@ -140,7 +140,15 @@ describe('AutoML Results Page', () => {
 
         automlResultsPage
           .findTopologyNodeLabel(componentId, 'model', 0)
-          .should('have.text', modelNames[0]);
+          .should('be.visible')
+          .and('have.css', 'white-space', 'normal')
+          .and('have.css', 'overflow-wrap', 'anywhere')
+          .and('have.text', modelNames[0])
+          .then(($label) => {
+            const range = document.createRange();
+            range.selectNodeContents($label[0]);
+            expect(range.getClientRects().length, 'wrapped model label lines').to.be.greaterThan(1);
+          });
         automlResultsPage.findTopologyRowLabel(1).should('not.exist');
         automlResultsPage
           .findModelsExpandToggle()
@@ -161,7 +169,15 @@ describe('AutoML Results Page', () => {
         automlResultsPage.findTopologyRowLabel(1).should('not.exist');
         automlResultsPage
           .findTopologyNodeLabel(componentId, 'model', 0)
-          .should('have.text', modelNames[0]);
+          .should('be.visible')
+          .and('have.css', 'white-space', 'normal')
+          .and('have.css', 'overflow-wrap', 'anywhere')
+          .and('have.text', modelNames[0])
+          .then(($label) => {
+            const range = document.createRange();
+            range.selectNodeContents($label[0]);
+            expect(range.getClientRects().length, 'wrapped model label lines').to.be.greaterThan(1);
+          });
       });
     });
   });

@@ -92,6 +92,9 @@ const makeStageMap = (components: ComponentStageMapComponent[]): ComponentStageM
   published_at: '2025-01-01T00:00:00Z',
 });
 
+const isCanonicalTrainingModelTerminus = (id: string): boolean =>
+  /^training__model__branch-\d+$/.test(id);
+
 describe('transformStageMapNodesToTree', () => {
   const training = makeComponent('training', [
     makeStage('load_data', { status: 'completed' }),
@@ -302,7 +305,7 @@ describe('transformStageMapNodesToTree', () => {
       winnerModelLabel: 'xgboost',
     });
 
-    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    const modelNodes = nodes.filter((node) => isCanonicalTrainingModelTerminus(node.id));
     expect(modelNodes).toHaveLength(1);
     expect(modelNodes[0].data.label).toBe('xgboost');
     expect(modelNodes[0].data.labelSubtitle).toBe('winner');
@@ -346,7 +349,7 @@ describe('transformStageMapNodesToTree', () => {
 
     expect(
       topologyNodes
-        .filter((node) => node.id.includes('__model__'))
+        .filter((node) => isCanonicalTrainingModelTerminus(node.id))
         .map((node) => node.data?.modelKey),
     ).toEqual(['model_a', 'model_b']);
 
@@ -356,7 +359,9 @@ describe('transformStageMapNodesToTree', () => {
       modelRanks: { model_a: 1, model_b: 2, 'Shared Name': 1 },
     });
     expect(
-      nodes.filter((node) => node.id.includes('__model__')).map((node) => node.data.winnerRank),
+      nodes
+        .filter((node) => isCanonicalTrainingModelTerminus(node.id))
+        .map((node) => node.data.winnerRank),
     ).toEqual([1, 2]);
   });
 
@@ -367,7 +372,7 @@ describe('transformStageMapNodesToTree', () => {
       winnerResolved: false,
     });
 
-    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    const modelNodes = nodes.filter((node) => isCanonicalTrainingModelTerminus(node.id));
     expect(modelNodes).toHaveLength(1);
     expect(modelNodes[0].data.label).toBe('xgboost');
     expect(modelNodes[0].data.labelSubtitle).toBe('Winner pending');
@@ -383,7 +388,7 @@ describe('transformStageMapNodesToTree', () => {
       winnerModelKey: 'does_not_match_any_branch',
     });
 
-    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    const modelNodes = nodes.filter((node) => isCanonicalTrainingModelTerminus(node.id));
     expect(modelNodes).toHaveLength(1);
     expect(modelNodes[0].data.label).toBe('xgboost');
     expect(modelNodes[0].data.labelSubtitle).toBeUndefined();
@@ -399,7 +404,7 @@ describe('transformStageMapNodesToTree', () => {
       winnerModelKey: 'xgboost',
     });
 
-    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    const modelNodes = nodes.filter((node) => isCanonicalTrainingModelTerminus(node.id));
     expect(modelNodes).toHaveLength(1);
     expect(modelNodes[0].data.label).toBe('Best Model Display Name');
     expect(modelNodes[0].data.labelSubtitle).toBe('winner');
@@ -414,7 +419,7 @@ describe('transformStageMapNodesToTree', () => {
       winnerModelLabel: 'lightgbm',
     });
 
-    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    const modelNodes = nodes.filter((node) => isCanonicalTrainingModelTerminus(node.id));
     expect(modelNodes).toHaveLength(2);
     const winner = modelNodes.find((node) => node.data.showWinnerStar);
     expect(winner?.data.hideLabel).toBe(true);
@@ -511,6 +516,35 @@ describe('transformStageMapNodesToTree', () => {
     expect(rowLabels.map((node) => node.data.label)).toEqual(['xgboost', 'Model 2']);
   });
 
+  it('uses the model terminus when a branch step is named model', () => {
+    const topologyNodes = buildStageMapTopology(
+      makeStageMap([
+        makeComponent('training', [
+          makeStage('load_data'),
+          makeStage('model_selection', {
+            selected_models: ['xgboost', 'lightgbm'],
+            steps: ['model', 'model_training'],
+          }),
+          makeStage('refit_full'),
+        ]),
+      ]),
+    );
+
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: false,
+    });
+    const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
+
+    expect(rowLabels.map((node) => node.data.label)).toEqual(['xgboost', 'lightgbm']);
+    expect(nodes.find((node) => node.id === 'training__step__model__branch-0')?.data.label).toBe(
+      'Model',
+    );
+    expect(nodes.find((node) => node.id === 'training__model__branch-0')?.data.label).toBe(
+      'xgboost',
+    );
+  });
+
   it('keeps the winner star when expanded even if the leaderboard key has a suffix', () => {
     const longNameTraining = makeComponent('training', [
       makeStage('load_data', { status: 'completed' }),
@@ -521,7 +555,17 @@ describe('transformStageMapNodesToTree', () => {
       }),
       makeStage('refit_full'),
     ]);
-    const topologyNodes = buildStageMapTopology(makeStageMap([longNameTraining]));
+    const topologyNodes = buildStageMapTopology(
+      makeStageMap([longNameTraining]),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        ExtraTreesMSE_BAG_L1_FULL: { name: 'ExtraTreesMSE_BAG_L1_FULL' },
+        LightGBMXT_BAG_L2_FULL: { name: 'LightGBMXT_BAG_L2_FULL' },
+      },
+    );
     const { nodes } = transformStageMapNodesToTree(topologyNodes, {
       modelsExpanded: true,
       winnerResolved: true,
@@ -529,7 +573,7 @@ describe('transformStageMapNodesToTree', () => {
       winnerModelKey: 'ExtraTreesMSE_BAG_L1_FULL',
     });
 
-    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    const modelNodes = nodes.filter((node) => isCanonicalTrainingModelTerminus(node.id));
     expect(modelNodes).toHaveLength(2);
     const winner = modelNodes.find((node) => node.data.showWinnerStar === true);
     expect(winner?.data.hideLabel).toBe(true);
@@ -565,7 +609,7 @@ describe('transformStageMapNodesToTree', () => {
       winnerModelKey: 'missing-model',
     });
 
-    const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
+    const modelNodes = nodes.filter((node) => isCanonicalTrainingModelTerminus(node.id));
     expect(modelNodes).toHaveLength(2);
     expect(modelNodes.some((node) => node.data.labelSubtitle === 'winner')).toBe(false);
     expect(modelNodes.some((node) => node.data.showWinnerStar)).toBe(false);

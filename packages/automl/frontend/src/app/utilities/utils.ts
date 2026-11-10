@@ -447,33 +447,10 @@ export function getBestModelFromStageMap(
 const normalizeModelIdentifier = (value: string): string =>
   value.replace(/[\s_-]+/g, '').toLowerCase();
 
-const normalizeModelPrefix = (value: string): string => value.replace(/\s+/g, '').toLowerCase();
-
-const MIN_MODEL_PREFIX_MATCH_LENGTH = 4;
-
-/**
- * Matches identifiers when a model record adds a delimiter-separated suffix,
- * such as `_FULL`, while avoiding short or alphanumeric prefix collisions.
- */
-const modelIdentifiersLooselyMatch = (left: string, right: string): boolean => {
-  const normalizedLeft = normalizeModelPrefix(left);
-  const normalizedRight = normalizeModelPrefix(right);
-  if (normalizedLeft === normalizedRight) {
-    return true;
-  }
-
-  const [shorter, longer] =
-    normalizedLeft.length <= normalizedRight.length
-      ? [normalizedLeft, normalizedRight]
-      : [normalizedRight, normalizedLeft];
-  if (shorter.length < MIN_MODEL_PREFIX_MATCH_LENGTH || !longer.startsWith(shorter)) {
-    return false;
-  }
-
-  const next = longer[shorter.length];
-  const previous = shorter[shorter.length - 1];
-  return !(/[a-z0-9]/i.test(next) && /[a-z0-9]/i.test(previous));
-};
+const FULL_MODEL_SUFFIX = '_FULL';
+const hasCanonicalFullSuffix = (value: string): boolean => /_FULL$/i.test(value);
+const hasMalformedFullSuffix = (value: string): boolean =>
+  /FULL$/i.test(value) && !hasCanonicalFullSuffix(value);
 
 /** Resolves a model identifier to a unique loaded model record key. */
 export function resolveModelRecordKey(
@@ -483,6 +460,26 @@ export function resolveModelRecordKey(
   if (!modelIdentifier) {
     return undefined;
   }
+  const fullModelIdentifier = hasCanonicalFullSuffix(modelIdentifier)
+    ? modelIdentifier
+    : `${modelIdentifier}${FULL_MODEL_SUFFIX}`;
+  const caseInsensitiveFullModelIdentifier = fullModelIdentifier.toLowerCase();
+  const fullModelMatches = [
+    ...new Set(
+      Object.entries(models)
+        .filter(
+          ([key, model]) =>
+            model != null &&
+            (key.toLowerCase() === caseInsensitiveFullModelIdentifier ||
+              model.name?.toLowerCase() === caseInsensitiveFullModelIdentifier),
+        )
+        .map(([key]) => key),
+    ),
+  ];
+  if (fullModelMatches.length > 0) {
+    return fullModelMatches.length === 1 ? fullModelMatches[0] : undefined;
+  }
+
   if (Object.hasOwn(models, modelIdentifier) && models[modelIdentifier] != null) {
     return modelIdentifier;
   }
@@ -492,6 +489,11 @@ export function resolveModelRecordKey(
   if (exactNameMatches.length > 0) {
     return exactNameMatches.length === 1 ? exactNameMatches[0] : undefined;
   }
+
+  if (hasMalformedFullSuffix(modelIdentifier)) {
+    return undefined;
+  }
+
   const normalizedIdentifier = normalizeModelIdentifier(modelIdentifier);
   const matchingKeys = Object.entries(models)
     .filter(
@@ -505,23 +507,7 @@ export function resolveModelRecordKey(
     return matchingKeys.length === 1 ? matchingKeys[0] : undefined;
   }
 
-  const looselyMatchingKeys = [
-    ...new Set(
-      Object.entries(models)
-        .filter(([key, model]) => {
-          if (model == null) {
-            return false;
-          }
-          return [key, model.name].some(
-            (candidate): candidate is string =>
-              typeof candidate === 'string' &&
-              modelIdentifiersLooselyMatch(modelIdentifier, candidate),
-          );
-        })
-        .map(([key]) => key),
-    ),
-  ];
-  return looselyMatchingKeys.length === 1 ? looselyMatchingKeys[0] : undefined;
+  return undefined;
 }
 
 /** Maps a stage-map best_model value to a key in the loaded models record. */

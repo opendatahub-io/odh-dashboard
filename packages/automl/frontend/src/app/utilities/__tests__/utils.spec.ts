@@ -938,13 +938,13 @@ describe('resolveBestModelKey', () => {
     expect(resolveBestModelKey({ Theta_FULL: { name: 'Theta_FULL' } }, 'Theta')).toBe('Theta_FULL');
   });
 
-  it('does not match an alphanumeric model-name prefix', () => {
+  it('does not match a model record without the required FULL suffix', () => {
     expect(
-      resolveBestModelKey({ LightGBMXT_FULL: { name: 'LightGBMXT_FULL' } }, 'LightGBM'),
+      resolveBestModelKey({ model_a: { name: 'XGBoost_BAG_L1_V2' } }, 'XGBoost_BAG_L1'),
     ).toBeUndefined();
   });
 
-  it('leaves delimiter-suffixed model matches unresolved when ambiguous', () => {
+  it('prefers the required FULL record over other suffixed records', () => {
     expect(
       resolveBestModelKey(
         {
@@ -953,6 +953,45 @@ describe('resolveBestModelKey', () => {
         },
         'XGBoost_BAG_L1',
       ),
+    ).toBe('model_a');
+  });
+
+  it('prefers the FULL record over an exact base-name record', () => {
+    expect(
+      resolveBestModelKey(
+        {
+          base: { name: 'XGBoost_BAG_L1' },
+          full: { name: 'XGBoost_BAG_L1_FULL' },
+        },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('full');
+  });
+
+  it('ignores null FULL records when resolving a non-null alias', () => {
+    expect(
+      resolveBestModelKey(
+        {
+          XGBoost_BAG_L1_FULL: null,
+          alias: { name: 'XGBoost_BAG_L1_FULL' },
+        },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('alias');
+  });
+
+  it('matches the FULL suffix case-insensitively', () => {
+    expect(
+      resolveBestModelKey(
+        { xgboost_bag_l1_full: { name: 'xgboost_bag_l1_full' } },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('xgboost_bag_l1_full');
+  });
+
+  it('does not normalize a malformed FULL suffix to the canonical record', () => {
+    expect(
+      resolveBestModelKey({ full: { name: 'XGBoost_BAG_L1_FULL' } }, 'XGBoost_BAG_L1FULL'),
     ).toBeUndefined();
   });
 

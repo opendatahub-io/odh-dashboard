@@ -5,6 +5,7 @@ import { parseBranchIndexFromSuffix } from '~/app/topology/stageMapConstants';
 import { getModelRowLabel } from '~/app/topology/stageMapLabels';
 import {
   type BranchExpandOptions,
+  isModelTerminusId,
   resolveModelRank,
   resolveVisibleBranchIndices,
   resolveWinnerBranchIndex,
@@ -163,7 +164,7 @@ const getModelBranchLabel = (
 ): string => {
   // buildStageMapTopology resolves loaded model records to display names and otherwise preserves
   // the stage-map identifier as the only explicit leaderboard mapping available to the UI.
-  const modelLabel = branchNodes.find((node) => node.id.includes('__model__'))?.label;
+  const modelLabel = branchNodes.find((node) => isModelTerminusId(node.id))?.label;
   return typeof modelLabel === 'string' && modelLabel.trim().length > 0
     ? modelLabel
     : getModelRowLabel(branchIndex);
@@ -254,7 +255,7 @@ const modelTerminusExtras = (
   if (hideLabel) {
     extras.hideLabel = true;
   }
-  if (!options || !topologyNode.id.includes('__model__')) {
+  if (!options || !isModelTerminusId(topologyNode.id)) {
     return extras;
   }
 
@@ -436,7 +437,7 @@ export const transformStageMapNodesToTree = (
       } else if (stepState === 'completed' || stepState === 'active') {
         branchFailed = false;
       }
-      const isModelTerminus = topologyNode.id.includes('__model__');
+      const isModelTerminus = isModelTerminusId(topologyNode.id);
       const created = createTreeNode(
         topologyNode,
         stepX,
