@@ -1,36 +1,26 @@
+# Default install: the validating webhook is disabled, matching the Helm
+# chart's default (webhook.enabled: false). No ValidatingWebhookConfiguration
+# is applied and the manager does not get --enable-webhook.
+#
+# Requires cert-manager: the metrics serving Certificate and its Issuer are
+# part of every install.
+#
+# To run the webhook, build config/webhook-enabled instead. It adds the
+# config/webhook component, which applies the webhook config and turns the
+# server on together.
+#
+# Upgrading an older config/default install, or switching back from
+# config/webhook-enabled: `kubectl apply` does not delete objects that are no
+# longer rendered, so delete the fail-closed webhook registration first,
+# before the manager restarts without the webhook server:
+#   kubectl delete validatingwebhookconfiguration odh-dashboard-validating-webhook --ignore-not-found
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: opendatahub
 namePrefix: odh-
 resources:
-  - ../crd
-  - ../rbac
-  - ../manager
-  - ../webhook
-replacements:
-  - source:
-      kind: Certificate
-      name: dashboard-operator-webhook-cert
-      fieldPath: metadata.namespace
-    targets:
-      - select:
-          kind: ValidatingWebhookConfiguration
-        fieldPaths:
-          - metadata.annotations.[cert-manager.io/inject-ca-from]
-        options:
-          delimiter: /
-          index: 0
-      - select:
-          kind: ValidatingWebhookConfiguration
-        fieldPaths:
-          - webhooks.0.clientConfig.service.namespace
-  - source:
-      kind: Certificate
-      name: dashboard-operator-metrics-cert
-      fieldPath: metadata.namespace
-    targets:
-      - select:
-          kind: Service
-          name: dashboard-operator-metrics-service
-        fieldPaths:
-          - metadata.namespace
+  - ../base
+# Copies the final metrics Service name into the metrics cert SANs; see
+# config/certmanager/wiring/kustomization.yaml.
+transformers:
+  - ../certmanager/wiring

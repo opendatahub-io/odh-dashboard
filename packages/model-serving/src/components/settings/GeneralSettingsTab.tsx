@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { isEqual } from 'lodash-es';
 import { Button, Bullseye, PageSection, Spinner, Stack, StackItem } from '@patternfly/react-core';
-import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
+import { useNotification } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   useHostApiCore,
   useTrackEvent,

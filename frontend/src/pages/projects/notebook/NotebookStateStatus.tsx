@@ -7,7 +7,7 @@ import {
   t_global_color_status_warning_300 as WarningColor,
 } from '@patternfly/react-tokens';
 import { useDeepCompareMemoize } from '@odh-dashboard/ui-core/hooks';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { getKueueStatusInfo } from '@odh-dashboard/ui-core/kueue/statusInfo';
 import {
   KueueWorkloadStatus,

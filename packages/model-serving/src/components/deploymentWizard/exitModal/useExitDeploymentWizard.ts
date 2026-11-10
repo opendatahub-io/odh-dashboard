@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { fireModelDeployed } from '../../../shared/tracking/deploymentTracking';
 

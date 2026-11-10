@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { FileModel, VectorStoreFile } from '~/app/types';
 import { findInlineVectorStore } from '~/app/Chatbot/findInlineVectorStore';
 import { GenAiContext } from '~/app/context/GenAiContext';

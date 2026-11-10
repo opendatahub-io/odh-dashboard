@@ -1,9 +1,9 @@
 ---
 name: rhoaieng-jira-code
-description: Repository-specific scope, readiness and PR rules for Jira-sourced RHOAIENG code runs on odh-dashboard.
+description: Repository-specific scope, readiness and PR rules for Jira-sourced RHAI and RHOAIENG code runs on odh-dashboard.
 ---
 
-# RHOAIENG issue implementation
+# RHAI and RHOAIENG issue implementation
 
 Use the inherited `code-implementation` skill and its structured output contract.
 
@@ -13,7 +13,7 @@ Before implementing, read the live Jira issue through the inherited read-only
 Jira provider. Confirm all of these, and stop without changing code if any no
 longer holds:
 
-- It is in RHOAIENG and its type is Story, Task or Bug.
+- It is in RHAI or RHOAIENG and its type is Story, Task or Bug.
 - Its components include `AI Core Dashboard`.
 - It is not in the Done status category.
 - It has none of `opt-in-autofix`, `jira-autofix`, `jira-autofix-pending` or

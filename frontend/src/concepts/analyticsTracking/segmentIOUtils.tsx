@@ -1,12 +1,15 @@
-// These wrappers bind environment-specific values (clusterID, devMode, version)
-// to the parameterized functions from @odh-dashboard/analytics. Once all consumers
-// migrate to useAnalytics() from @odh-dashboard/ui-core, this file can be removed.
+// These host adapters bind environment-specific values (clusterID, devMode, version)
+// to @odh-dashboard/analytics. Feature packages access custom-event tracking
+// through plugin-core's useTrackEvent().
+// Remove this module once custom-event consumers use the host tracking API or
+// injected callbacks, and environment binding plus page/identity callers have
+// moved to host-owned tracking adapters.
 import type {
   FormTrackingEventProperties,
   IdentifyEventProperties,
   LinkTrackingEventProperties,
   MiscTrackingEventProperties,
-} from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+} from '@odh-dashboard/analytics/types';
 import {
   fireTrackingEvent as fireTrackingEventCore,
   firePageEvent as firePageEventCore,
