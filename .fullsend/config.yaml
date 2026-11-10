@@ -38,24 +38,20 @@ agents:
       # also remap opus/sonnet for the Claude Code roles. Every persona the
       # review uploads is listed, so no frontmatter tier resolves to Claude;
       # rows without a persona run on the agent model.
-      #
-      # Two providers: OpenAI (FULLSEND_OPENAI_API_KEY) for the personas whose
-      # findings gate the verdict, and Vertex AI (the inference project below)
-      # for the lighter scanning personas.
       runtime: pi
       model: openai/gpt-6.1-sol
       subagents:
           challenger: openai/gpt-6.1-sol
           correctness: openai/gpt-6.1-sol
           cross-repo-contracts: openai/gpt-6.1-sol
-          docs-currency: google-vertex/gemini-3.8-flash
+          docs-currency: openai/gpt-6-luna
           intent-coherence: openai/gpt-6.1-sol
-          investigator: google-vertex/gemini-3.8-flash
+          investigator: openai/gpt-6-luna
           # Rating's risk/confidence gates approval; tiny output, so pay for Sol.
           rating: openai/gpt-6.1-sol
           security: openai/gpt-6.1-sol
-          security-triage: google-vertex/gemini-3.8-flash
-          style-conventions: google-vertex/gemini-3.8-flash
+          security-triage: openai/gpt-6-luna
+          style-conventions: openai/gpt-6-luna
     # Pin the built-in fix agent to the agents v0.54.0 release (87a43fcb), the
     # commit harness/code.yaml already bases on. Without this entry fix tracks
     # fullsend-ai/agents@main: the reusable-dispatch pin is not a release tag,
