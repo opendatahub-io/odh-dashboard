@@ -1,0 +1,11 @@
+collection: default
+asset: data-registry-browse-asset
+secondaryCollectionDescription: Additional collection for collection details E2E
+expectedAssetType: Data asset
+expectedCollectionType: Collection
+assetTableNameColumn: Name
+assetTableTypeColumn: Type
+assetTableFormatColumn: Format
+crudCollectionDescription: Data Registry CRUD collection
+crudAssetDescription: Data Registry CRUD asset
+updatedCrudAssetDescription: Updated Data Registry CRUD asset

@@ -17,11 +17,10 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
 }));
 
 // Mock Kueue status - not under test here, exercised by useKueueStatusForDeployments.spec.ts
-jest.mock('@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions', () => ({
+jest.mock('@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions', () => ({
   useKueueStatusWithQueuePositions: jest.fn(() => ({
     kueueStatusByDeploymentKey: {},
     isLoading: false,
-    error: null,
   })),
 }));
 
@@ -29,7 +28,7 @@ const mockUseWatchInferenceServices = watchModule.useWatchInferenceServices as j
 const mockUseWatchServingRuntimes = watchModule.useWatchServingRuntimes as jest.Mock;
 const mockUseWatchDeploymentPods = watchModule.useWatchDeploymentPods as jest.Mock;
 const mockUseKueueStatusWithQueuePositions = jest.requireMock(
-  '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions',
+  '@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions',
 ).useKueueStatusWithQueuePositions as jest.Mock;
 
 // Type helper for hook return value
@@ -211,19 +210,18 @@ describe('useWatchDeployments', () => {
     expect(errors).toContain(mockError);
   });
 
-  it('should surface Kueue watch errors (e.g. 403 for missing RBAC) instead of silently dropping them', () => {
+  it('should keep deployments available without optional Kueue enrichment', () => {
     mockUseKueueStatusWithQueuePositions.mockReturnValue({
       kueueStatusByDeploymentKey: {},
       isLoading: false,
-      error: 'Forbidden',
     });
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 
-    const [, , errors] = renderResult.result.current as DeploymentHookResult;
-
-    expect(errors).toHaveLength(1);
-    expect(errors?.[0].message).toBe('Forbidden');
+    const [deployments, loaded, errors] = renderResult.result.current as DeploymentHookResult;
+    expect(deployments).toHaveLength(3);
+    expect(loaded).toBe(true);
+    expect(errors).toHaveLength(0);
   });
 
   it('should update deployments when filterFn changes', () => {
@@ -283,7 +281,6 @@ describe('useWatchDeployments', () => {
     mockUseKueueStatusWithQueuePositions.mockReturnValue({
       kueueStatusByDeploymentKey: {},
       isLoading: false,
-      error: null,
     });
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
@@ -336,6 +333,12 @@ describe('useWatchDeployments', () => {
     expect(mockUseWatchInferenceServices).toHaveBeenCalledWith(mockProject, undefined, opts);
     expect(mockUseWatchServingRuntimes).toHaveBeenCalledWith(mockProject, opts, true);
     expect(mockUseWatchDeploymentPods).toHaveBeenCalledWith(mockProject, opts, true);
+    expect(mockUseKueueStatusWithQueuePositions).toHaveBeenCalledWith(
+      mockInferenceServices,
+      mockProject,
+      [],
+      opts,
+    );
   });
 
   it('should handle complex filterFn logic', () => {
