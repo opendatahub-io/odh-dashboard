@@ -55,6 +55,15 @@ describe('checkAccess', () => {
     },
   );
 
+  it.each(['true', 'false', 1, 0, null, {}, []])(
+    'should deny a non-boolean allowed value in strict mode: %j',
+    async (allowed) => {
+      k8sCreateResourceMock.mockResolvedValue({ status: { allowed } });
+
+      await expect(checkAccess({ verb: 'get' }, { failureMode: 'reject' })).resolves.toBe(false);
+    },
+  );
+
   it.each([undefined, 'allow', 'reject'] as const)(
     'should preserve an explicit denial with failure mode %s',
     async (failureMode) => {

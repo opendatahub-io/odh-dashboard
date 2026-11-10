@@ -27,7 +27,9 @@ export const checkAccess = async (
     const response = await k8sCreateResource<SelfSubjectAccessReview>(
       applyK8sAPIOptions({ model: SelfSubjectAccessReviewModel, resource: review }, apiOptions),
     );
-    return response.status?.allowed ?? failureMode === 'allow';
+    return failureMode === 'reject'
+      ? response.status?.allowed === true
+      : response.status?.allowed ?? true;
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn('SelfSubjectAccessReview failed', error);
