@@ -101,10 +101,13 @@ const computeSuggestion = (
   configs: LLMInferenceServiceConfigKind[],
   hardwareProfile?: HardwareProfileKind,
 ): ModelServerOption | undefined => {
+  // Even a sole config needs an accelerator match; CPU, memory, and untyped identifiers do not qualify.
+  // A config can match any Accelerator-typed identifier in the hardware profile, not just the first one.
   const accelerators =
     hardwareProfile?.spec.identifiers?.filter(
       (identifier) => identifier.resourceType === IdentifierResourceType.ACCELERATOR,
     ) ?? [];
+  // Config-list order wins over accelerator order. With no accelerator identifiers, nothing matches.
   const config = configs.find((candidate) =>
     accelerators.some((identifier) => isCompatibleWithIdentifier(identifier.identifier, candidate)),
   );

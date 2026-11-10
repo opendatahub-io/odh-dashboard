@@ -160,6 +160,8 @@ const suggestConfig = (
   configs: LLMInferenceServiceConfigKind[],
   hardwareProfile?: HardwareProfileKind,
 ): LLMInferenceServiceConfigKind | undefined => {
+  // Suggestions require an explicitly typed accelerator, unlike the broader compatibility labels.
+  // Consider every accelerator in the profile, but choose by config-list order, not accelerator order.
   const accelerators =
     hardwareProfile?.spec.identifiers?.filter(
       (identifier) => identifier.resourceType === IdentifierResourceType.ACCELERATOR,
@@ -357,6 +359,8 @@ export const AcceleratorConfigFieldWizardField: AcceleratorConfigFieldType = {
       if (existingFieldData) {
         return existingFieldData;
       }
+      // Only suggest configs that support the selected topology, matching the options shown in
+      // the dropdown.
       const topologyType = dependencies?.topologyFieldData?.topologyType;
       const visibleConfigs = (externalData?.configs ?? []).filter((config) =>
         configSupportsTopology(config, topologyType),

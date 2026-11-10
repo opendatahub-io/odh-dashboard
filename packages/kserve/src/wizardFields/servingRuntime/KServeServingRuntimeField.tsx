@@ -297,6 +297,7 @@ const computeSuggestion = (
     );
   }
 
+  // A unique model-format match alone is not enough: automatic selection requires an accelerator.
   const accelerator = getAcceleratorIdentifierFromHardwareProfile(hardwareProfile);
   if (!accelerator) {
     return undefined;
@@ -307,7 +308,8 @@ const computeSuggestion = (
   );
 
   if (filtered && filtered.length > 0) {
-    // `templates` is already in admin-defined order; keep that order when selecting the first match.
+    // Filtering preserves the supplied template order (including project/global precedence).
+    // Multiple matches are valid: use the first rather than forcing a manual choice.
     const suggestedTemplate = filtered[0];
     return {
       name: suggestedTemplate.metadata.name,
