@@ -165,18 +165,6 @@ pnpm run cypress:run \
 
 For comprehensive documentation of all Cypress environment variables, see the [Cypress Environment Variables section in the main testing documentation](/docs/testing.md#cypress-environment-variables).
 
-AutoRAG E2E setup optionally accepts `OPERATOR_NAMESPACE` in the test variables file or process
-environment. When set, that namespace must contain exactly one available dashboard-operator
-Deployment selected by the `app.kubernetes.io/name=dashboard-operator` label. When omitted,
-Cypress searches all namespaces and still requires exactly one match. Its `manager` container supplies the resolved
-`RELATED_IMAGE_POSTGRESQL_16_IMAGE` value used by the temporary PGVector fixture.
-Cluster-wide autodetection requires permission to list Deployments across namespaces; set
-`OPERATOR_NAMESPACE` to use namespace-scoped permissions instead.
-
-The AutoRAG completion and cancellation budgets are configurable in milliseconds through
-`CYPRESS_AUTORAG_COMPLETION_TIMEOUT_MS` (default: 60 minutes) and
-`CYPRESS_AUTORAG_CANCELLATION_TIMEOUT_MS` (default: 2 minutes).
-
 ## Writing Tests
 
 e2e tests should focus on user journeys through the application, validating that features work as intended from the user's perspective.
