@@ -47,12 +47,8 @@ type CopySuiteBenchmarksStepProps = {
   onSaveAndRun: () => void;
   onSaveOnly: () => void;
   onBack: () => void;
-  primaryActionLabel?: string;
   primaryActionTestId?: string;
   secondaryActionLabel?: string;
-  showSecondaryAction?: boolean;
-  showBenchmarkNavigation?: boolean;
-  onDeselectBenchmark?: () => void;
   onCancel: () => void;
 };
 
@@ -71,12 +67,8 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   onSaveAndRun,
   onSaveOnly,
   onBack,
-  primaryActionLabel = 'Save and run',
   primaryActionTestId = 'copy-suite-save-and-run',
   secondaryActionLabel = 'Add to my collections',
-  showSecondaryAction = true,
-  showBenchmarkNavigation = true,
-  onDeselectBenchmark,
   onCancel,
 }) => {
   const { config } = useModularArchContext();
@@ -163,52 +155,50 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
       >
         {hasBenchmarks ? (
           <Sidebar hasGutter className="evalhub-copy-suite-benchmarks-step__layout">
-            {showBenchmarkNavigation ? (
-              <SidebarPanel
-                variant="sticky"
-                className="pf-v6-u-display-none pf-v6-u-display-block-on-lg evalhub-copy-suite-benchmarks-step__nav"
+            <SidebarPanel
+              variant="sticky"
+              className="pf-v6-u-display-none pf-v6-u-display-block-on-lg evalhub-copy-suite-benchmarks-step__nav"
+            >
+              <JumpLinks
+                key={isInteractionDisabled ? 'locked' : 'interactive'}
+                isVertical
+                label="Jump to benchmarks"
+                scrollableRef={getScrollableElement}
+                offset={16}
               >
-                <JumpLinks
-                  key={isInteractionDisabled ? 'locked' : 'interactive'}
-                  isVertical
-                  label="Jump to benchmarks"
-                  scrollableRef={getScrollableElement}
-                  offset={16}
-                >
-                  {benchmarks.map((benchmark, index) => {
-                    const key = `${benchmark.id}-${index}`;
-                    const content = (
-                      <span
-                        className="evalhub-copy-suite-benchmarks-step__jump-link-text"
-                        title={benchmark.name}
-                      >
-                        {benchmark.name}
-                      </span>
-                    );
+                {benchmarks.map((benchmark, index) => {
+                  const key = `${benchmark.id}-${index}`;
+                  const content = (
+                    <span
+                      className="evalhub-copy-suite-benchmarks-step__jump-link-text"
+                      title={benchmark.name}
+                    >
+                      {benchmark.name}
+                    </span>
+                  );
 
-                    return isInteractionDisabled ? (
-                      <li
-                        key={key}
-                        className="pf-v6-c-jump-links__item"
-                        data-testid={`benchmark-jump-link-${index}`}
-                      >
-                        <span className="evalhub-copy-suite-benchmarks-step__jump-link-disabled">
-                          {content}
-                        </span>
-                      </li>
-                    ) : (
-                      <JumpLinksItem
-                        key={key}
-                        href={`#benchmark-section-${index}`}
-                        data-testid={`benchmark-jump-link-${index}`}
-                      >
+                  return isInteractionDisabled ? (
+                    <li
+                      key={key}
+                      className="pf-v6-c-jump-links__item"
+                      data-testid={`benchmark-jump-link-${index}`}
+                    >
+                      <span className="evalhub-copy-suite-benchmarks-step__jump-link-disabled">
                         {content}
-                      </JumpLinksItem>
-                    );
-                  })}
-                </JumpLinks>
-              </SidebarPanel>
-            ) : null}
+                      </span>
+                    </li>
+                  ) : (
+                    <JumpLinksItem
+                      key={key}
+                      href={`#benchmark-section-${index}`}
+                      data-testid={`benchmark-jump-link-${index}`}
+                    >
+                      {content}
+                    </JumpLinksItem>
+                  );
+                })}
+              </JumpLinks>
+            </SidebarPanel>
             <SidebarContent>
               <Form onSubmit={(event) => event.preventDefault()}>
                 <div
@@ -245,11 +235,6 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
                           setDetailsBenchmarkKey(benchmarkKey);
                         }
                       }}
-                      onDeselect={
-                        onDeselectBenchmark && !isInteractionDisabled
-                          ? onDeselectBenchmark
-                          : undefined
-                      }
                     />
                   ))}
                 </div>
@@ -281,18 +266,16 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
           isDisabled={!isValid || isSubmitting}
           isLoading={isSubmitting}
         >
-          {primaryActionLabel}
+          Save and run
         </Button>
-        {showSecondaryAction ? (
-          <Button
-            variant="secondary"
-            data-testid="copy-suite-save-only"
-            onClick={onSaveOnly}
-            isDisabled={!isValid || isSubmitting}
-          >
-            {secondaryActionLabel}
-          </Button>
-        ) : null}
+        <Button
+          variant="secondary"
+          data-testid="copy-suite-save-only"
+          onClick={onSaveOnly}
+          isDisabled={!isValid || isSubmitting}
+        >
+          {secondaryActionLabel}
+        </Button>
         <Button
           variant="link"
           data-testid="copy-suite-cancel-step-2"

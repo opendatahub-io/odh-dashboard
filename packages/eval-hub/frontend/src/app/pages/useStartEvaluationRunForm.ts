@@ -75,7 +75,7 @@ const getTrackingContext = (
 
 type UseStartEvaluationRunFormParams = {
   namespace: string | undefined;
-  benchmark: FlatBenchmark | undefined;
+  benchmark?: FlatBenchmark;
   collection: Collection | undefined;
   isCollectionFlow: boolean;
   benchmarkParameterValues?: Record<string, unknown>;

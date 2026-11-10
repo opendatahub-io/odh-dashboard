@@ -215,7 +215,7 @@ export type EvaluationRunsFilterAppliedProperties =
     };
 
 export type BenchmarkDetailsViewedProperties = {
-  source: 'catalogTable' | 'suiteEditor';
+  source: 'catalogGrid' | 'suiteEditor';
 };
 
 export type CollectionCategorySelectedProperties = {

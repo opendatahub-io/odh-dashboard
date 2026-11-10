@@ -43,7 +43,6 @@ type CopySuiteBenchmarkSectionProps = {
   onUpdate: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
   onEditWeights: () => void;
   onOpenDetails: (benchmarkKey: string) => void;
-  onDeselect?: () => void;
 };
 
 const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
@@ -60,7 +59,6 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
   onUpdate,
   onEditWeights,
   onOpenDetails,
-  onDeselect,
 }) => {
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(
     () => !!benchmark.additionalParameters?.trim(),
@@ -118,17 +116,6 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
                 <PencilAltIcon aria-hidden />
               </Button>
             </div>
-          ) : null}
-          {onDeselect ? (
-            <Button
-              variant="link"
-              isInline
-              data-testid={`benchmark-deselect-${index}`}
-              onClick={onDeselect}
-              isDisabled={isInteractionDisabled}
-            >
-              Deselect benchmark
-            </Button>
           ) : null}
         </div>
         <Content component="p" className="evalhub-copy-suite-benchmark-section__benchmark-id">

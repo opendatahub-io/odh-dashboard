@@ -38,7 +38,7 @@ import {
   EXTERNAL_ENDPOINT_VALUE,
   useStartEvaluationRunForm,
 } from '~/app/pages/useStartEvaluationRunForm';
-import type { Collection, CollectionResolution, FlatBenchmark, SourceMode } from '~/app/types';
+import type { Collection, CollectionResolution, SourceMode } from '~/app/types';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
@@ -50,8 +50,6 @@ type StartEvaluationRunModalProps = {
   onClose: () => void;
   namespace: string | undefined;
   collection?: Collection;
-  benchmark?: FlatBenchmark;
-  isCollectionFlow: boolean;
   defaultEvaluationName?: string;
   defaultSourceMode?: SourceMode;
   initialRunValues?: Partial<StartEvaluationRunFormValues>;
@@ -75,8 +73,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   onClose,
   namespace,
   collection,
-  benchmark,
-  isCollectionFlow,
   defaultEvaluationName,
   defaultSourceMode,
   initialRunValues,
@@ -89,7 +85,7 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   prerequisite,
   onRunFailure,
 }) => {
-  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(() => !isCollectionFlow);
+  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const [isCloning, setIsCloning] = React.useState(false);
   const [isModelOpen, setIsModelOpen] = React.useState(false);
   const startAttemptRef = React.useRef(0);
@@ -109,12 +105,12 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
               ? 'system'
               : 'custom'
             : 'unknown',
-          providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+          providerType: collection?.benchmarks?.[0]?.provider_id,
         },
       );
     }
     wasOpenRef.current = isOpen;
-  }, [benchmark, collection, isOpen, trackingSource]);
+  }, [collection, isOpen, trackingSource]);
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',
@@ -129,10 +125,9 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
 
   const form = useStartEvaluationRunForm({
     namespace,
-    benchmark,
     collection,
-    isCollectionFlow,
-    allowDeferredCollection: isCollectionFlow && !collection && !!resolveCollection,
+    isCollectionFlow: true,
+    allowDeferredCollection: !collection && !!resolveCollection,
     experiments,
     experimentsLoaded,
     defaultEvaluationName,
@@ -280,15 +275,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
             data-testid="start-evaluation-run-collection-name"
           >
             Collection: {collection.name}
-          </Content>
-        ) : null}
-        {benchmark ? (
-          <Content
-            component="p"
-            className="evalhub-start-evaluation-run-modal__suite-name"
-            data-testid="start-evaluation-run-benchmark-name"
-          >
-            Benchmark: {benchmark.name}
           </Content>
         ) : null}
         {description ? (
@@ -544,16 +530,6 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
                         placeholder="Enter experiment name"
                       />
                     </div>
-                  ) : null}
-                  {!isCollectionFlow ? (
-                    <FormHelperText data-testid="mlflow-experiment-helper">
-                      <HelperText>
-                        <HelperTextItem>
-                          Evaluation metrics are logged to MLflow. Select an existing experiment or
-                          create one to organize related runs.
-                        </HelperTextItem>
-                      </HelperText>
-                    </FormHelperText>
                   ) : null}
                 </FormGroup>
               </ExpandableSection>

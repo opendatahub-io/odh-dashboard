@@ -132,25 +132,6 @@ describe('CopySuiteBenchmarkSelectionStep', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should limit an individual benchmark flow to one selection', () => {
-    const { onNext } = renderSelectionStep({
-      selectedBenchmarkKeys: [],
-      maxSelectionCount: 1,
-      selectionContext: 'single',
-    });
-
-    expect(screen.getByRole('heading', { name: 'Select benchmark', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText('Search and select one benchmark to evaluate.')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('benchmark-catalog-checkbox-planning'));
-
-    expect(screen.getByTestId('benchmark-catalog-checkbox-planning')).toBeChecked();
-    expect(screen.getByTestId('benchmark-catalog-checkbox-tasks')).toBeDisabled();
-    fireEvent.click(screen.getByTestId('copy-suite-next-select-benchmarks'));
-
-    expect(onNext).toHaveBeenCalledWith(['provider-one:planning']);
-  });
-
   it('should format underscore-separated target type labels', () => {
     renderSelectionStep({
       providers: [

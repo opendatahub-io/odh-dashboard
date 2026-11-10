@@ -211,7 +211,7 @@ const SingleBenchmarkWizardPage: React.FC = () => {
 
     if (!isClosingSelectedBenchmark) {
       trackEvalHubEvent(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
-        source: 'catalogTable',
+        source: 'catalogGrid',
       });
     }
 
@@ -233,7 +233,7 @@ const SingleBenchmarkWizardPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark"
-            description="Select a benchmark to run on your model, agent, or dataset."
+            description="Select a benchmark to evaluate a model."
             breadcrumb={
               <ContextBreadcrumb
                 pageName="Evaluations"

@@ -128,7 +128,7 @@ describe('SingleBenchmarkWizardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Basic science Q&A' }));
 
     expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_DETAILS_VIEWED, {
-      source: 'catalogTable',
+      source: 'catalogGrid',
     });
   });
 

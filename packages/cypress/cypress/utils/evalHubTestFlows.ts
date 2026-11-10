@@ -557,23 +557,24 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
   // curated collection data finishes loading, detaching the original button subject.
   evaluationsPage.findBrowseAllBenchmarksExplore(navigationTimeout).click();
   cy.location('pathname', navigationTimeout).should('match', /\/create\/single-benchmark$/);
-  singleBenchmarkWizardPage.findSelectionTitle(navigationTimeout).should('be.visible');
   singleBenchmarkWizardPage.findBreadcrumb(navigationTimeout).should('contain.text', 'Benchmarks');
-  singleBenchmarkWizardPage.findBenchmarkCatalogTable(navigationTimeout).should('be.visible');
+  singleBenchmarkWizardPage.findBenchmarksGallery(navigationTimeout).should('be.visible');
 
-  cy.step(`Select benchmark from the catalog: ${benchmarkCardTitle}`);
+  cy.step(`Select benchmark from the grid: ${benchmarkCardTitle}`);
   singleBenchmarkWizardPage
-    .findBenchmarkCatalogSearch(navigationTimeout)
+    .findBenchmarkSearch(navigationTimeout)
     .should('be.visible')
     .clear()
     .type(benchmarkId);
   singleBenchmarkWizardPage
-    .findBenchmarkCheckbox(benchmarkId, benchmarkProviderId, navigationTimeout)
+    .findBenchmarkCard(benchmarkId, benchmarkProviderId, navigationTimeout)
     .scrollIntoView()
     .should('be.visible')
-    .check()
-    .should('be.checked');
-  singleBenchmarkWizardPage.findNextButton(navigationTimeout).should('be.enabled').click();
+    .and('contain.text', benchmarkCardTitle);
+  singleBenchmarkWizardPage
+    .findSelectBenchmarkButton(benchmarkId, benchmarkProviderId, navigationTimeout)
+    .should('be.enabled')
+    .click();
   createEvaluationPage.findStartEvaluationForm(navigationTimeout).should('be.visible');
   createEvaluationPage
     .findStartEvaluationRunBreadcrumb()

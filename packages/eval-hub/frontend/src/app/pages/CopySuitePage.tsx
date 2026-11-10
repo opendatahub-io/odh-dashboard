@@ -476,7 +476,6 @@ const SuiteEditorPage: React.FC<SuiteEditorPageProps> = ({ mode }) => {
             onClose={() => setIsRunModalOpen(false)}
             namespace={namespace}
             collection={pendingCollection}
-            isCollectionFlow
             defaultEvaluationName={form.suiteName}
             modalId={
               isCreateMode

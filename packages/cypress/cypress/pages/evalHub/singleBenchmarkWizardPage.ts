@@ -1,34 +1,36 @@
 class SingleBenchmarkWizardPage {
-  findSelectionTitle(options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId('copy-suite-select-benchmarks-title', options);
-  }
-
   findBreadcrumb(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('single-benchmark-breadcrumb', options);
   }
 
-  findBenchmarkCatalogSearch(options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId('benchmark-catalog-search', options).find('input').first();
+  findBenchmarkSearch(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('benchmarks-name-filter', options).find('input').first();
   }
 
-  findBenchmarkCatalogTable(options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId('benchmark-catalog-table', options);
+  findBenchmarksGallery(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('benchmarks-gallery', options);
   }
 
-  findBenchmarkCheckbox(
+  findBenchmarkCard(
     benchmarkId: string,
     providerId: string,
     options?: Partial<Cypress.Timeoutable>,
   ) {
-    return this.findBenchmarkCatalogTable(options).find(
-      `[data-testid="benchmark-catalog-checkbox-${benchmarkId}"]` +
-        `[id="benchmark-catalog-${providerId}:${benchmarkId}"]`,
+    return this.findBenchmarksGallery(options).find(
+      `[data-testid="benchmark-card-${providerId}-${benchmarkId}"]`,
       options,
     );
   }
 
-  findNextButton(options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId('copy-suite-next-select-benchmarks', options);
+  findSelectBenchmarkButton(
+    benchmarkId: string,
+    providerId: string,
+    options?: Partial<Cypress.Timeoutable>,
+  ) {
+    return this.findBenchmarkCard(benchmarkId, providerId, options).findByTestId(
+      'select-benchmark-button',
+      options,
+    );
   }
 }
 

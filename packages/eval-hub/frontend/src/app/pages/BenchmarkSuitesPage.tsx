@@ -198,7 +198,6 @@ const BenchmarkSuitesPage: React.FC = () => {
           onClose={() => setCollectionToRun(undefined)}
           namespace={namespace}
           collection={collectionToRun}
-          isCollectionFlow
           modalId="benchmark-suites-page-start-evaluation-run-modal"
           trackingSource="benchmark_suites_page"
           onSuccess={handleRunSuccess}
