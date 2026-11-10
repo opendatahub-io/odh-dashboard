@@ -175,10 +175,10 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
             >
               <Thead>
                 <Tr>
-                  <Th>Name</Th>
-                  <Th>Type</Th>
-                  <Th>Format</Th>
-                  <Th screenReaderText="Actions" />
+                  <Th data-testid="collection-assets-header">Name</Th>
+                  <Th data-testid="collection-assets-header">Type</Th>
+                  <Th data-testid="collection-assets-header">Format</Th>
+                  <Th data-testid="collection-assets-header" screenReaderText="Actions" />
                 </Tr>
               </Thead>
               <Tbody>
@@ -231,7 +231,9 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
               <DescriptionListTerm>Created</DescriptionListTerm>
               <DescriptionListDescription data-testid="collection-created-at">
                 {collection.createdAt
-                  ? `${new Date(collection.createdAt).toLocaleString()}${collection.createdBy ? ` by ${collection.createdBy}` : ''}`
+                  ? `${new Date(collection.createdAt).toLocaleString()}${
+                      collection.createdBy ? ` by ${collection.createdBy}` : ''
+                    }`
                   : '-'}
               </DescriptionListDescription>
             </DescriptionListGroup>
