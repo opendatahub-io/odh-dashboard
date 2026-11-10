@@ -211,11 +211,13 @@ var clusterServiceSuffixesFn = defaultClusterServiceSuffixes
 var (
 	clusterServiceSuffixesOnce sync.Once
 	clusterServiceSuffixesList []string
+	discoveredSuffixesList     []string
 )
 
 func defaultClusterServiceSuffixes() []string {
 	clusterServiceSuffixesOnce.Do(func() {
-		clusterServiceSuffixesList = parseResolvConfServiceSuffixes("/etc/resolv.conf")
+		discoveredSuffixesList = parseResolvConfServiceSuffixes("/etc/resolv.conf")
+		clusterServiceSuffixesList = discoveredSuffixesList
 		// Always keep the Kubernetes default alongside discovered suffixes:
 		// environments without discoverable service search entries (local
 		// development, CI containers) still classify standard cluster.local
@@ -228,6 +230,23 @@ func defaultClusterServiceSuffixes() []string {
 		clusterServiceSuffixesList = append(clusterServiceSuffixesList, "svc.cluster.local")
 	})
 	return clusterServiceSuffixesList
+}
+
+// probeableServiceSuffixesFn returns only the service suffixes the resolver's
+// search list actually contains. Unlike clusterServiceSuffixesFn (which always
+// includes the Kubernetes default so fully-qualified Service names are
+// recognized everywhere), these are the only suffixes the local resolver would
+// complete partial names with, so they are the only ones the classification
+// probes with DNS lookups: probing with a suffix the resolver does not search
+// (e.g. the synthetic default on a CI runner or developer machine) can surface
+// resolver errors the real resolution path would never produce.
+var probeableServiceSuffixesFn = defaultProbeableServiceSuffixes
+
+func defaultProbeableServiceSuffixes() []string {
+	clusterServiceSuffixesOnce.Do(func() {
+		defaultClusterServiceSuffixes()
+	})
+	return discoveredSuffixesList
 }
 
 // parseResolvConfServiceSuffixes extracts the "svc.<domain>" suffixes from a
@@ -440,7 +459,9 @@ func (c *hostClassification) classifyServiceName(ctx context.Context, absolute b
 		c.mustDeny = true
 		return nil
 	}
-	for _, suffix := range suffixes {
+	// Only suffixes the resolver's search list actually contains can complete
+	// a partial name, so only those are probed (see probeableServiceSuffixesFn).
+	for _, suffix := range probeableServiceSuffixesFn() {
 		// The pod-namespace search entry (<podNS>.svc.<domain>) completes
 		// one-label names to a Service in the BFF pod's namespace and
 		// two-label names to a pod-specific name there.
@@ -876,6 +897,12 @@ func (r *ExternalModelsRepository) VerifyExternalModel(
 	insecureSkipVerify bool,
 	allowLoopback bool,
 ) (*models.VerifyExternalModelResponse, error) {
+	// Reject malformed URLs as configuration errors before the DNS-dependent
+	// classification below, which can otherwise turn an invalid URL into an
+	// availability error or a trust denial.
+	if err := externalmodels.ValidateBaseURLFormat(req.BaseURL); err != nil {
+		return nil, err
+	}
 	// Classify the host once so every trust decision below shares the same
 	// parse (and DNS lookup) result. A classification that could not complete
 	// (e.g. a transient DNS failure distinguishing a short Service name from

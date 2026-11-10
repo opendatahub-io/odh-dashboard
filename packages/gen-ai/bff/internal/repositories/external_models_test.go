@@ -74,11 +74,13 @@ func TestIsInternalHost(t *testing.T) {
 // functions for deterministic fakes and restores them when the test ends.
 func withInjectedServiceDNS(t *testing.T, suffixes []string, resolvesAbsolutely bool) {
 	t.Helper()
-	originalSuffixes, originalLookup := clusterServiceSuffixesFn, lookupAbsHostFn
+	originalSuffixes, originalProbeable, originalLookup := clusterServiceSuffixesFn, probeableServiceSuffixesFn, lookupAbsHostFn
 	clusterServiceSuffixesFn = func() []string { return suffixes }
+	probeableServiceSuffixesFn = func() []string { return suffixes }
 	lookupAbsHostFn = func(context.Context, string) (bool, error) { return resolvesAbsolutely, nil }
 	t.Cleanup(func() {
 		clusterServiceSuffixesFn = originalSuffixes
+		probeableServiceSuffixesFn = originalProbeable
 		lookupAbsHostFn = originalLookup
 	})
 }

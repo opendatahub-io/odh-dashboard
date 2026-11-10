@@ -117,6 +117,16 @@ func isPrivateIP(ip net.IP) bool {
 	return false
 }
 
+// ValidateBaseURLFormat checks syntactic URL validity (parseable, HTTP or
+// HTTPS scheme, non-empty hostname) without DNS lookups so callers can reject
+// malformed URLs as INVALID_CONFIGURATION before DNS-dependent host
+// classification and trust resolution, which can otherwise turn an invalid
+// URL into an availability or trust error. HTTP is permitted at this stage;
+// the caller re-validates with the authoritative allow-HTTP decision.
+func ValidateBaseURLFormat(baseURL string) error {
+	return validateBaseURL(baseURL, true)
+}
+
 // validateBaseURL performs basic URL validation without DNS lookup
 // Returns *ExternalModelError for validation failures
 func validateBaseURL(baseURL string, allowHTTP bool) error {
