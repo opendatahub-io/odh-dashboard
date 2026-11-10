@@ -26,6 +26,8 @@ import { useProjectsBridge } from '~/odh/context/ProjectsBridgeContext';
 import NamespaceSelectorFieldWrapper from '~/odh/components/NamespaceSelectorFieldWrapper';
 import useMcpDeployments from '~/odh/pages/mcpDeployments/useMcpDeployments';
 import { createMcpDeployment } from '~/odh/api/mcpCatalogDeployment/service';
+import { deleteMcpDeployment } from '~/odh/api/mcpDeploymentService';
+import { BFF_HOST_PATH } from '~/app/utilities/const';
 import useMcpImageDeployReadiness from '~/odh/hooks/useMcpImageDeployReadiness';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import {
@@ -42,7 +44,7 @@ import {
 } from '~/odh/utils/mcpServerCatalog';
 import { isGatewayRegistrationPending } from '~/odh/pages/mcpDeployments/utils';
 
-type InstallStep = 'preflight' | 'installing';
+type InstallStep = 'preflight' | 'installing' | 'cancelled';
 
 type McpServerInstallModalProps = {
   server: McpServer;
@@ -64,6 +66,10 @@ type InstallSession = {
 };
 
 const installSessionKey = (serverName: string): string => `odh-mcp-install-session:${serverName}`;
+
+// Gateway registration is asynchronous and can legitimately take several minutes on a
+// busy cluster. It must still have a bounded, recoverable outcome for the end user.
+const INSTALL_TIMEOUT_SECONDS = 10 * 60;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -188,6 +194,8 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isCancelling, setIsCancelling] = React.useState(false);
+  const [cancelError, setCancelError] = React.useState<Error>();
   const abortControllerRef = React.useRef<AbortController>();
   const [deploymentData] = useMcpDeployments(selectedNamespace);
   const deployments = deploymentData.items;
@@ -254,8 +262,13 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
     readinessReady &&
     readyCondition?.status === McpConditionStatus.TRUE &&
     (!gatewayRequired || gatewayRegistrationCondition?.status === McpConditionStatus.TRUE);
-  const installationTerminal = installComplete || installNeedsAttention;
   const installationRunningLong = elapsedSeconds >= 30;
+  const installationTimedOut =
+    step === 'installing' &&
+    elapsedSeconds >= INSTALL_TIMEOUT_SECONDS &&
+    !installComplete &&
+    !installNeedsAttention;
+  const installationTerminal = installComplete || installNeedsAttention || installationTimedOut;
 
   const installationPhase = (() => {
     if (installComplete) {
@@ -263,6 +276,9 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
     }
     if (installNeedsAttention) {
       return 'Blocked';
+    }
+    if (installationTimedOut) {
+      return 'Timed out waiting for cluster';
     }
     if (!listedDeployment) {
       return 'Submitting resource';
@@ -388,9 +404,41 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   };
 
   const handleClose = React.useCallback(() => {
+    if (step === 'installing' && !installComplete) {
+      return;
+    }
     clearInstallSession(server.name);
     onClose();
-  }, [onClose, server.name]);
+  }, [installComplete, onClose, server.name, step]);
+
+  const handleCancelInstallation = async () => {
+    if (isCancelling) {
+      return;
+    }
+
+    setIsCancelling(true);
+    setCancelError(undefined);
+    abortControllerRef.current?.abort();
+
+    try {
+      if (deploymentName) {
+        await deleteMcpDeployment(BFF_HOST_PATH, { namespace: selectedNamespace })(
+          {},
+          deploymentName,
+        );
+      }
+      clearInstallSession(server.name);
+      setStep('cancelled');
+    } catch (error) {
+      setCancelError(
+        error instanceof Error
+          ? error
+          : new Error('Failed to cancel and clean up the installation'),
+      );
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const handleContinueToDeployments = React.useCallback(() => {
     if (installComplete && deployment) {
@@ -400,6 +448,15 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   }, [deployment, installComplete, onContinueToDeployments, server.name]);
 
   const renderInstallStatus = () => {
+    if (installationTimedOut) {
+      return (
+        <Alert variant="danger" isInline title="Installation timed out">
+          Gateway registration did not complete within {INSTALL_TIMEOUT_SECONDS / 60} minutes. The
+          cluster may still be reconciling; cancel this installation to remove the resources owned
+          by this workflow, then retry after the Gateway is healthy.
+        </Alert>
+      );
+    }
     if (installNeedsAttention) {
       return (
         <Alert variant="danger" isInline title="Installation needs attention">
@@ -464,7 +521,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
     <Modal
       isOpen
       variant="medium"
-      onClose={step === 'installing' && !installationTerminal ? () => undefined : handleClose}
+      onClose={step === 'installing' && !installComplete ? () => undefined : handleClose}
       data-testid="mcp-install-modal"
     >
       <ModalHeader
@@ -580,9 +637,11 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
               <Title headingLevel="h3" size="lg">
                 {installComplete
                   ? 'Installation complete'
-                  : installNeedsAttention
-                    ? 'Installation needs attention'
-                    : 'Installing...'}
+                  : installationTimedOut
+                    ? 'Installation timed out'
+                    : installNeedsAttention
+                      ? 'Installation needs attention'
+                      : 'Installing...'}
               </Title>
               <Content component="p">
                 Project: {selectedNamespace} · Lane: {innovationLane ? 'Innovation' : 'Production'}
@@ -604,8 +663,21 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
                   {installationRunningLong ? 'This phase is taking longer than expected.' : ''}
                 </Content>
               )}
+              {installationTimedOut && (
+                <Alert variant="warning" isInline title="Recovery is available">
+                  Cancel installation removes only the resources created by this workflow. Shared
+                  platform operators and Gateway resources are not removed.
+                </Alert>
+              )}
             </StackItem>
             <StackItem>{renderInstallStatus()}</StackItem>
+            {cancelError && (
+              <StackItem>
+                <Alert variant="danger" isInline title="Cancellation needs attention">
+                  {cancelError.message}
+                </Alert>
+              </StackItem>
+            )}
             {!installationTerminal && !listedDeployment && (
               <StackItem>
                 <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
@@ -616,6 +688,19 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
                 </Flex>
               </StackItem>
             )}
+          </Stack>
+        )}
+        {step === 'cancelled' && (
+          <Stack hasGutter>
+            <StackItem>
+              <Title headingLevel="h3" size="lg">
+                Installation cancelled
+              </Title>
+              <Content component="p">
+                The installation resources owned by this workflow were removed. Shared platform
+                operators and Gateway resources were left untouched.
+              </Content>
+            </StackItem>
           </Stack>
         )}
       </ModalBody>
@@ -637,22 +722,40 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
           </>
         )}
         {step === 'installing' &&
-          (installationTerminal ? (
+          (installComplete ? (
             <>
               <Button variant="link" onClick={handleClose}>
                 Close
               </Button>
-              {installComplete && deployment && onContinueToDeployments && (
+              {deployment && onContinueToDeployments && (
                 <Button variant="primary" onClick={handleContinueToDeployments}>
                   Continue to deployments
                 </Button>
               )}
             </>
           ) : (
-            <Content component="small">
-              Waiting for the cluster to report success or a blocked condition.
-            </Content>
+            <>
+              <Button
+                variant="danger"
+                onClick={handleCancelInstallation}
+                isDisabled={isCancelling || !deploymentName}
+                isLoading={isCancelling}
+                data-testid="mcp-install-cancel"
+              >
+                {isCancelling ? 'Cancelling installation' : 'Cancel installation'}
+              </Button>
+              <Content component="small">
+                {installationTimedOut
+                  ? 'The installation exceeded its recovery window.'
+                  : 'You can cancel if the cluster stops progressing.'}
+              </Content>
+            </>
           ))}
+        {step === 'cancelled' && (
+          <Button variant="primary" onClick={handleClose}>
+            Close
+          </Button>
+        )}
       </ModalFooter>
     </Modal>
   );
