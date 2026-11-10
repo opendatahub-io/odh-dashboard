@@ -20,11 +20,14 @@ import {
   AUTOML_RECOVERY_MANAGED_BY_LABEL,
   AUTOML_RECOVERY_ORPHAN_AGE_MS,
   AUTOML_RECOVERY_RUN_ID_LABEL,
+  assertAutomlCleanupTarget,
   buildRecoveryJobManifest,
   buildRecoverySecretManifest,
   buildRecoverySecretOwnerReference,
+  isAutomlCleanupComplete,
   isStaleUnownedRecoverySecret,
 } from '../src/automlCleanupRecovery';
+import { deleteOpenShiftProjectWithUid } from '../src/automlProjectDeletion';
 import type { AWSS3Buckets } from '../cypress/types';
 
 type CliOptions = {
@@ -57,7 +60,8 @@ const parseOptions = (): CliOptions => {
         '[--namespace=PROJECT] [--manifest-dir=DIR]\n' +
         'Cleans recorded AutoML and AutoRAG resources. Dry-run is the default.\n' +
         '--apply requires an explicit oc context and stable executor namespace, ' +
-        'and CY_TEST_CONFIG.\n' +
+        'CY_TEST_CONFIG, and an S3 endpoint matching the configured bucket or ' +
+        'CYPRESS_DSPA_S3_ENDPOINT.\n' +
         'Context and namespace may use CY_AUTOX_CLEANUP_CONTEXT and CY_AUTOX_CLEANUP_NAMESPACE.\n' +
         'The AWS CLI image may use CY_S3_CLEANUP_IMAGE; AWS_CLI_IMAGE is also accepted.\n',
     );
@@ -508,16 +512,9 @@ const sweepOrphanedRecoverySecrets = (namespace: string): void => {
 };
 
 const deleteProject = async (namespace: string, namespaceUID: string): Promise<string | null> => {
-  const result = runOc([
-    'delete',
-    'project',
-    namespace,
-    `--preconditions=uid=${namespaceUID}`,
-    '--wait=false',
-    '--ignore-not-found',
-  ]);
-  if (result.exitCode !== 0) {
-    return `Project deletion request failed for ${namespace}: ${result.stderr}`;
+  const result = await deleteOpenShiftProjectWithUid(namespace, namespaceUID, cleanupOcContext);
+  if (!result.deleted) {
+    return `Project deletion request failed for ${namespace}: ${result.error ?? 'unknown error'}`;
   }
   for (let attempt = 0; attempt < 24; attempt++) {
     const status = namespaceStatus(namespace);
@@ -542,6 +539,9 @@ const applyManifest = async (
 ): Promise<boolean> => {
   let success = true;
   for (const project of manifest.projects) {
+    if (isAutomlCleanupComplete(project)) {
+      continue;
+    }
     assertAutomlCleanupProject(project);
     const errors: string[] = [];
     let status: ReturnType<typeof namespaceStatus> = {
@@ -666,6 +666,7 @@ const main = async (): Promise<void> => {
             project.projectDeleted ? 'deleted' : 'pending'
           }\n`,
       );
+      process.stdout.write(`  S3 endpoint: ${project.s3Endpoint ?? '(missing)'}\n`);
       for (const key of project.uploads) {
         process.stdout.write(`  input: ${key}\n`);
       }
@@ -706,25 +707,20 @@ const main = async (): Promise<void> => {
   for (const filePath of paths) {
     const manifest = readAutomlCleanupManifest(filePath);
     for (const project of manifest.projects) {
-      if (
-        !project.namespace.startsWith('cy-e2e-automl-') &&
-        !project.namespace.startsWith('cy-e2e-autorag-')
-      ) {
-        throw new Error(`Refusing to clean an unrelated project: ${project.namespace}`);
+      if (isAutomlCleanupComplete(project)) {
+        continue;
       }
-      if (project.clusterServer !== serverResult.stdout.trim()) {
-        throw new Error(`Cluster mismatch for ${project.namespace}: ${project.clusterServer}`);
-      }
-      if (project.bucketName !== buckets[project.bucketKey].NAME) {
-        throw new Error(`S3 bucket mismatch for ${project.namespace}: ${project.bucketName}`);
-      }
-      if (
-        !project.s3Cleaned &&
-        (project.uploads.length > 0 || project.runs.length > 0) &&
-        project.s3Endpoint === undefined
-      ) {
-        throw new Error(`Recorded S3 endpoint is missing for ${project.namespace}`);
-      }
+      assertAutomlCleanupTarget(
+        project,
+        serverResult.stdout.trim(),
+        buckets[project.bucketKey].NAME,
+        [
+          buckets[project.bucketKey].ENDPOINT,
+          process.env.CYPRESS_DSPA_S3_ENDPOINT?.trim() ||
+            process.env.DSPA_S3_ENDPOINT?.trim() ||
+            '',
+        ].filter(Boolean),
+      );
       if (!project.projectDeleted) {
         if (!project.cleanupToken) {
           throw new Error(

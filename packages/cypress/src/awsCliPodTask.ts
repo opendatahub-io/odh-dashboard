@@ -1,13 +1,19 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
+import { randomBytes } from 'crypto';
 import type { CommandLineResult } from '../cypress/types';
+import {
+  AUTOML_RECOVERY_MANAGED_BY,
+  AUTOML_RECOVERY_MANAGED_BY_LABEL,
+  AUTOML_RECOVERY_RUN_ID_LABEL,
+  buildRecoveryJobManifest,
+  buildRecoverySecretManifest,
+  buildRecoverySecretOwnerReference,
+} from './automlCleanupRecovery';
 
 const DNS_LABEL = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 const OC_CLEANUP_TIMEOUT_MS = 30000;
 const MAX_OUTPUT_LENGTH = 4 * 1024 * 1024;
 export const AWS_CLI_TASK_CLEANUP_HEADROOM_MS = 180000;
-const CA_BUNDLE_MOUNT_DIR = '/tmp/s3-ca';
-const CA_BUNDLE_FILE = 'ca.pem';
-const CA_BUNDLE_SECRET_KEY = 'AWS_CA_BUNDLE_PEM';
 
 export type AwsCliPodTaskOptions = {
   namespace: string;
@@ -97,6 +103,26 @@ const commandFailure = (error: unknown): CommandLineResult => ({
   stderr: error instanceof Error ? error.message : String(error),
 });
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getJobState = (job: Record<string, unknown>): 'complete' | 'failed' | 'running' => {
+  const status = isRecord(job.status) ? job.status : {};
+  const conditions = Array.isArray(status.conditions) ? status.conditions : [];
+  const hasCondition = (type: 'Complete' | 'Failed'): boolean =>
+    conditions.some(
+      (condition) =>
+        isRecord(condition) && condition.type === type && condition.status === 'True',
+    );
+  if (hasCondition('Complete')) {
+    return 'complete';
+  }
+  if (hasCondition('Failed') || (typeof status.failed === 'number' && status.failed > 0)) {
+    return 'failed';
+  }
+  return 'running';
+};
+
 export const createAwsCliPodTask =
   (runCommand: OcCommandRunner = runOc) =>
   async (options: AwsCliPodTaskOptions): Promise<CommandLineResult> => {
@@ -114,111 +140,155 @@ export const createAwsCliPodTask =
     } = options;
     assertDnsLabel('namespace', namespace);
     assertDnsLabel('pod name', podName);
-    const secretName = `${podName}-creds`;
+    const runId = randomBytes(8).toString('hex');
+    const jobName = `autox-s3-${runId}`;
+    const secretName = `autox-s3-${runId}-creds`;
+    assertDnsLabel('job name', jobName);
     assertDnsLabel('secret name', secretName);
     if (!Number.isFinite(timeout) || timeout < 1) {
       throw new Error('Invalid AWS CLI pod task timeout');
     }
 
-    const stringData: Record<string, string> = {
-      AWS_ACCESS_KEY_ID: awsAccessKeyId,
-      AWS_SECRET_ACCESS_KEY: awsSecretAccessKey,
-      AWS_DEFAULT_REGION: region,
-    };
-    if (awsCaBundle) {
-      stringData[CA_BUNDLE_SECRET_KEY] = awsCaBundle;
-    }
-    const secretManifest = JSON.stringify({
-      apiVersion: 'v1',
-      kind: 'Secret',
-      metadata: { name: secretName, namespace },
-      stringData,
-    });
-    // Keep a server-side backstop in case the Cypress Node process exits before cleanup finishes.
-    const activeDeadlineSeconds = Math.ceil(timeout / 1000) + 120;
-    const container: Record<string, unknown> = {
-      name: podName,
-      image,
-      ...(command ? { command } : {}),
-      args: awsCliArgs,
-      envFrom: [{ secretRef: { name: secretName } }],
-      securityContext: {
-        runAsUser: 1001,
-        runAsGroup: 1001,
-        runAsNonRoot: true,
-        allowPrivilegeEscalation: false,
-        seccompProfile: { type: 'RuntimeDefault' },
-        capabilities: { drop: ['ALL'] },
-      },
-    };
-    if (awsCaBundle) {
-      container.env = [
-        {
-          name: 'AWS_CA_BUNDLE',
-          value: `${CA_BUNDLE_MOUNT_DIR}/${CA_BUNDLE_FILE}`,
-        },
-      ];
-      container.volumeMounts = [{ name: 's3-ca', mountPath: CA_BUNDLE_MOUNT_DIR, readOnly: true }];
-    }
-    const podOverrides = JSON.stringify({
-      spec: {
-        activeDeadlineSeconds,
-        containers: [container],
-        ...(awsCaBundle
-          ? {
-              volumes: [
-                {
-                  name: 's3-ca',
-                  secret: {
-                    secretName,
-                    items: [{ key: CA_BUNDLE_SECRET_KEY, path: CA_BUNDLE_FILE }],
-                  },
-                },
-              ],
-            }
-          : {}),
-      },
-    });
+    const secretManifest = JSON.stringify(
+      buildRecoverySecretManifest(namespace, secretName, runId, {
+        accessKeyId: awsAccessKeyId,
+        secretAccessKey: awsSecretAccessKey,
+        region,
+        caBundle: awsCaBundle,
+      }),
+    );
+    const jobManifest = JSON.stringify(
+      buildRecoveryJobManifest({
+        namespace,
+        jobName,
+        secretName,
+        image,
+        containerName: podName,
+        command,
+        args: awsCliArgs,
+        timeoutMs: timeout,
+        caBundle: awsCaBundle,
+      }),
+    );
 
     let result: CommandLineResult = { exitCode: 1, stdout: '', stderr: '' };
     const cleanupErrors: string[] = [];
     try {
       result = await runCommand(
-        ['apply', '-n', namespace, '-f', '-'],
+        ['create', '-n', namespace, '-f', '-'],
         secretManifest,
         OC_CLEANUP_TIMEOUT_MS,
       );
       if (result.exitCode === 0) {
-        result = await runCommand(
-          [
-            'run',
-            podName,
-            '-n',
-            namespace,
-            `--image=${image}`,
-            '--restart=Never',
-            '--attach',
-            '--tty=false',
-            '--pod-running-timeout=300s',
-            `--overrides=${podOverrides}`,
-          ],
-          undefined,
-          timeout,
+        const jobResult = await runCommand(
+          ['create', '-n', namespace, '-f', '-'],
+          jobManifest,
+          OC_CLEANUP_TIMEOUT_MS,
         );
-        if (result.exitCode !== 0) {
-          try {
-            const description = await runCommand(
-              ['describe', 'pod', podName, '-n', namespace],
+        if (jobResult.exitCode !== 0) {
+          result = {
+            ...jobResult,
+            stderr: `Could not create AWS CLI Job ${jobName}: ${jobResult.stderr}`,
+          };
+        } else {
+          const deadline = Date.now() + timeout;
+          const readJob = async (): Promise<{
+            response: Record<string, unknown>;
+            uid: string;
+          }> => {
+            const jobInfo = await runCommand(
+              ['get', 'job', jobName, '-n', namespace, '-o', 'json'],
               undefined,
               OC_CLEANUP_TIMEOUT_MS,
             );
-            result.stderr = [result.stderr, description.stdout || description.stderr]
-              .filter(Boolean)
-              .join('\n');
-          } catch (error) {
-            result.stderr = [result.stderr, `Could not describe AWS CLI pod: ${String(error)}`]
-              .filter(Boolean)
-              .join('\n');
+            if (jobInfo.exitCode !== 0) {
+              throw new Error(`Could not inspect AWS CLI Job ${jobName}: ${jobInfo.stderr}`);
+            }
+            let response: unknown;
+            try {
+              response = JSON.parse(jobInfo.stdout);
+            } catch {
+              throw new Error(`Invalid AWS CLI Job response for ${jobName}`);
+            }
+            if (!isRecord(response) || !isRecord(response.metadata)) {
+              throw new Error(`Invalid AWS CLI Job response for ${jobName}`);
+            }
+            const metadata = response.metadata;
+            const labels = isRecord(metadata.labels) ? metadata.labels : {};
+            if (
+              typeof metadata.uid !== 'string' ||
+              labels[AUTOML_RECOVERY_MANAGED_BY_LABEL] !== AUTOML_RECOVERY_MANAGED_BY ||
+              labels[AUTOML_RECOVERY_RUN_ID_LABEL] !== runId
+            ) {
+              throw new Error(`AWS CLI Job ${jobName} does not match this task`);
+            }
+            return { response, uid: metadata.uid };
+          };
+
+          const { response: jobInfo, uid: jobUID } = await readJob();
+          const ownerPatch = await runCommand(
+            [
+              'patch',
+              'secret',
+              secretName,
+              '-n',
+              namespace,
+              '--type=merge',
+              '-p',
+              JSON.stringify({
+                metadata: {
+                  ownerReferences: [buildRecoverySecretOwnerReference(jobName, jobUID)],
+                },
+              }),
+            ],
+            undefined,
+            OC_CLEANUP_TIMEOUT_MS,
+          );
+          if (ownerPatch.exitCode !== 0) {
+            result = {
+              ...ownerPatch,
+              stderr: `Could not attach credential Secret to AWS CLI Job ${jobName}: ${ownerPatch.stderr}`,
+            };
+          } else {
+            let state = getJobState(jobInfo);
+            while (state === 'running' && Date.now() < deadline) {
+              await new Promise<void>((resolve) => {
+                setTimeout(resolve, Math.min(1000, Math.max(0, deadline - Date.now())));
+              });
+              if (Date.now() < deadline) {
+                const currentJob = await readJob();
+                state = getJobState(currentJob.response);
+              }
+            }
+
+            const timedOut = state === 'running';
+            const logs = await runCommand(
+              ['logs', `job/${jobName}`, '-n', namespace],
+              undefined,
+              OC_CLEANUP_TIMEOUT_MS,
+            );
+            if (!timedOut && state === 'complete' && logs.exitCode === 0) {
+              result = logs;
+            } else {
+              const describe = await runCommand(
+                ['describe', 'job', jobName, '-n', namespace],
+                undefined,
+                OC_CLEANUP_TIMEOUT_MS,
+              );
+              result = {
+                exitCode: timedOut ? 124 : 1,
+                stdout: logs.stdout,
+                stderr: [
+                  timedOut ? `AWS CLI Job timed out after ${timeout}ms` : 'AWS CLI Job failed',
+                  logs.stderr,
+                  logs.stdout,
+                  describe.stdout,
+                  describe.stderr,
+                ]
+                  .filter(Boolean)
+                  .join('\n'),
+              };
+            }
           }
         }
       }
@@ -226,7 +296,10 @@ export const createAwsCliPodTask =
       result = commandFailure(error);
     } finally {
       const cleanupCommands: [string, string[]][] = [
-        ['pod', ['delete', 'pod', podName, '-n', namespace, '--wait=false', '--ignore-not-found']],
+        [
+          'Job',
+          ['delete', 'job', jobName, '-n', namespace, '--wait=false', '--ignore-not-found'],
+        ],
         [
           'credential Secret',
           ['delete', 'secret', secretName, '-n', namespace, '--ignore-not-found'],
@@ -236,18 +309,10 @@ export const createAwsCliPodTask =
         try {
           const cleanupResult = await runCommand(args, undefined, OC_CLEANUP_TIMEOUT_MS);
           if (cleanupResult.exitCode !== 0) {
-            cleanupErrors.push(
-              `Could not delete AWS CLI ${resource} ${resource === 'pod' ? podName : secretName}: ${
-                cleanupResult.stderr
-              }`,
-            );
+            cleanupErrors.push(`Could not delete AWS CLI ${resource}: ${cleanupResult.stderr}`);
           }
         } catch (error) {
-          cleanupErrors.push(
-            `Could not delete AWS CLI ${resource} ${
-              resource === 'pod' ? podName : secretName
-            }: ${String(error)}`,
-          );
+          cleanupErrors.push(`Could not delete AWS CLI ${resource}: ${String(error)}`);
         }
       }
       if (cleanupErrors.length > 0) {

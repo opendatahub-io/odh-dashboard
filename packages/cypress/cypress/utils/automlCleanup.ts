@@ -199,18 +199,14 @@ const deleteAndVerifyProject = (
     });
 
   return cy
-    .exec(
-      `oc delete project ${namespace} --preconditions=uid=${namespaceUID} ` +
-        '--wait=false --ignore-not-found',
-      {
-        failOnNonZeroExit: false,
-        log: false,
-      },
-    )
+    .task<{ deleted: boolean; error?: string }>('automlCleanup:deleteProject', {
+      namespace,
+      namespaceUID,
+    })
     .then((result): Cypress.Chainable<boolean> => {
-      if (result.exitCode !== 0) {
+      if (!result.deleted) {
         return cy
-          .log(`Could not request deletion of AutoX project ${namespace}: ${result.stderr}`)
+          .log(`Could not request deletion of AutoX project ${namespace}: ${result.error}`)
           .then(() => cy.wrap(false));
       }
       return poll(1);

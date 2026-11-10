@@ -30,10 +30,10 @@ type AwsCliPodOptions = {
 };
 
 /**
- * Run the AWS CLI in an ephemeral in-cluster pod.
+ * Run the AWS CLI in an ephemeral in-cluster Job.
  *
- * The Node-side task creates the credential Secret and pod, collects failure
- * diagnostics, then deletes both resources even if the pod command fails.
+ * The Node-side task creates a credential Secret owned by a TTL-managed Job,
+ * collects failure diagnostics, then deletes both resources after completion.
  */
 export const runAwsCliInCluster = ({
   namespace,
@@ -46,9 +46,6 @@ export const runAwsCliInCluster = ({
 }: AwsCliPodOptions): Cypress.Chainable<CommandLineResult> => {
   assertK8sDnsLabel('namespace', namespace);
   assertK8sDnsLabel('pod name', podName);
-
-  const secretName = `${podName}-creds`;
-  assertK8sDnsLabel('secret name', secretName);
 
   const buckets = getAwsPipelines();
   const image =
@@ -79,11 +76,11 @@ export const runAwsCliInCluster = ({
 
       const detail = maskSensitiveInfo(`${result.stderr}\n${result.stdout}`.slice(0, 6000));
       if (failOnNonZeroExit) {
-        throw new Error(`AWS CLI pod ${podName} or its cleanup failed: ${detail}`);
+        throw new Error(`AWS CLI Job ${podName} or its cleanup failed: ${detail}`);
       }
       return cy
         .log(
-          `WARNING: AWS CLI pod ${podName} or its cleanup failed; S3 objects or temporary resources may remain. Pod diagnostics: ${detail}`,
+          `WARNING: AWS CLI Job ${podName} or its cleanup failed; S3 objects or temporary resources may remain. Job diagnostics: ${detail}`,
         )
         .then(() => cy.wrap(result, { log: false }));
     });
@@ -95,7 +92,7 @@ export const runAwsCliInCluster = ({
  * Best-effort — failures are logged but do not fail the test run so that
  * project cleanup can still proceed.
  *
- * Must be called before deleting the OpenShift project because the pod runs
+ * Must be called before deleting the OpenShift project because the Job runs
  * inside that namespace.
  */
 export const deleteS3TestFiles = (

@@ -1,14 +1,99 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  assertAutomlCleanupTarget,
   AUTOML_RECOVERY_JOB_TTL_SECONDS,
   AUTOML_RECOVERY_ORPHAN_AGE_MS,
   buildRecoveryJobManifest,
   buildRecoverySecretManifest,
   buildRecoverySecretOwnerReference,
+  isAutomlCleanupComplete,
   isStaleUnownedRecoverySecret,
 } from '../automlCleanupRecovery';
 
 describe('AutoML cleanup recovery resources', () => {
+  it('skips only projects whose S3 cleanup and project deletion are both complete', () => {
+    expect(isAutomlCleanupComplete({ projectDeleted: true, s3Cleaned: true })).toBe(true);
+    expect(isAutomlCleanupComplete({ projectDeleted: true, s3Cleaned: false })).toBe(false);
+    expect(isAutomlCleanupComplete({ projectDeleted: false, s3Cleaned: true })).toBe(false);
+  });
+
+  it('requires the recorded cluster, bucket, and S3 endpoint to match the recovery target', () => {
+    const project = {
+      namespace: 'cy-e2e-automl-run-1',
+      clusterServer: 'https://api.example.test:6443',
+      bucketName: 'automl-test-bucket',
+      uploads: ['datasets/input.csv'],
+      runs: [],
+      s3Cleaned: false,
+      s3Endpoint: 'https://s3.example.test',
+    };
+
+    expect(() =>
+      assertAutomlCleanupTarget(
+        project,
+        'https://api.example.test:6443',
+        'automl-test-bucket',
+        ['https://s3.example.test'],
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertAutomlCleanupTarget(
+        project,
+        'https://other.example.test:6443',
+        'automl-test-bucket',
+        ['https://s3.example.test'],
+      ),
+    ).toThrow('Cluster mismatch');
+    expect(() =>
+      assertAutomlCleanupTarget(
+        project,
+        'https://api.example.test:6443',
+        'other-bucket',
+        ['https://s3.example.test'],
+      ),
+    ).toThrow('S3 bucket mismatch');
+    expect(() =>
+      assertAutomlCleanupTarget(
+        { ...project, s3Endpoint: undefined },
+        project.clusterServer,
+        project.bucketName,
+        ['https://s3.example.test'],
+      ),
+    ).toThrow('Recorded S3 endpoint is missing or invalid');
+    expect(() =>
+      assertAutomlCleanupTarget(
+        { ...project, s3Endpoint: '' },
+        project.clusterServer,
+        project.bucketName,
+        ['https://s3.example.test'],
+      ),
+    ).toThrow('Recorded S3 endpoint is missing or invalid');
+    expect(() =>
+      assertAutomlCleanupTarget(
+        { ...project, s3Endpoint: '  ' },
+        project.clusterServer,
+        project.bucketName,
+        ['https://s3.example.test'],
+      ),
+    ).toThrow('Recorded S3 endpoint is missing or invalid');
+    expect(() =>
+      assertAutomlCleanupTarget(
+        { ...project, s3Endpoint: 'https://other.example.test' },
+        project.clusterServer,
+        project.bucketName,
+        ['https://s3.example.test'],
+      ),
+    ).toThrow('does not match the configured bucket endpoint');
+    expect(() =>
+      assertAutomlCleanupTarget(
+        { ...project, s3Endpoint: 'file:///tmp/credentials' },
+        project.clusterServer,
+        project.bucketName,
+        ['file:///tmp/credentials'],
+      ),
+    ).toThrow('Recorded S3 endpoint is missing or invalid');
+  });
+
   it('creates a labeled credential Secret and TTL-managed Job with an active deadline', () => {
     const secret = buildRecoverySecretManifest(
       'stable-cleanup',

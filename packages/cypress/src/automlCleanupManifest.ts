@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createHash, randomUUID } from 'crypto';
+import { deleteOpenShiftProjectWithUid } from './automlProjectDeletion';
 
 export type AutoXOutputRoot =
   | 'autogluon-tabular-training-pipeline'
@@ -65,6 +66,10 @@ type MarkProject = Pick<RecordProject, 'spec' | 'namespace'> & {
 
 type AutomlCleanupTasks = {
   'automlCleanup:get': (spec: string) => AutomlCleanupManifest | null;
+  'automlCleanup:deleteProject': (record: {
+    namespace: string;
+    namespaceUID: string;
+  }) => Promise<{ deleted: boolean; error?: string }>;
   'automlCleanup:recordProject': (record: RecordProject) => AutomlCleanupManifest;
   'automlCleanup:recordNamespace': (record: RecordNamespace) => AutomlCleanupManifest;
   'automlCleanup:recordUpload': (record: RecordUpload) => AutomlCleanupManifest;
@@ -179,6 +184,8 @@ export const createAutomlCleanupTasks = (
 
   return {
     'automlCleanup:get': (spec: string) => read(spec),
+    'automlCleanup:deleteProject': ({ namespace, namespaceUID }) =>
+      deleteOpenShiftProjectWithUid(namespace, namespaceUID),
     'automlCleanup:recordProject': ({
       spec,
       namespace,

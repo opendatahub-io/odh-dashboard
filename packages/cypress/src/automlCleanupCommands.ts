@@ -3,6 +3,48 @@ import type { AWSS3BucketDetails } from '../cypress/types';
 
 export const AUTOML_CLEANUP_OWNER_LABEL = 'odh-dashboard.io/autox-cleanup-token';
 
+export const isValidAutoXS3Endpoint = (endpoint: string): boolean => {
+  if (!endpoint || endpoint.trim() !== endpoint) {
+    return false;
+  }
+  try {
+    const parsed = new URL(endpoint);
+    return (
+      (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+      Boolean(parsed.hostname) &&
+      !parsed.username &&
+      !parsed.password &&
+      !endpoint.includes('?') &&
+      !endpoint.includes('#')
+    );
+  } catch {
+    return false;
+  }
+};
+
+export const buildAutoXProjectManifest = (
+  namespace: string,
+  cleanupToken: string,
+): Record<string, unknown> => {
+  if (!/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(namespace) || namespace.length > 63) {
+    throw new Error('Invalid AutoX project name');
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$/.test(cleanupToken)) {
+    throw new Error('Invalid AutoX project cleanup token');
+  }
+  return {
+    apiVersion: 'project.openshift.io/v1',
+    kind: 'Project',
+    metadata: {
+      name: namespace,
+      labels: {
+        'opendatahub.io/dashboard': 'true',
+        [AUTOML_CLEANUP_OWNER_LABEL]: cleanupToken,
+      },
+    },
+  };
+};
+
 export const matchesAutomlCleanupOwnership = (
   project: Pick<AutomlCleanupProject, 'cleanupToken' | 'namespaceUID'>,
   namespace: { cleanupToken?: string; uid?: string },
@@ -37,7 +79,7 @@ export const assertAutomlCleanupProject = (project: AutomlCleanupProject): void 
       throw new Error(`Invalid AutoML uploaded key in ${project.namespace}`);
     }
   }
-  if (project.s3Endpoint !== undefined && project.s3Endpoint.trim() !== project.s3Endpoint) {
+  if (project.s3Endpoint !== undefined && !isValidAutoXS3Endpoint(project.s3Endpoint)) {
     throw new Error(`Invalid AutoML S3 endpoint in ${project.namespace}`);
   }
   if (

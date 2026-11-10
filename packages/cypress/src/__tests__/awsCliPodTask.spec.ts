@@ -5,6 +5,13 @@ import {
   type OcCommandRunner,
 } from '../awsCliPodTask';
 import type { CommandLineResult } from '../../cypress/types';
+import {
+  AUTOML_RECOVERY_JOB_TTL_SECONDS,
+  AUTOML_RECOVERY_ORPHAN_AGE_MS,
+  AUTOML_RECOVERY_MANAGED_BY,
+  AUTOML_RECOVERY_RUN_ID_LABEL,
+  isStaleUnownedRecoverySecret,
+} from '../automlCleanupRecovery';
 
 const taskOptions: AwsCliPodTaskOptions = {
   namespace: 'configured-cleanup',
@@ -13,97 +20,210 @@ const taskOptions: AwsCliPodTaskOptions = {
   region: 'us-east-1',
   awsAccessKeyId: 'access-key',
   awsSecretAccessKey: 'secret-key',
+  awsCaBundle: 'ca-bundle',
   awsCliArgs: ['s3', 'rm', 's3://bucket/prefix'],
   timeout: 1000,
 };
 
 const success: CommandLineResult = { exitCode: 0, stdout: '', stderr: '' };
 
-describe('AWS CLI pod task', () => {
-  it('creates the Secret, runs the pod, and deletes both resources in the configured namespace', async () => {
+type JobStatusResponse = {
+  metadata: { uid: string; labels: Record<string, string> };
+  status?: { conditions: { type: string; status: string }[] };
+};
+
+const getCreatedJob = (calls: { args: string[]; input?: string }[]): Record<string, unknown> => {
+  const call = calls.find(
+    ({ args, input }) => args[0] === 'create' && input && JSON.parse(input).kind === 'Job',
+  );
+  if (!call?.input) {
+    throw new Error('AWS CLI Job was not created');
+  }
+  return JSON.parse(call.input) as Record<string, unknown>;
+};
+
+const jobStatus = (
+  job: Record<string, unknown>,
+  state: 'Complete' | 'Failed' | null,
+): JobStatusResponse => {
+  const metadata = job.metadata as { labels: Record<string, string> };
+  return {
+    metadata: { uid: 'job-uid-123', labels: metadata.labels },
+    ...(state ? { status: { conditions: [{ type: state, status: 'True' }] } } : {}),
+  };
+};
+
+describe('AWS CLI Job task', () => {
+  it('runs a TTL-managed Job, owns the credential Secret, and cleans up both resources', async () => {
     const calls: { args: string[]; input?: string; timeout?: number }[] = [];
-    const results = [success, success, success, success];
     const runCommand: OcCommandRunner = async (args, input, timeout) => {
       calls.push({ args, input, timeout });
-      return results.shift() ?? success;
-    };
-
-    const result = await createAwsCliPodTask(runCommand)(taskOptions);
-
-    expect(result.exitCode).toBe(0);
-    expect(calls[0].args).toEqual(['apply', '-n', 'configured-cleanup', '-f', '-']);
-    expect(JSON.parse(calls[0].input ?? '')).toMatchObject({
-      metadata: { name: 's3-cleanup-123-creds', namespace: 'configured-cleanup' },
-      stringData: {
-        AWS_ACCESS_KEY_ID: 'access-key',
-        AWS_SECRET_ACCESS_KEY: 'secret-key',
-      },
-    });
-    const runArgs = calls[1].args;
-    expect(runArgs.slice(0, 4)).toEqual(['run', 's3-cleanup-123', '-n', 'configured-cleanup']);
-    const overrideArg = runArgs.find((arg) => arg.startsWith('--overrides='));
-    expect(
-      JSON.parse(overrideArg?.slice('--overrides='.length) ?? '{}').spec.activeDeadlineSeconds,
-    ).toBe(121);
-    expect(calls[2].args).toEqual([
-      'delete',
-      'pod',
-      's3-cleanup-123',
-      '-n',
-      'configured-cleanup',
-      '--wait=false',
-      '--ignore-not-found',
-    ]);
-    expect(calls[3].args).toEqual([
-      'delete',
-      'secret',
-      's3-cleanup-123-creds',
-      '-n',
-      'configured-cleanup',
-      '--ignore-not-found',
-    ]);
-  });
-
-  it('preserves a resolved timeout exit code and removes both resources', async () => {
-    const calls: string[][] = [];
-    const runCommand: OcCommandRunner = async (args) => {
-      calls.push(args);
-      if (args[0] === 'run') {
-        return { exitCode: 124, stdout: '', stderr: 'command timed out' };
+      if (args[0] === 'get' && args[1] === 'job') {
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify(jobStatus(getCreatedJob(calls), 'Complete')),
+          stderr: '',
+        };
+      }
+      if (args[0] === 'logs') {
+        return { exitCode: 0, stdout: 'aws command output', stderr: '' };
       }
       return success;
     };
 
     const result = await createAwsCliPodTask(runCommand)(taskOptions);
 
-    expect(result.exitCode).toBe(124);
-    expect(result.stderr).toContain('command timed out');
-    expect(calls.map((args) => args[0])).toEqual(['apply', 'run', 'describe', 'delete', 'delete']);
-    expect(calls[3]).toEqual([
+    expect(result).toEqual({ exitCode: 0, stdout: 'aws command output', stderr: '' });
+    expect(calls.map(({ args }) => args[0])).toEqual([
+      'create',
+      'create',
+      'get',
+      'patch',
+      'logs',
       'delete',
-      'pod',
-      's3-cleanup-123',
+      'delete',
+    ]);
+    const secret = JSON.parse(calls[0].input ?? '') as {
+      metadata: { name: string; labels: Record<string, string> };
+      stringData: Record<string, string>;
+    };
+    const runId = secret.metadata.name.slice(
+      'autox-s3-'.length,
+      secret.metadata.name.length - '-creds'.length,
+    );
+    expect(calls[0].args).toEqual(['create', '-n', 'configured-cleanup', '-f', '-']);
+    expect(secret.metadata.name).toMatch(/^autox-s3-[a-f0-9]{16}-creds$/);
+    expect(secret.metadata.labels).toMatchObject({
+      'app.kubernetes.io/managed-by': AUTOML_RECOVERY_MANAGED_BY,
+      [AUTOML_RECOVERY_RUN_ID_LABEL]: runId,
+    });
+    expect(secret.stringData).toEqual({
+      AWS_ACCESS_KEY_ID: 'access-key',
+      AWS_SECRET_ACCESS_KEY: 'secret-key',
+      AWS_DEFAULT_REGION: 'us-east-1',
+      AWS_CA_BUNDLE_PEM: 'ca-bundle',
+    });
+    expect(
+      isStaleUnownedRecoverySecret({
+        metadata: {
+          ...secret.metadata,
+          creationTimestamp: new Date(Date.now() - AUTOML_RECOVERY_ORPHAN_AGE_MS - 1000).toISOString(),
+        },
+      }),
+    ).toBe(true);
+
+    const job = getCreatedJob(calls);
+    const jobName = (job.metadata as { name: string }).name;
+    expect(job).toMatchObject({
+      kind: 'Job',
+      metadata: {
+        name: secret.metadata.name.slice(0, -'-creds'.length),
+        namespace: 'configured-cleanup',
+        labels: {
+          'app.kubernetes.io/managed-by': AUTOML_RECOVERY_MANAGED_BY,
+          [AUTOML_RECOVERY_RUN_ID_LABEL]: secret.metadata.labels[AUTOML_RECOVERY_RUN_ID_LABEL],
+        },
+      },
+      spec: {
+        ttlSecondsAfterFinished: AUTOML_RECOVERY_JOB_TTL_SECONDS,
+        activeDeadlineSeconds: 121,
+        backoffLimit: 0,
+        template: {
+          spec: {
+            restartPolicy: 'Never',
+            containers: [
+              {
+                name: 's3-cleanup-123',
+                image: 'amazon/aws-cli:latest',
+                args: ['s3', 'rm', 's3://bucket/prefix'],
+                envFrom: [{ secretRef: { name: secret.metadata.name } }],
+                env: [{ name: 'AWS_CA_BUNDLE', value: '/tmp/s3-ca/ca.pem' }],
+                volumeMounts: [{ name: 's3-ca', mountPath: '/tmp/s3-ca', readOnly: true }],
+              },
+            ],
+            volumes: [
+              {
+                name: 's3-ca',
+                secret: {
+                  secretName: secret.metadata.name,
+                  items: [{ key: 'AWS_CA_BUNDLE_PEM', path: 'ca.pem' }],
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const ownerPatch = calls.find(({ args }) => args[0] === 'patch');
+    const ownerPatchBody = JSON.parse(ownerPatch?.args.at(-1) ?? '{}') as {
+      metadata: { ownerReferences: { name: string; uid: string }[] };
+    };
+    expect(ownerPatchBody.metadata.ownerReferences).toEqual([
+      expect.objectContaining({
+        kind: 'Job',
+        name: jobName,
+        uid: 'job-uid-123',
+        controller: true,
+      }),
+    ]);
+    expect(calls.at(-2)?.args).toEqual([
+      'delete',
+      'job',
+      jobName,
       '-n',
       'configured-cleanup',
       '--wait=false',
       '--ignore-not-found',
     ]);
-    expect(calls[4]).toEqual([
+    expect(calls.at(-1)?.args).toEqual([
       'delete',
       'secret',
-      's3-cleanup-123-creds',
+      secret.metadata.name,
       '-n',
       'configured-cleanup',
       '--ignore-not-found',
     ]);
   });
 
-  it('also removes the pod and Secret when the oc run runner rejects', async () => {
-    const calls: string[][] = [];
-    const runCommand: OcCommandRunner = async (args) => {
-      calls.push(args);
-      if (args[0] === 'run') {
-        throw new Error('oc command timed out after 1000ms');
+  it('returns a timeout exit code and removes the Job and Secret', async () => {
+    const calls: { args: string[]; input?: string }[] = [];
+    const runCommand: OcCommandRunner = async (args, input) => {
+      calls.push({ args, input });
+      if (args[0] === 'get' && args[1] === 'job') {
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify(jobStatus(getCreatedJob(calls), null)),
+          stderr: '',
+        };
+      }
+      return success;
+    };
+
+    const result = await createAwsCliPodTask(runCommand)({ ...taskOptions, timeout: 1 });
+
+    expect(result.exitCode).toBe(124);
+    expect(result.stderr).toContain('timed out after 1ms');
+    expect(calls.map(({ args }) => args[0])).toEqual([
+      'create',
+      'create',
+      'get',
+      'patch',
+      'logs',
+      'describe',
+      'delete',
+      'delete',
+    ]);
+    expect(calls.at(-2)?.args[1]).toBe('job');
+    expect(calls.at(-1)?.args[1]).toBe('secret');
+  });
+
+  it('cleans up the credential Secret if Job creation fails', async () => {
+    const calls: { args: string[]; input?: string }[] = [];
+    const runCommand: OcCommandRunner = async (args, input) => {
+      calls.push({ args, input });
+      if (args[0] === 'create' && input && JSON.parse(input).kind === 'Job') {
+        return { exitCode: 1, stdout: '', stderr: 'Job creation rejected' };
       }
       return success;
     };
@@ -111,9 +231,42 @@ describe('AWS CLI pod task', () => {
     const result = await createAwsCliPodTask(runCommand)(taskOptions);
 
     expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain('oc command timed out after 1000ms');
-    expect(calls.map((args) => args[0])).toEqual(['apply', 'run', 'delete', 'delete']);
-    expect(calls[2]).toContain('configured-cleanup');
-    expect(calls[3]).toContain('configured-cleanup');
+    expect(result.stderr).toContain('Could not create AWS CLI Job');
+    expect(calls.map(({ args }) => args[0])).toEqual(['create', 'create', 'delete', 'delete']);
+    expect(calls.at(-2)?.args[1]).toBe('job');
+    expect(calls.at(-1)?.args[1]).toBe('secret');
+  });
+
+  it('deletes the Job and Secret if attaching the Secret owner fails', async () => {
+    const calls: { args: string[]; input?: string }[] = [];
+    const runCommand: OcCommandRunner = async (args, input) => {
+      calls.push({ args, input });
+      if (args[0] === 'get' && args[1] === 'job') {
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify(jobStatus(getCreatedJob(calls), 'Complete')),
+          stderr: '',
+        };
+      }
+      if (args[0] === 'patch') {
+        return { exitCode: 1, stdout: '', stderr: 'owner patch rejected' };
+      }
+      return success;
+    };
+
+    const result = await createAwsCliPodTask(runCommand)(taskOptions);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('Could not attach credential Secret');
+    expect(calls.map(({ args }) => args[0])).toEqual([
+      'create',
+      'create',
+      'get',
+      'patch',
+      'delete',
+      'delete',
+    ]);
+    expect(calls.at(-2)?.args[1]).toBe('job');
+    expect(calls.at(-1)?.args[1]).toBe('secret');
   });
 });

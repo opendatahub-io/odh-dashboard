@@ -3,7 +3,11 @@ import { createDataConnection } from './oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from './oc_commands/dspa';
 import { AWS_BUCKETS, parseS3Endpoint } from './s3Buckets';
 import { createAndVerifyProject, createCleanProject } from './projectChecker';
-import { AUTOML_CLEANUP_OWNER_LABEL } from '../../src/automlCleanupCommands';
+import { pollUntilSuccess, waitForNamespace } from './oc_commands/baseCommands';
+import {
+  buildAutoXProjectManifest,
+  shellQuote,
+} from '../../src/automlCleanupCommands';
 import type {
   DataConnectionReplacements,
   DspaReplacements,
@@ -13,6 +17,46 @@ import type {
 type AutoXDspaReplacements = DspaReplacements & {
   AWS_S3_HOST: string;
   AWS_S3_SCHEME: string;
+};
+
+const createOwnedAutoXProject = (
+  projectName: string,
+  cleanupToken: string,
+  onOwned: (namespaceUID: string) => Cypress.Chainable<unknown>,
+): Cypress.Chainable<boolean> => {
+  // Create the owner label and capture the Project UID in one API request so
+  // recovery can safely recognize an interrupted setup attempt.
+  const manifest = JSON.stringify(buildAutoXProjectManifest(projectName, cleanupToken));
+  return cy
+    .exec(`printf '%s' ${shellQuote(manifest)} | oc create -f - -o json`, {
+      failOnNonZeroExit: false,
+      log: false,
+    })
+    .then((result): Cypress.Chainable<unknown> => {
+      if (result.exitCode !== 0) {
+        throw new Error(`Could not create AutoX project ${projectName}: ${result.stderr}`);
+      }
+      let namespaceUID: string | undefined;
+      try {
+        const createdProject = JSON.parse(result.stdout) as { metadata?: { uid?: string } };
+        namespaceUID = createdProject.metadata?.uid;
+      } catch {
+        throw new Error(`Could not read the UID of newly created AutoX project ${projectName}`);
+      }
+      if (!namespaceUID) {
+        throw new Error(`New AutoX project ${projectName} did not return a UID`);
+      }
+      return onOwned(namespaceUID);
+    })
+    .then(() => waitForNamespace(projectName, 30, 1000))
+    .then(() =>
+      pollUntilSuccess(
+        `oc get project ${projectName} -o json | jq -e '.metadata.labels["opendatahub.io/dashboard"] == "true" and .status.phase == "Active"'`,
+        `project ${projectName} dashboard-ready`,
+        { maxAttempts: 15, pollIntervalMs: 1000 },
+      ),
+    )
+    .then(() => cy.wrap(true));
 };
 
 /**
@@ -44,31 +88,16 @@ export const provisionProjectForAutoX = (
   const s3Endpoint = resolveAutoXS3Endpoint(bucketConfig.ENDPOINT);
   const { host, scheme } = parseS3Endpoint(s3Endpoint);
 
-  const projectCreated = deleteExistingProject
-    ? createCleanProject(projectName)
-    : createAndVerifyProject(projectName);
   if (cleanupOwnership) {
-    projectCreated.then(() =>
-      cy
-        .exec(
-          `oc label namespace ${projectName} ` +
-            `${AUTOML_CLEANUP_OWNER_LABEL}=${cleanupOwnership.token} ` +
-            '--overwrite >/dev/null && ' +
-            `oc get namespace ${projectName} -o jsonpath='{.metadata.uid}'`,
-          { failOnNonZeroExit: false, log: false },
-        )
-        .then((result) => {
-          const namespaceUID = result.stdout.trim();
-          if (result.exitCode !== 0 || !namespaceUID) {
-            throw new Error(
-              `Could not record AutoX namespace ownership for ${projectName}: ${
-                result.stderr || result.stdout
-              }`,
-            );
-          }
-          return cleanupOwnership.onOwned(namespaceUID);
-        }),
+    createOwnedAutoXProject(
+      projectName,
+      cleanupOwnership.token,
+      cleanupOwnership.onOwned,
     );
+  } else if (deleteExistingProject) {
+    createCleanProject(projectName);
+  } else {
+    createAndVerifyProject(projectName);
   }
 
   const dataConnectionReplacements: DataConnectionReplacements = {

@@ -1,7 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   assertAutomlCleanupProject,
+  buildAutoXProjectManifest,
   buildAutomlS3CleanupScript,
+  isValidAutoXS3Endpoint,
   shellQuote,
 } from '../automlCleanupCommands';
 import type { AutomlCleanupProject } from '../automlCleanupManifest';
@@ -21,6 +23,32 @@ const project = (overrides: Partial<AutomlCleanupProject> = {}): AutomlCleanupPr
 });
 
 describe('AutoML cleanup commands', () => {
+  it('creates AutoX projects with the cleanup token and dashboard label at creation', () => {
+    expect(buildAutoXProjectManifest('cy-e2e-automl-123-1', 'attempt-token')).toEqual({
+      apiVersion: 'project.openshift.io/v1',
+      kind: 'Project',
+      metadata: {
+        name: 'cy-e2e-automl-123-1',
+        labels: {
+          'opendatahub.io/dashboard': 'true',
+          'odh-dashboard.io/autox-cleanup-token': 'attempt-token',
+        },
+      },
+    });
+    expect(() => buildAutoXProjectManifest('invalid namespace', 'attempt-token')).toThrow(
+      'Invalid AutoX project name',
+    );
+  });
+
+  it('accepts only HTTP(S) S3 endpoints without credentials, queries, or fragments', () => {
+    expect(isValidAutoXS3Endpoint('http://minio.internal.test:9000')).toBe(true);
+    expect(isValidAutoXS3Endpoint('https://s3.example.test')).toBe(true);
+    expect(isValidAutoXS3Endpoint('file:///tmp/credentials')).toBe(false);
+    expect(isValidAutoXS3Endpoint('https://user:pass@s3.example.test')).toBe(false);
+    expect(isValidAutoXS3Endpoint('https://s3.example.test/?token=x')).toBe(false);
+    expect(isValidAutoXS3Endpoint(' https://s3.example.test')).toBe(false);
+  });
+
   it('quotes shell arguments, including empty values, quotes, backslashes, and newlines', () => {
     expect(shellQuote('')).toBe("''");
     expect(shellQuote("it's")).toBe("'it'\\''s'");
@@ -35,6 +63,9 @@ describe('AutoML cleanup commands', () => {
     expect(() => assertAutomlCleanupProject(project({ uploads: ['../secret'] }))).toThrow(
       'Invalid AutoML uploaded key',
     );
+    expect(() =>
+      assertAutomlCleanupProject(project({ s3Endpoint: 'https://user:pass@s3.example.test' })),
+    ).toThrow('Invalid AutoML S3 endpoint');
     expect(() =>
       assertAutomlCleanupProject(
         project({
@@ -78,7 +109,7 @@ describe('AutoML cleanup commands', () => {
     expect(script).toContain('exit "$failed"');
   });
 
-  it('uses the endpoint recorded during provisioning instead of the current bucket override', () => {
+  it('uses the recorded endpoint instead of the current bucket override', () => {
     const bucket: AWSS3BucketDetails = {
       NAME: 'automl-test-bucket',
       REGION: 'us-east-1',

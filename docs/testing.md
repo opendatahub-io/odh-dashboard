@@ -449,7 +449,7 @@ The command defaults to dry-run and prints the recorded uploaded keys, run outpu
 
 ```bash
 CY_TEST_CONFIG=/path/to/test-variables.yml \
-  pnpm run cleanup:automl -- --apply \
+  pnpm run cleanup:automl --apply \
   --context=<oc-context> \
   --namespace=<stable-cleanup-project>
 ```
@@ -460,10 +460,12 @@ project through the environment instead of flags; the legacy `CY_AUTOML_CLEANUP_
 `CY_AUTOML_CLEANUP_NAMESPACE` names also work. Set `CY_S3_CLEANUP_IMAGE` (or `AWS_CLI_IMAGE`)
 to override the default AWS CLI image.
 
-Recovery verifies the cluster and bucket recorded in each manifest, and checks the namespace UID
-and per-attempt ownership label before terminating runs or deleting a project. It refuses to delete
-a project whose identity no longer matches. S3 cleanup uses the endpoint recorded during
-provisioning, including the disconnected-cluster `CYPRESS_DSPA_S3_ENDPOINT` override.
+Recovery verifies the cluster, bucket, and S3 endpoint recorded in each manifest, and checks the
+namespace UID and per-attempt ownership label before terminating runs or deleting a project. It
+refuses to delete a project whose identity no longer matches. The dry-run prints the recorded S3
+endpoint. When recovery used `CYPRESS_DSPA_S3_ENDPOINT` during provisioning, set that same variable
+when applying cleanup; the command rejects endpoints that do not match the configured bucket or
+explicit override.
 
 Recovery runs S3 cleanup in a TTL-managed Job. The Job owns its credential Secret after creation; later recovery runs remove labeled, unowned Secrets that are at least one hour old, covering interruption between Secret and Job creation.
 
