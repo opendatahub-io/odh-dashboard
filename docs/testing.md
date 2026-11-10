@@ -463,7 +463,7 @@ to override the default AWS CLI image.
 Recovery verifies the cluster, bucket, and S3 endpoint recorded in each manifest, and checks the
 namespace UID and per-attempt ownership label before terminating runs or deleting a project. It
 refuses to delete a project whose identity no longer matches. The dry-run prints the recorded S3
-endpoint. When recovery used `CYPRESS_DSPA_S3_ENDPOINT` during provisioning, set that same variable
+endpoint. If the E2E test run set `CYPRESS_DSPA_S3_ENDPOINT` during provisioning, set the same value
 when applying cleanup; the command rejects endpoints that do not match the configured bucket or
 explicit override.
 

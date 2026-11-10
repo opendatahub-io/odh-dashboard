@@ -56,6 +56,47 @@ export const matchesAutomlCleanupOwnership = (
       namespace.uid === project.namespaceUID,
   );
 
+export type AutoXCleanupSafetyState = {
+  runsTerminal: boolean;
+  namespaceExists: boolean;
+  owned: boolean;
+  inspectionFailed: boolean;
+  namespaceUID?: string;
+};
+
+export type AutoXCleanupActions = {
+  canCleanS3: boolean;
+  projectDeletion: 'delete' | 'already-complete' | 'retain';
+};
+
+/** Keep S3 and namespace cleanup behind run-settlement and ownership checks. */
+export const getAutoXCleanupActions = (
+  project: Pick<AutomlCleanupProject, 'uploads' | 'runs' | 's3Cleaned' | 'projectDeleted'>,
+  state: AutoXCleanupSafetyState,
+): AutoXCleanupActions => {
+  const hasS3Work = project.uploads.length > 0 || project.runs.length > 0;
+  const canCleanS3 =
+    !state.inspectionFailed &&
+    !project.s3Cleaned &&
+    hasS3Work &&
+    state.runsTerminal &&
+    (!state.namespaceExists || state.owned) &&
+    (project.projectDeleted || Boolean(state.namespaceUID));
+
+  let projectDeletion: AutoXCleanupActions['projectDeletion'];
+  if (state.inspectionFailed) {
+    projectDeletion = project.projectDeleted ? 'already-complete' : 'retain';
+  } else if (project.projectDeleted || !state.namespaceExists) {
+    projectDeletion = 'already-complete';
+  } else if (state.runsTerminal && state.owned && state.namespaceUID) {
+    projectDeletion = 'delete';
+  } else {
+    projectDeletion = 'retain';
+  }
+
+  return { canCleanS3, projectDeletion };
+};
+
 export const DEFAULT_AWS_CLI_IMAGE =
   'amazon/aws-cli:2.27.50@sha256:48c3d4212e2f5b0e24bdc6af7708f9412ce65425a79575e0f78b8f8c0dcd70ab';
 

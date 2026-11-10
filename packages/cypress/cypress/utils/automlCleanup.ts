@@ -8,6 +8,7 @@ import type { AutomlTestData, AWSS3Buckets } from '../types';
 import {
   AUTOML_CLEANUP_OWNER_LABEL,
   buildAutomlS3CleanupScript,
+  getAutoXCleanupActions,
   matchesAutomlCleanupOwnership,
 } from '../../src/automlCleanupCommands';
 import {
@@ -327,6 +328,13 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
       });
     })
     .then(({ runsTerminal, namespaceExists, owned, inspectionFailed }) => {
+      const cleanupActions = getAutoXCleanupActions(project, {
+        runsTerminal,
+        namespaceExists,
+        owned,
+        inspectionFailed,
+        namespaceUID,
+      });
       let s3Work: Cypress.Chainable<boolean>;
       if (inspectionFailed) {
         s3Work = cy.wrap(project.s3Cleaned);
@@ -337,6 +345,8 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
         s3Work = cy.wrap(false);
       } else if (!project.projectDeleted && !namespaceUID) {
         errors.push(`AutoX namespace UID is missing for ${project.namespace}; refusing S3 cleanup`);
+        s3Work = cy.wrap(false);
+      } else if (!cleanupActions.canCleanS3) {
         s3Work = cy.wrap(false);
       } else if (
         (!namespaceExists || project.projectDeleted) &&
@@ -383,12 +393,17 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
 
       return s3Work.then((s3Cleaned) => {
         let deletion: Cypress.Chainable<boolean>;
-        if (inspectionFailed) {
-          deletion = cy.wrap(project.projectDeleted);
-        } else if (!project.projectDeleted && namespaceExists && owned && namespaceUID) {
+        if (cleanupActions.projectDeletion === 'delete' && namespaceUID) {
           deletion = deleteAndVerifyProject(project.namespace, namespaceUID);
+        } else if (cleanupActions.projectDeletion === 'already-complete') {
+          deletion = cy.wrap(true);
         } else {
-          deletion = cy.wrap(!namespaceExists || project.projectDeleted);
+          if (!inspectionFailed && namespaceExists && owned && !runsTerminal) {
+            errors.push(
+              `Project ${project.namespace} was retained because its KFP runs were not confirmed terminal`,
+            );
+          }
+          deletion = cy.wrap(false);
         }
         return deletion.then((projectDeleted) => {
           if (!projectDeleted) {

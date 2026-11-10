@@ -1,9 +1,7 @@
 import { getFeastS3Config, getS3CaBundle } from './feastS3';
 import { DEFAULT_AWS_CLI_IMAGE } from '../../../src/automlCleanupCommands';
-import {
-  AWS_CLI_TASK_CLEANUP_HEADROOM_MS,
-  type AwsCliPodTaskOptions,
-} from '../../../src/awsCliPodTask';
+import { AWS_CLI_TASK_CLEANUP_HEADROOM_MS } from '../../../src/awsCliPodTaskConstants';
+import type { AwsCliPodTaskOptions } from '../../../src/awsCliPodTask';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import type { AWSS3Buckets, CommandLineResult } from '../../types';
 import { AWS_BUCKETS } from '../s3Buckets';

@@ -108,7 +108,15 @@ describe('AutoML cleanup recovery resources', () => {
       ttlSecondsAfterFinished: number;
       activeDeadlineSeconds: number;
       backoffLimit: number;
-      template: { spec: { restartPolicy: string; containers: { envFrom: unknown[] }[] } };
+      template: {
+        spec: {
+          restartPolicy: string;
+          containers: {
+            envFrom: unknown[];
+            securityContext: Record<string, unknown>;
+          }[];
+        };
+      };
     };
 
     expect(secret).toMatchObject({
@@ -131,6 +139,13 @@ describe('AutoML cleanup recovery resources', () => {
         },
       },
     });
+    expect(spec.template.spec.containers[0].securityContext).toMatchObject({
+      runAsNonRoot: true,
+      runAsGroup: 1001,
+      allowPrivilegeEscalation: false,
+    });
+    expect(spec.template.spec.containers[0].securityContext).not.toHaveProperty('runAsUser');
+    expect(job).not.toHaveProperty('spec.template.spec.serviceAccountName');
     expect(
       buildRecoverySecretOwnerReference('autox-s3-a1b2c3d4e5f60708', 'job-uid-123'),
     ).toMatchObject({ kind: 'Job', name: 'autox-s3-a1b2c3d4e5f60708', uid: 'job-uid-123' });

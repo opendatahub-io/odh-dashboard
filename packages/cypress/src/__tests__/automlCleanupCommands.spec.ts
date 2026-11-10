@@ -3,6 +3,7 @@ import {
   assertAutomlCleanupProject,
   buildAutoXProjectManifest,
   buildAutomlS3CleanupScript,
+  getAutoXCleanupActions,
   isValidAutoXS3Endpoint,
   shellQuote,
 } from '../automlCleanupCommands';
@@ -107,6 +108,52 @@ describe('AutoML cleanup commands', () => {
       's3://automl-test-bucket/autogluon-tabular-training-pipeline/run-123/',
     );
     expect(script).toContain('exit "$failed"');
+  });
+
+  it('retains an owned project and skips S3 cleanup until recorded runs are terminal', () => {
+    const cleanupProject = project();
+    const actions = getAutoXCleanupActions(cleanupProject, {
+      runsTerminal: false,
+      namespaceExists: true,
+      owned: true,
+      inspectionFailed: false,
+      namespaceUID: 'namespace-uid',
+    });
+
+    expect(actions).toEqual({ canCleanS3: false, projectDeletion: 'retain' });
+  });
+
+  it('allows S3 cleanup and project deletion only for a terminal, owned namespace', () => {
+    expect(
+      getAutoXCleanupActions(project(), {
+        runsTerminal: true,
+        namespaceExists: true,
+        owned: true,
+        inspectionFailed: false,
+        namespaceUID: 'namespace-uid',
+      }),
+    ).toEqual({ canCleanS3: true, projectDeletion: 'delete' });
+
+    expect(
+      getAutoXCleanupActions(project(), {
+        runsTerminal: true,
+        namespaceExists: true,
+        owned: false,
+        inspectionFailed: false,
+        namespaceUID: 'replacement-uid',
+      }),
+    ).toEqual({ canCleanS3: false, projectDeletion: 'retain' });
+  });
+
+  it('does not clean S3 or delete a project when namespace inspection fails', () => {
+    expect(
+      getAutoXCleanupActions(project(), {
+        runsTerminal: false,
+        namespaceExists: false,
+        owned: false,
+        inspectionFailed: true,
+      }),
+    ).toEqual({ canCleanS3: false, projectDeletion: 'retain' });
   });
 
   it('uses the recorded endpoint instead of the current bucket override', () => {

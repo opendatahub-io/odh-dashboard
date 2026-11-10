@@ -105,7 +105,6 @@ export const buildRecoveryJobManifest = (options: RecoveryJobOptions): Record<st
     args: containerArgs,
     envFrom: [{ secretRef: { name: options.secretName } }],
     securityContext: {
-      runAsUser: 1001,
       runAsGroup: 1001,
       runAsNonRoot: true,
       allowPrivilegeEscalation: false,

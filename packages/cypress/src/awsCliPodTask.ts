@@ -13,8 +13,6 @@ import type { CommandLineResult } from '../cypress/types';
 const DNS_LABEL = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 const OC_CLEANUP_TIMEOUT_MS = 30000;
 const MAX_OUTPUT_LENGTH = 4 * 1024 * 1024;
-export const AWS_CLI_TASK_CLEANUP_HEADROOM_MS = 180000;
-
 export type AwsCliPodTaskOptions = {
   namespace: string;
   podName: string;
