@@ -226,13 +226,16 @@ Images ship build output, not `node_modules`:
 
 Common "not affected" cases:
 
-- **Build- or test-only packages** (bundlers, linters, Cypress, Jest, dev servers): the code never
-  reaches the bundles.
+- **Build- or test-only packages** (linters, Cypress, Jest, dev servers): the code never reaches the
+  bundles. For build tools that produce the bundle (bundlers, minifiers, Babel plugins), also check
+  that the flaw cannot change the build output.
 - **Lockfiles that no image build uses**, including `upstream/` trees whose package does not build
   from them. Check the package's `Dockerfile*` before deciding.
 - **Go code paths** that `govulncheck` reports as not reachable. Re-run it with the build tags the
   image uses first (for example `govulncheck -tags strictfipsruntime ./...` for BFFs built that way;
   see the package's `Dockerfile.workspace`), because a scan without tags can miss code that ships.
+  The scan can also miss calls made through `reflect` or `unsafe`, so treat it as evidence, not
+  proof.
 
 Record the reasoning on the tracker before closing it as not affected.
 Still bump the package on `main` when it is cheap — it keeps scanners quiet and future trackers away.
