@@ -1,13 +1,17 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FlexItem } from '@patternfly/react-core';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
-import McpServerInstallModal from '~/odh/components/McpServerInstallModal';
+import McpServerInstallModal, {
+  hasMcpInstallSession,
+} from '~/odh/components/McpServerInstallModal';
 import McpDeployButton from '~/odh/components/McpDeployButton';
 import {
   DeployButtonState,
   MCP_DEPLOY_READINESS_LOADING_TOOLTIP,
 } from '~/odh/utils/mcpDeployReadiness';
+import { mcpDeploymentsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 
 const McpServerDeployAction: React.FC<{
   server: {
@@ -15,8 +19,17 @@ const McpServerDeployAction: React.FC<{
   };
 }> = ({ server }) => {
   const { available, loaded } = useMcpServerDeployAvailable();
-  const [openModal, setOpenModal] = React.useState(false);
+  const navigate = useNavigate();
+  const [openModal, setOpenModal] = React.useState(
+    () => !!server.data && hasMcpInstallSession(server.data.name),
+  );
   const hasDeployableArtifact = !!server.data?.artifacts?.some((a) => a.uri);
+
+  React.useEffect(() => {
+    if (server.data && hasMcpInstallSession(server.data.name)) {
+      setOpenModal(true);
+    }
+  }, [server.data]);
 
   const buttonState = React.useMemo<DeployButtonState>(() => {
     if (!loaded) {
@@ -53,6 +66,14 @@ const McpServerDeployAction: React.FC<{
           lifecycleAvailable={available}
           lifecycleLoaded={loaded}
           onClose={() => setOpenModal(false)}
+          onContinueToDeployments={(deployment) => {
+            setOpenModal(false);
+            const params = new URLSearchParams({
+              installation: deployment.name,
+              newInstall: 'true',
+            });
+            navigate(`${mcpDeploymentsUrl(deployment.namespace)}?${params.toString()}`);
+          }}
         />
       )}
     </FlexItem>

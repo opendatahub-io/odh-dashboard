@@ -48,9 +48,81 @@ type McpServerInstallModalProps = {
   lifecycleAvailable: boolean;
   lifecycleLoaded: boolean;
   onClose: () => void;
+  onContinueToDeployments?: (deployment: McpDeployment) => void;
 };
 
 type CheckState = 'pending' | 'ready' | 'blocked';
+
+type InstallSession = {
+  namespace: string;
+  deploymentName?: string;
+  deploymentUid?: string;
+  creationTimestamp?: string;
+  innovationLane: boolean;
+  startedAt: number;
+};
+
+const installSessionKey = (serverName: string): string => `odh-mcp-install-session:${serverName}`;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const readInstallSession = (serverName: string): InstallSession | undefined => {
+  try {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const raw = window.sessionStorage.getItem(installSessionKey(serverName));
+    if (!raw) {
+      return undefined;
+    }
+    const session: unknown = JSON.parse(raw);
+    if (
+      !isRecord(session) ||
+      typeof session.namespace !== 'string' ||
+      typeof session.startedAt !== 'number'
+    ) {
+      return undefined;
+    }
+    return {
+      namespace: session.namespace,
+      deploymentName:
+        typeof session.deploymentName === 'string' ? session.deploymentName : undefined,
+      deploymentUid: typeof session.deploymentUid === 'string' ? session.deploymentUid : undefined,
+      creationTimestamp:
+        typeof session.creationTimestamp === 'string' ? session.creationTimestamp : undefined,
+      innovationLane: session.innovationLane === true,
+      startedAt: session.startedAt,
+    };
+  } catch {
+    return undefined;
+  }
+};
+
+const writeInstallSession = (serverName: string, session: InstallSession): void => {
+  try {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.sessionStorage.setItem(installSessionKey(serverName), JSON.stringify(session));
+  } catch {
+    // Session storage is a convenience for refresh recovery. Live cluster state remains primary.
+  }
+};
+
+const clearInstallSession = (serverName: string): void => {
+  try {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.sessionStorage.removeItem(installSessionKey(serverName));
+  } catch {
+    // Ignore storage failures; the cluster-backed status remains authoritative.
+  }
+};
+
+export const hasMcpInstallSession = (serverName: string): boolean =>
+  !!readInstallSession(serverName);
 
 const CheckRow: React.FC<{
   label: string;
@@ -89,14 +161,29 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   lifecycleAvailable,
   lifecycleLoaded,
   onClose,
+  onContinueToDeployments,
 }) => {
   const { preferredProject } = useProjectsBridge();
-  const [step, setStep] = React.useState<InstallStep>('preflight');
-  const [innovationLane, setInnovationLane] = React.useState(false);
-  const [selectedNamespace, setSelectedNamespace] = React.useState(preferredProject?.name ?? '');
-  const [deploymentName, setDeploymentName] = React.useState<string>();
+  const [restoredSession] = React.useState<InstallSession | undefined>(() =>
+    readInstallSession(server.name),
+  );
+  const [step, setStep] = React.useState<InstallStep>(restoredSession ? 'installing' : 'preflight');
+  const [innovationLane, setInnovationLane] = React.useState(
+    restoredSession?.innovationLane ?? false,
+  );
+  const [selectedNamespace, setSelectedNamespace] = React.useState(
+    restoredSession?.namespace ?? preferredProject?.name ?? '',
+  );
+  const [deploymentName, setDeploymentName] = React.useState<string | undefined>(
+    restoredSession?.deploymentName,
+  );
+  const [deploymentUid, setDeploymentUid] = React.useState<string | undefined>(
+    restoredSession?.deploymentUid,
+  );
   const [createdDeployment, setCreatedDeployment] = React.useState<McpDeployment>();
-  const [installationStartedAt, setInstallationStartedAt] = React.useState<number>();
+  const [installationStartedAt, setInstallationStartedAt] = React.useState<number | undefined>(
+    restoredSession?.startedAt,
+  );
   const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
   const [submitError, setSubmitError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -136,11 +223,13 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   // is still reconciling. Match the live list to the object returned by this
   // create operation whenever a UID is available.
   const listedDeployment = deployments.find((item) =>
-    createdDeployment?.uid
-      ? item.uid === createdDeployment.uid
-      : item.name === deploymentName &&
-        (!installationStartedAt ||
-          new Date(item.creationTimestamp).getTime() >= installationStartedAt),
+    createdDeployment?.uid || deploymentUid
+      ? item.uid === (createdDeployment?.uid ?? deploymentUid)
+      : deploymentName
+        ? item.name === deploymentName &&
+          (!installationStartedAt ||
+            new Date(item.creationTimestamp).getTime() >= installationStartedAt)
+        : false,
   );
   const deployment = listedDeployment ?? createdDeployment;
   const readyCondition = conditionFor(deployment, 'Ready');
@@ -154,8 +243,10 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
   const gatewayRegistrationFailed =
     gatewayRegistrationCondition?.status === 'False' &&
     gatewayRegistrationCondition.reason !== 'Pending';
-  const installNeedsAttention = installFailed || gatewayRegistrationFailed;
+  const installNeedsAttention =
+    installFailed || gatewayRegistrationFailed || (step === 'installing' && !!readinessError);
   const readinessReady = readinessLoaded && !readinessError && !!readiness;
+  const gatewayRequirementKnown = readinessReady;
   const gatewayRequired = readiness?.gatewayRequired === true;
   const installComplete =
     !!listedDeployment &&
@@ -164,6 +255,31 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
     (!gatewayRequired || gatewayRegistrationCondition?.status === McpConditionStatus.TRUE);
   const installationTerminal = installComplete || installNeedsAttention;
   const installationRunningLong = elapsedSeconds >= 30;
+
+  const installationPhase = (() => {
+    if (installComplete) {
+      return 'Complete';
+    }
+    if (installNeedsAttention) {
+      return 'Blocked';
+    }
+    if (!listedDeployment) {
+      return 'Submitting resource';
+    }
+    if (!readinessReady) {
+      return 'Checking Gateway requirement';
+    }
+    if (acceptedCondition?.status !== McpConditionStatus.TRUE) {
+      return 'Waiting for operator';
+    }
+    if (readyCondition?.status !== McpConditionStatus.TRUE) {
+      return 'Starting server';
+    }
+    if (gatewayRequired && gatewayRegistrationCondition?.status !== McpConditionStatus.TRUE) {
+      return 'Registering with Gateway';
+    }
+    return 'Publishing status';
+  })();
 
   React.useEffect(() => {
     if (step !== 'installing' || !installationStartedAt || installationTerminal) {
@@ -210,9 +326,17 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
 
     setIsSubmitting(true);
     setSubmitError(undefined);
-    setInstallationStartedAt(Date.now());
+    const startedAt = Date.now();
+    setInstallationStartedAt(startedAt);
     setElapsedSeconds(0);
     setCreatedDeployment(undefined);
+    setDeploymentName(undefined);
+    setDeploymentUid(undefined);
+    writeInstallSession(server.name, {
+      namespace: selectedNamespace,
+      innovationLane,
+      startedAt,
+    });
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -241,9 +365,19 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
           : undefined,
       });
       setDeploymentName(created.name);
+      setDeploymentUid(created.uid);
       setCreatedDeployment(created);
+      writeInstallSession(server.name, {
+        namespace: selectedNamespace,
+        deploymentName: created.name,
+        deploymentUid: created.uid,
+        creationTimestamp: created.creationTimestamp,
+        innovationLane,
+        startedAt,
+      });
       setStep('installing');
     } catch (error) {
+      clearInstallSession(server.name);
       setSubmitError(
         error instanceof Error ? error : new Error('Failed to start MCP server installation'),
       );
@@ -251,6 +385,18 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const handleClose = React.useCallback(() => {
+    clearInstallSession(server.name);
+    onClose();
+  }, [onClose, server.name]);
+
+  const handleContinueToDeployments = React.useCallback(() => {
+    if (installComplete && deployment) {
+      clearInstallSession(server.name);
+      onContinueToDeployments?.(deployment);
+    }
+  }, [deployment, installComplete, onContinueToDeployments, server.name]);
 
   const renderInstallStatus = () => {
     if (installNeedsAttention) {
@@ -268,35 +414,45 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
       <List isPlain>
         <CheckRow
           label="Create MCP deployment"
-          detail="MCPServer resource submitted to the selected project"
-          state={deployment ? 'ready' : 'pending'}
+          detail={
+            deployment
+              ? 'MCPServer resource submitted'
+              : deploymentName
+                ? 'MCPServer created; waiting for live status'
+                : 'Submitting MCPServer resource'
+          }
+          state={deployment || deploymentName ? 'ready' : 'pending'}
         />
         <CheckRow
           label="Reconcile MCP server"
           detail={
             readyCondition?.message ||
             (acceptedCondition?.status === McpConditionStatus.TRUE
-              ? 'MCPServer accepted; waiting for the server workload to become ready'
-              : 'MCPServer submitted; waiting for the MCP Lifecycle operator to publish status')
+              ? 'Accepted; waiting for the server to become ready'
+              : 'Waiting for the MCP Lifecycle operator')
           }
-          state={installComplete ? 'ready' : 'pending'}
+          state={readyCondition?.status === McpConditionStatus.TRUE ? 'ready' : 'pending'}
         />
         <CheckRow
           label="Validate gateway registration"
           detail={
             gatewayRegistrationCondition?.message ||
-            (gatewayRegistrationCondition?.status === McpConditionStatus.TRUE
-              ? 'MCP Gateway registration is ready'
-              : readiness?.gatewayRequired
-                ? 'MCP server is ready; waiting for MCP Gateway registration'
-                : 'Gateway registration is not required for this server')
+            (!gatewayRequirementKnown
+              ? readinessError?.message || 'Checking Gateway requirement'
+              : gatewayRegistrationCondition?.status === McpConditionStatus.TRUE
+                ? 'Gateway registration is ready'
+                : gatewayRequired
+                  ? 'Server is ready; waiting for Gateway registration'
+                  : 'No Gateway registration required')
           }
           state={
-            gatewayRegistrationCondition?.status === McpConditionStatus.TRUE
-              ? 'ready'
-              : readiness?.gatewayRequired
-                ? 'pending'
-                : 'ready'
+            !gatewayRequirementKnown
+              ? 'pending'
+              : gatewayRegistrationCondition?.status === McpConditionStatus.TRUE
+                ? 'ready'
+                : gatewayRequired
+                  ? 'pending'
+                  : 'ready'
           }
         />
       </List>
@@ -307,7 +463,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
     <Modal
       isOpen
       variant="medium"
-      onClose={step === 'installing' && !installationTerminal ? () => undefined : onClose}
+      onClose={step === 'installing' && !installationTerminal ? () => undefined : handleClose}
       data-testid="mcp-install-modal"
     >
       <ModalHeader
@@ -428,34 +584,23 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
                     : 'Installing...'}
               </Title>
               <Content component="p">
-                Live status is read from the MCP deployment in the selected project. Lane:{' '}
-                {innovationLane ? 'Innovation' : 'Production'}.
+                Project: {selectedNamespace} · Lane: {innovationLane ? 'Innovation' : 'Production'}
               </Content>
               <Content component="small">
-                {installComplete
-                  ? 'The MCP server and required Gateway registration are ready.'
-                  : installNeedsAttention
-                    ? 'The cluster reported a blocked installation step.'
-                    : !listedDeployment
-                      ? 'The create request was accepted; waiting for the live deployment record.'
-                      : acceptedCondition?.status !== McpConditionStatus.TRUE
-                        ? 'Waiting for the MCP Lifecycle operator to accept the MCPServer.'
-                        : readyCondition?.status !== McpConditionStatus.TRUE
-                          ? 'The MCPServer is accepted; waiting for its workload to become ready.'
-                          : gatewayRequired &&
-                              gatewayRegistrationCondition?.status !== McpConditionStatus.TRUE
-                            ? 'The MCP server is ready; waiting for Gateway registration to become ready.'
-                            : 'The cluster is publishing the final installation status.'}{' '}
+                Phase: {installationPhase}.{' '}
                 {installationStartedAt && !installationTerminal
                   ? `Elapsed: ${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s.`
                   : ''}
               </Content>
+              {installComplete && (
+                <Content component="small">
+                  All required checks passed. Continue to deployments to use the new install.
+                </Content>
+              )}
               {!installationTerminal && (
                 <Content component="small">
-                  The dashboard polls the selected project for the live MCPServer status.{' '}
-                  {installationRunningLong
-                    ? 'This phase is taking longer than expected; the modal remains open until the cluster reports success or a blocked condition.'
-                    : 'The controls remain locked until the cluster reports a terminal result.'}
+                  Live status is polled from the selected project.{' '}
+                  {installationRunningLong ? 'This phase is taking longer than expected.' : ''}
                 </Content>
               )}
             </StackItem>
@@ -476,7 +621,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
       <ModalFooter>
         {step === 'preflight' && (
           <>
-            <Button variant="link" onClick={onClose}>
+            <Button variant="link" onClick={handleClose}>
               Cancel
             </Button>
             <Button
@@ -492,13 +637,19 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
         )}
         {step === 'installing' &&
           (installationTerminal ? (
-            <Button variant="link" onClick={onClose}>
-              Close
-            </Button>
+            <>
+              <Button variant="link" onClick={handleClose}>
+                Close
+              </Button>
+              {installComplete && deployment && onContinueToDeployments && (
+                <Button variant="primary" onClick={handleContinueToDeployments}>
+                  Continue to deployments
+                </Button>
+              )}
+            </>
           ) : (
             <Content component="small">
-              Installation remains open here until the cluster reports success or a blocked
-              condition. No navigation is available during the active install.
+              Waiting for the cluster to report success or a blocked condition.
             </Content>
           ))}
       </ModalFooter>

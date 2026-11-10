@@ -43,6 +43,8 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
   const navigate = useNavigate();
 
   const installationName = searchParams.get('installation');
+  const newDeploymentName =
+    searchParams.get('newInstall') === 'true' ? (installationName ?? undefined) : undefined;
   React.useEffect(() => {
     if (!loaded || !installationName) {
       return;
@@ -173,6 +175,7 @@ const McpDeploymentsPage: React.FC<McpDeploymentsPageProps> = ({ namespace }) =>
         onDeleteClick={handleDeleteClick}
         onEditClick={handleEditClick}
         onViewStatus={handleViewStatus}
+        newDeploymentName={newDeploymentName}
       />
       {statusDeployment && (
         <McpDeploymentInstallStatusModal deployment={statusDeployment} onClose={closeStatus} />

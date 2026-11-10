@@ -19,6 +19,7 @@ const renderRow = (
   onEditClick = jest.fn(),
   showRegisteredVersion = true,
   onViewStatus = jest.fn(),
+  isNewInstall = false,
 ) =>
   render(
     <MemoryRouter>
@@ -30,6 +31,7 @@ const renderRow = (
             onDeleteClick={onDeleteClick}
             onEditClick={onEditClick}
             onViewStatus={onViewStatus}
+            isNewInstall={isNewInstall}
           />
         </Tbody>
       </PfTable>
@@ -96,6 +98,11 @@ describe('McpDeploymentsTableRow', () => {
   it('should fall back to name in name column when no displayName', () => {
     renderRow(createMockDeployment());
     expect(screen.getByTestId('mcp-deployment-name')).toHaveTextContent('kubernetes-mcp');
+  });
+
+  it('should mark the deployment created by the completed install handoff', () => {
+    renderRow(createMockDeployment(), jest.fn(), jest.fn(), true, jest.fn(), true);
+    expect(screen.getByTestId('mcp-new-install-label')).toHaveTextContent('New install');
   });
 
   it('should render a non-empty formatted creation date', () => {

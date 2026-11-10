@@ -6,6 +6,10 @@ import type { McpServer } from '~/app/mcpServerCatalogTypes';
 import McpServerDeployAction from '~/odh/components/McpServerDeployAction';
 import useMcpServerDeployAvailable from '~/odh/hooks/useMcpServerDeployAvailable';
 
+jest.mock('react-router-dom', () => ({
+  useNavigate: () => jest.fn(),
+}));
+
 jest.mock('~/odh/hooks/useMcpServerDeployAvailable', () => ({
   __esModule: true,
   default: jest.fn(),
@@ -14,6 +18,7 @@ jest.mock('~/odh/hooks/useMcpServerDeployAvailable', () => ({
 jest.mock('~/odh/components/McpServerInstallModal', () => ({
   __esModule: true,
   default: () => <div data-testid="mcp-deploy-modal-stub" />,
+  hasMcpInstallSession: () => false,
 }));
 
 const mockUseMcpServerDeployAvailable = jest.mocked(useMcpServerDeployAvailable);
