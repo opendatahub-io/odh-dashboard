@@ -304,7 +304,7 @@ func TestGetNemoGuardrailsServiceURL(t *testing.T) {
 				},
 			}}
 		}
-		const firstEndpoint = "http://project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local:80"
+		const firstEndpoint = "https://project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
 		const secondEndpoint = "https://project-two-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
 		kc := &TokenKubernetesClient{
 			Client: fake.NewClientBuilder().WithObjects(
@@ -339,6 +339,16 @@ func TestGetNemoGuardrailsServiceURL(t *testing.T) {
 		{
 			name:    "rejects an invalid endpoint",
 			status:  map[string]interface{}{"phase": constants.GuardrailsPhaseReady, "endpoint": "ftp://guardrails.example.com"},
+			wantErr: true,
+		},
+		{
+			name:    "rejects an external ready endpoint",
+			status:  map[string]interface{}{"phase": constants.GuardrailsPhaseReady, "endpoint": "https://attacker.example"},
+			wantErr: true,
+		},
+		{
+			name:    "rejects a loopback ready endpoint",
+			status:  map[string]interface{}{"phase": constants.GuardrailsPhaseReady, "endpoint": "http://127.0.0.1:8080"},
 			wantErr: true,
 		},
 	} {
@@ -406,6 +416,41 @@ func TestGetNemoGuardrailsServiceURL(t *testing.T) {
 		assert.Empty(t, url)
 		require.ErrorIs(t, err, assert.AnError)
 	})
+}
+
+func TestIsOperatorManagedNemoEndpoint(t *testing.T) {
+	const namespace = "project-one"
+	const crName = "nemoguardrails"
+	const sharedEndpoint = "https://project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
+
+	for _, tc := range []struct {
+		name      string
+		endpoint  string
+		namespace string
+		want      bool
+	}{
+		{name: "RHOAI shared Service", endpoint: sharedEndpoint, namespace: namespace, want: true},
+		{name: "ODH shared Service", endpoint: "https://project-one-nemoguardrails.odh-ai-gateway-infra.svc.cluster.local", namespace: namespace, want: true},
+		{name: "project local Service", endpoint: "https://nemoguardrails.project-one.svc.cluster.local", namespace: namespace, want: true},
+		{name: "truncated shared Service name", endpoint: "https://a-very-long-project-namespace-for-truncation-testing-1-149c729e.redhat-ai-gateway-infra.svc.cluster.local", namespace: "a-very-long-project-namespace-for-truncation-testing-123456", want: true},
+		{name: "external host", endpoint: "https://attacker.example", namespace: namespace},
+		{name: "loopback address", endpoint: "http://127.0.0.1:8080", namespace: namespace},
+		{name: "link local address", endpoint: "http://169.254.169.254", namespace: namespace},
+		{name: "wrong project", endpoint: "https://project-two-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local", namespace: namespace},
+		{name: "unrelated infrastructure Service", endpoint: "https://other.redhat-ai-gateway-infra.svc.cluster.local", namespace: namespace},
+		{name: "unrelated namespace", endpoint: "https://nemoguardrails.other-project.svc.cluster.local", namespace: namespace},
+		{name: "insecure scheme", endpoint: "http://project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local", namespace: namespace},
+		{name: "userinfo", endpoint: "https://user@project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local", namespace: namespace},
+		{name: "missing host", endpoint: "https:///v1/guardrail/checks", namespace: namespace},
+		{name: "explicit port", endpoint: sharedEndpoint + ":443", namespace: namespace},
+		{name: "path", endpoint: sharedEndpoint + "/other", namespace: namespace},
+		{name: "query", endpoint: sharedEndpoint + "?target=other", namespace: namespace},
+		{name: "fragment", endpoint: sharedEndpoint + "#other", namespace: namespace},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, isOperatorManagedNemoEndpoint(tc.endpoint, tc.namespace, crName))
+		})
+	}
 }
 
 func TestCanListOGXServers(t *testing.T) {
