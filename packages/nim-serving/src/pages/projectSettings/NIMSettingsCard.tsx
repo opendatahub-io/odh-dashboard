@@ -19,7 +19,7 @@ import {
 import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useNIMSettingsAccessAllowed } from './useNIMSettingsAccessAllowed';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';

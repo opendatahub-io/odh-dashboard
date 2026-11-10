@@ -3,7 +3,7 @@ import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
 import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
 import {

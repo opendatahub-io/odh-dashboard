@@ -57,7 +57,7 @@ describe('settings host namespace', () => {
   ] as const)(
     'should watch %s configs in the current host namespace without Redux',
     (_name, Provider, watch) => {
-      const { coreApi } = createTestProviders();
+      const { coreApi, wrapper } = createTestProviders();
       const renderProvider = (namespace: string) => (
         <HostApiCoreContext.Provider value={{ ...coreApi, dashboardNamespace: namespace }}>
           <Provider>
@@ -65,7 +65,7 @@ describe('settings host namespace', () => {
           </Provider>
         </HostApiCoreContext.Provider>
       );
-      const { rerender } = render(renderProvider('first-dashboard'));
+      const { rerender } = render(renderProvider('first-dashboard'), { wrapper });
       expect(jest.mocked(watch).mock.calls.at(-1)?.[0]).toBe('first-dashboard');
 
       rerender(renderProvider('second-dashboard'));
@@ -76,7 +76,7 @@ describe('settings host namespace', () => {
   it.each(['routing', 'topology'] as const)(
     'should delete %s configs using the latest host namespace',
     async (refType) => {
-      const { coreApi } = createTestProviders();
+      const { coreApi, wrapper } = createTestProviders();
       const config = mockLLMInferenceServiceConfigK8sResource({ namespace: 'source-namespace' });
       const DeleteConfigHarness = () => {
         const { deleteConfig, setDeleteConfig, handleDelete } =
@@ -103,7 +103,7 @@ describe('settings host namespace', () => {
           </HostApiCoreContext.Provider>
         );
       };
-      const { rerender } = render(<Host namespace="first-dashboard" />);
+      const { rerender } = render(<Host namespace="first-dashboard" />, { wrapper });
       fireEvent.click(screen.getByTestId('select-config'));
       rerender(<Host namespace="second-dashboard" />);
       const deleteButton = screen.getByTestId('delete-config');

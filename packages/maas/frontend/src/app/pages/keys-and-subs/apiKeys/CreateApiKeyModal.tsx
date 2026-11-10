@@ -53,7 +53,7 @@ import { z } from 'zod';
 import { APIOptions, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/ui-core/components/TruncatedText';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,

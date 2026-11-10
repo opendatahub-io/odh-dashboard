@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { deleteLlmInferenceServiceConfigIfUnreferenced } from '../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../types';
 import {

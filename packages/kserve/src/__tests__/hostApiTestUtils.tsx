@@ -17,7 +17,6 @@ export const createTestProviders = ({
   const coreApi: HostApiCoreServices = {
     dashboardNamespace,
     checkAccess: jest.fn(),
-    trackEvent: jest.fn(),
     fetchDashboardConfig: jest.fn(),
     fetchClusterSettings: jest.fn(),
     updateClusterSettings: jest.fn(),

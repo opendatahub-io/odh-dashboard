@@ -1,7 +1,7 @@
 import React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { HostApiCoreContext, type HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
+import { TrackingProvider } from '../../../__tests__/TrackingProvider';
 import { mockInferenceServiceK8sResource } from '../../../__mocks__/mockInferenceServiceK8sResource';
 import DeploymentsTable from '../DeploymentsTable';
 
@@ -37,13 +37,6 @@ jest.mock('../row/DeploymentsTableRow', () => ({
 }));
 
 const mockDelete = jest.fn();
-const TrackingProvider: React.FC<
-  React.PropsWithChildren<{ trackEvent: HostApiCoreServices['trackEvent'] }>
-> = ({ children, trackEvent }) => {
-  const inherited = React.useContext(HostApiCoreContext);
-  const value = React.useMemo(() => ({ ...inherited, trackEvent }), [inherited, trackEvent]);
-  return <HostApiCoreContext.Provider value={value}>{children}</HostApiCoreContext.Provider>;
-};
 
 const deployment = {
   modelServingPlatformId: 'kserve',

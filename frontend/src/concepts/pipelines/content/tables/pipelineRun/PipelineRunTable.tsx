@@ -5,12 +5,8 @@ import { Button, Skeleton, Tooltip } from '@patternfly/react-core';
 import { TableVariant, Td } from '@patternfly/react-table';
 import { ColumnsIcon } from '@patternfly/react-icons';
 
-import {
-  DashboardEmptyTableView,
-  getTableColumnSort,
-  TableBase,
-  TrackingOutcome,
-} from '@odh-dashboard/ui-core';
+import { DashboardEmptyTableView, getTableColumnSort, TableBase } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useCheckboxTable } from '#~/components/table';
 import { ExperimentKF, PipelineRunKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import { getPipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';

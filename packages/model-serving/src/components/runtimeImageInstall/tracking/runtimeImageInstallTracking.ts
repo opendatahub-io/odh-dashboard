@@ -1,4 +1,4 @@
-import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import type { TrackEventFn } from '../../../shared/tracking/modelServingTrackingConstants';
 import type { RuntimeImageInstallTargetId } from '../../../../extension-points/runtime-image-install-target';
 

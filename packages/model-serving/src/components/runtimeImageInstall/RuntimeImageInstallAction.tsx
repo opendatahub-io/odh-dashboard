@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { Link, type LinkProps } from 'react-router-dom';
 import type { RuntimeImageInstallActionProps } from '@mf/modelRegistry/extension-points';
 import { fireCreateStarted } from './tracking/runtimeImageInstallTracking';

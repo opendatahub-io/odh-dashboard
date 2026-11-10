@@ -702,6 +702,9 @@ importers:
 
   distributions/maas-portal:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
       '@odh-dashboard/base-distribution':
         specifier: workspace:*
         version: link:../base
@@ -1796,12 +1799,12 @@ importers:
 
   packages/analytics:
     dependencies:
-      '@odh-dashboard/ui-core':
-        specifier: workspace:*
-        version: link:../ui-core
       '@segment/analytics-next':
         specifier: ^1.84.0
         version: 1.84.1
+      react:
+        specifier: ^18
+        version: 18.3.1
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -1882,6 +1885,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../analytics
       '@odh-dashboard/autox-core':
         specifier: workspace:*
         version: link:../../autox-core
@@ -2263,6 +2269,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../analytics
       '@odh-dashboard/autox-core':
         specifier: workspace:*
         version: link:../../autox-core
@@ -2778,6 +2787,9 @@ importers:
       '@cypress/grep':
         specifier: ^4.1.0
         version: 4.1.1(@babel/core@7.29.7(supports-color@8.1.1))(cypress@15.20.1)(supports-color@8.1.1)
+      '@jest/globals':
+        specifier: ^29.7.0
+        version: 29.7.0(supports-color@8.1.1)
       '@odh-dashboard/app-config':
         specifier: workspace:*
         version: link:../app-config
@@ -2793,6 +2805,9 @@ importers:
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
+      '@odh-dashboard/jest-config':
+        specifier: workspace:*
+        version: link:../jest-config
       '@odh-dashboard/k8s-core':
         specifier: workspace:*
         version: link:../k8s-core
@@ -2950,6 +2965,9 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.54.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../analytics
       '@odh-dashboard/plugin-core':
         specifier: workspace:*
         version: link:../../plugin-core
@@ -3256,6 +3274,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.9.1
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../analytics
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
@@ -3654,6 +3675,9 @@ importers:
       '@module-federation/runtime':
         specifier: ^0.21.4
         version: 0.21.6
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../analytics
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
@@ -4051,6 +4075,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../analytics
       '@openshift/dynamic-plugin-sdk':
         specifier: ^5.0.1
         version: 5.0.1(react@18.3.1)
@@ -4329,6 +4356,9 @@ importers:
 
   packages/gpuaas:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/hardware-profiles':
         specifier: workspace:*
         version: link:../hardware-profiles
@@ -4534,6 +4564,9 @@ importers:
 
   packages/kserve:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../foundation
@@ -4610,6 +4643,9 @@ importers:
 
   packages/llmd-serving:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../foundation
@@ -4732,6 +4768,9 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.1(@emotion/react@11.14.0(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../analytics
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
@@ -5450,6 +5489,9 @@ importers:
 
   packages/model-serving:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../foundation
@@ -5866,6 +5908,9 @@ importers:
 
   packages/nim-serving:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../foundation

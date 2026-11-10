@@ -46,7 +46,7 @@ import {
 import { EyeIcon, EyeSlashIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Tearsheet } from '@patternfly/react-component-groups';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { testCredentials } from '~/app/api/dch';
 import ConnectionTypesGallery from '~/app/components/ConnectionTypesGallery';
 import { ConnectionTypeInstance } from '~/app/components/ConnectionType';
