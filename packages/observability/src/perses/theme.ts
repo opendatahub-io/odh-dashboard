@@ -474,13 +474,11 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
   const currentYear = new Date().getFullYear();
 
   return React.useMemo(() => {
-    // Read the live PF control radius so MUI buttons follow the active theme
-    // (small by default, pill under Felt). Falls back to 6 if unavailable.
-    const controlRadiusStyle = window
-      .getComputedStyle(document.documentElement)
-      .getPropertyValue('--pf-t--global--border--radius--control--default')
-      .trim();
-    const controlRadius = parseFloat(controlRadiusStyle) || 6;
+    // MUI buttons are DOM-rendered, so the live PF control-radius token can be
+    // passed through as a CSS variable: it follows theme changes without
+    // re-creating the MUI theme and keeps the token's unit intact. Falls back
+    // to 6px when the token is not defined.
+    const controlRadius = 'var(--pf-t--global--border--radius--control--default, 6px)';
 
     const patternflyMuiTheme = mapPatterflyThemeToMUI(theme, currentYear);
     // Preserve the mapped MuiButton colors/interaction states and override

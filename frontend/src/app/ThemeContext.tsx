@@ -155,8 +155,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   );
 
   const sharedContextValue = React.useMemo<SharedThemeContextProps>(
-    () => ({ theme, setTheme: setAllThemes }),
-    [theme, setAllThemes],
+    () => ({
+      theme,
+      setTheme: setAllThemes,
+      contrastMode,
+      setContrastMode: handleSetContrastMode,
+    }),
+    [theme, setAllThemes, contrastMode, handleSetContrastMode],
   );
 
   return (
