@@ -37,7 +37,10 @@ const readTheme = (): Theme => {
 const readContrastMode = (): ContrastMode => {
   try {
     const value = localStorage.getItem(CONTRAST_MODE_KEY);
-    return value === 'default' || value === 'glass' || value === 'high-contrast'
+    return value === 'default' ||
+      value === 'glass' ||
+      value === 'high-contrast' ||
+      value === 'system'
       ? value
       : 'default';
   } catch {

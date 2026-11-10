@@ -482,16 +482,35 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
       .trim();
     const controlRadius = parseFloat(controlRadiusStyle) || 6;
 
+    const patternflyMuiTheme = mapPatterflyThemeToMUI(theme, currentYear);
+    // Preserve the mapped MuiButton colors/interaction states and override
+    // only the root radius so MUI buttons follow the active PF control radius.
+    const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null && !Array.isArray(value);
+    const muiButton = patternflyMuiTheme.components?.MuiButton;
+    const rawStyleOverrides = muiButton?.styleOverrides;
+    const muiButtonStyleOverrides: Record<string, unknown> = isPlainRecord(rawStyleOverrides)
+      ? rawStyleOverrides
+      : {};
+    const muiButtonRoot: Record<string, unknown> = isPlainRecord(muiButtonStyleOverrides.root)
+      ? muiButtonStyleOverrides.root
+      : {};
+
     const muiTheme = getTheme(theme, {
       shape: {
         borderRadius: 6,
       },
-      ...mapPatterflyThemeToMUI(theme, currentYear),
+      ...patternflyMuiTheme,
       components: {
-        ...(mapPatterflyThemeToMUI(theme, currentYear).components ?? {}),
+        ...(patternflyMuiTheme.components ?? {}),
         MuiButton: {
+          ...muiButton,
           styleOverrides: {
-            root: { borderRadius: controlRadius },
+            ...muiButtonStyleOverrides,
+            root: {
+              ...muiButtonRoot,
+              borderRadius: controlRadius,
+            },
           },
         },
       },
