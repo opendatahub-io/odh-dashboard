@@ -84,7 +84,7 @@ describe('DeleteLlmInferenceServiceConfigModal', () => {
       expect(onCloseMock).toHaveBeenCalledWith(true);
     });
     expect(trackEvent).toHaveBeenCalledTimes(1);
-    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Inference Service Config Deleted', {
       outcome: 'submit',
       success: true,
     });
@@ -102,7 +102,7 @@ describe('DeleteLlmInferenceServiceConfigModal', () => {
 
     expect(onCloseMock).toHaveBeenCalledWith(false);
     expect(trackEvent).toHaveBeenCalledTimes(1);
-    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Inference Service Config Deleted', {
       outcome: 'cancel',
     });
     expect(trackEvent.mock.calls[0][1]).not.toHaveProperty('success');
@@ -152,7 +152,7 @@ describe('DeleteLlmInferenceServiceConfigModal', () => {
 
     expect(onCloseMock).not.toHaveBeenCalled();
     expect(trackEvent).toHaveBeenCalledTimes(1);
-    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Inference Service Config Deleted', {
       outcome: 'submit',
       success: false,
     });
