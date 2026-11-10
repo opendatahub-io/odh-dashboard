@@ -84,6 +84,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
+    "@odh-dashboard/analytics": "workspace:*",
     "@patternfly/patternfly": "~6.6.1",
     "@patternfly/react-core": "~6.6.1",
     "@patternfly/react-icons": "~6.6.1",

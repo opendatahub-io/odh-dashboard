@@ -50,7 +50,8 @@ module.exports = {
 
 The custom rule preserves existing built-in restrictions. It blocks legacy host adapters,
 analytics implementation/SDK imports, and direct analytics globals. The exact `@odh-dashboard/analytics/types`
-entry point is allowed for SDK-free property types and `TrackingOutcome`; implementation imports
-and deeper analytics subpaths remain blocked.
+entry point is allowed for SDK-free contracts and `TrackingOutcome`, and
+`@odh-dashboard/analytics/react` for SDK-free providers/hooks. Implementation imports, deeper
+subpaths, and similarly prefixed analytics paths remain blocked.
 Dynamic `import()`, `require()`, indirect aliases, and nonliteral computed access are outside
 its scope.

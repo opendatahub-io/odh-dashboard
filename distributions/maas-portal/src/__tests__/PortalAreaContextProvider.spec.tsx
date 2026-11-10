@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react';
 import { AreaContext, SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent, useTrackPageEvent } from '@odh-dashboard/analytics/react';
 import PortalAreaContextProvider from '../providers/PortalAreaContextProvider';
 import PortalContextProvider from '../providers/PortalContextProvider';
 
@@ -100,10 +100,9 @@ describe('PortalContextProvider AreaContext composition', () => {
 });
 
 describe('PortalContextProvider tracking', () => {
-  it('should mount a tracking no-op without accessing or initializing the global SDK', async () => {
+  it('should provide stable no-ops for bundled feature tracking without accessing the SDK', () => {
     const originalAnalytics = Object.getOwnPropertyDescriptor(window, 'analytics');
-    const sdk = { track: jest.fn() };
-    const analyticsRead = jest.fn(() => sdk);
+    const analyticsRead = jest.fn();
     const analyticsWrite = jest.fn();
 
     try {
@@ -112,17 +111,19 @@ describe('PortalContextProvider tracking', () => {
         get: analyticsRead,
         set: analyticsWrite,
       });
-      const { result } = renderHook(useTrackEvent, { wrapper: portalWrapper });
+      const { result, rerender } = renderHook(
+        () => ({ track: useTrackEvent(), page: useTrackPageEvent() }),
+        { wrapper: portalWrapper },
+      );
 
-      expect(result.current('custom-event', { outcome: 'submit', success: false })).toBeUndefined();
-      await React.act(async () => undefined);
+      const initial = result.current;
+      rerender();
+      expect(result.current.track).toBe(initial.track);
+      expect(result.current.page).toBe(initial.page);
+      expect(result.current.track('create_project_canceled', {})).toBeUndefined();
+      expect(result.current.page()).toBeUndefined();
       expect(analyticsRead).not.toHaveBeenCalled();
       expect(analyticsWrite).not.toHaveBeenCalled();
-      expect(sdk.track).not.toHaveBeenCalled();
-
-      Reflect.deleteProperty(window, 'analytics');
-      expect(() => result.current('custom-event', {})).not.toThrow();
-      expect(Object.getOwnPropertyDescriptor(window, 'analytics')).toBeUndefined();
     } finally {
       if (originalAnalytics) {
         Object.defineProperty(window, 'analytics', originalAnalytics);

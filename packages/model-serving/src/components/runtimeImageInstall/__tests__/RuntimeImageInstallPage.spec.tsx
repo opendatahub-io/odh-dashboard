@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import type {
@@ -14,15 +14,15 @@ import {
   RUNTIME_IMAGE_LIBRARY_PATH,
 } from '../const';
 import { getRuntimeImageInstallRoute } from '../utils';
+import { createTrackingRender } from '../../../__tests__/TrackingProvider';
+
+const mockTrackEvent = jest.fn();
+const render = createTrackingRender(mockTrackEvent);
 
 let mockExtensions: RuntimeImageInstallTargetExtension[] = [];
 jest.mock('@odh-dashboard/plugin-core', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core'),
   useExtensions: () => mockExtensions,
-}));
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
-  useTrackEvent: () => jest.fn(),
 }));
 
 const MockTarget: React.FC<RuntimeImageInstallTargetProps> = ({
