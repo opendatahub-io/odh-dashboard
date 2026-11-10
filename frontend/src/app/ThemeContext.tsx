@@ -7,8 +7,37 @@ import {
 import { useBrowserStorage } from '@odh-dashboard/ui-core/utilities';
 
 const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
+const COLOR_SCHEME_KEY = 'odh.dashboard.ui.colorScheme';
+const LEGACY_THEME_KEY = 'odh.dashboard.ui.theme';
 
 export type ColorScheme = 'system' | 'light' | 'dark';
+
+// One-time migration from the pre-Felt theme key. The index.html boot script
+// performs the same mapping before first paint; this covers contexts where
+// that script has not run (tests, embedded mounts).
+export const migrateLegacyThemeStorage = (
+  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>,
+): void => {
+  try {
+    if (storage.getItem(COLOR_SCHEME_KEY) === null) {
+      const raw = storage.getItem(LEGACY_THEME_KEY);
+      let legacy: string | null = null;
+      if (raw !== null) {
+        try {
+          legacy = JSON.parse(raw);
+        } catch {
+          legacy = raw;
+        }
+      }
+      if (legacy === 'dark' || legacy === 'light') {
+        storage.setItem(COLOR_SCHEME_KEY, JSON.stringify(legacy));
+      }
+    }
+    storage.removeItem(LEGACY_THEME_KEY);
+  } catch {
+    // no-op: storage unavailable
+  }
+};
 
 type ThemeContextProps = {
   theme: string;
@@ -28,10 +57,11 @@ type ThemeProviderProps = {
   children: React.ReactNode;
 };
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [colorScheme, setColorScheme] = useBrowserStorage<ColorScheme>(
-    'odh.dashboard.ui.colorScheme',
-    'system',
-  );
+  React.useState(() => {
+    migrateLegacyThemeStorage(window.localStorage);
+    return null;
+  });
+  const [colorScheme, setColorScheme] = useBrowserStorage<ColorScheme>(COLOR_SCHEME_KEY, 'system');
   // Solid backgrounds by default; glass is opt-in via the appearance switcher
   // until UX/PM confirm a glass-by-default disposition (RHAI-19116 / F2).
   const [contrastMode, setContrastMode] = useBrowserStorage<ContrastMode>(
@@ -47,8 +77,20 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       return false;
     }
   });
-  const [prefersReducedTransparency, setPrefersReducedTransparency] = React.useState(false);
-  const [prefersHighContrast, setPrefersHighContrast] = React.useState(false);
+  const [prefersReducedTransparency, setPrefersReducedTransparency] = React.useState(() => {
+    try {
+      return window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
+    } catch {
+      return false;
+    }
+  });
+  const [prefersHighContrast, setPrefersHighContrast] = React.useState(() => {
+    try {
+      return window.matchMedia('(prefers-contrast: more)').matches;
+    } catch {
+      return false;
+    }
+  });
 
   // Track OS-level preferences
   React.useEffect(() => {

@@ -51,8 +51,20 @@ const readContrastMode = (): ContrastMode => {
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(readTheme);
   const [contrastMode, setContrastModeState] = useState<ContrastMode>(readContrastMode);
-  const [prefersReducedTransparency, setPrefersReducedTransparency] = useState(false);
-  const [prefersHighContrast, setPrefersHighContrast] = useState(false);
+  const [prefersReducedTransparency, setPrefersReducedTransparency] = useState(() => {
+    try {
+      return window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
+    } catch {
+      return false;
+    }
+  });
+  const [prefersHighContrast, setPrefersHighContrast] = useState(() => {
+    try {
+      return window.matchMedia('(prefers-contrast: more)').matches;
+    } catch {
+      return false;
+    }
+  });
 
   // Track OS-level preferences
   useEffect(() => {
