@@ -1,6 +1,19 @@
 import type { AutoXOutputRoot, AutomlCleanupProject } from './automlCleanupManifest';
 import type { AWSS3BucketDetails } from '../cypress/types';
 
+export const AUTOML_CLEANUP_OWNER_LABEL = 'odh-dashboard.io/autox-cleanup-token';
+
+export const matchesAutomlCleanupOwnership = (
+  project: Pick<AutomlCleanupProject, 'cleanupToken' | 'namespaceUID'>,
+  namespace: { cleanupToken?: string; uid?: string },
+): boolean =>
+  Boolean(
+    project.cleanupToken &&
+      project.namespaceUID &&
+      namespace.cleanupToken === project.cleanupToken &&
+      namespace.uid === project.namespaceUID,
+  );
+
 export const DEFAULT_AWS_CLI_IMAGE =
   'amazon/aws-cli:2.27.50@sha256:48c3d4212e2f5b0e24bdc6af7708f9412ce65425a79575e0f78b8f8c0dcd70ab';
 
@@ -24,6 +37,21 @@ export const assertAutomlCleanupProject = (project: AutomlCleanupProject): void 
       throw new Error(`Invalid AutoML uploaded key in ${project.namespace}`);
     }
   }
+  if (project.s3Endpoint !== undefined && project.s3Endpoint.trim() !== project.s3Endpoint) {
+    throw new Error(`Invalid AutoML S3 endpoint in ${project.namespace}`);
+  }
+  if (
+    project.cleanupToken !== undefined &&
+    !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$/.test(project.cleanupToken)
+  ) {
+    throw new Error(`Invalid AutoML cleanup token in ${project.namespace}`);
+  }
+  if (
+    project.namespaceUID !== undefined &&
+    !/^[A-Za-z0-9-]{1,128}$/.test(project.namespaceUID)
+  ) {
+    throw new Error(`Invalid AutoML namespace UID in ${project.namespace}`);
+  }
   for (const run of project.runs) {
     if (!/^[A-Za-z0-9-]{1,128}$/.test(run.id)) {
       throw new Error(`Invalid AutoML run ID in ${project.namespace}`);
@@ -44,11 +72,14 @@ export const buildAutomlS3CleanupScript = (
     throw new Error(`Missing AutoML S3 bucket configuration for ${project.bucketKey}`);
   }
   if (bucket.NAME !== project.bucketName) {
-    throw new Error(`AutoML S3 bucket does not match the recorded bucket for ${project.namespace}`);
+    throw new Error(
+      `AutoML S3 bucket does not match the recorded bucket for ${project.namespace}`,
+    );
   }
 
+  const endpoint = project.s3Endpoint ?? bucket.ENDPOINT;
   const aws = `aws --region ${shellQuote(bucket.REGION)}${
-    bucket.ENDPOINT ? ` --endpoint-url ${shellQuote(bucket.ENDPOINT)}` : ''
+    endpoint ? ` --endpoint-url ${shellQuote(endpoint)}` : ''
   }`;
   const bucketArg = `--bucket ${shellQuote(bucket.NAME)}`;
   const lines = ['set -u', 'failed=0'];

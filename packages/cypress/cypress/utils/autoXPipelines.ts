@@ -3,6 +3,7 @@ import { createDataConnection } from './oc_commands/dataConnection';
 import { createDSPASecret, createDSPA } from './oc_commands/dspa';
 import { AWS_BUCKETS, parseS3Endpoint } from './s3Buckets';
 import { createAndVerifyProject, createCleanProject } from './projectChecker';
+import { AUTOML_CLEANUP_OWNER_LABEL } from '../../src/automlCleanupCommands';
 import type {
   DataConnectionReplacements,
   DspaReplacements,
@@ -31,6 +32,10 @@ export const provisionProjectForAutoX = (
   dspaSecretName: string,
   bucketKey: 'BUCKET_2' | 'BUCKET_3',
   deleteExistingProject = true,
+  cleanupOwnership?: {
+    token: string;
+    onOwned: (namespaceUID: string) => Cypress.Chainable<unknown>;
+  },
 ): void => {
   const bucketConfig = AWS_BUCKETS[bucketKey];
   // Use DSPA_S3_ENDPOINT for in-cluster AutoX connectivity (disconnected clusters),
@@ -39,10 +44,31 @@ export const provisionProjectForAutoX = (
   const s3Endpoint = resolveAutoXS3Endpoint(bucketConfig.ENDPOINT);
   const { host, scheme } = parseS3Endpoint(s3Endpoint);
 
-  if (deleteExistingProject) {
-    createCleanProject(projectName);
-  } else {
-    createAndVerifyProject(projectName);
+  const projectCreated = deleteExistingProject
+    ? createCleanProject(projectName)
+    : createAndVerifyProject(projectName);
+  if (cleanupOwnership) {
+    projectCreated.then(() =>
+      cy
+        .exec(
+          `oc label namespace ${projectName} ` +
+            `${AUTOML_CLEANUP_OWNER_LABEL}=${cleanupOwnership.token} ` +
+            '--overwrite >/dev/null && ' +
+            `oc get namespace ${projectName} -o jsonpath='{.metadata.uid}'`,
+          { failOnNonZeroExit: false, log: false },
+        )
+        .then((result) => {
+          const namespaceUID = result.stdout.trim();
+          if (result.exitCode !== 0 || !namespaceUID) {
+            throw new Error(
+              `Could not record AutoX namespace ownership for ${projectName}: ${
+                result.stderr || result.stdout
+              }`,
+            );
+          }
+          return cleanupOwnership.onOwned(namespaceUID);
+        }),
+    );
   }
 
   const dataConnectionReplacements: DataConnectionReplacements = {

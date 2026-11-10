@@ -78,6 +78,21 @@ describe('AutoML cleanup commands', () => {
     expect(script).toContain('exit "$failed"');
   });
 
+  it('uses the endpoint recorded during provisioning instead of the current bucket override', () => {
+    const bucket: AWSS3BucketDetails = {
+      NAME: 'automl-test-bucket',
+      REGION: 'us-east-1',
+      ENDPOINT: 'https://external-s3.example.test',
+    };
+    const script = buildAutomlS3CleanupScript(
+      bucket,
+      project({ s3Endpoint: 'http://minio.internal.test:9000' }),
+    );
+
+    expect(script).toContain("--endpoint-url 'http://minio.internal.test:9000'");
+    expect(script).not.toContain('external-s3.example.test');
+  });
+
   it('rejects a bucket that does not match the recorded project', () => {
     expect(() =>
       buildAutomlS3CleanupScript(

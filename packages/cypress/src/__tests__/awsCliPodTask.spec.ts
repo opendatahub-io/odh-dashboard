@@ -64,7 +64,47 @@ describe('AWS CLI pod task', () => {
     ]);
   });
 
-  it('deletes the pod and Secret when the oc run subprocess times out', async () => {
+  it('preserves a resolved timeout exit code and removes both resources', async () => {
+    const calls: string[][] = [];
+    const runCommand: OcCommandRunner = async (args) => {
+      calls.push(args);
+      if (args[0] === 'run') {
+        return { exitCode: 124, stdout: '', stderr: 'command timed out' };
+      }
+      return success;
+    };
+
+    const result = await createAwsCliPodTask(runCommand)(taskOptions);
+
+    expect(result.exitCode).toBe(124);
+    expect(result.stderr).toContain('command timed out');
+    expect(calls.map((args) => args[0])).toEqual([
+      'apply',
+      'run',
+      'describe',
+      'delete',
+      'delete',
+    ]);
+    expect(calls[3]).toEqual([
+      'delete',
+      'pod',
+      's3-cleanup-123',
+      '-n',
+      'configured-cleanup',
+      '--wait=false',
+      '--ignore-not-found',
+    ]);
+    expect(calls[4]).toEqual([
+      'delete',
+      'secret',
+      's3-cleanup-123-creds',
+      '-n',
+      'configured-cleanup',
+      '--ignore-not-found',
+    ]);
+  });
+
+  it('also removes the pod and Secret when the oc run runner rejects', async () => {
     const calls: string[][] = [];
     const runCommand: OcCommandRunner = async (args) => {
       calls.push(args);

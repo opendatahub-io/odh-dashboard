@@ -14,6 +14,12 @@ export type AutomlCleanupProject = {
   bucketKey: 'BUCKET_2' | 'BUCKET_3';
   bucketName: string;
   clusterServer: string;
+  /** Endpoint used by this attempt, retained so recovery targets the same S3 service. */
+  s3Endpoint?: string;
+  /** Random attempt marker; optional only for reading manifests written before ownership checks. */
+  cleanupToken?: string;
+  /** Namespace UID captured after the ownership marker was applied. */
+  namespaceUID?: string;
   uploads: string[];
   runs: { id: string; outputRoot: AutoXOutputRoot }[];
   s3Cleaned: boolean;
@@ -36,6 +42,12 @@ type RecordProject = {
   bucketKey: AutomlCleanupProject['bucketKey'];
   bucketName: string;
   clusterServer: string;
+  s3Endpoint: string;
+};
+
+type RecordNamespace = Pick<RecordProject, 'spec' | 'namespace'> & {
+  cleanupToken: string;
+  namespaceUID: string;
 };
 
 type RecordUpload = Pick<RecordProject, 'spec' | 'namespace'> & { key: string };
@@ -54,6 +66,7 @@ type MarkProject = Pick<RecordProject, 'spec' | 'namespace'> & {
 type AutomlCleanupTasks = {
   'automlCleanup:get': (spec: string) => AutomlCleanupManifest | null;
   'automlCleanup:recordProject': (record: RecordProject) => AutomlCleanupManifest;
+  'automlCleanup:recordNamespace': (record: RecordNamespace) => AutomlCleanupManifest;
   'automlCleanup:recordUpload': (record: RecordUpload) => AutomlCleanupManifest;
   'automlCleanup:recordRun': (record: RecordRun) => AutomlCleanupManifest;
   'automlCleanup:markProject': (record: MarkProject) => AutomlCleanupManifest;
@@ -71,6 +84,9 @@ const isProject = (value: unknown): value is AutomlCleanupProject => {
     (value.bucketKey === 'BUCKET_2' || value.bucketKey === 'BUCKET_3') &&
     typeof value.bucketName === 'string' &&
     typeof value.clusterServer === 'string' &&
+    (value.s3Endpoint === undefined || typeof value.s3Endpoint === 'string') &&
+    (value.cleanupToken === undefined || typeof value.cleanupToken === 'string') &&
+    (value.namespaceUID === undefined || typeof value.namespaceUID === 'string') &&
     Array.isArray(value.uploads) &&
     value.uploads.every((key: unknown) => typeof key === 'string') &&
     Array.isArray(value.runs) &&
@@ -169,6 +185,7 @@ export const createAutomlCleanupTasks = (
       bucketKey,
       bucketName,
       clusterServer,
+      s3Endpoint,
     }: RecordProject) =>
       update(spec, (manifest) => {
         if (!manifest.projects.some((project) => project.namespace === namespace)) {
@@ -177,6 +194,8 @@ export const createAutomlCleanupTasks = (
             bucketKey,
             bucketName,
             clusterServer,
+            s3Endpoint,
+            cleanupToken: randomUUID(),
             uploads: [],
             runs: [],
             s3Cleaned: false,
@@ -184,6 +203,25 @@ export const createAutomlCleanupTasks = (
             errors: [],
           });
         }
+      }),
+    'automlCleanup:recordNamespace': ({
+      spec,
+      namespace,
+      cleanupToken,
+      namespaceUID,
+    }: RecordNamespace) =>
+      update(spec, (manifest) => {
+        const project = requireProject(manifest, namespace);
+        if (project.cleanupToken !== cleanupToken) {
+          throw new Error(`AutoML cleanup ownership token mismatch for ${namespace}`);
+        }
+        if (!namespaceUID.trim()) {
+          throw new Error(`AutoML cleanup namespace UID is missing for ${namespace}`);
+        }
+        if (project.namespaceUID && project.namespaceUID !== namespaceUID) {
+          throw new Error(`AutoML cleanup namespace UID changed for ${namespace}`);
+        }
+        project.namespaceUID = namespaceUID;
       }),
     'automlCleanup:recordUpload': ({ spec, namespace, key }: RecordUpload) =>
       update(spec, (manifest) => {

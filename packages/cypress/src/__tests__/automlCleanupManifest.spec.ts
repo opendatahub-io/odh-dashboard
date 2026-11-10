@@ -8,6 +8,7 @@ import {
   writeAutomlCleanupManifest,
   type AutomlCleanupManifest,
 } from '../automlCleanupManifest';
+import { matchesAutomlCleanupOwnership } from '../automlCleanupCommands';
 
 describe('AutoML cleanup manifest', () => {
   let directory: string;
@@ -32,6 +33,9 @@ describe('AutoML cleanup manifest', () => {
         bucketKey: 'BUCKET_2',
         bucketName: 'automl-test-bucket',
         clusterServer: 'https://api.example.test:6443',
+        s3Endpoint: 'https://s3.example.test',
+        cleanupToken: 'test-attempt-token',
+        namespaceUID: 'namespace-uid-123',
         uploads: ['datasets/input.csv'],
         runs: [{ id: 'run-123', outputRoot: 'autogluon-tabular-training-pipeline' }],
         s3Cleaned: false,
@@ -83,9 +87,22 @@ describe('AutoML cleanup manifest', () => {
       bucketKey: 'BUCKET_2' as const,
       bucketName: 'automl-test-bucket',
       clusterServer: 'https://api.example.test:6443',
+      s3Endpoint: 'https://minio.internal.test:9000',
     };
 
     tasks['automlCleanup:recordProject'](projectRecord);
+    const recorded = tasks['automlCleanup:get'](projectRecord.spec);
+    const cleanupToken = recorded?.projects[0].cleanupToken;
+    expect(typeof cleanupToken).toBe('string');
+    if (typeof cleanupToken !== 'string') {
+      throw new Error('Expected the cleanup attempt token to be recorded');
+    }
+    tasks['automlCleanup:recordNamespace']({
+      spec: projectRecord.spec,
+      namespace: projectRecord.namespace,
+      cleanupToken,
+      namespaceUID: 'namespace-uid-123',
+    });
     tasks['automlCleanup:recordUpload']({
       spec: projectRecord.spec,
       namespace: projectRecord.namespace,
@@ -117,6 +134,9 @@ describe('AutoML cleanup manifest', () => {
         bucketKey: projectRecord.bucketKey,
         bucketName: projectRecord.bucketName,
         clusterServer: projectRecord.clusterServer,
+        s3Endpoint: projectRecord.s3Endpoint,
+        cleanupToken,
+        namespaceUID: 'namespace-uid-123',
         uploads: ['datasets/input.csv'],
         runs: [{ id: 'run-123', outputRoot: 'autogluon-tabular-training-pipeline' }],
         s3Cleaned: true,
@@ -126,5 +146,22 @@ describe('AutoML cleanup manifest', () => {
     ]);
     expect(manifest?.jobName).toBe('3.6/automl-ui-tests');
     expect(manifest?.buildNumber).toBe('22');
+  });
+
+  it('matches only the recorded namespace UID and attempt marker', () => {
+    const project = {
+      namespaceUID: 'namespace-uid-123',
+      cleanupToken: 'test-attempt-token',
+    };
+
+    const current = { uid: project.namespaceUID, cleanupToken: project.cleanupToken };
+    expect(matchesAutomlCleanupOwnership(project, current)).toBe(true);
+    expect(matchesAutomlCleanupOwnership(project, { ...current, uid: 'new-namespace-uid' })).toBe(
+      false,
+    );
+    expect(matchesAutomlCleanupOwnership(project, { ...current, cleanupToken: 'other-attempt' })).toBe(
+      false,
+    );
+    expect(matchesAutomlCleanupOwnership({}, current)).toBe(false);
   });
 });

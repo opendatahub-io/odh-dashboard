@@ -487,25 +487,27 @@ export const submitAutoragRun = (
   return cy
     .wait('@autoragCreateRun')
     .then(({ request, response }) => {
-      const body = request.body as Record<string, unknown>;
-      expect(body.input_data_keys).to.deep.equal([inputDataKey]);
-      expect(body.maas_secret_name).to.equal(testData.maasSecretName);
-      expect(body.db_secret_name).to.equal(testData.vectorDbSecretName);
-      expect(body.generation_models).to.deep.equal([maasFixture.generationModelId]);
-      expect(body.embedding_models).to.deep.equal([maasFixture.embeddingModelId]);
-      expect(body.optimization_metric).to.equal(
-        testData.optimizationMetric ?? 'custom:overall_score',
-      );
-      expect(body.preset).to.equal('speed');
-      expect(body.optimization_max_rag_patterns).to.equal(testData.maxRagPatterns);
-
       const runId = response?.body?.data?.run_id;
       if (typeof runId !== 'string' || !runId) {
         throw new Error('AutoRAG create response did not include the submitted run ID.');
       }
-      return runId;
+      // Record as soon as the API confirms creation. Later request assertions can fail,
+      // and teardown still needs the run ID to terminate the run and remove its outputs.
+      return recordAutoXRun(projectName, runId, AUTORAG_OUTPUT_ROOT).then(() => {
+        const body = request.body as Record<string, unknown>;
+        expect(body.input_data_keys).to.deep.equal([inputDataKey]);
+        expect(body.maas_secret_name).to.equal(testData.maasSecretName);
+        expect(body.db_secret_name).to.equal(testData.vectorDbSecretName);
+        expect(body.generation_models).to.deep.equal([maasFixture.generationModelId]);
+        expect(body.embedding_models).to.deep.equal([maasFixture.embeddingModelId]);
+        expect(body.optimization_metric).to.equal(
+          testData.optimizationMetric ?? 'custom:overall_score',
+        );
+        expect(body.preset).to.equal('speed');
+        expect(body.optimization_max_rag_patterns).to.equal(testData.maxRagPatterns);
+        return runId;
+      });
     })
-    .then((runId) => recordAutoXRun(projectName, runId, AUTORAG_OUTPUT_ROOT).then(() => runId))
     .then((runId) => {
       cy.step('Verify redirect to results page');
       return cy
