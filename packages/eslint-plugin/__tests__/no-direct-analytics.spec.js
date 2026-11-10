@@ -12,7 +12,6 @@ const guarded = (config, files) => ({
 });
 
 const legacy = '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-const uiCore = '@odh-dashboard/ui-core/contexts/AnalyticsContext';
 const base = {
   root: true,
   parserOptions: { ecmaVersion: 2022, sourceType: 'module', ecmaFeatures: { jsx: true } },
@@ -32,24 +31,14 @@ for (const source of [
   `export * from '${legacy}/deep';`,
   `import { fireTrackingEvent } from '@odh-dashboard/analytics';`,
   `import '@odh-dashboard/analytics/deep';`,
+  `import '@odh-dashboard/analytics/types';`,
+  `import '@odh-dashboard/analytics/types/deep';`,
+  `import '@odh-dashboard/analytics/types-extra';`,
+  `export * from '@odh-dashboard/analytics';`,
   `import '@segment/analytics-next';`,
   `import '@segment/analytics-next/deep';`,
   `import 'analytics-node';`,
   `import 'analytics.js';`,
-  `import { useAnalytics as useLegacy } from '${uiCore}'; useLegacy();`,
-  `import { useAnalytics } from '@odh-dashboard/ui-core'; useAnalytics();`,
-  `export { AnalyticsContext } from '${uiCore}';`,
-  `import * as core from '@odh-dashboard/ui-core'; core.useAnalytics();`,
-  `import useAnalytics from '@odh-dashboard/ui-core/useAnalytics'; useAnalytics();`,
-  `import '@odh-dashboard/ui-core/useAnalytics/deep';`,
-  `export * from '@odh-dashboard/ui-core';`,
-  `export * as core from '${uiCore}';`,
-  `export { useAnalytics as useLegacy } from '@odh-dashboard/ui-core';`,
-  `import * as core from '${uiCore}'; core['useAnalytics']();`,
-  `import * as core from '${uiCore}'; core?.['AnalyticsContext'];`,
-  `import * as core from '${uiCore}'; const { useAnalytics: hook } = core;`,
-  `import * as core from '${uiCore}'; let hook; ({ ['useAnalytics']: hook } = core);`,
-  `import * as core from '${uiCore}'; const view = <core.AnalyticsContext.Provider />;`,
 ]) {
   it(`should reject ${source}`, async () => {
     expect((await lint(source)).some((item) => item.ruleId === ruleId)).toBeTruthy();
@@ -74,15 +63,16 @@ for (const global of ['window', 'globalThis', 'self']) {
 
 for (const source of [
   `import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api'; useTrackEvent()('event', {});`,
-  `import { TrackingOutcome, FormTrackingEventProperties } from '${uiCore}';`,
+  `import { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';`,
+  `export { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';`,
+  `export * from '@odh-dashboard/ui-core/types/analytics';`,
+  `import * as contracts from '@odh-dashboard/ui-core/types/analytics'; contracts.TrackingOutcome;`,
   `import { unrelated } from '@odh-dashboard/ui-core';`,
-  `function useAnalytics() {} useAnalytics();`,
+  `export * from '@odh-dashboard/ui-core';`,
   `const feature = { analytics: {} }; feature.analytics;`,
   `window.location; const { location } = window;`,
   `import * as core from '@odh-dashboard/ui-core'; core.unrelated();`,
   `import * as core from '@odh-dashboard/ui-core'; const { unrelated } = core;`,
-  `import * as useAnalytics from '@odh-dashboard/ui-core'; useAnalytics.unrelated();`,
-  `import * as core from '${uiCore}'; function local(core) { core.useAnalytics(); }`,
   `function local(window) { window.analytics; const { analytics } = window; }`,
   `const globalThis = { analytics: {} }; globalThis.analytics;`,
   `const self = {}; let analytics; ({ analytics } = self);`,
@@ -110,17 +100,17 @@ it('should document indirect global aliases and nonliteral computed access as ou
   ).toEqual([]);
 });
 
-it('should permit TypeScript property types with both type import syntaxes', async () => {
+it('should permit TypeScript contracts with both type import syntaxes', async () => {
   const typed = makeLinter(
     guarded({ ...base, parser: require.resolve('@typescript-eslint/parser') }, ['src/**']),
   );
   expect(
     await lint(
-      `import type { FormTrackingEventProperties, AnalyticsContext } from '${uiCore}';
-       import { type LinkTrackingEventProperties, TrackingOutcome, type useAnalytics } from '${uiCore}';
-       export type { AnalyticsContext } from '${uiCore}';
-       export { type useAnalytics } from '${uiCore}';
-       import type * as types from '${uiCore}'; type Hook = typeof types.useAnalytics;`,
+      `import type { FormTrackingEventProperties } from '@odh-dashboard/ui-core/types/analytics';
+       import { type LinkTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';
+       export type { IdentifyEventProperties } from '@odh-dashboard/ui-core/types/analytics';
+       import type * as contracts from '@odh-dashboard/ui-core/types/analytics';
+       type Outcome = typeof contracts.TrackingOutcome;`,
       undefined,
       typed,
     ),
@@ -132,16 +122,45 @@ describe('TypeScript type and value namespaces', () => {
     guarded({ ...base, parser: require.resolve('@typescript-eslint/parser') }, ['src/**']),
   );
 
+  for (const global of ['window', 'globalThis', 'self']) {
+    for (const source of [
+      `(${global} as any).analytics.track('event');`,
+      `${global}!.analytics.track('event');`,
+      `(<any>${global}).analytics.track('event');`,
+      `(${global} satisfies unknown)?.['analytics']?.track('event');`,
+      `${global}['analytics' as const].track('event');`,
+      `${global}['analytics' satisfies string].track('event');`,
+      `const { analytics: client } = (${global} as any)!;`,
+      `const { ['analytics' as const]: client } = (${global} as any);`,
+      `let client; ({ ['analytics']: client } = ${global}!);`,
+      `declare const ${global}: { analytics: any }; ${global}.analytics.track('event');`,
+      `declare var ${global}: { analytics: any }; const { analytics } = ${global};`,
+      `interface ${global} {} declare const ${global}: any; (${global} as any).analytics;`,
+      `declare namespace ${global} { const analytics: any; } ${global}.analytics;`,
+    ]) {
+      it(`should reject global access through erased TypeScript syntax: ${source}`, async () => {
+        expect(await lint(source, 'src/feature.ts', typed)).toEqual(
+          expect.arrayContaining([expect.objectContaining({ ruleId, severity: 2 })]),
+        );
+      });
+    }
+
+    for (const source of [
+      `function local(${global}: any) { (${global} as any).analytics; const { ['analytics' as const]: client } = ${global}!; }`,
+      `const ${global} = { analytics: {} }; (${global} satisfies unknown).analytics;`,
+      `const ${global} = { analytics: {} }; function local() { declare const ${global}: any; (${global} as any).analytics; }`,
+    ]) {
+      it(`should preserve a real local value through TypeScript wrappers: ${source}`, async () => {
+        expect(await lint(source, 'src/feature.ts', typed)).toEqual([]);
+      });
+    }
+  }
+
   for (const source of [
     ...['window', 'globalThis', 'self'].flatMap((global) => [
       `type ${global} = unknown; ${global}.analytics.track('event');`,
       `interface ${global} {} const { analytics } = ${global};`,
       `function example<${global}>() { ${global}?.['analytics']?.track('event'); }`,
-    ]),
-    ...['@odh-dashboard/ui-core', uiCore].flatMap((module) => [
-      `import * as core from '${module}'; function example() { type core = unknown; core.useAnalytics(); }`,
-      `import * as core from '${module}'; function example() { interface core {} const { useAnalytics } = core; }`,
-      `import * as core from '${module}'; function example<core>() { return <core.AnalyticsContext.Provider />; }`,
     ]),
   ]) {
     it(`should reject runtime access despite a type-only shadow: ${source}`, async () => {
@@ -155,8 +174,6 @@ describe('TypeScript type and value namespaces', () => {
     `type window = unknown; const window = { analytics: {} }; window.analytics;`,
     `interface globalThis {} class globalThis { static analytics = {}; } globalThis.analytics;`,
     `enum self { analytics } self.analytics;`,
-    `import * as core from '${uiCore}'; function example(core: { useAnalytics(): void }) { type core = unknown; core.useAnalytics(); }`,
-    `import * as core from '${uiCore}'; function example() { interface core {} const core = { useAnalytics() {} }; const { useAnalytics } = core; }`,
   ]) {
     it(`should permit a genuine local value shadow: ${source}`, async () => {
       expect(await lint(source, 'src/feature.tsx', typed)).toEqual([]);
