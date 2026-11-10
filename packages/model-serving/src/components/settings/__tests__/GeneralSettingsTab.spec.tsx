@@ -1,9 +1,13 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useNotification } from '@odh-dashboard/ui-core';
 import type { ClusterSettingsType } from '@odh-dashboard/plugin-core/host-api';
 import GeneralSettingsTab from '../GeneralSettingsTab';
+import { createTrackingRender } from '../../../__tests__/TrackingProvider';
+
+const mockTrackEvent = jest.fn();
+const render = createTrackingRender(mockTrackEvent);
 
 const mockFetchClusterSettings = jest.fn();
 const mockUpdateClusterSettings = jest.fn();
@@ -23,7 +27,6 @@ jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
     fetchClusterSettings: mockFetchClusterSettings,
     updateClusterSettings: mockUpdateClusterSettings,
   }),
-  useTrackEvent: () => jest.fn(),
 }));
 jest.mock('../ModelServingPlatformSettings', () => ({
   __esModule: true,

@@ -702,6 +702,9 @@ importers:
 
   distributions/maas-portal:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
       '@odh-dashboard/base-distribution':
         specifier: workspace:*
         version: link:../base
@@ -1799,6 +1802,9 @@ importers:
       '@segment/analytics-next':
         specifier: ^1.84.0
         version: 1.84.1
+      react:
+        specifier: ^18
+        version: 18.3.1
     devDependencies:
       '@odh-dashboard/eslint-config':
         specifier: workspace:*
@@ -3268,6 +3274,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.9.1
         version: 5.9.1(@sinclair/typebox@0.34.52)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.8)(react-hook-form@7.88.0(react@18.3.1))(zod@4.4.3)
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../../analytics
       '@patternfly/patternfly':
         specifier: 6.6.1
         version: 6.6.1
