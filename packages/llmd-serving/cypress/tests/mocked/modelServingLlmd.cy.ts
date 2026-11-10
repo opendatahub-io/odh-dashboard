@@ -326,7 +326,7 @@ describe('Model Serving LLMD', () => {
         .should('contain', 'KServe Test Model');
     });
 
-    it('should display LLMD deployments when KServe UI is disabled and the KServe DSC component is managed', () => {
+    it('should display LLMD deployments when KServe flag is disabled and the KServe DSC component is managed', () => {
       initIntercepts({
         llmInferenceServices: [
           mockLLMInferenceServiceK8sResource({
@@ -349,6 +349,128 @@ describe('Model Serving LLMD', () => {
 
       modelServingGlobal.getModelRow('LLMD Without KServe UI').should('be.visible');
       modelServingGlobal.findRows().should('have.length', 1);
+    });
+
+    it('should hide KServe InferenceServices and skip the KServe watcher when the KServe flag is disabled', () => {
+      const llmdDisplayName = 'LLMD Without KServe Watcher';
+      const kserveDisplayName = 'Hidden KServe Test Model';
+
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'llmd-only-visible',
+            namespace: 'test-project',
+            displayName: llmdDisplayName,
+            isReady: true,
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'hidden-kserve-deployment',
+            namespace: 'test-project',
+            displayName: kserveDisplayName,
+            isReady: true,
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-runtime',
+            namespace: 'test-project',
+          }),
+        ],
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: true,
+          disableLLMd: false,
+          genAiStudio: true,
+          modelAsService: true,
+        }),
+      );
+      cy.interceptK8sList(
+        LLMInferenceServiceModel,
+        mockK8sResourceList([
+          mockLLMInferenceServiceK8sResource({
+            name: 'llmd-only-visible',
+            namespace: 'test-project',
+            displayName: llmdDisplayName,
+            isReady: true,
+          }),
+        ]),
+      ).as('listLLMInferenceServices');
+      cy.interceptK8sList(
+        InferenceServiceModel,
+        mockK8sResourceList([
+          mockInferenceServiceK8sResource({
+            name: 'hidden-kserve-deployment',
+            namespace: 'test-project',
+            displayName: kserveDisplayName,
+            isReady: true,
+          }),
+        ]),
+      ).as('listInferenceServices');
+
+      modelServingGlobal.visit('test-project');
+
+      cy.step('LLMD deployments still load from the LLMD watcher');
+      cy.wait('@listLLMInferenceServices');
+      modelServingGlobal.getModelRow(llmdDisplayName).should('be.visible');
+      modelServingGlobal.findRows().should('have.length', 1);
+      cy.findByTestId('deployments-table').contains(kserveDisplayName).should('not.exist');
+      cy.findByTestId('error-loading-deployments').should('not.exist');
+
+      cy.step('KServe InferenceService watcher stays unloaded');
+      cy.get('@listInferenceServices.all').should('have.length', 0);
+    });
+
+    it('should hide KServe InferenceServices in the project deployments tab when the KServe flag is disabled', () => {
+      // Project details still lists InferenceServices via ProjectDetailsContext for
+      // connections/overview — that is unrelated to the KServe platform watcher. This
+      // test only asserts the modular deployments table (ModelDeploymentsProvider).
+      const llmdDisplayName = 'Project LLMD Without KServe UI';
+      const kserveDisplayName = 'Project Hidden KServe Model';
+
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'project-llmd-only-visible',
+            namespace: 'test-project',
+            displayName: llmdDisplayName,
+            isReady: true,
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'project-hidden-kserve-deployment',
+            namespace: 'test-project',
+            displayName: kserveDisplayName,
+            isReady: true,
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-runtime',
+            namespace: 'test-project',
+          }),
+        ],
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: true,
+          disableLLMd: false,
+          genAiStudio: true,
+          modelAsService: true,
+        }),
+      );
+
+      modelServingSection.visit('test-project');
+
+      modelServingSection.findDeploymentsTable().contains(llmdDisplayName).should('be.visible');
+      modelServingSection.findDeploymentsTable().contains(kserveDisplayName).should('not.exist');
     });
 
     it('should show LLMD deployments and runtime options when LLMD is enabled but not when disabled', () => {

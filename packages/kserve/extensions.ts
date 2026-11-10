@@ -238,9 +238,6 @@ const extensions: (
         deployButtonText: 'Deploy model',
       },
     },
-    flags: {
-      required: [SupportedArea.K_SERVE],
-    },
   },
   {
     type: 'model-serving.platform/watch-deployments',
