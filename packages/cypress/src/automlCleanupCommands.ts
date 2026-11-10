@@ -46,10 +46,7 @@ export const assertAutomlCleanupProject = (project: AutomlCleanupProject): void 
   ) {
     throw new Error(`Invalid AutoML cleanup token in ${project.namespace}`);
   }
-  if (
-    project.namespaceUID !== undefined &&
-    !/^[A-Za-z0-9-]{1,128}$/.test(project.namespaceUID)
-  ) {
+  if (project.namespaceUID !== undefined && !/^[A-Za-z0-9-]{1,128}$/.test(project.namespaceUID)) {
     throw new Error(`Invalid AutoML namespace UID in ${project.namespace}`);
   }
   for (const run of project.runs) {
@@ -72,9 +69,7 @@ export const buildAutomlS3CleanupScript = (
     throw new Error(`Missing AutoML S3 bucket configuration for ${project.bucketKey}`);
   }
   if (bucket.NAME !== project.bucketName) {
-    throw new Error(
-      `AutoML S3 bucket does not match the recorded bucket for ${project.namespace}`,
-    );
+    throw new Error(`AutoML S3 bucket does not match the recorded bucket for ${project.namespace}`);
   }
 
   const endpoint = project.s3Endpoint ?? bucket.ENDPOINT;

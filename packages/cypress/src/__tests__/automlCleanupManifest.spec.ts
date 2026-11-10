@@ -159,9 +159,9 @@ describe('AutoML cleanup manifest', () => {
     expect(matchesAutomlCleanupOwnership(project, { ...current, uid: 'new-namespace-uid' })).toBe(
       false,
     );
-    expect(matchesAutomlCleanupOwnership(project, { ...current, cleanupToken: 'other-attempt' })).toBe(
-      false,
-    );
+    expect(
+      matchesAutomlCleanupOwnership(project, { ...current, cleanupToken: 'other-attempt' }),
+    ).toBe(false);
     expect(matchesAutomlCleanupOwnership({}, current)).toBe(false);
   });
 });

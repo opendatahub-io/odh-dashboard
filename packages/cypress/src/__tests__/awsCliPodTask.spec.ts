@@ -78,13 +78,7 @@ describe('AWS CLI pod task', () => {
 
     expect(result.exitCode).toBe(124);
     expect(result.stderr).toContain('command timed out');
-    expect(calls.map((args) => args[0])).toEqual([
-      'apply',
-      'run',
-      'describe',
-      'delete',
-      'delete',
-    ]);
+    expect(calls.map((args) => args[0])).toEqual(['apply', 'run', 'describe', 'delete', 'delete']);
     expect(calls[3]).toEqual([
       'delete',
       'pod',

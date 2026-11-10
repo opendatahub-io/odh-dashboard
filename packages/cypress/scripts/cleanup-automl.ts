@@ -44,6 +44,9 @@ const S3_CLEANUP_TIMEOUT_MS = 900000;
 const RECOVERY_POLL_INTERVAL_MS = 5000;
 let cleanupOcContext = '';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 const parseOptions = (): CliOptions => {
   const args = process.argv.slice(2);
   const optionValue = (name: string): string | undefined =>
@@ -135,55 +138,25 @@ const namespaceStatus = (
     return { exists: false, finalizers: [], phase: null };
   }
   const response: unknown = JSON.parse(result.stdout);
-  if (
-    typeof response !== 'object' ||
-    response === null ||
-    !('metadata' in response) ||
-    typeof response.metadata !== 'object' ||
-    response.metadata === null
-  ) {
+  if (!isRecord(response) || !isRecord(response.metadata)) {
     throw new Error(`Invalid namespace response for ${namespace}`);
   }
-  const finalizers =
-    'finalizers' in response.metadata && Array.isArray(response.metadata.finalizers)
-      ? response.metadata.finalizers.filter(
-          (item: unknown): item is string => typeof item === 'string',
-        )
-      : [];
-  if (
-    'spec' in response &&
-    typeof response.spec === 'object' &&
-    response.spec !== null &&
-    'finalizers' in response.spec &&
-    Array.isArray(response.spec.finalizers)
-  ) {
+  const { metadata } = response;
+  const spec = isRecord(response.spec) ? response.spec : undefined;
+  const status = isRecord(response.status) ? response.status : undefined;
+  const finalizers = Array.isArray(metadata.finalizers)
+    ? metadata.finalizers.filter((item: unknown): item is string => typeof item === 'string')
+    : [];
+  if (spec && Array.isArray(spec.finalizers)) {
     finalizers.push(
-      ...response.spec.finalizers.filter(
-        (item: unknown): item is string => typeof item === 'string',
-      ),
+      ...spec.finalizers.filter((item: unknown): item is string => typeof item === 'string'),
     );
   }
-  const phase =
-    'status' in response &&
-    typeof response.status === 'object' &&
-    response.status !== null &&
-    'phase' in response.status &&
-    typeof response.status.phase === 'string'
-      ? response.status.phase
-      : null;
-  const uid = 'uid' in response.metadata && typeof response.metadata.uid === 'string'
-    ? response.metadata.uid
-    : undefined;
-  const labels =
-    'labels' in response.metadata &&
-    typeof response.metadata.labels === 'object' &&
-    response.metadata.labels !== null
-      ? (response.metadata.labels as Record<string, unknown>)
-      : {};
-  const cleanupToken =
-    typeof labels[AUTOML_CLEANUP_OWNER_LABEL] === 'string'
-      ? (labels[AUTOML_CLEANUP_OWNER_LABEL] as string)
-      : undefined;
+  const phase = typeof status?.phase === 'string' ? status.phase : null;
+  const uid = typeof metadata.uid === 'string' ? metadata.uid : undefined;
+  const labels = isRecord(metadata.labels) ? metadata.labels : {};
+  const token = labels[AUTOML_CLEANUP_OWNER_LABEL];
+  const cleanupToken = typeof token === 'string' ? token : undefined;
   return { exists: true, finalizers, phase, uid, cleanupToken };
 };
 
@@ -325,15 +298,17 @@ const runS3Cleanup = async (
     if (jobInfo.exitCode !== 0) {
       throw new Error(`Could not inspect S3 cleanup Job: ${jobInfo.stderr}`);
     }
-    const jobMetadata = JSON.parse(jobInfo.stdout) as {
-      metadata?: { uid?: string; labels?: Record<string, string> };
-    };
-    const jobUID = jobMetadata.metadata?.uid;
-    const jobLabels = jobMetadata.metadata?.labels;
+    const jobResponse: unknown = JSON.parse(jobInfo.stdout);
+    if (!isRecord(jobResponse) || !isRecord(jobResponse.metadata)) {
+      throw new Error(`Invalid S3 cleanup Job response for ${jobName}`);
+    }
+    const jobMetadata = jobResponse.metadata;
+    const jobUID = typeof jobMetadata.uid === 'string' ? jobMetadata.uid : undefined;
+    const jobLabels = isRecord(jobMetadata.labels) ? jobMetadata.labels : {};
     if (
       !jobUID ||
-      jobLabels?.[AUTOML_RECOVERY_MANAGED_BY_LABEL] !== AUTOML_RECOVERY_MANAGED_BY ||
-      jobLabels?.[AUTOML_RECOVERY_RUN_ID_LABEL] !== runId
+      jobLabels[AUTOML_RECOVERY_MANAGED_BY_LABEL] !== AUTOML_RECOVERY_MANAGED_BY ||
+      jobLabels[AUTOML_RECOVERY_RUN_ID_LABEL] !== runId
     ) {
       throw new Error(`S3 cleanup Job ${jobName} does not match this recovery run`);
     }
@@ -368,31 +343,30 @@ const runS3Cleanup = async (
         throw new Error(`Could not read S3 cleanup Job status: ${statusResult.stderr}`);
       }
       const response: unknown = JSON.parse(statusResult.stdout);
-      if (typeof response === 'object' && response !== null && 'status' in response) {
-        const status = response.status;
-        if (typeof status === 'object' && status !== null) {
-          const conditions =
-            'conditions' in status && Array.isArray(status.conditions)
-              ? (status.conditions as { type?: string; status?: string }[])
-              : [];
-          if (
-            conditions.some(
-              (condition) => condition.type === 'Complete' && condition.status === 'True',
-            )
-          ) {
-            jobState = 'complete';
-          } else if (
-            conditions.some(
-              (condition) => condition.type === 'Failed' && condition.status === 'True',
-            ) ||
-            ('failed' in status && typeof status.failed === 'number' && status.failed > 0)
-          ) {
-            jobState = 'failed';
-          }
+      if (isRecord(response) && isRecord(response.status)) {
+        const { status } = response;
+        const conditions = Array.isArray(status.conditions) ? status.conditions : [];
+        if (
+          conditions.some(
+            (condition) =>
+              isRecord(condition) && condition.type === 'Complete' && condition.status === 'True',
+          )
+        ) {
+          jobState = 'complete';
+        } else if (
+          conditions.some(
+            (condition) =>
+              isRecord(condition) && condition.type === 'Failed' && condition.status === 'True',
+          ) ||
+          (typeof status.failed === 'number' && status.failed > 0)
+        ) {
+          jobState = 'failed';
         }
       }
       if (!jobState) {
-        await new Promise<void>((resolve) => setTimeout(resolve, RECOVERY_POLL_INTERVAL_MS));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, RECOVERY_POLL_INTERVAL_MS);
+        });
       }
     }
     const logs = runOc(['logs', `job/${jobName}`, '-n', options.executorNamespace]);
@@ -464,30 +438,21 @@ const sweepOrphanedRecoverySecrets = (namespace: string): void => {
     if (!isStaleUnownedRecoverySecret(secret)) {
       continue;
     }
-    if (typeof secret !== 'object' || secret === null || !('metadata' in secret)) {
+    if (!isRecord(secret) || !isRecord(secret.metadata)) {
       continue;
     }
-    const metadata = secret.metadata;
-    if (
-      typeof metadata !== 'object' ||
-      metadata === null ||
-      !('name' in metadata) ||
-      typeof metadata.name !== 'string'
-    ) {
+    const { metadata } = secret;
+    const { name: secretName } = metadata;
+    if (typeof secretName !== 'string') {
       continue;
     }
-    const labels =
-      'labels' in metadata &&
-      typeof metadata.labels === 'object' &&
-      metadata.labels !== null
-        ? (metadata.labels as Record<string, unknown>)
-        : {};
+    const labels = isRecord(metadata.labels) ? metadata.labels : {};
     const runId = labels[AUTOML_RECOVERY_RUN_ID_LABEL];
     if (typeof runId !== 'string' || !/^[a-f0-9]{16}$/.test(runId)) {
       continue;
     }
     const jobName = `autox-s3-${runId}`;
-    if (metadata.name !== `${jobName}-creds`) {
+    if (secretName !== `${jobName}-creds`) {
       continue;
     }
     const job = runOc(['get', 'job', jobName, '-n', namespace, '--ignore-not-found', '-o', 'json']);
@@ -495,62 +460,54 @@ const sweepOrphanedRecoverySecrets = (namespace: string): void => {
       throw new Error(`Could not check owner Job ${jobName}: ${job.stderr}`);
     }
     if (job.stdout.trim()) {
-      const jobMetadata = (
-        JSON.parse(job.stdout) as {
-          metadata?: { uid?: string; labels?: Record<string, string> };
-        }
-      ).metadata;
+      const jobResponse: unknown = JSON.parse(job.stdout);
+      if (!isRecord(jobResponse) || !isRecord(jobResponse.metadata)) {
+        throw new Error(`Owner Job ${jobName} has an invalid response`);
+      }
+      const jobMetadata = jobResponse.metadata;
+      const jobUID = typeof jobMetadata.uid === 'string' ? jobMetadata.uid : undefined;
+      const jobLabels = isRecord(jobMetadata.labels) ? jobMetadata.labels : {};
       if (
-        !jobMetadata?.uid ||
-        jobMetadata.labels?.[AUTOML_RECOVERY_MANAGED_BY_LABEL] !== AUTOML_RECOVERY_MANAGED_BY ||
-        jobMetadata.labels?.[AUTOML_RECOVERY_RUN_ID_LABEL] !== runId
+        !jobUID ||
+        jobLabels[AUTOML_RECOVERY_MANAGED_BY_LABEL] !== AUTOML_RECOVERY_MANAGED_BY ||
+        jobLabels[AUTOML_RECOVERY_RUN_ID_LABEL] !== runId
       ) {
-        throw new Error(`Owner Job ${jobName} does not match; retaining Secret ${metadata.name}`);
+        throw new Error(`Owner Job ${jobName} does not match; retaining Secret ${secretName}`);
       }
       const ownerPatch = runOc([
         'patch',
         'secret',
-        metadata.name,
+        secretName,
         '-n',
         namespace,
         '--type=merge',
         '-p',
         JSON.stringify({
           metadata: {
-            ownerReferences: [buildRecoverySecretOwnerReference(jobName, jobMetadata.uid)],
+            ownerReferences: [buildRecoverySecretOwnerReference(jobName, jobUID)],
           },
         }),
       ]);
       if (ownerPatch.exitCode !== 0) {
         throw new Error(
-          `Could not attach orphan Secret ${metadata.name} to ${jobName}: ${ownerPatch.stderr}`,
+          `Could not attach orphan Secret ${secretName} to ${jobName}: ${ownerPatch.stderr}`,
         );
       }
       continue;
     }
-    const deletion = runOc([
-      'delete',
-      'secret',
-      metadata.name,
-      '-n',
-      namespace,
-      '--ignore-not-found',
-    ]);
+    const deletion = runOc(['delete', 'secret', secretName, '-n', namespace, '--ignore-not-found']);
     if (deletion.exitCode !== 0) {
-      throw new Error(`Could not delete stale cleanup Secret ${metadata.name}: ${deletion.stderr}`);
+      throw new Error(`Could not delete stale cleanup Secret ${secretName}: ${deletion.stderr}`);
     }
     process.stdout.write(
-      `Deleted stale unowned cleanup Secret ${metadata.name} (older than ${
+      `Deleted stale unowned cleanup Secret ${secretName} (older than ${
         AUTOML_RECOVERY_ORPHAN_AGE_MS / 60000
       } minutes)\n`,
     );
   }
 };
 
-const deleteProject = async (
-  namespace: string,
-  namespaceUID: string,
-): Promise<string | null> => {
+const deleteProject = async (namespace: string, namespaceUID: string): Promise<string | null> => {
   const result = runOc([
     'delete',
     'project',

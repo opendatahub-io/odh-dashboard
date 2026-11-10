@@ -51,9 +51,7 @@ describe('AutoML cleanup recovery resources', () => {
       template: {
         spec: {
           restartPolicy: 'Never',
-          containers: [
-            { envFrom: [{ secretRef: { name: 'autox-s3-a1b2c3d4e5f60708-creds' } }] },
-          ],
+          containers: [{ envFrom: [{ secretRef: { name: 'autox-s3-a1b2c3d4e5f60708-creds' } }] }],
         },
       },
     });

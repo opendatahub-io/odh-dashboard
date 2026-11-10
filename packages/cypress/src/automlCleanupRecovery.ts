@@ -114,14 +114,11 @@ export const buildRecoverySecretOwnerReference = (
   blockOwnerDeletion: true,
 });
 
-export const isStaleUnownedRecoverySecret = (
-  secret: unknown,
-  now = Date.now(),
-): boolean => {
+export const isStaleUnownedRecoverySecret = (secret: unknown, now = Date.now()): boolean => {
   if (typeof secret !== 'object' || secret === null || !('metadata' in secret)) {
     return false;
   }
-  const metadata = secret.metadata;
+  const { metadata } = secret;
   if (typeof metadata !== 'object' || metadata === null) {
     return false;
   }
