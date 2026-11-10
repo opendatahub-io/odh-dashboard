@@ -5440,6 +5440,9 @@ importers:
 
   packages/model-registry:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@odh-dashboard/internal':
         specifier: workspace:*
         version: link:../../frontend/src
