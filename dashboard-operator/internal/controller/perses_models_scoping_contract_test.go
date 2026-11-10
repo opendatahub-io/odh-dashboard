@@ -45,8 +45,6 @@ func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 				"Models must pin DS namespace proxy for vLLM series")
 			assert.Contains(t, raw, "vllm:num_requests_running",
 				"Models must use the live Data Science vLLM metric family")
-			assert.NotContains(t, raw, "kserve_vllm:",
-				"Models must not use the unavailable kserve_vllm metric family")
 			assert.Contains(t, raw, "name: cluster-prometheus-tenancy-datasource",
 				"Models must pin OCP tenancy for GPU/CPU series")
 			assert.NotRegexp(t, regexp.MustCompile(`namespace\s*=~?\s*"\$(\{namespace\}|namespace)"`), raw,
@@ -55,6 +53,8 @@ func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 			resource := unstructured.Unstructured{}
 			require.NoError(t, yaml.Unmarshal(data, &resource.Object))
 			require.Equal(t, "PersesDashboard", resource.GetKind())
+			require.Greater(t, assertPrometheusQueryShape(t, resource.Object["spec"]), 0,
+				"Models must contain PrometheusTimeSeriesQuery panels")
 
 			variables, found, err := unstructured.NestedSlice(resource.Object, "spec", "config", "variables")
 			require.NoError(t, err)
@@ -92,6 +92,60 @@ func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 			}
 		})
 	}
+}
+
+func assertPrometheusQueryShape(t *testing.T, value any) int {
+	t.Helper()
+
+	queryCount := 0
+	switch current := value.(type) {
+	case map[string]any:
+		if current["kind"] == "TimeSeriesQuery" {
+			spec, ok := current["spec"].(map[string]any)
+			require.True(t, ok, "TimeSeriesQuery spec must be a map")
+			plugin, ok := spec["plugin"].(map[string]any)
+			require.True(t, ok, "TimeSeriesQuery plugin must be a map")
+
+			if plugin["kind"] == "PrometheusTimeSeriesQuery" {
+				querySpec, ok := plugin["spec"].(map[string]any)
+				require.True(t, ok, "PrometheusTimeSeriesQuery spec must be a map")
+				query, ok := querySpec["query"].(string)
+				require.True(t, ok, "PrometheusTimeSeriesQuery query must be a string under spec")
+				require.NotEmpty(t, strings.TrimSpace(query),
+					"PrometheusTimeSeriesQuery query must not be empty")
+
+				datasource, ok := querySpec["datasource"].(map[string]any)
+				require.True(t, ok, "PrometheusTimeSeriesQuery datasource must be a map")
+				require.Len(t, datasource, 2,
+					"PrometheusTimeSeriesQuery datasource must contain only kind and name")
+				require.Contains(t, datasource, "kind")
+				require.Contains(t, datasource, "name")
+				require.Equal(t, "PrometheusDatasource", datasource["kind"])
+
+				datasourceName, ok := datasource["name"].(string)
+				require.True(t, ok, "PrometheusTimeSeriesQuery datasource name must be a string")
+				switch datasourceName {
+				case "data-science-prometheus-datasource":
+					assert.NotContains(t, query, "kserve_vllm:",
+						"Data Science queries must use the live vllm metric family")
+				case "cluster-prometheus-tenancy-datasource":
+					assert.NotRegexp(t, regexp.MustCompile(`(^|[^[:alnum:]_])vllm:`), query,
+						"tenancy joins must not query the Data Science-only vllm metric family")
+				}
+				queryCount++
+			}
+		}
+
+		for _, child := range current {
+			queryCount += assertPrometheusQueryShape(t, child)
+		}
+	case []any:
+		for _, child := range current {
+			queryCount += assertPrometheusQueryShape(t, child)
+		}
+	}
+
+	return queryCount
 }
 
 // TestModelsAdminIsTwinOfNonAdmin fails if admin/non-admin Models CRs drift in

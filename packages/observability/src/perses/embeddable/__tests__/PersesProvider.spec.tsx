@@ -88,6 +88,7 @@ describe('PersesDashboardGate', () => {
     renderGate(namespaceDashboard, { value: 'project-a', loading: true });
 
     expect(screen.queryByTestId('dashboard-panels')).toBeNull();
+    expect(screen.getByTestId('namespace-loading-state')).toBeDefined();
   });
 
   it('should delay panels when the namespace variable is empty', () => {
@@ -100,6 +101,7 @@ describe('PersesDashboardGate', () => {
     renderGate(namespaceDashboard);
 
     expect(screen.queryByTestId('dashboard-panels')).toBeNull();
+    expect(screen.getByTestId('namespace-loading-state')).toBeDefined();
   });
 
   it('should render panels when the namespace variable has a value', () => {
@@ -128,6 +130,7 @@ describe('PersesDashboardGate', () => {
     renderGate(namespaceDashboard, { value: '$__all', loading: false });
 
     expect(screen.queryByTestId('dashboard-panels')).toBeNull();
+    expect(screen.getByTestId('namespace-loading-state')).toBeDefined();
   });
 
   it('should show an empty state when the default All options query returns no projects', () => {
@@ -165,6 +168,7 @@ describe('PersesDashboardGate', () => {
     const rendered = renderGate(namespaceDashboard, { value: null, loading: true });
 
     expect(screen.queryByTestId('dashboard-panels')).toBeNull();
+    expect(screen.getByTestId('namespace-loading-state')).toBeDefined();
 
     useVariableDefinitionAndStateMock.mockReturnValue({
       definition: undefined,

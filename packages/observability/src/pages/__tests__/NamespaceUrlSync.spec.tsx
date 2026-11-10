@@ -24,13 +24,14 @@ describe('NamespaceUrlSync', () => {
     value: string | string[] | undefined,
     loading = false,
     params = new URLSearchParams(),
+    options: { label: string; value: string }[] | undefined = undefined,
   ) => {
     mockSearchParams = params;
     mockSetSearchParams = jest.fn();
     useSearchParamsMock.mockReturnValue([mockSearchParams, mockSetSearchParams]);
     useVariableDefinitionAndStateMock.mockReturnValue({
       definition: undefined,
-      state: value !== undefined ? { value, loading } : undefined,
+      state: value !== undefined ? { value, loading, options } : undefined,
     });
   };
 
@@ -141,7 +142,12 @@ describe('NamespaceUrlSync', () => {
 
     it('should handle array values by joining with comma', async () => {
       // Start with initial value
-      setupMocks('initial');
+      const options = [
+        { label: 'namespace-1', value: 'namespace-1' },
+        { label: 'namespace-2', value: 'namespace-2' },
+        { label: 'namespace-3', value: 'namespace-3' },
+      ];
+      setupMocks('initial', false, new URLSearchParams(), options);
       const { rerender } = render(<NamespaceUrlSync />);
 
       // First render initializes, no URL update
@@ -153,6 +159,7 @@ describe('NamespaceUrlSync', () => {
         state: {
           value: ['namespace-1', 'namespace-2'],
           loading: false,
+          options,
         },
       });
       rerender(<NamespaceUrlSync />);
@@ -206,8 +213,12 @@ describe('NamespaceUrlSync', () => {
 
   describe('$__all value handling', () => {
     it('should remove namespace param when value is $__all', async () => {
-      // Start with specific namespace
-      setupMocks('specific-namespace');
+      // Start with a pinned namespace in the URL
+      setupMocks(
+        'specific-namespace',
+        false,
+        new URLSearchParams('var-namespace=specific-namespace'),
+      );
       const { rerender } = render(<NamespaceUrlSync />);
 
       // First render initializes
@@ -231,6 +242,33 @@ describe('NamespaceUrlSync', () => {
       const callbackFn = mockSetSearchParams.mock.calls[0][0];
       const existingParams = new URLSearchParams('var-namespace=old-value');
       const newParams = callbackFn(existingParams);
+      expect(newParams.has('var-namespace')).toBe(false);
+    });
+
+    it('should clear the URL when Perses expands All to every concrete project', async () => {
+      const options = [
+        { label: 'namespace-1', value: 'namespace-1' },
+        { label: 'namespace-2', value: 'namespace-2' },
+      ];
+      setupMocks('namespace-1', false, new URLSearchParams('var-namespace=namespace-1'), options);
+      const { rerender } = render(<NamespaceUrlSync />);
+
+      useVariableDefinitionAndStateMock.mockReturnValue({
+        definition: undefined,
+        state: {
+          value: ['namespace-1', 'namespace-2'],
+          loading: false,
+          options,
+        },
+      });
+      rerender(<NamespaceUrlSync />);
+
+      await waitFor(() => {
+        expect(mockSetSearchParams).toHaveBeenCalled();
+      });
+
+      const callbackFn = mockSetSearchParams.mock.calls[0][0];
+      const newParams = callbackFn(new URLSearchParams('var-namespace=namespace-1'));
       expect(newParams.has('var-namespace')).toBe(false);
     });
 

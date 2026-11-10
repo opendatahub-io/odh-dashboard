@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
+import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import type { DashboardResource } from '@perses-dev/core';
 import { useVariableDefinitionAndState } from '@perses-dev/dashboards';
 import { useListVariablePluginValues, type VariableState } from '@perses-dev/plugin-system';
@@ -36,6 +36,12 @@ const NamespaceEmptyState: React.FC = () => (
   <EmptyState data-testid="namespace-empty-state" titleText="No project selected">
     <EmptyStateBody>Select at least one project to view dashboard metrics.</EmptyStateBody>
   </EmptyState>
+);
+
+const NamespaceLoadingState: React.FC = () => (
+  <Bullseye data-testid="namespace-loading-state">
+    <Spinner aria-label="Loading dashboard" />
+  </Bullseye>
 );
 
 const NamespaceOptionsEmptyState: React.FC = () => (
@@ -76,10 +82,12 @@ const NamespaceVariableGate: React.FC<NamespaceVariableGateProps> = ({
     return <NamespaceOptionsEmptyState />;
   }
 
+  if (!state || state.loading || (requiresOptions && !namespaceOptionsQuery.isFetched)) {
+    return <NamespaceLoadingState />;
+  }
+
   const namespaceReady = Boolean(
-    state &&
-      !state.loading &&
-      hasVariableValue(state.value) &&
+    hasVariableValue(state.value) &&
       (!requiresOptions || (namespaceOptionsQuery.isFetched && options.length > 0)),
   );
 
@@ -87,7 +95,7 @@ const NamespaceVariableGate: React.FC<NamespaceVariableGateProps> = ({
     return <>{children}</>;
   }
 
-  const hasEmptySelection = Boolean(state && !state.loading && !hasVariableValue(state.value));
+  const hasEmptySelection = !hasVariableValue(state.value);
 
   return hasEmptySelection ? <NamespaceEmptyState /> : null;
 };
@@ -98,13 +106,17 @@ type NamespaceValueGateProps = {
 };
 
 const NamespaceValueGate: React.FC<NamespaceValueGateProps> = ({ state, children }) => {
-  const namespaceReady = Boolean(state && !state.loading && hasVariableValue(state.value));
+  if (!state || state.loading) {
+    return <NamespaceLoadingState />;
+  }
+
+  const namespaceReady = hasVariableValue(state.value);
 
   if (namespaceReady) {
     return <>{children}</>;
   }
 
-  const hasEmptySelection = Boolean(state && !state.loading && !hasVariableValue(state.value));
+  const hasEmptySelection = !hasVariableValue(state.value);
 
   return hasEmptySelection ? <NamespaceEmptyState /> : null;
 };
