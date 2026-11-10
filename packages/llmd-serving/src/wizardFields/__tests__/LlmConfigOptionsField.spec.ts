@@ -338,6 +338,37 @@ describe('getInitialFieldData', () => {
     expect(result.data?.suggestion?.name).toBe('config-1');
   });
 
+  it.each([false, true])(
+    'should match later accelerators and preserve config order (NVIDIA config present: %s)',
+    (includeNvidia) => {
+      const amd = mockLLMInferenceServiceConfigK8sResource({
+        name: 'amd',
+        recommendedAccelerators: '["amd.com/gpu"]',
+      });
+      const nvidia = mockLLMInferenceServiceConfigK8sResource({
+        name: 'nvidia',
+        recommendedAccelerators: '["nvidia.com/gpu"]',
+      });
+      const hardwareProfile = mockHardwareProfile({
+        identifiers: ['nvidia.com/gpu', 'amd.com/gpu'].map((identifier) => ({
+          identifier,
+          displayName: identifier,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+          defaultCount: 1,
+          minCount: 1,
+          maxCount: 4,
+        })),
+      });
+      const result = getInitialFieldData(
+        undefined,
+        { configs: includeNvidia ? [amd, nvidia] : [amd] },
+        { hardwareProfile },
+      );
+      expect(result.data?.autoSelect).toBe(true);
+      expect(result.data?.selection?.name).toBe('amd');
+    },
+  );
+
   it('should not auto-select when there are no configs', () => {
     const result = getInitialFieldData(undefined, { configs: [] });
 
