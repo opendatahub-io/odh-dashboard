@@ -1,3 +1,4 @@
+import { NoopAnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
 import {
@@ -102,7 +103,6 @@ const patchSecretWithProtocolAnnotation = (
 const createCoreApi = (dashboardNamespace: string): HostApiCoreServices => ({
   dashboardNamespace,
   checkAccess: () => Promise.resolve(false),
-  trackEvent: () => undefined,
   fetchDashboardConfig: () =>
     Promise.reject(new Error('DashboardConfig is not available in the RHAII host.')),
   fetchClusterSettings: () =>
@@ -150,16 +150,20 @@ type HostApiProviderProps = {
 };
 
 /** Minimal xKS host services needed by the federated model-serving UI. */
+// Tracking is intentionally disabled in RHAII until its Segment delivery integration is implemented.
+// Consumers still need a mounted provider.
 const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   const dashboardNamespace = React.useContext(DashboardNamespaceContext);
   const coreApi = React.useMemo(() => createCoreApi(dashboardNamespace), [dashboardNamespace]);
 
   return (
-    <HostApiCoreContext.Provider value={coreApi}>
-      <HostApiInfraContext.Provider value={infraApi}>
-        <HostApiContext.Provider value={hostApi}>{children}</HostApiContext.Provider>
-      </HostApiInfraContext.Provider>
-    </HostApiCoreContext.Provider>
+    <NoopAnalyticsTrackingProvider>
+      <HostApiCoreContext.Provider value={coreApi}>
+        <HostApiInfraContext.Provider value={infraApi}>
+          <HostApiContext.Provider value={hostApi}>{children}</HostApiContext.Provider>
+        </HostApiInfraContext.Provider>
+      </HostApiCoreContext.Provider>
+    </NoopAnalyticsTrackingProvider>
   );
 };
 

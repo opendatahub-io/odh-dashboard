@@ -11,7 +11,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import YAML from 'yaml';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
