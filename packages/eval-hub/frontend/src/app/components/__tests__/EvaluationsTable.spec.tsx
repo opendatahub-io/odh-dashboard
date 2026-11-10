@@ -290,16 +290,31 @@ describe('EvaluationsTable', () => {
     });
 
     it('should classify a pending job without a queue assignment as Pending', () => {
-      renderTable({ evaluations: mockJobs, loaded: true });
+      const pendingJob = mockEvaluationJob({
+        id: 'job-pending',
+        name: 'Epsilon Evaluation',
+        state: 'pending',
+      });
+      const queuedPendingJob = mockEvaluationJob({
+        id: 'job-queued-pending',
+        name: 'Zeta Evaluation',
+        state: 'pending',
+      });
+      // eslint-disable-next-line camelcase -- API field name.
+      queuedPendingJob.hardware_config = { queue: { name: 'default' } };
+
+      renderTable({ evaluations: [...mockJobs, pendingJob, queuedPendingJob], loaded: true });
 
       fireEvent.click(screen.getByTestId('filter-type-toggle'));
       fireEvent.click(screen.getByRole('option', { name: 'Status' }));
       fireEvent.click(screen.getByTestId('filter-status-toggle'));
-
-      expect(screen.getByTestId('filter-status-option-queued')).toBeInTheDocument();
       fireEvent.click(screen.getByRole('option', { name: 'Pending' }));
 
-      expect(screen.getByText('No results found')).toBeInTheDocument();
+      expect(screen.getByText('Epsilon Evaluation')).toBeInTheDocument();
+      expect(screen.queryByText('Zeta Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Alpha Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Beta Evaluation')).not.toBeInTheDocument();
+      expect(screen.queryByText('Gamma Evaluation')).not.toBeInTheDocument();
     });
 
     it('should filter by evaluation name', () => {

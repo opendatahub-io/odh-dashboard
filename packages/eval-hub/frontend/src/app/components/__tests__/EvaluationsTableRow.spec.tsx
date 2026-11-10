@@ -110,6 +110,24 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('evaluation-status-button')).toHaveTextContent('Queued');
   });
 
+  it('should pass the fallback queue to onShowStatus when detail polling omits the queue', () => {
+    const job = mockEvaluationJob({ state: 'pending' });
+    // eslint-disable-next-line camelcase -- API field name.
+    job.hardware_config = { queue: { name: 'default' } };
+    const polledJob = mockEvaluationJob({ state: 'pending' });
+
+    renderJob(job, 0, polledJob);
+
+    fireEvent.click(within(screen.getByTestId('evaluation-status-button')).getByRole('button'));
+
+    expect(mockOnShowStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // eslint-disable-next-line camelcase -- API field name.
+        hardware_config: expect.objectContaining({ queue: { name: 'default' } }),
+      }),
+    );
+  });
+
   it('should open status using the latest polled job data', () => {
     const job = mockEvaluationJob({ state: 'pending' });
     const polledJob = mockEvaluationJob({ state: 'running' });

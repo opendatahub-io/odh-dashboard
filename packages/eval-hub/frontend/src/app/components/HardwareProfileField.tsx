@@ -97,7 +97,11 @@ const HardwareProfileDetailsPopover: React.FC<{ profile: HardwareProfileInfo }> 
               {renderDetailsSection(
                 'Local queue',
                 profile.queue_availability && profile.queue_availability.status !== 'active'
-                  ? `${profile.queue_name} — ${profile.queue_availability.message ?? 'queue is not active'}`
+                  ? `${profile.queue_name} — ${
+                      profile.queue_availability.message ??
+                      profile.queue_availability.reason ??
+                      'queue is not active'
+                    }`
                   : profile.queue_name,
               )}
             </StackItem>

@@ -229,7 +229,7 @@ describe('HardwareProfileField', () => {
     expect(details).toHaveTextContent('Local queuegpu-default — queue is paused');
   });
 
-  it('uses a generic note when an inactive LocalQueue reports no message', () => {
+  it('falls back to the reason when an inactive LocalQueue reports no message', () => {
     render(
       <HardwareProfileField
         availability={availability}
@@ -239,6 +239,30 @@ describe('HardwareProfileField', () => {
             queue_availability: {
               status: 'unknown',
               reason: 'ClusterQueueIsInactive',
+            },
+          },
+        ]}
+        loaded
+        selectedProfile={profile.name}
+        onSelect={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+    const details = screen.getByTestId('hardware-profile-details-popover-content');
+    expect(details).toHaveTextContent('Local queuegpu-default — ClusterQueueIsInactive');
+  });
+
+  it('uses a generic note when an inactive LocalQueue reports no reason or message', () => {
+    render(
+      <HardwareProfileField
+        availability={availability}
+        profiles={[
+          {
+            ...profile,
+            queue_availability: {
+              status: 'inactive',
             },
           },
         ]}

@@ -46,6 +46,21 @@ describe('EvalHub API Contract Tests', () => {
       });
     });
 
+    it('should return a BadRequest error when the namespace is missing', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/info');
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
+      }
+    });
+
     it('should return the documented HardwareProfile validation response', async () => {
       const result = await apiClient.post(
         '/eval-hub/api/v1/hardwareprofiles/validate?namespace=default',

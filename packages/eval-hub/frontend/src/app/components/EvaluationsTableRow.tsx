@@ -73,6 +73,17 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   // Keep the list assignment available so a queued run does not briefly fall back to Pending.
   const queue = getEvaluationQueue(effectiveJob) ?? getEvaluationQueue(job);
   const isQueued = currentState === 'pending' && Boolean(queue);
+  // The status modal receives this job as its only queue source — carry the fallback
+  // assignment through so opening the modal keeps the Queued classification.
+  /* eslint-disable camelcase -- API field name */
+  const statusModalJob =
+    queue !== undefined && getEvaluationQueue(effectiveJob) === undefined
+      ? {
+          ...effectiveJob,
+          hardware_config: { ...effectiveJob.hardware_config, queue: job.hardware_config?.queue },
+        }
+      : effectiveJob;
+  /* eslint-enable camelcase */
 
   React.useEffect(() => {
     if (!isInProgress) {
@@ -165,7 +176,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const actions: IAction[] = [
     {
       title: 'View evaluation status',
-      onClick: () => onShowStatus(effectiveJob),
+      onClick: () => onShowStatus(statusModalJob),
     },
     ...(canStop
       ? [
@@ -238,7 +249,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             isQueued={isQueued}
             isPreStartFailure={isPreStart}
             queueName={queue}
-            onClick={() => onShowStatus(effectiveJob)}
+            onClick={() => onShowStatus(statusModalJob)}
           />
           {(displayState === 'failed' || displayState === 'partially_failed') &&
           effectiveBenchmarks.length > 1 ? (

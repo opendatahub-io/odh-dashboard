@@ -621,7 +621,10 @@ describe('Start Evaluation Run - Queue-backed Hardware Profiles', () => {
     startEvaluationRunPage.findSubmitButton().click();
 
     cy.wait('@queueInfo');
+    cy.wait('@validateHardwareProfiles');
     cy.wait('@createKueueJob');
+    new ToastNotification('Hardware profile may be undersized').find().should('exist');
+    new ToastNotification('Evaluation started').find().should('exist');
   });
 
   it('should surface a deleted LocalQueue error and allow the user to retry', () => {

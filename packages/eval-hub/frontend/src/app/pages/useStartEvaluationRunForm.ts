@@ -5,7 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
-import { createEvaluationJob, getInfo } from '~/app/api/k8s';
+import { createEvaluationJob, getInfo, validateHardwareProfiles } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
   type RunSourceSelectedProperties,
@@ -958,10 +958,9 @@ export function useStartEvaluationRunForm({
         throw clusterUrlParseError;
       }
       if (selectedHardwareProfile) {
-        // Refresh the structural profile and LocalQueue selection without depending on
-        // advisory provider compatibility, which may be unavailable or lack provider IDs.
-        // The service re-filters queue-backed profiles per call, so a deleted
-        // LocalQueue drops its profile from the response.
+        // Structural revalidation — blocking. The service re-filters queue-backed
+        // profiles per call, so a deleted LocalQueue drops its profile from the
+        // response.
         const currentInfo = await getInfo(
           '',
           namespace ?? '',
@@ -978,6 +977,38 @@ export function useStartEvaluationRunForm({
           throw new Error(
             'The selected HardwareProfile or LocalQueue is no longer available. Refresh the page and select another hardware profile.',
           );
+        }
+        // Compatibility revalidation — advisory. The selector's "Insufficient
+        // resources" label comes from a cached query keyed by profile and provider
+        // names, so server-side resource changes since the form loaded can leave it
+        // stale. Re-run the validation against the submitted providers and warn;
+        // submission stays allowed. Validation is skipped when the submission has no
+        // provider IDs or the call fails, matching the selector's nonblocking behavior.
+        const submissionProviderIds = Array.from(
+          new Set(
+            getProviderIds(benchmark, activeCollection)
+              .map((providerId) => providerId.trim())
+              .filter(Boolean),
+          ),
+        );
+        if (submissionProviderIds.length > 0) {
+          try {
+            const validation = await validateHardwareProfiles('', namespace ?? '', {
+              hardware_profiles: [selectedHardwareProfile.name],
+              provider_ids: submissionProviderIds,
+            })({ signal: controller.signal });
+            const compatibility = validation.items.find(
+              (item) => item.hardware_profile === selectedHardwareProfile.name,
+            );
+            if (compatibility?.compatible === false) {
+              notification.warning(
+                'Hardware profile may be undersized',
+                `"${selectedHardwareProfile.display_name ?? selectedHardwareProfile.name}" may not meet the benchmark provider's minimum resource requirements. The evaluation is still submitted and may wait for resources or fail to schedule.`,
+              );
+            }
+          } catch {
+            // Advisory only — proceed with the submission.
+          }
         }
       }
       await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
