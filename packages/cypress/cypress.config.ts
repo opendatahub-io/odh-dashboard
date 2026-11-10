@@ -112,10 +112,17 @@ export default defineConfig({
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
       const ociSecretFiles = new Set<string>();
+      const secureTempFiles = new Set<string>();
       const deleteOCISecretFile = (filePath: string): void => {
         if (ociSecretFiles.has(filePath)) {
           fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
           ociSecretFiles.delete(filePath);
+        }
+      };
+      const deleteSecureTempFile = (filePath: string): void => {
+        if (secureTempFiles.has(filePath)) {
+          fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
+          secureTempFiles.delete(filePath);
         }
       };
 
@@ -166,6 +173,23 @@ export default defineConfig({
             return false;
           }
           return constantTimeEqual(actual, expected);
+        },
+        createSecureTempFile(content: string) {
+          const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cypress-secret-'));
+          const filePath = path.join(directory, 'manifest.yaml');
+          try {
+            fs.chmodSync(directory, 0o700);
+            fs.writeFileSync(filePath, content, { flag: 'wx', mode: 0o600 });
+            secureTempFiles.add(filePath);
+            return filePath;
+          } catch (error) {
+            fs.rmSync(directory, { recursive: true, force: true });
+            throw error;
+          }
+        },
+        deleteSecureTempFile(filePath: string) {
+          deleteSecureTempFile(filePath);
+          return null;
         },
         createOCISecretFile(content: Record<string, unknown>) {
           const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'oci-data-connection-secret-'));
@@ -239,6 +263,9 @@ export default defineConfig({
       on('after:spec', (_, results) => {
         for (const filePath of ociSecretFiles) {
           deleteOCISecretFile(filePath);
+        }
+        for (const filePath of secureTempFiles) {
+          deleteSecureTempFile(filePath);
         }
         if (results.video) {
           const failures =

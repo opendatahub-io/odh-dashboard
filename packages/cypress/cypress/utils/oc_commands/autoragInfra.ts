@@ -431,6 +431,33 @@ const deleteAutoragPgvectorNetworkCheck = (
   );
 };
 
+/**
+ * Apply the PGVector fixture without exposing its generated Secret through command output.
+ * The manifest includes the database password, so both the Cypress command log and shell output
+ * are suppressed. Only the exit code is returned to the caller.
+ */
+const applyAutoragPgvectorResources = (
+  rendered: string,
+  namespace: string,
+): Cypress.Chainable<CommandLineResult> =>
+  cy.task('createSecureTempFile', rendered, { log: false }).then((tempFileName) => {
+    if (typeof tempFileName !== 'string') {
+      throw new Error('Unable to create the temporary AutoRAG PGVector manifest.');
+    }
+
+    const cleanupCommand = `rm -f -- ${shellQuote(tempFileName)}`;
+    const ocCommand =
+      `trap ${shellQuote(cleanupCommand)} 0 1 2 15; ` +
+      `oc apply -n ${shellQuote(namespace)} -f ${shellQuote(tempFileName)} >/dev/null 2>&1`;
+    return cy
+      .exec(ocCommand, { failOnNonZeroExit: false, log: false, timeout: 60000 })
+      .then((result) =>
+        cy
+          .task('deleteSecureTempFile', tempFileName, { log: false })
+          .then((): CommandLineResult => ({ exitCode: result.exitCode, stdout: '', stderr: '' })),
+      );
+  });
+
 const applyAutoragPgvectorNetworkCheck = (
   namespace: string,
   image: string,
@@ -528,7 +555,7 @@ export const provisionAutoragPgvector = (namespace: string): Cypress.Chainable<u
                   .replaceAll('__PGVECTOR_IMAGE__', image)
                   .replaceAll('__PGVECTOR_PASSWORD__', password)
                   .replaceAll('__PGVECTOR_OWNER__', owner);
-                return applyOpenShiftYaml(rendered, namespace).then((result) => {
+                return applyAutoragPgvectorResources(rendered, namespace).then((result) => {
                   if (result.exitCode !== 0) {
                     throw new Error(
                       `Failed to provision the temporary AutoRAG PGVector instance in ${namespace}: ${commandOutput(
