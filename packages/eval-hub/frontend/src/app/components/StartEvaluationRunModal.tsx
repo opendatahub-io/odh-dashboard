@@ -21,6 +21,9 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Skeleton,
+  Stack,
+  StackItem,
   TextInput,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
@@ -69,6 +72,36 @@ type StartEvaluationRunModalProps = {
     collection?: Collection,
   ) => unknown | void | Promise<unknown | void>;
 };
+
+const FormFieldSkeleton: React.FC = () => (
+  <Stack hasGutter>
+    <StackItem>
+      <Skeleton width="20%" />
+    </StackItem>
+    <StackItem>
+      <Skeleton height="40px" width="100%" />
+    </StackItem>
+  </Stack>
+);
+
+// Mirrors the shape of the form (name, model, hardware profile, advanced toggle)
+// so the loading state resolves into the final layout in one transition.
+const StartEvaluationRunFormSkeleton: React.FC = () => (
+  <Stack hasGutter aria-busy data-testid="start-evaluation-form-skeleton">
+    <StackItem>
+      <FormFieldSkeleton />
+    </StackItem>
+    <StackItem>
+      <FormFieldSkeleton />
+    </StackItem>
+    <StackItem>
+      <FormFieldSkeleton />
+    </StackItem>
+    <StackItem>
+      <Skeleton width="30%" screenreaderText="Loading evaluation run form" />
+    </StackItem>
+  </Stack>
+);
 
 const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   isOpen,
@@ -143,6 +176,11 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
   });
 
   const isSubmitting = form.isSubmitting || isCloning;
+  // The Kueue/hardware-profile request decides whether the hardware profile field (and
+  // sometimes the whole form shape) exists, so hold the entire form behind skeletons
+  // until it settles — otherwise that field's loader appears and vanishes in isolation.
+  // Without a namespace the request never runs, so fall back to rendering the form.
+  const isFormLoading = !!namespace && !form.hardwareProfilesLoaded;
 
   React.useEffect(() => {
     if (isCloning) {
@@ -299,269 +337,273 @@ const StartEvaluationRunModal: React.FC<StartEvaluationRunModalProps> = ({
             data-testid="start-evaluation-run-prerequisite"
           />
         ) : null}
-        <FormProvider {...form.form}>
-          <Form data-testid="start-evaluation-form" aria-busy={isCloning}>
-            <fieldset disabled={isCloning} className="evalhub-start-evaluation-run-modal__fields">
-              <FormGroup label="Evaluation name" isRequired fieldId="evaluation-name">
-                <Controller
-                  name="evaluationName"
-                  control={form.form.control}
-                  render={({ field }) => (
-                    <TextInput
-                      id="evaluation-name"
-                      data-testid="evaluation-name-input"
-                      value={field.value}
-                      onChange={(_e, val) => field.onChange(val)}
-                      onBlur={field.onBlur}
-                      isRequired
-                    />
-                  )}
-                />
-              </FormGroup>
+        {isFormLoading ? (
+          <StartEvaluationRunFormSkeleton />
+        ) : (
+          <FormProvider {...form.form}>
+            <Form data-testid="start-evaluation-form" aria-busy={isCloning}>
+              <fieldset disabled={isCloning} className="evalhub-start-evaluation-run-modal__fields">
+                <FormGroup label="Evaluation name" isRequired fieldId="evaluation-name">
+                  <Controller
+                    name="evaluationName"
+                    control={form.form.control}
+                    render={({ field }) => (
+                      <TextInput
+                        id="evaluation-name"
+                        data-testid="evaluation-name-input"
+                        value={field.value}
+                        onChange={(_e, val) => field.onChange(val)}
+                        onBlur={field.onBlur}
+                        isRequired
+                      />
+                    )}
+                  />
+                </FormGroup>
 
-              {form.sourceMode === 'model' ? (
-                <FormGroup
-                  className="evalhub-form-group--with-description"
-                  label={
-                    <FormGroupLabel
-                      label="Model"
-                      description="Select a model from your project's AI asset endpoints, or specify an external endpoint."
-                      isRequired
-                      helpPopover={{
-                        ariaLabel: 'More info for model selection',
-                        content:
-                          'The list contains models that have been published as AI asset endpoints in this project.',
+                {form.sourceMode === 'model' ? (
+                  <FormGroup
+                    className="evalhub-form-group--with-description"
+                    label={
+                      <FormGroupLabel
+                        label="Model"
+                        description="Select a model from your project's AI asset endpoints, or specify an external endpoint."
+                        isRequired
+                        helpPopover={{
+                          ariaLabel: 'More info for model selection',
+                          content:
+                            'The list contains models that have been published as AI asset endpoints in this project.',
+                        }}
+                      />
+                    }
+                    fieldId="model-picker"
+                  >
+                    <Select
+                      key={isCloning ? 'cloning' : 'ready'}
+                      id="model-picker-menu"
+                      data-testid="model-picker-select"
+                      isOpen={isModelOpen && !isCloning}
+                      selected={
+                        form.modelSelection === 'external'
+                          ? EXTERNAL_ENDPOINT_VALUE
+                          : form.selectedInferenceService?.name
+                      }
+                      onSelect={handleModelSelect}
+                      onOpenChange={setIsModelOpen}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          id="model-picker"
+                          ref={toggleRef}
+                          onClick={() => setIsModelOpen((prev) => !prev)}
+                          isExpanded={isModelOpen}
+                          isDisabled={isCloning}
+                          isFullWidth
+                          data-testid="model-picker-toggle"
+                        >
+                          {modelDropdownDisplayValue}
+                        </MenuToggle>
+                      )}
+                      shouldFocusToggleOnSelect
+                    >
+                      <SelectList>
+                        {isLoaded && inferenceServices.length > 0 ? (
+                          <>
+                            {inferenceServices.map((is) => {
+                              const incompatibleReason = getIncompatibleModelReason(is);
+                              const isDisabled = !!incompatibleReason;
+
+                              return (
+                                <SelectOption
+                                  key={is.name}
+                                  value={is.name}
+                                  data-testid={`model-option-${is.name}`}
+                                  isDisabled={isDisabled}
+                                  isSelected={
+                                    form.modelSelection === 'cluster' &&
+                                    form.selectedInferenceService?.name === is.name
+                                  }
+                                  description={incompatibleReason}
+                                >
+                                  {is.name}
+                                  {isDisabled ? (
+                                    <Icon status="danger" iconSize="sm" className="pf-v6-u-ml-sm">
+                                      <ExclamationCircleIcon />
+                                    </Icon>
+                                  ) : null}
+                                </SelectOption>
+                              );
+                            })}
+                            <Divider />
+                          </>
+                        ) : null}
+                        <SelectOption
+                          key={EXTERNAL_ENDPOINT_VALUE}
+                          value={EXTERNAL_ENDPOINT_VALUE}
+                          data-testid="model-option-external"
+                          isSelected={form.modelSelection === 'external'}
+                        >
+                          Other (External endpoint)
+                        </SelectOption>
+                      </SelectList>
+                    </Select>
+                    {isLoadError ? (
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem variant="warning">
+                            Could not load cluster models. You can still use an external endpoint.
+                          </HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    ) : null}
+                    {!isLoadError && isWarning ? (
+                      <FormHelperText>
+                        <HelperText>
+                          <HelperTextItem variant="warning">{isWarning}</HelperTextItem>
+                        </HelperText>
+                      </FormHelperText>
+                    ) : null}
+                  </FormGroup>
+                ) : null}
+
+                {showExternalModelFields ? (
+                  <SourceModelFields
+                    modelName={form.modelName}
+                    onModelNameChange={form.setModelName}
+                    endpointUrl={form.endpointUrl}
+                    onEndpointUrlChange={form.setEndpointUrl}
+                    apiKeySecretRef={form.apiKeySecretRef}
+                    onApiKeyChange={form.setApiKeySecretRef}
+                    endpointUrlError={form.endpointUrlError}
+                    touched={form.touched}
+                    markTouched={form.markTouched}
+                    connectionValidation={form.connectionValidation}
+                    canVerifyConnection={form.canVerifyConnection}
+                    onVerifyConnection={form.handleVerifyConnection}
+                  />
+                ) : null}
+
+                {form.sourceMode === 'prerecorded' ? (
+                  <SourcePrerecordedFields
+                    sourceName={form.sourceName}
+                    onSourceNameChange={form.setSourceName}
+                    datasetUrl={form.datasetUrl}
+                    onDatasetUrlChange={form.setDatasetUrl}
+                    accessToken={form.accessToken}
+                    onAccessTokenChange={form.setAccessToken}
+                    datasetUrlError={form.datasetUrlError}
+                    accessTokenError={form.accessTokenError}
+                    touched={form.touched}
+                    markTouched={form.markTouched}
+                  />
+                ) : null}
+
+                {!isCollectionFlow && form.sourceMode === 'model' ? (
+                  <BenchmarkTestDataRefFields
+                    value={form.testDataRef}
+                    idPrefix="start-evaluation-run-modal"
+                    testIdPrefix="start-evaluation-run-modal-test-data-ref"
+                    isDisabled={isCloning}
+                    isRequired={form.testDataRefRequired}
+                    errors={form.testDataRefErrors}
+                    onChange={form.setTestDataRef}
+                  />
+                ) : null}
+
+                <HardwareProfileField
+                  availability={form.kueueAvailability}
+                  profiles={form.hardwareProfiles}
+                  loaded={form.hardwareProfilesLoaded}
+                  error={form.hardwareProfilesError}
+                  compatibilityError={form.hardwareProfileCompatibilityError}
+                  selectedProfile={form.hardwareProfile}
+                  onSelect={(profile) => form.setHardwareProfile(profile?.name)}
+                  isRequired={form.requiresHardwareProfile}
+                  disabled={isCloning}
+                />
+
+                <ExpandableSection
+                  className="evalhub-start-evaluation-run-modal__advanced"
+                  toggleText={
+                    isAdvancedOpen ? 'Hide advanced configuration' : 'Advanced configuration'
+                  }
+                  isExpanded={isAdvancedOpen}
+                  onToggle={(_event, expanded) => setIsAdvancedOpen(expanded)}
+                  data-testid="start-evaluation-run-advanced-toggle"
+                >
+                  <FormGroup label="MLflow Experiment" isRequired fieldId="mlflow-experiment">
+                    <Radio
+                      id="experiment-existing"
+                      data-testid="experiment-mode-existing"
+                      name="experiment-mode"
+                      label="Select existing experiment"
+                      isChecked={form.experimentMode === 'existing'}
+                      onChange={() => {
+                        form.setExperimentMode('existing');
+                        form.setNewExperimentName('');
+                        form.experimentManuallyChangedRef.current = true;
                       }}
                     />
-                  }
-                  fieldId="model-picker"
-                >
-                  <Select
-                    key={isCloning ? 'cloning' : 'ready'}
-                    id="model-picker-menu"
-                    data-testid="model-picker-select"
-                    isOpen={isModelOpen && !isCloning}
-                    selected={
-                      form.modelSelection === 'external'
-                        ? EXTERNAL_ENDPOINT_VALUE
-                        : form.selectedInferenceService?.name
-                    }
-                    onSelect={handleModelSelect}
-                    onOpenChange={setIsModelOpen}
-                    toggle={(toggleRef) => (
-                      <MenuToggle
-                        id="model-picker"
-                        ref={toggleRef}
-                        onClick={() => setIsModelOpen((prev) => !prev)}
-                        isExpanded={isModelOpen}
-                        isDisabled={isCloning}
-                        isFullWidth
-                        data-testid="model-picker-toggle"
-                      >
-                        {modelDropdownDisplayValue}
-                      </MenuToggle>
-                    )}
-                    shouldFocusToggleOnSelect
-                  >
-                    <SelectList>
-                      {isLoaded && inferenceServices.length > 0 ? (
-                        <>
-                          {inferenceServices.map((is) => {
-                            const incompatibleReason = getIncompatibleModelReason(is);
-                            const isDisabled = !!incompatibleReason;
 
-                            return (
-                              <SelectOption
-                                key={is.name}
-                                value={is.name}
-                                data-testid={`model-option-${is.name}`}
-                                isDisabled={isDisabled}
-                                isSelected={
-                                  form.modelSelection === 'cluster' &&
-                                  form.selectedInferenceService?.name === is.name
-                                }
-                                description={incompatibleReason}
-                              >
-                                {is.name}
-                                {isDisabled ? (
-                                  <Icon status="danger" iconSize="sm" className="pf-v6-u-ml-sm">
-                                    <ExclamationCircleIcon />
-                                  </Icon>
-                                ) : null}
-                              </SelectOption>
-                            );
-                          })}
-                          <Divider />
-                        </>
-                      ) : null}
-                      <SelectOption
-                        key={EXTERNAL_ENDPOINT_VALUE}
-                        value={EXTERNAL_ENDPOINT_VALUE}
-                        data-testid="model-option-external"
-                        isSelected={form.modelSelection === 'external'}
-                      >
-                        Other (External endpoint)
-                      </SelectOption>
-                    </SelectList>
-                  </Select>
-                  {isLoadError ? (
-                    <FormHelperText>
-                      <HelperText>
-                        <HelperTextItem variant="warning">
-                          Could not load cluster models. You can still use an external endpoint.
-                        </HelperTextItem>
-                      </HelperText>
-                    </FormHelperText>
-                  ) : null}
-                  {!isLoadError && isWarning ? (
-                    <FormHelperText>
-                      <HelperText>
-                        <HelperTextItem variant="warning">{isWarning}</HelperTextItem>
-                      </HelperText>
-                    </FormHelperText>
-                  ) : null}
-                </FormGroup>
-              ) : null}
+                    {form.experimentMode === 'existing' && namespace ? (
+                      <div className="evalhub-start-evaluation-run-modal__mlflow-selector">
+                        <MlflowExperimentSelector
+                          key={isCloning ? 'cloning' : 'ready'}
+                          workspace={namespace}
+                          selection={form.selectedExperiment?.name}
+                          isDisabled={isCloning}
+                          onSelect={(exp) => {
+                            form.setSelectedExperiment(exp);
+                            form.experimentManuallyChangedRef.current = true;
+                          }}
+                        />
+                      </div>
+                    ) : null}
 
-              {showExternalModelFields ? (
-                <SourceModelFields
-                  modelName={form.modelName}
-                  onModelNameChange={form.setModelName}
-                  endpointUrl={form.endpointUrl}
-                  onEndpointUrlChange={form.setEndpointUrl}
-                  apiKeySecretRef={form.apiKeySecretRef}
-                  onApiKeyChange={form.setApiKeySecretRef}
-                  endpointUrlError={form.endpointUrlError}
-                  touched={form.touched}
-                  markTouched={form.markTouched}
-                  connectionValidation={form.connectionValidation}
-                  canVerifyConnection={form.canVerifyConnection}
-                  onVerifyConnection={form.handleVerifyConnection}
-                />
-              ) : null}
-
-              {form.sourceMode === 'prerecorded' ? (
-                <SourcePrerecordedFields
-                  sourceName={form.sourceName}
-                  onSourceNameChange={form.setSourceName}
-                  datasetUrl={form.datasetUrl}
-                  onDatasetUrlChange={form.setDatasetUrl}
-                  accessToken={form.accessToken}
-                  onAccessTokenChange={form.setAccessToken}
-                  datasetUrlError={form.datasetUrlError}
-                  accessTokenError={form.accessTokenError}
-                  touched={form.touched}
-                  markTouched={form.markTouched}
-                />
-              ) : null}
-
-              {!isCollectionFlow && form.sourceMode === 'model' ? (
-                <BenchmarkTestDataRefFields
-                  value={form.testDataRef}
-                  idPrefix="start-evaluation-run-modal"
-                  testIdPrefix="start-evaluation-run-modal-test-data-ref"
-                  isDisabled={isCloning}
-                  isRequired={form.testDataRefRequired}
-                  errors={form.testDataRefErrors}
-                  onChange={form.setTestDataRef}
-                />
-              ) : null}
-
-              <HardwareProfileField
-                availability={form.kueueAvailability}
-                profiles={form.hardwareProfiles}
-                loaded={form.hardwareProfilesLoaded}
-                error={form.hardwareProfilesError}
-                compatibilityError={form.hardwareProfileCompatibilityError}
-                selectedProfile={form.hardwareProfile}
-                onSelect={(profile) => form.setHardwareProfile(profile?.name)}
-                isRequired={form.requiresHardwareProfile}
-                disabled={isCloning}
-              />
-
-              <ExpandableSection
-                className="evalhub-start-evaluation-run-modal__advanced"
-                toggleText={
-                  isAdvancedOpen ? 'Hide advanced configuration' : 'Advanced configuration'
-                }
-                isExpanded={isAdvancedOpen}
-                onToggle={(_event, expanded) => setIsAdvancedOpen(expanded)}
-                data-testid="start-evaluation-run-advanced-toggle"
-              >
-                <FormGroup label="MLflow Experiment" isRequired fieldId="mlflow-experiment">
-                  <Radio
-                    id="experiment-existing"
-                    data-testid="experiment-mode-existing"
-                    name="experiment-mode"
-                    label="Select existing experiment"
-                    isChecked={form.experimentMode === 'existing'}
-                    onChange={() => {
-                      form.setExperimentMode('existing');
-                      form.setNewExperimentName('');
-                      form.experimentManuallyChangedRef.current = true;
-                    }}
-                  />
-
-                  {form.experimentMode === 'existing' && namespace ? (
-                    <div className="evalhub-start-evaluation-run-modal__mlflow-selector">
-                      <MlflowExperimentSelector
-                        key={isCloning ? 'cloning' : 'ready'}
-                        workspace={namespace}
-                        selection={form.selectedExperiment?.name}
-                        isDisabled={isCloning}
-                        onSelect={(exp) => {
-                          form.setSelectedExperiment(exp);
+                    <div className="evalhub-start-evaluation-run-modal__new-experiment-option">
+                      <Radio
+                        id="experiment-new"
+                        data-testid="experiment-mode-new"
+                        name="experiment-mode"
+                        label="Create new experiment"
+                        isChecked={form.experimentMode === 'new'}
+                        onChange={() => {
+                          form.setExperimentMode('new');
+                          form.setSelectedExperiment(undefined);
                           form.experimentManuallyChangedRef.current = true;
+                          form.setNewExperimentName((prev) =>
+                            prev.trim() === '' ? DEFAULT_EXPERIMENT_NAME : prev,
+                          );
                         }}
                       />
                     </div>
-                  ) : null}
 
-                  <div className="evalhub-start-evaluation-run-modal__new-experiment-option">
-                    <Radio
-                      id="experiment-new"
-                      data-testid="experiment-mode-new"
-                      name="experiment-mode"
-                      label="Create new experiment"
-                      isChecked={form.experimentMode === 'new'}
-                      onChange={() => {
-                        form.setExperimentMode('new');
-                        form.setSelectedExperiment(undefined);
-                        form.experimentManuallyChangedRef.current = true;
-                        form.setNewExperimentName((prev) =>
-                          prev.trim() === '' ? DEFAULT_EXPERIMENT_NAME : prev,
-                        );
-                      }}
+                    {form.experimentMode === 'new' ? (
+                      <div className="evalhub-start-evaluation-run-modal__new-experiment-name">
+                        <TextInput
+                          id="new-experiment-name"
+                          data-testid="new-experiment-name-input"
+                          value={form.newExperimentName}
+                          onChange={(_e, val) => form.setNewExperimentName(val)}
+                          placeholder="Enter experiment name"
+                        />
+                      </div>
+                    ) : null}
+                  </FormGroup>
+
+                  {!isCollectionFlow ? (
+                    <BenchmarkThresholdField
+                      value={form.threshold}
+                      onChange={form.handleThresholdChange}
+                      label="Benchmark threshold"
+                      fieldId="benchmark-threshold"
+                      metric={form.primaryMetric}
+                      isDisabled={isCloning}
                     />
-                  </div>
-
-                  {form.experimentMode === 'new' ? (
-                    <div className="evalhub-start-evaluation-run-modal__new-experiment-name">
-                      <TextInput
-                        id="new-experiment-name"
-                        data-testid="new-experiment-name-input"
-                        value={form.newExperimentName}
-                        onChange={(_e, val) => form.setNewExperimentName(val)}
-                        placeholder="Enter experiment name"
-                      />
-                    </div>
                   ) : null}
-                </FormGroup>
-
-                {!isCollectionFlow ? (
-                  <BenchmarkThresholdField
-                    value={form.threshold}
-                    onChange={form.handleThresholdChange}
-                    label="Benchmark threshold"
-                    fieldId="benchmark-threshold"
-                    metric={form.primaryMetric}
-                    isDisabled={isCloning}
-                  />
-                ) : null}
-              </ExpandableSection>
-            </fieldset>
-          </Form>
-        </FormProvider>
+                </ExpandableSection>
+              </fieldset>
+            </Form>
+          </FormProvider>
+        )}
       </ModalBody>
       <ModalFooter>
         <Button

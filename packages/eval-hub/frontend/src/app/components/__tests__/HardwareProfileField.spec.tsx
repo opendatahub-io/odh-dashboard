@@ -384,6 +384,27 @@ describe('HardwareProfileField', () => {
     ).toBeInTheDocument();
   });
 
+  it('unwraps the embedded service message when the error body is JSON', () => {
+    render(
+      <HardwareProfileField
+        profiles={[]}
+        loaded
+        error={
+          new Error(
+            'EvalHub error on operation GetInfo: {"message_code":"internal_server_error","message":"An internal server error occurred: \'Failed to list tenant hardware profiles\'.","trace":"6ea3c2e1-0cc8-4a51-8b30-56973561be19"}',
+          )
+        }
+        onSelect={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "An internal server error occurred: 'Failed to list tenant hardware profiles'. Resolve this error before starting an evaluation.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('warns without disabling the field when resource compatibility cannot be checked', () => {
     render(
       <HardwareProfileField

@@ -25,6 +25,7 @@ import {
 import { InfoCircleIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import FormGroupLabel from '~/app/components/FormGroupLabel';
 import type { HardwareProfileInfo, KueueAvailability } from '~/app/types';
+import { parseEmbeddedErrorMessage } from '~/app/utilities/errorMessageUtils';
 import {
   formatHardwareProfileDetails,
   formatHardwareProfileResourceDetails,
@@ -146,9 +147,9 @@ const getHardwareProfileFieldState = ({
       return {
         unavailable: true,
         placeholder: 'Hardware profiles unavailable',
-        helperText: `${
-          error?.message ?? 'Unable to load hardware profiles.'
-        } Resolve this error before starting an evaluation.`,
+        helperText: `${parseEmbeddedErrorMessage(
+          error?.message ?? 'Unable to load hardware profiles.',
+        )} Resolve this error before starting an evaluation.`,
         helperVariant: 'error',
       };
     case Boolean(hasNoQueues):

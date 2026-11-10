@@ -253,6 +253,43 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.queryByTestId('start-evaluation-run-prerequisite')).not.toBeInTheDocument();
   });
 
+  it('should replace the form with skeletons while the LocalQueue request is in flight', () => {
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: false,
+      error: undefined,
+    });
+    mockUseKueueAvailability.mockReturnValue({
+      availability: undefined,
+      loaded: false,
+      error: undefined,
+    });
+    renderModal();
+
+    expect(screen.getByTestId('start-evaluation-form-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('start-evaluation-form')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('hardware-profile-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-run-collection-name')).toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-submit')).toBeDisabled();
+  });
+
+  it('should replace the skeletons with the form when the request errors', () => {
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: true,
+      error: new Error('info request failed'),
+    });
+    mockUseKueueAvailability.mockReturnValue({
+      availability: undefined,
+      loaded: true,
+      error: undefined,
+    });
+    renderModal();
+
+    expect(screen.queryByTestId('start-evaluation-form-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-form')).toBeInTheDocument();
+  });
+
   it('shows a required HardwareProfile before collapsed advanced configuration for Kueue', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: kueueAvailability,
