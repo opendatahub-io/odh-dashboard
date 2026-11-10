@@ -31,6 +31,7 @@
     "target": "upstream",
     "exclude": [
       "workspaces/frontend/Dockerfile",
+      "workspaces/frontend/Dockerfile.dev",
       "workspaces/frontend/src/shared/utilities/devAuth.ts",
       "workspaces/frontend/src/shared/utilities/__tests__/devAuth.spec.ts",
       "workspaces/backend/Dockerfile",

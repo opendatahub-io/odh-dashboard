@@ -745,3 +745,39 @@ test('rename metadata retains byte paths when stripping the source directory', (
     Buffer.from([0x6e, 0x65, 0x77, 0xea, 0x2e, 0x74, 0x78, 0x74, 0]),
   );
 });
+
+for (const remote of [false, true]) {
+  test(`notebooks excludes Tilt Dockerfile changes during ${
+    remote ? 'remote' : 'local'
+  } sync`, (t) => {
+    const upstream = fixture(t, []);
+    const filename = 'workspaces/frontend/Dockerfile.dev';
+    upstream.write(filename, 'FROM upstream:base\n');
+    upstream.commit();
+    const { host, sync, target } = syncFixture(t, upstream, { remote, exclude: [] });
+    sync();
+    assert.ok(fs.existsSync(path.join(target, filename)));
+    host.git('rm', `packages/fixture/upstream/${filename}`);
+    const configPath = path.join(host.dir, 'packages/fixture/package.json');
+    const config = JSON.parse(fs.readFileSync(configPath));
+    const notebooks = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../../notebooks/package.json')),
+    );
+    config.subtree.exclude = notebooks.subtree.exclude;
+    fs.writeFileSync(configPath, JSON.stringify(config));
+    host.commit();
+
+    for (const change of ['modify', 'delete', 'recreate']) {
+      if (change === 'delete') upstream.git('rm', filename);
+      else upstream.write(filename, `FROM upstream:${change}\n`);
+      upstream.commit();
+      sync();
+      assert.equal(fs.existsSync(path.join(target, filename)), false, change);
+      assert.equal(
+        JSON.parse(fs.readFileSync(configPath)).subtree.commit,
+        upstream.git('rev-parse', 'HEAD').trim(),
+      );
+      assert.equal(host.git('status', '--porcelain').trim(), '');
+    }
+  });
+}
