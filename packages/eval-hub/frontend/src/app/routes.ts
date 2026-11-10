@@ -28,10 +28,6 @@ export const evaluationBenchmarkSuitesNavigationState = {
   source: 'benchmark-suites',
 } as const;
 
-export const evaluationCollectionSelectionNavigationState = {
-  source: 'collection-selection',
-} as const;
-
 export const evaluationCuratedBenchmarkSuitesNavigationState = (evaluationTarget: string) =>
   ({ sourceEvaluationTarget: evaluationTarget }) as const;
 

@@ -11,8 +11,6 @@ import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 
 type SelectionResult = {
   benchmark: FlatBenchmark | undefined;
-  collection: Collection | undefined;
-  isCollectionFlow: boolean;
   dataLoaded: boolean;
   loadError: Error | undefined;
 };
@@ -149,8 +147,6 @@ describe('StartEvaluationRunPage', () => {
     jest.clearAllMocks();
     mockUseEvaluationSelection.mockReturnValue({
       benchmark,
-      collection: undefined,
-      isCollectionFlow: false,
       dataLoaded: true,
       loadError: undefined,
     });
@@ -170,28 +166,6 @@ describe('StartEvaluationRunPage', () => {
     );
   });
 
-  it('should track job create opened with collection context in the collection flow', () => {
-    mockUseEvaluationSelection.mockReturnValue({
-      benchmark: undefined,
-      collection,
-      isCollectionFlow: true,
-      dataLoaded: true,
-      loadError: undefined,
-    });
-
-    renderPage();
-
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
-      EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
-      expect.objectContaining({
-        surface: 'create_run_page',
-        collection_type: 'custom',
-        provider_type: 'provider-b',
-      }),
-    );
-  });
-
   it('should track job create opened only once per page opening', () => {
     const { rerender } = renderPage();
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
@@ -199,8 +173,6 @@ describe('StartEvaluationRunPage', () => {
     // A new selection object identity on a later render must not re-emit.
     mockUseEvaluationSelection.mockReturnValue({
       benchmark: { ...benchmark },
-      collection: undefined,
-      isCollectionFlow: false,
       dataLoaded: true,
       loadError: undefined,
     });
@@ -212,8 +184,6 @@ describe('StartEvaluationRunPage', () => {
   it('should not track job create opened while the selection is loading', () => {
     mockUseEvaluationSelection.mockReturnValue({
       benchmark: undefined,
-      collection: undefined,
-      isCollectionFlow: false,
       dataLoaded: false,
       loadError: undefined,
     });
@@ -227,8 +197,6 @@ describe('StartEvaluationRunPage', () => {
   it('should not track job create opened when the selection fails to load', () => {
     mockUseEvaluationSelection.mockReturnValue({
       benchmark: undefined,
-      collection: undefined,
-      isCollectionFlow: false,
       dataLoaded: true,
       loadError: new Error('Selection load failed'),
     });
@@ -244,5 +212,22 @@ describe('StartEvaluationRunPage', () => {
 
     expect(screen.getByTestId('start-evaluation-form')).toBeInTheDocument();
     expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+  });
+
+  it('should retain collection data when reconfiguring a collection evaluation', () => {
+    renderPage({
+      initialValues: {
+        ...reconfigureValues,
+        benchmark: undefined,
+        collection,
+        isCollectionFlow: true,
+      },
+      sourceJobId: 'job-collection',
+    });
+
+    expect(screen.getByText('Collection')).toBeInTheDocument();
+    expect(screen.getByText('My collection')).toBeInTheDocument();
+    expect(screen.getByText('Collection threshold')).toBeInTheDocument();
+    expect(screen.queryByTestId('primary-scorer-metric-toggle')).not.toBeInTheDocument();
   });
 });

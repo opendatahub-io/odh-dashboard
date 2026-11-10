@@ -41,7 +41,6 @@ import {
 import {
   evaluationsBaseRoute,
   evaluationSingleBenchmarkRoute,
-  evaluationCollectionsRoute,
   projectHomeRoute,
 } from '~/app/routes';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
@@ -103,11 +102,9 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   const selectionResult = useEvaluationSelection(namespace, isReconfigure);
 
   const benchmark = isReconfigure ? initialValues?.benchmark : selectionResult.benchmark;
-  const collection = isReconfigure ? initialValues?.collection : selectionResult.collection;
-  const isCollectionFlow = isReconfigure
-    ? (initialValues?.isCollectionFlow ?? false)
-    : selectionResult.isCollectionFlow;
-  const isSingleBenchmarkFlow = !isReconfigure && !isCollectionFlow && !!benchmark;
+  const reconfigureCollection = isReconfigure ? initialValues?.collection : undefined;
+  const isCollectionReconfigure = isReconfigure && (initialValues?.isCollectionFlow ?? false);
+  const isSingleBenchmarkFlow = !isReconfigure && !!benchmark;
   const dataLoaded = isReconfigure ? true : selectionResult.dataLoaded;
   const loadError = isReconfigure ? undefined : selectionResult.loadError;
 
@@ -135,9 +132,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     warning: isWarning,
   } = useInferenceServices(namespace ?? '');
 
-  const previousRoute = isCollectionFlow
-    ? evaluationCollectionsRoute(namespace)
-    : evaluationSingleBenchmarkRoute(namespace);
+  const previousRoute = evaluationSingleBenchmarkRoute(namespace);
   const navigationSource =
     location.state && typeof location.state === 'object' && 'source' in location.state
       ? location.state.source
@@ -165,8 +160,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   const form = useStartEvaluationRunForm({
     namespace,
     benchmark,
-    collection,
-    isCollectionFlow,
+    collection: reconfigureCollection,
+    isCollectionFlow: isCollectionReconfigure,
     benchmarkParameterValues: benchmarkParameterValuesForRun,
     experiments,
     experimentsLoaded,
@@ -187,21 +182,13 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
       EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
       { surface: 'create_run_page' },
       {
-        collectionType: collection
-          ? collection.resource.read_only
-            ? 'system'
-            : 'custom'
-          : 'unknown',
-        providerType: benchmark?.providerId ?? collection?.benchmarks?.[0]?.provider_id,
+        collectionType: 'unknown',
+        providerType: benchmark?.providerId,
       },
     );
-  }, [benchmark, collection, dataLoaded, isReconfigure, loadError]);
+  }, [benchmark, dataLoaded, isReconfigure, loadError]);
 
-  const breadcrumbFlowLabel = isCollectionFlow
-    ? 'Select collection'
-    : isSingleBenchmarkFlow
-      ? 'Benchmarks'
-      : 'Select benchmark';
+  const breadcrumbFlowLabel = isSingleBenchmarkFlow ? 'Benchmarks' : 'Select benchmark';
 
   const getBreadcrumbItems = (): React.ReactElement[] => {
     const items: React.ReactElement[] = [];
@@ -283,6 +270,17 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
             </EmptyStateActions>
           </EmptyStateFooter>
         </EmptyState>
+      </Bullseye>
+    );
+  }
+
+  // A create run page requires a benchmark selected in the wizard. The hook
+  // redirects stale or incomplete start URLs to Evaluate, so don't render the
+  // reconfigure layout while that redirect is taking place.
+  if (!isReconfigure && !benchmark) {
+    return (
+      <Bullseye>
+        <Spinner aria-label="Loading benchmark selection" />
       </Bullseye>
     );
   }
@@ -498,7 +496,11 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   const benchmarkNameField = (
     <FormGroup
       label={
-        isCollectionFlow ? 'Collection' : isSingleBenchmarkFlow ? 'Selected benchmark' : 'Benchmark'
+        isCollectionReconfigure
+          ? 'Collection'
+          : isSingleBenchmarkFlow
+            ? 'Selected benchmark'
+            : 'Benchmark'
       }
       fieldId="benchmark-name"
     >
@@ -508,7 +510,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     </FormGroup>
   );
   const testDataFields =
-    !isCollectionFlow && form.sourceMode === 'model' ? (
+    !isCollectionReconfigure && form.sourceMode === 'model' ? (
       <BenchmarkTestDataRefFields
         value={form.testDataRef}
         idPrefix="start-evaluation"
@@ -536,13 +538,13 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     <BenchmarkThresholdField
       value={form.threshold}
       onChange={form.handleThresholdChange}
-      label={isCollectionFlow ? 'Collection threshold' : 'Benchmark threshold'}
+      label={isCollectionReconfigure ? 'Collection threshold' : 'Benchmark threshold'}
       fieldId="benchmark-threshold"
-      metric={isCollectionFlow ? undefined : form.primaryMetric}
+      metric={isCollectionReconfigure ? undefined : form.primaryMetric}
     />
   );
   const primaryMetricField =
-    !isCollectionFlow && form.availableMetrics.length > 0 ? (
+    !isCollectionReconfigure && form.availableMetrics.length > 0 ? (
       <PrimaryScorerMetricField
         metrics={form.availableMetrics}
         selected={form.primaryMetric}

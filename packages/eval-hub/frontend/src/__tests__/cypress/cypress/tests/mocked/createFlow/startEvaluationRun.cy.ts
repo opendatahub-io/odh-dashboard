@@ -4,11 +4,9 @@ import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
 import { mockProvider } from '~/__mocks__/mockProvider';
 import { mockBenchmark } from '~/__mocks__/mockBenchmark';
-import { mockCollection, mockCollectionsListResponse } from '~/__mocks__/mockCollection';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
 import { startEvaluationRunPage } from '~/__tests__/cypress/cypress/pages/startEvaluationRunPage';
 import { singleBenchmarkWizardPage } from '~/__tests__/cypress/cypress/pages/singleBenchmarkWizardPage';
-import { chooseCollectionPage } from '~/__tests__/cypress/cypress/pages/chooseCollectionPage';
 import { ToastNotification } from '~/__tests__/cypress/cypress/pages/components/Notification';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
@@ -79,14 +77,6 @@ const rawMetricProvider = mockProvider({
   ],
 });
 
-const testCollection = mockCollection({
-  id: 'col-safety',
-  name: 'Safety Suite',
-  category: 'Safety',
-  description: 'Safety evaluation collection.',
-  benchmarkIds: ['harmful_request_refusal', 'toxigen'],
-});
-
 const initBaseIntercepts = () => {
   cy.interceptApi(
     'GET /api/:apiVersion/user',
@@ -105,12 +95,6 @@ const initBaseIntercepts = () => {
   );
 
   cy.interceptApi('GET /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, []);
-
-  cy.interceptApi(
-    'GET /api/:apiVersion/evaluations/collections',
-    { path: API_VERSION },
-    mockCollectionsListResponse([]),
-  );
 
   mockInferenceServices([]);
   mockVerifyConnectionSuccess();
@@ -150,19 +134,6 @@ const navigateToBenchmarkStart = (
   benchmarkId = testProvider.benchmarks?.[0].id ?? '',
 ) => {
   navigateToBenchmarkConfiguration(provider, benchmarkId);
-  startEvaluationRunPage.findForm().should('exist');
-};
-
-const navigateToCollectionStart = () => {
-  cy.interceptApi(
-    'GET /api/:apiVersion/evaluations/collections',
-    { path: API_VERSION },
-    mockCollectionsListResponse([testCollection]),
-  );
-
-  chooseCollectionPage.visit(NAMESPACE);
-  chooseCollectionPage.findUseBenchmarkSuiteButton('col-safety').click();
-
   startEvaluationRunPage.findForm().should('exist');
 };
 
@@ -446,73 +417,6 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
   });
 });
 
-describe('Start Evaluation Run - Collection Threshold', () => {
-  beforeEach(() => {
-    initBaseIntercepts();
-    mockMlflowExperiments([]);
-  });
-
-  it('should display collection threshold defaulting to 70 when no pass_criteria in metadata', () => {
-    navigateToCollectionStart();
-
-    startEvaluationRunPage.findBenchmarkThreshold().should('exist');
-    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '70');
-  });
-
-  it('should not display primary scorer metric dropdown for collection flow', () => {
-    navigateToCollectionStart();
-
-    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('not.exist');
-  });
-
-  it('should submit overridden collection threshold when user modifies the slider value', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-col-threshold-override',
-      name: 'col-threshold-override-eval',
-      state: 'running',
-      collectionId: 'col-safety',
-    });
-
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createCollectionJobThresholdOverride',
-    );
-
-    navigateToCollectionStart();
-
-    startEvaluationRunPage.findBenchmarkThresholdInput().type('{selectall}85');
-
-    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().click();
-
-    cy.wait('@createCollectionJobThresholdOverride').then((interception) => {
-      expect(interception.request.body.pass_criteria).to.have.property('threshold', 0.85);
-    });
-  });
-
-  it('should include top-level pass_criteria in collection submission', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-col-threshold',
-      name: 'col-threshold-eval',
-      state: 'running',
-      collectionId: 'col-safety',
-    });
-
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createCollectionJobThreshold',
-    );
-
-    navigateToCollectionStart();
-
-    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().click();
-
-    cy.wait('@createCollectionJobThreshold').then((interception) => {
-      expect(interception.request.body).to.have.property('pass_criteria');
-      expect(interception.request.body.pass_criteria).to.have.property('threshold', 0.7);
-    });
-  });
-});
-
 describe('Start Evaluation Run - Submission Error', () => {
   beforeEach(() => {
     initBaseIntercepts();
@@ -535,61 +439,6 @@ describe('Start Evaluation Run - Submission Error', () => {
     startEvaluationRunPage.findForm().should('exist');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
     cy.url().should('include', `/create/start?type=benchmark`);
-  });
-});
-
-describe('Start Evaluation Run - Collection Mode', () => {
-  beforeEach(() => {
-    initBaseIntercepts();
-    mockMlflowExperiments([]);
-  });
-
-  it('should render form with correct collection summary', () => {
-    navigateToCollectionStart();
-
-    startEvaluationRunPage.findAdvancedConfigurationToggleContainer().should('not.exist');
-    startEvaluationRunPage.findBenchmarkSettingsHeading().should('not.exist');
-    startEvaluationRunPage.findShowAdditionalArgsCheckbox().should('exist');
-    startEvaluationRunPage.findBenchmarkNameDisplay().should('contain.text', 'Safety Suite');
-    startEvaluationRunPage.findEvaluationNameInput().should('not.have.value', '');
-    startEvaluationRunPage.findSubmitButton().should('exist');
-  });
-
-  it('should submit collection evaluation job with correct payload', () => {
-    const createdJob = mockEvaluationJob({
-      id: 'new-eval-002',
-      name: 'collection-eval',
-      state: 'running',
-      collectionId: 'col-safety',
-    });
-
-    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
-      'createCollectionJob',
-    );
-
-    navigateToCollectionStart();
-
-    fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
-    startEvaluationRunPage.findSubmitButton().should('be.enabled');
-    startEvaluationRunPage.findSubmitButton().click();
-
-    cy.wait('@createCollectionJob').then((interception) => {
-      expect(interception.request.body).to.have.property('collection');
-      expect(interception.request.body.collection).to.have.property('id', 'col-safety');
-      expect(interception.request.body.collection).to.have.property('benchmarks');
-      expect(interception.request.body.collection.benchmarks).to.have.length(2);
-      expect(interception.request.body.collection.benchmarks[0]).to.have.property(
-        'id',
-        'harmful_request_refusal',
-      );
-      expect(interception.request.body).to.not.have.property('benchmarks');
-    });
-
-    const successToast = new ToastNotification('Evaluation started');
-    successToast.find().should('exist');
-
-    cy.url().should('include', `/evaluation/${NAMESPACE}`);
-    cy.url().should('not.include', '/create');
   });
 });
 
@@ -824,12 +673,9 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should render the test data section for single benchmark runs but not collection flows', () => {
+  it('should render the test data section for a single benchmark run', () => {
     navigateToBenchmarkConfiguration();
     startEvaluationRunPage.findTestDataRefSourceToggle().should('exist');
-
-    navigateToCollectionStart();
-    startEvaluationRunPage.findTestDataRefSourceToggle().should('not.exist');
   });
 
   it('should submit a test data ref with the job request', () => {

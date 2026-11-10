@@ -8,7 +8,6 @@ import ToastNotifications from './components/ToastNotifications';
 import EvaluationsPage from './pages/EvaluationsPage';
 import BenchmarkSuitesPage from './pages/BenchmarkSuitesPage';
 import CuratedBenchmarkSuitesPage from './pages/CuratedBenchmarkSuitesPage';
-import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage';
 import SingleBenchmarkWizardPage from './pages/SingleBenchmarkWizardPage';
 import StartEvaluationRunPage from './pages/StartEvaluationRunPage';
 import EvaluationResultsPage from './pages/EvaluationResultsPage';
@@ -49,7 +48,6 @@ const AppRoutes: React.FC = () => (
           path={`:namespace/${evaluationComparePathSegment}`}
           element={<CompareEvaluationsPage />}
         />
-        <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
         <Route path=":namespace/create/collections/new" element={<CreateSuitePage />} />
         <Route
           path=":namespace/create/collections/:collectionId/edit"

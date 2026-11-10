@@ -21,10 +21,6 @@ class StartEvaluationRunPage {
     return cy.findByTestId('start-evaluation-run-advanced-toggle').find('button').first();
   }
 
-  findAdvancedConfigurationToggleContainer() {
-    return cy.get('[data-testid="start-evaluation-run-advanced-toggle"]');
-  }
-
   findBenchmarkSettingsHeading() {
     return cy.findByTestId('benchmark-settings-heading');
   }
@@ -162,10 +158,6 @@ class StartEvaluationRunPage {
 
   findPrimaryScorerMetricOption(metric: string) {
     return cy.findByTestId(`primary-scorer-metric-option-${metric}`);
-  }
-
-  findShowAdditionalArgsCheckbox() {
-    return cy.findByTestId('show-additional-args');
   }
 
   findAdditionalArgsUpload() {
