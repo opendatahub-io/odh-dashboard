@@ -510,16 +510,19 @@ export const configureAutoragRun = (
 
   cy.step('Upload evaluation dataset JSON');
   const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
-  cy.readFile(`${RESOURCES_PATH}/${testData.evaluationFile}`, 'utf8').then((evaluationData) => {
+  cy.readFile(`${RESOURCES_PATH}/${testData.evaluationFile}`, null).then((evaluationData) => {
     const renderedEvaluationData = renderAutoragEvaluationData(
-      evaluationData,
+      evaluationData.toString('utf8'),
       testData.documentFile,
       uploadFileName,
     );
 
     autoragConfigurePage
       .findEvaluationFileInput()
-      .selectFile({ contents: renderedEvaluationData, fileName: evalFileName }, { force: true });
+      .selectFile(
+        { contents: Cypress.Buffer.from(renderedEvaluationData, 'utf8'), fileName: evalFileName },
+        { force: true },
+      );
   });
 
   cy.step('Wait for evaluation file upload to complete');
