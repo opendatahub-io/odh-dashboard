@@ -11,7 +11,7 @@ jest.mock('react-router-dom', () => ({
 }));
 
 jest.mock('~/app/routes', () => ({
-  evaluationCreateRoute: (ns?: string) => `/${ns}/create`,
+  evaluationEvaluateRoute: (ns?: string) => `/evaluation/${ns}?tab=evaluate`,
 }));
 
 const mockNavigate = jest.fn();
@@ -125,12 +125,14 @@ describe('useEvaluationSelection', () => {
   });
 
   describe('redirects', () => {
-    it('should redirect to create page when no valid flow type is present', () => {
+    it('should redirect to the evaluate tab when no valid flow type is present', () => {
       setupSearchParams({});
 
       testHook(useEvaluationSelection)('test-ns');
 
-      expect(mockNavigate).toHaveBeenCalledWith('/test-ns/create', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-ns?tab=evaluate', {
+        replace: true,
+      });
     });
 
     it('should not redirect when benchmark flow is active', () => {
@@ -157,12 +159,14 @@ describe('useEvaluationSelection', () => {
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
-    it('should still redirect when skipRedirect is false', () => {
+    it('should still redirect to the evaluate tab when skipRedirect is false', () => {
       setupSearchParams({});
 
       testHook(useEvaluationSelection)('test-ns', false);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/test-ns/create', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-ns?tab=evaluate', {
+        replace: true,
+      });
     });
   });
 
