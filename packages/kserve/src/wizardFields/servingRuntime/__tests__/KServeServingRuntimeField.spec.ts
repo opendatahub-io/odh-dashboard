@@ -1,4 +1,7 @@
-import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
+import {
+  ServingRuntimeModelType,
+  getServingRuntimeFromTemplate,
+} from '@odh-dashboard/model-serving/shared';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
@@ -145,6 +148,23 @@ describe('resolveInitialModelServerFieldData', () => {
     expect(resolveInitialModelServerFieldData(existing, { templates: [], extraOptions: [] })).toBe(
       existing,
     );
+  });
+
+  it('should exclude an accelerator-compatible template that does not support the model format', () => {
+    const nvidiaVllm = templateWithAccelerator('nvidia-vllm', 'nvidia.com/gpu');
+    const runtime = getServingRuntimeFromTemplate(nvidiaVllm);
+    if (!runtime) {
+      throw new Error('Expected a ServingRuntime in the template mock');
+    }
+    runtime.spec.supportedModelFormats = [{ name: 'vLLM' }];
+    const result = resolveInitialModelServerFieldData(
+      undefined,
+      { templates: [nvidiaVllm], extraOptions: [] },
+      { modelFormat: { name: 'onnx', version: '1' }, hardwareProfile: gpuProfile },
+    );
+
+    expect(result.data?.autoSelect).toBe(false);
+    expect(result.data?.selection).toBeUndefined();
   });
 
   it('should auto-select a single compatible template when an accelerator identifier is present', () => {
