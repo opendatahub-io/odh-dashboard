@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';

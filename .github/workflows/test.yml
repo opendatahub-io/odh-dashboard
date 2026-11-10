@@ -95,7 +95,7 @@ jobs:
       - name: Run ${{ matrix.check }}
         run: |
           if [ "${{ matrix.check }}" = "lint" ]; then
-            NODE_OPTIONS="--max-old-space-size=8192" pnpm run lint
+            NODE_OPTIONS="--max-old-space-size=8192" pnpm run lint --concurrency=2
           else
             pnpm run type-check
           fi

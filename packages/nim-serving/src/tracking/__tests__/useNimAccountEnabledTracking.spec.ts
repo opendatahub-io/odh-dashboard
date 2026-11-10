@@ -1,5 +1,5 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { NIMAccountStatus } from '../../api/accounts/hooks';
 import {
   fireNimAccountEnabled,

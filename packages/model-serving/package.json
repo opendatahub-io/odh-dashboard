@@ -115,6 +115,7 @@
     "./shared/contexts/ModelServingDataContext": "./src/shared/contexts/ModelServingDataContext.tsx"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/foundation": "workspace:*",
     "@odh-dashboard/hardware-profiles": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",

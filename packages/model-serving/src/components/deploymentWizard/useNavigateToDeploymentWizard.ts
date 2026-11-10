@@ -1,7 +1,7 @@
 import { useLocation, useNavigate, type NavigateFunction } from 'react-router-dom';
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
 import { InitialWizardFormData } from '../../shared/types/form-data';

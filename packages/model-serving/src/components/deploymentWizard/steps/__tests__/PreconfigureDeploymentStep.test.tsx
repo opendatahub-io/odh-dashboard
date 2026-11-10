@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
@@ -8,12 +8,10 @@ import { mockToolCallingValidatedConfiguration } from '@odh-dashboard/model-serv
 import { PreconfigureDeploymentStepContent } from '../PreconfigureDeploymentStep';
 import { mockDeploymentWizardState } from '../../../../__tests__/mockUtils';
 import { ModelServingTrackingEvent } from '../../../../shared/tracking/modelServingTrackingConstants';
+import { createTrackingRender } from '../../../../__tests__/TrackingProvider';
 
 const mockTrackEvent = jest.fn();
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
-  useTrackEvent: () => mockTrackEvent,
-}));
+const render = createTrackingRender(mockTrackEvent);
 
 const mockProject = mockProjectK8sResource({
   k8sName: 'test-project',

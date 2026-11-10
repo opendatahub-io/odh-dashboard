@@ -1,14 +1,12 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 
 const mockCreateProject = jest.fn();
-const mockTrackEvent = jest.fn();
 
 jest.mock('@odh-dashboard/plugin-core', () => ({
   useHostApi: jest.fn(() => ({
     createProject: mockCreateProject,
   })),
-  useTrackEvent: jest.fn(() => mockTrackEvent),
 }));
 
 jest.mock('@patternfly/react-core', () => ({
@@ -16,6 +14,10 @@ jest.mock('@patternfly/react-core', () => ({
 }));
 
 import NewProjectButton from '../NewProjectButton';
+import { createTrackingRender } from '../../../__tests__/TrackingProvider';
+
+const mockTrackEvent = jest.fn();
+const render = createTrackingRender(mockTrackEvent);
 
 describe('NewProjectButton', () => {
   let resolveCreate: (value: string) => void = () => undefined;

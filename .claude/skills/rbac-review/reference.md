@@ -7,8 +7,8 @@ The dashboard does **not** maintain internal user tiers with assumed capabilitie
 | Concept | Meaning | Implication |
 |---------|---------|-------------|
 | **Cluster admin** | Has `*` verbs on all resources (cluster-wide). All SSAR pass. | Developers test with this — hides access bugs. Never assume code works because it passed in this persona. |
-| **`isAdmin` (deprecated)** | Can `patch` the `auths/default-auth` singleton. Stored in Redux. | Does NOT mean the user can do anything else. Must not be used to assume capabilities. |
-| **`isAllowed`** | Can `get` the `auths/default-auth` singleton. | Means "allowed to use the dashboard at all." Nothing more. |
+| **`isAdmin` (deprecated)** | Can `patch` the `auths/auth` singleton. Stored in Redux. | Does NOT mean the user can do anything else. Must not be used to assume capabilities. |
+| **`isAllowed`** | Can `get` the `auths/auth` singleton. | Means "allowed to use the dashboard at all." Nothing more. |
 
 **Core rule:** Dashboard admins and regular users must be treated identically. Both need explicit SSAR checks (`useAccessAllowed` with `verbModelAccess`) for every operation they attempt. The `isAdmin` flag is deprecated precisely because it creates a false assumption that "admins can do X" — in reality, a "dashboard admin" may lack permissions for specific resources depending on their cluster Role/RoleBindings.
 
@@ -50,7 +50,7 @@ import { useAccessReview, checkAccess } from '#~/api/useAccessReview';
 const { isAdmin } = useUser();
 ```
 
-`UserState.isAdmin` only means "can patch auths/default-auth". It does NOT grant any other capability. Code that uses this to decide whether to fetch data or show UI is **wrong** — the user may be a "dashboard admin" who still lacks permission for that specific resource. Always check the actual verb+resource via SSAR.
+`UserState.isAdmin` only means "can patch auths/auth". It does NOT grant any other capability. Code that uses this to decide whether to fetch data or show UI is **wrong** — the user may be a "dashboard admin" who still lacks permission for that specific resource. Always check the actual verb+resource via SSAR.
 
 ## Common Patterns
 
@@ -100,7 +100,7 @@ const secrets = useSomeHook(ns, { enabled: canList });
 ### Key utilities
 
 - `secureRoute(fastify)` — Validates namespace scoping and resource ownership **only for parameterized requests** (i.e., routes with `:namespace` or resource-identifying params). Un-parameterized POST/PUT/PATCH/DELETE routes wrapped in `secureRoute` are only **logged**, not blocked — they still execute. **Caveat:** Un-parameterized mutating endpoints require stronger protection: use `secureAdminRoute`, add explicit parameterized namespace/resource validation, or perform a backend SSAR via `createSelfSubjectAccessReview`.
-- `secureAdminRoute(fastify)` — Same as `secureRoute` but additionally verifies the caller is a dashboard admin before proceeding. Use for admin-owned operations (e.g., `auths/default-auth` management) and as the minimum guard for un-parameterized mutating endpoints that cannot be parameterized. Not a generic substitute for resource-specific SSAR checks.
+- `secureAdminRoute(fastify)` — Same as `secureRoute` but additionally verifies the caller is a dashboard admin before proceeding. Use for admin-owned operations (e.g., `auths/auth` management) and as the minimum guard for un-parameterized mutating endpoints that cannot be parameterized. Not a generic substitute for resource-specific SSAR checks.
 - `createSelfSubjectAccessReview(fastify, request, attrs)` — Backend SSAR helper for fine-grained permission checks on specific verb+resource combinations.
 
 **Location:** `backend/src/utils/route-security.ts`, `backend/src/utils/adminUtils.ts`

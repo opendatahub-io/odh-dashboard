@@ -50,7 +50,7 @@ import {
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
 import { type PodContainerStatus, type ProjectKind } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import useClusterQueue from '@odh-dashboard/ui-core/hooks/useClusterQueue';
