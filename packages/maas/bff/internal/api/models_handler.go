@@ -11,7 +11,16 @@ import (
 // Returns a list of available MaaS models
 func ListModelsHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-	modelsList, err := app.repositories.Models.ListModels(ctx, r.Header)
+	// Preserve Gen-AI model enrichment without forwarding gateway identity headers.
+	// The MaaS client derives Authorization from the authenticated context.
+	var ALLOWED_HEADERS = []string{"X-MaaS-Return-All-Models"}
+	headers := make(http.Header)
+	for _, h := range ALLOWED_HEADERS {
+		for _, value := range r.Header.Values(h) {
+			headers.Add(h, value)
+		}
+	}
+	modelsList, err := app.repositories.Models.ListModels(ctx, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
