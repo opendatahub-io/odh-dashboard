@@ -19,6 +19,20 @@ import {
 const spec = (): string => Cypress.spec.relative;
 const POLL_INTERVAL_MS = 5000;
 
+interface AutoXNamespaceInspection {
+  exists: boolean;
+  uid?: string;
+  cleanupToken?: string;
+  error?: string;
+}
+
+interface AutoXCleanupStatus {
+  runsTerminal: boolean;
+  namespaceExists: boolean;
+  owned: boolean;
+  inspectionFailed: boolean;
+}
+
 /** Allocate a fresh namespace for every setup attempt without waiting on a stale one. */
 export const setupAutoXProject = (
   testData: Pick<AutomlTestData, 'projectNamePrefix' | 'dspaSecretName' | 'awsBucket'>,
@@ -53,7 +67,7 @@ export const setupAutoXProject = (
               throw new Error(`Could not identify the cluster for AutoX project ${namespace}`);
             }
             return cy
-              .task('automlCleanup:recordProject', {
+              .task<AutomlCleanupManifest>('automlCleanup:recordProject', {
                 spec: spec(),
                 namespace,
                 bucketKey: testData.awsBucket,
@@ -205,7 +219,7 @@ const deleteAndVerifyProject = (
 
 const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string[]> => {
   if (project.projectDeleted && project.s3Cleaned) {
-    return cy.wrap([]);
+    return cy.wrap<string[]>([]);
   }
 
   const errors: string[] = [];
@@ -216,21 +230,17 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
   const executorNamespace = configuredExecutorNamespace || project.namespace;
 
   const hasS3Work = project.uploads.length > 0 || project.runs.length > 0;
-  const inspectNamespace = (): Cypress.Chainable<{
-    exists: boolean;
-    uid?: string;
-    cleanupToken?: string;
-    error?: string;
-  }> => {
+  let { namespaceUID } = project;
+  const inspectNamespace = (): Cypress.Chainable<AutoXNamespaceInspection> => {
     if (project.projectDeleted) {
-      return cy.wrap({ exists: false });
+      return cy.wrap<AutoXNamespaceInspection>({ exists: false });
     }
     return cy
       .exec(`oc get namespace ${project.namespace} --ignore-not-found -o json`, {
         failOnNonZeroExit: false,
         log: false,
       })
-      .then((result) => {
+      .then((result): AutoXNamespaceInspection => {
         if (result.exitCode !== 0) {
           return {
             exists: false,
@@ -259,15 +269,15 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
   };
 
   return inspectNamespace()
-    .then((namespace) => {
+    .then((namespace): Cypress.Chainable<AutoXNamespaceInspection> => {
       if (
         namespace.exists &&
         project.cleanupToken &&
-        !project.namespaceUID &&
+        !namespaceUID &&
         namespace.uid &&
         namespace.cleanupToken === project.cleanupToken
       ) {
-        project.namespaceUID = namespace.uid;
+        namespaceUID = namespace.uid;
         return cy
           .task('automlCleanup:recordNamespace', {
             spec: spec(),
@@ -275,46 +285,46 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
             cleanupToken: project.cleanupToken,
             namespaceUID: namespace.uid,
           })
-          .then(() => namespace);
+          .then(() => cy.wrap<AutoXNamespaceInspection>(namespace));
       }
-      return namespace;
+      return cy.wrap<AutoXNamespaceInspection>(namespace);
     })
-    .then((namespace) => {
+    .then((namespace): Cypress.Chainable<AutoXCleanupStatus> => {
       if (namespace.error) {
         errors.push(namespace.error);
-        return {
+        return cy.wrap<AutoXCleanupStatus>({
           runsTerminal: false,
           namespaceExists: false,
           owned: false,
           inspectionFailed: true,
-        };
+        });
       }
       if (namespace.exists) {
-        if (!matchesAutomlCleanupOwnership(project, namespace)) {
+        if (!matchesAutomlCleanupOwnership({ ...project, namespaceUID }, namespace)) {
           errors.push(`AutoX namespace ${project.namespace} does not match its recorded ownership`);
-          return {
+          return cy.wrap<AutoXCleanupStatus>({
             runsTerminal: false,
             namespaceExists: true,
             owned: false,
             inspectionFailed: false,
-          };
+          });
         }
         return settleRecordedRuns(project).then((runErrors) => {
           errors.push(...runErrors);
-          return {
+          return cy.wrap<AutoXCleanupStatus>({
             runsTerminal: runErrors.length === 0,
             namespaceExists: true,
             owned: true,
             inspectionFailed: false,
-          };
+          });
         });
       }
-      return {
+      return cy.wrap<AutoXCleanupStatus>({
         runsTerminal: true,
         namespaceExists: false,
         owned: false,
         inspectionFailed: false,
-      };
+      });
     })
     .then(({ runsTerminal, namespaceExists, owned, inspectionFailed }) => {
       let s3Work: Cypress.Chainable<boolean>;
@@ -325,7 +335,7 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
       } else if (!runsTerminal) {
         cy.log(`Skipping S3 deletion for ${project.namespace} until its runs are terminal`);
         s3Work = cy.wrap(false);
-      } else if (!project.projectDeleted && !project.namespaceUID) {
+      } else if (!project.projectDeleted && !namespaceUID) {
         errors.push(`AutoX namespace UID is missing for ${project.namespace}; refusing S3 cleanup`);
         s3Work = cy.wrap(false);
       } else if (
@@ -333,8 +343,7 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
         (!configuredExecutorNamespace || executorNamespace === project.namespace)
       ) {
         errors.push(
-          'A stable AutoX cleanup namespace is required to retry S3 cleanup for ' +
-            project.namespace,
+          `A stable AutoX cleanup namespace is required to retry S3 cleanup for ${project.namespace}`,
         );
         s3Work = cy.wrap(false);
       } else if (!buckets) {
@@ -350,11 +359,12 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
         try {
           const bucket = buckets[project.bucketKey];
           const script = buildAutomlS3CleanupScript(bucket, project);
+          const podName = `automl-s3-${Date.now().toString(36)}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}`;
           s3Work = runAwsCliInCluster({
             namespace: executorNamespace,
-            podName:
-              `automl-s3-${Date.now().toString(36)}-` +
-              Math.random().toString(36).slice(2, 8),
+            podName,
             region: bucket.REGION,
             command: ['sh', '-c'],
             awsCliArgs: [script],
@@ -375,13 +385,8 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
         let deletion: Cypress.Chainable<boolean>;
         if (inspectionFailed) {
           deletion = cy.wrap(project.projectDeleted);
-        } else if (
-          !project.projectDeleted &&
-          namespaceExists &&
-          owned &&
-          project.namespaceUID
-        ) {
-          deletion = deleteAndVerifyProject(project.namespace, project.namespaceUID);
+        } else if (!project.projectDeleted && namespaceExists && owned && namespaceUID) {
+          deletion = deleteAndVerifyProject(project.namespace, namespaceUID);
         } else {
           deletion = cy.wrap(!namespaceExists || project.projectDeleted);
         }
