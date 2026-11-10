@@ -85,6 +85,8 @@ spec:
             runAsNonRoot: true
             capabilities:
               drop: ['ALL']
+            seccompProfile:
+              type: RuntimeDefault
           volumeMounts:
             - name: pgdata
               mountPath: /var/lib/pgsql/data

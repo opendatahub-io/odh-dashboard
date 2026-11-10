@@ -57,7 +57,11 @@ class AutoragResultsPage {
   }
 
   findUnrankedLeaderboardRows() {
-    return this.findLeaderboardTable().find('[data-testid^="leaderboard-row-unranked-"]');
+    // Query the existing table synchronously so an all-ranked leaderboard yields an empty
+    // collection instead of Cypress retrying and failing before the caller can inspect it.
+    return this.findLeaderboardTable().then(($table) =>
+      cy.wrap($table.find('[data-testid^="leaderboard-row-unranked-"]'), { log: false }),
+    );
   }
 
   findFirstUnrankedLeaderboardRow() {
