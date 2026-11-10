@@ -31,7 +31,6 @@ for (const source of [
   `export * from '${legacy}/deep';`,
   `import { fireTrackingEvent } from '@odh-dashboard/analytics';`,
   `import '@odh-dashboard/analytics/deep';`,
-  `import '@odh-dashboard/analytics/types';`,
   `import '@odh-dashboard/analytics/types/deep';`,
   `import '@odh-dashboard/analytics/types-extra';`,
   `export * from '@odh-dashboard/analytics';`,
@@ -63,10 +62,10 @@ for (const global of ['window', 'globalThis', 'self']) {
 
 for (const source of [
   `import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api'; useTrackEvent()('event', {});`,
-  `import { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';`,
-  `export { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';`,
-  `export * from '@odh-dashboard/ui-core/types/analytics';`,
-  `import * as contracts from '@odh-dashboard/ui-core/types/analytics'; contracts.TrackingOutcome;`,
+  `import { TrackingOutcome } from '@odh-dashboard/analytics/types';`,
+  `export { TrackingOutcome } from '@odh-dashboard/analytics/types';`,
+  `export * from '@odh-dashboard/analytics/types';`,
+  `import * as contracts from '@odh-dashboard/analytics/types'; contracts.TrackingOutcome;`,
   `import { unrelated } from '@odh-dashboard/ui-core';`,
   `export * from '@odh-dashboard/ui-core';`,
   `const feature = { analytics: {} }; feature.analytics;`,
@@ -106,10 +105,10 @@ it('should permit TypeScript contracts with both type import syntaxes', async ()
   );
   expect(
     await lint(
-      `import type { FormTrackingEventProperties } from '@odh-dashboard/ui-core/types/analytics';
-       import { type LinkTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';
-       export type { IdentifyEventProperties } from '@odh-dashboard/ui-core/types/analytics';
-       import type * as contracts from '@odh-dashboard/ui-core/types/analytics';
+      `import type { FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
+       import { type LinkTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
+       export type { IdentifyEventProperties } from '@odh-dashboard/analytics/types';
+       import type * as contracts from '@odh-dashboard/analytics/types';
        type Outcome = typeof contracts.TrackingOutcome;`,
       undefined,
       typed,

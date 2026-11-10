@@ -1,7 +1,7 @@
 import { ModalFooter, Button, StackItem, Alert, Stack } from '@patternfly/react-core';
 import * as React from 'react';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
-import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { patchNotebookImage } from '#~/api';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '#~/concepts/analyticsTracking/errorTrackingUtils';

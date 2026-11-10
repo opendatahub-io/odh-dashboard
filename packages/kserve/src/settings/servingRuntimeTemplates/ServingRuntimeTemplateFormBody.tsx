@@ -23,7 +23,7 @@ import {
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
 } from '@odh-dashboard/model-serving/shared';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import DashboardCodeEditor from '@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor';
 import {

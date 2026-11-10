@@ -9,7 +9,7 @@ import type {
   IdentifyEventProperties,
   LinkTrackingEventProperties,
   MiscTrackingEventProperties,
-} from '@odh-dashboard/ui-core/types/analytics';
+} from '@odh-dashboard/analytics/types';
 import {
   fireTrackingEvent as fireTrackingEventCore,
   firePageEvent as firePageEventCore,

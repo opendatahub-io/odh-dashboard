@@ -4,7 +4,7 @@ Shared Segment analytics implementation for ODH Dashboard.
 
 ## Purpose
 
-Provides the concrete Segment implementation for host applications. Feature packages describe events; the host decides how those events are delivered.
+Provides shared tracking contracts and the concrete Segment implementation for host applications. Feature packages describe events; the host decides how those events are delivered.
 
 ## Design
 
@@ -35,10 +35,10 @@ Page and identity operations belong to the host lifecycle. Keep them separate fr
 ### Import Boundaries
 
 - `@odh-dashboard/analytics`: implementation functions for host integration.
-- `@odh-dashboard/ui-core/types/analytics`: shared contracts, including `TrackingOutcome` and property types. This entry point imports neither React nor Segment.
+- `@odh-dashboard/analytics/types`: SDK-free shared contracts, including `TrackingOutcome` and property types. This entry point imports neither React nor Segment.
 - `@odh-dashboard/plugin-core/host-api`: the injected tracking contract and `useTrackEvent()` hook for features.
 
-Feature code uses the host tracking API and shared contracts from ui-core. It does not import this package, import the Segment SDK, or access analytics globals. The `@odh-dashboard/no-direct-analytics` lint rule enforces this boundary in guarded feature files.
+Feature code imports only the contracts entry point from this package. It does not import the implementation, import the Segment SDK, or access analytics globals. The `@odh-dashboard/no-direct-analytics` lint rule enforces this boundary in guarded feature files.
 
 ## Usage
 
@@ -46,7 +46,7 @@ Feature code uses the host tracking API and shared contracts from ui-core. It do
 
 ```ts
 import type { HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 
 type TrackEvent = HostApiCoreServices['trackEvent'];
 
