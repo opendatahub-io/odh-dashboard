@@ -31,35 +31,69 @@ spec:
           # URL-encode the prefix (replace / with %2F)
           ENCODED_PREFIX=$(echo "${PREFIX}" | sed 's|/|%2F|g')
 
-          echo "Listing objects under s3://${BUCKET}/${PREFIX} ..."
-          LIST_URL="${ENDPOINT}/${BUCKET}?list-type=2&prefix=${ENCODED_PREFIX}&max-keys=1000"
+          # Scratch files live outside the PVC so they never end up in the model dir.
+          KEYS_FILE="/tmp/s3-keys.txt"
+          PAGE_FILE="/tmp/s3-page.xml"
+          TOKEN_FILE="/tmp/s3-token.txt"
+          : > "${KEYS_FILE}"
 
-          KEYS=$(curl -sSf \
-            --aws-sigv4 "aws:amz:${REGION}:s3" \
-            --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
-            "${LIST_URL}" \
-            | python3 -c "
-          import sys, xml.etree.ElementTree as ET
-          tree = ET.fromstring(sys.stdin.read())
-          for k in tree.findall('.//{*}Key'):
-              if not k.text.endswith('/'):
-                  print(k.text)
-          ")
+          echo "Listing objects ..."
+          # ListObjectsV2 returns at most 1000 keys per response, so follow
+          # NextContinuationToken until the listing is no longer truncated.
+          CONTINUATION=""
+          PAGES=0
+          while :; do
+            LIST_URL="${ENDPOINT}/${BUCKET}?list-type=2&prefix=${ENCODED_PREFIX}&max-keys=1000"
+            if [ -n "${CONTINUATION}" ]; then
+              LIST_URL="${LIST_URL}&continuation-token=${CONTINUATION}"
+            fi
 
-          if [ -z "$KEYS" ]; then
-            echo "ERROR: no objects found under ${BUCKET}/${PREFIX}"
+            curl -sSf \
+              --aws-sigv4 "aws:amz:${REGION}:s3" \
+              --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+              "${LIST_URL}" \
+              -o "${PAGE_FILE}"
+
+            # Appends this page's keys and writes the (URL-encoded) next token, or an
+            # empty file when the listing is complete.
+            python3 -c "
+          import sys, urllib.parse, xml.etree.ElementTree as ET
+          page, keys_path, token_path = sys.argv[1:4]
+          root = ET.parse(page).getroot()
+          with open(keys_path, 'a') as f:
+              for k in root.findall('.//{*}Key'):
+                  if not k.text.endswith('/'):
+                      f.write(k.text + '\n')
+          token = root.findtext('{*}NextContinuationToken') or ''
+          if root.findtext('{*}IsTruncated') == 'true' and not token:
+              sys.exit(1)
+          with open(token_path, 'w') as f:
+              f.write(urllib.parse.quote(token, safe='') if token else '')
+          " "${PAGE_FILE}" "${KEYS_FILE}" "${TOKEN_FILE}"
+
+            PAGES=$((PAGES + 1))
+            CONTINUATION=$(cat "${TOKEN_FILE}")
+            if [ -z "${CONTINUATION}" ]; then
+              break
+            fi
+          done
+
+          if [ ! -s "${KEYS_FILE}" ]; then
+            echo "ERROR: no objects found"
             exit 1
           fi
 
-          echo "Found objects:"
-          echo "$KEYS"
+          TOTAL=$(wc -l < "${KEYS_FILE}" | tr -d ' ')
+          echo "Found ${TOTAL} objects across ${PAGES} listing page(s)"
 
-          echo "$KEYS" | while IFS= read -r KEY; do
+          COUNT=0
+          while IFS= read -r KEY; do
             # Keep the full key path: the InferenceService mounts the PVC with
             # subPath=<model path>, so files must live under /mnt/models/<model path>/.
             OUT="${DEST}/${KEY}"
             mkdir -p "$(dirname "${OUT}")"
-            echo "Downloading ${KEY} -> ${OUT}"
+            COUNT=$((COUNT + 1))
+            echo "Downloading object ${COUNT} of ${TOTAL} ..."
             for attempt in 1 2 3; do
               if curl -sSf \
                 --aws-sigv4 "aws:amz:${REGION}:s3" \
@@ -69,14 +103,15 @@ spec:
                 break
               fi
               if [ "${attempt}" -eq 3 ]; then
-                echo "ERROR: failed to download ${KEY} after 3 attempts"
+                echo "ERROR: failed to download object ${COUNT} of ${TOTAL} after 3 attempts"
                 exit 1
               fi
-              echo "Download of ${KEY} failed (attempt ${attempt} of 3). Retrying in 5 seconds..."
+              echo "Download of object ${COUNT} of ${TOTAL} failed (attempt ${attempt} of 3). Retrying in 5 seconds..."
               sleep 5
             done
-          done
+          done < "${KEYS_FILE}"
 
+          # Only reached when every page was listed and every object downloaded.
           touch "${DEST}/.copy-complete"
           echo "S3 copy completed successfully"
       volumeMounts:
