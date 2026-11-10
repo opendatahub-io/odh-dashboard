@@ -1,12 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { useFeatureFlag } from '@openshift/dynamic-plugin-sdk';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
-
-jest.mock('@openshift/dynamic-plugin-sdk', () => ({
-  useFeatureFlag: jest.fn(),
-}));
 
 jest.mock('@odh-dashboard/internal/concepts/projects/ProjectIconWithSize', () => ({
   ProjectIconWithSize: () => <span data-testid="project-icon" />,
@@ -22,8 +17,6 @@ jest.mock('~/app/HeaderIcon', () => ({
   default: () => <span data-testid="header-icon" />,
 }));
 
-const mockUseFeatureFlag = jest.mocked(useFeatureFlag);
-
 const renderHeader = () =>
   render(
     <MemoryRouter>
@@ -35,21 +28,10 @@ const renderHeader = () =>
   );
 
 describe('GenAiCoreHeader', () => {
-  it('keeps the project selector when Grid mode is disabled', () => {
-    mockUseFeatureFlag.mockReturnValue([false, jest.fn()]);
-
+  it('shows the project selector', () => {
     renderHeader();
 
     expect(screen.getByText('Project')).toBeInTheDocument();
     expect(screen.getByTestId('project-selector')).toBeInTheDocument();
-  });
-
-  it('hides the project selector when Grid mode is enabled', () => {
-    mockUseFeatureFlag.mockReturnValue([true, jest.fn()]);
-
-    renderHeader();
-
-    expect(screen.queryByText('Project')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('project-selector')).not.toBeInTheDocument();
   });
 });

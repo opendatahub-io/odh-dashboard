@@ -1,7 +1,6 @@
 import * as yaml from 'js-yaml';
 import { getFeastS3Config, getS3CaBundle, isAwsS3Endpoint } from './feastS3';
 import { applyOpenShiftYaml, pollUntilSuccess, waitForPodReady } from '../oc_commands/baseCommands';
-import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const trimOcJsonpath = (stdout: string): string => stdout.trim().replace(/^'|'$/g, '');
 
@@ -499,58 +498,25 @@ export const waitForFeatureStoreDeleted = (
  * @param {string} feastProject - The feast project name to be used in the route name.
  * @returns {Cypress.Chainable<string>} The route URL
  */
-export const createRouteAndGetUrl = (
+export type RegistryTarget = {
+  namespace: string;
+  deployName: string;
+  container: string;
+};
+
+/**
+ * Resolves the registry pod target (namespace, deployment, container) for direct
+ * `oc exec` API calls. Replaces the old route-based approach that was blocked
+ * by the Feast operator's NetworkPolicy.
+ */
+export const resolveRegistryTarget = (
   namespace: string,
-  feastProject: string,
-): Cypress.Chainable<string> => {
-  const routeName = `${feastProject}-registry-rest`;
-
-  cy.step(`Finding service containing 'registry-rest' in namespace ${namespace}`);
-
-  // Find service containing 'registry-rest' in the namespace
-  const findServiceCommand = `oc get services -n ${namespace} -o custom-columns="NAME:.metadata.name" --no-headers | grep registry-rest`;
-
-  return cy.exec(findServiceCommand, { failOnNonZeroExit: false }).then((findResult) => {
-    if (findResult.exitCode !== 0 || !findResult.stdout.trim()) {
-      cy.log(`ERROR finding service with 'registry-rest': ${findResult.stderr}`);
-      throw new Error(`No service containing 'registry-rest' found in namespace ${namespace}`);
-    }
-
-    const serviceName = findResult.stdout.trim().split('\n')[0];
-    cy.log(`Found service: ${serviceName}`);
-
-    return cy
-      .step(`Creating route ${routeName} for service ${serviceName} in namespace ${namespace}`)
-      .then(() => {
-        // Create the route
-        const createCommand = `oc create route passthrough ${routeName} --service=${serviceName} --port=https -n ${namespace}`;
-
-        return cy.exec(createCommand, { failOnNonZeroExit: false }).then((createResult) => {
-          if (createResult.exitCode !== 0) {
-            const maskedStderr = maskSensitiveInfo(createResult.stderr);
-            cy.log(`ERROR creating route: ${maskedStderr}`);
-            throw new Error(`Failed to create route: ${maskedStderr}`);
-          }
-
-          cy.log(`Created route:\n${createResult.stdout}`);
-
-          // Get the route host
-          const getCommand = `oc get route -n ${namespace} -o jsonpath="{.items[?(@.spec.to.name=='${serviceName}')].spec.host}"`;
-
-          return cy.exec(getCommand, { failOnNonZeroExit: false }).then((getResult) => {
-            if (getResult.exitCode !== 0 || !getResult.stdout.trim()) {
-              const maskedStderr = maskSensitiveInfo(getResult.stderr);
-              cy.log(`Failed to get route host: ${maskedStderr}`);
-              throw new Error(`Failed to get route host: ${maskedStderr}`);
-            }
-
-            const host = getResult.stdout.trim();
-            const routeUrl = `https://${host}`;
-            cy.log(`Route URL: ${routeUrl}`);
-
-            return cy.wrap(routeUrl);
-          });
-        });
-      });
+  feastInstanceName: string,
+): Cypress.Chainable<RegistryTarget> => {
+  return resolveFeastDeployment(namespace, feastInstanceName).then((deployName) => {
+    return resolveFeastContainer(namespace, deployName).then((container) => {
+      cy.log(`Registry target: deploy/${deployName} -c ${container} -n ${namespace}`);
+      return cy.wrap({ namespace, deployName, container });
+    });
   });
 };

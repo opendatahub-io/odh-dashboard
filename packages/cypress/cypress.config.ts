@@ -44,7 +44,11 @@ const constantTimeEqual = (left: string, right: string): boolean => {
   return timingSafeEqual(paddedLeft, paddedRight) && leftBuffer.length === rightBuffer.length;
 };
 
-const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
+const resultsDir = path.resolve(
+  __dirname,
+  env.CY_RESULTS_DIR || 'results',
+  env.CY_MOCK ? 'mocked' : 'e2e',
+);
 
 const isCI = !!env.CI;
 
@@ -58,6 +62,7 @@ export default defineConfig({
     reporterEnabled: 'cypress-mochawesome-reporter, mocha-junit-reporter',
     mochaJunitReporterReporterOptions: {
       mochaFile: `${resultsDir}/junit/junit-[hash].xml`,
+      includePending: true,
     },
     cypressMochawesomeReporterReporterOptions: {
       charts: true,
@@ -266,8 +271,8 @@ export default defineConfig({
         }
 
         try {
-          const outputFile = path.join(__dirname, resultsDir, 'junit-report.xml');
-          const inputFiles = [`./${resultsDir}/junit/*.xml`];
+          const outputFile = path.join(resultsDir, 'junit-report.xml');
+          const inputFiles = [path.join(resultsDir, 'junit', '*.xml')];
           await mergeFiles(outputFile, inputFiles);
         } catch (e) {
           console.warn('junit report merge failed:', e);

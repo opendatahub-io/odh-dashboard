@@ -10,18 +10,17 @@ import {
   type UserSettings,
 } from 'mod-arch-core';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { API_URL_PREFIX } from '~/app/utilities/const';
+import { API_URL_PREFIX, MAAS_MANDATORY_NAMESPACE } from '~/app/utilities/const';
 import ToastNotifications from '~/app/components/ToastNotifications';
 import { AppContext } from '~/app/context/AppContext';
-import { useGridSettings } from '~/app/hooks/useGridSettings';
-import { GRID_MANDATORY_NAMESPACE, useGridFeatureFlag } from '~/app/utilities/gridFeatureFlag';
+import { useMaaSSettings } from '~/app/hooks/useMaaSSettings';
+import { isMaaSPortalHost } from '~/app/utilities/maasGovernanceNavigation';
 
-const getModularArchConfig = (isGridEnabled: boolean): ModularArchConfig => ({
+const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX: API_URL_PREFIX,
   BFF_API_VERSION: 'v1',
-  mandatoryNamespace: isGridEnabled ? GRID_MANDATORY_NAMESPACE : undefined,
-});
+};
 
 type MaaSFederatedProvidersProps = {
   children: React.ReactNode;
@@ -72,30 +71,27 @@ const MaaSFederatedProvidersContent: React.FC<SettingsContentProps> = ({
   );
 };
 
+const MaaSSettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
+  const settings = useMaaSSettings();
+  return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
+};
+
 const LegacySettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
   const settings = useSettings();
   return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
 };
 
-const GridSettingsLoader: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const settings = useGridSettings();
-  return <MaaSFederatedProvidersContent {...settings}>{children}</MaaSFederatedProvidersContent>;
-};
-
 const MaaSFederatedProviders: React.FC<MaaSFederatedProvidersProps> = ({ children }) => {
-  const isGridEnabled = useGridFeatureFlag();
-  const modularArchConfig = React.useMemo(
-    () => getModularArchConfig(isGridEnabled),
-    [isGridEnabled],
-  );
+  const isPortalHost = isMaaSPortalHost();
+  const SettingsLoader = isPortalHost ? MaaSSettingsLoader : LegacySettingsLoader;
+  // TODO: Remove this portal-specific namespace workaround once the mandatory namespace hack is no longer needed.
+  const config = isPortalHost
+    ? { ...modularArchConfig, mandatoryNamespace: MAAS_MANDATORY_NAMESPACE }
+    : modularArchConfig;
 
   return (
-    <ModularArchContextProvider config={modularArchConfig}>
-      {isGridEnabled ? (
-        <GridSettingsLoader>{children}</GridSettingsLoader>
-      ) : (
-        <LegacySettingsLoader>{children}</LegacySettingsLoader>
-      )}
+    <ModularArchContextProvider config={config}>
+      <SettingsLoader>{children}</SettingsLoader>
     </ModularArchContextProvider>
   );
 };

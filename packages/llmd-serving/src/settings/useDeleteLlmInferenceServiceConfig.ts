@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import { deleteLlmInferenceServiceConfigIfUnreferenced } from '../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../types';
 import {
@@ -21,6 +21,7 @@ type UseDeleteLlmInferenceServiceConfigResult = {
 export const useDeleteLlmInferenceServiceConfig = (
   refType: LlmConfigRefType,
 ): UseDeleteLlmInferenceServiceConfigResult => {
+  const trackEvent = useTrackEvent();
   const { dashboardNamespace } = useDashboardNamespace();
   const [deleteConfig, setDeleteConfig] = React.useState<LLMInferenceServiceConfigKind>();
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -30,7 +31,7 @@ export const useDeleteLlmInferenceServiceConfig = (
     refType === 'routing' ? fireRoutingConfigDeleted : fireTopologyConfigDeleted;
 
   const closeDeleteModal = () => {
-    fireConfigDeleted({ outcome: TrackingOutcome.cancel });
+    fireConfigDeleted(trackEvent, { outcome: TrackingOutcome.cancel });
     setDeleteConfig(undefined);
     setIsDeleting(false);
     setError(undefined);
@@ -53,15 +54,15 @@ export const useDeleteLlmInferenceServiceConfig = (
 
       if (outcome === 'blocked-pending') {
         setError(new Error(CONFIG_DELETION_PENDING_MESSAGE));
-        fireConfigDeleted({ outcome: TrackingOutcome.submit, success: false });
+        fireConfigDeleted(trackEvent, { outcome: TrackingOutcome.submit, success: false });
         return;
       }
 
-      fireConfigDeleted({ outcome: TrackingOutcome.submit, success: true });
+      fireConfigDeleted(trackEvent, { outcome: TrackingOutcome.submit, success: true });
       setDeleteConfig(undefined);
     } catch (e) {
       setError(e instanceof Error ? e : new Error('Unknown error'));
-      fireConfigDeleted({ outcome: TrackingOutcome.submit, success: false });
+      fireConfigDeleted(trackEvent, { outcome: TrackingOutcome.submit, success: false });
     } finally {
       setIsDeleting(false);
     }

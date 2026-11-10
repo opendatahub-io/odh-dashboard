@@ -8,7 +8,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
-	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -27,16 +26,15 @@ func (app *App) GetCurrentUserHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	// Always use real Kubernetes client for user info, even in mock mode
-	// This ensures we get the actual cluster user from the token
-	realK8sFactory, err := k8s.NewKubernetesClientFactory(app.config, app.logger, app.rootCAs)
-	if err != nil {
-		app.logger.Error("Failed to create real k8s factory", "error", err)
+	// Use the shared real (non-mock) factory created at startup; user lookup
+	// needs the actual cluster user from the token even in mock mode.
+	if app.realKubernetesClientFactory == nil {
+		app.logger.Error("real k8s factory unavailable for user lookup")
 		_ = app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: resp}, nil)
 		return
 	}
 
-	client, err := realK8sFactory.GetClient(ctx)
+	client, err := app.realKubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.logger.Error("Failed to get k8s client", "error", err)
 		_ = app.WriteJSON(w, http.StatusOK, UserEnvelope{Data: resp}, nil)

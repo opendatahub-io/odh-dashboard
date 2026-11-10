@@ -112,8 +112,8 @@ describe('Workbenches - status tests', () => {
             notebookRow.findHaveNotebookStatusText().click();
             workbenchStatusModal.getNotebookStatus(NotebookStatusLabel.Ready);
 
-            cy.step('Verify the workbench description is displayed in the status modal');
-            workbenchStatusModal.findModalDescription().should('have.text', projectDescription);
+            cy.step('Verify the resource-type description is absent when there is no live summary');
+            workbenchStatusModal.findModalDescription().should('not.exist');
 
             // Click on the Events log and validate that successful list messages display.
             cy.step('Navigate to Events Tab and verify successful event messages are displayed');

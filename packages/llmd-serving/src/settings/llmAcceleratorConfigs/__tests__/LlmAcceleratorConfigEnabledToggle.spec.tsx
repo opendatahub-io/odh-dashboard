@@ -1,25 +1,18 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { LimitedSupportEvent } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import LlmAcceleratorConfigEnabledToggle from '../LlmAcceleratorConfigEnabledToggle';
 import { patchLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
 import type { LLMInferenceServiceConfigKind } from '../../../types';
+import { LlmAcceleratorConfigTrackingEvent } from '../../../tracking/llmdTrackingConstants';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
 
-jest.mock('@odh-dashboard/internal/utilities/useNotification', () => {
-  const mockNotification = { error: jest.fn(), success: jest.fn(), info: jest.fn() };
-  return { __esModule: true, default: () => mockNotification };
-});
+const { trackEvent: mockTrackEvent, notification, wrapper } = createTestProviders();
 
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   patchLLMInferenceServiceConfig: jest.fn(),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking', () => ({
@@ -30,12 +23,7 @@ jest.mock('@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking',
   })),
 }));
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 const mockPatchConfig = jest.mocked(patchLLMInferenceServiceConfig);
-
-const mockNotification =
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require('@odh-dashboard/internal/utilities/useNotification').default();
 
 describe('LlmAcceleratorConfigEnabledToggle', () => {
   beforeEach(() => {
@@ -46,7 +34,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
   it('should render a checked toggle when config is enabled', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({});
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     const toggle = screen.getByRole('switch');
     expect(toggle).toBeChecked();
@@ -55,7 +43,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
   it('should render an unchecked toggle when config is disabled', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ disabled: true });
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     const toggle = screen.getByRole('switch');
     expect(toggle).not.toBeChecked();
@@ -64,7 +52,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
   it('should patch disabled annotation to true when toggling off', async () => {
     const config = mockLLMInferenceServiceConfigK8sResource({});
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     fireEvent.click(screen.getByRole('switch'));
 
@@ -85,7 +73,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
   it('should patch disabled annotation to false when toggling on a supported config', async () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ disabled: true });
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     fireEvent.click(screen.getByRole('switch'));
 
@@ -107,12 +95,12 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({});
     mockPatchConfig.mockRejectedValue(new Error('Network error'));
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     fireEvent.click(screen.getByRole('switch'));
 
     await waitFor(() => {
-      expect(mockNotification.error).toHaveBeenCalledWith(
+      expect(notification.error).toHaveBeenCalledWith(
         'Error updating accelerator configuration',
         'Network error',
       );
@@ -122,7 +110,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
   it('should show toggle OFF for unsupported unaccepted config regardless of disabled annotation', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     const toggle = screen.getByRole('switch');
     expect(toggle).not.toBeChecked();
@@ -131,7 +119,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
   it('should open acceptance modal when toggling ON an unsupported unaccepted config', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
 
@@ -147,7 +135,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
   it('should patch both annotations on accept from the modal and fire tracking event', async () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     fireEvent.click(screen.getByRole('switch'));
     fireEvent.click(screen.getByTestId('unsupported-status-acceptance-checkbox'));
@@ -168,7 +156,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     });
 
     await waitFor(() => {
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_ACCEPTED, {
+      expect(mockTrackEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_ACCEPTED, {
         runtimeResourceType: 'llm-accelerator-config',
         resourceId: config.metadata.name,
         resourceName: 'Test vLLM Config',
@@ -185,23 +173,30 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
     mockPatchConfig.mockRejectedValue(new Error('Network error'));
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     fireEvent.click(screen.getByRole('switch'));
     fireEvent.click(screen.getByTestId('unsupported-status-acceptance-checkbox'));
     fireEvent.click(screen.getByTestId('unsupported-status-accept-button'));
 
     await waitFor(() => {
-      expect(mockNotification.error).toHaveBeenCalled();
+      expect(notification.error).toHaveBeenCalled();
     });
 
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith(
+      LimitedSupportEvent.RISK_ACCEPTED,
+      expect.anything(),
+    );
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      LlmAcceleratorConfigTrackingEvent.ENABLEMENT_CHANGED,
+      { outcome: 'submit', success: false, enabled: false },
+    );
   });
 
   it('should close modal without patching when cancel is clicked and fire tracking event', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     fireEvent.click(screen.getByRole('switch'));
     expect(screen.getByTestId('unsupported-status-acceptance-modal')).toBeInTheDocument();
@@ -210,7 +205,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
       runtimeResourceType: 'llm-accelerator-config',
       resourceId: config.metadata.name,
       resourceName: 'Test vLLM Config',
@@ -224,7 +219,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
   it('should fire tracking event with close action when modal close control is used', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({ unsupported: true });
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     fireEvent.click(screen.getByRole('switch'));
     expect(screen.getByTestId('unsupported-status-acceptance-modal')).toBeInTheDocument();
@@ -233,7 +228,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
 
     expect(screen.queryByTestId('unsupported-status-acceptance-modal')).not.toBeInTheDocument();
     expect(mockPatchConfig).not.toHaveBeenCalled();
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LimitedSupportEvent.RISK_DISMISSED, {
       runtimeResourceType: 'llm-accelerator-config',
       resourceId: config.metadata.name,
       resourceName: 'Test vLLM Config',
@@ -251,7 +246,7 @@ describe('LlmAcceleratorConfigEnabledToggle', () => {
       'opendatahub.io/unsupported-status-accepted': 'true',
     };
 
-    render(<LlmAcceleratorConfigEnabledToggle config={config} />);
+    render(<LlmAcceleratorConfigEnabledToggle config={config} />, { wrapper });
 
     fireEvent.click(screen.getByRole('switch'));
 

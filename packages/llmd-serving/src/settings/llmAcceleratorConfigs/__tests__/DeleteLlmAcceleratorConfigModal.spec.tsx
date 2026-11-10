@@ -5,6 +5,9 @@ import type { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockLLMInferenceServiceConfigK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import DeleteLlmAcceleratorConfigModal from '../DeleteLlmAcceleratorConfigModal';
 import { deleteLLMInferenceServiceConfig } from '../../../api/LLMInferenceServiceConfigs';
+import { createTestProviders } from '../../../__tests__/hostApiTestUtils';
+
+const { wrapper, trackEvent } = createTestProviders();
 
 jest.mock('../../../api/LLMInferenceServiceConfigs', () => ({
   deleteLLMInferenceServiceConfig: jest.fn(),
@@ -25,7 +28,7 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
       displayName: 'My Custom Config',
     });
 
-    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />, { wrapper });
 
     expect(screen.getByText('Delete LLM accelerator configuration?')).toBeInTheDocument();
     expect(screen.getByText('My Custom Config')).toBeInTheDocument();
@@ -41,7 +44,7 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
       namespace: 'test-namespace',
     });
 
-    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />, { wrapper });
 
     const confirmInput = screen.getByTestId('delete-modal-input');
     fireEvent.change(confirmInput, { target: { value: 'Delete Me Config' } });
@@ -57,35 +60,62 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
     });
   });
 
-  it('should call onClose(true) on successful delete', async () => {
+  it('should call onClose(true) on successful delete with Enter', async () => {
     mockDeleteLLMInferenceServiceConfig.mockResolvedValue({} as K8sStatus);
 
     const config = mockLLMInferenceServiceConfigK8sResource({
       displayName: 'Config To Delete',
     });
 
-    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />, { wrapper });
 
     const confirmInput = screen.getByTestId('delete-modal-input');
     fireEvent.change(confirmInput, { target: { value: 'Config To Delete' } });
 
-    const deleteButton = screen.getByRole('button', { name: /delete llm accelerator/i });
-    fireEvent.click(deleteButton);
+    fireEvent.keyDown(confirmInput, { key: 'Enter' });
 
     await waitFor(() => {
       expect(onCloseMock).toHaveBeenCalledWith(true);
+    });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+      outcome: 'submit',
+      success: true,
     });
   });
 
   it('should call onClose(false) on cancel', () => {
     const config = mockLLMInferenceServiceConfigK8sResource({});
 
-    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />, { wrapper });
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
     fireEvent.click(cancelButton);
 
     expect(onCloseMock).toHaveBeenCalledWith(false);
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+      outcome: 'cancel',
+    });
+    expect(trackEvent.mock.calls[0][1]).not.toHaveProperty('success');
+  });
+
+  it('should require the config display name before deleting', () => {
+    const config = mockLLMInferenceServiceConfigK8sResource({ displayName: 'Test Config' });
+
+    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />, { wrapper });
+
+    expect(screen.getByTestId('delete-button')).toBeDisabled();
+
+    const input = screen.getByTestId('delete-modal-input');
+    fireEvent.change(input, { target: { value: 'Wrong Config' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(screen.getByTestId('delete-button')).toBeDisabled();
+    expect(mockDeleteLLMInferenceServiceConfig).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: 'Test Config' } });
+    expect(screen.getByTestId('delete-button')).toBeEnabled();
   });
 
   it('should show error on delete failure', async () => {
@@ -96,7 +126,7 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
       displayName: 'Fail Config',
     });
 
-    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />, { wrapper });
 
     fireEvent.change(screen.getByTestId('delete-modal-input'), {
       target: { value: 'Fail Config' },
@@ -109,6 +139,11 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
     });
 
     expect(onCloseMock).not.toHaveBeenCalled();
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving LLM Accelerator Config Deleted', {
+      outcome: 'submit',
+      success: false,
+    });
   });
 
   it('should show loading state while deleting', async () => {
@@ -122,7 +157,7 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
       displayName: 'Loading Config',
     });
 
-    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />);
+    render(<DeleteLlmAcceleratorConfigModal config={config} onClose={onCloseMock} />, { wrapper });
 
     fireEvent.change(screen.getByTestId('delete-modal-input'), {
       target: { value: 'Loading Config' },
@@ -136,5 +171,6 @@ describe('DeleteLlmAcceleratorConfigModal', () => {
     });
 
     resolveDelete({} as K8sStatus);
+    await waitFor(() => expect(onCloseMock).toHaveBeenCalledWith(true));
   });
 });

@@ -20,8 +20,8 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { ApplicationsPage, TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
+import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import {
   getDisplayNameFromK8sResource,
   isK8sNameDescriptionDataValid,
@@ -30,7 +30,6 @@ import {
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { RoutingConfigContext } from './RoutingConfigContext';
 import { ROUTING_CONFIGS_TAB_PATH } from './paths';
@@ -87,6 +86,7 @@ const RoutingConfigurationCreateEditInner: React.FC<{
   sourceConfig?: LLMInferenceServiceConfigKind;
   isDuplicate: boolean;
 }> = ({ sourceConfig, isDuplicate }) => {
+  const trackEvent = useTrackEvent();
   const listPath = ROUTING_CONFIGS_TAB_PATH;
   const navigate = useNavigate();
   const { configName } = useParams<{ configName?: string }>();
@@ -322,14 +322,14 @@ const RoutingConfigurationCreateEditInner: React.FC<{
 
       if (isEditMode && existingConfig) {
         await patchLLMInferenceServiceConfig(existingConfig, newConfig);
-        fireRoutingConfigUpdated({
+        fireRoutingConfigUpdated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           topologyType: selectedTopology,
         });
       } else {
         await createLLMInferenceServiceConfig(newConfig);
-        fireRoutingConfigCreated({
+        fireRoutingConfigCreated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: true,
           mode: isDuplicate ? 'duplicate' : 'create',
@@ -346,13 +346,13 @@ const RoutingConfigurationCreateEditInner: React.FC<{
         err.message,
       );
       if (isEditMode) {
-        fireRoutingConfigUpdated({
+        fireRoutingConfigUpdated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
           topologyType: selectedTopology,
         });
       } else {
-        fireRoutingConfigCreated({
+        fireRoutingConfigCreated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
           mode: isDuplicate ? 'duplicate' : 'create',
@@ -464,9 +464,9 @@ const RoutingConfigurationCreateEditInner: React.FC<{
             isDisabled={loading}
             onClick={() => {
               if (isEditMode) {
-                fireRoutingConfigUpdated({ outcome: TrackingOutcome.cancel });
+                fireRoutingConfigUpdated(trackEvent, { outcome: TrackingOutcome.cancel });
               } else {
-                fireRoutingConfigCreated({
+                fireRoutingConfigCreated(trackEvent, {
                   outcome: TrackingOutcome.cancel,
                   mode: isDuplicate ? 'duplicate' : 'create',
                 });

@@ -51,12 +51,12 @@ Flag SCSS or inline styles where a PF prop, layout component, or utility class w
 **If PF genuinely cannot do it:** flag as Info in the report. Do NOT create GitHub issues, Jira tickets, or modify source files — only report the gap. The report entry should recommend the developer:
 
 1. Open a PF upstream issue describing the gap
-2. Open a RHOAIENG follow-up Jira linking it
+2. Open an RHAI follow-up Jira linking it
 3. Add a tracking comment above the custom style, e.g.:
 
 ```scss
 // TODO: PF gap — remove when https://github.com/patternfly/patternfly/issues/XXXX is resolved
-// RHOAIENG follow-up: https://issues.redhat.com/browse/RHOAIENG-XXXXX
+// RHAI follow-up: https://redhat.atlassian.net/browse/RHAI-XXXXX
 ```
 
 ### Check 2: PF wrapper component compliance
@@ -112,7 +112,7 @@ applicable finding evidence and severity.
 
 For each Info finding, include a **Developer action** block:
 - [ ] Open a PatternFly upstream issue at https://github.com/patternfly/patternfly/issues describing the gap
-- [ ] Open a RHOAIENG Jira linking the PF issue
+- [ ] Open an RHAI Jira linking the PF issue
 - [ ] Add a tracking comment above the custom style (see template in Check 1)
 ```
 
@@ -122,6 +122,6 @@ For each Info finding, include a **Developer action** block:
 |---|---|
 | Critical | Hardcoded tokenizable values in SCSS or inline styles where PF tokens exist (e.g., colors, spacing, sizing, typography, radii) |
 | Warning | Custom SCSS/inline styles where a PF prop, layout component, or utility class would suffice; missing wrapper where one clearly applies; custom class name that doesn't follow the naming convention |
-| Info | Genuine PF gap — report the gap and recommend the developer open a PF upstream issue and RHOAIENG follow-up (do not create them) |
+| Info | Genuine PF gap — report the gap and recommend the developer open a PF upstream issue and RHAI follow-up (do not create them) |
 
 If there are no violations, confirm the files pass and note any well-structured patterns worth preserving.

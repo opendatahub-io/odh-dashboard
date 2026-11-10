@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -56,6 +57,11 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	if err := addConfigMapWatches(mgr, controllerBuilder, r); err != nil {
 		return err
 	}
+	routeAPIAvailable, err := apiResourceAvailable(mgr.GetRESTMapper(), routev1.SchemeGroupVersion.WithKind("Route"))
+	if err != nil {
+		return fmt.Errorf("discovering OpenShift Route API: %w", err)
+	}
+	r.RouteAPIAvailable = routeAPIAvailable
 	if err := addOptionalOwnedResourceWatches(mgr.GetRESTMapper(), controllerBuilder); err != nil {
 		return err
 	}
@@ -122,6 +128,7 @@ func optionalOwnedResources(mapper meta.RESTMapper) ([]client.Object, error) {
 		object client.Object
 	}{
 		{gvk: gatewayv1.SchemeGroupVersion.WithKind("HTTPRoute"), object: &gatewayv1.HTTPRoute{}},
+		{gvk: routev1.SchemeGroupVersion.WithKind("Route"), object: &routev1.Route{}},
 		{gvk: consoleLinkGVK, object: newConsoleLinkObject()},
 	} {
 		available, err := apiResourceAvailable(mapper, resource.gvk)

@@ -100,6 +100,16 @@ describe('HardwareProfileDetailsPopover', () => {
   });
 
   describe('no hardware profile', () => {
+    it('should use the resource type in the missing profile message', async () => {
+      renderWithContext(<HardwareProfileDetailsPopover resourceType="deployment" tableView />);
+
+      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
+
+      expect(screen.getByTestId('hardware-profile-details')).toHaveTextContent(
+        "This deployment isn't using a hardware profile. Edit the deployment to assign one.",
+      );
+    });
+
     it('should display "View details" trigger and fallback message in non-tableView mode', async () => {
       renderWithContext(<HardwareProfileDetailsPopover />);
 
@@ -126,21 +136,13 @@ describe('HardwareProfileDetailsPopover', () => {
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
-      expect(screen.getByText('No hardware profile defined')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'No hardware profile' })).toBeInTheDocument();
       const details = screen.getByTestId('hardware-profile-details');
-      expect(details).toHaveTextContent('No hardware profile is defined for this workbench');
+      expect(details).toHaveTextContent(
+        "This workbench isn't using a hardware profile. Edit the workbench to assign one.",
+      );
       expect(details.querySelectorAll('dl')).toHaveLength(0);
       expect(screen.queryByRole('button', { name: 'Expand row' })).not.toBeInTheDocument();
-    });
-
-    it('should call onExpandRow when "Expand row" footer button is clicked', async () => {
-      const onExpandRow = jest.fn();
-      renderWithContext(<HardwareProfileDetailsPopover tableView onExpandRow={onExpandRow} />);
-
-      await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
-      await userEvent.click(screen.getByRole('button', { name: 'Expand row' }));
-
-      expect(onExpandRow).toHaveBeenCalledTimes(1);
     });
   });
 

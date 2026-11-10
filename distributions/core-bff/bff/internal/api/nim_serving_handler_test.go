@@ -32,10 +32,11 @@ func TestGetNIMServingResource_InvalidResource(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 
-	var body HTTPError
+	var body map[string]string
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
-	assert.Equal(t, "NOT_FOUND", body.Error.Code)
+	assert.Equal(t, "NOT_FOUND", body["code"])
+	assert.Equal(t, body["message"], body["error"])
 }
 
 func TestGetNIMServingResource_NoAccount(t *testing.T) {

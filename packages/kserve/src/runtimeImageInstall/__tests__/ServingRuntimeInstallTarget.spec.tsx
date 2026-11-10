@@ -12,10 +12,8 @@ import {
 import { createServingRuntimeTemplateBackend } from '@odh-dashboard/internal/services/templateService';
 import { fireServingRuntimeTemplateCreated } from '../../settings/servingRuntimeTemplates/tracking/servingRuntimeTemplateTracking';
 import ServingRuntimeInstallTarget from '../ServingRuntimeInstallTarget';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
-}));
 jest.mock('@odh-dashboard/internal/services/templateService', () => ({
   createServingRuntimeTemplateBackend: jest.fn(),
 }));
@@ -72,6 +70,7 @@ const renderTarget = (targetData: string = JSON.stringify(template())) =>
         <Route path={listRoute} element={<div>Serving runtime templates list</div>} />
       </Routes>
     </MemoryRouter>,
+    { wrapper: createTestProviders({ dashboardNamespace: 'install-dashboard' }).wrapper },
   );
 
 describe('ServingRuntimeInstallTarget', () => {
@@ -102,7 +101,7 @@ describe('ServingRuntimeInstallTarget', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
     expect(createMock).toHaveBeenCalledWith(
       YAML.stringify(source.objects[0]),
-      'opendatahub',
+      'install-dashboard',
       ServingRuntimeAPIProtocol.REST,
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
       true,

@@ -1,6 +1,6 @@
 import * as React from 'react';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard delete confirmation wrapper
-import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
+import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import DeleteModal from '@odh-dashboard/ui-core/components/DeleteModal';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/ui-core';
 import type { LLMInferenceServiceConfigKind } from '../../types';
@@ -16,6 +16,7 @@ const DeleteLlmAcceleratorConfigModal: React.FC<DeleteLlmAcceleratorConfigModalP
   config,
   onClose,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -23,7 +24,7 @@ const DeleteLlmAcceleratorConfigModal: React.FC<DeleteLlmAcceleratorConfigModalP
     <DeleteModal
       title="Delete LLM accelerator configuration?"
       onClose={() => {
-        fireLlmAcceleratorConfigDeleted({ outcome: TrackingOutcome.cancel });
+        fireLlmAcceleratorConfigDeleted(trackEvent, { outcome: TrackingOutcome.cancel });
         onClose(false);
       }}
       submitButtonLabel="Delete LLM accelerator configuration"
@@ -32,11 +33,14 @@ const DeleteLlmAcceleratorConfigModal: React.FC<DeleteLlmAcceleratorConfigModalP
         setError(undefined);
         deleteLLMInferenceServiceConfig(config.metadata.name, config.metadata.namespace)
           .then(() => {
-            fireLlmAcceleratorConfigDeleted({ outcome: TrackingOutcome.submit, success: true });
+            fireLlmAcceleratorConfigDeleted(trackEvent, {
+              outcome: TrackingOutcome.submit,
+              success: true,
+            });
             onClose(true);
           })
           .catch((e) => {
-            fireLlmAcceleratorConfigDeleted({
+            fireLlmAcceleratorConfigDeleted(trackEvent, {
               outcome: TrackingOutcome.submit,
               success: false,
             });

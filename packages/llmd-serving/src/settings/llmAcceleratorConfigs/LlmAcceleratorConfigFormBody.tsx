@@ -10,8 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import YAML from 'yaml';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';
+import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
@@ -20,7 +20,6 @@ import {
   MetadataAnnotation,
   translateDisplayNameForK8s,
 } from '@odh-dashboard/k8s-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from './paths';
 import { overrideLlmConfigFields } from '../configYamlUtils';
@@ -55,6 +54,7 @@ type LlmAcceleratorConfigFormBodyProps =
     };
 
 const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> = (props) => {
+  const trackEvent = useTrackEvent();
   const { mode, sourceConfig } = props;
   const listPath = LLM_ACCELERATOR_CONFIGS_TAB_PATH;
   const navigate = useNavigate();
@@ -133,15 +133,18 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
       if (isEdit) {
-        fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: false });
+        fireLlmAcceleratorConfigUpdated(trackEvent, {
+          outcome: TrackingOutcome.submit,
+          success: false,
+        });
       } else {
-        fireLlmAcceleratorConfigCreated({
+        fireLlmAcceleratorConfigCreated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
           mode,
         });
         if (isInstall) {
-          fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+          trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
             outcome: TrackingOutcome.submit,
             success: false,
             configurationType: 'llm-accelerator-configuration',
@@ -153,15 +156,18 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
     if (!isConfigObject(parsed)) {
       setError(new Error('YAML must represent a valid kubernetes resource object'));
       if (isEdit) {
-        fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: false });
+        fireLlmAcceleratorConfigUpdated(trackEvent, {
+          outcome: TrackingOutcome.submit,
+          success: false,
+        });
       } else {
-        fireLlmAcceleratorConfigCreated({
+        fireLlmAcceleratorConfigCreated(trackEvent, {
           outcome: TrackingOutcome.submit,
           success: false,
           mode,
         });
         if (isInstall) {
-          fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+          trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
             outcome: TrackingOutcome.submit,
             success: false,
             configurationType: 'llm-accelerator-configuration',
@@ -187,15 +193,18 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
     submitFn
       .then(() => {
         if (isEdit) {
-          fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.submit, success: true });
+          fireLlmAcceleratorConfigUpdated(trackEvent, {
+            outcome: TrackingOutcome.submit,
+            success: true,
+          });
         } else {
-          fireLlmAcceleratorConfigCreated({
+          fireLlmAcceleratorConfigCreated(trackEvent, {
             outcome: TrackingOutcome.submit,
             success: true,
             mode,
           });
           if (isInstall) {
-            fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+            trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: true,
               configurationType: 'llm-accelerator-configuration',
@@ -207,18 +216,18 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
       .catch((err: unknown) => {
         setError(err instanceof Error ? err : new Error(String(err)));
         if (isEdit) {
-          fireLlmAcceleratorConfigUpdated({
+          fireLlmAcceleratorConfigUpdated(trackEvent, {
             outcome: TrackingOutcome.submit,
             success: false,
           });
         } else {
-          fireLlmAcceleratorConfigCreated({
+          fireLlmAcceleratorConfigCreated(trackEvent, {
             outcome: TrackingOutcome.submit,
             success: false,
             mode,
           });
           if (isInstall) {
-            fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+            trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
               outcome: TrackingOutcome.submit,
               success: false,
               configurationType: 'llm-accelerator-configuration',
@@ -240,6 +249,7 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
     dashboardNamespace,
     navigate,
     listPath,
+    trackEvent,
   ]);
 
   return (
@@ -297,14 +307,14 @@ const LlmAcceleratorConfigFormBody: React.FC<LlmAcceleratorConfigFormBodyProps> 
           data-testid="cancel-button"
           onClick={() => {
             if (isEdit) {
-              fireLlmAcceleratorConfigUpdated({ outcome: TrackingOutcome.cancel });
+              fireLlmAcceleratorConfigUpdated(trackEvent, { outcome: TrackingOutcome.cancel });
             } else {
-              fireLlmAcceleratorConfigCreated({
+              fireLlmAcceleratorConfigCreated(trackEvent, {
                 outcome: TrackingOutcome.cancel,
                 mode,
               });
               if (isInstall) {
-                fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                   outcome: TrackingOutcome.cancel,
                   configurationType: 'llm-accelerator-configuration',
                 });

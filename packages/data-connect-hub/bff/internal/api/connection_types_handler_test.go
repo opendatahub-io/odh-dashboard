@@ -24,6 +24,10 @@ func connectionTypeTestApp(cfg config.EnvConfig) *App {
 	}
 }
 
+func TestMockConnectionTypesAreDeterministic(t *testing.T) {
+	require.Equal(t, mockConnectionTypes("test-project"), mockConnectionTypes("test-project"))
+}
+
 func TestGetConnectionTypesHandlerReturnsMockTypes(t *testing.T) {
 	app := connectionTypeTestApp(config.EnvConfig{MockHTTPClient: true, MockK8Client: true})
 	response, request := requestWithIdentity(t, http.MethodGet, "/api/v1/connection-types?namespace=test-project")

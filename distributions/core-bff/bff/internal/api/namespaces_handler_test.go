@@ -304,12 +304,17 @@ func TestNamespaceRoute_GetUserError(t *testing.T) {
 
 			assert.Equal(t, tc.status, rr.Code)
 			var body struct {
-				Error struct {
+				Reason string `json:"reason"`
+				Error  struct {
 					Code string `json:"code"`
 				} `json:"error"`
 			}
 			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
-			assert.Equal(t, tc.code, body.Error.Code)
+			if body.Reason != "" {
+				assert.Equal(t, tc.code, body.Reason)
+			} else {
+				assert.Equal(t, tc.code, body.Error.Code)
+			}
 			assert.False(t, client.getCalled)
 		})
 	}
