@@ -23,7 +23,11 @@ const mockEnsureMonacoYamlEnvironment = jest.mocked(ensureMonacoYamlEnvironment)
 describe('configureDeploymentWizardMonacoYaml', () => {
   beforeEach(() => {
     mockConfigureMonacoYaml.mockClear();
-    mockEnsureMonacoYamlEnvironment.mockClear();
+    mockEnsureMonacoYamlEnvironment.mockReset();
+  });
+
+  afterEach(() => {
+    delete (window as { monaco?: unknown }).monaco;
   });
 
   it('should expose a stable model URI for schema fileMatch registration', () => {
@@ -64,6 +68,24 @@ describe('configureDeploymentWizardMonacoYaml', () => {
         validate: true,
         schemas,
       }),
+    );
+  });
+
+  it('should keep the beforeMount Monaco on window when worker setup replaces it', () => {
+    const editorMonaco = {} as Parameters<typeof configureDeploymentWizardMonacoYaml>[0];
+    const remoteMonaco = { kind: 'remote' };
+    const browserWindow = window as { monaco?: unknown };
+    browserWindow.monaco = remoteMonaco;
+    mockEnsureMonacoYamlEnvironment.mockImplementation(() => {
+      browserWindow.monaco = remoteMonaco;
+    });
+
+    configureDeploymentWizardMonacoYaml(editorMonaco);
+
+    expect(browserWindow.monaco).toBe(editorMonaco);
+    expect(mockConfigureMonacoYaml).toHaveBeenCalledWith(
+      editorMonaco,
+      expect.objectContaining({ validate: true }),
     );
   });
 });

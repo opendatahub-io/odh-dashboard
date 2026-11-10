@@ -54,10 +54,9 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
     (monacoInstance: Parameters<typeof configureDeploymentWizardMonacoYaml>[0]) => {
       // Re-assert remote workers immediately before the editor mounts (host may have
       // overwritten MonacoEnvironment during bootstrap / other editor loads).
+      // configureDeploymentWizardMonacoYaml publishes monacoInstance on window.monaco
+      // after that setup, so this call cannot replace the editor's Monaco.
       ensureMonacoYamlEnvironment();
-      // Expose for Cypress helpers that read markers / model content via window.monaco.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions
-      (window as any).monaco = monacoInstance;
       monacoYamlRef.current?.dispose();
       monacoYamlRef.current = configureDeploymentWizardMonacoYaml(monacoInstance);
     },

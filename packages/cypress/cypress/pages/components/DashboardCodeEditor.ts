@@ -128,8 +128,28 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
   }
 
   /**
+   * Error markers for the Monaco model mounted in this editor.
+   * Severity 8 = MarkerSeverity.Error. Scoped by model URI so other models
+   * in the same Monaco instance cannot satisfy the assertion.
+   */
+  private errorMarkersInContainer(monaco: MonacoGlobal, container: HTMLElement): MonacoMarker[] {
+    const editors = monaco.editor.getEditors().filter((editor) => {
+      const node = editor.getDomNode();
+      return node !== null && container.contains(node);
+    });
+    expect(editors, 'Monaco editor inside the requested code editor').to.have.length(1);
+    const model = editors[0].getModel();
+    if (!model?.uri) {
+      throw new Error('The code editor has no Monaco model');
+    }
+    const errorSeverity = monaco.editor.MarkerSeverity?.Error ?? 8;
+    return monaco.editor
+      .getModelMarkers({ resource: model.uri })
+      .filter((marker) => marker.severity === errorSeverity);
+  }
+
+  /**
    * Waits for Monaco error markers (monaco-yaml syntax diagnostics) on the editor model.
-   * Severity 8 = MarkerSeverity.Error.
    */
   expectErrorMarkers(minCount = 1): void {
     this.waitForReady();
@@ -139,19 +159,7 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
         if (!monaco) {
           throw new Error('Monaco editor was not found on window');
         }
-        const editors = monaco.editor.getEditors().filter((editor) => {
-          const node = editor.getDomNode();
-          return node !== null && $container[0].contains(node);
-        });
-        expect(editors, 'Monaco editor inside the requested code editor').to.have.length(1);
-        const model = editors[0].getModel();
-        if (!model) {
-          throw new Error('The code editor has no Monaco model');
-        }
-        const errorSeverity = monaco.editor.MarkerSeverity?.Error ?? 8;
-        const markers = monaco.editor
-          .getModelMarkers({})
-          .filter((marker) => marker.severity === errorSeverity);
+        const markers = this.errorMarkersInContainer(monaco, $container[0]);
         expect(markers.length, 'Monaco error markers').to.be.at.least(minCount);
       });
     });
@@ -165,15 +173,7 @@ export class DashboardCodeEditor extends Contextual<HTMLElement> {
         if (!monaco) {
           throw new Error('Monaco editor was not found on window');
         }
-        const editors = monaco.editor.getEditors().filter((editor) => {
-          const node = editor.getDomNode();
-          return node !== null && $container[0].contains(node);
-        });
-        expect(editors, 'Monaco editor inside the requested code editor').to.have.length(1);
-        const errorSeverity = monaco.editor.MarkerSeverity?.Error ?? 8;
-        const markers = monaco.editor
-          .getModelMarkers({})
-          .filter((marker) => marker.severity === errorSeverity);
+        const markers = this.errorMarkersInContainer(monaco, $container[0]);
         expect(markers, 'Monaco error markers').to.have.length(0);
       });
     });

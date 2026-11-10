@@ -8,6 +8,12 @@ export type ConfigureDeploymentWizardMonacoYamlOptions = Pick<MonacoYamlOptions,
 
 type MonacoEditorInstance = Parameters<typeof configureMonacoYaml>[0];
 
+declare global {
+  interface Window {
+    monaco?: MonacoEditorInstance;
+  }
+}
+
 /**
  * Wires `monaco-yaml` for syntax-level validation in the deployment wizard YAML editor.
  * Passes an empty `schemas` array by default so schema-aware linting can be added later
@@ -15,17 +21,23 @@ type MonacoEditorInstance = Parameters<typeof configureMonacoYaml>[0];
  *
  * Monaco + yaml worker are initialized in this remote (see ensureMonacoYamlEnvironment)
  * because MF gives the remote its own `@monaco-editor/react` loader instance.
+ * The supplied editor instance is published on `window.monaco` after that setup so a
+ * remote Monaco import cannot replace the instance Cypress reads.
  */
 export const configureDeploymentWizardMonacoYaml = (
   monaco: MonacoEditorInstance,
   options: ConfigureDeploymentWizardMonacoYamlOptions = {},
 ): MonacoYaml => {
   ensureMonacoYamlEnvironment();
-  return configureMonacoYaml(monaco, {
+  const monacoYaml = configureMonacoYaml(monaco, {
     enableSchemaRequest: false,
     hover: false,
     completion: false,
     validate: true,
     schemas: options.schemas ?? [],
   });
+  if (typeof window !== 'undefined') {
+    window.monaco = monaco;
+  }
+  return monacoYaml;
 };

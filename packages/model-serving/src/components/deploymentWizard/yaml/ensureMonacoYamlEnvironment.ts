@@ -11,6 +11,9 @@ let loaderConfigured = false;
  * MonacoEnvironment is re-asserted on every call so a host bootstrap / HMR pass
  * cannot leave a stale getWorker that fails yaml validation.
  *
+ * Does not publish `window.monaco`. Host and remote can hold different Monaco
+ * copies; the beforeMount instance is published after configuration.
+ *
  * Same pattern as notebooks WorkspaceKindYamlEditor / NotebooksWrapper.
  */
 export const ensureMonacoYamlEnvironment = (): void => {
@@ -22,9 +25,6 @@ export const ensureMonacoYamlEnvironment = (): void => {
     loader.config({ monaco });
     loaderConfigured = true;
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions
-  (window as any).monaco = monaco;
 
   window.MonacoEnvironment = {
     getWorker(_moduleId: string, label: string): Worker {

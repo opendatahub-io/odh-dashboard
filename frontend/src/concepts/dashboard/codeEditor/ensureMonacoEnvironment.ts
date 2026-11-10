@@ -5,6 +5,9 @@ let initialized = false;
 
 /**
  * Point the host @monaco-editor/react loader at the bundled monaco-editor.
+ * Host editor modules call this when they load. Do not import it from bootstrap;
+ * that pulls monaco-editor into every dashboard startup.
+ *
  * Do not register MonacoEnvironment.getWorker here — model-serving (and other
  * MF remotes) own yaml worker setup; a host getWorker would steal the global
  * and break remote monaco-yaml diagnostics.
