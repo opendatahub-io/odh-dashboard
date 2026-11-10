@@ -1,12 +1,7 @@
 import * as React from 'react';
 import type { ProjectKind, SecretKind } from '@odh-dashboard/k8s-core';
-import {
-  DashboardEmptyTableView,
-  ResourceTr,
-  SortableData,
-  Table,
-  TrackingOutcome,
-} from '@odh-dashboard/ui-core';
+import { DashboardEmptyTableView, ResourceTr, SortableData, Table } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 

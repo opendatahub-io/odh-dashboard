@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import {
   isUnsupportedUnaccepted,
@@ -15,7 +15,8 @@ import {
   fireRiskDismissed,
   getResourceVersions,
 } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
-import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
+import { useNotification } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { DISABLED_ANNOTATION } from '../../const';
 import { isConfigEnabled } from '../../utils';

@@ -1,0 +1,24 @@
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: --enable-webhook
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: --webhook-port=9443
+- op: add
+  path: /spec/template/spec/containers/0/ports/-
+  value:
+    containerPort: 9443
+    name: webhook
+    protocol: TCP
+- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value:
+    name: webhook-certs
+    mountPath: /tmp/k8s-webhook-server/serving-certs
+    readOnly: true
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: webhook-certs
+    secret:
+      secretName: dashboard-operator-webhook-tls

@@ -1,5 +1,9 @@
 import * as React from 'react';
+import { Provider } from 'react-redux';
+import { applyMiddleware, combineReducers, compose, createStore } from 'redux';
+import reduxThunk from 'redux-thunk';
 import type { PluginStore } from '@odh-dashboard/plugin-core';
+import { SDKReducers } from '@openshift/dynamic-plugin-sdk-utils';
 import { K8sSdkProvider as BaseK8sSdkProvider } from '@odh-dashboard/base-distribution';
 import { PORTAL_BASE_PATH } from '../portalPaths';
 
@@ -11,10 +15,20 @@ type K8sSdkProviderProps = {
   children: React.ReactNode;
 };
 
-const K8sSdkProvider: React.FC<K8sSdkProviderProps> = ({ store, children }) => (
-  <BaseK8sSdkProvider store={store} appFetch={appFetch} basePath={PORTAL_BASE_PATH}>
-    {children}
-  </BaseK8sSdkProvider>
-);
+/** Adds the SDK Redux state around the shared Kubernetes SDK provider. */
+const K8sSdkProvider: React.FC<K8sSdkProviderProps> = ({ store, children }) => {
+  const sdkStore = React.useMemo(
+    () => createStore(combineReducers(SDKReducers), compose(applyMiddleware(reduxThunk))),
+    [],
+  );
+
+  return (
+    <Provider store={sdkStore}>
+      <BaseK8sSdkProvider store={store} appFetch={appFetch} basePath={PORTAL_BASE_PATH}>
+        {children}
+      </BaseK8sSdkProvider>
+    </Provider>
+  );
+};
 
 export default K8sSdkProvider;

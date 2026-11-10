@@ -1,5 +1,8 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
-import { isGatewayOption, type GatewayOption } from '../api/services/gatewayDiscovery';
+import {
+  isGatewayOption,
+  type GatewayOption,
+} from '@odh-dashboard/model-serving/shared/api/gatewayDiscovery';
 import type { GatewaySelectFieldData } from '../wizardFields/gateway/GatewaySelectField';
 
 export const LLMD_GATEWAY_FIELD_ID = 'llmd-serving/gateway';

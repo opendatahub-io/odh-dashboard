@@ -1,7 +1,6 @@
 import { SortableData } from '@odh-dashboard/ui-core';
-import { getResourceNameFromK8sResource } from '@odh-dashboard/k8s-core';
+import { getResourceNameFromK8sResource, getCreatorFromK8sResource } from '@odh-dashboard/k8s-core';
 import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
-import { getCreatorFromK8sResource } from '#~/concepts/k8s/utils';
 
 const sorter = (
   a: ConnectionTypeConfigMapObj,

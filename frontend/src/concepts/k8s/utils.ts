@@ -1,16 +1,3 @@
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import type { K8sDSGResource } from '@odh-dashboard/k8s-core';
-
-export const PreInstalledName = 'Pre-installed';
-
-export const isOOTB = (resource: K8sResourceCommon): boolean =>
-  !!resource.metadata?.labels?.['platform.opendatahub.io/part-of'];
-
-export const getCreatorFromK8sResource = (resource: K8sDSGResource): string =>
-  isOOTB(resource)
-    ? PreInstalledName
-    : resource.metadata.annotations?.['opendatahub.io/username'] || 'unknown';
-
 const K8S_LABEL_NAME_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$/;
 const K8S_LABEL_VALUE_REGEX = /^([a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?)?$/;
 const K8S_DNS_SUBDOMAIN_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;

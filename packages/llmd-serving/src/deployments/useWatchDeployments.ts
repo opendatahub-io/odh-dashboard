@@ -1,9 +1,8 @@
 import React from 'react';
 import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/k8s-core';
+import { useKueueStatusWithQueuePositions } from '@odh-dashboard/model-serving/shared/kueue/useKueueStatusWithQueuePositions';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { useKueueStatusWithQueuePositions } from '@odh-dashboard/internal/pages/modelServing/useKueueStatusWithQueuePositions';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import { buildModelDeploymentKey } from '@odh-dashboard/internal/api/k8s/workloads';
+import { buildModelDeploymentKey } from '@odh-dashboard/model-serving/shared/utils/deploymentKey';
 import { getLLMdDeploymentEndpoints } from './endpoints';
 import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import { useWatchLLMInferenceService } from '../api/LLMInferenceService';
@@ -44,11 +43,12 @@ export const useWatchDeployments = (
     hasLLMInferenceServices,
   );
 
-  const {
-    kueueStatusByDeploymentKey,
-    isLoading: kueueLoading,
-    error: kueueError,
-  } = useKueueStatusWithQueuePositions([], project, filteredLLMInferenceServices);
+  const { kueueStatusByDeploymentKey, isLoading: kueueLoading } = useKueueStatusWithQueuePositions(
+    [],
+    project,
+    filteredLLMInferenceServices,
+    opts,
+  );
 
   const deployments = React.useMemo(() => {
     return filteredLLMInferenceServices.map((llmInferenceService) => {
@@ -91,17 +91,14 @@ export const useWatchDeployments = (
     (llmInferenceServiceLoaded || llmInferenceServiceError) &&
       (llmInferenceServiceConfigsLoaded || llmInferenceServiceConfigsError) &&
       (deploymentPodsLoaded || deploymentPodsError) &&
-      (!kueueLoading || kueueError),
+      !kueueLoading,
   );
 
   const errors = React.useMemo(() => {
-    return [
-      llmInferenceServiceError,
-      llmInferenceServiceConfigsError,
-      deploymentPodsError,
-      kueueError ? new Error(kueueError) : undefined,
-    ].filter((error): error is Error => Boolean(error));
-  }, [llmInferenceServiceError, llmInferenceServiceConfigsError, deploymentPodsError, kueueError]);
+    return [llmInferenceServiceError, llmInferenceServiceConfigsError, deploymentPodsError].filter(
+      (error): error is Error => Boolean(error),
+    );
+  }, [llmInferenceServiceError, llmInferenceServiceConfigsError, deploymentPodsError]);
 
   return React.useMemo(
     () => [deployments, effectivelyLoaded, errors],

@@ -73,7 +73,6 @@
     "./context/getStoredPreferredProject": "./src/context/getStoredPreferredProject.ts",
     "./contexts/MetricsCommonContext": "./src/contexts/MetricsCommonContext.tsx",
     "./contexts/ThemeContext": "./src/contexts/ThemeContext.tsx",
-    "./contexts/AnalyticsContext": "./src/contexts/AnalyticsContext.tsx",
     "./contexts/NotificationContext": "./src/contexts/NotificationContext.tsx",
     "./contexts/NotificationWatcherContext": "./src/contexts/NotificationWatcherContext.tsx",
     "./types": "./src/types.ts",

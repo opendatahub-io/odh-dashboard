@@ -71,6 +71,7 @@
     "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/internal": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
     "@odh-dashboard/model-serving": "workspace:*",
