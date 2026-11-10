@@ -54,39 +54,32 @@ describe('useFormYamlResources', () => {
     const renderResult = testHook(useFormYamlResources)();
     expect(renderResult.result.current.yaml?.yaml).toBeFalsy();
     expect(renderResult.result.current.resources.resources.model).toBeUndefined();
+  });
+
   it('should remove managedFields from form-derived YAML', () => {
-    const resources: DeploymentAssemblyResources = {
+    const renderResult = testHook(useFormYamlResources)();
+    act(() => {
+      renderResult.result.current.reinitYamlFromResources({
+        model: {
+          ...mockModel,
+          metadata: { ...mockModel.metadata, managedFields: [{ manager: 'kubectl' }] },
+        },
+      });
+    });
+
+    expect(renderResult.result.current.yaml).toEqual({ yaml: stringify(mockModel) });
+  });
+
+  it('should remove managedFields from the initial editor YAML', () => {
+    const renderResult = testHook(useFormYamlResources)({
+      ...mockDeployment,
       model: {
         ...mockModel,
         metadata: { ...mockModel.metadata, managedFields: [{ manager: 'kubectl' }] },
       },
-    };
-    const renderResult = testHook(useFormYamlResources)(resources);
+    });
 
-    expect(renderResult.result.current.yaml).toBe(stringify(mockModel));
-  });
-
-  it('should remove managedFields from the initial editor YAML', () => {
-    const resources: DeploymentAssemblyResources = { model: mockModel };
-    const initialModel = {
-      ...mockModel,
-      metadata: { ...mockModel.metadata, managedFields: [{ manager: 'kubectl' }] },
-    };
-    const renderResult = testHook(useFormYamlResources)(resources, initialModel);
-
-    expect(renderResult.result.current.yaml).toBe(stringify(mockModel));
-  });
-
-  it('should return form-derived yaml string by default', () => {
-    const resources: DeploymentAssemblyResources = { model: mockModel };
-    const renderResult = testHook(useFormYamlResources)(resources);
-    expect(renderResult.result.current.yaml).toBe(stringify(mockModel));
-  });
-
-  it('should return formResources as resources by default', () => {
-    const resources: DeploymentAssemblyResources = { model: mockModel };
-    const renderResult = testHook(useFormYamlResources)(resources);
-    expect(renderResult.result.current.resources).toStrictEqual(resources);
+    expect(renderResult.result.current.yaml).toEqual({ yaml: stringify(mockModel) });
   });
 
   it('should return yaml-parsed resources after setYaml is called', () => {
@@ -191,18 +184,6 @@ describe('useFormYamlResources', () => {
       ...mockModel,
       metadata: { ...mockModel.metadata, name: 'updated-model' },
     };
-    const updatedResources: DeploymentAssemblyResources = { model: updatedModel };
-    renderResult.rerender(updatedResources);
-
-    expect(renderResult.result.current.yaml).toStrictEqual(stringify(updatedModel));
-    expect(renderResult.result.current.resources).toStrictEqual(updatedResources);
-  });
-
-  it('should not revert to form yaml after setYaml has been called', () => {
-    const resources: DeploymentAssemblyResources = { model: mockModel };
-    const renderResult = testHook(useFormYamlResources)(resources);
-
-    const customYaml = 'kind: LLMInferenceService\nmetadata:\n  name: custom\n';
     act(() => {
       renderResult.result.current.reinitYamlFromResources({ model: updatedModel });
     });

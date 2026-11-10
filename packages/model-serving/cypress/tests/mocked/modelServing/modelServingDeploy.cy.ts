@@ -2179,7 +2179,7 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.getModelRow('Managed Fields Model').findKebabAction('Edit').click();
 
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.getValue().should('contain', 'name: managed-fields-model');
       yamlEditor.getValue().should('not.contain', 'managedFields');
     });
