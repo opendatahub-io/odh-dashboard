@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { timingSafeEqual } from 'crypto';
 
 // @ts-expect-error: Types are not available for this third-party library
 import registerCypressGrep from '@cypress/grep/src/plugin';
@@ -28,6 +29,19 @@ const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
       .filter((key) => key.startsWith('CY_'))
       .map((key) => [key, envVars[key]]),
   );
+};
+
+const constantTimeEqual = (left: string, right: string): boolean => {
+  const leftBuffer = Buffer.from(left, 'utf8');
+  const rightBuffer = Buffer.from(right, 'utf8');
+  const comparisonLength = Math.max(leftBuffer.length, rightBuffer.length, 1);
+  const paddedLeft = Buffer.alloc(comparisonLength);
+  const paddedRight = Buffer.alloc(comparisonLength);
+
+  leftBuffer.copy(paddedLeft);
+  rightBuffer.copy(paddedRight);
+
+  return timingSafeEqual(paddedLeft, paddedRight) && leftBuffer.length === rightBuffer.length;
 };
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
@@ -142,6 +156,12 @@ export default defineConfig({
       });
 
       on('task', {
+        compareSecretValues({ actual, expected }: { actual: unknown; expected: unknown }) {
+          if (typeof actual !== 'string' || typeof expected !== 'string') {
+            return false;
+          }
+          return constantTimeEqual(actual, expected);
+        },
         createOCISecretFile(content: Record<string, unknown>) {
           const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'oci-data-connection-secret-'));
           const filePath = path.join(directory, 'secret.json');

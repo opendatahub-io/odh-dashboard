@@ -391,16 +391,25 @@ export const verifyAutoragVectorDatabaseConnectionSecret = (
           throw new Error('AutoRAG PGVector connection secret returned invalid data.');
         }
 
-        const matchesConnection =
+        const matchesNonPasswordConnection =
           decodedConnection.host === connection.host &&
           decodedConnection.port === connection.port &&
           decodedConnection.db === connection.db &&
-          decodedConnection.user === connection.user &&
-          decodedConnection.password === connection.password;
+          decodedConnection.user === connection.user;
 
-        if (!matchesConnection) {
-          throw new Error('AutoRAG PGVector connection secret does not match the ready database.');
-        }
+        return cy
+          .task(
+            'compareSecretValues',
+            { actual: decodedConnection.password, expected: connection.password },
+            { log: false },
+          )
+          .then((passwordMatches) => {
+            if (!matchesNonPasswordConnection || passwordMatches !== true) {
+              throw new Error(
+                'AutoRAG PGVector connection secret does not match the ready database.',
+              );
+            }
+          });
       })
       .then(() => undefined),
   ) as unknown as Cypress.Chainable<void>;
