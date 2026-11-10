@@ -20,6 +20,7 @@ function fixture(t, exclude) {
   const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
   git('init', '-q');
   git('config', 'core.hooksPath', path.join(dir, 'no-hooks'));
+  git('config', 'commit.gpgSign', 'false');
   git('config', 'user.email', 'test@example.com');
   git('config', 'user.name', 'Test');
   const write = (name, content) => {
@@ -780,4 +781,92 @@ for (const remote of [false, true]) {
       assert.equal(host.git('status', '--porcelain').trim(), '');
     }
   });
+}
+
+for (const missing of ['git', 'jq']) {
+  test(`unit-test wrapper reports missing ${missing} before starting tests`, (t) => {
+    const f = fixture(t, []);
+    const bin = path.join(f.dir, 'bin');
+    fs.mkdirSync(bin);
+    fs.writeFileSync(path.join(bin, missing === 'git' ? 'jq' : 'git'), '#!/bin/sh\nexit 0\n', {
+      mode: 0o755,
+    });
+    const result = spawnSync('/bin/bash', [path.join(scriptDir, 'test-unit.sh')], {
+      env: { ...process.env, PATH: bin },
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, new RegExp(`require '${missing}'`));
+    assert.match(result.stderr, /docs\/dev-setup.md/);
+    assert.doesNotMatch(result.stderr, /jest: command not found/);
+  });
+}
+
+for (const jestExit of [0, 1]) {
+  test(`unit-test wrapper forwards Jest flags and respects exit ${jestExit}`, (t) => {
+    const f = fixture(t, []);
+    const bin = path.join(f.dir, 'bin');
+    fs.mkdirSync(bin);
+    for (const tool of ['git', 'jq', 'jest', 'node']) {
+      fs.writeFileSync(
+        path.join(bin, tool),
+        tool === 'jest'
+          ? `#!/bin/sh\nprintf '%s\\n' "$@" > "$ARGS_FILE"\nexit ${jestExit}\n`
+          : tool === 'node'
+          ? '#!/bin/sh\nprintf "%s\\n" "$@" > "$NODE_ARGS_FILE"\n'
+          : '#!/bin/sh\nexit 0\n',
+        { mode: 0o755 },
+      );
+    }
+    fs.symlinkSync('/usr/bin/dirname', path.join(bin, 'dirname'));
+    const argsFile = path.join(f.dir, 'args');
+    const nodeArgsFile = path.join(f.dir, 'node-args');
+    const result = spawnSync(
+      '/bin/bash',
+      [path.join(scriptDir, 'test-unit.sh'), '--coverage', '--runInBand', '--testNamePattern=a b'],
+      {
+        env: { ...process.env, PATH: bin, ARGS_FILE: argsFile, NODE_ARGS_FILE: nodeArgsFile },
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(result.status, jestExit, result.stderr);
+    assert.equal(
+      fs.readFileSync(argsFile, 'utf8'),
+      '--silent\n--coverage\n--runInBand\n--testNamePattern=a b\n',
+    );
+    assert.equal(fs.existsSync(nodeArgsFile), jestExit === 0);
+    if (jestExit === 0) {
+      assert.equal(
+        fs.readFileSync(nodeArgsFile, 'utf8'),
+        `--test\n${path.join(scriptDir, 'package-subtree-files.integration.cjs')}\n`,
+      );
+    }
+  });
+}
+
+for (const remote of [false, true]) {
+  for (const subtree of [undefined, null, { exclude: ['../invalid'] }]) {
+    test(`${remote ? 'remote' : 'local'} CLI reports invalid config ${JSON.stringify(
+      subtree,
+    )} without mutation`, (t) => {
+      const upstream = fixture(t, []);
+      upstream.commit();
+      const { host, sync } = syncFixture(t, upstream, { remote });
+      host.write('packages/fixture/package.json', JSON.stringify({ name: 'fixture', subtree }));
+      host.commit();
+      const before = host.git('rev-parse', 'HEAD');
+      assert.throws(sync, (error) => {
+        const output = `${error.stdout}${error.stderr}`;
+        assert.match(
+          output,
+          subtree ? /Invalid subtree exclusions/ : /Missing subtree\.(repo|target)/,
+        );
+        assert.doesNotMatch(output, /TypeError|at Object\./);
+        assert.equal(error.status, 1);
+        return true;
+      });
+      assert.equal(host.git('status', '--porcelain'), '');
+      assert.equal(host.git('rev-parse', 'HEAD'), before);
+    });
+  }
 }

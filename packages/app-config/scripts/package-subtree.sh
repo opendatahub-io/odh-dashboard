@@ -94,7 +94,9 @@ if [ -z "$WORKSPACE_LOCATION" ] || [ "$WORKSPACE_LOCATION" = "null" ]; then
 fi
 
 PACKAGE_JSON="$MONOREPO_ROOT/$WORKSPACE_LOCATION/package.json"
-node "$SCRIPT_DIR/package-subtree-files.cjs" validate "$PACKAGE_JSON"
+if ! node "$SCRIPT_DIR/package-subtree-files.cjs" validate "$PACKAGE_JSON"; then
+  clean_exit 1 "Invalid subtree exclusions in $PACKAGE_JSON"
+fi
 
 cd "$MONOREPO_ROOT"
 

@@ -75,7 +75,8 @@ Adding an exclusion preserves the current local contents. Removing an exclusion
 resumes future patches, but does not replay previously skipped changes; reconcile
 the file with the tracked upstream revision manually before resuming sync.
 
-Run the subtree exclusion integration checks without network access:
+Run the subtree exclusion integration checks without network access after installing
+the [test prerequisites](dev-setup.md#test-prerequisites) (including Git and `jq`):
 
 ```bash
 node --test packages/app-config/scripts/package-subtree-files.integration.cjs

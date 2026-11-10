@@ -5,7 +5,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const [mode, packageJson, ...args] = process.argv.slice(2);
-const config = JSON.parse(fs.readFileSync(packageJson, 'utf8')).subtree;
+const config = JSON.parse(fs.readFileSync(packageJson, 'utf8')).subtree ?? {};
 const excludes = config.exclude === undefined ? [] : config.exclude;
 if (
   !Array.isArray(excludes) ||
@@ -22,9 +22,10 @@ if (
         .some((part) => !part || part === '.' || part === '..'),
   )
 ) {
-  throw new Error(
+  console.error(
     'subtree.exclude must contain relative literal file paths or directories ending in /',
   );
+  process.exit(1);
 }
 // Latin-1 is an internal, reversible representation of filesystem and patch bytes.
 const byteExcludes = excludes.map((entry) => Buffer.from(entry, 'utf8').toString('latin1'));
