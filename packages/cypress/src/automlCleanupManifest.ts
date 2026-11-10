@@ -2,9 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { createHash, randomUUID } from 'crypto';
 
-export type AutomlOutputRoot =
+export type AutoXOutputRoot =
   | 'autogluon-tabular-training-pipeline'
-  | 'autogluon-timeseries-training-pipeline';
+  | 'autogluon-timeseries-training-pipeline'
+  | 'documents-rag-optimization-pipeline';
+
+export type AutomlOutputRoot = Exclude<AutoXOutputRoot, 'documents-rag-optimization-pipeline'>;
 
 export type AutomlCleanupProject = {
   namespace: string;
@@ -12,7 +15,7 @@ export type AutomlCleanupProject = {
   bucketName: string;
   clusterServer: string;
   uploads: string[];
-  runs: { id: string; outputRoot: AutomlOutputRoot }[];
+  runs: { id: string; outputRoot: AutoXOutputRoot }[];
   s3Cleaned: boolean;
   projectDeleted: boolean;
   errors: string[];
@@ -39,7 +42,7 @@ type RecordUpload = Pick<RecordProject, 'spec' | 'namespace'> & { key: string };
 
 type RecordRun = Pick<RecordProject, 'spec' | 'namespace'> & {
   id: string;
-  outputRoot: AutomlOutputRoot;
+  outputRoot: AutoXOutputRoot;
 };
 
 type MarkProject = Pick<RecordProject, 'spec' | 'namespace'> & {
@@ -76,7 +79,8 @@ const isProject = (value: unknown): value is AutomlCleanupProject => {
         isRecord(run) &&
         typeof run.id === 'string' &&
         (run.outputRoot === 'autogluon-tabular-training-pipeline' ||
-          run.outputRoot === 'autogluon-timeseries-training-pipeline'),
+          run.outputRoot === 'autogluon-timeseries-training-pipeline' ||
+          run.outputRoot === 'documents-rag-optimization-pipeline'),
     ) &&
     typeof value.s3Cleaned === 'boolean' &&
     typeof value.projectDeleted === 'boolean' &&

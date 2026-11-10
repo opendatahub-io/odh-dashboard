@@ -1,12 +1,15 @@
-import type { AutomlCleanupProject } from './automlCleanupManifest';
+import type { AutoXOutputRoot, AutomlCleanupProject } from './automlCleanupManifest';
 import type { AWSS3BucketDetails } from '../cypress/types';
 
 export const DEFAULT_AWS_CLI_IMAGE =
   'amazon/aws-cli:2.27.50@sha256:48c3d4212e2f5b0e24bdc6af7708f9412ce65425a79575e0f78b8f8c0dcd70ab';
 
-const OUTPUT_ROOTS: ReadonlySet<string> = new Set([
+export const AUTORAG_OUTPUT_ROOT = 'documents-rag-optimization-pipeline';
+
+const OUTPUT_ROOTS: ReadonlySet<AutoXOutputRoot> = new Set([
   'autogluon-tabular-training-pipeline',
   'autogluon-timeseries-training-pipeline',
+  AUTORAG_OUTPUT_ROOT,
 ]);
 
 /** Keep all values in a single shell argument when running the AWS CLI pod. */

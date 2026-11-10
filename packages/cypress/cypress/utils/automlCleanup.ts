@@ -5,14 +5,18 @@ import { verifyOpenShiftProjectExists } from './oc_commands/project';
 import { runAwsCliInCluster } from './oc_commands/s3Cleanup';
 import type { AutomlTestData, AWSS3Buckets } from '../types';
 import { buildAutomlS3CleanupScript } from '../../src/automlCleanupCommands';
-import type { AutomlCleanupManifest, AutomlCleanupProject } from '../../src/automlCleanupManifest';
+import type {
+  AutoXOutputRoot,
+  AutomlCleanupManifest,
+  AutomlCleanupProject,
+} from '../../src/automlCleanupManifest';
 
 const spec = (): string => Cypress.spec.relative;
 const POLL_INTERVAL_MS = 5000;
 
 /** Allocate a fresh namespace for every setup attempt without waiting on a stale one. */
-export const setupAutomlProject = (
-  testData: AutomlTestData,
+export const setupAutoXProject = (
+  testData: Pick<AutomlTestData, 'projectNamePrefix' | 'dspaSecretName' | 'awsBucket'>,
   uuid: string,
 ): Cypress.Chainable<string> =>
   ensureAdminOcSession().then(() =>
@@ -21,15 +25,15 @@ export const setupAutomlProject = (
       const firstAttempt = (manifest?.projects.length ?? 0) + 1;
       const chooseName = (attempt: number): Cypress.Chainable<string> => {
         if (attempt > firstAttempt + 20) {
-          throw new Error(`Could not allocate an AutoML project for ${spec()}`);
+          throw new Error(`Could not allocate an AutoX project for ${spec()}`);
         }
         const namespace = `${testData.projectNamePrefix}-${uuid}-${attempt}`;
         if (namespace.length > 63) {
-          throw new Error(`AutoML project name is too long: ${namespace}`);
+          throw new Error(`AutoX project name is too long: ${namespace}`);
         }
         return verifyOpenShiftProjectExists(namespace).then((exists) => {
           if (exists) {
-            cy.log(`AutoML project ${namespace} already exists; trying the next name`);
+            cy.log(`AutoX project ${namespace} already exists; trying the next name`);
             return chooseName(attempt + 1);
           }
           return cy.wrap(namespace);
@@ -41,7 +45,7 @@ export const setupAutomlProject = (
           .exec('oc whoami --show-server', { failOnNonZeroExit: false, log: false })
           .then((server) => {
             if (server.exitCode !== 0 || !server.stdout.trim()) {
-              throw new Error(`Could not identify the cluster for AutoML project ${namespace}`);
+              throw new Error(`Could not identify the cluster for AutoX project ${namespace}`);
             }
             return cy
               .task('automlCleanup:recordProject', {
@@ -67,25 +71,32 @@ export const setupAutomlProject = (
     }),
   );
 
-export const recordAutomlUpload = (namespace: string, key: string): Cypress.Chainable<string> =>
+export const setupAutomlProject = setupAutoXProject;
+
+export const recordAutoXUpload = (namespace: string, key: string): Cypress.Chainable<string> =>
   cy.task('automlCleanup:recordUpload', { spec: spec(), namespace, key }).then(() => key);
+
+export const recordAutomlUpload = recordAutoXUpload;
+
+export const recordAutoXRun = (
+  namespace: string,
+  id: string,
+  outputRoot: AutoXOutputRoot,
+): Cypress.Chainable<string> =>
+  cy.task('automlCleanup:recordRun', { spec: spec(), namespace, id, outputRoot }).then(() => id);
 
 export const recordAutomlRun = (
   namespace: string,
   id: string,
   taskType: AutomlTestData['taskType'],
 ): Cypress.Chainable<string> =>
-  cy
-    .task('automlCleanup:recordRun', {
-      spec: spec(),
-      namespace,
-      id,
-      outputRoot:
-        taskType === 'timeseries'
-          ? 'autogluon-timeseries-training-pipeline'
-          : 'autogluon-tabular-training-pipeline',
-    })
-    .then(() => id);
+  recordAutoXRun(
+    namespace,
+    id,
+    taskType === 'timeseries'
+      ? 'autogluon-timeseries-training-pipeline'
+      : 'autogluon-tabular-training-pipeline',
+  );
 
 const settleRecordedRuns = (project: AutomlCleanupProject): Cypress.Chainable<string[]> => {
   const errors: string[] = [];
@@ -131,12 +142,12 @@ const deleteAndVerifyProject = (namespace: string): Cypress.Chainable<boolean> =
                 };
                 const conditions = ns.status?.conditions ?? [];
                 cy.log(
-                  `AutoML namespace ${namespace} remains; finalizers=${JSON.stringify(
+                  `AutoX namespace ${namespace} remains; finalizers=${JSON.stringify(
                     finalizers,
                   )}, conditions=${JSON.stringify(conditions)}`,
                 );
               } catch {
-                cy.log(`AutoML namespace ${namespace} remains; could not parse namespace status`);
+                cy.log(`AutoX namespace ${namespace} remains; could not parse namespace status`);
               }
             }
             return false;
@@ -155,7 +166,7 @@ const deleteAndVerifyProject = (namespace: string): Cypress.Chainable<boolean> =
     .then((result): Cypress.Chainable<boolean> => {
       if (result.exitCode !== 0) {
         return cy
-          .log(`Could not request deletion of AutoML project ${namespace}: ${result.stderr}`)
+          .log(`Could not request deletion of AutoX project ${namespace}: ${result.stderr}`)
           .then(() => false);
       }
       return poll(1);
@@ -163,12 +174,20 @@ const deleteAndVerifyProject = (namespace: string): Cypress.Chainable<boolean> =
 };
 
 const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string[]> => {
+  if (project.projectDeleted) {
+    return cy.wrap([]);
+  }
+
   const errors: string[] = [];
   const buckets = Cypress.env('AWS_PIPELINES') as AWSS3Buckets | undefined;
   const executorNamespace =
-    (Cypress.env('CY_AUTOML_CLEANUP_NAMESPACE') as string | undefined) || project.namespace;
+    (Cypress.env('CY_AUTOX_CLEANUP_NAMESPACE') as string | undefined) ||
+    (Cypress.env('CY_AUTOML_CLEANUP_NAMESPACE') as string | undefined) ||
+    project.namespace;
 
-  return settleRecordedRuns(project)
+  const settledRuns = project.s3Cleaned ? cy.wrap<string[]>([]) : settleRecordedRuns(project);
+
+  return settledRuns
     .then((runErrors): Cypress.Chainable<boolean> => {
       errors.push(...runErrors);
       if (runErrors.length > 0) {
@@ -179,6 +198,9 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
       if (project.uploads.length === 0 && project.runs.length === 0) {
         return cy.wrap(true);
       }
+      if (project.s3Cleaned) {
+        return cy.wrap(true);
+      }
       if (!buckets) {
         errors.push(`S3 configuration is unavailable for ${project.namespace}`);
         return cy.wrap(false);
@@ -187,7 +209,7 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
         !/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(executorNamespace) ||
         executorNamespace.length > 63
       ) {
-        errors.push(`Invalid AutoML cleanup executor namespace: ${executorNamespace}`);
+        errors.push(`Invalid AutoX cleanup executor namespace: ${executorNamespace}`);
         return cy.wrap(false);
       }
       let script: string;
@@ -230,7 +252,7 @@ const cleanupProject = (project: AutomlCleanupProject): Cypress.Chainable<string
 };
 
 /** Teardown every setup attempt and report cleanup failures after all projects were processed. */
-export const cleanupAutomlResources = (): void => {
+export const cleanupAutoXResources = (): void => {
   cy.task<AutomlCleanupManifest | null>('automlCleanup:get', spec()).then((manifest) => {
     if (!manifest) {
       return;
@@ -249,9 +271,11 @@ export const cleanupAutomlResources = (): void => {
     return ensureAdminOcSession().then(() =>
       next(0).then((errors) => {
         if (errors.length > 0) {
-          throw new Error(`AutoML cleanup incomplete: ${errors.join('; ')}`);
+          throw new Error(`AutoX cleanup incomplete: ${errors.join('; ')}`);
         }
       }),
     );
   });
 };
+
+export const cleanupAutomlResources = cleanupAutoXResources;

@@ -39,7 +39,7 @@ const parseOptions = (): CliOptions => {
   if (args.includes('--help')) {
     process.stdout.write(
       'Usage: node --import tsx scripts/cleanup-automl.ts [--apply] [--context=OC_CONTEXT] [--namespace=PROJECT] [--manifest-dir=DIR]\n' +
-        'Dry-run is the default. --apply requires an explicit oc context, stable executor namespace, and CY_TEST_CONFIG.\n',
+        'Cleans recorded AutoML and AutoRAG resources. Dry-run is the default. --apply requires an explicit oc context, stable executor namespace, and CY_TEST_CONFIG.\n',
     );
     process.exit(0);
   }
@@ -56,9 +56,17 @@ const parseOptions = (): CliOptions => {
   return {
     apply: args.includes('--apply'),
     directory: path.resolve(optionValue('--manifest-dir') ?? 'results/e2e/automl-cleanup'),
-    executorNamespace: optionValue('--namespace') ?? process.env.CY_AUTOML_CLEANUP_NAMESPACE ?? '',
-    context: optionValue('--context') ?? process.env.CY_AUTOML_CLEANUP_CONTEXT ?? '',
-    image: process.env.CY_S3_CLEANUP_IMAGE || DEFAULT_AWS_CLI_IMAGE,
+    executorNamespace:
+      optionValue('--namespace') ??
+      process.env.CY_AUTOX_CLEANUP_NAMESPACE ??
+      process.env.CY_AUTOML_CLEANUP_NAMESPACE ??
+      '',
+    context:
+      optionValue('--context') ??
+      process.env.CY_AUTOX_CLEANUP_CONTEXT ??
+      process.env.CY_AUTOML_CLEANUP_CONTEXT ??
+      '',
+    image: process.env.CY_S3_CLEANUP_IMAGE || process.env.AWS_CLI_IMAGE || DEFAULT_AWS_CLI_IMAGE,
   };
 };
 
@@ -255,6 +263,7 @@ const runS3Cleanup = (
       AWS_ACCESS_KEY_ID: buckets.AWS_ACCESS_KEY_ID,
       AWS_SECRET_ACCESS_KEY: buckets.AWS_SECRET_ACCESS_KEY,
       AWS_DEFAULT_REGION: bucket.REGION,
+      ...(buckets.AWS_CA_BUNDLE ? { AWS_CA_BUNDLE_PEM: buckets.AWS_CA_BUNDLE } : {}),
     },
   };
   const podOverrides = {
@@ -267,6 +276,12 @@ const runS3Cleanup = (
           command: ['sh', '-c'],
           args: [script],
           envFrom: [{ secretRef: { name: secretName } }],
+          ...(buckets.AWS_CA_BUNDLE
+            ? {
+                env: [{ name: 'AWS_CA_BUNDLE', value: '/tmp/s3-ca/ca.pem' }],
+                volumeMounts: [{ name: 's3-ca-bundle', mountPath: '/tmp/s3-ca', readOnly: true }],
+              }
+            : {}),
           securityContext: {
             runAsUser: 1001,
             runAsGroup: 1001,
@@ -277,6 +292,19 @@ const runS3Cleanup = (
           },
         },
       ],
+      ...(buckets.AWS_CA_BUNDLE
+        ? {
+            volumes: [
+              {
+                name: 's3-ca-bundle',
+                secret: {
+                  secretName,
+                  items: [{ key: 'AWS_CA_BUNDLE_PEM', path: 'ca.pem' }],
+                },
+              },
+            ],
+          }
+        : {}),
     },
   };
 
@@ -456,7 +484,7 @@ const main = async (): Promise<void> => {
   const options = parseOptions();
   const paths = listManifestPaths(options.directory);
   if (paths.length === 0) {
-    process.stdout.write(`No AutoML cleanup manifests in ${options.directory}\n`);
+    process.stdout.write(`No AutoX cleanup manifests in ${options.directory}\n`);
     return;
   }
   for (const filePath of paths) {
@@ -503,14 +531,17 @@ const main = async (): Promise<void> => {
   const { cypressEnv } = await import('../cypress/utils/testConfig');
   const buckets: AWSS3Buckets = cypressEnv.AWS_PIPELINES;
   if (!buckets.AWS_ACCESS_KEY_ID || !buckets.AWS_SECRET_ACCESS_KEY) {
-    throw new Error('AutoML S3 credentials are missing from CY_TEST_CONFIG');
+    throw new Error('AutoX S3 credentials are missing from CY_TEST_CONFIG');
   }
   // Check every manifest before any deletion; mixed build artifacts must never
   // cause an object or namespace to be deleted on the wrong cluster.
   for (const filePath of paths) {
     const manifest = readAutomlCleanupManifest(filePath);
     for (const project of manifest.projects) {
-      if (!project.namespace.startsWith('cy-e2e-automl-')) {
+      if (
+        !project.namespace.startsWith('cy-e2e-automl-') &&
+        !project.namespace.startsWith('cy-e2e-autorag-')
+      ) {
         throw new Error(`Refusing to clean an unrelated project: ${project.namespace}`);
       }
       if (project.clusterServer !== serverResult.stdout.trim()) {
