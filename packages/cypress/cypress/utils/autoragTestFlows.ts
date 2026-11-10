@@ -18,6 +18,64 @@ import {
 } from '../support/timeouts';
 
 const RESOURCES_PATH = 'resources/autorag';
+const DOCUMENT_KEYS_FIELD = 'correct_answer_document_keys';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const renderAutoragEvaluationData = (
+  evaluationData: string,
+  documentFile: string,
+  uploadFileName: string,
+): string => {
+  let parsedEvaluationData: unknown;
+  try {
+    parsedEvaluationData = JSON.parse(evaluationData);
+  } catch {
+    throw new Error('AutoRAG evaluation dataset is not valid JSON.');
+  }
+
+  if (!Array.isArray(parsedEvaluationData)) {
+    throw new Error('AutoRAG evaluation dataset must be a JSON array.');
+  }
+
+  let replacedDocumentReferenceCount = 0;
+  const renderedEvaluationData = parsedEvaluationData.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new Error(`AutoRAG evaluation entry ${index} must be a JSON object.`);
+    }
+
+    const documentKeys = entry[DOCUMENT_KEYS_FIELD];
+    if (
+      !Array.isArray(documentKeys) ||
+      documentKeys.some((documentKey) => typeof documentKey !== 'string')
+    ) {
+      throw new Error(
+        `AutoRAG evaluation entry ${index} must contain string correct_answer_document_keys.`,
+      );
+    }
+
+    return {
+      ...entry,
+      [DOCUMENT_KEYS_FIELD]: documentKeys.map((documentKey) => {
+        if (documentKey !== documentFile) {
+          return documentKey;
+        }
+
+        replacedDocumentReferenceCount += 1;
+        return uploadFileName;
+      }),
+    };
+  });
+
+  if (replacedDocumentReferenceCount === 0) {
+    throw new Error(
+      `Evaluation dataset does not reference the configured document ${documentFile}.`,
+    );
+  }
+
+  return JSON.stringify(renderedEvaluationData, null, 2);
+};
 
 type MaaSModel = { id?: unknown; ready?: unknown };
 
@@ -452,12 +510,17 @@ export const configureAutoragRun = (
 
   cy.step('Upload evaluation dataset JSON');
   const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
-  autoragConfigurePage
-    .findEvaluationFileInput()
-    .selectFile(
-      { contents: `${RESOURCES_PATH}/${testData.evaluationFile}`, fileName: evalFileName },
-      { force: true },
+  cy.readFile(`${RESOURCES_PATH}/${testData.evaluationFile}`, 'utf8').then((evaluationData) => {
+    const renderedEvaluationData = renderAutoragEvaluationData(
+      evaluationData,
+      testData.documentFile,
+      uploadFileName,
     );
+
+    autoragConfigurePage
+      .findEvaluationFileInput()
+      .selectFile({ contents: renderedEvaluationData, fileName: evalFileName }, { force: true });
+  });
 
   cy.step('Wait for evaluation file upload to complete');
   autoragConfigurePage.findEvaluationFileValue().invoke('val').should('not.be.empty');
