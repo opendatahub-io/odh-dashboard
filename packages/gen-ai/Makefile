@@ -195,6 +195,8 @@ dev-portforward: ## Start port-forwarding for cluster services (Llama Stack, opt
 			case "$$nemo_hostname" in *.*.svc|*.*.svc.*) ;; *) echo "Invalid NemoGuardrails status.endpoint" >&2; exit 1 ;; esac; \
 			case "$$nemo_endpoint" in https:*) nemo_port=443 ;; http:*) nemo_port=80 ;; *) echo "Invalid NemoGuardrails endpoint scheme" >&2; exit 1 ;; esac; \
 			case "$$nemo_host" in *:*) nemo_port=$${nemo_host##*:} ;; esac; \
+			case "$$nemo_port" in ''|*[!0-9]*|??????*) echo "Invalid NemoGuardrails remote port" >&2; exit 1 ;; esac; \
+			if [ "$$nemo_port" -lt 1 ] || [ "$$nemo_port" -gt 65535 ]; then echo "Invalid NemoGuardrails remote port" >&2; exit 1; fi; \
 			echo "Starting port-forward for $$nemo_namespace/$$nemo_service on port $$nemo_local_port..."; \
 			oc port-forward -n "$$nemo_namespace" "svc/$$nemo_service" "$$nemo_local_port:$$nemo_port" & \
 		fi; \

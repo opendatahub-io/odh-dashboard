@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -701,15 +703,38 @@ func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context
 		return "", nil
 	}
 
-	parsedURL, err := url.Parse(serviceURL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Hostname() == "" || parsedURL.User != nil {
-		return "", errors.New("NemoGuardrails endpoint is not a valid HTTP URL")
+	if !isOperatorManagedNemoEndpoint(serviceURL, namespace, cr.GetName()) {
+		return "", errors.New("NemoGuardrails endpoint is not an operator-managed Service URL")
 	}
 	kc.Logger.Debug("Discovered NemoGuardrails service URL from CR status",
 		"namespace", namespace,
 		"crName", cr.GetName(),
 		"serviceURL", serviceURL)
 	return serviceURL, nil
+}
+
+// The TrustyAI operator publishes HTTPS Service URLs in the CR namespace or
+// the shared AI Gateway namespace. Accept only the names it creates before
+// forwarding the user's token and conversation to the published endpoint.
+func isOperatorManagedNemoEndpoint(endpoint, namespace, crName string) bool {
+	local := fmt.Sprintf("https://%s.%s.svc.cluster.local", crName, namespace)
+	if endpoint == local {
+		return true
+	}
+
+	workloadName := strings.ToLower(namespace + "-" + crName)
+	if len(workloadName) > 63 {
+		hash := sha256.Sum256([]byte(workloadName))
+		suffix := hex.EncodeToString(hash[:4])
+		workloadName = strings.TrimRight(workloadName[:63-len(suffix)-1], "-") + "-" + suffix
+	}
+
+	for _, infraNamespace := range []string{"redhat-ai-gateway-infra", "odh-ai-gateway-infra"} {
+		if endpoint == fmt.Sprintf("https://%s.%s.svc.cluster.local", workloadName, infraNamespace) {
+			return true
+		}
+	}
+	return false
 }
 
 func (kc *TokenKubernetesClient) BearerToken() (string, error) {
