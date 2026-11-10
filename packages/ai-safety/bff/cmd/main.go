@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"os/signal"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/opendatahub-io/ai-safety/bff/internal/api"
 	"github.com/opendatahub-io/ai-safety/bff/internal/config"
+	tlsprofile "github.com/opendatahub-io/odh-dashboard/pkg/tls"
 
 	"log/slog"
 	"net/http"
@@ -39,7 +39,7 @@ func main() {
 	// If not provided via flag, it can be set via BUNDLE_PATHS env var (comma-separated). Defaults to empty.
 	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
 	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
-  flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (internal or user_token)")
+	flag.StringVar(&cfg.AuthMethod, "auth-method", "user_token", "Authentication method (internal or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 
@@ -96,16 +96,20 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
+	if certFile != "" && keyFile != "" {
+		tlsCfg, err := tlsprofile.ServerTLSConfig(context.Background(), logger)
+		if err != nil {
+			logger.Error("failed to resolve TLS configuration from cluster profile", "error", err)
+			os.Exit(1)
+		}
+		srv.TLSConfig = tlsCfg
+	}
+
 	// Start the server in a goroutine
 	go func() {
 		logger.Info("starting server", "addr", srv.Addr, "TLS enabled", (certFile != "" && keyFile != ""))
 		var err error
 		if certFile != "" && keyFile != "" {
-			// Configure TLS if both cert and key files are provided
-			tlsConfig := &tls.Config{
-				MinVersion: tls.VersionTLS13,
-			}
-			srv.TLSConfig = tlsConfig
 			err = srv.ListenAndServeTLS(certFile, keyFile)
 		} else {
 			err = srv.ListenAndServe()
