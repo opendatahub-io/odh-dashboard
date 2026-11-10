@@ -13,4 +13,3 @@ servingRuntimeName: 'ibmz-triton-rest'
 servingRuntimeYamlPath: 'resources/modelServing/ibmz-triton-rest.yaml'
 servingRuntimeVersionStatus: 'Latest'
 awsBucket: 'BUCKET_3'
-isS390x: true

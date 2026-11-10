@@ -15,8 +15,7 @@ import {
   checkInferenceServiceState,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
-import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
-import { createCustomResource } from '../../../../utils/oc_commands/customResources';
+import { ensureServingRuntimeTemplate } from '../../../../utils/oc_commands/templates';
 import type { DeployOCIModelData } from '../../../../types';
 import { loadDeployOCIModelFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
@@ -30,10 +29,8 @@ let modelDeploymentURI: string;
 let modelDeploymentName: string;
 let modelFormat: string;
 let servingRuntime: string;
-let isS390x: boolean;
 const uuid = generateTestUUID();
 let secretDetailsFile: string;
-const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
 
 const updateSecretDetailsFile = (secretValue: string, registryHost: string) => {
   const updatedContent = {
@@ -58,15 +55,11 @@ describe(
 
     retryableBefore(() => {
       cy.log('Loading test data');
-      return loadDeployOCIModelFixture('e2e/dataScienceProjects/testDeployOCIModel.yaml').then(
-        (fixtureData: DeployOCIModelData) => {
+      return loadDeployOCIModelFixture('e2e/dataScienceProjects/testDeployOCIModel.yaml')
+        .then((fixtureData: DeployOCIModelData) => {
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
-          isS390x = !!testData.isS390x;
-          if (isS390x) {
-            cy.clearCookies();
-          }
           ociRegistryHost = testData.ociRegistryHost;
           // Build pull-secret from env value and write to temp file (removed in after hook)
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
@@ -77,22 +70,14 @@ describe(
           servingRuntime = testData.servingRuntime;
           cy.log(`Loaded project name: ${projectName}`);
 
-          if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
-            const runtimeYamlPath = testData.servingRuntimeYamlPath;
-            cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
-            cleanupTemplates(testData.servingRuntimeName).then(() => {
-              if (!applicationNamespace) {
-                throw new Error('APPLICATIONS_NAMESPACE is not configured.');
-              }
-              createCustomResource(applicationNamespace, runtimeYamlPath).then((result) => {
-                expect(result.exitCode).to.equal(0);
-              });
-            });
-          }
-
+          return ensureServingRuntimeTemplate(
+            testData.servingRuntimeName,
+            testData.servingRuntimeYamlPath,
+          );
+        })
+        .then(() => {
           createCleanProject(projectName);
-        },
-      );
+        });
     });
 
     after(() => {
@@ -101,10 +86,6 @@ describe(
       }
       if (!projectName) {
         return;
-      }
-      if (isS390x && testData.servingRuntimeName) {
-        cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
-        cleanupTemplates(testData.servingRuntimeName);
       }
       // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
       // TODO: Review this timeout once RHOAIENG-19969 is resolved
@@ -170,13 +151,7 @@ describe(
           .then((val) => {
             resourceName = val as string;
           });
-        if (isS390x) {
-          modelServingWizard.selectServingRuntimeOption(servingRuntime);
-          modelServingWizard.findModelFormatSelectOption(modelFormat).click({ force: true });
-        } else {
-          modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-          modelServingWizard.selectServingRuntimeOption(servingRuntime);
-        }
+        modelServingWizard.selectServingRuntimeAndFormat(servingRuntime, modelFormat);
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 3: Advanced settings');

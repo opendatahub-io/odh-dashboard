@@ -1156,6 +1156,15 @@ class ModelServingWizard extends Wizard {
     return this.findModelFormatSelect().findSelectOption(name);
   }
 
+  /**
+   * Selects serving runtime and model format in wizard Step 2.
+   * Uses force: true to ensure the format selection click succeeds even if the PatternFly menu is clipped/scrolled.
+   */
+  selectServingRuntimeAndFormat(runtime: string, format: string) {
+    this.selectServingRuntimeOption(runtime);
+    this.findModelFormatSelectOption(format).should('exist').click({ force: true });
+  }
+
   /** Selects the auto-select radio (works for both serving runtimes and model deployment configs). */
   findModelServerAutoSelectRadio() {
     return cy.findByTestId('model-server-auto-select-radio');

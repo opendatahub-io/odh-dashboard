@@ -14,4 +14,3 @@ servingRuntimeYamlPath: 'resources/modelServing/ibmz-triton-rest.yaml'
 serviceAccountName1: 'secret'
 serviceAccountName2: 'secret2'
 awsBucket: 'BUCKET_3'
-isS390x: true

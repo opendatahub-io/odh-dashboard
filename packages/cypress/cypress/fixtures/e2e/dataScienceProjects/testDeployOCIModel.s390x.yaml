@@ -9,4 +9,3 @@ modelFormat: 'python - 1'
 servingRuntime: 'IBM Z Triton Inference Server'
 servingRuntimeName: 'ibmz-triton-rest'
 servingRuntimeYamlPath: 'resources/modelServing/ibmz-triton-rest.yaml'
-isS390x: true

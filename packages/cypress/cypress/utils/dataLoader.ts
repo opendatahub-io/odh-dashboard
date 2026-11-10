@@ -1,5 +1,5 @@
 import yaml from 'js-yaml';
-import { getClusterArchitecture } from './oc_commands/baseCommands';
+import { getClusterArchitecture, type ClusterArchitecture } from './oc_commands/baseCommands';
 import type {
   DataScienceProjectData,
   PVCReplacements,
@@ -329,8 +329,16 @@ export const resolveFixture = (fixturePath: string): Cypress.Chainable<string> =
     return cy.wrap(fixturePath);
   }
 
-  // FILEMAPPING only applies on s390x clusters; any other architecture uses the base fixtures
-  return getClusterArchitecture().then((archType) => {
+  const cachedArch = Cypress.env('CLUSTER_ARCH') as ClusterArchitecture | undefined;
+  const archChain = cachedArch
+    ? cy.wrap(cachedArch)
+    : getClusterArchitecture({ strict: true }).then((arch) => {
+        Cypress.env('CLUSTER_ARCH', arch);
+        return arch;
+      });
+
+  // FILEMAPPING applies on s390x clusters; any other architecture uses the base fixtures
+  return archChain.then((archType) => {
     cy.log(`Using ARCH=${archType}`);
     const resolvedPath = archType === 's390x' ? mappedPath : fixturePath;
 

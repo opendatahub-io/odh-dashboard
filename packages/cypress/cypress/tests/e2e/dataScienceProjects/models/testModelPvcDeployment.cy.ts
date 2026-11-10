@@ -16,8 +16,7 @@ import {
 } from '../../../../utils/oc_commands/modelServing';
 import { addUserToProject } from '../../../../utils/oc_commands/project';
 import { cleanupTestProject } from '../../../../utils/projectChecker';
-import { cleanupTemplates } from '../../../../utils/oc_commands/templates';
-import { createCustomResource } from '../../../../utils/oc_commands/customResources';
+import { ensureServingRuntimeTemplate } from '../../../../utils/oc_commands/templates';
 import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { retryableBefore } from '../../../../utils/retryableHooks';
@@ -41,7 +40,6 @@ let modelFormat: string;
 let servingRuntime: string;
 let servingRuntimeVersionStatus: string;
 let contributor: string;
-let isS390x: boolean;
 let awsBucket: 'BUCKET_1' | 'BUCKET_3';
 let awsAccessKeyId: string;
 let awsSecretAccessKey: string;
@@ -56,8 +54,8 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
   skipOnArm();
 
   retryableBefore(() => {
-    return loadDSPFixture('e2e/dataScienceProjects/testModelPvcDeployment.yaml').then(
-      (fixtureData: DataScienceProjectData) => {
+    return loadDSPFixture('e2e/dataScienceProjects/testModelPvcDeployment.yaml')
+      .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
@@ -68,7 +66,6 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         servingRuntime = testData.servingRuntime;
         servingRuntimeVersionStatus = testData.servingRuntimeVersionStatus;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
-        isS390x = !!testData.isS390x;
         awsBucket = testData.awsBucket ?? 'BUCKET_1';
         awsAccessKeyId = AWS_BUCKETS.AWS_ACCESS_KEY_ID;
         awsSecretAccessKey = AWS_BUCKETS.AWS_SECRET_ACCESS_KEY;
@@ -80,25 +77,16 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
 
-        if (isS390x && testData.servingRuntimeName && testData.servingRuntimeYamlPath) {
-          const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') as string;
-          const runtimeYamlPath = testData.servingRuntimeYamlPath;
-          cy.log(`Creating ServingRuntime for s390x: ${testData.servingRuntimeName}`);
-          cleanupTemplates(testData.servingRuntimeName).then(() => {
-            if (!applicationNamespace) {
-              throw new Error('APPLICATIONS_NAMESPACE is not configured.');
-            }
-            createCustomResource(applicationNamespace, runtimeYamlPath).then((result) => {
-              expect(result.exitCode).to.equal(0);
-            });
-          });
-        }
-
+        return ensureServingRuntimeTemplate(
+          testData.servingRuntimeName,
+          testData.servingRuntimeYamlPath,
+        );
+      })
+      .then(() => {
         // Create a Project for model serving and add contributor
         provisionProjectForModelServing(projectName, awsBucket);
         addUserToProject(projectName, contributor, 'edit');
-      },
-    );
+      });
   });
   after(() => {
     if (!projectName) {
@@ -107,10 +95,6 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
     if (isBYOIDCCluster()) {
       cy.log('Skipping cleanup - tests were skipped on BYOIDC cluster');
       return;
-    }
-    if (isS390x && testData.servingRuntimeName) {
-      cy.log(`Cleaning up ServingRuntime: ${testData.servingRuntimeName}`);
-      cleanupTemplates(testData.servingRuntimeName);
     }
     cleanupTestProject(projectName);
   });
@@ -125,6 +109,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         '@ODS-2552',
         '@ModelServingCI',
         '@KServeCI',
+        '@NonConcurrent',
       ],
     },
     () => {
@@ -171,10 +156,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
 
       // Create pod to mount the PVC
       cy.step('Create pod to mount the PVC');
-      createS3LoaderPod(
-        pvcReplacements,
-        isS390x ? 'resources/yaml/pvc-loader-pod.s390x.yaml' : 'resources/yaml/pvc-loader-pod.yaml',
-      );
+      createS3LoaderPod(pvcReplacements);
 
       // Verify the pod completes successfully
       cy.step('Verify the pod completes successfully');
@@ -219,13 +201,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         .then((val) => {
           resourceName = val as string;
         });
-      if (isS390x) {
-        modelServingWizard.selectServingRuntimeOption(servingRuntime);
-        modelServingWizard.findModelFormatSelectOption(modelFormat).click({ force: true });
-      } else {
-        modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-        modelServingWizard.selectServingRuntimeOption(servingRuntime);
-      }
+      modelServingWizard.selectServingRuntimeAndFormat(servingRuntime, modelFormat);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');
