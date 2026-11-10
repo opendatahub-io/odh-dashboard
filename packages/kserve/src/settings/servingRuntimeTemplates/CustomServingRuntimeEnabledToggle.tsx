@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
+import { useNotification } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   getTemplateEnabled,
   setListDisabled,

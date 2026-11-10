@@ -8,7 +8,7 @@ import {
   ModalVariant,
 } from '@patternfly/react-core';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
 import { countNonEmptyConfigPairs } from '~/app/utilities/configPairs';
 import {

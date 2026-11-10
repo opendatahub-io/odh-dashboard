@@ -1,11 +1,21 @@
-const restrictedModules = [
+// Keep feature analytics behind the host-provided tracking callback so the host
+// controls delivery and metadata. In guarded files, reject direct implementation,
+// SDK, and global access while allowing SDK-free contracts.
+
+// Features may share SDK-free contracts through this exact entry point.
+const allowedModules = new Set(['@odh-dashboard/analytics/types']);
+// Direct adapters and SDK imports bypass host tracking; block their subpaths too.
+const blockedModules = [
   '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils',
   '@odh-dashboard/analytics',
   'analytics-node',
   'analytics.js',
 ];
+// Cover all SDK packages in the Segment scope.
+const blockedModulePrefixes = ['@segment/'];
+// Global SDK access also bypasses host tracking.
 const globalObjects = new Set(['window', 'globalThis', 'self']);
-const globalProperties = new Set(['analytics']);
+const blockedGlobalProperties = new Set(['analytics']);
 const typeWrappers = new Set([
   'TSAsExpression',
   'TSTypeAssertion',
@@ -78,16 +88,19 @@ module.exports = {
       if (!name) {
         return;
       }
+      if (allowedModules.has(name)) {
+        return;
+      }
       if (
-        name.startsWith('@segment/') ||
-        restrictedModules.some((module) => name === module || name.startsWith(`${module}/`))
+        blockedModulePrefixes.some((prefix) => name.startsWith(prefix)) ||
+        blockedModules.some((module) => name === module || name.startsWith(`${module}/`))
       ) {
         report(node);
       }
     };
     const checkMember = (node) => {
       const name = propertyName(node);
-      if (isGlobalObject(node.object) && name === 'analytics') {
+      if (isGlobalObject(node.object) && blockedGlobalProperties.has(name)) {
         report(node);
       }
     };
@@ -100,7 +113,7 @@ module.exports = {
           const name = property.computed
             ? unwrapTypeWrappers(property.key)?.value
             : property.key.name || property.key.value;
-          if (globalProperties.has(name)) {
+          if (blockedGlobalProperties.has(name)) {
             report(property);
           }
         }

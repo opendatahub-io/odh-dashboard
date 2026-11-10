@@ -16,7 +16,7 @@ import { isK8sNameDescriptionDataValid, LimitNameResourceType } from '@odh-dashb
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { createProject, updateProject } from '#~/api';
 import { useUser } from '#~/redux/selectors';
 import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';

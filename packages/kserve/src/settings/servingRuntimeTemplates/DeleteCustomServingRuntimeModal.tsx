@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getTemplateEnabled,
