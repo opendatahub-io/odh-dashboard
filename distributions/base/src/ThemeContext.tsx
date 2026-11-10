@@ -20,7 +20,7 @@ const CONTRAST_MODE_KEY = 'app-shell.contrastMode';
 const ThemeContext = createContext<ThemeContextProps>({
   theme: 'light',
   setTheme: () => undefined,
-  contrastMode: 'system',
+  contrastMode: 'default',
   setContrastMode: () => undefined,
 });
 
@@ -37,9 +37,11 @@ const readTheme = (): Theme => {
 const readContrastMode = (): ContrastMode => {
   try {
     const value = localStorage.getItem(CONTRAST_MODE_KEY);
-    return value === 'default' || value === 'glass' || value === 'high-contrast' ? value : 'system';
+    return value === 'default' || value === 'glass' || value === 'high-contrast'
+      ? value
+      : 'default';
   } catch {
-    return 'system';
+    return 'default';
   }
 };
 

@@ -32,9 +32,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     'odh.dashboard.ui.colorScheme',
     'system',
   );
+  // Solid backgrounds by default; glass is opt-in via the appearance switcher
+  // until UX/PM confirm a glass-by-default disposition (RHAI-19116 / F2).
   const [contrastMode, setContrastMode] = useBrowserStorage<ContrastMode>(
     'odh.dashboard.ui.contrastMode',
-    'system',
+    'default',
   );
   const [, setMlflowTheme] = useBrowserStorage<boolean>(MLFLOW_DARK_MODE_KEY, false);
 
