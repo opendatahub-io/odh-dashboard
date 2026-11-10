@@ -925,6 +925,37 @@ describe('resolveBestModelKey', () => {
     );
   });
 
+  it('matches a model identifier to a unique delimiter-suffixed record', () => {
+    expect(
+      resolveBestModelKey(
+        { XGBoost_BAG_L1_FULL: { name: 'XGBoost_BAG_L1_FULL' } },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('XGBoost_BAG_L1_FULL');
+  });
+
+  it('matches a short model identifier when the suffix is delimiter-separated', () => {
+    expect(resolveBestModelKey({ Theta_FULL: { name: 'Theta_FULL' } }, 'Theta')).toBe('Theta_FULL');
+  });
+
+  it('does not match an alphanumeric model-name prefix', () => {
+    expect(
+      resolveBestModelKey({ LightGBMXT_FULL: { name: 'LightGBMXT_FULL' } }, 'LightGBM'),
+    ).toBeUndefined();
+  });
+
+  it('leaves delimiter-suffixed model matches unresolved when ambiguous', () => {
+    expect(
+      resolveBestModelKey(
+        {
+          model_a: { name: 'XGBoost_BAG_L1_FULL' },
+          model_b: { name: 'XGBoost_BAG_L1_V2' },
+        },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBeUndefined();
+  });
+
   it('prefers a unique exact model name before normalized matching', () => {
     expect(
       resolveBestModelKey(

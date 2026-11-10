@@ -304,7 +304,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Model 1');
+    expect(modelNodes[0].data.label).toBe('xgboost');
     expect(modelNodes[0].data.labelSubtitle).toBe('winner');
     expect(modelNodes[0].data.showWinnerStar).toBe(true);
     expect(nodes.find((node) => node.id === 'automl-models-toggle')?.data.showModelsToggle).toBe(
@@ -360,7 +360,7 @@ describe('transformStageMapNodesToTree', () => {
     ).toEqual([1, 2]);
   });
 
-  it('labels the collapsed terminus as Model winner when the winner is unresolved', () => {
+  it('uses the representative model name and pending subtitle when the winner is unresolved', () => {
     const topologyNodes = buildStageMapTopology(makeStageMap([training]));
     const { nodes } = transformStageMapNodesToTree(topologyNodes, {
       modelsExpanded: false,
@@ -369,8 +369,8 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Model 1');
-    expect(modelNodes[0].data.labelSubtitle).toBe('winner');
+    expect(modelNodes[0].data.label).toBe('xgboost');
+    expect(modelNodes[0].data.labelSubtitle).toBe('Winner pending');
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
 
@@ -385,7 +385,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Model 1');
+    expect(modelNodes[0].data.label).toBe('xgboost');
     expect(modelNodes[0].data.labelSubtitle).toBeUndefined();
     expect(modelNodes[0].data.showWinnerStar).toBe(false);
   });
@@ -401,7 +401,7 @@ describe('transformStageMapNodesToTree', () => {
 
     const modelNodes = nodes.filter((node) => node.id.includes('__model__'));
     expect(modelNodes).toHaveLength(1);
-    expect(modelNodes[0].data.label).toBe('Model 1');
+    expect(modelNodes[0].data.label).toBe('Best Model Display Name');
     expect(modelNodes[0].data.labelSubtitle).toBe('winner');
     expect(modelNodes[0].data.showWinnerStar).toBe(true);
   });
@@ -422,7 +422,7 @@ describe('transformStageMapNodesToTree', () => {
     expect(nodes.some((node) => node.data.nodeRole === 'column-header')).toBe(true);
     expect(nodes.some((node) => node.data.nodeRole === 'column-rule')).toBe(true);
     const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
-    expect(rowLabels.map((node) => node.data.label)).toEqual(['Model 1', 'Model 2']);
+    expect(rowLabels.map((node) => node.data.label)).toEqual(['xgboost', 'lightgbm']);
     expect(rowLabels.every((node) => node.width === 68)).toBe(true);
     expect(rowLabels.every((node) => node.height === 32)).toBe(true);
     const firstBranchNodes = nodes.filter(
@@ -448,8 +448,67 @@ describe('transformStageMapNodesToTree', () => {
         .every((edge) => edge.data?.clearLabelLane === true),
     ).toBe(true);
     expect(
+      edges
+        .filter((edge) => edge.id.startsWith('e-pre-to-branch-'))
+        .every((edge) => edge.data?.clearLabelWidth === 68),
+    ).toBe(true);
+    expect(
       nodes.find((node) => node.data.nodeRole === 'models-toggle')?.data.showModelsToggle,
     ).toBe(true);
+  });
+
+  it('uses full model names and expands the row-label lane for long names', () => {
+    const namedTraining = makeComponent('training', [
+      makeStage('load_data'),
+      makeStage('model_selection', { selected_models: ['model_a', 'model_b'] }),
+      makeStage('refit_full'),
+    ]);
+    const topologyNodes = buildStageMapTopology(
+      makeStageMap([namedTraining]),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        model_a: { name: 'ExtraTreesMSE_BAG_L1_FULL' },
+        model_b: { name: 'LightGBMLarge_BAG_L2_FULL' },
+      },
+    );
+
+    const { nodes, edges } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: false,
+    });
+    const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
+    const expectedWidth = Math.ceil('ExtraTreesMSE_BAG_L1_FULL'.length * 7);
+
+    expect(rowLabels.map((node) => node.data.label)).toEqual([
+      'ExtraTreesMSE_BAG_L1_FULL',
+      'LightGBMLarge_BAG_L2_FULL',
+    ]);
+    expect(rowLabels.every((node) => node.width === expectedWidth)).toBe(true);
+    expect(
+      edges
+        .filter((edge) => edge.id.startsWith('e-pre-to-branch-'))
+        .every((edge) => edge.data?.clearLabelWidth === expectedWidth),
+    ).toBe(true);
+  });
+
+  it('falls back to branch-order labels when a model name is unavailable', () => {
+    const topologyNodes = buildStageMapTopology(makeStageMap([training]));
+    const secondModel = topologyNodes.find((node) => node.id === 'training__model__branch-1');
+    if (!secondModel) {
+      throw new Error('expected a second model terminus');
+    }
+    secondModel.label = '';
+
+    const { nodes } = transformStageMapNodesToTree(topologyNodes, {
+      modelsExpanded: true,
+      winnerResolved: false,
+    });
+    const rowLabels = nodes.filter((node) => node.data.nodeRole === 'row-label');
+
+    expect(rowLabels.map((node) => node.data.label)).toEqual(['xgboost', 'Model 2']);
   });
 
   it('keeps the winner star when expanded even if the leaderboard key has a suffix', () => {

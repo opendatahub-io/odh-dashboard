@@ -34,6 +34,14 @@ describe('buildTreeEdgePath', () => {
     expect(path).toBe('M 48 200 C 128 200, 128 300, 208 300 M 276 300 L 300 300');
   });
 
+  it('uses a custom row-label width when clearing a long label lane', () => {
+    const target = { x: 300, y: 286, width: 28, height: 28 };
+    const path = buildTreeEdgePath({ x: 0, y: 176, width: 48, height: 48 }, target, {
+      clearX: fanOutLabelClearX(target.x, 120),
+    });
+    expect(path).toBe('M 48 200 C 102 200, 102 300, 156 300 M 276 300 L 300 300');
+  });
+
   it('returns an empty path when nodes occupy the same point', () => {
     const path = buildTreeEdgePath(
       { x: 10, y: 10, width: 0, height: 0 },

@@ -32,6 +32,7 @@ const getEdgeColor = (sourceNode: Node, targetNode: Node): string => {
 
 type TreeEdgeData = {
   clearLabelLane?: boolean;
+  clearLabelWidth?: number;
 };
 
 const isTreeEdgeData = (data: unknown): data is TreeEdgeData =>
@@ -44,7 +45,7 @@ const TreeEdgeInner: React.FC<{ edge: Edge }> = observer(({ edge }) => {
   const edgeData = edge.getData();
   const clearX =
     isTreeEdgeData(edgeData) && edgeData.clearLabelLane
-      ? fanOutLabelClearX(targetBounds.x)
+      ? fanOutLabelClearX(targetBounds.x, edgeData.clearLabelWidth)
       : undefined;
 
   return (
