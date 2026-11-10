@@ -59,8 +59,10 @@ class AutoragResultsPage {
   findUnrankedLeaderboardRows() {
     // Query the existing table synchronously so an all-ranked leaderboard yields an empty
     // collection instead of Cypress retrying and failing before the caller can inspect it.
+    // Return the collection directly; cy.wrap treats an empty jQuery collection as a missing
+    // element and retries until the command times out.
     return this.findLeaderboardTable().then(($table) =>
-      cy.wrap($table.find('[data-testid^="leaderboard-row-unranked-"]'), { log: false }),
+      $table.find('[data-testid^="leaderboard-row-unranked-"]'),
     );
   }
 
@@ -69,11 +71,7 @@ class AutoragResultsPage {
   }
 
   findFirstUnrankedLeaderboardRankCell() {
-    return cy.get('[data-testid^="rank-unranked-"]').first();
-  }
-
-  findLeaderboardRankCell(rank: number | string) {
-    return cy.findByTestId(`rank-${typeof rank === 'number' ? rank : `unranked-${rank}`}`);
+    return this.findFirstUnrankedLeaderboardRow().find('[data-testid^="rank-unranked-"]').first();
   }
 
   findPatternLink(rank: number) {

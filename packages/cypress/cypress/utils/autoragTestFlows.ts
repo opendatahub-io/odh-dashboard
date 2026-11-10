@@ -350,45 +350,6 @@ const createVectorDbConnection = (
   );
 };
 
-/** Create and select project-scoped connections without probing existing secrets. */
-export const createAutoragConnections = (
-  testData: AutoragTestData,
-  projectName: string,
-  maasFixture: AutoragMaaSFixture,
-  ownership: AutoragConnectionOwnership,
-): void => {
-  const connectionOwnership = ownership;
-  cy.step('Open AutoRAG run configuration');
-  interceptSimulatorMaaSModels(projectName, testData, maasFixture);
-  cy.visitWithLogin(autoragExperimentsPage.pathWithDevFlags(), HTPASSWD_CLUSTER_ADMIN_USER);
-  waitForAutoXDspaReady(projectName);
-  waitForAutoragManagedPipelines(projectName);
-  autoragExperimentsPage.visit(projectName);
-  autoragExperimentsPage.findAnyCreateRunButton({ timeout: 120000 }).click();
-  autoragConfigurePage.findNameInput({ timeout: 30000 }).type(testData.runName);
-  autoragConfigurePage.findDescriptionInput().type(testData.runDescription);
-
-  cy.step('Create MaaS connection through the dashboard');
-  resetAutoragConnections(projectName, testData.maasSecretName, testData.vectorDbSecretName);
-  createMaaSConnection(testData, maasFixture);
-  connectionOwnership.maasSecretCreated = true;
-  autoragConfigurePage.findMaasSecretSelector({ timeout: 60000 }).should('not.be.disabled');
-  autoragConfigurePage
-    .findMaasSecretSelector()
-    .find('input')
-    .should('have.value', testData.maasSecretName);
-
-  cy.step('Create PGVector connection through the dashboard');
-  autoragConfigurePage.findNextButton().click();
-  autoragConfigurePage.findDatabaseSelector({ timeout: 60000 }).should('not.be.disabled');
-  createVectorDbConnection(testData, projectName);
-  connectionOwnership.vectorDbSecretCreated = true;
-  autoragConfigurePage
-    .findDatabaseSelector()
-    .find('input')
-    .should('have.value', testData.vectorDbSecretName);
-};
-
 /**
  * Full configure flow for an AutoRAG run.
  *
