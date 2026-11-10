@@ -267,13 +267,18 @@ func (c errorListClient) List(context.Context, client.ObjectList, ...client.List
 }
 
 func TestGetNemoGuardrailsServiceURL(t *testing.T) {
-	t.Run("returns service URL for a NemoGuardrails CR", func(t *testing.T) {
+	t.Run("returns the ready endpoint in the shared workload namespace", func(t *testing.T) {
+		const endpoint = "https://test-namespace-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
 		guardrails := &unstructured.Unstructured{Object: map[string]interface{}{
 			"apiVersion": "trustyai.opendatahub.io/v1alpha1",
 			"kind":       "NemoGuardrails",
 			"metadata": map[string]interface{}{
-				"name":      "guardrails",
+				"name":      "nemoguardrails",
 				"namespace": testutil.TestNamespace,
+			},
+			"status": map[string]interface{}{
+				"phase":    constants.GuardrailsPhaseReady,
+				"endpoint": endpoint,
 			},
 		}}
 		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().WithObjects(guardrails).Build(), Logger: slog.Default()}
@@ -281,8 +286,84 @@ func TestGetNemoGuardrailsServiceURL(t *testing.T) {
 		url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
 
 		require.NoError(t, err)
-		assert.Equal(t, "https://guardrails."+testutil.TestNamespace+".svc.cluster.local:443", url)
+		assert.Equal(t, endpoint, url)
 	})
+
+	t.Run("uses each project's own endpoint", func(t *testing.T) {
+		newCR := func(namespace, endpoint string) *unstructured.Unstructured {
+			return &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "trustyai.opendatahub.io/v1alpha1",
+				"kind":       "NemoGuardrails",
+				"metadata": map[string]interface{}{
+					"name":      "nemoguardrails",
+					"namespace": namespace,
+				},
+				"status": map[string]interface{}{
+					"phase":    constants.GuardrailsPhaseReady,
+					"endpoint": endpoint,
+				},
+			}}
+		}
+		const firstEndpoint = "http://project-one-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local:80"
+		const secondEndpoint = "https://project-two-nemoguardrails.redhat-ai-gateway-infra.svc.cluster.local"
+		kc := &TokenKubernetesClient{
+			Client: fake.NewClientBuilder().WithObjects(
+				newCR("project-one", firstEndpoint),
+				newCR("project-two", secondEndpoint),
+			).Build(),
+			Logger: slog.Default(),
+		}
+
+		firstURL, firstErr := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, "project-one")
+		secondURL, secondErr := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, "project-two")
+
+		require.NoError(t, firstErr)
+		require.NoError(t, secondErr)
+		assert.Equal(t, firstEndpoint, firstURL)
+		assert.Equal(t, secondEndpoint, secondURL)
+	})
+
+	for _, tc := range []struct {
+		name    string
+		status  map[string]interface{}
+		wantErr bool
+	}{
+		{
+			name:   "returns no URL when the endpoint is missing",
+			status: map[string]interface{}{"phase": constants.GuardrailsPhaseReady},
+		},
+		{
+			name:   "returns no URL while the CR is progressing",
+			status: map[string]interface{}{"phase": "Progressing", "endpoint": "https://guardrails.example.com"},
+		},
+		{
+			name:    "rejects an invalid endpoint",
+			status:  map[string]interface{}{"phase": constants.GuardrailsPhaseReady, "endpoint": "ftp://guardrails.example.com"},
+			wantErr: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			guardrails := &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "trustyai.opendatahub.io/v1alpha1",
+				"kind":       "NemoGuardrails",
+				"metadata": map[string]interface{}{
+					"name":      "nemoguardrails",
+					"namespace": testutil.TestNamespace,
+				},
+				"status": tc.status,
+			}}
+			kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().WithObjects(guardrails).Build(), Logger: slog.Default()}
+
+			url, err := kc.GetNemoGuardrailsServiceURL(context.Background(), nil, testutil.TestNamespace)
+
+			assert.Empty(t, url)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 
 	t.Run("returns no URL when no NemoGuardrails CR exists", func(t *testing.T) {
 		kc := &TokenKubernetesClient{Client: fake.NewClientBuilder().Build(), Logger: slog.Default()}

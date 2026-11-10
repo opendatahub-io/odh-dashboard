@@ -45,6 +45,32 @@ func newNemoFakeClient(t *testing.T, scheme *runtime.Scheme, objects ...client.O
 	return b.Build()
 }
 
+type configMapConflictClient struct {
+	client.Client
+	configMapUpdates int
+}
+
+func (c *configMapConflictClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	cm, ok := obj.(*corev1.ConfigMap)
+	if !ok || cm.Name != nemoGuardrailsPlaceholderName {
+		return c.Client.Update(ctx, obj, opts...)
+	}
+
+	c.configMapUpdates++
+	if c.configMapUpdates == 1 {
+		latest := &corev1.ConfigMap{}
+		if err := c.Get(ctx, client.ObjectKeyFromObject(cm), latest); err != nil {
+			return err
+		}
+		latest.Annotations = map[string]string{"operator-update": "preserved"}
+		if err := c.Client.Update(ctx, latest); err != nil {
+			return err
+		}
+		return apierrors.NewConflict(schema.GroupResource{Resource: "configmaps"}, cm.Name, errors.New("object modified"))
+	}
+	return c.Client.Update(ctx, obj, opts...)
+}
+
 func getNemoCR(t *testing.T, fakeClient client.Client, namespace string) *unstructured.Unstructured {
 	t.Helper()
 	cr := &unstructured.Unstructured{}
@@ -111,6 +137,27 @@ func TestCreateNemoGuardrailsResources_CreatesPlaceholder(t *testing.T) {
 	envEntry := envList[0].(map[string]interface{})
 	assert.Equal(t, constants.NemoGuardrailsOpenAIAPIKeyEnvName, envEntry["name"])
 	assert.Equal(t, constants.NemoGuardrailsOpenAIAPIKeyFakeValue, envEntry["value"])
+}
+
+func TestCreateNemoGuardrailsResources_RetriesConfigMapOwnerConflict(t *testing.T) {
+	const namespace = "test-ns"
+	scheme := newNemoTestScheme(t)
+	fakeClient := newNemoFakeClient(t, scheme)
+	conflictClient := &configMapConflictClient{Client: fakeClient}
+	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: conflictClient}
+
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
+	require.NoError(t, err)
+	assert.Equal(t, 2, conflictClient.configMapUpdates)
+
+	cm := &corev1.ConfigMap{}
+	require.NoError(t, fakeClient.Get(context.Background(), client.ObjectKey{
+		Name: nemoGuardrailsPlaceholderName, Namespace: namespace,
+	}, cm))
+	assert.Equal(t, "preserved", cm.Annotations["operator-update"])
+	require.Len(t, cm.OwnerReferences, 1)
+	assert.Equal(t, nemoGuardrailsCRName, cm.OwnerReferences[0].Name)
+	getNemoCR(t, fakeClient, namespace)
 }
 
 func TestCreateNemoGuardrailsResources_ErrorIfAlreadyExists(t *testing.T) {

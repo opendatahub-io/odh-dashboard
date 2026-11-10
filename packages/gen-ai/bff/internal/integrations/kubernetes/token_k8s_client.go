@@ -661,9 +661,8 @@ func (kc *TokenKubernetesClient) GetOGXServers(ctx context.Context, identity *in
 }
 
 // GetNemoGuardrailsServiceURL lists NemoGuardrails CRs (trustyai.opendatahub.io/v1alpha1)
-// in the namespace and derives the in-cluster service URL from the first CR found.
-// The TrustyAI operator creates a Service with the same name as the CR on port 443.
-// Returns ("", nil) if no NemoGuardrails CR exists in the namespace.
+// in the namespace and returns the ready endpoint published by the TrustyAI operator.
+// Returns ("", nil) if no ready NemoGuardrails endpoint exists in the namespace.
 func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -688,11 +687,27 @@ func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context
 		return "", nil
 	}
 
-	crName := list.Items[0].GetName()
-	serviceURL := fmt.Sprintf("https://%s.%s.svc.cluster.local:443", crName, namespace)
-	kc.Logger.Debug("Discovered NemoGuardrails service URL from CR",
+	cr := list.Items[0]
+	phase, _, err := unstructured.NestedString(cr.Object, "status", "phase")
+	if err != nil {
+		return "", fmt.Errorf("failed to read NemoGuardrails phase: %w", err)
+	}
+	serviceURL, _, err := unstructured.NestedString(cr.Object, "status", "endpoint")
+	if err != nil {
+		return "", fmt.Errorf("failed to read NemoGuardrails endpoint: %w", err)
+	}
+	if phase != constants.GuardrailsPhaseReady || serviceURL == "" {
+		kc.Logger.Debug("NemoGuardrails endpoint is not ready", "namespace", namespace, "crName", cr.GetName(), "phase", phase)
+		return "", nil
+	}
+
+	parsedURL, err := url.Parse(serviceURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Hostname() == "" || parsedURL.User != nil {
+		return "", errors.New("NemoGuardrails endpoint is not a valid HTTP URL")
+	}
+	kc.Logger.Debug("Discovered NemoGuardrails service URL from CR status",
 		"namespace", namespace,
-		"crName", crName,
+		"crName", cr.GetName(),
 		"serviceURL", serviceURL)
 	return serviceURL, nil
 }
