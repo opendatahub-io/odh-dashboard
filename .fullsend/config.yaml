@@ -8,15 +8,26 @@ runtime: claude
 # Replace sticky comment bodies in-place (no collapsed "Previous run" history).
 # https://github.com/fullsend-ai/fullsend/pull/6930
 keep_history: false
-roles:
-    - review
-    # Enables the fix stage (Fullsend maps fix to the coder role). The coder
-    # role also covers issue-driven /fs-code, which stays off via the code
-    # entry below.
-    - coder
 agents:
-    - name: code
+    # Off on purpose. roles: used to carry this opt-out, but Fullsend v0.51.0
+    # (fullsend-ai/fullsend#7786) removed the dispatch role check, so roles: no
+    # longer gates which stages run (fullsend-ai/fullsend#9096). These entries
+    # state it directly and read the same before and after the shim upgrade.
+    # Turn one on by deleting its entry or setting enabled: true.
+    - name: triage
       enabled: false
+    - name: retro
+      enabled: false
+    - name: prioritize
+      enabled: false
+    # Code agent for the RHAI and RHOAIENG Jira pilot
+    # (fullsend-poll-jira.yaml). Only the Jira poller dispatches it: the shim
+    # routes no GitHub issue events, so GitHub /fs-code and ready-to-code stay
+    # inert.
+    - name: code
+      source: harness/code.yaml
+      runtime: pi
+      model: openai/gpt-6.1-sol
     # Dashboard overlay; the base harness still supplies Fullsend's review skills.
     - name: review
       source: harness/review.yaml
@@ -41,9 +52,80 @@ agents:
           security: openai/gpt-6.1-sol
           security-triage: openai/gpt-6-luna
           style-conventions: openai/gpt-6-luna
+    # Pin the built-in fix agent to the agents v0.54.0 release (87a43fcb), the
+    # commit harness/code.yaml already bases on. Without this entry fix tracks
+    # fullsend-ai/agents@main: the reusable-dispatch pin is not a release tag,
+    # so the CLI is built from source and resolves the agents ref to main.
+    # fix.yaml's relative scripts, skills and schema resolve against this URL,
+    # so this pins the whole agent. To move it, edit the URL to the next
+    # release's commit and hash; a bare `fullsend agent update fix` re-resolves
+    # to main.
+    - name: fix
+      source: https://raw.githubusercontent.com/fullsend-ai/agents/87a43fcb849546b267a619434ca19dedde8df476/harness/fix.yaml#sha256=aa53c3e79b349b746014e7cfa213ab582e7464cf4226a1f08df96490d27385dc
 allowed_remote_resources:
     - https://raw.githubusercontent.com/fullsend-ai/fullsend/
     - https://raw.githubusercontent.com/fullsend-ai/agents/
+# Who may start the code agent from Jira, by /fs-code or by adding
+# ready-to-code (labels: allowlist). Jira account IDs, from the profile URL.
+# Needs Fullsend v0.54.0; the review shim's older CLI runs fine with it, but its
+# `fullsend agent add/set/update/remove` reject it.
+authorization:
+    - provider: jira
+      write:
+          accounts:
+              - "712020:6933584a-f175-48eb-84b9-47f7bb496833" # Bob Gregor
+              - "557058:c42f77e5-5e4b-4a31-8797-bdf4f2224222" # Darach Cawley
+              - "712020:de1e34fb-a6d9-4033-ab29-5b02c4c2eca0" # Anthony Coughlin
+              - "712020:65df811d-ba95-41c2-8458-58eadd63c7e2" # Andy Stoneberg
+              - "557058:8123280f-6f48-4b0f-8728-019c7db73f87" # Adriel Paredes
+              - "712020:ce710f80-369e-4b6d-95e2-ca6c9e58d9fb" # Christian Vogt
+              - "712020:7305cfd7-7cfa-46f2-9f61-461eaf65ca9e" # Jessie Kaempf
+              - "60a7898adafdf00068c10adc" # Adnan Khan
+              - "5fdb88f09edf280075ce339d" # Andrew Ballantyne
+              - "712020:3beb1163-d85d-4684-8df1-ca119e7b5283" # Tobias Klumpp
+              - "712020:158de4ad-4d64-4bdb-bd95-d58b896dab27" # Ashley McEntee
+              - "633b2a9407a27ebeff17f8b9" # Pushpa Padti
+              - "712020:6753113a-463c-46c5-9781-9b9d1ca6bd25" # Purva Naik
+              - "712020:429f7bb5-43d9-4192-8a19-8c0b460242b3" # Premved Dhote
+              - "712020:d6fe8ef7-bae8-468c-a93e-da7c7452ed66" # Kanishka Panwar
+              - "712020:e3a4c327-b8f2-4fdf-9129-2a16a72d689d" # Emily Samoylov
+              - "712020:ef28b234-e5cc-414e-a070-60c19bcc56ce" # Arsheen Taj Syed
+              - "712020:ae505486-f587-4834-bec0-a32773e90835" # Emmanuel Ikeola
+              - "712020:10b8b734-bd30-4878-a73a-1decdc8b3fcb" # Conor O'Malley
+              - "557058:80be973d-1fcb-47cd-bfeb-eb0f71b15539" # Jan Stourac
+              - "712020:a3102767-0fe2-4fdd-b1f5-70fffc9f57bf" # Juntao Wang
+              - "712020:90e4df34-68bd-4253-a5f5-b8a0f008dfb6" # Anish Surti
+              - "712020:b97714fd-904c-4c52-af25-1918eaea90ac" # Katelynn Perry
+              - "557058:20de83f5-43fd-43b3-919f-46436f9ea189" # Agnieszka Gancarczyk
+              - "712020:529ee1fe-f832-4491-915a-f553f2c6722b" # Nana Nosirova
+              - "712020:bac8c9f8-f8df-41af-b7d7-990acdce0583" # Daniel Reed
+              - "712020:7769cc24-18b8-4026-a921-476cb2fc27ac" # Derek Xu
+              - "712020:47a9ab8a-5906-4107-90e6-86303d85d5c3" # Claudia Alphonse
+              - "712020:f6a72143-e1ad-4089-b050-1c4b9a926b3b" # Danny Pierce
+              - "712020:a30bcd9e-6d87-4648-a129-497d103dbfd1" # John Haran
+              - "712020:8f9dcb30-495d-4a6d-8720-5eea5fadfe3f" # Sri Sai Sowjanya Darna
+              - "712020:cbdf8966-a3f3-42d2-bc6c-add0f1d9761d" # Lucas Ferrnandez Aragon
+              - "712020:7bd7eaad-c5b8-4655-a117-fdf2f6971e61" # Yulia Krimerman
+              - "712020:427d736a-17ef-4fef-b3fa-6e1d29fb5bb5" # Adam David Maly
+              - "712020:890415f1-a65a-44dc-b7e0-a6e8fe9e06d0" # Philip Carneiro
+              - "70121:17820e76-574b-4763-af5f-14cdf91f5233" # Harshad Reddy Nalla
+              - "5f8857cf53aaa4007628b9e7" # Guilherme Caponetto
+              - "712020:88600c68-4115-46ff-8f55-7e28d449c647" # Hannah Tosi
+              - "712020:2bfa57ad-4733-4302-a872-a69d03ee11c5" # Liam Day
+              - "6397301f61aba8a6a32c64ad" # Federico Alonso
+              - "557058:c0e8a8ae-edad-44fc-80f7-e5e25f081245" # Paulo Rego
+              - "6385173f213a315af348bf9d" # Eugenia Montrose
+              - "5a148dfe1121d32de39e72a1" # Mike Turley
+              - "5fd12064e8ed8b0069d60223" # William Siqueira
+              - "60508893e394c30069a3d923" # Manaswini Das
+              - "712020:770c7799-a22d-4ec5-bdaf-96290dfb7a2f" # Dipanshu Gupta
+              - "712020:ad55502b-6c4b-4899-aab8-f534a30aeaee" # Avik Kundu
+              - "712020:b72db40c-3e33-4ffb-8386-ff6cb4f908f2" # Charles Thao
+              - "70121:6ffe4358-1556-4a4e-a0d8-1f2593d39f68" # Gage Krumbach
+              - "70121:8665986b-a71f-433a-ac17-6cdf48859866" # Eder Ignatowicz
+              - "70121:dca0fa75-1ce0-42e6-b2f0-f87a6fba6c66" # Guannan Sun
+              - "712020:827a9d62-5a58-4f8d-adc4-571c3fb2ad23" # Bill Murdock
+      labels: allowlist
 create_issues:
     allow_targets:
         repos:

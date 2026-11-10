@@ -37,10 +37,9 @@ describe('API Keys Page (Admin)', () => {
         conditions: [{ type: MODELS_AS_A_SERVICE_READY, status: 'True', reason: 'Ready' }],
       }),
     );
-    cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
-      mockSearchResponse(mockAPIKeys()),
-    ).as('initialSearch');
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
+      'initialSearch',
+    );
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
@@ -66,7 +65,7 @@ describe('API Keys Page (Admin)', () => {
     adminBulkRevokeAPIKeyModal.shouldBeOpen();
     adminBulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(aliceKeys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(aliceKeys)).as(
       'searchUserKeys',
     );
 
@@ -102,7 +101,7 @@ describe('API Keys Page (Admin)', () => {
 
     adminBulkRevokeAPIKeyModal.shouldBeOpen();
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(revokedKeys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(revokedKeys)).as(
       'searchNoActiveKeys',
     );
 

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import YAML from 'yaml';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { MetadataAnnotation } from '@odh-dashboard/k8s-core';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import {
@@ -14,16 +14,12 @@ import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLL
 import { LlmAcceleratorConfigTrackingEvent } from '../../tracking/llmdTrackingConstants';
 import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../settings/llmAcceleratorConfigs/paths';
 import LlmAcceleratorInstallTarget from '../LlmAcceleratorInstallTarget';
-import { createHostApiWrapper } from '../../__tests__/hostApiTestUtils';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
-const mockTrackEvent = jest.fn();
-const wrapper = createHostApiWrapper(mockTrackEvent);
+const { trackEvent: mockTrackEvent, wrapper } = createTestProviders();
 
 jest.mock('@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed', () => ({
   useAccessAllowed: jest.fn(),
-}));
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
 }));
 jest.mock('../../api/LLMInferenceServiceConfigs', () => ({
   createLLMInferenceServiceConfig: jest.fn(),

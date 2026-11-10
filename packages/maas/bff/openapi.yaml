@@ -2370,13 +2370,12 @@ components:
     MaasOrg:
       type: object
       required:
-        - organization_id
-        - roles
+        - org_id
       properties:
-        organization_id:
+        org_id:
           type: string
           example: 42c3e46f-2477-44d7-a85b-d3b43f6b31fa
-        organization_name:
+        org_name:
           type: string
           example: coke
         roles:

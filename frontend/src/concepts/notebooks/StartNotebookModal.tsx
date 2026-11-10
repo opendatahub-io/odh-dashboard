@@ -49,12 +49,8 @@ import {
   InProgressIcon,
   OutlinedClockIcon,
 } from '@patternfly/react-icons';
-import {
-  getDescriptionFromK8sResource,
-  type PodContainerStatus,
-  type ProjectKind,
-} from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { type PodContainerStatus, type ProjectKind } from '@odh-dashboard/k8s-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ClusterQueueModel } from '@odh-dashboard/k8s-core/api/models';
 import useClusterQueue from '@odh-dashboard/ui-core/hooks/useClusterQueue';
@@ -166,7 +162,6 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   const [spawnStatus, setSpawnStatus] = React.useState<SpawnStatus | null>(null);
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
   const isStopped = !isError && !isRunning && !isStarting && !isStopping;
-  const workbenchDescription = notebook ? getDescriptionFromK8sResource(notebook).trim() : '';
   const notebookProgress = useNotebookProgress(
     notebook,
     isRunning,
@@ -654,6 +649,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     }
   };
 
+  const lastUpdate = renderLastUpdate();
+
   return (
     <Modal
       appendTo={document.body}
@@ -665,13 +662,13 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       <ModalHeader
         data-testid="notebook-status-modal-header"
         description={
-          workbenchDescription ? (
+          lastUpdate ? (
             <Content
               component="p"
               data-testid="notebook-status-modal-description"
               style={{ color: Gray60.value }}
             >
-              {workbenchDescription}
+              Workbench status
             </Content>
           ) : undefined
         }
@@ -695,7 +692,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
       />
       <ModalBody className="start-notebook-modal__content-height">
         <Stack hasGutter style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {renderLastUpdate()}
+          {lastUpdate}
           {renderStatus()}
           <StackItem>
             <Tabs

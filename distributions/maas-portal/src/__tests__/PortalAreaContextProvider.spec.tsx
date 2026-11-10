@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderHook } from '@testing-library/react';
 import { AreaContext, SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { useTrackEvent, useTrackPageEvent } from '@odh-dashboard/analytics/react';
 import PortalAreaContextProvider from '../providers/PortalAreaContextProvider';
 import PortalContextProvider from '../providers/PortalContextProvider';
 
@@ -96,4 +97,39 @@ describe('PortalContextProvider AreaContext composition', () => {
       expect(result.current.status).toBe(false);
     },
   );
+});
+
+describe('PortalContextProvider tracking', () => {
+  it('should provide stable no-ops for bundled feature tracking without accessing the SDK', () => {
+    const originalAnalytics = Object.getOwnPropertyDescriptor(window, 'analytics');
+    const analyticsRead = jest.fn();
+    const analyticsWrite = jest.fn();
+
+    try {
+      Object.defineProperty(window, 'analytics', {
+        configurable: true,
+        get: analyticsRead,
+        set: analyticsWrite,
+      });
+      const { result, rerender } = renderHook(
+        () => ({ track: useTrackEvent(), page: useTrackPageEvent() }),
+        { wrapper: portalWrapper },
+      );
+
+      const initial = result.current;
+      rerender();
+      expect(result.current.track).toBe(initial.track);
+      expect(result.current.page).toBe(initial.page);
+      expect(result.current.track('create_project_canceled', {})).toBeUndefined();
+      expect(result.current.page()).toBeUndefined();
+      expect(analyticsRead).not.toHaveBeenCalled();
+      expect(analyticsWrite).not.toHaveBeenCalled();
+    } finally {
+      if (originalAnalytics) {
+        Object.defineProperty(window, 'analytics', originalAnalytics);
+      } else {
+        Reflect.deleteProperty(window, 'analytics');
+      }
+    }
+  });
 });

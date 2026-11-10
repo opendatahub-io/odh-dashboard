@@ -11,6 +11,7 @@ import { getNamespaces } from '../utils/notebookUtils';
 import { getAuth } from './resourceUtils';
 import { isK8sStatus } from './pass-through';
 import { createSelfSubjectAccessReview } from './authUtils';
+import { AUTH_SINGLETON_NAME } from './constants';
 
 const SYSTEM_AUTHENTICATED = 'system:authenticated';
 /** Usernames with invalid characters can start with `b64:` to keep their unwanted characters */
@@ -72,10 +73,21 @@ export const getAllowedUserList = async (fastify: KubeFastifyInstance): Promise<
   );
 };
 
+/**
+ * The Auth singleton is named `auth` and nothing else: the operator pins it via
+ * `AuthInstanceName`, and the CRD enforces it with the CEL rule
+ * `self.metadata.name == 'auth'` ("Auth name must be auth"), so the API server rejects
+ * any other name at admission.
+ *
+ * This must stay in sync with the name used to read the CR in `resourceUtils.ts`
+ * (`fetchAuthKind`). An SSAR naming a different resource authorizes against an object
+ * that cannot exist -- it only returns allowed=true while the granting ClusterRole omits
+ * `resourceNames`, and would silently deny every admin once that rule is scoped.
+ */
 const SingletonAuthResource: V1ResourceAttributes = {
   group: 'services.platform.opendatahub.io',
   resource: 'auths',
-  name: 'default-auth',
+  name: AUTH_SINGLETON_NAME,
 };
 
 const handleSSARCheck = (v: V1SelfSubjectAccessReview | K8sStatus): boolean =>

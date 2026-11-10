@@ -10,6 +10,26 @@ const projects = [second, first];
 const listed = { status: 'listed' as const, projects };
 
 describe('resolvePersistedWorkingProject', () => {
+  it('should keep unavailable-list candidates inactive until the provider validates them', () => {
+    localStorage.setItem(PREFERRED_NAMESPACE_STORAGE_KEY, second.name);
+    const unknown = resolvePersistedWorkingProject({
+      storage: localStorage,
+      list: { status: 'listing-unavailable', projects: [first] },
+      route: null,
+    });
+    expect(unknown.activeProject).toBeNull();
+    expect(
+      persistResolvedWorkingProject(localStorage, unknown, {
+        status: 'listing-unavailable',
+        projects: [first],
+      }),
+    ).toBe(false);
+    const list = { status: 'listing-unavailable' as const, projects: [first, second] };
+    const validated = resolvePersistedWorkingProject({ storage: localStorage, list, route: null });
+    expect(validated.activeProject).toBe(second);
+    expect(persistResolvedWorkingProject(localStorage, validated, list)).toBe(true);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
     localStorage.clear();

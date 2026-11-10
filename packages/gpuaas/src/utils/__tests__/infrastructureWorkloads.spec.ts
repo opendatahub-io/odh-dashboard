@@ -36,8 +36,11 @@ jest.mock('@odh-dashboard/internal/api/k8s/inferenceServices', () => ({
 
 jest.mock('@odh-dashboard/internal/api/k8s/workloads', () => ({
   listWorkloads: jest.fn(),
-  buildWorkloadMapForDeployments: jest.fn(() => ({})),
   buildWorkloadMapForNotebooks: jest.fn(() => ({})),
+}));
+
+jest.mock('@odh-dashboard/model-serving/shared/kueue/workloads', () => ({
+  buildWorkloadMapForDeployments: jest.fn(() => ({})),
 }));
 
 jest.mock('@odh-dashboard/model-training/status', () => ({

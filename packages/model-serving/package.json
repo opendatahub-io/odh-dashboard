@@ -92,6 +92,9 @@
     "./concepts/useStopModalPreference": "./src/concepts/useStopModalPreference.ts",
     "./hooks/useServingPlatformStatuses": "./src/hooks/useServingPlatformStatuses.ts",
     "./hooks/useIsNIMAvailable": "./src/hooks/useIsNIMAvailable.ts",
+    "./shared/api/models": "./src/shared/api/models.ts",
+    "./shared/utils/deploymentKey": "./src/shared/utils/deploymentKey.ts",
+    "./shared/api/servingRuntimes": "./src/shared/api/servingRuntimes.ts",
     "./api/prometheus/kservePerformanceMetrics": "./src/api/prometheus/kservePerformanceMetrics.ts",
     "./__mocks__/mockInferenceServiceK8sResource": "./src/__mocks__/mockInferenceServiceK8sResource.ts",
     "./__mocks__/mockServingRuntimeK8sResource": "./src/__mocks__/mockServingRuntimeK8sResource.ts",
@@ -102,9 +105,17 @@
     "./__mocks__/mockMetricsRequests": "./src/__mocks__/mockMetricsRequests.ts",
     "./shared/types/deploy-prefill": "./src/shared/types/deploy-prefill.ts",
     "./__mocks__/mockValidatedConfigurations": "./__mocks__/mockValidatedConfigurations.ts",
-    "./__mocks__/mockPrometheusQueryResponse": "./__mocks__/mockPrometheusQueryResponse.ts"
+    "./__mocks__/mockPrometheusQueryResponse": "./__mocks__/mockPrometheusQueryResponse.ts",
+    "./shared/kueue/workloads": "./src/shared/kueue/workloads.ts",
+    "./shared/kueue/useKueueStatusForDeployments": "./src/shared/kueue/useKueueStatusForDeployments.ts",
+    "./shared/kueue/useKueueStatusWithQueuePositions": "./src/shared/kueue/useKueueStatusWithQueuePositions.ts",
+    "./shared/kueue/useQueuePositionsForDeployments": "./src/shared/kueue/useQueuePositionsForDeployments.ts",
+    "./shared/api/gatewayDiscovery": "./src/shared/api/gatewayDiscovery.ts",
+    "./shared/hooks/useGatewayOptions": "./src/shared/hooks/useGatewayOptions.ts",
+    "./shared/contexts/ModelServingDataContext": "./src/shared/contexts/ModelServingDataContext.tsx"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/foundation": "workspace:*",
     "@odh-dashboard/hardware-profiles": "workspace:*",
     "@odh-dashboard/k8s-core": "workspace:*",
@@ -133,5 +144,8 @@
     "react-dom": "^18",
     "react-router": "^7",
     "react-router-dom": "^7.18.3"
-  }
+  },
+  "module-federation-shared": [
+    "./shared/contexts/ModelServingDataContext"
+  ]
 }

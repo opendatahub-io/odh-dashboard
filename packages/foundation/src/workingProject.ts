@@ -12,6 +12,8 @@ export type RouteProjectInput = null | { kind: 'invalid' } | { kind: 'project'; 
 
 export type WorkingProjectList<T extends WorkingProjectIdentity> =
   | { status: 'listed'; projects: readonly T[] }
+  /** Only individually validated identities are known; no default can be inferred. */
+  | { status: 'listing-unavailable'; projects: readonly T[] }
   | { status: 'loading' }
   | { status: 'error' };
 
@@ -59,7 +61,10 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
   currentName,
   removedRouteFallback,
 }: ResolveWorkingProjectInput<T>): WorkingProjectResolution<T> => {
-  const orderedProjects = list.status === 'listed' ? orderWorkingProjects(list.projects) : [];
+  const orderedProjects =
+    list.status === 'listed' || list.status === 'listing-unavailable'
+      ? orderWorkingProjects(list.projects)
+      : [];
   const find = (name: string | null | undefined): T | null =>
     orderedProjects.find((project) => project.name === name) ?? null;
   const requestedName = route?.kind === 'project' ? route.name : route === null ? storedName : null;
@@ -68,6 +73,14 @@ export const resolveWorkingProject = <T extends WorkingProjectIdentity>({
     return {
       orderedProjects,
       activeProject: null,
+      removedRouteFallback: null,
+    };
+  }
+
+  if (list.status === 'listing-unavailable') {
+    return {
+      orderedProjects,
+      activeProject: find(requestedName) ?? find(currentName),
       removedRouteFallback: null,
     };
   }

@@ -75,9 +75,8 @@ func TestRoutes_BareApiReturns404(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&body)
 	require.NoError(t, err)
 
-	errObj, ok := body["error"].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "NOT_FOUND", errObj["code"])
+	assert.Equal(t, "NOT_FOUND", body["code"])
+	assert.Equal(t, body["message"], body["error"])
 }
 
 func TestRoutes_PrefixedBareApiReturns404(t *testing.T) {
@@ -94,9 +93,8 @@ func TestRoutes_PrefixedBareApiReturns404(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&body)
 	require.NoError(t, err)
 
-	errObj, ok := body["error"].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "NOT_FOUND", errObj["code"])
+	assert.Equal(t, "NOT_FOUND", body["code"])
+	assert.Equal(t, body["message"], body["error"])
 }
 
 func TestRoutes_BarePathPrefixReturns404(t *testing.T) {

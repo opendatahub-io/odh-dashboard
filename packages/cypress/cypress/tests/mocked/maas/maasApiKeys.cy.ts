@@ -48,7 +48,7 @@ describe('API Keys Page', () => {
       }),
     );
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
+      'POST /maas/api/v1/api-keys/search',
       mockSearchResponse(
         mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
         mockSubscriptionDetails,
@@ -108,7 +108,7 @@ describe('API Keys Page', () => {
 
     // Existence check (no status filter) returns the revoked key;
     // filtered search (status: active) returns nothing.
-    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       const hasStatusFilter = req.body?.data?.filters?.status?.length > 0;
       req.reply(hasStatusFilter ? mockSearchResponse([]) : mockSearchResponse(revokedKeys));
     }).as('apiKeysSearch');
@@ -153,9 +153,7 @@ describe('API Keys Page', () => {
     asProjectAdminUser();
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse([])).as(
-      'emptySearch',
-    );
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
     apiKeysPage.visit();
     cy.wait('@emptySearch');
     cy.wait('@emptySearch');
@@ -170,7 +168,7 @@ describe('API Keys Page', () => {
     expect(singleKey).to.not.equal(undefined);
 
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
+      'POST /maas/api/v1/api-keys/search',
       mockSearchResponse([singleKey], mockSubscriptionDetails),
     ).as('singleKeySearch');
 
@@ -198,7 +196,7 @@ describe('API Keys Page', () => {
     // Existence check (no status filter) still finds the revoked key → table page.
     // Default Active/Expired filter returns nothing → empty table, not empty-state page.
     const revokedKey: APIKey = { ...singleKey, status: 'revoked' };
-    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       const hasStatusFilter = req.body?.data?.filters?.status?.length > 0;
       req.reply(
         hasStatusFilter
@@ -224,13 +222,13 @@ describe('API Keys Page', () => {
   });
 
   it('should display a useful error state when the API keys search fails and still show the tabs', () => {
-    cy.intercept('POST', '/maas/api/v1/api-keys/search/tenant', {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', {
       statusCode: 500,
       body: {
         error: {
           code: '500',
           message:
-            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search/tenant',
+            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
         },
       },
     }).as('searchError');
@@ -243,7 +241,7 @@ describe('API Keys Page', () => {
       .findErrorState()
       .should(
         'contain.text',
-        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search/tenant',
+        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
       );
   });
 
@@ -264,7 +262,7 @@ describe('API Keys Page', () => {
     ];
     const searchResponseWithOrphaned = mockSearchResponse(allActiveKeys, mockSubscriptionDetails);
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', searchResponseWithOrphaned).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', searchResponseWithOrphaned).as(
       'searchWithOrphaned',
     );
 
@@ -284,10 +282,9 @@ describe('API Keys Page', () => {
 
   it('should display all API keys when the status filter is cleared', () => {
     apiKeysPage.findRows().should('have.length', 3);
-    cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
-      mockSearchResponse(mockAPIKeys()),
-    ).as('clearAllFilters');
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
+      'clearAllFilters',
+    );
 
     apiKeysPage.clearAllFilters();
     cy.wait('@clearAllFilters');
@@ -346,7 +343,7 @@ describe('API Keys Page', () => {
     // BFF admin enrichment includes the CR in search subscriptionDetails even when
     // it is absent from My Subscriptions (GET /subscriptions).
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
+      'POST /maas/api/v1/api-keys/search',
       mockSearchResponse([inaccessibleSubKey], {
         ...mockSubscriptionDetails,
         'negative-priority-sub': {
@@ -378,7 +375,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/whoami', { data: { sub: 'test-user', isAdmin: false } });
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
+      'POST /maas/api/v1/api-keys/search',
       mockSearchResponse(
         mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
         mockSubscriptionDetails,
@@ -402,7 +399,7 @@ describe('API Keys Page', () => {
   it('should filter api keys by subscription and clear the filter', () => {
     const premiumKeys = mockAPIKeys().filter((k) => k.subscription === 'premium-team-sub');
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
+      'POST /maas/api/v1/api-keys/search',
       mockSearchResponse(premiumKeys, {
         'premium-team-sub': mockSubscriptionDetails['premium-team-sub'],
       }),
@@ -417,7 +414,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findToolbar().should('contain.text', 'Premium Team');
 
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
+      'POST /maas/api/v1/api-keys/search',
       mockSearchResponse(mockAPIKeys().filter((k) => k.status === 'active')),
     ).as('clearSubscriptionFilter');
 
@@ -434,7 +431,7 @@ describe('API Keys Page', () => {
     const aliceKeys = mockAPIKeys().filter((k) => k.username === 'alice');
     apiKeysPage.findRows().should('have.length', 3);
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(aliceKeys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(aliceKeys)).as(
       'searchByUsername',
     );
 
@@ -476,10 +473,9 @@ describe('API Keys Page', () => {
     const filteredKeys = mockAPIKeys().filter((k) => k.status === 'expired');
     apiKeysPage.findRows().should('have.length', 3);
 
-    cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
-      mockSearchResponse(filteredKeys),
-    ).as('filterByStatus');
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(filteredKeys)).as(
+      'filterByStatus',
+    );
 
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOption('Active').click();
@@ -503,7 +499,7 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findRows().should('have.length', 3);
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(keys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortNameAsc',
     );
     apiKeysPage.findColumnSortButton('Name').click();
@@ -516,7 +512,7 @@ describe('API Keys Page', () => {
     });
 
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search/tenant',
+      'POST /maas/api/v1/api-keys/search',
       mockSearchResponse([...keys].reverse()),
     ).as('sortNameDesc');
     apiKeysPage.findColumnSortButton('Name').click();
@@ -535,7 +531,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findRows().should('have.length', 3);
 
     // Creation date is the default active sort (desc). First click toggles to asc.
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(keys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortCreationDateAsc',
     );
     apiKeysPage.findColumnSortButton('Created').click();
@@ -547,7 +543,7 @@ describe('API Keys Page', () => {
       });
     });
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(keys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortCreationDateDesc',
     );
     apiKeysPage.findColumnSortButton('Created').click();
@@ -565,7 +561,7 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findRows().should('have.length', 3);
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(keys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortExpirationAsc',
     );
     apiKeysPage.findColumnSortButton('Expires').click();
@@ -577,7 +573,7 @@ describe('API Keys Page', () => {
       });
     });
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(keys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortExpirationDesc',
     );
     apiKeysPage.findColumnSortButton('Expires').click();
@@ -595,7 +591,7 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findRows().should('have.length', 3);
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(keys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortLastUsedAsc',
     );
     apiKeysPage.findColumnSortButton('Last used').click();
@@ -607,7 +603,7 @@ describe('API Keys Page', () => {
       });
     });
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search/tenant', mockSearchResponse(keys)).as(
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortLastUsedDesc',
     );
     apiKeysPage.findColumnSortButton('Last used').click();

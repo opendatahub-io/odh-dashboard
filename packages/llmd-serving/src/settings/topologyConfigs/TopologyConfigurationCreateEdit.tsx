@@ -19,10 +19,11 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { ApplicationsPage, useNotification } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   getDisplayNameFromK8sResource,
   isK8sNameDescriptionDataValid,
@@ -31,7 +32,6 @@ import {
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { TopologyConfigContext } from './TopologyConfigContext';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from './paths';

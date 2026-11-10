@@ -1467,8 +1467,18 @@ components:
           type: string
           description: >-
             Name of a Kubernetes Secret (in the request namespace) whose "api-key"
-            data field contains the authentication credential. Mutually exclusive
-            with secret_value; secret_name takes precedence when both are provided.
+            data field contains the authentication credential. If the Secret also
+            contains a "ca_cert" PEM bundle with at least one valid CA certificate,
+            those CAs are trusted for this connection probe only when TLS
+            verification is enabled. TLS verification is bypassed for
+            "*.svc.cluster.local" endpoints and when the BFF's
+            "insecure-skip-verify" setting is enabled, so the Secret CA is not
+            used to authenticate those connections. The bundle is still validated
+            in all cases. Non-CA certificates are ignored, but at least one valid
+            CA certificate must be present. Invalid PEM data, non-certificate PEM
+            blocks, invalid certificates, or a bundle with no CA certificate
+            result in a 400 response. Mutually exclusive with secret_value;
+            secret_name takes precedence when both are provided.
           example: 'my-api-key-secret'
         secret_value:
           type: string

@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +22,7 @@ import (
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/clusterdiscovery"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/pgvector"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	genaitypes "github.com/opendatahub-io/gen-ai/internal/types"
@@ -661,9 +664,8 @@ func (kc *TokenKubernetesClient) GetOGXServers(ctx context.Context, identity *in
 }
 
 // GetNemoGuardrailsServiceURL lists NemoGuardrails CRs (trustyai.opendatahub.io/v1alpha1)
-// in the namespace and derives the in-cluster service URL from the first CR found.
-// The TrustyAI operator creates a Service with the same name as the CR on port 443.
-// Returns ("", nil) if no NemoGuardrails CR exists in the namespace.
+// in the namespace and returns the ready endpoint published by the TrustyAI operator.
+// Returns ("", nil) if no ready NemoGuardrails endpoint exists in the namespace.
 func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -688,13 +690,52 @@ func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context
 		return "", nil
 	}
 
-	crName := list.Items[0].GetName()
-	serviceURL := fmt.Sprintf("https://%s.%s.svc.cluster.local:443", crName, namespace)
-	kc.Logger.Debug("Discovered NemoGuardrails service URL from CR",
+	cr := list.Items[0]
+	phase, _, err := unstructured.NestedString(cr.Object, "status", "phase")
+	if err != nil {
+		return "", fmt.Errorf("failed to read NemoGuardrails phase: %w", err)
+	}
+	serviceURL, _, err := unstructured.NestedString(cr.Object, "status", "endpoint")
+	if err != nil {
+		return "", fmt.Errorf("failed to read NemoGuardrails endpoint: %w", err)
+	}
+	if phase != constants.GuardrailsPhaseReady || serviceURL == "" {
+		kc.Logger.Debug("NemoGuardrails endpoint is not ready", "namespace", namespace, "crName", cr.GetName(), "phase", phase)
+		return "", nil
+	}
+
+	if !isOperatorManagedNemoEndpoint(serviceURL, namespace, cr.GetName()) {
+		return "", errors.New("NemoGuardrails endpoint is not an operator-managed Service URL")
+	}
+	kc.Logger.Debug("Discovered NemoGuardrails service URL from CR status",
 		"namespace", namespace,
-		"crName", crName,
+		"crName", cr.GetName(),
 		"serviceURL", serviceURL)
 	return serviceURL, nil
+}
+
+// The TrustyAI operator publishes HTTPS Service URLs in the CR namespace or
+// the shared AI Gateway namespace. Accept only the names it creates before
+// forwarding the user's token and conversation to the published endpoint.
+func isOperatorManagedNemoEndpoint(endpoint, namespace, crName string) bool {
+	local := fmt.Sprintf("https://%s.%s.svc.cluster.local", crName, namespace)
+	if endpoint == local {
+		return true
+	}
+
+	workloadName := strings.ToLower(namespace + "-" + crName)
+	if len(workloadName) > 63 {
+		hash := sha256.Sum256([]byte(workloadName))
+		suffix := hex.EncodeToString(hash[:4])
+		workloadName = strings.TrimRight(workloadName[:63-len(suffix)-1], "-") + "-" + suffix
+	}
+
+	for _, infraNamespace := range []string{"redhat-ai-gateway-infra", "odh-ai-gateway-infra"} {
+		if endpoint == fmt.Sprintf("https://%s.%s.svc.cluster.local", workloadName, infraNamespace) {
+			return true
+		}
+	}
+	return false
 }
 
 func (kc *TokenKubernetesClient) BearerToken() (string, error) {
@@ -1528,10 +1569,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 // otherwise falls back to the BFF's own OTEL_EXPORTER_OTLP_ENDPOINT env var.
 func (kc *TokenKubernetesClient) resolveCollectorEndpoint() string {
 	if kc.otelConfigManager != nil && kc.otelConfigManager.collectorNamespace != "" {
-		return fmt.Sprintf("http://%s-collector.%s.svc:4318",
-			constants.GenAICollectorName,
-			kc.otelConfigManager.collectorNamespace,
-		)
+		return clusterdiscovery.GenAICollectorEndpoint(kc.otelConfigManager.collectorNamespace)
 	}
 	return os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 }

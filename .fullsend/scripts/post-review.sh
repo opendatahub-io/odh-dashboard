@@ -9,9 +9,10 @@
 # and GitLab paths, none of which this host uses (README "Upstream sync").
 #
 # Local changes from the stock script:
-#   1. Set the GitHub review action from findings (any medium+ →
-#      request-changes; risk/confidence/needs-human → comment) and rewrite
-#      the sticky comment. Floors/caps live in rating-policy.json.
+#   1. Set the GitHub review action from findings (blocking severities →
+#      request-changes; human-judgment severities → comment; risk/
+#      confidence/needs-human → comment) and rewrite the sticky comment.
+#      Floors/caps live in rating-policy.json.
 #   2. Categorize sticky ## TODO (Findings / Checks / Judgement / Nits).
 #      Do not append the stock /fs-fix "Next steps" footer.
 #   3. Link file/line references in the sticky summary and suppress inline
@@ -110,8 +111,11 @@ JIRA_KEY_RE = re.compile(r"[A-Z][A-Z0-9]+-\d+")
 # Host policy: .fullsend/rating-policy.json (floors/caps/refuse lists only).
 # Judgment criteria live in the rating skill — not here.
 DEFAULT_POLICY = {
-    "blocking_finding_severities": ["critical", "high", "medium"],
+    "blocking_finding_severities": ["critical", "high"],
     "exclude_blocking_categories": ["protected-path"],
+    # Below the blocking bar, these severities still defer to a human
+    # instead of approving. Empty the list to let them ride with approve.
+    "human_judgment_finding_severities": ["medium"],
     "risk_refuse_approve": ["high", "critical"],
     "confidence_refuse_approve": ["low"],
     "product_ask": {
@@ -158,6 +162,8 @@ def load_rating_policy():
                     merged[key] = value
     merged["_blocking_severities"] = _lower_set(merged.get("blocking_finding_severities"))
     merged["_exclude_categories"] = _lower_set(merged.get("exclude_blocking_categories"))
+    merged["_human_judgment_severities"] = _lower_set(
+        merged.get("human_judgment_finding_severities"))
     merged["_risk_refuse"] = _lower_set(merged.get("risk_refuse_approve"))
     merged["_confidence_refuse"] = _lower_set(merged.get("confidence_refuse_approve"))
     return merged
@@ -237,12 +243,27 @@ def is_blocking(finding):
     severity = (finding.get("severity") or "info").lower()
     return severity in POLICY["_blocking_severities"]
 
+def is_human_judgment_finding(finding):
+    """A below-bar finding that still defers to a human."""
+    cat = (finding.get("category") or "").lower()
+    if cat in POLICY["_exclude_categories"]:
+        return False
+    return (finding.get("severity") or "").lower() in POLICY["_human_judgment_severities"]
+
 def is_actionable_nit(finding):
     severity = (finding.get("severity") or "info").lower()
     return severity in ("low", "info") and bool(finding.get("actionable"))
 
 def blocking_count(result):
     return sum(1 for finding in (result.get("findings") or []) if is_blocking(finding))
+
+def human_judgment_findings(result):
+    """Non-excluded findings at a human-judgment severity."""
+    return [f for f in (result.get("findings") or []) if is_human_judgment_finding(f)]
+
+def human_judgment_needed(result):
+    """True when below-bar findings must yield comment instead of approve."""
+    return bool(human_judgment_findings(result))
 
 def checks(result):
     return [c for c in (result.get("checks") or []) if isinstance(c, dict)]
@@ -464,7 +485,7 @@ def infer_todo_category(text, result):
     nit_match = False
     for finding in (result.get("findings") or []):
         desc = (finding.get("description") or "").strip()
-        if is_blocking(finding):
+        if is_blocking(finding) or is_human_judgment_finding(finding):
             rem = (finding.get("remediation") or "").strip()
             if (rem and rem in text) or (desc and desc in text):
                 return "findings"
@@ -540,6 +561,8 @@ def compute_action(result):
         return "request-changes", "blocking-findings"
     if failed_checks(result):
         return "request-changes", "check-fail"
+    if human_judgment_needed(result):
+        return "comment", "human-judgment-findings"
     refuse = approve_refuse_reason(result)
     if refuse == "risk":
         return "comment", "risk-blocks-approve"
@@ -966,14 +989,20 @@ def justified_findings(result):
     ]
 
 def render_justified_section(result):
-    """Render ### Justified under ## Findings with omit markers."""
+    """Render ### Justified under ## Findings.
+
+    Heading-delimited on purpose. `fullsend post-review` runs agent-authored
+    bodies through upstream's NeutralizeMarkers, which HTML-escapes every
+    `<!-- fullsend:` opener, so an HTML comment wrapper would surface as
+    visible text in the sticky. Readers find these items by the
+    `### Justified (N)` heading.
+    """
     items = justified_findings(result)
     if not items:
         return []
     run_url = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
     lines = [
         "",
-        "<!-- fullsend:justified-findings -->",
         f"### Justified ({len(items)})",
         "",
         "_These findings were raised by review producers but the PR's "
@@ -994,7 +1023,6 @@ def render_justified_section(result):
         reason = inline_text(finding.get("removal_reason") or "")
         if reason:
             lines.append(f"  - Justification: {reason}")
-    lines += ["", "<!-- /fullsend:justified-findings -->"]
     return lines
 
 def render_removed_audit(result):
@@ -1233,6 +1261,11 @@ def status_headline(result, action):
                 f"{author_wait_detail(result)}{incomplete_note}")
     if action == "comment" and errs:
         return f"{mark(ACTION_MARK, action)} **Review incomplete** — {incomplete}. Retry or escalate."
+    if action == "comment" and human_judgment_needed(result):
+        count = len(human_judgment_findings(result))
+        noun = "finding" if count == 1 else "findings"
+        return (f"{mark(ACTION_MARK, action)} **Needs human judgment** — "
+                f"{count} non-blocking {noun}. Human still finalizes.")
     if action == "comment" and needs_human(result):
         return f"{mark(ACTION_MARK, action)} **Needs human judgment.**"
     if action == "comment":
@@ -2219,8 +2252,24 @@ JSON
   # Restore the shared jira fixture for later tests that reuse render_jira_fixture.
   write_default_jira_snapshot
 
-  # Gate matrix: any medium finding → request-changes (no advisory carve-out).
-  render_fixture medium-blocks request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Naming drift.\",\"why\":\"Public export renamed without alias.\"}],\"product_ask\":{\"status\":\"none\"}}"
+  # Gate matrix: below-bar findings defer to a human instead of blocking.
+  render_fixture judgment-findings comment "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"line\":1,\"description\":\"Naming drift.\",\"why\":\"Public export renamed without alias.\",\"remediation\":\"Rename the export or add an alias.\"}],\"todo\":[{\"category\":\"findings\",\"text\":\"Rename the export or add an alias.\"}],\"product_ask\":{\"status\":\"none\"}}"
+  body=$(jq -r .body "${tmp}/judgment-findings-out.json")
+  if ! grep -Fq '**Needs human judgment** — 1 non-blocking finding.' <<<"${body}" ||
+     ! grep -q '### Medium (1)' <<<"${body}" ||
+     ! grep -q '## TODO' <<<"${body}" ||
+     ! grep -Fxq 'Findings' <<<"${body}"; then
+    echo "FAIL judgment-findings: status, severity group, or TODO missing" >&2
+    fail=1
+  else
+    echo "PASS below-bar review yields comment/needs-human and keeps the finding visible"
+  fi
+
+  # A blocking-severity finding still blocks when a judgment finding is present.
+  render_fixture blocking-plus-judgment request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Naming drift.\",\"why\":\"Export renamed.\"},{\"severity\":\"high\",\"category\":\"logic-error\",\"file\":\"b.ts\",\"line\":4,\"description\":\"Crash.\",\"why\":\"Null dereference.\",\"remediation\":\"Guard the value.\"}],\"product_ask\":{\"status\":\"none\"}}"
+
+  # A failed readiness check still blocks when a judgment finding is present.
+  render_fixture judgment-plus-check request-changes "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Naming drift.\",\"why\":\"Export renamed.\"}],\"checks\":[{\"id\":\"pr-description-review\",\"status\":\"fail\",\"summary\":\"Problem missing.\"}],\"producers\":{\"dispatched\":[\"pr-description-review\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"pr-description-review\"],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}},\"product_ask\":{\"status\":\"none\"}}"
 
   # low/info may ride with approve.
   render_fixture low-rides-approve approve "{${common},\"findings\":[{\"severity\":\"low\",\"category\":\"style-conventions\",\"file\":\"a.ts\",\"description\":\"Minor naming nit.\",\"actionable\":true}],\"product_ask\":{\"status\":\"none\"}}"
@@ -2651,19 +2700,19 @@ JSON
     echo "PASS adapter error refuses approve, surfaces incomplete Status, caps confidence"
   fi
 
-  # A blocking finding keeps the request-changes headline, but the Status must
-  # still report the incomplete review and name the failed producer.
+  # A below-bar finding no longer blocks, but the Status must still report
+  # the incomplete review and name the failed producer.
   printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"logic-error\",\"file\":\"a.ts\",\"description\":\"Off by one.\"}],\"producers\":{\"dispatched\":[],\"adapters\":[{\"id\":\"coderabbit\",\"status\":\"error\",\"reason\":\"review-failed\"}],\"skipped\":[],\"returned\":[],\"raised\":{},\"challenger\":{\"status\":\"skipped\",\"reason\":\"no findings to adjudicate\"}}}" > "${tmp}/adapter-error-blocking.json"
   transform_review_result "${tmp}/adapter-error-blocking.json" > "${tmp}/adapter-error-blocking-out.json"
   body=$(jq -r .body "${tmp}/adapter-error-blocking-out.json")
-  if ! jq -e '.action == "request-changes"' "${tmp}/adapter-error-blocking-out.json" >/dev/null; then
-    echo "FAIL adapter-error-blocking: expected request-changes" >&2
+  if ! jq -e '.action == "comment"' "${tmp}/adapter-error-blocking-out.json" >/dev/null; then
+    echo "FAIL adapter-error-blocking: expected comment" >&2
     fail=1
-  elif ! grep -qE '\*\*Waiting on author\*\*.*Review incomplete — CodeRabbit \(review failed\)' <<<"${body}"; then
-    echo "FAIL adapter-error-blocking: Status must keep Waiting on author and report the incomplete review" >&2
+  elif ! grep -qE '\*\*Review incomplete\*\*.*CodeRabbit \(review failed\)' <<<"${body}"; then
+    echo "FAIL adapter-error-blocking: Status must report the incomplete review" >&2
     fail=1
   else
-    echo "PASS adapter error with blocking findings keeps Waiting on author and reports incompleteness"
+    echo "PASS adapter error with judgment findings defers to a human and reports incompleteness"
   fi
 
   # An approach-rejected action keeps its headline, but must still report an
@@ -3025,6 +3074,9 @@ JSON
   printf '%s' "{${common},\"findings\":[],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":1,\"kept\":0,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"PR Justifications explain the architectural choice; diff confirms the new pattern is consistent.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified.json"
   transform_review_result "${tmp}/justified.json" > "${tmp}/justified-out.json"
   body=$(jq -r .body "${tmp}/justified-out.json")
+  # Same boundaries the author helper parses by: ## Findings up to the next
+  # ## heading or the <details> review block.
+  findings_section=$(awk '/^## Findings$/{f=1; next} f && (/^## / || /^<details>/){exit} f' <<<"${body}")
   if [[ "$(jq -r .action "${tmp}/justified-out.json")" != "approve" ]]; then
     echo "FAIL justified: justified-only findings must not block disposition" >&2
     fail=1
@@ -3034,8 +3086,11 @@ JSON
   elif ! grep -q '### Justified (1)' <<<"${body}"; then
     echo "FAIL justified: ### Justified subheading missing or wrong count" >&2
     fail=1
-  elif ! grep -q 'fullsend:justified-findings' <<<"${body}"; then
-    echo "FAIL justified: HTML omit markers missing" >&2
+  elif grep -qE '^<!--' <<<"${findings_section}"; then
+    echo "FAIL justified: an HTML marker leaked into ## Findings" >&2
+    fail=1
+  elif grep -qiE '<(!--[[:space:]]*fullsend[[:space:]]*:)' <<<"${body}"; then
+    echo "FAIL justified: body carries a fullsend: marker upstream would escape as text" >&2
     fail=1
   elif ! grep -q 'Justification:' <<<"${body}"; then
     echo "FAIL justified: challenger reason not rendered under Justified" >&2
@@ -3060,8 +3115,8 @@ JSON
   printf '%s' "{${common},\"findings\":[{\"severity\":\"medium\",\"category\":\"bounds\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Off by one.\",\"why\":\"Index.\"}],\"producers\":{\"dispatched\":[\"correctness\"],\"adapters\":[],\"skipped\":[],\"returned\":[\"correctness\"],\"raised\":{\"correctness\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"remediation\":\"Follow existing.\"},{\"severity\":\"medium\",\"category\":\"bounds\",\"dimension\":\"correctness\",\"file\":\"b.ts\",\"description\":\"Off by one.\",\"why\":\"Index.\"}]},\"challenger\":{\"status\":\"ran\",\"input\":2,\"kept\":1,\"removed\":1,\"merged\":0,\"downgraded\":0,\"removed_findings\":[{\"severity\":\"high\",\"category\":\"architecture\",\"dimension\":\"correctness\",\"file\":\"a.ts\",\"description\":\"Norm departure.\",\"why\":\"New pattern.\",\"removal_reason\":\"Architecture justified per PR body.\",\"challenger_action\":\"justified\"}]}}}" > "${tmp}/justified-mixed.json"
   transform_review_result "${tmp}/justified-mixed.json" > "${tmp}/justified-mixed-out.json"
   body=$(jq -r .body "${tmp}/justified-mixed-out.json")
-  if [[ "$(jq -r .action "${tmp}/justified-mixed-out.json")" != "request-changes" ]]; then
-    echo "FAIL justified-mixed: surviving medium finding must still block" >&2
+  if [[ "$(jq -r .action "${tmp}/justified-mixed-out.json")" != "comment" ]]; then
+    echo "FAIL justified-mixed: surviving judgment finding must yield comment/needs-human" >&2
     fail=1
   elif ! grep -q '### Medium (1)' <<<"${body}"; then
     echo "FAIL justified-mixed: severity group missing for surviving finding" >&2

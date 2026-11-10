@@ -1,16 +1,18 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
 import { createConnection } from '~/app/api/dch';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
+import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import * as trackingUtilities from '~/app/utilities/tracking';
 import ConnectionTypeDetails from '~/app/pages/ConnectionTypeDetails';
 import type { CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionType');
+jest.mock('~/app/hooks/useConnectionAccess');
 jest.mock('~/app/utilities/tracking', () => ({
   DATA_CONNECT_HUB_EVENT_NAMES: {
     addStarted: 'Connections Add Started',
@@ -26,6 +28,7 @@ jest.mock('~/app/components/CreateConnectionWizard', () => ({
 }));
 
 const mockUseConnectionType = jest.mocked(useConnectionType);
+const mockUseConnectionAccess = jest.mocked(useConnectionAccess);
 const mockCreateConnection = jest.mocked(createConnection);
 const mockCreateConnectionWizard = jest.mocked(CreateConnectionWizard);
 const mockCreateRequest = jest.fn();
@@ -55,6 +58,7 @@ describe('ConnectionTypeDetails', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
     mockCreateConnection.mockReturnValue(mockCreateRequest);
     mockCreateConnectionWizard.mockImplementation(({ isOpen, onClose, onCreate }) =>
       isOpen ? (
@@ -86,7 +90,7 @@ describe('ConnectionTypeDetails', () => {
     expect(
       screen.getByTestId('connection-type-details').getAttribute('data-connection-type-id'),
     ).toBe('550e8400-e29b-41d4-a716-446655440003');
-    expect(screen.getAllByText('Full integration')).toHaveLength(2);
+    expect(screen.getAllByText('Ingestion supported')).toHaveLength(2);
   });
 
   it('should open a wizard preselected with the displayed connection type', async () => {
@@ -128,6 +132,30 @@ describe('ConnectionTypeDetails', () => {
       expect(mockCreateConnection).toHaveBeenCalledWith('');
       expect(mockCreateRequest).toHaveBeenCalledWith({}, 'new-project', createRequest);
     });
+  });
+
+  it('should disable creating a connection when the user has read-only access', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionType.mockReturnValue([mockConnectionType(), true, undefined]);
+    mockUseConnectionAccess.mockReturnValue({ isAllowed: false, loaded: true });
+
+    renderDetails();
+    const button = screen.getByTestId('connection-type-details-create-connection');
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+
+    await user.hover(button);
+    expect(
+      screen.getByText(
+        'This action requires the create permission. To request permission, contact your administrator.',
+      ),
+    ).toBeTruthy();
+
+    fireEvent.click(button);
+    expect(mockTrackEvent).not.toHaveBeenCalledWith({
+      eventName: 'Connections Add Started',
+      properties: { project: 'test-project', source: 'connection_type_catalog' },
+    });
+    expect(screen.queryByTestId('mock-create-connection-wizard')).toBeNull();
   });
 
   it('should preserve the query string in the breadcrumb link', () => {

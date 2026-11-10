@@ -13,6 +13,7 @@ export type {
   ModelServingPodSpecOptions,
   ModelServingSizeState,
   ModelServingPodSpecOptionsState,
+  WarningNotification,
 } from './types';
 
 // Constants
@@ -22,12 +23,14 @@ export {
   HARDWARE_PROFILE_BINDING_CONFIG,
   MODEL_SERVING_VISIBILITY,
   INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS,
+  HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE,
 } from './const';
 
 // Kueue
 export { KueueFilteringState, useKueueConfiguration, filterProfilesByKueue } from './kueueUtils';
 
 // Validation
+export { HardwareProfileWarningType } from './types';
 export {
   ValidationErrorCodes,
   createCpuSchema,

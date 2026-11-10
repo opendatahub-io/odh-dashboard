@@ -25,6 +25,10 @@ class MaaSModelsPage {
     return cy.findByTestId('ai-models-table');
   }
 
+  findRow(modelName: string) {
+    return this.findTable().findByRole('row', { name: new RegExp(modelName) });
+  }
+
   findModelIds() {
     return this.findTable().findAllByTestId('model-id-text');
   }

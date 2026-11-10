@@ -8,19 +8,28 @@ Encapsulates rules that cannot be expressed through config alone — e.g., enfor
 
 ## Usage
 
-```js
-import plugin from '@odh-dashboard/eslint-plugin';
+Enable the analytics rule through the shared scoped preset in your package's `.eslintrc.js`:
 
-export default [
-  { plugins: { odh: plugin } },
-  { rules: { 'odh/no-deprecated-api': 'error' } },
-];
+```js
+const eslintConfig = require('@odh-dashboard/eslint-config');
+
+module.exports = eslintConfig
+  .extend({
+    overrides: [
+      {
+        files: ['src/**/*.{ts,tsx}'],
+        ...eslintConfig.featureAnalytics,
+      },
+    ],
+  })
+  .recommendedReactTypescript(__dirname);
 ```
 
 ## Rules
 
-| Rule | Description |
-|------|-------------|
-| See `rules/` | Custom rules defined in the `rules/` directory |
+| Rule                  | Description                                                                                                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `no-direct-analytics` | Reject direct feature analytics implementation imports and globals; allow SDK-free contracts from `@odh-dashboard/analytics/types` and providers/hooks from `@odh-dashboard/analytics/react`. Enable for migrated files with the [feature analytics preset](../eslint-config/README.md#feature-analytics-guards). |
+| See `rules/`          | Custom rules defined in the `rules/` directory                                                                                                                                                                                                          |
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

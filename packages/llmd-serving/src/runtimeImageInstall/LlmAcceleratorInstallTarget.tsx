@@ -14,8 +14,8 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { RuntimeImageInstallTargetProps } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
 import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { parseLlmInferenceServiceConfig } from './parseLlmInferenceServiceConfig';

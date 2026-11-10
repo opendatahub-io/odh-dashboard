@@ -1,5 +1,5 @@
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import type { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared';
 
 export enum ServingRuntimeTemplateTrackingEvent {

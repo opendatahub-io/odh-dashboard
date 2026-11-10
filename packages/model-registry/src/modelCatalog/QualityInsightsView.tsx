@@ -20,7 +20,7 @@ import SimpleSelect, {
   type SimpleSelectOption,
 } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import useQualityArtifacts from './hooks/useQualityArtifacts';
 import {
   DEFAULT_TABLE_PER_PAGE,
@@ -59,6 +59,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   modelName,
   namespace,
 }) => {
+  const trackEvent = useTrackEvent();
   const { insights, loaded, loadError } = useQualityArtifacts(
     sourceId,
     modelName,
@@ -124,13 +125,13 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
   React.useEffect(() => {
     if (loaded && !viewTrackedRef.current) {
       viewTrackedRef.current = true;
-      fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.VIEWED, {
+      trackEvent(QUALITY_INSIGHTS_EVENTS.VIEWED, {
         sourceId,
         modelName,
         insightCount: insights.length,
       });
     }
-  }, [loaded, sourceId, modelName, insights.length]);
+  }, [loaded, sourceId, modelName, insights.length, trackEvent]);
 
   React.useEffect(() => {
     if (!filterValue) {
@@ -138,20 +139,20 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
     }
     const timer = setTimeout(() => {
       const currentFiltered = filteredRef.current;
-      fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.FILTER_APPLIED, {
+      trackEvent(QUALITY_INSIGHTS_EVENTS.FILTER_APPLIED, {
         filterType: activeFilter,
         hasResults: currentFiltered.length > 0,
         resultCount: currentFiltered.length,
       });
     }, 500);
     return () => clearTimeout(timer);
-  }, [filterValue, activeFilter]);
+  }, [filterValue, activeFilter, trackEvent]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: { index: sortConfig.index, direction: sortConfig.direction },
     onSort: (_event, index, direction) => {
       setSortConfig({ index, direction });
-      fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.SORT_CHANGED, {
+      trackEvent(QUALITY_INSIGHTS_EVENTS.SORT_CHANGED, {
         column: QUALITY_COLUMN_NAMES[index] ?? String(index),
         direction,
       });
@@ -163,7 +164,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
     (key: string) => {
       if (key === 'evaluation' || key === 'category' || key === 'benchmark') {
         if (key !== activeFilter) {
-          fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.FILTER_TYPE_CHANGED, {
+          trackEvent(QUALITY_INSIGHTS_EVENTS.FILTER_TYPE_CHANGED, {
             previousFilterType: activeFilter,
             newFilterType: key,
           });
@@ -172,7 +173,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
       }
       setFilterValue('');
     },
-    [activeFilter],
+    [activeFilter, trackEvent],
   );
 
   const handleClearFilters = React.useCallback(() => setFilterValue(''), []);
@@ -258,7 +259,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
           }
           onSetPage={(_event, newPage) => {
             setPage(newPage);
-            fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
+            trackEvent(QUALITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
               page: newPage,
               perPage,
               totalItems: filtered.length,
@@ -267,7 +268,7 @@ const QualityInsightsView: React.FC<QualityInsightsViewProps> = ({
           onPerPageSelect={(_event, newPerPage, newPage) => {
             setPerPage(newPerPage);
             setPage(newPage);
-            fireMiscTrackingEvent(QUALITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
+            trackEvent(QUALITY_INSIGHTS_EVENTS.PAGINATION_CHANGED, {
               page: newPage,
               perPage: newPerPage,
               totalItems: filtered.length,

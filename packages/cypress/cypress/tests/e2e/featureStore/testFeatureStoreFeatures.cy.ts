@@ -8,7 +8,7 @@ import type { FeatureStoreTestData } from '../../../types';
 import {
   applyFeastPermissionViaSdk,
   createFeatureStoreCR,
-  createRouteAndGetUrl,
+  resolveRegistryTarget,
   createSavedDatasetViaSdk,
 } from '../../../utils/oc_commands/featureStoreResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -62,7 +62,7 @@ describe('Feature Store Page Validation', () => {
         createFeatureStoreCR(projectName, testData.feastInstanceName);
       })
       .then(() => {
-        return createRouteAndGetUrl(projectName, testData.feastInstanceName).then((routeUrl) => {
+        return resolveRegistryTarget(projectName, testData.feastInstanceName).then((target) => {
           const { bucket: registryBucket } = getFeastS3Config();
 
           return applyFeastPermissionViaSdk(projectName, testData.feastInstanceName, {
@@ -74,7 +74,7 @@ describe('Feature Store Page Validation', () => {
               storagePath: `s3://${registryBucket}/feast-test/${projectName}/credit_scoring_local/datasets/${testData.datasetName}.parquet`,
               featureServiceName: testData.featureServiceName,
             }).then(() => {
-              return getMetricsResourceCounts(routeUrl, testData.feastCreditScoringProject).then(
+              return getMetricsResourceCounts(target, testData.feastCreditScoringProject).then(
                 (metricsCounts) => {
                   metricsFeatureCount = metricsCounts.featureCount;
                   metricsEntityCount = metricsCounts.entityCount;
@@ -83,21 +83,20 @@ describe('Feature Store Page Validation', () => {
                   metricsFeatureViewCount = metricsCounts.featureViewCount;
                   metricsFeatureServiceCount = metricsCounts.featureServiceCount;
 
-                  return getAllFeatureStoreCounts(
-                    routeUrl,
-                    testData.feastCreditScoringProject,
-                  ).then((listCounts) => {
-                    featureCount = listCounts.featureCount;
-                    entityCount = listCounts.entityCount;
-                    datasetCount = listCounts.datasetCount;
-                    dataSourceCount = listCounts.dataSourceCount;
-                    featureViewCount = listCounts.featureViewCount;
-                    featureServiceCount = listCounts.featureServiceCount;
+                  return getAllFeatureStoreCounts(target, testData.feastCreditScoringProject).then(
+                    (listCounts) => {
+                      featureCount = listCounts.featureCount;
+                      entityCount = listCounts.entityCount;
+                      datasetCount = listCounts.datasetCount;
+                      dataSourceCount = listCounts.dataSourceCount;
+                      featureViewCount = listCounts.featureViewCount;
+                      featureServiceCount = listCounts.featureServiceCount;
 
-                    cy.log(`Metrics counts: ${JSON.stringify(metricsCounts)}`);
-                    cy.log(`List counts: ${JSON.stringify(listCounts)}`);
-                    return cy.wrap({ metricsCounts, listCounts });
-                  });
+                      cy.log(`Metrics counts: ${JSON.stringify(metricsCounts)}`);
+                      cy.log(`List counts: ${JSON.stringify(listCounts)}`);
+                      return cy.wrap({ metricsCounts, listCounts });
+                    },
+                  );
                 },
               );
             });
