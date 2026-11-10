@@ -8,6 +8,7 @@ import {
   Visualization,
 } from '@patternfly/react-topology';
 import { pipelineComponentFactory } from './factories';
+import { orderNodesForKeyboard } from './a11yUtils';
 import {
   PIPELINE_LAYOUT,
   PIPELINE_NODE_SEPARATION_HORIZONTAL,
@@ -44,6 +45,7 @@ const useTopologyController = (graphId: string): Visualization | null => {
       false,
     );
     const onGraphLayoutEnd = () => {
+      orderNodesForKeyboard(visualizationController.getGraph());
       visualizationController.getGraph().fit(75);
       // After the initial fit, stop auto-fitting on subsequent layouts so that
       // polling-driven node updates (e.g. MLMD status changes every 3 s) do not
