@@ -1,4 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSEvents, ModelDeploymentMode, PublishedAsMaasSource } from '~/app/types/event-tracking';
 import {

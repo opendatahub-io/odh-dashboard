@@ -1,3 +1,4 @@
+import { buildWorkloadMapForDeployments } from '@odh-dashboard/model-serving/shared/kueue/workloads';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import type {
   K8sResourceCommon,
@@ -38,7 +39,6 @@ import {
 import { LLMInferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
 import { listInferenceService } from '@odh-dashboard/internal/api/k8s/inferenceServices';
 import {
-  buildWorkloadMapForDeployments,
   buildWorkloadMapForNotebooks,
   listWorkloads,
 } from '@odh-dashboard/internal/api/k8s/workloads';

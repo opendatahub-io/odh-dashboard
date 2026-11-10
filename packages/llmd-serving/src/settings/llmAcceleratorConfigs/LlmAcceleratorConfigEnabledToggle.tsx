@@ -15,7 +15,8 @@ import {
   fireRiskDismissed,
   getResourceVersions,
 } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
-import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
+import { useNotification } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { DISABLED_ANNOTATION } from '../../const';
 import { isConfigEnabled } from '../../utils';

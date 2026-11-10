@@ -10,7 +10,8 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { ApplicationsPage, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { ApplicationsPage } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
 import { PipelineTopology } from '#~/concepts/topology';
 import MarkdownView from '#~/components/MarkdownView';

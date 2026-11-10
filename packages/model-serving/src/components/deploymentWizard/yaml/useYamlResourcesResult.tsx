@@ -1,5 +1,6 @@
 import React from 'react';
 import { parse, stringify } from 'yaml';
+import { removeManagedFields } from './removeManagedFields';
 import { type Deployment } from '../../../../extension-points';
 import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
 
@@ -22,7 +23,7 @@ export const useFormYamlResources = (
 ): UseFormYamlResourcesResult => {
   const { formAsYaml, formAsYamlError } = React.useMemo(() => {
     try {
-      return { formAsYaml: stringify(formResources.model) };
+      return { formAsYaml: stringify(removeManagedFields(formResources.model)) };
     } catch (error) {
       return {
         formAsYaml: undefined,
@@ -35,7 +36,7 @@ export const useFormYamlResources = (
   const [editorYaml, setEditorYaml] = React.useState<string | undefined>(() => {
     if (initialModelResource) {
       try {
-        return stringify(initialModelResource);
+        return stringify(removeManagedFields(initialModelResource));
       } catch {
         return formAsYaml;
       }
@@ -77,7 +78,7 @@ export const useFormYamlResources = (
               // We are limiting the YAML to only the model, but we still want to include the server during submit if it exists in the form.
               ...(formResources.server ? { server: formResources.server } : {}),
             }
-          : formResources,
+          : { ...formResources, model: removeManagedFields(formResources.model) },
       error: lastUpdatedSource.current === 'editor' ? yamlResourcesError : formAsYamlError,
     } satisfies UseFormYamlResourcesResult;
   }, [

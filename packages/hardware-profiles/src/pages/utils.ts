@@ -5,7 +5,6 @@ import {
   IdentifierResourceType,
   LocalQueueKind,
 } from '@odh-dashboard/k8s-core';
-import { DisplayNameAnnotation } from '@odh-dashboard/internal/types';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,
@@ -249,19 +248,11 @@ export const isHardwareProfileValid = (hardwareProfile: HardwareProfileKind): bo
   return warnings.length === 0;
 };
 
-export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKind): string =>
-  hardwareProfile.metadata.annotations?.[DisplayNameAnnotation.ODH_DISP_NAME] ||
-  hardwareProfile.metadata.name;
-
 export const getHardwareProfileCrName = (hardwareProfile: HardwareProfileKind): string =>
   hardwareProfile.metadata.name;
 
 export const isDefaultHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
   getHardwareProfileCrName(hardwareProfile) === DEFAULT_PROFILE_NAME;
-
-export const getHardwareProfileDescription = (
-  hardwareProfile: HardwareProfileKind,
-): string | undefined => hardwareProfile.metadata.annotations?.[DisplayNameAnnotation.ODH_DESC];
 
 export const isHardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): boolean =>
   hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === 'false' ||

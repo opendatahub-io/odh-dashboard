@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { K8sStatusError } from '@odh-dashboard/k8s-core';
-import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { createNotebook, mergePatchUpdateNotebook, restartNotebook, updateNotebook } from '#~/api';
 import {

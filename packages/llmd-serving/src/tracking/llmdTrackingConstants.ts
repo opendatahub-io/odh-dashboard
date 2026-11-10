@@ -1,5 +1,5 @@
 import type { HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
-import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import type { TopologyType } from '../types';
 
 type TrackEvent = HostApiCoreServices['trackEvent'];
