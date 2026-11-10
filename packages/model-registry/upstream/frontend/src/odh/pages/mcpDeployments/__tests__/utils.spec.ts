@@ -15,6 +15,7 @@ import {
   getStatusInfo,
   getStatusSortWeight,
   isClusterLocalConnectionUrl,
+  isGatewayRegistrationPending,
 } from '~/odh/pages/mcpDeployments/utils';
 import {
   createMockDeployment,
@@ -133,6 +134,30 @@ describe('getStatusInfo', () => {
     ]);
     expect(result.label).toBe('Registering with Gateway');
     expect(result.status).toBe('info');
+  });
+
+  it('treats the transient not-present Gateway response as pending', () => {
+    const condition: McpDeploymentCondition = {
+      type: McpConditionType.GATEWAY_REGISTRATION,
+      status: McpConditionStatus.FALSE,
+      reason: 'NotFound',
+      message: 'mcp server is not present in gateway yet',
+    };
+    expect(isGatewayRegistrationPending(condition)).toBe(true);
+    expect(getStatusInfo([...createReadyConditions(), condition]).label).toBe(
+      'Registering with Gateway',
+    );
+  });
+
+  it('keeps explicit Gateway registration failures terminal', () => {
+    expect(
+      isGatewayRegistrationPending({
+        type: McpConditionType.GATEWAY_REGISTRATION,
+        status: McpConditionStatus.FALSE,
+        reason: 'Forbidden',
+        message: 'Gateway rejected the registration.',
+      }),
+    ).toBe(false);
   });
 
   it('should return Initializing for Ready=False with Initializing reason', () => {

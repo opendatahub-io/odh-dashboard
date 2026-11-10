@@ -23,7 +23,7 @@ import {
   McpDeployment,
   McpDeploymentCondition,
 } from '~/odh/types/mcpDeploymentTypes';
-import { getDeploymentDisplayName, getStatusInfo } from './utils';
+import { getDeploymentDisplayName, getStatusInfo, isGatewayRegistrationPending } from './utils';
 
 type McpDeploymentInstallStatusModalProps = {
   deployment: McpDeployment;
@@ -34,7 +34,12 @@ const conditionState = (condition: McpDeploymentCondition | undefined) => {
   if (condition?.status === McpConditionStatus.TRUE) {
     return 'ready' as const;
   }
-  if (condition?.status === McpConditionStatus.FALSE && condition.reason !== 'Pending') {
+  if (
+    condition?.status === McpConditionStatus.FALSE &&
+    !(condition.type === 'GatewayRegistration'
+      ? isGatewayRegistrationPending(condition)
+      : condition.reason === 'Pending')
+  ) {
     return 'blocked' as const;
   }
   return 'pending' as const;

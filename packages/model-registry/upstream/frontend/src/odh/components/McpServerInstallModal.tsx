@@ -40,6 +40,7 @@ import {
   mcpServerCatalogPrerequisites,
   mcpServerCatalogToCR,
 } from '~/odh/utils/mcpServerCatalog';
+import { isGatewayRegistrationPending } from '~/odh/pages/mcpDeployments/utils';
 
 type InstallStep = 'preflight' | 'installing';
 
@@ -242,7 +243,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
       readyCondition.reason !== 'Pending');
   const gatewayRegistrationFailed =
     gatewayRegistrationCondition?.status === 'False' &&
-    gatewayRegistrationCondition.reason !== 'Pending';
+    !isGatewayRegistrationPending(gatewayRegistrationCondition);
   const installNeedsAttention =
     installFailed || gatewayRegistrationFailed || (step === 'installing' && !!readinessError);
   const readinessReady = readinessLoaded && !readinessError && !!readiness;
@@ -605,7 +606,7 @@ const McpServerInstallModal: React.FC<McpServerInstallModalProps> = ({
               )}
             </StackItem>
             <StackItem>{renderInstallStatus()}</StackItem>
-            {!listedDeployment && !installFailed && (
+            {!installationTerminal && !listedDeployment && (
               <StackItem>
                 <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                   <FlexItem>
