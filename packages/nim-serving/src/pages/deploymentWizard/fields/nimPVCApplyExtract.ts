@@ -50,8 +50,8 @@ export const extractNIMPVCFieldData = (deployment: NIMDeployment): NIMPVCFieldVa
   }
   return {
     storageMode: NIMPVCStorageMode.EXISTING,
-    pvcName: pvc.name,
-    pvcK8sName: pvc.name,
+    existingPvcDisplayName: pvc.name,
+    existingPvcK8sName: pvc.name,
     subPath: pvc.subPath ?? '',
     storageClassName: pvc.storageClassName ?? '',
     storageSizeGi: pvc.size ? parseSizeToGi(pvc.size) : DEFAULT_STORAGE_SIZE_GI,

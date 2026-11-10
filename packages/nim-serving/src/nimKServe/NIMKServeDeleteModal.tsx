@@ -24,7 +24,7 @@ const NIMKServeDeleteModal: React.FC<Props> = ({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error>();
   const nimCachePVCName = React.useMemo(
-    () => extractNIMPVCFieldData(deployment)?.pvcName,
+    () => extractNIMPVCFieldData(deployment)?.existingPvcK8sName,
     [deployment],
   );
   const deploymentNamespace = deployment.model.metadata.namespace;

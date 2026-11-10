@@ -1,6 +1,6 @@
 import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { ServingContainer } from '@odh-dashboard/model-serving/shared';
-import type { Volume, VolumeMount } from '@odh-dashboard/k8s-core';
+import { translateDisplayNameForK8s, type Volume, type VolumeMount } from '@odh-dashboard/k8s-core';
 import {
   getNIMPVCK8sName,
   NIMPVCStorageMode,
@@ -33,7 +33,8 @@ const addPVCVolumeToRuntime = (
     return deployment;
   }
 
-  const k8sPvcName = pvcName;
+  // PVC claim names may be DNS subdomains (e.g. model.cache); pod volume names must be DNS labels.
+  const volumeName = translateDisplayNameForK8s(pvcName);
   const server = structuredClone(deployment.server);
   const cacheVolumeNames = new Set(
     server.spec.containers.flatMap((c) =>
@@ -43,11 +44,11 @@ const addPVCVolumeToRuntime = (
     ),
   );
   const volume: Volume = {
-    name: k8sPvcName,
-    persistentVolumeClaim: { claimName: k8sPvcName },
+    name: volumeName,
+    persistentVolumeClaim: { claimName: pvcName },
   };
   const volumeMount: VolumeMount = {
-    name: k8sPvcName,
+    name: volumeName,
     mountPath: NIM_CACHE_MOUNT_PATH,
     subPath: normalizeSubPath(subPath),
   };
@@ -56,7 +57,7 @@ const addPVCVolumeToRuntime = (
     ...(server.spec.volumes ?? []).filter(
       (v) =>
         !isTemplateOrCachePvcVolume(v, cacheVolumeNames) &&
-        v.persistentVolumeClaim?.claimName !== k8sPvcName,
+        v.persistentVolumeClaim?.claimName !== pvcName,
     ),
     volume,
   ];
@@ -125,8 +126,8 @@ export const extractNIMPVCFieldData = (
   const { claimName } = pvcVolume.persistentVolumeClaim;
   return {
     storageMode: NIMPVCStorageMode.EXISTING,
-    pvcName: claimName,
-    pvcK8sName: claimName,
+    existingPvcDisplayName: claimName,
+    existingPvcK8sName: claimName,
     subPath: cacheMount.subPath ?? '',
     storageClassName: '',
     storageSizeGi: DEFAULT_STORAGE_SIZE_GI,
