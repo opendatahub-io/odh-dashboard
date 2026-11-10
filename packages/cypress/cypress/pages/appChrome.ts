@@ -45,19 +45,26 @@ class AppChrome {
   }
 
   findDarkThemeToggle() {
-    this.openAppearanceSwitcher();
-    return cy
-      .get('#theme-selector-color-scheme-title')
-      .parent()
-      .findByRole('button', { name: 'Dark' });
+    return this.findColorSchemeToggle('Dark');
   }
 
   findLightThemeToggle() {
+    return this.findColorSchemeToggle('Light');
+  }
+
+  findColorSchemeToggle(name: 'System' | 'Light' | 'Dark') {
     this.openAppearanceSwitcher();
-    return cy
-      .get('#theme-selector-color-scheme-title')
-      .parent()
-      .findByRole('button', { name: 'Light' });
+    return cy.get('#theme-selector-color-scheme-title').parent().findByRole('button', { name });
+  }
+
+  findContrastModeToggle(name: 'System' | 'Default' | 'Glass' | 'High contrast') {
+    this.openAppearanceSwitcher();
+    return cy.get('#theme-selector-contrast-title').parent().findByRole('button', { name });
+  }
+
+  openAppearanceSettings() {
+    this.openAppearanceSwitcher();
+    return cy.get('#theme-selector-color-scheme-title').should('be.visible');
   }
 
   private openAppearanceSwitcher() {

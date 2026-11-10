@@ -8,6 +8,7 @@ import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockPr
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import { ProjectModel, ProjectRequestModel } from '../../../utils/models';
 import { navSidebar } from '../navSidebar/navSidebar';
+import { appChrome } from '../../../pages/appChrome';
 import { automlExperimentsPage } from '../../../pages/automl/experimentsPage';
 import { createProjectModal, projectListPage } from '../../../pages/projects';
 
@@ -88,30 +89,20 @@ describe('Felt theme (RHAI-19115)', () => {
     cy.visitWithLogin('/projects');
 
     // Open the appearance switcher
-    cy.findByTestId('appearance-settings-button').click();
-    cy.get('#theme-selector-color-scheme-title').should('be.visible');
+    appChrome.openAppearanceSettings();
     cy.testA11y();
     cy.screenshot('felt-theme-switcher-open');
 
     // Toggle dark mode via color scheme
-    cy.get('#theme-selector-color-scheme-title')
-      .parent()
-      .findByRole('button', { name: 'Dark' })
-      .click();
+    appChrome.findColorSchemeToggle('Dark').click();
     cy.get('html').should('have.class', 'pf-v6-theme-dark');
 
     // Toggle light mode
-    cy.get('#theme-selector-color-scheme-title')
-      .parent()
-      .findByRole('button', { name: 'Light' })
-      .click();
+    appChrome.findColorSchemeToggle('Light').click();
     cy.get('html').should('not.have.class', 'pf-v6-theme-dark');
 
     // Toggle Glass via contrast mode
-    cy.get('#theme-selector-contrast-title')
-      .parent()
-      .findByRole('button', { name: 'Glass' })
-      .click();
+    appChrome.findContrastModeToggle('Glass').click();
     cy.get('html').should('have.class', 'pf-v6-theme-glass');
 
     // Felt stays on regardless of color scheme or contrast mode
@@ -121,10 +112,7 @@ describe('Felt theme (RHAI-19115)', () => {
     cy.screenshot('felt-theme-glass-on');
 
     // Switch to Default (solid backgrounds, no glass)
-    cy.get('#theme-selector-contrast-title')
-      .parent()
-      .findByRole('button', { name: /Default/ })
-      .click();
+    appChrome.findContrastModeToggle('Default').click();
     cy.get('html').should('not.have.class', 'pf-v6-theme-glass');
     cy.get('html').should('have.class', 'pf-v6-theme-felt');
     cy.screenshot('felt-theme-glass-off');
@@ -135,15 +123,8 @@ describe('Felt theme (RHAI-19115)', () => {
     cy.visitWithLogin('/projects');
 
     // Set dark + glass via the switcher
-    cy.findByTestId('appearance-settings-button').click();
-    cy.get('#theme-selector-color-scheme-title')
-      .parent()
-      .findByRole('button', { name: 'Dark' })
-      .click();
-    cy.get('#theme-selector-contrast-title')
-      .parent()
-      .findByRole('button', { name: 'Glass' })
-      .click();
+    appChrome.findColorSchemeToggle('Dark').click();
+    appChrome.findContrastModeToggle('Glass').click();
 
     // Reload and verify the preferences persisted
     cy.reload();
