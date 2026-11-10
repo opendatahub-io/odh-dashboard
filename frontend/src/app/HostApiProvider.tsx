@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { ModelServingDataContext } from '@odh-dashboard/model-serving/shared/contexts/ModelServingDataContext';
+import { getGatewayOptions } from '@odh-dashboard/model-serving/shared/api/gatewayDiscovery';
 import {
   HostApiContext,
   HostApiCoreContext,
@@ -16,6 +18,7 @@ import {
 import { useDashboardNamespace } from '#~/redux/selectors/project';
 import { useUser } from '#~/redux/selectors';
 import { checkAccess } from '#~/api/checkAccess';
+import { getPendingWorkloads } from '#~/api/k8s/pendingWorkloads';
 import {
   patchSecretWithOwnerReference,
   patchSecretWithProtocolAnnotation,
@@ -42,6 +45,8 @@ import ConnectionTypeFormFields from '#~/concepts/connectionTypes/fields/Connect
 type HostApiProviderProps = {
   children: React.ReactNode;
 };
+
+const servingDataServices = { getGatewayOptions, getPendingWorkloads };
 
 const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   const { dashboardNamespace } = useDashboardNamespace();
@@ -97,7 +102,11 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
   return (
     <HostApiCoreContext.Provider value={core}>
       <HostApiInfraContext.Provider value={infra}>
-        <HostApiContext.Provider value={domain}>{children}</HostApiContext.Provider>
+        <HostApiContext.Provider value={domain}>
+          <ModelServingDataContext.Provider value={servingDataServices}>
+            {children}
+          </ModelServingDataContext.Provider>
+        </HostApiContext.Provider>
       </HostApiInfraContext.Provider>
     </HostApiCoreContext.Provider>
   );

@@ -65,7 +65,9 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage"
   },
   "e2eCiTags": [
     "@HardwareProfilesCI"
@@ -81,6 +83,7 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",
+    "@odh-dashboard/jest-config": "workspace:*",
     "@odh-dashboard/tsconfig": "workspace:*"
   },
   "peerDependencies": {
