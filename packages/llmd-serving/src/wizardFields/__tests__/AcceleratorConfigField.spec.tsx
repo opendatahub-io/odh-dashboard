@@ -143,6 +143,86 @@ describe('AcceleratorConfigFieldWizardField.getInitialFieldData', () => {
     expect(result.autoSelect).toBe(true);
   });
 
+  it('does not auto-suggest when the accelerator matches no config', () => {
+    const hardwareProfile = mockHardwareProfile({
+      identifiers: [
+        {
+          identifier: 'nvidia.com/gpu',
+          displayName: 'GPU',
+          resourceType: IdentifierResourceType.ACCELERATOR,
+          defaultCount: 1,
+          minCount: 1,
+          maxCount: 4,
+        },
+      ],
+    });
+    const result = getInitialFieldData(
+      undefined,
+      { configs: [makeConfig('rocm', '["amd.com/gpu"]'), makeConfig('gaudi')] },
+      { hardwareProfile },
+    );
+    expect(result.selectedConfig).toBe(ACCELERATOR_CONFIG_DEFAULT);
+    expect(result.autoSelect).toBe(false);
+  });
+
+  it('does not auto-suggest with multiple candidates but no hardware profile', () => {
+    const result = getInitialFieldData(undefined, {
+      configs: [makeConfig('rocm', '["amd.com/gpu"]'), makeConfig('nvidia', '["nvidia.com/gpu"]')],
+    });
+    expect(result.selectedConfig).toBe(ACCELERATOR_CONFIG_DEFAULT);
+    expect(result.autoSelect).toBe(false);
+  });
+
+  it('does not auto-suggest with multiple candidates and a profile without accelerators', () => {
+    const cpuOnlyProfile = mockHardwareProfile({
+      identifiers: [
+        {
+          identifier: 'example.com/cpu',
+          displayName: 'CPU',
+          resourceType: IdentifierResourceType.CPU,
+          defaultCount: 1,
+          minCount: 1,
+          maxCount: 4,
+        },
+      ],
+    });
+    const result = getInitialFieldData(
+      undefined,
+      {
+        configs: [
+          makeConfig('rocm', '["amd.com/gpu"]'),
+          makeConfig('nvidia', '["nvidia.com/gpu"]'),
+        ],
+      },
+      { hardwareProfile: cpuOnlyProfile },
+    );
+    expect(result.selectedConfig).toBe(ACCELERATOR_CONFIG_DEFAULT);
+    expect(result.autoSelect).toBe(false);
+  });
+
+  it('auto-suggests a single compatible config among incompatible candidates', () => {
+    const rocm = makeConfig('rocm', '["amd.com/gpu"]');
+    const hardwareProfile = mockHardwareProfile({
+      identifiers: [
+        {
+          identifier: 'amd.com/gpu',
+          displayName: 'AMD GPU',
+          resourceType: IdentifierResourceType.ACCELERATOR,
+          defaultCount: 1,
+          minCount: 1,
+          maxCount: 4,
+        },
+      ],
+    });
+    const result = getInitialFieldData(
+      undefined,
+      { configs: [makeConfig('cuda', '["nvidia.com/gpu"]'), rocm] },
+      { hardwareProfile },
+    );
+    expect(result.selectedConfig).toBe(rocm);
+    expect(result.autoSelect).toBe(true);
+  });
+
   it('does not auto-suggest a config when only a non-accelerator identifier matches', () => {
     const result = getInitialFieldData(
       undefined,

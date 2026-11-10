@@ -359,8 +359,8 @@ export const AcceleratorConfigFieldWizardField: AcceleratorConfigFieldType = {
       if (existingFieldData) {
         return existingFieldData;
       }
-      // Only suggest configs that support the selected topology, matching the options shown in
-      // the dropdown.
+      // Filter candidates with the same configSupportsTopology logic the dropdown uses, so the
+      // initial automatic choice can never select a config the dropdown hides.
       const topologyType = dependencies?.topologyFieldData?.topologyType;
       const visibleConfigs = (externalData?.configs ?? []).filter((config) =>
         configSupportsTopology(config, topologyType),
