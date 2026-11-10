@@ -686,7 +686,7 @@ export const verifyAutoragResultsInteraction = (): void => {
   autoragResultsPage.findCIScoresLegend().should('exist');
 
   cy.step('Navigate to Vector store settings tab');
-  autoragResultsPage.findPatternDetailsTab('vector_store_binding').should('exist').click();
+  autoragResultsPage.findPatternDetailsTab('store_binding').should('exist').click();
 
   cy.step('Navigate to Chunking settings tab');
   autoragResultsPage.findPatternDetailsTab('chunking').should('exist').click();
