@@ -47,7 +47,7 @@ disables version updates while keeping security updates.
 - `target-branch` is deliberately omitted: Dependabot does not apply an entry's security-update
   settings when it is set, and every ecosystem already targets the default branch.
 - Security PRs are opened as soon as an advisory is published. The `applies-to: security-updates`
-  groups still shape them (an npm catch-all group plus a dedicated PatternFly security group);
+  groups still shape them (`npm-security`, `patternfly-security`, `go-security`);
   version-update groups and cooldowns are inert.
 
 ### PR gates
@@ -241,14 +241,15 @@ Still bump the package on `main` when it is cheap — it keeps scanners quiet an
 
 - **npm**: add the package to `pnpm-workspace.yaml`. Dependabot, Renovate, and the PR gate cover it
   through the root lockfile. Avoid separate lockfiles — they are not covered by the PR gate.
-- **Go module**: add its directory to the `gomod` list in `.github/dependabot.yml`. The govulncheck
-  PR gate and Renovate pick up new modules automatically.
+- **Go module**: add its directory to the `gomod` list in `.github/dependabot.yml` so its security
+  PRs get the `go-security` group and labels. Renovate and the govulncheck PR gate pick up new
+  modules automatically.
 
 ## Known Gaps
 
 - Go modules not yet listed in `dependabot.yml` (for example `packages/data-registry/bff`,
-  `packages/data-connect-hub/bff`, `pkg/tls`) get no Dependabot security PRs; Renovate covers
-  their version updates.
+  `packages/data-connect-hub/bff`, `pkg/tls`) still get Dependabot security PRs, but without the
+  `go-security` group or labels; Renovate covers their version updates.
 - `packages/autox-core` is excluded from both bots; its CVEs are tracked in RHOAIENG-59135.
 - Dependabot opens security PRs only against `main`; release branches rely on the sustaining
   engineering team.
