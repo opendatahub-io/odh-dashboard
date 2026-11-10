@@ -57,6 +57,6 @@ paths:
 
 ## Dependencies
 
-- Keep dependencies up to date: Dependabot is the primary update and CVE path (with auto-merge); Renovate runs as a trial alongside it. See `docs/security-cve.md` for CVE fixes and conventions
+- Keep dependencies up to date: Renovate owns version updates and Dependabot security updates, both with bounded auto-merge. See `docs/security-cve.md` for CVE fixes and conventions
 - Review new dependency additions for security advisories
 - Prefer well-maintained packages with active security response
