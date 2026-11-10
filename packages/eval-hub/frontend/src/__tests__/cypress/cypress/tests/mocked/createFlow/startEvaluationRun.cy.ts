@@ -121,8 +121,7 @@ const navigateToBenchmarkConfiguration = (
 
   singleBenchmarkWizardPage.visit(NAMESPACE);
   singleBenchmarkWizardPage.findBreadcrumb().should('contain.text', 'Benchmarks');
-  singleBenchmarkWizardPage.findBenchmarkCheckbox(benchmarkId).click();
-  singleBenchmarkWizardPage.findNextButton().click();
+  singleBenchmarkWizardPage.findSelectBenchmarkButton(provider.resource.id, benchmarkId).click();
   startEvaluationRunPage.findForm().should('exist');
   startEvaluationRunPage
     .findActiveBreadcrumb()
@@ -546,7 +545,9 @@ describe('Start Evaluation Run - Cancel', () => {
     startEvaluationRunPage.findCancelButton().click();
 
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/single-benchmark`);
-    singleBenchmarkWizardPage.findBenchmarkCheckbox('bench-alpha').should('be.checked');
+    singleBenchmarkWizardPage
+      .findBenchmarkCard(testProvider.resource.id, 'bench-alpha')
+      .should('have.attr', 'data-selected', 'true');
   });
 });
 

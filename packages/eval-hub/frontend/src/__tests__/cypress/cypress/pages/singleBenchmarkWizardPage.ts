@@ -1,33 +1,29 @@
 class SingleBenchmarkWizardPage {
   visit(namespace: string) {
     cy.visit(`/evaluation/${namespace}/create/single-benchmark`);
-    this.waitForSelectionStep();
-  }
-
-  private waitForSelectionStep() {
     this.findSelectionTitle().should('be.visible');
-    this.findBenchmarkCatalog().should('exist');
+    this.findBenchmarkGallery().should('exist');
     cy.testA11y();
   }
 
   findSelectionTitle() {
-    return cy.findByTestId('copy-suite-select-benchmarks-title');
+    return cy.findByTestId('app-page-title');
   }
 
   findBreadcrumb() {
     return cy.findByTestId('single-benchmark-breadcrumb');
   }
 
-  findBenchmarkCatalog() {
-    return cy.findByTestId('benchmark-catalog-table');
+  findBenchmarkGallery() {
+    return cy.findByTestId('benchmarks-gallery');
   }
 
-  findBenchmarkCheckbox(benchmarkId: string) {
-    return cy.findByTestId(`benchmark-catalog-checkbox-${benchmarkId}`);
+  findBenchmarkCard(providerId: string, benchmarkId: string) {
+    return cy.findByTestId(`benchmark-card-${providerId}-${benchmarkId}`);
   }
 
-  findNextButton() {
-    return cy.findByTestId('copy-suite-next-select-benchmarks');
+  findSelectBenchmarkButton(providerId: string, benchmarkId: string) {
+    return this.findBenchmarkCard(providerId, benchmarkId).findByTestId('select-benchmark-button');
   }
 }
 
