@@ -80,9 +80,8 @@ replace with a manual PR.
 Renovate ([`.github/renovate.json5`](../.github/renovate.json5), self-hosted via
 [`renovate.yml`](../.github/workflows/renovate.yml), GitHub App `odh-dashboard-agent`) owns
 **version updates** for npm, Go modules, GitHub Actions and Dockerfile base images. Dependabot
-keeps **security updates** only, so the two bots never propose the same change. That split does not
-guarantee they never touch the same package: a security fix is a normal version bump too, so an
-open Renovate PR can already move a package past an advisory. If a Dependabot security PR you
+keeps **security updates** only. The two can still touch the same package: a security fix is a
+normal version bump too, so an open Renovate PR can already move a package past an advisory. If a Dependabot security PR you
 expected is missing, check open Renovate PRs before treating it as a failure.
 
 - **Schedule**: runs daily, with a second Monday attempt so one dropped run does not cost a week.
@@ -145,7 +144,9 @@ pnpm audit --prod --audit-level=high  # what the PR gate will see
 ```
 
 1. **Direct dependency** — bump it in the owning `package.json` with the smallest version that
-   contains the fix, then `pnpm install`.
+   contains the fix, then `pnpm install`. If the package is also pinned under `overrides:` in
+   [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) (for example PatternFly or webpack), update that
+   pin too, or the old version stays.
 1. **Transitive dependency** — prefer bumping the parent. If the parent has no fixed release, add a
    pin under `overrides:` in [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) (use the
    `parent>child` form to scope it), then `pnpm install`.
