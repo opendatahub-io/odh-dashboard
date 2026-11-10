@@ -7,7 +7,7 @@ import { useExitDeploymentWizard } from '../useExitDeploymentWizard';
 const mockNavigate = jest.fn();
 const mockTrackEvent = jest.fn();
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({ useTrackEvent: () => mockTrackEvent }));
+jest.mock('@odh-dashboard/analytics/react', () => ({ useTrackEvent: () => mockTrackEvent }));
 jest.mock('../../../../shared/tracking/deploymentTracking', () => ({
   fireModelDeployed: jest.fn(),
 }));
