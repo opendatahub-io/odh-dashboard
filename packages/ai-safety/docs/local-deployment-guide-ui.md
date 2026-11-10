@@ -81,7 +81,7 @@ You can then access the UI running in your cluster locally at http://localhost:8
 You can now make API requests to the BFF endpoints like:
 
 ```shell
-curl http://localhost:8080/api/v1/mod-arch
+curl http://localhost:8080/api/v1/ai-safety
 ```
 
 ```json
