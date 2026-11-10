@@ -236,7 +236,10 @@ module.exports = (env) => ({
       ],
     }),
     new MonacoWebpackPlugin({
-      languages: ['yaml'],
+      // yaml: deployment and registry YAML editors. json: MCP register server.json.
+      // Bootstrap points every shared CodeEditor at this bundle, and the worker map
+      // only includes languages listed here. An unlisted label loads "undefined".
+      languages: ['yaml', 'json'],
       // Replace the built-in YAML worker with monaco-yaml so syntax validation runs off-thread.
       customLanguages: [
         {
