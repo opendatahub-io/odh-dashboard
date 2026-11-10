@@ -335,6 +335,8 @@ describe('An admin can create, edit and delete External Models and Providers and
       checkExternalModelExists(projectName, externalModelName, {
         modelName: externalModelName,
         externalProviderRefs: [externalProviderName],
+        // The reduced ExtProc revision must be serving before the fixed 310-second drain begins.
+        maxAttempts: 84, // 7 minutes at the default 5-second retry interval
       });
 
       cy.step(
