@@ -38,20 +38,24 @@ agents:
       # also remap opus/sonnet for the Claude Code roles. Every persona the
       # review uploads is listed, so no frontmatter tier resolves to Claude;
       # rows without a persona run on the agent model.
+      #
+      # Two providers: OpenAI (FULLSEND_OPENAI_API_KEY) for the personas whose
+      # findings gate the verdict, and Vertex AI (the inference project below)
+      # for the lighter scanning personas.
       runtime: pi
       model: openai/gpt-6.1-sol
       subagents:
           challenger: openai/gpt-6.1-sol
           correctness: openai/gpt-6.1-sol
           cross-repo-contracts: openai/gpt-6.1-sol
-          docs-currency: openai/gpt-6-luna
+          docs-currency: google-vertex/gemini-3.8-flash
           intent-coherence: openai/gpt-6.1-sol
-          investigator: openai/gpt-6-luna
+          investigator: google-vertex/gemini-3.8-flash
           # Rating's risk/confidence gates approval; tiny output, so pay for Sol.
           rating: openai/gpt-6.1-sol
           security: openai/gpt-6.1-sol
-          security-triage: openai/gpt-6-luna
-          style-conventions: openai/gpt-6-luna
+          security-triage: google-vertex/gemini-3.8-flash
+          style-conventions: google-vertex/gemini-3.8-flash
     # Pin the built-in fix agent to the agents v0.54.0 release (87a43fcb), the
     # commit harness/code.yaml already bases on. Without this entry fix tracks
     # fullsend-ai/agents@main: the reusable-dispatch pin is not a release tag,
@@ -131,6 +135,9 @@ create_issues:
         repos:
             - opendatahub-io/odh-dashboard
             - fullsend-ai/fullsend
+# Shared Fullsend inference project (same one opendatahub-io/notebooks uses).
+# The workflows read the matching FULLSEND_GCP_PROJECT_ID and
+# FULLSEND_GCP_WIF_PROVIDER secrets; keep them in step with this block.
 inference:
-    project: ambient-code-platform
-    wif_provider: projects/888214980327/locations/global/workloadIdentityPools/fullsend-inference/providers/gh-opendatahub-io-odh-dashboard
+    project: it-gcp-adlc-user-rhai
+    wif_provider: projects/950291184545/locations/global/workloadIdentityPools/fullsend-inference/providers/gh-opendatahub-io-odh-dashboard
