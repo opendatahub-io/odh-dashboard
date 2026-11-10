@@ -9,10 +9,13 @@ import {
   ModelServerOption,
   ModelServerSelectFieldData,
   modelServerSelectFieldSchema,
-  getAcceleratorIdentifierFromHardwareProfile,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
-import { getDisplayNameFromK8sResource, isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  isCompatibleWithIdentifier,
+  IdentifierResourceType,
+} from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import {
   isUnsupportedUnaccepted,
@@ -98,12 +101,13 @@ const computeSuggestion = (
   configs: LLMInferenceServiceConfigKind[],
   hardwareProfile?: HardwareProfileKind,
 ): ModelServerOption | undefined => {
-  const accelerator = getAcceleratorIdentifierFromHardwareProfile(hardwareProfile);
-  if (!accelerator) {
-    return undefined;
-  }
-
-  const config = configs.find((candidate) => isCompatibleWithIdentifier(accelerator, candidate));
+  const accelerators =
+    hardwareProfile?.spec.identifiers?.filter(
+      (identifier) => identifier.resourceType === IdentifierResourceType.ACCELERATOR,
+    ) ?? [];
+  const config = configs.find((candidate) =>
+    accelerators.some((identifier) => isCompatibleWithIdentifier(identifier.identifier, candidate)),
+  );
   return config ? getOptionFromLLMInferenceServiceConfig(config, hardwareProfile) : undefined;
 };
 

@@ -9,13 +9,16 @@ import type {
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import {
   ModelServerTemplateSelectField,
-  getAcceleratorIdentifierFromHardwareProfile,
   type ModelServerOption,
   type ModelServerSelectFieldData,
 } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { RUNTIME_VERSION_ANNOTATION } from '@odh-dashboard/model-serving/concepts/versions';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
-import { getDisplayNameFromK8sResource, isCompatibleWithIdentifier } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  isCompatibleWithIdentifier,
+  IdentifierResourceType,
+} from '@odh-dashboard/k8s-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import { isTopologyTypeFieldData, type TopologyTypeFieldData } from './TopologyTypeField';
@@ -157,11 +160,13 @@ const suggestConfig = (
   configs: LLMInferenceServiceConfigKind[],
   hardwareProfile?: HardwareProfileKind,
 ): LLMInferenceServiceConfigKind | undefined => {
-  const accelerator = getAcceleratorIdentifierFromHardwareProfile(hardwareProfile);
-  if (!accelerator) {
-    return undefined;
-  }
-  return configs.find((config) => isCompatibleWithIdentifier(accelerator, config));
+  const accelerators =
+    hardwareProfile?.spec.identifiers?.filter(
+      (identifier) => identifier.resourceType === IdentifierResourceType.ACCELERATOR,
+    ) ?? [];
+  return configs.find((config) =>
+    accelerators.some((identifier) => isCompatibleWithIdentifier(identifier.identifier, config)),
+  );
 };
 
 // Map an accelerator config to a ModelServerOption (mirrors LlmConfigOptionsField so the shared

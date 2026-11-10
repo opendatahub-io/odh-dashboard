@@ -2,6 +2,7 @@ import * as React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { IdentifierResourceType } from '@odh-dashboard/k8s-core';
+import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import {
   AcceleratorConfigFieldWizardField,
   AcceleratorConfigFieldComponent,
@@ -88,6 +89,31 @@ describe('AcceleratorConfigFieldWizardField.getInitialFieldData', () => {
     const result = getInitialFieldData(existing, { configs: [] }, {});
     expect(result).toBe(existing);
   });
+
+  it.each([false, true])(
+    'matches later accelerators and preserves config order (NVIDIA config present: %s)',
+    (includeNvidia) => {
+      const amd = makeConfig('amd', '["amd.com/gpu"]');
+      const nvidia = makeConfig('nvidia', '["nvidia.com/gpu"]');
+      const hardwareProfile = mockHardwareProfile({
+        identifiers: ['nvidia.com/gpu', 'amd.com/gpu'].map((identifier) => ({
+          identifier,
+          displayName: identifier,
+          resourceType: IdentifierResourceType.ACCELERATOR,
+          defaultCount: 1,
+          minCount: 1,
+          maxCount: 4,
+        })),
+      });
+      const result = getInitialFieldData(
+        undefined,
+        { configs: includeNvidia ? [amd, nvidia] : [amd] },
+        { hardwareProfile },
+      );
+      expect(result.autoSelect).toBe(true);
+      expect(result.selectedConfig).toBe(amd);
+    },
+  );
 
   it('defaults to the built-in placeholder (Manual) when nothing matches', () => {
     const result = getInitialFieldData(undefined, { configs: [makeConfig('rocm')] }, {});
