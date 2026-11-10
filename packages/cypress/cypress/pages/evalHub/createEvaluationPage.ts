@@ -145,10 +145,34 @@ class CreateEvaluationPage {
     return cy.findByTestId('start-evaluation-form', options);
   }
 
-  findStartEvaluationRunBenchmarkName(modalId: string) {
-    return this.findStartEvaluationRunModal(modalId).find(
-      '[data-testid="start-evaluation-run-benchmark-name"]',
-    );
+  findStartEvaluationRunBenchmarkName(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find(
+          '[data-testid="start-evaluation-run-benchmark-name"]',
+        )
+      : cy.get(
+          '[data-testid="benchmark-name-display"], ' +
+            '[data-testid="start-evaluation-run-benchmark-name"]',
+        );
+  }
+
+  findStartEvaluationRunBreadcrumb() {
+    return cy.findByTestId('start-evaluation-breadcrumb-active');
+  }
+
+  findSingleBenchmarkParameterInput(parameterKey: string) {
+    return cy.findByTestId(`single-benchmark-parameter-input-${parameterKey}`);
+  }
+
+  findAdvancedBenchmarkParametersToggle() {
+    return cy
+      .findByTestId('start-evaluation-run-advanced-benchmark-parameters-toggle')
+      .find('button')
+      .first();
+  }
+
+  findAdditionalArgsInput() {
+    return cy.findByTestId('additional-args-upload').find('textarea').first();
   }
 
   findEvaluationNameInput(modalId?: string) {

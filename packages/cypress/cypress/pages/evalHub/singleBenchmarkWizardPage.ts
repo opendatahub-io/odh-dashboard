@@ -3,6 +3,10 @@ class SingleBenchmarkWizardPage {
     return cy.findByTestId('copy-suite-select-benchmarks-title', options);
   }
 
+  findBreadcrumb(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('single-benchmark-breadcrumb', options);
+  }
+
   findBenchmarkCatalogSearch(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('benchmark-catalog-search', options).find('input').first();
   }
@@ -25,54 +29,6 @@ class SingleBenchmarkWizardPage {
 
   findNextButton(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('copy-suite-next-select-benchmarks', options);
-  }
-
-  findConfigurationStep(options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId('copy-suite-step-benchmarks', options);
-  }
-
-  findConfiguredBenchmarkName(index: number, options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId(`benchmark-section-name-${index}`, options);
-  }
-
-  findBenchmarkParameterInput(
-    index: number,
-    parameterKey: string,
-    options?: Partial<Cypress.Timeoutable>,
-  ) {
-    return cy.findByTestId(`benchmark-${index}-parameter-input-${parameterKey}`, options);
-  }
-
-  findAdvancedParametersToggle(index: number) {
-    return cy
-      .findByTestId(`benchmark-advanced-toggle-${index}`)
-      .filter(':visible')
-      .first()
-      .find('button')
-      .first();
-  }
-
-  expandAdvancedParameters(index: number) {
-    return this.findAdvancedParametersToggle(index).then(($toggle) => {
-      if ($toggle.attr('aria-expanded') !== 'true') {
-        return cy.wrap($toggle).click();
-      }
-
-      return cy.wrap($toggle);
-    });
-  }
-
-  findAdditionalParameters(index: number, options?: Partial<Cypress.Timeoutable>) {
-    return cy
-      .findByTestId(`benchmark-additional-parameters-${index}`, options)
-      .filter(':visible')
-      .first()
-      .find('textarea')
-      .first();
-  }
-
-  findContinueToRunButton(options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId('single-benchmark-continue-to-run', options);
   }
 }
 

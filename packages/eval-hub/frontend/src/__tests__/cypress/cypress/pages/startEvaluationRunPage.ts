@@ -13,6 +13,45 @@ class StartEvaluationRunPage {
     return cy.findByTestId('start-evaluation-form');
   }
 
+  findActiveBreadcrumb() {
+    return cy.findByTestId('start-evaluation-breadcrumb-active');
+  }
+
+  findAdvancedConfigurationToggle() {
+    return cy.findByTestId('start-evaluation-run-advanced-toggle').find('button').first();
+  }
+
+  findAdvancedConfigurationToggleContainer() {
+    return cy.get('[data-testid="start-evaluation-run-advanced-toggle"]');
+  }
+
+  findBenchmarkSettingsHeading() {
+    return cy.findByTestId('benchmark-settings-heading');
+  }
+
+  findEvaluationRunDetailsHeading() {
+    return cy.findByTestId('evaluation-run-details-heading');
+  }
+
+  findTestDataSourceHeading() {
+    return cy.findByTestId('start-evaluation-test-data-ref-heading');
+  }
+
+  findAdvancedBenchmarkParametersToggle() {
+    return cy
+      .findByTestId('start-evaluation-run-advanced-benchmark-parameters-toggle')
+      .find('button')
+      .first();
+  }
+
+  findAdvancedBenchmarkParametersContent() {
+    return cy.findByTestId('start-evaluation-run-advanced-benchmark-parameters-content');
+  }
+
+  findBenchmarkParameterInput(parameterKey: string) {
+    return cy.findByTestId(`single-benchmark-parameter-input-${parameterKey}`);
+  }
+
   findTestDataRefSourceToggle() {
     return cy.findByTestId('start-evaluation-test-data-ref-source-toggle');
   }
@@ -109,6 +148,12 @@ class StartEvaluationRunPage {
 
   findBenchmarkThreshold() {
     return cy.findByTestId('benchmark-threshold');
+  }
+
+  findBenchmarkThresholdInput() {
+    return cy.get(
+      '[data-testid="benchmark-threshold"] input[type="number"], input[data-testid="benchmark-threshold"]',
+    );
   }
 
   findPrimaryScorerMetricToggle() {

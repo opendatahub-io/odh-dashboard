@@ -78,6 +78,7 @@ type UseStartEvaluationRunFormParams = {
   benchmark: FlatBenchmark | undefined;
   collection: Collection | undefined;
   isCollectionFlow: boolean;
+  benchmarkParameterValues?: Record<string, unknown>;
   allowDeferredCollection?: boolean;
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
@@ -158,6 +159,7 @@ export function useStartEvaluationRunForm({
   benchmark,
   collection,
   isCollectionFlow,
+  benchmarkParameterValues,
   allowDeferredCollection = false,
   experiments,
   experimentsLoaded,
@@ -828,6 +830,9 @@ export function useStartEvaluationRunForm({
         return;
       }
     }
+
+    // Benchmark-declared fields take precedence over advanced JSON values with the same key.
+    Object.assign(parsedArgs, benchmarkParameterValues);
 
     const isNewExperiment = values.experimentMode === 'new';
     const experimentName = isNewExperiment

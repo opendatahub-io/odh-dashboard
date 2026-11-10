@@ -136,9 +136,13 @@ const navigateToBenchmarkConfiguration = (
   cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, [provider]);
 
   singleBenchmarkWizardPage.visit(NAMESPACE);
+  singleBenchmarkWizardPage.findBreadcrumb().should('contain.text', 'Benchmarks');
   singleBenchmarkWizardPage.findBenchmarkCheckbox(benchmarkId).click();
   singleBenchmarkWizardPage.findNextButton().click();
-  singleBenchmarkWizardPage.findConfigurationStep().should('exist');
+  startEvaluationRunPage.findForm().should('exist');
+  startEvaluationRunPage
+    .findActiveBreadcrumb()
+    .should('contain.text', provider.benchmarks?.find(({ id }) => id === benchmarkId)?.name);
 };
 
 const navigateToBenchmarkStart = (
@@ -146,8 +150,6 @@ const navigateToBenchmarkStart = (
   benchmarkId = testProvider.benchmarks?.[0].id ?? '',
 ) => {
   navigateToBenchmarkConfiguration(provider, benchmarkId);
-  singleBenchmarkWizardPage.findContinueToRunButton().click();
-
   startEvaluationRunPage.findForm().should('exist');
 };
 
@@ -174,11 +176,37 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findBenchmarkNameDisplay().should('contain.text', 'Alpha Bench');
+    startEvaluationRunPage.findBenchmarkParameterInput('num_examples').should('have.value', '817');
+    startEvaluationRunPage.findBenchmarkParameterInput('num_few_shot').should('have.value', '0');
     startEvaluationRunPage.findEvaluationNameInput().should('not.have.value', '');
     startEvaluationRunPage.findSourceModeToggle().should('not.exist');
     startEvaluationRunPage.findModelPickerToggle().should('exist');
+    startEvaluationRunPage.findEvaluationRunDetailsHeading().should('not.exist');
+    startEvaluationRunPage
+      .findAdvancedConfigurationToggle()
+      .should('contain.text', 'Advanced configuration');
+    startEvaluationRunPage.findBenchmarkSettingsHeading().should('be.visible');
+    startEvaluationRunPage
+      .findTestDataSourceHeading()
+      .should('be.visible')
+      .and('have.class', 'pf-v6-u-font-size-md');
     startEvaluationRunPage.findSubmitButton().should('exist');
     startEvaluationRunPage.findCancelButton().should('exist');
+  });
+
+  it('should expand advanced benchmark parameters at the bottom of benchmark settings', () => {
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage
+      .findAdvancedBenchmarkParametersToggle()
+      .should('contain.text', 'Show advanced benchmark parameters')
+      .click();
+
+    startEvaluationRunPage
+      .findAdvancedBenchmarkParametersToggle()
+      .should('contain.text', 'Hide advanced benchmark parameters');
+    startEvaluationRunPage.findAdvancedBenchmarkParametersContent().should('be.visible');
+    startEvaluationRunPage.findAdditionalArgsUpload().should('be.visible');
   });
 
   it('should default to new experiment mode when no experiments exist', () => {
@@ -255,26 +283,48 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
   it('should display threshold slider pre-populated from benchmark metadata', () => {
     navigateToBenchmarkConfiguration();
 
-    singleBenchmarkWizardPage.findBenchmarkThreshold().should('exist');
-    singleBenchmarkWizardPage
-      .findBenchmarkThreshold()
-      .find('input[type="number"]')
-      .should('have.value', '25');
+    startEvaluationRunPage.findBenchmarkThreshold().should('exist');
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '25');
+  });
+
+  it('should submit benchmark-declared parameter values from their dedicated fields', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-benchmark-parameters',
+      name: 'benchmark-parameters-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createJobWithBenchmarkParameters',
+    );
+
+    navigateToBenchmarkStart();
+    startEvaluationRunPage.findBenchmarkParameterInput('num_examples').clear().type('42');
+
+    fillExternalModelFields('my-model', 'https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createJobWithBenchmarkParameters').then((interception) => {
+      expect(interception.request.body.benchmarks[0].parameters).to.deep.include({
+        num_examples: 42,
+        num_few_shot: 0,
+      });
+    });
   });
 
   it('should display primary scorer metric dropdown with correct default', () => {
     navigateToBenchmarkConfiguration();
 
-    singleBenchmarkWizardPage.findPrimaryMetricToggle().should('exist');
-    singleBenchmarkWizardPage.findPrimaryMetricToggle().should('contain.text', 'Accuracy');
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('exist');
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'Accuracy');
   });
 
   it('should allow changing the primary scorer metric', () => {
     navigateToBenchmarkConfiguration();
 
-    singleBenchmarkWizardPage.findPrimaryMetricToggle().click();
-    singleBenchmarkWizardPage.findPrimaryMetricOption('f1').click();
-    singleBenchmarkWizardPage.findPrimaryMetricToggle().should('contain.text', 'F1');
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'F1');
   });
 
   it('should include pass_criteria in submission when threshold is set from metadata', () => {
@@ -319,8 +369,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
     );
 
     navigateToBenchmarkConfiguration(rawMetricProvider, 'constant');
-    singleBenchmarkWizardPage.findBenchmarkThreshold().should('have.value', '10');
-    singleBenchmarkWizardPage.findContinueToRunButton().click();
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '10');
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
@@ -346,11 +395,7 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
 
     navigateToBenchmarkConfiguration();
 
-    singleBenchmarkWizardPage
-      .findBenchmarkThreshold()
-      .find('input[type="number"]')
-      .type('{selectall}50');
-    singleBenchmarkWizardPage.findContinueToRunButton().click();
+    startEvaluationRunPage.findBenchmarkThresholdInput().type('{selectall}50');
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
@@ -376,9 +421,8 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
 
     navigateToBenchmarkConfiguration();
 
-    singleBenchmarkWizardPage.findPrimaryMetricToggle().click();
-    singleBenchmarkWizardPage.findPrimaryMetricOption('f1').click();
-    singleBenchmarkWizardPage.findContinueToRunButton().click();
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('f1').click();
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
@@ -393,12 +437,12 @@ describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
 
   it('should preserve the threshold when the primary metric changes', () => {
     navigateToBenchmarkConfiguration(rawMetricProvider, 'constant');
-    singleBenchmarkWizardPage.findBenchmarkThreshold().should('have.value', '10');
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '10');
 
-    singleBenchmarkWizardPage.findPrimaryMetricToggle().click();
-    singleBenchmarkWizardPage.findPrimaryMetricOption('mean_ttft_ms').click();
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
+    startEvaluationRunPage.findPrimaryScorerMetricOption('mean_ttft_ms').click();
 
-    singleBenchmarkWizardPage.findBenchmarkThreshold().should('have.value', '10');
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '10');
   });
 });
 
@@ -412,10 +456,7 @@ describe('Start Evaluation Run - Collection Threshold', () => {
     navigateToCollectionStart();
 
     startEvaluationRunPage.findBenchmarkThreshold().should('exist');
-    startEvaluationRunPage
-      .findBenchmarkThreshold()
-      .find('input[type="number"]')
-      .should('have.value', '70');
+    startEvaluationRunPage.findBenchmarkThresholdInput().should('have.value', '70');
   });
 
   it('should not display primary scorer metric dropdown for collection flow', () => {
@@ -438,10 +479,7 @@ describe('Start Evaluation Run - Collection Threshold', () => {
 
     navigateToCollectionStart();
 
-    startEvaluationRunPage
-      .findBenchmarkThreshold()
-      .find('input[type="number"]')
-      .type('{selectall}85');
+    startEvaluationRunPage.findBenchmarkThresholdInput().type('{selectall}85');
 
     fillExternalModelFields('safety-model', 'https://safety.example.com/v1');
     startEvaluationRunPage.findSubmitButton().click();
@@ -496,7 +534,7 @@ describe('Start Evaluation Run - Submission Error', () => {
 
     startEvaluationRunPage.findForm().should('exist');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
-    cy.url().should('include', '/create/single-benchmark');
+    cy.url().should('include', `/create/start?type=benchmark`);
   });
 });
 
@@ -509,6 +547,9 @@ describe('Start Evaluation Run - Collection Mode', () => {
   it('should render form with correct collection summary', () => {
     navigateToCollectionStart();
 
+    startEvaluationRunPage.findAdvancedConfigurationToggleContainer().should('not.exist');
+    startEvaluationRunPage.findBenchmarkSettingsHeading().should('not.exist');
+    startEvaluationRunPage.findShowAdditionalArgsCheckbox().should('exist');
     startEvaluationRunPage.findBenchmarkNameDisplay().should('contain.text', 'Safety Suite');
     startEvaluationRunPage.findEvaluationNameInput().should('not.have.value', '');
     startEvaluationRunPage.findSubmitButton().should('exist');
@@ -564,6 +605,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     ]);
 
     navigateToBenchmarkStart();
+    startEvaluationRunPage.findAdvancedConfigurationToggle().click();
 
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
   });
@@ -573,6 +615,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
 
     navigateToBenchmarkStart();
     cy.wait('@mlflowExperiments');
+    startEvaluationRunPage.findAdvancedConfigurationToggle().click();
 
     startEvaluationRunPage.findExperimentModeExisting().should('be.checked');
     startEvaluationRunPage.findExperimentModeNew().click();
@@ -596,6 +639,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     }).as('mlflowExperimentsDelayed');
 
     navigateToBenchmarkStart();
+    startEvaluationRunPage.findAdvancedConfigurationToggle().click();
 
     startEvaluationRunPage.findExperimentModeNew().click();
     startEvaluationRunPage.findExperimentModeNew().should('be.checked');
@@ -625,6 +669,7 @@ describe('Start Evaluation Run - MLflow Experiment', () => {
     }).as('mlflowExperimentsDelayed');
 
     navigateToBenchmarkStart();
+    startEvaluationRunPage.findAdvancedConfigurationToggle().click();
 
     startEvaluationRunPage.findExperimentModeNew().click();
     startEvaluationRunPage.findExperimentModeExisting().click();
@@ -646,13 +691,13 @@ describe('Start Evaluation Run - Cancel', () => {
     mockMlflowExperiments([]);
   });
 
-  it('should return to benchmark configuration on cancel', () => {
+  it('should return to the benchmark selector with the benchmark still selected on cancel', () => {
     navigateToBenchmarkStart();
 
     startEvaluationRunPage.findCancelButton().click();
 
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/single-benchmark`);
-    singleBenchmarkWizardPage.findConfigurationStep().should('exist');
+    singleBenchmarkWizardPage.findBenchmarkCheckbox('bench-alpha').should('be.checked');
   });
 });
 
@@ -781,7 +826,7 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
 
   it('should render the test data section for single benchmark runs but not collection flows', () => {
     navigateToBenchmarkConfiguration();
-    singleBenchmarkWizardPage.findTestDataRefSourceToggle().should('exist');
+    startEvaluationRunPage.findTestDataRefSourceToggle().should('exist');
 
     navigateToCollectionStart();
     startEvaluationRunPage.findTestDataRefSourceToggle().should('not.exist');
@@ -800,11 +845,10 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
 
     navigateToBenchmarkConfiguration();
 
-    singleBenchmarkWizardPage.findTestDataRefSourceToggle().click();
-    singleBenchmarkWizardPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
-    singleBenchmarkWizardPage.findTestDataRefField('claimName').type('eval-datasets-pvc');
-    singleBenchmarkWizardPage.findTestDataRefField('subPath').type('benchmark-a');
-    singleBenchmarkWizardPage.findContinueToRunButton().click();
+    startEvaluationRunPage.findTestDataRefSourceToggle().click();
+    startEvaluationRunPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
+    startEvaluationRunPage.findTestDataRefField('claimName').type('eval-datasets-pvc');
+    startEvaluationRunPage.findTestDataRefField('subPath').type('benchmark-a');
 
     fillExternalModelFields('my-model', 'https://api.example.com/v1');
     startEvaluationRunPage.findSubmitButton().should('be.enabled');
@@ -821,15 +865,15 @@ describe('Start Evaluation Run - Benchmark Test Data', () => {
   it('should block submission when required test data fields are empty', () => {
     navigateToBenchmarkConfiguration();
 
-    singleBenchmarkWizardPage.findTestDataRefSourceToggle().click();
-    singleBenchmarkWizardPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
-    singleBenchmarkWizardPage.findTestDataRefField('claimName').type('eval-datasets-pvc').clear();
+    startEvaluationRunPage.findTestDataRefSourceToggle().click();
+    startEvaluationRunPage.findTestDataRefOption('Persistent volume claim (PVC)').click();
+    startEvaluationRunPage.findTestDataRefField('claimName').type('eval-datasets-pvc').clear();
 
-    singleBenchmarkWizardPage
+    startEvaluationRunPage
       .findTestDataRefFieldError('claimName')
       .should('contain.text', 'Claim name is required.');
 
-    singleBenchmarkWizardPage.findContinueToRunButton().should('be.disabled');
+    startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 });
 /* eslint-enable camelcase */
