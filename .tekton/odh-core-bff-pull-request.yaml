@@ -11,6 +11,10 @@ metadata:
       event == "pull_request"
       && target_branch == "main"
       && ( "distributions/core-bff/**".pathChanged()
+            || "distributions/maas-portal/**".pathChanged()
+            || "distributions/base/**".pathChanged()
+            || "packages/maas/**".pathChanged()
+            || "packages/gen-ai/**".pathChanged()
             || "prefetch/pnpm/**".pathChanged()
             || ".tekton/odh-core-bff-pull-request.yaml".pathChanged()
       )
