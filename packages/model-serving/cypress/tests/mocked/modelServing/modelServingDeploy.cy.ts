@@ -2109,11 +2109,11 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
 
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      modelServingWizard.findManualEditModeButton().click();
-      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
 
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.findStartFromScratchButton().click();
       yamlEditor.waitForReady();
 
