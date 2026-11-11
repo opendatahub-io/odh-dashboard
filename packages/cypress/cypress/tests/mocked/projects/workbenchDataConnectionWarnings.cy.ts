@@ -40,7 +40,7 @@ const initIntercepts = ({
   isEmpty = false,
 }: HandlersProps = {}) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
-  cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
   cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
