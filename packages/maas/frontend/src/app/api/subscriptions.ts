@@ -94,7 +94,10 @@ export const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   (v.endpoint === undefined || typeof v.endpoint === 'string');
 
 const isTokenMetadata = (v: unknown): v is TokenMetadata =>
-  isRecord(v) && typeof v.organizationId === 'string' && typeof v.costCenter === 'string';
+  isRecord(v) &&
+  (v.organizationId === undefined || typeof v.organizationId === 'string') &&
+  (v.costCenter === undefined || typeof v.costCenter === 'string') &&
+  (v.labels === undefined || typeof v.labels === 'object');
 
 export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isRecord(v) &&
