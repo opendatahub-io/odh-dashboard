@@ -78,7 +78,7 @@ items:
       spec:
         containers:
         - name: postgresql
-          image: registry.redhat.io/rhel9/postgresql-16@sha256:4f24e4cd2206885316fe01931cfd38e27fb38b847f0f8b0dd5fe6e46dbea5c19
+          image: registry.redhat.io/rhel9/postgresql-16:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: POSTGRESQL_USER
