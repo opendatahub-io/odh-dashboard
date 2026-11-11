@@ -8,6 +8,7 @@ import {
 } from '../../../../extension-points/deployment-wizard';
 import type { WizardFormData } from '../../../shared/types/form-data';
 import { useWizardFieldApply } from '../useWizardFieldApply';
+import { getConnectionSecret } from '../utils';
 
 /**
  * Based on the formData, return the assemble function that will be used to assemble the deployment.
@@ -43,8 +44,16 @@ const useAssembleDeploymentFn = (
 export const useFormToResourcesTransformer = (
   formData: WizardFormData,
   existingDeployment?: Deployment,
-  connectionSecretName?: string, // todo remove
-): { resources: DeploymentAssemblyResources<Deployment>; loaded: boolean; errors?: Error[] } => {
+): {
+  resources: DeploymentAssemblyResources<Deployment>;
+  setLatestResourcesFromYaml: (newResources: DeploymentAssemblyResources) => void;
+  loaded: boolean;
+  errors?: Error[];
+} => {
+  // Keep track of the latest resources from YAML (or edit on first load) so we can merge unmanaged properties added via YAML
+  const [lastestResourcesFromYamlOrEdit, setLatestResourcesFromYaml] = React.useState<
+    DeploymentAssemblyResources | undefined
+  >(existingDeployment);
   // As of now, the assembleFn is what creates the Deployment / model resource with most form data applied.
   // applyFieldData is then used to apply the field data to the deployment.
   const [assembleDeploymentFn, assembleDeploymentFnLoaded, assembleDeploymentFnErrors] =
@@ -60,33 +69,35 @@ export const useFormToResourcesTransformer = (
     return [...assembleDeploymentFnErrors, ...applyExtensionErrors];
   }, [assembleDeploymentFnErrors, applyExtensionErrors]);
 
-  return React.useMemo(() => {
+  const formResources: DeploymentAssemblyResources<Deployment> = React.useMemo(() => {
     if (!assembleDeploymentFn) {
-      return { resources: {}, loaded, errors };
+      return {};
     }
     let deployment = assembleDeploymentFn(
       formData,
-      existingDeployment,
+      lastestResourcesFromYamlOrEdit,
       undefined,
-      connectionSecretName,
+      getConnectionSecret(formData.state),
     );
     deployment = applyFieldData(deployment);
 
     return {
-      resources: {
-        model: deployment.model,
-        ...(deployment.server ? { server: deployment.server } : {}),
+      model: deployment.model,
+      ...(deployment.server ? { server: deployment.server } : {}),
+    };
+  }, [applyFieldData, assembleDeploymentFn, lastestResourcesFromYamlOrEdit, formData]);
+
+  return React.useMemo(
+    () => ({
+      resources: formResources,
+      setLatestResourcesFromYaml: (newResources: DeploymentAssemblyResources | undefined) => {
+        setLatestResourcesFromYaml((prev) => {
+          return { ...prev, model: newResources?.model };
+        });
       },
       loaded,
       errors,
-    };
-  }, [
-    assembleDeploymentFn,
-    formData,
-    existingDeployment,
-    applyFieldData,
-    loaded,
-    errors,
-    connectionSecretName,
-  ]);
+    }),
+    [formResources, loaded, errors],
+  );
 };

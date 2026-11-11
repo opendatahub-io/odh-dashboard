@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import DeleteModal from '@odh-dashboard/ui-core/components/DeleteModal';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';

@@ -33,6 +33,9 @@ for (const source of [
   `import '@odh-dashboard/analytics/deep';`,
   `import '@odh-dashboard/analytics/types/deep';`,
   `import '@odh-dashboard/analytics/types-extra';`,
+  `import '@odh-dashboard/analytics/react/deep';`,
+  `import '@odh-dashboard/analytics/react-extra';`,
+  `export * from '@odh-dashboard/analytics/react/deep';`,
   `export * from '@odh-dashboard/analytics';`,
   `import '@segment/analytics-next';`,
   `import '@segment/analytics-next/deep';`,
@@ -61,7 +64,10 @@ for (const global of ['window', 'globalThis', 'self']) {
 }
 
 for (const source of [
-  `import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api'; useTrackEvent()('event', {});`,
+  `import { useTrackEvent } from '@odh-dashboard/analytics/react'; useTrackEvent()('event', {});`,
+  `import { AnalyticsTrackingProvider, useTrackPageEvent } from '@odh-dashboard/analytics/react';`,
+  `export { useTrackEvent } from '@odh-dashboard/analytics/react';`,
+  `import * as tracking from '@odh-dashboard/analytics/react'; tracking.useTrackEvent();`,
   `import { TrackingOutcome } from '@odh-dashboard/analytics/types';`,
   `export { TrackingOutcome } from '@odh-dashboard/analytics/types';`,
   `export * from '@odh-dashboard/analytics/types';`,
