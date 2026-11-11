@@ -1,7 +1,7 @@
 import { useLocation, useNavigate, type NavigateFunction } from 'react-router-dom';
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { getDeploymentWizardRoute } from './utils';
 import { useExtractFormDataFromDeployment } from './useExtractFormDataFromDeployment';
 import { InitialWizardFormData } from '../../shared/types/form-data';
@@ -71,7 +71,7 @@ export const useNavigateToDeploymentWizard = (
   const fromProjectNavigator = navSource?.fromProjectNavigator;
 
   // Load hooks needed for the deployment wizard
-  const { formData, loaded, error } = useExtractFormDataFromDeployment(deployment);
+  const { formData, loaded, errors } = useExtractFormDataFromDeployment(deployment);
   const location = useLocation();
   let returnRoute = returnRouteValue ?? location.pathname;
   if (returnRoute.includes('projects')) {
@@ -95,7 +95,10 @@ export const useNavigateToDeploymentWizard = (
         ...(initialData ?? {}),
         ...(initialDataOnNavigate ?? {}),
         // If extraction failed for an existing deployment, auto-fallback to YAML edit mode
-        viewMode: deployment && error && isYAMLViewerEnabled ? 'yaml-edit' : undefined,
+        viewMode:
+          deployment && errors && errors.length > 0 && isYAMLViewerEnabled
+            ? 'yaml-edit'
+            : undefined,
       };
 
       fireDeployWizardStarted(
@@ -136,7 +139,7 @@ export const useNavigateToDeploymentWizard = (
       returnRoute,
       cancelReturnRoute,
       trackEvent,
-      error,
+      errors,
       isYAMLViewerEnabled,
       fromCatalog,
       catalogModelId,
@@ -157,10 +160,10 @@ export const useNavigateToDeploymentWizard = (
   return React.useCallback(
     (projectName?: string, initialDataOnNavigate?: InitialWizardFormData | null): void => {
       // Log extraction errors but allow navigation with YAML fallback
-      if (deployment && error) {
+      if (deployment && errors && errors.length > 0) {
         console.warn(
           'useNavigateToDeploymentWizard: Extraction error, will fallback to YAML mode:',
-          error.message,
+          errors,
         );
       }
 
@@ -176,6 +179,6 @@ export const useNavigateToDeploymentWizard = (
       // Navigate immediately if data is ready or no deployment is being edited
       executeNavigation(projectName, initialDataOnNavigate);
     },
-    [executeNavigation, loaded, error, deployment],
+    [executeNavigation, loaded, errors, deployment],
   );
 };

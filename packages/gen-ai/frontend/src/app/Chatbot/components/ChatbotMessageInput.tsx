@@ -15,7 +15,7 @@ import { ChatbotFootnote, FileDetailsLabel, MessageBar } from '@patternfly/chatb
 import { FileRejection } from 'react-dropzone';
 import { OutlinedFileImageIcon, VolumeUpIcon, OutlinedFileAltIcon } from '@patternfly/react-icons';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   VISION_UPLOAD_CONFIG,
   DOCUMENT_ATTACHMENT_CONFIG,
