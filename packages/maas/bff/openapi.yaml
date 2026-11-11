@@ -253,6 +253,15 @@ paths:
         - models
       summary: List MaaS Models
       operationId: listModels
+      parameters:
+        - name: X-MaaS-Return-All-Models
+          in: header
+          required: false
+          schema:
+            type: string
+          description: >-
+            Optional. When set (e.g. "true"), forwarded to the upstream MaaS
+            API so enriched model results are returned for Gen-AI consumers.
       description: |
         Lists available large language models in OpenAI-compatible format.
         Only the optional X-MaaS-Return-All-Models header is forwarded to the upstream MaaS API, preserving enriched model results for Gen-AI consumers. Other incoming headers are not forwarded. The BFF sets Content-Type and derives Authorization from the authenticated request identity, as it does for API-key requests.
