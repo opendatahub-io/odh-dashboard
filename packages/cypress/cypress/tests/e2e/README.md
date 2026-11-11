@@ -109,6 +109,38 @@ unconfigured or its connection-list lookup to hit a fallback-eligible failure.
 A successful DCH list response, including an empty one, keeps RHOAI connections
 as display metadata only and does not satisfy this test.
 
+### AutoRAG E2E cluster prerequisites
+
+The AutoRAG completion/results browser test runs against a live cluster. The
+cluster must have a ready Data Science Pipelines installation with the managed
+pipelines `documents-rag-optimization-pipeline` and `documents-indexing-pipeline`,
+and each pipeline must have at least one usable version.
+
+The test also requires the dashboard operator deployment to be discoverable via
+`OPERATOR_NAMESPACE` (or across the cluster when it is unset) and to expose a
+non-empty `RELATED_IMAGE_POSTGRESQL_16_IMAGE` value on its manager container.
+The temporary project-scoped PGVector database uses that operator-provided image;
+the test fails fast when the related image is unavailable.
+
+Completion/results coverage additionally requires all four live MaaS variables
+in the Cypress test configuration: `MAAS_URL`, `MAAS_API_KEY`,
+`MAAS_GENERATION_MODEL_ID`, and `MAAS_EMBEDDING_MODEL_ID`. `MAAS_URL` must be an
+HTTPS service root, and both configured models must be present and ready. When
+these values are not configured, lifecycle coverage uses the simulator and the
+completion/results test is skipped.
+
+The AutoRAG fixture uses the configured S3 credentials and `BUCKET_2` from
+`test-variables.yml`; the bucket, endpoint, region, and DSPA Secret must be
+valid. For disconnected clusters, set `CYPRESS_DSPA_S3_ENDPOINT` to the
+cluster-internal S3 endpoint. If live MaaS or S3 prerequisites are missing or
+invalid, lifecycle coverage may run with the simulator, but completion/results
+coverage is skipped.
+
+The default AutoRAG completion timeout is 60 minutes and the cancellation
+timeout is 2 minutes. Override them with `AUTORAG_COMPLETION_TIMEOUT_MS` and
+`AUTORAG_CANCELLATION_TIMEOUT_MS` when the test environment requires different
+limits.
+
 ### Run Tests in Interactive Mode
 
 Use the Cypress Test Runner for an interactive GUI:
