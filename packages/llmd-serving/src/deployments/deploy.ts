@@ -8,7 +8,10 @@ import {
   ModelAvailabilityFieldsData,
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
-import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type {
+  DeploymentAssemblyFn,
+  DeploymentAssemblyResources,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type {
   HardwareProfileBinding,
   HardwareProfileConfig,
@@ -210,7 +213,7 @@ const assembleLLMInferenceServiceConfig = (
 
 export const assembleLLMdDeployment = (
   wizardData: WizardFormData,
-  existingDeployment?: LLMdDeployment,
+  existingDeployment?: DeploymentAssemblyResources<LLMdDeployment>,
   applyFieldData?: DeploymentAssemblyFn<LLMdDeployment>,
   connectionSecretName?: string, // We really need to remove this, kept for backwards compatibility
 ): LLMdDeployment => {
