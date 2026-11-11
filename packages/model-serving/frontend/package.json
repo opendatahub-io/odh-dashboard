@@ -70,6 +70,7 @@
     "webpack": "5.104.1"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
     "@patternfly/patternfly": "~6.6.1",

@@ -34,7 +34,9 @@ jest.mock('../deploying/useModelDeploymentSubmit');
 jest.mock('../yaml/useYamlViewSession');
 jest.mock('../yaml/useYamlResourcesResult');
 jest.mock('../yaml/useFormToResourcesTransformer');
-jest.mock('../yaml/DeploymentWizardYAMLView', () => ({ DeploymentWizardYAMLView: () => null }));
+jest.mock('../yaml/lazyDeploymentWizardYAMLView', () => ({
+  DeploymentWizardYAMLView: () => null,
+}));
 jest.mock('../yaml/DeploymentWizardViewModeToggle', () => ({
   DeploymentWizardViewModeToggle: () => null,
 }));

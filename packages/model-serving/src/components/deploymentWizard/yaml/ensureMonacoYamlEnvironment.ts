@@ -4,34 +4,32 @@ import { loader } from '@monaco-editor/react';
 let loaderConfigured = false;
 
 /**
- * Point this remote's @monaco-editor/react at a bundled monaco-editor and register
- * the monaco-yaml worker. Required because Module Federation gives the remote its
- * own loader instance — host `loader.config` does not apply here.
+ * Select the bundled monaco-editor for PatternFly's CodeEditor when the YAML
+ * view chunk loads. The wizard route lazy-loads that chunk, so this does not
+ * run on other pages.
  *
- * MonacoEnvironment is re-asserted on every call so a host bootstrap / HMR pass
- * cannot leave a stale getWorker that fails yaml validation.
+ * `loader.config` alone does not reach the editor. PatternFly calls `loader.init()`
+ * before `beforeMount`, and that init uses `window.monaco` when the shared loader
+ * was not configured. Without this, the editor downloads Monaco 0.55.1 from the CDN.
+ * That worker has no `getCodeAction` / `doValidation`, which monaco-yaml calls.
  *
- * Does not publish `window.monaco`. Host and remote can hold different Monaco
- * copies; the beforeMount instance is published after configuration.
- *
- * Same pattern as notebooks WorkspaceKindYamlEditor / NotebooksWrapper.
+ * Leave `MonacoEnvironment` to the host Monaco webpack plugin. It maps `yaml` to
+ * `yaml.worker.js` (monaco-yaml, which implements those calls). Replacing it with
+ * `new URL(..., import.meta.url)` points at federation runtime shells instead.
  */
 export const ensureMonacoYamlEnvironment = (): void => {
   if (typeof window === 'undefined') {
     return;
   }
 
-  if (!loaderConfigured) {
-    loader.config({ monaco });
-    loaderConfigured = true;
+  if (loaderConfigured) {
+    return;
   }
+  loaderConfigured = true;
 
-  window.MonacoEnvironment = {
-    getWorker(_moduleId: string, label: string): Worker {
-      if (label === 'yaml') {
-        return new Worker(new URL('monaco-yaml/yaml.worker', import.meta.url));
-      }
-      return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker', import.meta.url));
-    },
-  };
+  loader.config({ monaco });
+  // Same hook DashboardCodeEditor and DCHCodeEditor use so PatternFly finds this build.
+  if (!window.monaco?.editor) {
+    Object.assign(window, { monaco });
+  }
 };

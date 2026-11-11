@@ -55,10 +55,8 @@ export const DeploymentWizardYAMLView: React.FC<DeploymentWizardYAMLViewProps> =
 
   const handleBeforeMount = React.useCallback(
     (monacoInstance: Parameters<typeof configureDeploymentWizardMonacoYaml>[0]) => {
-      // Re-assert remote workers immediately before the editor mounts (host may have
-      // overwritten MonacoEnvironment during bootstrap / other editor loads).
-      // configureDeploymentWizardMonacoYaml publishes monacoInstance on window.monaco
-      // after that setup, so this call cannot replace the editor's Monaco.
+      // Select the bundled editor before PatternFly finishes mounting. The configure
+      // call below publishes this beforeMount instance on window.monaco afterwards.
       ensureMonacoYamlEnvironment();
       monacoYamlRef.current?.dispose();
       monacoYamlRef.current = configureDeploymentWizardMonacoYaml(monacoInstance);

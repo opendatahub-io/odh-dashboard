@@ -33,6 +33,7 @@ const sharedPluginModules: Record<string, Partial<SharedModuleMetadata>> = {
   '@patternfly/react-catalog-view-extension': {},
   '@patternfly/react-charts': {},
   '@patternfly/react-code-editor': {},
+  '@monaco-editor/react': {},
   '@patternfly/react-component-groups': {},
   '@patternfly/react-core': { eager: true, allowFallback: false },
   '@patternfly/react-drag-drop': {},

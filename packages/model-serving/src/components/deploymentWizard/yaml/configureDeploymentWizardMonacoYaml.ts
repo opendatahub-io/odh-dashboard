@@ -19,8 +19,8 @@ declare global {
  * Passes an empty `schemas` array by default so schema-aware linting can be added later
  * without reworking this call site.
  *
- * Monaco + yaml worker are initialized in this remote (see ensureMonacoYamlEnvironment)
- * because MF gives the remote its own `@monaco-editor/react` loader instance.
+ * Bundled Monaco is selected when the YAML editor module loads
+ * (see ensureMonacoYamlEnvironment), so PatternFly does not download the CDN build.
  * The supplied editor instance is published on `window.monaco` after that setup so a
  * remote Monaco import cannot replace the instance Cypress reads.
  */
