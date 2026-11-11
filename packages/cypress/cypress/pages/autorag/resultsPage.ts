@@ -130,6 +130,16 @@ class AutoragResultsPage {
     return cy.findByTestId(`tab-${tabKey}`);
   }
 
+  findPatternDetailsTabIfPresent(tabKey: string) {
+    return this.findPatternDetailsModal().then(($modal) =>
+      $modal.find(`[data-testid="tab-${tabKey}"]`),
+    );
+  }
+
+  findPatternDetailsContent() {
+    return cy.findByTestId('pattern-details-content');
+  }
+
   // Runs table (experiments page)
   findRunsTable() {
     return cy.findByTestId('autorag-runs-table');

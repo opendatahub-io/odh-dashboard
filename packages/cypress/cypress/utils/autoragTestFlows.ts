@@ -679,31 +679,42 @@ export const verifyAutoragResultsInteraction = (): void => {
   autoragResultsPage.findPatternDetailsModal().should('be.visible');
 
   cy.step('Verify Pattern information tab (overview) is active by default');
-  autoragResultsPage.findPatternDetailsTab('pattern_information').should('exist');
+  autoragResultsPage
+    .findPatternDetailsTab('pattern_information')
+    .should('have.attr', 'aria-selected', 'true');
+  autoragResultsPage
+    .findPatternDetailsContent()
+    .should('have.attr', 'aria-label', 'Pattern information');
 
   cy.step('Verify CI scores chart on overview tab');
   autoragResultsPage.findCIScoresChart().should('exist');
   autoragResultsPage.findCIScoresLegend().should('exist');
 
+  const selectPatternDetailsTab = (tabKey: string, tabLabel: string): void => {
+    autoragResultsPage.findPatternDetailsTab(tabKey).click();
+    autoragResultsPage.findPatternDetailsTab(tabKey).should('have.attr', 'aria-selected', 'true');
+    autoragResultsPage.findPatternDetailsContent().should('have.attr', 'aria-label', tabLabel);
+  };
+
   cy.step('Navigate to Vector store settings tab');
-  autoragResultsPage.findPatternDetailsTab('store_binding').should('exist').click();
+  selectPatternDetailsTab('store_binding', 'Store binding');
 
   cy.step('Navigate to Chunking settings tab');
-  autoragResultsPage.findPatternDetailsTab('chunking').should('exist').click();
+  selectPatternDetailsTab('chunking', 'Chunking');
 
   cy.step('Navigate to Embedding settings tab');
-  autoragResultsPage.findPatternDetailsTab('embedding').should('exist').click();
+  selectPatternDetailsTab('embedding', 'Embedding');
 
   cy.step('Navigate to Retrieval settings tab');
-  autoragResultsPage.findPatternDetailsTab('retrieval').should('exist').click();
+  selectPatternDetailsTab('retrieval', 'Retrieval');
 
   cy.step('Navigate to Generation settings tab');
-  autoragResultsPage.findPatternDetailsTab('generation').should('exist').click();
+  selectPatternDetailsTab('generation', 'Generation');
 
   cy.step('Check if Sample Q&A tab exists (conditional on evaluation results)');
-  autoragResultsPage.findPatternDetailsModal().then(($modal) => {
-    if ($modal.find('[data-testid="tab-sample_qa"]').length) {
-      autoragResultsPage.findPatternDetailsTab('sample_qa').click();
+  autoragResultsPage.findPatternDetailsTabIfPresent('sample_qa').then(($tab) => {
+    if ($tab.length) {
+      selectPatternDetailsTab('sample_qa', 'Sample Q&A');
     }
   });
 
