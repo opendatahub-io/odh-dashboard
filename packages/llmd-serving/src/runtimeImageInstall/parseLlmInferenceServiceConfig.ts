@@ -10,7 +10,7 @@ export const parseLlmInferenceServiceConfig = (json: string): LLMInferenceServic
     resource = JSON.parse(json);
   } catch {
     throw new Error(
-      'The LLM accelerator configuration is not valid JSON. Return to the Runtime image and try again.',
+      'The LLM inference service configuration is not valid JSON. Return to the Runtime image and try again.',
     );
   }
   if (
@@ -19,12 +19,12 @@ export const parseLlmInferenceServiceConfig = (json: string): LLMInferenceServic
     typeof resource.metadata.name !== 'string'
   ) {
     throw new Error(
-      'The Runtime image must contain an LLM accelerator configuration with metadata.name.',
+      'The Runtime image must contain an LLM inference service configuration with metadata.name.',
     );
   }
   const { annotations } = resource.metadata;
   if (annotations !== undefined && !isRecord(annotations)) {
-    throw new Error('The LLM accelerator configuration annotations must be an object.');
+    throw new Error('The LLM inference service configuration annotations must be an object.');
   }
   // Annotation values must be strings before the existing name/version helpers consume them.
   const safeAnnotations = Object.fromEntries(

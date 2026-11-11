@@ -47,7 +47,10 @@ const initAllTabs = () => {
 const TABS = [
   { name: 'General settings', path: `${BASE}/general-settings` },
   { name: 'Serving runtime templates', path: `${BASE}/serving-runtime-templates` },
-  { name: 'LLM accelerator configurations', path: `${BASE}/llm-accelerator-configurations` },
+  {
+    name: 'LLM inference service configurations',
+    path: `${BASE}/llm-inference-service-configurations`,
+  },
   { name: 'llm-d topology configurations', path: `${BASE}/topology-configurations` },
   { name: 'llm-d routing configurations', path: `${BASE}/routing-configurations` },
   { name: 'Runtime library', path: `${BASE}/serving-runtime-catalog` },
