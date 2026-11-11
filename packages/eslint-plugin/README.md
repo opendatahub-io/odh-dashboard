@@ -29,7 +29,7 @@ module.exports = eslintConfig
 
 | Rule                  | Description                                                                                                                                                                                                                                             |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `no-direct-analytics` | Reject direct feature analytics implementation imports and globals; allow SDK-free contracts from `@odh-dashboard/analytics/types` and providers/hooks from `@odh-dashboard/analytics/react`. Enable for migrated files with the [feature analytics preset](../eslint-config/README.md#feature-analytics-guards). |
+| `no-direct-analytics` | Reject direct feature analytics implementation imports and globals; allow SDK-free contracts from `@odh-dashboard/analytics/types`, providers/hooks from `@odh-dashboard/analytics/react`, and the compatibility factory from `@odh-dashboard/analytics/standalone` for standalone bootstrap wiring. Enable for migrated files with the [feature analytics preset](../eslint-config/README.md#feature-analytics-guards). |
 | See `rules/`          | Custom rules defined in the `rules/` directory                                                                                                                                                                                                          |
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).

@@ -1,15 +1,19 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { Label, type LabelProps } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { DeleteRunModal, StopRunModal } from '@odh-dashboard/autox-core/ui/components/feature';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { TASK_TYPE_LABELS } from '~/app/utilities/const';
 import { automlReconfigurePathname, automlResultsPathname } from '~/app/utilities/routes';
-import { AUTOML_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+import {
+  fireAutomlRunStopped,
+  fireAutomlRunDeleted,
+  TrackingOutcome,
+} from '~/app/utilities/tracking';
 import {
   getTaskType,
   isRunTerminatable,
@@ -66,6 +70,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   namespace,
   onActionComplete,
 }) => {
+  const trackEvent = useTrackEvent();
   const taskType = getTaskType(run);
   const predictionTypeLabel = taskType ? (TASK_TYPE_LABELS[taskType] ?? taskType) : '—';
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
@@ -202,7 +207,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         isTerminating={isTerminating}
         runName={run.display_name}
         onCancel={() =>
-          fireFormTrackingEvent(AUTOML_EVENTS.RUN_STOPPED, {
+          fireAutomlRunStopped(trackEvent, {
             outcome: TrackingOutcome.cancel,
             source: 'runsList',
           })
@@ -216,7 +221,7 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         runName={run.display_name}
         productName="AutoML"
         onCancel={() =>
-          fireFormTrackingEvent(AUTOML_EVENTS.RUN_DELETED, {
+          fireAutomlRunDeleted(trackEvent, {
             outcome: TrackingOutcome.cancel,
             source: 'runsList',
           })
