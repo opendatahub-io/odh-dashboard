@@ -1,13 +1,13 @@
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { TopologyType } from '../../types';
 import {
-  LlmAcceleratorConfigTrackingEvent,
+  LlmInferenceServiceConfigTrackingEvent,
   TopologyConfigTrackingEvent,
   RoutingConfigTrackingEvent,
-  fireLlmAcceleratorConfigCreated,
-  fireLlmAcceleratorConfigUpdated,
-  fireLlmAcceleratorConfigDeleted,
-  fireLlmAcceleratorConfigEnablementChanged,
+  fireLlmInferenceServiceConfigCreated,
+  fireLlmInferenceServiceConfigUpdated,
+  fireLlmInferenceServiceConfigDeleted,
+  fireLlmInferenceServiceConfigEnablementChanged,
   fireTopologyConfigCreated,
   fireTopologyConfigUpdated,
   fireTopologyConfigDeleted,
@@ -18,19 +18,19 @@ import {
 
 const mockTrackEvent = jest.fn();
 
-describe('LLM accelerator config tracking', () => {
+describe('LLM inference service config tracking', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should fire the Created event with mode through the supplied tracking callback', () => {
-    fireLlmAcceleratorConfigCreated(mockTrackEvent, {
+    fireLlmInferenceServiceConfigCreated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
     });
 
-    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmInferenceServiceConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
@@ -42,8 +42,8 @@ describe('LLM accelerator config tracking', () => {
     { outcome: TrackingOutcome.submit, success: false },
     { outcome: TrackingOutcome.cancel },
   ])('should retain install attribution for $outcome/$success', (properties) => {
-    fireLlmAcceleratorConfigCreated(mockTrackEvent, { ...properties, mode: 'install' });
-    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
+    fireLlmInferenceServiceConfigCreated(mockTrackEvent, { ...properties, mode: 'install' });
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmInferenceServiceConfigTrackingEvent.CREATED, {
       ...properties,
       mode: 'create',
       source: 'install',
@@ -51,12 +51,12 @@ describe('LLM accelerator config tracking', () => {
   });
 
   it('should normalize Add form mode to the existing create analytics value', () => {
-    fireLlmAcceleratorConfigCreated(mockTrackEvent, {
+    fireLlmInferenceServiceConfigCreated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'add',
     });
-    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmInferenceServiceConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
@@ -64,54 +64,62 @@ describe('LLM accelerator config tracking', () => {
   });
 
   it('should fire the Created event with cancel outcome', () => {
-    fireLlmAcceleratorConfigCreated(mockTrackEvent, {
+    fireLlmInferenceServiceConfigCreated(mockTrackEvent, {
       outcome: TrackingOutcome.cancel,
       mode: 'duplicate',
     });
 
-    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.CREATED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmInferenceServiceConfigTrackingEvent.CREATED, {
       outcome: TrackingOutcome.cancel,
       mode: 'duplicate',
     });
   });
 
   it('should fire the Updated event', () => {
-    fireLlmAcceleratorConfigUpdated(mockTrackEvent, {
+    fireLlmInferenceServiceConfigUpdated(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
     });
 
-    expect(mockTrackEvent).toHaveBeenCalledWith(LlmAcceleratorConfigTrackingEvent.UPDATED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(LlmInferenceServiceConfigTrackingEvent.UPDATED, {
       outcome: TrackingOutcome.submit,
       success: true,
     });
   });
 
   it('should fire the Deleted event on submit and on cancel', () => {
-    fireLlmAcceleratorConfigDeleted(mockTrackEvent, {
+    fireLlmInferenceServiceConfigDeleted(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
     });
-    fireLlmAcceleratorConfigDeleted(mockTrackEvent, { outcome: TrackingOutcome.cancel });
+    fireLlmInferenceServiceConfigDeleted(mockTrackEvent, { outcome: TrackingOutcome.cancel });
 
-    expect(mockTrackEvent).toHaveBeenNthCalledWith(1, LlmAcceleratorConfigTrackingEvent.DELETED, {
-      outcome: TrackingOutcome.submit,
-      success: true,
-    });
-    expect(mockTrackEvent).toHaveBeenNthCalledWith(2, LlmAcceleratorConfigTrackingEvent.DELETED, {
-      outcome: TrackingOutcome.cancel,
-    });
+    expect(mockTrackEvent).toHaveBeenNthCalledWith(
+      1,
+      LlmInferenceServiceConfigTrackingEvent.DELETED,
+      {
+        outcome: TrackingOutcome.submit,
+        success: true,
+      },
+    );
+    expect(mockTrackEvent).toHaveBeenNthCalledWith(
+      2,
+      LlmInferenceServiceConfigTrackingEvent.DELETED,
+      {
+        outcome: TrackingOutcome.cancel,
+      },
+    );
   });
 
   it('should fire the Enablement Changed event with the new enabled state', () => {
-    fireLlmAcceleratorConfigEnablementChanged(mockTrackEvent, {
+    fireLlmInferenceServiceConfigEnablementChanged(mockTrackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       enabled: true,
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(
-      LlmAcceleratorConfigTrackingEvent.ENABLEMENT_CHANGED,
+      LlmInferenceServiceConfigTrackingEvent.ENABLEMENT_CHANGED,
       { outcome: TrackingOutcome.submit, success: true, enabled: true },
     );
   });
