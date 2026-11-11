@@ -2,68 +2,103 @@ import { SortableData } from '@odh-dashboard/ui-core';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { OverviewFilterDataType, OverviewFilterOptions } from './const';
 
-const getFilterKeyword = (
+/**
+ * A typeahead selection is stored as { label, value } and matches exactly;
+ * a plain string is a typed partial text fragment and matches by inclusion.
+ */
+type FilterSelection = { exact?: string; fragment?: string };
+
+const getFilterSelection = (
   filterData: OverviewFilterDataType,
   key: OverviewFilterOptions,
-): string | undefined => {
+): FilterSelection => {
   const value = filterData[key];
   if (!value) {
-    return undefined;
+    return {};
   }
-  const keyword = typeof value === 'string' ? value : value.value;
-  const trimmed = keyword.trim();
-  return trimmed ? trimmed.toLowerCase() : undefined;
+  if (typeof value === 'string') {
+    const trimmed = value.trim().toLowerCase();
+    return trimmed ? { fragment: trimmed } : {};
+  }
+  return { exact: value.value.toLowerCase() };
 };
 
-const textIncludes = (text: string | undefined, keyword: string): boolean =>
-  text?.toLowerCase().includes(keyword) ?? false;
+const textIncludes = (text: string | undefined, keyword: string | undefined): boolean =>
+  keyword ? (text?.toLowerCase().includes(keyword) ?? false) : false;
 
-const modelMatchesModelName = (row: ModelOverviewItem, keyword: string): boolean =>
-  textIncludes(row.id, keyword) ||
-  textIncludes(row.modelDetails.displayName, keyword) ||
-  textIncludes(row.modelDetails.description, keyword);
+const textEquals = (text: string | undefined, keyword: string | undefined): boolean =>
+  keyword ? text?.toLowerCase() === keyword : false;
 
-const modelMatchesProject = (row: ModelOverviewItem, keyword: string): boolean =>
-  textIncludes(row.namespace, keyword);
+const modelMatchesModelName = (row: ModelOverviewItem, filter: FilterSelection): boolean =>
+  filter.exact
+    ? textEquals(row.id, filter.exact) || textEquals(row.modelDetails.displayName, filter.exact)
+    : textIncludes(row.id, filter.fragment) ||
+      textIncludes(row.modelDetails.displayName, filter.fragment) ||
+      textIncludes(row.modelDetails.description, filter.fragment);
 
-const modelMatchesGroupName = (row: ModelOverviewItem, keyword: string): boolean =>
-  row.subscriptions.some((sub) => sub.groups?.some((group) => textIncludes(group, keyword))) ||
-  row.authPolicies.some((policy) => policy.groups?.some((group) => textIncludes(group, keyword)));
+const modelMatchesProject = (row: ModelOverviewItem, filter: FilterSelection): boolean =>
+  filter.exact
+    ? textEquals(row.namespace, filter.exact)
+    : textIncludes(row.namespace, filter.fragment);
 
-const modelMatchesSubscriptionName = (row: ModelOverviewItem, keyword: string): boolean =>
-  row.subscriptions.some(
-    (sub) => textIncludes(sub.name, keyword) || textIncludes(sub.displayName, keyword),
+const modelMatchesGroupName = (row: ModelOverviewItem, filter: FilterSelection): boolean => {
+  const groups = [
+    ...row.subscriptions.flatMap((sub) => sub.groups ?? []),
+    ...row.authPolicies.flatMap((policy) => policy.groups ?? []),
+  ];
+  return filter.exact
+    ? groups.some((group) => textEquals(group, filter.exact))
+    : groups.some((group) => textIncludes(group, filter.fragment));
+};
+
+const modelMatchesSubscriptionName = (row: ModelOverviewItem, filter: FilterSelection): boolean =>
+  row.subscriptions.some((sub) =>
+    filter.exact
+      ? textEquals(sub.name, filter.exact)
+      : textIncludes(sub.name, filter.fragment) || textIncludes(sub.displayName, filter.fragment),
   );
 
-const modelMatchesAuthPolicyName = (row: ModelOverviewItem, keyword: string): boolean =>
-  row.authPolicies.some(
-    (policy) => textIncludes(policy.name, keyword) || textIncludes(policy.displayName, keyword),
+const modelMatchesAuthPolicyName = (row: ModelOverviewItem, filter: FilterSelection): boolean =>
+  row.authPolicies.some((policy) =>
+    filter.exact
+      ? textEquals(policy.name, filter.exact)
+      : textIncludes(policy.name, filter.fragment) ||
+        textIncludes(policy.displayName, filter.fragment),
   );
 
 export const filterOverviewModels = (
   rows: ModelOverviewItem[],
   filterData: OverviewFilterDataType,
 ): ModelOverviewItem[] => {
-  const modelKeyword = getFilterKeyword(filterData, OverviewFilterOptions.modelName);
-  const projectKeyword = getFilterKeyword(filterData, OverviewFilterOptions.project);
-  const groupKeyword = getFilterKeyword(filterData, OverviewFilterOptions.groupName);
-  const subscriptionKeyword = getFilterKeyword(filterData, OverviewFilterOptions.subscriptionName);
-  const authPolicyKeyword = getFilterKeyword(filterData, OverviewFilterOptions.authPolicyName);
+  const modelFilter = getFilterSelection(filterData, OverviewFilterOptions.modelName);
+  const projectFilter = getFilterSelection(filterData, OverviewFilterOptions.project);
+  const groupFilter = getFilterSelection(filterData, OverviewFilterOptions.groupName);
+  const subscriptionFilter = getFilterSelection(filterData, OverviewFilterOptions.subscriptionName);
+  const authPolicyFilter = getFilterSelection(filterData, OverviewFilterOptions.authPolicyName);
 
   return rows.filter((row) => {
-    if (modelKeyword && !modelMatchesModelName(row, modelKeyword)) {
+    if ((modelFilter.exact || modelFilter.fragment) && !modelMatchesModelName(row, modelFilter)) {
       return false;
     }
-    if (projectKeyword && !modelMatchesProject(row, projectKeyword)) {
+    if (
+      (projectFilter.exact || projectFilter.fragment) &&
+      !modelMatchesProject(row, projectFilter)
+    ) {
       return false;
     }
-    if (groupKeyword && !modelMatchesGroupName(row, groupKeyword)) {
+    if ((groupFilter.exact || groupFilter.fragment) && !modelMatchesGroupName(row, groupFilter)) {
       return false;
     }
-    if (subscriptionKeyword && !modelMatchesSubscriptionName(row, subscriptionKeyword)) {
+    if (
+      (subscriptionFilter.exact || subscriptionFilter.fragment) &&
+      !modelMatchesSubscriptionName(row, subscriptionFilter)
+    ) {
       return false;
     }
-    if (authPolicyKeyword && !modelMatchesAuthPolicyName(row, authPolicyKeyword)) {
+    if (
+      (authPolicyFilter.exact || authPolicyFilter.fragment) &&
+      !modelMatchesAuthPolicyName(row, authPolicyFilter)
+    ) {
       return false;
     }
     return true;

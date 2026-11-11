@@ -43,8 +43,9 @@ type SubscriptionsTabProps = {
    */
   readOnly?: boolean;
   /**
-   * Filter through Subscription / Group / Model typeahead selects (model access viewer)
-   * instead of the free-text keyword search. Filter options derive from the loaded
+   * Filter through Model / Group / Subscription typeahead selects (used by the
+   * model access viewer and the MaaS governance subscriptions tab) instead of
+   * the free-text keyword search. Filter options derive from the loaded
    * subscriptions, so no additional fetches are required.
    */
   attributeFilters?: boolean;

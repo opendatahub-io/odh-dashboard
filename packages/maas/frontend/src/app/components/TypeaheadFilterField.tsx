@@ -44,11 +44,12 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
   value,
   onFilterApplied,
 }) => {
-  // A committed fragment has no matching option; synthesize one so it stays
-  // visible in the toggle and can be cleared like a regular selection.
+  // A committed fragment (or a navigation-initialized display name) has no
+  // option with a matching resource value; synthesize one so it stays visible
+  // in the toggle and can be cleared like a regular selection.
   const selectOptions = React.useMemo(
     () =>
-      value && !options.some((o) => String(o.value) === value || String(o.content) === value)
+      value && !options.some((o) => String(o.value) === value)
         ? [...options, { value, content: value }]
         : options,
     [options, value],
@@ -59,12 +60,11 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
       selectOptions={selectOptions}
       selected={value}
       onSelect={(_event, selection) => {
-        const option = selectOptions.find((o) => o.value === selection);
-        // The create option commits the typed fragment as free text (no label)
-        onChange(
-          String(selection),
-          option && !option.isCreateOption ? String(option.content) : undefined,
-        );
+        // Resolve against the original options only: a synthetic fragment
+        // option must keep fragment semantics (no label) when reselected,
+        // instead of turning into an exact resource selection.
+        const option = options.find((o) => String(o.value) === String(selection));
+        onChange(String(selection), option ? String(option.content) : undefined);
         onFilterApplied?.();
       }}
       onClearSelection={() => onChange('')}
