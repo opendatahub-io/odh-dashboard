@@ -131,6 +131,9 @@ func TestTLSConfigPermitsHTTP2(t *testing.T) {
 		{"empty cipher list (Go defaults apply)", &tls.Config{MinVersion: tls.VersionTLS12}, true},
 		{"list includes ECDHE-ECDSA-AES128-GCM", &tls.Config{CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256}}, true},
 		{"AES-256-only list (no required suite)", &tls.Config{CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384}}, false},
+		{"AES-256-only list at TLS 1.2 minimum", &tls.Config{MinVersion: tls.VersionTLS12, CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384}}, false},
+		{"TLS 1.3-only with leftover AES-256-only TLS 1.2 list", &tls.Config{MinVersion: tls.VersionTLS13, CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384}}, true},
+		{"TLS 1.3-only with no cipher list", &tls.Config{MinVersion: tls.VersionTLS13}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -197,6 +200,54 @@ func TestServeStartsWithHTTP2IncompatibleCipher(t *testing.T) {
 	}
 	if state.NegotiatedProtocol == "h2" {
 		t.Error("server negotiated h2 despite an HTTP/2-incompatible cipher list")
+	}
+
+	cancel()
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("expected nil error on cancel, got %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Start did not return after cancel")
+	}
+}
+
+// customTLS13WithTLS12Ciphers mimics a valid Custom cluster profile with
+// minTLSVersion VersionTLS13 whose cipher list still carries a TLS 1.2 entry that
+// is not HTTP/2-required (e.g. TLS_AES_256_GCM_SHA384 + ECDHE-ECDSA-AES256-GCM-SHA384).
+// Go ignores CipherSuites for TLS 1.3, so HTTP/2 must stay on.
+func customTLS13WithTLS12Ciphers() *tls.Config {
+	return &tls.Config{
+		MinVersion:   tls.VersionTLS13,
+		CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+		NextProtos:   []string{"h2", "http/1.1"},
+	}
+}
+
+// TestServePreservesHTTP2ForTLS13OnlyProfile guards against disabling HTTP/2
+// needlessly: a TLS 1.3-only Custom profile with a leftover TLS 1.2 cipher list
+// (no AES-128-GCM suite) must still serve and negotiate h2.
+func TestServePreservesHTTP2ForTLS13OnlyProfile(t *testing.T) {
+	s := newTestServer(t, customTLS13WithTLS12Ciphers())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	errCh := make(chan error, 1)
+	go func() { errCh <- s.Start(ctx) }()
+
+	select {
+	case err := <-errCh:
+		t.Fatalf("Start returned early (listener failed to start): %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	state := dialTLS(t, s.addr, s.certFile)
+	if state.Version != tls.VersionTLS13 {
+		t.Errorf("expected TLS 1.3, got 0x%x", state.Version)
+	}
+	if state.NegotiatedProtocol != "h2" {
+		t.Errorf("expected ALPN h2 for a TLS 1.3-only profile, got %q", state.NegotiatedProtocol)
 	}
 
 	cancel()

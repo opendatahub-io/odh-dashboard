@@ -243,7 +243,6 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useHostApi: jest.fn(() => ({
     ConnectionTypeFormFields: StubConnectionTypeFormFields,
   })),
-  useHostApiCore: jest.fn(() => ({ trackEvent: jest.fn() })),
   useHostApiInfra: jest.fn(() => ({ getDashboardPvcs: jest.fn().mockResolvedValue([]) })),
 }));
 

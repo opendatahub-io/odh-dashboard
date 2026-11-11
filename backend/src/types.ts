@@ -51,10 +51,12 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       featureStoreAdmin: boolean;
       dataRegistry: boolean;
+      dataConnectHub: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
       genAiTracing: boolean;
       guardrails: boolean;
+      aiSafety: boolean;
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
@@ -85,7 +87,6 @@ export type DashboardConfig = K8sResourceCommon & {
       hardwareProfileDRA: boolean;
       gpuaas: boolean;
       modelCapabilities: boolean;
-      grid: boolean;
       observabilityDashboard: boolean;
       nimWizard: boolean;
     };

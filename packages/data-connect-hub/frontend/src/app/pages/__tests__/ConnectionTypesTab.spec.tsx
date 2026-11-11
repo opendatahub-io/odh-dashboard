@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
+import { ConnectionApiError } from '~/app/api/dch';
 import * as trackingUtilities from '~/app/utilities/tracking';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import ConnectionTypesTab from '~/app/pages/ConnectionTypesTab';
@@ -64,12 +65,12 @@ describe('ConnectionTypesTab', () => {
     mockUseConnectionTypes.mockReturnValue([connectionTypes, true, undefined]);
   });
 
-  it('should load and group connection types by capability', () => {
+  it('should load connection types and show ingestion capability badges', () => {
     renderTab();
 
     expect(mockUseConnectionTypes).toHaveBeenCalledWith('test-project');
-    expect(screen.getByRole('heading', { name: 'Full integration' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Credentials only' })).toBeTruthy();
+    expect(screen.getAllByText('Ingestion supported')).toHaveLength(2);
+    expect(screen.queryByText('No ingestion')).toBeNull();
     expect(screen.getByText('S3')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Custom source')).toBeTruthy();
@@ -157,8 +158,8 @@ describe('ConnectionTypesTab', () => {
     );
 
     expect(screen.getByText('No matching data connection types')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Full integration' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Credentials only' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ingestion supported' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'No ingestion' })).toBeNull();
   });
 
   it('should render a loading state before connection types load', () => {
@@ -181,5 +182,19 @@ describe('ConnectionTypesTab', () => {
 
     expect(screen.getByText('Connection types request failed')).toBeTruthy();
     expect(screen.queryByText('Get started with data connection types')).toBeNull();
+  });
+
+  it('should show the unauthorized state when loading connection types is forbidden', () => {
+    mockUseConnectionTypes.mockReturnValue([
+      [],
+      false,
+      new ConnectionApiError('Access forbidden', 403),
+    ]);
+
+    renderTab();
+
+    expect(screen.getByTestId('unauthorized-error')).toBeTruthy();
+    expect(screen.getByTestId('unauthorized-error-title')).toBeTruthy();
+    expect(screen.queryByText('Unable to load data connection types')).toBeNull();
   });
 });

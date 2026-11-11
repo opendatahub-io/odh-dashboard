@@ -6,7 +6,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import { createEvaluationJob } from '~/app/api/k8s';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
@@ -166,6 +166,7 @@ const renderModal = (
     collection?: Collection;
     defaultSourceMode?: SourceMode;
     omitCollection?: boolean;
+    prerequisite?: string;
   } = {},
 ) => {
   const onClose = jest.fn();
@@ -184,6 +185,7 @@ const renderModal = (
         trackingSource="copy_suite"
         resolveCollection={resolveCollection}
         onClonePendingChange={onClonePendingChange}
+        prerequisite={options.prerequisite}
       />
     </MemoryRouter>,
   );
@@ -235,6 +237,23 @@ describe('StartEvaluationRunModal', () => {
         provider_type: 'provider-a',
       }),
     );
+  });
+
+  it('should render the prerequisite alert when a prerequisite is provided', () => {
+    renderModal(undefined, undefined, {
+      prerequisite: 'The model you are evaluating must support multiple tool/function calls.',
+    });
+
+    const alert = screen.getByTestId('start-evaluation-run-prerequisite');
+    expect(alert).toHaveTextContent(
+      'The model you are evaluating must support multiple tool/function calls.',
+    );
+  });
+
+  it('should not render the prerequisite alert without a prerequisite', () => {
+    renderModal();
+
+    expect(screen.queryByTestId('start-evaluation-run-prerequisite')).not.toBeInTheDocument();
   });
 
   it('shows a required HardwareProfile before collapsed advanced configuration for Kueue', () => {

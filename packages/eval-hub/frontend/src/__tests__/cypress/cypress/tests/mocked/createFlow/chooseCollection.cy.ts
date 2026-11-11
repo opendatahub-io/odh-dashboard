@@ -3,6 +3,7 @@ import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
 import { mockCollection, mockCollectionsListResponse } from '~/__mocks__/mockCollection';
 import { chooseCollectionPage } from '~/__tests__/cypress/cypress/pages/chooseCollectionPage';
+import { startEvaluationRunPage } from '~/__tests__/cypress/cypress/pages/startEvaluationRunPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import type { Collection } from '~/app/types';
 
@@ -147,6 +148,74 @@ describe('Choose Collection Page', () => {
     cy.url().should('include', `${NAMESPACE}/create/start`);
     cy.url().should('include', 'type=collection');
     cy.url().should('include', 'collectionId=col-safety');
+  });
+});
+
+const toolUseSuite = mockCollection({
+  id: 'tool-use-v1',
+  name: 'Tool Use Suite',
+  category: 'Tool Use / Agents',
+  description: 'Tool use evaluation collection.',
+  benchmarkIds: ['tau_bench'],
+});
+
+const multimodalSuite = mockCollection({
+  id: 'multimodal-v1',
+  name: 'Multimodal Suite',
+  category: 'Multimodal',
+  description: 'Multimodal evaluation collection.',
+  benchmarkIds: ['mmlu_visual'],
+});
+
+describe('Choose Collection Page - curated run modal', () => {
+  beforeEach(() => {
+    initIntercepts({ collections: [toolUseSuite, multimodalSuite] });
+    cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, []);
+    cy.interceptApi(
+      'GET /api/:apiVersion/inferenceservices',
+      { path: API_VERSION },
+      {
+        items: [],
+      },
+    );
+    cy.intercept('GET', '/_bff/mlflow/api/v1/experiments*', {
+      body: { data: { experiments: [] } },
+    });
+  });
+
+  it('should open the curated run modal with its prerequisite from the card', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findUseBenchmarkSuiteButton('tool-use-v1').click();
+
+    chooseCollectionPage.findCuratedSuiteRunModal().should('be.visible');
+    startEvaluationRunPage
+      .findRunPrerequisite()
+      .should(
+        'contain.text',
+        'The model you are evaluating must support multiple tool/function calls.',
+      );
+    cy.url().should('include', `${NAMESPACE}/create/collections`);
+  });
+
+  it('should open the curated run modal with its prerequisite from the drawer', () => {
+    chooseCollectionPage.visit(NAMESPACE);
+
+    chooseCollectionPage.findCollectionCard('multimodal-v1').findByText('Multimodal Suite').click();
+    chooseCollectionPage.findCollectionDrawerPanel().should('exist');
+
+    chooseCollectionPage
+      .findCollectionDrawerPanel()
+      .findByTestId('use-benchmark-suite-button')
+      .click();
+
+    chooseCollectionPage.findCuratedSuiteRunModal().should('be.visible');
+    startEvaluationRunPage
+      .findRunPrerequisite()
+      .should(
+        'contain.text',
+        'The model you are evaluating must be a vision-language model that supports image inputs.',
+      );
   });
 });
 

@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useBlocker, Location } from 'react-router-dom';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import ContentModal from '@odh-dashboard/ui-core/components/ContentModal';
+import { useWorkingProject } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 
 interface NavigationBlockerModalProps {
   hasUnsavedChanges: boolean;
@@ -15,6 +17,10 @@ const NavigationBlockerModal: React.FC<NavigationBlockerModalProps> = ({
   hasUnsavedChanges,
   onDiscardEditsClick,
 }) => {
+  const unifiedProjectSelectorEnabled = useIsAreaAvailable(
+    SupportedArea.UNIFIED_PROJECT_SELECTOR,
+  ).status;
+  const { cancelProjectNavigation, registerProjectNavigationBlocker } = useWorkingProject();
   const [showModal, setShowModal] = React.useState(false);
 
   const proceedRef = React.useRef<() => void>();
@@ -30,6 +36,19 @@ const NavigationBlockerModal: React.FC<NavigationBlockerModalProps> = ({
       [hasUnsavedChanges],
     ),
   );
+
+  React.useLayoutEffect(() => {
+    if (!unifiedProjectSelectorEnabled || blocker.state !== 'blocked') {
+      return undefined;
+    }
+    return registerProjectNavigationBlocker?.(() => {
+      proceedRef.current = undefined;
+      resetRef.current = undefined;
+      handlingRef.current = false;
+      setShowModal(false);
+      blocker.reset();
+    });
+  }, [blocker, registerProjectNavigationBlocker, unifiedProjectSelectorEnabled]);
 
   React.useEffect(() => {
     if (!hasUnsavedChanges && showModal && proceedRef.current) {
@@ -52,8 +71,13 @@ const NavigationBlockerModal: React.FC<NavigationBlockerModalProps> = ({
         break;
       default:
         handlingRef.current = false;
+        if (unifiedProjectSelectorEnabled) {
+          proceedRef.current = undefined;
+          resetRef.current = undefined;
+          setShowModal(false);
+        }
     }
-  }, [blocker]);
+  }, [blocker, unifiedProjectSelectorEnabled]);
 
   const handleConfirm = () => {
     handlingRef.current = true;
@@ -63,8 +87,15 @@ const NavigationBlockerModal: React.FC<NavigationBlockerModalProps> = ({
   };
 
   const handleCancel = () => {
+    if (unifiedProjectSelectorEnabled) {
+      cancelProjectNavigation?.();
+    }
     setShowModal(false);
     resetRef.current?.();
+    if (unifiedProjectSelectorEnabled) {
+      proceedRef.current = undefined;
+      resetRef.current = undefined;
+    }
     setTimeout(() => {
       handlingRef.current = false;
     }, 100);

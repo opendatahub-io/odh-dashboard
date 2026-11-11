@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { renderHook, act, waitFor } from '@testing-library/react';
 import * as React from 'react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import useFileManagement, { DELETE_EVENT_NAME } from '~/app/Chatbot/hooks/useFileManagement';
 import {
@@ -47,7 +47,11 @@ describe('useFileManagement', () => {
   // Test data
   const mockVectorStore = createMockVectorStore({
     id: VECTOR_STORE_ID,
-    metadata: { created_by: 'auto-provisioning', provider_id: 'milvus' },
+    metadata: {
+      created_by: 'auto-provisioning',
+      provider_id: 'milvus',
+      username: 'test-user',
+    },
   });
   const mockVectorStoreFile = createMockVectorStoreFile({
     id: FILE_ID_1,
@@ -80,7 +84,7 @@ describe('useFileManagement', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseContext.mockReturnValue({ namespace: mockNamespace });
+    mockUseContext.mockReturnValue({ namespace: mockNamespace, username: 'test-user' });
 
     // Mock useGenAiAPI to return the API object with mocked functions
     mockUseGenAiAPI.mockReturnValue({
@@ -170,6 +174,98 @@ describe('useFileManagement', () => {
       await waitForLoadingComplete(result);
 
       expect(result.current.files[0].bytes).toBe(2048);
+    });
+
+    it('should list files from the signed-in user auto-provisioned store', async () => {
+      const unlabeledStore = createMockVectorStore({
+        id: 'vs-legacy',
+        metadata: { created_by: 'auto-provisioning', provider_id: 'milvus' },
+      });
+      const otherUserStore = createMockVectorStore({
+        id: 'vs-other-user',
+        metadata: {
+          created_by: 'auto-provisioning',
+          provider_id: 'milvus',
+          username: 'bob',
+        },
+      });
+      const signedInUserStore = createMockVectorStore({
+        id: 'vs-alice',
+        metadata: {
+          created_by: 'auto-provisioning',
+          provider_id: 'milvus',
+          username: 'alice',
+        },
+      });
+      mockUseContext.mockReturnValue({ namespace: mockNamespace, username: 'alice' });
+      mockGetVectorStores.mockResolvedValue([unlabeledStore, otherUserStore, signedInUserStore]);
+      mockListVectorStoreFiles.mockResolvedValue([mockVectorStoreFile]);
+
+      const { result } = renderHook(() => useFileManagement());
+      await waitForLoadingComplete(result);
+
+      expect(mockListVectorStoreFiles).toHaveBeenCalledWith({
+        vector_store_id: 'vs-alice',
+        limit: 50,
+        order: 'desc',
+        filter: 'completed',
+      });
+      expect(result.current.currentVectorStoreId).toBe('vs-alice');
+    });
+
+    it('should skip stores with null or missing metadata while loading files', async () => {
+      const missingMetadataStore = createMockVectorStore({ id: 'vs-missing' });
+      Reflect.deleteProperty(missingMetadataStore, 'metadata');
+      const nullMetadataStore = { ...createMockVectorStore({ id: 'vs-null' }), metadata: null };
+      const mockOnShowErrorAlert = jest.fn();
+      mockGetVectorStores.mockResolvedValue([
+        missingMetadataStore,
+        nullMetadataStore,
+        mockVectorStore,
+      ]);
+      mockListVectorStoreFiles.mockResolvedValue([mockVectorStoreFile]);
+
+      const { result } = renderHook(() =>
+        useFileManagement({ onShowErrorAlert: mockOnShowErrorAlert }),
+      );
+      await waitForLoadingComplete(result);
+
+      expect(mockListVectorStoreFiles).toHaveBeenCalledWith({
+        vector_store_id: VECTOR_STORE_ID,
+        limit: 50,
+        order: 'desc',
+        filter: 'completed',
+      });
+      expect(result.current.files).toHaveLength(1);
+      expect(result.current.error).toBeNull();
+      expect(mockOnShowErrorAlert).not.toHaveBeenCalled();
+    });
+
+    it('should ignore an auto-provisioned store that has no username', async () => {
+      const unlabeledStore = createMockVectorStore({
+        id: 'vs-legacy',
+        metadata: { created_by: 'auto-provisioning', provider_id: 'milvus' },
+      });
+      mockGetVectorStores.mockResolvedValue([unlabeledStore]);
+
+      const { result } = renderHook(() => useFileManagement());
+      await waitForLoadingComplete(result);
+
+      expect(mockListVectorStoreFiles).not.toHaveBeenCalled();
+      expect(result.current.files).toEqual([]);
+      expect(result.current.currentVectorStoreId).toBe(null);
+    });
+
+    it('should not list files before the signed-in username is known', async () => {
+      mockUseContext.mockReturnValue({ namespace: mockNamespace, username: undefined });
+      setupSuccessfulMocks();
+
+      const { result } = renderHook(() => useFileManagement());
+      await waitForLoadingComplete(result);
+
+      expect(mockListVectorStoreFiles).not.toHaveBeenCalled();
+      expect(result.current.files).toEqual([]);
+      expect(result.current.currentVectorStoreId).toBe(null);
     });
 
     it('should set empty files when no auto-provisioned vector store is available', async () => {

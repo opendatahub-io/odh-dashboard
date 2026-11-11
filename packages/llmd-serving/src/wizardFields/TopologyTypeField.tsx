@@ -17,6 +17,7 @@ import type {
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import SimpleSelect, { SimpleSelectOption } from '@odh-dashboard/ui-core/components/SimpleSelect';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
 import {
   TopologyType,
@@ -168,6 +169,7 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
   onChange,
   externalData,
 }) => {
+  const trackEvent = useTrackEvent();
   const configsByTopology = externalData?.data.configsByTopology;
 
   const options: SimpleSelectOption[] = React.useMemo(
@@ -204,7 +206,7 @@ const TopologyTypeFieldComponent: TopologyTypeFieldType['component'] = ({
             onChange={(key) => {
               const matched = Object.values(TopologyType).find((v) => v === key);
               if (matched) {
-                fireTopologyTypeSelected({
+                fireTopologyTypeSelected(trackEvent, {
                   llmdComposablePattern: matched,
                   previousPattern: value?.topologyType,
                 });

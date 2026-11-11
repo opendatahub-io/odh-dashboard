@@ -623,6 +623,7 @@ describe('NIM Models Deployments', () => {
       // Carry the hardware profile annotations so the wizard prefills the saved profile on edit
       mockK8sResourceList([
         mockNimInferenceService({
+          isExistingResource: true,
           hardwareProfileName: 'default-profile',
           hardwareProfileNamespace: 'opendatahub',
           hardwareProfileResourceVersion: '1309350',

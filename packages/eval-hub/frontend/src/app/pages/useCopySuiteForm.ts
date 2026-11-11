@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import isEqual from 'lodash-es/isEqual';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import {
   getThresholdInputValue,

@@ -77,13 +77,14 @@ aliases:
   # Model Serving & Model Metrics
   model-serving-metrics-approvers:
     - emilys314
-    - Griffin-Sullivan
+    - mturley
     - andrewballantyne
   model-serving-metrics-reviewers:
     - ashley-o0o
     - emilys314
-    - Griffin-Sullivan
+    - mturley
     - katieperry4
+    - sridarna
 
   # Models as a Service (MaaS)
   maas-approvers:
@@ -200,7 +201,7 @@ aliases:
     - paulovmr
     - thaorell
     - jesuino
-    - bobbravo2 
+    - bobbravo2
   notebooks-reviewers:
     - andyatmiami
     - ederign
@@ -313,6 +314,24 @@ aliases:
     - tamdavid-git
     - GAUNSD
     - MatthewAThompson
+
+  # AI Safety
+  ai-safety-approvers:
+    - chrjones-rh
+    - GAUNSD
+    - NickGagan
+    - nickmazzi
+    - tamdavid-git
+  ai-safety-reviewers:
+    - chrjones-rh
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - jkyaw
+    - MatthewAThompson
+    - NickGagan
+    - nickmazzi
+    - tamdavid-git
 
   # MLflow
   mlflow-approvers:

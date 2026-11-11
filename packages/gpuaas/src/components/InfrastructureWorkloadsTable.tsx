@@ -9,7 +9,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { DashboardEmptyTableView, Table, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import TrainingJobStatusModal from '@odh-dashboard/model-training/components/TrainingJobStatusModal';
 import RayJobStatusModal from '@odh-dashboard/model-training/components/RayJobStatusModal';

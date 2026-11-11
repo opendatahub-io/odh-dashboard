@@ -47,7 +47,6 @@ export type MockDashboardConfigType = {
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
-  grid?: boolean;
   inferencePriorityField?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
@@ -67,6 +66,7 @@ export type MockDashboardConfigType = {
   disableLLMd?: boolean;
   llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  bidirectionalYamlWizardGa?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
@@ -107,7 +107,6 @@ export const mockDashboardConfig = ({
   automl = true,
   autorag = true,
   modelAsService = true,
-  grid = false,
   inferencePriorityField = false,
   aiAssetCustomEndpoints = true,
   disableAppLauncher = false,
@@ -147,6 +146,7 @@ export const mockDashboardConfig = ({
   disableLLMd = false,
   llmdTemplates = false,
   deploymentWizardYAMLViewer = false,
+  bidirectionalYamlWizardGa = false,
   externalVectorStores = false,
   agentConfigManagement = false,
   genAiAgentDeployment = false,
@@ -323,7 +323,6 @@ export const mockDashboardConfig = ({
       automl,
       autorag,
       modelAsService,
-      grid,
       aiAssetCustomEndpoints,
       inferencePriorityField,
       disableKServeAuth,
@@ -353,6 +352,7 @@ export const mockDashboardConfig = ({
       disableLLMd,
       llmdTemplates,
       deploymentWizardYAMLViewer,
+      bidirectionalYamlWizardGa,
       externalVectorStores,
       agentConfigManagement,
       genAiAgentDeployment,

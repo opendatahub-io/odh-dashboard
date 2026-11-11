@@ -10,10 +10,10 @@ import type { LocalQueuesContextType } from '@odh-dashboard/ui-core/context/Loca
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { useResourceClaimTemplateNames } from '@odh-dashboard/hardware-profiles/shared/useResourceClaimTemplateNames';
+import * as useHardwareProfilesModule from '@odh-dashboard/hardware-profiles/pages/useHardwareProfilesByFeatureVisibility';
 import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { getContainerResourcesFromHardwareProfile } from '#~/concepts/hardwareProfiles/utils';
-import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core/areas'),
@@ -25,7 +25,7 @@ jest.mock('@odh-dashboard/plugin-core', () => ({
   useDashboardNamespace: jest.fn(),
 }));
 
-jest.mock('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
+jest.mock('@odh-dashboard/hardware-profiles/pages/useHardwareProfilesByFeatureVisibility');
 
 jest.mock('@odh-dashboard/hardware-profiles/shared/useResourceClaimTemplateNames', () => ({
   useResourceClaimTemplateNames: jest.fn(),
@@ -178,7 +178,7 @@ describe('useHardwareProfileConfig', () => {
       const regularProfile = mockHardwareProfile({ name: 'regular-profile' });
       const { filterHardwareProfileByFeatureVisibility } = jest.requireActual<
         typeof useHardwareProfilesModule
-      >('#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility');
+      >('@odh-dashboard/hardware-profiles/pages/useHardwareProfilesByFeatureVisibility');
       mockUseHardwareProfiles.mockImplementation((visibility, _namespace, options) => ({
         projectProfiles: [[], true, undefined],
         globalProfiles: [

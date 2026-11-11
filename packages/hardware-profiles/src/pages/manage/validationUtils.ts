@@ -6,13 +6,13 @@ import {
   TolerationOperator,
 } from '@odh-dashboard/k8s-core';
 import { splitValueUnit } from '@odh-dashboard/ui-core/utilities/valueUnits';
-import { HardwareProfileWarningType } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
-import { HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
 import { hasCPUandMemory } from './utils';
 import {
   HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT,
   HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT,
 } from './const';
+import { HardwareProfileWarningType } from '../../../shared/types';
+import { HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE } from '../../../shared/const';
 import { createIdentifierWarningMessage, determineIdentifierUnit } from '../utils';
 import { validateDefaultCount, validateMaxCount, validateMinCount } from '../nodeResource/utils';
 

@@ -83,7 +83,7 @@ filters:
       - 'area/model-registry'
 
   # Model Serving
-  '(frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)|packages/(model-serving|model-serving-kserve|kserve|llmd-serving))/.*':
+  '(frontend/src/(api|concepts|pages)/(modelServing|modelServingKServe)|packages/(model-serving|kserve|llmd-serving))/.*':
     approvers:
       - model-serving-metrics-approvers
     reviewers:
@@ -248,6 +248,15 @@ filters:
       - data-connect-hub-reviewers
     labels:
       - 'area/data-connect-hub'
+
+  # AI Safety
+  '(packages/ai-safety|manifests/modules/ai-safety)/.*':
+    approvers:
+      - ai-safety-approvers
+    reviewers:
+      - ai-safety-reviewers
+    labels:
+      - 'area/ai-safety'
 
   # MLflow
   '(packages/mlflow.*|manifests/modules/mlflow)/.*':

@@ -3,9 +3,12 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Label, LabelGroup } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
-import { getDisplayNameFromK8sResource, MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import {
+  getDisplayNameFromK8sResource,
+  MetadataAnnotation,
+  PreInstalledName,
+} from '@odh-dashboard/k8s-core';
 import { renderDeploymentResourceVersionLabels } from '@odh-dashboard/model-serving/shared/components';
-import { PreInstalledName } from '@odh-dashboard/internal/concepts/k8s/utils';
 import LlmAcceleratorConfigEnabledToggle from './LlmAcceleratorConfigEnabledToggle';
 import type { LLMInferenceServiceConfigKind } from '../../types';
 import { isConfigPreInstalled } from '../../utils';

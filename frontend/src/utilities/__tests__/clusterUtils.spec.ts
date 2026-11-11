@@ -1,6 +1,10 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
-import { getOpenShiftConsoleServerURL, useOpenShiftURL } from '#~/utilities/clusterUtils';
+import {
+  getOpenShiftConsoleServerURL,
+  resolveConsoleLinkImageURL,
+  useOpenShiftURL,
+} from '#~/utilities/clusterUtils';
 
 const originalLocation = window.location;
 
@@ -84,5 +88,60 @@ describe('useOpenShiftURL', () => {
 
     // Assert
     expect(result).hookToBe(null);
+  });
+});
+
+describe('resolveConsoleLinkImageURL', () => {
+  const consoleURL = 'https://console-openshift-console.apps.example.com';
+
+  it('should resolve a console-relative path against the console URL', () => {
+    expect(
+      resolveConsoleLinkImageURL('/static/assets/public/imgs/logos/github.svg', consoleURL),
+    ).toBe(
+      'https://console-openshift-console.apps.example.com/static/assets/public/imgs/logos/github.svg',
+    );
+  });
+
+  it('should resolve a path without a leading slash against the console root', () => {
+    expect(resolveConsoleLinkImageURL('static/logo.svg', consoleURL)).toBe(
+      'https://console-openshift-console.apps.example.com/static/logo.svg',
+    );
+  });
+
+  it('should keep the console port when resolving', () => {
+    expect(
+      resolveConsoleLinkImageURL(
+        '/static/logo.svg',
+        'https://console-openshift-console.apps.example.com:8443',
+      ),
+    ).toBe('https://console-openshift-console.apps.example.com:8443/static/logo.svg');
+  });
+
+  it('should handle a console URL with an empty port', () => {
+    expect(
+      resolveConsoleLinkImageURL(
+        '/static/logo.svg',
+        'https://console-openshift-console.apps.example.com:',
+      ),
+    ).toBe('https://console-openshift-console.apps.example.com/static/logo.svg');
+  });
+
+  it.each([
+    'https://example.com/logo.svg',
+    'http://example.com/logo.png',
+    '//cdn.example.com/logo.svg',
+    'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+  ])('should leave absolute URL %s untouched', (imageURL) => {
+    expect(resolveConsoleLinkImageURL(imageURL, consoleURL)).toBe(imageURL);
+  });
+
+  it('should return the original value when the console URL is unknown', () => {
+    expect(resolveConsoleLinkImageURL('/static/logo.svg', null)).toBe('/static/logo.svg');
+    expect(resolveConsoleLinkImageURL('/static/logo.svg')).toBe('/static/logo.svg');
+  });
+
+  it('should return undefined when there is no image URL', () => {
+    expect(resolveConsoleLinkImageURL(undefined, consoleURL)).toBeUndefined();
+    expect(resolveConsoleLinkImageURL('', consoleURL)).toBe('');
   });
 });

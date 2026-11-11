@@ -41,13 +41,11 @@ export const techPreviewFlags = {
   agentOps: false,
   dataRegistry: false,
   dataConnectHub: false,
+  aiSafety: false,
   hardwareProfileDRA: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
-  // Temporary Grid migration switch: enables MaaS Gateway API paths for the MaaS and Gen AI
-  // packages while grid-aware screens are migrated away from Kubernetes APIs.
-  grid: false,
   disableKueue: true,
   disableProjectScoped: true,
   nimServiceOperator: false,
@@ -359,6 +357,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
     featureFlags: ['dataConnectHub'],
+  },
+  [SupportedArea.PLUGIN_AI_SAFETY]: {
+    featureFlags: ['aiSafety'],
   },
   [SupportedArea.INFERENCE_PRIORITY_FIELD]: {
     featureFlags: ['inferencePriorityField'],

@@ -3,24 +3,18 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import YAML from 'yaml';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { mockServingRuntimeTemplateK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   ServingRuntimeAPIProtocol,
   ServingRuntimeModelType,
 } from '@odh-dashboard/model-serving/shared';
 import { createServingRuntimeTemplateBackend } from '@odh-dashboard/internal/services/templateService';
-import { fireServingRuntimeTemplateCreated } from '../../settings/servingRuntimeTemplates/tracking/servingRuntimeTemplateTracking';
 import ServingRuntimeInstallTarget from '../ServingRuntimeInstallTarget';
+import { createTestProviders } from '../../__tests__/hostApiTestUtils';
 
-jest.mock('@odh-dashboard/internal/redux/selectors/project', () => ({
-  useDashboardNamespace: () => ({ dashboardNamespace: 'opendatahub' }),
-}));
 jest.mock('@odh-dashboard/internal/services/templateService', () => ({
   createServingRuntimeTemplateBackend: jest.fn(),
-}));
-jest.mock('../../settings/servingRuntimeTemplates/tracking/servingRuntimeTemplateTracking', () => ({
-  fireServingRuntimeTemplateCreated: jest.fn(),
 }));
 jest.mock('@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor', () => ({
   __esModule: true,
@@ -47,7 +41,8 @@ jest.mock('../../settings/servingRuntimeTemplates/CustomServingRuntimeModelTypeS
 }));
 
 const createMock = jest.mocked(createServingRuntimeTemplateBackend);
-const trackingMock = jest.mocked(fireServingRuntimeTemplateCreated);
+const { wrapper, tracking } = createTestProviders({ dashboardNamespace: 'install-dashboard' });
+const trackingMock = tracking.trackEvent;
 const template = () => mockServingRuntimeTemplateK8sResource({ name: 'runtime-from-library' });
 const returnRoute = '/runtime-image-detail';
 const listRoute =
@@ -72,6 +67,7 @@ const renderTarget = (targetData: string = JSON.stringify(template())) =>
         <Route path={listRoute} element={<div>Serving runtime templates list</div>} />
       </Routes>
     </MemoryRouter>,
+    { wrapper },
   );
 
 describe('ServingRuntimeInstallTarget', () => {
@@ -102,19 +98,29 @@ describe('ServingRuntimeInstallTarget', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
     expect(createMock).toHaveBeenCalledWith(
       YAML.stringify(source.objects[0]),
-      'opendatahub',
+      'install-dashboard',
       ServingRuntimeAPIProtocol.REST,
       [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
       true,
     );
     expect(await screen.findByText('Serving runtime templates list')).toBeInTheDocument();
-    expect(trackingMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mode: 'install',
-        outcome: TrackingOutcome.submit,
-        success: true,
-      }),
-    );
+    expect(trackingMock.mock.calls).toEqual([
+      [
+        'Model Serving Serving Runtime Template Created',
+        {
+          outcome: 'submit',
+          success: true,
+          mode: 'create',
+          source: 'install',
+          apiProtocol: 'REST',
+          modelTypes: 'predictive,generative',
+        },
+      ],
+      [
+        'Runtime Image Library Create Completed',
+        { outcome: 'submit', success: true, configurationType: 'serving-runtime-template' },
+      ],
+    ]);
   });
 
   it('should route Back and Cancel separately without creating a resource', () => {
@@ -125,10 +131,16 @@ describe('ServingRuntimeInstallTarget', () => {
     expect(trackingMock).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByText('Runtime image detail')).toBeInTheDocument();
-    expect(trackingMock).toHaveBeenCalledWith({
-      outcome: TrackingOutcome.cancel,
-      mode: 'install',
-    });
+    expect(trackingMock.mock.calls).toEqual([
+      [
+        'Model Serving Serving Runtime Template Created',
+        { outcome: 'cancel', mode: 'create', source: 'install' },
+      ],
+      [
+        'Runtime Image Library Create Completed',
+        { outcome: 'cancel', configurationType: 'serving-runtime-template' },
+      ],
+    ]);
   });
 
   it('should prevent submission when source annotations are missing or unsupported', () => {
@@ -163,10 +175,16 @@ describe('ServingRuntimeInstallTarget', () => {
     expect(createMock).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByText('Runtime image detail')).toBeInTheDocument();
-    expect(trackingMock).toHaveBeenCalledWith({
-      outcome: TrackingOutcome.cancel,
-      mode: 'install',
-    });
+    expect(trackingMock.mock.calls).toEqual([
+      [
+        'Model Serving Serving Runtime Template Created',
+        { outcome: 'cancel', mode: 'create', source: 'install' },
+      ],
+      [
+        'Runtime Image Library Create Completed',
+        { outcome: 'cancel', configurationType: 'serving-runtime-template' },
+      ],
+    ]);
   });
 
   it('should report create failures and let the user retry', async () => {
@@ -177,14 +195,23 @@ describe('ServingRuntimeInstallTarget', () => {
     expect(await screen.findByText('Serving runtime name already exists')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled();
     expect(trackingMock).toHaveBeenCalledWith(
+      'Model Serving Serving Runtime Template Created',
       expect.objectContaining({
         outcome: TrackingOutcome.submit,
         success: false,
-        mode: 'install',
+        mode: 'create',
+        source: 'install',
       }),
     );
+    expect(trackingMock).toHaveBeenCalledTimes(2);
+    expect(trackingMock).toHaveBeenNthCalledWith(2, 'Runtime Image Library Create Completed', {
+      outcome: 'submit',
+      success: false,
+      configurationType: 'serving-runtime-template',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     expect(await screen.findByText('Serving runtime templates list')).toBeInTheDocument();
+    expect(trackingMock).toHaveBeenCalledTimes(4);
   });
 
   it('should retain YAML/kind checks before invoking the create API', () => {
@@ -195,11 +222,19 @@ describe('ServingRuntimeInstallTarget', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     expect(screen.getByText('kind: must be ServingRuntime.')).toBeInTheDocument();
     expect(createMock).not.toHaveBeenCalled();
+    expect(trackingMock).toHaveBeenCalledTimes(2);
+    expect(trackingMock).toHaveBeenNthCalledWith(2, 'Runtime Image Library Create Completed', {
+      outcome: 'submit',
+      success: false,
+      configurationType: 'serving-runtime-template',
+    });
     expect(trackingMock).toHaveBeenCalledWith(
+      'Model Serving Serving Runtime Template Created',
       expect.objectContaining({
         outcome: TrackingOutcome.submit,
         success: false,
-        mode: 'install',
+        mode: 'create',
+        source: 'install',
       }),
     );
   });

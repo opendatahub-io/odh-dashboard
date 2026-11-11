@@ -75,13 +75,31 @@ export const PERMANENT_ERROR_CODES = new Set([
   511, // Network Authentication Required
 ]);
 
+// Domains whose CDN/WAF (Akamai) blocks non-browser HTTP clients via TLS
+// fingerprinting, regardless of request headers. A 403 from these hosts does
+// not indicate a broken link — the URLs work in real browsers — so it must
+// not fail validation. See RHOAIENG-103384.
+export const BOT_PROTECTED_DOMAINS = new Set(['docs.redhat.com', 'access.redhat.com']);
+
+export const isBotProtectedUrl = (url: string): boolean => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return [...BOT_PROTECTED_DOMAINS].some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+    );
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Categorize error based on status code or error type
  */
 export const getErrorType = (
   status: number,
   error?: string,
-): 'valid' | 'transient' | 'permanent' => {
+  url?: string,
+): 'valid' | 'transient' | 'permanent' | 'blocked' => {
   if (VALID_STATUS_CODES.has(status)) {
     return 'valid';
   }
@@ -89,6 +107,9 @@ export const getErrorType = (
     return 'transient';
   }
   if (PERMANENT_ERROR_CODES.has(status)) {
+    if (status === 403 && url && isBotProtectedUrl(url)) {
+      return 'blocked';
+    }
     return 'permanent';
   }
 

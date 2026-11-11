@@ -73,7 +73,10 @@ type MockedTokenClientFactory struct {
 
 // NewTokenClientFactory initializes a factory using a known envtest clientset + config.
 func NewTokenClientFactory(ctrlClient client.Client, restConfig *rest.Config, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+	// This factory only delegates identity parsing and validation to the real
+	// factory; it must not start OTel discovery retries or build an SA client.
 	cfg := config.EnvConfig{
+		MockK8sClient:   true,
 		AuthMethod:      config.AuthMethodUser,
 		AuthTokenHeader: config.DefaultAuthTokenHeader,
 		AuthTokenPrefix: config.DefaultAuthTokenPrefix,

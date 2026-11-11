@@ -1,13 +1,13 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { getServingRuntime } from '@odh-dashboard/internal/api/k8s/servingRuntimes';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
+import { getServingRuntime } from '../../../shared/api/servingRuntimes';
 import type { ServingRuntimeKind } from '../../../shared';
 import { mockInferenceServiceK8sResource } from '../../../__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '../../../__mocks__/mockServingRuntimeK8sResource';
 import { mockNimServingRuntime } from '../../../__mocks__/mockLegacyNimResource';
 import { useIsNIMModel } from '../useIsNIMModel';
 
-jest.mock('@odh-dashboard/internal/api/k8s/servingRuntimes', () => ({
+jest.mock('../../../shared/api/servingRuntimes', () => ({
   getServingRuntime: jest.fn(),
 }));
 jest.mock('@odh-dashboard/plugin-core/areas', () => ({

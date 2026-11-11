@@ -16,7 +16,7 @@ import {
 } from '@odh-dashboard/hardware-profiles/shared';
 import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import UnderlinedTruncateButton from '@odh-dashboard/ui-core/components/UnderlinedTruncateButton';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import {

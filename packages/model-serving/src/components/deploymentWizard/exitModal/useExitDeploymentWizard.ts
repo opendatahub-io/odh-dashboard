@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { fireModelDeployed } from '../../../shared/tracking/deploymentTracking';
 
 type UseExitWizardOptions = {

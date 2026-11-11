@@ -6,7 +6,7 @@ import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
 import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
-import { deployModel } from '../utils';
+import { deployModel, getConnectionSecret } from '../utils';
 import { Deployment } from '../../../../extension-points';
 import {
   DeploymentAssemblyResources,
@@ -33,12 +33,13 @@ export const useModelDeploymentSubmit = (
   viewMode: ModelDeploymentWizardViewMode = 'form',
   initialWizardData?: InitialWizardFormData,
   existingDeployment?: Deployment,
-  connectionSecretName?: string, // We really need to remove this, kept for backwards compatibility
-  yamlError?: Error,
+  yamlErrors?: Error[],
 ): {
   onSave: (overwrite?: boolean) => Promise<void>;
   onOverwrite?: () => Promise<void>;
   isLoading: boolean;
+  isReady: boolean;
+  isReadinessLoading: boolean;
   submitError: Error | null;
   clearSubmitError: () => void;
 } => {
@@ -62,6 +63,13 @@ export const useModelDeploymentSubmit = (
   const { runPreDeploy, preDeployExtensionsLoaded } = useWizardFieldPreDeploy(formState);
   const { runPostDeploy, postDeployExtensionsLoaded } = useWizardFieldPostDeploy(formState);
 
+  const isReadinessLoading =
+    !deployMethodLoaded ||
+    !applyExtensionsLoaded ||
+    !preDeployExtensionsLoaded ||
+    !postDeployExtensionsLoaded;
+  const isReady = !isReadinessLoading && !!deployMethod;
+
   const [submitError, setSubmitError] = React.useState<Error | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -78,8 +86,8 @@ export const useModelDeploymentSubmit = (
         if (!isExternalDataReady(externalData)) {
           throw new Error('Required data is still loading');
         }
-        if (viewMode === 'yaml-edit' && yamlError) {
-          throw yamlError;
+        if (viewMode === 'yaml-edit' && yamlErrors && yamlErrors.length > 0) {
+          throw yamlErrors[0];
         }
         if (
           viewMode === 'yaml-edit' &&
@@ -90,13 +98,7 @@ export const useModelDeploymentSubmit = (
             'Invalid YAML: Kind must be LLMInferenceService and apiVersion must be serving.kserve.io/v1alpha2',
           );
         }
-        if (
-          !deployMethodLoaded ||
-          !deployMethod ||
-          !applyExtensionsLoaded ||
-          !preDeployExtensionsLoaded ||
-          !postDeployExtensionsLoaded
-        ) {
+        if (!isReady) {
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
@@ -121,7 +123,7 @@ export const useModelDeploymentSubmit = (
           formState,
           externalData,
           secretOps,
-          connectionSecretName,
+          getConnectionSecret(formState),
           deployMethod.properties,
           existingDeployment,
           resources.model,
@@ -157,22 +159,19 @@ export const useModelDeploymentSubmit = (
       viewMode,
       externalData,
       validation.isAllValid,
-      deployMethodLoaded,
+      yamlErrors,
+      resources.model,
+      resources.server,
+      isReady,
       deployMethod,
-      applyExtensionsLoaded,
-      preDeployExtensionsLoaded,
-      postDeployExtensionsLoaded,
       formState,
       secretOps,
-      resources,
-      connectionSecretName,
       existingDeployment,
       initialWizardData,
       applyAllFieldDataFn,
       runPreDeploy,
       runPostDeploy,
       exitWizardOnSubmit,
-      yamlError,
       fireModelDeployedTracking,
     ],
   );
@@ -182,9 +181,18 @@ export const useModelDeploymentSubmit = (
       onSave,
       onOverwrite: deployMethod?.properties.supportsOverwrite ? () => onSave(true) : undefined,
       isLoading,
+      isReady,
+      isReadinessLoading,
       submitError,
       clearSubmitError: () => setSubmitError(null),
     }),
-    [onSave, deployMethod?.properties.supportsOverwrite, isLoading, submitError],
+    [
+      onSave,
+      deployMethod?.properties.supportsOverwrite,
+      isLoading,
+      isReady,
+      isReadinessLoading,
+      submitError,
+    ],
   );
 };

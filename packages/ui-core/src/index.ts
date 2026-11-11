@@ -3,20 +3,6 @@ export type { UpdateObjectAtPropAndValue } from './types';
 export { ThemeContext, useThemeContext } from './contexts/ThemeContext';
 export type { ThemeContextProps } from './contexts/ThemeContext';
 
-export {
-  AnalyticsContext,
-  useAnalytics,
-  noopAnalytics,
-  TrackingOutcome,
-} from './contexts/AnalyticsContext';
-export type {
-  FormTrackingEventProperties,
-  MiscTrackingEventProperties,
-  LinkTrackingEventProperties,
-  IdentifyEventProperties,
-  AnalyticsAPI,
-} from './contexts/AnalyticsContext';
-
 export { NotificationContext, useNotification } from './contexts/NotificationContext';
 export type { NotificationAction, NotificationAPI } from './contexts/NotificationContext';
 
@@ -146,7 +132,16 @@ export type {
   WorkingProjectContextType,
   WorkingProjectProviderProps,
   WorkingProjectStatus,
+  WorkingProjectNavigation,
+  WorkingProjectNavigationTransaction,
 } from './context/WorkingProjectContext';
+
+export { useWorkingProjectSynchronization } from './hooks/useWorkingProjectSynchronization';
+export type {
+  WorkingProjectChange,
+  WorkingProjectChangeSource,
+  WorkingProjectSynchronizationOptions,
+} from './hooks/useWorkingProjectSynchronization';
 
 export { ConnectionDetailsHelperText } from './components/connectionTypes/ConnectionDetailsHelperText';
 export { default as DefaultValueTextRenderer } from './components/connectionTypes/DefaultValueTextRenderer';

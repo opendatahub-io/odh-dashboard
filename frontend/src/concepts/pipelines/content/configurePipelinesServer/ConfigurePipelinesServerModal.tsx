@@ -19,7 +19,7 @@ import {
   NotificationResponseStatus,
   NotificationWatcherContext,
 } from '@odh-dashboard/ui-core/contexts/NotificationWatcherContext';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
