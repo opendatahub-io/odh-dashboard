@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 
 describe('base shell ThemeProvider', () => {
-  it('defaults to the light theme and solid contrast', () => {
+  it('should default to the light theme and solid contrast', () => {
     renderProvider();
     expect(latestCtx?.theme).toBe('light');
     expect(latestCtx?.contrastMode).toBe('default');
@@ -54,21 +54,21 @@ describe('base shell ThemeProvider', () => {
     expect(html()).not.toHaveClass('pf-v6-theme-glass');
   });
 
-  it('applies a stored dark theme', () => {
+  it('should apply a stored dark theme', () => {
     localStorage.setItem('app-shell.theme', 'dark');
     renderProvider();
     expect(latestCtx?.theme).toBe('dark');
     expect(html()).toHaveClass('pf-v6-theme-dark');
   });
 
-  it('applies a stored glass contrast mode', () => {
+  it('should apply a stored glass contrast mode', () => {
     localStorage.setItem('app-shell.contrastMode', 'glass');
     renderProvider();
     expect(html()).toHaveClass('pf-v6-theme-glass');
     expect(html()).not.toHaveClass('pf-v6-theme-high-contrast');
   });
 
-  it('resolves the system contrast mode to solid when the OS prefers reduced transparency', () => {
+  it('should resolve the system contrast mode to solid when the OS prefers reduced transparency', () => {
     localStorage.setItem('app-shell.contrastMode', 'system');
     mediaState['(prefers-reduced-transparency: reduce)'] = true;
     renderProvider();
@@ -76,7 +76,7 @@ describe('base shell ThemeProvider', () => {
     expect(html()).not.toHaveClass('pf-v6-theme-high-contrast');
   });
 
-  it('resolves the system contrast mode to high contrast when the OS prefers more contrast', () => {
+  it('should resolve the system contrast mode to high contrast when the OS prefers more contrast', () => {
     localStorage.setItem('app-shell.contrastMode', 'system');
     mediaState['(prefers-contrast: more)'] = true;
     renderProvider();
@@ -84,7 +84,7 @@ describe('base shell ThemeProvider', () => {
     expect(html()).not.toHaveClass('pf-v6-theme-glass');
   });
 
-  it('persists theme and contrast changes and dispatches the change event', () => {
+  it('should persist theme and contrast changes and dispatches the change event', () => {
     renderProvider();
     const events: CustomEvent[] = [];
     window.addEventListener('odh-theme-change', (e) => events.push(e as CustomEvent));
@@ -103,7 +103,7 @@ describe('base shell ThemeProvider', () => {
     expect(events[1].detail).toEqual({ theme: 'dark', contrastMode: 'glass' });
   });
 
-  it('follows live OS contrast changes while the system mode is active', () => {
+  it('should follow live OS contrast changes while the system mode is active', () => {
     localStorage.setItem('app-shell.contrastMode', 'system');
     renderProvider();
     expect(html()).toHaveClass('pf-v6-theme-glass');

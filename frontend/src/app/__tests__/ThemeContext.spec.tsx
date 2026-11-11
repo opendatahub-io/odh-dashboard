@@ -56,7 +56,7 @@ beforeEach(() => {
 });
 
 describe('ThemeProvider', () => {
-  it('defaults to the light theme and Glass contrast with no stored preferences', () => {
+  it('should default to the light theme and Glass contrast with no stored preferences', () => {
     renderProvider();
     expect(latestCtx?.theme).toBe('light');
     expect(latestCtx?.contrastMode).toBe('system');
@@ -65,21 +65,21 @@ describe('ThemeProvider', () => {
     expect(html()).not.toHaveClass('pf-v6-theme-high-contrast');
   });
 
-  it('resolves the system color scheme to dark when the OS prefers dark', () => {
+  it('should resolve the system color scheme to dark when the OS prefers dark', () => {
     mediaState['(prefers-color-scheme: dark)'] = true;
     renderProvider();
     expect(latestCtx?.theme).toBe('dark');
     expect(html()).toHaveClass('pf-v6-theme-dark');
   });
 
-  it('applies a stored dark color scheme', () => {
+  it('should apply a stored dark color scheme', () => {
     localStorage.setItem('odh.dashboard.ui.colorScheme', '"dark"');
     renderProvider();
     expect(latestCtx?.colorScheme).toBe('dark');
     expect(html()).toHaveClass('pf-v6-theme-dark');
   });
 
-  it('persists an explicit glass choice across remounts', () => {
+  it('should persist an explicit glass choice across remounts', () => {
     const { unmount } = renderProvider();
     act(() => {
       latestCtx?.setContrastMode('glass');
@@ -95,7 +95,7 @@ describe('ThemeProvider', () => {
     expect(html()).toHaveClass('pf-v6-theme-glass');
   });
 
-  it('keeps glass and high contrast mutually exclusive', () => {
+  it('should keep glass and high contrast mutually exclusive', () => {
     renderProvider();
     act(() => {
       latestCtx?.setContrastMode('high-contrast');
@@ -104,7 +104,7 @@ describe('ThemeProvider', () => {
     expect(html()).not.toHaveClass('pf-v6-theme-glass');
   });
 
-  it('resolves the system contrast mode to solid when the OS prefers reduced transparency', () => {
+  it('should resolve the system contrast mode to solid when the OS prefers reduced transparency', () => {
     localStorage.setItem('odh.dashboard.ui.contrastMode', '"system"');
     mediaState['(prefers-reduced-transparency: reduce)'] = true;
     renderProvider();
@@ -112,7 +112,7 @@ describe('ThemeProvider', () => {
     expect(html()).not.toHaveClass('pf-v6-theme-high-contrast');
   });
 
-  it('resolves the system contrast mode to high contrast when the OS prefers more contrast', () => {
+  it('should resolve the system contrast mode to high contrast when the OS prefers more contrast', () => {
     localStorage.setItem('odh.dashboard.ui.contrastMode', '"system"');
     mediaState['(prefers-contrast: more)'] = true;
     renderProvider();
@@ -120,7 +120,7 @@ describe('ThemeProvider', () => {
     expect(html()).not.toHaveClass('pf-v6-theme-glass');
   });
 
-  it('follows live OS color scheme changes while the system scheme is active', () => {
+  it('should follow live OS color scheme changes while the system scheme is active', () => {
     renderProvider();
     expect(html()).not.toHaveClass('pf-v6-theme-dark');
     fireMediaChange('(prefers-color-scheme: dark)', true);
@@ -131,7 +131,7 @@ describe('ThemeProvider', () => {
     expect(html()).not.toHaveClass('pf-v6-theme-dark');
   });
 
-  it('migrates a legacy theme preference on mount', () => {
+  it('should migrate a legacy theme preference on mount', () => {
     localStorage.setItem('odh.dashboard.ui.theme', '"dark"');
     renderProvider();
     expect(latestCtx?.colorScheme).toBe('dark');
@@ -144,33 +144,33 @@ describe('ThemeProvider', () => {
 describe('migrateLegacyThemeStorage', () => {
   const storage = (): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> => localStorage;
 
-  it('maps a legacy dark preference to the color scheme key', () => {
+  it('should map a legacy dark preference to the color scheme key', () => {
     localStorage.setItem('odh.dashboard.ui.theme', '"dark"');
     migrateLegacyThemeStorage(storage());
     expect(localStorage.getItem('odh.dashboard.ui.colorScheme')).toBe('"dark"');
     expect(localStorage.getItem('odh.dashboard.ui.theme')).toBeNull();
   });
 
-  it('maps a legacy light preference to the color scheme key', () => {
+  it('should map a legacy light preference to the color scheme key', () => {
     localStorage.setItem('odh.dashboard.ui.theme', '"light"');
     migrateLegacyThemeStorage(storage());
     expect(localStorage.getItem('odh.dashboard.ui.colorScheme')).toBe('"light"');
   });
 
-  it('accepts raw unquoted legacy values', () => {
+  it('should accept raw unquoted legacy values', () => {
     localStorage.setItem('odh.dashboard.ui.theme', 'dark');
     migrateLegacyThemeStorage(storage());
     expect(localStorage.getItem('odh.dashboard.ui.colorScheme')).toBe('"dark"');
   });
 
-  it('ignores garbage legacy values but still removes the legacy key', () => {
+  it('should ignore garbage legacy values but still remove the legacy key', () => {
     localStorage.setItem('odh.dashboard.ui.theme', '"banana"');
     migrateLegacyThemeStorage(storage());
     expect(localStorage.getItem('odh.dashboard.ui.colorScheme')).toBeNull();
     expect(localStorage.getItem('odh.dashboard.ui.theme')).toBeNull();
   });
 
-  it('leaves an existing color scheme key untouched', () => {
+  it('should leave an existing color scheme key untouched', () => {
     localStorage.setItem('odh.dashboard.ui.colorScheme', '"light"');
     localStorage.setItem('odh.dashboard.ui.theme', '"dark"');
     migrateLegacyThemeStorage(storage());
@@ -178,7 +178,7 @@ describe('migrateLegacyThemeStorage', () => {
     expect(localStorage.getItem('odh.dashboard.ui.theme')).toBeNull();
   });
 
-  it('tolerates unavailable storage', () => {
+  it('should tolerate unavailable storage', () => {
     const throwing: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
       getItem: () => {
         throw new Error('unavailable');
