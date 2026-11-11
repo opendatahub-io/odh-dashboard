@@ -284,6 +284,49 @@ func parseResolvConfServiceSuffixes(path string) []string {
 	return suffixes
 }
 
+// resolverNdotsFn returns the resolver's ndots threshold from the pod's
+// resolv.conf ("options ndots:N"); a variable so tests can inject
+// deterministic values.
+var resolverNdotsFn = defaultResolverNdots
+
+var (
+	resolverNdotsOnce  sync.Once
+	resolverNdotsValue int
+)
+
+func defaultResolverNdots() int {
+	resolverNdotsOnce.Do(func() {
+		resolverNdotsValue = parseResolvConfNdots("/etc/resolv.conf")
+	})
+	return resolverNdotsValue
+}
+
+// parseResolvConfNdots reads the ndots threshold: a name with at least that
+// many dots is tried as the absolute name before any search-path expansion
+// (Go's net package and glibc both apply this order). An absent or invalid
+// option falls back to the shared default of 1.
+func parseResolvConfNdots(path string) int {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 1
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 2 || fields[0] != "options" {
+			continue
+		}
+		for _, opt := range fields[1:] {
+			if !strings.HasPrefix(opt, "ndots:") {
+				continue
+			}
+			if n, err := strconv.Atoi(strings.TrimPrefix(opt, "ndots:")); err == nil && n >= 0 {
+				return n
+			}
+		}
+	}
+	return 1
+}
+
 // lookupAbsHostFn reports whether a hostname resolves as an absolute DNS
 // name; a variable so tests can inject deterministic results. It honors the
 // passed context and bounds the lookup so a slow resolver cannot stall the
@@ -397,10 +440,13 @@ func classifyHost(ctx context.Context, baseURL string) (hostClassification, erro
 //     terminal root dot;
 //   - a bare <service>.<namespace>.svc name completed by the domain search
 //     entry;
-//   - a partial name (fewer labels than ndots) whose search-path expansion
+//   - a partial name (fewer dots than ndots) whose search-path expansion
 //     resolves: the resolver tries each search entry before the absolute
 //     name, so a name that also resolves absolutely still connects to its
-//     Service interpretation and must be classified as one. One-label names
+//     Service interpretation and must be classified as one. A name with at
+//     least ndots dots is instead tried as the absolute name first, so when
+//     that lookup succeeds the name stays external no matter what its search
+//     expansion would resolve to. One-label names
 //     complete only within the BFF pod's own namespace; two- and three-label
 //     names complete to Service or pod-specific names in the namespace their
 //     labels imply (or the BFF pod's namespace, for the pod-namespace search
@@ -435,6 +481,22 @@ func (c *hostClassification) classifyServiceName(ctx context.Context, absolute b
 	if absolute {
 		// Absolute short names get no search-path completion.
 		return nil
+	}
+	// A name with at least ndots dots is tried as the absolute name before any
+	// search-path expansion; when that absolute lookup succeeds, the resolver
+	// never reaches the search path, so the connection goes to the public DNS
+	// record and the name must not be classified as a Service (classifying it
+	// anyway would 403 other-namespace callers or pin same-namespace callers
+	// to the internal Pod for a URL whose traffic actually goes to the public
+	// endpoint).
+	if strings.Count(h, ".") >= resolverNdotsFn() {
+		resolvesAbsolutely, err := lookupAbsHostFn(ctx, h)
+		if err != nil {
+			return err
+		}
+		if resolvesAbsolutely {
+			return nil
+		}
 	}
 	// A bare name ending in .svc is completed by the domain search entry to
 	// the same Service its fully-qualified form names, so it must be

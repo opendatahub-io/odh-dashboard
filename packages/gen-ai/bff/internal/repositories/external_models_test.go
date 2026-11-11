@@ -72,16 +72,27 @@ func TestIsInternalHost(t *testing.T) {
 
 // withInjectedServiceDNS swaps the cluster suffix and absolute-lookup
 // functions for deterministic fakes and restores them when the test ends.
+// The resolver's ndots is pinned to the Kubernetes default of 5 so outcomes
+// do not depend on the test machine's resolv.conf.
 func withInjectedServiceDNS(t *testing.T, suffixes []string, resolvesAbsolutely bool) {
+	withInjectedServiceDNSNdots(t, suffixes, resolvesAbsolutely, 5)
+}
+
+// withInjectedServiceDNSNdots is withInjectedServiceDNS with an explicit
+// ndots threshold, for coverage of resolver configurations where a name with
+// enough dots is tried absolutely before the search path.
+func withInjectedServiceDNSNdots(t *testing.T, suffixes []string, resolvesAbsolutely bool, ndots int) {
 	t.Helper()
-	originalSuffixes, originalProbeable, originalLookup := clusterServiceSuffixesFn, probeableServiceSuffixesFn, lookupAbsHostFn
+	originalSuffixes, originalProbeable, originalLookup, originalNdots := clusterServiceSuffixesFn, probeableServiceSuffixesFn, lookupAbsHostFn, resolverNdotsFn
 	clusterServiceSuffixesFn = func() []string { return suffixes }
 	probeableServiceSuffixesFn = func() []string { return suffixes }
 	lookupAbsHostFn = func(context.Context, string) (bool, error) { return resolvesAbsolutely, nil }
+	resolverNdotsFn = func() int { return ndots }
 	t.Cleanup(func() {
 		clusterServiceSuffixesFn = originalSuffixes
 		probeableServiceSuffixesFn = originalProbeable
 		lookupAbsHostFn = originalLookup
+		resolverNdotsFn = originalNdots
 	})
 }
 
@@ -135,9 +146,11 @@ func TestServiceHostClassificationSearchDomains(t *testing.T) {
 	})
 
 	t.Run("two-label hostname resolving both absolutely and as a Service is classified as the Service", func(t *testing.T) {
-		// Under ndots, the resolver tries search-path expansion before the
-		// absolute name, so the Service interpretation is the destination
-		// the connection would actually use and must be namespace-checked.
+		// Under the Kubernetes default ndots:5, a two-label name has fewer
+		// dots than the threshold, so the resolver tries search-path
+		// expansion before the absolute name; the Service interpretation is
+		// the destination the connection would actually use and must be
+		// namespace-checked.
 		withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
 		originalLookup := lookupAbsHostFn
 		lookupAbsHostFn = func(_ context.Context, host string) (bool, error) {
@@ -153,6 +166,43 @@ func TestServiceHostClassificationSearchDomains(t *testing.T) {
 		assert.Equal(t, "com", classif.namespace)
 		assert.True(t, classif.crossNamespace("my-ns"),
 			"a cross-namespace Service interpretation must be denied explicitly")
+	})
+
+	t.Run("two-label hostname resolving both absolutely and as a Service stays external under ndots:1", func(t *testing.T) {
+		// With ndots:1 the resolver tries the absolute name first; when it
+		// resolves, the search-path Service expansion is never reached.
+		// Classifying the name as a Service anyway would 403 other-namespace
+		// callers or pin same-namespace callers to the internal Pod for a URL
+		// whose connection actually goes to the public endpoint.
+		withInjectedServiceDNSNdots(t, []string{"svc.cluster.local"}, false, 1)
+		originalLookup := lookupAbsHostFn
+		lookupAbsHostFn = func(_ context.Context, host string) (bool, error) {
+			switch host {
+			case "example.com", "example.com.svc.cluster.local":
+				return true, nil
+			}
+			return false, nil
+		}
+		t.Cleanup(func() { lookupAbsHostFn = originalLookup })
+		classif := classifyOrFatal(t, "https://example.com:8443/v1")
+		assert.False(t, classif.isServiceName, "the absolute interpretation wins under ndots:1, so the name stays external")
+		assert.False(t, classif.crossNamespace("my-ns"))
+		assert.False(t, classif.internalTo("my-ns", false))
+	})
+
+	t.Run("two-label name whose absolute lookup fails is still completed by the search path under ndots:1", func(t *testing.T) {
+		// When the absolute name does not resolve, the resolver falls back to
+		// the search path even with ndots:1, so the Service interpretation
+		// must still be classified and namespace-checked.
+		withInjectedServiceDNSNdots(t, []string{"svc.cluster.local"}, false, 1)
+		originalLookup := lookupAbsHostFn
+		lookupAbsHostFn = func(_ context.Context, host string) (bool, error) {
+			return host == "my-model.other-ns.svc.cluster.local", nil
+		}
+		t.Cleanup(func() { lookupAbsHostFn = originalLookup })
+		classif := classifyOrFatal(t, "https://my-model.other-ns:8443/v1")
+		assert.True(t, classif.isServiceName, "a name only the search path resolves must be classified as a Service")
+		assert.True(t, classif.crossNamespace("my-ns"))
 	})
 
 	t.Run("three-label name whose pod-specific Service interpretation resolves is classified as a Service", func(t *testing.T) {
@@ -261,6 +311,20 @@ func TestParseResolvConfServiceSuffixes(t *testing.T) {
 	}
 	assert.Equal(t, []string{"svc.cluster.example.com"}, parseResolvConfServiceSuffixes(path))
 	assert.Empty(t, parseResolvConfServiceSuffixes(filepath.Join(t.TempDir(), "missing.conf")))
+}
+
+func TestParseResolvConfNdots(t *testing.T) {
+	writeConf := func(content string) string {
+		path := filepath.Join(t.TempDir(), "resolv.conf")
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatalf("failed to write test resolv.conf: %v", err)
+		}
+		return path
+	}
+	assert.Equal(t, 5, parseResolvConfNdots(writeConf("search my-ns.svc.cluster.local\noptions ndots:5\n")))
+	assert.Equal(t, 1, parseResolvConfNdots(writeConf("search my-ns.svc.cluster.local\n")), "absent option defaults to 1")
+	assert.Equal(t, 1, parseResolvConfNdots(writeConf("options ndots:not-a-number\n")), "invalid option defaults to 1")
+	assert.Equal(t, 1, parseResolvConfNdots(filepath.Join(t.TempDir(), "missing.conf")), "missing file defaults to 1")
 }
 
 // recordingServiceClient records the GetService arguments so tests can assert that
