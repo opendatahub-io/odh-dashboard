@@ -226,6 +226,43 @@ describe('useWorkingProjectRouteSync', () => {
       expect(selectProject).toHaveBeenCalledWith(projects[1]);
       expect(navigate).not.toHaveBeenCalled();
     });
+
+    it('should resume selection after an unresolved pending selection is left and re-entered', () => {
+      const { rerender } = renderHook(
+        ({
+          activeProjectName,
+          routeProjectName,
+        }: {
+          activeProjectName: string;
+          routeProjectName?: string;
+        }) =>
+          useWorkingProjectRouteSync({
+            activeProjectName,
+            routeProjectName,
+            projects,
+            selectProject,
+            enabled: true,
+            getProjectLocation: (projectName) => ({ pathname: `/assets/${projectName}` }),
+          }),
+        {
+          initialProps: {
+            activeProjectName: 'project-a',
+            routeProjectName: 'project-b',
+          },
+        },
+      );
+
+      // The initial selection remains pending because the active project never changes.
+      rerender({ activeProjectName: 'project-a', routeProjectName: 'project-b' });
+      // Leave the project-scoped route, then re-enter it.
+      rerender({ activeProjectName: 'project-a', routeProjectName: '' });
+      rerender({ activeProjectName: 'project-a', routeProjectName: 'project-b' });
+
+      expect(selectProject).toHaveBeenCalledTimes(2);
+      expect(selectProject).toHaveBeenNthCalledWith(1, projects[1]);
+      expect(selectProject).toHaveBeenNthCalledWith(2, projects[1]);
+      expect(navigate).not.toHaveBeenCalled();
+    });
   });
 
   describe('route re-entry', () => {
