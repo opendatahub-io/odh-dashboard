@@ -34,6 +34,9 @@ func TestListModelsHandler_OnlyForwardsAllowlistedHeaders(t *testing.T) {
 				"Cookie":                   {"session=incoming-session"},
 				"X-Forwarded-Access-Token": {"gateway-token"},
 				"X-Gateway-Auth":           {"gateway-identity"},
+				"X-Maas-Identity":          {"gateway-maas-identity"},
+				"X-Maas-Username":          {"gateway-username"},
+				"X-Maas-Group":             {"gateway-group"},
 			}
 			for _, value := range tt.values {
 				incomingHeaders.Add("X-MaaS-Return-All-Models", value)
@@ -53,7 +56,7 @@ func TestListModelsHandler_OnlyForwardsAllowlistedHeaders(t *testing.T) {
 				if got := r.Header.Values("X-MaaS-Return-All-Models"); !reflect.DeepEqual(got, tt.values) {
 					t.Errorf("enrichment header = %v, want %v", got, tt.values)
 				}
-				for _, name := range []string{"Cookie", "X-Forwarded-Access-Token", "X-Gateway-Auth"} {
+				for _, name := range []string{"Cookie", "X-Forwarded-Access-Token", "X-Gateway-Auth", "X-Maas-Identity", "X-Maas-Username", "X-Maas-Group"} {
 					if got := r.Header.Get(name); got != "" {
 						t.Errorf("incoming header %s was forwarded: %q", name, got)
 					}
