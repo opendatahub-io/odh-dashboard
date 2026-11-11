@@ -1,4 +1,4 @@
-import { buildOverviewRows } from '~/app/utilities/buildOverviewRows';
+import { buildOverviewGroups, buildOverviewRows } from '~/app/utilities/buildOverviewRows';
 import type {
   MaaSAuthPolicy,
   MaaSModelRefSummary,
@@ -146,5 +146,32 @@ describe('buildOverviewRows', () => {
     const rows = buildOverviewRows(modelRefs, otherNsSubs, []);
     const granite = rows.find((r) => r.id === 'granite-3-8b-instruct');
     expect(granite?.subscriptions).toEqual([]);
+  });
+});
+
+describe('buildOverviewGroups', () => {
+  it('should produce one row per group sorted by name', () => {
+    const multiGroupSubs: MaaSSubscription[] = [
+      {
+        ...subscriptions[0],
+        owner: { groups: [{ name: 'zeta-users' }, { name: 'alpha-users' }] },
+      },
+    ];
+    const groups = buildOverviewGroups(multiGroupSubs, []);
+    expect(groups.map((g) => g.name)).toEqual(['alpha-users', 'zeta-users']);
+  });
+
+  it('should attach subscriptions and policies to their groups', () => {
+    const groups = buildOverviewGroups(subscriptions, policies);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].name).toBe('premium-users');
+    expect(groups[0].subscriptions.map((s) => s.name)).toEqual(['premium-team-sub']);
+    expect(groups[0].subscriptions[0].modelRefs).toHaveLength(2);
+    expect(groups[0].authPolicies.map((p) => p.name)).toEqual(['premium-team-sub-policy']);
+  });
+
+  it('should return an empty array when no groups exist', () => {
+    const noGroupSubs: MaaSSubscription[] = [{ ...subscriptions[0], owner: { groups: [] } }];
+    expect(buildOverviewGroups(noGroupSubs, [])).toEqual([]);
   });
 });

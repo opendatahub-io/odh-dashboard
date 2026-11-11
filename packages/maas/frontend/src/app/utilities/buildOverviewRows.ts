@@ -1,4 +1,6 @@
 import type {
+  GroupOverviewItem,
+  GroupOverviewSubscription,
   GroupReference,
   MaaSAuthPolicy,
   MaaSModelRefSummary,
@@ -6,7 +8,6 @@ import type {
   ModelOverviewItem,
   ModelOverviewPolicy,
   ModelOverviewSubscription,
-  TokenRateLimit,
 } from '~/app/types/subscriptions';
 
 const modelKey = (namespace: string, name: string): string => `${namespace}/${name}`;
@@ -17,6 +18,37 @@ const groupNames = (refs: GroupReference[] | undefined): string[] | undefined =>
   }
   return refs.map((g) => g.name);
 };
+
+const toOverviewSubscription = (
+  sub: MaaSSubscription,
+  groups: string[] | undefined,
+): ModelOverviewSubscription => ({
+  name: sub.name,
+  displayName: sub.displayName,
+  phase: sub.phase,
+  statusMessage: sub.statusMessage,
+  reason: sub.reason,
+  status: sub.status,
+  conditionType: sub.conditionType,
+  lastTransitionTime: sub.lastTransitionTime,
+  groups,
+  tokenRateLimits: [],
+});
+
+const toOverviewPolicy = (
+  policy: MaaSAuthPolicy,
+  groups: string[] | undefined,
+): ModelOverviewPolicy => ({
+  name: policy.name,
+  displayName: policy.displayName,
+  phase: policy.phase,
+  statusMessage: policy.statusMessage,
+  reason: policy.reason,
+  status: policy.status,
+  conditionType: policy.conditionType,
+  lastTransitionTime: policy.lastTransitionTime,
+  groups,
+});
 
 /**
  * Client-side join of MaaSModelRefs with subscriptions and auth policies.
@@ -31,19 +63,10 @@ export const buildOverviewRows = (
   for (const sub of subscriptions) {
     const groups = groupNames(sub.owner.groups);
     for (const ref of sub.modelRefs) {
-      const rateLimits: TokenRateLimit[] = [...ref.tokenRateLimits];
       const key = modelKey(ref.namespace, ref.name);
       const entry: ModelOverviewSubscription = {
-        name: sub.name,
-        displayName: sub.displayName,
-        phase: sub.phase,
-        statusMessage: sub.statusMessage,
-        reason: sub.reason,
-        status: sub.status,
-        conditionType: sub.conditionType,
-        lastTransitionTime: sub.lastTransitionTime,
-        groups,
-        tokenRateLimits: rateLimits,
+        ...toOverviewSubscription(sub, groups),
+        tokenRateLimits: [...ref.tokenRateLimits],
       };
       const existing = subsByModel.get(key);
       if (existing) {
@@ -59,17 +82,7 @@ export const buildOverviewRows = (
     const groups = groupNames(policy.subjects.groups);
     for (const ref of policy.modelRefs) {
       const key = modelKey(ref.namespace, ref.name);
-      const entry: ModelOverviewPolicy = {
-        name: policy.name,
-        displayName: policy.displayName,
-        phase: policy.phase,
-        statusMessage: policy.statusMessage,
-        reason: policy.reason,
-        status: policy.status,
-        conditionType: policy.conditionType,
-        lastTransitionTime: policy.lastTransitionTime,
-        groups,
-      };
+      const entry = toOverviewPolicy(policy, groups);
       const existing = policiesByModel.get(key);
       if (existing) {
         existing.push(entry);
@@ -98,4 +111,43 @@ export const buildOverviewRows = (
       authPolicies: policiesByModel.get(key) ?? [],
     };
   });
+};
+
+/**
+ * Groups the subscriptions and auth policies by group name for the overview
+ * groups view. Subscriptions keep their model refs so model/project filters
+ * and affected-models lookups keep working per group.
+ */
+export const buildOverviewGroups = (
+  subscriptions: MaaSSubscription[],
+  policies: MaaSAuthPolicy[],
+): GroupOverviewItem[] => {
+  const groups = new Map<string, GroupOverviewItem>();
+  const entry = (name: string): GroupOverviewItem => {
+    let item = groups.get(name);
+    if (!item) {
+      item = { name, subscriptions: [], authPolicies: [] };
+      groups.set(name, item);
+    }
+    return item;
+  };
+
+  for (const sub of subscriptions) {
+    const subGroups = groupNames(sub.owner.groups);
+    for (const group of subGroups ?? []) {
+      const overviewSub: GroupOverviewSubscription = {
+        ...toOverviewSubscription(sub, subGroups),
+        modelRefs: sub.modelRefs,
+      };
+      entry(group).subscriptions.push(overviewSub);
+    }
+  }
+  for (const policy of policies) {
+    const policyGroups = groupNames(policy.subjects.groups);
+    for (const group of policyGroups ?? []) {
+      entry(group).authPolicies.push(toOverviewPolicy(policy, policyGroups));
+    }
+  }
+
+  return [...groups.values()].toSorted((a, b) => a.name.localeCompare(b.name));
 };
