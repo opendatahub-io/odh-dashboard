@@ -3,7 +3,6 @@ import { isWizardTrackingPropertiesExtension } from '@odh-dashboard/model-servin
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import extensions from '../extensions';
 import { extractLlmdDeploymentTrackingProperties } from '../../src/tracking/llmdWizardTracking';
-import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../src/settings/llmAcceleratorConfigs/paths';
 import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
 import { ROUTING_CONFIGS_TAB_PATH } from '../../src/settings/routingConfigs/paths';
