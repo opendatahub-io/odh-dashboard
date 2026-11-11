@@ -30,7 +30,7 @@ const CRITICAL_PACKAGES = [
 ];
 
 function parseLockfileImporters(lockfilePath) {
-  const lines = fs.readFileSync(lockfilePath, 'utf8').split('\n');
+  const lines = fs.readFileSync(lockfilePath, 'utf8').split(/\r?\n/);
   const importers = {};
   let currentImporter = null;
   let inDependencies = false;
