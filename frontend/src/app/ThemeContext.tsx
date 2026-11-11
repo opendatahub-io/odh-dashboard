@@ -62,11 +62,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     return null;
   });
   const [colorScheme, setColorScheme] = useBrowserStorage<ColorScheme>(COLOR_SCHEME_KEY, 'system');
-  // Solid backgrounds by default; glass is opt-in via the appearance switcher
-  // until UX/PM confirm a glass-by-default disposition (RHAI-19116 / F2).
+  // Glass is the default contrast per UX (2026-11-11 correction, RHAI-19116):
+  // Felt + Glass matches the OCP 5.x direction. The system mode resolves to
+  // Glass unless the OS prefers reduced transparency or more contrast; solid
+  // and high contrast remain available via the appearance switcher.
   const [contrastMode, setContrastMode] = useBrowserStorage<ContrastMode>(
     'odh.dashboard.ui.contrastMode',
-    'default',
+    'system',
   );
   const [, setMlflowTheme] = useBrowserStorage<boolean>(MLFLOW_DARK_MODE_KEY, false);
 

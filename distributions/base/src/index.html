@@ -9,8 +9,8 @@
       // PatternFly theme classes are applied before the app boots so tokens
       // are correct on first paint. Felt is always on; light/dark composes
       // via .pf-v6-theme-dark (resolution mirrors the base shell
-      // ThemeContext). Glass stays off unless explicitly chosen — the base
-      // shell has no appearance switcher yet (see RHAI-19116).
+      // ThemeContext). Glass is the default contrast unless the OS opts
+      // out; the base shell appearance switcher is follow-up (RHAI-19116).
       (function () {
         var root = document.documentElement;
         root.classList.add('pf-v6-theme-felt');
@@ -20,7 +20,7 @@
           var contrast = localStorage.getItem('app-shell.contrastMode');
           var glass = contrast === 'glass';
           var highContrast = contrast === 'high-contrast';
-          if (contrast === 'system') {
+          if (contrast === null || contrast === 'system') {
             highContrast = window.matchMedia('(prefers-contrast: more)').matches;
             glass =
               !highContrast && !window.matchMedia('(prefers-reduced-transparency: reduce)').matches;

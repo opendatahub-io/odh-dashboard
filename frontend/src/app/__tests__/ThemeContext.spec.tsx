@@ -56,12 +56,12 @@ beforeEach(() => {
 });
 
 describe('ThemeProvider', () => {
-  it('defaults to the light theme and solid contrast with no stored preferences', () => {
+  it('defaults to the light theme and Glass contrast with no stored preferences', () => {
     renderProvider();
     expect(latestCtx?.theme).toBe('light');
-    expect(latestCtx?.contrastMode).toBe('default');
+    expect(latestCtx?.contrastMode).toBe('system');
     expect(html()).not.toHaveClass('pf-v6-theme-dark');
-    expect(html()).not.toHaveClass('pf-v6-theme-glass');
+    expect(html()).toHaveClass('pf-v6-theme-glass');
     expect(html()).not.toHaveClass('pf-v6-theme-high-contrast');
   });
 
@@ -79,7 +79,7 @@ describe('ThemeProvider', () => {
     expect(html()).toHaveClass('pf-v6-theme-dark');
   });
 
-  it('applies glass only when opted in and persists the choice across remounts', () => {
+  it('persists an explicit glass choice across remounts', () => {
     const { unmount } = renderProvider();
     act(() => {
       latestCtx?.setContrastMode('glass');

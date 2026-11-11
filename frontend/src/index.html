@@ -11,7 +11,8 @@
       // are correct on first paint. Felt is always on; light/dark composes
       // via .pf-v6-theme-dark and glass/high-contrast via their classes.
       // Resolution mirrors ThemeContext (dark follows the color scheme or OS;
-      // glass is opt-in). The legacy odh.dashboard.ui.theme key is migrated
+      // Glass is the default contrast unless the OS opts out). The legacy
+      // odh.dashboard.ui.theme key is migrated
       // once so saved light/dark choices survive. OS "Reduce Transparency"
       // overrides glass when the scheme is system (see App.scss).
       (function () {
@@ -48,7 +49,7 @@
           var contrast = read(CONTRAST_KEY);
           var glass = contrast === 'glass';
           var highContrast = contrast === 'high-contrast';
-          if (contrast === 'system') {
+          if (contrast === null || contrast === 'system') {
             highContrast = window.matchMedia('(prefers-contrast: more)').matches;
             glass =
               !highContrast && !window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
