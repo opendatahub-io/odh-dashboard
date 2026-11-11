@@ -46,7 +46,7 @@
     "test:css-guard": "node --test scripts/__tests__/check-css-lowering.test.js",
     "test:renovate-automerge": "node --test .github/scripts/__tests__/*.test.js",
     "test:cypress-ci": "pnpm --filter odh-dashboard-frontend test:cypress-ci",
-    "test:unit": "pnpm run test:dsc-workaround && pnpm run test:css-guard && turbo run test:unit",
+    "test:unit": "pnpm run test:dsc-workaround && pnpm run test:css-guard && pnpm run test:lockfile-sync && turbo run test:unit",
     "lint:frontend:backend": "run-p test:lint:*",
     "test:lint:backend": "pnpm --filter odh-dashboard-backend test:lint",
     "test:lint:frontend": "pnpm --filter odh-dashboard-frontend test:lint",
@@ -79,7 +79,8 @@
     "cypress:server:e2e:wait": "turbo run cypress:server:e2e:wait",
     "test:cypress:e2e": "concurrently -P -k -s first --hide 0 \"pnpm cypress:server:e2e\" \"pnpm cypress:server:e2e:wait && cross-env CYPRESS_E2E_PROXY=true pnpm --filter odh-dashboard-frontend cypress:run:chrome {@}\" --",
     "start:dev": "run-p -l dev:backend dev:frontend",
-    "start:dev:ext": "turbo run start:dev:ext"
+    "start:dev:ext": "turbo run start:dev:ext",
+    "test:lockfile-sync": "node --test scripts/__tests__/check-lockfile-sync.test.js"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.12.3",
