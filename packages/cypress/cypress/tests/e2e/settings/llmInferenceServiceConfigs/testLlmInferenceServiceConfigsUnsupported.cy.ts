@@ -88,8 +88,20 @@ describe('Unsupported inference service configs: CRUD + wizard gating', () => {
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
+    // Changing deployment method fetches the configs again; ignore earlier wizard requests.
+    cy.intercept({
+      method: 'GET',
+      pathname: `**/namespaces/${namespace}/llminferenceserviceconfigs`,
+      query: { labelSelector: 'opendatahub.io/config-type=accelerator' },
+    }).as('wizardAcceleratorConfigs');
     modelServingWizard.selectDeploymentMethodByKey(deploymentMethod);
-    modelServingWizard.findModelServerManualSelectRadio().check();
+  };
+
+  // Wait for the config list used by automatic selection before choosing Manual.
+  const selectManualAcceleratorConfig = () => {
+    cy.wait('@wizardAcceleratorConfigs').its('response.statusCode').should('eq', 200);
+    modelServingWizard.findModelServerManualSelectRadio().check().should('be.checked');
+    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('be.visible');
   };
 
   it(
@@ -188,10 +200,7 @@ describe('Unsupported inference service configs: CRUD + wizard gating', () => {
       cy.step(' Verify the unsupported accelerator config is hidden in the wizard');
       llmInferenceServiceConfigurations.getRowByName(resourceName).shouldBeEnabled(false);
       openDeployWizardToDeploymentStep();
-      // The wizard starts on "Automatic selection" when exactly one enabled config is compatible
-      // with the selected hardware profile; the manual dropdown is unmounted in that mode.
-      // Clicking the radio is a no-op when manual mode is already active.
-      modelServingWizard.findModelServerManualSelectRadio().click();
+      selectManualAcceleratorConfig();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption(acceleratorConfigName).should('not.exist');
 
@@ -206,7 +215,7 @@ describe('Unsupported inference service configs: CRUD + wizard gating', () => {
 
       cy.step('Verify the accelerator config is visible in the wizard');
       openDeployWizardToDeploymentStep();
-      modelServingWizard.findModelServerManualSelectRadio().click();
+      selectManualAcceleratorConfig();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard
         .findGlobalScopedTemplateOption(acceleratorConfigName)
