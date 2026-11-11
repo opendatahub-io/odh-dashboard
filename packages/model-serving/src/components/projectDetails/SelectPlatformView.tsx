@@ -4,6 +4,7 @@ import { EmptyDetailsView, ProjectObjectType, typedEmptyImage } from '@odh-dashb
 import { ModelServingPlatformSelectErrorAlert } from '@odh-dashboard/model-serving/shared/components';
 import EmptyModelServingPlatform from './EmptyModelServingPlatform';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { useModelServingDeployMethods } from '../../concepts/useModelServingDeployMethods';
 import { PlatformSelectionGallery } from '../platforms/platformSelection';
 
 export const SelectPlatformView: React.FC<{
@@ -19,7 +20,9 @@ export const SelectPlatformView: React.FC<{
   errorSelectingPlatform,
   clearErrorSelectingPlatform,
 }) => {
-  if (!platforms || platforms.length === 0) {
+  const { hasDeployMethods } = useModelServingDeployMethods();
+
+  if (!hasDeployMethods || !platforms || platforms.length === 0) {
     return <EmptyModelServingPlatform />;
   }
 

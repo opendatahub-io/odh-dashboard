@@ -73,6 +73,10 @@ class ModelServingGlobal {
     return cy.findByRole('button', { name: 'Select a project' });
   }
 
+  findNoPlatformsMessage() {
+    return cy.findByTestId('empty-state-no-platforms-message');
+  }
+
   findDeployModelButton() {
     return cy.findByTestId('deploy-button');
   }

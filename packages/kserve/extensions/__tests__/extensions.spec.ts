@@ -42,7 +42,9 @@ describe('KServe platform shell vs UI capability gating', () => {
         id: KSERVE_ID,
       }),
     );
-    expect(platform?.flags).toBeUndefined();
+    expect(platform?.flags).toEqual({
+      required: [SupportedArea.MODEL_SERVING],
+    });
   });
 
   it('should keep InferenceService watch/delete capabilities behind the KServe area', () => {

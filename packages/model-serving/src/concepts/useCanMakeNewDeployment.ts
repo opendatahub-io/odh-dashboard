@@ -1,8 +1,10 @@
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { useKueueConfiguration } from '@odh-dashboard/hardware-profiles/shared';
-import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useServingRuntimeTemplates } from './servingRuntimeTemplates/useServingRuntimeTemplates';
-import { isModelServingDeploy } from '../../extension-points/deployment-wizard';
+import { useModelServingDeployMethods } from './useModelServingDeployMethods';
+
+/** Platforms whose deploy path still depends on serving-runtime templates. */
+const PLATFORMS_REQUIRING_SERVING_RUNTIME_TEMPLATES = new Set(['kserve']);
 
 export const useCanMakeNewDeployment = (
   project?: ProjectKind | null,
@@ -10,13 +12,17 @@ export const useCanMakeNewDeployment = (
   disabled: boolean;
   disabledReason: string;
 } => {
-  const deployMethods = useExtensions(isModelServingDeploy);
-  const isMissingDeployMethods = deployMethods.length === 0;
+  const { deployMethods, hasDeployMethods } = useModelServingDeployMethods();
+  const isMissingDeployMethods = !hasDeployMethods;
 
   const { isKueueDisabled } = useKueueConfiguration(project ?? undefined);
 
   const [globalTemplates, globalTemplatesLoaded] = useServingRuntimeTemplates();
-  const isMissingTemplates = globalTemplates.length === 0 && globalTemplatesLoaded;
+  const needsServingRuntimeTemplates = deployMethods.some((ext) =>
+    PLATFORMS_REQUIRING_SERVING_RUNTIME_TEMPLATES.has(ext.properties.platform),
+  );
+  const isMissingTemplates =
+    needsServingRuntimeTemplates && globalTemplates.length === 0 && globalTemplatesLoaded;
 
   const disabled = isMissingTemplates || isKueueDisabled || isMissingDeployMethods;
   const disabledReason = isMissingTemplates

@@ -238,6 +238,9 @@ const extensions: (
         deployButtonText: 'Deploy model',
       },
     },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
   },
   {
     type: 'model-serving.platform/watch-deployments',
