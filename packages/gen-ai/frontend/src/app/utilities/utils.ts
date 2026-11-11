@@ -266,6 +266,36 @@ export const isASROnlyModel = (model: { capabilities?: string[] }): boolean =>
 export const isVisionModel = (model: { capabilities?: string[] }): boolean =>
   hasCapability(model, CAPABILITY_VISION);
 
+export const CAPABILITY_CHAT = 'chat';
+export const CAPABILITY_TEXT_COMPLETION = 'text completion';
+// The other well-known model capabilities (model-serving's WELL_KNOWN_MODEL_CAPABILITIES).
+const NOT_COMPLETION_ONLY_CAPABILITIES = new Set([
+  CAPABILITY_CHAT,
+  CAPABILITY_VISION,
+  'transcription',
+]);
+
+/**
+ * A completion-only text model serves `/v1/completions` only (e.g. a base model without a chat
+ * template), so it cannot be used in the chat playground: `Text completion` is the only
+ * well-known capability it has, none of `Chat`, `Vision` and `Transcription`. Other values don't
+ * count. Matched trimmed and case-insensitively, as model-serving matches its well-known values.
+ * Embedding and transcription models keep their own handling and are never completion-only.
+ */
+export const isCompletionOnlyModel = (model: {
+  capabilities?: string[];
+  model_type?: AIModel['model_type'];
+}): boolean => {
+  if (model.model_type === 'embedding' || model.model_type === 'transcription') {
+    return false;
+  }
+  const caps = (model.capabilities ?? []).map((cap) => cap.trim().toLowerCase());
+  return (
+    caps.includes(CAPABILITY_TEXT_COMPLETION) &&
+    !caps.some((cap) => NOT_COMPLETION_ONLY_CAPABILITIES.has(cap))
+  );
+};
+
 export const getSourceLabel = (model: AIModel): string => {
   const source = model.model_source_type;
   const label = SOURCE_LABELS[source];

@@ -19,7 +19,7 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { AIModel } from '~/app/types';
-import { copyToClipboardWithTracking } from '~/app/utilities/utils';
+import { copyToClipboardWithTracking, isCompletionOnlyModel } from '~/app/utilities/utils';
 
 type EndpointDetailModalProps = {
   model: AIModel;
@@ -31,6 +31,7 @@ export const buildModelUsageExample = (
   modelID: string,
   modelType: AIModel['model_type'],
   authenticationType: 'apiKey' | 'openshiftToken',
+  capabilities?: AIModel['capabilities'],
 ): string => {
   if (!baseURL) {
     return '';
@@ -44,17 +45,27 @@ export const buildModelUsageExample = (
 
     const isEmbedding = modelType === 'embedding';
     const isTranscription = modelType === 'transcription';
+    // Embedding and transcription take precedence: they are checked first below.
+    const isCompletion = isCompletionOnlyModel({ capabilities });
     requestURL.search = '';
     requestURL.hash = '';
     const basePath = requestURL.pathname.replace(/\/$/, '');
     const apiVersionPath = basePath.endsWith('/v1') ? basePath : `${basePath}/v1`;
     requestURL.pathname = `${apiVersionPath}/${
-      isEmbedding ? 'embeddings' : isTranscription ? 'audio/transcriptions' : 'chat/completions'
+      isEmbedding
+        ? 'embeddings'
+        : isTranscription
+          ? 'audio/transcriptions'
+          : isCompletion
+            ? 'completions'
+            : 'chat/completions'
     }`;
 
     const requestBody = isEmbedding
       ? { model: modelID, input: 'Hello, world!' }
-      : { model: modelID, messages: [{ role: 'user', content: 'Hello, world!' }] };
+      : isCompletion
+        ? { model: modelID, prompt: 'Hello, world!' }
+        : { model: modelID, messages: [{ role: 'user', content: 'Hello, world!' }] };
     const shellSafeURL = requestURL.toString().replaceAll("'", "'\"'\"'");
     const shellSafeBody = JSON.stringify(requestBody).replaceAll("'", "'\"'\"'");
 
@@ -110,6 +121,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
         modelID,
         model.model_type,
         isNamespaceModel ? 'openshiftToken' : 'apiKey',
+        model.capabilities,
       )
     : '';
 

@@ -1333,6 +1333,11 @@ declare global {
                 owned_by: string;
                 ready: boolean;
                 url?: string;
+                modelDetails?: {
+                  displayName?: string;
+                  description?: string;
+                  modelCapabilities?: string[];
+                };
                 subscriptions?: Array<{
                   name: string;
                   displayName?: string;

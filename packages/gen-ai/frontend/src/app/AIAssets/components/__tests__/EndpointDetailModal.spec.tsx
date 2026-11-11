@@ -10,6 +10,7 @@ import EndpointDetailModal, {
 import type { AIModel } from '~/app/types';
 
 jest.mock('~/app/utilities/utils', () => ({
+  ...jest.requireActual('~/app/utilities/utils'),
   copyToClipboardWithTracking: jest.fn(),
 }));
 
@@ -218,6 +219,164 @@ describe('EndpointDetailModal', () => {
     expect(usageExample).toContain('-F "file=@<path-to-audio-file>"');
     expect(usageExample).toContain('-F "model=transcription-model"');
     expect(usageExample).not.toContain('Content-Type: application/json');
+  });
+
+  it('should create a completions usage example with a prompt for completion-only models', () => {
+    expect(
+      buildModelUsageExample(
+        'https://api.example.com/maas-api',
+        'facebook-opt-125m',
+        'llm',
+        'apiKey',
+        ['text-generation', 'Text completion'],
+      ),
+    ).toBe(
+      [
+        'export API_KEY="<your-api-key>"',
+        '',
+        "curl -X POST 'https://api.example.com/maas-api/v1/completions' \\",
+        '  -H "Content-Type: application/json" \\',
+        '  -H "Authorization: Bearer $API_KEY" \\',
+        `  -d '{"model":"facebook-opt-125m","prompt":"Hello, world!"}'`,
+      ].join('\n'),
+    );
+  });
+
+  it.each<[string, AIModel['model_type'], string[] | undefined, string, string]>([
+    ['an unlabelled LLM', 'llm', undefined, '/v1/chat/completions', '"messages":'],
+    ['an LLM without a model type', undefined, undefined, '/v1/chat/completions', '"messages":'],
+    ['a Chat model', 'llm', ['Chat'], '/v1/chat/completions', '"messages":'],
+    [
+      'a Chat and Text completion model',
+      'llm',
+      ['Text completion', 'Chat'],
+      '/v1/chat/completions',
+      '"messages":',
+    ],
+    ['a Text completion model', 'llm', ['Text completion'], '/v1/completions', '"prompt":'],
+    [
+      'a Vision and Text completion model',
+      'llm',
+      ['Text completion', 'Vision'],
+      '/v1/chat/completions',
+      '"messages":',
+    ],
+    [
+      'a Transcription and Text completion model',
+      'llm',
+      ['Transcription', 'Text completion'],
+      '/v1/chat/completions',
+      '"messages":',
+    ],
+    [
+      'a padded uppercase TEXT COMPLETION model',
+      undefined,
+      [' TEXT COMPLETION '],
+      '/v1/completions',
+      '"prompt":',
+    ],
+    [
+      'a hyphenated text-completion model (unknown)',
+      'llm',
+      ['text-completion'],
+      '/v1/chat/completions',
+      '"messages":',
+    ],
+    [
+      'a Text completion model with a padded lowercase chat',
+      'llm',
+      ['Text completion', ' chat '],
+      '/v1/chat/completions',
+      '"messages":',
+    ],
+    [
+      'an embedding model tagged Text completion',
+      'embedding',
+      ['Text completion'],
+      '/v1/embeddings',
+      '"input":',
+    ],
+  ])(
+    'should pick the endpoint for %s',
+    (_label, modelType, capabilities, endpointPath, bodyFragment) => {
+      const usageExample = buildModelUsageExample(
+        'https://api.example.com/maas-api',
+        'test-model',
+        modelType,
+        'apiKey',
+        capabilities,
+      );
+      expect(usageExample).toContain(
+        `curl -X POST 'https://api.example.com/maas-api${endpointPath}'`,
+      );
+      expect(usageExample).toContain(bodyFragment);
+    },
+  );
+
+  it('should keep the audio-file example for a transcription model tagged Text completion', () => {
+    const usageExample = buildModelUsageExample(
+      'https://api.example.com/maas-api',
+      'transcription-model',
+      'transcription',
+      'apiKey',
+      ['audio-transcription', 'Text completion'],
+    );
+    expect(usageExample).toContain(
+      "curl -X POST 'https://api.example.com/maas-api/v1/audio/transcriptions'",
+    );
+    expect(usageExample).toContain('-F "file=@<path-to-audio-file>"');
+  });
+
+  it('should escape the URL and body the same way for completions as for chat', () => {
+    const chat = buildModelUsageExample(
+      "https://api.example.com/it's",
+      "it's-model",
+      'llm',
+      'apiKey',
+    );
+    const completion = buildModelUsageExample(
+      "https://api.example.com/it's",
+      "it's-model",
+      'llm',
+      'apiKey',
+      ['Text completion'],
+    );
+    expect(chat).toContain(`'{"model":"it'"'"'s-model","messages":`);
+    expect(completion).toContain(`'{"model":"it'"'"'s-model","prompt":"Hello, world!"}'`);
+    expect(completion).toContain("'https://api.example.com/it'\"'\"'s/v1/completions'");
+  });
+
+  it('should show a completions usage example in the modal for a completion-only MaaS model', () => {
+    renderModal(
+      createMockModel({
+        model_source_type: 'maas',
+        model_type: 'llm',
+        externalEndpoint: 'https://api.example.com/models/opt',
+        capabilities: ['text-generation', 'Text completion'],
+      }),
+    );
+
+    expect(
+      screen.getByText(/curl -X POST 'https:\/\/api\.example\.com\/models\/opt\/v1\/completions'/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/"prompt":"Hello, world!"/)).toBeInTheDocument();
+    expect(screen.queryByText(/chat\/completions/)).not.toBeInTheDocument();
+  });
+
+  it('should show a chat usage example in the modal for a Chat-tagged namespace model', () => {
+    renderModal(
+      createMockModel({
+        model_type: 'llm',
+        internalEndpoint: 'http://opt.test.svc.cluster.local',
+        capabilities: ['Chat', 'Text completion'],
+      }),
+    );
+
+    expect(
+      screen.getByText(
+        /curl -X POST 'http:\/\/opt\.test\.svc\.cluster\.local\/v1\/chat\/completions'/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should not duplicate the API version when the Base URL already ends in /v1', () => {

@@ -106,6 +106,54 @@ describe('AI Assets - Models Tab', () => {
   );
 });
 
+describe('AI Assets - Models Tab (completion-only model)', () => {
+  it(
+    'should disable Try in playground with a reason for a completion-only model',
+    { tags: ['@GenAI', '@ModelsTab', '@AIAssets'] },
+    () => {
+      setupModelsTabIntercepts({
+        namespace: TEST_NAMESPACE,
+        aiModels: [
+          mockAAModel({
+            model_name: 'opt-125m',
+            model_id: 'opt-125m',
+            display_name: 'OPT 125m',
+            usecase: 'text-generation',
+            status: 'Running',
+            model_source_type: 'namespace',
+            model_type: 'llm',
+            endpoints: ['internal: http://opt-125m.test-namespace.svc.cluster.local:8080'],
+            capabilities: ['text-generation', 'Text completion'],
+          }),
+          AI_MODELS[0],
+        ],
+        maasModels: [],
+      });
+      aiAssetsPage.visit(TEST_NAMESPACE);
+
+      cy.step('Completion-only model: aria-disabled with a tooltip');
+      const completionRow = modelsTabPage.getRow('OPT 125m');
+      completionRow
+        .findPlaygroundCell()
+        .findByTestId('try-playground-button')
+        .should('have.attr', 'aria-disabled', 'true')
+        .trigger('mouseenter');
+      cy.findByRole('tooltip').should(
+        'contain.text',
+        "This model doesn't support chat, so it can't be used in the playground.",
+      );
+
+      cy.step('Unlabelled model: still enabled');
+      modelsTabPage
+        .getRow('Llama 3B Internal')
+        .findPlaygroundCell()
+        .findByTestId('try-playground-button')
+        .should('be.enabled')
+        .and('not.have.attr', 'aria-disabled', 'true');
+    },
+  );
+});
+
 describe('AI Assets - Models Tab (MaaS disabled)', () => {
   beforeEach(() => {
     setupModelsTabIntercepts({

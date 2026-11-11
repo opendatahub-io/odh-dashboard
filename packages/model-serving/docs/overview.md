@@ -25,6 +25,7 @@
 | **Platform extension** | `model-serving.platform` (and related) registered by a platform package. |
 | **Extension point** | Interfaces in `extension-points/index.ts` for wizard, table, delete, auth, metrics. |
 | **Feature flag** | `disableModelServing` in `OdhDashboardConfig` hides the entire area. |
+| **Model capabilities** | JSON string array in the `opendatahub.io/model-capabilities` annotation, set in the wizard (`src/shared/modelCapabilities.ts`). Well-known values: `Vision`, `Transcription`, `Chat`, `Text completion`; custom values are allowed. Consumers match them case-insensitively (trimmed). A text model is completion-only when `Text completion` is the only well-known capability it has, none of `Chat`, `Vision` and `Transcription` (other values don't count): the MaaS API key usage example and the gen-ai Endpoints modal use `/v1/completions` with a `prompt`, and gen-ai does not offer it for the chat playground. Every other model keeps the chat behaviour. |
 
 ## Extension Points Defined
 

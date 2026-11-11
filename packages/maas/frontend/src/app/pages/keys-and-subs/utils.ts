@@ -254,18 +254,23 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
 
 export enum ApiKeyUsageExampleKind {
   Chat = 'chat',
+  Completion = 'completion',
   Embedding = 'embedding',
   Transcription = 'transcription',
 }
 
 const API_KEY_USAGE_ENDPOINT_SUFFIX: Record<ApiKeyUsageExampleKind, string> = {
   [ApiKeyUsageExampleKind.Chat]: 'chat/completions',
+  [ApiKeyUsageExampleKind.Completion]: 'completions',
   [ApiKeyUsageExampleKind.Embedding]: 'embeddings',
   [ApiKeyUsageExampleKind.Transcription]: 'audio/transcriptions',
 };
 
 const CAPABILITY_TEXT_GENERATION = 'text-generation';
 const CAPABILITY_AUDIO_TRANSCRIPTION = 'audio-transcription';
+const CAPABILITY_TEXT_COMPLETION = 'text completion';
+// The other well-known model capabilities (model-serving's WELL_KNOWN_MODEL_CAPABILITIES).
+const NOT_COMPLETION_ONLY_CAPABILITIES = new Set(['chat', 'vision', 'transcription']);
 const EMBEDDING_CAPABILITIES = new Set(['text-embedding', 'embeddings', 'embedding']);
 
 /**
@@ -281,6 +286,17 @@ export const resolveApiKeyUsageExampleKind = (capabilities?: string[]): ApiKeyUs
   const hasTextGen = caps.includes(CAPABILITY_TEXT_GENERATION);
   if (hasAsr && !hasTextGen) {
     return ApiKeyUsageExampleKind.Transcription;
+  }
+  // A completion-only model (a base model without a chat template) serves /v1/completions only:
+  // `Text completion` is the only well-known capability it has, none of `Chat`, `Vision` and
+  // `Transcription`. Other values don't count. Matched trimmed and case-insensitively, as
+  // model-serving's well-known values are.
+  const lowerCaps = caps.map((cap) => cap.trim().toLowerCase());
+  if (
+    lowerCaps.includes(CAPABILITY_TEXT_COMPLETION) &&
+    !lowerCaps.some((cap) => NOT_COMPLETION_ONLY_CAPABILITIES.has(cap))
+  ) {
+    return ApiKeyUsageExampleKind.Completion;
   }
   return ApiKeyUsageExampleKind.Chat;
 };
@@ -337,7 +353,9 @@ export const buildApiKeyUsageExample = (
     const requestBody =
       kind === ApiKeyUsageExampleKind.Embedding
         ? { model: modelID, input: 'Hello' }
-        : { model: modelID, messages: [{ role: 'user', content: 'Hello' }] };
+        : kind === ApiKeyUsageExampleKind.Completion
+          ? { model: modelID, prompt: 'Hello, world!' }
+          : { model: modelID, messages: [{ role: 'user', content: 'Hello' }] };
     const shellSafeBody = JSON.stringify(requestBody).replaceAll("'", "'\"'\"'");
 
     return [

@@ -939,6 +939,83 @@ describe('API Keys Page', () => {
       .and('contain.text', 'https://example.com/models/flan-t5-small/v1/chat/completions');
   });
 
+  it('should show a completions usage example for a completion-only model', () => {
+    cy.interceptOdh('POST /maas/api/v1/api-keys', {
+      data: mockCreateAPIKeyResponse(),
+    }).as('createApiKey');
+    cy.interceptOdh('GET /maas/api/v1/models', {
+      data: {
+        object: 'list',
+        data: [
+          {
+            id: 'publishers/maas-models/models/granite-3-8b-instruct',
+            object: 'model',
+            created: 1714521600,
+            // eslint-disable-next-line camelcase
+            owned_by: 'ibm',
+            ready: true,
+            url: 'https://example.com/models/granite-3-8b-instruct',
+            modelDetails: { modelCapabilities: ['Chat', 'Text completion'] },
+          },
+          {
+            id: 'publishers/maas-models/models/flan-t5-small',
+            object: 'model',
+            created: 1672531200,
+            // eslint-disable-next-line camelcase
+            owned_by: 'google',
+            ready: true,
+            url: 'https://example.com/models/flan-t5-small',
+            modelDetails: { modelCapabilities: ['Text completion'] },
+          },
+        ],
+      },
+    }).as('getMaaSModels');
+
+    apiKeysPage.findCreateApiKeyButton().click();
+    createApiKeyModal.shouldBeOpen();
+    cy.wait('@getSubscriptions');
+    createApiKeyModal.findSubscriptionToggle().click();
+    createApiKeyModal.findSubscriptionOption('premium-team-sub').click();
+    createApiKeyModal.findNameInput().type('completion-key');
+    createApiKeyModal.findSubmitButton().click();
+    cy.wait('@createApiKey');
+
+    copyApiKeyModal.shouldBeOpen();
+    cy.wait('@getMaaSModels');
+    copyApiKeyModal.expandAccessDetails();
+    copyApiKeyModal
+      .findUsageExample()
+      .should(
+        'contain.text',
+        'https://example.com/models/granite-3-8b-instruct/v1/chat/completions',
+      )
+      .and('contain.text', '"messages":');
+    copyApiKeyModal
+      .findEndpointCompatibilityAlert()
+      .should(
+        'contain.text',
+        'This example uses the standard OpenAI-compatible /v1/chat/completions endpoint.',
+      );
+
+    copyApiKeyModal.selectAvailableModel('flan-t5-small');
+    copyApiKeyModal
+      .findUsageExample()
+      .should('contain.text', 'https://example.com/models/flan-t5-small/v1/completions')
+      .and(
+        'contain.text',
+        '"model":"publishers/maas-models/models/flan-t5-small","prompt":"Hello, world!"',
+      )
+      .and('not.contain.text', 'chat/completions')
+      .and('not.contain.text', '"messages"');
+    copyApiKeyModal
+      .findEndpointCompatibilityAlert()
+      .scrollIntoView()
+      .should(
+        'contain.text',
+        'This example uses the standard OpenAI-compatible /v1/completions endpoint.',
+      );
+  });
+
   it('should show a validation error for an out-of-range after-days value', () => {
     apiKeysPage.findCreateApiKeyButton().click();
     createApiKeyModal.shouldBeOpen();

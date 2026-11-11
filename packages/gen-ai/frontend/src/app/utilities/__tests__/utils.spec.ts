@@ -9,6 +9,7 @@ import {
   hasCapability,
   isASRModel,
   isASROnlyModel,
+  isCompletionOnlyModel,
   isMaasLlamaModelId,
   isPlaygroundModelMatchForAIModel,
   isVisionModel,
@@ -79,6 +80,65 @@ describe('isASROnlyModel', () => {
 
   it('should return false for model with only non-ASR capabilities', () => {
     expect(isASROnlyModel(makeModel({ capabilities: ['vision'] }))).toBe(false);
+  });
+});
+
+describe('isCompletionOnlyModel', () => {
+  it.each<[string, Partial<AIModel>, boolean]>([
+    ['Chat only', { capabilities: ['Chat'] }, false],
+    ['Text completion only', { capabilities: ['Text completion'] }, true],
+    ['both Chat and Text completion', { capabilities: ['Text completion', 'Chat'] }, false],
+    ['Vision and Text completion', { capabilities: ['Text completion', 'Vision'] }, false],
+    [
+      'Transcription and Text completion',
+      { capabilities: ['Transcription', 'Text completion'] },
+      false,
+    ],
+    [
+      'Text completion with the lowercase vision capability',
+      { capabilities: ['text-generation', 'Text completion', 'vision'] },
+      false,
+    ],
+    ['Text completion with a custom value', { capabilities: ['Text completion', 'my-tag'] }, true],
+    ['neither (no capabilities)', {}, false],
+    ['neither (empty list)', { capabilities: [] }, false],
+    ['neither (BFF default text-generation)', { capabilities: ['text-generation'] }, false],
+    [
+      'Text completion with the BFF-injected text-generation',
+      { capabilities: ['text-generation', 'Text completion'] },
+      true,
+    ],
+    [
+      'an embedding model tagged Text completion',
+      { model_type: 'embedding', capabilities: ['Text completion'] },
+      false,
+    ],
+    [
+      'a transcription model tagged Text completion',
+      { model_type: 'transcription', capabilities: ['audio-transcription', 'Text completion'] },
+      false,
+    ],
+    ['lowercase text completion', { capabilities: ['text completion'] }, true],
+    ['padded and mixed case', { capabilities: ['  Text Completion  '] }, true],
+    ['hyphenated text-completion (unknown)', { capabilities: ['text-completion'] }, false],
+    ['underscored text_completion (unknown)', { capabilities: ['text_completion'] }, false],
+    [
+      'Text completion with a padded lowercase chat',
+      { capabilities: ['Text completion', ' chat '] },
+      false,
+    ],
+    ['an unrelated value containing chat', { capabilities: ['Text completion', 'chatty'] }, true],
+    [
+      'an external llm model',
+      {
+        model_type: 'llm',
+        model_source_type: 'custom_endpoint',
+        capabilities: ['Text completion'],
+      },
+      true,
+    ],
+  ])('should handle %s', (_label, overrides, expected) => {
+    expect(isCompletionOnlyModel(makeModel(overrides))).toBe(expected);
   });
 });
 

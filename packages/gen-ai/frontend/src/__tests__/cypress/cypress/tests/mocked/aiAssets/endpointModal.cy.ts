@@ -82,3 +82,56 @@ describe('Endpoint Detail Modal - MaaS connection details', () => {
     },
   );
 });
+
+describe('Endpoint Detail Modal - usage example endpoint', () => {
+  it(
+    'should use the completions endpoint for a completion-only model',
+    { tags: ['@GenAI', '@EndpointModal', '@AIAssets'] },
+    () => {
+      setupModelsTabIntercepts({
+        namespace: TEST_NAMESPACE,
+        aiModels: [],
+        maasModels: [
+          {
+            ...MAAS_MODEL,
+            model_id: 'facebook-opt-125m',
+            model_name: 'OPT 125m',
+            display_name: 'OPT 125m',
+            endpoints: ['external:https://opt-model.apps.cluster.com'],
+            capabilities: ['text-generation', 'Text completion'],
+          },
+        ],
+      });
+      aiAssetsPage.visit(TEST_NAMESPACE);
+
+      modelsTabPage.openEndpointModal('OPT 125m');
+
+      endpointModalPage.findModal().should('exist');
+      cy.contains("curl -X POST 'https://opt-model.apps.cluster.com/v1/completions'").should(
+        'exist',
+      );
+      cy.contains('"model":"facebook-opt-125m","prompt":"Hello, world!"').should('exist');
+      endpointModalPage.findModal().should('not.contain.text', 'chat/completions');
+    },
+  );
+
+  it(
+    'should use the chat completions endpoint for a Chat model',
+    { tags: ['@GenAI', '@EndpointModal', '@AIAssets'] },
+    () => {
+      setupModelsTabIntercepts({
+        namespace: TEST_NAMESPACE,
+        aiModels: [],
+        maasModels: [{ ...MAAS_MODEL, capabilities: ['text-generation', 'Chat'] }],
+      });
+      aiAssetsPage.visit(TEST_NAMESPACE);
+
+      modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
+
+      cy.contains(
+        "curl -X POST 'https://granite-model.apps.cluster.com/v1/chat/completions'",
+      ).should('exist');
+      cy.contains('"messages":[{"role":"user","content":"Hello, world!"}]').should('exist');
+    },
+  );
+});

@@ -362,6 +362,67 @@ describe('resolveApiKeyUsageExampleKind', () => {
     );
     expect(resolveApiKeyUsageExampleKind()).toBe(ApiKeyUsageExampleKind.Chat);
   });
+
+  it.each<[string, string[] | undefined, ApiKeyUsageExampleKind]>([
+    ['Chat only', ['Chat'], ApiKeyUsageExampleKind.Chat],
+    ['Text completion only', ['Text completion'], ApiKeyUsageExampleKind.Completion],
+    ['both Chat and Text completion', ['Text completion', 'Chat'], ApiKeyUsageExampleKind.Chat],
+    ['neither (unlabelled)', undefined, ApiKeyUsageExampleKind.Chat],
+    ['neither (empty list)', [], ApiKeyUsageExampleKind.Chat],
+    ['neither (other capabilities)', ['vision'], ApiKeyUsageExampleKind.Chat],
+    ['Vision and Text completion', ['Text completion', 'Vision'], ApiKeyUsageExampleKind.Chat],
+    [
+      'Transcription and Text completion',
+      ['Transcription', 'Text completion'],
+      ApiKeyUsageExampleKind.Chat,
+    ],
+    [
+      'Text completion with a padded uppercase vision',
+      ['Text completion', ' VISION '],
+      ApiKeyUsageExampleKind.Chat,
+    ],
+    [
+      'Text completion with a custom value',
+      ['Text completion', 'my-tag'],
+      ApiKeyUsageExampleKind.Completion,
+    ],
+    [
+      'Text completion with text-generation',
+      ['text-generation', 'Text completion'],
+      ApiKeyUsageExampleKind.Completion,
+    ],
+    [
+      'embedding with Text completion',
+      ['embedding', 'Text completion'],
+      ApiKeyUsageExampleKind.Embedding,
+    ],
+    [
+      'transcription-only with Text completion',
+      ['audio-transcription', 'Text completion'],
+      ApiKeyUsageExampleKind.Transcription,
+    ],
+    [
+      'transcription with text-generation and Chat',
+      ['audio-transcription', 'text-generation', 'Chat'],
+      ApiKeyUsageExampleKind.Chat,
+    ],
+    ['lowercase text completion', ['text completion'], ApiKeyUsageExampleKind.Completion],
+    ['padded and mixed case', ['  Text Completion  '], ApiKeyUsageExampleKind.Completion],
+    ['hyphenated text-completion (unknown)', ['text-completion'], ApiKeyUsageExampleKind.Chat],
+    ['underscored text_completion (unknown)', ['text_completion'], ApiKeyUsageExampleKind.Chat],
+    [
+      'Text completion with a lowercase chat',
+      ['Text completion', ' chat '],
+      ApiKeyUsageExampleKind.Chat,
+    ],
+    [
+      'an unrelated value containing chat',
+      ['Text completion', 'chatty'],
+      ApiKeyUsageExampleKind.Completion,
+    ],
+  ])('should resolve %s', (_label, capabilities, expected) => {
+    expect(resolveApiKeyUsageExampleKind(capabilities)).toBe(expected);
+  });
 });
 
 describe('buildApiKeyUsageExample', () => {
@@ -394,6 +455,46 @@ describe('buildApiKeyUsageExample', () => {
     expect(getApiKeyUsageExampleEndpointPath(ApiKeyUsageExampleKind.Transcription)).toBe(
       '/v1/audio/transcriptions',
     );
+  });
+
+  it('should build a completions curl example with a prompt', () => {
+    const example = buildApiKeyUsageExample(
+      'https://maas.apps.example.com',
+      'facebook-opt-125m',
+      'sk-test-key',
+      ApiKeyUsageExampleKind.Completion,
+    );
+    expect(example).toBe(
+      [
+        'export API_KEY="sk-test-key"',
+        'curl -X POST https://maas.apps.example.com/v1/completions \\',
+        '  -H "Content-Type: application/json" \\',
+        '  -H "Authorization: Bearer $API_KEY" \\',
+        `  -d '{"model":"facebook-opt-125m","prompt":"Hello, world!"}'`,
+      ].join('\n'),
+    );
+    expect(example).not.toContain('chat/completions');
+    expect(example).not.toContain('messages');
+    expect(getApiKeyUsageExampleEndpointPath(ApiKeyUsageExampleKind.Completion)).toBe(
+      '/v1/completions',
+    );
+  });
+
+  it('should escape the key, model ID and body the same way for completions as for chat', () => {
+    const key = 'sk-"$`\\';
+    const modelId = 'it\'s-"$model`';
+    const chat = buildApiKeyUsageExample('https://api.example.com', modelId, key);
+    const completion = buildApiKeyUsageExample(
+      'https://api.example.com',
+      modelId,
+      key,
+      ApiKeyUsageExampleKind.Completion,
+    );
+    const exportLine = 'export API_KEY="sk-\\"\\$\\`\\\\"';
+    expect(chat.split('\n')[0]).toBe(exportLine);
+    expect(completion.split('\n')[0]).toBe(exportLine);
+    expect(completion).toContain(`'{"model":"it'"'"'s-\\"$model\`","prompt":"Hello, world!"}'`);
+    expect(chat).toContain(`'{"model":"it'"'"'s-\\"$model\`","messages":`);
   });
 
   it('should not duplicate /v1 when the base URL already ends with it', () => {

@@ -78,6 +78,21 @@ func TestBuildCapabilities(t *testing.T) {
 			expected: []string{"text-generation", "vision", "audio-transcription", "function-calling", "streaming"},
 		},
 		{
+			name:     "Text completion passes through unchanged (completion-only model)",
+			input:    []string{"Text completion"},
+			expected: []string{"text-generation", "Text completion"},
+		},
+		{
+			name:     "Chat and Text completion pass through unchanged",
+			input:    []string{"Chat", "Text completion"},
+			expected: []string{"text-generation", "Chat", "Text completion"},
+		},
+		{
+			name:     "audio-transcription + Text completion stays ASR-only",
+			input:    []string{"audio-transcription", "Text completion"},
+			expected: []string{"audio-transcription", "Text completion"},
+		},
+		{
 			name:     "text-generation + vision + audio-transcription preserves all (explicit text-gen)",
 			input:    []string{"text-generation", "vision", "audio-transcription"},
 			expected: []string{"text-generation", "vision", "audio-transcription"},

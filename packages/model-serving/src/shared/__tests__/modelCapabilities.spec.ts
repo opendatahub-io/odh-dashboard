@@ -70,9 +70,19 @@ describe('modelCapabilities', () => {
       expect(getModelCapabilityLabelColor('Transcription')).toBe('orange');
     });
 
+    it('should return purple for Chat', () => {
+      expect(getModelCapabilityLabelColor('Chat')).toBe('purple');
+    });
+
+    it('should return teal for Text completion', () => {
+      expect(getModelCapabilityLabelColor('Text completion')).toBe('teal');
+    });
+
     it('should return well-known colors for case-insensitive matches', () => {
       expect(getModelCapabilityLabelColor('vision')).toBe('blue');
       expect(getModelCapabilityLabelColor('TRANSCRIPTION')).toBe('orange');
+      expect(getModelCapabilityLabelColor('chat')).toBe('purple');
+      expect(getModelCapabilityLabelColor('TEXT COMPLETION')).toBe('teal');
     });
 
     it('should return grey for custom capabilities', () => {
@@ -84,6 +94,8 @@ describe('modelCapabilities', () => {
     it('should resolve case-insensitive matches to canonical well-known values', () => {
       expect(resolveWellKnownModelCapability('vision')).toBe('Vision');
       expect(resolveWellKnownModelCapability('TRANSCRIPTION')).toBe('Transcription');
+      expect(resolveWellKnownModelCapability('CHAT')).toBe('Chat');
+      expect(resolveWellKnownModelCapability('text Completion')).toBe('Text completion');
     });
 
     it('should return undefined for unknown capabilities', () => {
@@ -94,6 +106,7 @@ describe('modelCapabilities', () => {
   describe('normalizeModelCapability', () => {
     it('should use canonical well-known casing when matched', () => {
       expect(normalizeModelCapability('vision')).toBe('Vision');
+      expect(normalizeModelCapability('text completion')).toBe('Text completion');
     });
 
     it('should preserve custom capability text when not well-known', () => {

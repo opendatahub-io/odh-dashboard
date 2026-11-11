@@ -7,19 +7,32 @@ export const MODEL_CAPABILITIES_ANNOTATION = 'opendatahub.io/model-capabilities'
 /**
  * Hardcoded well-known Model Capability values offered by the dashboard UI.
  * New values can be added here without BFF/CRD changes.
+ *
+ * They also tell consumers which OpenAI-compatible endpoint a text model serves. A model is
+ * completion-only, accepting only `/v1/completions` (a base model without a chat template), when
+ * `Text completion` is the only well-known capability it has, none of `Chat`, `Vision` and
+ * `Transcription`; other values don't count. The MaaS usage example and the gen-ai playground
+ * follow this. Consumers match these values trimmed and case-insensitively.
  */
-export const WELL_KNOWN_MODEL_CAPABILITIES = ['Vision', 'Transcription'] as const;
+export const WELL_KNOWN_MODEL_CAPABILITIES = [
+  'Vision',
+  'Transcription',
+  'Chat',
+  'Text completion',
+] as const;
 
 export type WellKnownModelCapability = (typeof WELL_KNOWN_MODEL_CAPABILITIES)[number];
 
 /** Any capability string, including well-known and custom values. */
 export type ModelCapability = string;
 
-export type ModelCapabilityLabelColor = 'blue' | 'orange' | 'grey';
+export type ModelCapabilityLabelColor = 'blue' | 'orange' | 'purple' | 'teal' | 'grey';
 
 const WELL_KNOWN_CAPABILITY_COLORS: Record<WellKnownModelCapability, ModelCapabilityLabelColor> = {
   Vision: 'blue',
   Transcription: 'orange',
+  Chat: 'purple',
+  'Text completion': 'teal',
 };
 
 export const resolveWellKnownModelCapability = (

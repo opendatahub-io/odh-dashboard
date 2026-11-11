@@ -23,7 +23,11 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import CapabilityBadges from '~/app/components/CapabilityBadges';
 import { AIModel, LlamaModel, LlamaStackDistributionModel } from '~/app/types';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
-import { isPlaygroundModelMatchForAIModel, isASRModel } from '~/app/utilities/utils';
+import {
+  isPlaygroundModelMatchForAIModel,
+  isASRModel,
+  isCompletionOnlyModel,
+} from '~/app/utilities/utils';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
@@ -56,6 +60,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const assetType = model.model_source_type === 'maas' ? 'maas_model' : 'model';
+  const isCompletionOnly = isCompletionOnlyModel(model);
   const tryInPlaygroundButton = (
     <Button
       data-testid="try-playground-button"
@@ -71,12 +76,14 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           },
         });
       }}
-      // Disabled with helper text until a playground is created for the project.
+      // Disabled with helper text until a playground is created for the project, and for
+      // completion-only models, which the chat playground cannot use.
       // Embedding/transcription models cannot be tried in the chat playground directly.
       // Custom endpoint models are always available if they're in the list
-      isAriaDisabled={!lsdStatus}
+      isAriaDisabled={!lsdStatus || isCompletionOnly}
       isDisabled={
         !!lsdStatus &&
+        !isCompletionOnly &&
         (model.model_type === 'embedding' ||
           model.model_type === 'transcription' ||
           (model.model_source_type !== 'custom_endpoint' && model.status !== 'Running'))
@@ -203,6 +210,10 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               >
                 See vector stores
               </Button>
+            ) : isCompletionOnly ? (
+              <Tooltip content="This model doesn't support chat, so it can't be used in the playground.">
+                {tryInPlaygroundButton}
+              </Tooltip>
             ) : !lsdStatus ? (
               <Tooltip content="Select Create Playground before trying in Playground.">
                 {tryInPlaygroundButton}

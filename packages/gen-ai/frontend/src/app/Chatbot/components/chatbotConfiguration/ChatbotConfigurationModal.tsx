@@ -35,6 +35,7 @@ import {
 import {
   computeEmbeddingModelStatus,
   isASROnlyModel,
+  isCompletionOnlyModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -105,9 +106,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const tracingEnabled = useTracingEnabled();
   const vectorStoresEnabled = useAiAssetVectorStoresEnabled();
 
-  // Exclude ASR-only models (not usable in the playground)
+  // Exclude ASR-only and completion-only models (not usable in the chat playground)
   const allModels = React.useMemo(
-    () => aiModels.filter((model) => !isASROnlyModel(model)),
+    () => aiModels.filter((model) => !isASROnlyModel(model) && !isCompletionOnlyModel(model)),
     [aiModels],
   );
 

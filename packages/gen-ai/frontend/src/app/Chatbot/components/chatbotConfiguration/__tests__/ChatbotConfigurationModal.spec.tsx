@@ -386,6 +386,38 @@ describe('ChatbotConfigurationModal ASR model exclusion', () => {
   });
 });
 
+// ─── Completion-only model exclusion ──────────────────────────────────────────
+
+describe('ChatbotConfigurationModal completion-only model exclusion', () => {
+  it('excludes models whose only well-known capability is Text completion', () => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const completionModel = createAIModel({
+      model_name: 'opt-125m',
+      display_name: 'OPT 125m',
+      capabilities: ['text-generation', 'Text completion'],
+    });
+    renderModal({ allModels: [chatModel, completionModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model']);
+  });
+
+  it.each([
+    ['Chat', ['Chat']],
+    ['both Chat and Text completion', ['Text completion', 'Chat']],
+    ['Vision and Text completion', ['Text completion', 'Vision']],
+    ['Transcription and Text completion', ['Transcription', 'Text completion']],
+    ['neither', ['text-generation']],
+  ])('keeps models tagged %s', (_label, capabilities) => {
+    const chatModel = createAIModel({ model_name: 'chat-model', display_name: 'Chat Model' });
+    const taggedModel = createAIModel({
+      model_name: 'tagged-model',
+      display_name: 'Tagged Model',
+      capabilities,
+    });
+    renderModal({ allModels: [chatModel, taggedModel] });
+    expect(getSelectedModelNames()).toEqual(['chat-model', 'tagged-model']);
+  });
+});
+
 // ─── Guardrails ───────────────────────────────────────────────────────────────
 
 describe('ChatbotConfigurationModal guardrails configuration', () => {

@@ -428,6 +428,68 @@ describe('AIModelTableRow', () => {
       expect(screen.queryByRole('button', { name: /playground/i })).not.toBeInTheDocument();
     });
 
+    describe('completion-only models', () => {
+      it.each<[string, LlamaStackDistributionModel | null, Partial<AIModel>]>([
+        ['with a playground', createMockLsdStatus(), {}],
+        ['without a playground', null, {}],
+        ['that is not Running', createMockLsdStatus(), { status: 'Stop' }],
+        ['from a MaaS source', createMockLsdStatus(), { model_source_type: 'maas' }],
+        ['from a custom endpoint', createMockLsdStatus(), { model_source_type: 'custom_endpoint' }],
+      ])(
+        'should disable "Try in playground" with a reason for a model %s',
+        async (_label, lsdStatus, overrides) => {
+          const model = createMockAIModel({
+            model_id: 'opt-125m',
+            capabilities: ['text-generation', 'Text completion'],
+            ...overrides,
+          });
+          render(
+            <TestWrapper>
+              <AIModelTableRow
+                {...defaultProps}
+                model={model}
+                playgroundModels={[createMockPlaygroundModel('opt-125m')]}
+                lsdStatus={lsdStatus}
+              />
+            </TestWrapper>,
+          );
+
+          const button = screen.getByTestId('try-playground-button');
+          expect(button).toHaveAttribute('aria-disabled', 'true');
+          expect(button).not.toBeDisabled();
+
+          fireEvent.click(button);
+          expect(mockNavigate).not.toHaveBeenCalled();
+
+          fireEvent.mouseEnter(button);
+          const tooltip = await screen.findByRole('tooltip');
+          expect(tooltip).toHaveTextContent(
+            /^This model doesn't support chat, so it can't be used in the playground\.$/,
+          );
+        },
+      );
+
+      it.each([
+        ['Chat', ['Chat']],
+        ['both Chat and Text completion', ['Text completion', 'Chat']],
+        ['no chat or completion capability', ['text-generation']],
+      ])(
+        'should keep "Try in playground" enabled for a model tagged %s',
+        (_label, capabilities) => {
+          const model = createMockAIModel({ capabilities });
+          render(
+            <TestWrapper>
+              <AIModelTableRow {...defaultProps} model={model} lsdStatus={createMockLsdStatus()} />
+            </TestWrapper>,
+          );
+
+          const button = screen.getByTestId('try-playground-button');
+          expect(button).not.toBeDisabled();
+          expect(button).not.toHaveAttribute('aria-disabled', 'true');
+        },
+      );
+    });
+
     it('should show normal playground buttons for non-ASR namespace models', () => {
       const model = createMockAIModel({ model_source_type: 'namespace' });
       render(
