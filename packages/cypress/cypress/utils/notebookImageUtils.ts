@@ -4,7 +4,11 @@ interface ImageStreamTag {
 }
 
 interface ImageStream {
-  metadata: { name: string };
+  metadata: {
+    name: string;
+    labels?: Record<string, string>;
+    annotations?: Record<string, string>;
+  };
   spec: { tags?: ImageStreamTag[] };
 }
 
@@ -13,21 +17,48 @@ export interface NotebookImageInfo {
   versions: string[];
 }
 
+const NOTEBOOK_IMAGE_LABEL = 'opendatahub.io/notebook-image';
+const HIDDEN_IMAGE_ANNOTATION = 'opendatahub.io/notebook-image-hidden';
+const OUTDATED_TAG_ANNOTATION = 'opendatahub.io/image-tag-outdated';
+
+// Match the create-workbench spawner: notebook-image=true, and not hidden.
+const getSkipReason = (image: ImageStream): string | undefined => {
+  const { name, labels, annotations } = image.metadata;
+  if (labels?.[NOTEBOOK_IMAGE_LABEL] !== 'true') {
+    return `Skipping ${name}: ${NOTEBOOK_IMAGE_LABEL} is not true`;
+  }
+  if (annotations?.[HIDDEN_IMAGE_ANNOTATION] === 'true') {
+    return `Skipping ${name}: ${HIDDEN_IMAGE_ANNOTATION} is true`;
+  }
+  return undefined;
+};
+
 export const getNotebookImageNames = (namespace: string): Cypress.Chainable<NotebookImageInfo[]> =>
   cy.exec(`oc get imagestream -n ${namespace} -o json`).then((result) => {
     const imagestreams: ImageStream[] = JSON.parse(result.stdout).items;
     const imageInfos: NotebookImageInfo[] = [];
+    const skipped: string[] = [];
 
     imagestreams
       .filter((image) => image.metadata.name.includes('notebook'))
       .forEach((image) => {
+        const reason = getSkipReason(image);
+        if (reason) {
+          skipped.push(reason);
+          return;
+        }
+
         // Filter out outdated tags
         const validTags = (image.spec.tags || []).filter(
-          (tag) => tag.annotations?.['opendatahub.io/image-tag-outdated'] !== 'true',
+          (tag) => tag.annotations?.[OUTDATED_TAG_ANNOTATION] !== 'true',
         );
         const versions = validTags.map((tag) => tag.name);
         imageInfos.push({ image: image.metadata.name, versions });
       });
+
+    skipped.forEach((message) => {
+      cy.log(message);
+    });
 
     return imageInfos;
   });
