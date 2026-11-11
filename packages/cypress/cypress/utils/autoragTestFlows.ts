@@ -613,11 +613,12 @@ export const verifyAutoragRunTerminated = (projectName: string, runId: string): 
 
   // The timeout must be on `.invoke` for the `.should` to get the full cancellation timeout.
   // Putting it on `.findRunStatusLabel` will only give the initial label lookup the timeout
-  // and not the retry period needed to reach the final canceled state.
+  // and not the retry period needed to reach the final terminal state. A confirmed stop can be
+  // reported as Failed by the pipeline instead of CANCELED/CANCELLED, so accept either outcome.
   autoragResultsPage
     .findRunStatusLabel()
     .invoke({ timeout: AUTORAG_CANCELLATION_TIMEOUT_MS }, 'text')
-    .should('match', /CANCELED|CANCELLED/i);
+    .should('match', /CANCELED|CANCELLED|FAILED/i);
 };
 
 export const verifyAutoragRunListed = (projectName: string, runName: string): void => {
