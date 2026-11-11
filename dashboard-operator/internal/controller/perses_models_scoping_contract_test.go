@@ -14,13 +14,10 @@ import (
 )
 
 // TestModelsPersesDashboardsScopedPins guards Models CR product pins:
-// admin + non-admin must route vLLM through the DS namespace proxy,
-// OCP GPU/CPU through OCP tenancy, never unscoped cluster :9091, use a TextVariable
-// namespace stub, and keep PromQL queryparam-first (no namespace=~"$namespace" dual tenancy).
-//
-// Out of scope here: tenancy GPU/CPU PromQL that still joins vllm:* (cross-stack).
-// That is a separate metric-ownership change — do not encode absence of vLLM in tenancy
-// panels as a scoping pin.
+// admin + non-admin must route all Models queries through the DS namespace proxy,
+// including GPU/CPU/quota joins, never use an unscoped cluster datasource, use a
+// TextVariable namespace stub, and keep PromQL queryparam-first (no
+// namespace=~"$namespace" dual tenancy).
 func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 	t.Parallel()
 
@@ -45,8 +42,8 @@ func TestModelsPersesDashboardsScopedPins(t *testing.T) {
 				"Models must pin DS namespace proxy for vLLM series")
 			assert.Contains(t, raw, "vllm:num_requests_running",
 				"Models must use the live Data Science vLLM metric family")
-			assert.Contains(t, raw, "name: cluster-prometheus-tenancy-datasource",
-				"Models must pin OCP tenancy for GPU/CPU series")
+			assert.NotContains(t, raw, "name: cluster-prometheus-tenancy-datasource",
+				"Models must not use the OCP tenancy datasource; resource series are federated into DS")
 			assert.NotRegexp(t, regexp.MustCompile(`namespace\s*=~?\s*"\$(\{namespace\}|namespace)"`), raw,
 				"scoped DS/tenancy already inject namespace=; PromQL must not dual-filter namespace")
 
@@ -124,14 +121,8 @@ func assertPrometheusQueryShape(t *testing.T, value any) int {
 
 				datasourceName, ok := datasource["name"].(string)
 				require.True(t, ok, "PrometheusTimeSeriesQuery datasource name must be a string")
-				switch datasourceName {
-				case "data-science-prometheus-datasource":
-					assert.NotContains(t, query, "kserve_vllm:",
-						"Data Science queries must use the live vllm metric family")
-				case "cluster-prometheus-tenancy-datasource":
-					assert.NotRegexp(t, regexp.MustCompile(`(^|[^[:alnum:]_])vllm:`), query,
-						"tenancy joins must not query the Data Science-only vllm metric family")
-				}
+				assert.Equal(t, "data-science-prometheus-datasource", datasourceName,
+					"all Models queries must use the authorized Data Science datasource")
 				queryCount++
 			}
 		}
