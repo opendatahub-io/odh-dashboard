@@ -100,7 +100,10 @@ export const formatValidationMessage = (
     return `✅ ${urlDisplay} - Status: ${status}`;
   }
 
-  const errorType = getErrorType(status, error);
+  const errorType = getErrorType(status, error, url);
+  if (errorType === 'blocked') {
+    return `⚠️ ${urlDisplay} - blocked by bot protection (WAF): ${status} (not verifiable from CI; link works in browsers)`;
+  }
   const baseMessage = `❌ ${urlDisplay} - ${errorType}: ${status}`;
   return error ? `${baseMessage} (Details: ${error})` : baseMessage;
 };
