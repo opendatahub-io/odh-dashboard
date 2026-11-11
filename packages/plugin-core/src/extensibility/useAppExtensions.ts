@@ -12,6 +12,16 @@ type MFConfig = {
 
 const EMPTY_EXTENSIONS: AppExtensions = {};
 
+/**
+ * Resolves an entry URL the way the federation runtime does when it registers a remote:
+ * in the browser, entries not starting with `http` are made absolute against the page
+ * origin. Registered remotes hold the resolved URL, so comparisons must use it too.
+ */
+const resolveEntryUrl = (entry: string): string =>
+  typeof window !== 'undefined' && !entry.startsWith('http')
+    ? new URL(entry, window.location.origin).href
+    : entry;
+
 const initRemotes = (remotes: MFConfig[]) => {
   const registered = init({ name: 'app', remotes: [] }).options.remotes;
   const changed = remotes
@@ -19,7 +29,10 @@ const initRemotes = (remotes: MFConfig[]) => {
     .filter(
       ({ name, entry }) =>
         !registered.some(
-          (remote) => remote.name === name && 'entry' in remote && remote.entry === entry,
+          (remote) =>
+            remote.name === name &&
+            'entry' in remote &&
+            resolveEntryUrl(remote.entry) === resolveEntryUrl(entry),
         ),
     );
   if (changed.length > 0) {
@@ -32,9 +45,14 @@ const initRemotes = (remotes: MFConfig[]) => {
 
 const loadModuleExtensions = (moduleName: string): Promise<AppExtensions> =>
   loadRemote<{ default: Extension[] }>(`${moduleName}/extensions`)
-    .then((result) => ({
-      [moduleName]: result ? result.default : [],
-    }))
+    .then((result) => {
+      if (Array.isArray(result?.default)) {
+        return { [moduleName]: result.default };
+      }
+      // eslint-disable-next-line no-console
+      console.warn(`Module ${moduleName} does not export an extensions array; ignoring it.`);
+      return { [moduleName]: [] };
+    })
     .catch((error) => {
       // eslint-disable-next-line no-console
       console.warn(`Failed to load module extensions for ${moduleName}:`, error);

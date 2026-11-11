@@ -17,6 +17,9 @@ const mockRegisterRemotes = jest.mocked(registerRemotes);
 // `registerRemotes` with `force` replaces same-named remotes, as the runtime does.
 let registeredRemotes: { name: string; entry: string }[] = [];
 
+// The runtime stores relative entries resolved against the page origin.
+const absoluteEntry = (entry: string) => new URL(entry, window.location.origin).href;
+
 const ext = (type: string): Extension => ({ type, properties: {} });
 const staticExtensions = { staticPlugin: [ext('static')] };
 
@@ -32,7 +35,7 @@ describe('useAppExtensions', () => {
       const added = remotes as { name: string; entry: string }[];
       registeredRemotes = [
         ...registeredRemotes.filter((r) => !added.some((a) => a.name === r.name)),
-        ...added,
+        ...added.map((r) => ({ ...r, entry: absoluteEntry(r.entry) })),
       ];
     });
   });
@@ -100,6 +103,26 @@ describe('useAppExtensions', () => {
 
     await waitFor(() => expect(result.current[1]).toBe(true));
     expect(result.current[0]).toEqual({ broken: [], ok: [ext('ok/extensions')] });
+  });
+
+  it.each([
+    ['no default export', {}],
+    ['a non-array default export', { default: { type: 'not-an-array' } }],
+    ['an empty result', null],
+  ])('should treat a remote with %s as having no extensions', async (_, moduleExports) => {
+    mockLoadRemote.mockImplementation((id: string) =>
+      Promise.resolve(id === 'malformed/extensions' ? moduleExports : { default: [ext(id)] }),
+    );
+    const remotes = JSON.stringify([
+      { name: 'malformed', remoteEntry: '/remoteEntry.js' },
+      { name: 'ok', remoteEntry: '/remoteEntry.js' },
+    ]);
+
+    const { result } = renderHook(() => useAppExtensions(undefined, remotes));
+
+    await waitFor(() => expect(result.current[1]).toBe(true));
+    expect(result.current[0]).toEqual({ malformed: [], ok: [ext('ok/extensions')] });
+    expect(Object.values(result.current[0]).every(Array.isArray)).toBe(true);
   });
 
   it('should finish loading with static extensions when the remotes JSON is invalid', async () => {
@@ -229,6 +252,53 @@ describe('useAppExtensions', () => {
         [{ name: 'remoteA', entry: '/_mf/remoteA/v2/remoteEntry.js' }],
         { force: true },
       );
+    });
+
+    it('should not re-register unchanged remotes when another remote is added', async () => {
+      const { result, rerender } = renderHook(
+        ({ remotes }: { remotes: string }) => useAppExtensions(staticExtensions, remotes),
+        { initialProps: { remotes: remotesFor('remoteA') } },
+      );
+      await waitFor(() => expect(result.current[1]).toBe(true));
+      mockRegisterRemotes.mockClear();
+
+      rerender({ remotes: remotesFor('remoteA', 'remoteB') });
+      await waitFor(() => expect(result.current[1]).toBe(true));
+
+      expect(mockRegisterRemotes).toHaveBeenCalledTimes(1);
+      expect(mockRegisterRemotes).toHaveBeenCalledWith(
+        [{ name: 'remoteB', entry: '/_mf/remoteB/remoteEntry.js' }],
+        { force: true },
+      );
+    });
+
+    it('should not re-register unchanged remotes with the real federation runtime', async () => {
+      const runtime = jest.requireActual<typeof import('@module-federation/runtime')>(
+        '@module-federation/runtime',
+      );
+      mockInit.mockImplementation(runtime.init);
+      mockRegisterRemotes.mockImplementation(runtime.registerRemotes);
+      // Names unique to this test: the real runtime keeps one instance per test file.
+      const { result, rerender } = renderHook(
+        ({ remotes }: { remotes: string }) => useAppExtensions(staticExtensions, remotes),
+        { initialProps: { remotes: remotesFor('realA') } },
+      );
+      await waitFor(() => expect(result.current[1]).toBe(true));
+      expect(runtime.getInstance()?.options.remotes).toContainEqual(
+        expect.objectContaining({
+          name: 'realA',
+          entry: absoluteEntry('/_mf/realA/remoteEntry.js'),
+        }),
+      );
+      mockRegisterRemotes.mockClear();
+
+      rerender({ remotes: remotesFor('realA', 'realB') });
+      await waitFor(() => expect(result.current[1]).toBe(true));
+
+      expect(mockRegisterRemotes).toHaveBeenCalledTimes(1);
+      expect(mockRegisterRemotes.mock.calls[0][0]).toEqual([
+        expect.objectContaining({ name: 'realB' }),
+      ]);
     });
   });
 });
