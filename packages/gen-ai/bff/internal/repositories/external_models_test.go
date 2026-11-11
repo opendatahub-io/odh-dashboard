@@ -462,6 +462,13 @@ func TestResolveTrustedHost(t *testing.T) {
 	logger := slog.Default()
 	identity := &integrations.RequestIdentity{Token: "user-token"}
 
+	// Inject the default suffix set with deterministic lookups so names that
+	// classify structurally as neither Service nor pod-specific name (e.g.
+	// extra intermediate labels) never probe the machine's resolver, whose
+	// answer for cluster.local names differs between developer machines and
+	// CI runners.
+	withInjectedServiceDNS(t, []string{"svc.cluster.local"}, false)
+
 	// selectorSvc builds a selector-backed Service exposing port 8443 (the URL port
 	// used by the tests) with the given targetPort and clusterIP ("None" for
 	// headless).
