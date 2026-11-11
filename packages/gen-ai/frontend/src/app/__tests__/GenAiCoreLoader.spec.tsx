@@ -222,4 +222,105 @@ describe('GenAiCoreLoader', () => {
       );
     });
   });
+
+  describe('when the unified project selector is enabled', () => {
+    const projectNamespaces = [{ name: 'project-a' }, { name: 'project-b' }];
+
+    const projectRoute = (
+      <Routes>
+        <Route
+          path="/playground/:namespace"
+          element={
+            <GenAiCoreLoader
+              title="Playground"
+              getInvalidRedirectPath={(projectName) => `/playground/${projectName}`}
+            />
+          }
+        >
+          <Route index element={<div>Playground content</div>} />
+        </Route>
+      </Routes>
+    );
+
+    beforeEach(() => {
+      mockUseNamespaceSelectorWithPersistence.mockReturnValue({
+        ...mockNamespaceSelectorReturn(true),
+        namespaces: projectNamespaces,
+      } as ReturnType<typeof useNamespaceSelectorWithPersistence>);
+      mockUseIsAreaAvailable.mockReturnValue({ status: true } as ReturnType<
+        typeof useIsAreaAvailable
+      >);
+    });
+
+    it.each([
+      {
+        name: 'when selection commits',
+        commitSelection: true,
+      },
+      {
+        name: 'when selection does not commit',
+        commitSelection: false,
+      },
+    ])('should select the URL project $name without redirecting', ({ commitSelection }) => {
+      let activeProject = { name: 'project-a' };
+      const selectProject = jest.fn(({ name }: { name: string }) => {
+        if (commitSelection) {
+          activeProject = { name };
+        }
+      });
+      mockUseWorkingProject.mockImplementation(() => ({
+        status: 'listed',
+        projects: projectNamespaces,
+        activeProject,
+        selectProject,
+      }));
+
+      const tree = () => (
+        <Routes>
+          <Route
+            path="/playground/:namespace"
+            element={
+              <GenAiCoreLoader
+                title="Playground"
+                getInvalidRedirectPath={(projectName) => `/playground/${projectName}`}
+              />
+            }
+          >
+            <Route index element={<div>Playground content</div>} />
+          </Route>
+        </Routes>
+      );
+
+      const view = render(
+        <MemoryRouter initialEntries={['/playground/project-b']}>{tree()}</MemoryRouter>,
+      );
+
+      if (commitSelection) {
+        view.rerender(
+          <MemoryRouter initialEntries={['/playground/project-b']}>{tree()}</MemoryRouter>,
+        );
+      }
+
+      expect(selectProject).toHaveBeenCalledWith({ name: 'project-b' });
+      expect(screen.getByText('Playground content')).toBeInTheDocument();
+    });
+
+    it('should not select an unknown URL project', () => {
+      const selectProject = jest.fn();
+      mockUseWorkingProject.mockReturnValue({
+        status: 'listed',
+        projects: projectNamespaces,
+        activeProject: { name: 'project-a' },
+        selectProject,
+      });
+
+      render(
+        <MemoryRouter initialEntries={['/playground/unknown-project']}>
+          {projectRoute}
+        </MemoryRouter>,
+      );
+
+      expect(selectProject).not.toHaveBeenCalled();
+    });
+  });
 });
