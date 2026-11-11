@@ -57,7 +57,7 @@ export const getNotebookImageNames = (namespace: string): Cypress.Chainable<Note
       });
 
     skipped.forEach((message) => {
-      cy.log(message);
+      Cypress.log({ message });
     });
 
     return imageInfos;
