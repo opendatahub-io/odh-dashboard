@@ -1,5 +1,5 @@
 import { servingRuntimeTemplates } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/servingRuntimeTemplates';
-import { unsupportedStatusAcceptanceModal } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/llmAcceleratorConfigurations';
+import { unsupportedStatusAcceptanceModal } from '@odh-dashboard/cypress/cypress/pages/modelDeploymentSettings/llmInferenceServiceConfigurations';
 import { asProductAdminUser } from '@odh-dashboard/cypress/cypress/utils/mockUsers';
 import {
   customServingRuntimesIntercept,

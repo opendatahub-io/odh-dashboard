@@ -51,10 +51,10 @@ import type {
 export const LLMD_SERVING_ID = 'llmd-serving';
 const ADMIN_USER = 'ADMIN_USER';
 
-// Keep in sync with ../src/settings/llmAcceleratorConfigs/paths.ts (value imports are
+// Keep in sync with ../src/settings/llmInferenceServiceConfigs/paths.ts (value imports are
 // disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
-const LLM_ACCELERATOR_CONFIGS_TAB_PATH =
-  '/settings/model-resources-operations/model-deployment-settings/llm-accelerator-configurations';
+const LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH =
+  '/settings/model-resources-operations/model-deployment-settings/llm-inference-service-configurations';
 
 // Keep in sync with ../src/settings/topologyConfigs/paths.ts (value imports are
 // disallowed in extensions.ts). Pinned by __tests__/extensions.spec.ts.
@@ -68,7 +68,7 @@ const ROUTING_CONFIGS_TAB_PATH =
 
 // Base paths of the former standalone pages, kept only as redirect sources to the
 // tabs above (the standalone pages themselves have been removed).
-const LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH =
+const LLM_ACCELERATOR_CONFIGS_LEGACY_STANDALONE_PATH =
   '/settings/model-resources-operations/llm-accelerator-configs';
 const TOPOLOGY_CONFIGS_STANDALONE_PATH =
   '/settings/model-resources-operations/llmd-topology-configurations';
@@ -175,7 +175,7 @@ export type TopologyConfigsExtensionsType =
   | WizardFieldExtension<AdvancedRoutingFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<AdvancedRoutingFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>
-  // Accelerator config
+  // Inference service config
   | WizardFieldExtension<AcceleratorConfigFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<AcceleratorConfigFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<AcceleratorConfigFieldData, LLMdDeployment>
@@ -303,7 +303,7 @@ export const topologyConfigsExtensions: TopologyConfigsExtensionsType[] = [
       required: [SupportedArea.LLMD_SERVING, SupportedArea.LLMD_TOPOLOGY_CONFIGS],
     },
   } satisfies WizardFieldExtractorExtension<AdvancedRoutingFieldData, LLMdDeployment>,
-  // ─── Accelerator config ─────────────────────────────
+  // ─── Inference service config ─────────────────────────────
   {
     type: 'model-serving.deployment/wizard-field',
     properties: {
@@ -626,10 +626,10 @@ const extensions: (
       required: [LLMD_SERVING_ID, ADMIN_USER, SupportedArea.VLLM_ON_MAAS],
     },
     properties: {
-      path: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
+      path: `${LLM_ACCELERATOR_CONFIGS_LEGACY_STANDALONE_PATH}/*`,
       component: createRedirectComponent({
-        from: `${LLM_ACCELERATOR_CONFIGS_STANDALONE_PATH}/*`,
-        to: `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/*`,
+        from: `${LLM_ACCELERATOR_CONFIGS_LEGACY_STANDALONE_PATH}/*`,
+        to: `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/*`,
       }),
     },
   },
@@ -666,15 +666,15 @@ const extensions: (
     },
     properties: {
       id: 'llmInferenceServiceConfig',
-      label: 'LLM accelerator configuration',
+      label: 'LLM inference service configuration',
       description:
         'Install as an LLMInferenceServiceConfig for LLM inference service deployments. Compatible with Models as a Service.',
       selectedState: {
-        listName: 'LLM accelerator configurations',
+        listName: 'LLM inference service configurations',
         description: 'and the LLM inference service deployment wizard.',
       },
-      installTargetName: 'LLM accelerator configuration',
-      component: () => import('../src/runtimeImageInstall/LlmAcceleratorInstallTarget'),
+      installTargetName: 'LLM inference service configuration',
+      component: () => import('../src/runtimeImageInstall/LlmInferenceServiceConfigInstallTarget'),
     },
   },
   {
@@ -684,10 +684,10 @@ const extensions: (
     },
     properties: {
       pageId: 'model-deployment-settings',
-      id: 'llm-accelerator-configurations',
-      title: 'LLM accelerator configurations',
+      id: 'llm-inference-service-configurations',
+      title: 'LLM inference service configurations',
       component: () =>
-        import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigTabRoutes'),
+        import('../src/settings/llmInferenceServiceConfigs/LlmInferenceServiceConfigTabRoutes'),
       group: '3_accelerator',
     },
   },
@@ -696,9 +696,9 @@ const extensions: (
   // Each form path is listed explicitly so the tab list route is not captured.
   ...(
     [
-      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/add`,
-      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/edit/:configName`,
-      `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/duplicate/:configName`,
+      `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/add`,
+      `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/edit/:configName`,
+      `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/duplicate/:configName`,
     ] as const
   ).map(
     (path): RouteExtension => ({
@@ -709,7 +709,7 @@ const extensions: (
       properties: {
         path,
         component: () =>
-          import('../src/settings/llmAcceleratorConfigs/LlmAcceleratorConfigFormRoutes'),
+          import('../src/settings/llmInferenceServiceConfigs/LlmInferenceServiceConfigFormRoutes'),
       },
     }),
   ),
