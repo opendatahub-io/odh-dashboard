@@ -273,17 +273,24 @@ function parseBackendDefaults(content, constName) {
 /**
  * Go: `{ jsonTag: boolean }` from the `<field>: DashboardFeatureFlags{ ... }` literal in
  * `<varName>`, mapping Go field names back to json tags through the struct.
+ * A bool field left out of the literal gets Go's zero value, so it starts as `false`.
  */
 function parseGoDefaults(content, structName, varName) {
   const body = extractBlock(content, `type ${structName} struct {`, structName);
   const tagByField = {};
-  for (const m of body.matchAll(/^\s*(\w+)\s+\S+\s+`[^`]*json:"([^",]+)[^"]*"[^`]*`/gm)) {
-    const [, field, tag] = m;
+  const values = {};
+  for (const m of body.matchAll(/^\s*(\w+)\s+(\S+)\s+`[^`]*json:"([^",]+)[^"]*"[^`]*`/gm)) {
+    const [, field, type, tag] = m;
+    if (tag === '-') {
+      continue;
+    }
     tagByField[field] = tag;
+    if (type === 'bool') {
+      values[tag] = false;
+    }
   }
   const blank = extractBlock(content, `var ${varName} = `, varName);
   const literal = extractBlock(blank, `${structName}{`, `${varName} ${structName}`);
-  const values = {};
   for (const m of literal.matchAll(/^\s*(\w+):\s*([^,\n]+?)\s*,\s*$/gm)) {
     const tag = tagByField[m[1]] ?? m[1];
     values[tag] = parseLiteral(m[2]);

@@ -72,6 +72,7 @@ type DashboardFeatureFlags struct {
 	GenAiStudio                  bool `json:"genAiStudio"`
 	GenAiTracing                 bool `json:"genAiTracing"`
 	Guardrails                   bool `json:"guardrails"`
+	AiSafety                     bool `json:"aiSafety"`
 	Automl                       bool `json:"automl"`
 	Autorag                      bool `json:"autorag"`
 	ModelAsService               bool `json:"modelAsService"`
@@ -184,6 +185,7 @@ var BlankDashboardCR = DashboardConfig{
 			GenAiStudio:                  true,
 			GenAiTracing:                 false,
 			Guardrails:                   false,
+			AiSafety:                     false,
 			Automl:                       true,
 			Autorag:                      true,
 			ModelAsService:               true,

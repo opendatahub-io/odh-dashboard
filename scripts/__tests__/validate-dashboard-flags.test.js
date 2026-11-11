@@ -170,6 +170,26 @@ describe('parsers', () => {
       disableTracking: true,
     });
   });
+
+  it('parseGoDefaults treats a bool field missing from the literal as false', () => {
+    const omitted = GO.replace('\t\t\tDisableTracking: true,\n', '');
+    assert.deepEqual(parseGoDefaults(omitted, 'DashboardFeatureFlags', 'BlankDashboardCR'), {
+      enablement: true,
+      disableTracking: false,
+    });
+  });
+
+  it('reports drift when a true default is dropped from the Go literal', () => {
+    const backend = BACKEND.replace('disableTracking: false', 'disableTracking: true');
+    const omitted = GO.replace('\t\t\tDisableTracking: true,\n', '');
+    assert.deepEqual(
+      compareDefaults({
+        backend: parseBackendDefaults(backend, 'blankDashboardCR'),
+        coreBff: parseGoDefaults(omitted, 'DashboardFeatureFlags', 'BlankDashboardCR'),
+      }),
+      ['"disableTracking" defaults to true in backend but false in coreBff'],
+    );
+  });
 });
 
 describe('compareFlags', () => {
