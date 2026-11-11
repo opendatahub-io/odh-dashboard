@@ -73,11 +73,15 @@ export const useWorkingProjectRouteSync = ({
 
   React.useLayoutEffect(() => {
     if (!enabled || !routeProjectName) {
+      handledRouteProject.current = undefined;
+      pendingRouteProject.current = undefined;
       return;
     }
 
     const routeProject = projects.find(({ name }) => name === routeProjectName);
     if (!routeProject) {
+      handledRouteProject.current = undefined;
+      pendingRouteProject.current = undefined;
       return;
     }
 
