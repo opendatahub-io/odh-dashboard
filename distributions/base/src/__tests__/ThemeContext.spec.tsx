@@ -46,12 +46,12 @@ beforeEach(() => {
 });
 
 describe('base shell ThemeProvider', () => {
-  it('defaults to the light theme and Glass contrast', () => {
+  it('defaults to the light theme and solid contrast', () => {
     renderProvider();
     expect(latestCtx?.theme).toBe('light');
-    expect(latestCtx?.contrastMode).toBe('system');
+    expect(latestCtx?.contrastMode).toBe('default');
     expect(html()).not.toHaveClass('pf-v6-theme-dark');
-    expect(html()).toHaveClass('pf-v6-theme-glass');
+    expect(html()).not.toHaveClass('pf-v6-theme-glass');
   });
 
   it('applies a stored dark theme', () => {
@@ -99,7 +99,7 @@ describe('base shell ThemeProvider', () => {
     expect(html()).toHaveClass('pf-v6-theme-dark');
     expect(html()).toHaveClass('pf-v6-theme-glass');
     expect(events).toHaveLength(2);
-    expect(events[0].detail).toEqual({ theme: 'dark', contrastMode: 'system' });
+    expect(events[0].detail).toEqual({ theme: 'dark', contrastMode: 'default' });
     expect(events[1].detail).toEqual({ theme: 'dark', contrastMode: 'glass' });
   });
 
