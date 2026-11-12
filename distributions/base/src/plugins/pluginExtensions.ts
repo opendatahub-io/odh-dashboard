@@ -6,7 +6,4 @@ import type { Extension } from '@openshift/dynamic-plugin-sdk';
 //   const pluginExtensions = { ...modelServingExtensions };
 const pluginExtensions: Record<string, Extension[]> = {};
 
-export const useAppExtensions = (): [Record<string, Extension[]>, boolean] => [
-  pluginExtensions,
-  true,
-];
+export default pluginExtensions;

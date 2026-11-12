@@ -89,8 +89,8 @@ import('./bootstrap');
 | Host MF config | `frontend/config/moduleFederation.js` |
 | Plugin discovery | `frontend/config/discoverPluginPackages.js` |
 | Extensions generator | `frontend/config/generateExtensionsPlugin.js` |
-| Runtime init + loading | `frontend/src/plugins/useAppExtensions.ts` |
-| PluginStore provider | `frontend/src/plugins/ExtensibilityContext.tsx` |
+| Runtime init + loading | `packages/plugin-core/src/extensibility/useAppExtensions.ts` |
+| PluginStore provider | `packages/plugin-core/src/extensibility/ExtensibilityContext.tsx` (host wrapper: `frontend/src/plugins/ExtensibilityContext.tsx`) |
 | MF_REMOTES constant | `frontend/src/utilities/const.ts` |
 | Backend proxy setup | `backend/src/routes/module-federation.ts` |
 | Backend remotes injection | `backend/src/routes/root.ts` |

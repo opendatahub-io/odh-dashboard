@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {
@@ -58,6 +59,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
   onClickSaveNotebook,
   onRegisterModel,
 }) => {
+  const trackEvent = useTrackEvent();
   const { models: modelsRecord, parameters, pipelineRun, bestModelKey } = useAutomlResultsContext();
   const models = Object.values(modelsRecord);
   const taskType = parameters?.task_type ?? TASK_TYPE_TIMESERIES;
@@ -131,11 +133,12 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
     if (!isOpen || !activeTab) {
       return;
     }
-    fireAutomlModelDetailsTabViewed(activeTab.key, taskType);
+    fireAutomlModelDetailsTabViewed(trackEvent, activeTab.key, taskType);
     // Fire once per tab/model selection change, not on every render. taskType is included
     // because it's derived from async context data (parameters) and can resolve or change
     // after the tab is already active — omitting it would let the event report a stale or
-    // default predictionType.
+    // default predictionType. Delivery callback changes must not count as views; the next
+    // view transition captures the current callback without retaining it in a listener.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, activeTabKey, selectedModelName, taskType]);
 
@@ -182,7 +185,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
             evalMetric={evalMetric}
             onSelectModel={(name) => setSelectedModelName(name)}
             onDownload={() => {
-              fireAutomlModelDetailsDownloadInitiated();
+              fireAutomlModelDetailsDownloadInitiated(trackEvent);
               setIsPrinting(true);
             }}
             onSaveNotebook={

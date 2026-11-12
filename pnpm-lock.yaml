@@ -369,6 +369,9 @@ importers:
       '@rspack/dev-server':
         specifier: ^2.1.0
         version: 2.2.0(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(selfsigned@5.5.0)
+      '@testing-library/react':
+        specifier: ^14.3.1
+        version: 14.3.1(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       css-loader:
         specifier: ^7.1.4
         version: 7.1.5(@rspack/core@2.2.4(@module-federation/runtime-tools@2.8.2))(webpack@5.104.1)
@@ -5371,6 +5374,9 @@ importers:
 
   packages/mlflow-embedded:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@module-federation/runtime':
         specifier: '>=0.15.0'
         version: 0.24.1
@@ -6360,6 +6366,9 @@ importers:
 
   packages/plugin-core:
     dependencies:
+      '@module-federation/runtime':
+        specifier: ^0.24.1
+        version: 0.24.1
       '@odh-dashboard/foundation':
         specifier: workspace:*
         version: link:../foundation
@@ -22523,7 +22532,6 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
     transitivePeerDependencies:
       - '@types/react'
-    optional: true
 
   '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
