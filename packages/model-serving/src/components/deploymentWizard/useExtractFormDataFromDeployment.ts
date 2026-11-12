@@ -189,11 +189,12 @@ export const useExtractFormDataFromDeployment = (
         // Determine if external route is enabled for this deployment
         externalRoute: getExternalRouteFromDeployment(deployment),
 
-        // Extract token authentication configuration.
-        // For new deployments, initial value is computed by other extensions, so pass undefined to not override it.
-        tokenAuthentication: deployment.model.metadata.resourceVersion
-          ? getTokenAuthenticationFromDeployment(deployment, deploymentSecrets, platformAuthCheck)
-          : undefined,
+        // Extract token authentication configuration
+        tokenAuthentication: getTokenAuthenticationFromDeployment(
+          deployment,
+          deploymentSecrets,
+          platformAuthCheck,
+        ),
 
         // Include existing authentication tokens
         existingAuthTokens: deploymentSecrets,
