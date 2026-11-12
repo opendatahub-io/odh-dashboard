@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { Link } from 'react-router-dom';
 import {
   ActionList,
@@ -836,6 +837,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   onCreate,
   initialFormData: propInitialFormData,
 }) => {
+  const trackEvent = useTrackEvent();
   let initialFormData = INITIAL_FORM_DATA;
   if (propInitialFormData) {
     initialFormData = { ...initialFormData, ...propInitialFormData };
@@ -1057,7 +1059,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     );
     if (selectedType && lastTrackedConnectionTypeIdRef.current !== connectionTypeId) {
       lastTrackedConnectionTypeIdRef.current = connectionTypeId;
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.typeSelected,
         properties: {
           connectionTypeProvider: getConnectionTypeProvider(selectedType) ?? connectionTypeId,
@@ -1196,7 +1198,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     (cancelMethod: DataConnectHubCancelMethod) => {
       if (!isCreating) {
         const tagCount = Object.keys(formData.properties).length;
-        fireDataConnectHubTrackEvent({
+        fireDataConnectHubTrackEvent(trackEvent, {
           eventName: DATA_CONNECT_HUB_EVENT_NAMES.createCanceled,
           properties: {
             cancelMethod,
@@ -1207,7 +1209,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
               : undefined,
           },
         });
-        fireDataConnectHubTrackEvent({
+        fireDataConnectHubTrackEvent(trackEvent, {
           eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
           properties: {
             outcome: TrackingOutcome.cancel,
@@ -1231,6 +1233,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       resetForm,
       selectedConnectionType,
       selectedNamespace,
+      trackEvent,
     ],
   );
   const requestClose = React.useCallback(
@@ -1256,13 +1259,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     handleClose(discardModalCancelMethod);
   }, [handleClose, discardModalCancelMethod]);
 
-  const handleCreate = async () => {
+  const handleCreate = React.useCallback(async () => {
     if (!hasValidConfiguration) {
       return;
     }
 
     if (!onCreate) {
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
         properties: {
           outcome: TrackingOutcome.submit,
@@ -1287,7 +1290,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       const projectName = selectedNamespaceDisplayName ?? selectedNamespace;
       const projectHomePath = projectHomeRoute(selectedNamespace);
       const tagCount = Object.keys(formData.properties).length;
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
         properties: {
           outcome: TrackingOutcome.submit,
@@ -1329,7 +1332,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       const creationError =
         error instanceof Error ? error : new Error('Unable to create connection');
       const tagCount = Object.keys(formData.properties).length;
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
         properties: {
           outcome: TrackingOutcome.submit,
@@ -1347,7 +1350,18 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     } finally {
       setIsCreating(false);
     }
-  };
+  }, [
+    formData,
+    hasValidConfiguration,
+    notification,
+    onClose,
+    onCreate,
+    resetForm,
+    selectedConnectionType,
+    selectedNamespace,
+    selectedNamespaceDisplayName,
+    trackEvent,
+  ]);
 
   return isOpen ? (
     <>
