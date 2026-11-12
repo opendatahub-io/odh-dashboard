@@ -1,5 +1,5 @@
 import React from 'react';
-import { PageSection, Wizard, WizardStep } from '@patternfly/react-core';
+import { PageSection, Spinner, Wizard, WizardStep } from '@patternfly/react-core';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import {
@@ -17,7 +17,7 @@ import { ReviewStepContent } from './steps/ReviewStep';
 import { ExitDeploymentModal } from './exitModal/ExitDeploymentModal';
 import { useRefreshWizardPage } from './useRefreshWizardPage';
 import { useExitDeploymentWizard } from './exitModal/useExitDeploymentWizard';
-import { DeploymentWizardYAMLView } from './yaml/DeploymentWizardYAMLView';
+import { DeploymentWizardYAMLView } from './yaml/lazyDeploymentWizardYAMLView';
 import { DeploymentWizardViewModeToggle } from './yaml/DeploymentWizardViewModeToggle';
 import { useFormYamlResources } from './yaml/useYamlResourcesResult';
 import { useFormToResourcesTransformer } from './yaml/useFormToResourcesTransformer';
@@ -217,15 +217,17 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
         {isYAMLViewerEnabled && viewMode !== 'form' ? (
           <>
             <PageSection isFilled hasBodyWrapper={false} style={{ paddingTop: 0, marginBottom: 0 }}>
-              <DeploymentWizardYAMLView
-                code={yaml}
-                setCode={setYaml}
-                viewMode={viewMode}
-                switchToYamlEdit={() => switchToYaml(true)}
-                canEnterYAMLEditMode={canEnterYAMLEditMode}
-                isAutoFallback={isAutoFallback}
-                setLastUpdatedSource={setLastUpdatedSource}
-              />
+              <React.Suspense fallback={<Spinner />}>
+                <DeploymentWizardYAMLView
+                  code={yaml}
+                  setCode={setYaml}
+                  viewMode={viewMode}
+                  switchToYamlEdit={() => switchToYaml(true)}
+                  canEnterYAMLEditMode={canEnterYAMLEditMode}
+                  isAutoFallback={isAutoFallback}
+                  setLastUpdatedSource={setLastUpdatedSource}
+                />
+              </React.Suspense>
             </PageSection>
             <PageSection hasBodyWrapper={false} isFilled={false} style={{ paddingTop: 0 }}>
               <ModelDeploymentFooter
