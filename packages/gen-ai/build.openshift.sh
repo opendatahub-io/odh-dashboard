@@ -46,6 +46,17 @@ echo "--------------------------------"
 echo "🚀 Creating OpenShift application..."
 oc new-app ${REPO_URL}#${BRANCH}  --strategy=docker --name=${APP_NAME} --allow-missing-images --context-dir=packages/gen-ai
 
+# Match the operator-managed Gen AI BFF pod label used by NeMo ingress policy.
+workload=$(oc get deployment "${APP_NAME}" -o name --ignore-not-found)
+if [ -z "$workload" ]; then
+    workload=$(oc get deploymentconfig "${APP_NAME}" -o name --ignore-not-found)
+fi
+if [ -z "$workload" ]; then
+    echo "❌ Error: No deployment or deploymentconfig found for ${APP_NAME}" >&2
+    exit 1
+fi
+oc patch "$workload" --type=merge -p '{"spec":{"template":{"metadata":{"labels":{"app.kubernetes.io/name":"gen-ai"}}}}}' || exit 1
+
 # Wait for BuildConfig to be created
 echo "⏳ Waiting for BuildConfig to be created..."
 oc wait --for=jsonpath='{.metadata.name}'=${APP_NAME} buildconfig/${APP_NAME} --timeout=60s 2>/dev/null || true
