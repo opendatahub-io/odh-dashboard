@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "path": "packages/cypress/cypress/tests/e2e/dataRegistry/testDataRegistryErrors.cy.ts",
+    "owner": "Razzmatazz",
+    "reason": "Moved to the Data Registry mocked suite; the tests stub API responses and do not require live-cluster E2E coverage."
+  }
+]
