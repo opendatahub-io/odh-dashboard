@@ -95,8 +95,14 @@ const ShellHeader: React.FC = () => {
       <MastheadContent>
         <Toolbar isFullHeight>
           <ToolbarContent>
-            <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
+            <ToolbarGroup variant="action-group-plain" data-testid="masthead-leading-group">
               <ToolbarItems extensions={leading} />
+            </ToolbarGroup>
+            <ToolbarGroup
+              variant="action-group-plain"
+              align={{ default: 'alignEnd' }}
+              data-testid="masthead-utility-group"
+            >
               <ToolbarItem>
                 <ToggleGroup aria-label="Theme toggle">
                   <ToggleGroupItem
