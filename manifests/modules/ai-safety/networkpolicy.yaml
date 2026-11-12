@@ -1,0 +1,44 @@
+# Allow the dashboard proxy and ingress router to reach the AI Safety BFF.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-safety-allow-ports
+spec:
+  podSelector:
+    matchLabels:
+      deployment: ai-safety-ui
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: 9343
+          protocol: TCP
+      from:
+        - podSelector:
+            matchExpressions:
+              - key: deployment
+                operator: In
+                values:
+                  - odh-dashboard
+                  - rhods-dashboard
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+    # API server endpoints are host-networked and have dynamic addresses.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 6443
+          protocol: TCP

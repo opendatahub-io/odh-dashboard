@@ -89,6 +89,8 @@ spec:
           protocol: TCP
         - port: 9243
           protocol: TCP
+        - port: 9343
+          protocol: TCP
     # Cross-namespace to user-project workloads: the Data Science Pipelines application
     # server (ds-pipeline-dspa, 8443). The dashboard backend proxies /api/service/pipelines/*
     # to ds-pipeline-dspa.<ns>.svc:8443, where <ns> is the user-selected project namespace,

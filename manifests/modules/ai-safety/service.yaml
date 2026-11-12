@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: odh-dashboard-ai-safety-ui
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: ai-safety-proxy-tls
+    service.beta.kubernetes.io/backend-protocol: HTTPS
+spec:
+  selector:
+    deployment: ai-safety-ui
+  ports:
+    - name: ai-safety-ui
+      protocol: TCP
+      port: 9343
+      targetPort: 9343
