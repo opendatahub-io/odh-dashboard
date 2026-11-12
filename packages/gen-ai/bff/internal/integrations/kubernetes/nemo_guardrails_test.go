@@ -27,6 +27,8 @@ var nemoGVK = schema.GroupVersionKind{
 	Kind:    "NemoGuardrails",
 }
 
+const testBFFNamespace = "redhat-ods-applications"
+
 func newNemoTestScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	scheme := runtime.NewScheme()
@@ -111,7 +113,7 @@ func TestCreateNemoGuardrailsResources_CreatesPlaceholder(t *testing.T) {
 
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
-	crName, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
+	crName, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace, testBFFNamespace)
 	require.NoError(t, err)
 	assert.Equal(t, nemoGuardrailsCRName, crName)
 
@@ -130,6 +132,18 @@ func TestCreateNemoGuardrailsResources_CreatesPlaceholder(t *testing.T) {
 	first := nemoConfigs[0].(map[string]interface{})
 	assert.Equal(t, nemoGuardrailsPlaceholderName, first["name"])
 	assert.Equal(t, true, first["default"])
+	assert.Equal(t, map[string]interface{}{
+		"additionalIngress": []interface{}{
+			map[string]interface{}{
+				"namespaceSelector": map[string]interface{}{
+					"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": testBFFNamespace},
+				},
+				"podSelector": map[string]interface{}{
+					"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"},
+				},
+			},
+		},
+	}, spec["networkPolicy"])
 
 	// CR has OPENAI_API_KEY=fake
 	envList := spec["env"].([]interface{})
@@ -139,6 +153,20 @@ func TestCreateNemoGuardrailsResources_CreatesPlaceholder(t *testing.T) {
 	assert.Equal(t, constants.NemoGuardrailsOpenAIAPIKeyFakeValue, envEntry["value"])
 }
 
+func TestCreateNemoGuardrailsResources_RejectsMissingBFFNamespace(t *testing.T) {
+	const namespace = "test-ns"
+	scheme := newNemoTestScheme(t)
+	fakeClient := newNemoFakeClient(t, scheme)
+	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
+
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace, "")
+	require.ErrorContains(t, err, "missing Gen AI BFF namespace")
+
+	cm := &corev1.ConfigMap{}
+	err = fakeClient.Get(context.Background(), client.ObjectKey{Name: nemoGuardrailsPlaceholderName, Namespace: namespace}, cm)
+	assert.True(t, apierrors.IsNotFound(err))
+}
+
 func TestCreateNemoGuardrailsResources_RetriesConfigMapOwnerConflict(t *testing.T) {
 	const namespace = "test-ns"
 	scheme := newNemoTestScheme(t)
@@ -146,7 +174,7 @@ func TestCreateNemoGuardrailsResources_RetriesConfigMapOwnerConflict(t *testing.
 	conflictClient := &configMapConflictClient{Client: fakeClient}
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: conflictClient}
 
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace, testBFFNamespace)
 	require.NoError(t, err)
 	assert.Equal(t, 2, conflictClient.configMapUpdates)
 
@@ -168,11 +196,11 @@ func TestCreateNemoGuardrailsResources_ErrorIfAlreadyExists(t *testing.T) {
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
 	// First call succeeds
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace, testBFFNamespace)
 	require.NoError(t, err)
 
 	// Second call returns a typed ErrNemoGuardrailsAlreadyInitialised
-	_, err = kc.CreateNemoGuardrailsResources(context.Background(), namespace)
+	_, err = kc.CreateNemoGuardrailsResources(context.Background(), namespace, testBFFNamespace)
 	require.Error(t, err)
 	var alreadyInit *models.ErrNemoGuardrailsAlreadyInitialised
 	assert.True(t, errors.As(err, &alreadyInit))
@@ -186,7 +214,7 @@ func TestCreateNemoGuardrailsResources_CRAnnotations(t *testing.T) {
 
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace, testBFFNamespace)
 	require.NoError(t, err)
 
 	cr := getNemoCR(t, fakeClient, namespace)
@@ -219,7 +247,7 @@ func TestCreateNemoGuardrailsResources_CleansUpConfigMapOnCRFailure(t *testing.T
 
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace, testBFFNamespace)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already initialised")
 }
@@ -231,7 +259,7 @@ func TestCreateNemoGuardrailsResources_OnlyOneCMCreated(t *testing.T) {
 
 	kc := &TokenKubernetesClient{Logger: slog.Default(), Client: fakeClient}
 
-	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace)
+	_, err := kc.CreateNemoGuardrailsResources(context.Background(), namespace, testBFFNamespace)
 	require.NoError(t, err)
 
 	cmList := &corev1.ConfigMapList{}
