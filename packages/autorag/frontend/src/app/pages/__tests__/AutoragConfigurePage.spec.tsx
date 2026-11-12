@@ -5,21 +5,18 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useMaaSModelsQuery } from '~/app/hooks/queries';
 import AutoragConfigurePage from '~/app/pages/AutoragConfigurePage';
 import { AUTORAG_EVENTS, TrackingOutcome } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 // Truncate relies on DOM measurement APIs (scrollWidth) unavailable in JSDOM.
 jest.mock('@patternfly/react-core', () => ({
@@ -477,7 +474,7 @@ const createTestQueryClient = () =>
 
 const renderWithProviders = (component: React.ReactElement) => {
   const queryClient = createTestQueryClient();
-  return render(
+  return renderWithTracking(
     <QueryClientProvider client={queryClient}>
       {/* UIError behavior is tested in UIErrorHandler's own spec */}
       <UIErrorHandler id="test-uierror" uiErrorMappings={{}}>
@@ -686,7 +683,7 @@ describe('AutoragConfigurePage', () => {
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
         outcome: TrackingOutcome.submit,
         hasDescription: false,
         success: true,
@@ -709,7 +706,7 @@ describe('AutoragConfigurePage', () => {
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
         outcome: TrackingOutcome.submit,
         hasDescription: true,
         success: true,
@@ -723,7 +720,7 @@ describe('AutoragConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EXPERIMENT_CREATED, {
         outcome: TrackingOutcome.cancel,
         hasDescription: false,
         success: true,
@@ -1270,11 +1267,11 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       await user.click(runButton);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_TRIGGERED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_TRIGGERED, {
           knowledgeSourceType: 's3',
           // AutoragEvaluationSelect and AutoragVectorStoreSelector are mocked in this file
           // (they auto-set their form field directly, bypassing RunTriggeredTrackingContext),
@@ -1321,11 +1318,11 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       await user.click(runButton);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        expect(trackEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.RUN_TRIGGERED,
           expect.objectContaining({
             outcome: TrackingOutcome.submit,
@@ -1335,9 +1332,7 @@ describe('AutoragConfigurePage', () => {
         );
       });
       // The raw error message must never reach analytics.
-      expect(JSON.stringify(fireFormTrackingEventMock.mock.calls)).not.toContain(
-        'Pipeline creation failed',
-      );
+      expect(JSON.stringify(trackEventMock.mock.calls)).not.toContain('Pipeline creation failed');
     });
   });
 
@@ -1511,11 +1506,11 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       await user.click(runButton);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RECONFIGURED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RUN_RECONFIGURED, {
           knowledgeSourceType: undefined,
           evaluationSourceType: undefined,
           optimizationMetric: 'answerFaithfulness',
@@ -1553,16 +1548,16 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       await user.click(runButton);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        expect(trackEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.RUN_TRIGGERED,
           expect.anything(),
         );
       });
-      expect(fireFormTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.RUN_RECONFIGURED,
         expect.anything(),
       );
@@ -1592,11 +1587,11 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       await user.click(runButton);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        expect(trackEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.RUN_RECONFIGURED,
           expect.objectContaining({
             optimizationMetric: 'answerCorrectness',
@@ -1632,11 +1627,11 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       await user.click(runButton);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        expect(trackEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.RUN_RECONFIGURED,
           expect.objectContaining({
             knowledgeSourceType: 's3',
@@ -1672,11 +1667,11 @@ describe('AutoragConfigurePage', () => {
       await waitFor(() => {
         expect(runButton).toBeEnabled();
       });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       await user.click(runButton);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        expect(trackEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.RUN_RECONFIGURED,
           expect.objectContaining({
             changedFields: 'optimizationMetric',
@@ -1687,9 +1682,7 @@ describe('AutoragConfigurePage', () => {
         );
       });
       // The raw error message must never reach analytics.
-      expect(JSON.stringify(fireFormTrackingEventMock.mock.calls)).not.toContain(
-        'Pipeline creation failed',
-      );
+      expect(JSON.stringify(trackEventMock.mock.calls)).not.toContain('Pipeline creation failed');
     });
 
     it('should fire with outcome: cancel, no success field, and changedFields reflecting a change made before returning to the create step', async () => {
@@ -1713,11 +1706,11 @@ describe('AutoragConfigurePage', () => {
 
       await user.click(await screen.findByRole('button', { name: 'Back' }));
 
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      expect(trackEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.RUN_RECONFIGURED,
         expect.objectContaining({
           changedFields: 'optimizationMetric',
@@ -1725,7 +1718,7 @@ describe('AutoragConfigurePage', () => {
         }),
       );
       // Cancel fires no backend call, so `success` must be omitted entirely.
-      const [, cancelProperties] = fireFormTrackingEventMock.mock.calls.find(
+      const [, cancelProperties] = trackEventMock.mock.calls.find(
         ([eventName]) => eventName === AUTORAG_EVENTS.RUN_RECONFIGURED,
       )!;
       expect(cancelProperties).not.toHaveProperty('success');
@@ -1737,10 +1730,10 @@ describe('AutoragConfigurePage', () => {
       renderWithProviders(<AutoragConfigurePage />);
 
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       await user.click(cancelButton);
 
-      expect(fireFormTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.RUN_RECONFIGURED,
         expect.anything(),
       );
@@ -1755,7 +1748,7 @@ describe('AutoragConfigurePage', () => {
       const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
       await user.click(cancelButton);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'experimentsList',
@@ -1776,7 +1769,7 @@ describe('AutoragConfigurePage', () => {
       const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
       await user.click(homeLink!);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'experimentsList',
@@ -1805,7 +1798,7 @@ describe('AutoragConfigurePage', () => {
       const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
       await user.click(homeLink!);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
         lastFunnelStep: 'knowledge',
         exitDestination: 'experimentsList',
@@ -1852,7 +1845,7 @@ describe('AutoragConfigurePage', () => {
       const homeLink = (await screen.findByTestId('experiment-breadcrumb-home')).querySelector('a');
       await user.click(homeLink!);
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'navigate',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'experimentsList',
@@ -1885,12 +1878,12 @@ describe('AutoragConfigurePage', () => {
       await user.click(runButton);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+        expect(trackEventMock).toHaveBeenCalledWith(
           AUTORAG_EVENTS.RUN_TRIGGERED,
           expect.objectContaining({ success: true }),
         );
       });
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.FLOW_EXITED,
         expect.anything(),
       );
@@ -1902,7 +1895,7 @@ describe('AutoragConfigurePage', () => {
 
       window.dispatchEvent(new Event('beforeunload'));
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
         exitType: 'abandon',
         lastFunnelStep: 'defineDetails',
         exitDestination: 'none',
@@ -1945,7 +1938,7 @@ describe('AutoragConfigurePage', () => {
 
       window.dispatchEvent(new Event('beforeunload'));
 
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+      expect(trackEventMock).not.toHaveBeenCalledWith(
         AUTORAG_EVENTS.FLOW_EXITED,
         expect.objectContaining({ exitType: 'abandon' }),
       );
@@ -1986,7 +1979,7 @@ describe('AutoragConfigurePage', () => {
         );
         await user.click(homeLink!);
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',
           lastFunnelStep: 'run',
           exitDestination: 'experimentsList',
@@ -2007,7 +2000,7 @@ describe('AutoragConfigurePage', () => {
         const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
         await user.click(cancelButton);
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',
           lastFunnelStep: 'defineDetails',
           exitDestination: 'otherGenAi',
@@ -2027,7 +2020,7 @@ describe('AutoragConfigurePage', () => {
         const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
         await user.click(cancelButton);
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.FLOW_EXITED, {
           exitType: 'navigate',
           lastFunnelStep: 'defineDetails',
           exitDestination: 'experimentsList',

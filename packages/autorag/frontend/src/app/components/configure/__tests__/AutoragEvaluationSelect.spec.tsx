@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluationSelect';
 import { useUploadToStorageMutation } from '~/app/hooks/useUploadToStorageMutation';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
@@ -20,15 +20,17 @@ import {
   TrackingOutcome,
 } from '~/app/utilities/tracking';
 import { RunTriggeredTrackingContext } from '~/app/context/RunTriggeredTrackingContext';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useUploadToStorageMutation', () => ({
@@ -108,7 +110,6 @@ jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileEx
 
 const mockUseParams = jest.mocked(useParams);
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
 
 const configureSchema = createConfigureSchema();
 
@@ -214,7 +215,7 @@ const renderWithProviders = (
       </FormWrapper>
     </QueryClientProvider>
   );
-  return render(
+  return renderWithTracking(
     options?.onEvaluationSourceConfigured ? (
       <RunTriggeredTrackingContext.Provider
         value={{
@@ -689,15 +690,12 @@ describe('AutoragEvaluationSelect', () => {
       await user.upload(getEvaluationFileInput(container), file);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-          {
-            evaluationSourceType: 'upload',
-            countOfDocuments: 1,
-            outcome: TrackingOutcome.submit,
-            success: true,
-          },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED, {
+          evaluationSourceType: 'upload',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
       });
     });
 
@@ -713,19 +711,16 @@ describe('AutoragEvaluationSelect', () => {
       await user.upload(getEvaluationFileInput(container), file);
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-          {
-            evaluationSourceType: 'upload',
-            countOfDocuments: 0,
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: AUTORAG_FAILURE_CATEGORY,
-          },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED, {
+          evaluationSourceType: 'upload',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+        });
       });
 
-      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      const allTrackingCalls = JSON.stringify(trackEventMock.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-secret-bucket');
     });
 
@@ -737,15 +732,12 @@ describe('AutoragEvaluationSelect', () => {
       await user.click(screen.getByRole('button', { name: /s3/i }));
       await user.click(screen.getByTestId('s3-select-file'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-        {
-          evaluationSourceType: 's3',
-          countOfDocuments: 1,
-          outcome: TrackingOutcome.submit,
-          success: true,
-        },
-      );
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED, {
+        evaluationSourceType: 's3',
+        countOfDocuments: 1,
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
     });
 
     it('should fire with outcome: cancel and success: false when the S3 file browser is closed without a selection', async () => {
@@ -756,15 +748,12 @@ describe('AutoragEvaluationSelect', () => {
       await user.click(screen.getByRole('button', { name: /s3/i }));
       await user.click(screen.getByTestId('s3-close'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
-        {
-          evaluationSourceType: 's3',
-          countOfDocuments: 0,
-          outcome: TrackingOutcome.cancel,
-          success: false,
-        },
-      );
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED, {
+        evaluationSourceType: 's3',
+        countOfDocuments: 0,
+        outcome: TrackingOutcome.cancel,
+        success: false,
+      });
     });
 
     it('should not fire a cancel event when the browser is closed right after a successful selection', async () => {
@@ -773,14 +762,14 @@ describe('AutoragEvaluationSelect', () => {
       renderWithProviders(<AutoragEvaluationSelect />);
 
       await user.click(screen.getByRole('button', { name: /s3/i }));
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       // Real S3FileExplorer/FileExplorer calls onSelectFiles then onClose in sequence when the
       // user clicks "Select" — simulate that ordering here to verify onClose doesn't re-fire.
       await user.click(screen.getByTestId('s3-select-file'));
       await user.click(screen.getByTestId('s3-close'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      expect(trackEventMock).toHaveBeenCalledTimes(1);
+      expect(trackEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.EVALUATION_SOURCE_CONFIGURED,
         expect.objectContaining({ outcome: TrackingOutcome.submit }),
       );
