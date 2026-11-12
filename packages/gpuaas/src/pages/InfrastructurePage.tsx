@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
@@ -158,6 +157,7 @@ const InfrastructurePage: React.FC = () => {
   const detailRefreshRef = React.useRef<() => Promise<unknown[]>>(() => Promise.resolve([]));
   const isKueueAvailable = useIsAreaAvailable(SupportedArea.KUEUE).status;
   const visibleTabs = getVisibleInfrastructureTabs(adminTabsEnabled);
+  const trackEvent = useTrackEvent();
   const location = useLocation();
   const requestedTab = isInfrastructureLocationState(location.state)
     ? location.state.tab
@@ -213,9 +213,10 @@ const InfrastructurePage: React.FC = () => {
         avgComputeUtilPct: metrics.computeUtilization?.percentage,
         avgMemoryUtilPct: metrics.memoryUtilization?.percentage,
       };
-      fireMiscTrackingEvent(GPUAAS_EVENTS.PAGE_VIEWED, props);
+      trackEvent(GPUAAS_EVENTS.PAGE_VIEWED, props);
     }
   }, [
+    trackEvent,
     adminAccessLoaded,
     canAccessAdminTabs,
     metrics.loaded,
@@ -246,8 +247,8 @@ const InfrastructurePage: React.FC = () => {
       hasUnassignedBucket: counts.hasUnassignedBucket,
       hasKueueEnabled: isKueueAvailable,
     };
-    fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_VIEWED, props);
-  }, [activeTabKey, isKueueAvailable, quotaHierarchy]);
+    trackEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_VIEWED, props);
+  }, [activeTabKey, isKueueAvailable, quotaHierarchy, trackEvent]);
 
   const handleRefresh = React.useCallback(() => {
     const secondsSinceLastUpdate = metrics.lastRefreshed
@@ -255,12 +256,12 @@ const InfrastructurePage: React.FC = () => {
       : undefined;
     refreshMetrics();
     borrowingLendingRefreshRef.current?.();
-    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, {
+    trackEvent(GPUAAS_EVENTS.DATA_REFRESHED, {
       refreshSource: 'utilization',
       outcome: 'click',
       secondsSinceLastUpdate,
     });
-  }, [metrics.lastRefreshed, refreshMetrics]);
+  }, [metrics.lastRefreshed, refreshMetrics, trackEvent]);
 
   const refreshQuotaData = React.useCallback(async () => {
     await refreshQuotaHierarchy();
@@ -273,16 +274,16 @@ const InfrastructurePage: React.FC = () => {
       ? Math.round((Date.now() - quotaHierarchy.lastRefreshed.getTime()) / 1000)
       : undefined;
     await refreshQuotaData();
-    fireMiscTrackingEvent(GPUAAS_EVENTS.DATA_REFRESHED, {
+    trackEvent(GPUAAS_EVENTS.DATA_REFRESHED, {
       refreshSource: 'quota-usage',
       outcome: 'click',
       secondsSinceLastUpdate,
     });
-    fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+    trackEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
       interactionType: QUOTA_USAGE_INTERACTION_TYPES.refresh,
       secondsSinceTabLoad: Math.round((Date.now() - quotaUsageTabLoadedAt.current) / 1000),
     });
-  }, [quotaHierarchy.lastRefreshed, refreshQuotaData]);
+  }, [quotaHierarchy.lastRefreshed, refreshQuotaData, trackEvent]);
 
   React.useEffect(() => {
     if (tabRefreshKey === 0) {
