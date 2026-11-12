@@ -10,7 +10,7 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import QuotaUsageAccordionSection from './QuotaUsageAccordionSection';
 import QuotaUsageMeter from './QuotaUsageMeter';
 import { QUOTA_USAGE_BORROWING, QUOTA_USAGE_SUMMARY } from '../../const';
@@ -92,6 +92,7 @@ const BorrowingInfo: React.FC<{
   nominalQuota: number;
   perModelRows: ModelGpuCount[];
 }> = ({ borrowedCount, cohortName, clusterQueueName, nominalQuota, perModelRows }) => {
+  const trackEvent = useTrackEvent();
   const borrowedModels = perModelRows.filter(
     (row): row is ModelGpuCount & { borrowed: number } => (row.borrowed ?? 0) > 0,
   );
@@ -134,7 +135,7 @@ const BorrowingInfo: React.FC<{
         isInline
         data-testid="quota-usage-borrowing-link"
         onClick={() => {
-          fireMiscTrackingEvent(GPUAAS_EVENTS.BORROWING_POPOVER_LINK_SELECTED, {
+          trackEvent(GPUAAS_EVENTS.BORROWING_POPOVER_LINK_SELECTED, {
             gpusBorrowing: borrowedCount,
           });
         }}

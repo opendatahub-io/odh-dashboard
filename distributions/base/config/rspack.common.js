@@ -156,6 +156,7 @@ module.exports = ({
       new rspack.HtmlRspackPlugin({
         template: path.join(normalizedDistDir, 'index.html'),
         title,
+        favicon: path.join(BASE_SRC_DIR, 'images', 'red-hat-ai-favicon.svg'),
       }),
       new rspack.DefinePlugin({
         'process.env': '({})',
