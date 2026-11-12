@@ -9,6 +9,8 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # Dashboard / MaaS portal pods (in-cluster BFF or direct service calls).
+    # applicationsNamespace is rewritten by the dashboard-operator at apply time.
     - from:
         - namespaceSelector:
             matchLabels:
@@ -22,6 +24,17 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/part-of: maas-portal
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Observe UI → Perses via data-science-gateway (Gateway API name only).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-ingress
+          podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: data-science-gateway
       ports:
         - protocol: TCP
           port: 8080

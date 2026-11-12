@@ -357,9 +357,16 @@ func (r *DashboardReconciler) maasPortalPersesNamespace(dashboard *v1alpha1.Dash
 	return r.monitoringNamespace()
 }
 
-// setMaaSPortalPersesIngressNamespace updates only the portal peer;
-// the policy itself remains in the Perses namespace.
-func setMaaSPortalPersesIngressNamespace(resources []unstructured.Unstructured, applicationsNamespace string) error {
+func isPersesAccessApplicationsPeer(partOf string) bool {
+	return partOf == maasPortalPartOf ||
+		partOf == rhoaiDashboardPartOf ||
+		partOf == odhDashboardPartOf
+}
+
+// setPersesAccessApplicationsNamespace rewrites dashboard-perses-access peers that
+// select in-cluster consumers (dashboard / MaaS portal) so a custom
+// applicationsNamespace can reach Perses. Gateway peers are left unchanged.
+func setPersesAccessApplicationsNamespace(resources []unstructured.Unstructured, applicationsNamespace string) error {
 	if applicationsNamespace == "" {
 		return fmt.Errorf("observability applications namespace must not be empty")
 	}
@@ -372,15 +379,20 @@ func setMaaSPortalPersesIngressNamespace(resources []unstructured.Unstructured, 
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(resource.Object, &policy); err != nil {
 			return err
 		}
-		for _, ingress := range policy.Spec.Ingress {
-			for _, peer := range ingress.From {
-				if peer.PodSelector != nil && peer.NamespaceSelector != nil &&
-					peer.PodSelector.MatchLabels["app.kubernetes.io/part-of"] == maasPortalDeploymentName {
-					if peer.NamespaceSelector.MatchLabels == nil {
-						peer.NamespaceSelector.MatchLabels = make(map[string]string)
-					}
-					peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] = applicationsNamespace
+		for ii := range policy.Spec.Ingress {
+			for pi := range policy.Spec.Ingress[ii].From {
+				peer := &policy.Spec.Ingress[ii].From[pi]
+				if peer.PodSelector == nil || peer.NamespaceSelector == nil {
+					continue
 				}
+				partOf := peer.PodSelector.MatchLabels["app.kubernetes.io/part-of"]
+				if !isPersesAccessApplicationsPeer(partOf) {
+					continue
+				}
+				if peer.NamespaceSelector.MatchLabels == nil {
+					peer.NamespaceSelector.MatchLabels = make(map[string]string)
+				}
+				peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] = applicationsNamespace
 			}
 		}
 		object, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&policy)

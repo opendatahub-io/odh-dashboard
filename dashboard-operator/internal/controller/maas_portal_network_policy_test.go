@@ -30,8 +30,73 @@ func portalDependencyPolicies(t *testing.T) []unstructured.Unstructured {
 		require.NoError(t, yaml.Unmarshal(data, &resource.Object))
 		resources = append(resources, resource)
 	}
-	require.NoError(t, setMaaSPortalPersesIngressNamespace(resources, maasPortalTestNamespace))
+	require.NoError(t, setPersesAccessApplicationsNamespace(resources, maasPortalTestNamespace))
 	return resources
+}
+
+func TestSetPersesAccessApplicationsNamespace(t *testing.T) {
+	t.Parallel()
+
+	const customNS = "custom-applications"
+	tests := []struct {
+		name           string
+		overlay        string
+		wantPartOf     []string
+		wantPortalPeer bool
+	}{
+		{
+			name:           "rhoai rewrites dashboard and portal",
+			overlay:        "rhoai",
+			wantPartOf:     []string{rhoaiDashboardPartOf, maasPortalPartOf},
+			wantPortalPeer: true,
+		},
+		{
+			name:           "odh rewrites dashboard only",
+			overlay:        "odh",
+			wantPartOf:     []string{odhDashboardPartOf},
+			wantPortalPeer: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			data, err := os.ReadFile(filepath.Join("..", "..", "..", "manifests", "observability", tt.overlay, "network-policy.yaml"))
+			require.NoError(t, err)
+			resource := unstructured.Unstructured{}
+			require.NoError(t, yaml.Unmarshal(data, &resource.Object))
+			resources := []unstructured.Unstructured{resource}
+
+			require.NoError(t, setPersesAccessApplicationsNamespace(resources, customNS))
+
+			var policy networkingv1.NetworkPolicy
+			require.NoError(t, runtime.DefaultUnstructuredConverter.FromUnstructured(resources[0].Object, &policy))
+			require.Len(t, policy.Spec.Ingress, 2)
+
+			got := make([]string, 0, len(policy.Spec.Ingress[0].From))
+			for _, peer := range policy.Spec.Ingress[0].From {
+				require.NotNil(t, peer.NamespaceSelector)
+				require.Equal(t, customNS, peer.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"])
+				got = append(got, peer.PodSelector.MatchLabels["app.kubernetes.io/part-of"])
+			}
+			assert.ElementsMatch(t, tt.wantPartOf, got)
+			if tt.wantPortalPeer {
+				assert.Contains(t, got, maasPortalPartOf)
+			} else {
+				assert.NotContains(t, got, maasPortalPartOf)
+			}
+
+			gateway := policy.Spec.Ingress[1].From[0]
+			require.NotNil(t, gateway.NamespaceSelector)
+			assert.Equal(t, "openshift-ingress", gateway.NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"],
+				"gateway peer namespace must not be rewritten")
+			assert.Equal(t, "data-science-gateway", gateway.PodSelector.MatchLabels["gateway.networking.k8s.io/gateway-name"])
+			_, hasManaged := gateway.PodSelector.MatchLabels["gateway.istio.io/managed"]
+			assert.False(t, hasManaged)
+		})
+	}
+
+	require.ErrorContains(t, setPersesAccessApplicationsNamespace(nil, ""), "must not be empty")
 }
 
 func TestLegacyMaaSPortalNetworkAccess(t *testing.T) {
