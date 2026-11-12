@@ -2101,6 +2101,42 @@ describe('Model Serving Deploy Wizard', () => {
       });
     });
 
+    it('should show inline monaco-yaml diagnostics for malformed YAML in edit mode', () => {
+      initIntercepts({});
+      initMockConnectionSecretIntercepts({});
+      initMockModelAuthIntercepts({});
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
+
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
+      yamlEditor.findStartFromScratchButton().click();
+      yamlEditor.waitForReady();
+
+      // Malformed mapping value — monaco-yaml should report inline error markers while typing
+      yamlEditor.setValue('invalid: yaml:\n  - broken');
+      yamlEditor.expectErrorMarkers();
+
+      // Valid document clears syntax markers
+      yamlEditor.setValue(
+        [
+          'apiVersion: serving.kserve.io/v1alpha2',
+          'kind: LLMInferenceService',
+          'metadata:',
+          '  name: linted-model',
+          '  namespace: test-project',
+          'spec:',
+          '  model:',
+          '    uri: hf://test/model',
+        ].join('\n'),
+      );
+      yamlEditor.expectNoErrorMarkers();
+    });
+
     it('should auto-fallback to YAML edit mode if the form data extraction fails', () => {
       initIntercepts({});
       initMockConnectionSecretIntercepts({});
