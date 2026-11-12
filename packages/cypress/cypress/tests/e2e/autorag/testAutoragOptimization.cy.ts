@@ -163,13 +163,7 @@ describe('AutoRAG Optimization completion results E2E', () => {
   it(
     'Verify optimization run completes and results are interactive',
     {
-      tags: [
-        '@AutoRAG',
-        '@AutoRAGCI',
-        '@AutoRAGRegression',
-        '@AutoRAGOptimization',
-        '@Featureflagged',
-      ],
+      tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGOptimization', '@Featureflagged'],
       retries: { runMode: 0, openMode: 0 },
     },
     function verifyCompletionResults() {
