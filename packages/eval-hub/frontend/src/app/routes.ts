@@ -39,6 +39,9 @@ export const evaluationCreateRoute = (namespace?: string): string =>
 export const evaluationCreateSuiteChooserRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}/create-suite`;
 
+export const evaluationBuildSuiteFromGoalRoute = (namespace?: string): string =>
+  `${evaluationCreateSuiteChooserRoute(namespace)}/from-goal`;
+
 export const evaluationCollectionsRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/collections`;
 

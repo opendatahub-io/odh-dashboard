@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import type { Namespace } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
+import { mockProvider } from '~/__mocks__/mockProvider';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
@@ -10,6 +11,7 @@ import {
   mockCuratedBenchmarkSuiteCollections,
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
+import { suiteBuilderPage } from '~/__tests__/cypress/cypress/pages/suiteBuilderPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import type { Collection, EvalHubHealthResponse, EvaluationJob, Provider } from '~/app/types';
 
@@ -97,17 +99,57 @@ describe('Evaluations Page - Tabs', () => {
   it('should navigate from the Create suite header action to the manual suite form', () => {
     evaluationsPage.visit(NAMESPACE);
 
-    cy.get('[data-testid="create-suite-header-button"]').click();
+    evaluationsPage.findCreateSuiteHeaderButton().click();
     cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite`);
-    cy.findByRole('heading', { name: 'Create suite' }).should('be.visible');
-    cy.findByText('Choose how you want to add benchmarks to your suite.').should('be.visible');
-    cy.get('[data-testid="build-suite-from-goal-tile"]')
-      .should('have.attr', 'aria-disabled', 'true')
-      .and('contain.text', 'Coming soon');
+    evaluationsPage.findTitle().should('contain.text', 'Create suite');
+    evaluationsPage
+      .findPageDescription()
+      .should('contain.text', 'Choose how you want to add benchmarks to your suite.');
+    evaluationsPage
+      .findBuildSuiteFromGoalTile()
+      .should('be.visible')
+      .and('not.have.attr', 'aria-disabled');
 
-    cy.get('[data-testid="choose-own-benchmarks-tile"]').click();
+    evaluationsPage.findChooseOwnBenchmarksTile().click();
     cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/new`);
-    cy.findByRole('heading', { name: 'Create benchmark collection' }).should('be.visible');
+    evaluationsPage.findTitle().should('contain.text', 'Create benchmark collection');
+  });
+
+  it('should validate the suite name and preserve settings when returning from the next step', () => {
+    initIntercepts({ providers: [mockProvider()] });
+    evaluationsPage.visit(NAMESPACE);
+
+    evaluationsPage.findCreateSuiteHeaderButton().click();
+    evaluationsPage.findBuildSuiteFromGoalTile().click();
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite/from-goal`);
+
+    suiteBuilderPage.findCurrentStep('suite-settings').should('have.attr', 'aria-current', 'step');
+    suiteBuilderPage.findCurrentStep('define-goal').should('be.disabled');
+    suiteBuilderPage.findNextButton().should('be.disabled');
+    suiteBuilderPage.findNameInput().type('   ');
+    suiteBuilderPage.findNameError().should('be.visible');
+    suiteBuilderPage.findNextButton().should('be.disabled');
+
+    suiteBuilderPage.findNameInput().clear().type('Reasoning suite');
+    suiteBuilderPage.findNextButton().should('be.disabled');
+    suiteBuilderPage.findDescriptionInput().type('Check general reasoning performance.');
+    suiteBuilderPage.findCategoryInput().click();
+    suiteBuilderPage.findCategoryOption('Reasoning').findByRole('checkbox').click();
+    suiteBuilderPage.findNextButton().should('be.enabled');
+    suiteBuilderPage.findNextButton().click();
+
+    suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
+    suiteBuilderPage.findDefineGoalPlaceholder().should('be.visible');
+    suiteBuilderPage.findCurrentStep('suite-settings').click();
+
+    suiteBuilderPage.findCurrentStep('suite-settings').should('have.attr', 'aria-current', 'step');
+    suiteBuilderPage.findNameInput().should('have.value', 'Reasoning suite');
+    suiteBuilderPage
+      .findDescriptionInput()
+      .should('have.value', 'Check general reasoning performance.');
+    suiteBuilderPage.findSelectedCategory('Reasoning').should('be.visible');
+    suiteBuilderPage.findCurrentStep('define-goal').click();
+    suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
   });
 
   it('should navigate from a Gallery Customize action to the suite editor', () => {

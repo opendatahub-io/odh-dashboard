@@ -115,6 +115,18 @@ class EvaluationsPage {
     return cy.findByTestId('create-suite-button');
   }
 
+  findCreateSuiteHeaderButton() {
+    return cy.findByTestId('create-suite-header-button');
+  }
+
+  findBuildSuiteFromGoalTile() {
+    return cy.findByTestId('build-suite-from-goal-tile');
+  }
+
+  findChooseOwnBenchmarksTile() {
+    return cy.findByTestId('choose-own-benchmarks-tile');
+  }
+
   findBrowseAllBenchmarksExploreButton() {
     return cy.findByTestId('browse-all-benchmarks-explore');
   }
