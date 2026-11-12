@@ -1,0 +1,1 @@
+export { createStandaloneAnalytics } from './createStandaloneAnalytics';

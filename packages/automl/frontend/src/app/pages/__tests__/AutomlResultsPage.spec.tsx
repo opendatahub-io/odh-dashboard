@@ -1,23 +1,23 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AutomlResultsPage from '~/app/pages/AutomlResultsPage';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import { downloadBlob } from '~/app/utilities/utils';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactNode) => rtlRender(ui, { wrapper: TrackingWrapper });
 
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const trackEvent = jest.fn();
+
 const downloadBlobMock = jest.mocked(downloadBlob);
 
 // ============================================================================
@@ -114,18 +114,27 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
     isTerminating,
     onConfirm,
     onClose,
+    onCancel,
   }: {
     isOpen: boolean;
     isTerminating: boolean;
     onConfirm: () => void;
     onClose: () => void;
+    onCancel?: () => void;
   }) =>
     isOpen ? (
       <div data-testid="stop-run-modal">
         <button data-testid="confirm-stop-run-button" onClick={onConfirm} disabled={isTerminating}>
           Stop
         </button>
-        <button data-testid="cancel-stop-run-button" onClick={onClose} disabled={isTerminating}>
+        <button
+          data-testid="cancel-stop-run-button"
+          onClick={() => {
+            onCancel?.();
+            onClose();
+          }}
+          disabled={isTerminating}
+        >
           Cancel
         </button>
       </div>
@@ -904,6 +913,18 @@ describe('AutomlResultsPage', () => {
       expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
     });
 
+    it('should forward stop cancellation exactly once from the results page', async () => {
+      setupWithRunState('RUNNING');
+      renderPage();
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      trackEvent.mockClear();
+      await userEvent.click(screen.getByTestId('cancel-stop-run-button'));
+      expect(trackEvent.mock.calls).toEqual([
+        ['AutoML Run Stopped', { outcome: 'cancel', source: 'resultsPage' }],
+      ]);
+      expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
+    });
+
     it('should call terminate mutation when stop is confirmed', async () => {
       setupWithRunState('RUNNING');
       const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
@@ -1583,10 +1604,9 @@ describe('AutomlResultsPage', () => {
           expect.objectContaining({ signal: expect.any(AbortSignal) }),
         );
         expect(downloadBlobMock).toHaveBeenCalledWith(blob, 'automl_experiment_notebook.ipynb');
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
-          { downloadType: 'runNotebook' },
-        );
+        expect(trackEvent).toHaveBeenCalledWith('AutoML Run Notebook Downloaded', {
+          downloadType: 'runNotebook',
+        });
       });
     });
 
@@ -1641,8 +1661,8 @@ describe('AutomlResultsPage', () => {
       await userEvent.click(screen.getByTestId('run-notebook-download-button'));
 
       expect(await screen.findByText('Run notebook download failed')).toBeInTheDocument();
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
-        AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
+      expect(trackEvent).not.toHaveBeenCalledWith(
+        'AutoML Run Notebook Downloaded',
         expect.anything(),
       );
     });
@@ -1671,8 +1691,8 @@ describe('AutomlResultsPage', () => {
       resolveDownload(new Blob(['stale notebook']));
       await waitFor(() => {
         expect(downloadBlobMock).not.toHaveBeenCalled();
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
-          AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
+        expect(trackEvent).not.toHaveBeenCalledWith(
+          'AutoML Run Notebook Downloaded',
           expect.anything(),
         );
         expect(screen.queryByText('Run notebook download failed')).not.toBeInTheDocument();
@@ -1698,8 +1718,8 @@ describe('AutomlResultsPage', () => {
       await pendingDownload.catch(() => undefined);
 
       expect(downloadBlobMock).not.toHaveBeenCalled();
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
-        AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED,
+      expect(trackEvent).not.toHaveBeenCalledWith(
+        'AutoML Run Notebook Downloaded',
         expect.anything(),
       );
     });
@@ -1718,7 +1738,7 @@ describe('AutomlResultsPage', () => {
 
       renderPage();
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RESULTS_VIEWED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Results Viewed', {
         entrySource: 'experimentsList',
       });
     });
@@ -1735,7 +1755,7 @@ describe('AutomlResultsPage', () => {
 
       renderPage();
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RESULTS_VIEWED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Results Viewed', {
         entrySource: 'other',
       });
     });
@@ -1756,7 +1776,7 @@ describe('AutomlResultsPage', () => {
         </QueryClientProvider>,
       );
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+      expect(trackEvent).toHaveBeenCalledTimes(1);
     });
 
     it('should not fire while the pipeline run has not yet loaded', () => {
@@ -1770,7 +1790,7 @@ describe('AutomlResultsPage', () => {
 
       renderPage();
 
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalled();
+      expect(trackEvent).not.toHaveBeenCalled();
     });
   });
 });

@@ -2,6 +2,7 @@ import type { IdentifyEventProperties } from './types';
 
 declare global {
   interface Window {
+    clusterID?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analytics?: any;
   }
