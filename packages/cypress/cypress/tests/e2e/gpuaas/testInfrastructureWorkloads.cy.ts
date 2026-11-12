@@ -45,7 +45,7 @@ const buildTestContext = (testData: InfrastructureWorkloadsTestData, uuid: strin
     config: {
       managedProjectName: withUuid(testData.managedProjectName),
       trainJobName: withUuid(testData.trainJobName),
-      trainingRuntimeName: withUuid(testData.trainingRuntimeName),
+      trainingRuntimeName: testData.trainingRuntimeName,
       hardwareProfileName: withUuid(testData.hardwareProfileName),
       resourceFlavorName: withUuid(testData.resourceFlavorName),
       clusterQueueName: withUuid(testData.clusterQueueName),
