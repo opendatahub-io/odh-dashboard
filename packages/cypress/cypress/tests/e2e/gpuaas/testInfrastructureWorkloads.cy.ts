@@ -139,6 +139,9 @@ describeAdminOnly('Infrastructure Workloads visibility', () => {
     isKueueUnmanaged().should('equal', true);
     cy.getDashboardConfig('dashboardConfig.disableKueue').then((disableKueue) => {
       kueueEnabledInDashboard = disableKueue === false;
+      if (!kueueEnabledInDashboard) {
+        cy.log('Skipping admin Admissions test: Kueue is disabled in OdhDashboardConfig.');
+      }
     });
   });
 
@@ -245,7 +248,6 @@ describeAdminOnly('Infrastructure Workloads visibility', () => {
     { tags: ['@Kueue', '@Dashboard', '@Infrastructure', '@Featureflagged', '@GpuaasCI'] },
     function adminInfrastructureTabs() {
       if (!kueueEnabledInDashboard) {
-        cy.log('Skipping: Kueue is disabled in OdhDashboardConfig (disableKueue is not false).');
         this.skip();
       }
       if (!context) {
