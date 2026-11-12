@@ -184,7 +184,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               yamlErrors={yamlToFormErrors}
               canUpdateFormFromYaml={!!initialDataFromYaml?.formData}
               isSwitchToFormLoading={!initialDataFromYaml?.loaded}
-              isSwitchToYamlLoading={!formResourcesLoaded}
+              // External data re-initializes fields on load; switching earlier snapshots stale YAML
+              isSwitchToYamlLoading={!formResourcesLoaded || !externalDataReady}
               switchToForm={(updateFormWithYaml = true) => {
                 if (
                   updateFormWithYaml &&

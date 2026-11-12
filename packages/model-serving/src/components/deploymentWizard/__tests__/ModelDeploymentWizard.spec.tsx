@@ -22,7 +22,18 @@ jest.mock('@patternfly/react-core', () => ({
   }),
 }));
 jest.mock('@odh-dashboard/ui-core', () => ({
-  ApplicationsPage: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  ApplicationsPage: ({
+    children,
+    headerAction,
+  }: {
+    children: React.ReactNode;
+    headerAction?: React.ReactNode;
+  }) => (
+    <div>
+      {children}
+      {headerAction}
+    </div>
+  ),
 }));
 jest.mock('../ExternalDataLoader', () => ({
   ...jest.requireActual('../ExternalDataLoader'),
@@ -38,10 +49,15 @@ jest.mock('../yaml/lazyDeploymentWizardYAMLView', () => ({
   DeploymentWizardYAMLView: () => null,
 }));
 jest.mock('../yaml/DeploymentWizardViewModeToggle', () => ({
-  DeploymentWizardViewModeToggle: () => null,
+  DeploymentWizardViewModeToggle: (props: { isSwitchToFormLoading: boolean }) => {
+    mockViewModeToggleProps.isSwitchToFormLoading = props.isSwitchToFormLoading;
+    return null;
+  },
 }));
 jest.mock('../exitModal/useExitDeploymentWizard');
 jest.mock('../useRefreshWizardPage');
+
+const mockViewModeToggleProps: { isSwitchToFormLoading?: boolean } = {};
 
 const mockSubmit = (loading: boolean, methodAvailable = true) => {
   jest.mocked(useModelDeploymentSubmit).mockReturnValue({
@@ -129,4 +145,40 @@ describe('ModelDeploymentWizard submit readiness', () => {
       }
     },
   );
+
+  it('should not show the form toggle as loading once yaml extraction settles', () => {
+    jest.mocked(useYamlViewSession).mockReturnValue({
+      viewMode: 'yaml-edit',
+      isYAMLViewerEnabled: true,
+      isAutoFallback: true,
+      lastUpdatedSource: 'yaml-edit',
+      setLastUpdatedSource: jest.fn(),
+      switchToForm: jest.fn(),
+      switchToYaml: jest.fn(),
+    });
+    const view = <ModelDeploymentWizard title="Deploy" primaryButtonText="Deploy model" />;
+
+    // Pending extraction (no initialData yet): toggle reports loading
+    const { rerender } = render(view);
+    expect(mockViewModeToggleProps.isSwitchToFormLoading).toBe(true);
+
+    // Settled — including terminal failure, which the hook reports as loaded: true with
+    // errors: the toggle must not stay disabled, or the recovery modal
+    // ('Use saved form inputs') can never open
+    jest.mocked(useFormYamlResources).mockReturnValue({
+      yaml: { yaml: 'kind: LLMInferenceService' },
+      setYaml: jest.fn(),
+      reinitYamlFromResources: jest.fn(),
+      resources: { resources: {} },
+      yamlSubmitErrors: [],
+      yamlToFormErrors: [new Error('failed to load deployment secrets')],
+      initialData: {
+        formData: undefined,
+        loaded: true,
+        errors: [new Error('failed to load deployment secrets')],
+      },
+    });
+    rerender(<ModelDeploymentWizard title="Deploy" primaryButtonText="Deploy model" />);
+    expect(mockViewModeToggleProps.isSwitchToFormLoading).toBe(false);
+  });
 });
