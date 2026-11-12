@@ -1,8 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import {
-  isNavSectionExtension,
-  NavItemProperties,
-} from '@odh-dashboard/plugin-core/extension-points';
+import { isNavSectionExtension, type NavItemProperties } from '../extension-points/navigation';
 
 const DEFAULT_GROUP = '5_default';
 
