@@ -9,21 +9,31 @@
       // PatternFly theme classes are applied before the app boots so tokens
       // are correct on first paint. Felt is always on; light/dark composes
       // via .pf-v6-theme-dark (resolution mirrors the base shell
-      // ThemeContext). Glass stays off until the base shell has an
-      // appearance switcher - tracked under RHAI-19116.
+      // ThemeContext, including the legacy app-shell.theme migration).
+      // Glass is the default contrast unless the OS opts out - the
+      // appearance switcher ships with this change.
       (function () {
         var root = document.documentElement;
         root.classList.add('pf-v6-theme-felt');
         try {
-          var theme = localStorage.getItem('app-shell.theme');
-          root.classList.toggle('pf-v6-theme-dark', theme === 'dark');
+          var scheme = localStorage.getItem('app-shell.colorScheme');
+          if (scheme !== 'system' && scheme !== 'light' && scheme !== 'dark') {
+            var legacy = localStorage.getItem('app-shell.theme');
+            scheme = legacy === 'dark' || legacy === 'light' ? legacy : 'system';
+          }
+          var dark =
+            scheme === 'dark' ||
+            (scheme === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          root.classList.toggle('pf-v6-theme-dark', dark);
           var contrast = localStorage.getItem('app-shell.contrastMode');
           var glass = contrast === 'glass';
           var highContrast = contrast === 'high-contrast';
-          if (contrast === 'system') {
+          if (contrast === null || contrast === 'system') {
             highContrast = window.matchMedia('(prefers-contrast: more)').matches;
             glass =
-              !highContrast && !window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
+              !highContrast &&
+              !window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
           }
           root.classList.toggle('pf-v6-theme-glass', glass);
           root.classList.toggle('pf-v6-theme-high-contrast', highContrast);

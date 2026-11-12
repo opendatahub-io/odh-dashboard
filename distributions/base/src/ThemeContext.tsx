@@ -6,31 +6,46 @@ import {
 } from '@odh-dashboard/ui-core/contexts/ThemeContext';
 
 type Theme = 'light' | 'dark';
+export type ColorScheme = 'system' | 'light' | 'dark';
 
 type ThemeContextProps = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  colorScheme: ColorScheme;
+  setColorScheme: (scheme: ColorScheme) => void;
   contrastMode: ContrastMode;
   setContrastMode: (mode: ContrastMode) => void;
 };
 
 const THEME_KEY = 'app-shell.theme';
+const COLOR_SCHEME_KEY = 'app-shell.colorScheme';
 const CONTRAST_MODE_KEY = 'app-shell.contrastMode';
 
 const ThemeContext = createContext<ThemeContextProps>({
   theme: 'light',
   setTheme: () => undefined,
-  contrastMode: 'default',
+  colorScheme: 'system',
+  setColorScheme: () => undefined,
+  contrastMode: 'system',
   setContrastMode: () => undefined,
 });
 
 export const useThemeContext = (): ThemeContextProps => useContext(ThemeContext);
 
-const readTheme = (): Theme => {
+const readColorScheme = (): ColorScheme => {
   try {
-    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+    const stored = localStorage.getItem(COLOR_SCHEME_KEY);
+    if (stored === 'system' || stored === 'light' || stored === 'dark') {
+      return stored;
+    }
+    // Derive from the legacy light/dark theme key so saved choices survive.
+    const legacy = localStorage.getItem(THEME_KEY);
+    if (legacy === 'dark' || legacy === 'light') {
+      return legacy;
+    }
+    return 'system';
   } catch {
-    return 'light';
+    return 'system';
   }
 };
 
@@ -42,15 +57,22 @@ const readContrastMode = (): ContrastMode => {
       value === 'high-contrast' ||
       value === 'system'
       ? value
-      : 'default';
+      : 'system';
   } catch {
-    return 'default';
+    return 'system';
   }
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(readTheme);
+  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(readColorScheme);
   const [contrastMode, setContrastModeState] = useState<ContrastMode>(readContrastMode);
+  const [prefersDark, setPrefersDark] = useState(() => {
+    try {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
   const [prefersReducedTransparency, setPrefersReducedTransparency] = useState(() => {
     try {
       return window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
@@ -66,12 +88,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
+  const theme: Theme =
+    colorScheme === 'dark' || (colorScheme === 'system' && prefersDark) ? 'dark' : 'light';
+
   // Track OS-level preferences
   useEffect(() => {
+    let darkQuery;
     let transparencyQuery;
     let contrastQuery;
 
     try {
+      darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
       transparencyQuery = window.matchMedia('(prefers-reduced-transparency: reduce)');
       contrastQuery = window.matchMedia('(prefers-contrast: more)');
     } catch {
@@ -79,34 +106,47 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
+    const handleDark = (e: MediaQueryListEvent) => setPrefersDark(e.matches);
     const handleTransparency = (e: MediaQueryListEvent) => setPrefersReducedTransparency(e.matches);
     const handleContrast = (e: MediaQueryListEvent) => setPrefersHighContrast(e.matches);
 
+    setPrefersDark(darkQuery.matches);
     setPrefersReducedTransparency(transparencyQuery.matches);
     setPrefersHighContrast(contrastQuery.matches);
 
+    darkQuery.addEventListener('change', handleDark);
     transparencyQuery.addEventListener('change', handleTransparency);
     contrastQuery.addEventListener('change', handleContrast);
     return () => {
+      darkQuery.removeEventListener('change', handleDark);
       transparencyQuery.removeEventListener('change', handleTransparency);
       contrastQuery.removeEventListener('change', handleContrast);
     };
   }, []);
 
-  const setTheme = useCallback(
-    (t: Theme) => {
+  const setColorScheme = useCallback(
+    (scheme: ColorScheme) => {
       try {
-        localStorage.setItem(THEME_KEY, t);
+        localStorage.setItem(COLOR_SCHEME_KEY, scheme);
+        localStorage.removeItem(THEME_KEY);
       } catch {
         // no-op: storage unavailable
       }
-      setThemeState(t);
+      setColorSchemeState(scheme);
       window.dispatchEvent(
-        new CustomEvent('odh-theme-change', { detail: { theme: t, contrastMode } }),
+        new CustomEvent('odh-theme-change', {
+          detail: {
+            theme: scheme === 'dark' ? 'dark' : 'light',
+            colorScheme: scheme,
+            contrastMode,
+          },
+        }),
       );
     },
     [contrastMode],
   );
+
+  const setTheme = useCallback((t: Theme) => setColorScheme(t), [setColorScheme]);
 
   const setContrastMode = useCallback(
     (mode: ContrastMode) => {
@@ -117,10 +157,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       setContrastModeState(mode);
       window.dispatchEvent(
-        new CustomEvent('odh-theme-change', { detail: { theme, contrastMode: mode } }),
+        new CustomEvent('odh-theme-change', { detail: { theme, colorScheme, contrastMode: mode } }),
       );
     },
-    [theme],
+    [theme, colorScheme],
   );
   useEffect(() => {
     const html = document.documentElement;
@@ -136,17 +176,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [theme, contrastMode, prefersReducedTransparency, prefersHighContrast]);
 
   const value = useMemo(
-    () => ({ theme, setTheme, contrastMode, setContrastMode }),
-    [theme, setTheme, contrastMode, setContrastMode],
+    () => ({ theme, setTheme, colorScheme, setColorScheme, contrastMode, setContrastMode }),
+    [theme, setTheme, colorScheme, setColorScheme, contrastMode, setContrastMode],
   );
   const sharedValue = useMemo<SharedThemeContextProps>(
     () => ({
       theme,
-      setTheme: (themeName) => setTheme(themeName === 'dark' ? 'dark' : 'light'),
+      setTheme: (themeName) => setColorScheme(themeName === 'dark' ? 'dark' : 'light'),
+      colorScheme,
+      setColorScheme,
       contrastMode,
       setContrastMode,
     }),
-    [theme, setTheme, contrastMode, setContrastMode],
+    [theme, colorScheme, setColorScheme, contrastMode, setContrastMode],
   );
 
   return (
