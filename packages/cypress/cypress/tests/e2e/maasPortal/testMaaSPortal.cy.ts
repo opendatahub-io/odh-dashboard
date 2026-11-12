@@ -30,6 +30,7 @@ import {
 import { maasPortalPage } from '../../../pages/maasPortal';
 import { MAAS_PORTAL_ADMIN_USER, MAAS_PORTAL_USER } from '../../../utils/e2eUsers';
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
+import { verifyMaaSApiKeyRevoked } from '../../../utils/maasApiKeyRevocation';
 import type { UserAuthConfig } from '../../../types';
 
 const testSuffix = `${generateTestUUID()}-${Date.now().toString(36).slice(-5)}`;
@@ -41,7 +42,8 @@ const apiKeyName = `portal-e2e-key-${testSuffix}`;
 const modelFixture = 'resources/maas/llmInferenceServiceSimulatorPremium.yaml';
 const subscriptionFixture = 'resources/maas/MaaSSubscriptionPortal.yaml';
 const authPolicyFixture = 'resources/maas/MaaSAuthPolicyPortal.yaml';
-const runMaaSPortalE2E = Cypress.env('ENABLE_MAAS_PORTAL_E2E') === 'true';
+const enableFlag = Cypress.env('ENABLE_MAAS_PORTAL_E2E');
+const runMaaSPortalE2E = enableFlag === true || enableFlag === 'true';
 
 const getRequiredPortalConfig = (): {
   portalUrl: string;
@@ -62,8 +64,14 @@ const getRequiredPortalConfig = (): {
     throw new Error('MAAS_PORTAL_ORGANIZATION_ID is not configured in CY_TEST_CONFIG');
   }
 
-  if (!userGroups?.length) {
-    throw new Error('MAAS_PORTAL_USER_GROUPS is not configured in CY_TEST_CONFIG');
+  if (
+    !Array.isArray(userGroups) ||
+    !userGroups.length ||
+    userGroups.some((group) => typeof group !== 'string' || !group.trim())
+  ) {
+    throw new Error(
+      'MAAS_PORTAL_USER_GROUPS must contain at least one non-empty group name in CY_TEST_CONFIG',
+    );
   }
 
   if (!MAAS_PORTAL_ADMIN_USER) {
@@ -91,19 +99,12 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       return;
     }
 
-    const { organizationId, userGroups, adminUser, portalUser } = getRequiredPortalConfig();
-    if (userGroups.length !== 2) {
-      throw new Error(
-        `MAAS_PORTAL_USER_GROUPS must contain exactly 2 groups for the portal fixtures; received ${userGroups.length}`,
-      );
-    }
+    const { organizationId, userGroups, adminUser } = getRequiredPortalConfig();
 
     const accessReplacements = {
       MAAS_NAMESPACE: modelsAsAServiceNamespace,
       ORGANIZATION_ID: organizationId,
-      USER_GROUP_1: userGroups[0],
-      USER_GROUP_2: userGroups[1],
-      PORTAL_USER_USERNAME: portalUser.USERNAME,
+      USER_GROUPS: JSON.stringify(userGroups.map((name) => ({ name }))),
       PORTAL_ADMIN_USERNAME: adminUser.USERNAME,
     };
 
@@ -195,7 +196,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
         .and('contain.text', 'Endpoint compatibility');
 
       cy.step('Run the copied usage example with the newly created API key');
-      stubClipboard('copiedApiKey');
+      stubClipboard('copiedApiKey', { log: false });
       copyApiKeyModal.findApiKeyTokenCopyButton().click();
       getClipboardContent('copiedApiKey', { log: false }).then((apiKeys) => {
         const apiKey = apiKeys[0];
@@ -303,19 +304,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
         };
 
         maasPortalPage.getStoredApiKey().then((apiKey) => {
-          cy.request({
-            method: 'POST',
-            url: endpoint,
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: requestBody,
-            failOnStatusCode: false,
-            log: false,
-          }).then((response) => {
-            expect(response.status).to.equal(403);
-          });
+          return verifyMaaSApiKeyRevoked(endpoint, apiKey, requestBody);
         });
       });
     },

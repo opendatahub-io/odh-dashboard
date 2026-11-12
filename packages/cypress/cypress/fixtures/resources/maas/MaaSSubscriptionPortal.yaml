@@ -17,10 +17,8 @@ spec:
   organization:
     id: '{{ORGANIZATION_ID}}'
   owner:
-    groups:
-      - name: '{{USER_GROUP_1}}'
-      - name: '{{USER_GROUP_2}}'
+    groups: {{USER_GROUPS}}
+    # Regular-user access must depend on a matching group claim.
     users:
       - '{{PORTAL_ADMIN_USERNAME}}'
-      - '{{PORTAL_USER_USERNAME}}'
   priority: 0
