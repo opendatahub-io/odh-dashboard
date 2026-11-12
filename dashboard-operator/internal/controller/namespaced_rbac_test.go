@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
@@ -275,6 +277,79 @@ func TestReconcileNamespacedRBAC_RemovingOptInRevokesExistingGrant(t *testing.T)
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
 	require.ErrorContains(t, err, "dashboard.opendatahub.io/allow-namespaced-rbac=true")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_RemovingOptInRevokesGrantAfterLabelsAreStripped(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	role := getRole(t, cli, testNotebooksNS, "dashboard-notebooks-role")
+	role.Labels = nil
+	require.NoError(t, cli.Update(context.Background(), role))
+	binding := getRoleBinding(t, cli, testNotebooksNS, "dashboard-notebooks-rolebinding")
+	binding.Labels = nil
+	require.NoError(t, cli.Update(context.Background(), binding))
+
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, role.Name))
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.RoleBinding{}, testNotebooksNS, binding.Name))
+}
+
+func TestReconcileNamespacedRBAC_NamespaceLookupFailureRevokesExistingGrant(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	lookupErr := errors.New("injected namespace lookup failure")
+	watchClient, ok := cli.(client.WithWatch)
+	require.True(t, ok)
+	r.APIReader = interceptor.NewClient(watchClient, interceptor.Funcs{
+		Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, isNamespace := obj.(*corev1.Namespace); isNamespace && key.Name == testNotebooksNS {
+				return lookupErr
+			}
+			return delegate.Get(ctx, key, obj, opts...)
+		},
+	})
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorIs(t, err, lookupErr)
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_ApplyFailureDoesNotSkipStaleGrantGC(t *testing.T) {
+	const newTarget = "new-notebooks-target"
+	r, cli := newReconciler(t, cluster.OpenDataHub, optedInNamespace(newTarget))
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+	require.Len(t, listRoles(t, cli), 2)
+
+	applyErr := errors.New("injected Role create failure")
+	watchClient, ok := cli.(client.WithWatch)
+	require.True(t, ok)
+	r.Client = interceptor.NewClient(watchClient, interceptor.Funcs{
+		Create: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+			if role, isRole := obj.(*rbacv1.Role); isRole && role.Namespace == newTarget {
+				return applyErr
+			}
+			return delegate.Create(ctx, obj, opts...)
+		},
+	})
+	dashboard.Spec.NotebooksNamespace = newTarget
+	dashboard.Spec.ModelRegistryNamespace = ""
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorIs(t, err, applyErr)
 	assert.Empty(t, listRoles(t, cli))
 	assert.Empty(t, listRoleBindings(t, cli))
 }

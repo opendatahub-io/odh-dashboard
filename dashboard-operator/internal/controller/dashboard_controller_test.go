@@ -1155,8 +1155,19 @@ func TestReconcile_RevokesNamespacedRBACBeforeDeploymentFailure(t *testing.T) {
 
 	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
 	require.ErrorContains(t, err, "failed to apply kustomize params")
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
 	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(role), &rbacv1.Role{})))
 	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(roleBinding), &rbacv1.RoleBinding{})))
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	ready := conditions.FindStatusCondition(updated, string(common.ConditionTypeReady))
+	require.NotNil(t, ready)
+	assert.Equal(t, metav1.ConditionFalse, ready.Status)
+	assert.Equal(t, "NamespacedRBACFailed", ready.Reason)
+	degraded := conditions.FindStatusCondition(updated, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "NamespacedRBACFailed", degraded.Reason)
 }
 
 func TestReconcile_LegacyRedirectFailureDoesNotBlockCore(t *testing.T) {

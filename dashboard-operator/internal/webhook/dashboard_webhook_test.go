@@ -254,47 +254,82 @@ func TestDashboardHandler_ProtectsNamespaceOptInLabel(t *testing.T) {
 	)
 
 	for _, tt := range []struct {
-		name     string
-		username string
-		oldRaw   []byte
-		newRaw   []byte
-		allowed  bool
+		name        string
+		operation   admissionv1.Operation
+		subresource string
+		username    string
+		oldRaw      []byte
+		newRaw      []byte
+		allowed     bool
 	}{
 		{
-			name:     "deny dashboard service account adding consent",
-			username: "system:serviceaccount:redhat-ods-applications:rhods-dashboard",
-			oldRaw:   namespaceRaw(t, nil),
-			newRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			name:      "allow untrusted namespace create without consent",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    namespaceRaw(t, map[string]string{"other": "value"}),
+			allowed:   true,
 		},
 		{
-			name:     "deny untrusted writer removing consent",
-			username: "alice",
-			oldRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
-			newRaw:   namespaceRaw(t, nil),
+			name:      "deny untrusted namespace create with consent",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
 		},
 		{
-			name:     "allow orchestrator changing consent",
-			username: orchestrator,
-			oldRaw:   namespaceRaw(t, nil),
-			newRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
-			allowed:  true,
+			name:      "allow orchestrator namespace create with consent",
+			operation: admissionv1.Create,
+			username:  orchestrator,
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			allowed:   true,
 		},
 		{
-			name:     "allow unrelated namespace label update",
-			username: "alice",
-			oldRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true", "other": "old"}),
-			newRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true", "other": "new"}),
-			allowed:  true,
+			name:      "deny dashboard service account adding consent",
+			operation: admissionv1.Update,
+			username:  "system:serviceaccount:redhat-ods-applications:rhods-dashboard",
+			oldRaw:    namespaceRaw(t, nil),
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+		},
+		{
+			name:      "deny untrusted writer removing consent",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			newRaw:    namespaceRaw(t, nil),
+		},
+		{
+			name:      "allow orchestrator changing consent",
+			operation: admissionv1.Update,
+			username:  orchestrator,
+			oldRaw:    namespaceRaw(t, nil),
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			allowed:   true,
+		},
+		{
+			name:      "allow unrelated namespace label update",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true", "other": "old"}),
+			newRaw:    namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true", "other": "new"}),
+			allowed:   true,
+		},
+		{
+			name:        "deny consent change through namespace subresource",
+			operation:   admissionv1.Update,
+			subresource: "status",
+			username:    "alice",
+			oldRaw:      namespaceRaw(t, nil),
+			newRaw:      namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			resp := handler.Handle(context.Background(), admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
-					Operation: admissionv1.Update,
-					Resource:  metav1.GroupVersionResource{Version: "v1", Resource: "namespaces"},
-					UserInfo:  authenticationv1.UserInfo{Username: tt.username},
-					Object:    runtime.RawExtension{Raw: tt.newRaw},
-					OldObject: runtime.RawExtension{Raw: tt.oldRaw},
+					Operation:   tt.operation,
+					Resource:    metav1.GroupVersionResource{Version: "v1", Resource: "namespaces"},
+					SubResource: tt.subresource,
+					UserInfo:    authenticationv1.UserInfo{Username: tt.username},
+					Object:      runtime.RawExtension{Raw: tt.newRaw},
+					OldObject:   runtime.RawExtension{Raw: tt.oldRaw},
 				},
 			})
 

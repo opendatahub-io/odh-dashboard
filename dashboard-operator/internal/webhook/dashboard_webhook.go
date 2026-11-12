@@ -63,7 +63,7 @@ func NewDashboardHandler(reader client.Reader, namespacedRBACWriters []string) *
 }
 
 func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map[string]struct{}) admission.Response {
-	if req.SubResource != "" || req.Operation != admissionv1.Update {
+	if req.Operation != admissionv1.Create && req.Operation != admissionv1.Update {
 		return admission.Allowed("")
 	}
 
@@ -71,12 +71,17 @@ func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map
 	if err := json.Unmarshal(req.Object.Raw, &current); err != nil {
 		return admission.Errored(http.StatusBadRequest, fmt.Errorf("decoding Namespace: %w", err))
 	}
-	var previous corev1.Namespace
-	if err := json.Unmarshal(req.OldObject.Raw, &previous); err != nil {
-		return admission.Errored(http.StatusBadRequest, fmt.Errorf("decoding previous Namespace: %w", err))
+
+	previousValue := ""
+	if req.Operation == admissionv1.Update {
+		var previous corev1.Namespace
+		if err := json.Unmarshal(req.OldObject.Raw, &previous); err != nil {
+			return admission.Errored(http.StatusBadRequest, fmt.Errorf("decoding previous Namespace: %w", err))
+		}
+		previousValue = previous.Labels[v1alpha1.NamespacedRBACOptInLabel]
 	}
 
-	if previous.Labels[v1alpha1.NamespacedRBACOptInLabel] == current.Labels[v1alpha1.NamespacedRBACOptInLabel] {
+	if previousValue == current.Labels[v1alpha1.NamespacedRBACOptInLabel] {
 		return admission.Allowed("")
 	}
 	if _, allowed := allowedWriters[req.UserInfo.Username]; allowed {

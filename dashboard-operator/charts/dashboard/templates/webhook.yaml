@@ -56,9 +56,18 @@ webhooks:
         apiVersions:
           - v1
         operations:
+          - CREATE
           - UPDATE
         resources:
           - namespaces
+          - namespaces/status
+          - namespaces/finalize
+    matchConditions:
+      - name: namespaced-rbac-consent-label-changed
+        expression: >-
+          request.resource.resource != 'namespaces' ||
+          object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('') !=
+          oldObject.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')
     sideEffects: None
     timeoutSeconds: 5
 {{- if .Values.webhook.certManager.enabled }}

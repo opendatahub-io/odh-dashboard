@@ -427,11 +427,18 @@ RoleBindings when all of these conditions are true:
   `spec.modelRegistryNamespace` on the singleton Dashboard CR.
 
 The webhook protects both target fields and the namespace consent label. Only
-the exact usernames in `webhook.namespacedRBACWriters` may change them. This
-prevents the Dashboard service account, even though it can patch other
-namespace metadata, from granting itself access. Removing the consent label
-causes the controller to revoke the managed Role and RoleBinding before other
-deployment work runs.
+the exact usernames in `webhook.namespacedRBACWriters` may create a namespace
+with that label or change the label later. API-server match conditions skip the
+webhook for unrelated namespace updates, so normal namespace administration
+does not depend on Dashboard operator availability. This prevents the Dashboard
+service account, even though it can patch other namespace metadata, from
+granting itself access.
+
+Removing the consent label causes the controller to revoke the managed Role and
+RoleBinding before other deployment work runs. Revocation recognizes the
+operator-reserved RoleBinding identity and Dashboard service-account subject as
+well as management labels, so stripping mutable labels cannot hide an active
+grant from cleanup.
 
 An empty writer list is fail-closed: the webhook denies changes to protected
 fields and labels, and the controller removes existing cross-namespace grants

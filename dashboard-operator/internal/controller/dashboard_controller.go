@@ -359,9 +359,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
 	if rbacErr != nil {
 		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NamespacedRBACFailed"),
-			conditions.WithError(rbacErr))
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
@@ -381,7 +378,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(legacyRedirectErr, "Failed to reconcile legacy dashboard redirects; continuing Dashboard reconciliation")
 	}
 
-	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil, rbacErr)
+	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil)
 	if legacyRedirectErr != nil {
 		legacyRedirectErr = fmt.Errorf("failed to reconcile legacy dashboard redirects: %w", legacyRedirectErr)
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -391,6 +388,23 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			conditions.WithError(legacyRedirectErr),
 			conditions.WithReason("LegacyRedirectReconcileFailed"))
 		err = errors.Join(err, legacyRedirectErr)
+	}
+	if rbacErr != nil {
+		// Restore RBAC health after deployment helpers that may have recomputed
+		// aggregate conditions, then return the error so controller-runtime retries.
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithError(rbacErr),
+			conditions.WithReason("NamespacedRBACFailed"))
+		// Set the rollup directly after all dependent-condition updates so a
+		// concurrent deployment failure cannot hide the authorization failure.
+		conditions.SetStatusCondition(dashboard, common.Condition{
+			Type:     string(common.ConditionTypeReady),
+			Status:   metav1.ConditionFalse,
+			Severity: common.ConditionSeverityError,
+			Reason:   "NamespacedRBACFailed",
+			Message:  rbacErr.Error(),
+		})
+		err = errors.Join(err, rbacErr)
 	}
 
 	releases := []common.ComponentRelease{{
@@ -486,9 +500,8 @@ func (r *DashboardReconciler) reconcile(
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 	observabilityKnown bool,
-	rbacErr error,
 ) (ctrl.Result, error) {
-	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg, observabilityKnown, rbacErr)
+	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg, observabilityKnown)
 
 	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
 		result.RequeueAfter = observabilityRetryInterval
@@ -549,7 +562,6 @@ func (r *DashboardReconciler) reconcileDeployment(
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 	observabilityKnown bool,
-	rbacErr error,
 ) (result ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 	var uploadConfigErr error
@@ -716,15 +728,6 @@ func (r *DashboardReconciler) reconcileDeployment(
 	if requeueAfter == 0 {
 		r.reconcileDegradedCondition(cm, nextStatuses)
 	}
-	// reconcileURL and reconcileDegradedCondition overwrite Degraded on success;
-	// restore the RBAC failure so it is not silently cleared while cross-namespace
-	// grants are still broken.
-	if rbacErr != nil {
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NamespacedRBACFailed"),
-			conditions.WithError(rbacErr))
-	}
-
 	if requeueAfter == 0 && cfg.ReconcileInterval > 0 {
 		requeueAfter = cfg.ReconcileInterval
 	}

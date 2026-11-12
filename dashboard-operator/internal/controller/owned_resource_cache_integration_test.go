@@ -181,6 +181,24 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	require.Len(t, driftedRoleBinding.Subjects, 1)
 	assert.Equal(t, "odh-dashboard", driftedRoleBinding.Subjects[0].Name)
 	assert.Equal(t, applicationsNamespace, driftedRoleBinding.Subjects[0].Namespace)
+
+	// A recipient with Role/RoleBinding patch permissions must not hide its grant
+	// from revocation by removing labels that exclude it from the manager cache.
+	driftedRole.Labels = nil
+	require.NoError(t, directClient.Update(ctx, driftedRole))
+	driftedRoleBinding.Labels = nil
+	require.NoError(t, directClient.Update(ctx, driftedRoleBinding))
+	targetNamespace := &corev1.Namespace{}
+	require.NoError(t, directClient.Get(ctx, client.ObjectKey{Name: externalNamespace}, targetNamespace))
+	delete(targetNamespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, directClient.Update(ctx, targetNamespace))
+
+	err = reconciler.ReconcileNamespacedRBAC(ctx, &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
+		NotebooksNamespace: externalNamespace,
+	}})
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, apierrors.IsNotFound(directClient.Get(ctx, client.ObjectKeyFromObject(driftedRole), &rbacv1.Role{})))
+	assert.True(t, apierrors.IsNotFound(directClient.Get(ctx, client.ObjectKeyFromObject(driftedRoleBinding), &rbacv1.RoleBinding{})))
 }
 
 // TestIntegration_ManagerCacheWatchesMetadataOnly proves that the GVKs converted

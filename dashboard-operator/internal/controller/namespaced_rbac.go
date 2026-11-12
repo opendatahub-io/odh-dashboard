@@ -52,9 +52,10 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 		if err := r.validateNamespacedRBACTarget(ctx, ns); err != nil {
 			errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
 		} else {
-			desired[namespacedRBACKey(ns, "notebooks")] = true
 			if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "notebooks", notebooksRBACRules()); err != nil {
 				errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
+			} else {
+				desired[namespacedRBACKey(ns, "notebooks")] = true
 			}
 		}
 	}
@@ -63,9 +64,10 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 		if err := r.validateNamespacedRBACTarget(ctx, ns); err != nil {
 			errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
 		} else {
-			desired[namespacedRBACKey(ns, "model-registry")] = true
 			if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "model-registry", modelRegistryRBACRules()); err != nil {
 				errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
+			} else {
+				desired[namespacedRBACKey(ns, "model-registry")] = true
 			}
 		}
 	}
@@ -100,40 +102,7 @@ func (r *DashboardReconciler) validateNamespacedRBACTarget(ctx context.Context, 
 // are removed even when the namespace field changed since the last reconcile.
 // Called on Dashboard deletion and ManagementState=Removed.
 func (r *DashboardReconciler) cleanupNamespacedRBAC(ctx context.Context) error {
-	logger := log.FromContext(ctx)
-
-	matchLabels := client.MatchingLabels{
-		namespacedRBACManagedLabel: "true",
-		labels.PlatformPartOf:      strings.ToLower(v1alpha1.DashboardKind),
-	}
-
-	var errs []error
-
-	var roleList rbacv1.RoleList
-	if err := r.List(ctx, &roleList, matchLabels); err != nil {
-		errs = append(errs, fmt.Errorf("listing namespaced RBAC Roles: %w", err))
-	} else {
-		for i := range roleList.Items {
-			logger.Info("Deleting namespaced RBAC Role", "name", roleList.Items[i].Name, "namespace", roleList.Items[i].Namespace)
-			if err := r.Delete(ctx, &roleList.Items[i]); client.IgnoreNotFound(err) != nil {
-				errs = append(errs, fmt.Errorf("deleting Role %s/%s: %w", roleList.Items[i].Namespace, roleList.Items[i].Name, err))
-			}
-		}
-	}
-
-	var rbList rbacv1.RoleBindingList
-	if err := r.List(ctx, &rbList, matchLabels); err != nil {
-		errs = append(errs, fmt.Errorf("listing namespaced RBAC RoleBindings: %w", err))
-	} else {
-		for i := range rbList.Items {
-			logger.Info("Deleting namespaced RBAC RoleBinding", "name", rbList.Items[i].Name, "namespace", rbList.Items[i].Namespace)
-			if err := r.Delete(ctx, &rbList.Items[i]); client.IgnoreNotFound(err) != nil {
-				errs = append(errs, fmt.Errorf("deleting RoleBinding %s/%s: %w", rbList.Items[i].Namespace, rbList.Items[i].Name, err))
-			}
-		}
-	}
-
-	return errors.Join(errs...)
+	return r.gcStaleNamespacedRBAC(ctx, map[string]bool{})
 }
 
 // namespacedRBACKey returns the composite GC key for a (namespace, suffix) pair.
@@ -147,52 +116,102 @@ func namespacedRBACKey(namespace, suffix string) string {
 // correct GC when two components share the same target namespace.
 func (r *DashboardReconciler) gcStaleNamespacedRBAC(ctx context.Context, desired map[string]bool) error {
 	logger := log.FromContext(ctx)
-
-	matchLabels := client.MatchingLabels{
-		namespacedRBACManagedLabel: "true",
-		labels.PlatformPartOf:      strings.ToLower(v1alpha1.DashboardKind),
-	}
-
 	var errs []error
+	staleRoleKeys := map[string]bool{}
+	saName := dashboardSAName(r.Platform)
 
-	var roleList rbacv1.RoleList
-	if err := r.List(ctx, &roleList, matchLabels); err != nil {
-		errs = append(errs, fmt.Errorf("listing namespaced RBAC Roles for GC: %w", err))
+	// Read directly without a label selector so the dashboard recipient cannot
+	// hide a grant from the manager's label-scoped cache by removing mutable
+	// discovery labels. Exact operator-reserved names, RoleRefs, and the dashboard
+	// ServiceAccount subject identify grants even after labels have been stripped.
+	var rbList rbacv1.RoleBindingList
+	if err := r.apiReader().List(ctx, &rbList); err != nil {
+		errs = append(errs, fmt.Errorf("listing namespaced RBAC RoleBindings for GC: %w", err))
 	} else {
-		for i := range roleList.Items {
-			ns := roleList.Items[i].Namespace
-			name := roleList.Items[i].Name
-			// Role names are "dashboard-<suffix>-role"; extract suffix to match desired key.
-			suffix := roleNameSuffix(name)
+		for i := range rbList.Items {
+			rb := &rbList.Items[i]
+			suffix, reservedName := managedRoleBindingSuffix(rb.Name)
+			managedByLabel := hasNamespacedRBACManagedLabels(rb.Labels)
+			managedByIdentity := reservedName && roleBindingGrantsDashboardAccess(rb, suffix, saName, r.ApplicationsNamespace)
+			if !managedByLabel && !managedByIdentity {
+				continue
+			}
+
+			ns := rb.Namespace
 			if desired[namespacedRBACKey(ns, suffix)] {
 				continue
 			}
-			logger.Info("GC stale namespaced RBAC Role", "name", name, "namespace", ns)
-			if err := r.Delete(ctx, &roleList.Items[i]); client.IgnoreNotFound(err) != nil {
-				errs = append(errs, fmt.Errorf("deleting stale Role %s/%s: %w", ns, name, err))
+			logger.Info("GC stale namespaced RBAC RoleBinding", "name", rb.Name, "namespace", ns)
+			if err := r.Delete(ctx, rb); client.IgnoreNotFound(err) != nil {
+				errs = append(errs, fmt.Errorf("deleting stale RoleBinding %s/%s: %w", ns, rb.Name, err))
+			}
+			if reservedName {
+				staleRoleKeys[namespacedRBACKey(ns, suffix)] = true
 			}
 		}
 	}
 
-	var rbList rbacv1.RoleBindingList
-	if err := r.List(ctx, &rbList, matchLabels); err != nil {
-		errs = append(errs, fmt.Errorf("listing namespaced RBAC RoleBindings for GC: %w", err))
+	var roleList rbacv1.RoleList
+	if err := r.apiReader().List(ctx, &roleList); err != nil {
+		errs = append(errs, fmt.Errorf("listing namespaced RBAC Roles for GC: %w", err))
 	} else {
-		for i := range rbList.Items {
-			ns := rbList.Items[i].Namespace
-			name := rbList.Items[i].Name
-			suffix := roleBindingNameSuffix(name)
-			if desired[namespacedRBACKey(ns, suffix)] {
+		for i := range roleList.Items {
+			role := &roleList.Items[i]
+			suffix, reservedName := managedRoleSuffix(role.Name)
+			key := namespacedRBACKey(role.Namespace, suffix)
+			if !hasNamespacedRBACManagedLabels(role.Labels) && (!reservedName || !staleRoleKeys[key]) {
 				continue
 			}
-			logger.Info("GC stale namespaced RBAC RoleBinding", "name", name, "namespace", ns)
-			if err := r.Delete(ctx, &rbList.Items[i]); client.IgnoreNotFound(err) != nil {
-				errs = append(errs, fmt.Errorf("deleting stale RoleBinding %s/%s: %w", ns, name, err))
+			if desired[key] {
+				continue
+			}
+			logger.Info("GC stale namespaced RBAC Role", "name", role.Name, "namespace", role.Namespace)
+			if err := r.Delete(ctx, role); client.IgnoreNotFound(err) != nil {
+				errs = append(errs, fmt.Errorf("deleting stale Role %s/%s: %w", role.Namespace, role.Name, err))
 			}
 		}
 	}
 
 	return errors.Join(errs...)
+}
+
+func hasNamespacedRBACManagedLabels(resourceLabels map[string]string) bool {
+	return resourceLabels[namespacedRBACManagedLabel] == "true" &&
+		resourceLabels[labels.PlatformPartOf] == strings.ToLower(v1alpha1.DashboardKind)
+}
+
+func managedRoleSuffix(name string) (string, bool) {
+	switch name {
+	case "dashboard-notebooks-role":
+		return "notebooks", true
+	case "dashboard-model-registry-role":
+		return "model-registry", true
+	default:
+		return roleNameSuffix(name), false
+	}
+}
+
+func managedRoleBindingSuffix(name string) (string, bool) {
+	switch name {
+	case "dashboard-notebooks-rolebinding":
+		return "notebooks", true
+	case "dashboard-model-registry-rolebinding":
+		return "model-registry", true
+	default:
+		return roleBindingNameSuffix(name), false
+	}
+}
+
+func roleBindingGrantsDashboardAccess(rb *rbacv1.RoleBinding, suffix, saName, saNamespace string) bool {
+	if rb.RoleRef.APIGroup != rbacv1.GroupName || rb.RoleRef.Kind != "Role" || rb.RoleRef.Name != fmt.Sprintf("dashboard-%s-role", suffix) {
+		return false
+	}
+	for _, subject := range rb.Subjects {
+		if subject.Kind == rbacv1.ServiceAccountKind && subject.Name == saName && subject.Namespace == saNamespace {
+			return true
+		}
+	}
+	return false
 }
 
 // roleNameSuffix extracts the component suffix from "dashboard-<suffix>-role".

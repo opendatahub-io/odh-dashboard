@@ -103,8 +103,12 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 		if !strings.Contains(output, "- CREATE\n          - UPDATE") {
 			t.Fatal("expected webhook to validate both CREATE and UPDATE operations")
 		}
-		if !strings.Contains(output, "- UPDATE\n        resources:\n          - namespaces") {
-			t.Fatal("expected webhook to protect namespace consent-label updates")
+		if !strings.Contains(output, "- CREATE\n          - UPDATE\n        resources:\n          - namespaces\n          - namespaces/status\n          - namespaces/finalize") {
+			t.Fatal("expected webhook to protect namespace consent-label creates and updates")
+		}
+		if !strings.Contains(output, "name: namespaced-rbac-consent-label-changed") ||
+			!strings.Contains(output, "object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')") {
+			t.Fatal("expected webhook to filter unrelated namespace updates in the API server")
 		}
 	})
 
