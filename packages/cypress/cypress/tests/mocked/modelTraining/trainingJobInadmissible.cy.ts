@@ -85,6 +85,15 @@ describe('Training Job Inadmissible status with JobSet UID', () => {
       mockK8sResourceList(mockInadmissibleTrainJobs),
     );
 
+    // ── BROAD interceptor FIRST (lowest priority in Cypress) ──
+    // Namespace-wide workload list (used by the rewritten hook)
+    cy.interceptK8sList(
+      { model: WorkloadModel, ns: projectName },
+      mockK8sResourceList([mockInadmissibleWorkload]),
+    );
+
+    // ── SPECIFIC interceptors AFTER (higher priority in Cypress) ──
+
     // Workload by TrainJob UID → empty (simulates UID mismatch)
     cy.interceptK8sList(
       {
@@ -93,7 +102,7 @@ describe('Training Job Inadmissible status with JobSet UID', () => {
         queryParams: { labelSelector: `kueue.x-k8s.io/job-uid=${TRAIN_JOB_UID}` },
       },
       mockK8sResourceList([]),
-    );
+    ).as('getWorkloadsByTrainJobUid');
 
     // Workload by job-name → empty (forces JobSet fallback)
     cy.interceptK8sList(
@@ -103,7 +112,7 @@ describe('Training Job Inadmissible status with JobSet UID', () => {
         queryParams: { labelSelector: `kueue.x-k8s.io/job-name=${TRAIN_JOB_NAME}` },
       },
       mockK8sResourceList([]),
-    );
+    ).as('getWorkloadsByJobName');
 
     // JobSet GET (async fallback resolves the UID)
     cy.interceptK8s(
@@ -113,7 +122,7 @@ describe('Training Job Inadmissible status with JobSet UID', () => {
         kind: 'JobSet',
         metadata: { name: TRAIN_JOB_NAME, namespace: projectName, uid: JOBSET_UID },
       },
-    );
+    ).as('getJobSet');
 
     // Workload by JobSet UID → returns the inadmissible workload
     cy.interceptK8sList(
@@ -123,19 +132,23 @@ describe('Training Job Inadmissible status with JobSet UID', () => {
         queryParams: { labelSelector: `kueue.x-k8s.io/job-uid=${JOBSET_UID}` },
       },
       mockK8sResourceList([mockInadmissibleWorkload]),
-    );
-
-    // Namespace-wide workload list (used by the rewritten hook)
-    cy.interceptK8sList(
-      { model: WorkloadModel, ns: projectName },
-      mockK8sResourceList([mockInadmissibleWorkload]),
-    );
+    ).as('getWorkloadsByJobSetUid');
   };
 
   it('should display Inadmissible badge for over-capacity TrainJob', () => {
     setupIntercepts();
     modelTrainingGlobal.visit(projectName);
     trainingJobTable.findTable().should('be.visible');
+
+    // Verify the fallback path was exercised:
+    // 1. TrainJob UID lookup returned empty
+    cy.wait('@getWorkloadsByTrainJobUid');
+    // 2. job-name lookup returned empty
+    cy.wait('@getWorkloadsByJobName');
+    // 3. JobSet was fetched to resolve its UID
+    cy.wait('@getJobSet');
+    // 4. Workload was found via JobSet UID
+    cy.wait('@getWorkloadsByJobSetUid');
 
     const row = trainingJobTable.getTableRow(TRAIN_JOB_NAME);
     row.findStatus().should('contain', 'Inadmissible');
