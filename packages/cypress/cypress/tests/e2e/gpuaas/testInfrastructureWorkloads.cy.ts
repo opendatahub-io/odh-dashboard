@@ -132,10 +132,14 @@ const setupTestResources = (context: TestContext): Cypress.Chainable<TestContext
 describeAdminOnly('Infrastructure Workloads visibility', () => {
   const uuid = generateTestUUID();
   let context: TestContext | undefined;
+  let kueueEnabledInDashboard = false;
 
   before(() => {
     cy.step('Verify Kueue is managed outside the DataScienceCluster');
     isKueueUnmanaged().should('equal', true);
+    cy.getDashboardConfig('dashboardConfig.disableKueue').then((disableKueue) => {
+      kueueEnabledInDashboard = disableKueue === false;
+    });
   });
 
   retryableBefore(() =>
@@ -239,7 +243,11 @@ describeAdminOnly('Infrastructure Workloads visibility', () => {
   it(
     'shows all Infrastructure tabs and Admission metrics to an administrator',
     { tags: ['@Kueue', '@Dashboard', '@Infrastructure', '@Featureflagged', '@GpuaasCI'] },
-    () => {
+    function adminInfrastructureTabs() {
+      if (!kueueEnabledInDashboard) {
+        cy.log('Skipping: Kueue is disabled in OdhDashboardConfig (disableKueue is not false).');
+        this.skip();
+      }
       if (!context) {
         throw new Error('Test setup did not complete');
       }
