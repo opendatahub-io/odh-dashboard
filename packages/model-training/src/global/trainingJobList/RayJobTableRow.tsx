@@ -242,7 +242,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
             onClick={() => setStatusModalOpen(true)}
           />
         </Td>
-        <Td>
+        <Td className={JOBS_TABLE_COLUMN_CLASS.pauseResume}>
           {canPauseResume && (
             <Tooltip
               content={PAUSE_RAY_JOB_TOOLTIP_CONTENT}
