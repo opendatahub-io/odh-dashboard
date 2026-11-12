@@ -45,11 +45,12 @@ const modelTextFilterOption = (text: string): TypeaheadSelectOption => ({
 });
 
 const filterModels = (text: string, options: TypeaheadSelectOption[]) => {
+  const trimmedText = text.trim();
   const models = options.filter(
     (option) => !String(option.value).startsWith(MODEL_TEXT_FILTER_PREFIX),
   );
-  const matches = filterByLabelOrValue(text, models);
-  return text.trim() ? [...matches, modelTextFilterOption(text.trim())] : matches;
+  const matches = filterByLabelOrValue(trimmedText, models);
+  return trimmedText ? [...matches, modelTextFilterOption(trimmedText)] : matches;
 };
 
 /** Deduplicates labels by resource name and sorts them for display. */
