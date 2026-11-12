@@ -67,6 +67,31 @@ describe('getDeployWizardStartedProperties', () => {
       isEditMode: false,
     });
   });
+
+  it('should include extra tracking properties in wizard started event', () => {
+    expect(
+      getDeployWizardStartedProperties({
+        navSource: {
+          fromCatalog: true,
+          catalogModelId: 'huggingface/model',
+          extraDeployTrackingProperties: {
+            hfAccessType: 'gated_auto',
+            isAccessGranted: false,
+          },
+        },
+        projectName: 'my-project',
+        isEditMode: false,
+        validatedConfigurations: [],
+      }),
+    ).toEqual({
+      entryPoint: 'model_details',
+      catalogModelId: 'huggingface/model',
+      hasValidatedArgumentsSection: false,
+      isEditMode: false,
+      hfAccessType: 'gated_auto',
+      isAccessGranted: false,
+    });
+  });
 });
 
 describe('getModelDeployedTrackingProperties', () => {

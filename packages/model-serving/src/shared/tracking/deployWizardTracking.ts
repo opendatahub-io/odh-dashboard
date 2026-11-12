@@ -32,7 +32,7 @@ export type DeployWizardStartedProperties = {
   catalogModelId?: string;
   hasValidatedArgumentsSection: boolean;
   isEditMode: boolean;
-};
+} & ExtraDeployTrackingProperties;
 
 export type ValidatedArgumentSelectedProperties = {
   configurationName: string;
@@ -204,6 +204,7 @@ export const getDeployWizardStartedProperties = ({
   };
 
   return {
+    ...navSource?.extraDeployTrackingProperties,
     entryPoint: getDeployWizardEntryPoint(navState),
     catalogModelId: navState.catalogModelId,
     hasValidatedArgumentsSection: isShowValidatedArgumentsSection(
