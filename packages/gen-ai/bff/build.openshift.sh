@@ -52,6 +52,17 @@ oc new-app ${REPO_URL}#${BRANCH} \
   --strategy=docker \
   --name=genai-bff
 
+# Match the operator-managed Gen AI BFF pod label used by NeMo ingress policy.
+workload=$(oc get deployment "${APP_NAME}" -o name --ignore-not-found)
+if [ -z "$workload" ]; then
+    workload=$(oc get deploymentconfig "${APP_NAME}" -o name --ignore-not-found)
+fi
+if [ -z "$workload" ]; then
+    echo "❌ Error: No deployment or deploymentconfig found for ${APP_NAME}" >&2
+    exit 1
+fi
+oc patch "$workload" --type=merge -p '{"spec":{"template":{"metadata":{"labels":{"app.kubernetes.io/name":"gen-ai"}}}}}' || exit 1
+
 # Expose the service
 oc create route edge --service=genai-bff
 

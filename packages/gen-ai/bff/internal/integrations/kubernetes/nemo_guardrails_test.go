@@ -139,7 +139,7 @@ func TestCreateNemoGuardrailsResources_CreatesPlaceholder(t *testing.T) {
 					"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": testBFFNamespace},
 				},
 				"podSelector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"},
+					"matchLabels": map[string]interface{}{"app.kubernetes.io/name": "gen-ai"},
 				},
 			},
 		},

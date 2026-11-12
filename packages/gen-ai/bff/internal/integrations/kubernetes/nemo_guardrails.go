@@ -109,7 +109,7 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 								"matchLabels": map[string]interface{}{"kubernetes.io/metadata.name": bffNamespace},
 							},
 							"podSelector": map[string]interface{}{
-								"matchLabels": map[string]interface{}{"deployment": "gen-ai-ui"},
+								"matchLabels": map[string]interface{}{"app.kubernetes.io/name": "gen-ai"},
 							},
 						},
 					},
