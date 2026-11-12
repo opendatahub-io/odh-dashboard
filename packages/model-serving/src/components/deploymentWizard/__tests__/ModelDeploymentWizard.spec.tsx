@@ -68,11 +68,17 @@ describe('ModelDeploymentWizard submit readiness', () => {
     });
     jest.mocked(useFormToResourcesTransformer).mockReturnValue({
       resources: {},
-    } as ReturnType<typeof useFormToResourcesTransformer>);
+      setLatestResourcesFromYaml: jest.fn(),
+      loaded: true,
+      errors: [],
+    });
     jest.mocked(useFormYamlResources).mockReturnValue({
-      yaml: 'kind: LLMInferenceService',
+      yaml: { yaml: 'kind: LLMInferenceService' },
       setYaml: jest.fn(),
-      resources: {},
+      reinitYamlFromResources: jest.fn(),
+      resources: { resources: {} },
+      yamlSubmitErrors: [],
+      yamlToFormErrors: [],
     });
   });
 
@@ -83,6 +89,8 @@ describe('ModelDeploymentWizard submit readiness', () => {
         viewMode,
         isYAMLViewerEnabled: true,
         isAutoFallback: false,
+        lastUpdatedSource: 'form',
+        setLastUpdatedSource: jest.fn(),
         switchToForm: jest.fn(),
         switchToYaml: jest.fn(),
       });
@@ -99,6 +107,8 @@ describe('ModelDeploymentWizard submit readiness', () => {
         viewMode,
         isYAMLViewerEnabled: true,
         isAutoFallback: false,
+        lastUpdatedSource: 'form',
+        setLastUpdatedSource: jest.fn(),
         switchToForm: jest.fn(),
         switchToYaml: jest.fn(),
       });

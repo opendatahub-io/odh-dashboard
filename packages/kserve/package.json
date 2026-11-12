@@ -26,6 +26,7 @@
     "./hfTokenSecret": "./src/hfTokenSecret.ts"
   },
   "dependencies": {
+    "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/foundation": "workspace:*",
     "@odh-dashboard/hardware-profiles": "workspace:*",
     "@odh-dashboard/internal": "workspace:*",

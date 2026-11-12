@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   Bullseye,
   EmptyState,

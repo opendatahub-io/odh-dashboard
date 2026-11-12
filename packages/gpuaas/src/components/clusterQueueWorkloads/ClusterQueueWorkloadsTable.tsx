@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import ClusterQueueWorkloadTableRow from './ClusterQueueWorkloadTableRow';
 import ClusterQueueWorkloadsToolbar, {
   buildWorkloadFilterOptions,
@@ -48,6 +48,7 @@ const ClusterQueueWorkloadsTable: React.FC<ClusterQueueWorkloadsTableProps> = ({
   showClusterQueueColumn = false,
   showDescription = true,
 }) => {
+  const trackEvent = useTrackEvent();
   const [filterData, setFilterData] = React.useState<ClusterQueueWorkloadsFilterDataType>({});
 
   const onFilterUpdate = React.useCallback(
@@ -65,14 +66,14 @@ const ClusterQueueWorkloadsTable: React.FC<ClusterQueueWorkloadsTableProps> = ({
       );
       if (filterKey) {
         const filterValue = typeof value === 'string' ? value : value?.value;
-        fireMiscTrackingEvent(GPUAAS_EVENTS.DRAWER_WORKLOADS_FILTER_APPLIED, {
+        trackEvent(GPUAAS_EVENTS.DRAWER_WORKLOADS_FILTER_APPLIED, {
           filterAttribute: filterKey,
           filterValue: filterValue ?? '',
           matchCount: filterClusterQueueWorkloads(workloads, nextFilterData).length,
         });
       }
     },
-    [filterData, workloads],
+    [filterData, workloads, trackEvent],
   );
 
   const onClearFilters = React.useCallback(() => {

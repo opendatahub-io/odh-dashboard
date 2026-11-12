@@ -64,6 +64,7 @@ type NimInferenceService = {
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
   hardwareProfileResourceVersion?: string;
+  isExistingResource?: boolean;
   hasExternalRoute?: boolean;
   args?: string[];
   env?: Array<{ name: string; value?: string }>;
@@ -80,6 +81,8 @@ export const mockNimInferenceService = ({
   hardwareProfileName,
   hardwareProfileNamespace,
   hardwareProfileResourceVersion,
+  // Default matches the long-standing behavior of this factory (no server-assigned metadata)
+  isExistingResource = false,
   hasExternalRoute,
   args,
   env,
@@ -93,16 +96,19 @@ export const mockNimInferenceService = ({
     hardwareProfileName,
     hardwareProfileNamespace,
     hardwareProfileResourceVersion,
+    isExistingResource,
     hasExternalRoute,
     args,
     env,
   });
 
   delete inferenceService.metadata.labels?.name;
-  delete inferenceService.metadata.creationTimestamp;
-  delete inferenceService.metadata.generation;
-  delete inferenceService.metadata.resourceVersion;
-  delete inferenceService.metadata.uid;
+  if (!isExistingResource) {
+    delete inferenceService.metadata.creationTimestamp;
+    delete inferenceService.metadata.generation;
+    delete inferenceService.metadata.resourceVersion;
+    delete inferenceService.metadata.uid;
+  }
   if (inferenceService.spec.predictor.model?.modelFormat) {
     inferenceService.spec.predictor.model.modelFormat.name = 'arctic-embed-l';
   }

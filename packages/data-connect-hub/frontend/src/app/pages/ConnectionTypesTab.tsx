@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { EmptyState, EmptyStateBody, PageSection, Spinner } from '@patternfly/react-core';
 import { useLocation, useNavigate } from 'react-router-dom';
 import UnauthorizedError from '@odh-dashboard/ui-core/components/UnauthorizedError';
@@ -15,13 +16,14 @@ import {
 type ConnectionTypesTabProps = { namespace: string };
 
 const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) => {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const [connectionTypes, typesLoaded, typesError] = useConnectionTypes(namespace);
 
   const handleConnectionTypeClick = React.useCallback(
     (connectionType: ConnectionType) => {
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.typeSelected,
         properties: {
           connectionTypeProvider: connectionType.resource.provider,
@@ -34,7 +36,7 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
       )}${search}`;
       navigate(detailsPath);
     },
-    [navigate, namespace, pathname, search],
+    [navigate, namespace, pathname, search, trackEvent],
   );
 
   const hasError = Boolean(typesError);

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Badge,
   Button,
@@ -69,6 +70,7 @@ export const synchronizeTypeSelection = (
 };
 
 const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = true }) => {
+  const trackEvent = useTrackEvent();
   const { search } = useLocation();
   const { isAllowed: canVerifyConnection, loaded: verifyAccessLoaded } = useConnectionAccess(
     namespace,
@@ -99,12 +101,12 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const trackListFilterApplied = React.useCallback(
     (filterType: 'type' | 'name') => {
-      fireDataConnectHubTrackEvent({
+      fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.listFilterApplied,
         properties: { filterType, project: namespace },
       });
     },
-    [namespace],
+    [namespace, trackEvent],
   );
   React.useEffect(
     () => () => {
@@ -230,7 +232,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
     });
   };
   const handleCreateConnection = (source: 'connections_tab' | 'empty_state') => {
-    fireDataConnectHubTrackEvent({
+    fireDataConnectHubTrackEvent(trackEvent, {
       eventName: DATA_CONNECT_HUB_EVENT_NAMES.addStarted,
       properties: { project: namespace, source },
     });
@@ -588,7 +590,7 @@ const ConnectionsTab: React.FC<ConnectionsTabProps> = ({ namespace, isActive = t
                                 return;
                               }
                               setActionsFor(undefined);
-                              fireDataConnectHubTrackEvent({
+                              fireDataConnectHubTrackEvent(trackEvent, {
                                 eventName: DATA_CONNECT_HUB_EVENT_NAMES.deleteInitiated,
                                 properties: {
                                   project: namespace,

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import { usePipelineRunCacheActions } from '@odh-dashboard/autox-core/ui/hooks';
 import { useDeletePipelineRunMutation } from '~/app/hooks/useDeletePipelineRunMutation';
@@ -32,6 +33,7 @@ export const useAutomlRunActions = (
   source: RunActionSource,
   onActionComplete?: () => void | Promise<void>,
 ): AutomlRunActions => {
+  const trackEvent = useTrackEvent();
   const { invalidatePipelineRun } = usePipelineRunCacheActions();
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
@@ -46,11 +48,11 @@ export const useAutomlRunActions = (
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
-      fireAutomlRunRetried({ outcome: TrackingOutcome.submit, success: true, source });
+      fireAutomlRunRetried(trackEvent, { outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       notification.error('Failed to retry run', errorMessage);
-      fireAutomlRunRetried({
+      fireAutomlRunRetried(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: AUTOML_FAILURE_CATEGORY,
@@ -71,6 +73,7 @@ export const useAutomlRunActions = (
     onActionComplete,
     notification,
     source,
+    trackEvent,
   ]);
 
   const handleConfirmStop = React.useCallback(async () => {
@@ -81,11 +84,11 @@ export const useAutomlRunActions = (
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
-      fireAutomlRunStopped({ outcome: TrackingOutcome.submit, success: true, source });
+      fireAutomlRunStopped(trackEvent, { outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       notification.error('Failed to stop run', errorMessage);
-      fireAutomlRunStopped({
+      fireAutomlRunStopped(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: AUTOML_FAILURE_CATEGORY,
@@ -106,6 +109,7 @@ export const useAutomlRunActions = (
     onActionComplete,
     notification,
     source,
+    trackEvent,
   ]);
 
   const handleDelete = React.useCallback(async () => {
@@ -116,11 +120,11 @@ export const useAutomlRunActions = (
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
       );
-      fireAutomlRunDeleted({ outcome: TrackingOutcome.submit, success: true, source });
+      fireAutomlRunDeleted(trackEvent, { outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       notification.error('Failed to delete run', errorMessage);
-      fireAutomlRunDeleted({
+      fireAutomlRunDeleted(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: AUTOML_FAILURE_CATEGORY,
@@ -141,6 +145,7 @@ export const useAutomlRunActions = (
     onActionComplete,
     notification,
     source,
+    trackEvent,
   ]);
 
   return {

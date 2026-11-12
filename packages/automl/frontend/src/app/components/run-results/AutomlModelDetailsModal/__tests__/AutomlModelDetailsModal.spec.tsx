@@ -1,9 +1,8 @@
 /* eslint-disable camelcase -- mock data uses snake_case keys */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render as rtlRender, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { AutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import {
   mockTabularContext,
@@ -11,21 +10,21 @@ import {
   mockTabularFeatureImportances,
   mockTabularConfusionMatrices,
 } from '~/app/mocks/mockAutomlResultsContext';
-import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import AutomlModelDetailsModal from '~/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModal';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactNode) => rtlRender(ui, { wrapper: TrackingWrapper });
+
+const trackEvent = jest.fn();
 
 // Mock react-router
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: jest.fn(),
 }));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  ...jest.requireActual('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils'),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
 
 // Mock query hooks
 jest.mock('~/app/hooks/useModelEvaluationArtifactsQuery', () => ({
@@ -58,6 +57,102 @@ describe('AutomlModelDetailsModal', () => {
       confusionMatrix: mockTabularConfusionMatrices.CatBoost_BAG_L2_FULL,
       isLoading: false,
     });
+  });
+
+  it('should not replay views when delivery changes and use current delivery for the next selection', async () => {
+    const first = jest.fn();
+    const replacement = jest.fn();
+    const modal = (
+      <AutomlResultsContext.Provider value={mockTabularContext}>
+        <AutomlModelDetailsModal {...defaultProps} />
+      </AutomlResultsContext.Provider>
+    );
+    const { rerender } = rtlRender(<TrackingProvider trackEvent={first}>{modal}</TrackingProvider>);
+    expect(first.mock.calls).toEqual([
+      [
+        'AutoML Model Details Tab Viewed',
+        { tabName: 'modelInformation', predictionType: 'multiclassClassification' },
+      ],
+    ]);
+
+    rerender(<TrackingProvider trackEvent={first}>{React.cloneElement(modal)}</TrackingProvider>);
+    expect(first).toHaveBeenCalledTimes(1);
+    rerender(
+      <TrackingProvider trackEvent={replacement}>{React.cloneElement(modal)}</TrackingProvider>,
+    );
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(replacement).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByTestId('tab-feature-summary'));
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(replacement.mock.calls).toEqual([
+      [
+        'AutoML Model Details Tab Viewed',
+        { tabName: 'featureSummary', predictionType: 'multiclassClassification' },
+      ],
+    ]);
+  });
+
+  it('should use current delivery for task-type changes and reopening, without tracking while closed', () => {
+    const first = jest.fn();
+    const replacement = jest.fn();
+    const { rerender } = rtlRender(
+      <TrackingProvider trackEvent={first}>
+        <AutomlResultsContext.Provider value={{ ...mockTabularContext, parameters: {} }}>
+          <AutomlModelDetailsModal {...defaultProps} />
+        </AutomlResultsContext.Provider>
+      </TrackingProvider>,
+    );
+    expect(first.mock.calls).toEqual([
+      [
+        'AutoML Model Details Tab Viewed',
+        { tabName: 'modelInformation', predictionType: 'timeSeriesForecasting' },
+      ],
+    ]);
+
+    rerender(
+      <TrackingProvider trackEvent={replacement}>
+        <AutomlResultsContext.Provider value={mockTabularContext}>
+          <AutomlModelDetailsModal {...defaultProps} />
+        </AutomlResultsContext.Provider>
+      </TrackingProvider>,
+    );
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(replacement.mock.calls).toEqual([
+      [
+        'AutoML Model Details Tab Viewed',
+        { tabName: 'modelInformation', predictionType: 'multiclassClassification' },
+      ],
+    ]);
+
+    rerender(
+      <TrackingProvider trackEvent={replacement}>
+        <AutomlResultsContext.Provider value={mockTabularContext}>
+          <AutomlModelDetailsModal
+            {...defaultProps}
+            isOpen={false}
+            modelName="RandomForest_BAG_L1_FULL"
+          />
+        </AutomlResultsContext.Provider>
+      </TrackingProvider>,
+    );
+    expect(replacement).toHaveBeenCalledTimes(1);
+    rerender(
+      <TrackingProvider trackEvent={replacement}>
+        <AutomlResultsContext.Provider value={mockTabularContext}>
+          <AutomlModelDetailsModal {...defaultProps} modelName="RandomForest_BAG_L1_FULL" />
+        </AutomlResultsContext.Provider>
+      </TrackingProvider>,
+    );
+    expect(replacement.mock.calls).toEqual([
+      [
+        'AutoML Model Details Tab Viewed',
+        { tabName: 'modelInformation', predictionType: 'multiclassClassification' },
+      ],
+      [
+        'AutoML Model Details Tab Viewed',
+        { tabName: 'modelInformation', predictionType: 'multiclassClassification' },
+      ],
+    ]);
   });
 
   it('should render the modal when isOpen is true', () => {
@@ -470,8 +565,8 @@ describe('AutomlModelDetailsModal', () => {
       );
 
       const downloadInitiatedCalls = () =>
-        fireMiscTrackingEventMock.mock.calls.filter(
-          ([event]) => event === AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED,
+        trackEvent.mock.calls.filter(
+          ([event]) => event === 'AutoML Model Details Download Initiated',
         );
 
       const downloadButton = screen.getByTestId('model-details-download');
@@ -479,10 +574,9 @@ describe('AutomlModelDetailsModal', () => {
 
       // Fired once, at click time — reflects user intent, not a verified completed download.
       expect(downloadInitiatedCalls()).toHaveLength(1);
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED,
-        { downloadType: 'modelDetails' },
-      );
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Model Details Download Initiated', {
+        downloadType: 'modelDetails',
+      });
 
       // Simulate the print dialog closing (whether printed, saved, or cancelled) — this
       // must not fire a second (or "completed") event.
@@ -509,9 +603,7 @@ describe('AutomlModelDetailsModal', () => {
     );
 
     const tabViewedCalls = () =>
-      fireMiscTrackingEventMock.mock.calls.filter(
-        ([event]) => event === AUTOML_EVENTS.MODEL_DETAILS_TAB_VIEWED,
-      );
+      trackEvent.mock.calls.filter(([event]) => event === 'AutoML Model Details Tab Viewed');
 
     expect(tabViewedCalls()).toHaveLength(1);
     expect(tabViewedCalls()[0][1]).toMatchObject({

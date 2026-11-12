@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import type { RecursivePartial } from '@odh-dashboard/foundation';
 import { z } from 'zod';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ServingRuntimeModelType } from '@odh-dashboard/model-serving/shared';
 import {
   useModelServingClusterSettings,
