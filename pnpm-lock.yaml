@@ -5371,6 +5371,9 @@ importers:
 
   packages/mlflow-embedded:
     dependencies:
+      '@odh-dashboard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@module-federation/runtime':
         specifier: '>=0.15.0'
         version: 0.24.1
