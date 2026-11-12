@@ -96,9 +96,14 @@ describe('AutoRAG Experiments List and Run Management E2E', () => {
         getMaaSFixture(),
       ).then((runId) => {
         cy.step('Terminate the submitted run and confirm');
+        cy.intercept('POST', '**/pipeline-runs/*/terminate*').as('autoragTerminateRun');
         autoragResultsPage.findStopRunButton().click();
         autoragResultsPage.findStopRunModal().should('be.visible');
         autoragResultsPage.findConfirmStopRunButton().click();
+        cy.wait('@autoragTerminateRun').then(({ request, response }) => {
+          expect(request.url).to.include(`/pipeline-runs/${encodeURIComponent(runId)}/terminate`);
+          expect(response?.statusCode).to.equal(200);
+        });
 
         cy.step('Verify the submitted run reaches a terminal state');
         verifyAutoragRunTerminated(projectName, runId);

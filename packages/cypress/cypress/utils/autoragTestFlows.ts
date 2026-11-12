@@ -23,6 +23,9 @@ const DOCUMENT_KEYS_FIELD = 'correct_answer_document_keys';
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
+
 const renderAutoragEvaluationData = (
   evaluationData: string,
   documentFile: string,
@@ -198,31 +201,19 @@ const isMaaSModel = (value: unknown): value is MaaSModel =>
 const isValidAutoragS3Configuration = (
   testData: Pick<AutoragTestData, 'awsBucket' | 's3SecretName'>,
 ): boolean => {
-  const configuredBuckets: unknown = AWS_BUCKETS;
-  if (configuredBuckets === null || typeof configuredBuckets !== 'object') {
+  const buckets: unknown = AWS_BUCKETS;
+  if (!isRecord(buckets) || !isNonEmptyString(testData.s3SecretName)) {
     return false;
   }
 
-  const buckets = configuredBuckets as Record<string, unknown>;
-  const bucket = (
-    buckets as Record<string, { NAME?: unknown; REGION?: unknown; ENDPOINT?: unknown } | undefined>
-  )[String(testData.awsBucket)];
-  const { s3SecretName } = testData as { s3SecretName: unknown };
-  const accessKeyId = buckets.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = buckets.AWS_SECRET_ACCESS_KEY;
+  const bucket = buckets[testData.awsBucket];
   if (
-    !bucket ||
-    typeof s3SecretName !== 'string' ||
-    typeof bucket.NAME !== 'string' ||
-    typeof bucket.REGION !== 'string' ||
-    typeof bucket.ENDPOINT !== 'string' ||
-    typeof accessKeyId !== 'string' ||
-    typeof secretAccessKey !== 'string' ||
-    !s3SecretName.trim() ||
-    !bucket.NAME.trim() ||
-    !bucket.REGION.trim() ||
-    !accessKeyId.trim() ||
-    !secretAccessKey.trim()
+    !isRecord(bucket) ||
+    !isNonEmptyString(bucket.NAME) ||
+    !isNonEmptyString(bucket.REGION) ||
+    !isNonEmptyString(bucket.ENDPOINT) ||
+    !isNonEmptyString(buckets.AWS_ACCESS_KEY_ID) ||
+    !isNonEmptyString(buckets.AWS_SECRET_ACCESS_KEY)
   ) {
     return false;
   }
@@ -234,6 +225,7 @@ const isValidAutoragS3Configuration = (
     return (
       (parsedEndpoint.protocol === 'http:' || parsedEndpoint.protocol === 'https:') &&
       !!parsedEndpoint.hostname &&
+      parsedEndpoint.pathname === '/' &&
       !parsedEndpoint.username &&
       !parsedEndpoint.password &&
       !parsedEndpoint.search &&
@@ -613,8 +605,9 @@ export const verifyAutoragRunTerminated = (projectName: string, runId: string): 
 
   // The timeout must be on `.invoke` for the `.should` to get the full cancellation timeout.
   // Putting it on `.findRunStatusLabel` will only give the initial label lookup the timeout
-  // and not the retry period needed to reach the final terminal state. A confirmed stop can be
-  // reported as Failed by the pipeline instead of CANCELED/CANCELLED, so accept either outcome.
+  // and not the retry period needed to reach the final terminal state. After the terminate request
+  // is successfully acknowledged, the pipeline can report Failed instead of CANCELED/CANCELLED.
+  // The caller must confirm that request before using this helper.
   autoragResultsPage
     .findRunStatusLabel()
     .invoke({ timeout: AUTORAG_CANCELLATION_TIMEOUT_MS }, 'text')

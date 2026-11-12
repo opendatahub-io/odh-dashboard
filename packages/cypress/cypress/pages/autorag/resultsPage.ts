@@ -67,7 +67,7 @@ class AutoragResultsPage {
   }
 
   findFirstUnrankedLeaderboardRow() {
-    return this.findUnrankedLeaderboardRows().first();
+    return this.findLeaderboardTable().find('[data-testid^="leaderboard-row-unranked-"]').first();
   }
 
   findFirstUnrankedLeaderboardRankCell() {

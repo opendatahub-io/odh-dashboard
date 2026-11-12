@@ -31,4 +31,20 @@ describe('AutoRAG results page object', () => {
     autoragResultsPage.findFirstUnrankedLeaderboardRow().should('be.visible');
     autoragResultsPage.findFirstUnrankedLeaderboardRankCell().should('contain.text', 'Unranked');
   });
+
+  it('retries until a delayed unranked row is rendered in the table', () => {
+    renderLeaderboard([]);
+    cy.document().then((currentDocument) => {
+      setTimeout(() => {
+        currentDocument
+          .querySelector('[data-testid="leaderboard-table"] tbody')
+          ?.insertAdjacentHTML(
+            'beforeend',
+            '<tr data-testid="leaderboard-row-unranked-delayed"><td>Unranked</td></tr>',
+          );
+      }, 100);
+    });
+
+    autoragResultsPage.findFirstUnrankedLeaderboardRow().should('be.visible');
+  });
 });

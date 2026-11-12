@@ -3,7 +3,7 @@ import type { AWSS3Buckets } from '../types';
 export const AWS_BUCKETS: AWSS3Buckets = Cypress.env('AWS_PIPELINES');
 
 export const parseS3Endpoint = (endpoint: string): { host: string; scheme: string } => {
-  const normalized = /^https?:\/\//.test(endpoint) ? endpoint : `https://${endpoint}`;
+  const normalized = /^https?:\/\//i.test(endpoint) ? endpoint : `https://${endpoint}`;
   try {
     const url = new URL(normalized);
     if (url.host && (url.protocol === 'http:' || url.protocol === 'https:')) {
