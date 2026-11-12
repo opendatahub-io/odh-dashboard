@@ -63,6 +63,9 @@ networkPolicy:
 webhook:
   enabled: false
   port: 9443
+  # Exact Kubernetes usernames allowed to set the Dashboard fields that target
+  # namespaces for cross-namespace RBAC. Keep empty for a fail-closed install.
+  namespacedRBACWriters: []
   caBundle: ""
   certManager:
     enabled: false

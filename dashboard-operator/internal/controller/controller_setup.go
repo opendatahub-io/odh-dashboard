@@ -53,7 +53,8 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&policyv1.PodDisruptionBudget{}, builder.WithPredicates(podDisruptionBudgetChangedPredicate())).
-		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard), builder.WithPredicates(r.maasPortalOperatorNamespacePredicate()))
+		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard), builder.WithPredicates(r.maasPortalOperatorNamespacePredicate())).
+		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(mapNamespacedRBACNamespaceToDashboard), builder.WithPredicates(namespaceNamespacedRBACOptInChangedPredicate()))
 	if err := addConfigMapWatches(mgr, controllerBuilder, r); err != nil {
 		return err
 	}

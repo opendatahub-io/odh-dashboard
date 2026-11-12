@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +26,7 @@ const (
 	dashboardSANameRHOAI = "rhods-dashboard"
 
 	namespacedRBACManagedLabel = "dashboard.opendatahub.io/namespaced-rbac"
+	namespacedRBACOptInLabel   = "dashboard.opendatahub.io/allow-namespaced-rbac"
 )
 
 // dashboardSAName returns the dashboard ServiceAccount name for the given platform.
@@ -45,22 +47,50 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 	saNamespace := r.ApplicationsNamespace
 
 	desired := map[string]bool{}
+	var errs []error
 
 	if ns := dashboard.Spec.NotebooksNamespace; ns != "" {
-		if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "notebooks", notebooksRBACRules()); err != nil {
-			return fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err)
+		if err := r.validateNamespacedRBACTarget(ctx, ns); err != nil {
+			errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
+		} else {
+			desired[namespacedRBACKey(ns, "notebooks")] = true
+			if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "notebooks", notebooksRBACRules()); err != nil {
+				errs = append(errs, fmt.Errorf("notebooks namespace RBAC in %s: %w", ns, err))
+			}
 		}
-		desired[namespacedRBACKey(ns, "notebooks")] = true
 	}
 
 	if ns := dashboard.Spec.ModelRegistryNamespace; ns != "" {
-		if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "model-registry", modelRegistryRBACRules()); err != nil {
-			return fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err)
+		if err := r.validateNamespacedRBACTarget(ctx, ns); err != nil {
+			errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
+		} else {
+			desired[namespacedRBACKey(ns, "model-registry")] = true
+			if err := r.applyNamespacedRBAC(ctx, saName, saNamespace, ns, "model-registry", modelRegistryRBACRules()); err != nil {
+				errs = append(errs, fmt.Errorf("model-registry namespace RBAC in %s: %w", ns, err))
+			}
 		}
-		desired[namespacedRBACKey(ns, "model-registry")] = true
 	}
 
-	return r.gcStaleNamespacedRBAC(ctx, desired)
+	// Invalid targets are deliberately absent from desired. Run GC even when
+	// validation or apply failed so removing opt-in immediately revokes stale grants.
+	if err := r.gcStaleNamespacedRBAC(ctx, desired); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+// validateNamespacedRBACTarget requires explicit consent from the target
+// namespace before the dashboard service account receives access there.
+func (r *DashboardReconciler) validateNamespacedRBACTarget(ctx context.Context, namespace string) error {
+	target := &corev1.Namespace{}
+	if err := r.apiReader().Get(ctx, client.ObjectKey{Name: namespace}, target); err != nil {
+		return fmt.Errorf("getting target namespace: %w", err)
+	}
+	if target.Labels[namespacedRBACOptInLabel] != "true" {
+		return fmt.Errorf("target namespace must have label %s=true", namespacedRBACOptInLabel)
+	}
+	return nil
 }
 
 // cleanupNamespacedRBAC deletes all cross-namespace Roles and RoleBindings previously

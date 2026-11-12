@@ -2,11 +2,13 @@ package webhook_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	admissionv1 "k8s.io/api/admission/v1"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -86,6 +88,107 @@ func TestSingletonHandler_WithExistingInstance(t *testing.T) {
 				require.NotNil(t, resp.Result)
 				assert.Equal(t, tt.wantCode, resp.Result.Code)
 				assert.Contains(t, resp.Result.Message, tt.wantMessagePart)
+			}
+		})
+	}
+}
+
+func dashboardRaw(t *testing.T, notebooksNamespace, modelRegistryNamespace string) []byte {
+	t.Helper()
+	raw, err := json.Marshal(&v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+		Spec: v1alpha1.DashboardSpec{
+			NotebooksNamespace:     notebooksNamespace,
+			ModelRegistryNamespace: modelRegistryNamespace,
+		},
+	})
+	require.NoError(t, err)
+	return raw
+}
+
+func TestDashboardHandler_ProtectsNamespacedRBACTargetFields(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		[]string{orchestrator},
+	)
+
+	tests := []struct {
+		name      string
+		operation admissionv1.Operation
+		username  string
+		oldRaw    []byte
+		newRaw    []byte
+		allowed   bool
+	}{
+		{
+			name:      "allow unprivileged create without protected fields",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    dashboardRaw(t, "", ""),
+			allowed:   true,
+		},
+		{
+			name:      "deny unprivileged create with protected field",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    dashboardRaw(t, "arbitrary", ""),
+		},
+		{
+			name:      "allow orchestrator create with protected field",
+			operation: admissionv1.Create,
+			username:  orchestrator,
+			newRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			allowed:   true,
+		},
+		{
+			name:      "deny unprivileged protected field update",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			newRaw:    dashboardRaw(t, "arbitrary", ""),
+		},
+		{
+			name:      "deny unprivileged protected field removal",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			newRaw:    dashboardRaw(t, "", ""),
+		},
+		{
+			name:      "allow orchestrator protected field update",
+			operation: admissionv1.Update,
+			username:  orchestrator,
+			oldRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			newRaw:    dashboardRaw(t, "custom-notebooks", "rhoai-model-registries"),
+			allowed:   true,
+		},
+		{
+			name:      "allow unprivileged update when protected fields are unchanged",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "rhods-notebooks", "rhoai-model-registries"),
+			newRaw:    dashboardRaw(t, "rhods-notebooks", "rhoai-model-registries"),
+			allowed:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := handler.Handle(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: tt.operation,
+					Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+					UserInfo:  authenticationv1.UserInfo{Username: tt.username},
+					Object:    runtime.RawExtension{Raw: tt.newRaw},
+					OldObject: runtime.RawExtension{Raw: tt.oldRaw},
+				},
+			})
+
+			assert.Equal(t, tt.allowed, resp.Allowed)
+			if !tt.allowed {
+				require.NotNil(t, resp.Result)
+				assert.Contains(t, resp.Result.Message, "managed by the ODH orchestrator")
 			}
 		})
 	}

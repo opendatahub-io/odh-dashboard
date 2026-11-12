@@ -231,6 +231,11 @@ func assertWebhookWiring(t *testing.T, cfg renderedConfig, mgr corev1.Container)
 	require.Len(t, dashboardVWCs, 1)
 	vwc := dashboardVWCs[0]
 	require.Len(t, vwc.Webhooks, 1)
+	require.Len(t, vwc.Webhooks[0].Rules, 1)
+	assert.ElementsMatch(t, []admissionregistrationv1.OperationType{
+		admissionregistrationv1.Create,
+		admissionregistrationv1.Update,
+	}, vwc.Webhooks[0].Rules[0].Operations)
 	ref := vwc.Webhooks[0].ClientConfig.Service
 	require.NotNil(t, ref, "webhook must call an in-cluster Service")
 	assert.Equal(t, ns, ref.Namespace, "webhook Service namespace")

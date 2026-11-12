@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,14 +41,15 @@ func init() {
 
 func main() {
 	var (
-		manifestsBasePath string
-		metricsAddr       string
-		healthProbeAddr   string
-		leaderElect       bool
-		secureMetrics     bool
-		operatorNamespace string
-		enableWebhook     bool
-		webhookPort       int
+		manifestsBasePath     string
+		metricsAddr           string
+		healthProbeAddr       string
+		leaderElect           bool
+		secureMetrics         bool
+		operatorNamespace     string
+		enableWebhook         bool
+		webhookPort           int
+		namespacedRBACWriters string
 	)
 
 	flag.StringVar(&manifestsBasePath, "manifests-base-path", "/opt/manifests/dashboard", "Base path for dashboard manifests")
@@ -58,6 +60,7 @@ func main() {
 	flag.StringVar(&operatorNamespace, "namespace", "", "Namespace where the operator is deployed")
 	flag.BoolVar(&enableWebhook, "enable-webhook", false, "Enable the validating webhook server (requires TLS certs)")
 	flag.IntVar(&webhookPort, "webhook-port", 9443, "Port the webhook server binds to")
+	flag.StringVar(&namespacedRBACWriters, "namespaced-rbac-writers", "", "Comma-separated usernames allowed to set namespaced RBAC target fields")
 
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
@@ -137,8 +140,9 @@ func main() {
 	}
 
 	if enableWebhook {
-		mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewSingletonHandler(mgr.GetAPIReader()))
-		setupLog.Info("Registered singleton validation webhook", "path", "/validate-dashboard")
+		writers := strings.Split(namespacedRBACWriters, ",")
+		mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewDashboardHandler(mgr.GetAPIReader(), writers))
+		setupLog.Info("Registered Dashboard validation webhook", "path", "/validate-dashboard")
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

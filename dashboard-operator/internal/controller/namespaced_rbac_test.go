@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -29,7 +30,12 @@ const (
 func newReconciler(t *testing.T, platform cluster.Platform, objects ...client.Object) (*ctrlpkg.DashboardReconciler, client.Client) {
 	t.Helper()
 	s := testScheme(t)
-	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).Build()
+	baseObjects := []client.Object{
+		optedInNamespace(testNotebooksNS),
+		optedInNamespace(testModelRegistryNS),
+	}
+	baseObjects = append(baseObjects, objects...)
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(baseObjects...).Build()
 	r := &ctrlpkg.DashboardReconciler{
 		Client:                cli,
 		APIReader:             cli,
@@ -40,6 +46,15 @@ func newReconciler(t *testing.T, platform cluster.Platform, objects ...client.Ob
 		ApplicationsNamespace: testAppNamespace,
 	}
 	return r, cli
+}
+
+func optedInNamespace(name string) *corev1.Namespace {
+	return &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+		Name: name,
+		Labels: map[string]string{
+			"dashboard.opendatahub.io/allow-namespaced-rbac": "true",
+		},
+	}}
 }
 
 func newRBACDashboard(notebooksNS, modelRegistryNS string) *v1alpha1.Dashboard {
@@ -199,6 +214,57 @@ func TestReconcileNamespacedRBAC_NoNamespaces(t *testing.T) {
 	assert.Empty(t, listRoleBindings(t, cli))
 }
 
+func TestReconcileNamespacedRBAC_RejectsUnlabelledNamespace(t *testing.T) {
+	unlabelled := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "arbitrary-namespace"}}
+	r, cli := newReconciler(t, cluster.OpenDataHub, unlabelled)
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard(unlabelled.Name, ""))
+	require.ErrorContains(t, err, "dashboard.opendatahub.io/allow-namespaced-rbac=true")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_RejectsMissingNamespace(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard("missing-namespace", ""))
+	require.ErrorContains(t, err, "getting target namespace")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_MixedValidationAppliesOnlyOptedInTarget(t *testing.T) {
+	unlabelled := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "arbitrary-registry"}}
+	r, cli := newReconciler(t, cluster.OpenDataHub, unlabelled)
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard(testNotebooksNS, unlabelled.Name))
+	require.ErrorContains(t, err, "model-registry namespace RBAC")
+
+	roles := listRoles(t, cli)
+	require.Len(t, roles, 1)
+	assert.Equal(t, testNotebooksNS, roles[0].Namespace)
+	bindings := listRoleBindings(t, cli)
+	require.Len(t, bindings, 1)
+	assert.Equal(t, testNotebooksNS, bindings[0].Namespace)
+}
+
+func TestReconcileNamespacedRBAC_RemovingOptInRevokesExistingGrant(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+	require.Len(t, listRoles(t, cli), 1)
+
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, "dashboard.opendatahub.io/allow-namespaced-rbac")
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, "dashboard.opendatahub.io/allow-namespaced-rbac=true")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
 // TestReconcileNamespacedRBAC_Idempotent verifies that reconciling twice produces
 // the same result (no duplicate resources, update path works).
 func TestReconcileNamespacedRBAC_Idempotent(t *testing.T) {
@@ -254,9 +320,9 @@ func TestReconcileNamespacedRBAC_UpdateExistingRole(t *testing.T) {
 // TestReconcileNamespacedRBAC_GCStaleOnNamespaceChange verifies that when the
 // NotebooksNamespace changes from ns-a to ns-b, the old resources in ns-a are removed.
 func TestReconcileNamespacedRBAC_GCStaleOnNamespaceChange(t *testing.T) {
-	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
 	oldNS := "old-notebooks-ns"
 	newNS := "new-notebooks-ns"
+	r, cli := newReconciler(t, cluster.SelfManagedRhoai, optedInNamespace(oldNS), optedInNamespace(newNS))
 
 	// First reconcile with old namespace
 	dashboard := newRBACDashboard(oldNS, "")
@@ -475,8 +541,8 @@ func TestReconcileNamespacedRBAC_ModelRegistryRules(t *testing.T) {
 // both namespace fields point to the same namespace. Should create 2 separate Role/RB pairs
 // both in that namespace (no collision since names differ).
 func TestReconcileNamespacedRBAC_SameNamespaceBothComponents(t *testing.T) {
-	r, cli := newReconciler(t, cluster.OpenDataHub)
 	sharedNS := "shared-namespace"
+	r, cli := newReconciler(t, cluster.OpenDataHub, optedInNamespace(sharedNS))
 	dashboard := newRBACDashboard(sharedNS, sharedNS)
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
