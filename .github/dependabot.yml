@@ -107,6 +107,7 @@ updates:
       - /dashboard-operator
       - /distributions/core-bff/bff
       - /packages/agent-ops/bff
+      - /packages/ai-safety/bff
       - /packages/automl/bff
       - /packages/autorag/bff
       - /packages/eval-hub/bff
