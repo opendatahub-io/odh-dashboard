@@ -41,6 +41,16 @@ func TestOperatorRoleCoversDeployedClusterRoles(t *testing.T) {
 	}
 }
 
+func TestOperatorRoleDoesNotAllowImpersonation(t *testing.T) {
+	operatorRole := readClusterRole(t, filepath.Join("..", "..", "config", "rbac", "role.yaml"))
+
+	for _, rule := range operatorRole.Rules {
+		assert.NotContains(t, rule.Verbs, "impersonate",
+			"operator ClusterRole must not grant impersonation; apiGroups=%v resources=%v resourceNames=%v",
+			rule.APIGroups, rule.Resources, rule.ResourceNames)
+	}
+}
+
 func TestUncoveredPermissions(t *testing.T) {
 	apiServers := func(verbs, names []string) rbacv1.PolicyRule {
 		return rbacv1.PolicyRule{
