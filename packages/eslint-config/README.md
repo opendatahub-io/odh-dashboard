@@ -16,13 +16,13 @@ module.exports = require('@odh-dashboard/eslint-config').recommendedReactTypescr
 
 ## Configs
 
-| File | Scope |
-|------|-------|
-| `base.js` | TypeScript + React rules (primary) |
-| `markdown.js` | Rules for `.md` code fences |
-| `node.js` | Node.js / CommonJS scripts |
-| `package-restrictions.js` | Import restriction rules |
-| `feature-analytics.js` | Opt-in feature analytics boundary rule |
+| File                      | Scope                                  |
+| ------------------------- | -------------------------------------- |
+| `base.js`                 | TypeScript + React rules (primary)     |
+| `markdown.js`             | Rules for `.md` code fences            |
+| `node.js`                 | Node.js / CommonJS scripts             |
+| `package-restrictions.js` | Import restriction rules               |
+| `feature-analytics.js`    | Opt-in feature analytics boundary rule |
 
 > For full documentation see [`docs/guidelines.md`](../../docs/guidelines.md).
 
@@ -48,8 +48,12 @@ module.exports = {
 };
 ```
 
-The custom rule preserves existing built-in restrictions. It blocks legacy, SDK, and ui-core
-runtime analytics APIs and direct analytics globals while allowing ui-core property types and
-`TrackingOutcome`.
+The custom rule preserves existing built-in restrictions. It blocks legacy host adapters,
+analytics implementation/SDK imports, and direct analytics globals. The exact `@odh-dashboard/analytics/types`
+entry point is allowed for SDK-free contracts and `TrackingOutcome`, and
+`@odh-dashboard/analytics/react` for SDK-free providers/hooks. The exact
+`@odh-dashboard/analytics/standalone` entry point is allowed for standalone bootstrap compatibility
+wiring. Implementation imports, deeper
+subpaths, and similarly prefixed analytics paths remain blocked.
 Dynamic `import()`, `require()`, indirect aliases, and nonliteral computed access are outside
 its scope.

@@ -13,7 +13,8 @@ const notProvided = (name: string) => () => {
  * Prefer HostApiCoreContext / HostApiInfraContext for new code; removal of this
  * bridge is tracked by RHOAIENG-79894 / RHOAIENG-79895.
  *
- * For core infrastructure (namespace, access, tracking, config) use HostApiCoreContext.
+ * For core infrastructure (namespace, access, config) use HostApiCoreContext.
+ * Tracking is supplied by @odh-dashboard/analytics/react.
  * For K8s operations (secrets, projects, PVCs) use HostApiInfraContext.
  */
 export const HostApiContext = React.createContext<HostApiServices>({

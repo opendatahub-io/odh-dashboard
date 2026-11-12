@@ -1,10 +1,5 @@
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import {
-  AUTOML_EVENTS,
   AUTOML_FAILURE_CATEGORY,
   fireAutomlBacktestWindowMetricViewed,
   fireAutomlFlowExited,
@@ -32,13 +27,7 @@ import {
   mapPredictionType,
 } from '~/app/utilities/tracking';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const trackEvent = jest.fn();
 
 describe('mapPredictionType', () => {
   it('should map binary to binaryClassification', () => {
@@ -140,51 +129,52 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should fire AutoML Project Dropdown Option Selected with the selected project', () => {
-    fireAutomlProjectDropdownOptionSelected('test-namespace');
+    fireAutomlProjectDropdownOptionSelected(trackEvent, 'test-namespace');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-      AUTOML_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED,
-      { selectedProject: 'test-namespace' },
-    );
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Project Dropdown Option Selected', {
+      selectedProject: 'test-namespace',
+    });
   });
 
   it('should fire AutoML Run Details Defined with outcome and hasDescription', () => {
-    fireAutomlRunDetailsDefined(TrackingOutcome.submit, true);
+    fireAutomlRunDetailsDefined(trackEvent, TrackingOutcome.submit, true);
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Run Details Defined', {
       outcome: TrackingOutcome.submit,
       hasDescription: true,
     });
   });
 
   it('should fire AutoML Run Details Defined with outcome:cancel', () => {
-    fireAutomlRunDetailsDefined(TrackingOutcome.cancel, false);
+    fireAutomlRunDetailsDefined(trackEvent, TrackingOutcome.cancel, false);
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DETAILS_DEFINED, {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Run Details Defined', {
       outcome: TrackingOutcome.cancel,
       hasDescription: false,
     });
   });
 
   it('should fire AutoML Training Data Configured with the training data source type', () => {
-    fireAutomlTrainingDataConfigured('upload');
+    fireAutomlTrainingDataConfigured(trackEvent, 'upload');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Training Data Configured', {
       trainingDataSourceType: 'upload',
     });
   });
 
   it('should fire AutoML Target Column Configured with no properties', () => {
-    fireAutomlTargetColumnConfigured();
+    fireAutomlTargetColumnConfigured(trackEvent);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-      AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
-      {},
-    );
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Target Column Configured', {});
   });
 
-  it('should fire AutoML Run Created via fireFormTrackingEvent with the given properties', () => {
-    fireAutomlRunCreated({
+  it('should fire AutoML Run Created through the injected callback with the given properties', () => {
+    fireAutomlRunCreated(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       predictionType: 'binaryClassification',
@@ -192,8 +182,8 @@ describe('AutoML tracking event firers', () => {
       isRecommended: true,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_CREATED, {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Run Created', {
       outcome: TrackingOutcome.submit,
       success: true,
       predictionType: 'binaryClassification',
@@ -203,7 +193,7 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should fire AutoML Run Reconfigured with changedFields joined into a comma-separated string', () => {
-    fireAutomlRunReconfigured({
+    fireAutomlRunReconfigured(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       predictionType: 'regression',
@@ -213,8 +203,8 @@ describe('AutoML tracking event firers', () => {
       source: 'resultsPage',
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTOML_EVENTS.RUN_RECONFIGURED,
+    expect(trackEvent).toHaveBeenCalledWith(
+      'AutoML Run Reconfigured',
       expect.objectContaining({
         changedFields: 'predictionType,targetColumn',
         source: 'resultsPage',
@@ -223,36 +213,36 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should fire AutoML Run Reconfigured with an empty string when changedFields is empty', () => {
-    fireAutomlRunReconfigured({
+    fireAutomlRunReconfigured(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: false,
       isRecommended: false,
       changedFields: [],
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-      AUTOML_EVENTS.RUN_RECONFIGURED,
+    expect(trackEvent).toHaveBeenCalledWith(
+      'AutoML Run Reconfigured',
       expect.objectContaining({ changedFields: '' }),
     );
   });
 
   it('should fire AutoML Run Stopped with source', () => {
-    fireAutomlRunStopped({ outcome: TrackingOutcome.cancel, source: 'runsList' });
+    fireAutomlRunStopped(trackEvent, { outcome: TrackingOutcome.cancel, source: 'runsList' });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_STOPPED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Run Stopped', {
       outcome: TrackingOutcome.cancel,
       source: 'runsList',
     });
   });
 
   it('should fire AutoML Run Retried with the allowlisted failure category, not a raw message', () => {
-    fireAutomlRunRetried({
+    fireAutomlRunRetried(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: false,
       error: AUTOML_FAILURE_CATEGORY,
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_RETRIED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Run Retried', {
       outcome: TrackingOutcome.submit,
       success: false,
       error: AUTOML_FAILURE_CATEGORY,
@@ -260,9 +250,13 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should fire AutoML Run Deleted', () => {
-    fireAutomlRunDeleted({ outcome: TrackingOutcome.submit, success: true, source: 'runsList' });
+    fireAutomlRunDeleted(trackEvent, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      source: 'runsList',
+    });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_DELETED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Run Deleted', {
       outcome: TrackingOutcome.submit,
       success: true,
       source: 'runsList',
@@ -270,69 +264,65 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should fire AutoML Model Details Tab Viewed with the mapped tab name and predictionType', () => {
-    fireAutomlModelDetailsTabViewed('roc-curve', 'binary');
+    fireAutomlModelDetailsTabViewed(trackEvent, 'roc-curve', 'binary');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_TAB_VIEWED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Model Details Tab Viewed', {
       tabName: 'rocCurve',
       predictionType: 'binaryClassification',
     });
   });
 
   it('should fire AutoML Model Details Tab Viewed with undefined predictionType when taskType is omitted', () => {
-    fireAutomlModelDetailsTabViewed('model-information');
+    fireAutomlModelDetailsTabViewed(trackEvent, 'model-information');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_TAB_VIEWED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Model Details Tab Viewed', {
       tabName: 'modelInformation',
       predictionType: undefined,
     });
   });
 
   it('should fire AutoML Backtest Window Metric Viewed with the raw metric name', () => {
-    fireAutomlBacktestWindowMetricViewed('WQL');
+    fireAutomlBacktestWindowMetricViewed(trackEvent, 'WQL');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-      AUTOML_EVENTS.BACKTEST_WINDOW_METRIC_VIEWED,
-      { metricName: 'WQL' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Backtest Window Metric Viewed', {
+      metricName: 'WQL',
+    });
   });
 
   it('should fire AutoML Notebook Downloaded with downloadType and source', () => {
-    fireAutomlNotebookDownloaded('leaderboard');
+    fireAutomlNotebookDownloaded(trackEvent, 'leaderboard');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.NOTEBOOK_DOWNLOADED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Notebook Downloaded', {
       downloadType: 'notebook',
       source: 'leaderboard',
     });
   });
 
   it('should fire AutoML Run Notebook Downloaded with the run notebook type', () => {
-    fireAutomlRunNotebookDownloaded();
+    fireAutomlRunNotebookDownloaded(trackEvent);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Run Notebook Downloaded', {
       downloadType: 'runNotebook',
     });
   });
 
   it('should fire AutoML Model Details Download Initiated with downloadType', () => {
-    fireAutomlModelDetailsDownloadInitiated();
+    fireAutomlModelDetailsDownloadInitiated(trackEvent);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-      AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED,
-      {
-        downloadType: 'modelDetails',
-      },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Model Details Download Initiated', {
+      downloadType: 'modelDetails',
+    });
   });
 
   it('should fire AutoML Model Registered with registryTarget and source', () => {
-    fireAutomlModelRegistered({
+    fireAutomlModelRegistered(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       source: 'modelDetailsModal',
       registryTarget: 'my-registry',
     });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_REGISTERED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Model Registered', {
       outcome: TrackingOutcome.submit,
       success: true,
       source: 'modelDetailsModal',
@@ -341,26 +331,27 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should fire AutoML S3 Connection Created', () => {
-    fireAutomlS3ConnectionCreated({ outcome: TrackingOutcome.cancel });
+    fireAutomlS3ConnectionCreated(trackEvent, { outcome: TrackingOutcome.cancel });
 
-    expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.S3_CONNECTION_CREATED, {
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('AutoML S3 Connection Created', {
       outcome: TrackingOutcome.cancel,
     });
   });
 
   it('should fire AutoML Leaderboard Sorted with sortColumn and sortDirection', () => {
-    fireAutomlLeaderboardSorted('Model name', 'desc');
+    fireAutomlLeaderboardSorted(trackEvent, 'Model name', 'desc');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.LEADERBOARD_SORTED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Leaderboard Sorted', {
       sortColumn: 'Model name',
       sortDirection: 'desc',
     });
   });
 
   it('should fire AutoML Flow Exited with exitType, lastFunnelStep, and exitDestination', () => {
-    fireAutomlFlowExited('navigate', 'defineDetails', 'experimentsList');
+    fireAutomlFlowExited(trackEvent, 'navigate', 'defineDetails', 'experimentsList');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
       exitType: 'navigate',
       lastFunnelStep: 'defineDetails',
       exitDestination: 'experimentsList',
@@ -368,9 +359,9 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should fire AutoML Flow Exited with exitType: abandon and exitDestination: none', () => {
-    fireAutomlFlowExited('abandon', 'trainingData', 'none');
+    fireAutomlFlowExited(trackEvent, 'abandon', 'trainingData', 'none');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
       exitType: 'abandon',
       lastFunnelStep: 'trainingData',
       exitDestination: 'none',
@@ -378,9 +369,9 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should include changedFields when provided (reconfigure exits)', () => {
-    fireAutomlFlowExited('navigate', 'configure', 'experimentsList', 'targetColumn');
+    fireAutomlFlowExited(trackEvent, 'navigate', 'configure', 'experimentsList', 'targetColumn');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.FLOW_EXITED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Flow Exited', {
       exitType: 'navigate',
       lastFunnelStep: 'configure',
       exitDestination: 'experimentsList',
@@ -389,34 +380,35 @@ describe('AutoML tracking event firers', () => {
   });
 
   it('should omit changedFields entirely when not provided (create-run flow exits)', () => {
-    fireAutomlFlowExited('navigate', 'trainingData', 'experimentsList');
+    fireAutomlFlowExited(trackEvent, 'navigate', 'trainingData', 'experimentsList');
 
-    const [, properties] = fireMiscTrackingEventMock.mock.calls[
-      fireMiscTrackingEventMock.mock.calls.length - 1
-    ] as [string, Record<string, unknown>];
+    const [, properties] = trackEvent.mock.calls[trackEvent.mock.calls.length - 1] as [
+      string,
+      Record<string, unknown>,
+    ];
     expect(properties).not.toHaveProperty('changedFields');
   });
 
   it('should fire AutoML Results Viewed with the given entrySource', () => {
-    fireAutomlResultsViewed('experimentsList');
+    fireAutomlResultsViewed(trackEvent, 'experimentsList');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.RESULTS_VIEWED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Results Viewed', {
       entrySource: 'experimentsList',
     });
   });
 
   it('should fire AutoML Model Details Viewed with the given entrySource', () => {
-    fireAutomlModelDetailsViewed('pipelineViz');
+    fireAutomlModelDetailsViewed(trackEvent, 'pipelineViz');
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Model Details Viewed', {
       entrySource: 'pipelineViz',
     });
   });
 
   it('should default AutoML Model Details Viewed entrySource to resultsTable', () => {
-    fireAutomlModelDetailsViewed();
+    fireAutomlModelDetailsViewed(trackEvent);
 
-    expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, {
+    expect(trackEvent).toHaveBeenCalledWith('AutoML Model Details Viewed', {
       entrySource: 'resultsTable',
     });
   });

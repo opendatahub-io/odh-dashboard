@@ -99,6 +99,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hookform/resolvers": "^5.2.2",
+    "@odh-dashboard/analytics": "workspace:*",
     "@odh-dashboard/autox-core": "workspace:*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",

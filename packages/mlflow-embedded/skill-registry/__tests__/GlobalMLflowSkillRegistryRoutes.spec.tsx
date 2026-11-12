@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { renderWithTracking as render } from '../../shared/__tests__/TrackingProvider';
 import GlobalMLflowSkillRegistryRoutes from '../GlobalMLflowSkillRegistryRoutes';
 import { MlflowSkillRegistryWrapperProps } from '../MlflowSkillRegistryPage';
 
@@ -12,10 +13,6 @@ jest.mock('@module-federation/runtime', () => ({ loadRemote: jest.fn() }));
 jest.mock('@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
   __esModule: true,
   default: () => ({ available: true, loaded: true, error: false }),
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireLinkTrackingEvent: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/ui-core/components/projectSelector/ProjectSelectorNavigator', () => ({

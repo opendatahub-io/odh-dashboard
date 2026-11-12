@@ -38,7 +38,7 @@ describe('getPendingWorkloads', () => {
       ns: 'test-ns',
       path: 'pendingworkloads',
     });
-    expect(commonFetchJSONMock).toHaveBeenCalledWith('/mock-url');
+    expect(commonFetchJSONMock).toHaveBeenCalledWith('/mock-url', {});
     expect(result).toStrictEqual(mockSummary);
   });
 

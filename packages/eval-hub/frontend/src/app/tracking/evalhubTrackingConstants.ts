@@ -1,4 +1,4 @@
-import type { TrackingOutcome } from '@odh-dashboard/ui-core';
+import type { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { EvaluationStatusMessage } from './evaluationErrorCategory';
 
 export const EVAL_HUB_EVENTS = {

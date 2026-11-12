@@ -1,7 +1,8 @@
-import type { IdentifyEventProperties } from '@odh-dashboard/ui-core/contexts/AnalyticsContext';
+import type { IdentifyEventProperties } from './types';
 
 declare global {
   interface Window {
+    clusterID?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     analytics?: any;
   }
