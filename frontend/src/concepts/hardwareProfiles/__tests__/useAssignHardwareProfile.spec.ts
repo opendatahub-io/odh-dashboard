@@ -1,5 +1,5 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import { unset } from 'lodash-es';
+import { get, unset } from 'lodash-es';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   HardwareProfileFeatureVisibility,
@@ -241,9 +241,13 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
       nodeSelector: undefined,
     });
     unset(freshResource, paths.containerResourcesPath);
+    unset(freshResource, paths.tolerationsPath);
+    unset(freshResource, paths.nodeSelectorPath);
     expect(getAppliedResources(freshResource)).toBeUndefined();
     const updatedResource = state.applyToResource(freshResource);
     expect(getAppliedResources(updatedResource)).toEqual(existingResources);
+    expect(get(updatedResource, paths.tolerationsPath)).toEqual(existingTolerations);
+    expect(get(updatedResource, paths.nodeSelectorPath)).toEqual(existingNodeSelector);
   });
 
   it(`should include tolerations and nodeSelector in podSpecOptions when hardware profile is selected for ${resourceType}`, () => {

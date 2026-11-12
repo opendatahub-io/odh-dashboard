@@ -17,7 +17,12 @@ import { mockResourceClaimTemplate } from '@odh-dashboard/k8s-core/__mocks__/moc
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import type { NotebookKind, PodKind } from '@odh-dashboard/k8s-core';
-import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/k8s-core';
+import {
+  IdentifierResourceType,
+  SchedulingType,
+  TolerationEffect,
+  TolerationOperator,
+} from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
 import {
   LocalQueueModel,
@@ -671,6 +676,14 @@ describe('Workbench Hardware Profiles', () => {
       requests: { cpu: '10', memory: '6Gi' },
       limits: { cpu: '10', memory: '6Gi' },
     };
+    const unmatchedTolerations = [
+      {
+        key: 'some-new-key',
+        operator: TolerationOperator.EXISTS,
+        effect: TolerationEffect.NO_SCHEDULE,
+      },
+    ];
+    const unmatchedNodeSelector = { 'some-label': 'some-value' };
 
     // Notebook with resources that match no profile and no hardware profile annotation.
     // Submitting with the default envFrom would need secret intercepts, so submit tests pass none.
@@ -686,7 +699,9 @@ describe('Workbench Hardware Profiles', () => {
             resources: unmatchedResources,
             opts: {
               spec: {
-                template: { spec: { tolerations: [{ key: 'some-new-key' }], nodeSelector: {} } },
+                template: {
+                  spec: { tolerations: unmatchedTolerations, nodeSelector: unmatchedNodeSelector },
+                },
               },
             },
           }),
@@ -698,22 +713,24 @@ describe('Workbench Hardware Profiles', () => {
       );
     };
 
-    const submitAndVerifyExistingResourcesKept = () => {
+    const submitAndVerifyExistingSettingsKept = () => {
       cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
       cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
 
       editSpawnerPage.findSubmitButton().click();
 
-      const verifyContainerResources = (body: NotebookKind) => {
-        const [container] = body.spec.template.spec.containers;
-        expect(container.name).to.equal('test-notebook');
-        expect(container.resources).to.deep.equal(unmatchedResources);
+      const verifyExistingSettingsKept = (body: NotebookKind) => {
+        const { containers, tolerations, nodeSelector } = body.spec.template.spec;
+        expect(containers[0].name).to.equal('test-notebook');
+        expect(containers[0].resources).to.deep.equal(unmatchedResources);
+        expect(tolerations).to.deep.equal(unmatchedTolerations);
+        expect(nodeSelector).to.deep.equal(unmatchedNodeSelector);
       };
       cy.wait('@editWorkbenchDryRun').then((interception) => {
-        verifyContainerResources(interception.request.body);
+        verifyExistingSettingsKept(interception.request.body);
       });
       cy.wait('@editWorkbench').then((interception) => {
-        verifyContainerResources(interception.request.body);
+        verifyExistingSettingsKept(interception.request.body);
       });
     };
 
@@ -725,16 +742,16 @@ describe('Workbench Hardware Profiles', () => {
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
     });
 
-    it('should keep the existing resources when saving with "Use existing settings"', () => {
+    it('should keep the existing resources, tolerations and nodeSelector when saving with "Use existing settings"', () => {
       initUnmatchedResourcesIntercepts([]);
 
       editSpawnerPage.visit('test-notebook');
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
 
-      submitAndVerifyExistingResourcesKept();
+      submitAndVerifyExistingSettingsKept();
     });
 
-    it('should keep the existing resources after switching to a profile and back', () => {
+    it('should keep the existing settings after switching to a profile and back', () => {
       initUnmatchedResourcesIntercepts([]);
 
       editSpawnerPage.visit('test-notebook');
@@ -746,7 +763,7 @@ describe('Workbench Hardware Profiles', () => {
       hardwareProfileSection.findProfileOption(/Use existing settings/).click();
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
 
-      submitAndVerifyExistingResourcesKept();
+      submitAndVerifyExistingSettingsKept();
     });
 
     it('should show an assigned DRA hardware profile as selected with the customization section', () => {

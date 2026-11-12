@@ -60,7 +60,12 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
         targetResource,
         hardwareProfileConfig.formData,
         resourcePaths || paths,
-        { existingBinding: hardwareProfileConfig.existingBinding, existingContainerResources },
+        {
+          existingBinding: hardwareProfileConfig.existingBinding,
+          existingContainerResources,
+          existingTolerations,
+          existingNodeSelector,
+        },
       );
     },
     [
@@ -68,6 +73,8 @@ export const useAssignHardwareProfile = <T extends K8sResourceCommon>(
       hardwareProfileConfig.formData,
       hardwareProfileConfig.existingBinding,
       existingContainerResources,
+      existingTolerations,
+      existingNodeSelector,
     ],
   );
 

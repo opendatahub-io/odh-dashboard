@@ -70,6 +70,8 @@ export const mockUseAssignHardwareProfileResult = <T extends K8sResourceCommon>(
       return applyHardwareProfileConfig(resource, formData, paths, {
         existingBinding,
         existingContainerResources: resources,
+        existingTolerations: tolerations,
+        existingNodeSelector: nodeSelector,
       });
     },
     validateHardwareProfileForm: () => true,

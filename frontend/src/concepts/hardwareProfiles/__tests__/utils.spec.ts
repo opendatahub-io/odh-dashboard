@@ -1,5 +1,6 @@
 import {
   IdentifierResourceType,
+  TolerationOperator,
   type HardwareProfileKind,
   type Identifier,
   type ContainerResources,
@@ -712,13 +713,17 @@ describe('applyHardwareProfileConfig', () => {
     ).toBeUndefined();
   });
 
-  it('should write the existing resources when useExistingSettings is true', () => {
+  it('should write the existing resources, tolerations and nodeSelector when useExistingSettings is true', () => {
     const notebook = mockNotebookK8sResource({});
     delete notebook.spec.template.spec.containers[0].resources;
+    delete notebook.spec.template.spec.tolerations;
+    delete notebook.spec.template.spec.nodeSelector;
     const existingResources = {
       requests: { cpu: '10', memory: '6Gi' },
       limits: { cpu: '10', memory: '6Gi' },
     };
+    const existingTolerations = [{ key: 'gpu', operator: TolerationOperator.EXISTS }];
+    const existingNodeSelector = { 'node-type': 'gpu' };
     const config = {
       selectedProfile: undefined,
       useExistingSettings: true,
@@ -730,15 +735,21 @@ describe('applyHardwareProfileConfig', () => {
 
     const result = applyHardwareProfileConfig(notebook, config, paths, {
       existingContainerResources: existingResources,
+      existingTolerations,
+      existingNodeSelector,
     });
 
     expect(result.spec.template.spec.containers[0].resources).toEqual(existingResources);
+    expect(result.spec.template.spec.tolerations).toEqual(existingTolerations);
+    expect(result.spec.template.spec.nodeSelector).toEqual(existingNodeSelector);
     expect(result.metadata.annotations).not.toHaveProperty('opendatahub.io/hardware-profile-name');
   });
 
-  it('should not create resources when useExistingSettings is true and the existing ones are empty', () => {
+  it('should not create resources, tolerations or nodeSelector when useExistingSettings is true and the existing ones are empty', () => {
     const notebook = mockNotebookK8sResource({});
     delete notebook.spec.template.spec.containers[0].resources;
+    delete notebook.spec.template.spec.tolerations;
+    delete notebook.spec.template.spec.nodeSelector;
     const config = {
       selectedProfile: undefined,
       useExistingSettings: true,
@@ -750,9 +761,13 @@ describe('applyHardwareProfileConfig', () => {
 
     const result = applyHardwareProfileConfig(notebook, config, paths, {
       existingContainerResources: { requests: {}, limits: {} },
+      existingTolerations: [],
+      existingNodeSelector: {},
     });
 
     expect(result.spec.template.spec.containers[0]).not.toHaveProperty('resources');
+    expect(result.spec.template.spec).not.toHaveProperty('tolerations');
+    expect(result.spec.template.spec).not.toHaveProperty('nodeSelector');
   });
 
   it('should not apply resources when useExistingSettings is true', () => {

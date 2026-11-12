@@ -304,6 +304,8 @@ const hasContainerResources = (resources?: ContainerResources): resources is Con
 export type ApplyHardwareProfileConfigOptions = {
   existingBinding?: HardwareProfileBinding;
   existingContainerResources?: ContainerResources;
+  existingTolerations?: Toleration[];
+  existingNodeSelector?: NodeSelector;
 };
 
 export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
@@ -313,6 +315,8 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
   {
     existingBinding = getExistingHardwareProfileData(cr, cr.metadata?.namespace),
     existingContainerResources,
+    existingTolerations,
+    existingNodeSelector,
   }: ApplyHardwareProfileConfigOptions = {},
 ): T => {
   const result = structuredClone(cr);
@@ -365,6 +369,16 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
       : !!resourcesToApply;
     if (canApply) {
       set(result, paths.containerResourcesPath, structuredClone(resourcesToApply));
+    }
+  }
+
+  // Without a profile annotation nothing re-injects scheduling, so keep what the workload has.
+  if (useExistingSettings) {
+    if (paths?.tolerationsPath && existingTolerations?.length) {
+      set(result, paths.tolerationsPath, structuredClone(existingTolerations));
+    }
+    if (paths?.nodeSelectorPath && Object.keys(existingNodeSelector ?? {}).length > 0) {
+      set(result, paths.nodeSelectorPath, structuredClone(existingNodeSelector));
     }
   }
   return result;
