@@ -20,6 +20,8 @@ describe('NamespaceUrlSync', () => {
   let mockSetSearchParams: jest.Mock;
   let mockSearchParams: URLSearchParams;
 
+  const optionsFor = (values: string[]) => values.map((value) => ({ label: value, value }));
+
   const setupMocks = (
     value: string | string[] | undefined,
     loading = false,
@@ -57,7 +59,7 @@ describe('NamespaceUrlSync', () => {
   });
 
   describe('initial render behavior', () => {
-    it('should not update URL on initial render', () => {
+    it('should not update URL on initial render when the URL already has the value', () => {
       useVariableDefinitionAndStateMock.mockReturnValue({
         definition: undefined,
         state: {
@@ -65,10 +67,52 @@ describe('NamespaceUrlSync', () => {
           loading: false,
         },
       });
+      useSearchParamsMock.mockReturnValue([
+        new URLSearchParams('var-namespace=test-namespace'),
+        mockSetSearchParams,
+      ]);
 
       render(<NamespaceUrlSync />);
 
-      // On first render, it should just record the value without updating URL
+      expect(mockSetSearchParams).not.toHaveBeenCalled();
+    });
+
+    it('should re-assert a pinned value on initial render when the URL param is missing', () => {
+      // Perses syncToUrl can drop `var-namespace` before this component mounts;
+      // the pinned selection must be written back so refresh keeps it.
+      useVariableDefinitionAndStateMock.mockReturnValue({
+        definition: undefined,
+        state: {
+          value: 'test-namespace',
+          loading: false,
+        },
+      });
+      useSearchParamsMock.mockReturnValue([new URLSearchParams(), mockSetSearchParams]);
+
+      render(<NamespaceUrlSync />);
+
+      expect(mockSetSearchParams).toHaveBeenCalledWith(expect.any(Function), { replace: true });
+      const callbackFn = mockSetSearchParams.mock.calls[0][0];
+      const newParams = callbackFn(new URLSearchParams());
+      expect(newParams.get('var-namespace')).toBe('test-namespace');
+    });
+
+    it('should not delete a URL pin on initial render when the value is All', () => {
+      // Transient All report during variable initialization must not clear a pin.
+      useVariableDefinitionAndStateMock.mockReturnValue({
+        definition: undefined,
+        state: {
+          value: '$__all',
+          loading: false,
+        },
+      });
+      useSearchParamsMock.mockReturnValue([
+        new URLSearchParams('var-namespace=pinned-namespace'),
+        mockSetSearchParams,
+      ]);
+
+      render(<NamespaceUrlSync />);
+
       expect(mockSetSearchParams).not.toHaveBeenCalled();
     });
 
@@ -113,8 +157,12 @@ describe('NamespaceUrlSync', () => {
 
   describe('syncing namespace value to URL', () => {
     it('should update URL when namespace value changes after initial render', async () => {
-      // Start with initial value
-      setupMocks('initial-namespace');
+      // Start with initial value already pinned in the URL so init is a no-op
+      setupMocks(
+        'initial-namespace',
+        false,
+        new URLSearchParams('var-namespace=initial-namespace'),
+      );
       const { rerender } = render(<NamespaceUrlSync />);
 
       // First render initializes, no URL update
@@ -141,19 +189,15 @@ describe('NamespaceUrlSync', () => {
     });
 
     it('should handle array values by joining with comma', async () => {
-      // Start with initial value
-      const options = [
-        { label: 'namespace-1', value: 'namespace-1' },
-        { label: 'namespace-2', value: 'namespace-2' },
-        { label: 'namespace-3', value: 'namespace-3' },
-      ];
-      setupMocks('initial', false, new URLSearchParams(), options);
+      const options = optionsFor(['namespace-1', 'namespace-2', 'namespace-3']);
+      // Start with initial value already pinned in the URL so init is a no-op
+      setupMocks('initial', false, new URLSearchParams('var-namespace=initial'), options);
       const { rerender } = render(<NamespaceUrlSync />);
 
       // First render initializes, no URL update
       expect(mockSetSearchParams).not.toHaveBeenCalled();
 
-      // Change to array value
+      // Change to a subset array (not expanded All)
       useVariableDefinitionAndStateMock.mockReturnValue({
         definition: undefined,
         state: {
@@ -174,8 +218,8 @@ describe('NamespaceUrlSync', () => {
     });
 
     it('should not update URL when value has not changed', () => {
-      // Start with a value
-      setupMocks('same-namespace');
+      // Start with a value already pinned in the URL
+      setupMocks('same-namespace', false, new URLSearchParams('var-namespace=same-namespace'));
       const { rerender } = render(<NamespaceUrlSync />);
 
       // First render initializes, no URL update
@@ -189,14 +233,12 @@ describe('NamespaceUrlSync', () => {
     });
 
     it('should not update URL when URL already has the same value', () => {
-      // URL already has the namespace value, start with different initial value
+      // Init pin differs from the URL: one init re-assert write is expected
       setupMocks('initial-value', false, new URLSearchParams('var-namespace=existing-namespace'));
       const { rerender } = render(<NamespaceUrlSync />);
+      expect(mockSetSearchParams).toHaveBeenCalledTimes(1);
 
-      // First render initializes with 'initial-value', no URL update
-      expect(mockSetSearchParams).not.toHaveBeenCalled();
-
-      // Change to the same value that's already in URL
+      // Change to the same value that's already in URL: no further write
       useVariableDefinitionAndStateMock.mockReturnValue({
         definition: undefined,
         state: {
@@ -207,13 +249,13 @@ describe('NamespaceUrlSync', () => {
       rerender(<NamespaceUrlSync />);
 
       // Should not update because URL already has this value
-      expect(mockSetSearchParams).not.toHaveBeenCalled();
+      expect(mockSetSearchParams).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('$__all value handling', () => {
     it('should remove namespace param when value is $__all', async () => {
-      // Start with a pinned namespace in the URL
+      // URL still has the previous pin; All must clear it
       setupMocks(
         'specific-namespace',
         false,
@@ -224,7 +266,7 @@ describe('NamespaceUrlSync', () => {
       // First render initializes
       expect(mockSetSearchParams).not.toHaveBeenCalled();
 
-      // Change to $__all
+      // Change to $__all while URL still has the pin
       useVariableDefinitionAndStateMock.mockReturnValue({
         definition: undefined,
         state: {
@@ -245,18 +287,17 @@ describe('NamespaceUrlSync', () => {
       expect(newParams.has('var-namespace')).toBe(false);
     });
 
-    it('should clear the URL when Perses expands All to every concrete project', async () => {
-      const options = [
-        { label: 'namespace-1', value: 'namespace-1' },
-        { label: 'namespace-2', value: 'namespace-2' },
-      ];
-      setupMocks('namespace-1', false, new URLSearchParams('var-namespace=namespace-1'), options);
+    it('should clear URL when Perses expands All to the full option set', async () => {
+      const values = ['ns-a', 'ns-b', 'ns-c'];
+      const options = optionsFor(values);
+      setupMocks('ns-a', false, new URLSearchParams('var-namespace=ns-a'), options);
       const { rerender } = render(<NamespaceUrlSync />);
+      expect(mockSetSearchParams).not.toHaveBeenCalled();
 
       useVariableDefinitionAndStateMock.mockReturnValue({
         definition: undefined,
         state: {
-          value: ['namespace-1', 'namespace-2'],
+          value: values,
           loading: false,
           options,
         },
@@ -268,13 +309,59 @@ describe('NamespaceUrlSync', () => {
       });
 
       const callbackFn = mockSetSearchParams.mock.calls[0][0];
-      const newParams = callbackFn(new URLSearchParams('var-namespace=namespace-1'));
+      const newParams = callbackFn(new URLSearchParams('var-namespace=ns-a'));
       expect(newParams.has('var-namespace')).toBe(false);
     });
 
+    it('should still join a proper multi-select that is not the full option set', async () => {
+      const options = optionsFor(['ns-a', 'ns-b', 'ns-c']);
+      setupMocks('ns-a', false, new URLSearchParams('var-namespace=ns-a'), options);
+      const { rerender } = render(<NamespaceUrlSync />);
+
+      useVariableDefinitionAndStateMock.mockReturnValue({
+        definition: undefined,
+        state: {
+          value: ['ns-a', 'ns-b'],
+          loading: false,
+          options,
+        },
+      });
+      rerender(<NamespaceUrlSync />);
+
+      await waitFor(() => {
+        expect(mockSetSearchParams).toHaveBeenCalled();
+      });
+
+      const callbackFn = mockSetSearchParams.mock.calls[0][0];
+      const newParams = callbackFn(new URLSearchParams());
+      expect(newParams.get('var-namespace')).toBe('ns-a,ns-b');
+    });
+
+    it('should not write a multi-select URL before variable options exist', () => {
+      // Init with a single pinned value: exactly one re-assert write is allowed.
+      setupMocks('ns-a', false, new URLSearchParams('var-namespace=ns-a'));
+      const { rerender } = render(<NamespaceUrlSync />);
+      expect(mockSetSearchParams).not.toHaveBeenCalled();
+
+      // Expanded / multi value arrives before options — wait, do not pin.
+      useVariableDefinitionAndStateMock.mockReturnValue({
+        definition: undefined,
+        state: {
+          value: ['ns-a', 'ns-b', 'ns-c'],
+          loading: false,
+        },
+      });
+      rerender(<NamespaceUrlSync />);
+      expect(mockSetSearchParams).not.toHaveBeenCalled();
+    });
+
     it('should not sync when value becomes empty (falsy values are ignored)', () => {
-      // Start with specific namespace
-      setupMocks('specific-namespace');
+      // Start with specific namespace already pinned in the URL
+      setupMocks(
+        'specific-namespace',
+        false,
+        new URLSearchParams('var-namespace=specific-namespace'),
+      );
       const { rerender } = render(<NamespaceUrlSync />);
 
       // First render initializes
@@ -297,7 +384,7 @@ describe('NamespaceUrlSync', () => {
 
   describe('URL update options', () => {
     it('should use replace: true when updating URL', async () => {
-      // Start with initial value
+      // Start with a pinned value missing from the URL: the init re-assert writes it
       setupMocks('initial');
       const { rerender } = render(<NamespaceUrlSync />);
 
@@ -317,8 +404,8 @@ describe('NamespaceUrlSync', () => {
     });
 
     it('should preserve other query params when updating namespace', async () => {
-      // Start with initial value
-      setupMocks('initial');
+      // Start with initial value already pinned in the URL so init is a no-op
+      setupMocks('initial', false, new URLSearchParams('var-namespace=initial'));
       const { rerender } = render(<NamespaceUrlSync />);
 
       // Change value

@@ -17,7 +17,11 @@ import { isExpandedAllNamespaceSelection } from '../utils/transformDashboardVari
  * Project=All must clear `var-namespace`. After StaticList expansion, Perses may report
  * All as the concrete option array — treat that the same as `$__all` so refresh does not
  * restore a pinned multi-select. Selecting every project is the same concrete set as All
- * for scoped queries, so URL sync clears the param in both cases.
+ * for scoped queries, so URL sync clears the param in both cases (see
+ * isExpandedAllNamespaceSelection).
+ *
+ * Option values come from VariableState.options (Perses public runtime API), not from
+ * duck-typing the StaticListVariable plugin definition shape.
  */
 const NamespaceUrlSync: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -37,19 +41,34 @@ const NamespaceUrlSync: React.FC = () => {
 
     const rawValue = namespaceState.value;
     const optionValues = variableOptionValues(namespaceState.options);
-    // Multi-select without options yet: cannot tell All from a pin — wait.
+    // Multi-select without options yet: cannot tell All vs pin — wait.
     if (Array.isArray(rawValue) && optionValues.length === 0) {
       return;
     }
     const clearsUrl = shouldClearNamespaceUrlParam(rawValue, optionValues);
     const newValue = Array.isArray(rawValue) ? rawValue.join(',') : String(rawValue);
+    // Sentinel for "All" so init / dedupe treat clear-URL the same whether Perses
+    // reports `$__all` or the expanded concrete list.
     const syncKey = clearsUrl ? '$__all' : newValue;
+    const currentUrlValue = searchParams.get(NAMESPACE_URL_PARAM);
 
-    // On first render, just record the current value without updating URL
-    // (the URL already has the correct value from the navigation)
+    // On first render, record the current value without updating URL
+    // (the URL already has the correct value from the navigation), but re-assert
+    // a pinned selection if Perses syncToUrl already dropped the param. Never
+    // delete on init: a transient All report must not clear a pinned project.
     if (!hasInitialized.current) {
       hasInitialized.current = true;
       lastSyncedValue.current = syncKey;
+      if (!clearsUrl && currentUrlValue !== newValue) {
+        setSearchParams(
+          (prev) => {
+            const newParams = new URLSearchParams(prev);
+            newParams.set(NAMESPACE_URL_PARAM, newValue);
+            return newParams;
+          },
+          { replace: true },
+        );
+      }
       return;
     }
 
@@ -59,7 +78,6 @@ const NamespaceUrlSync: React.FC = () => {
     }
 
     // Skip if URL already matches (absent param == All)
-    const currentUrlValue = searchParams.get(NAMESPACE_URL_PARAM);
     if (clearsUrl ? currentUrlValue === null : currentUrlValue === newValue) {
       lastSyncedValue.current = syncKey;
       return;
@@ -94,7 +112,10 @@ function shouldClearNamespaceUrlParam(value: string | string[], optionValues: st
   if (value === '$__all') {
     return true;
   }
-  return Array.isArray(value) && isExpandedAllNamespaceSelection(value, optionValues);
+  if (Array.isArray(value) && isExpandedAllNamespaceSelection(value, optionValues)) {
+    return true;
+  }
+  return false;
 }
 
 /** Values from Perses VariableState.options (`{ label, value }[]`). */
@@ -102,7 +123,7 @@ function variableOptionValues(options: VariableOption[] | undefined): string[] {
   if (!options?.length) {
     return [];
   }
-  return options.map((option) => option.value).filter(Boolean);
+  return options.map((opt) => opt.value).filter(Boolean);
 }
 
 export default NamespaceUrlSync;

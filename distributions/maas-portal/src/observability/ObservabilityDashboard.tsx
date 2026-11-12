@@ -74,7 +74,51 @@ const TimeControls: React.FC = () => (
 const ObservabilityDashboard: React.FC = () => {
   const { dashboards, dashboardsLoaded, dashboardsError } = useObservabilityDashboardData();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Seed from window.location ONCE and keep a sticky selection: Perses syncToUrl
+  // (time range) rewrites the query string and drops `dashboard=`, which would
+  // otherwise reset the tab on refresh.
+  const [selectedDashboardName, setSelectedDashboardName] = React.useState(
+    () => new URLSearchParams(window.location.search).get('dashboard') ?? '',
+  );
+
+  React.useEffect(() => {
+    const fromUrl = searchParams.get('dashboard');
+    if (fromUrl && fromUrl !== selectedDashboardName) {
+      setSelectedDashboardName(fromUrl);
+    }
+  }, [searchParams, selectedDashboardName]);
+
+  const activeDashboard = React.useMemo(
+    () =>
+      dashboards.find(({ metadata }) => metadata.name === selectedDashboardName) ?? dashboards[0],
+    [dashboards, selectedDashboardName],
+  );
+  const activeDashboardName = dashboards.length > 0 ? activeDashboard.metadata.name : '';
+
+  // Re-assert `dashboard=` after Perses syncToUrl drops it, so refresh keeps the
+  // tab. setSearchParams only — a full navigate() here would loop and wipe the
+  // time-range params.
+  React.useEffect(() => {
+    if (!activeDashboardName) {
+      return;
+    }
+    // Never overwrite a URL that already pins a dashboard - the sync effect
+    // above adopts it. Writing here before that adoption lands would ping-pong
+    // between the two effects (URL <-> selection) forever.
+    if (searchParams.get('dashboard')) {
+      return;
+    }
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        params.set('dashboard', activeDashboardName);
+        return params;
+      },
+      { replace: true },
+    );
+  }, [activeDashboardName, searchParams, setSearchParams]);
 
   if (dashboardsError) {
     const status =
@@ -118,10 +162,6 @@ const ObservabilityDashboard: React.FC = () => {
     );
   }
 
-  const requestedDashboard = searchParams.get('dashboard');
-  const activeDashboard =
-    dashboards.find(({ metadata }) => metadata.name === requestedDashboard) ?? dashboards[0];
-  const activeDashboardName = activeDashboard.metadata.name;
   const dashboardUrl = (name: string): string => {
     const params = new URLSearchParams(searchParams);
     params.set('dashboard', name);
@@ -135,6 +175,7 @@ const ObservabilityDashboard: React.FC = () => {
       return;
     }
     event.preventDefault();
+    setSelectedDashboardName(String(eventKey));
     navigate(dashboardUrl(String(eventKey)), { replace: true });
   };
 

@@ -159,7 +159,7 @@ func (r *DashboardReconciler) mlflowEmbeddedFederationEntry(statuses map[string]
 // dashboard Service that exposes the core-bff port.
 func mainDashboardServiceName(platform cluster.Platform) string {
 	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
-		return "rhods-dashboard"
+		return rhoaiDashboardPartOf
 	}
-	return "odh-dashboard"
+	return odhDashboardPartOf
 }

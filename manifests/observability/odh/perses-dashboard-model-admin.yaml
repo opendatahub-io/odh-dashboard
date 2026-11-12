@@ -8,7 +8,6 @@ spec:
       name: Models
     duration: 1h
     # Namespace stub — Dashboard transformNamespaceVariable replaces with StaticList from ProjectsContext.
-    # Queryparam-first PromQL twin of non-admin Models.
     variables:
       - kind: TextVariable
         spec:

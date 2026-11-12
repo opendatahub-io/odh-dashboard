@@ -53,6 +53,13 @@ type interBFFDependency struct {
 
 // --- Platform-aware service name resolution ---
 
+// Platform app.kubernetes.io/part-of values for the main dashboard Deployment/Service
+// and Perses dashboard-perses-access NetworkPolicy peers.
+const (
+	rhoaiDashboardPartOf = "rhods-dashboard"
+	odhDashboardPartOf   = "odh-dashboard"
+)
+
 // standaloneServiceName returns the Kubernetes Service name for a standalone module pod.
 // Module manifests (manifests/modules/*/service.yaml) always use the odh-dashboard- prefix
 // regardless of platform, so we do the same here for consistency.
@@ -62,9 +69,9 @@ func standaloneServiceName(_ cluster.Platform, slug string) string {
 
 func mainDashboardDeploymentName(platform cluster.Platform) string {
 	if platform == cluster.SelfManagedRhoai || platform == cluster.ManagedRhoai {
-		return "rhods-dashboard"
+		return rhoaiDashboardPartOf
 	}
-	return "odh-dashboard"
+	return odhDashboardPartOf
 }
 
 // --- Federation config hash for rolling restart ---

@@ -7,6 +7,7 @@ import {
   DatasourceStoreProvider,
   PanelFocusProvider,
   VariableProvider,
+  VariableProviderWithQueryParams,
 } from '@perses-dev/dashboards';
 import {
   DataQueriesProvider,
@@ -87,6 +88,10 @@ const PersesProviderCore: React.FC<PersesProviderCoreProps> = ({
   );
 
   const TimeRangeProvider = syncToUrl ? TimeRangeProviderWithQueryParams : TimeRangeProviderBasic;
+  // Sync all variable selections (var-<name> query params) so they survive a
+  // hard refresh, same as the time range. Uses the same `var-` prefix the
+  // namespace seeding / NamespaceUrlSync already speak.
+  const VariablesProvider = syncToUrl ? VariableProviderWithQueryParams : VariableProvider;
 
   return (
     <ThemeProvider theme={muiTheme}>
@@ -120,7 +125,7 @@ const PersesProviderCore: React.FC<PersesProviderCoreProps> = ({
               initialTimeRange={initialTimeRange}
               initialRefreshInterval={initialRefreshInterval}
             >
-              <VariableProvider initialVariableDefinitions={dashboardResource.spec.variables}>
+              <VariablesProvider initialVariableDefinitions={dashboardResource.spec.variables}>
                 <DatasourceStoreProvider
                   dashboardResource={dashboardResource}
                   datasourceApi={datasourceApi}
@@ -136,7 +141,7 @@ const PersesProviderCore: React.FC<PersesProviderCoreProps> = ({
                     </DashboardProvider>
                   </DataQueriesProvider>
                 </DatasourceStoreProvider>
-              </VariableProvider>
+              </VariablesProvider>
             </TimeRangeProvider>
           </PluginRegistry>
         </SnackbarProvider>

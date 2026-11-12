@@ -20,7 +20,7 @@ export function transformNamespaceVariable(
   initialNamespaceValue?: string | string[] | null,
 ): DashboardResource {
   // No project list → leave the CR as-is (Models keeps an empty TextVariable stub).
-  // DashboardView filters namespace dashboards when projects are empty so the stub
+  // DashboardView must filter namespace dashboards when projects are empty so the stub
   // never drives ${namespace:queryparam} queries with value "".
   if (projects.length === 0) {
     return dashboard;
@@ -48,6 +48,7 @@ export function transformNamespaceVariable(
   };
 
   const optionValues = new Set(namespaceOptions.map(({ name }) => name));
+  // Prefer URL / caller value; Perses VariableValue may be null.
   const preferredDefault = normalizeNamespaceDefault(initialNamespaceValue);
 
   const transformedVariables = variables.map((variable) => {
@@ -55,6 +56,7 @@ export function transformNamespaceVariable(
       return variable;
     }
 
+    // ListVariable: preserve allowAllValue / allowMultiple; only drop wildcard All.
     if (variable.kind === 'ListVariable') {
       const listSpec = { ...variable.spec };
       delete listSpec.customAllValue;
@@ -77,11 +79,13 @@ export function transformNamespaceVariable(
       };
     }
 
-    // Models dashboards ship a TextVariable namespace stub; replace it with the
-    // concrete project list used for scoped datasource query parameters.
-    const defaultValue = isUsableNamespaceDefault(preferredDefault, true, optionValues)
+    // TextVariable / other (e.g. Models dashboard): inject multi-select Project list.
+    // Same default validation as ListVariable — do not special-case "$__all" blindly.
+    const allowAll = true;
+    const fallbackDefault = '$__all';
+    const defaultValue = isUsableNamespaceDefault(preferredDefault, allowAll, optionValues)
       ? preferredDefault
-      : '$__all';
+      : fallbackDefault;
 
     return {
       kind: 'ListVariable' as const,
@@ -117,7 +121,12 @@ export function normalizeNamespaceDefault(
 
 /**
  * True when a multi-select value is the expanded form of Project=All
- * (every StaticList option selected).
+ * (every StaticList option selected). Used so URL sync can clear var-namespace
+ * instead of writing a comma-joined full list that restores as a pinned selection.
+ *
+ * Product note: intentionally selecting every project is indistinguishable from All
+ * after Perses expansion — URL sync treats both as All (param cleared). That matches
+ * scoped SAR (same concrete namespace set) and avoids a false pin on refresh.
  */
 export function isExpandedAllNamespaceSelection(
   value: string[],
@@ -127,12 +136,11 @@ export function isExpandedAllNamespaceSelection(
   if (options.size === 0) {
     return false;
   }
-
+  // Distinct count first so duplicates like ['a','a'] cannot match options ['a','b'].
   const selected = new Set(value);
   if (selected.size !== options.size) {
     return false;
   }
-
   for (const entry of selected) {
     if (!options.has(entry)) {
       return false;
@@ -141,7 +149,7 @@ export function isExpandedAllNamespaceSelection(
   return true;
 }
 
-/** True when a value is valid for the replacement project list. */
+/** True when the value is a valid ListVariable default for the replacement project list. */
 export function isUsableNamespaceDefault(
   value: string | string[] | undefined,
   allowAll: boolean,

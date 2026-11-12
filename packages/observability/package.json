@@ -63,7 +63,9 @@
     "@odh-dashboard/cypress": "workspace:*",
     "@odh-dashboard/eslint-config": "workspace:*",
     "@odh-dashboard/jest-config": "workspace:*",
-    "@odh-dashboard/tsconfig": "workspace:*"
+    "@odh-dashboard/tsconfig": "workspace:*",
+    "@types/js-yaml": "^4.0.9",
+    "js-yaml": "^4.1.1"
   },
   "peerDependencies": {
     "@openshift/dynamic-plugin-sdk-utils": "^5",
