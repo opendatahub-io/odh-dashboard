@@ -138,7 +138,7 @@ class DataRegistryPage {
   }
 
   findCollectionDeleteAction() {
-    return cy.findByTestId('collection-action-delete');
+    return cy.findByTestId('collection-action-delete').find('[role="menuitem"]');
   }
 
   findCollectionRegisterDataAction() {

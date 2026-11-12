@@ -261,6 +261,9 @@ spec:
                     dataConnectHub:
                       type: boolean
                       description: 'When true, enables the Data Connect Hub features.'
+                    aiSafety:
+                      type: boolean
+                      description: 'When true, enables the AI Safety Studio features.'
                   x-kubernetes-validations:
                     - rule: '!has(self.disableAcceleratorProfiles) || self.disableAcceleratorProfiles == oldSelf.disableAcceleratorProfiles'
                       message: 'DEPRECATED: spec.dashboardConfig.disableAcceleratorProfiles must be removed or left unchanged.'

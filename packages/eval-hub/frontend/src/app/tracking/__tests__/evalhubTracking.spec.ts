@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,

@@ -1,4 +1,4 @@
-import type { IdentifyEventProperties } from '@odh-dashboard/ui-core/types/analytics';
+import type { IdentifyEventProperties } from './types';
 
 declare global {
   interface Window {

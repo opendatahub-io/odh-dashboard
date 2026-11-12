@@ -95,7 +95,7 @@ jobs:
       - name: Run ${{ matrix.check }}
         run: |
           if [ "${{ matrix.check }}" = "lint" ]; then
-            NODE_OPTIONS="--max-old-space-size=8192" pnpm run lint
+            NODE_OPTIONS="--max-old-space-size=8192" pnpm run lint --concurrency=2
           else
             pnpm run type-check
           fi
@@ -152,6 +152,14 @@ jobs:
               `${j.name}=${j.conclusion || 'in_progress'}`
             );
             core.info(`Quality gates: ${status.join(', ')}`);
+      - name: Install subtree test prerequisites
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes jq
+          fi
+          git --version
+          jq --version
       - name: Unit tests with coverage
         run: |
           pnpm run test-unit-coverage

@@ -4,6 +4,7 @@ packages:
   - frontend/src
   - packages/*
   - packages/agent-ops/frontend
+  - packages/ai-safety/frontend
   - packages/automl/frontend
   - packages/autorag/frontend
   - packages/data-connect-hub/frontend

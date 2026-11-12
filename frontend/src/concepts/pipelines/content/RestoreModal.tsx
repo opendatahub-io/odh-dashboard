@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';

@@ -3,7 +3,7 @@ import {
   fireFormTrackingEvent,
   fireMiscTrackingEvent,
 } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import type { FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import type { FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { evaluationErrorCategory, type EvaluationStatusMessage } from './evaluationErrorCategory';
 import { registerEvalHubPageContextRedaction } from './evalhubPageContextRedaction';
 import {
