@@ -25,7 +25,7 @@ import {
 } from '@odh-dashboard/k8s-core';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
-import { useWorkbenchesV2Tab } from '#~/concepts/projects/projectDetails/useWorkbenchesV2Tab';
+import { useWorkspacesTab } from '#~/concepts/projects/projectDetails/useWorkspacesTab';
 
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
@@ -34,7 +34,10 @@ import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPerm
 import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
-import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import {
+  LEGACY_WORKBENCHES_V2_SECTION,
+  ProjectSectionID,
+} from '#~/pages/projects/screens/detail/types';
 import {
   useProjectPermissionsTabVisible,
   useProjectRolesTabVisible,
@@ -67,9 +70,11 @@ const ProjectDetails: React.FC = () => {
   const settingsCardExtensions = useExtensions(isProjectDetailsSettingsCardExtension);
   const hasSettingsCards = settingsCardExtensions.length > 0 || biasMetricsAreaAvailable; // Bias metrics is not yet an extension
   const deploymentsTab = useDeploymentsTab();
-  const workbenchesV2Tab = useWorkbenchesV2Tab();
+  const workspacesTab = useWorkspacesTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
+  const activeSection =
+    state === LEGACY_WORKBENCHES_V2_SECTION ? ProjectSectionID.WORKSPACES : state;
 
   const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
   const [allowRoles, rolesRbacLoaded] = useProjectRolesTabVisible(
@@ -80,6 +85,15 @@ const ProjectDetails: React.FC = () => {
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   useCheckLogoutParams();
+
+  React.useEffect(() => {
+    if (state !== LEGACY_WORKBENCHES_V2_SECTION) {
+      return;
+    }
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('section', ProjectSectionID.WORKSPACES);
+    setSearchParams(newSearchParams, { replace: true });
+  }, [state, searchParams, setSearchParams]);
 
   const { isKueueDisabled, isProjectKueueEnabled, isKueueFeatureEnabled } =
     useKueueConfiguration(currentProject);
@@ -212,7 +226,7 @@ const ProjectDetails: React.FC = () => {
       )}
 
       <GenericHorizontalBar
-        activeKey={state}
+        activeKey={activeSection}
         onSectionChange={React.useCallback(
           (sectionId, replace) => {
             const newSearchParams = new URLSearchParams(searchParams);
@@ -233,7 +247,7 @@ const ProjectDetails: React.FC = () => {
                   },
                 ]
               : []),
-            ...workbenchesV2Tab,
+            ...workspacesTab,
             ...(pipelinesEnabled
               ? [
                   {
@@ -294,7 +308,7 @@ const ProjectDetails: React.FC = () => {
           ],
           [
             workbenchEnabled,
-            workbenchesV2Tab,
+            workspacesTab,
             pipelinesEnabled,
             deploymentsTab,
             projectSharingEnabled,

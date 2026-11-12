@@ -9,8 +9,10 @@ export enum ProjectSectionID {
   ROLES = 'roles',
   SETTINGS = 'settings',
   FEATURE_STORE = 'feature-store-integration',
-  WORKBENCHES_V2 = 'workbenches-v2',
+  WORKSPACES = 'workspaces',
 }
+
+export const LEGACY_WORKBENCHES_V2_SECTION = 'workbenches-v2';
 
 export type ProjectSectionTitlesType = {
   [key in ProjectSectionID]: string;
