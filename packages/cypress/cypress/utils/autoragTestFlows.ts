@@ -644,16 +644,14 @@ export const verifyAutoragRunTerminated = (projectName: string, runId: string): 
         );
         const cancelingIndex = states.lastIndexOf('CANCELING');
         const failedIndex = states.lastIndexOf('FAILED');
-        const restartStates = ['PENDING', 'RUNNING', 'PAUSED'];
 
         expect(cancelingIndex, 'FAILED run cancellation evidence').to.be.greaterThan(-1);
         expect(failedIndex, 'FAILED run terminal history').to.be.greaterThan(cancelingIndex);
-        expect(
-          states
-            .slice(cancelingIndex + 1, failedIndex)
-            .some((historyState) => restartStates.includes(historyState)),
-          'FAILED run must not restart after cancellation',
-        ).to.equal(false);
+        expect(states.slice(cancelingIndex + 1, failedIndex)).not.to.include.members([
+          'PENDING',
+          'RUNNING',
+          'PAUSED',
+        ]);
       });
     });
 };
