@@ -58,26 +58,6 @@ class APIKeysPage {
     );
   }
 
-  getRowByNamePrefix(prefix: string): APIKeyTableRow {
-    return new APIKeyTableRow(
-      () =>
-        this.findTable()
-          .find<HTMLTableRowElement>('tr:has(td)')
-          .filter((_, row) => row.textContent.includes(prefix))
-          .first() as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
-    );
-  }
-
-  getRowByNamePrefixAndOwner(prefix: string, owner: string): APIKeyTableRow {
-    return new APIKeyTableRow(
-      () =>
-        this.findTable()
-          .find<HTMLTableRowElement>('tr:has(td)')
-          .filter((_, row) => row.textContent.includes(prefix) && row.textContent.includes(owner))
-          .first() as unknown as Cypress.Chainable<JQuery<HTMLTableRowElement>>,
-    );
-  }
-
   findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findTable().find('tr:has(td)');
   }
@@ -179,45 +159,6 @@ class APIKeysPage {
 
   findRevokeActionsButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.getRow(rowName).findKebabAction('Revoke');
-  }
-
-  revokeApiKeyIfPresent(name: string): void {
-    cy.get('body').then(($body) => {
-      const row = $body
-        .find('[data-testid="api-keys-table"] tr:has(td)')
-        .toArray()
-        .find((candidate) => candidate.textContent.includes(name));
-      if (!row) {
-        return;
-      }
-
-      cy.wrap(row).findByRole('button', { name: 'Kebab toggle' }).click();
-      cy.findByRole('menuitem', { name: /^Revoke$/ }).click();
-      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(name);
-      revokeAPIKeyModal.findRevokeButton().click();
-      this.findTable().should('not.contain.text', name);
-    });
-  }
-
-  revokeApiKeysByNamePrefix(prefix: string): void {
-    cy.get('body').then(($body) => {
-      const row = $body
-        .find('[data-testid="api-keys-table"] tr:has(td)')
-        .toArray()
-        .find((candidate) => candidate.textContent.includes(prefix));
-      if (!row) {
-        return;
-      }
-
-      const name = Cypress.$(row).find('[data-testid="api-key-name"]').text().trim();
-      cy.wrap(row).findByRole('button', { name: 'Kebab toggle' }).click();
-      cy.findByRole('menuitem', { name: /^Revoke$/ }).click();
-      revokeAPIKeyModal.findRevokeConfirmationInput().clear().type(name);
-      revokeAPIKeyModal.findRevokeButton().should('be.enabled').click();
-      revokeAPIKeyModal.shouldBeOpen(false);
-      this.findTable().should('not.contain.text', name);
-      this.revokeApiKeysByNamePrefix(prefix);
-    });
   }
 }
 

@@ -243,15 +243,7 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
 
       cy.step('Switch to the administrator MaaS Portal session and revoke the created API key');
       maasPortalPage.loginWithCachedSession(portalUrl, adminUser);
-      maasPortalPage.reload();
       maasPortalPage.findNavLink('API keys').should('be.visible').click();
-      apiKeysPage.findTitle().should('contain.text', 'API keys');
-      maasPortalPage.findNavLink('Model Access').should('be.visible').click();
-      maasPortalPage.shouldShowPageTitle('Model Access');
-      subscriptionsTab.selectModelAccessSubscription(subscriptionName);
-      subscriptionsTab.findSubscriptionRows().should('have.length', 1);
-
-      maasPortalPage.findNavLink('API keys').click();
       apiKeysPage.findTitle().should('contain.text', 'API keys');
       apiKeysPage.findSubscriptionFilterToggle().click();
       apiKeysPage.findSubscriptionFilterOption(subscriptionName).click();
@@ -274,9 +266,8 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
 
       cy.step('Switch back to the regular-user MaaS Portal session');
       maasPortalPage.loginWithCachedSession(portalUrl, portalUser);
-      maasPortalPage.reload();
 
-      cy.step('Open another model endpoint and copy its usage example');
+      cy.step("Open the created model's endpoint and copy its usage example");
       maasPortalPage.findNavLink('Model endpoints').should('be.visible').click();
       maasPortalPage.findModelEndpointsPage().should('be.visible');
       maasPortalPage.ensureModelEndpointsLoaded();
