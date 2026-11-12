@@ -1,3 +1,8 @@
+type BenchmarkIdentifier = {
+  providerId: string;
+  benchmarkId: string;
+};
+
 class SingleBenchmarkWizardPage {
   findBreadcrumb(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('single-benchmark-breadcrumb', options);
@@ -12,8 +17,7 @@ class SingleBenchmarkWizardPage {
   }
 
   findBenchmarkCard(
-    benchmarkId: string,
-    providerId: string,
+    { providerId, benchmarkId }: BenchmarkIdentifier,
     options?: Partial<Cypress.Timeoutable>,
   ) {
     return this.findBenchmarksGallery(options).find(
@@ -23,11 +27,10 @@ class SingleBenchmarkWizardPage {
   }
 
   findSelectBenchmarkButton(
-    benchmarkId: string,
-    providerId: string,
+    benchmark: BenchmarkIdentifier,
     options?: Partial<Cypress.Timeoutable>,
   ) {
-    return this.findBenchmarkCard(benchmarkId, providerId, options).findByTestId(
+    return this.findBenchmarkCard(benchmark, options).findByTestId(
       'select-benchmark-button',
       options,
     );

@@ -220,6 +220,8 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
 
   const [isModelOpen, setIsModelOpen] = React.useState(false);
   const [isAdvancedConfigurationOpen, setIsAdvancedConfigurationOpen] = React.useState(false);
+  const [isAdvancedBenchmarkParametersOpen, setIsAdvancedBenchmarkParametersOpen] =
+    React.useState(false);
 
   const handleModelSelect = React.useCallback(
     (_event: React.MouseEvent | undefined, value: string | number | undefined) => {
@@ -618,12 +620,17 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     <ExpandableSection
       className="pf-v6-u-mt-0"
       toggleText={
-        form.showAdditionalArgs
+        isAdvancedBenchmarkParametersOpen
           ? 'Hide advanced benchmark parameters'
           : 'Show advanced benchmark parameters'
       }
-      isExpanded={form.showAdditionalArgs}
-      onToggle={(_event, expanded) => form.setShowAdditionalArgs(expanded)}
+      isExpanded={isAdvancedBenchmarkParametersOpen}
+      onToggle={(_event, expanded) => {
+        setIsAdvancedBenchmarkParametersOpen(expanded);
+        if (expanded) {
+          form.setShowAdditionalArgs(true);
+        }
+      }}
       data-testid="start-evaluation-run-advanced-benchmark-parameters-toggle"
     >
       {form.showAdditionalArgs ? (

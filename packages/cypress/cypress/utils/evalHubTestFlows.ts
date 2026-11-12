@@ -567,12 +567,12 @@ export const submitSingleBenchmarkEvaluation = (opts: SingleBenchmarkEvaluationO
     .clear()
     .type(benchmarkId);
   singleBenchmarkWizardPage
-    .findBenchmarkCard(benchmarkId, benchmarkProviderId, navigationTimeout)
+    .findBenchmarkCard({ benchmarkId, providerId: benchmarkProviderId }, navigationTimeout)
     .scrollIntoView()
     .should('be.visible')
     .and('contain.text', benchmarkCardTitle);
   singleBenchmarkWizardPage
-    .findSelectBenchmarkButton(benchmarkId, benchmarkProviderId, navigationTimeout)
+    .findSelectBenchmarkButton({ benchmarkId, providerId: benchmarkProviderId }, navigationTimeout)
     .should('be.enabled')
     .click();
   createEvaluationPage.findStartEvaluationForm(navigationTimeout).should('be.visible');

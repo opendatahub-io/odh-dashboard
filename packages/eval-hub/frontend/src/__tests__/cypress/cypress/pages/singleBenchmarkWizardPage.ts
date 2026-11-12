@@ -1,3 +1,8 @@
+type BenchmarkIdentifier = {
+  providerId: string;
+  benchmarkId: string;
+};
+
 class SingleBenchmarkWizardPage {
   visit(namespace: string) {
     cy.visit(`/evaluation/${namespace}/create/single-benchmark`);
@@ -18,12 +23,12 @@ class SingleBenchmarkWizardPage {
     return cy.findByTestId('benchmarks-gallery');
   }
 
-  findBenchmarkCard(providerId: string, benchmarkId: string) {
+  findBenchmarkCard({ providerId, benchmarkId }: BenchmarkIdentifier) {
     return cy.findByTestId(`benchmark-card-${providerId}-${benchmarkId}`);
   }
 
-  findSelectBenchmarkButton(providerId: string, benchmarkId: string) {
-    return this.findBenchmarkCard(providerId, benchmarkId).findByTestId('select-benchmark-button');
+  findSelectBenchmarkButton(benchmark: BenchmarkIdentifier) {
+    return this.findBenchmarkCard(benchmark).findByTestId('select-benchmark-button');
   }
 }
 
