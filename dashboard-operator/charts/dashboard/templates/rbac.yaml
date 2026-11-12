@@ -10,8 +10,10 @@ automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountT
 {{- end }}
 ---
 {{- if .Values.rbac.create }}
-# IMPORTANT: Keep ClusterRole rules in sync with config/rbac/role.yaml.
-# chart_sync_test.go validates CRD and RBAC drift in CI via `make test`.
+# IMPORTANT: Keep the default ClusterRole rules in sync with config/rbac/role.yaml.
+# The xks.enabled additions are intentionally chart-only because config/default
+# is not an XKS split-namespace installation path. chart_sync_test.go validates
+# the default RBAC contract and the XKS-specific exception in CI via `make test`.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -162,26 +164,16 @@ rules:
       - update
       - patch
       - delete
-  # cert-manager Certificates for the XKS dashboard TLS endpoint
-  - apiGroups:
-      - cert-manager.io
-    resources:
-      - certificates
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - update
-      - patch
-      - delete
-  # Permission required to create the unbound XKS dashboard access ClusterRole.
+  {{- if .Values.xks.enabled }}
+  # Kubernetes RBAC escalation prevention requires this permission before the
+  # controller can create the intentionally unbound XKS access ClusterRole.
   - apiGroups:
       - dashboard.opendatahub.io
     resources:
       - rhaii-dashboard-access
     verbs:
       - list
+  {{- end }}
   # Escalation for data-science-gateway reads used by Ray dashboard URL resolution
   # (manifests/base/rbac/all-users/fetch-ray-dashboard-url.rbac.yaml) and Data
   # Connect Hub RHOAI gateway discovery
@@ -738,4 +730,53 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "dashboard.serviceAccountName" . }}
     namespace: {{ include "dashboard.namespace" . }}
+
+---
+{{- if .Values.xks.enabled }}
+# XKS renders its serving Certificate in applicationsNamespace. This binding
+# grants the controller only that namespace and fixed Certificate identity.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "dashboard.xksCertificateRoleName" . }}
+  namespace: {{ include "dashboard.applicationsNamespace" . }}
+  labels:
+    {{- include "dashboard.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    resourceNames:
+      - rhaii-dashboard-tls
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "dashboard.xksCertificateRoleName" . }}
+  namespace: {{ include "dashboard.applicationsNamespace" . }}
+  labels:
+    {{- include "dashboard.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "dashboard.xksCertificateRoleName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "dashboard.serviceAccountName" . }}
+    namespace: {{ include "dashboard.namespace" . }}
+{{- end }}
 {{- end }}

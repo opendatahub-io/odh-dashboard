@@ -44,6 +44,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- default .Release.Namespace .Values.namespace }}
 {{- end }}
 
+{{- define "dashboard.applicationsNamespace" -}}
+{{- default (include "dashboard.namespace" .) .Values.applicationsNamespace }}
+{{- end }}
+
 {{- define "dashboard.deploymentName" -}}
 {{- printf "%sdashboard-operator" .Values.namePrefix }}
 {{- end }}
@@ -62,6 +66,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 
 {{- define "dashboard.clusterRoleBindingName" -}}
 {{- printf "%sdashboard-operator-rolebinding" .Values.namePrefix }}
+{{- end }}
+
+{{- define "dashboard.xksCertificateRoleName" -}}
+{{- printf "%sdashboard-operator-xks-certificate" .Values.namePrefix }}
 {{- end }}
 
 {{- define "dashboard.configMapName" -}}

@@ -101,7 +101,8 @@ go run ./cmd/manager \
 ```
 
 For a standalone deployment, install the CRD then render either the Helm chart
-or `config/default`. Use `config/webhook-enabled` only when enabling the
+or `config/default`; they are alternative controller-installation paths, not
+layers to apply together. Use `config/webhook-enabled` only when enabling the
 webhook. When changing from the enabled overlay to the default overlay, delete
 the old `ValidatingWebhookConfiguration` before applying: `oc apply` does not
 remove it, and a registration without a running server rejects Dashboard
@@ -109,12 +110,32 @@ creates. Parent overlays that change namespace or name prefix must include the
 cert-manager wiring transformer, plus webhook wiring when applicable, so
 certificate SANs and CA injection remain correct.
 
+### Installation paths and runtime rendering
+
+The controller installation mechanism is independent from the manifests it
+renders after startup.
+
+| Platform | Controller installation owner | Controller installation format | Runtime operand rendering |
+| --- | --- | --- | --- |
+| ODH and self-managed RHOAI | ODH platform operator | Dashboard Helm chart in the applications namespace | Controller renders the selected OpenShift Kustomize bundle. |
+| Standalone development | Cluster administrator | Either Dashboard Helm chart or `config/default` | Controller renders the selected lifecycle bundle with Kustomize. |
+| XKS/RHAII | Platform installer | Dashboard Helm chart with `xks.enabled: true` and an explicit `applicationsNamespace` | Controller renders `manifests/distributions/rhaii` with Kustomize. |
+
+The chart installs the controller itself: its Deployment, identity, RBAC,
+configuration, and optional webhook resources. `config/default` is the raw
+Kustomize alternative for a co-located standalone controller; it is not a
+split-namespace XKS installer. Independently, every running controller uses
+Kustomize to render its Dashboard operand. Do not infer the runtime rendering
+format from the controller installation format.
+
 Production ODH installs are managed by the ODH Operator, which renders the
 chart, creates the Dashboard CR from DSC component availability, and passes the
-operator image through `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE`. The
-default controller NetworkPolicy allows HTTPS metrics from supported monitoring
-namespaces, health probes on TCP 8081, and the webhook port when enabled; set
-`networkPolicy.enabled=false` only when a deployment supplies its own policy.
+operator image through `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE`. The XKS
+platform installer owns the top-level chart integration and must opt into its
+XKS-specific values. The default controller NetworkPolicy allows HTTPS metrics
+from supported monitoring namespaces, health probes on TCP 8081, and the
+webhook port when enabled; set `networkPolicy.enabled=false` only when a
+deployment supplies its own policy.
 
 ## Troubleshooting
 

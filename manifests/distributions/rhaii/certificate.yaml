@@ -4,7 +4,6 @@ metadata:
   name: rhaii-dashboard-tls
 spec:
   secretName: rhaii-dashboard-tls
-  commonName: rhaii-dashboard.$(NAMESPACE).svc
   dnsNames:
     - rhaii-dashboard.$(NAMESPACE).svc
     - rhaii-dashboard.$(NAMESPACE).svc.cluster.local
@@ -13,6 +12,6 @@ spec:
   issuerRef:
     # The xKS lifecycle resolves these parameters from the platform-managed
     # Dashboard ConfigMap before rendering this bundle.
-    group: cert-manager.io
+    group: certificate-issuer-group
     kind: certificate-issuer-kind
     name: certificate-issuer-name

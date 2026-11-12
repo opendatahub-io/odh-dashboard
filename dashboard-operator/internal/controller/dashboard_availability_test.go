@@ -34,6 +34,8 @@ func TestReconcileDashboardAvailability(t *testing.T) {
 	staleDeployment.Status.ObservedGeneration = 1
 	zeroAvailableDeployment := availabilityDeployment(true)
 	zeroAvailableDeployment.Status.AvailableReplicas = 0
+	stalledRolloutDeployment := availabilityDeployment(true)
+	stalledRolloutDeployment.Status.UpdatedReplicas = 0
 	zeroDesiredDeployment := availabilityDeployment(true)
 	zero := int32(0)
 	zeroDesiredDeployment.Spec.Replicas = &zero
@@ -51,6 +53,7 @@ func TestReconcileDashboardAvailability(t *testing.T) {
 		{name: "deployment is pending", objects: []client.Object{availabilityDeployment(false)}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "deployment status is stale", objects: []client.Object{staleDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "deployment has no available replicas", objects: []client.Object{zeroAvailableDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
+		{name: "old replica is available while current rollout is stalled", objects: []client.Object{stalledRolloutDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "deployment is scaled to zero", objects: []client.Object{zeroDesiredDeployment}, wantReason: "DeploymentNotAvailable", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "route is missing", objects: []client.Object{readyDeployment}, wantReason: "HTTPRouteNotFound", wantRetry: dashboardAvailabilityRetryInterval},
 		{name: "route status belongs to another parent", objects: []client.Object{readyDeployment, availabilityRoute("other-gateway", metav1.ConditionTrue, metav1.ConditionTrue, 0)}, wantReason: "HTTPRouteNotAccepted", wantRetry: dashboardAvailabilityRetryInterval},
@@ -122,6 +125,9 @@ func TestReconcileDashboardAvailabilityRecoversAfterScaleUp(t *testing.T) {
 	require.NoError(t, cli.Update(context.Background(), current))
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(deployment), current))
 	current.Status.ObservedGeneration = current.Generation
+	current.Status.Replicas = 1
+	current.Status.UpdatedReplicas = 1
+	current.Status.ReadyReplicas = 1
 	current.Status.AvailableReplicas = 1
 	require.NoError(t, cli.Status().Update(context.Background(), current))
 
@@ -161,6 +167,9 @@ func availabilityDeployment(available bool) *appsv1.Deployment {
 		Spec:       appsv1.DeploymentSpec{Replicas: &replicas},
 		Status: appsv1.DeploymentStatus{
 			ObservedGeneration: 0,
+			Replicas:           availableReplicas,
+			UpdatedReplicas:    availableReplicas,
+			ReadyReplicas:      availableReplicas,
 			AvailableReplicas:  availableReplicas,
 			Conditions:         []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: status}},
 		},

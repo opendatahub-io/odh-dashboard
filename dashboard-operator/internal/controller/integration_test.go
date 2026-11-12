@@ -232,7 +232,7 @@ func establishDashboardAvailability(t *testing.T, r *ctrlpkg.DashboardReconciler
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dashboardName,
 			Namespace: integrationNamespace,
-			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+			Labels:    dashboardManagementLabels(),
 		},
 		Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
 			ParentRefs: []gatewayv1.ParentReference{{Name: dashboardAvailabilityTestGatewayID}},

@@ -200,7 +200,14 @@ func (r *DashboardReconciler) completeOpenShiftReconcile(ctx context.Context, da
 	if state.rbacErr != nil {
 		cm.MarkTrue(string(common.ConditionTypeDegraded), conditions.WithReason("NamespacedRBACFailed"), conditions.WithError(state.rbacErr))
 	}
-	requeueAfter := minNonZeroDuration(cfg.ReconcileInterval, availabilityRetryAfter, extraRetryAfter, state.observabilityRetryAfter)
+	rbacRetryAfter := time.Duration(0)
+	if state.rbacErr != nil {
+		// Namespaced RBAC failures are non-fatal so the core Dashboard can
+		// remain available, but they still need a bounded retry when no watched
+		// resource changes.
+		rbacRetryAfter = observabilityRetryInterval
+	}
+	requeueAfter := minNonZeroDuration(cfg.ReconcileInterval, availabilityRetryAfter, extraRetryAfter, state.observabilityRetryAfter, rbacRetryAfter)
 	if dashboard.Spec.Observability == nil && requeueAfter == 0 {
 		requeueAfter = observabilityRetryInterval
 	}

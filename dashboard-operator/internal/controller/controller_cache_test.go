@@ -70,6 +70,9 @@ func TestManagerCacheOptions(t *testing.T) {
 	for object := range options.ByObject {
 		assert.NotEqual(t, reflect.TypeOf(&corev1.ConfigMap{}), reflect.TypeOf(object))
 		assert.NotEqual(t, reflect.TypeOf(&corev1.Secret{}), reflect.TypeOf(object))
+		if unstructuredObject, ok := object.(*unstructured.Unstructured); ok {
+			assert.NotEqual(t, certificateGVK, unstructuredObject.GroupVersionKind())
+		}
 	}
 }
 

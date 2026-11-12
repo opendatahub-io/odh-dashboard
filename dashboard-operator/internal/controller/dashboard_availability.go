@@ -52,7 +52,7 @@ func (r *DashboardReconciler) reconcileDashboardAvailability(
 			conditions.WithReason("DeploymentReadFailed"))
 		return 0, fmt.Errorf("getting Dashboard Deployment %q: %w", target.deploymentName, err)
 	}
-	if !deploymentAvailable(deployment) {
+	if !deploymentRolloutComplete(deployment) {
 		cm.MarkFalse(conditionDashboardAvailable,
 			conditions.WithReason("DeploymentNotAvailable"),
 			conditions.WithMessage("Waiting for Dashboard Deployment %q to become Available", target.deploymentName))
@@ -101,6 +101,24 @@ func deploymentAvailable(deployment *appsv1.Deployment) bool {
 		}
 	}
 	return false
+}
+
+func deploymentRolloutComplete(deployment *appsv1.Deployment) bool {
+	if !deploymentAvailable(deployment) {
+		return false
+	}
+	desiredReplicas := int32(1)
+	if deployment.Spec.Replicas != nil {
+		desiredReplicas = *deployment.Spec.Replicas
+	}
+	// DeploymentAvailable may remain true while an old ReplicaSet supplies an
+	// available pod. The dashboard is ready only after the current generation
+	// has completely rolled out.
+	return desiredReplicas > 0 && deployment.Status.Replicas == desiredReplicas &&
+		deployment.Status.UpdatedReplicas == desiredReplicas &&
+		deployment.Status.ReadyReplicas == desiredReplicas &&
+		deployment.Status.AvailableReplicas == desiredReplicas &&
+		deployment.Status.UnavailableReplicas == 0
 }
 
 // httpRouteAvailable requires conditions for one of the HTTPRoute's declared

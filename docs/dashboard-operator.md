@@ -47,7 +47,7 @@ The controller separates successful apply from application availability.
 | Condition | Meaning |
 | --- | --- |
 | `ProvisioningSucceeded` | The selected manifest bundle rendered and applied successfully. |
-| `DashboardAvailable` | The primary Deployment observed its current generation and is `Available=True`; its primary HTTPRoute has current-generation `Accepted=True` and `ResolvedRefs=True` for a declared parent. |
+| `DashboardAvailable` | The primary Deployment observed its current generation and completed its rollout; its primary HTTPRoute has current-generation `Accepted=True` and `ResolvedRefs=True` for a declared parent. |
 | `Ready` | The lifecycle-specific aggregate of its dependencies. |
 | `Degraded` | A diagnosed fault, not an ordinary rollout or Gateway admission wait. |
 

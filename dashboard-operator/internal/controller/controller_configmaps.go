@@ -10,10 +10,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	contentvalidation "k8s.io/apimachinery/pkg/api/validate/content"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -38,6 +41,8 @@ const maxDistributionFieldLen = 256
 
 const certManagerIssuerRefNameKey = "CERT_MANAGER_ISSUER_REF_NAME"
 const certManagerIssuerRefKindKey = "CERT_MANAGER_ISSUER_REF_KIND"
+const certManagerIssuerRefGroupKey = "CERT_MANAGER_ISSUER_REF_GROUP"
+const defaultCertManagerIssuerRefGroup = "cert-manager.io"
 
 // OperatorConfig holds internal controller flags read from a ConfigMap.
 // A missing or malformed ConfigMap results in zero-value defaults and never
@@ -54,28 +59,52 @@ type distributionConfig struct {
 }
 
 // certManagerConfig is the xKS certificate issuer contract published by the
-// platform in the Dashboard module ConfigMap. The platform owns these values;
-// module operators must not infer them from environment variables or defaults.
+// platform in the Dashboard module ConfigMap. Name and kind are platform-owned;
+// group defaults to native cert-manager when the platform does not publish it.
 type certManagerConfig struct {
-	IssuerRefName string
-	IssuerRefKind string
+	IssuerRefName  string
+	IssuerRefKind  string
+	IssuerRefGroup string
 }
 
 func readCertManagerConfig(ctx context.Context, reader client.Reader, namespace string) (certManagerConfig, error) {
 	cm := &corev1.ConfigMap{}
-	key := types.NamespacedName{Name: distributionConfigMapName, Namespace: namespace}
+	configMapName := resolveDistributionConfigMapName()
+	key := types.NamespacedName{Name: configMapName, Namespace: namespace}
 	if err := reader.Get(ctx, key, cm); err != nil {
-		return certManagerConfig{}, fmt.Errorf("reading xKS platform ConfigMap %s/%s: %w", namespace, distributionConfigMapName, err)
+		return certManagerConfig{}, fmt.Errorf("reading xKS platform ConfigMap %s/%s: %w", namespace, configMapName, err)
 	}
 
 	config := certManagerConfig{
-		IssuerRefName: cm.Data[certManagerIssuerRefNameKey],
-		IssuerRefKind: cm.Data[certManagerIssuerRefKindKey],
+		IssuerRefName:  cm.Data[certManagerIssuerRefNameKey],
+		IssuerRefKind:  cm.Data[certManagerIssuerRefKindKey],
+		IssuerRefGroup: cm.Data[certManagerIssuerRefGroupKey],
 	}
 	if config.IssuerRefName == "" || config.IssuerRefKind == "" {
 		return certManagerConfig{}, fmt.Errorf(
 			"xKS platform ConfigMap %s/%s is missing %s or %s",
-			namespace, distributionConfigMapName, certManagerIssuerRefNameKey, certManagerIssuerRefKindKey,
+			namespace, configMapName, certManagerIssuerRefNameKey, certManagerIssuerRefKindKey,
+		)
+	}
+	if errs := k8svalidation.IsDNS1123Subdomain(config.IssuerRefName); len(errs) > 0 {
+		return certManagerConfig{}, fmt.Errorf(
+			"xKS platform ConfigMap %s/%s has invalid %s: %s",
+			namespace, configMapName, certManagerIssuerRefNameKey, strings.Join(errs, "; "),
+		)
+	}
+	if errs := contentvalidation.IsCIdentifier(config.IssuerRefKind); len(errs) > 0 {
+		return certManagerConfig{}, fmt.Errorf(
+			"xKS platform ConfigMap %s/%s has invalid %s: %s",
+			namespace, configMapName, certManagerIssuerRefKindKey, strings.Join(errs, "; "),
+		)
+	}
+	if config.IssuerRefGroup == "" {
+		config.IssuerRefGroup = defaultCertManagerIssuerRefGroup
+	}
+	if errs := k8svalidation.IsDNS1123Subdomain(config.IssuerRefGroup); len(errs) > 0 {
+		return certManagerConfig{}, fmt.Errorf(
+			"xKS platform ConfigMap %s/%s has invalid %s: %s",
+			namespace, configMapName, certManagerIssuerRefGroupKey, strings.Join(errs, "; "),
 		)
 	}
 	return config, nil
@@ -220,13 +249,26 @@ func namedConfigMapNames() []string {
 }
 
 func newSelectedConfigMapCache(mgr ctrl.Manager, namespace string, labelSelector k8slabels.Selector, fieldSelector fields.Selector) (cache.Cache, error) {
+	return newSelectedResourceCache(mgr, &corev1.ConfigMap{}, namespace, labelSelector, fieldSelector)
+}
+
+// newXKSCertificateCache is an event-only cache for the fixed XKS serving
+// Certificate. The field selector is enforced by the API server, so unrelated
+// Certificates cannot enter the operator's cache.
+func newXKSCertificateCache(mgr ctrl.Manager, namespace string) (cache.Cache, error) {
+	certificate := &unstructured.Unstructured{}
+	certificate.SetGroupVersionKind(certificateGVK)
+	return newSelectedResourceCache(mgr, certificate, namespace, nil, fields.OneTermEqualSelector("metadata.name", rhaiiDashboardTLSName))
+}
+
+func newSelectedResourceCache(mgr ctrl.Manager, object client.Object, namespace string, labelSelector k8slabels.Selector, fieldSelector fields.Selector) (cache.Cache, error) {
 	selectedCache, err := cache.New(mgr.GetConfig(), cache.Options{
 		HTTPClient:                  mgr.GetHTTPClient(),
 		Scheme:                      mgr.GetScheme(),
 		Mapper:                      mgr.GetRESTMapper(),
 		ReaderFailOnMissingInformer: true,
 		ByObject: map[client.Object]cache.ByObject{
-			&corev1.ConfigMap{}: {
+			object: {
 				Namespaces: map[string]cache.Config{namespace: {}},
 				Label:      labelSelector,
 				Field:      fieldSelector,
@@ -236,11 +278,11 @@ func newSelectedConfigMapCache(mgr ctrl.Manager, namespace string, labelSelector
 	if err != nil {
 		return nil, err
 	}
-	if _, err := selectedCache.GetInformer(context.Background(), &corev1.ConfigMap{}); err != nil {
-		return nil, fmt.Errorf("requesting ConfigMap informer: %w", err)
+	if _, err := selectedCache.GetInformer(context.Background(), object); err != nil {
+		return nil, fmt.Errorf("requesting selected resource informer: %w", err)
 	}
 	if err := mgr.Add(selectedCache); err != nil {
-		return nil, fmt.Errorf("adding ConfigMap cache: %w", err)
+		return nil, fmt.Errorf("adding selected resource cache: %w", err)
 	}
 	return selectedCache, nil
 }

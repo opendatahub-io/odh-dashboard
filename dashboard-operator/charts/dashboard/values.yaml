@@ -12,6 +12,10 @@ namePrefix: odh-
 
 namespace: opendatahub
 
+# Namespace where dashboard operands run. It normally matches namespace, but
+# XKS runs the controller and its dashboard workload in separate namespaces.
+applicationsNamespace: ""
+
 commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
   platform.opendatahub.io/part-of: dashboard
@@ -54,6 +58,11 @@ serviceAccount:
 
 rbac:
   create: true
+
+# XKS deploys the controller separately from its dashboard operands. Enable
+# only when the platform installer also supplies applicationsNamespace.
+xks:
+  enabled: false
 
 # Least-privilege ingress NetworkPolicy for the controller pod (metrics :8443 from monitoring
 # namespaces, health probes :8081). Satisfies HPSTRAT-104 / operand contract RHOAIENG-90747.

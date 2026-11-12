@@ -15,7 +15,7 @@ spec:
         deployment: rhaii-dashboard
         app.kubernetes.io/component: rhaii-dashboard
         app.kubernetes.io/part-of: rhaii-dashboard
-        platform.opendatahub.io/part-of: rhaii-dashboard
+        platform.opendatahub.io/part-of: dashboard
     spec:
       automountServiceAccountToken: false
       serviceAccountName: rhaii-dashboard

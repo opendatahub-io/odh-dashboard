@@ -73,7 +73,7 @@ func TestTeardownManagedResourcesIgnoresUnavailableHTTPRouteAPI(t *testing.T) {
 	assertTeardownResourceAbsent(t, cli, configMap)
 }
 
-func TestTeardownManagedResourcesDeletesManagedCertificateAndXKSTLSSecret(t *testing.T) {
+func TestTeardownManagedResourcesDeletesOnlyXKSCertificateAndTLSSecret(t *testing.T) {
 	managedLabels := map[string]interface{}{labels.PlatformPartOf: "dashboard"}
 	certificate := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "cert-manager.io/v1",
@@ -93,8 +93,17 @@ func TestTeardownManagedResourcesDeletesManagedCertificateAndXKSTLSSecret(t *tes
 			"labels":    managedLabels,
 		},
 	}}
+	otherCertificate := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "cert-manager.io/v1",
+		"kind":       "Certificate",
+		"metadata": map[string]interface{}{
+			"name":      "unrelated-dashboard-certificate",
+			"namespace": teardownTestNamespace,
+			"labels":    managedLabels,
+		},
+	}}
 	tlsSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "rhaii-dashboard-tls", Namespace: teardownTestNamespace}}
-	cli := fake.NewClientBuilder().WithScheme(teardownTestScheme(t)).WithObjects(certificate, webhookCertificate, tlsSecret).Build()
+	cli := fake.NewClientBuilder().WithScheme(teardownTestScheme(t)).WithObjects(certificate, webhookCertificate, otherCertificate, tlsSecret).Build()
 	reconciler := &DashboardReconciler{Client: cli, ApplicationsNamespace: teardownTestNamespace, Platform: cluster.XKS}
 
 	result, err := reconciler.teardownManagedResources(context.Background(), &v1alpha1.Dashboard{}, nil, false, false)
@@ -102,6 +111,7 @@ func TestTeardownManagedResourcesDeletesManagedCertificateAndXKSTLSSecret(t *tes
 	assert.False(t, result.Pending)
 	assertTeardownResourceAbsent(t, cli, certificate)
 	assertTeardownResourcePresent(t, cli, webhookCertificate)
+	assertTeardownResourcePresent(t, cli, otherCertificate)
 	assertTeardownResourceAbsent(t, cli, tlsSecret)
 }
 

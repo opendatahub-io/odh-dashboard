@@ -73,6 +73,18 @@ replacements:
           name: rhaii-dashboard-tls
         fieldPaths:
           - spec.issuerRef.kind
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.certificate-issuer-group
+    targets:
+      - select:
+          group: cert-manager.io
+          version: v1
+          kind: Certificate
+          name: rhaii-dashboard-tls
+        fieldPaths:
+          - spec.issuerRef.group
   # Keep the HTTPRoute backend reference synchronized with the Service port.
   # The Service selects the TLS endpoint exposed by kube-rbac-proxy.
   - source:

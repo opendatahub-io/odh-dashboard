@@ -168,7 +168,7 @@ func createManagedHTTPRoute(t *testing.T, dashboard *v1alpha1.Dashboard) *gatewa
 	route := &gatewayv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{
 		Name:      "rhods-dashboard",
 		Namespace: integrationNamespace,
-		Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		Labels:    dashboardManagementLabels(),
 		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(
 			dashboard,
 			v1alpha1.GroupVersion.WithKind(v1alpha1.DashboardKind),
@@ -186,7 +186,7 @@ func createManagedPodDisruptionBudget(t *testing.T, dashboard *v1alpha1.Dashboar
 	pdb := &policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{
 		Name:      "rhods-dashboard",
 		Namespace: integrationNamespace,
-		Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		Labels:    dashboardManagementLabels(),
 		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(
 			dashboard,
 			v1alpha1.GroupVersion.WithKind(v1alpha1.DashboardKind),

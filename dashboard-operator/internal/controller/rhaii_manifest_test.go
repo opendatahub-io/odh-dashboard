@@ -3,6 +3,7 @@ package controller
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
+	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/render/kustomize"
 
@@ -55,6 +57,10 @@ func TestRenderRHAIIDashboardManifestBundle(t *testing.T) {
 
 	deployment := resources["Deployment/rhaii-dashboard"]
 	require.NotNil(t, deployment)
+	podLabels, found, err := unstructured.NestedStringMap(deployment.Object, "spec", "template", "metadata", "labels")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, "dashboard", podLabels[labels.PlatformPartOf])
 	containers, found, err := unstructured.NestedSlice(deployment.Object, "spec", "template", "spec", "containers")
 	require.NoError(t, err)
 	require.True(t, found)
@@ -82,7 +88,7 @@ func TestRenderRHAIIDashboardManifestBundle(t *testing.T) {
 	assert.Equal(t, "https", ports[0].(map[string]interface{})["appProtocol"])
 	assert.Equal(t, "dashboard-ui", ports[0].(map[string]interface{})["targetPort"])
 
-	certificate := resources["Certificate/rhaii-dashboard-tls"]
+	certificate := resources["Certificate/"+rhaiiDashboardTLSName]
 	require.NotNil(t, certificate)
 	issuerName, found, err := unstructured.NestedString(certificate.Object, "spec", "issuerRef", "name")
 	require.NoError(t, err)
@@ -92,10 +98,14 @@ func TestRenderRHAIIDashboardManifestBundle(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, found)
 	assert.Equal(t, "ClusterIssuer", issuerKind)
+	issuerGroup, found, err := unstructured.NestedString(certificate.Object, "spec", "issuerRef", "group")
+	require.NoError(t, err)
+	require.True(t, found)
+	assert.Equal(t, defaultCertManagerIssuerRefGroup, issuerGroup)
 	secretName, found, err := unstructured.NestedString(certificate.Object, "spec", "secretName")
 	require.NoError(t, err)
 	require.True(t, found)
-	assert.Equal(t, "rhaii-dashboard-tls", secretName)
+	assert.Equal(t, rhaiiDashboardTLSName, secretName)
 	dnsNames, found, err := unstructured.NestedStringSlice(certificate.Object, "spec", "dnsNames")
 	require.NoError(t, err)
 	require.True(t, found)
@@ -155,7 +165,46 @@ func TestRenderRHAIIDashboardManifestBundle(t *testing.T) {
 	}
 }
 
-func TestRHAIICertificateUsesApplicationsNamespace(t *testing.T) {
+func TestRHAIICertificateUsesApplicationsNamespaceAndDNSNames(t *testing.T) {
+	source := filepath.Join("..", "..", "..", "manifests", "distributions", "rhaii")
+	bundle := filepath.Join(t.TempDir(), "rhaii")
+	require.NoError(t, os.MkdirAll(bundle, 0755))
+	require.NoError(t, os.CopyFS(bundle, os.DirFS(source)))
+	applicationsNamespace := strings.Repeat("a", 63)
+
+	manifests := []render.ManifestInfo{{Path: bundle}}
+	require.NoError(t, applyKustomizeParamsWithOverrides(&v1alpha1.Dashboard{}, manifests, cluster.XKS, map[string]string{
+		"rhaii-dashboard-namespace": applicationsNamespace,
+	}))
+
+	rendered, err := kustomize.NewEngine().Render(bundle, kustomize.WithNamespace(applicationsNamespace))
+	require.NoError(t, err)
+
+	for i := range rendered {
+		resource := &rendered[i]
+		if resource.GetKind() != "Certificate" || resource.GetName() != rhaiiDashboardTLSName {
+			continue
+		}
+
+		commonName, found, err := unstructured.NestedString(resource.Object, "spec", "commonName")
+		require.NoError(t, err)
+		assert.False(t, found)
+		assert.Empty(t, commonName)
+
+		dnsNames, found, err := unstructured.NestedStringSlice(resource.Object, "spec", "dnsNames")
+		require.NoError(t, err)
+		require.True(t, found)
+		assert.Equal(t, []string{
+			"rhaii-dashboard." + applicationsNamespace + ".svc",
+			"rhaii-dashboard." + applicationsNamespace + ".svc.cluster.local",
+		}, dnsNames)
+		return
+	}
+
+	require.Fail(t, "rhaii dashboard Certificate was not rendered")
+}
+
+func TestRHAIICertificateUsesIssuerGroupOverride(t *testing.T) {
 	source := filepath.Join("..", "..", "..", "manifests", "distributions", "rhaii")
 	bundle := filepath.Join(t.TempDir(), "rhaii")
 	require.NoError(t, os.MkdirAll(bundle, 0755))
@@ -163,30 +212,21 @@ func TestRHAIICertificateUsesApplicationsNamespace(t *testing.T) {
 
 	manifests := []render.ManifestInfo{{Path: bundle}}
 	require.NoError(t, applyKustomizeParamsWithOverrides(&v1alpha1.Dashboard{}, manifests, cluster.XKS, map[string]string{
-		"rhaii-dashboard-namespace": "custom-applications",
+		"certificate-issuer-group": "awspca.cert-manager.io",
 	}))
 
-	rendered, err := kustomize.NewEngine().Render(bundle, kustomize.WithNamespace("custom-applications"))
+	rendered, err := kustomize.NewEngine().Render(bundle, kustomize.WithNamespace("applications"))
 	require.NoError(t, err)
-
 	for i := range rendered {
 		resource := &rendered[i]
-		if resource.GetKind() != "Certificate" || resource.GetName() != "rhaii-dashboard-tls" {
+		if resource.GetKind() != "Certificate" || resource.GetName() != rhaiiDashboardTLSName {
 			continue
 		}
 
-		commonName, found, err := unstructured.NestedString(resource.Object, "spec", "commonName")
+		issuerGroup, found, err := unstructured.NestedString(resource.Object, "spec", "issuerRef", "group")
 		require.NoError(t, err)
 		require.True(t, found)
-		assert.Equal(t, "rhaii-dashboard.custom-applications.svc", commonName)
-
-		dnsNames, found, err := unstructured.NestedStringSlice(resource.Object, "spec", "dnsNames")
-		require.NoError(t, err)
-		require.True(t, found)
-		assert.Equal(t, []string{
-			"rhaii-dashboard.custom-applications.svc",
-			"rhaii-dashboard.custom-applications.svc.cluster.local",
-		}, dnsNames)
+		assert.Equal(t, "awspca.cert-manager.io", issuerGroup)
 		return
 	}
 

@@ -82,21 +82,38 @@ func TestReadDistributionConfigUsesOneSnapshot(t *testing.T) {
 
 func TestReadCertManagerConfig(t *testing.T) {
 	tests := []struct {
-		name      string
-		configMap *corev1.ConfigMap
-		want      certManagerConfig
-		wantErr   string
+		name          string
+		configMapName string
+		configMap     *corev1.ConfigMap
+		want          certManagerConfig
+		wantErr       string
 	}{
 		{
 			name: "reads platform managed issuer reference",
 			configMap: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-applications"},
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-operator"},
 				Data: map[string]string{
 					certManagerIssuerRefNameKey: "platform-ca-issuer",
 					certManagerIssuerRefKindKey: "ClusterIssuer",
 				},
 			},
-			want: certManagerConfig{IssuerRefName: "platform-ca-issuer", IssuerRefKind: "ClusterIssuer"},
+			want: certManagerConfig{
+				IssuerRefName: "platform-ca-issuer", IssuerRefKind: "ClusterIssuer", IssuerRefGroup: defaultCertManagerIssuerRefGroup,
+			},
+		},
+		{
+			name:          "reads issuer reference from configured configmap name",
+			configMapName: "custom-dashboard-config",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "custom-dashboard-config", Namespace: "test-operator"},
+				Data: map[string]string{
+					certManagerIssuerRefNameKey: "platform-ca-issuer",
+					certManagerIssuerRefKindKey: "ClusterIssuer",
+				},
+			},
+			want: certManagerConfig{
+				IssuerRefName: "platform-ca-issuer", IssuerRefKind: "ClusterIssuer", IssuerRefGroup: defaultCertManagerIssuerRefGroup,
+			},
 		},
 		{
 			name:    "configmap missing",
@@ -105,21 +122,72 @@ func TestReadCertManagerConfig(t *testing.T) {
 		{
 			name: "issuer keys missing",
 			configMap: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-applications"},
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-operator"},
 				Data:       map[string]string{certManagerIssuerRefNameKey: "platform-ca-issuer"},
 			},
 			wantErr: "is missing CERT_MANAGER_ISSUER_REF_NAME or CERT_MANAGER_ISSUER_REF_KIND",
+		},
+		{
+			name: "accepts third party issuer group",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-operator"},
+				Data: map[string]string{
+					certManagerIssuerRefNameKey:  "platform-ca-issuer",
+					certManagerIssuerRefKindKey:  "AWSPCAIssuer",
+					certManagerIssuerRefGroupKey: "awspca.cert-manager.io",
+				},
+			},
+			want: certManagerConfig{
+				IssuerRefName: "platform-ca-issuer", IssuerRefKind: "AWSPCAIssuer", IssuerRefGroup: "awspca.cert-manager.io",
+			},
+		},
+		{
+			name: "rejects invalid issuer group",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-operator"},
+				Data: map[string]string{
+					certManagerIssuerRefNameKey:  "platform-ca-issuer",
+					certManagerIssuerRefKindKey:  "AWSPCAIssuer",
+					certManagerIssuerRefGroupKey: "invalid_group",
+				},
+			},
+			wantErr: "has invalid CERT_MANAGER_ISSUER_REF_GROUP",
+		},
+		{
+			name: "rejects issuer name params env injection",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-operator"},
+				Data: map[string]string{
+					certManagerIssuerRefNameKey: "platform-ca-issuer\ninjected=value",
+					certManagerIssuerRefKindKey: "ClusterIssuer",
+				},
+			},
+			wantErr: "has invalid CERT_MANAGER_ISSUER_REF_NAME",
+		},
+		{
+			name: "rejects issuer kind params env injection",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: distributionConfigMapName, Namespace: "test-operator"},
+				Data: map[string]string{
+					certManagerIssuerRefNameKey: "platform-ca-issuer",
+					certManagerIssuerRefKindKey: "ClusterIssuer\ninjected=value",
+				},
+			},
+			wantErr: "has invalid CERT_MANAGER_ISSUER_REF_KIND",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.configMapName != "" {
+				t.Setenv("OPERATOR_CONFIGMAP_NAME", tt.configMapName)
+			}
 			builder := fake.NewClientBuilder().WithScheme(configTestScheme(t))
 			if tt.configMap != nil {
 				builder = builder.WithObjects(tt.configMap)
 			}
 
-			got, err := readCertManagerConfig(context.Background(), builder.Build(), "test-applications")
+			got, err := readCertManagerConfig(context.Background(), builder.Build(), "test-operator")
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
 				return

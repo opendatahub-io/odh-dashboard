@@ -53,6 +53,13 @@ func testScheme(t *testing.T) *runtime.Scheme {
 	return s
 }
 
+// dashboardManagementLabels returns a fresh copy of the label contract used by
+// the Dashboard deployer and removal lifecycle. Fixtures that model managed
+// operands must use it so teardown tests exercise the same selection path.
+func dashboardManagementLabels() map[string]string {
+	return map[string]string{labels.PlatformPartOf: "dashboard"}
+}
+
 func createMinimalManifests(t *testing.T) string {
 	t.Helper()
 
@@ -132,7 +139,7 @@ func admittedRoute(namespace string) *routev1.Route {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dashboard",
 			Namespace: namespace,
-			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+			Labels:    dashboardManagementLabels(),
 		},
 		Status: routev1.RouteStatus{
 			Ingress: []routev1.RouteIngress{
@@ -152,15 +159,18 @@ func readyDashboardResources(namespace, dashboardName string) []client.Object {
 
 	return []client.Object{
 		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: dashboardName, Namespace: namespace, Generation: 1},
+			ObjectMeta: metav1.ObjectMeta{Name: dashboardName, Namespace: namespace, Generation: 1, Labels: dashboardManagementLabels()},
 			Status: appsv1.DeploymentStatus{
 				ObservedGeneration: 1,
+				Replicas:           1,
+				UpdatedReplicas:    1,
+				ReadyReplicas:      1,
 				AvailableReplicas:  1,
 				Conditions:         []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}},
 			},
 		},
 		&gatewayv1.HTTPRoute{
-			ObjectMeta: metav1.ObjectMeta{Name: dashboardName, Namespace: namespace, Generation: 1},
+			ObjectMeta: metav1.ObjectMeta{Name: dashboardName, Namespace: namespace, Generation: 1, Labels: dashboardManagementLabels()},
 			Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
 				ParentRefs: []gatewayv1.ParentReference{{Name: testGatewayName}},
 			}},
@@ -269,6 +279,46 @@ func TestReconcile_DisabledObservabilityCleanupFailureDoesNotBlockCore(t *testin
 			})
 		}
 	}
+}
+
+func TestReconcile_NamespacedRBACFailureRetriesWhenNoOtherRetryIsPending(t *testing.T) {
+	scheme := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName, Finalizers: []string{"components.platform.opendatahub.io/cleanup"}},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec:     common.ManagementSpec{ManagementState: "Managed"},
+			NotebooksNamespace: "notebooks",
+			Observability:      &v1alpha1.ObservabilitySpec{Enabled: false},
+		},
+	}
+	objects := append([]client.Object{dashboard, admittedRoute(testNamespace)}, readyDashboardResources(testNamespace, ctrlpkg.ODHDashboardResourceName)...)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Create: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+				if role, ok := obj.(*rbacv1.Role); ok && role.Name == "dashboard-notebooks-role" {
+					return k8serrors.NewForbidden(rbacv1.Resource("roles"), role.Name, errors.New("creation denied"))
+				}
+				return delegate.Create(ctx, obj, opts...)
+			},
+		}).Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                cli,
+		Scheme:                scheme,
+		ManifestsBasePath:     createMinimalManifests(t),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
+	}
+
+	result, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.NoError(t, err)
+	assert.Equal(t, ctrlpkg.ObservabilityRetryInterval, result.RequeueAfter)
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	condition := conditions.FindStatusCondition(updated, string(common.ConditionTypeDegraded))
+	require.NotNil(t, condition)
+	assert.Equal(t, metav1.ConditionTrue, condition.Status)
 }
 
 func TestReconcile_ObservabilityDetectionFailureDoesNotBlockCore(t *testing.T) {
@@ -562,8 +612,9 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 		},
 		Spec: v1alpha1.DashboardSpec{
-			ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
-			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
+			ManagementSpec:            common.ManagementSpec{ManagementState: "Removed"},
+			ModelRegistryOCIBaseImage: "invalid-image",
+			MaaSPortal:                &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"},
 		},
 		Status: v1alpha1.DashboardStatus{
 			// Seed legacy status to verify the old condition is removed even when
@@ -576,9 +627,13 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 			MaaSConsumerPortalURL: "https://previous.example.com/",
 		},
 	}
+	shared := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "maas-ui", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard", "app.kubernetes.io/component": "maas"}}}
+	core := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "core-config", Namespace: testNamespace,
+		Labels: map[string]string{labels.PlatformPartOf: "dashboard"}}}
 	cli := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(dashboard).
+		WithObjects(dashboard, shared, core).
 		WithStatusSubresource(dashboard).
 		Build()
 	r := &ctrlpkg.DashboardReconciler{
@@ -593,7 +648,11 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	_, err := r.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
 	})
-	require.Error(t, err)
+	require.ErrorContains(t, err, "failed to render manifests for module maas")
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(core), &corev1.ConfigMap{}),
+		"core teardown must wait for required shared modules to deploy successfully")
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(shared), &appsv1.Deployment{}),
+		"failed update must not delete a required shared module")
 
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
@@ -1218,6 +1277,9 @@ data:
 
 func TestReconcile_XKSStatusContract(t *testing.T) {
 	s := testScheme(t)
+	const operatorNamespace = "test-operator"
+	const applicationsNamespace = "test-applications"
+	t.Setenv("OPERATOR_CONFIGMAP_NAME", "custom-dashboard-config")
 	dashboard := &v1alpha1.Dashboard{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       v1alpha1.DashboardInstanceName,
@@ -1234,7 +1296,7 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 	cli := fake.NewClientBuilder().
 		WithScheme(s).
 		WithObjects(dashboard, &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Name: "odh-dashboard-config", Namespace: testNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "custom-dashboard-config", Namespace: operatorNamespace},
 			Data: map[string]string{
 				"CERT_MANAGER_ISSUER_REF_NAME": "test-ca-issuer",
 				"CERT_MANAGER_ISSUER_REF_KIND": "ClusterIssuer",
@@ -1247,8 +1309,8 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 		Scheme:                s,
 		ManifestsBasePath:     createMinimalXKSManifests(t),
 		Platform:              cluster.XKS,
-		Namespace:             testNamespace,
-		ApplicationsNamespace: testNamespace,
+		Namespace:             operatorNamespace,
+		ApplicationsNamespace: applicationsNamespace,
 		RouteAPIAvailable:     true,
 	}
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}}
@@ -1258,8 +1320,8 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 
 	// The real reconciler must select and apply the XKS/RHAII bundle, rather
 	// than merely producing a healthy status through an OpenShift lifecycle.
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: "rhaii-dashboard-test", Namespace: testNamespace}, &corev1.ConfigMap{}))
-	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), types.NamespacedName{Name: "openshift-dashboard-test", Namespace: testNamespace}, &corev1.ConfigMap{})))
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: "rhaii-dashboard-test", Namespace: applicationsNamespace}, &corev1.ConfigMap{}))
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), types.NamespacedName{Name: "openshift-dashboard-test", Namespace: applicationsNamespace}, &corev1.ConfigMap{})))
 
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), request.NamespacedName, updated))
@@ -1274,15 +1336,15 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 	assert.Nil(t, conditions.FindStatusCondition(updated, "MaaSPortalAvailable"))
 
 	service := &corev1.Service{}
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: ctrlpkg.RHAIIDashboardResourceName, Namespace: testNamespace}, service))
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: ctrlpkg.RHAIIDashboardResourceName, Namespace: applicationsNamespace}, service))
 	service.Spec.Ports[0].Port = 9443
 	require.NoError(t, cli.Update(context.Background(), service))
 	_, err = r.Reconcile(context.Background(), request)
 	require.NoError(t, err)
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: ctrlpkg.RHAIIDashboardResourceName, Namespace: testNamespace}, service))
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: ctrlpkg.RHAIIDashboardResourceName, Namespace: applicationsNamespace}, service))
 	assert.EqualValues(t, 8443, service.Spec.Ports[0].Port)
 
-	resources := readyDashboardResources(testNamespace, ctrlpkg.RHAIIDashboardResourceName)
+	resources := readyDashboardResources(applicationsNamespace, ctrlpkg.RHAIIDashboardResourceName)
 	deployment := resources[0].(*appsv1.Deployment)
 	route := resources[1].(*gatewayv1.HTTPRoute)
 	require.NoError(t, cli.Create(context.Background(), deployment))
@@ -1309,6 +1371,8 @@ func TestReconcile_XKSStatusContract(t *testing.T) {
 	assert.Equal(t, metav1.ConditionFalse, availability.Status)
 	assert.Equal(t, ctrlpkg.RemovedConditionReason, availability.Reason)
 	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(deployment), &appsv1.Deployment{})))
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(route), &gatewayv1.HTTPRoute{})))
 }
 
 func TestReconcile_ODHLegacyRedirectFailureDoesNotBlockCore(t *testing.T) {

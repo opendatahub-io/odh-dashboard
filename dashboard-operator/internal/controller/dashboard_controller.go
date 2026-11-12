@@ -39,6 +39,7 @@ const (
 	dashboardFinalizer    = "components.platform.opendatahub.io/cleanup"
 	dashboardFieldOwner   = "dashboard-operator"
 	teardownRetryInterval = 10 * time.Second
+	rhaiiDashboardTLSName = "rhaii-dashboard-tls"
 )
 
 const conditionObservabilityAvailable = "ObservabilityAvailable"
@@ -860,17 +861,17 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		record(err)
 	}
 
-	// Certificates are optional because cert-manager is not installed on every
-	// supported platform. When present, delete dashboard-owned Certificates so
-	// their issued credentials do not survive operand removal. The operator's
-	// webhook Certificate has the same common label and is excluded by
-	// operatorOwnedResources.
-	certificates := &unstructured.UnstructuredList{}
-	certificates.SetGroupVersionKind(schema.GroupVersionKind{
-		Group: "cert-manager.io", Version: "v1", Kind: "CertificateList",
-	})
-	if err := deleteTyped(r.apiReader(), certificates, "Certificate", matchLabels, inNamespace); err != nil && !meta.IsNoMatchError(err) {
-		record(err)
+	// XKS owns exactly one cert-manager Certificate. Delete it directly rather
+	// than sweeping labelled Certificates so the controller's RBAC can remain
+	// restricted to that fixed serving-certificate identity.
+	if r.Platform == cluster.XKS {
+		xksCertificate := &unstructured.Unstructured{}
+		xksCertificate.SetGroupVersionKind(certificateGVK)
+		xksCertificate.SetNamespace(r.ApplicationsNamespace)
+		xksCertificate.SetName(rhaiiDashboardTLSName)
+		if err := r.Delete(ctx, xksCertificate); client.IgnoreNotFound(err) != nil && !meta.IsNoMatchError(err) {
+			record(fmt.Errorf("deleting XKS Certificate %s: %w", rhaiiDashboardTLSName, err))
+		}
 	}
 
 	var pdbs policyv1.PodDisruptionBudgetList
@@ -895,7 +896,7 @@ func (r *DashboardReconciler) teardownManagedResources(ctx context.Context, dash
 		// cert-manager does not label a Certificate's output Secret by default,
 		// so the label sweep above cannot select the XKS serving credential.
 		xksTLSSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
-			Name:      "rhaii-dashboard-tls",
+			Name:      rhaiiDashboardTLSName,
 			Namespace: r.ApplicationsNamespace,
 		}}
 		if err := r.Delete(ctx, xksTLSSecret); client.IgnoreNotFound(err) != nil {
