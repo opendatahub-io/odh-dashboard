@@ -4,6 +4,7 @@ const STYLE_THEME = process.env.STYLE_THEME || 'patternfly-theme';
 const DEPLOYMENT_MODE =
   asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Federated;
 const DEV_MODE = process.env.APP_ENV === 'development';
+const APP_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
 const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTERVAL) : 30000;
 const KUBEFLOW_USERNAME = process.env.KUBEFLOW_USERNAME || 'user@example.com';
 const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
@@ -17,6 +18,7 @@ export {
   STYLE_THEME,
   POLL_INTERVAL,
   DEV_MODE,
+  APP_VERSION,
   KUBEFLOW_USERNAME,
   IMAGE_DIR,
   LOGO_LIGHT,

@@ -11,14 +11,16 @@ import {
 } from 'mod-arch-core';
 import {
   BFF_API_VERSION,
+  APP_VERSION,
   DEPLOYMENT_MODE,
+  DEV_MODE,
   MANDATORY_NAMESPACE,
   URL_PREFIX,
 } from '~/app/utilities/const';
 import App from '~/app/App';
 import ToastNotifications from '~/app/components/ToastNotifications';
 
-const standaloneAnalytics = createStandaloneAnalytics();
+const standaloneAnalytics = createStandaloneAnalytics({ devMode: DEV_MODE, version: APP_VERSION });
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Root element not found');

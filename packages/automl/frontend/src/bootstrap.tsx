@@ -12,7 +12,9 @@ import {
 } from 'mod-arch-core';
 import {
   BFF_API_VERSION,
+  APP_VERSION,
   DEPLOYMENT_MODE,
+  DEV_MODE,
   MANDATORY_NAMESPACE,
   URL_PREFIX,
 } from '~/app/utilities/const';
@@ -22,7 +24,7 @@ import ToastNotifications from '~/app/components/ToastNotifications';
 import { PluginStoreContextProvider } from '~/odh/PluginStoreContextProvider';
 import { ProductProvider } from '~/odh/ProductProvider';
 
-const standaloneAnalytics = createStandaloneAnalytics();
+const standaloneAnalytics = createStandaloneAnalytics({ devMode: DEV_MODE, version: APP_VERSION });
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
 const queryClient = new QueryClient({

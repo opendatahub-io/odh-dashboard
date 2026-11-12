@@ -39,7 +39,7 @@ Page and identity operations belong to the host lifecycle. Keep them separate fr
 - `@odh-dashboard/analytics/types`: SDK-free shared contracts, including `TrackEvent`, `TrackPageEvent`, `TrackingOutcome`, and property types. This entry point imports neither React nor Segment.
 - `@odh-dashboard/analytics/react`: the SDK-free provider and tracking hooks. This entry point imports neither the implementation nor Segment. Its context is shared as a singleton across hosts and federated remotes.
 
-Use the contracts and React entry points in feature code, and reserve the standalone entry point for standalone bootstrap wiring. The `@odh-dashboard/no-direct-analytics` lint rule allows these three entry points and rejects implementation imports, Segment SDK imports, and direct analytics global access in guarded files. It does not restrict the standalone entry point to bootstrap files.
+Use the contracts and React entry points in feature code, and reserve the standalone entry point for standalone bootstrap wiring. The `@odh-dashboard/no-direct-analytics` lint rule allows only the contracts and React entry points in guarded files; standalone bootstrap files use a file-specific override.
 
 ## Usage
 
@@ -78,7 +78,7 @@ const tracking = createSegmentTracking(() => ({
 
 RHOAI uses the shared Segment adapter with its existing runtime metadata and SDK enablement behavior. Its legacy custom/page helpers reuse the same adapter. RHAII, MaaS Portal, and intentionally disabled standalone roots mount `NoopAnalyticsTrackingProvider` from `@odh-dashboard/analytics/react`. It supplies stable no-ops for both operations; tests needing spies use `AnalyticsTrackingProvider`. Federated feature roots inherit the host provider. Keep SDK initialization, consent, router effects, and identity in the host lifecycle.
 
-Standalone roots preserving legacy delivery, such as AutoML, call `createStandaloneAnalytics()` from `@odh-dashboard/analytics/standalone` once outside React rendering and pass the returned object to `AnalyticsTrackingProvider`. The factory logs events when `APP_ENV === 'development'`; otherwise, it forwards through an existing `window.analytics` and remains silent when none exists. It uses `INTERNAL_DASHBOARD_VERSION` from the application's build environment and reads the current `window.clusterID` for each operation; missing version and cluster ID values default to `''`. It neither initializes the SDK nor changes consent or identity ownership. Hosts with different metadata or delivery policies use `createSegmentTracking(getOptions)` explicitly.
+Standalone roots call `createStandaloneAnalytics({ devMode, version })` from `@odh-dashboard/analytics/standalone` once outside React rendering and pass the result to `AnalyticsTrackingProvider`. The application supplies its build-time values. The factory logs events in development mode; otherwise, it forwards through an existing `window.analytics` and remains silent when none exists. It reads the current `window.clusterID` per operation, defaulting to `''`. It neither initializes the SDK nor changes consent or identity ownership. Hosts with different metadata or delivery policies use `createSegmentTracking(getOptions)` explicitly.
 
 ### SDK Initialization
 
