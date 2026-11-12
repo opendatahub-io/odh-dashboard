@@ -267,10 +267,7 @@ export const assemblePodSpecOptions = (
     const { existingContainerResources, existingTolerations, existingNodeSelector } =
       existingResources;
     podSpecOptions = {
-      resources: resolveContainerResources(
-        hardwareProfileConfig.formData,
-        existingContainerResources,
-      ),
+      resources: existingContainerResources,
       tolerations: existingTolerations,
       nodeSelector: existingNodeSelector,
       ...podSpecOptions,
@@ -285,15 +282,6 @@ export const assemblePodSpecOptions = (
   }
   return podSpecOptions;
 };
-
-// The form keeps the last selected profile's values; "Use existing settings" reads the workload's own.
-export const resolveContainerResources = (
-  {
-    useExistingSettings,
-    resources,
-  }: Pick<HardwareProfileConfig, 'useExistingSettings' | 'resources'>,
-  existingContainerResources?: ContainerResources,
-): ContainerResources | undefined => (useExistingSettings ? existingContainerResources : resources);
 
 const hasContainerResources = (resources?: ContainerResources): resources is ContainerResources =>
   !!resources &&
@@ -362,13 +350,14 @@ export const applyHardwareProfileConfig = <T extends K8sResourceCommon>(
     delete result.metadata.annotations['opendatahub.io/hardware-profile-resource-version'];
   }
 
-  if (paths?.containerResourcesPath && (useExistingSettings || selectedProfile)) {
-    const resourcesToApply = resolveContainerResources(config, existingContainerResources);
-    const canApply = useExistingSettings
-      ? hasContainerResources(resourcesToApply)
-      : !!resourcesToApply;
-    if (canApply) {
-      set(result, paths.containerResourcesPath, structuredClone(resourcesToApply));
+  if (paths?.containerResourcesPath) {
+    // The form keeps the last selected profile's values; "Use existing settings" reads the workload's own.
+    if (useExistingSettings) {
+      if (hasContainerResources(existingContainerResources)) {
+        set(result, paths.containerResourcesPath, structuredClone(existingContainerResources));
+      }
+    } else if (selectedProfile && resources) {
+      set(result, paths.containerResourcesPath, structuredClone(resources));
     }
   }
 
