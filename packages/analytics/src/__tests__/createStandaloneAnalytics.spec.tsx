@@ -11,7 +11,6 @@ jest.mock('@segment/analytics-next', () => ({
 const mockLoad = jest.mocked(AnalyticsBrowser.load);
 
 describe('standalone tracking compatibility', () => {
-  const originalEnv = process.env;
   const originalAnalytics = Object.getOwnPropertyDescriptor(window, 'analytics');
   const originalClusterID = Object.getOwnPropertyDescriptor(window, 'clusterID');
   const track = jest.fn();
@@ -19,15 +18,11 @@ describe('standalone tracking compatibility', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env = { ...originalEnv };
-    delete process.env.APP_ENV;
-    delete process.env.INTERNAL_DASHBOARD_VERSION;
     Reflect.deleteProperty(window, 'analytics');
     Reflect.deleteProperty(window, 'clusterID');
   });
 
   afterEach(() => {
-    process.env = originalEnv;
     for (const [key, descriptor] of [
       ['analytics', originalAnalytics],
       ['clusterID', originalClusterID],
@@ -42,11 +37,9 @@ describe('standalone tracking compatibility', () => {
   });
 
   it('should forward exact events and current metadata through the provider without initialization', () => {
-    process.env.APP_ENV = 'production';
-    process.env.INTERNAL_DASHBOARD_VERSION = '3.6.0';
     window.clusterID = 'cluster-1';
     window.analytics = { track, page };
-    const tracking = createStandaloneAnalytics();
+    const tracking = createStandaloneAnalytics({ devMode: false, version: '3.6.0' });
     const { result, rerender } = renderHook(useTrackEvent, {
       wrapper: ({ children }: React.PropsWithChildren) => (
         <AnalyticsTrackingProvider value={tracking}>{children}</AnalyticsTrackingProvider>
@@ -74,11 +67,9 @@ describe('standalone tracking compatibility', () => {
   });
 
   it('should preserve development telemetry logs without forwarding to the SDK', () => {
-    process.env.APP_ENV = 'development';
-    process.env.INTERNAL_DASHBOARD_VERSION = 'dev-version';
     window.analytics = { track, page };
     const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
-    const tracking = createStandaloneAnalytics();
+    const tracking = createStandaloneAnalytics({ devMode: true, version: 'dev-version' });
     expect(log).not.toHaveBeenCalled();
 
     tracking.trackEvent('standalone-event', { outcome: 'cancel', hasDescription: false });
@@ -93,7 +84,7 @@ describe('standalone tracking compatibility', () => {
   });
 
   it('should remain silent when no SDK exists and use it if one becomes available later', () => {
-    const tracking = createStandaloneAnalytics();
+    const tracking = createStandaloneAnalytics({ devMode: false, version: '' });
     expect(() => tracking.trackEvent('next-event', {})).not.toThrow();
     expect(mockLoad).not.toHaveBeenCalled();
 
@@ -106,7 +97,7 @@ describe('standalone tracking compatibility', () => {
 
   it('should stop forwarding if the SDK is removed without initializing a replacement', () => {
     window.analytics = { track, page };
-    const tracking = createStandaloneAnalytics();
+    const tracking = createStandaloneAnalytics({ devMode: false, version: '' });
     tracking.trackEvent('next-event', {});
     Reflect.deleteProperty(window, 'analytics');
 
