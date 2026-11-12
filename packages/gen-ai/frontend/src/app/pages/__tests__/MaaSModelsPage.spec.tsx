@@ -39,9 +39,7 @@ describe('MaaSModelsPage', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Model endpoints' })).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Browse the Models-as-a-Service endpoints available through your subscriptions.',
-      ),
+      screen.getByText('Browse model endpoints that your subscriptions grant you access to.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
     expect(screen.queryByTestId('namespace-selector')).not.toBeInTheDocument();
@@ -75,7 +73,7 @@ describe('MaaSModelsPage', () => {
       refresh,
     });
     renderPage();
-    expect(screen.getByTestId('maas-models-error')).toHaveTextContent('Unable to load MaaS models');
+    expect(screen.getByTestId('maas-models-error')).toHaveTextContent('Unable to load page');
     expect(screen.queryByTestId('maas-models-loading')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('maas-models-retry'));
     expect(refresh).toHaveBeenCalledTimes(1);
