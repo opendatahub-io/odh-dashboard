@@ -105,7 +105,7 @@ func TestMcpServerDeployReadiness(t *testing.T) {
 		{name: "OpenShift server with a usable gateway", serverID: "4", reader: &countingOperatorReader{obj: redhatrepos.NewMockMCPLifecycleOperator()}, gatewayRequired: true, deployable: true, wantReads: 1},
 		{name: "current catalog OpenShift server with a usable gateway", serverID: "5", reader: &countingOperatorReader{obj: redhatrepos.NewMockMCPLifecycleOperator()}, gatewayRequired: true, deployable: true, wantReads: 1},
 		{name: "OpenShift server with operator not ready", serverID: "4", reader: &countingOperatorReader{obj: notReadyOperator}, gatewayRequired: true, reason: models.McpDeployReadinessOperatorNotReady, wantReads: 1},
-		{name: "OpenShift server when the CR cannot be read", serverID: "4", reader: &countingOperatorReader{err: errors.New("forbidden")}, gatewayRequired: true, reason: models.McpDeployReadinessGatewayStatusUnavailable, wantReads: 1},
+		{name: "OpenShift server when the CR cannot be read", serverID: "4", reader: &countingOperatorReader{err: errors.New("forbidden")}, gatewayRequired: true, reason: models.McpDeployReadinessInstallerRBACUnavailable, wantReads: 1},
 		{name: "other server does not read the CR", serverID: "1", reader: &countingOperatorReader{err: errors.New("must not be called")}, deployable: true, wantReads: 0},
 	}
 

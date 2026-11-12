@@ -53,6 +53,23 @@ rules:
       - update
       - patch
       - delete
+  # Read-only inventory used to prove that operator-created dependents are
+  # gone before a rollback or uninstall is reported complete.
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - replicasets
+    verbs:
+      - get
+      - list
   - apiGroups:
       - ""
     resources:

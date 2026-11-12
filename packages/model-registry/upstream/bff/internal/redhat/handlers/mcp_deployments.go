@@ -137,6 +137,8 @@ func overrideMcpDeploymentGet(app *api.App, buildDefault func() httprouter.Handl
 
 func handleMcpDeploymentError(app *api.App, w http.ResponseWriter, r *http.Request, err error) {
 	switch {
+	case errors.Is(err, redhatrepos.ErrMcpDeploymentRBAC):
+		app.Forbidden(w, r, err.Error())
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentValidation):
 		app.BadRequest(w, r, err)
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentNotFound):

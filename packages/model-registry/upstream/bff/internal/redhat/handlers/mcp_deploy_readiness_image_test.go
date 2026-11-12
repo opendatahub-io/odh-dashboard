@@ -169,7 +169,7 @@ func TestMcpDeployReadiness(t *testing.T) {
 			name:            "OpenShift image when the CR cannot be read",
 			query:           url.Values{"image": {openShiftMcpServerTestImage}},
 			reader:          &countingOperatorReader{err: errors.New("forbidden")},
-			gatewayRequired: true, reason: models.McpDeployReadinessGatewayStatusUnavailable, wantReads: 1, wantChecks: []string{"create team-ns"},
+			gatewayRequired: true, reason: models.McpDeployReadinessInstallerRBACUnavailable, wantReads: 1, wantChecks: []string{"create team-ns"},
 		},
 		{
 			name:       "other image registered under the OpenShift server name is not gated",

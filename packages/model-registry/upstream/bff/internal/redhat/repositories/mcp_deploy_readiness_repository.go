@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,6 +40,7 @@ const (
 
 	mcpDeployReadinessOperatorNotReadyMessage         = "The MCP lifecycle operator is not ready."
 	mcpDeployReadinessGatewayStatusUnavailableMessage = "MCP gateway availability could not be determined."
+	mcpDeployReadinessInstallerRBACMessage            = "The dashboard installer service account is not authorized to read the Gateway prerequisites. Verify the Project Matrix Gateway installer RBAC binding and retry."
 	mcpDeployReadinessNoGatewayAvailableMessage       = "No MCP gateway is available on this cluster."
 	mcpSupportLevel                                   = models.McpSupportLevelTechnologyPreview
 	mcpSupportMessage                                 = "MCP Catalog, MCP Lifecycle, and MCP Gateway are Technology Preview features in this platform release."
@@ -241,6 +243,10 @@ func EvaluateMcpGatewayReadiness(obj *unstructured.Unstructured, getErr error) (
 		if apierrors.IsNotFound(getErr) {
 			return notDeployable(models.McpDeployReadinessOperatorNotReady, mcpDeployReadinessOperatorNotReadyMessage), nil
 		}
+		if isForbiddenReadinessError(getErr) {
+			return notDeployable(models.McpDeployReadinessInstallerRBACUnavailable, mcpDeployReadinessInstallerRBACMessage),
+				fmt.Errorf("dashboard installer service account is not authorized to read MCP Gateway prerequisites: %w", getErr)
+		}
 		return notDeployable(models.McpDeployReadinessGatewayStatusUnavailable, mcpDeployReadinessGatewayStatusUnavailableMessage),
 			fmt.Errorf("failed to read MCPLifecycleOperator %q: %w", mcpLifecycleOperatorName, getErr)
 	}
@@ -271,6 +277,10 @@ func EvaluateMcpGatewayReadiness(obj *unstructured.Unstructured, getErr error) (
 		}
 	}
 	return notDeployable(models.McpDeployReadinessNoGatewayAvailable, mcpDeployReadinessNoGatewayAvailableMessage), nil
+}
+
+func isForbiddenReadinessError(err error) bool {
+	return apierrors.IsForbidden(err) || strings.Contains(strings.ToLower(err.Error()), "forbidden")
 }
 
 func notDeployable(reason models.McpDeployReadinessReason, message string) models.McpServerDeployReadiness {

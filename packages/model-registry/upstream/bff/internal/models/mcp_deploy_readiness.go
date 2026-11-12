@@ -20,6 +20,9 @@ const (
 	// McpDeployReadinessGatewayStatusUnavailable means gateway availability could not be
 	// determined (for example the MCPLifecycleOperator CR could not be read).
 	McpDeployReadinessGatewayStatusUnavailable McpDeployReadinessReason = "GATEWAY_STATUS_UNAVAILABLE"
+	// McpDeployReadinessInstallerRBACUnavailable means the dashboard service account cannot
+	// read the Gateway prerequisites needed by the one-click installer.
+	McpDeployReadinessInstallerRBACUnavailable McpDeployReadinessReason = "INSTALLER_RBAC_UNAVAILABLE"
 	// McpDeployReadinessNoGatewayAvailable means no ready MCP gateway with a usable
 	// listener is available on the cluster.
 	McpDeployReadinessNoGatewayAvailable McpDeployReadinessReason = "NO_GATEWAY_AVAILABLE"

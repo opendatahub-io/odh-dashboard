@@ -7,6 +7,8 @@ const READINESS_TOOLTIPS: Record<McpDeployReadinessReason, string> = {
     'This MCP server requires an MCP gateway, but the MCP lifecycle operator is not ready. Try again later or contact your cluster administrator.',
   [McpDeployReadinessReason.GATEWAY_STATUS_UNAVAILABLE]:
     'This MCP server requires an MCP gateway, but MCP gateway availability could not be determined. Try again later or contact your cluster administrator.',
+  [McpDeployReadinessReason.INSTALLER_RBAC_UNAVAILABLE]:
+    'The dashboard installer is not authorized to read the Gateway prerequisites. Ask the cluster administrator to bind the dashboard service account to the Project Matrix Gateway installer RBAC.',
 };
 
 export const MCP_DEPLOY_READINESS_ERROR_TOOLTIP =

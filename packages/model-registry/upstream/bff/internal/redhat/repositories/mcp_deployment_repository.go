@@ -264,10 +264,38 @@ func (r *McpDeploymentRepository) Create(
 		return models.McpDeployment{}, err
 	}
 
+	// Gateway-layer installs are the Project Matrix workflow. Check the
+	// dashboard service account before the conflict read or any mutation. A
+	// second, target-aware check runs after Gateway discovery. Generic MCP
+	// catalog entries retain their existing contract and do not inherit
+	// Gateway-specific permissions.
+	if req.GatewayRegistration != nil {
+		if err := preflightMcpDeploymentRBAC(ctx, client, namespace, server, req, nil); err != nil {
+			return models.McpDeployment{}, err
+		}
+	}
+
 	if _, err := dyn.Resource(mcpServerGVR).Namespace(namespace).Get(ctx, server.Metadata.Name, metav1.GetOptions{}); err == nil {
 		return models.McpDeployment{}, fmt.Errorf("%w: %q in namespace %q", ErrMcpDeploymentConflict, server.Metadata.Name, namespace)
 	} else if !apierrors.IsNotFound(err) {
 		return models.McpDeployment{}, fmt.Errorf("failed to check MCPServer %q: %w", server.Metadata.Name, err)
+	}
+
+	var gatewayTarget *mcpGatewayTarget
+	if req.GatewayRegistration != nil {
+		target, targetErr := discoverMcpGatewayTarget(ctx, dyn)
+		if targetErr != nil {
+			if apierrors.IsForbidden(targetErr) || apierrors.IsUnauthorized(targetErr) {
+				return models.McpDeployment{}, fmt.Errorf("%w: dashboard installer cannot discover the MCP Gateway target: %v", ErrMcpDeploymentRBAC, targetErr)
+			}
+			return models.McpDeployment{}, targetErr
+		}
+		gatewayTarget = &target
+	}
+	if req.GatewayRegistration != nil {
+		if err := preflightMcpDeploymentRBAC(ctx, client, namespace, server, req, gatewayTarget); err != nil {
+			return models.McpDeployment{}, err
+		}
 	}
 
 	createdPrerequisites, err := ensureMcpPrerequisites(ctx, dyn, namespace, server.Metadata.Name, req.Prerequisites)
