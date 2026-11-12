@@ -2,7 +2,7 @@ import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { createPvc } from '@odh-dashboard/internal/api';
-import { AccessMode } from '@odh-dashboard/k8s-core';
+import { AccessMode, LimitNameResourceType, setupDefaults } from '@odh-dashboard/k8s-core';
 import {
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
@@ -26,7 +26,7 @@ const makeWizardState = (projectName = 'test-project'): WizardFormData['state'] 
 
 const makeFieldValue = (overrides?: Partial<NIMPVCFieldValue>): NIMPVCFieldValue => ({
   storageMode: NIMPVCStorageMode.NEW,
-  pvcName: 'my-nim-pvc',
+  existingPvcDisplayName: 'my-nim-pvc',
   subPath: '',
   storageClassName: 'gp3-csi',
   storageSizeGi: DEFAULT_STORAGE_SIZE_GI,
@@ -68,11 +68,23 @@ describe('nimPVCPreDeploy', () => {
   });
 
   it('should create PVC for NEW mode', async () => {
-    await nimPVCPreDeploy(makeFieldValue(), makeWizardState(), makeDeployment());
+    await nimPVCPreDeploy(
+      makeFieldValue({
+        existingPvcDisplayName: '',
+        newPvcNameData: setupDefaults({
+          initialData: { name: 'My Display PVC', k8sName: 'custom-resource-name' },
+          limitNameResourceType: LimitNameResourceType.PVC,
+          editableK8sName: true,
+        }),
+      }),
+      makeWizardState(),
+      makeDeployment(),
+    );
     expect(mockCreatePvc).toHaveBeenCalledTimes(1);
     expect(mockCreatePvc).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'my-nim-pvc',
+        name: 'My Display PVC',
+        k8sName: 'custom-resource-name',
         size: '50Gi',
         storageClassName: 'gp3-csi',
       }),
