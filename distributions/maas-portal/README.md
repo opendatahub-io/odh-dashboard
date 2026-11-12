@@ -196,8 +196,8 @@ The local Rspack dev proxy sends portal Perses API requests directly to `PERSES_
 | File | Purpose |
 |------|---------|
 | `distribution.yaml` | Feature flags, bundled packages, extension paths |
-| `src/bootstrap.tsx` | App entry — mounts providers via `createDistribution` |
-| `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), redirects, user dropdown |
+| `src/bootstrap.tsx` | App entry — mounts providers and the landing redirects (`/` and `/maas` to Model endpoints) via `createDistribution` |
+| `src/extensions.ts` | Distribution nav (`app.suppress` / `app.patch`), user dropdown |
 | `src/PortalContextProvider.tsx` | Composes the standalone MaaS BFF and portal authorization providers |
 | `src/providers/MaaSAuthzProvider.tsx` | Publishes MaaS governance and Model Access visibility from the authenticated SSO identity. |
 | `config/rspack.dev.js` | Dual-mode proxy (cluster discovery or local BFF targets) |

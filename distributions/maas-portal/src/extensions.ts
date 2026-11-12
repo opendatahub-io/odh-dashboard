@@ -11,32 +11,14 @@ import type {
 // Keep in sync with PORTAL_MODEL_ACCESS_PATH in ./portalPaths.ts (value imports are disallowed here).
 const PORTAL_MODEL_ACCESS_PATH = '/maas/model-access';
 
+// The landing redirects ('/' and '/maas') are router redirects in ./bootstrap.tsx.
 const extensions: Extension[] = [
-  // Root redirect
-  {
-    type: 'app.route',
-    properties: {
-      path: '/',
-      component: () => import('./RootRedirect'),
-    },
-  } satisfies RouteExtension,
-
   {
     type: 'app.route',
     flags: { required: ['observabilityDashboard'] },
     properties: {
       path: '/observe-and-monitor/dashboard/*',
       component: () => import('./observability/ObservabilityDashboard'),
-    },
-  } satisfies RouteExtension,
-
-  // /maas redirect — overrides the package's MaaSRedirect with the
-  // portal's own root redirect
-  {
-    type: 'app.route',
-    properties: {
-      path: '/maas',
-      component: () => import('./RootRedirect'),
     },
   } satisfies RouteExtension,
 
