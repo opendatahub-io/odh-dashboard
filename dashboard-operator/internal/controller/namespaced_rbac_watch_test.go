@@ -17,7 +17,7 @@ func TestNamespaceNamespacedRBACOptInChangedPredicate(t *testing.T) {
 	p := namespaceNamespacedRBACOptInChangedPredicate()
 	unlabelled := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "target"}}
 	optedIn := unlabelled.DeepCopy()
-	optedIn.Labels = map[string]string{namespacedRBACOptInLabel: "true"}
+	optedIn.Labels = map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}
 
 	assert.False(t, p.Create(event.CreateEvent{Object: unlabelled}))
 	assert.True(t, p.Create(event.CreateEvent{Object: optedIn}))

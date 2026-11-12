@@ -37,13 +37,14 @@ func newReconciler(t *testing.T, platform cluster.Platform, objects ...client.Ob
 	baseObjects = append(baseObjects, objects...)
 	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(baseObjects...).Build()
 	r := &ctrlpkg.DashboardReconciler{
-		Client:                cli,
-		APIReader:             cli,
-		Scheme:                s,
-		ManifestsBasePath:     t.TempDir(),
-		Platform:              platform,
-		Namespace:             testNamespace,
-		ApplicationsNamespace: testAppNamespace,
+		Client:                         cli,
+		APIReader:                      cli,
+		Scheme:                         s,
+		ManifestsBasePath:              t.TempDir(),
+		Platform:                       platform,
+		Namespace:                      testNamespace,
+		ApplicationsNamespace:          testAppNamespace,
+		NamespacedRBACAdmissionEnabled: true,
 	}
 	return r, cli
 }
@@ -52,7 +53,7 @@ func optedInNamespace(name string) *corev1.Namespace {
 	return &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
 		Name: name,
 		Labels: map[string]string{
-			"dashboard.opendatahub.io/allow-namespaced-rbac": "true",
+			v1alpha1.NamespacedRBACOptInLabel: "true",
 		},
 	}}
 }
@@ -214,6 +215,19 @@ func TestReconcileNamespacedRBAC_NoNamespaces(t *testing.T) {
 	assert.Empty(t, listRoleBindings(t, cli))
 }
 
+func TestReconcileNamespacedRBAC_AdmissionDisabledFailsClosedAndRevokes(t *testing.T) {
+	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+	require.Len(t, listRoles(t, cli), 1)
+
+	r.NamespacedRBACAdmissionEnabled = false
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, "requires the validating webhook and at least one trusted writer")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
 func TestReconcileNamespacedRBAC_RejectsUnlabelledNamespace(t *testing.T) {
 	unlabelled := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "arbitrary-namespace"}}
 	r, cli := newReconciler(t, cluster.OpenDataHub, unlabelled)
@@ -256,7 +270,7 @@ func TestReconcileNamespacedRBAC_RemovingOptInRevokesExistingGrant(t *testing.T)
 
 	namespace := &corev1.Namespace{}
 	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
-	delete(namespace.Labels, "dashboard.opendatahub.io/allow-namespaced-rbac")
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
 	require.NoError(t, cli.Update(context.Background(), namespace))
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)

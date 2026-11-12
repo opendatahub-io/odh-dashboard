@@ -30,7 +30,7 @@ func namespaceNamespacedRBACOptedIn(obj client.Object) bool {
 	if obj == nil {
 		return false
 	}
-	return obj.GetLabels()[namespacedRBACOptInLabel] == "true"
+	return obj.GetLabels()[v1alpha1.NamespacedRBACOptInLabel] == "true"
 }
 
 func mapNamespacedRBACNamespaceToDashboard(_ context.Context, _ client.Object) []reconcile.Request {

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	admissionv1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -22,6 +23,7 @@ func testScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 
 	s := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(s))
 	require.NoError(t, v1alpha1.AddToScheme(s))
 
 	return s
@@ -135,6 +137,12 @@ func TestDashboardHandler_ProtectsNamespacedRBACTargetFields(t *testing.T) {
 			newRaw:    dashboardRaw(t, "arbitrary", ""),
 		},
 		{
+			name:      "deny unprivileged create with model registry namespace",
+			operation: admissionv1.Create,
+			username:  "alice",
+			newRaw:    dashboardRaw(t, "", "arbitrary"),
+		},
+		{
 			name:      "allow orchestrator create with protected field",
 			operation: admissionv1.Create,
 			username:  orchestrator,
@@ -153,6 +161,20 @@ func TestDashboardHandler_ProtectsNamespacedRBACTargetFields(t *testing.T) {
 			operation: admissionv1.Update,
 			username:  "alice",
 			oldRaw:    dashboardRaw(t, "rhods-notebooks", ""),
+			newRaw:    dashboardRaw(t, "", ""),
+		},
+		{
+			name:      "deny unprivileged model registry namespace update",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "", "rhoai-model-registries"),
+			newRaw:    dashboardRaw(t, "", "arbitrary"),
+		},
+		{
+			name:      "deny unprivileged model registry namespace removal",
+			operation: admissionv1.Update,
+			username:  "alice",
+			oldRaw:    dashboardRaw(t, "", "rhoai-model-registries"),
 			newRaw:    dashboardRaw(t, "", ""),
 		},
 		{
@@ -189,6 +211,97 @@ func TestDashboardHandler_ProtectsNamespacedRBACTargetFields(t *testing.T) {
 			if !tt.allowed {
 				require.NotNil(t, resp.Result)
 				assert.Contains(t, resp.Result.Message, "managed by the ODH orchestrator")
+			}
+		})
+	}
+}
+
+func TestDashboardHandler_EmptyWriterListFailsClosed(t *testing.T) {
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		nil,
+	)
+
+	resp := handler.Handle(context.Background(), admission.Request{
+		AdmissionRequest: admissionv1.AdmissionRequest{
+			Operation: admissionv1.Update,
+			Resource:  metav1.GroupVersionResource{Group: "components.platform.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+			UserInfo:  authenticationv1.UserInfo{Username: "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"},
+			Object:    runtime.RawExtension{Raw: dashboardRaw(t, "rhods-notebooks", "")},
+			OldObject: runtime.RawExtension{Raw: dashboardRaw(t, "", "")},
+		},
+	})
+
+	assert.False(t, resp.Allowed)
+	require.NotNil(t, resp.Result)
+	assert.Contains(t, resp.Result.Message, "managed by the ODH orchestrator")
+}
+
+func namespaceRaw(t *testing.T, labels map[string]string) []byte {
+	t.Helper()
+	raw, err := json.Marshal(&corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: "target", Labels: labels},
+	})
+	require.NoError(t, err)
+	return raw
+}
+
+func TestDashboardHandler_ProtectsNamespaceOptInLabel(t *testing.T) {
+	const orchestrator = "system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager"
+	handler := dashwebhook.NewDashboardHandler(
+		fake.NewClientBuilder().WithScheme(testScheme(t)).Build(),
+		[]string{orchestrator},
+	)
+
+	for _, tt := range []struct {
+		name     string
+		username string
+		oldRaw   []byte
+		newRaw   []byte
+		allowed  bool
+	}{
+		{
+			name:     "deny dashboard service account adding consent",
+			username: "system:serviceaccount:redhat-ods-applications:rhods-dashboard",
+			oldRaw:   namespaceRaw(t, nil),
+			newRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+		},
+		{
+			name:     "deny untrusted writer removing consent",
+			username: "alice",
+			oldRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			newRaw:   namespaceRaw(t, nil),
+		},
+		{
+			name:     "allow orchestrator changing consent",
+			username: orchestrator,
+			oldRaw:   namespaceRaw(t, nil),
+			newRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}),
+			allowed:  true,
+		},
+		{
+			name:     "allow unrelated namespace label update",
+			username: "alice",
+			oldRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true", "other": "old"}),
+			newRaw:   namespaceRaw(t, map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true", "other": "new"}),
+			allowed:  true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := handler.Handle(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: admissionv1.Update,
+					Resource:  metav1.GroupVersionResource{Version: "v1", Resource: "namespaces"},
+					UserInfo:  authenticationv1.UserInfo{Username: tt.username},
+					Object:    runtime.RawExtension{Raw: tt.newRaw},
+					OldObject: runtime.RawExtension{Raw: tt.oldRaw},
+				},
+			})
+
+			assert.Equal(t, tt.allowed, resp.Allowed)
+			if !tt.allowed {
+				require.NotNil(t, resp.Result)
+				assert.Contains(t, resp.Result.Message, v1alpha1.NamespacedRBACOptInLabel)
 			}
 		})
 	}

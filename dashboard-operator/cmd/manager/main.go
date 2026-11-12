@@ -65,6 +65,12 @@ func main() {
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+	writers := make([]string, 0)
+	for _, writer := range strings.Split(namespacedRBACWriters, ",") {
+		if writer = strings.TrimSpace(writer); writer != "" {
+			writers = append(writers, writer)
+		}
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	setupLog := ctrl.Log.WithName("setup")
@@ -130,17 +136,17 @@ func main() {
 	setupLog.Info("Detected platform", "platform", platform)
 
 	if err := controller.SetupWithManager(mgr, controller.Options{
-		ManifestsBasePath:     manifestsBasePath,
-		Platform:              platform,
-		Namespace:             operatorNamespace,
-		ApplicationsNamespace: applicationsNamespace,
+		ManifestsBasePath:              manifestsBasePath,
+		Platform:                       platform,
+		Namespace:                      operatorNamespace,
+		ApplicationsNamespace:          applicationsNamespace,
+		NamespacedRBACAdmissionEnabled: enableWebhook && len(writers) > 0,
 	}); err != nil {
 		setupLog.Error(err, "unable to create Dashboard controller")
 		os.Exit(1)
 	}
 
 	if enableWebhook {
-		writers := strings.Split(namespacedRBACWriters, ",")
 		mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewDashboardHandler(mgr.GetAPIReader(), writers))
 		setupLog.Info("Registered Dashboard validation webhook", "path", "/validate-dashboard")
 	}

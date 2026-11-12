@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	DashboardComponentName = "dashboard"
-	DashboardInstanceName  = "default-dashboard"
-	DashboardKind          = "Dashboard"
+	DashboardComponentName   = "dashboard"
+	DashboardInstanceName    = "default-dashboard"
+	DashboardKind            = "Dashboard"
+	NamespacedRBACOptInLabel = "dashboard.opendatahub.io/allow-namespaced-rbac"
 )
 
 // ModuleOverrideState is a tri-state enum for module enablement overrides.

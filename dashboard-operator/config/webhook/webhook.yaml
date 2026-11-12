@@ -23,6 +23,14 @@ webhooks:
           - UPDATE
         resources:
           - dashboards
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - UPDATE
+        resources:
+          - namespaces
     sideEffects: None
     failurePolicy: Fail
     timeoutSeconds: 5

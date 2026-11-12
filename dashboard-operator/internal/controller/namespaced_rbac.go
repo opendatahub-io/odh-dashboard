@@ -26,7 +26,6 @@ const (
 	dashboardSANameRHOAI = "rhods-dashboard"
 
 	namespacedRBACManagedLabel = "dashboard.opendatahub.io/namespaced-rbac"
-	namespacedRBACOptInLabel   = "dashboard.opendatahub.io/allow-namespaced-rbac"
 )
 
 // dashboardSAName returns the dashboard ServiceAccount name for the given platform.
@@ -83,12 +82,15 @@ func (r *DashboardReconciler) reconcileNamespacedRBAC(ctx context.Context, dashb
 // validateNamespacedRBACTarget requires explicit consent from the target
 // namespace before the dashboard service account receives access there.
 func (r *DashboardReconciler) validateNamespacedRBACTarget(ctx context.Context, namespace string) error {
+	if !r.NamespacedRBACAdmissionEnabled {
+		return errors.New("namespaced RBAC requires the validating webhook and at least one trusted writer")
+	}
 	target := &corev1.Namespace{}
 	if err := r.apiReader().Get(ctx, client.ObjectKey{Name: namespace}, target); err != nil {
 		return fmt.Errorf("getting target namespace: %w", err)
 	}
-	if target.Labels[namespacedRBACOptInLabel] != "true" {
-		return fmt.Errorf("target namespace must have label %s=true", namespacedRBACOptInLabel)
+	if target.Labels[v1alpha1.NamespacedRBACOptInLabel] != "true" {
+		return fmt.Errorf("target namespace must have label %s=true", v1alpha1.NamespacedRBACOptInLabel)
 	}
 	return nil
 }

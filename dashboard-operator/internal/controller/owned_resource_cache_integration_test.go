@@ -58,7 +58,11 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	directClient, err := client.New(cfg, client.Options{Scheme: s})
 	require.NoError(t, err)
 	for _, namespace := range []string{applicationsNamespace, externalNamespace} {
-		require.NoError(t, directClient.Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}))
+		labels := map[string]string(nil)
+		if namespace == externalNamespace {
+			labels = map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}
+		}
+		require.NoError(t, directClient.Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace, Labels: labels}}))
 	}
 
 	consoleLink := &unstructured.Unstructured{}
@@ -157,11 +161,12 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	require.ErrorAs(t, err, &notCached, "an APIReader request must not create a shared-cache informer")
 
 	reconciler := &ctrlpkg.DashboardReconciler{
-		Client:                mgr.GetClient(),
-		APIReader:             mgr.GetAPIReader(),
-		Scheme:                s,
-		Platform:              cluster.OpenDataHub,
-		ApplicationsNamespace: applicationsNamespace,
+		Client:                         mgr.GetClient(),
+		APIReader:                      mgr.GetAPIReader(),
+		Scheme:                         s,
+		Platform:                       cluster.OpenDataHub,
+		ApplicationsNamespace:          applicationsNamespace,
+		NamespacedRBACAdmissionEnabled: true,
 	}
 	require.NoError(t, reconciler.ReconcileNamespacedRBAC(ctx, &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
 		NotebooksNamespace: externalNamespace,

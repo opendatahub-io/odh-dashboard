@@ -141,22 +141,24 @@ var Version = "unknown"
 
 // Options configures the dashboard controller.
 type Options struct {
-	ManifestsBasePath     string
-	Platform              cluster.Platform
-	Namespace             string
-	ApplicationsNamespace string
+	ManifestsBasePath              string
+	Platform                       cluster.Platform
+	Namespace                      string
+	ApplicationsNamespace          string
+	NamespacedRBACAdmissionEnabled bool
 }
 
 // DashboardReconciler reconciles a Dashboard object.
 type DashboardReconciler struct {
 	client.Client
-	APIReader             client.Reader
-	Scheme                *runtime.Scheme
-	ManifestsBasePath     string
-	Platform              cluster.Platform
-	Namespace             string
-	ApplicationsNamespace string
-	RouteAPIAvailable     bool
+	APIReader                      client.Reader
+	Scheme                         *runtime.Scheme
+	ManifestsBasePath              string
+	Platform                       cluster.Platform
+	Namespace                      string
+	ApplicationsNamespace          string
+	NamespacedRBACAdmissionEnabled bool
+	RouteAPIAvailable              bool
 }
 
 // apiReader makes direct-read semantics explicit while retaining a fake-client
@@ -351,6 +353,17 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{RequeueAfter: portalRetryAfter}, legacyRedirectErr
 	}
 
+	// Revoke stale cross-namespace grants before any fallible configuration,
+	// rendering, deployment, or module reconciliation. This keeps namespace
+	// consent revocation independent of the health of unrelated resources.
+	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
+	if rbacErr != nil {
+		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
+		cm.MarkTrue(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NamespacedRBACFailed"),
+			conditions.WithError(rbacErr))
+	}
+
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 
 	cfg := readOperatorConfig(ctx, r.apiReader(), r.Namespace)
@@ -368,7 +381,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(legacyRedirectErr, "Failed to reconcile legacy dashboard redirects; continuing Dashboard reconciliation")
 	}
 
-	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil)
+	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil, rbacErr)
 	if legacyRedirectErr != nil {
 		legacyRedirectErr = fmt.Errorf("failed to reconcile legacy dashboard redirects: %w", legacyRedirectErr)
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -473,8 +486,9 @@ func (r *DashboardReconciler) reconcile(
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 	observabilityKnown bool,
+	rbacErr error,
 ) (ctrl.Result, error) {
-	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg, observabilityKnown)
+	result, err := r.reconcileDeployment(ctx, dashboard, cm, cfg, observabilityKnown, rbacErr)
 
 	if dashboard.Spec.Observability == nil && err == nil && result.RequeueAfter == 0 {
 		result.RequeueAfter = observabilityRetryInterval
@@ -535,6 +549,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 	cm *conditions.Manager,
 	cfg OperatorConfig,
 	observabilityKnown bool,
+	rbacErr error,
 ) (result ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 	var uploadConfigErr error
@@ -665,15 +680,6 @@ func (r *DashboardReconciler) reconcileDeployment(
 	preserveModuleStatusTransitionTimes(dashboard.Status.ModuleStatuses, nextStatuses)
 	dashboard.Status.ModuleStatuses = nextStatuses
 	r.setMaaSPortalModuleCondition(cm, dashboard, nextStatuses)
-
-	// Reconcile cross-namespace RBAC (notebooks, model-registry)
-	rbacErr := r.reconcileNamespacedRBAC(ctx, dashboard)
-	if rbacErr != nil {
-		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
-		cm.MarkTrue(string(common.ConditionTypeDegraded),
-			conditions.WithReason("NamespacedRBACFailed"),
-			conditions.WithError(rbacErr))
-	}
 
 	// A failed lookup leaves observability unknown, not disabled. Preserve its
 	// resources and Perses entry while reconciling the remaining federation entries.

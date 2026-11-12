@@ -27,13 +27,14 @@ import (
 // SetupWithManager constructs and registers the Dashboard controller.
 func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	r := &DashboardReconciler{
-		Client:                mgr.GetClient(),
-		APIReader:             mgr.GetAPIReader(),
-		Scheme:                mgr.GetScheme(),
-		ManifestsBasePath:     opts.ManifestsBasePath,
-		Platform:              opts.Platform,
-		Namespace:             opts.Namespace,
-		ApplicationsNamespace: opts.ApplicationsNamespace,
+		Client:                         mgr.GetClient(),
+		APIReader:                      mgr.GetAPIReader(),
+		Scheme:                         mgr.GetScheme(),
+		ManifestsBasePath:              opts.ManifestsBasePath,
+		Platform:                       opts.Platform,
+		Namespace:                      opts.Namespace,
+		ApplicationsNamespace:          opts.ApplicationsNamespace,
+		NamespacedRBACAdmissionEnabled: opts.NamespacedRBACAdmissionEnabled,
 	}
 
 	// The Dashboard controller does not currently need to watch Secrets:

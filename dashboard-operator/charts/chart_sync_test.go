@@ -103,6 +103,9 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 		if !strings.Contains(output, "- CREATE\n          - UPDATE") {
 			t.Fatal("expected webhook to validate both CREATE and UPDATE operations")
 		}
+		if !strings.Contains(output, "- UPDATE\n        resources:\n          - namespaces") {
+			t.Fatal("expected webhook to protect namespace consent-label updates")
+		}
 	})
 
 	t.Run("cert-manager disabled omits Issuer and Certificate", func(t *testing.T) {

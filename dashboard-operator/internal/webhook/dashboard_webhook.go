@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	admissionv1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -46,12 +48,46 @@ func NewDashboardHandler(reader client.Reader, namespacedRBACWriters []string) *
 
 	return &admission.Webhook{
 		Handler: admission.HandlerFunc(func(ctx context.Context, req admission.Request) admission.Response {
+			if req.Resource == (metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}) {
+				return validateNamespacedRBACOptInWriter(req, allowedWriters)
+			}
+			if req.Resource != (metav1.GroupVersionResource{Group: DashboardGVK.Group, Version: DashboardGVK.Version, Resource: "dashboards"}) {
+				return admission.Allowed("")
+			}
 			if singleton := platformwebhook.ValidateSingletonCreation(ctx, reader, &req, DashboardGVK); !singleton.Allowed {
 				return singleton
 			}
 			return validateNamespacedRBACTargetWriter(req, allowedWriters)
 		}),
 	}
+}
+
+func validateNamespacedRBACOptInWriter(req admission.Request, allowedWriters map[string]struct{}) admission.Response {
+	if req.SubResource != "" || req.Operation != admissionv1.Update {
+		return admission.Allowed("")
+	}
+
+	var current corev1.Namespace
+	if err := json.Unmarshal(req.Object.Raw, &current); err != nil {
+		return admission.Errored(http.StatusBadRequest, fmt.Errorf("decoding Namespace: %w", err))
+	}
+	var previous corev1.Namespace
+	if err := json.Unmarshal(req.OldObject.Raw, &previous); err != nil {
+		return admission.Errored(http.StatusBadRequest, fmt.Errorf("decoding previous Namespace: %w", err))
+	}
+
+	if previous.Labels[v1alpha1.NamespacedRBACOptInLabel] == current.Labels[v1alpha1.NamespacedRBACOptInLabel] {
+		return admission.Allowed("")
+	}
+	if _, allowed := allowedWriters[req.UserInfo.Username]; allowed {
+		return admission.Allowed("")
+	}
+
+	return admission.Denied(fmt.Sprintf(
+		"user %q may not change namespace label %s; it is managed by the ODH orchestrator",
+		req.UserInfo.Username,
+		v1alpha1.NamespacedRBACOptInLabel,
+	))
 }
 
 func validateNamespacedRBACTargetWriter(req admission.Request, allowedWriters map[string]struct{}) admission.Response {

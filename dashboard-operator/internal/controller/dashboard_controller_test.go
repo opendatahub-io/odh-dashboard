@@ -1110,6 +1110,55 @@ data:
 	}
 }
 
+func TestReconcile_RevokesNamespacedRBACBeforeDeploymentFailure(t *testing.T) {
+	scheme := testScheme(t)
+	targetNamespace := "revoked-target"
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{NotebooksNamespace: targetNamespace},
+	}
+	managedLabels := map[string]string{
+		"dashboard.opendatahub.io/namespaced-rbac": "true",
+		labels.PlatformPartOf:                      "dashboard",
+	}
+	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-notebooks-role", Namespace: targetNamespace, Labels: managedLabels,
+	}}
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dashboard-notebooks-rolebinding", Namespace: targetNamespace, Labels: managedLabels,
+		},
+		RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: role.Name},
+	}
+	cli := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(
+			dashboard,
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNamespace}},
+			role,
+			roleBinding,
+		).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                         cli,
+		APIReader:                      cli,
+		Scheme:                         scheme,
+		ManifestsBasePath:              t.TempDir(),
+		Platform:                       cluster.OpenDataHub,
+		Namespace:                      testNamespace,
+		ApplicationsNamespace:          testNamespace,
+		NamespacedRBACAdmissionEnabled: true,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorContains(t, err, "failed to apply kustomize params")
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(role), &rbacv1.Role{})))
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(roleBinding), &rbacv1.RoleBinding{})))
+}
+
 func TestReconcile_LegacyRedirectFailureDoesNotBlockCore(t *testing.T) {
 	s := testScheme(t)
 	dashboard := &v1alpha1.Dashboard{
