@@ -34,7 +34,8 @@ const PGVECTOR_NETWORK_CHECK_ATTEMPTS = Math.max(
   ),
 );
 const E2E_OWNER_LABEL = 'odh-dashboard.io/e2e-owner';
-const OPERATOR_DEPLOYMENT_LABEL_SELECTOR = 'app.kubernetes.io/name=dashboard-operator';
+const OPERATOR_DEPLOYMENT_LABEL_SELECTOR =
+  'app.kubernetes.io/name=dashboard-operator,app.kubernetes.io/component=manager';
 const OPERATOR_CONTAINER_NAME = 'manager';
 const RELATED_IMAGE_ENV_VAR = 'RELATED_IMAGE_POSTGRESQL_16_IMAGE';
 
@@ -188,19 +189,11 @@ const ensureNoUnownedAutoragResources = (namespace: string): Cypress.Chainable<v
 };
 
 const getOperatorDeployment = (): Cypress.Chainable<{ name: string; namespace: string }> => {
-  const configuredNamespace = Cypress.env('OPERATOR_NAMESPACE');
-  const namespace =
-    typeof configuredNamespace === 'string' && configuredNamespace.trim()
-      ? configuredNamespace.trim()
-      : undefined;
-  const namespaceScope = namespace ? `-n ${shellQuote(namespace)}` : '-A';
   return cy
-    .exec(
-      `oc get deployments ${namespaceScope} -l ${shellQuote(
-        OPERATOR_DEPLOYMENT_LABEL_SELECTOR,
-      )} -o json`,
-      { failOnNonZeroExit: false, log: false },
-    )
+    .exec(`oc get deployments -A -l ${shellQuote(OPERATOR_DEPLOYMENT_LABEL_SELECTOR)} -o json`, {
+      failOnNonZeroExit: false,
+      log: false,
+    })
     .then((result: CommandLineResult) => {
       if (result.exitCode !== 0) {
         throw new Error(
@@ -220,9 +213,7 @@ const getOperatorDeployment = (): Cypress.Chainable<{ name: string; namespace: s
       }
 
       const candidates = deploymentList.items.filter(
-        (deployment) =>
-          typeof deployment.metadata?.name === 'string' &&
-          (namespace ? deployment.metadata.namespace === namespace : true),
+        (deployment) => typeof deployment.metadata?.name === 'string',
       );
       if (candidates.length !== 1) {
         const candidateNames = candidates
@@ -234,14 +225,14 @@ const getOperatorDeployment = (): Cypress.Chainable<{ name: string; namespace: s
           )
           .join(', ');
         throw new Error(
-          `Expected exactly one dashboard operator deployment ${
-            namespace ? `in ${namespace}` : 'across the cluster'
-          }; found ${candidates.length}${candidateNames ? ` (${candidateNames})` : ''}.`,
+          `Expected exactly one dashboard operator deployment across the cluster; found ${
+            candidates.length
+          }${candidateNames ? ` (${candidateNames})` : ''}.`,
         );
       }
 
       const deploymentName = candidates[0].metadata?.name;
-      const deploymentNamespace = candidates[0].metadata?.namespace ?? namespace;
+      const deploymentNamespace = candidates[0].metadata?.namespace;
       if (!deploymentName || !deploymentNamespace) {
         throw new Error('Dashboard operator deployment has no name.');
       }

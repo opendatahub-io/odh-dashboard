@@ -330,7 +330,6 @@ export type TestConfig = {
   S3: AWSS3Buckets;
   AWS_CLI_IMAGE?: string;
   APPLICATIONS_NAMESPACE: NamespaceConfig;
-  OPERATOR_NAMESPACE?: string;
   ODH_DASHBOARD_PROJECT_NAME: string;
   PIP_INDEX_URL: string;
   PIP_TRUSTED_HOST: string;

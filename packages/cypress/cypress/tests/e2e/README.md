@@ -117,11 +117,14 @@ installation with the managed
 pipelines `documents-rag-optimization-pipeline` and `documents-indexing-pipeline`,
 and each pipeline must have at least one usable version.
 
-Those suites also require the dashboard operator deployment to be discoverable via
-`OPERATOR_NAMESPACE` (or across the cluster when it is unset) and to expose a
-non-empty `RELATED_IMAGE_POSTGRESQL_16_IMAGE` value on its manager container.
+Those suites also require exactly one dashboard operator deployment to be discoverable
+across the cluster and to expose a non-empty `RELATED_IMAGE_POSTGRESQL_16_IMAGE` value on
+its manager container.
 The temporary project-scoped PGVector database uses that operator-provided image;
 a suite that reaches provisioning fails fast when the related image is unavailable.
+Focused unit coverage for this OpenShift discovery helper is out of scope because the Cypress
+package has no established unit-test pattern for `oc_commands` utilities; the live E2E path
+provides the regression coverage.
 
 Completion/results coverage additionally requires all four live MaaS variables
 in the Cypress test configuration: `MAAS_URL`, `MAAS_API_KEY`,
