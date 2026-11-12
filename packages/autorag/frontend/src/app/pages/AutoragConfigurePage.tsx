@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ActionList,
@@ -89,6 +90,7 @@ function AutoragConfigurePage({
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const notification = useNotification();
   const location = useLocation();
@@ -263,11 +265,11 @@ function AutoragConfigurePage({
       if (form.formState.isSubmitting || form.formState.isSubmitSuccessful) {
         return;
       }
-      fireAutoragFlowExited('abandon', funnelStepRef.current, 'none');
+      fireAutoragFlowExited(trackEvent, 'abandon', funnelStepRef.current, 'none');
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [form.formState.isSubmitting, form.formState.isSubmitSuccessful]);
+  }, [trackEvent, form.formState.isSubmitting, form.formState.isSubmitSuccessful]);
 
   const runTriggeredTrackingContextValue = useMemo<RunTriggeredTrackingContextProps>(
     () => ({
@@ -292,7 +294,7 @@ function AutoragConfigurePage({
 
   const onCancel = useCallback(() => {
     if (step === 'create') {
-      fireAutoragExperimentCreated({
+      fireAutoragExperimentCreated(trackEvent, {
         outcome: TrackingOutcome.cancel,
         hasDescription: !!description,
         success: true,
@@ -309,16 +311,17 @@ function AutoragConfigurePage({
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         const currentValues = form.getValues() as ConfigureSchema;
         const { runConfigSummary, changedFields } = computeReconfigureTracking(currentValues);
-        fireAutoragRunReconfigured({
+        fireAutoragRunReconfigured(trackEvent, {
           ...runConfigSummary,
           changedFields,
           outcome: TrackingOutcome.cancel,
         });
       }
     }
-    fireAutoragFlowExited('navigate', funnelStepRef.current, cancelExitDestination);
+    fireAutoragFlowExited(trackEvent, 'navigate', funnelStepRef.current, cancelExitDestination);
     navigate(-1);
   }, [
+    trackEvent,
     navigate,
     step,
     description,
@@ -329,8 +332,8 @@ function AutoragConfigurePage({
   ]);
 
   const handleHomeNavigate = useCallback(() => {
-    fireAutoragFlowExited('navigate', funnelStepRef.current, 'experimentsList');
-  }, []);
+    fireAutoragFlowExited(trackEvent, 'navigate', funnelStepRef.current, 'experimentsList');
+  }, [trackEvent]);
 
   const handleBackToCreate = useCallback(() => {
     setMaaSModelsReady(false);
@@ -445,7 +448,12 @@ function AutoragConfigurePage({
                 <Link
                   to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}
                   onClick={() =>
-                    fireAutoragFlowExited('navigate', funnelStepRef.current, 'otherGenAi')
+                    fireAutoragFlowExited(
+                      trackEvent,
+                      'navigate',
+                      funnelStepRef.current,
+                      'otherGenAi',
+                    )
                   }
                 >
                   <Truncate content={sourceRunName} />
@@ -474,7 +482,7 @@ function AutoragConfigurePage({
               event.preventDefault();
 
               if (step === 'create') {
-                fireAutoragExperimentCreated({
+                fireAutoragExperimentCreated(trackEvent, {
                   outcome: TrackingOutcome.submit,
                   hasDescription: !!description,
                   success: true,
@@ -518,13 +526,13 @@ function AutoragConfigurePage({
                     : undefined;
                   try {
                     const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
-                    fireAutoragRunTriggered({
+                    fireAutoragRunTriggered(trackEvent, {
                       ...runTrackingProperties,
                       outcome: TrackingOutcome.submit,
                       success: true,
                     });
                     if (reconfigureTracking) {
-                      fireAutoragRunReconfigured({
+                      fireAutoragRunReconfigured(trackEvent, {
                         ...reconfigureTracking.runConfigSummary,
                         changedFields: reconfigureTracking.changedFields,
                         outcome: TrackingOutcome.submit,
@@ -535,14 +543,14 @@ function AutoragConfigurePage({
                       state: { entrySource: 'direct' },
                     });
                   } catch (error) {
-                    fireAutoragRunTriggered({
+                    fireAutoragRunTriggered(trackEvent, {
                       ...runTrackingProperties,
                       outcome: TrackingOutcome.submit,
                       success: false,
                       error: AUTORAG_FAILURE_CATEGORY,
                     });
                     if (reconfigureTracking) {
-                      fireAutoragRunReconfigured({
+                      fireAutoragRunReconfigured(trackEvent, {
                         ...reconfigureTracking.runConfigSummary,
                         changedFields: reconfigureTracking.changedFields,
                         outcome: TrackingOutcome.submit,

@@ -2,12 +2,10 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
-import {
-  AUTORAG_FAILURE_CATEGORY,
-  fireAutoragExperimentDeleted,
-  fireAutoragRunRetried,
-  fireAutoragRunStopped,
-} from '~/app/utilities/tracking';
+import { AUTORAG_FAILURE_CATEGORY } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEventMock = jest.fn();
 
 const mockNotification = {
   success: jest.fn(),
@@ -35,17 +33,6 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => mockNotification,
 }));
 
-jest.mock('~/app/utilities/tracking', () => ({
-  ...jest.requireActual('~/app/utilities/tracking'),
-  fireAutoragRunStopped: jest.fn(),
-  fireAutoragRunRetried: jest.fn(),
-  fireAutoragExperimentDeleted: jest.fn(),
-}));
-
-const fireAutoragRunStoppedMock = jest.mocked(fireAutoragRunStopped);
-const fireAutoragRunRetriedMock = jest.mocked(fireAutoragRunRetried);
-const fireAutoragExperimentDeletedMock = jest.mocked(fireAutoragExperimentDeleted);
-
 const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
@@ -54,7 +41,9 @@ const createTestQueryClient = () =>
   });
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <QueryClientProvider client={createTestQueryClient()}>{children}</QueryClientProvider>
+  <TrackingProvider trackEvent={trackEventMock}>
+    <QueryClientProvider client={createTestQueryClient()}>{children}</QueryClientProvider>
+  </TrackingProvider>
 );
 
 describe('useAutoragRunActions', () => {
@@ -88,7 +77,7 @@ describe('useAutoragRunActions', () => {
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
-      expect(fireAutoragRunStoppedMock).toHaveBeenCalledWith({
+      expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Run Stopped', {
         outcome: 'submit',
         success: true,
         source: 'runsList',
@@ -120,7 +109,7 @@ describe('useAutoragRunActions', () => {
         'The pipeline run has already completed or failed. The page will refresh to show the current state.',
       );
       expect(mockNotification.error).not.toHaveBeenCalled();
-      expect(fireAutoragRunStoppedMock).toHaveBeenCalledWith({
+      expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Run Stopped', {
         outcome: 'submit',
         success: false,
         error: AUTORAG_FAILURE_CATEGORY,
@@ -155,13 +144,13 @@ describe('useAutoragRunActions', () => {
       expect(mockNotification.warning).not.toHaveBeenCalled();
       // The in-product notification may keep the detailed message, but analytics must only
       // ever see the fixed, allowlisted category.
-      expect(fireAutoragRunStoppedMock).toHaveBeenCalledWith({
+      expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Run Stopped', {
         outcome: 'submit',
         success: false,
         error: AUTORAG_FAILURE_CATEGORY,
         source: 'resultsPage',
       });
-      const allTrackingCalls = JSON.stringify(fireAutoragRunStoppedMock.mock.calls);
+      const allTrackingCalls = JSON.stringify(trackEventMock.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-corp');
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });
@@ -181,7 +170,7 @@ describe('useAutoragRunActions', () => {
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
-      expect(fireAutoragRunRetriedMock).toHaveBeenCalledWith({
+      expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Run Retried', {
         outcome: 'submit',
         success: true,
         source: 'runsList',
@@ -214,13 +203,13 @@ describe('useAutoragRunActions', () => {
       expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', errorMessage);
       // The in-product notification may keep the detailed message, but analytics must only
       // ever see the fixed, allowlisted category.
-      expect(fireAutoragRunRetriedMock).toHaveBeenCalledWith({
+      expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Run Retried', {
         outcome: 'submit',
         success: false,
         error: AUTORAG_FAILURE_CATEGORY,
         source: 'resultsPage',
       });
-      const allTrackingCalls = JSON.stringify(fireAutoragRunRetriedMock.mock.calls);
+      const allTrackingCalls = JSON.stringify(trackEventMock.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-corp');
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });
@@ -240,7 +229,7 @@ describe('useAutoragRunActions', () => {
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
       );
-      expect(fireAutoragExperimentDeletedMock).toHaveBeenCalledWith({
+      expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Experiment Deleted', {
         outcome: 'submit',
         success: true,
         source: 'runsList',
@@ -273,13 +262,13 @@ describe('useAutoragRunActions', () => {
       expect(mockNotification.error).toHaveBeenCalledWith('Failed to delete run', errorMessage);
       // The in-product notification may keep the detailed message, but analytics must only
       // ever see the fixed, allowlisted category.
-      expect(fireAutoragExperimentDeletedMock).toHaveBeenCalledWith({
+      expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Experiment Deleted', {
         outcome: 'submit',
         success: false,
         error: AUTORAG_FAILURE_CATEGORY,
         source: 'resultsPage',
       });
-      const allTrackingCalls = JSON.stringify(fireAutoragExperimentDeletedMock.mock.calls);
+      const allTrackingCalls = JSON.stringify(trackEventMock.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-corp');
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });

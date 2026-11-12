@@ -2,16 +2,9 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import EvaluationTemplateModal from '~/app/components/configure/EvaluationTemplateModal';
-import * as tracking from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('~/app/utilities/tracking', () => ({
-  ...jest.requireActual('~/app/utilities/tracking'),
-  fireAutoragEvaluationTemplateDownloaded: jest.fn(),
-}));
-
-const fireAutoragEvaluationTemplateDownloadedMock = jest.mocked(
-  tracking.fireAutoragEvaluationTemplateDownloaded,
-);
+const trackEventMock = jest.fn();
 
 describe('EvaluationTemplateModal', () => {
   beforeEach(() => {
@@ -30,24 +23,55 @@ describe('EvaluationTemplateModal', () => {
   });
 
   it('should fire AutoRAG Evaluation Template Downloaded when the download button is clicked', () => {
-    render(<EvaluationTemplateModal onClose={jest.fn()} />);
+    render(
+      <TrackingProvider trackEvent={trackEventMock}>
+        <EvaluationTemplateModal onClose={jest.fn()} />
+      </TrackingProvider>,
+    );
 
     const template = screen.getByText(/"correct_answer_document_keys"/);
     expect(template).toHaveTextContent('"correct_answer_document_keys"');
 
     fireEvent.click(screen.getByTestId('evaluation-template-download-button'));
 
-    expect(fireAutoragEvaluationTemplateDownloadedMock).toHaveBeenCalledTimes(1);
-    expect(fireAutoragEvaluationTemplateDownloadedMock).toHaveBeenCalledWith();
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Evaluation Template Downloaded', {
+      downloadType: 'evaluationTemplate',
+    });
+  });
+
+  it('should use replacement host tracking for download without emitting on rerender', () => {
+    const replacement = jest.fn();
+    const { rerender } = render(
+      <TrackingProvider trackEvent={trackEventMock}>
+        <EvaluationTemplateModal onClose={jest.fn()} />
+      </TrackingProvider>,
+    );
+    rerender(
+      <TrackingProvider trackEvent={replacement}>
+        <EvaluationTemplateModal onClose={jest.fn()} />
+      </TrackingProvider>,
+    );
+    expect(trackEventMock).not.toHaveBeenCalled();
+    expect(replacement).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('evaluation-template-download-button'));
+    expect(replacement.mock.calls).toEqual([
+      ['AutoRAG Evaluation Template Downloaded', { downloadType: 'evaluationTemplate' }],
+    ]);
+    expect(trackEventMock).not.toHaveBeenCalled();
   });
 
   it('should not fire tracking when the modal is only closed', () => {
     const onCloseMock = jest.fn();
-    render(<EvaluationTemplateModal onClose={onCloseMock} />);
+    render(
+      <TrackingProvider trackEvent={trackEventMock}>
+        <EvaluationTemplateModal onClose={onCloseMock} />
+      </TrackingProvider>,
+    );
 
     fireEvent.click(screen.getByTestId('evaluation-template-close-button'));
 
     expect(onCloseMock).toHaveBeenCalledTimes(1);
-    expect(fireAutoragEvaluationTemplateDownloadedMock).not.toHaveBeenCalled();
+    expect(trackEventMock).not.toHaveBeenCalled();
   });
 });

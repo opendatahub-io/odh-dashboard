@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import { usePipelineRunCacheActions } from '@odh-dashboard/autox-core/ui/hooks';
 import { useDeletePipelineRunMutation } from '~/app/hooks/useDeletePipelineRunMutation';
@@ -32,6 +33,7 @@ export const useAutoragRunActions = (
   source: RunActionSource,
   onActionComplete?: () => void | Promise<void>,
 ): AutoragRunActions => {
+  const trackEvent = useTrackEvent();
   const { invalidatePipelineRun } = usePipelineRunCacheActions();
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
@@ -46,13 +48,13 @@ export const useAutoragRunActions = (
         'Retry submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
-      fireAutoragRunRetried({ outcome: TrackingOutcome.submit, success: true, source });
+      fireAutoragRunRetried(trackEvent, { outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       notification.error(
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
-      fireAutoragRunRetried({
+      fireAutoragRunRetried(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: AUTORAG_FAILURE_CATEGORY,
@@ -66,6 +68,7 @@ export const useAutoragRunActions = (
       // Caller refresh failure should not mask a successful retry.
     }
   }, [
+    trackEvent,
     retryMutation,
     invalidatePipelineRun,
     runId,
@@ -83,7 +86,7 @@ export const useAutoragRunActions = (
         'Stop submitted successfully',
         'The process is asynchronous and may take some time to take effect',
       );
-      fireAutoragRunStopped({ outcome: TrackingOutcome.submit, success: true, source });
+      fireAutoragRunStopped(trackEvent, { outcome: TrackingOutcome.submit, success: true, source });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       // Check if the error is because the run is already in a terminal state (case-insensitive, whole words only)
@@ -98,7 +101,7 @@ export const useAutoragRunActions = (
       } else {
         notification.error('Failed to stop run', errorMessage);
       }
-      fireAutoragRunStopped({
+      fireAutoragRunStopped(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: AUTORAG_FAILURE_CATEGORY,
@@ -118,6 +121,7 @@ export const useAutoragRunActions = (
       // Caller refresh failure should not mask a successful stop.
     }
   }, [
+    trackEvent,
     terminateMutation,
     invalidatePipelineRun,
     runId,
@@ -135,13 +139,17 @@ export const useAutoragRunActions = (
         'Run deleted successfully',
         'The pipeline run has been permanently removed',
       );
-      fireAutoragExperimentDeleted({ outcome: TrackingOutcome.submit, success: true, source });
+      fireAutoragExperimentDeleted(trackEvent, {
+        outcome: TrackingOutcome.submit,
+        success: true,
+        source,
+      });
     } catch (error) {
       notification.error(
         'Failed to delete run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
-      fireAutoragExperimentDeleted({
+      fireAutoragExperimentDeleted(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: AUTORAG_FAILURE_CATEGORY,
@@ -155,6 +163,7 @@ export const useAutoragRunActions = (
       // Caller refresh failure should not mask a successful delete.
     }
   }, [
+    trackEvent,
     deleteMutation,
     invalidatePipelineRun,
     runId,
