@@ -94,6 +94,22 @@ describe('Evaluations Page - Tabs', () => {
       );
   });
 
+  it('should navigate from the Create suite header action to the manual suite form', () => {
+    evaluationsPage.visit(NAMESPACE);
+
+    cy.get('[data-testid="create-suite-header-button"]').click();
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite`);
+    cy.findByRole('heading', { name: 'Create suite' }).should('be.visible');
+    cy.findByText('Choose how you want to add benchmarks to your suite.').should('be.visible');
+    cy.get('[data-testid="build-suite-from-goal-tile"]')
+      .should('have.attr', 'aria-disabled', 'true')
+      .and('contain.text', 'Coming soon');
+
+    cy.get('[data-testid="choose-own-benchmarks-tile"]').click();
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/new`);
+    cy.findByRole('heading', { name: 'Create benchmark collection' }).should('be.visible');
+  });
+
   it('should navigate from a Gallery Customize action to the suite editor', () => {
     evaluationsPage.visitGallery(NAMESPACE);
     evaluationsPage.findBenchmarkSuiteDropdownToggle('clawbench').click();

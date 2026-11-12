@@ -178,6 +178,7 @@ describe('EvaluationsPage', () => {
           <LocationDisplay />
           <Routes>
             <Route path="/:namespace" element={<EvaluationsPage />} />
+            <Route path="/evaluation/:namespace/create-suite" element={<div />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -276,6 +277,16 @@ describe('EvaluationsPage', () => {
     expect(screen.getByPlaceholderText('Search collections')).toBeInTheDocument();
     expect(screen.getByTestId('page-description')).toHaveTextContent(
       'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
+    );
+  });
+
+  it('should navigate to the create suite chooser from the page header', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('create-suite-header-button'));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/test-project/create-suite',
     );
   });
 

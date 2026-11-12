@@ -36,6 +36,9 @@ export const evaluationCuratedBenchmarkSuitesNavigationState = (evaluationTarget
 export const evaluationCreateRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}/create`;
 
+export const evaluationCreateSuiteChooserRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}/create-suite`;
+
 export const evaluationCollectionsRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/collections`;
 
