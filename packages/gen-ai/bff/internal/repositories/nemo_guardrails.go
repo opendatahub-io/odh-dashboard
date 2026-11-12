@@ -30,8 +30,9 @@ func (r *NemoGuardrailsRepository) InitNemoGuardrails(
 	client kubernetes.KubernetesClientInterface,
 	ctx context.Context,
 	namespace string,
+	bffNamespace string,
 ) (*models.NemoGuardrailsInitModel, error) {
-	crName, err := client.CreateNemoGuardrailsResources(ctx, namespace)
+	crName, err := client.CreateNemoGuardrailsResources(ctx, namespace, bffNamespace)
 	if err != nil {
 		return nil, err
 	}
