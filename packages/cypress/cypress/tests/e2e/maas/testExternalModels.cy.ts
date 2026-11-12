@@ -381,6 +381,12 @@ const editAndVerifyProviderWithdrawal = (): void => {
     displayName: externalModelName,
     description: externalModelDescription,
   });
+  cy.step('Verify provider withdrawal starts with only the remaining reference');
+  checkExternalModelExists(projectName, externalModelName, {
+    phase: PhaseStatus.PENDING,
+    externalProviderRefs: [externalProviderName],
+    maxAttempts: 6, // 30 seconds at the default 5-second retry interval
+  });
   checkExternalModelExists(projectName, externalModelName, {
     modelName: externalModelName,
     externalProviderRefs: [externalProviderName],
