@@ -98,6 +98,11 @@ const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
       selectOptions={selectOptions}
       selected={value}
       onInputChange={setInputText}
+      onToggle={(open) => {
+        if (!open) {
+          setInputText('');
+        }
+      }}
       onSelect={(_event, selection) => {
         const selectedOption = selectOptions.find((option) => option.value === selection);
         onChange(String(selection), selectedOption ? String(selectedOption.content) : undefined);
@@ -136,6 +141,7 @@ const TextFilterField: React.FC<TextFilterFieldProps> = ({
     aria-label={placeholder}
     placeholder={placeholder}
     onChange={(_event, text) => onChange(text)}
+    style={{ minWidth: '380px' }}
     onClear={() => onChange('')}
     inputProps={{
       'data-testid': testId,
