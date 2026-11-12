@@ -1,19 +1,50 @@
-const restrictedModules = [
+// Keep feature analytics behind the host-provided tracking callback so the host
+// controls delivery and metadata. In guarded files, reject direct implementation,
+// SDK, and global access while allowing SDK-free contracts.
+
+// Allow contracts, React APIs, and the standalone bootstrap compatibility factory.
+const allowedModules = new Set([
+  '@odh-dashboard/analytics/types',
+  '@odh-dashboard/analytics/react',
+  '@odh-dashboard/analytics/standalone',
+]);
+// Direct adapters and SDK imports bypass host tracking; block their subpaths too.
+const blockedModules = [
   '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils',
   '@odh-dashboard/analytics',
-  '@odh-dashboard/ui-core/useAnalytics',
   'analytics-node',
   'analytics.js',
 ];
-const uiCoreModules = new Set([
-  '@odh-dashboard/ui-core',
-  '@odh-dashboard/ui-core/contexts/AnalyticsContext',
-]);
-const runtimeExports = new Set(['useAnalytics', 'AnalyticsContext']);
+// Cover all SDK packages in the Segment scope.
+const blockedModulePrefixes = ['@segment/'];
+// Global SDK access also bypasses host tracking.
 const globalObjects = new Set(['window', 'globalThis', 'self']);
-const globalProperties = new Set(['analytics']);
-const propertyName = (node) => (node.computed ? node.property.value : node.property.name);
-const isTypeOnly = (node) => node.importKind === 'type' || node.exportKind === 'type';
+const blockedGlobalProperties = new Set(['analytics']);
+const typeWrappers = new Set([
+  'TSAsExpression',
+  'TSTypeAssertion',
+  'TSNonNullExpression',
+  'TSSatisfiesExpression',
+]);
+const unwrapTypeWrappers = (node) => {
+  let expression = node;
+  while (typeWrappers.has(expression?.type)) {
+    expression = expression.expression;
+  }
+  return expression;
+};
+const propertyName = (node) =>
+  node.computed ? unwrapTypeWrappers(node.property)?.value : node.property.name;
+const isAmbientDefinition = (definition) => {
+  let { node } = definition;
+  while (node) {
+    if (node.declare) {
+      return true;
+    }
+    node = node.parent;
+  }
+  return false;
+};
 
 module.exports = {
   meta: {
@@ -22,7 +53,7 @@ module.exports = {
     schema: [],
     messages: {
       directAnalytics:
-        'Feature analytics must use useTrackEvent() from @odh-dashboard/plugin-core/host-api or an injected host callback.',
+        'Feature analytics must use useTrackEvent() from @odh-dashboard/analytics/react or an injected host callback.',
     },
   },
   create(context) {
@@ -31,82 +62,62 @@ module.exports = {
       let scope = context.getScope();
       while (scope) {
         const candidate = scope.set.get(name);
-        // TypeScript type-only bindings do not shadow runtime values. Plain
-        // JavaScript scope variables do not expose isValueVariable.
-        if (candidate && candidate.isValueVariable !== false) {
+        // Type-only and ambient declarations are erased and do not shadow a
+        // runtime value. Plain JavaScript definitions omit these type flags.
+        if (
+          candidate &&
+          candidate.isValueVariable !== false &&
+          (!candidate.defs.length ||
+            candidate.defs.some(
+              (definition) =>
+                definition.isVariableDefinition !== false && !isAmbientDefinition(definition),
+            ))
+        ) {
           return candidate;
         }
         scope = scope.upper;
       }
       return undefined;
     };
-    const isGlobalObject = (node) =>
-      node?.type === 'Identifier' &&
-      globalObjects.has(node.name) &&
-      !valueVariable(node.name)?.defs.length;
-    const isUiCoreNamespace = (node) =>
-      (node?.type === 'Identifier' || node?.type === 'JSXIdentifier') &&
-      valueVariable(node.name)?.defs.some(
-        (definition) =>
-          definition.type === 'ImportBinding' &&
-          definition.node.type === 'ImportNamespaceSpecifier' &&
-          !isTypeOnly(definition.parent) &&
-          uiCoreModules.has(definition.parent.source.value),
+    const isGlobalObject = (node) => {
+      const object = unwrapTypeWrappers(node);
+      return (
+        object?.type === 'Identifier' &&
+        globalObjects.has(object.name) &&
+        !valueVariable(object.name)?.defs.length
       );
+    };
     const checkModule = (node) => {
       const name = node.source?.value;
       if (!name) {
         return;
       }
+      if (allowedModules.has(name)) {
+        return;
+      }
       if (
-        name.startsWith('@segment/') ||
-        restrictedModules.some((module) => name === module || name.startsWith(`${module}/`))
+        blockedModulePrefixes.some((prefix) => name.startsWith(prefix)) ||
+        blockedModules.some((module) => name === module || name.startsWith(`${module}/`))
       ) {
         report(node);
-      } else if (uiCoreModules.has(name) && !isTypeOnly(node)) {
-        if (node.type === 'ExportAllDeclaration') {
-          report(node);
-        } else {
-          for (const specifier of node.specifiers) {
-            const imported = specifier.imported || specifier.local;
-            if (
-              ['ImportSpecifier', 'ExportSpecifier'].includes(specifier.type) &&
-              !isTypeOnly(specifier) &&
-              runtimeExports.has(imported.name || imported.value)
-            ) {
-              report(specifier);
-            }
-          }
-        }
       }
     };
     const checkMember = (node) => {
       const name = propertyName(node);
-      if (
-        (isGlobalObject(node.object) && name === 'analytics') ||
-        (isUiCoreNamespace(node.object) && runtimeExports.has(name))
-      ) {
+      if (isGlobalObject(node.object) && blockedGlobalProperties.has(name)) {
         report(node);
       }
     };
     const checkDestructuring = (pattern, source) => {
-      if (pattern?.type !== 'ObjectPattern') {
-        return;
-      }
-      const restricted = isGlobalObject(source)
-        ? globalProperties
-        : isUiCoreNamespace(source)
-        ? runtimeExports
-        : undefined;
-      if (!restricted) {
+      if (pattern?.type !== 'ObjectPattern' || !isGlobalObject(source)) {
         return;
       }
       for (const property of pattern.properties) {
         if (property.type === 'Property') {
           const name = property.computed
-            ? property.key.value
+            ? unwrapTypeWrappers(property.key)?.value
             : property.key.name || property.key.value;
-          if (restricted.has(name)) {
+          if (blockedGlobalProperties.has(name)) {
             report(property);
           }
         }
@@ -117,7 +128,6 @@ module.exports = {
       ExportNamedDeclaration: checkModule,
       ExportAllDeclaration: checkModule,
       MemberExpression: checkMember,
-      JSXMemberExpression: checkMember,
       VariableDeclarator: (node) => checkDestructuring(node.id, node.init),
       AssignmentExpression: (node) => checkDestructuring(node.left, node.right),
     };

@@ -201,24 +201,28 @@ class MlflowExperiments {
     return cy.findByTestId('mlflow-breadcrumb-active');
   }
 
+  // All cy.contains() lookups below are scoped to the main content region — the
+  // sidebar nav is a sibling of <main>, so unscoped lookups can match hidden nav
+  // items (e.g. the observability "Metrics" link inside a collapsed section).
+  // See RHOAIENG-103498.
   findCompareRunsVisualizations() {
-    return cy.contains('Visualizations');
+    return cy.get('main').contains('Visualizations');
   }
 
   findCompareRunDetails() {
-    return cy.contains('Run details');
+    return cy.get('main').contains('Run details');
   }
 
   shouldContainText(text: string) {
-    cy.contains(text).should('be.visible');
+    cy.get('main').contains(text).should('be.visible');
   }
 
   findRunParameters() {
-    return cy.contains('Parameters', { timeout: 10000 });
+    return cy.get('main').contains('Parameters', { timeout: 10000 });
   }
 
   findRunMetrics() {
-    return cy.contains('Metrics', { timeout: 10000 });
+    return cy.get('main').contains('Metrics', { timeout: 10000 });
   }
 
   getMlflowDarkModeStorageValue(): Cypress.Chainable<string | null> {

@@ -2,6 +2,7 @@ import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/f
 import type {
   DeployMethodActivationInput,
   DeploymentAssemblyFn,
+  DeploymentAssemblyResources,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { type NIMServiceKind, type NIMDeployment } from '../nimservices/types';
@@ -19,7 +20,7 @@ export const isNIMDeployActive = (wizardData: DeployMethodActivationInput): bool
 
 export const assembleNIMDeployment = (
   wizardData: WizardFormData,
-  existingDeployment?: NIMDeployment,
+  existingDeployment?: DeploymentAssemblyResources<NIMDeployment>,
   applyFieldData?: DeploymentAssemblyFn<NIMDeployment>,
 ): NIMDeployment => {
   const tokenAuth =

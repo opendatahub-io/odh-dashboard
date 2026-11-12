@@ -1,10 +1,13 @@
 {
   "private": true,
   "name": "@odh-dashboard/analytics",
-  "description": "Shared Segment analytics implementation",
+  "description": "Shared analytics contracts, React tracking APIs, and Segment implementation",
   "version": "0.0.0",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./react": "./src/react/index.ts",
+    "./standalone": "./src/standalone/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -13,8 +16,11 @@
     "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit"
   },
+  "module-federation-shared": ["./react"],
+  "peerDependencies": {
+    "react": "^18"
+  },
   "dependencies": {
-    "@odh-dashboard/ui-core": "workspace:*",
     "@segment/analytics-next": "^1.84.0"
   },
   "devDependencies": {

@@ -1,11 +1,6 @@
 import type { DashboardResource, ListVariableDefinition } from '@perses-dev/core';
 import { NAMESPACE_URL_PARAM } from '../dashboardUtils';
-import {
-  isExpandedAllNamespaceSelection,
-  isUsableNamespaceDefault,
-  normalizeNamespaceDefault,
-  transformNamespaceVariable,
-} from '../transformDashboardVariables';
+import { transformNamespaceVariable } from '../transformDashboardVariables';
 
 // Helper to create a mock dashboard with namespace variable
 const createMockDashboardWithNamespaceVariable = (
@@ -24,8 +19,6 @@ const createMockDashboardWithNamespaceVariable = (
             defaultValue,
             allowMultiple: true,
             allowAllValue: true,
-            // Simulate OOTB wildcard All — transform must strip this for scoped queryParams
-            customAllValue: '.*',
             plugin: {
               kind: 'PrometheusLabelValuesVariable',
               spec: {
@@ -109,29 +102,6 @@ describe('transformNamespaceVariable', () => {
 
       expect(result).toBe(dashboard);
     });
-
-    it('should leave Models TextVariable namespace stub unchanged (DashboardView must hide it)', () => {
-      const dashboard = {
-        kind: 'Dashboard',
-        metadata: { name: 'dashboard-1-model', project: 'test' },
-        spec: {
-          variables: [
-            {
-              kind: 'TextVariable',
-              spec: { name: 'namespace', value: '' },
-            },
-          ],
-        },
-      } as DashboardResource;
-
-      const result = transformNamespaceVariable(dashboard, []);
-
-      expect(result).toBe(dashboard);
-      expect(result.spec.variables[0]).toEqual({
-        kind: 'TextVariable',
-        spec: { name: 'namespace', value: '' },
-      });
-    });
   });
 
   describe('when dashboard has no variables', () => {
@@ -198,7 +168,7 @@ describe('transformNamespaceVariable', () => {
       }
     });
 
-    it('should omit customAllValue so All expands to the concrete project list', () => {
+    it('should set customAllValue with pipe-separated project names regex', () => {
       const dashboard = createMockDashboardWithNamespaceVariable();
       const projectNames = ['project-alpha', 'project-beta', 'project-gamma'];
 
@@ -210,130 +180,8 @@ describe('transformNamespaceVariable', () => {
 
       expect(namespaceVar).toBeDefined();
       if (namespaceVar) {
-        // Wildcard/regex All breaks scoped ${namespace:queryparam} (namespace=.*)
-        expect(namespaceVar.spec.customAllValue).toBeUndefined();
-        // Preserve dashboard allowAllValue; do not force it on.
-        expect(namespaceVar.spec.allowAllValue).toBe(true);
-        expect(namespaceVar.spec.plugin.spec).toEqual({
-          values: [
-            { label: 'project-alpha', value: 'project-alpha' },
-            { label: 'project-beta', value: 'project-beta' },
-            { label: 'project-gamma', value: 'project-gamma' },
-          ],
-        });
+        expect(namespaceVar.spec.customAllValue).toBe('(project-alpha|project-beta|project-gamma)');
       }
-    });
-
-    it('should preserve allowAllValue false from the dashboard', () => {
-      const dashboard = createMockDashboardWithNamespaceVariable();
-      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
-      nsVar.spec.allowAllValue = false;
-
-      const result = transformNamespaceVariable(dashboard, ['project-1']);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.allowAllValue).toBe(false);
-      expect(namespaceVar?.spec.customAllValue).toBeUndefined();
-    });
-
-    it('should fall back to the first project when allowAllValue is false and defaults are unset', () => {
-      const dashboard = createMockDashboardWithNamespaceVariable(undefined);
-      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
-      nsVar.spec.allowAllValue = false;
-
-      const result = transformNamespaceVariable(dashboard, ['project-1', 'project-2']);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.defaultValue).toBe('project-1');
-    });
-
-    it('should fall back to the first project when allowAllValue is false and default is $__all', () => {
-      const dashboard = createMockDashboardWithNamespaceVariable('$__all');
-      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
-      nsVar.spec.allowAllValue = false;
-
-      const result = transformNamespaceVariable(dashboard, ['project-1', 'project-2']);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.defaultValue).toBe('project-1');
-      expect(namespaceVar?.spec.allowAllValue).toBe(false);
-    });
-
-    it('should fall back to the first project when allowAllValue is omitted and default is $__all', () => {
-      const dashboard = createMockDashboardWithNamespaceVariable('$__all');
-      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
-      delete (nsVar.spec as { allowAllValue?: boolean }).allowAllValue;
-
-      const result = transformNamespaceVariable(dashboard, ['project-alpha', 'project-beta']);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.defaultValue).toBe('project-alpha');
-    });
-
-    it('should fall back to the first project when allowAllValue is omitted and defaults are unset', () => {
-      const dashboard = createMockDashboardWithNamespaceVariable(undefined);
-      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
-      delete (nsVar.spec as { allowAllValue?: boolean }).allowAllValue;
-
-      const result = transformNamespaceVariable(dashboard, ['project-alpha', 'project-beta']);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.defaultValue).toBe('project-alpha');
-    });
-
-    it('should replace a stale default that is not in the project list', () => {
-      const dashboard = createMockDashboardWithNamespaceVariable('old-project');
-      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
-      nsVar.spec.allowAllValue = false;
-
-      const result = transformNamespaceVariable(dashboard, ['new-project']);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.defaultValue).toBe('new-project');
-    });
-
-    it('should leave customAllValue undefined when the dashboard already omits it', () => {
-      const dashboard = createMockDashboardWithNamespaceVariable();
-      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
-      delete nsVar.spec.customAllValue;
-
-      const result = transformNamespaceVariable(dashboard, ['project-1', 'project-2']);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.customAllValue).toBeUndefined();
-      expect(Object.prototype.hasOwnProperty.call(namespaceVar?.spec ?? {}, 'customAllValue')).toBe(
-        false,
-      );
-    });
-
-    it('must not reintroduce pipe-regex customAllValue for Project=All', () => {
-      // Regression: old transform set customAllValue to "(a|b)" which breaks
-      // scoped queryParams (proxy gets namespace=(a|b) / Bad Request).
-      const dashboard = createMockDashboardWithNamespaceVariable();
-      const projectNames = ['project-alpha', 'project-beta'];
-
-      const result = transformNamespaceVariable(dashboard, projectNames);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.customAllValue).toBeUndefined();
-      expect(namespaceVar?.spec.customAllValue).not.toBe('(project-alpha|project-beta)');
-      expect(JSON.stringify(namespaceVar?.spec)).not.toMatch(/customAllValue/);
     });
 
     it('should preserve other variable properties when transforming', () => {
@@ -507,124 +355,5 @@ describe('transformNamespaceVariable', () => {
         ]);
       }
     });
-
-    it('should treat null VariableValue defaults as unset', () => {
-      const dashboard = createMockDashboardWithNamespaceVariable();
-      const nsVar = dashboard.spec.variables[0] as ListVariableDefinition;
-      // Perses VariableValue may be null at runtime
-      (nsVar.spec as { defaultValue: string | string[] | null }).defaultValue = null;
-      const projectNames = ['project-1', 'project-2'];
-
-      const result = transformNamespaceVariable(dashboard, projectNames, null);
-
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.defaultValue).toBe('$__all');
-    });
-  });
-
-  describe('TextVariable namespace (Models dashboard)', () => {
-    const createTextNamespaceDashboard = (): DashboardResource =>
-      ({
-        kind: 'Dashboard',
-        metadata: { name: 'models', project: 'test-project' },
-        spec: {
-          display: { name: 'Models' },
-          variables: [
-            {
-              kind: 'TextVariable',
-              spec: {
-                name: 'namespace',
-                display: { name: 'Project', description: 'Filter by project' },
-                value: '',
-              },
-            },
-          ],
-        },
-      } as DashboardResource);
-
-    it('should replace TextVariable namespace with StaticList ListVariable', () => {
-      const result = transformNamespaceVariable(createTextNamespaceDashboard(), [
-        'project-1',
-        'project-2',
-      ]);
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.allowAllValue).toBe(true);
-      expect(namespaceVar?.spec.allowMultiple).toBe(true);
-      expect(namespaceVar?.spec.customAllValue).toBeUndefined();
-      expect(namespaceVar?.spec.defaultValue).toBe('$__all');
-      expect(namespaceVar?.spec.plugin.kind).toBe('StaticListVariable');
-    });
-
-    it('should honor a usable initial namespace for TextVariable path', () => {
-      const result = transformNamespaceVariable(
-        createTextNamespaceDashboard(),
-        ['project-1', 'project-2'],
-        'project-2',
-      );
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.defaultValue).toBe('project-2');
-    });
-
-    it('should fall back to $__all when initial namespace is not in the project list', () => {
-      const result = transformNamespaceVariable(
-        createTextNamespaceDashboard(),
-        ['project-1', 'project-2'],
-        'missing-ns',
-      );
-      const namespaceVar = result.spec.variables.find(
-        (v) => v.kind === 'ListVariable' && v.spec.name === 'namespace',
-      ) as ListVariableDefinition | undefined;
-
-      expect(namespaceVar?.spec.defaultValue).toBe('$__all');
-    });
-  });
-});
-
-describe('normalizeNamespaceDefault', () => {
-  it('maps null to undefined', () => {
-    expect(normalizeNamespaceDefault(null)).toBeUndefined();
-  });
-
-  it('passes through string and array values', () => {
-    expect(normalizeNamespaceDefault('ns')).toBe('ns');
-    expect(normalizeNamespaceDefault(['a', 'b'])).toEqual(['a', 'b']);
-  });
-});
-
-describe('isExpandedAllNamespaceSelection', () => {
-  it('is true only when every option is selected', () => {
-    expect(isExpandedAllNamespaceSelection(['a', 'b'], ['a', 'b'])).toBe(true);
-    expect(isExpandedAllNamespaceSelection(['a', 'b'], new Set(['a', 'b', 'c']))).toBe(false);
-    expect(isExpandedAllNamespaceSelection(['a'], ['a', 'b'])).toBe(false);
-    expect(isExpandedAllNamespaceSelection(['a', 'b'], [])).toBe(false);
-  });
-
-  it('rejects duplicate selections that do not cover every option', () => {
-    expect(isExpandedAllNamespaceSelection(['a', 'a'], ['a', 'b'])).toBe(false);
-  });
-});
-
-describe('isUsableNamespaceDefault', () => {
-  const options = new Set(['a', 'b']);
-
-  it('accepts $__all only when allowAll is true', () => {
-    expect(isUsableNamespaceDefault('$__all', true, options)).toBe(true);
-    expect(isUsableNamespaceDefault('$__all', false, options)).toBe(false);
-  });
-
-  it('rejects empty or unknown selections', () => {
-    expect(isUsableNamespaceDefault(undefined, true, options)).toBe(false);
-    expect(isUsableNamespaceDefault([], true, options)).toBe(false);
-    expect(isUsableNamespaceDefault('missing', true, options)).toBe(false);
-    expect(isUsableNamespaceDefault(['a', 'missing'], true, options)).toBe(false);
   });
 });

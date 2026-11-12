@@ -201,7 +201,7 @@ aliases:
     - paulovmr
     - thaorell
     - jesuino
-    - bobbravo2 
+    - bobbravo2
   notebooks-reviewers:
     - andyatmiami
     - ederign
@@ -314,6 +314,24 @@ aliases:
     - tamdavid-git
     - GAUNSD
     - MatthewAThompson
+
+  # AI Safety
+  ai-safety-approvers:
+    - chrjones-rh
+    - GAUNSD
+    - NickGagan
+    - nickmazzi
+    - tamdavid-git
+  ai-safety-reviewers:
+    - chrjones-rh
+    - daniduong
+    - GAUNSD
+    - jefho-rh
+    - jkyaw
+    - MatthewAThompson
+    - NickGagan
+    - nickmazzi
+    - tamdavid-git
 
   # MLflow
   mlflow-approvers:

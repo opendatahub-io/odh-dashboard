@@ -12,8 +12,8 @@ import {
 } from '../../api/LLMInferenceServiceConfigs';
 import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLLMInferenceServiceConfigK8sResource';
 import { TopologyType } from '../../types';
-import LlmAcceleratorConfigContextProvider from '../llmAcceleratorConfigs/LlmAcceleratorConfigContext';
-import LlmAcceleratorConfigFormBody from '../llmAcceleratorConfigs/LlmAcceleratorConfigFormBody';
+import LlmInferenceServiceConfigContextProvider from '../llmInferenceServiceConfigs/LlmInferenceServiceConfigContext';
+import LlmInferenceServiceConfigFormBody from '../llmInferenceServiceConfigs/LlmInferenceServiceConfigFormBody';
 import RoutingConfigContextProvider, {
   RoutingConfigContext,
 } from '../routingConfigs/RoutingConfigContext';
@@ -51,13 +51,13 @@ beforeEach(() => {
 
 describe('settings host namespace', () => {
   it.each([
-    ['accelerator', LlmAcceleratorConfigContextProvider, useWatchLLMInferenceServiceConfigs],
+    ['accelerator', LlmInferenceServiceConfigContextProvider, useWatchLLMInferenceServiceConfigs],
     ['routing', RoutingConfigContextProvider, useWatchRouterConfigs],
     ['topology', TopologyConfigContextProvider, useWatchTopologyConfigs],
   ] as const)(
     'should watch %s configs in the current host namespace without Redux',
     (_name, Provider, watch) => {
-      const { coreApi } = createTestProviders();
+      const { coreApi, wrapper } = createTestProviders();
       const renderProvider = (namespace: string) => (
         <HostApiCoreContext.Provider value={{ ...coreApi, dashboardNamespace: namespace }}>
           <Provider>
@@ -65,7 +65,7 @@ describe('settings host namespace', () => {
           </Provider>
         </HostApiCoreContext.Provider>
       );
-      const { rerender } = render(renderProvider('first-dashboard'));
+      const { rerender } = render(renderProvider('first-dashboard'), { wrapper });
       expect(jest.mocked(watch).mock.calls.at(-1)?.[0]).toBe('first-dashboard');
 
       rerender(renderProvider('second-dashboard'));
@@ -76,7 +76,7 @@ describe('settings host namespace', () => {
   it.each(['routing', 'topology'] as const)(
     'should delete %s configs using the latest host namespace',
     async (refType) => {
-      const { coreApi } = createTestProviders();
+      const { coreApi, wrapper } = createTestProviders();
       const config = mockLLMInferenceServiceConfigK8sResource({ namespace: 'source-namespace' });
       const DeleteConfigHarness = () => {
         const { deleteConfig, setDeleteConfig, handleDelete } =
@@ -103,7 +103,7 @@ describe('settings host namespace', () => {
           </HostApiCoreContext.Provider>
         );
       };
-      const { rerender } = render(<Host namespace="first-dashboard" />);
+      const { rerender } = render(<Host namespace="first-dashboard" />, { wrapper });
       fireEvent.click(screen.getByTestId('select-config'));
       rerender(<Host namespace="second-dashboard" />);
       const deleteButton = screen.getByTestId('delete-config');
@@ -135,7 +135,7 @@ describe('settings form host services', () => {
     });
     const form =
       kind === 'accelerator' ? (
-        <LlmAcceleratorConfigFormBody mode="duplicate" sourceConfig={source} />
+        <LlmInferenceServiceConfigFormBody mode="duplicate" sourceConfig={source} />
       ) : kind === 'topology' ? (
         <TopologyConfigurationCreateEdit isDuplicate />
       ) : (

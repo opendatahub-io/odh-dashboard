@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import * as React from 'react';
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { QualityInsight } from '../qualityInsightsTypes';
 
@@ -26,22 +27,24 @@ jest.mock('@odh-dashboard/internal/components/table/TableRowTitleDescription', (
   };
 });
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
 import QualityInsightsView from '../QualityInsightsView';
+
+const tracking = { trackEvent: jest.fn(), trackPageEvent: jest.fn() };
 
 const renderView = () =>
   render(
     React.createElement(
-      MemoryRouter,
-      null,
-      React.createElement(QualityInsightsView, {
-        sourceId: 'src-1',
-        modelName: 'test-model',
-        namespace: 'test-ns',
-      }),
+      AnalyticsTrackingProvider,
+      { value: tracking },
+      React.createElement(
+        MemoryRouter,
+        null,
+        React.createElement(QualityInsightsView, {
+          sourceId: 'src-1',
+          modelName: 'test-model',
+          namespace: 'test-ns',
+        }),
+      ),
     ),
   );
 
@@ -57,6 +60,7 @@ describe('QualityInsightsView', () => {
     mockLoaded = false;
     await renderView();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(tracking.trackEvent).not.toHaveBeenCalled();
   });
 
   it('shows an error before the loading state', async () => {
@@ -71,6 +75,9 @@ describe('QualityInsightsView', () => {
     await renderView();
     expect(screen.getByTestId('quality-insights-empty-state')).toBeInTheDocument();
     expect(screen.getByText('No quality insights')).toBeInTheDocument();
+    expect(tracking.trackEvent.mock.calls).toStrictEqual([
+      ['Quality Insights Viewed', { sourceId: 'src-1', modelName: 'test-model', insightCount: 0 }],
+    ]);
   });
 
   it('renders table rows and filters by evaluation', async () => {
@@ -134,6 +141,12 @@ describe('QualityInsightsView', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Go to next page' })[0]);
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toHaveTextContent('Evaluation');
+    expect(tracking.trackEvent.mock.calls).toStrictEqual([
+      ['Quality Insights Viewed', { sourceId: 'src-1', modelName: 'test-model', insightCount: 21 }],
+      ['Quality Insights Sort Changed', { column: 'Evaluation', direction: 'asc' }],
+      ['Quality Insights Pagination Changed', { page: 2, perPage: 20, totalItems: 21 }],
+    ]);
+    expect(tracking.trackPageEvent).not.toHaveBeenCalled();
   });
 
   it('sorts evaluation scores numerically', async () => {
@@ -260,5 +273,75 @@ describe('QualityInsightsView', () => {
 
     fireEvent.click(scoreSortButton);
     expect(screen.getAllByTestId('quality-insight-row')[0]).toHaveTextContent('Scored result');
+  });
+
+  describe('tracking', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      mockInsightsData = [
+        {
+          evaluation: 'Python function generation',
+          category: 'code',
+          benchmarkName: 'HumanEval',
+          benchmarkDescription: 'Writes correct Python functions.',
+          score: 0.628,
+          result: '62.8%',
+        },
+      ];
+    });
+
+    afterEach(() => jest.useRealTimers());
+
+    it('should preserve debounce, result counts, filter changes, and once-only viewing', async () => {
+      await renderView();
+      const input = screen.getByRole('textbox', { name: 'Filter by evaluation name' });
+      fireEvent.change(input, { target: { value: 'Python' } });
+      act(() => jest.advanceTimersByTime(499));
+      expect(tracking.trackEvent.mock.calls).toStrictEqual([
+        [
+          'Quality Insights Viewed',
+          { sourceId: 'src-1', modelName: 'test-model', insightCount: 1 },
+        ],
+      ]);
+      act(() => jest.advanceTimersByTime(1));
+      fireEvent.change(input, { target: { value: 'missing' } });
+      act(() => jest.advanceTimersByTime(500));
+      fireEvent.change(input, { target: { value: '' } });
+      act(() => jest.advanceTimersByTime(500));
+      fireEvent.click(screen.getByTestId('quality-filter-type-toggle'));
+      fireEvent.click(screen.getByRole('option', { name: 'Category' }));
+      act(() => jest.advanceTimersByTime(500));
+
+      expect(tracking.trackEvent.mock.calls).toStrictEqual([
+        [
+          'Quality Insights Viewed',
+          { sourceId: 'src-1', modelName: 'test-model', insightCount: 1 },
+        ],
+        [
+          'Quality Insights Filter Applied',
+          { filterType: 'evaluation', hasResults: true, resultCount: 1 },
+        ],
+        [
+          'Quality Insights Filter Applied',
+          { filterType: 'evaluation', hasResults: false, resultCount: 0 },
+        ],
+        [
+          'Quality Insights Filter Type Changed',
+          { previousFilterType: 'evaluation', newFilterType: 'category' },
+        ],
+      ]);
+      expect(tracking.trackPageEvent).not.toHaveBeenCalled();
+    });
+
+    it('should cancel a pending filter event on unmount', async () => {
+      const { unmount } = renderView();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Filter by evaluation name' }), {
+        target: { value: 'Python' },
+      });
+      tracking.trackEvent.mockClear();
+      unmount();
+      act(() => jest.advanceTimersByTime(500));
+      expect(tracking.trackEvent).not.toHaveBeenCalled();
+    });
   });
 });

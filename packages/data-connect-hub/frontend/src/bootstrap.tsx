@@ -1,5 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';
 import { BrowserRouter as Router } from 'react-router-dom';
 import {
   BrowserStorageContextProvider,
@@ -16,6 +18,7 @@ import {
 import App from '~/app/App';
 import ToastNotifications from '~/app/components/ToastNotifications';
 
+const standaloneAnalytics = createStandaloneAnalytics();
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Root element not found');
@@ -31,15 +34,17 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <Router>
-      <ModularArchContextProvider config={modularArchConfig}>
-        <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <App />
-            <ToastNotifications />
-          </NotificationContextProvider>
-        </BrowserStorageContextProvider>
-      </ModularArchContextProvider>
-    </Router>
+    <AnalyticsTrackingProvider value={standaloneAnalytics}>
+      <Router>
+        <ModularArchContextProvider config={modularArchConfig}>
+          <BrowserStorageContextProvider>
+            <NotificationContextProvider>
+              <App />
+              <ToastNotifications />
+            </NotificationContextProvider>
+          </BrowserStorageContextProvider>
+        </ModularArchContextProvider>
+      </Router>
+    </AnalyticsTrackingProvider>
   </React.StrictMode>,
 );

@@ -66,6 +66,7 @@ export type MockDashboardConfigType = {
   disableLLMd?: boolean;
   llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  bidirectionalYamlWizardGa?: boolean;
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
@@ -145,6 +146,7 @@ export const mockDashboardConfig = ({
   disableLLMd = false,
   llmdTemplates = false,
   deploymentWizardYAMLViewer = false,
+  bidirectionalYamlWizardGa = false,
   externalVectorStores = false,
   agentConfigManagement = false,
   genAiAgentDeployment = false,
@@ -350,6 +352,7 @@ export const mockDashboardConfig = ({
       disableLLMd,
       llmdTemplates,
       deploymentWizardYAMLViewer,
+      bidirectionalYamlWizardGa,
       externalVectorStores,
       agentConfigManagement,
       genAiAgentDeployment,

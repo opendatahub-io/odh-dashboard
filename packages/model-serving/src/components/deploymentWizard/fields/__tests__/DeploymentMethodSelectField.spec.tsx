@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ModelServingTrackingEvent } from '../../../../shared/tracking/modelServingTrackingConstants';
 import {
@@ -9,12 +9,10 @@ import {
   type DeploymentMethodFieldData,
 } from '../DeploymentMethodSelectField';
 import type { DeploymentMethodFieldOverride } from '../../../../shared/types/form-data';
+import { createTrackingRender } from '../../../../__tests__/TrackingProvider';
 
 const mockTrackEvent = jest.fn();
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
-  useTrackEvent: () => mockTrackEvent,
-}));
+const render = createTrackingRender(mockTrackEvent);
 
 const DeploymentMethodSelectFieldComponent = DeploymentMethodSelectFieldWizardField.component;
 

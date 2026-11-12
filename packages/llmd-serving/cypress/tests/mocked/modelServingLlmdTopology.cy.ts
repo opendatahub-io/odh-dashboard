@@ -331,7 +331,7 @@ describe('Model Serving LLMD Topology & Routing', () => {
     });
 
     it('should disable routing dropdown when no router configs exist', () => {
-      initIntercepts({ topologyConfigs: [], routerConfigs: [] });
+      initIntercepts({ topologyConfigs: [], routerConfigs: [], acceleratorConfigs: [] });
       modelServingGlobal.visit('test-project');
       modelServingGlobal.findDeployModelButton().click();
       navigateToModelDeploymentStep();

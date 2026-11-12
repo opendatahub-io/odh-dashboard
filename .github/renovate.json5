@@ -14,7 +14,7 @@
   //           re-validates the PR and applies lgtm/approved for eligible tiers.
   //           Editing a tier here changes what can auto-merge — review
   //           changes to this file accordingly.
-  // Runbook:  .github/security-audit-triage.md#renovate
+  // Runbook:  docs/security-cve.md#renovate
   // ─────────────────────────────────────────────────────────────────────────
 
   "extends": ["config:recommended"],
