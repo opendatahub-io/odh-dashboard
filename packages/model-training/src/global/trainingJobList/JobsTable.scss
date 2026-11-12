@@ -37,3 +37,9 @@
     display: none;
   }
 }
+
+@container pf-v6-contain-table (max-width: 25rem) {
+  .mt-jobs-table .pf-v6-c-table .mt-jobs-table__pause-resume {
+    display: none;
+  }
+}

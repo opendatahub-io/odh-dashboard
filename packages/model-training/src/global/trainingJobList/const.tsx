@@ -12,6 +12,7 @@ export const JOBS_TABLE_COLUMN_CLASS = {
   rayCluster: 'mt-jobs-table__ray-cluster',
   type: 'mt-jobs-table__type',
   created: 'mt-jobs-table__created',
+  pauseResume: 'mt-jobs-table__pause-resume',
 } as const;
 
 export const getColumns = (nodeCountMap: Map<string, number>): SortableData<UnifiedJobKind>[] => [
@@ -118,6 +119,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
   {
     field: 'pauseResume',
     label: '',
+    className: JOBS_TABLE_COLUMN_CLASS.pauseResume,
     sortable: false,
   },
   {

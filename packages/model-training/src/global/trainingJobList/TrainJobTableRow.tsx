@@ -211,7 +211,7 @@ const TrainJobTableRow: React.FC<TrainJobTableRowProps> = ({
             onClick={() => setStatusModalOpen(true)}
           />
         </Td>
-        <Td>
+        <Td className={JOBS_TABLE_COLUMN_CLASS.pauseResume}>
           {canPauseResume && (
             <StateActionToggle
               isPaused={isPaused}
