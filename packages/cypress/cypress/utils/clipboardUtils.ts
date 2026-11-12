@@ -7,15 +7,21 @@
  * Must be called AFTER page load (window changes on navigation).
  *
  * @param aliasName The alias name to use for the captured text array (without @).
+ * @param options Set log to false when copying sensitive values.
  */
-export const stubClipboard = (aliasName: string): void => {
-  cy.window().then((win) => {
+export const stubClipboard = (
+  aliasName: string,
+  { log = true }: Partial<Cypress.Loggable> = {},
+): void => {
+  cy.window({ log }).then((win) => {
     const copied: string[] = [];
-    cy.wrap(copied).as(aliasName);
-    cy.stub(win.navigator.clipboard, 'writeText').callsFake((text: string) => {
-      copied.push(text);
-      return Promise.resolve();
-    });
+    cy.wrap(copied, { log }).as(aliasName);
+    cy.stub(win.navigator.clipboard, 'writeText')
+      .log(log)
+      .callsFake((text: string) => {
+        copied.push(text);
+        return Promise.resolve();
+      });
   });
 };
 
