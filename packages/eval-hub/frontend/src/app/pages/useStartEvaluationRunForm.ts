@@ -32,6 +32,7 @@ import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
 import { useHardwareProfiles } from '~/app/hooks/useHardwareProfiles';
 import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
 import {
+  benchmarkParameterValuesSchema,
   startEvaluationRunDefaultValues,
   startEvaluationRunSchema,
   type StartEvaluationRunFormValues,
@@ -79,6 +80,7 @@ type UseStartEvaluationRunFormParams = {
   collection: Collection | undefined;
   isCollectionFlow: boolean;
   benchmarkParameterValues?: Record<string, unknown>;
+  benchmarkParameterKeys?: string[];
   allowDeferredCollection?: boolean;
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
@@ -160,6 +162,7 @@ export function useStartEvaluationRunForm({
   collection,
   isCollectionFlow,
   benchmarkParameterValues,
+  benchmarkParameterKeys,
   allowDeferredCollection = false,
   experiments,
   experimentsLoaded,
@@ -572,6 +575,17 @@ export function useStartEvaluationRunForm({
         )
       : undefined;
 
+  const benchmarkParameterErrors = React.useMemo(() => {
+    const result = benchmarkParameterValuesSchema.safeParse(benchmarkParameterValues ?? {});
+    if (result.success) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      result.error.issues.map((issue): [string, string] => [String(issue.path[0]), issue.message]),
+    );
+  }, [benchmarkParameterValues]);
+
   const isValid = React.useMemo(() => {
     if (
       !hardwareProfilesLoaded ||
@@ -579,6 +593,7 @@ export function useStartEvaluationRunForm({
       evaluationName.trim() === '' ||
       !hasBenchmarks ||
       !hasExperiment ||
+      Object.keys(benchmarkParameterErrors).length > 0 ||
       (requiresHardwareProfile && !selectedHardwareProfile)
     ) {
       return false;
@@ -615,6 +630,7 @@ export function useStartEvaluationRunForm({
     selectedInferenceServiceName,
     hardwareProfilesLoaded,
     hardwareProfilesError,
+    benchmarkParameterErrors,
     requiresHardwareProfile,
     selectedHardwareProfile,
   ]);
@@ -800,6 +816,24 @@ export function useStartEvaluationRunForm({
           setIsSubmitting(false);
           return;
         }
+
+        const conflictingParameterKeys = Object.keys(parsed).filter((key) =>
+          benchmarkParameterKeys?.includes(key),
+        );
+        if (conflictingParameterKeys.length > 0) {
+          notification.error(
+            'Conflicting benchmark parameters',
+            `Use the dedicated fields for ${conflictingParameterKeys.join(', ')}. Remove them from the advanced JSON.`,
+          );
+          trackEvalHubEvent(
+            EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
+            { validation_error_category: 'duplicate_benchmark_parameter_keys' },
+            submissionTrackingContext,
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
         Object.assign(parsedArgs, parsed);
 
         for (const [key, val] of Object.entries(parsedArgs)) {
@@ -1105,6 +1139,7 @@ export function useStartEvaluationRunForm({
     handleAdditionalArgsClear,
     isSubmitting,
     isValid,
+    benchmarkParameterErrors,
     handleSubmit,
     handleCancel,
     benchmarkDisplayName,

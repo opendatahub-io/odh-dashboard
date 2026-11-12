@@ -156,6 +156,9 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
   const benchmarkParameterValuesForRun = isSingleBenchmarkFlow
     ? benchmarkParameterValues
     : undefined;
+  const benchmarkParameterKeysForRun = isSingleBenchmarkFlow
+    ? benchmarkParameters.map(({ key }) => key)
+    : undefined;
 
   const form = useStartEvaluationRunForm({
     namespace,
@@ -163,6 +166,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
     collection: reconfigureCollection,
     isCollectionFlow: isCollectionReconfigure,
     benchmarkParameterValues: benchmarkParameterValuesForRun,
+    benchmarkParameterKeys: benchmarkParameterKeysForRun,
     experiments,
     experimentsLoaded,
     initialValues,
@@ -559,6 +563,7 @@ const StartEvaluationRunPage: React.FC<StartEvaluationRunPageProps> = ({
         parameters={benchmarkParameters}
         itemId="single-benchmark"
         isDisabled={form.isSubmitting}
+        parameterErrors={form.benchmarkParameterErrors}
         onChange={(key, value) =>
           setBenchmarkParameters((parameters) => updateBenchmarkParameter(parameters, key, value))
         }

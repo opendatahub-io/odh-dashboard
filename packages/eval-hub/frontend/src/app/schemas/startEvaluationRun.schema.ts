@@ -11,6 +11,13 @@ export const SOURCE_MODES = ['model', 'agent', 'prerecorded'] as const;
 export const MODEL_SELECTIONS = ['cluster', 'external'] as const;
 export const EXPERIMENT_MODES = ['existing', 'new'] as const;
 
+export const benchmarkParameterValuesSchema = z.record(
+  z.string(),
+  z
+    .number()
+    .refine((value) => Number.isInteger(value) && value >= 0, 'Enter a non-negative whole number.'),
+);
+
 export const startEvaluationRunSchema = z
   .object({
     evaluationName: z.string().trim().min(1, 'Evaluation name is required'),

@@ -239,7 +239,8 @@ export type JobCreateOpenedProperties = {
 };
 
 export type JobCreateValidationFailedProperties = {
-  validation_error_category: 'parameters_not_object' | 'parameters_invalid_json';
+  validation_error_category:
+    'parameters_not_object' | 'parameters_invalid_json' | 'duplicate_benchmark_parameter_keys';
 };
 
 export type ComparisonViewRenderedProperties = {
