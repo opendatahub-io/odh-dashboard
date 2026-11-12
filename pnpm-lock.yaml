@@ -5831,9 +5831,6 @@ importers:
       monaco-yaml:
         specifier: ^5.5.1
         version: 5.5.1(monaco-editor@0.54.0)
-      prettier:
-        specifier: ^3.3.3
-        version: 3.9.6
       react:
         specifier: ^18
         version: 18.3.1
