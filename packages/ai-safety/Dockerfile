@@ -1,0 +1,66 @@
+# Source code for the repos
+ARG UI_SOURCE_CODE=./frontend
+ARG BFF_SOURCE_CODE=./bff
+
+# Set the base images for the build stages
+ARG NODE_BASE_IMAGE=node:22
+ARG GOLANG_BASE_IMAGE=golang:1.26
+ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
+
+# UI build stage
+FROM ${NODE_BASE_IMAGE} AS ui-builder
+
+ARG UI_SOURCE_CODE
+ARG DEPLOYMENT_MODE
+ARG STYLE_THEME
+
+WORKDIR /usr/src/app
+
+# Copy the source code to the container
+COPY ${UI_SOURCE_CODE} /usr/src/app
+
+# Install the dependencies and build (pnpm via corepack, pinned by package.json packageManager).
+# CYPRESS_INSTALL_BINARY=0 skips Cypress's multi-hundred-MB binary download: cypress is in the
+# pnpm allowBuilds list so its postinstall would otherwise run, and the UI production build never
+# needs the Cypress runner.
+RUN corepack enable
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
+RUN pnpm run build:prod
+
+# BFF build stage
+FROM ${GOLANG_BASE_IMAGE} AS bff-builder
+
+ARG BFF_SOURCE_CODE
+
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /usr/src/app
+
+# Copy the Go Modules manifests
+COPY ${BFF_SOURCE_CODE}/go.mod ${BFF_SOURCE_CODE}/go.sum ./
+COPY pkg/tls/go.mod pkg/tls/go.sum /pkg/tls/
+
+# Download dependencies
+RUN go mod download
+
+# Copy the go source files
+COPY pkg/tls/ /pkg/tls/
+COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
+COPY ${BFF_SOURCE_CODE}/internal/ internal/
+
+# Build the Go application
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bff ./cmd
+
+# Final stage
+# Use distroless as minimal base image to package the application binary
+FROM ${DISTROLESS_BASE_IMAGE}
+WORKDIR /
+COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=ui-builder /usr/src/app/dist ./static/
+USER 65532:65532
+
+# Expose port 8080
+EXPOSE 8080
+
+ENTRYPOINT ["/bff"]

@@ -1,4 +1,6 @@
 export { initSegment } from './initSegment';
+export { createSegmentTracking } from './createSegmentTracking';
+export type { SegmentTrackingOptions } from './createSegmentTracking';
 export {
   fireTrackingEvent,
   firePageEvent,

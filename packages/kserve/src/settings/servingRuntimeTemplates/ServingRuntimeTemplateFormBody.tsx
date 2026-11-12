@@ -23,6 +23,7 @@ import {
   getServingRuntimeNameFromTemplate,
   isServingRuntimeKind,
 } from '@odh-dashboard/model-serving/shared';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import DashboardCodeEditor from '@odh-dashboard/internal/concepts/dashboard/codeEditor/DashboardCodeEditor';
@@ -30,7 +31,6 @@ import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
 } from '@odh-dashboard/internal/services/templateService';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';
@@ -118,6 +118,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
     React.useState<ServingRuntimeModelType[]>(modelTypes);
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
 
   const modelTypesEqual = (a: ServingRuntimeModelType[], b: ServingRuntimeModelType[]) => {
@@ -206,14 +207,14 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                     setError(e);
                   }
                   if (isEdit) {
-                    fireServingRuntimeTemplateUpdated({
+                    fireServingRuntimeTemplateUpdated(trackEvent, {
                       outcome: TrackingOutcome.submit,
                       success: false,
                       apiProtocol: selectedAPIProtocol,
                       modelTypes: selectedModelTypes.join(','),
                     });
                   } else {
-                    fireServingRuntimeTemplateCreated({
+                    fireServingRuntimeTemplateCreated(trackEvent, {
                       outcome: TrackingOutcome.submit,
                       success: false,
                       mode,
@@ -221,7 +222,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                       modelTypes: selectedModelTypes.join(','),
                     });
                     if (isInstall) {
-                      fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                      trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                         outcome: TrackingOutcome.submit,
                         success: false,
                         configurationType: 'serving-runtime-template',
@@ -252,14 +253,14 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                 onClickFunc
                   .then(() => {
                     if (isEdit) {
-                      fireServingRuntimeTemplateUpdated({
+                      fireServingRuntimeTemplateUpdated(trackEvent, {
                         outcome: TrackingOutcome.submit,
                         success: true,
                         apiProtocol: selectedAPIProtocol,
                         modelTypes: selectedModelTypesStr,
                       });
                     } else {
-                      fireServingRuntimeTemplateCreated({
+                      fireServingRuntimeTemplateCreated(trackEvent, {
                         outcome: TrackingOutcome.submit,
                         success: true,
                         mode,
@@ -267,7 +268,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         modelTypes: selectedModelTypesStr,
                       });
                       if (isInstall) {
-                        fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                        trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                           outcome: TrackingOutcome.submit,
                           success: true,
                           configurationType: 'serving-runtime-template',
@@ -281,14 +282,14 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                   })
                   .catch((err) => {
                     if (isEdit) {
-                      fireServingRuntimeTemplateUpdated({
+                      fireServingRuntimeTemplateUpdated(trackEvent, {
                         outcome: TrackingOutcome.submit,
                         success: false,
                         apiProtocol: selectedAPIProtocol,
                         modelTypes: selectedModelTypesStr,
                       });
                     } else {
-                      fireServingRuntimeTemplateCreated({
+                      fireServingRuntimeTemplateCreated(trackEvent, {
                         outcome: TrackingOutcome.submit,
                         success: false,
                         mode,
@@ -296,7 +297,7 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
                         modelTypes: selectedModelTypesStr,
                       });
                       if (isInstall) {
-                        fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                        trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                           outcome: TrackingOutcome.submit,
                           success: false,
                           configurationType: 'serving-runtime-template',
@@ -318,14 +319,16 @@ const ServingRuntimeTemplateFormBody: React.FC<ServingRuntimeTemplateFormProps> 
               id="cancel-button"
               onClick={() => {
                 if (isEdit) {
-                  fireServingRuntimeTemplateUpdated({ outcome: TrackingOutcome.cancel });
+                  fireServingRuntimeTemplateUpdated(trackEvent, {
+                    outcome: TrackingOutcome.cancel,
+                  });
                 } else {
-                  fireServingRuntimeTemplateCreated({
+                  fireServingRuntimeTemplateCreated(trackEvent, {
                     outcome: TrackingOutcome.cancel,
                     mode,
                   });
                   if (isInstall) {
-                    fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                    trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                       outcome: TrackingOutcome.cancel,
                       configurationType: 'serving-runtime-template',
                     });
