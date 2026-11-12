@@ -60,8 +60,8 @@ type KubernetesClientInterface interface {
 	GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error)
 
 	// NemoGuardrails operations
-	// GetNemoGuardrailsServiceURL returns the in-cluster service URL for the NemoGuardrails CR
-	// in the given namespace. Returns ("", nil) if no NemoGuardrails CR exists.
+	// GetNemoGuardrailsServiceURL returns the ready endpoint published by the NemoGuardrails CR
+	// in the given namespace. Returns ("", nil) if no ready endpoint exists.
 	GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
 
 	// GetInferenceServiceURL returns the internal endpoint URL for an InferenceService or

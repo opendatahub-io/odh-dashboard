@@ -4,14 +4,14 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { type ConfigSettings } from 'mod-arch-core';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import { getIsMaasAdmin } from '~/app/api/k8s';
-import { searchTenantApiKeys } from '~/app/api/api-keys';
+import { searchApiKeysForCurrentHost } from '~/app/api/api-keys';
 import { AppContext } from '~/app/context/AppContext';
 import { KeysAndSubsProvider, useKeysAndSubsContext } from '~/app/context/KeysAndSubsContext';
 
 jest.mock('~/app/api/subscriptions', () => ({ listUserSubscriptions: jest.fn() }));
 jest.mock('~/app/api/k8s', () => ({ getIsMaasAdmin: jest.fn() }));
 jest.mock('~/app/api/api-keys', () => ({
-  searchTenantApiKeys: jest.fn(),
+  searchApiKeysForCurrentHost: jest.fn(),
 }));
 jest.mock('~/app/hooks/useApiKeyConfig', () => ({
   useApiKeyConfig: () => [
@@ -39,7 +39,7 @@ describe('KeysAndSubsProvider', () => {
     jest.mocked(listUserSubscriptions).mockReturnValue(jest.fn().mockResolvedValue([]));
     jest.mocked(getIsMaasAdmin).mockReturnValue(jest.fn().mockResolvedValue({ allowed: true }));
     jest
-      .mocked(searchTenantApiKeys)
+      .mocked(searchApiKeysForCurrentHost)
       .mockReturnValue(jest.fn().mockResolvedValue({ object: 'list', data: [], has_more: false }));
   });
 
@@ -49,6 +49,6 @@ describe('KeysAndSubsProvider', () => {
     await waitFor(() => expect(result.current.isMaasAdminLoaded).toBe(true));
     expect(result.current.isMaasAdmin).toBe(true);
     expect(getIsMaasAdmin).toHaveBeenCalled();
-    expect(searchTenantApiKeys).toHaveBeenCalled();
+    expect(searchApiKeysForCurrentHost).toHaveBeenCalled();
   });
 });

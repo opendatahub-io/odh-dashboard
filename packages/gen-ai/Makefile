@@ -166,7 +166,7 @@ dev-start-mock-debug: ## Run frontend, gen-ai BFF (mocks + debugger), and MLflow
 	$(MLFLOW_MOCK_BFF_ARGS) make -j 3 dev-mlflow-bff-mock dev-bff-mock-debug dev-frontend
 
 .PHONY: dev-portforward
-dev-portforward: ## Start port-forwarding for cluster services (Llama Stack, optional ASR)
+dev-portforward: ## Start port-forwarding for cluster services (Llama Stack, optional ASR and NeMo)
 	@echo "Starting port-forward for lsd-genai-playground-service..."
 	@oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/lsd-genai-playground-service 8321:8321 &
 	@if [ -n "$${ASR_SERVICE_NAME}" ]; then \
@@ -175,9 +175,31 @@ dev-portforward: ## Start port-forwarding for cluster services (Llama Stack, opt
 		oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/$${ASR_SERVICE_NAME} $${ASR_LOCAL_PORT:-8790}:8080 & \
 	fi
 	@if echo "${NEMO_GUARDRAILS_URL}" | grep -q "localhost"; then \
-		sleep 1; \
-		echo "Starting port-forward for nemoguardrails on port 9443..."; \
-		oc port-forward -n ${PLAYGROUND_NAMESPACE} svc/nemoguardrails 9443:443 & \
+		nemo_local_address=$${NEMO_GUARDRAILS_URL#*://}; \
+		nemo_local_host=$${nemo_local_address%%/*}; \
+		case "$$nemo_local_host" in \
+			*:*) nemo_local_port=$${nemo_local_host##*:} ;; \
+			*) case "$$NEMO_GUARDRAILS_URL" in https:*) nemo_local_port=443 ;; http:*) nemo_local_port=80 ;; esac ;; \
+		esac; \
+		case "$$nemo_local_port" in ''|*[!0-9]*) echo "Invalid local NemoGuardrails port" >&2; exit 1 ;; esac; \
+		nemo_endpoint=$$(oc get nemoguardrails nemoguardrails -n "${PLAYGROUND_NAMESPACE}" -o jsonpath='{.status.endpoint}' 2>/dev/null || true); \
+		if [ -z "$$nemo_endpoint" ]; then \
+			echo "NemoGuardrails endpoint not ready; skipping port-forward"; \
+		else \
+			nemo_address=$${nemo_endpoint#*://}; \
+			nemo_host=$${nemo_address%%/*}; \
+			nemo_hostname=$${nemo_host%%:*}; \
+			nemo_service=$${nemo_hostname%%.*}; \
+			nemo_namespace=$${nemo_hostname#*.}; \
+			nemo_namespace=$${nemo_namespace%%.*}; \
+			case "$$nemo_hostname" in *.*.svc|*.*.svc.*) ;; *) echo "Invalid NemoGuardrails status.endpoint" >&2; exit 1 ;; esac; \
+			case "$$nemo_endpoint" in https:*) nemo_port=443 ;; http:*) nemo_port=80 ;; *) echo "Invalid NemoGuardrails endpoint scheme" >&2; exit 1 ;; esac; \
+			case "$$nemo_host" in *:*) nemo_port=$${nemo_host##*:} ;; esac; \
+			case "$$nemo_port" in ''|*[!0-9]*|??????*) echo "Invalid NemoGuardrails remote port" >&2; exit 1 ;; esac; \
+			if [ "$$nemo_port" -lt 1 ] || [ "$$nemo_port" -gt 65535 ]; then echo "Invalid NemoGuardrails remote port" >&2; exit 1; fi; \
+			echo "Starting port-forward for $$nemo_namespace/$$nemo_service on port $$nemo_local_port..."; \
+			oc port-forward -n "$$nemo_namespace" "svc/$$nemo_service" "$$nemo_local_port:$$nemo_port" & \
+		fi; \
 	fi
 	@echo "Port-forwarding started in background!"
 

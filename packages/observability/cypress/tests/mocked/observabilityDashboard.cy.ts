@@ -1,63 +1,28 @@
 import type { DashboardResource } from '@perses-dev/core';
 import type { K8sCondition } from '@odh-dashboard/k8s-core';
 import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashboardConfig';
-import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
 import { mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDsciStatus';
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
-import { ProjectModel, SelfSubjectAccessReviewModel } from '@odh-dashboard/internal/api/models';
+import { SelfSubjectAccessReviewModel } from '@odh-dashboard/internal/api/models';
+import { mockPersesDashboard } from '../../../src/__mocks__/observabilityFixtures';
 import { observabilityDashboardPage } from '../../pages/observabilityDashboard';
 
-// Minimal test fixtures following the naming pattern from packages/observability/setup
-// Dashboard names: dashboard-{N}-{name} for regular, dashboard-{N}-{name}-admin for admin-only
-const createMockPersesDashboard = (
-  name: string,
-  displayName: string,
-  variables: DashboardResource['spec']['variables'] = [],
-): DashboardResource => {
-  const dashboard: DashboardResource = {
-    kind: 'Dashboard',
-    metadata: { name, project: 'opendatahub' },
-    spec: {
-      display: { name: displayName },
-      duration: '1h',
-      variables,
-      panels: {},
-      layouts: [],
-    },
-  };
-  return dashboard;
-};
-
-/** TextVariable namespace stub — same shape Models (and other ns-scoped) CRs ship; transform fills StaticList. */
-const namespaceVariableStub: DashboardResource['spec']['variables'] = [
-  {
-    kind: 'TextVariable',
-    spec: {
-      name: 'namespace',
-      display: { name: 'Project', description: 'Filter by project' },
-      value: '',
-    },
-  },
-];
-
-const mockClusterDashboard = createMockPersesDashboard('dashboard-0-cluster-admin', 'Cluster');
-const mockModelDashboard = createMockPersesDashboard(
-  'dashboard-1-model',
-  'Models',
-  namespaceVariableStub,
-);
-const mockModelAdminDashboard = createMockPersesDashboard(
-  'dashboard-1-model-admin',
-  'Models',
-  namespaceVariableStub,
-);
-const mockTenancyDashboard = createMockPersesDashboard(
-  'dashboard-2-tenancy',
-  'Tenancy',
-  namespaceVariableStub,
-);
+const mockClusterDashboard = mockPersesDashboard({
+  name: 'dashboard-0-cluster-admin',
+  displayName: 'Cluster',
+  project: 'opendatahub',
+});
+const mockModelDashboard = mockPersesDashboard({
+  name: 'dashboard-1-model',
+  displayName: 'Model',
+  project: 'opendatahub',
+});
+const mockTenancyDashboard = mockPersesDashboard({
+  name: 'dashboard-2-tenancy',
+  displayName: 'Tenancy',
+  project: 'opendatahub',
+});
 
 const HEALTHY_DSCI_CONDITIONS: K8sCondition[] = [
   {
@@ -124,12 +89,6 @@ const initIntercepts = ({
   });
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({ conditions: dsciConditions }));
-
-  // Models/Tenancy use a namespace variable stub — without projects, DashboardView hides them.
-  cy.interceptK8sList(
-    ProjectModel,
-    mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project' })]),
-  );
 
   // Mock the global Perses dashboards API endpoint
   cy.intercept('GET', '/perses/api/api/v1/dashboards', {
@@ -218,7 +177,7 @@ describe('Observability Dashboard', () => {
     observabilityDashboardPage.visit();
 
     observabilityDashboardPage.shouldHaveTab('Cluster');
-    observabilityDashboardPage.shouldHaveTab('Models');
+    observabilityDashboardPage.shouldHaveTab('Model');
     observabilityDashboardPage.shouldHaveTab('Tenancy');
     observabilityDashboardPage.shouldHaveTabCount(3);
   });
@@ -231,39 +190,8 @@ describe('Observability Dashboard', () => {
 
     observabilityDashboardPage.visit();
 
-    observabilityDashboardPage.shouldHaveTab('Models');
+    observabilityDashboardPage.shouldHaveTab('Model');
     observabilityDashboardPage.shouldHaveTab('Tenancy');
     observabilityDashboardPage.shouldHaveTabCount(2);
-  });
-
-  it('should prefer model-admin over model when user has cluster metrics access', () => {
-    initIntercepts({
-      dashboards: [mockModelDashboard, mockModelAdminDashboard, mockTenancyDashboard],
-      hasClusterMetricsAccess: true,
-    });
-
-    observabilityDashboardPage.visit();
-
-    // Dedup to one Models tab; selecting it writes the admin CR name into the URL.
-    observabilityDashboardPage.shouldHaveTab('Models');
-    observabilityDashboardPage.shouldHaveTab('Tenancy');
-    observabilityDashboardPage.shouldHaveTabCount(2);
-    observabilityDashboardPage.findTab('Models').click();
-    cy.location('search').should('include', 'dashboard=dashboard-1-model-admin');
-  });
-
-  it('should use non-admin model when user lacks cluster metrics access even if admin CR exists', () => {
-    initIntercepts({
-      dashboards: [mockModelDashboard, mockModelAdminDashboard, mockTenancyDashboard],
-      hasClusterMetricsAccess: false,
-    });
-
-    observabilityDashboardPage.visit();
-
-    observabilityDashboardPage.shouldHaveTab('Models');
-    observabilityDashboardPage.shouldHaveTabCount(2);
-    observabilityDashboardPage.findTab('Models').click();
-    cy.location('search').should('include', 'dashboard=dashboard-1-model');
-    cy.location('search').should('not.include', 'dashboard=dashboard-1-model-admin');
   });
 });
