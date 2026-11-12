@@ -314,7 +314,7 @@ const renderWithContext = ({
   onClickSaveNotebook,
   ...contextOptions
 }: RenderWithContextOptions = {}) =>
-  rtlRender(
+  render(
     <LeaderboardTestWrapper
       contextValue={createMockContextValue(contextOptions)}
       namespace={namespace}
@@ -1488,7 +1488,7 @@ describe('AutomlLeaderboard component', () => {
         models: mockBinaryModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
       });
-      const renderResult = rtlRender(<LeaderboardTestWrapper contextValue={binaryContext} />);
+      const renderResult = render(<LeaderboardTestWrapper contextValue={binaryContext} />);
       await showAllColumns();
 
       fireEvent.click(screen.getByTestId('manage-columns-button'));
