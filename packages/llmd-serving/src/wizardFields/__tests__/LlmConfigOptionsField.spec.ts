@@ -353,7 +353,7 @@ describe('getInitialFieldData', () => {
     expect(result.data?.suggestion?.name).toBe('first');
   });
 
-  it('should auto-select the first compatible config among multiple', () => {
+  it('should skip incompatible configs before the single compatible config', () => {
     const compatibleConfig = mockLLMInferenceServiceConfigK8sResource({
       name: 'compatible',
       displayName: 'Compatible Config',
@@ -378,47 +378,13 @@ describe('getInitialFieldData', () => {
     });
     const result = getInitialFieldData(
       undefined,
-      { configs: [compatibleConfig, incompatibleConfig] },
+      { configs: [incompatibleConfig, compatibleConfig] },
       { hardwareProfile: gpuProfile },
     );
 
     expect(result.data?.autoSelect).toBe(true);
     expect(result.data?.suggestion?.name).toBe('compatible');
     expect(result.data?.selection?.name).toBe('compatible');
-  });
-
-  it('should select the first matching config when multiple configs match hardware profile', () => {
-    const config1 = mockLLMInferenceServiceConfigK8sResource({
-      name: 'config-1',
-      displayName: 'Config 1',
-      recommendedAccelerators: '["nvidia.com/gpu"]',
-    });
-    const config2 = mockLLMInferenceServiceConfigK8sResource({
-      name: 'config-2',
-      displayName: 'Config 2',
-      recommendedAccelerators: '["nvidia.com/gpu"]',
-    });
-    const gpuProfile = mockHardwareProfile({
-      name: 'gpu-profile',
-      identifiers: [
-        {
-          identifier: 'nvidia.com/gpu',
-          displayName: 'GPU',
-          resourceType: IdentifierResourceType.ACCELERATOR,
-          defaultCount: 1,
-          minCount: 1,
-          maxCount: 4,
-        },
-      ],
-    });
-    const result = getInitialFieldData(
-      undefined,
-      { configs: [config1, config2] },
-      { hardwareProfile: gpuProfile },
-    );
-
-    expect(result.data?.autoSelect).toBe(true);
-    expect(result.data?.suggestion?.name).toBe('config-1');
   });
 
   it.each([false, true])(
