@@ -31,7 +31,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
   it(
     'Validates URL format and checks for common mistakes in manifest files (fast, stable)',
     {
-      tags: ['@Featureflagged', '@ODS-327', '@ODS-492', '@Dashboard'],
+      tags: ['@Featureflagged', '@ODS-327', '@ODS-492', '@Dashboard', '@s390X'],
     },
     () => {
       const manifestsDir = '../../manifests';
@@ -42,7 +42,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
   it(
     'Checks URL reachability with tolerance for transient errors (429, 502, 503, 504)',
     {
-      tags: ['@Featureflagged', '@ODS-327', '@ODS-492', '@Dashboard', '@RHOAIENG-9235'],
+      tags: ['@Featureflagged', '@ODS-327', '@ODS-492', '@Dashboard', '@RHOAIENG-9235', '@s390X'],
     },
     () => {
       // Allow skipping external URL validation in fast CI runs

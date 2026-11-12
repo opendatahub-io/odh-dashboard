@@ -142,7 +142,7 @@ describe('Workbench Kueue Lifecycle Tests', () => {
 
     it(
       'Verify workbench Kueue lifecycle: Inadmissible → Ready after quota update',
-      { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
+      { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged', '@s390X'] },
       () => {
         if (!ctx) {
           throw new Error('Test setup did not complete');
@@ -195,7 +195,14 @@ describe('Workbench Kueue Lifecycle Tests', () => {
     it(
       'Verify workbench shows Queued when ClusterQueue quota is consumed by another workbench',
       {
-        tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged', '@NonConcurrent'],
+        tags: [
+          '@Kueue',
+          '@Dashboard',
+          '@Workbenches',
+          '@Featureflagged',
+          '@NonConcurrent',
+          '@s390X',
+        ],
       },
       () => {
         if (!ctx) {

@@ -45,7 +45,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
 
   it(
     'If all SC are disabled except one, the SC dropdown should be disabled',
-    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@Dashboard', '@NonConcurrent', '@s390X'] },
     () => {
       // Authentication and navigation
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);

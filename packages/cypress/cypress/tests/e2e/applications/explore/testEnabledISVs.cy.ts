@@ -19,7 +19,7 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
 
   it(
     'Validate that configured ISVs display in the Explore Section',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1890', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1890', '@Dashboard', '@s390X'] },
     () => {
       // Authentication and navigation
       cy.step('Login to the application');

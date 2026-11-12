@@ -102,7 +102,7 @@ hardwareProfileName: "cypress-registry-deploy-model-hwp"
 hardwareProfileYamlPath: "resources/yaml/registry-deploy-model-hardware-profile.yaml"
 
 # Advanced settings — serving runtime args and environment variables
-servingRuntimeArgs: "--enforce-eager"
+servingRuntimeArgs: "--enforce-eager --gpu-memory-utilization=0.80"
 envVars:
   - name: "TORCH_COMPILE_DISABLE"
     value: "1"

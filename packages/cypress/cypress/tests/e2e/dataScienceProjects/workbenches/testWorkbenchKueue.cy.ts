@@ -57,7 +57,7 @@ describe('Workbench Kueue Integration Tests', () => {
 
   it(
     'Create workbench with Kueue hardware profile and verify status',
-    { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
+    { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged', '@s390X'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/?devFeatureFlags=true', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -102,7 +102,7 @@ describe('Workbench Kueue Integration Tests', () => {
 
   it(
     'Verify workbench status modal has Resources tab with Kueue info',
-    { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged'] },
+    { tags: ['@Kueue', '@Dashboard', '@Workbenches', '@Featureflagged', '@s390X'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/?devFeatureFlags=true', HTPASSWD_CLUSTER_ADMIN_USER);

@@ -56,7 +56,15 @@ describe('Workbenches - status tests', () => {
   it(
     'Verify user can access progress and event log - validate status and successful workbench creation',
     {
-      tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches', '@WorkbenchesCI'],
+      tags: [
+        '@Sanity',
+        '@SanitySet2',
+        '@ODS-1970',
+        '@Dashboard',
+        '@Workbenches',
+        '@WorkbenchesCI',
+        '@s390X',
+      ],
     },
     () => {
       const workbenchName = deriveWorkbenchName(projectName);

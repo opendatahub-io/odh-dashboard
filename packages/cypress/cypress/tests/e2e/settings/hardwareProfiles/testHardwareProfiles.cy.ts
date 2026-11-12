@@ -30,7 +30,16 @@ describe('Verify Hardware Profiles - Creating, Editing and Deleting', () => {
 
   it(
     'Create, Edit and Delete a Hardware Profile',
-    { tags: ['@Dashboard', '@HardwareProfiles', '@Smoke', '@SmokeSet1', '@HardwareProfilesCI'] },
+    {
+      tags: [
+        '@Dashboard',
+        '@HardwareProfiles',
+        '@Smoke',
+        '@SmokeSet1',
+        '@HardwareProfilesCI',
+        '@s390X',
+      ],
+    },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
