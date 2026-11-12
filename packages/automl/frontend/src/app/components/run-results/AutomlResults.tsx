@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useParams } from 'react-router';
@@ -43,6 +44,7 @@ type NotebookDownloadError = {
 };
 
 function AutomlResults(): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const fetchS3File = useFetchS3File();
   const {
     pipelineRun,
@@ -170,9 +172,9 @@ function AutomlResults(): React.JSX.Element {
   const handleViewDetails = React.useCallback(
     (modelName: string, rank: number, entrySource: ModelDetailsEntrySource = 'resultsTable') => {
       setModalState({ modelName, rank });
-      fireAutomlModelDetailsViewed(entrySource);
+      fireAutomlModelDetailsViewed(trackEvent, entrySource);
     },
-    [],
+    [trackEvent],
   );
 
   const handleRegisterModel = React.useCallback((modelName: string, source: ModelActionSource) => {
@@ -227,7 +229,7 @@ function AutomlResults(): React.JSX.Element {
         const safeModelName = sanitizeFilename(modelName);
         const notebookFilename = `${displayName}_${safeModelName}_notebook.ipynb`;
         downloadBlob(notebook, notebookFilename);
-        fireAutomlNotebookDownloaded(source);
+        fireAutomlNotebookDownloaded(trackEvent, source);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
         setDownloadError({
@@ -236,7 +238,7 @@ function AutomlResults(): React.JSX.Element {
         });
       }
     },
-    [fetchS3File, namespace, models, pipelineRun?.display_name],
+    [fetchS3File, namespace, models, pipelineRun?.display_name, trackEvent],
   );
 
   return (

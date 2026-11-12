@@ -5,3 +5,5 @@ export * from './useExtensions';
 export * from './useResolvedExtensions';
 export * from './types';
 export * from '../host-api';
+export * from './allSettledPromises';
+export * from './navigation';

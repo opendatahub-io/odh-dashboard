@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event';
+import { createTrackingWrapper } from '../../../__tests__/unit/testUtils/TrackingProvider';
 import ClusterQueueWorkloadsTable from '../ClusterQueueWorkloadsTable';
 import {
   QuotaUsageWorkloadStatuses,
@@ -42,6 +44,11 @@ jest.mock('@odh-dashboard/ui-core', () => {
   };
 });
 
+const mockTrackEvent = jest.fn();
+const TrackingWrapper = createTrackingWrapper(mockTrackEvent);
+const renderTracked = (element: React.ReactElement) =>
+  render(element, { wrapper: TrackingWrapper });
+
 const sampleWorkloads: ClusterQueueWorkloadRow[] = [
   {
     name: 'wl-alpha',
@@ -68,22 +75,23 @@ const sampleWorkloads: ClusterQueueWorkloadRow[] = [
 ];
 
 describe('ClusterQueueWorkloadsTable', () => {
+  beforeEach(() => jest.clearAllMocks());
   it('shows loading spinner while data is loading', () => {
-    render(<ClusterQueueWorkloadsTable workloads={[]} loaded={false} tableId="gpu-cq" />);
+    renderTracked(<ClusterQueueWorkloadsTable workloads={[]} loaded={false} tableId="gpu-cq" />);
 
     expect(screen.getByTestId('cluster-queue-workloads-loading')).toBeInTheDocument();
     expect(screen.queryByTestId('cluster-queue-workloads-table')).not.toBeInTheDocument();
   });
 
   it('shows empty state when loaded with no workloads', () => {
-    render(<ClusterQueueWorkloadsTable workloads={[]} loaded tableId="gpu-cq" />);
+    renderTracked(<ClusterQueueWorkloadsTable workloads={[]} loaded tableId="gpu-cq" />);
 
     expect(screen.getByTestId('cluster-queue-workloads-empty-state')).toBeInTheDocument();
     expect(screen.queryByTestId('cluster-queue-workloads-table')).not.toBeInTheDocument();
   });
 
   it('shows only the error state when loaded with no workloads after a load failure', () => {
-    render(
+    renderTracked(
       <ClusterQueueWorkloadsTable
         workloads={[]}
         loaded
@@ -99,7 +107,9 @@ describe('ClusterQueueWorkloadsTable', () => {
   });
 
   it('renders workload rows and toolbar', () => {
-    render(<ClusterQueueWorkloadsTable workloads={sampleWorkloads} loaded tableId="gpu-cq" />);
+    renderTracked(
+      <ClusterQueueWorkloadsTable workloads={sampleWorkloads} loaded tableId="gpu-cq" />,
+    );
 
     expect(screen.getByTestId('cluster-queue-workloads-table')).toBeInTheDocument();
     expect(screen.getByTestId('cluster-queue-workloads-table-toolbar')).toBeInTheDocument();
@@ -110,7 +120,7 @@ describe('ClusterQueueWorkloadsTable', () => {
   });
 
   it('shows inline error above the table when workloads are present', () => {
-    render(
+    renderTracked(
       <ClusterQueueWorkloadsTable
         workloads={sampleWorkloads}
         loaded
@@ -123,5 +133,46 @@ describe('ClusterQueueWorkloadsTable', () => {
       'partial namespace failure',
     );
     expect(screen.getByTestId('cluster-queue-workloads-table')).toBeInTheDocument();
+  });
+});
+
+describe('ClusterQueueWorkloadsTable tracking', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('should emit nothing while loading, on load, or on rerender', () => {
+    const { rerender } = renderTracked(
+      <ClusterQueueWorkloadsTable workloads={[]} loaded={false} tableId="gpu-cq" />,
+    );
+    rerender(<ClusterQueueWorkloadsTable workloads={sampleWorkloads} loaded tableId="gpu-cq" />);
+    rerender(<ClusterQueueWorkloadsTable workloads={sampleWorkloads} loaded tableId="gpu-cq" />);
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
+
+  it('should preserve silent name filtering, clearing, and reset-all', () => {
+    renderTracked(
+      <ClusterQueueWorkloadsTable workloads={sampleWorkloads} loaded tableId="gpu-cq" />,
+    );
+    const input = screen.getByRole('textbox', { name: 'Filter by name' });
+    fireEvent.change(input, { target: { value: 'alpha' } });
+    fireEvent.change(input, { target: { value: 'missing' } });
+    fireEvent.click(screen.getByTestId('cluster-queue-workloads-clear-filters'));
+    fireEvent.change(input, { target: { value: 'alpha' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
+
+  it('should preserve selected attribute values and match counts', async () => {
+    const user = userEvent.setup();
+    renderTracked(
+      <ClusterQueueWorkloadsTable workloads={sampleWorkloads} loaded tableId="gpu-cq" />,
+    );
+    await user.click(screen.getByTestId('cluster-queue-workloads-status-filter'));
+    await user.click(screen.getByRole('option', { name: 'Queued' }));
+    expect(mockTrackEvent.mock.calls).toEqual([
+      [
+        'Infrastructure Drawer Workloads Filter Applied',
+        { filterAttribute: 'status', filterValue: 'Queued', matchCount: 1 },
+      ],
+    ]);
   });
 });

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ActionList,
@@ -62,6 +63,7 @@ function AutomlConfigurePage({
   sourceRunId,
   sourceRunName,
 }: AutomlConfigurePageProps): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const notification = useNotification();
   const location = useLocation();
@@ -182,6 +184,7 @@ function AutomlConfigurePage({
   useEffect(() => {
     const handleBeforeUnload = () => {
       fireAutomlFlowExited(
+        trackEvent,
         'abandon',
         funnelStepRef.current,
         'none',
@@ -190,27 +193,29 @@ function AutomlConfigurePage({
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  }, [trackEvent]);
 
   const onCancel = useCallback(() => {
-    fireAutomlRunDetailsDefined(TrackingOutcome.cancel, Boolean(description?.trim()));
+    fireAutomlRunDetailsDefined(trackEvent, TrackingOutcome.cancel, Boolean(description?.trim()));
     fireAutomlFlowExited(
+      trackEvent,
       'navigate',
       funnelStepRef.current,
       cancelExitDestination,
       changedFieldsOnExitRef.current,
     );
     navigate(-1);
-  }, [navigate, description, cancelExitDestination]);
+  }, [navigate, description, cancelExitDestination, trackEvent]);
 
   const handleHomeNavigate = useCallback(() => {
     fireAutomlFlowExited(
+      trackEvent,
       'navigate',
       funnelStepRef.current,
       'experimentsList',
       changedFieldsOnExitRef.current,
     );
-  }, []);
+  }, [trackEvent]);
 
   const handleBackToCreate = useCallback(() => {
     // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
@@ -329,6 +334,7 @@ function AutomlConfigurePage({
                   to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}
                   onClick={() =>
                     fireAutomlFlowExited(
+                      trackEvent,
                       'navigate',
                       funnelStepRef.current,
                       'otherAutoml',
@@ -361,7 +367,11 @@ function AutomlConfigurePage({
             event.preventDefault();
 
             if (step === 'create') {
-              fireAutomlRunDetailsDefined(TrackingOutcome.submit, Boolean(description?.trim()));
+              fireAutomlRunDetailsDefined(
+                trackEvent,
+                TrackingOutcome.submit,
+                Boolean(description?.trim()),
+              );
               setStep('configure');
               return;
             }
@@ -399,7 +409,7 @@ function AutomlConfigurePage({
                 try {
                   const pipelineRun = await pipelineRunsMutation.mutateAsync(data);
                   if (sourceRunId) {
-                    fireAutomlRunReconfigured({
+                    fireAutomlRunReconfigured(trackEvent, {
                       ...trackingProperties,
                       changedFields,
                       outcome: TrackingOutcome.submit,
@@ -407,7 +417,7 @@ function AutomlConfigurePage({
                       source: reconfigureSource,
                     });
                   } else {
-                    fireAutomlRunCreated({
+                    fireAutomlRunCreated(trackEvent, {
                       ...trackingProperties,
                       outcome: TrackingOutcome.submit,
                       success: true,
@@ -419,7 +429,7 @@ function AutomlConfigurePage({
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : '';
                   if (sourceRunId) {
-                    fireAutomlRunReconfigured({
+                    fireAutomlRunReconfigured(trackEvent, {
                       ...trackingProperties,
                       changedFields,
                       outcome: TrackingOutcome.submit,
@@ -428,7 +438,7 @@ function AutomlConfigurePage({
                       source: reconfigureSource,
                     });
                   } else {
-                    fireAutomlRunCreated({
+                    fireAutomlRunCreated(trackEvent, {
                       ...trackingProperties,
                       outcome: TrackingOutcome.submit,
                       success: false,

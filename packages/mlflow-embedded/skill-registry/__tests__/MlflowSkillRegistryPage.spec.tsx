@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
-import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
 import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
+import { renderWithTracking as render } from '../../shared/__tests__/TrackingProvider';
 import MlflowSkillRegistryPage, {
   MlflowSkillRegistryWrapperProps,
 } from '../MlflowSkillRegistryPage';
@@ -76,10 +75,6 @@ jest.mock('../../shared/MLflowUnavailable', () => ({
 jest.mock('../../shared/MLflowNotConfigured', () => ({
   __esModule: true,
   default: () => <div data-testid="mlflow-not-configured" />,
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireLinkTrackingEvent: jest.fn(),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable', () => ({
@@ -216,13 +211,16 @@ describe('MlflowSkillRegistryPage', () => {
   });
 
   it('should fire a tracking event when the user switches projects', () => {
-    render(<MlflowSkillRegistryPage />);
+    const tracking = { trackEvent: jest.fn(), trackPageEvent: jest.fn() };
+    render(<MlflowSkillRegistryPage />, tracking);
+    expect(tracking.trackEvent).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('project-selector'));
 
-    expect(fireLinkTrackingEvent).toHaveBeenCalledWith(MlflowTrackingEvents.PROJECT_SWITCHED, {
-      projectName: 'other-project',
-    });
+    expect(tracking.trackEvent.mock.calls).toStrictEqual([
+      ['MLflow Project Switched', { projectName: 'other-project' }],
+    ]);
+    expect(tracking.trackPageEvent).not.toHaveBeenCalled();
   });
 
   it('should show the not-configured empty state when MLflow is not set up on the cluster', () => {
