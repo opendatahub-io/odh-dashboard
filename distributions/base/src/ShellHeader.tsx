@@ -32,9 +32,16 @@ import { useThemeContext } from './ThemeContext';
 import logoLight from './images/red-hat-ai-light.svg';
 import logoDark from './images/red-hat-ai-dark.svg';
 
+// RHDS UI icon: auto-light-dark-mode (CC-BY-4.0 Red Hat, Inc.)
+// https://ux.redhat.com/foundations/iconography
 const ThemeAutoIcon = (
-  <svg width="1em" height="1em" viewBox="0 0 640 512" fill="currentColor" aria-hidden="true">
-    <path d="M392.8 1.2c-17-4.9-34.7 5-39.6 22l-128 448c-4.9 17 5 34.7 22 39.6s34.7-5 39.6-22l128-448c4.9-17-5-34.7-22-39.6zm80.6 120.6c-12.5 12.5-12.5 32.8 0 45.3L562.7 256l-89.4 89.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l112-112c12.5-12.5 12.5-32.8 0-45.3l-112-112c-12.5-12.5-32.8-12.5-45.3 0zm-306.7 0c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3l112 112c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256l89.4-89.4c12.5-12.5 12.5-32.8 0-45.3z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 32 32"
+    className="pf-v6-svg"
+    fill="var(--pf-t--global--icon--color--regular)"
+  >
+    <path d="M16 2C8.28 2 2 8.28 2 16s6.28 14 14 14 14-6.28 14-14S23.72 2 16 2Zm0 26C9.383 28 4 22.617 4 16S9.383 4 16 4s12 5.383 12 12-5.383 12-12 12Zm9-12a9 9 0 0 1-8.738 8.996.259.259 0 0 1-.262-.257V7.26c0-.142.12-.261.262-.257A9 9 0 0 1 25 15.999Z" />
   </svg>
 );
 
