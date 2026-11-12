@@ -270,6 +270,8 @@ Federated modules can extend the host application by exposing extensions through
 
 Your module's rspack configuration must expose extensions:
 
+<!-- eslint-disable n/no-extraneous-require -->
+
 ```javascript
 // rspack config (packages/my-module/frontend/config/moduleFederation.js)
 const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
@@ -287,6 +289,24 @@ module.exports = {
   ],
 };
 ```
+
+### Loading Extensions in a Host
+
+Hosts (`frontend/`, `distributions/base/`) build their plugin store with the host-only `@odh-dashboard/plugin-core/extensibility` entry point. It is kept off the package root so remotes don't bundle `@module-federation/runtime`.
+
+```tsx
+import { ExtensibilityContextProvider } from '@odh-dashboard/plugin-core/extensibility';
+
+<ExtensibilityContextProvider
+  staticExtensions={pluginExtensions} // bundled extensions, stable reference
+  mfRemotes={MF_REMOTES} // optional JSON array of { name, remoteEntry }
+  loadingFallback={<Spinner />} // optional, rendered until remotes load
+>
+  {children}
+</ExtensibilityContextProvider>;
+```
+
+`useAppExtensions(staticExtensions?, mfRemotes?)` returns `[extensions, loaded]`. With no remotes it is loaded immediately. A remote that fails to load is registered with no extensions. If `mfRemotes` changes, the previous remote extensions are dropped and superseded loads are ignored. The provider wraps the SDK's `PluginStoreProvider`, whose context is a shared Module Federation singleton, so host and remotes read the same store.
 
 ### Extension Format
 
@@ -345,6 +365,8 @@ In the module's **parent** `package.json`, add `@odh-dashboard/app-config` as a 
 
 Remote modules use `OdhFederationPlugin` with `isHost` derived from `DEPLOYMENT_MODE`. Shared module configuration is handled automatically:
 
+<!-- eslint-disable n/no-extraneous-require -->
+
 ```javascript
 // packages/my-module/frontend/config/moduleFederation.js
 const { OdhFederationPlugin } = require('@odh-dashboard/app-config/rspack');
@@ -371,6 +393,8 @@ The host uses the rspack variant of `OdhFederationPlugin` with `name: 'host'` an
 abridged: discovery of `mfConfig` from workspace `module-federation` fields (or
 `MODULE_FEDERATION_CONFIG`) lives in `frontend/config/moduleFederation.js` and is
 omitted here.
+
+<!-- eslint-disable n/no-extraneous-require -->
 
 ```javascript
 // frontend/config/moduleFederation.js (abridged — not a complete runnable script)
@@ -406,6 +430,8 @@ module.exports = {
 ### Production Minimizer Options
 
 Production rspack configs must pass the shared LightningCSS minimizer options to `LightningCssMinimizerRspackPlugin`:
+
+<!-- eslint-disable n/no-extraneous-require -->
 
 ```javascript
 // packages/my-module/frontend/config/rspack.prod.js (minimizer excerpt)
@@ -460,7 +486,9 @@ When a federated remote imports from a library package, rspack must compile the 
 All `rspack.common.js` files use a negative lookahead in the TS/JS rule to allow `@odh-dashboard/*` packages to be compiled:
 
 ```javascript
-exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
+const rule = {
+  exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
+};
 ```
 
 This ensures rspack can parse TypeScript from `@odh-dashboard/*` packages resolved through `node_modules`.

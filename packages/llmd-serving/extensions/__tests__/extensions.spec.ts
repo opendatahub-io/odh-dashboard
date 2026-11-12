@@ -1,5 +1,5 @@
 import extensions from '../extensions';
-import { LLM_ACCELERATOR_CONFIGS_TAB_PATH } from '../../src/settings/llmAcceleratorConfigs/paths';
+import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
 import { ROUTING_CONFIGS_TAB_PATH } from '../../src/settings/routingConfigs/paths';
 
@@ -8,16 +8,16 @@ const routeExtensions = extensions.filter((extension) => extension.type === 'app
 const acceleratorTab = extensions.find(
   (extension) =>
     extension.type === 'app.tab-route/tab' &&
-    extension.properties.id === 'llm-accelerator-configurations',
+    extension.properties.id === 'llm-inference-service-configurations',
 );
 
 const acceleratorFormPaths = [
-  `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/add`,
-  `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/edit/:configName`,
-  `${LLM_ACCELERATOR_CONFIGS_TAB_PATH}/duplicate/:configName`,
+  `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/add`,
+  `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/edit/:configName`,
+  `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/duplicate/:configName`,
 ];
 
-describe('LLM accelerator configuration extensions', () => {
+describe('LLM inference service configuration extensions', () => {
   it('should register one renamed install target with the settings gates and presentation metadata', () => {
     const targets = extensions.filter(
       (extension) => extension.type === 'model-serving.runtime-image/install-target',
@@ -27,9 +27,11 @@ describe('LLM accelerator configuration extensions', () => {
     expect(targets[0].properties).toEqual(
       expect.objectContaining({
         id: 'llmInferenceServiceConfig',
-        label: 'LLM accelerator configuration',
+        label: 'LLM inference service configuration',
         description: expect.any(String),
-        selectedState: expect.objectContaining({ listName: 'LLM accelerator configurations' }),
+        selectedState: expect.objectContaining({
+          listName: 'LLM inference service configurations',
+        }),
       }),
     );
   });
@@ -38,14 +40,14 @@ describe('LLM accelerator configuration extensions', () => {
     expect(acceleratorTab?.properties).toEqual(
       expect.objectContaining({
         pageId: 'model-deployment-settings',
-        id: 'llm-accelerator-configurations',
-        title: 'LLM accelerator configurations',
+        id: 'llm-inference-service-configurations',
+        title: 'LLM inference service configurations',
         group: '3_accelerator',
       }),
     );
   });
 
-  it('should gate the accelerator tab on its own feature areas only', () => {
+  it('should gate the inference service configuration tab on its own feature areas only', () => {
     expect(acceleratorTab?.flags).toEqual({
       required: ['llmd-serving', 'ADMIN_USER', 'vllm-on-maas'],
     });
@@ -226,7 +228,7 @@ const getFieldIdForApplyExtension = (ext: unknown): string | undefined => {
 };
 
 describe('llmd-serving apply extension ordering', () => {
-  it('registers the accelerator apply after the topology config apply', () => {
+  it('registers the inference service configuration apply after the topology config apply', () => {
     const applyIds = extensions.map(getFieldIdForApplyExtension).filter(Boolean) as string[];
     const topoIdx = applyIds.indexOf('llmd-serving/custom-topology-config');
     const accelIdx = applyIds.indexOf('llmd-serving/accelerator-config');

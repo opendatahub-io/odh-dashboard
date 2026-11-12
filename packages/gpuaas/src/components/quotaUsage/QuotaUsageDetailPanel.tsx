@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Alert,
   Breadcrumb,
@@ -82,6 +82,7 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
   error,
   tabLoadedAt,
 }) => {
+  const trackEvent = useTrackEvent();
   const [kueueModalOpen, setKueueModalOpen] = React.useState(false);
   const selectedClusterQueueName =
     selection?.type === QUOTA_NODE_TYPE.clusterQueue ? selection.clusterQueueName : undefined;
@@ -96,17 +97,17 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
       const nextSelection = selectionFromPath(tree, pathPrefix);
       if (nextSelection) {
         onSelectionChange(nextSelection);
-        fireMiscTrackingEvent(GPUAAS_EVENTS.COHORT_BREADCRUMB_SELECTED, {
+        trackEvent(GPUAAS_EVENTS.COHORT_BREADCRUMB_SELECTED, {
           breadcrumbLevel: index + 1,
           targetNodeType: QUOTA_NODE_TYPE_TRACKING[nextSelection.type],
         });
-        fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
+        trackEvent(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
           interactionType: QUOTA_USAGE_INTERACTION_TYPES.breadcrumb,
           secondsSinceTabLoad: Math.round((Date.now() - tabLoadedAt.current) / 1000),
         });
       }
     },
-    [onSelectionChange, selection, tabLoadedAt, tree],
+    [onSelectionChange, selection, tabLoadedAt, tree, trackEvent],
   );
 
   const handleSelectClusterQueue = React.useCallback(
@@ -328,7 +329,7 @@ const QuotaUsageDetailPanel: React.FC<QuotaUsageDetailPanelProps> = ({
           clusterQueueName={detail.clusterQueueName}
           onClose={() => setKueueModalOpen(false)}
           onProjectsLoaded={(projectCount) => {
-            fireMiscTrackingEvent(GPUAAS_EVENTS.VIEW_KUEUE_PROJECTS_SELECTED, { projectCount });
+            trackEvent(GPUAAS_EVENTS.VIEW_KUEUE_PROJECTS_SELECTED, { projectCount });
           }}
         />
       )}
