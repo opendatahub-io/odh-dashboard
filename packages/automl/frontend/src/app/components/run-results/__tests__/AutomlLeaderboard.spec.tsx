@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import '@testing-library/jest-dom';
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
@@ -15,6 +15,14 @@ import type { PipelineRun } from '~/app/types';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { PRESET_FASTER } from '~/app/utilities/const';
 import { RuntimeStateKF } from '~/app/types/pipeline';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEvent = jest.fn();
+
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactNode) => rtlRender(ui, { wrapper: TrackingWrapper });
 
 // Mock empty state component
 jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
@@ -1079,6 +1087,10 @@ describe('AutomlLeaderboard component', () => {
 
       // Click to sort by model name (ascending)
       fireEvent.click(sortButton!);
+
+      expect(trackEvent.mock.calls).toEqual([
+        ['AutoML Leaderboard Sorted', { sortColumn: 'Model name', sortDirection: 'asc' }],
+      ]);
 
       const modelLinks = screen.getAllByTestId(/^model-link-/);
       // Should be alphabetical: Logistic Regression, Random Forest, XGBoost

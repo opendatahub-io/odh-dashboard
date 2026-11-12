@@ -2,10 +2,11 @@
 // controls delivery and metadata. In guarded files, reject direct implementation,
 // SDK, and global access while allowing SDK-free contracts.
 
-// Features may share SDK-free contracts and React APIs through these exact entry points.
+// Allow contracts, React APIs, and the standalone bootstrap compatibility factory.
 const allowedModules = new Set([
   '@odh-dashboard/analytics/types',
   '@odh-dashboard/analytics/react',
+  '@odh-dashboard/analytics/standalone',
 ]);
 // Direct adapters and SDK imports bypass host tracking; block their subpaths too.
 const blockedModules = [
