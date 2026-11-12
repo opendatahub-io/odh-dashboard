@@ -108,7 +108,7 @@ describe('A user can deploy an LLMD model', () => {
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin(
-        '/?devFeatureFlags=deploymentWizardYAMLViewer%3Dtrue%2CbidirectionalYamlWizardGa%3Dtrue',
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,bidirectionalYamlWizardGa=true',
         HTPASSWD_CLUSTER_ADMIN_USER,
       );
 
