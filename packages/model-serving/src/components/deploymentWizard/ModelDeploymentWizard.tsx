@@ -68,10 +68,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     project?.metadata.name,
     externalData,
   );
-  const { resources: formAsResources, setLatestResourcesFromYaml } = useFormToResourcesTransformer(
-    wizardFormData,
-    existingDeployment,
-  );
+  const {
+    resources: formAsResources,
+    setLatestResourcesFromYaml,
+    loaded: formResourcesLoaded,
+  } = useFormToResourcesTransformer(wizardFormData, existingDeployment);
   const { isExitModalOpen, openExitModal, closeExitModal, handleExitConfirm, exitWizardOnSubmit } =
     useExitDeploymentWizard({
       returnRoute,
@@ -182,6 +183,8 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               viewMode={viewMode}
               yamlErrors={yamlToFormErrors}
               canUpdateFormFromYaml={!!initialDataFromYaml?.formData}
+              isSwitchToFormLoading={!initialDataFromYaml?.loaded}
+              isSwitchToYamlLoading={!formResourcesLoaded}
               switchToForm={(updateFormWithYaml = true) => {
                 if (
                   updateFormWithYaml &&
