@@ -46,18 +46,34 @@ beforeEach(() => {
 });
 
 describe('base shell ThemeProvider', () => {
-  it('should default to the light theme and solid contrast', () => {
+  it('should default to the system color scheme resolving light, with Glass contrast', () => {
     renderProvider();
+    expect(latestCtx?.colorScheme).toBe('system');
     expect(latestCtx?.theme).toBe('light');
-    expect(latestCtx?.contrastMode).toBe('default');
+    expect(latestCtx?.contrastMode).toBe('system');
     expect(html()).not.toHaveClass('pf-v6-theme-dark');
-    expect(html()).not.toHaveClass('pf-v6-theme-glass');
+    expect(html()).toHaveClass('pf-v6-theme-glass');
   });
 
-  it('should apply a stored dark theme', () => {
-    localStorage.setItem('app-shell.theme', 'dark');
+  it('should resolve the system color scheme to dark when the OS prefers dark', () => {
+    mediaState['(prefers-color-scheme: dark)'] = true;
     renderProvider();
     expect(latestCtx?.theme).toBe('dark');
+    expect(html()).toHaveClass('pf-v6-theme-dark');
+  });
+
+  it('should apply a stored dark color scheme', () => {
+    localStorage.setItem('app-shell.colorScheme', 'dark');
+    renderProvider();
+    expect(latestCtx?.colorScheme).toBe('dark');
+    expect(latestCtx?.theme).toBe('dark');
+    expect(html()).toHaveClass('pf-v6-theme-dark');
+  });
+
+  it('should derive the color scheme from the legacy theme key', () => {
+    localStorage.setItem('app-shell.theme', 'dark');
+    renderProvider();
+    expect(latestCtx?.colorScheme).toBe('dark');
     expect(html()).toHaveClass('pf-v6-theme-dark');
   });
 
@@ -69,7 +85,6 @@ describe('base shell ThemeProvider', () => {
   });
 
   it('should resolve the system contrast mode to solid when the OS prefers reduced transparency', () => {
-    localStorage.setItem('app-shell.contrastMode', 'system');
     mediaState['(prefers-reduced-transparency: reduce)'] = true;
     renderProvider();
     expect(html()).not.toHaveClass('pf-v6-theme-glass');
@@ -77,34 +92,50 @@ describe('base shell ThemeProvider', () => {
   });
 
   it('should resolve the system contrast mode to high contrast when the OS prefers more contrast', () => {
-    localStorage.setItem('app-shell.contrastMode', 'system');
     mediaState['(prefers-contrast: more)'] = true;
     renderProvider();
     expect(html()).toHaveClass('pf-v6-theme-high-contrast');
     expect(html()).not.toHaveClass('pf-v6-theme-glass');
   });
 
-  it('should persist theme and contrast changes and dispatches the change event', () => {
+  it('should persist color scheme and contrast changes and dispatch the change event', () => {
     renderProvider();
     const events: CustomEvent[] = [];
     window.addEventListener('odh-theme-change', (e) => events.push(e as CustomEvent));
     act(() => {
-      latestCtx?.setTheme('dark');
+      latestCtx?.setColorScheme('dark');
     });
     act(() => {
-      latestCtx?.setContrastMode('glass');
+      latestCtx?.setContrastMode('default');
     });
-    expect(localStorage.getItem('app-shell.theme')).toBe('dark');
-    expect(localStorage.getItem('app-shell.contrastMode')).toBe('glass');
+    expect(localStorage.getItem('app-shell.colorScheme')).toBe('dark');
+    expect(localStorage.getItem('app-shell.theme')).toBeNull();
+    expect(localStorage.getItem('app-shell.contrastMode')).toBe('default');
     expect(html()).toHaveClass('pf-v6-theme-dark');
-    expect(html()).toHaveClass('pf-v6-theme-glass');
+    expect(html()).not.toHaveClass('pf-v6-theme-glass');
     expect(events).toHaveLength(2);
-    expect(events[0].detail).toEqual({ theme: 'dark', contrastMode: 'default' });
-    expect(events[1].detail).toEqual({ theme: 'dark', contrastMode: 'glass' });
+    expect(events[0].detail).toEqual({
+      theme: 'dark',
+      colorScheme: 'dark',
+      contrastMode: 'system',
+    });
+    expect(events[1].detail).toEqual({
+      theme: 'dark',
+      colorScheme: 'dark',
+      contrastMode: 'default',
+    });
+  });
+
+  it('should map the legacy setTheme onto the color scheme', () => {
+    renderProvider();
+    act(() => {
+      latestCtx?.setTheme('dark');
+    });
+    expect(latestCtx?.colorScheme).toBe('dark');
+    expect(localStorage.getItem('app-shell.colorScheme')).toBe('dark');
   });
 
   it('should follow live OS contrast changes while the system mode is active', () => {
-    localStorage.setItem('app-shell.contrastMode', 'system');
     renderProvider();
     expect(html()).toHaveClass('pf-v6-theme-glass');
     act(() => {
