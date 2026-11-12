@@ -62,6 +62,25 @@ const mockGroupedVersion = buildMockPipelineVersion({
   display_name: 'grouped-pipeline-version',
 });
 mockGroupedVersion.pipeline_spec = mockParallelForPipelineSpec;
+const mockNonAlphabeticalGroupedVersion = buildMockPipelineVersion({
+  pipeline_id: mockPipeline.pipeline_id,
+  display_name: 'non-alphabetical-grouped-pipeline-version',
+});
+mockNonAlphabeticalGroupedVersion.pipeline_spec = structuredClone(mockParallelForPipelineSpec);
+const groupedComponent =
+  mockNonAlphabeticalGroupedVersion.pipeline_spec.components?.['comp-for-loop-2'];
+if (!groupedComponent || !groupedComponent.dag) {
+  throw new Error('Expected grouped pipeline component');
+}
+const groupedTasks = groupedComponent.dag.tasks;
+const groupedTask = groupedTasks['simple-task'];
+groupedTasks['a-second'] = {
+  ...groupedTask,
+  dependentTasks: ['z-first'],
+  taskInfo: { name: 'a-second' },
+};
+groupedTasks['z-first'] = { ...groupedTask, taskInfo: { name: 'z-first' } };
+delete groupedTasks['simple-task'];
 const longGroupName = 'for-loop-with-many-iterations';
 const mockLongNamedGroupedVersion = buildMockPipelineVersion({
   pipeline_id: mockPipeline.pipeline_id,
@@ -546,9 +565,8 @@ describe('Pipeline topology', () => {
       pipelineDetails.findDrawerTaskTitle().should('exist');
       pipelineDetails.findGroupToggle('for-loop-2').focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
-      pipelineDetails.findGroupButton('for-loop-2').focus();
       pipelineDetails.findGroupButton('for-loop-2').should('have.attr', 'aria-expanded', 'false');
-      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findGroupButton('for-loop-2').click();
       pipelineDetails.findGroupButton('for-loop-2').should('have.attr', 'aria-expanded', 'true');
       pipelineDetails.findGroupDetails('for-loop-2').focus();
       cy.press(Cypress.Keyboard.Keys.ENTER);
@@ -571,6 +589,41 @@ describe('Pipeline topology', () => {
       pipelineDetails.findDrawerCloseButton().click();
       pipelineDetails.findExpandedGroupDetails('for-loop-2').should('be.focused');
       pipelineDetails.findTaskButton('simple-task').should('exist');
+    });
+
+    it('keeps expanded group child tab order aligned with visual order', () => {
+      initIntercepts(mockNonAlphabeticalGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockNonAlphabeticalGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle('for-loop-2').focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      pipelineDetails.findTaskButton('z-first').should('exist');
+
+      pipelineDetails.findGraphButtons().then(($buttons) => {
+        const buttonIds = [...$buttons].map((button) => button.dataset.pipelineNodeId);
+        const firstChildIndex = buttonIds.indexOf('z-first');
+        const secondChildIndex = buttonIds.indexOf('a-second');
+        const childButtonOrder = buttonIds.filter((id) => id === 'z-first' || id === 'a-second');
+        expect(childButtonOrder).to.deep.equal(['z-first', 'a-second']);
+        expect(firstChildIndex).to.be.greaterThan(0);
+        expect(secondChildIndex).to.be.greaterThan(firstChildIndex);
+
+        cy.wrap($buttons[firstChildIndex - 1]).focus();
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        pipelineDetails
+          .findFocusedGraphButton()
+          .should('have.attr', 'data-pipeline-node-id', 'z-first');
+
+        cy.wrap($buttons[secondChildIndex - 1]).focus();
+        cy.press(Cypress.Keyboard.Keys.TAB);
+        pipelineDetails
+          .findFocusedGraphButton()
+          .should('have.attr', 'data-pipeline-node-id', 'a-second');
+      });
     });
 
     it('uses PatternFly collapse behavior from the keyboard accessible control', () => {
@@ -631,6 +684,24 @@ describe('Pipeline topology', () => {
       assertToggleAlignment();
     });
 
+    it('shows the expanded group action icon on hover at low zoom', () => {
+      initIntercepts(mockLongNamedGroupedVersion);
+      pipelineDetails.visit(
+        projectId,
+        mockPipeline.pipeline_id,
+        mockLongNamedGroupedVersion.pipeline_version_id,
+      );
+
+      pipelineDetails.findGroupToggle(longGroupName).focus();
+      cy.press(Cypress.Keyboard.Keys.ENTER);
+      for (let i = 0; i < 5; i++) {
+        pipelineDetails.findZoomOutButton().click();
+      }
+
+      pipelineDetails.findExpandedGroupHoverSurface().trigger('mouseenter', { force: true });
+      pipelineDetails.findGroupActionIcon(longGroupName).should('be.visible');
+    });
+
     it('keeps the expanded group label out of keyboard navigation', () => {
       initIntercepts(mockGroupedVersion);
       pipelineDetails.visit(
@@ -685,11 +756,17 @@ describe('Pipeline topology', () => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);
 
-      pipelineRunDetails.findGraphButtons().then(($buttons) => {
-        cy.wrap($buttons[0]).focus();
-        cy.press(Cypress.Keyboard.Keys.TAB);
-        cy.wrap($buttons[1]).should('be.focused');
-      });
+      pipelineRunDetails
+        .findGraphButtons()
+        .first()
+        .then(($firstButton) => {
+          const firstNodeId = $firstButton.attr('data-pipeline-node-id');
+          cy.wrap($firstButton).focus();
+          cy.press(Cypress.Keyboard.Keys.TAB);
+          pipelineRunDetails.findFocusedGraphButton().should(($focusedButton) => {
+            expect($focusedButton.attr('data-pipeline-node-id')).not.to.equal(firstNodeId);
+          });
+        });
     });
 
     it('does not move focus to the drawer after a pointer selection', () => {
@@ -707,15 +784,25 @@ describe('Pipeline topology', () => {
       initIntercepts();
       pipelineRunDetails.visit(projectId, mockRun.run_id);
 
-      pipelineRunDetails.findGraphButtons().then(($buttons) => {
-        cy.wrap($buttons[0]).focus();
-        afterNextFocusEffect(() => {
-          cy.press(Cypress.Keyboard.Keys.ENTER);
-          cy.press(Cypress.Keyboard.Keys.TAB);
-          cy.wrap($buttons[1]).should('be.focused');
+      pipelineRunDetails
+        .findGraphButtons()
+        .first()
+        .then(($firstButton) => {
+          const firstNodeId = $firstButton.attr('data-pipeline-node-id');
+          let nodeIdAfterTab: string | undefined;
+          cy.wrap($firstButton).focus();
+          afterNextFocusEffect(() => {
+            cy.press(Cypress.Keyboard.Keys.ENTER);
+            cy.press(Cypress.Keyboard.Keys.TAB);
+            pipelineRunDetails.findFocusedGraphButton().then(($focusedButton) => {
+              nodeIdAfterTab = $focusedButton.attr('data-pipeline-node-id');
+              expect(nodeIdAfterTab).not.to.equal(firstNodeId);
+            });
+          });
+          pipelineRunDetails.findFocusedGraphButton().should(($focusedButton) => {
+            expect($focusedButton.attr('data-pipeline-node-id')).to.equal(nodeIdAfterTab);
+          });
         });
-        cy.wrap($buttons[1]).should('be.focused');
-      });
     });
 
     it('returns focus to the graph step after closing its details', () => {

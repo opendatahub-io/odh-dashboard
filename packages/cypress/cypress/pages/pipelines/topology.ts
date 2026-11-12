@@ -75,6 +75,14 @@ class PipelinesTopology {
     return cy.get(`[data-id="${name}"][data-kind="node"]`).first();
   }
 
+  findExpandedGroupHoverSurface() {
+    // PatternFly renders expanded group bodies in a portal without a test ID.
+    return cy
+      .get('.pf-topology__group')
+      .filter((_, group) => group.querySelector('.pf-topology__group__background') !== null)
+      .last();
+  }
+
   findGroupActionIcon(name: string) {
     // PatternFly owns this SVG action icon; scope its class selector to the named group.
     return cy.findByTestId(`pipeline-group-label-${name}`).find('.pf-topology__node__action-icon');
@@ -103,6 +111,10 @@ class PipelinesTopology {
         'button[data-testid^="pipeline-group-toggle-"], ' +
         'button[data-testid^="pipeline-expanded-group-details-"]',
     );
+  }
+
+  findFocusedGraphButton() {
+    return cy.get('button[data-pipeline-node-id]:focus');
   }
 
   findGroupLabelText(name: string) {

@@ -107,5 +107,7 @@ export const orderNodesForKeyboard = action((parent: Graph | Node): void => {
   if (nodes.some((node, index) => node !== orderedNodes[index])) {
     orderedNodes.forEach((node) => parent.appendChild(node));
   }
-  orderedNodes.filter((node) => node.isGroup()).forEach(orderNodesForKeyboard);
+  orderedNodes
+    .filter((node) => node.isGroup() && !node.isCollapsed())
+    .forEach(orderNodesForKeyboard);
 });
