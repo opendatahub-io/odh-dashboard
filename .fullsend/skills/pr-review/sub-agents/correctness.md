@@ -4,6 +4,32 @@ description: >-
   Evaluates logic correctness, edge cases, nil handling, API contracts,
   test adequacy/integrity.
 model: opus
+when: >-
+  Any logic change in production code, any modified test file, or
+  production changes without matching test changes; also technical
+  documentation with correctness surface area (algorithm descriptions,
+  pseudocode, data structure definitions, CLI flag specifications, or
+  API behavior claims).
+role: dimension
+always: true
+categories:
+  - logic-error
+  - nil-deref
+  - off-by-one
+  - edge-case
+  - api-contract
+  - missing-test
+  - test-inadequate
+  - pattern-violation
+  - test-weakened
+  - test-removed
+  - mock-loosened
+  - assertion-weakened
+  - coverage-reduced
+  - test-poisoning
+  - split-payload
+  - stale-reference
+failure_severity: high
 tools: Read, Grep, Glob, Bash
 permissionMode: dontAsk
 background: true
@@ -20,6 +46,15 @@ being weakened or poisoned alongside production changes?), and technical
 accuracy in implementation plans and design documents.
 
 **Do not own:** Naming style, doc staleness, PR scope, injection defense.
+
+**Categories:** each finding's `category` must be exactly one of
+`logic-error`, `nil-deref`, `off-by-one`, `edge-case`, `api-contract`,
+`missing-test`, `test-inadequate`, `pattern-violation`, `test-weakened`,
+`test-removed`, `mock-loosened`, `assertion-weakened`, `coverage-reduced`,
+`test-poisoning`, `split-payload`, `stale-reference`. Any other value is
+invalid. Use `edge-case` for race
+conditions and unhandled-error paths; use `logic-error` when the handling
+is wrong rather than missing.
 
 When evaluating tests, check git history of modified test files for
 assertion loosening or coverage reduction that coincides with production
@@ -107,4 +142,3 @@ based on common patterns — read it.
 If the file cannot be read (e.g., it is in another repository or
 inaccessible), state that you were unable to verify the contents.
 Never present unverified file contents as fact in a finding.
-
