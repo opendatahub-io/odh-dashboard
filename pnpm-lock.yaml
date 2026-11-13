@@ -67,6 +67,9 @@ overrides:
 
 packageExtensionsChecksum: sha256-hLvuOjZrnN6DVom7ZZs0ECq6ilYxfqqOF8Okd4MaJNk=
 
+patchedDependencies:
+  monaco-types@0.1.2: 8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24
+
 importers:
 
   .:
@@ -29935,15 +29938,15 @@ snapshots:
 
   monaco-languageserver-types@0.4.1:
     dependencies:
-      monaco-types: 0.1.2
+      monaco-types: 0.1.2(patch_hash=8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24)
       vscode-languageserver-protocol: 3.18.5
       vscode-uri: 3.2.0
 
   monaco-marker-data-provider@1.2.5:
     dependencies:
-      monaco-types: 0.1.2
+      monaco-types: 0.1.2(patch_hash=8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24)
 
-  monaco-types@0.1.2: {}
+  monaco-types@0.1.2(patch_hash=8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24): {}
 
   monaco-worker-manager@2.0.1(monaco-editor@0.56.0):
     dependencies:
@@ -29956,7 +29959,7 @@ snapshots:
       monaco-editor: 0.56.0
       monaco-languageserver-types: 0.4.1
       monaco-marker-data-provider: 1.2.5
-      monaco-types: 0.1.2
+      monaco-types: 0.1.2(patch_hash=8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24)
       monaco-worker-manager: 2.0.1(monaco-editor@0.56.0)
       path-browserify: 1.0.1
       prettier: 3.9.6
