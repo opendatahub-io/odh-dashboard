@@ -13,6 +13,7 @@ import SubscriptionDetailsSection from '~/app/pages/subscriptions/viewSubscripti
 import SubscriptionGroupsSection from '~/app/pages/subscriptions/viewSubscription/SubscriptionGroupsSection';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+import { CallerOrganizationContext, useCallerOrganization } from '~/app/shared/GroupName';
 import { MODEL_ACCESS_PATH } from './utils';
 
 const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
@@ -43,6 +44,7 @@ const toMaaSSubscription = (sub: UserSubscription): MaaSSubscription => ({
 const ModelAccessSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const [subscription, loaded, loadError] = useGetUserSubscription(subscriptionName);
+  const organization = useCallerOrganization();
 
   const maasSubscription = subscription ? toMaaSSubscription(subscription) : undefined;
 
@@ -88,7 +90,9 @@ const ModelAccessSubscriptionPage: React.FC = () => {
             />
           </PageSection>
           <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
-            <SubscriptionGroupsSection groups={maasSubscription.owner.groups} />
+            <CallerOrganizationContext.Provider value={organization}>
+              <SubscriptionGroupsSection groups={maasSubscription.owner.groups} />
+            </CallerOrganizationContext.Provider>
           </PageSection>
           <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
             <MaasModelsSection

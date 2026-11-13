@@ -108,8 +108,10 @@ describe('ModelAccessSubscriptionPage', () => {
     expect(await screen.findByText('Premium Team Subscription')).toBeInTheDocument();
     expect(screen.getAllByText('Premium Team').length).toBeGreaterThan(0);
     expect(screen.getByText('premium-team-sub')).toBeInTheDocument();
-    expect(mockRestGET).toHaveBeenCalledTimes(1);
-    expect(mockRestGET.mock.calls[0][1]).toBe('/maas/api/v1/subscriptions/premium-team-sub');
+    // The page also reads whoami for the caller's organization (GroupName).
+    expect(mockRestGET.mock.calls.map((call) => call[1]).toSorted()).toEqual(
+      ['/maas/api/v1/whoami', '/maas/api/v1/subscriptions/premium-team-sub'].toSorted(),
+    );
   });
 
   it('should omit the subscription status field', async () => {
