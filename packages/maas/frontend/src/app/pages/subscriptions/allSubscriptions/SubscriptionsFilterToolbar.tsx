@@ -69,7 +69,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
         [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={subscriptionOptions}
-            placeholder="Select a subscription"
+            placeholder="Filter by subscription name, ID, or description"
             testId={`${testIdPrefix}-subscription-filter-toggle`}
             onChange={onChange}
             value={value}
@@ -79,7 +79,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
         [SubscriptionsFilterOptions.group]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={groupOptions}
-            placeholder="Select a group"
+            placeholder="Filter by group name"
             testId={`${testIdPrefix}-group-filter-toggle`}
             onChange={onChange}
             value={value}
@@ -89,7 +89,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
         [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={modelOptions}
-            placeholder="Select a model"
+            placeholder="Filter by model name, ID, or description"
             testId={`${testIdPrefix}-model-filter-toggle`}
             onChange={onChange}
             value={value}
