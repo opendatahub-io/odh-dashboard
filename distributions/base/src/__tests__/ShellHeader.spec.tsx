@@ -16,6 +16,51 @@ const ProjectSelector: React.FC = () => <button>Project selector</button>;
 const UserMenu: React.FC = () => <button>User menu</button>;
 
 describe('ShellHeader', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(useExtensions).mockReturnValue([]);
+  });
+
+  it('should render the default brand inside the constrained masthead logo link', () => {
+    render(
+      <MemoryRouter>
+        <ShellHeader />
+      </MemoryRouter>,
+    );
+
+    const logo = screen.getByTestId('masthead-logo');
+    expect(logo).toHaveAttribute('href', '/');
+    expect(logo).toContainElement(screen.getByRole('img', { name: 'Red Hat AI (placeholder)' }));
+    expect(screen.getByRole('img', { name: 'Red Hat AI (placeholder)' })).not.toHaveAttribute(
+      'style',
+    );
+  });
+
+  it('should constrain extension brands while preserving their destination', () => {
+    const CustomLogo: React.FC = () => <img src="/custom-logo.svg" alt="Custom brand" />;
+    jest.mocked(useExtensions).mockImplementation(
+      (guard) =>
+        [
+          {
+            type: 'app.masthead/brand',
+            uid: 'custom-brand',
+            pluginName: 'test',
+            properties: { logoComponent: CustomLogo, href: '/custom-home' },
+          },
+        ].filter((extension) => !guard || guard(extension)) as ReturnType<typeof useExtensions>,
+    );
+    render(
+      <MemoryRouter>
+        <ShellHeader />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('masthead-logo')).toHaveAttribute('href', '/custom-home');
+    expect(screen.getByTestId('masthead-logo')).toContainElement(
+      screen.getByRole('img', { name: 'Custom brand' }),
+    );
+  });
+
   it('should keep leading extensions separate from the right-aligned utility group', () => {
     jest.mocked(useExtensions).mockImplementation(
       (guard) =>

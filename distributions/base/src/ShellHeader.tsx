@@ -1,7 +1,9 @@
 import React from 'react';
 import {
+  Brand,
   Masthead,
   MastheadBrand,
+  MastheadLogo,
   MastheadContent,
   MastheadMain,
   MastheadToggle,
@@ -24,6 +26,10 @@ import { useThemeContext } from './ThemeContext';
 import logoLight from './images/red-hat-ai-light.svg';
 import logoDark from './images/red-hat-ai-dark.svg';
 
+const ShellBrandLink: React.FC<React.ComponentProps<'a'>> = ({ href = '/', ...props }) => (
+  <Link {...props} to={href} />
+);
+
 const ShellBrand: React.FC = () => {
   const brandExtensions = useExtensions(isMastheadBrandExtension);
   const { theme } = useThemeContext();
@@ -31,10 +37,10 @@ const ShellBrand: React.FC = () => {
   if (brandExtensions.length > 0) {
     const { logoComponent, href = '/' } = brandExtensions[0].properties;
     return (
-      <MastheadBrand data-codemods>
-        <Link to={href} style={{ display: 'inline-flex' }}>
+      <MastheadBrand>
+        <MastheadLogo component={ShellBrandLink} href={href} data-testid="masthead-logo">
           <LazyCodeRefComponent key={brandExtensions[0].uid} component={logoComponent} />
-        </Link>
+        </MastheadLogo>
       </MastheadBrand>
     );
   }
@@ -42,14 +48,13 @@ const ShellBrand: React.FC = () => {
   const logo = theme === 'dark' ? logoDark : logoLight;
 
   return (
-    <MastheadBrand data-codemods>
-      <Link to="/" style={{ display: 'inline-flex' }}>
-        <img
+    <MastheadBrand>
+      <MastheadLogo component={ShellBrandLink} href="/" data-testid="masthead-logo">
+        <Brand
           src={`data:image/svg+xml,${encodeURIComponent(logo)}`}
           alt="Red Hat AI (placeholder)"
-          style={{ height: '36px', width: 'auto' }}
         />
-      </Link>
+      </MastheadLogo>
     </MastheadBrand>
   );
 };

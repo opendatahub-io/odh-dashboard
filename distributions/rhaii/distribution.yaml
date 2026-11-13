@@ -1,5 +1,5 @@
 name: rhaii
-productName: 'Red Hat AI'
+productName: "Red Hat AI"
 
 packages:
   local:
@@ -14,3 +14,5 @@ packages:
       extensionsPath: ./extensions
       featureFlags:
         llmd-serving: true
+
+featureFlags: {}
