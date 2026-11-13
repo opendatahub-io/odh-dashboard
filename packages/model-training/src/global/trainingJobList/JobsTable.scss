@@ -1,0 +1,45 @@
+.mt-jobs-table {
+  container: pf-v6-contain-table / inline-size;
+}
+
+@container pf-v6-contain-table (max-width: 75rem) {
+  .mt-jobs-table .pf-v6-c-table .mt-jobs-table__project {
+    display: none;
+  }
+}
+
+@container pf-v6-contain-table (max-width: 68rem) {
+  .mt-jobs-table .pf-v6-c-table .mt-jobs-table__type {
+    display: none;
+  }
+}
+
+@container pf-v6-contain-table (max-width: 60rem) {
+  .mt-jobs-table .pf-v6-c-table .mt-jobs-table__created {
+    display: none;
+  }
+}
+
+@container pf-v6-contain-table (max-width: 52rem) {
+  .mt-jobs-table .pf-v6-c-table .mt-jobs-table__ray-cluster {
+    display: none;
+  }
+}
+
+@container pf-v6-contain-table (max-width: 44rem) {
+  .mt-jobs-table .pf-v6-c-table .mt-jobs-table__cluster-queue {
+    display: none;
+  }
+}
+
+@container pf-v6-contain-table (max-width: 34rem) {
+  .mt-jobs-table .pf-v6-c-table .mt-jobs-table__nodes {
+    display: none;
+  }
+}
+
+@container pf-v6-contain-table (max-width: 25rem) {
+  .mt-jobs-table .pf-v6-c-table .mt-jobs-table__pause-resume {
+    display: none;
+  }
+}
