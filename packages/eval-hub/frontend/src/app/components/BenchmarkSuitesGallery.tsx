@@ -270,6 +270,9 @@ type BenchmarkSuitesGalleryProps = {
   createSuiteRoute?: string;
   createSuiteRouteState?: unknown;
   onCreateSuite?: () => void;
+  /** Opens the collection import dialog from the create tile; omit to hide the Import button. */
+  onImportCollection?: () => void;
+  importDisabled?: boolean;
   onPrimaryAction: (collection: Collection) => void;
   onDropdownAction?: (collection: Collection) => void;
   onEditCollection?: (collection: Collection) => void;
@@ -302,6 +305,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
   createSuiteRoute,
   createSuiteRouteState,
   onCreateSuite,
+  onImportCollection,
+  importDisabled = false,
   onPrimaryAction,
   onDropdownAction,
   onEditCollection,
@@ -1324,6 +1329,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                 <CreateBenchmarkSuiteCard
                   createSuiteRoute={createSuiteRoute}
                   createSuiteRouteState={createSuiteRouteState}
+                  onImport={onImportCollection}
+                  importDisabled={importDisabled}
                   onCreateSuite={onCreateSuite}
                 />
               </GalleryItem>
@@ -1364,6 +1371,8 @@ const BenchmarkSuitesGallery: React.FC<BenchmarkSuitesGalleryProps> = ({
                   createSuiteRoute={createSuiteRoute}
                   createSuiteRouteState={createSuiteRouteState}
                   trackingSurface={trackingSurface}
+                  onImport={onImportCollection}
+                  importDisabled={importDisabled}
                   onCreateSuite={onCreateSuite}
                 />
               </GalleryItem>

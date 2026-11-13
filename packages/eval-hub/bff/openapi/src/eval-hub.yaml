@@ -364,6 +364,81 @@ paths:
       description: >-
         Creates a tenant-scoped copy of an existing benchmark collection with optional overrides.
 
+  /eval-hub/api/v1/evaluations/collection-imports:
+    summary: Import a benchmark collection from file content
+    description: >-
+      Imports a benchmark collection from raw YAML or JSON file content.
+      The BFF parses the content with safe-load semantics, runs advisory
+      pre-submission checks, and creates the collection by submitting to the
+      EvalHub server collections API. Server validation is authoritative.
+    post:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionImportRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CollectionImportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: importCollection
+      summary: Import Collection
+      description: >-
+        Creates a tenant-scoped benchmark collection from raw YAML or JSON
+        content. Content over 1 MiB, YAML with custom tags, nesting deeper
+        than 50 levels, or more than 100 aliases is rejected. Multi-document
+        YAML imports only the first document. Advisory warnings (missing
+        description, unrecognized fields, ignored server-managed fields) are
+        returned alongside the created collection.
+
+  /eval-hub/api/v1/evaluations/collection-imports/access:
+    summary: Check whether the current user can import collections
+    description: >-
+      Runs a SubjectAccessReview for the action that governs collection
+      creation in the tenant namespace, so the UI can disable the import
+      entry points with an informative tooltip for users without permission.
+    get:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the request
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionImportAccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getCollectionImportAccess
+      summary: Get Collection Import Access
+      description: Returns whether the current user may create (import) collections in the namespace.
+
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
     description: >-
@@ -2160,6 +2235,52 @@ components:
           items:
             $ref: '#/components/schemas/Collection'
 
+    CollectionImportRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: >-
+            Raw collection definition file content (YAML or JSON). JSON is
+            detected when the trimmed content starts with '{' or '['.
+          example: |
+            name: my-collection
+            description: A short description of what this collection evaluates.
+            domains:
+              - knowledge_and_reasoning
+            benchmarks:
+              - id: arc_easy
+                provider_id: lm_evaluation_harness
+                weight: 1.0
+
+    CollectionImportData:
+      type: object
+      required:
+        - collection
+      properties:
+        collection:
+          $ref: '#/components/schemas/Collection'
+        warnings:
+          type: array
+          description: >-
+            Advisory pre-submission warnings (missing description,
+            unrecognized fields, server-managed fields that were ignored).
+          items:
+            type: string
+          example:
+            - 'Field "id" is managed by the server and will be ignored.'
+
+    CollectionImportAccessData:
+      type: object
+      required:
+        - allowed
+      properties:
+        allowed:
+          type: boolean
+          description: Whether the current user may create (import) collections in the namespace.
+
     ProviderResource:
       type: object
       properties:
@@ -2621,6 +2742,47 @@ components:
                 - id: 'arc_challenge'
                   provider_id: 'lm_evaluation_harness'
                   weight: 1
+
+    CollectionImportResponse:
+      description: The imported benchmark collection with advisory warnings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CollectionImportData'
+          example:
+            data:
+              collection:
+                resource:
+                  id: 'collection-002'
+                name: 'my-collection'
+                domains:
+                  - knowledge_and_reasoning
+                benchmarks:
+                  - id: 'arc_easy'
+                    provider_id: 'lm_evaluation_harness'
+                    weight: 1
+              warnings:
+                - 'Field "id" is managed by the server and will be ignored.'
+
+    CollectionImportAccessResponse:
+      description: Whether the current user may import collections in the namespace
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CollectionImportAccessData'
+          example:
+            data:
+              allowed: true
 
     ProvidersResponse:
       description: List of evaluation providers with their benchmark catalogues

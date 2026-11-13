@@ -305,6 +305,38 @@ func (kc *InternalKubernetesClient) CanListEvalHubInstances(ctx context.Context,
 	return resp.Status.Allowed, nil
 }
 
+// CanCreateEvalHubResources performs a SubjectAccessReview for the create verb on the
+// tenant-scoped virtual "evaluations" resource — the same resource CanListEvalHubInstances
+// checks — so the dashboard can disable collection import for users whose tenant Role is
+// read-only. The exact verb/resource mapping for collection creation is pending
+// confirmation with the TrustyAI team; this mirrors the access that governs the
+// collections the EvalHub server materializes in the tenant namespace.
+func (kc *InternalKubernetesClient) CanCreateEvalHubResources(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "create",
+				Group:     EvalHubCRDGroup,
+				Resource:  EvalHubVirtualResource,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform EvalHub create SAR", "namespace", namespace, "error", err)
+		return false, fmt.Errorf("failed to verify EvalHub create permissions: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
 // GetEvalHubServiceURL lists EvalHub CRs in the namespace using the service-account credentials
 // (internal client) and returns status.url from the first found instance labelled for ODH.
 func (kc *InternalKubernetesClient) GetEvalHubServiceURL(ctx context.Context, _ *RequestIdentity, namespace string) (string, error) {

@@ -12,12 +12,14 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import BenchmarkSuitesGallery from '~/app/components/BenchmarkSuitesGallery';
+import ImportCollectionModal from '~/app/components/ImportCollectionModal';
 import {
   evaluationBenchmarksRoute,
   evaluationBenchmarkSuitesRoute,
   evaluationCreateSuiteRoute,
   evaluationEvaluateNavigationState,
 } from '~/app/routes';
+import { useCanImportCollections } from '~/app/hooks/collections';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
@@ -43,6 +45,11 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
   onDuplicateCollection,
 }) => {
   const heading = 'Recent benchmark collections';
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
+  const canImportQuery = useCanImportCollections(namespace);
+  // Fall back to enabled when the access check is loading or failed; the
+  // server still enforces RBAC on submission.
+  const canImport = canImportQuery.data ?? true;
 
   return (
     <>
@@ -87,6 +94,8 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
             primaryActionLabel="Run"
             createSuiteRoute={evaluationCreateSuiteRoute(namespace)}
             createSuiteRouteState={evaluationEvaluateNavigationState}
+            onImportCollection={() => setIsImportOpen(true)}
+            importDisabled={!canImport}
             onPrimaryAction={onRunCollection}
             onEditCollection={onEditCollection}
             onDuplicateCollection={onDuplicateCollection}
@@ -136,6 +145,14 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
         </StackItem>
         {/* Red Hat validated collections are temporarily hidden until more evaluation targets are available. */}
       </Stack>
+      {isImportOpen ? (
+        <ImportCollectionModal
+          isOpen
+          onClose={() => setIsImportOpen(false)}
+          namespace={namespace}
+          surface="my_benchmark_suites"
+        />
+      ) : null}
     </>
   );
 };

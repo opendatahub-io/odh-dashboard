@@ -32,10 +32,24 @@ jest.mock('~/app/hooks/collections', () => ({
     mutateAsync: jest.fn(),
     reset: jest.fn(),
   }),
+  useCanImportCollections: () => ({ data: true }),
+  useImportCollectionMutation: () => ({
+    isPending: false,
+    reset: jest.fn(),
+    mutate: jest.fn(),
+  }),
 }));
 
 jest.mock('~/app/hooks/useProviders', () => ({
   useProviders: (...args: unknown[]) => mockUseProviders(...args),
+}));
+
+// Monaco cannot run in jsdom; the import dialog's code editor is stubbed.
+jest.mock('monaco-editor', () => ({ __esModule: true, editor: {} }), { virtual: true });
+jest.mock('@monaco-editor/react', () => ({ loader: { config: jest.fn() } }));
+jest.mock('@patternfly/react-code-editor', () => ({
+  ...jest.requireActual('@patternfly/react-code-editor'),
+  CodeEditor: () => null,
 }));
 
 jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({

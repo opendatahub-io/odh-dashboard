@@ -5,7 +5,13 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
-import { deleteCollection, getCollections, patchCollection } from '~/app/api/k8s';
+import {
+  deleteCollection,
+  getCollectionImportAccess,
+  getCollections,
+  importCollection,
+  patchCollection,
+} from '~/app/api/k8s';
 import type {
   CollectionPatchOperation,
   CollectionFilterParams,
@@ -13,6 +19,7 @@ import type {
   CollectionSortBy,
   CollectionsListResponse,
   Collection,
+  ImportCollectionResponse,
   ListCollectionsParams,
 } from '~/app/types';
 import { COLLECTION_FETCH_LIMIT } from '~/app/utilities/const';
@@ -125,3 +132,45 @@ export const usePatchCollectionMutation = (
       queryClient.invalidateQueries({ queryKey: collectionsQueryKeyPrefix(namespace) }),
   });
 };
+
+/**
+ * Imports a collection from raw YAML/JSON file content. The BFF parses,
+ * validates, and creates the collection in one action, returning the created
+ * collection plus advisory warnings. After success, every cached collection
+ * query for the namespace is refreshed so the gallery and collision checks
+ * see the new collection.
+ */
+export const useImportCollectionMutation = (
+  namespace: string,
+): UseMutationResult<ImportCollectionResponse, Error, string> => {
+  const queryClient = useQueryClient();
+
+  return useMutation<ImportCollectionResponse, Error, string>({
+    mutationKey: ['evalhub', 'collections', 'import', namespace],
+    mutationFn: (content) => {
+      if (!namespace) {
+        return Promise.reject(new Error('Namespace is required to import a collection'));
+      }
+      return importCollection('', namespace, content)({});
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: collectionsQueryKeyPrefix(namespace) }),
+  });
+};
+
+/**
+ * Reports whether the current user may create (import) collections in the
+ * namespace, via a BFF SubjectAccessReview. When the check itself fails the
+ * query errors; callers should fall back to showing the import entry point
+ * (the server still enforces RBAC on submission).
+ */
+export const useCanImportCollections = (namespace: string): UseQueryResult<boolean, Error> =>
+  useQuery<boolean, Error>({
+    queryKey: ['evalhub', 'collections', 'import-access', namespace],
+    queryFn: ({ signal }) =>
+      getCollectionImportAccess('', namespace)({ signal }).then((response) => response.allowed),
+    // The answer only changes with RBAC changes; avoid refetch churn.
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    enabled: Boolean(namespace),
+  });

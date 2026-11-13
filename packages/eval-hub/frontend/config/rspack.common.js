@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const path = require('path');
 const { rspack } = require('@rspack/core');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
@@ -138,6 +139,8 @@ module.exports = (env) => ({
     uniqueName: name,
   },
   plugins: [
+    // Bundle only the YAML language so Monaco stays as small as possible.
+    new MonacoWebpackPlugin({ languages: ['yaml'] }),
     ...moduleFederationPlugins,
     ...setupWebpackDotenvFilesForEnv({
       directory: RELATIVE_DIRNAME,

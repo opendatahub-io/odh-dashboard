@@ -122,6 +122,17 @@
   margin-block-start: auto;
 }
 
+.evalhub-create-suite-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--sm);
+  margin-block-start: auto;
+}
+
+.evalhub-create-suite-card__actions .evalhub-create-suite-card__button {
+  margin-block-start: 0;
+}
+
 .evalhub-runs-tab__description {
   margin-block: 0 var(--pf-t--global--spacer--xl);
 }

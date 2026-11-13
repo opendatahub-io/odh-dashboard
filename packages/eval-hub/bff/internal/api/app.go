@@ -27,18 +27,23 @@ import (
 )
 
 const (
-	Version                        = "1.0.0"
-	PathPrefix                     = "/eval-hub"
-	ApiPathPrefix                  = "/api/v1"
-	HealthCheckPath                = "/healthcheck"
-	HealthPath                     = ApiPathPrefix + "/health"
-	UserPath                       = ApiPathPrefix + "/user"
-	NamespacePath                  = ApiPathPrefix + "/namespaces"
-	EvaluationJobsPath             = ApiPathPrefix + "/evaluations/jobs"
-	EvaluationJobByIDPath          = ApiPathPrefix + "/evaluations/jobs/:id"
-	CollectionsPath                = ApiPathPrefix + "/evaluations/collections"
-	CollectionByIDPath             = ApiPathPrefix + "/evaluations/collections/*id"
-	CollectionClonePath            = ApiPathPrefix + "/evaluations/collections/*id"
+	Version               = "1.0.0"
+	PathPrefix            = "/eval-hub"
+	ApiPathPrefix         = "/api/v1"
+	HealthCheckPath       = "/healthcheck"
+	HealthPath            = ApiPathPrefix + "/health"
+	UserPath              = ApiPathPrefix + "/user"
+	NamespacePath         = ApiPathPrefix + "/namespaces"
+	EvaluationJobsPath    = ApiPathPrefix + "/evaluations/jobs"
+	EvaluationJobByIDPath = ApiPathPrefix + "/evaluations/jobs/:id"
+	CollectionsPath       = ApiPathPrefix + "/evaluations/collections"
+	CollectionByIDPath    = ApiPathPrefix + "/evaluations/collections/*id"
+	CollectionClonePath   = ApiPathPrefix + "/evaluations/collections/*id"
+	// Collection import lives outside /evaluations/collections because the
+	// CollectionByIDPath catch-all wildcard makes httprouter panic on any
+	// static sibling registered under it.
+	CollectionImportPath           = ApiPathPrefix + "/evaluations/collection-imports"
+	CollectionImportAccessPath     = ApiPathPrefix + "/evaluations/collection-imports/access"
 	ProvidersPath                  = ApiPathPrefix + "/evaluations/providers"
 	KueueAvailabilityPath          = ApiPathPrefix + "/kueue/availability"
 	KueueWorkloadStatusesPath      = ApiPathPrefix + "/kueue/workloads"
@@ -252,6 +257,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.PATCH(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.PatchCollectionHandler))))
 	apiRouter.DELETE(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.DeleteCollectionHandler))))
 	apiRouter.POST(CollectionClonePath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CloneCollectionHandler))))
+	apiRouter.POST(CollectionImportPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ImportCollectionHandler))))
+	// Collection import access check runs a SubjectAccessReview directly and
+	// does not need the EvalHub REST client.
+	apiRouter.GET(CollectionImportAccessPath, app.AttachNamespace(app.RequireAccessToService(app.ImportAccessHandler)))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
 	apiRouter.GET(KueueAvailabilityPath, app.AttachNamespace(app.RequireAccessToService(app.KueueAvailabilityHandler)))
 	apiRouter.GET(KueueWorkloadStatusesPath, app.AttachNamespace(app.RequireAccessToService(app.KueueWorkloadStatusesHandler)))

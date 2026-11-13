@@ -115,6 +115,10 @@ class EvaluationsPage {
     return cy.findByTestId('create-suite-button');
   }
 
+  findImportCollectionButton() {
+    return cy.findByTestId('import-collection-button');
+  }
+
   findBrowseAllBenchmarksExploreButton() {
     return cy.findByTestId('browse-all-benchmarks-explore');
   }

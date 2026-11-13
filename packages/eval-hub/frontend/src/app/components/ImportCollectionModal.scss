@@ -1,0 +1,75 @@
+// The import dialog needs a definite height, not just a min-height: Monaco
+// sizes itself with percentage heights, which only resolve when every ancestor
+// has a definite height. With an indefinite chain the editor collapses to a
+// single line and leaves the rest of the modal body empty.
+.evalhub-import-collection-modal {
+  height: min(90vh, 48rem);
+
+  .pf-v6-c-modal-box__body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .pf-v6-l-stack {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+// The editor's stack item carries the flex sizing that hands Monaco the space
+// left over from the dialog height set above.
+.evalhub-import-collection-modal__editor-item {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  // `display: flex` above would otherwise win over the UA rule for [hidden],
+  // keeping the editor visible after a successful import.
+  &[hidden] {
+    display: none;
+  }
+}
+
+.evalhub-import-collection-modal__editor {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  &--drag-hover {
+    outline: var(--pf-t--global--border--width--control--default) dashed
+      var(--pf-t--global--border--color--clicked);
+    outline-offset: var(--pf-t--global--spacer--xs);
+  }
+}
+
+.evalhub-import-collection-modal__editor-upload {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.evalhub-import-collection-modal__filename {
+  font-family: var(--pf-t--global--font--family--mono);
+  font-size: var(--pf-t--global--font--size--xs);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+// Monaco decoration classes applied by EvalHubCodeEditor to the YAML syntax
+// error line: a tinted line background plus a danger-colored bar in the line
+// number gutter, matching the line number in the parse error message.
+.evalhub-code-editor__error-line {
+  background-color: color-mix(
+    in srgb,
+    var(--pf-t--global--color--status--danger--default) 15%,
+    transparent
+  );
+}
+
+.evalhub-code-editor__error-line-gutter {
+  background-color: var(--pf-t--global--color--status--danger--default);
+  width: var(--pf-t--global--border--width--control--clicked);
+  margin-inline-end: var(--pf-t--global--spacer--xs);
+}
