@@ -169,7 +169,7 @@ func TestMcpDeployReadiness(t *testing.T) {
 			name:            "OpenShift image when the CR cannot be read",
 			query:           url.Values{"image": {openShiftMcpServerTestImage}},
 			reader:          &countingOperatorReader{err: errors.New("forbidden")},
-			gatewayRequired: true, reason: models.McpDeployReadinessGatewayStatusUnavailable, wantReads: 1, wantChecks: []string{"create team-ns"},
+			gatewayRequired: true, reason: models.McpDeployReadinessInstallerRBACUnavailable, wantReads: 1, wantChecks: []string{"create team-ns"},
 		},
 		{
 			name:       "other image registered under the OpenShift server name is not gated",
@@ -216,7 +216,9 @@ func TestMcpDeployReadinessOtherImageSkipsAccessCheck(t *testing.T) {
 			require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 			var envelope McpServerDeployReadinessEnvelope
 			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &envelope))
-			assert.Equal(t, models.McpServerDeployReadiness{Deployable: true}, envelope.Data)
+			assert.True(t, envelope.Data.Deployable)
+			assert.Equal(t, models.McpSupportLevelTechnologyPreview, envelope.Data.SupportLevel)
+			assert.NotEmpty(t, envelope.Data.SupportMessage)
 			assert.Empty(t, client.recordedChecks())
 			assert.Zero(t, reader.calls.Load())
 		})

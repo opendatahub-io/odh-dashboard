@@ -133,6 +133,7 @@ describe('DeleteMcpDeploymentModal', () => {
     fireEvent.click(screen.getByTestId('delete-modal-confirm-button'));
 
     expect(screen.getByTestId('delete-modal-confirm-button')).toBeDisabled();
+    expect(screen.getByTestId('delete-cleanup-progress-alert')).toBeInTheDocument();
 
     resolveDelete();
   });

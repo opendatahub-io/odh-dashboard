@@ -131,9 +131,16 @@ const (
 	McpDeploymentName     = "mcp_deployment_name"
 	McpDeploymentListPath = ApiPathPrefix + "/mcp_deployments"
 	McpDeploymentPath     = McpDeploymentListPath + "/:" + McpDeploymentName
+	// Project Matrix layer operations. DELETE on the collection is deliberately
+	// separate from DELETE on an individual MCP deployment.
+	McpLayerDeletePath = McpDeploymentListPath
 
 	// Deploy readiness for an MCP server image (downstream-only implementation)
 	McpDeployReadinessPath = ApiPathPrefix + "/mcp_deploy_readiness"
+
+	// Project Matrix Gateway-layer status (downstream-only implementation)
+	GatewayLayerStatusPath    = ApiPathPrefix + "/gateway_layer_status"
+	GatewayLayerUsabilityPath = ApiPathPrefix + "/gateway_layer_usability"
 )
 
 const (
@@ -159,11 +166,16 @@ const (
 	handlerMcpDeploymentCreateID   HandlerID = "mcpDeployment:create"
 	handlerMcpDeploymentUpdateID   HandlerID = "mcpDeployment:update"
 	handlerMcpDeploymentDeleteID   HandlerID = "mcpDeployment:delete"
+	handlerMcpLayerDeleteID        HandlerID = "mcpLayer:delete"
 	handlerMCPServerConverterGetID HandlerID = "mcpServer:converter:get"
 
 	// MCP server deploy readiness handler - downstream-only
 	handlerMcpServerDeployReadinessGetID HandlerID = "mcpServer:deployReadiness:get"
 	handlerMcpDeployReadinessGetID       HandlerID = "mcpDeployment:readiness:get"
+
+	// Project Matrix Gateway-layer status handler - downstream-only
+	handlerGatewayLayerStatusGetID     HandlerID = "gatewayLayer:status:get"
+	handlerGatewayLayerUsabilityPostID HandlerID = "gatewayLayer:usability:post"
 )
 
 type App struct {
@@ -469,6 +481,12 @@ func (app *App) Routes() http.Handler {
 				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deployment delete"))
 			}),
 		)
+		apiRouter.DELETE(
+			McpLayerDeletePath,
+			app.handlerWithOverride(handlerMcpLayerDeleteID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP layer delete"))
+			}),
+		)
 		apiRouter.GET(
 			MCPServerConverterPath,
 			app.handlerWithOverride(handlerMCPServerConverterGetID, func() httprouter.Handle {
@@ -487,6 +505,18 @@ func (app *App) Routes() http.Handler {
 			McpDeployReadinessPath,
 			app.handlerWithOverride(handlerMcpDeployReadinessGetID, func() httprouter.Handle {
 				return app.AttachNamespace(app.EndpointNotImplementedHandler("MCP deploy readiness"))
+			}),
+		)
+		apiRouter.GET(
+			GatewayLayerStatusPath,
+			app.handlerWithOverride(handlerGatewayLayerStatusGetID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("Gateway layer status"))
+			}),
+		)
+		apiRouter.POST(
+			GatewayLayerUsabilityPath,
+			app.handlerWithOverride(handlerGatewayLayerUsabilityPostID, func() httprouter.Handle {
+				return app.AttachNamespace(app.EndpointNotImplementedHandler("Gateway layer usability"))
 			}),
 		)
 

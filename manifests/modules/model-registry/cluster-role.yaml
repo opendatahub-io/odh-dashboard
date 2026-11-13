@@ -27,3 +27,50 @@ rules:
       - default
     verbs:
       - get
+  # Current MCP Lifecycle releases expose readiness through the Gateway API and
+  # MCPGatewayExtension resources instead of availableMCPGateways status.
+  - apiGroups:
+      - mcp.kuadrant.io
+    resources:
+      - mcpgatewayextensions
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - get
+      - list
+  # Guided MCP installs publish the selected server through the live gateway.
+  # The BFF only manages resources labeled for the server it created.
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - httproutes
+    verbs:
+      - get
+      - list
+      - create
+      - delete
+  # Cross-namespace MCP routes require a ReferenceGrant in the backend
+  # namespace. The BFF creates and cleans up only its labeled grants.
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - referencegrants
+    verbs:
+      - get
+      - list
+      - create
+      - delete
+  - apiGroups:
+      - mcp.kuadrant.io
+    resources:
+      - mcpserverregistrations
+    verbs:
+      - get
+      - list
+      - create
+      - delete

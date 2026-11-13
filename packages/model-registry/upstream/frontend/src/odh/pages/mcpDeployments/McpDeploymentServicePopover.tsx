@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Button, ClipboardCopy, Popover } from '@patternfly/react-core';
+import { Button, ClipboardCopy, Content, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
-import { getConnectionUrl } from './utils';
+import { getConnectionUrl, isClusterLocalConnectionUrl } from './utils';
 
 type McpDeploymentServicePopoverProps = {
   deployment: McpDeployment;
@@ -18,22 +18,53 @@ const McpDeploymentServicePopover: React.FC<McpDeploymentServicePopoverProps> = 
 
   return (
     <Popover
-      headerContent="Connection URL"
+      headerContent="Connection details"
       bodyContent={
-        <ClipboardCopy
-          isReadOnly
-          variant="inline-compact"
-          hoverTip="Copy"
-          clickTip="Copied"
-          data-testid="mcp-deployment-connection-url"
-        >
-          {connectionUrl}
-        </ClipboardCopy>
+        <Stack hasGutter>
+          {deployment.gatewayAddress?.url && (
+            <StackItem>
+              <Content component="small">
+                <b>Gateway endpoint</b>
+              </Content>
+              <Content component="small">
+                Use this URL with an MCP client through the configured Gateway.
+              </Content>
+              <ClipboardCopy
+                isReadOnly
+                variant="inline-compact"
+                hoverTip="Copy"
+                clickTip="Copied"
+                data-testid="mcp-deployment-gateway-url"
+              >
+                {deployment.gatewayAddress.url}
+              </ClipboardCopy>
+            </StackItem>
+          )}
+          <StackItem>
+            <Content component="small">
+              <b>Cluster-local service URL</b>
+            </Content>
+            <Content component="small">
+              {isClusterLocalConnectionUrl(connectionUrl)
+                ? 'Usable by in-cluster MCP clients; it will not open from your browser.'
+                : 'Use this URL only when the client can reach the service directly.'}
+            </Content>
+            <ClipboardCopy
+              isReadOnly
+              variant="inline-compact"
+              hoverTip="Copy"
+              clickTip="Copied"
+              data-testid="mcp-deployment-connection-url"
+            >
+              {connectionUrl}
+            </ClipboardCopy>
+          </StackItem>
+        </Stack>
       }
       data-testid="mcp-deployment-service-popover"
     >
       <Button variant="link" isInline data-testid="mcp-deployment-service-view">
-        View
+        View connection details
       </Button>
     </Popover>
   );

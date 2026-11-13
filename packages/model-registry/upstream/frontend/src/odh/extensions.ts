@@ -45,6 +45,30 @@ const extensions: (
       ],
     },
   },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      id: 'ai-stack',
+      title: 'AI Stack',
+      href: '/ai-hub/ai-stack',
+      path: '/ai-hub/ai-stack/*',
+      section: 'ai-hub',
+      group: '0_ai_stack',
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.MCP_CATALOG],
+    },
+    properties: {
+      path: '/ai-hub/ai-stack/*',
+      component: () => import('./AiStackWrapper'),
+    },
+  },
   // Tab extensions for the Models tabbed page
   {
     type: 'app.tab-route/tab',
@@ -328,7 +352,7 @@ const extensions: (
     },
     properties: {
       id: 'deploy-mcp-server',
-      label: 'Deploy MCP server',
+      label: 'Install MCP server',
       group: 'mcp-catalog.server-actions',
       component: () => import('./components/McpServerDeployAction'),
     },

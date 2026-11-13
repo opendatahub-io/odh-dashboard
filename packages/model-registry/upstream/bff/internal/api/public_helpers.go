@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/x509"
 	"fmt"
 	"net/http"
 
@@ -75,6 +76,12 @@ func (app *App) Config() config.EnvConfig {
 // Logger exposes the application logger for extensions.
 func (app *App) Logger() *slog.Logger {
 	return app.logger
+}
+
+// RootCAs exposes the configured trust bundle to downstream integrations that
+// make outbound requests to cluster-exposed services.
+func (app *App) RootCAs() *x509.CertPool {
+	return app.rootCAs
 }
 
 // TrackBackgroundWork runs fn in a new goroutine detached from any request, for best-effort

@@ -4,6 +4,15 @@ package models
 // The frontend owns the user-facing text for each reason.
 type McpDeployReadinessReason string
 
+// McpSupportLevel describes the support lane in which the MCP workflow may run.
+type McpSupportLevel string
+
+const (
+	McpSupportLevelProduction        McpSupportLevel = "production"
+	McpSupportLevelTechnologyPreview McpSupportLevel = "technologyPreview"
+	McpSupportLevelDeveloperPreview  McpSupportLevel = "developerPreview"
+)
+
 const (
 	// McpDeployReadinessOperatorNotReady means the MCPLifecycleOperator CR is missing
 	// or its Ready condition is not True.
@@ -11,6 +20,9 @@ const (
 	// McpDeployReadinessGatewayStatusUnavailable means gateway availability could not be
 	// determined (for example the MCPLifecycleOperator CR could not be read).
 	McpDeployReadinessGatewayStatusUnavailable McpDeployReadinessReason = "GATEWAY_STATUS_UNAVAILABLE"
+	// McpDeployReadinessInstallerRBACUnavailable means the dashboard service account cannot
+	// read the Gateway prerequisites needed by the one-click installer.
+	McpDeployReadinessInstallerRBACUnavailable McpDeployReadinessReason = "INSTALLER_RBAC_UNAVAILABLE"
 	// McpDeployReadinessNoGatewayAvailable means no ready MCP gateway with a usable
 	// listener is available on the cluster.
 	McpDeployReadinessNoGatewayAvailable McpDeployReadinessReason = "NO_GATEWAY_AVAILABLE"
@@ -25,4 +37,8 @@ type McpServerDeployReadiness struct {
 	// Reason and Message are set only when Deployable is false.
 	Reason  McpDeployReadinessReason `json:"reason,omitempty"`
 	Message string                   `json:"message,omitempty"`
+	// SupportLevel is the platform support lane for this workflow. MCP Catalog,
+	// MCP Lifecycle, and MCP Gateway are currently Technology Preview features.
+	SupportLevel   McpSupportLevel `json:"supportLevel"`
+	SupportMessage string          `json:"supportMessage,omitempty"`
 }

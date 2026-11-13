@@ -17,6 +17,7 @@ export type MCPEnvVar = {
 
 export type MCPStorageSource = {
   type: string;
+  emptyDir?: Record<string, unknown>;
   configMap?: { name: string };
   secret?: { secretName: string };
 };
@@ -62,6 +63,7 @@ export type MCPServerCR = {
 export enum McpConditionType {
   ACCEPTED = 'Accepted',
   READY = 'Ready',
+  GATEWAY_REGISTRATION = 'GatewayRegistration',
 }
 
 export enum McpConditionStatus {
@@ -114,6 +116,8 @@ export type McpDeployment = {
   yaml?: string;
   conditions: McpDeploymentCondition[];
   address?: McpDeploymentAddress;
+  /** Public MCP Gateway client endpoint, distinct from the cluster-local service address. */
+  gatewayAddress?: McpDeploymentAddress;
 };
 
 export type McpDeploymentList = {
@@ -129,7 +133,30 @@ export type McpDeploymentCreateRequest = {
   registryVersion?: string;
   image: string;
   yaml?: string;
+  prerequisites?: McpDeploymentPrerequisite[];
+  gatewayRegistration?: McpGatewayRegistration;
 };
+
+export type McpGatewayRegistration = {
+  category?: string[];
+  hint?: string;
+  prefix?: string;
+  path?: string;
+  tags?: string[];
+};
+
+/** Catalog-declared, non-secret resources that the guided installer may create. */
+export type McpDeploymentPrerequisite =
+  | {
+      type: 'ServiceAccount';
+      name: string;
+      clusterRole?: 'view';
+    }
+  | {
+      type: 'ConfigMap';
+      name: string;
+      data?: Record<string, string>;
+    };
 
 export type McpDeploymentUpdateRequest = {
   displayName?: string;
@@ -164,6 +191,7 @@ export type McpDeployModalData = {
 export enum McpDeployReadinessReason {
   OPERATOR_NOT_READY = 'OPERATOR_NOT_READY',
   GATEWAY_STATUS_UNAVAILABLE = 'GATEWAY_STATUS_UNAVAILABLE',
+  INSTALLER_RBAC_UNAVAILABLE = 'INSTALLER_RBAC_UNAVAILABLE',
   NO_GATEWAY_AVAILABLE = 'NO_GATEWAY_AVAILABLE',
 }
 
@@ -175,4 +203,8 @@ export type McpServerDeployReadiness = {
   /** Set only when `deployable` is false. */
   reason?: McpDeployReadinessReason;
   message?: string;
+  /** Platform support lane for the MCP workflow. */
+  supportLevel?: 'production' | 'technologyPreview' | 'developerPreview';
+  /** Explanation of the support lane shown in the installer. */
+  supportMessage?: string;
 };

@@ -27,6 +27,7 @@ const (
 	mcpDeploymentCreateHandlerID = api.HandlerID("mcpDeployment:create")
 	mcpDeploymentUpdateHandlerID = api.HandlerID("mcpDeployment:update")
 	mcpDeploymentDeleteHandlerID = api.HandlerID("mcpDeployment:delete")
+	mcpLayerDeleteHandlerID      = api.HandlerID("mcpLayer:delete")
 )
 
 type mcpDeploymentRepository interface {
@@ -35,6 +36,7 @@ type mcpDeploymentRepository interface {
 	Create(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, req models.McpDeploymentCreateRequest) (models.McpDeployment, error)
 	Update(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, name string, req models.McpDeploymentUpdateRequest) (models.McpDeployment, error)
 	Delete(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, name string) error
+	DeleteLayer(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, layer string) error
 }
 
 var newMcpDeploymentRepository = func(app *api.App) mcpDeploymentRepository {
@@ -50,6 +52,7 @@ func init() {
 	api.RegisterHandlerOverride(mcpDeploymentCreateHandlerID, overrideMcpDeploymentCreate)
 	api.RegisterHandlerOverride(mcpDeploymentUpdateHandlerID, overrideMcpDeploymentUpdate)
 	api.RegisterHandlerOverride(mcpDeploymentDeleteHandlerID, overrideMcpDeploymentDelete)
+	api.RegisterHandlerOverride(mcpLayerDeleteHandlerID, overrideMcpLayerDelete)
 }
 
 func overrideMcpDeploymentList(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
@@ -134,12 +137,16 @@ func overrideMcpDeploymentGet(app *api.App, buildDefault func() httprouter.Handl
 
 func handleMcpDeploymentError(app *api.App, w http.ResponseWriter, r *http.Request, err error) {
 	switch {
+	case errors.Is(err, redhatrepos.ErrMcpDeploymentRBAC):
+		app.Forbidden(w, r, err.Error())
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentValidation):
 		app.BadRequest(w, r, err)
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentNotFound):
 		app.NotFound(w, r)
 	case errors.Is(err, redhatrepos.ErrMcpDeploymentConflict):
 		app.Conflict(w, r, err.Error())
+	case errors.Is(err, redhatrepos.ErrMcpDeploymentCleanupTimeout):
+		app.Conflict(w, r, "Cleanup is still in progress; retry after the cluster removes the remaining Project Matrix resources.")
 	case apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err):
 		app.Forbidden(w, r, err.Error())
 	default:
@@ -161,11 +168,11 @@ func overrideMcpDeploymentCreate(app *api.App, buildDefault func() httprouter.Ha
 			return
 		}
 
-		if !requireMcpDeploymentAccess(app, w, r, namespace, "create") {
+		if !requireMcpMutationAccess(app, w, r, namespace, "create") {
 			return
 		}
 
-		client, ok := getKubernetesClient(app, w, r)
+		client, ok := getMcpMutationClient(app, w, r)
 		if !ok {
 			return
 		}
@@ -218,7 +225,7 @@ func overrideMcpDeploymentUpdate(app *api.App, buildDefault func() httprouter.Ha
 			return
 		}
 
-		if !requireMcpDeploymentAccess(app, w, r, namespace, "update") {
+		if !requireMcpMutationAccess(app, w, r, namespace, "update") {
 			return
 		}
 
@@ -228,7 +235,7 @@ func overrideMcpDeploymentUpdate(app *api.App, buildDefault func() httprouter.Ha
 			return
 		}
 
-		client, ok := getKubernetesClient(app, w, r)
+		client, ok := getMcpMutationClient(app, w, r)
 		if !ok {
 			return
 		}
@@ -313,7 +320,7 @@ func overrideMcpDeploymentDelete(app *api.App, buildDefault func() httprouter.Ha
 			return
 		}
 
-		if !requireMcpDeploymentAccess(app, w, r, namespace, "delete") {
+		if !requireMcpMutationAccess(app, w, r, namespace, "delete") {
 			return
 		}
 
@@ -323,7 +330,7 @@ func overrideMcpDeploymentDelete(app *api.App, buildDefault func() httprouter.Ha
 			return
 		}
 
-		client, ok := getKubernetesClient(app, w, r)
+		client, ok := getMcpMutationClient(app, w, r)
 		if !ok {
 			return
 		}
@@ -343,6 +350,41 @@ func overrideMcpDeploymentDelete(app *api.App, buildDefault func() httprouter.Ha
 			scheduleRegistryAccessEndpointCascadeDelete(r.Context(), app, deployment)
 		}
 
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
+// overrideMcpLayerDelete is the Project Matrix Gateway layer uninstaller. It
+// requires an explicit layer=gateway query parameter and uses the selected
+// namespace only as the deployment target. Shared cluster platform services
+// are outside the repository's ownership inventory and remain untouched.
+func overrideMcpLayerDelete(app *api.App, buildDefault func() httprouter.Handle) httprouter.Handle {
+	if !shouldUseRedHatOverrides(app) {
+		return buildDefault()
+	}
+
+	repo := newMcpDeploymentRepository(app)
+	return app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		namespace, ok := namespaceFromContext(app, w, r)
+		if !ok {
+			return
+		}
+		if !requireMcpMutationAccess(app, w, r, namespace, "delete") {
+			return
+		}
+		layer := strings.TrimSpace(r.URL.Query().Get("layer"))
+		if layer == "" {
+			app.BadRequest(w, r, fmt.Errorf("layer is required"))
+			return
+		}
+		client, ok := getMcpMutationClient(app, w, r)
+		if !ok {
+			return
+		}
+		if err := repo.DeleteLayer(r.Context(), client, namespace, layer); err != nil {
+			handleMcpDeploymentError(app, w, r, err)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 }

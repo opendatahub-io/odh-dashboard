@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
-import { Timestamp, TimestampTooltipVariant, Truncate } from '@patternfly/react-core';
+import { Flex, Label, Timestamp, TimestampTooltipVariant, Truncate } from '@patternfly/react-core';
 import { ResourceNameTooltip } from '@odh-dashboard/ui-core';
 import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
 import { convertMcpDeploymentToK8sResource, getDeploymentDisplayName } from './utils';
@@ -16,6 +16,8 @@ type McpDeploymentsTableRowProps = {
   showRegisteredVersion: boolean;
   onDeleteClick: (deployment: McpDeployment) => void;
   onEditClick: (deployment: McpDeployment) => void;
+  onViewStatus: (deployment: McpDeployment) => void;
+  isNewInstall?: boolean;
 };
 
 const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
@@ -23,6 +25,8 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
   showRegisteredVersion,
   onDeleteClick,
   onEditClick,
+  onViewStatus,
+  isNewInstall,
 }) => {
   const actions: IAction[] = React.useMemo(
     () => [
@@ -34,15 +38,26 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
         title: 'Delete',
         onClick: () => onDeleteClick(deployment),
       },
+      {
+        title: 'View installation status',
+        onClick: () => onViewStatus(deployment),
+      },
     ],
-    [deployment, onDeleteClick, onEditClick],
+    [deployment, onDeleteClick, onEditClick, onViewStatus],
   );
 
   return (
     <Tr data-testid={`mcp-deployment-row-${deployment.name}`}>
       <Td dataLabel="Name" data-testid="mcp-deployment-name">
         <ResourceNameTooltip resource={convertMcpDeploymentToK8sResource(deployment)}>
-          <Truncate content={getDeploymentDisplayName(deployment)} />
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <Truncate content={getDeploymentDisplayName(deployment)} />
+            {isNewInstall && (
+              <Label isCompact color="blue" data-testid="mcp-new-install-label">
+                New install
+              </Label>
+            )}
+          </Flex>
         </ResourceNameTooltip>
       </Td>
       <Td dataLabel="MCP server" data-testid="mcp-deployment-server">
@@ -62,7 +77,7 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
       <Td dataLabel="Status" data-testid="mcp-deployment-status">
         <McpDeploymentStatusLabel conditions={deployment.conditions} />
       </Td>
-      <Td dataLabel="Service" data-testid="mcp-deployment-service">
+      <Td dataLabel="Connection" data-testid="mcp-deployment-service">
         <McpDeploymentServicePopover deployment={deployment} />
       </Td>
       <Td isActionCell>

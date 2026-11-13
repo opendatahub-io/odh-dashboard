@@ -63,6 +63,20 @@ const DeleteMcpDeploymentModal: React.FC<DeleteMcpDeploymentModalProps> = ({
             </Alert>
           </StackItem>
         )}
+        {isDeleting && (
+          <StackItem>
+            <Alert
+              isInline
+              variant="info"
+              title="Waiting for cluster cleanup"
+              data-testid="delete-cleanup-progress-alert"
+            >
+              The delete request was accepted. The installer is verifying that the MCP server,
+              Gateway registration, routes, and owned prerequisites are gone. This dialog remains
+              open until cleanup is complete.
+            </Alert>
+          </StackItem>
+        )}
       </Stack>
     </DeleteModal>
   );
