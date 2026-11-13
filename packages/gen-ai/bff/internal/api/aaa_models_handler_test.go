@@ -509,6 +509,33 @@ var _ = Describe("fetchMaaSModels", func() {
 		assert.Contains(t, aaModels[1].Capabilities, "vision")
 		assert.Contains(t, aaModels[1].Capabilities, "text-generation")
 	})
+	It("should keep a namespace MaaSModelRef that GET /models omitted", func() {
+		t := GinkgoT()
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+			if path == "/models" {
+				return json.Unmarshal([]byte(`{"data":{"object":"list","data":[{"id":"visible-model","ready":true,"url":"https://visible.example.com/v1"}]}}`), response)
+			}
+			if path == "/all-maas-models" {
+				return json.Unmarshal([]byte(`{"data":[
+					{"name":"visible-model","namespace":"test-namespace","phase":"Ready","endpoint":"https://visible.example.com/v1"},
+					{"name":"pending-model","namespace":"test-namespace","displayName":"Pending model","description":"waiting for subscription","phase":"Pending","endpoint":"https://pending.example.com/v1"},
+					{"name":"other-ns-model","namespace":"other-namespace","phase":"Ready","endpoint":"https://other.example.com/v1"}
+				]}`), response)
+			}
+			return bffclient.NewNotFoundError(bffclient.BFFTargetMaaS, path)
+		}
+		ctx := context.WithValue(context.Background(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+		aaModels, err := app.fetchMaaSModels(ctx, "test-namespace")
+		assert.NoError(t, err)
+		assert.Len(t, aaModels, 2)
+		assert.Equal(t, "visible-model", aaModels[0].ModelID)
+		assert.Equal(t, "pending-model", aaModels[1].ModelID)
+		assert.Equal(t, models.ModelStatusStop, aaModels[1].Status)
+		assert.Equal(t, "Pending model", aaModels[1].DisplayName)
+		assert.Equal(t, []string{"external:https://pending.example.com/v1"}, aaModels[1].Endpoints)
+		assert.Equal(t, models.ModelSourceTypeMaaS, aaModels[1].ModelSourceType)
+	})
 })
 
 var _ = Describe("ModelsAAHandler with sources query parameter", func() {
