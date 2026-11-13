@@ -25,16 +25,21 @@ import {
 } from '@odh-dashboard/k8s-core';
 import HeaderIcon from '@odh-dashboard/ui-core/design/HeaderIcon';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
-import { useWorkbenchesV2Tab } from '#~/concepts/projects/projectDetails/useWorkbenchesV2Tab';
+import { useWorkspacesTab } from '#~/concepts/projects/projectDetails/useWorkspacesTab';
 
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
+import GenericHorizontalBar, {
+  type SectionDefinition,
+} from '#~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
 import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
-import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import {
+  LEGACY_WORKBENCHES_V2_SECTION,
+  ProjectSectionID,
+} from '#~/pages/projects/screens/detail/types';
 import {
   useProjectPermissionsTabVisible,
   useProjectRolesTabVisible,
@@ -67,9 +72,11 @@ const ProjectDetails: React.FC = () => {
   const settingsCardExtensions = useExtensions(isProjectDetailsSettingsCardExtension);
   const hasSettingsCards = settingsCardExtensions.length > 0 || biasMetricsAreaAvailable; // Bias metrics is not yet an extension
   const deploymentsTab = useDeploymentsTab();
-  const workbenchesV2Tab = useWorkbenchesV2Tab();
+  const workspacesTab = useWorkspacesTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
+  const activeSection =
+    state === LEGACY_WORKBENCHES_V2_SECTION ? ProjectSectionID.WORKSPACES : state;
 
   const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
   const [allowRoles, rolesRbacLoaded] = useProjectRolesTabVisible(
@@ -81,6 +88,15 @@ const ProjectDetails: React.FC = () => {
 
   useCheckLogoutParams();
 
+  React.useEffect(() => {
+    if (state !== LEGACY_WORKBENCHES_V2_SECTION) {
+      return;
+    }
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('section', ProjectSectionID.WORKSPACES);
+    setSearchParams(newSearchParams, { replace: true });
+  }, [state, searchParams, setSearchParams]);
+
   const { isKueueDisabled, isProjectKueueEnabled, isKueueFeatureEnabled } =
     useKueueConfiguration(currentProject);
 
@@ -91,6 +107,103 @@ const ProjectDetails: React.FC = () => {
   const handleKueueAlertClose = React.useCallback(() => {
     setIsKueueAlertDismissed(true);
   }, []);
+
+  const onSectionChange = React.useCallback(
+    (sectionId: string, replace?: boolean) => {
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set('section', sectionId);
+      setSearchParams(newSearchParams, replace ? { replace } : undefined);
+    },
+    [searchParams, setSearchParams],
+  );
+
+  const sections = React.useMemo((): [SectionDefinition, ...SectionDefinition[]] => {
+    const nextSections: SectionDefinition[] = [
+      { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
+      ...(workbenchEnabled
+        ? [
+            {
+              id: ProjectSectionID.WORKBENCHES,
+              title: 'Workbenches',
+              component: <NotebookList />,
+            },
+          ]
+        : []),
+      ...workspacesTab,
+      ...(pipelinesEnabled
+        ? [
+            {
+              id: ProjectSectionID.PIPELINES,
+              title: 'Pipelines',
+              component: <PipelinesSection />,
+            },
+          ]
+        : []),
+      ...deploymentsTab,
+      {
+        id: ProjectSectionID.CLUSTER_STORAGES,
+        title: 'Cluster storage',
+        component: <StorageList />,
+      },
+      {
+        id: ProjectSectionID.CONNECTIONS,
+        title: 'Connections',
+        component: <ConnectionsList />,
+      },
+      ...(roleManagementEnabled && allowRoles
+        ? [
+            {
+              id: ProjectSectionID.ROLES,
+              title: 'Roles',
+              component: (
+                <PermissionsContextProvider namespace={currentProject.metadata.name}>
+                  <ProjectRoles />
+                </PermissionsContextProvider>
+              ),
+            },
+          ]
+        : []),
+      ...(projectSharingEnabled && allowCreate
+        ? [
+            {
+              id: ProjectSectionID.PERMISSIONS,
+              title: 'Permissions',
+              component: projectRBACEnabled ? (
+                <PermissionsContextProvider namespace={currentProject.metadata.name}>
+                  <ProjectPermissions />
+                </PermissionsContextProvider>
+              ) : (
+                <ProjectSharing />
+              ),
+            },
+          ]
+        : []),
+      ...(hasSettingsCards
+        ? [
+            {
+              id: ProjectSectionID.SETTINGS,
+              title: 'Settings',
+              component: <ProjectSettingsPage />,
+            },
+          ]
+        : []),
+    ];
+
+    const [firstSection, ...restSections] = nextSections;
+    return [firstSection, ...restSections];
+  }, [
+    workbenchEnabled,
+    workspacesTab,
+    pipelinesEnabled,
+    deploymentsTab,
+    projectSharingEnabled,
+    allowCreate,
+    projectRBACEnabled,
+    roleManagementEnabled,
+    allowRoles,
+    currentProject.metadata.name,
+    hasSettingsCards,
+  ]);
 
   return (
     <ApplicationsPage
@@ -212,100 +325,9 @@ const ProjectDetails: React.FC = () => {
       )}
 
       <GenericHorizontalBar
-        activeKey={state}
-        onSectionChange={React.useCallback(
-          (sectionId, replace) => {
-            const newSearchParams = new URLSearchParams(searchParams);
-            newSearchParams.set('section', sectionId);
-            setSearchParams(newSearchParams, replace ? { replace } : undefined);
-          },
-          [searchParams, setSearchParams],
-        )}
-        sections={React.useMemo(
-          () => [
-            { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
-            ...(workbenchEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.WORKBENCHES,
-                    title: 'Workbenches',
-                    component: <NotebookList />,
-                  },
-                ]
-              : []),
-            ...workbenchesV2Tab,
-            ...(pipelinesEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.PIPELINES,
-                    title: 'Pipelines',
-                    component: <PipelinesSection />,
-                  },
-                ]
-              : []),
-            ...deploymentsTab,
-            {
-              id: ProjectSectionID.CLUSTER_STORAGES,
-              title: 'Cluster storage',
-              component: <StorageList />,
-            },
-            {
-              id: ProjectSectionID.CONNECTIONS,
-              title: 'Connections',
-              component: <ConnectionsList />,
-            },
-            ...(roleManagementEnabled && allowRoles
-              ? [
-                  {
-                    id: ProjectSectionID.ROLES,
-                    title: 'Roles',
-                    component: (
-                      <PermissionsContextProvider namespace={currentProject.metadata.name}>
-                        <ProjectRoles />
-                      </PermissionsContextProvider>
-                    ),
-                  },
-                ]
-              : []),
-            ...(projectSharingEnabled && allowCreate
-              ? [
-                  {
-                    id: ProjectSectionID.PERMISSIONS,
-                    title: 'Permissions',
-                    component: projectRBACEnabled ? (
-                      <PermissionsContextProvider namespace={currentProject.metadata.name}>
-                        <ProjectPermissions />
-                      </PermissionsContextProvider>
-                    ) : (
-                      <ProjectSharing />
-                    ),
-                  },
-                ]
-              : []),
-            ...(hasSettingsCards
-              ? [
-                  {
-                    id: ProjectSectionID.SETTINGS,
-                    title: 'Settings',
-                    component: <ProjectSettingsPage />,
-                  },
-                ]
-              : []),
-          ],
-          [
-            workbenchEnabled,
-            workbenchesV2Tab,
-            pipelinesEnabled,
-            deploymentsTab,
-            projectSharingEnabled,
-            allowCreate,
-            projectRBACEnabled,
-            roleManagementEnabled,
-            allowRoles,
-            currentProject.metadata.name,
-            hasSettingsCards,
-          ],
-        )}
+        activeKey={activeSection}
+        onSectionChange={onSectionChange}
+        sections={sections}
       />
     </ApplicationsPage>
   );

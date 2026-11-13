@@ -365,7 +365,7 @@ export type DashboardCommonConfig = {
   gpuaas?: boolean;
   hardwareProfileDRA?: boolean;
   modelCapabilities?: boolean;
-  workbenchesV2?: boolean;
+  workspaces?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;
   aiSafety?: boolean;

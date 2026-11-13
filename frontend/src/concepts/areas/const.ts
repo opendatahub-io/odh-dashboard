@@ -52,7 +52,7 @@ export const devTemporaryFeatureFlags = {
   nimServiceOperator: false,
   agentOpsDeploy: false,
   agentsCatalog: false,
-  workbenchesV2: false,
+  workspaces: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -341,7 +341,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     reliantAreas: [SupportedArea.MODEL_SERVING],
   },
   [SupportedArea.PLUGIN_NOTEBOOKS]: {
-    featureFlags: ['workbenchesV2'],
+    featureFlags: ['workspaces'],
   },
   [SupportedArea.PLUGIN_DATA_REGISTRY]: {
     featureFlags: ['dataRegistry'],
