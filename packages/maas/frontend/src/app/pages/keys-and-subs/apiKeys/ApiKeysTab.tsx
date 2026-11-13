@@ -1,22 +1,22 @@
-import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
+import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import PageLoadErrorState from '~/app/components/PageLoadErrorState';
 import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
 import { APIKey } from '~/app/types/api-key';
 import { ApiKeyCreateInitiatedFrom, ApiKeyRevokeInitiatedFrom } from '~/app/types/event-tracking';
 import CreateApiKeyModal from './CreateApiKeyModal';
+import AccessDetailsModal from './AccessDetailsModal';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import RevokeApiKeyModal from './RevokeApiKeyModal';
 import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 
-type ApiKeysTabProps = {
-  showDescription?: boolean;
-};
-
-const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
+const ApiKeysTab: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+  const [accessDetailsApiKey, setAccessDetailsApiKey] = React.useState<APIKey | undefined>(
+    undefined,
+  );
 
   const pageState = useApiKeysPageLoad();
 
@@ -53,13 +53,11 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
 
   const subscriptionOptions = React.useMemo(
     () =>
-      showDescription
-        ? subscriptions.map((sub) => ({
-            name: sub.subscription_id_header,
-            displayName: sub.display_name ?? sub.subscription_id_header,
-          }))
-        : [],
-    [showDescription, subscriptions],
+      subscriptions.map((sub) => ({
+        name: sub.subscription_id_header,
+        displayName: sub.display_name ?? sub.subscription_id_header,
+      })),
+    [subscriptions],
   );
 
   const apiKeys = response.data;
@@ -114,13 +112,9 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
         />
       )}
       <PageSection isFilled>
-        {showDescription && (
-          <Content component={ContentVariants.p}>
-            Manage API keys that can be used to authenticate with model endpoints.
-          </Content>
-        )}
         <ApiKeysTable
           onRevokeApiKey={setRevokeApiKey}
+          onViewAccessDetails={setAccessDetailsApiKey}
           apiKeys={apiKeys}
           subscriptionDetails={statusSubscriptionDetails}
           accessibleSubscriptionDetails={accessibleSubscriptionDetails}
@@ -154,6 +148,12 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ showDescription }) => {
           }
         />
       </PageSection>
+      {accessDetailsApiKey && (
+        <AccessDetailsModal
+          apiKey={accessDetailsApiKey}
+          onClose={() => setAccessDetailsApiKey(undefined)}
+        />
+      )}
       {revokeApiKey && revokeApiKey.name && (
         <RevokeApiKeyModal
           apiKey={revokeApiKey}

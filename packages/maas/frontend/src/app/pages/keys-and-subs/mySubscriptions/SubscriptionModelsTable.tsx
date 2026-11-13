@@ -90,11 +90,12 @@ export const ModelInfoPopover: React.FC<{
   </Popover>
 );
 
-export const ModelRow: React.FC<{ model: ModelRefInfo; context: ModelInfoContext }> = ({
-  model,
-  context,
-}) => (
-  <Tr data-testid="subscription-model-row">
+export const ModelRow: React.FC<{
+  model: ModelRefInfo;
+  context: ModelInfoContext;
+  resetOffset?: boolean;
+}> = ({ model, context, resetOffset }) => (
+  <Tr data-testid="subscription-model-row" resetOffset={resetOffset}>
     <Td dataLabel="Model">
       <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
@@ -122,6 +123,8 @@ type SubscriptionModelsTableProps = {
   ariaLabel?: string;
   tableTestId?: string;
   context: ModelInfoContext;
+  /** Render as a nested table inside an expanded row (aligns with the parent table). */
+  isNested?: boolean;
 };
 
 const SubscriptionModelsTable: React.FC<SubscriptionModelsTableProps> = ({
@@ -129,22 +132,31 @@ const SubscriptionModelsTable: React.FC<SubscriptionModelsTableProps> = ({
   ariaLabel = 'Subscription models table',
   tableTestId = 'subscription-models-table',
   context,
+  isNested = false,
 }) => (
-  <Table aria-label={ariaLabel} data-testid={tableTestId} variant="compact" borders={false}>
+  <Table
+    aria-label={ariaLabel}
+    data-testid={tableTestId}
+    variant="compact"
+    borders={false}
+    isNested={isNested}
+  >
     <Thead>
-      <Tr>
-        <Th width={60}>Name</Th>
+      <Tr resetOffset={isNested}>
+        <Th width={60}>Model</Th>
         <Th width={40}>Token limits</Th>
       </Tr>
     </Thead>
     <Tbody>
       {models.length === 0 ? (
-        <Tr>
+        <Tr resetOffset={isNested}>
           <Td dataLabel="Model">No models in this subscription.</Td>
           <Td dataLabel="Token limits">—</Td>
         </Tr>
       ) : (
-        models.map((model) => <ModelRow key={model.name} model={model} context={context} />)
+        models.map((model) => (
+          <ModelRow key={model.name} model={model} context={context} resetOffset={isNested} />
+        ))
       )}
     </Tbody>
   </Table>

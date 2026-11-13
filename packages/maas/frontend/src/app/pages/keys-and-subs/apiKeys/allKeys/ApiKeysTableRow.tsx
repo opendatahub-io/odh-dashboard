@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { APIKey, APIKeyDisplayStatus, SubscriptionDetail } from '~/app/types/api-key';
@@ -38,7 +39,7 @@ const cellRenderers: Record<string, CellRenderer> = {
   name: ({ apiKey }) => (
     <span data-testid="api-key-name">
       <TableRowTitleDescription
-        title={apiKey.name}
+        title={<span className="pf-v6-u-font-weight-bold">{apiKey.name}</span>}
         description={apiKey.description}
         truncateDescriptionLines={2}
       />
@@ -81,6 +82,7 @@ type ApiKeysTableRowProps = {
   isMaasAdmin?: boolean;
   isInactive: boolean;
   onRevokeApiKey: (apiKey: APIKey) => void;
+  onViewAccessDetails: (apiKey: APIKey) => void;
 };
 
 const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
@@ -91,6 +93,7 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
   isMaasAdmin = false,
   isInactive,
   onRevokeApiKey,
+  onViewAccessDetails,
 }) => {
   const ctx: CellRenderContext = {
     apiKey,
@@ -108,16 +111,31 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
         </Td>
       ))}
       <Td isActionCell>
-        <ActionsColumn
-          data-testid="api-key-actions"
-          items={[
-            {
-              title: 'Revoke',
-              onClick: () => onRevokeApiKey(apiKey),
-              isDisabled: apiKey.status !== 'active',
-            },
-          ]}
-        />
+        <Flex flexWrap={{ default: 'nowrap' }}>
+          <FlexItem>
+            <Button
+              variant="tertiary"
+              size="sm"
+              id={`api-key-access-details-${apiKey.name}`}
+              onClick={() => onViewAccessDetails(apiKey)}
+              data-testid={`api-key-access-details-${apiKey.name}`}
+            >
+              Access details
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <ActionsColumn
+              data-testid="api-key-actions"
+              items={[
+                {
+                  title: 'Revoke',
+                  onClick: () => onRevokeApiKey(apiKey),
+                  isDisabled: apiKey.status !== 'active',
+                },
+              ]}
+            />
+          </FlexItem>
+        </Flex>
       </Td>
     </Tr>
   );

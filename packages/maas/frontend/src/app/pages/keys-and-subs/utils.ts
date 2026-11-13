@@ -320,14 +320,17 @@ export const buildApiKeyUsageExample = (
 
     const shellSafeKey = escapeDoubleQuotedShell(apiKey);
     const shellSafeModelId = escapeDoubleQuotedShell(modelID);
-    const requestURLString = requestURL.toString();
+    // Shell-quote the full URL so catalog-provided URLs containing shell metacharacters
+    // (e.g. command substitution) cannot execute when the example is copy-pasted.
+    // Escape embedded single quotes the POSIX way: ' → '\''
+    const shellSafeURL = `'${requestURL.toString().replaceAll("'", `'\\''`)}'`;
     const authHeader = '  -H "Authorization: Bearer $API_KEY" \\';
 
     if (kind === ApiKeyUsageExampleKind.Transcription) {
       return [
         `export API_KEY="${shellSafeKey}"`,
         '',
-        `curl -X POST ${requestURLString} \\`,
+        `curl -X POST ${shellSafeURL} \\`,
         authHeader,
         '  -F "file=@<path-to-audio-file>" \\',
         `  -F "model=${shellSafeModelId}"`,
@@ -342,7 +345,7 @@ export const buildApiKeyUsageExample = (
 
     return [
       `export API_KEY="${shellSafeKey}"`,
-      `curl -X POST ${requestURLString} \\`,
+      `curl -X POST ${shellSafeURL} \\`,
       '  -H "Content-Type: application/json" \\',
       authHeader,
       `  -d '${shellSafeBody}'`,
