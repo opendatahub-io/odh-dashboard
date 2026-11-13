@@ -127,15 +127,16 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage.findCurrentStep('suite-settings').should('have.attr', 'aria-current', 'step');
     suiteBuilderPage.findCurrentStep('define-goal').should('be.disabled');
     suiteBuilderPage.findNextButton().should('be.disabled');
+    suiteBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
     suiteBuilderPage.findNameInput().type('   ');
     suiteBuilderPage.findNameError().should('be.visible');
     suiteBuilderPage.findNextButton().should('be.disabled');
 
     suiteBuilderPage.findNameInput().clear().type('Reasoning suite');
-    suiteBuilderPage.findNextButton().should('be.disabled');
+    suiteBuilderPage.findDescriptionInput().should('have.value', '');
+    suiteBuilderPage.findNextButton().should('be.enabled');
     suiteBuilderPage.findDescriptionInput().type('Check general reasoning performance.');
-    suiteBuilderPage.findCategoryInput().click();
-    suiteBuilderPage.findCategoryOption('Reasoning').findByRole('checkbox').click();
     suiteBuilderPage.findNextButton().should('be.enabled');
     suiteBuilderPage.findNextButton().click();
 
@@ -145,8 +146,7 @@ describe('Evaluations Page - Tabs', () => {
       .findEvaluationGoalInput()
       .should('be.visible')
       .and('have.attr', 'maxlength', '2000');
-    suiteBuilderPage.findSelectedRecommendationModel().should('contain.text', 'Unavailable');
-    suiteBuilderPage.findRecommendationModelUnavailable().should('be.visible');
+    suiteBuilderPage.findSelectedRecommendationModel().should('have.text', 'No model selected');
     suiteBuilderPage.findRecommendButton().should('be.disabled');
     suiteBuilderPage.findGoalExample('answer-quality').should('be.visible').click();
     suiteBuilderPage
@@ -167,7 +167,8 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage
       .findDescriptionInput()
       .should('have.value', 'Check general reasoning performance.');
-    suiteBuilderPage.findSelectedCategory('Reasoning').should('be.visible');
+    suiteBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    suiteBuilderPage.findStrictnessSelect().should('have.value', 'moderate');
     suiteBuilderPage.findCurrentStep('define-goal').click();
     suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
     suiteBuilderPage.findEvaluationGoalInput().should('have.value', 'A custom evaluation goal.');

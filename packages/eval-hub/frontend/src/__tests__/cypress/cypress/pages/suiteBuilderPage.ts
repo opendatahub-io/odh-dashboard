@@ -7,16 +7,12 @@ class SuiteBuilderPage {
     return cy.findByTestId('goal-suite-description');
   }
 
-  findCategoryInput() {
-    return cy.findByTestId('goal-suite-category-input');
+  findMaxBenchmarksInput() {
+    return cy.findByTestId('goal-suite-max-benchmarks');
   }
 
-  findCategoryOption(category: string) {
-    return cy.findByTestId(`goal-suite-category-option-${category}`);
-  }
-
-  findSelectedCategory(category: string) {
-    return cy.findByTestId(`goal-suite-category-tag-${category}`);
+  findStrictnessSelect() {
+    return cy.findByTestId('goal-suite-strictness');
   }
 
   findEvaluationGoalInput() {
@@ -33,10 +29,6 @@ class SuiteBuilderPage {
 
   findSelectedRecommendationModel() {
     return cy.findByTestId('selected-recommendation-model');
-  }
-
-  findRecommendationModelUnavailable() {
-    return cy.findByTestId('recommendation-model-unavailable');
   }
 
   findRecommendButton() {
