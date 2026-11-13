@@ -27,13 +27,14 @@ import (
 // SetupWithManager constructs and registers the Dashboard controller.
 func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	r := &DashboardReconciler{
-		Client:                mgr.GetClient(),
-		APIReader:             mgr.GetAPIReader(),
-		Scheme:                mgr.GetScheme(),
-		ManifestsBasePath:     opts.ManifestsBasePath,
-		Platform:              opts.Platform,
-		Namespace:             opts.Namespace,
-		ApplicationsNamespace: opts.ApplicationsNamespace,
+		Client:                         mgr.GetClient(),
+		APIReader:                      mgr.GetAPIReader(),
+		Scheme:                         mgr.GetScheme(),
+		ManifestsBasePath:              opts.ManifestsBasePath,
+		Platform:                       opts.Platform,
+		Namespace:                      opts.Namespace,
+		ApplicationsNamespace:          opts.ApplicationsNamespace,
+		NamespacedRBACAdmissionEnabled: opts.NamespacedRBACAdmissionEnabled,
 	}
 
 	// The Dashboard controller does not currently need to watch Secrets:
@@ -53,7 +54,8 @@ func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&policyv1.PodDisruptionBudget{}, builder.WithPredicates(podDisruptionBudgetChangedPredicate())).
-		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard), builder.WithPredicates(r.maasPortalOperatorNamespacePredicate()))
+		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(r.mapMaaSPortalOperatorNamespaceToDashboard), builder.WithPredicates(r.maasPortalOperatorNamespacePredicate())).
+		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(mapNamespacedRBACNamespaceToDashboard), builder.WithPredicates(namespaceNamespacedRBACOptInChangedPredicate()))
 	if err := addConfigMapWatches(mgr, controllerBuilder, r); err != nil {
 		return err
 	}

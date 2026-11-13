@@ -21,6 +21,8 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `managementState` | `Managed\|Removed` | Lifecycle intent from orchestrator |
 | `gateway` | `GatewaySpec` | Ingress domain for Route/Ingress |
 | `legacyRedirects` | `LegacyRedirectsSpec` | Optional lifecycle handoff for legacy dashboard and gateway Route redirects |
+| `notebooksNamespace` | `string` | Orchestrator-managed namespace receiving notebook API access for the Dashboard service account |
+| `modelRegistryNamespace` | `string` | Orchestrator-managed namespace receiving model registry API access for the Dashboard service account |
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
@@ -71,7 +73,8 @@ The controller follows a sequential pipeline on each reconcile:
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
 3. Handle core Removed -> reconcile retained modules, then tear down core resources
-4. Deploy:
+4. Reconcile cross-namespace RBAC -> validate protected namespace consent and revoke stale grants
+5. Deploy:
    -> Clean up legacy sidecar resources (upgrade path)
    -> Render overlay (odh or rhoai)
    -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
@@ -83,8 +86,8 @@ The controller follows a sequential pipeline on each reconcile:
    -> Clean up disabled module resources (garbage collection)
    -> Build dynamic federation-config ConfigMap
    -> Patch main Deployment with config hash annotation (rolling restart)
-5. Extract URL         -> Route admission check
-6. Update status       -> conditions, phase, URL, moduleStatuses, releases
+6. Extract URL         -> Route admission check
+7. Update status       -> conditions, phase, URL, moduleStatuses, releases
 ```
 
 ### ManagementState Handling
@@ -410,6 +413,50 @@ Both certificates reuse the same `selfsigned-issuer` (Issuer kind, namespace-sco
 The webhook is optional and off by default: Helm `webhook.enabled` (default `false`) or the kustomize `config/webhook-enabled` overlay turns on the ValidatingWebhookConfiguration and `--enable-webhook` together. Both use `failurePolicy: Fail`, so the registration must never exist without the server (see [Kustomize](#standalone-kustomize)).
 
 The ValidatingWebhookConfiguration uses cert-manager's `inject-ca-from` annotation to inject the CA bundle. The webhook service listens on port 9443 with certificates mounted from the webhook-tls secret.
+
+#### Namespaced RBAC authorization
+
+The Dashboard service account only receives cross-namespace Roles and
+RoleBindings when all of these conditions are true:
+
+- the validating webhook is enabled;
+- `webhook.namespacedRBACWriters` contains at least one exact Kubernetes username;
+- the target namespace has
+  `dashboard.opendatahub.io/allow-namespaced-rbac=true`; and
+- the orchestrator sets `spec.notebooksNamespace` or
+  `spec.modelRegistryNamespace` on the singleton Dashboard CR.
+
+The webhook protects both target fields and the namespace consent label. Only
+the exact usernames in `webhook.namespacedRBACWriters` may create a namespace
+with that label or change the label later. API-server match conditions skip the
+webhook for unrelated namespace updates, so normal namespace administration
+does not depend on Dashboard operator availability. This prevents the Dashboard
+service account, even though it can patch other namespace metadata, from
+granting itself access.
+
+Removing the consent label causes the controller to revoke the managed Role and
+RoleBinding before other deployment, removal, or finalizer work runs. Revocation
+uses an operator-owned inventory in Dashboard status, so changing subjects,
+stripping mutable labels, replacing the reserved RoleBinding, or changing its
+name cannot hide an active grant from cleanup. The controller first empties the
+Role rules, then removes every RoleBinding that references the reserved Role and
+deletes the Role. It retains the inventory entry and reports a NotReady condition
+until deletion is confirmed, including when a finalizer delays Role deletion.
+
+An empty writer list is fail-closed: the webhook denies changes to protected
+fields and labels, and the controller removes existing cross-namespace grants
+instead of creating new ones. Operator-managed RHOAI and ODH installations
+normally configure the applicable platform operator service account username:
+
+```text
+system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager
+system:serviceaccount:opendatahub-operator:opendatahub-operator-controller-manager
+system:serviceaccount:openshift-operators:opendatahub-operator-controller-manager
+```
+
+For a standalone manager invocation, the equivalent setting is the
+comma-separated `--namespaced-rbac-writers` flag. Usernames are matched
+exactly; Kubernetes groups and wildcard values are not supported.
 
 ### Metrics TLS
 

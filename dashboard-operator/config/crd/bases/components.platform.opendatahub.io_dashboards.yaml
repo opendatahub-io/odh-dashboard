@@ -169,7 +169,8 @@ spec:
                 description: |-
                   ModelRegistryNamespace is the namespace where the Model Registry runs.
                   When set, the dashboard-operator creates a Role and RoleBinding in this
-                  namespace granting the dashboard SA access to model registry resources.
+                  namespace granting the dashboard SA access to model registry resources,
+                  but only when the namespace has dashboard.opendatahub.io/allow-namespaced-rbac=true.
                   Absent means model registry RBAC is skipped.
                 maxLength: 63
                 pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?)?$
@@ -206,7 +207,8 @@ spec:
                 description: |-
                   NotebooksNamespace is the namespace where Workbenches (notebooks) run.
                   When set, the dashboard-operator creates a Role and RoleBinding in this
-                  namespace granting the dashboard SA access to notebook-related resources.
+                  namespace granting the dashboard SA access to notebook-related resources,
+                  but only when the namespace has dashboard.opendatahub.io/allow-namespaced-rbac=true.
                   Absent means notebooks RBAC is skipped (component not enabled or standalone
                   deployment where notebooks are not used).
                 maxLength: 63
@@ -359,6 +361,14 @@ spec:
                   type: object
                 description: ModuleStatuses reports the deployment state of each module.
                 type: object
+              namespacedRBACGrants:
+                description: |-
+                  NamespacedRBACGrants records operator-issued cross-namespace grant identities
+                  so revocation does not depend on recipient-mutable Role or RoleBinding data.
+                  Entries use the internal "namespace/component" identity format.
+                items:
+                  type: string
+                type: array
               observedGeneration:
                 description: |-
                   ObservedGeneration is the most recent .metadata.generation observed

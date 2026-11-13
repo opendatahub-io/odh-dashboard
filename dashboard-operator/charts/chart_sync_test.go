@@ -76,6 +76,7 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 			"--set", "namePrefix=",
 			"--set", "webhook.enabled=true",
 			"--set", "webhook.certManager.enabled=true",
+			"--set", "webhook.namespacedRBACWriters[0]=system:serviceaccount:opendatahub:operator",
 		)
 		if err != nil {
 			t.Fatalf("render chart: %v", err)
@@ -95,6 +96,19 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 		deploymentSecret := findDeploymentWebhookSecretName(t, output)
 		if deploymentSecret != webhookTLSSecret {
 			t.Fatalf("expected Deployment webhook-certs secretName %q, got %q", webhookTLSSecret, deploymentSecret)
+		}
+		if !strings.Contains(output, "--namespaced-rbac-writers=system:serviceaccount:opendatahub:operator") {
+			t.Fatal("expected rendered manager args to include namespaced RBAC writer identity")
+		}
+		if !strings.Contains(output, "- CREATE\n          - UPDATE") {
+			t.Fatal("expected webhook to validate both CREATE and UPDATE operations")
+		}
+		if !strings.Contains(output, "- CREATE\n          - UPDATE\n        resources:\n          - namespaces\n          - namespaces/status\n          - namespaces/finalize") {
+			t.Fatal("expected webhook to protect namespace consent-label creates and updates")
+		}
+		if !strings.Contains(output, "name: namespaced-rbac-consent-label-changed") ||
+			!strings.Contains(output, "object.?metadata.labels['dashboard.opendatahub.io/allow-namespaced-rbac'].orValue('')") {
+			t.Fatal("expected webhook to filter unrelated namespace updates in the API server")
 		}
 	})
 

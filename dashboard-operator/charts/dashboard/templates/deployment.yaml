@@ -79,6 +79,9 @@ spec:
             {{- if .Values.webhook.enabled }}
             - --enable-webhook
             - --webhook-port={{ .Values.webhook.port }}
+            {{- if .Values.webhook.namespacedRBACWriters }}
+            - {{ printf "--namespaced-rbac-writers=%s" (join "," .Values.webhook.namespacedRBACWriters) | quote }}
+            {{- end }}
             {{- end }}
           env:
             - name: OPERATOR_NAMESPACE

@@ -536,6 +536,48 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSConsumerPortalURL)
 }
 
+func TestReconcile_RemovedNamespacedRBACFailureUpdatesStatus(t *testing.T) {
+	s := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: common.Removed}},
+		Status: v1alpha1.DashboardStatus{Status: common.Status{
+			Phase: common.PhaseReady,
+			Conditions: []common.Condition{{
+				Type: string(common.ConditionTypeReady), Status: metav1.ConditionTrue, Reason: "AllDependentsHealthy",
+			}},
+		}},
+	}
+	base := fake.NewClientBuilder().WithScheme(s).WithObjects(dashboard).WithStatusSubresource(dashboard).Build()
+	listErr := errors.New("forced namespaced RBAC list failure")
+	apiReader := interceptor.NewClient(base, interceptor.Funcs{
+		List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			if _, isRoleBindingList := list.(*rbacv1.RoleBindingList); isRoleBindingList {
+				return listErr
+			}
+			return delegate.List(ctx, list, opts...)
+		},
+	})
+	r := &ctrlpkg.DashboardReconciler{
+		Client: base, APIReader: apiReader, Scheme: s,
+		Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorIs(t, err, listErr)
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, base.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, provisioning)
+	assert.Equal(t, metav1.ConditionFalse, provisioning.Status)
+	assert.Equal(t, "NamespacedRBACFailed", provisioning.Reason)
+	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+}
+
 func TestReconcile_Deletion(t *testing.T) {
 	s := testScheme(t)
 
@@ -576,6 +618,63 @@ func TestReconcile_Deletion(t *testing.T) {
 	if err == nil {
 		assert.Empty(t, updated.Finalizers, "finalizer should be removed after deletion")
 	}
+}
+
+func TestReconcile_DeletionRevokesNamespacedRBACBeforeRedirectFailure(t *testing.T) {
+	s := testScheme(t)
+	controller := true
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              v1alpha1.DashboardInstanceName,
+			UID:               types.UID("dashboard-uid"),
+			Finalizers:        []string{"components.platform.opendatahub.io/cleanup"},
+			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			LegacyRedirects: &v1alpha1.LegacyRedirectsSpec{
+				ManagementSpec: common.ManagementSpec{ManagementState: common.Managed},
+			},
+		},
+	}
+	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-notebooks-role", Namespace: testNamespace,
+		Labels: map[string]string{"dashboard.opendatahub.io/namespaced-rbac": "true", labels.PlatformPartOf: "dashboard"},
+	}}
+	binding := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-notebooks-rolebinding", Namespace: testNamespace,
+		Labels: map[string]string{"dashboard.opendatahub.io/namespaced-rbac": "true", labels.PlatformPartOf: "dashboard"},
+	}}
+	redirectConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-redirect-config", Namespace: testNamespace,
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: v1alpha1.GroupVersion.String(), Kind: v1alpha1.DashboardKind,
+			Name: dashboard.Name, UID: dashboard.UID, Controller: &controller,
+		}},
+	}}
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, role, binding, redirectConfig).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(ctx context.Context, delegate client.WithWatch, object client.Object, opts ...client.DeleteOption) error {
+				if object.GetName() == redirectConfig.Name {
+					return errors.New("forced redirect cleanup failure")
+				}
+				return delegate.Delete(ctx, object, opts...)
+			},
+		}).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client: cli, APIReader: cli, Scheme: s,
+		ManifestsBasePath: t.TempDir(), Platform: cluster.OpenDataHub,
+		Namespace: testNamespace, ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorContains(t, err, "failed to cleanup legacy dashboard redirects")
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(role), &rbacv1.Role{})))
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(binding), &rbacv1.RoleBinding{})))
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(redirectConfig), &corev1.ConfigMap{}))
 }
 
 func TestReconcile_Deletion_WithCrossNamespaceResources(t *testing.T) {
@@ -1108,6 +1207,66 @@ data:
 			assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 		})
 	}
+}
+
+func TestReconcile_RevokesNamespacedRBACBeforeDeploymentFailure(t *testing.T) {
+	scheme := testScheme(t)
+	targetNamespace := "revoked-target"
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{NotebooksNamespace: targetNamespace},
+	}
+	managedLabels := map[string]string{
+		"dashboard.opendatahub.io/namespaced-rbac": "true",
+		labels.PlatformPartOf:                      "dashboard",
+	}
+	role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{
+		Name: "dashboard-notebooks-role", Namespace: targetNamespace, Labels: managedLabels,
+	}}
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dashboard-notebooks-rolebinding", Namespace: targetNamespace, Labels: managedLabels,
+		},
+		RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: role.Name},
+	}
+	cli := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(
+			dashboard,
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNamespace}},
+			role,
+			roleBinding,
+		).
+		WithStatusSubresource(dashboard).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client:                         cli,
+		APIReader:                      cli,
+		Scheme:                         scheme,
+		ManifestsBasePath:              t.TempDir(),
+		Platform:                       cluster.OpenDataHub,
+		Namespace:                      testNamespace,
+		ApplicationsNamespace:          testNamespace,
+		NamespacedRBACAdmissionEnabled: true,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorContains(t, err, "failed to apply kustomize params")
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(role), &rbacv1.Role{})))
+	assert.True(t, k8serrors.IsNotFound(cli.Get(context.Background(), client.ObjectKeyFromObject(roleBinding), &rbacv1.RoleBinding{})))
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	ready := conditions.FindStatusCondition(updated, string(common.ConditionTypeReady))
+	require.NotNil(t, ready)
+	assert.Equal(t, metav1.ConditionFalse, ready.Status)
+	assert.Equal(t, "NamespacedRBACFailed", ready.Reason)
+	degraded := conditions.FindStatusCondition(updated, string(common.ConditionTypeDegraded))
+	require.NotNil(t, degraded)
+	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
+	assert.Equal(t, "NamespacedRBACFailed", degraded.Reason)
 }
 
 func TestReconcile_LegacyRedirectFailureDoesNotBlockCore(t *testing.T) {

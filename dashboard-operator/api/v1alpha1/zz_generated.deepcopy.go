@@ -149,6 +149,11 @@ func (in *DashboardStatus) DeepCopyInto(out *DashboardStatus) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
+	if in.NamespacedRBACGrants != nil {
+		in, out := &in.NamespacedRBACGrants, &out.NamespacedRBACGrants
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Distribution != nil {
 		in, out := &in.Distribution, &out.Distribution
 		*out = new(Distribution)

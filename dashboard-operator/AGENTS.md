@@ -187,6 +187,7 @@ The Model Registry OCI upload base image is an intentional exception: administra
 | `--leader-elect` | — | `false` | Leader election for HA |
 | `--enable-webhook` | — | `false` | Start the validating webhook server. Set only together with the webhook config (chart `webhook.enabled`, or `config/webhook-enabled`) |
 | `--webhook-port` | — | `9443` | Webhook server port |
+| `--namespaced-rbac-writers` | — | (empty) | Comma-separated exact Kubernetes usernames allowed to change namespaced RBAC targets and consent labels |
 | `--namespace` | `OPERATOR_NAMESPACE` | (required) | Operator deployment namespace |
 | — | `ODH_PLATFORM_TYPE` | (auto-detect) | Override platform detection |
 

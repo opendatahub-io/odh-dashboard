@@ -115,28 +115,31 @@ func TestRemovedDetectionFailureEarlyErrorUpdatesPhase(t *testing.T) {
 				Spec: v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: "Removed"},
 					MaaSPortal: &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}},
 				Status: v1alpha1.DashboardStatus{Status: common.Status{Phase: common.PhaseReady}}}
-			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dashboard).WithStatusSubresource(dashboard).
-				WithInterceptorFuncs(interceptor.Funcs{
-					Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-						if _, service := obj.(*corev1.Service); service && key.Name == persesServiceName {
-							return assert.AnError
-						}
-						return delegate.Get(ctx, key, obj, opts...)
-					},
-					List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-						options := &client.ListOptions{}
-						for _, opt := range opts {
-							opt.ApplyToList(options)
-						}
-						// Module cleanup uses an additional component selector. Teardown
-						// lists all resources with just the dashboard ownership label.
-						if failure == "ModuleDeployFailed" || options.LabelSelector.String() == labels.PlatformPartOf+"=dashboard" {
-							return assert.AnError
-						}
-						return delegate.List(ctx, list, opts...)
-					},
-				}).Build()
-			r := &DashboardReconciler{Client: cli, Scheme: scheme, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: "applications"}
+			base := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dashboard).WithStatusSubresource(dashboard).Build()
+			watchClient := base
+			apiReader := interceptor.NewClient(watchClient, interceptor.Funcs{
+				Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, service := obj.(*corev1.Service); service && key.Name == persesServiceName {
+						return assert.AnError
+					}
+					return delegate.Get(ctx, key, obj, opts...)
+				},
+			})
+			cli := interceptor.NewClient(watchClient, interceptor.Funcs{
+				List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+					options := &client.ListOptions{}
+					for _, opt := range opts {
+						opt.ApplyToList(options)
+					}
+					// Module cleanup uses an additional component selector. Teardown
+					// lists all resources with just the dashboard ownership label.
+					if failure == "ModuleDeployFailed" || options.LabelSelector.String() == labels.PlatformPartOf+"=dashboard" {
+						return assert.AnError
+					}
+					return delegate.List(ctx, list, opts...)
+				},
+			})
+			r := &DashboardReconciler{Client: cli, APIReader: apiReader, Scheme: scheme, Platform: cluster.SelfManagedRhoai, ApplicationsNamespace: "applications"}
 			ctx := context.Background()
 			key := client.ObjectKeyFromObject(dashboard)
 			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})

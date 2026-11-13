@@ -2,15 +2,18 @@ package controller_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
@@ -29,17 +32,32 @@ const (
 func newReconciler(t *testing.T, platform cluster.Platform, objects ...client.Object) (*ctrlpkg.DashboardReconciler, client.Client) {
 	t.Helper()
 	s := testScheme(t)
-	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).Build()
+	baseObjects := []client.Object{
+		optedInNamespace(testNotebooksNS),
+		optedInNamespace(testModelRegistryNS),
+	}
+	baseObjects = append(baseObjects, objects...)
+	cli := fake.NewClientBuilder().WithScheme(s).WithObjects(baseObjects...).Build()
 	r := &ctrlpkg.DashboardReconciler{
-		Client:                cli,
-		APIReader:             cli,
-		Scheme:                s,
-		ManifestsBasePath:     t.TempDir(),
-		Platform:              platform,
-		Namespace:             testNamespace,
-		ApplicationsNamespace: testAppNamespace,
+		Client:                         cli,
+		APIReader:                      cli,
+		Scheme:                         s,
+		ManifestsBasePath:              t.TempDir(),
+		Platform:                       platform,
+		Namespace:                      testNamespace,
+		ApplicationsNamespace:          testAppNamespace,
+		NamespacedRBACAdmissionEnabled: true,
 	}
 	return r, cli
+}
+
+func optedInNamespace(name string) *corev1.Namespace {
+	return &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+		Name: name,
+		Labels: map[string]string{
+			v1alpha1.NamespacedRBACOptInLabel: "true",
+		},
+	}}
 }
 
 func newRBACDashboard(notebooksNS, modelRegistryNS string) *v1alpha1.Dashboard {
@@ -199,6 +217,308 @@ func TestReconcileNamespacedRBAC_NoNamespaces(t *testing.T) {
 	assert.Empty(t, listRoleBindings(t, cli))
 }
 
+func TestReconcileNamespacedRBAC_AdmissionDisabledFailsClosedAndRevokes(t *testing.T) {
+	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+	require.Len(t, listRoles(t, cli), 1)
+
+	r.NamespacedRBACAdmissionEnabled = false
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, "requires the validating webhook and at least one trusted writer")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_RejectsUnlabelledNamespace(t *testing.T) {
+	unlabelled := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "arbitrary-namespace"}}
+	r, cli := newReconciler(t, cluster.OpenDataHub, unlabelled)
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard(unlabelled.Name, ""))
+	require.ErrorContains(t, err, "dashboard.opendatahub.io/allow-namespaced-rbac=true")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_RejectsMissingNamespace(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard("missing-namespace", ""))
+	require.ErrorContains(t, err, "getting target namespace")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_MixedValidationAppliesOnlyOptedInTarget(t *testing.T) {
+	unlabelled := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "arbitrary-registry"}}
+	r, cli := newReconciler(t, cluster.OpenDataHub, unlabelled)
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), newRBACDashboard(testNotebooksNS, unlabelled.Name))
+	require.ErrorContains(t, err, "model-registry namespace RBAC")
+
+	roles := listRoles(t, cli)
+	require.Len(t, roles, 1)
+	assert.Equal(t, testNotebooksNS, roles[0].Namespace)
+	bindings := listRoleBindings(t, cli)
+	require.Len(t, bindings, 1)
+	assert.Equal(t, testNotebooksNS, bindings[0].Namespace)
+}
+
+func TestReconcileNamespacedRBAC_RemovingOptInRevokesExistingGrant(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+	require.Len(t, listRoles(t, cli), 1)
+
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, "dashboard.opendatahub.io/allow-namespaced-rbac=true")
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_RemovingOptInRevokesGrantAfterLabelsAreStripped(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	role := getRole(t, cli, testNotebooksNS, "dashboard-notebooks-role")
+	role.Labels = nil
+	require.NoError(t, cli.Update(context.Background(), role))
+	binding := getRoleBinding(t, cli, testNotebooksNS, "dashboard-notebooks-rolebinding")
+	binding.Labels = nil
+	require.NoError(t, cli.Update(context.Background(), binding))
+
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, role.Name))
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.RoleBinding{}, testNotebooksNS, binding.Name))
+}
+
+func TestReconcileNamespacedRBAC_RemovingOptInRevokesEquivalentUserSubject(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	role := getRole(t, cli, testNotebooksNS, "dashboard-notebooks-role")
+	role.Labels = nil
+	require.NoError(t, cli.Update(context.Background(), role))
+	binding := getRoleBinding(t, cli, testNotebooksNS, "dashboard-notebooks-rolebinding")
+	binding.Labels = nil
+	binding.Subjects = []rbacv1.Subject{{
+		Kind:     rbacv1.UserKind,
+		APIGroup: rbacv1.GroupName,
+		Name:     "system:serviceaccount:" + testAppNamespace + ":odh-dashboard",
+	}}
+	require.NoError(t, cli.Update(context.Background(), binding))
+
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, role.Name))
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.RoleBinding{}, testNotebooksNS, binding.Name))
+}
+
+func TestReconcileNamespacedRBAC_RemovingOptInRevokesReplacementBinding(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+	require.Equal(t, []string{testNotebooksNS + "/notebooks"}, dashboard.Status.NamespacedRBACGrants)
+
+	role := getRole(t, cli, testNotebooksNS, "dashboard-notebooks-role")
+	role.Labels = nil
+	require.NoError(t, cli.Update(context.Background(), role))
+	original := getRoleBinding(t, cli, testNotebooksNS, "dashboard-notebooks-rolebinding")
+	require.NoError(t, cli.Delete(context.Background(), original))
+	replacement := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "replacement-dashboard-access", Namespace: testNotebooksNS},
+		RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: role.Name},
+		Subjects: []rbacv1.Subject{{
+			Kind:      rbacv1.ServiceAccountKind,
+			Name:      "odh-dashboard",
+			Namespace: testAppNamespace,
+		}},
+	}
+	require.NoError(t, cli.Create(context.Background(), replacement))
+
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, role.Name))
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.RoleBinding{}, testNotebooksNS, replacement.Name))
+	assert.Empty(t, dashboard.Status.NamespacedRBACGrants)
+}
+
+func TestReconcileNamespacedRBAC_FinalizedRoleIsNeutralizedBeforeDeletion(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	role := getRole(t, cli, testNotebooksNS, "dashboard-notebooks-role")
+	role.Finalizers = []string{"test.dashboard.opendatahub.io/hold"}
+	require.NoError(t, cli.Update(context.Background(), role))
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, "waiting for stale Role")
+	pending := getRole(t, cli, testNotebooksNS, role.Name)
+	assert.Empty(t, pending.Rules, "a terminating Role must be ineffective while its finalizer blocks deletion")
+	assert.NotNil(t, pending.DeletionTimestamp)
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.RoleBinding{}, testNotebooksNS, "dashboard-notebooks-rolebinding"))
+	require.Equal(t, []string{testNotebooksNS + "/notebooks"}, dashboard.Status.NamespacedRBACGrants)
+
+	pending.Finalizers = nil
+	require.NoError(t, cli.Update(context.Background(), pending))
+	err = r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, role.Name))
+	assert.Empty(t, dashboard.Status.NamespacedRBACGrants)
+}
+
+func TestReconcileNamespacedRBAC_RoleListFailurePreservesBindingForRetry(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	role := getRole(t, cli, testNotebooksNS, "dashboard-notebooks-role")
+	role.Labels = nil
+	require.NoError(t, cli.Update(context.Background(), role))
+	binding := getRoleBinding(t, cli, testNotebooksNS, "dashboard-notebooks-rolebinding")
+	binding.Labels = nil
+	require.NoError(t, cli.Update(context.Background(), binding))
+
+	namespace := &corev1.Namespace{}
+	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: testNotebooksNS}, namespace))
+	delete(namespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, cli.Update(context.Background(), namespace))
+
+	listErr := errors.New("injected Role list failure")
+	watchClient, ok := cli.(client.WithWatch)
+	require.True(t, ok)
+	r.APIReader = interceptor.NewClient(watchClient, interceptor.Funcs{
+		List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			if _, isRoleList := list.(*rbacv1.RoleList); isRoleList {
+				return listErr
+			}
+			return delegate.List(ctx, list, opts...)
+		},
+	})
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorIs(t, err, listErr)
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(role), &rbacv1.Role{}))
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(binding), &rbacv1.RoleBinding{}),
+		"the binding remains as durable discovery evidence until its Role is removed")
+
+	r.APIReader = cli
+	err = r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.Role{}, testNotebooksNS, role.Name))
+	assert.True(t, k8sNotFound(t, cli, context.Background(), &rbacv1.RoleBinding{}, testNotebooksNS, binding.Name))
+}
+
+func TestReconcileNamespacedRBAC_NamespaceLookupFailureRevokesExistingGrant(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, "")
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	lookupErr := errors.New("injected namespace lookup failure")
+	watchClient, ok := cli.(client.WithWatch)
+	require.True(t, ok)
+	r.APIReader = interceptor.NewClient(watchClient, interceptor.Funcs{
+		Get: func(ctx context.Context, delegate client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, isNamespace := obj.(*corev1.Namespace); isNamespace && key.Name == testNotebooksNS {
+				return lookupErr
+			}
+			return delegate.Get(ctx, key, obj, opts...)
+		},
+	})
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorIs(t, err, lookupErr)
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_ApplyFailureDoesNotSkipStaleGrantGC(t *testing.T) {
+	const newTarget = "new-notebooks-target"
+	r, cli := newReconciler(t, cluster.OpenDataHub, optedInNamespace(newTarget))
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+	require.Len(t, listRoles(t, cli), 2)
+
+	applyErr := errors.New("injected Role create failure")
+	watchClient, ok := cli.(client.WithWatch)
+	require.True(t, ok)
+	r.Client = interceptor.NewClient(watchClient, interceptor.Funcs{
+		Create: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+			if role, isRole := obj.(*rbacv1.Role); isRole && role.Namespace == newTarget {
+				return applyErr
+			}
+			return delegate.Create(ctx, obj, opts...)
+		},
+	})
+	dashboard.Spec.NotebooksNamespace = newTarget
+	dashboard.Spec.ModelRegistryNamespace = ""
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorIs(t, err, applyErr)
+	assert.Empty(t, listRoles(t, cli))
+	assert.Empty(t, listRoleBindings(t, cli))
+}
+
+func TestReconcileNamespacedRBAC_ApplyFailureKeepsValidatedGrant(t *testing.T) {
+	r, cli := newReconciler(t, cluster.OpenDataHub)
+	dashboard := newRBACDashboard(testNotebooksNS, testModelRegistryNS)
+	require.NoError(t, r.ReconcileNamespacedRBAC(context.Background(), dashboard))
+
+	role := getRole(t, cli, testNotebooksNS, "dashboard-notebooks-role")
+	role.Rules = []rbacv1.PolicyRule{{APIGroups: []string{""}, Resources: []string{"pods"}, Verbs: []string{"get"}}}
+	require.NoError(t, cli.Update(context.Background(), role))
+
+	applyErr := errors.New("injected Role update failure")
+	watchClient, ok := cli.(client.WithWatch)
+	require.True(t, ok)
+	r.Client = interceptor.NewClient(watchClient, interceptor.Funcs{
+		Update: func(ctx context.Context, delegate client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+			if updatedRole, isRole := obj.(*rbacv1.Role); isRole && updatedRole.Namespace == testNotebooksNS {
+				return applyErr
+			}
+			return delegate.Update(ctx, obj, opts...)
+		},
+	})
+	dashboard.Spec.ModelRegistryNamespace = ""
+
+	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)
+	require.ErrorIs(t, err, applyErr)
+	roles := listRoles(t, cli)
+	require.Len(t, roles, 1)
+	assert.Equal(t, testNotebooksNS, roles[0].Namespace, "a validated target remains desired during a transient apply failure")
+	bindings := listRoleBindings(t, cli)
+	require.Len(t, bindings, 1)
+	assert.Equal(t, testNotebooksNS, bindings[0].Namespace)
+}
+
 // TestReconcileNamespacedRBAC_Idempotent verifies that reconciling twice produces
 // the same result (no duplicate resources, update path works).
 func TestReconcileNamespacedRBAC_Idempotent(t *testing.T) {
@@ -254,9 +574,9 @@ func TestReconcileNamespacedRBAC_UpdateExistingRole(t *testing.T) {
 // TestReconcileNamespacedRBAC_GCStaleOnNamespaceChange verifies that when the
 // NotebooksNamespace changes from ns-a to ns-b, the old resources in ns-a are removed.
 func TestReconcileNamespacedRBAC_GCStaleOnNamespaceChange(t *testing.T) {
-	r, cli := newReconciler(t, cluster.SelfManagedRhoai)
 	oldNS := "old-notebooks-ns"
 	newNS := "new-notebooks-ns"
+	r, cli := newReconciler(t, cluster.SelfManagedRhoai, optedInNamespace(oldNS), optedInNamespace(newNS))
 
 	// First reconcile with old namespace
 	dashboard := newRBACDashboard(oldNS, "")
@@ -475,8 +795,8 @@ func TestReconcileNamespacedRBAC_ModelRegistryRules(t *testing.T) {
 // both namespace fields point to the same namespace. Should create 2 separate Role/RB pairs
 // both in that namespace (no collision since names differ).
 func TestReconcileNamespacedRBAC_SameNamespaceBothComponents(t *testing.T) {
-	r, cli := newReconciler(t, cluster.OpenDataHub)
 	sharedNS := "shared-namespace"
+	r, cli := newReconciler(t, cluster.OpenDataHub, optedInNamespace(sharedNS))
 	dashboard := newRBACDashboard(sharedNS, sharedNS)
 
 	err := r.ReconcileNamespacedRBAC(context.Background(), dashboard)

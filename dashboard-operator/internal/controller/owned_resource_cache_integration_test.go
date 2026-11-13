@@ -46,7 +46,7 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	require.NoError(t, v1alpha1.AddToScheme(s))
 
 	localEnv := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("testdata", "crd")},
+		CRDDirectoryPaths: []string{filepath.Join("testdata", "crd"), filepath.Join("..", "..", "config", "crd", "bases")},
 		Scheme:            s,
 	}
 	cfg, err := localEnv.Start()
@@ -58,8 +58,17 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	directClient, err := client.New(cfg, client.Options{Scheme: s})
 	require.NoError(t, err)
 	for _, namespace := range []string{applicationsNamespace, externalNamespace} {
-		require.NoError(t, directClient.Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}))
+		labels := map[string]string(nil)
+		if namespace == externalNamespace {
+			labels = map[string]string{v1alpha1.NamespacedRBACOptInLabel: "true"}
+		}
+		require.NoError(t, directClient.Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace, Labels: labels}}))
 	}
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+		Spec:       v1alpha1.DashboardSpec{NotebooksNamespace: externalNamespace},
+	}
+	require.NoError(t, directClient.Create(context.Background(), dashboard))
 
 	consoleLink := &unstructured.Unstructured{}
 	consoleLink.SetAPIVersion("console.openshift.io/v1")
@@ -157,15 +166,16 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	require.ErrorAs(t, err, &notCached, "an APIReader request must not create a shared-cache informer")
 
 	reconciler := &ctrlpkg.DashboardReconciler{
-		Client:                mgr.GetClient(),
-		APIReader:             mgr.GetAPIReader(),
-		Scheme:                s,
-		Platform:              cluster.OpenDataHub,
-		ApplicationsNamespace: applicationsNamespace,
+		Client:                         mgr.GetClient(),
+		APIReader:                      mgr.GetAPIReader(),
+		Scheme:                         s,
+		Platform:                       cluster.OpenDataHub,
+		ApplicationsNamespace:          applicationsNamespace,
+		NamespacedRBACAdmissionEnabled: true,
 	}
-	require.NoError(t, reconciler.ReconcileNamespacedRBAC(ctx, &v1alpha1.Dashboard{Spec: v1alpha1.DashboardSpec{
-		NotebooksNamespace: externalNamespace,
-	}}))
+	require.NoError(t, reconciler.ReconcileNamespacedRBAC(ctx, dashboard))
+	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(dashboard), dashboard))
+	require.Equal(t, []string{externalNamespace + "/notebooks"}, dashboard.Status.NamespacedRBACGrants)
 	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(driftedRole), driftedRole))
 	assert.Equal(t, "dashboard", driftedRole.Labels[platformlabels.PlatformPartOf])
 	assert.Equal(t, "true", driftedRole.Labels["dashboard.opendatahub.io/namespaced-rbac"])
@@ -176,6 +186,44 @@ func TestIntegration_ManagerCacheScopesOwnedResources(t *testing.T) {
 	require.Len(t, driftedRoleBinding.Subjects, 1)
 	assert.Equal(t, "odh-dashboard", driftedRoleBinding.Subjects[0].Name)
 	assert.Equal(t, applicationsNamespace, driftedRoleBinding.Subjects[0].Namespace)
+
+	// A recipient with Role/RoleBinding patch permissions must not preserve its
+	// grant by stripping labels, replacing the canonical binding, or finalizing the
+	// Role. The Role becomes ineffective before deletion is allowed to wait.
+	driftedRole.Labels = nil
+	driftedRole.Finalizers = []string{"test.dashboard.opendatahub.io/hold"}
+	require.NoError(t, directClient.Update(ctx, driftedRole))
+	require.NoError(t, directClient.Delete(ctx, driftedRoleBinding))
+	replacementBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "replacement-dashboard-access", Namespace: externalNamespace},
+		RoleRef:    driftedRoleBinding.RoleRef,
+		Subjects:   driftedRoleBinding.Subjects,
+	}
+	require.NoError(t, directClient.Create(ctx, replacementBinding))
+	targetNamespace := &corev1.Namespace{}
+	require.NoError(t, directClient.Get(ctx, client.ObjectKey{Name: externalNamespace}, targetNamespace))
+	delete(targetNamespace.Labels, v1alpha1.NamespacedRBACOptInLabel)
+	require.NoError(t, directClient.Update(ctx, targetNamespace))
+
+	err = reconciler.ReconcileNamespacedRBAC(ctx, dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	require.ErrorContains(t, err, "waiting for stale Role")
+	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(driftedRole), driftedRole))
+	assert.Empty(t, driftedRole.Rules)
+	assert.NotNil(t, driftedRole.DeletionTimestamp)
+	assert.True(t, apierrors.IsNotFound(directClient.Get(ctx, client.ObjectKeyFromObject(driftedRoleBinding), &rbacv1.RoleBinding{})))
+	assert.True(t, apierrors.IsNotFound(directClient.Get(ctx, client.ObjectKeyFromObject(replacementBinding), &rbacv1.RoleBinding{})))
+	require.NoError(t, directClient.Get(ctx, client.ObjectKeyFromObject(dashboard), dashboard))
+	require.Equal(t, []string{externalNamespace + "/notebooks"}, dashboard.Status.NamespacedRBACGrants)
+
+	driftedRole.Finalizers = nil
+	require.NoError(t, directClient.Update(ctx, driftedRole))
+	assert.Eventually(t, func() bool {
+		return apierrors.IsNotFound(directClient.Get(ctx, client.ObjectKeyFromObject(driftedRole), &rbacv1.Role{}))
+	}, 10*time.Second, 100*time.Millisecond)
+	err = reconciler.ReconcileNamespacedRBAC(ctx, dashboard)
+	require.ErrorContains(t, err, v1alpha1.NamespacedRBACOptInLabel+"=true")
+	assert.Empty(t, dashboard.Status.NamespacedRBACGrants)
 }
 
 // TestIntegration_ManagerCacheWatchesMetadataOnly proves that the GVKs converted

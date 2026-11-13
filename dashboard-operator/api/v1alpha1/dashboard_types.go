@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	DashboardComponentName = "dashboard"
-	DashboardInstanceName  = "default-dashboard"
-	DashboardKind          = "Dashboard"
+	DashboardComponentName   = "dashboard"
+	DashboardInstanceName    = "default-dashboard"
+	DashboardKind            = "Dashboard"
+	NamespacedRBACOptInLabel = "dashboard.opendatahub.io/allow-namespaced-rbac"
 )
 
 // ModuleOverrideState is a tri-state enum for module enablement overrides.
@@ -223,7 +224,8 @@ type DashboardSpec struct {
 
 	// NotebooksNamespace is the namespace where Workbenches (notebooks) run.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this
-	// namespace granting the dashboard SA access to notebook-related resources.
+	// namespace granting the dashboard SA access to notebook-related resources,
+	// but only when the namespace has dashboard.opendatahub.io/allow-namespaced-rbac=true.
 	// Absent means notebooks RBAC is skipped (component not enabled or standalone
 	// deployment where notebooks are not used).
 	// +optional
@@ -233,7 +235,8 @@ type DashboardSpec struct {
 
 	// ModelRegistryNamespace is the namespace where the Model Registry runs.
 	// When set, the dashboard-operator creates a Role and RoleBinding in this
-	// namespace granting the dashboard SA access to model registry resources.
+	// namespace granting the dashboard SA access to model registry resources,
+	// but only when the namespace has dashboard.opendatahub.io/allow-namespaced-rbac=true.
 	// Absent means model registry RBAC is skipped.
 	// +optional
 	// +kubebuilder:validation:MaxLength=63
@@ -278,6 +281,12 @@ type DashboardStatus struct {
 	// ModuleStatuses reports the deployment state of each module.
 	// +optional
 	ModuleStatuses map[string]ModuleStatus `json:"moduleStatuses,omitempty"`
+
+	// NamespacedRBACGrants records operator-issued cross-namespace grant identities
+	// so revocation does not depend on recipient-mutable Role or RoleBinding data.
+	// Entries use the internal "namespace/component" identity format.
+	// +optional
+	NamespacedRBACGrants []string `json:"namespacedRBACGrants,omitempty"`
 
 	// Distribution reports the product distribution identity.
 	// +optional
