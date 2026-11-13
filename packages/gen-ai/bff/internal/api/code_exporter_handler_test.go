@@ -1015,3 +1015,30 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "pip install openai\n")
 	})
 }
+
+func TestModelNameForCodeExport(t *testing.T) {
+	tests := []struct {
+		in, want string
+	}{
+		{"vllm-inference-1/deepseek-aideepseek-r1-distill", "deepseek-aideepseek-r1-distill"},
+		{"vllm-inference-1/facebook/opt-125m", "facebook/opt-125m"},
+		{"maas-vllm-inference-2/llama-2-7b-chat", "llama-2-7b-chat"},
+		{"llama3.2:3b", "llama3.2:3b"},
+		{"genai-bff-proxy/llama-32-1b-instruct", "genai-bff-proxy/llama-32-1b-instruct"},
+		{"genai-bff-proxy/publishers/test/models/gemini-proxy", "genai-bff-proxy/publishers/test/models/gemini-proxy"},
+	}
+	for _, tt := range tests {
+		assert.Equal(t, tt.want, modelNameForCodeExport(tt.in), tt.in)
+	}
+}
+
+func TestGeneratePythonCodeStripsVLLMProviderPrefix(t *testing.T) {
+	app := App{repositories: repositories.NewRepositories()}
+	code, err := app.generatePythonCode(models.CodeExportRequest{
+		Input: "Hello",
+		Model: "vllm-inference-1/deepseek-aideepseek-r1-distill",
+	}, "", app.repositories.Template)
+	assert.NoError(t, err)
+	assert.Contains(t, code, `model_name = "deepseek-aideepseek-r1-distill"`)
+	assert.NotContains(t, code, "vllm-inference-1/")
+}
