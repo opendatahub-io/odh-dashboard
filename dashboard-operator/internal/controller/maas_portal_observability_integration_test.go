@@ -196,12 +196,13 @@ func TestIntegration_MaaSPortalObservabilityLifecycle(t *testing.T) {
 				deployment.Status.ObservedGeneration = deployment.Generation
 				deployment.Status.Replicas = 1
 				deployment.Status.ReadyReplicas = 1
+				deployment.Status.AvailableReplicas = 1
 				deployment.Status.Conditions = []appsv1.DeploymentCondition{{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue}}
 				require.NoError(t, persesClient.Status().Update(ctx, deployment))
 			}
 			route := &gatewayv1.HTTPRoute{}
 			require.NoError(t, persesClient.Get(ctx, client.ObjectKey{Name: "maas-portal", Namespace: integrationNamespace}, route))
-			route.Status.Parents = []gatewayv1.RouteParentStatus{{Conditions: []metav1.Condition{
+			route.Status.Parents = []gatewayv1.RouteParentStatus{{ParentRef: route.Spec.ParentRefs[0], Conditions: []metav1.Condition{
 				{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 				{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
 			}}}

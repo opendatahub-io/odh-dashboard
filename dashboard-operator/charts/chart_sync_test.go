@@ -114,6 +114,38 @@ func TestDashboardChartWebhookCertManagerTemplatesOffline(t *testing.T) {
 	})
 }
 
+// The controller Deployment itself carries the Dashboard management label, but
+// its Pods must not. Teardown selects operand Pods by that label and must never
+// wait for the controller it is intentionally preserving.
+func TestDashboardChartControllerPodsAreNotDashboardManaged(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm not installed")
+	}
+
+	output, err := renderChartTemplate(filepath.Join("..", "charts", "dashboard"))
+	if err != nil {
+		t.Fatalf("render chart: %v", err)
+	}
+
+	for _, doc := range strings.Split(output, "---") {
+		doc = strings.TrimSpace(doc)
+		if doc == "" || !strings.Contains(doc, "kind: Deployment") {
+			continue
+		}
+
+		var deployment appsv1.Deployment
+		if err := yaml.Unmarshal([]byte(doc), &deployment); err != nil {
+			t.Fatalf("parse Deployment: %v", err)
+		}
+		if deployment.Spec.Template.Labels["platform.opendatahub.io/part-of"] == "dashboard" {
+			t.Fatal("controller Pod template must not carry the Dashboard management label")
+		}
+		return
+	}
+
+	t.Fatal("expected controller Deployment in rendered chart output")
+}
+
 type webhookCertificate struct {
 	Metadata struct {
 		Name string `yaml:"name"`
@@ -260,6 +292,105 @@ func TestDashboardChartRBACAllowsCustomRouteHosts(t *testing.T) {
 	t.Fatal("expected create permission for route.openshift.io routes/custom-host")
 }
 
+func TestDashboardChartXKSCertificateRBACIsNamespaceAndNameScoped(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm not installed")
+	}
+
+	output, err := renderChartTemplate(
+		filepath.Join("..", "charts", "dashboard"),
+		"--namespace", "operator-namespace",
+		"--set", "namePrefix=",
+		"--set", "namespace=operator-namespace",
+		"--set", "applicationsNamespace=applications-namespace",
+		"--set", "xks.enabled=true",
+	)
+	if err != nil {
+		t.Fatalf("render chart: %v", err)
+	}
+
+	role, binding := findXKSCertificateRBAC(t, output)
+	if role.Namespace != "applications-namespace" {
+		t.Fatalf("expected Certificate Role in applications namespace, got %q", role.Namespace)
+	}
+	if len(role.Rules) != 2 {
+		t.Fatalf("expected two Certificate Role rules, got %d", len(role.Rules))
+	}
+	namedRule, createRule := role.Rules[0], role.Rules[1]
+	if !policyRuleEqual(namedRule, rbacv1.PolicyRule{
+		APIGroups:     []string{"cert-manager.io"},
+		Resources:     []string{"certificates"},
+		ResourceNames: []string{"rhaii-dashboard-tls"},
+		Verbs:         []string{"get", "list", "watch", "update", "patch", "delete"},
+	}) {
+		t.Fatalf("unexpected fixed Certificate rule: %#v", namedRule)
+	}
+	if !policyRuleEqual(createRule, rbacv1.PolicyRule{
+		APIGroups: []string{"cert-manager.io"},
+		Resources: []string{"certificates"},
+		Verbs:     []string{"create"},
+	}) {
+		t.Fatalf("unexpected Certificate create rule: %#v", createRule)
+	}
+	if binding.Namespace != "applications-namespace" || binding.RoleRef.Name != role.Name {
+		t.Fatalf("RoleBinding must reference the applications-namespace Certificate Role: %#v", binding)
+	}
+	if len(binding.Subjects) != 1 || binding.Subjects[0].Name != "dashboard-operator" || binding.Subjects[0].Namespace != "operator-namespace" {
+		t.Fatalf("RoleBinding must bind the operator ServiceAccount from its namespace: %#v", binding.Subjects)
+	}
+
+	clusterRules, err := findChartClusterRoleRules(output)
+	if err != nil {
+		t.Fatalf("render ClusterRole: %v", err)
+	}
+	for _, rule := range clusterRules {
+		if stringSliceContains(rule.APIGroups, "cert-manager.io") && stringSliceContains(rule.Resources, "certificates") {
+			t.Fatal("ClusterRole must not retain Certificate permissions")
+		}
+	}
+	if !containsPolicyRule(clusterRules, rbacv1.PolicyRule{
+		APIGroups: []string{"dashboard.opendatahub.io"},
+		Resources: []string{"rhaii-dashboard-access"},
+		Verbs:     []string{"list"},
+	}) {
+		t.Fatal("XKS ClusterRole must allow creation of the unbound dashboard access ClusterRole")
+	}
+
+	defaultOutput, err := renderChartTemplate(filepath.Join("..", "charts", "dashboard"))
+	if err != nil {
+		t.Fatalf("render default chart: %v", err)
+	}
+	if strings.Contains(defaultOutput, "xks-certificate") || strings.Contains(defaultOutput, "rhaii-dashboard-access") {
+		t.Fatal("default chart must not render XKS-only RBAC")
+	}
+}
+
+func findXKSCertificateRBAC(t *testing.T, rendered string) (rbacv1.Role, rbacv1.RoleBinding) {
+	t.Helper()
+	var role rbacv1.Role
+	var binding rbacv1.RoleBinding
+	for _, doc := range strings.Split(rendered, "---") {
+		doc = strings.TrimSpace(doc)
+		if doc == "" {
+			continue
+		}
+		if strings.Contains(doc, "kind: Role\n") && strings.Contains(doc, "xks-certificate") {
+			if err := yaml.Unmarshal([]byte(doc), &role); err != nil {
+				t.Fatalf("parse XKS Certificate Role: %v", err)
+			}
+		}
+		if strings.Contains(doc, "kind: RoleBinding") && strings.Contains(doc, "xks-certificate") {
+			if err := yaml.Unmarshal([]byte(doc), &binding); err != nil {
+				t.Fatalf("parse XKS Certificate RoleBinding: %v", err)
+			}
+		}
+	}
+	if role.Name == "" || binding.Name == "" {
+		t.Fatal("expected XKS Certificate Role and RoleBinding")
+	}
+	return role, binding
+}
+
 func loadClusterRoleRules(path string) ([]rbacv1.PolicyRule, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -289,7 +420,10 @@ func renderChartClusterRoleRules(chartDir string) ([]rbacv1.PolicyRule, error) {
 	if err != nil {
 		return nil, err
 	}
+	return findChartClusterRoleRules(output)
+}
 
+func findChartClusterRoleRules(output string) ([]rbacv1.PolicyRule, error) {
 	for _, doc := range strings.Split(output, "---") {
 		doc = strings.TrimSpace(doc)
 		if doc == "" || !strings.Contains(doc, "kind: ClusterRole") {
@@ -325,6 +459,15 @@ func policyRuleEqual(a, b rbacv1.PolicyRule) bool {
 		stringSliceEqual(a.Resources, b.Resources) &&
 		stringSliceEqual(a.Verbs, b.Verbs) &&
 		stringSliceEqual(a.ResourceNames, b.ResourceNames)
+}
+
+func containsPolicyRule(rules []rbacv1.PolicyRule, expected rbacv1.PolicyRule) bool {
+	for _, rule := range rules {
+		if policyRuleEqual(rule, expected) {
+			return true
+		}
+	}
+	return false
 }
 
 func stringSliceEqual(a, b []string) bool {

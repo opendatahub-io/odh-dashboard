@@ -18,6 +18,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,7 +38,12 @@ import (
 	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
-const integrationNamespace = "integration-test"
+const (
+	integrationNamespace               = "integration-test"
+	odhDashboardName                   = "odh-dashboard"
+	rhoaiDashboardName                 = "rhods-dashboard"
+	dashboardAvailabilityTestGatewayID = "gateway"
+)
 
 var (
 	testEnv   *envtest.Environment
@@ -209,6 +215,109 @@ func newDashboard(spec v1alpha1.DashboardSpec) *v1alpha1.Dashboard {
 		},
 		Spec: spec,
 	}
+}
+
+// establishDashboardAvailability supplies the two externally-managed status
+// signals required for an integration test that intentionally asserts the
+// aggregate Ready contract. envtest has neither a workload nor a Gateway
+// controller, so it cannot produce these statuses itself.
+func establishDashboardAvailability(t *testing.T, r *ctrlpkg.DashboardReconciler, dashboardName string) {
+	t.Helper()
+
+	deployment := newMainDashboardDeployment(dashboardName)
+	require.NoError(t, k8sClient.Create(context.Background(), deployment))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, deployment) })
+
+	route := &gatewayv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dashboardName,
+			Namespace: integrationNamespace,
+			Labels:    dashboardManagementLabels(),
+		},
+		Spec: gatewayv1.HTTPRouteSpec{CommonRouteSpec: gatewayv1.CommonRouteSpec{
+			ParentRefs: []gatewayv1.ParentReference{{Name: dashboardAvailabilityTestGatewayID}},
+		}},
+	}
+	require.NoError(t, k8sClient.Create(context.Background(), route))
+	t.Cleanup(func() { deleteIgnoreNotFound(t, route) })
+
+	// The reconciler may add the federation hash to the Deployment template,
+	// which increments its generation before we report the simulated workload
+	// status below.
+	reconcile(t, r)
+
+	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKeyFromObject(deployment), deployment))
+	require.NotNil(t, deployment.Spec.Replicas)
+	desiredReplicas := *deployment.Spec.Replicas
+	deployment.Status.ObservedGeneration = deployment.Generation
+	deployment.Status.Replicas = desiredReplicas
+	deployment.Status.UpdatedReplicas = desiredReplicas
+	deployment.Status.ReadyReplicas = desiredReplicas
+	deployment.Status.AvailableReplicas = desiredReplicas
+	deployment.Status.Conditions = []appsv1.DeploymentCondition{{
+		Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue,
+	}}
+	require.NoError(t, k8sClient.Status().Update(context.Background(), deployment))
+
+	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKeyFromObject(route), route))
+	route.Status.Parents = []gatewayv1.RouteParentStatus{{
+		ParentRef: route.Spec.ParentRefs[0],
+		Conditions: []metav1.Condition{
+			{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+			{Type: string(gatewayv1.RouteConditionResolvedRefs), Status: metav1.ConditionTrue, ObservedGeneration: route.Generation},
+		},
+	}}
+	require.NoError(t, k8sClient.Status().Update(context.Background(), route))
+
+	reconcile(t, r)
+}
+
+// waitForDashboardOperandRemoval drives the Removed lifecycle until the
+// externally-managed resources used to simulate Dashboard availability have
+// gone away. envtest does not run a controller manager, so the test must
+// explicitly execute each reconcile pass that production would receive from
+// resource deletion events and requeues.
+func waitForDashboardOperandRemoval(t *testing.T, r *ctrlpkg.DashboardReconciler, dashboardName string) {
+	t.Helper()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		reconcile(t, r)
+		deployment := &appsv1.Deployment{}
+		deploymentErr := k8sClient.Get(context.Background(), types.NamespacedName{
+			Name: dashboardName, Namespace: integrationNamespace,
+		}, deployment)
+		routeErr := k8sClient.Get(context.Background(), types.NamespacedName{
+			Name: dashboardName, Namespace: integrationNamespace,
+		}, &gatewayv1.HTTPRoute{})
+		require.True(t, deploymentErr == nil || apierrors.IsNotFound(deploymentErr), "get simulated Dashboard Deployment: %v", deploymentErr)
+		require.True(t, routeErr == nil || apierrors.IsNotFound(routeErr), "get simulated Dashboard HTTPRoute: %v", routeErr)
+		if apierrors.IsNotFound(deploymentErr) && apierrors.IsNotFound(routeErr) {
+			return
+		}
+		if deploymentErr == nil && deployment.DeletionTimestamp != nil {
+			// teardown uses foreground deletion to retain NetworkPolicies until
+			// dependent Pods have terminated. envtest does not run Kubernetes'
+			// garbage collector, so complete that otherwise external step for this
+			// synthetic Deployment once the reconciler has requested deletion.
+			deployment.Finalizers = removeFinalizer(deployment.Finalizers, metav1.FinalizerDeleteDependents)
+			require.NoError(t, k8sClient.Update(context.Background(), deployment))
+		}
+		if time.Now().After(deadline) {
+			require.Failf(t, "soft removal did not complete", "simulated Dashboard availability resources still exist: Deployment error=%v, HTTPRoute error=%v", deploymentErr, routeErr)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func removeFinalizer(finalizers []string, target string) []string {
+	remaining := make([]string, 0, len(finalizers))
+	for _, finalizer := range finalizers {
+		if finalizer != target {
+			remaining = append(remaining, finalizer)
+		}
+	}
+	return remaining
 }
 
 func TestIntegration_MaaSPortalAPICompatibility(t *testing.T) {
@@ -651,6 +760,7 @@ func TestIntegration_PlatformContractConformance(t *testing.T) {
 	// The first reconcile adds the finalizer and the second deploys the module.
 	reconcile(t, r)
 	reconcile(t, r)
+	establishDashboardAvailability(t, r, odhDashboardName)
 
 	// envtest has no kubelet to update Deployment status. Report the operand as
 	// available so the next reconcile can exercise the successful Ready contract.

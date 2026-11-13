@@ -11,3 +11,16 @@ rules:
       - namespaces
     verbs:
       - patch
+  # kube-rbac-proxy authenticates and authorizes forwarded user tokens.
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create

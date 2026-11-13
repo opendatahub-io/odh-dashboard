@@ -8,7 +8,10 @@ resources:
   - role-binding.yaml
   - cluster-role.yaml
   - cluster-role-binding.yaml
+  - dashboard-access-cluster-role.yaml
   - deployment.yaml
+  - certificate.yaml
+  - kube-rbac-proxy-config.yaml
   - pdb.yaml
   - service.yaml
   - networkpolicy.yaml
@@ -36,8 +39,54 @@ replacements:
           name: rhaii-dashboard
         fieldPaths:
           - spec.template.spec.containers.[name=rhaii-dashboard].image
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.kube-rbac-proxy
+    targets:
+      - select:
+          kind: Deployment
+          name: rhaii-dashboard
+        fieldPaths:
+          - spec.template.spec.containers.[name=kube-rbac-proxy].image
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.certificate-issuer-name
+    targets:
+      - select:
+          group: cert-manager.io
+          version: v1
+          kind: Certificate
+          name: rhaii-dashboard-tls
+        fieldPaths:
+          - spec.issuerRef.name
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.certificate-issuer-kind
+    targets:
+      - select:
+          group: cert-manager.io
+          version: v1
+          kind: Certificate
+          name: rhaii-dashboard-tls
+        fieldPaths:
+          - spec.issuerRef.kind
+  - source:
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+      fieldPath: data.certificate-issuer-group
+    targets:
+      - select:
+          group: cert-manager.io
+          version: v1
+          kind: Certificate
+          name: rhaii-dashboard-tls
+        fieldPaths:
+          - spec.issuerRef.group
   # Keep the HTTPRoute backend reference synchronized with the Service port.
-  # The Service targetPort and pod probes use the named `dashboard` port.
+  # The Service selects the TLS endpoint exposed by kube-rbac-proxy.
   - source:
       kind: Service
       name: rhaii-dashboard
@@ -117,3 +166,15 @@ replacements:
           name: rhaii-dashboard
         fieldPaths:
           - subjects.[name=rhaii-dashboard].namespace
+vars:
+  # Certificate DNS names incorporate the applications namespace. Keep this
+  # as one source value so the common name and SANs cannot drift.
+  - name: NAMESPACE
+    objref:
+      apiVersion: v1
+      kind: ConfigMap
+      name: rhaii-dashboard-params
+    fieldref:
+      fieldpath: data.rhaii-dashboard-namespace
+configurations:
+  - params.yaml
