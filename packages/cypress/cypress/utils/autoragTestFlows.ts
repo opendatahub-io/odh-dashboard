@@ -211,7 +211,6 @@ const isValidAutoragS3Configuration = (
     !isRecord(bucket) ||
     !isNonEmptyString(bucket.NAME) ||
     !isNonEmptyString(bucket.REGION) ||
-    !isNonEmptyString(bucket.ENDPOINT) ||
     !isNonEmptyString(buckets.AWS_ACCESS_KEY_ID) ||
     !isNonEmptyString(buckets.AWS_SECRET_ACCESS_KEY)
   ) {
@@ -219,7 +218,11 @@ const isValidAutoragS3Configuration = (
   }
 
   try {
-    const endpoint = resolveAutoXS3Endpoint(bucket.ENDPOINT);
+    const bucketEndpoint = typeof bucket.ENDPOINT === 'string' ? bucket.ENDPOINT : '';
+    const endpoint = resolveAutoXS3Endpoint(bucketEndpoint);
+    if (!isNonEmptyString(endpoint)) {
+      return false;
+    }
     const normalizedEndpoint = /^https?:\/\//i.test(endpoint) ? endpoint : `https://${endpoint}`;
     const parsedEndpoint = new URL(normalizedEndpoint);
     return (
