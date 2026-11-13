@@ -116,6 +116,7 @@ describe('Evaluations Page - Tabs', () => {
   });
 
   it('should validate the suite name and preserve settings when returning from the next step', () => {
+    cy.intercept('**/generation/**').as('suiteBuilderGenerationApi');
     initIntercepts({ providers: [mockProvider()] });
     evaluationsPage.visit(NAMESPACE);
 
@@ -139,7 +140,26 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage.findNextButton().click();
 
     suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
-    suiteBuilderPage.findDefineGoalPlaceholder().should('be.visible');
+    suiteBuilderPage.findDefineGoalStep().should('be.visible');
+    suiteBuilderPage
+      .findEvaluationGoalInput()
+      .should('be.visible')
+      .and('have.attr', 'maxlength', '2000');
+    suiteBuilderPage.findSelectedRecommendationModel().should('contain.text', 'Unavailable');
+    suiteBuilderPage.findRecommendationModelUnavailable().should('be.visible');
+    suiteBuilderPage.findRecommendButton().should('be.disabled');
+    suiteBuilderPage.findGoalExample('answer-quality').should('be.visible').click();
+    suiteBuilderPage
+      .findEvaluationGoalInput()
+      .should('have.value', 'Assess a model’s accuracy and truthfulness across common questions.');
+    suiteBuilderPage.findGoalExample('answer-quality').should('have.attr', 'aria-pressed', 'true');
+    suiteBuilderPage.findGoalExample('code-generation').should('not.exist');
+    suiteBuilderPage.findViewExamplesButton().click();
+    suiteBuilderPage.findGoalExample('adversarial-content').should('be.visible');
+    suiteBuilderPage.findViewExamplesButton().should('contain.text', 'View fewer examples').click();
+    suiteBuilderPage.findGoalExample('code-generation').should('not.exist');
+    suiteBuilderPage.findEvaluationGoalInput().clear().type('A custom evaluation goal.');
+    suiteBuilderPage.findGoalExample('answer-quality').should('have.attr', 'aria-pressed', 'false');
     suiteBuilderPage.findCurrentStep('suite-settings').click();
 
     suiteBuilderPage.findCurrentStep('suite-settings').should('have.attr', 'aria-current', 'step');
@@ -150,6 +170,8 @@ describe('Evaluations Page - Tabs', () => {
     suiteBuilderPage.findSelectedCategory('Reasoning').should('be.visible');
     suiteBuilderPage.findCurrentStep('define-goal').click();
     suiteBuilderPage.findCurrentStep('define-goal').should('have.attr', 'aria-current', 'step');
+    suiteBuilderPage.findEvaluationGoalInput().should('have.value', 'A custom evaluation goal.');
+    cy.get('@suiteBuilderGenerationApi.all').should('have.length', 0);
   });
 
   it('should navigate from a Gallery Customize action to the suite editor', () => {

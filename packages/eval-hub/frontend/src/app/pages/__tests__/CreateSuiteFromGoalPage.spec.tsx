@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { mockProvider } from '~/__mocks__/mockProvider';
 import { useProviders } from '~/app/hooks/useProviders';
@@ -25,28 +26,45 @@ jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
 
 const mockUseProviders = jest.mocked(useProviders);
 
+const TestQueryClientProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const [queryClient] = React.useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+};
+
 const LocationDisplay: React.FC = () => {
   const { pathname } = useLocation();
   return <div data-testid="location-pathname">{pathname}</div>;
 };
 
 const createPageElement = () => (
-  <MemoryRouter initialEntries={['/evaluation/test-project/create-suite/from-goal']}>
-    <LocationDisplay />
-    <Routes>
-      <Route
-        path="/evaluation/:namespace/create-suite/from-goal"
-        element={<CreateSuiteFromGoalPage />}
-      />
-      <Route
-        path="/evaluation/:namespace/create-suite"
-        element={<div data-testid="suite-chooser-route" />}
-      />
-    </Routes>
-  </MemoryRouter>
+  <TestQueryClientProvider>
+    <MemoryRouter initialEntries={['/evaluation/test-project/create-suite/from-goal']}>
+      <LocationDisplay />
+      <Routes>
+        <Route
+          path="/evaluation/:namespace/create-suite/from-goal"
+          element={<CreateSuiteFromGoalPage />}
+        />
+        <Route
+          path="/evaluation/:namespace/create-suite"
+          element={<div data-testid="suite-chooser-route" />}
+        />
+      </Routes>
+    </MemoryRouter>
+  </TestQueryClientProvider>
 );
 
-const renderPage = () => render(createPageElement());
+const renderPage = async () => {
+  const rendered = render(createPageElement());
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
+  });
+  return rendered;
+};
 
 const providerWithCategories = (categories: (string | undefined)[]): Provider =>
   mockProvider({
@@ -68,7 +86,7 @@ describe('CreateSuiteFromGoalPage', () => {
   });
 
   it('should validate suite name and category before allowing the next step', async () => {
-    renderPage();
+    await renderPage();
 
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
     expect(screen.getByTestId('page-title')).toHaveTextContent('Create suite');
@@ -98,7 +116,7 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(await screen.findByTestId('suite-builder-category-error')).toHaveTextContent(
       'Select a category.',
     );
-    expect(screen.queryByTestId('define-goal-step-placeholder')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
   });
 
   it('should derive, trim, deduplicate, and sort categories from providers', async () => {
@@ -107,7 +125,7 @@ describe('CreateSuiteFromGoalPage', () => {
       loaded: true,
       loadError: undefined,
     });
-    renderPage();
+    await renderPage();
 
     fireEvent.click(screen.getByTestId('goal-suite-category-input'));
 
@@ -124,7 +142,7 @@ describe('CreateSuiteFromGoalPage', () => {
   });
 
   it('should advance after valid settings and preserve values when returning', async () => {
-    renderPage();
+    await renderPage();
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
 
@@ -144,8 +162,82 @@ describe('CreateSuiteFromGoalPage', () => {
     await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
     fireEvent.click(screen.getByTestId('next-suite-settings'));
 
-    expect(await screen.findByTestId('define-goal-step-placeholder')).toBeInTheDocument();
+    expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeEnabled();
+    expect(
+      screen.getByText(
+        'Describe what you want to test. AI will suggest benchmarks from the available catalog.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue('');
+    expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveAttribute('maxlength', '2000');
+    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent('granite-3b'),
+    );
+
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: '   ' },
+    });
+    expect(await screen.findByTestId('suite-builder-evaluation-goal-error')).toHaveTextContent(
+      'Enter an evaluation goal.',
+    );
+    const exampleGoal = 'Assess a model’s accuracy and truthfulness across common questions.';
+    fireEvent.click(screen.getByTestId('define-goal-example-answer-quality'));
+    expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue(exampleGoal);
+    expect(screen.getByTestId('define-goal-example-answer-quality')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+
+    fireEvent.click(screen.getByTestId('define-goal-view-examples'));
+    expect(screen.getByTestId('define-goal-example-adversarial-content')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('define-goal-view-examples'));
+    expect(screen.queryByTestId('define-goal-example-code-generation')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Define goal/ }));
+    expect(screen.getByTestId('define-goal-example-answer-quality')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    expect(screen.getByText('Change recommendation model')).toBeInTheDocument();
+    expect(
+      screen.getByText('Choose the model that suggests benchmarks for your goal.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(
+        await screen.findByTestId('recommendation-model-option-preview-llama-3-2-1b'),
+      ).getByText('llama-3.2-1b-instruct'),
+    );
+    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
+    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent('granite-3b');
+
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(await screen.findByTestId('recommendation-model-option-preview-mistral-7b')).getByText(
+        'mistral-7b-instruct',
+      ),
+    );
+    fireEvent.click(screen.getByTestId('save-recommendation-model'));
+    await waitFor(() =>
+      expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
+        'mistral-7b-instruct',
+      ),
+    );
+
+    const evaluationGoal = `${exampleGoal} Add a custom check.`;
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: evaluationGoal },
+    });
+    expect(screen.getByTestId('define-goal-example-answer-quality')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
 
     expect(screen.getByTestId('goal-suite-name')).toHaveValue('Reasoning suite');
@@ -163,16 +255,17 @@ describe('CreateSuiteFromGoalPage', () => {
     });
     await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: /Define goal/ }));
-    expect(screen.getByTestId('define-goal-step-placeholder')).toBeInTheDocument();
+    expect(screen.getByTestId('define-goal-step')).toBeInTheDocument();
+    expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue(evaluationGoal);
   });
 
-  it('should show loading, empty, and error states for categories', () => {
+  it('should show loading, empty, and error states for categories', async () => {
     mockUseProviders.mockReturnValue({
       providers: [],
       loaded: false,
       loadError: undefined,
     });
-    const { rerender } = renderPage();
+    const { rerender } = await renderPage();
     expect(screen.getByTestId('suite-builder-category-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('goal-suite-category-input')).not.toBeInTheDocument();
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
@@ -208,7 +301,7 @@ describe('CreateSuiteFromGoalPage', () => {
       loaded: true,
       loadError: undefined,
     });
-    const { rerender } = renderPage();
+    const { rerender } = await renderPage();
 
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'Reasoning suite' },
@@ -223,7 +316,7 @@ describe('CreateSuiteFromGoalPage', () => {
       expect(screen.getByTestId('next-suite-settings')).toBeEnabled();
     });
     fireEvent.click(screen.getByTestId('next-suite-settings'));
-    expect(await screen.findByTestId('define-goal-step-placeholder')).toBeInTheDocument();
+    expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
 
     mockUseProviders.mockReturnValue({
@@ -235,7 +328,7 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
     fireEvent.submit(screen.getByTestId('suite-settings-form'));
-    expect(screen.queryByTestId('define-goal-step-placeholder')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
 
     mockUseProviders.mockReturnValue({
       providers: [providerWithCategories(['Reasoning'])],
@@ -246,7 +339,7 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
     fireEvent.submit(screen.getByTestId('suite-settings-form'));
-    expect(screen.queryByTestId('define-goal-step-placeholder')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
 
     mockUseProviders.mockReturnValue({
       providers: [providerWithCategories(['Reasoning'])],
@@ -259,6 +352,6 @@ describe('CreateSuiteFromGoalPage', () => {
       expect(screen.getByRole('button', { name: /Define goal/ })).toBeEnabled();
     });
     fireEvent.submit(screen.getByTestId('suite-settings-form'));
-    expect(await screen.findByTestId('define-goal-step-placeholder')).toBeInTheDocument();
+    expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
   });
 });

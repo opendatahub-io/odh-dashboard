@@ -19,6 +19,30 @@ class SuiteBuilderPage {
     return cy.findByTestId(`goal-suite-category-tag-${category}`);
   }
 
+  findEvaluationGoalInput() {
+    return cy.findByTestId('goal-suite-evaluation-goal');
+  }
+
+  findGoalExample(id: string) {
+    return cy.findByTestId(`define-goal-example-${id}`);
+  }
+
+  findViewExamplesButton() {
+    return cy.findByTestId('define-goal-view-examples');
+  }
+
+  findSelectedRecommendationModel() {
+    return cy.findByTestId('selected-recommendation-model');
+  }
+
+  findRecommendationModelUnavailable() {
+    return cy.findByTestId('recommendation-model-unavailable');
+  }
+
+  findRecommendButton() {
+    return cy.findByTestId('recommend-benchmarks-with-ai');
+  }
+
   findNameError() {
     return cy.findByTestId('suite-builder-name-error');
   }
@@ -41,8 +65,8 @@ class SuiteBuilderPage {
     return cy.findByRole('button', { name: new RegExp(stepTitles[stepId]) });
   }
 
-  findDefineGoalPlaceholder() {
-    return cy.findByTestId('define-goal-step-placeholder');
+  findDefineGoalStep() {
+    return cy.findByTestId('define-goal-step');
   }
 }
 

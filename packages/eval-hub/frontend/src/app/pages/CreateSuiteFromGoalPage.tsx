@@ -1,17 +1,11 @@
 import * as React from 'react';
-import {
-  BreadcrumbItem,
-  Content,
-  PageSection,
-  Title,
-  Wizard,
-  WizardStep,
-} from '@patternfly/react-core';
+import { BreadcrumbItem, PageSection, Wizard, WizardStep } from '@patternfly/react-core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm, useFormState, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
+import DefineGoalStep from '~/app/components/suiteBuilder/DefineGoalStep';
 import { getCategoryOptions } from '~/app/components/suiteBuilder/CategoryField';
 import SuiteBuilderFooter from '~/app/components/suiteBuilder/SuiteBuilderFooter';
 import SuiteSettingsStep from '~/app/components/suiteBuilder/SuiteSettingsStep';
@@ -25,17 +19,25 @@ import {
 import {
   suiteBuilderDefaultValues,
   suiteBuilderSchema,
+  defineGoalFieldNames,
+  defineGoalSchema,
   suiteSettingsFieldNames,
   suiteSettingsSchema,
   type SuiteBuilderFormValues,
 } from '~/app/schemas/suiteBuilder.schema';
+import useRecommendationModelProfiles from '~/app/hooks/useRecommendationModelProfiles';
+import type { RecommendationModelProfile } from '~/app/types';
 
 import './CreateSuiteFromGoalPage.scss';
+
+const EMPTY_RECOMMENDATION_MODELS: RecommendationModelProfile[] = [];
 
 const CreateSuiteFromGoalPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const projectDisplayName = useProjectDisplayName(namespace);
   const { providers, loaded, loadError } = useProviders(namespace ?? '');
+  const { data: recommendationModels = EMPTY_RECOMMENDATION_MODELS } =
+    useRecommendationModelProfiles(namespace);
   const categoryOptions = React.useMemo(() => getCategoryOptions(providers), [providers]);
   const methods = useForm<SuiteBuilderFormValues>({
     defaultValues: suiteBuilderDefaultValues,
@@ -48,9 +50,27 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     control: methods.control,
     name: [...suiteSettingsFieldNames],
   });
+  const [evaluationGoal, generatorModelId] = useWatch({
+    control: methods.control,
+    name: [...defineGoalFieldNames],
+  });
+  React.useEffect(() => {
+    if (!generatorModelId) {
+      const defaultModel = recommendationModels.find((model) => model.isDefault);
+      if (defaultModel) {
+        methods.setValue('generatorModelId', defaultModel.id, {
+          shouldValidate: true,
+        });
+      }
+    }
+  }, [generatorModelId, methods, recommendationModels]);
   const { errors } = useFormState({
     control: methods.control,
     name: [...suiteSettingsFieldNames],
+  });
+  const { errors: defineGoalErrors } = useFormState({
+    control: methods.control,
+    name: [...defineGoalFieldNames],
   });
   const isSuiteSettingsValid = suiteSettingsSchema.safeParse({
     suiteName,
@@ -64,6 +84,16 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     categoryOptions.length > 0 &&
     isSuiteSettingsValid &&
     !hasSuiteSettingsErrors;
+  const isDefineGoalValid = defineGoalSchema.safeParse({
+    evaluationGoal,
+    generatorModelId,
+  }).success;
+  const hasDefineGoalErrors = defineGoalFieldNames.some((fieldName) => defineGoalErrors[fieldName]);
+  const canRecommend =
+    canContinueSettings &&
+    isDefineGoalValid &&
+    recommendationModels.some((model) => model.id === generatorModelId) &&
+    !hasDefineGoalErrors;
   const cancelRoute = evaluationCreateSuiteChooserRoute(namespace);
 
   return (
@@ -96,6 +126,7 @@ const CreateSuiteFromGoalPage: React.FC = () => {
               <SuiteBuilderFooter
                 cancelRoute={cancelRoute}
                 canContinueSettings={canContinueSettings}
+                canRecommend={canRecommend}
               />
             }
           >
@@ -108,16 +139,16 @@ const CreateSuiteFromGoalPage: React.FC = () => {
               />
             </WizardStep>
             <WizardStep name="Define goal" id="define-goal" isDisabled={!canContinueSettings}>
-              <div data-testid="define-goal-step-placeholder">
-                <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-sm">
-                  Define goal
-                </Title>
-                <Content component="p">
-                  Describe the model evaluation goal you want to measure.
-                </Content>
-              </div>
+              <DefineGoalStep
+                recommendationModels={recommendationModels}
+                canRecommend={canRecommend}
+              />
             </WizardStep>
-            <WizardStep name="Benchmark overview" id="benchmark-overview" isDisabled>
+            <WizardStep
+              name="Benchmark overview"
+              id="benchmark-overview"
+              isDisabled={!canRecommend}
+            >
               <div data-testid="benchmark-overview-step-placeholder" />
             </WizardStep>
             <WizardStep name="Review" id="review" isDisabled>
