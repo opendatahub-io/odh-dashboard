@@ -9,16 +9,23 @@ import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useNamespaces } from '~/app/hooks/useNamespaces';
 import { useCreateConnectionNamespaces } from '~/app/hooks/useCreateConnectionNamespaces';
+import { useConnectionNameAvailability } from '~/app/hooks/useConnectionNameAvailability';
 import { testCredentials } from '~/app/api/dch';
 import type { Connection, CreateConnectionRequest, NamespaceKind } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
 jest.mock('~/app/hooks/useCreateConnectionNamespaces');
+jest.mock('~/app/hooks/useConnectionNameAvailability');
 const mockNotificationSuccess = jest.fn();
 const mockNotificationError = jest.fn();
+const mockNotificationWarning = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
-  useNotification: () => ({ success: mockNotificationSuccess, error: mockNotificationError }),
+  useNotification: () => ({
+    success: mockNotificationSuccess,
+    error: mockNotificationError,
+    warning: mockNotificationWarning,
+  }),
 }));
 jest.mock('~/app/api/dch', () => ({
   testCredentials: jest.fn(),
@@ -27,6 +34,7 @@ jest.mock('~/app/api/dch', () => ({
 const mockUseConnectionTypes = jest.mocked(useConnectionTypes);
 const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockUseCreateConnectionNamespaces = jest.mocked(useCreateConnectionNamespaces);
+const mockUseConnectionNameAvailability = jest.mocked(useConnectionNameAvailability);
 const mockTestCredentials = jest.mocked(testCredentials);
 const mockTrackEvent = jest.fn();
 const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
@@ -70,6 +78,11 @@ describe('CreateConnectionWizard', () => {
     mockUseNamespaces.mockReturnValue([[{ name: 'test-project' }], true, undefined]);
     mockUseCreateConnectionNamespaces.mockImplementation((namespaces: NamespaceKind[]) => [
       namespaces,
+      true,
+      undefined,
+    ]);
+    mockUseConnectionNameAvailability.mockReturnValue([
+      { available: true, conflicts_with: [] },
       true,
       undefined,
     ]);
@@ -269,6 +282,61 @@ describe('CreateConnectionWizard', () => {
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
   });
 
+  it('should reject a connection name that conflicts with an existing connection or secret', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionNameAvailability.mockReturnValue([
+      { available: false, conflicts_with: ['connection', 'secret'] },
+      true,
+      undefined,
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    expect(screen.queryByText('Checking name availability…')).toBeNull();
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    expect(screen.queryByText('Checking name availability…')).toBeNull();
+    expect(
+      screen.getByText(
+        'A connection or secret with this name already exists in this project. Choose a different name.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+  });
+
+  it('should not block progression when the connection name check fails', async () => {
+    const user = userEvent.setup();
+    mockUseConnectionNameAvailability.mockReturnValue([
+      undefined,
+      false,
+      new Error('availability request failed'),
+    ]);
+
+    render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={jest.fn()}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    await user.type(screen.getByTestId('connection-name-input'), 'warehouse');
+    expect(screen.queryByText('Unable to check connection name')).toBeNull();
+    expect(mockNotificationWarning).toHaveBeenCalledTimes(1);
+    expect(mockNotificationWarning).toHaveBeenCalledWith(
+      'Unable to check connection name',
+      'Connection creation will fail if this name is already in use. Continue with a unique name.',
+    );
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', false);
+  });
+
   it('should start at review when all initial form data is valid', async () => {
     const user = userEvent.setup();
     const createdConnection: Connection = {
@@ -353,6 +421,36 @@ describe('CreateConnectionWizard', () => {
       linkUrl: '/ai-hub/connections/connections/connection-id?project=test-project',
     });
     expect(onCreate.mock.results[0]?.value).resolves.toBe(createdConnection);
+  });
+
+  it('should wait for name availability before resolving the initial step', async () => {
+    const props = {
+      namespace: 'test-project',
+      onClose: jest.fn(),
+      initialFormData: {
+        name: 'new-connection',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        credentials: {
+          secret: 'new-connection',
+          properties: { URI: 'postgres://example' },
+        },
+        properties: {},
+      },
+    };
+    mockUseConnectionNameAvailability.mockReturnValue([undefined, false, undefined]);
+
+    const { rerender } = render(<CreateConnectionWizard {...props} isOpen />);
+
+    expect(await screen.findByRole('heading', { name: 'Connection type' })).toBeTruthy();
+
+    mockUseConnectionNameAvailability.mockReturnValue([
+      { available: true, conflicts_with: [] },
+      true,
+      undefined,
+    ]);
+    rerender(<CreateConnectionWizard {...props} isOpen />);
+
+    expect(await screen.findByRole('heading', { name: 'Review' })).toBeTruthy();
   });
 
   it('waits for accessible projects before resolving the initial step', async () => {

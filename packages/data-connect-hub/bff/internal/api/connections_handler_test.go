@@ -23,12 +23,14 @@ import (
 )
 
 type authorizationTestClient struct {
-	allowed  bool
-	err      error
-	token    string
-	verb     string
-	group    string
-	resource string
+	allowed      bool
+	err          error
+	token        string
+	secretExists bool
+	secretErr    error
+	verb         string
+	group        string
+	resource     string
 }
 
 func (c *authorizationTestClient) GetNamespaces(context.Context, *k8s.RequestIdentity) ([]corev1.Namespace, error) {
@@ -49,6 +51,10 @@ func (c *authorizationTestClient) GetUser(*k8s.RequestIdentity) (string, error) 
 	return "test-user", nil
 }
 func (c *authorizationTestClient) BearerToken() (string, error) { return c.token, nil }
+
+func (c *authorizationTestClient) SecretExists(_ context.Context, _ string, _ string) (bool, error) {
+	return c.secretExists, c.secretErr
+}
 
 type authorizationTestFactory struct{ client k8s.KubernetesClientInterface }
 

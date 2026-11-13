@@ -19,6 +19,10 @@ func validateNamespace(namespace string) error {
 }
 
 func (app *App) authorizeNamespace(w http.ResponseWriter, r *http.Request, namespace string, identity *kubernetes.RequestIdentity, verb, resource string) bool {
+	return app.authorizeResource(w, r, namespace, identity, verb, "dataconnecthub.opendatahub.io", resource)
+}
+
+func (app *App) authorizeResource(w http.ResponseWriter, r *http.Request, namespace string, identity *kubernetes.RequestIdentity, verb, group, resource string) bool {
 	if app.config.MockK8Client {
 		return true
 	}
@@ -32,7 +36,7 @@ func (app *App) authorizeNamespace(w http.ResponseWriter, r *http.Request, names
 		return false
 	}
 	allowed, err := client.CanAccessResource(
-		r.Context(), identity, namespace, verb, "dataconnecthub.opendatahub.io", resource,
+		r.Context(), identity, namespace, verb, group, resource,
 	)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to check namespace access: %w", err))
