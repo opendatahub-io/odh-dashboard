@@ -1030,6 +1030,10 @@ export type EvalHubBenchmarkSuiteTestData = Omit<
   }[];
   /** Benchmark IDs expected on the completed suite results page. */
   expectedBenchmarkIds: string[];
+  /** Curated system collection ID used by the Gallery Run scenario. */
+  curatedCollectionId?: string;
+  /** Runtime sample limit applied to every benchmark in the curated Gallery Run request. */
+  curatedRunNumExamples?: number;
 };
 
 export type ModelCatalogSourceTestData = {

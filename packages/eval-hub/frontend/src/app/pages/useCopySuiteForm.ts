@@ -677,7 +677,7 @@ export const buildCollectionPatchOperations = (
   ];
 
   if (request.benchmarks !== undefined) {
-    operations.push({ op: 'add', path: '/benchmarks', value: request.benchmarks });
+    operations.push({ op: 'replace', path: '/benchmarks', value: request.benchmarks });
   }
 
   return operations;

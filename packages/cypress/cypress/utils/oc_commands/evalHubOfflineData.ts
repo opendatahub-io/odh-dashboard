@@ -230,15 +230,20 @@ export const provisionEvalHubOfflineDataSecret = (tenantNamespace: string): Cypr
  * Registers a pass-through interceptor that adds offline test data to an EvalHub submission.
  * Connected-cluster runs never register it, so their requests remain unchanged.
  */
-export const interceptEvalHubOfflineDataRequest = (): boolean => {
+export const interceptEvalHubOfflineDataRequest = (
+  transformRequestBody?: (requestBody: unknown) => unknown,
+): boolean => {
   const config = getOfflineDataConfig();
   if (!config) {
     return false;
   }
 
   cy.intercept('POST', EVAL_HUB_EVALUATION_JOBS_URL, (request) => {
+    // Apply caller overrides before offline values so the offline tokenizer and dataset refs
+    // remain effective in disconnected runs.
+    const requestBody = transformRequestBody ? transformRequestBody(request.body) : request.body;
     Object.assign(request, {
-      body: withOfflineDataReferences(request.body as EvalHubEvaluationRequest, config),
+      body: withOfflineDataReferences(requestBody as EvalHubEvaluationRequest, config),
     });
     request.continue();
   }).as(EVAL_HUB_OFFLINE_DATA_INTERCEPT_ALIAS);
@@ -278,14 +283,17 @@ export const interceptEvalHubOfflineDataReadForReconfigure = (tenantNamespace: s
   return true;
 };
 
-/** Verifies the submitted request has offline data for every selected benchmark. */
-export const assertEvalHubOfflineDataRequest = (): void => {
+/** Verifies the transformed request's offline data and any related assertions from the same wait. */
+export const assertEvalHubOfflineDataRequest = (
+  assertRequestBody?: (requestBody: unknown) => void,
+): void => {
   const config = getOfflineDataConfig();
   if (!config) {
     return;
   }
 
   cy.wait(`@${EVAL_HUB_OFFLINE_DATA_INTERCEPT_ALIAS}`).then(({ request }) => {
+    assertRequestBody?.(request.body);
     const evaluationRequest = request.body as EvalHubEvaluationRequest;
     expect(evaluationRequest.model?.url, 'model endpoint URL')
       .to.be.a('string')

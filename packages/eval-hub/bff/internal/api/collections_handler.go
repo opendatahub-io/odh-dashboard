@@ -41,6 +41,53 @@ func validateCollectionPatchOperations(operations []evalhub.CollectionPatchOpera
 	return nil
 }
 
+// normalizeCollectionPatchOperations uses the original upstream JSON to select
+// the correct operation when replacing the whole benchmarks field. The decoded
+// Collection omits both absent and empty benchmark slices, but JSON Patch needs
+// add when the property is absent and replace when it already exists.
+func normalizeCollectionPatchOperations(
+	currentJSON json.RawMessage,
+	operations []evalhub.CollectionPatchOperation,
+) ([]evalhub.CollectionPatchOperation, error) {
+	needsFieldPresence := false
+	for _, operation := range operations {
+		if operation.Path == "/benchmarks" {
+			needsFieldPresence = true
+			break
+		}
+	}
+	if !needsFieldPresence {
+		return operations, nil
+	}
+
+	var currentFields map[string]json.RawMessage
+	if err := json.Unmarshal(currentJSON, &currentFields); err != nil {
+		return nil, fmt.Errorf("failed to inspect current collection JSON: %w", err)
+	}
+	_, benchmarksPresent := currentFields["benchmarks"]
+	normalized := append([]evalhub.CollectionPatchOperation(nil), operations...)
+
+	for index, operation := range normalized {
+		if operation.Path != "/benchmarks" {
+			continue
+		}
+
+		switch operation.Op {
+		case "replace":
+			if !benchmarksPresent {
+				normalized[index].Op = "add"
+			}
+			benchmarksPresent = true
+		case "add":
+			benchmarksPresent = true
+		case "remove":
+			benchmarksPresent = false
+		}
+	}
+
+	return normalized, nil
+}
+
 // benchmarkWriteTracker tracks which benchmark positions in the patched
 // collection were written by the patch operations. Positions shift as add and
 // remove operations change the array, so operations are replayed in order.
@@ -278,6 +325,11 @@ func (app *App) PatchCollectionHandler(w http.ResponseWriter, r *http.Request, p
 	}
 	if currentCollection.Status != nil && currentCollection.Status.RunCount > 0 {
 		app.conflictResponse(w, r, fmt.Errorf("collection cannot be edited after it has been run"))
+		return
+	}
+	operations, err = normalizeCollectionPatchOperations(currentJSON, operations)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 	if err := validatePatchedBenchmarks(currentJSON, currentCollection, operations); err != nil {
