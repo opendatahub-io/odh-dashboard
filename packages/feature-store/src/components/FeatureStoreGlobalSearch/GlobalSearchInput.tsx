@@ -18,7 +18,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { useSearchState } from './hooks/useSearchState';
 import { useSearchHandlers, type ISearchItem } from './hooks/useSearchHandlers';
 import { useResponsiveSearch } from './hooks/useResponsiveSearch';
@@ -109,6 +109,7 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
   totalCount = 0,
   isDetailsPage = false,
 }) => {
+  const trackEvent = useTrackEvent();
   const { loaded: projectsLoaded } = useFeatureStoreProjects();
   const searchState = useSearchState({ isLoading });
   const handlers = useSearchHandlers(searchState, {
@@ -125,13 +126,20 @@ const GlobalSearchInput: React.FC<ISearchInputProps> = ({
   React.useEffect(() => {
     const query = searchState.searchValue.trim();
     if (prevLoadingRef.current && !isLoading && query) {
-      fireMiscTrackingEvent(FEATURE_STORE_EVENTS.SEARCH_PERFORMED, {
+      trackEvent(FEATURE_STORE_EVENTS.SEARCH_PERFORMED, {
         resultCount: totalCount || searchResults.length,
         pageType: isDetailsPage ? 'detail' : 'list',
       } satisfies SearchPerformedProperties);
     }
     prevLoadingRef.current = isLoading;
-  }, [isLoading, totalCount, searchResults.length, isDetailsPage, searchState.searchValue]);
+  }, [
+    trackEvent,
+    isLoading,
+    totalCount,
+    searchResults.length,
+    isDetailsPage,
+    searchState.searchValue,
+  ]);
   const { searchInputStyle, searchMenuStyle } = useResponsiveSearch(
     searchState.isSmallScreen,
     searchInputContainerRef,

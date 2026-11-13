@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { LineageNode } from '@odh-dashboard/internal/components/lineage/types';
 import { useLineageClick } from '@odh-dashboard/internal/components/lineage/LineageClickContext';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   FEATURE_STORE_EVENTS,
   LineageNavigationPerformedProperties,
@@ -60,6 +60,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   onClose,
   featureViewName,
 }) => {
+  const trackEvent = useTrackEvent();
   const { currentProject } = useFeatureStoreProject();
   const { getLastClickPosition } = useLineageClick();
 
@@ -171,7 +172,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
                 }
                 isDisabled={!detailsRoute}
                 onClick={() => {
-                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NAVIGATION_PERFORMED, {
+                  trackEvent(FEATURE_STORE_EVENTS.LINEAGE_NAVIGATION_PERFORMED, {
                     targetResourceType: node.fsObjectTypes,
                     pageType: featureViewName ? 'detail' : 'overview',
                   } satisfies LineageNavigationPerformedProperties);
@@ -189,7 +190,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
                   <Link {...props} to={allFeaturesHref} />
                 )}
                 onClick={() => {
-                  fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_NAVIGATION_PERFORMED, {
+                  trackEvent(FEATURE_STORE_EVENTS.LINEAGE_NAVIGATION_PERFORMED, {
                     targetResourceType: RESOURCE_TYPES.FEATURE,
                     pageType: featureViewName ? 'detail' : 'overview',
                   } satisfies LineageNavigationPerformedProperties);

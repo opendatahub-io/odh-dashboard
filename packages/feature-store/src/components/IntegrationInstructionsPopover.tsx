@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Popover, Stack, StackItem, Button } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   FEATURE_STORE_EVENTS,
   HelpViewedProperties,
@@ -18,6 +18,7 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
   onFooterClick,
   className,
 }) => {
+  const trackEvent = useTrackEvent();
   const footerContent = (
     <Stack>
       <StackItem>
@@ -63,7 +64,7 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
       className={className}
       data-testid="integration-instructions-popover"
       onShow={() => {
-        fireMiscTrackingEvent(FEATURE_STORE_EVENTS.HELP_VIEWED, {
+        trackEvent(FEATURE_STORE_EVENTS.HELP_VIEWED, {
           helpType: 'integration',
           pageType: 'overview',
         } satisfies HelpViewedProperties);
