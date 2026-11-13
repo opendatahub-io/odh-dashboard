@@ -69,6 +69,7 @@ packageExtensionsChecksum: sha256-hLvuOjZrnN6DVom7ZZs0ECq6ilYxfqqOF8Okd4MaJNk=
 
 patchedDependencies:
   monaco-types@0.1.2: 8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24
+  monaco-worker-manager@2.0.1: fa60cee0b0b484962a003e86ff17a892b35b884eda620bf36e14466e9efcd1d8
 
 importers:
 
@@ -29951,7 +29952,7 @@ snapshots:
 
   monaco-types@0.1.2(patch_hash=8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24): {}
 
-  monaco-worker-manager@2.0.1(monaco-editor@0.56.0):
+  monaco-worker-manager@2.0.1(patch_hash=fa60cee0b0b484962a003e86ff17a892b35b884eda620bf36e14466e9efcd1d8)(monaco-editor@0.56.0):
     dependencies:
       monaco-editor: 0.56.0
 
@@ -29963,7 +29964,7 @@ snapshots:
       monaco-languageserver-types: 0.4.1
       monaco-marker-data-provider: 1.2.5
       monaco-types: 0.1.2(patch_hash=8feac7becacf5b8d8a21df72f035e5d4a27f1285e958604b4cc237872a5a1f24)
-      monaco-worker-manager: 2.0.1(monaco-editor@0.56.0)
+      monaco-worker-manager: 2.0.1(patch_hash=fa60cee0b0b484962a003e86ff17a892b35b884eda620bf36e14466e9efcd1d8)(monaco-editor@0.56.0)
       path-browserify: 1.0.1
       prettier: 3.9.6
       proxy-disposable: 1.0.0
