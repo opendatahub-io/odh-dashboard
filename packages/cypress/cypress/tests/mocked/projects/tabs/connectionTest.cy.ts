@@ -36,12 +36,7 @@ const initIntercepts = () => {
     ProjectModel,
     mockK8sResourceList([mockProjectK8sResource({ k8sName: 'test-project' })]),
   );
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({
-      disableConnectionTypes: false,
-    }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   cy.interceptOdh('GET /api/connection-types', [testConnectionType]);
 };
 
