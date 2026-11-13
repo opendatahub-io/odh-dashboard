@@ -6,6 +6,7 @@ import TypeaheadSelect, {
 } from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import { CallerOrganizationContext, groupLabel } from '~/app/shared/GroupName';
 import {
   EventTrackingFilterAttribute,
   EventTrackingResourceType,
@@ -163,11 +164,16 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   testIdPrefix = 'subscriptions',
   children,
 }) => {
+  // On Model access, the caller's organization's groups are listed by its name; the value stays
+  // the group's full name, so the filter matches as before.
+  const organization = React.useContext(CallerOrganizationContext);
   const { groupOptions, modelOptions } = React.useMemo(() => {
     const groupLabels = new Map<string, string>();
     const modelLabels = new Map<string, string>();
     subscriptions.forEach((subscription) => {
-      subscription.owner.groups.forEach((group) => groupLabels.set(group.name, group.name));
+      subscription.owner.groups.forEach((group) =>
+        groupLabels.set(group.name, groupLabel(group.name, organization)),
+      );
       subscription.modelRefs.forEach((modelRef) =>
         modelLabels.set(modelRef.name, modelRef.displayName ?? modelRef.name),
       );
@@ -176,7 +182,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
       groupOptions: toSelectOptions(groupLabels),
       modelOptions: toSelectOptions(modelLabels),
     };
-  }, [subscriptions]);
+  }, [subscriptions, organization]);
 
   return (
     <FilterToolbar<keyof typeof subscriptionsFilterOptions>

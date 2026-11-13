@@ -59,7 +59,13 @@ func resolveMaaSWhoAmI(app *App, r *http.Request) (*models.MaaSWhoAmI, error) {
 	if upstream == nil {
 		return nil, fmt.Errorf("MaaS /v1/me returned no user")
 	}
-	whoAmI := &models.MaaSWhoAmI{Sub: upstream.Sub, Email: upstream.Email, Name: upstream.Name}
+	whoAmI := &models.MaaSWhoAmI{
+		Sub:     upstream.Sub,
+		Email:   upstream.Email,
+		Name:    upstream.Name,
+		OrgID:   upstream.OrgID,
+		OrgName: upstream.OrgName,
+	}
 	whoAmI.IsAdmin, err = getMaaSAdminStatusFromWhoAmI(app, r, upstream)
 	return whoAmI, err
 }

@@ -27,6 +27,8 @@ func TestGetWhoAmIHandler(t *testing.T) {
 		wantCode            string
 		wantMessage         string
 		wantAdmin           bool
+		wantOrgID           string
+		wantOrgName         string
 	}{
 		{
 			name:              "success",
@@ -35,14 +37,17 @@ func TestGetWhoAmIHandler(t *testing.T) {
 			subscriptionsBody: `[{"roles":["admin"]}]`,
 			wantStatus:        http.StatusOK,
 			wantAdmin:         false,
+			wantOrgID:         "42c3e46f-2477-44d7-a85b-d3b43f6b31fa",
 		},
 		{
 			name:              "organization admin",
 			upstreamStatus:    http.StatusOK,
-			upstreamBody:      `{"sub":"user-123","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","roles":["admins"]}`,
+			upstreamBody:      `{"sub":"user-123","org_id":"42c3e46f-2477-44d7-a85b-d3b43f6b31fa","org_name":"Grid Tenant 1","roles":["admins"]}`,
 			subscriptionsBody: `[]`,
 			wantStatus:        http.StatusOK,
 			wantAdmin:         true,
+			wantOrgID:         "42c3e46f-2477-44d7-a85b-d3b43f6b31fa",
+			wantOrgName:       "Grid Tenant 1",
 		},
 		{
 			name:              "missing organizations uses subscriptions",
@@ -161,6 +166,9 @@ func TestGetWhoAmIHandler(t *testing.T) {
 				}
 				if body.Data.IsAdmin != tt.wantAdmin {
 					t.Errorf("isAdmin = %t, want %t", body.Data.IsAdmin, tt.wantAdmin)
+				}
+				if body.Data.OrgID != tt.wantOrgID || body.Data.OrgName != tt.wantOrgName {
+					t.Errorf("org = %q %q, want %q %q", body.Data.OrgID, body.Data.OrgName, tt.wantOrgID, tt.wantOrgName)
 				}
 				return
 			}
