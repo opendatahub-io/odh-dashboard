@@ -20,6 +20,7 @@ import { ProjectSectionType } from '@odh-dashboard/model-serving/shared/wizard-f
 import type { GatewayOption } from '@odh-dashboard/model-serving/shared/api/gatewayDiscovery';
 import { useGetGatewayOptions } from '@odh-dashboard/model-serving/shared/hooks/useGatewayOptions';
 import { isLLMInferenceServiceActive } from '../../formUtils';
+import { LLMD_GATEWAY_FIELD_ID } from '../../const';
 
 export type GatewaySelectDependencies = {
   project: ProjectSectionType;
@@ -299,7 +300,7 @@ const getGatewayReviewSection = (value: GatewaySelectFieldData): WizardReviewSec
   ];
 };
 export const GatewaySelectField: GatewaySelectFieldType = {
-  id: 'llmd-serving/gateway',
+  id: LLMD_GATEWAY_FIELD_ID,
   parentId: 'networking',
   step: 'advancedOptions',
   type: 'addition',

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   ClipboardCopyButton,
   CodeBlock,
@@ -71,6 +72,7 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
   patternName,
   responsesTemplate,
 }) => {
+  const trackEvent = useTrackEvent();
   const { namespace } = useParams();
   const { parameters } = useAutoragResultsContext();
   const dbSecretName = resolveDatabaseSecretName(parameters);
@@ -89,18 +91,21 @@ const ViewCodeModal: React.FC<ViewCodeModalProps> = ({
   const [activeCodeTab, setActiveCodeTab] = React.useState(0);
   const [copiedTab, setCopiedTab] = React.useState<number | null>(null);
 
-  const handleCopy = React.useCallback((text: string, tabIndex: number) => {
-    navigator.clipboard.writeText(text).then(
-      () => {
-        setCopiedTab(tabIndex);
-        setTimeout(() => setCopiedTab(null), 2000);
-        fireAutoragCodeSnippetsExported('copied');
-      },
-      () => {
-        // clipboard access denied
-      },
-    );
-  }, []);
+  const handleCopy = React.useCallback(
+    (text: string, tabIndex: number) => {
+      navigator.clipboard.writeText(text).then(
+        () => {
+          setCopiedTab(tabIndex);
+          setTimeout(() => setCopiedTab(null), 2000);
+          fireAutoragCodeSnippetsExported(trackEvent, 'copied');
+        },
+        () => {
+          // clipboard access denied
+        },
+      );
+    },
+    [trackEvent],
+  );
 
   return (
     <Modal

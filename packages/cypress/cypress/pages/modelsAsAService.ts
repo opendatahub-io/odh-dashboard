@@ -681,14 +681,18 @@ class SubscriptionsPage {
 
   findFilterToggle(
     category: 'model' | 'group' | 'subscription',
+    testIdPrefix = 'subscriptions',
   ): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`model-access-${category}-filter-toggle`);
+    return cy.findByTestId(`${testIdPrefix}-${category}-filter-toggle`);
   }
 
   /** Model is the default filter category; select it explicitly for clarity after filtering others. */
-  selectFilterCategory(category: 'model' | 'group' | 'subscription'): void {
-    cy.findByTestId('model-access-table-toolbar-dropdown').click();
-    cy.findByTestId(`model-access-table-toolbar-option-${category}`).click();
+  selectFilterCategory(
+    category: 'model' | 'group' | 'subscription',
+    testIdPrefix = 'subscriptions',
+  ): void {
+    cy.findByTestId(`${testIdPrefix}-table-toolbar-dropdown`).click();
+    cy.findByTestId(`${testIdPrefix}-table-toolbar-option-${category}`).click();
   }
 
   /** Commits a partial text fragment (or a specific option) in a typeahead filter. */
@@ -696,9 +700,10 @@ class SubscriptionsPage {
     category: 'model' | 'group' | 'subscription',
     text: string,
     optionName?: string,
+    testIdPrefix = 'subscriptions',
   ): void {
-    this.selectFilterCategory(category);
-    filterByTypeahead(`model-access-${category}-filter-toggle`, text, optionName);
+    this.selectFilterCategory(category, testIdPrefix);
+    filterByTypeahead(`${testIdPrefix}-${category}-filter-toggle`, text, optionName);
   }
 
   findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {

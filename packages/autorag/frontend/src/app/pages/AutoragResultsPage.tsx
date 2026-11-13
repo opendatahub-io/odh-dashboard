@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Alert,
   AlertActionCloseButton,
@@ -25,7 +26,6 @@ import { InvalidPipelineRun, StopRunModal } from '@odh-dashboard/autox-core/ui/c
 import { ContextBreadcrumb } from '@odh-dashboard/autox-core/ui/components/primitive';
 import { useFetchS3File, useS3ListFilesQuery } from '@odh-dashboard/autox-core/ui/hooks';
 import { parseErrorStatus } from '@odh-dashboard/autox-core/ui/utils';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useLocation, useParams } from 'react-router';
@@ -346,6 +346,7 @@ export const getResponsesTemplateForPattern = (
 };
 
 function AutoragResultsPage(): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const { namespace, runId } = useParams();
   const location = useLocation();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -469,7 +470,7 @@ function AutoragResultsPage(): React.JSX.Element {
         return;
       }
       downloadBlob(starterKit, STARTER_KIT_FILENAME);
-      fireAutoragStarterKitDownloaded();
+      fireAutoragStarterKitDownloaded(trackEvent);
     } catch (error) {
       if (
         isAbortError(error) ||
@@ -490,7 +491,7 @@ function AutoragResultsPage(): React.JSX.Element {
         starterKitDownloadController.current = null;
       }
     }
-  }, [fetchS3File, namespace, starterKitDisabled, starterKitKey]);
+  }, [trackEvent, fetchS3File, namespace, starterKitDisabled, starterKitKey]);
 
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
@@ -526,8 +527,8 @@ function AutoragResultsPage(): React.JSX.Element {
     resultsViewedTrackedRunId.current = pipelineRun.run_id;
 
     const navState = isAutoragResultsNavigationState(location.state) ? location.state : undefined;
-    fireAutoragResultsViewed(navState?.entrySource ?? 'other');
-  }, [pipelineRun?.run_id, location.state]);
+    fireAutoragResultsViewed(trackEvent, navState?.entrySource ?? 'other');
+  }, [trackEvent, pipelineRun?.run_id, location.state]);
 
   // Fetch and process AutoRAG results using custom hook
   const {
@@ -789,10 +790,10 @@ function AutoragResultsPage(): React.JSX.Element {
   const handleTryPattern = React.useCallback(
     (patternName: string, source: PlaygroundOpenedSource) => {
       if (openPlaygroundForPattern(patternName)) {
-        fireAutoragPlaygroundOpened(source);
+        fireAutoragPlaygroundOpened(trackEvent, source);
       }
     },
-    [openPlaygroundForPattern],
+    [trackEvent, openPlaygroundForPattern],
   );
 
   const [viewCodePattern, setViewCodePattern] = React.useState<{
@@ -820,9 +821,9 @@ function AutoragResultsPage(): React.JSX.Element {
         return;
       }
       setViewCodePattern({ patternName, responsesTemplate });
-      fireAutoragCodeSnippetsExported('viewed', source);
+      fireAutoragCodeSnippetsExported(trackEvent, 'viewed', source);
     },
-    [contextValue.parameters, patterns, pipelineRun?.run_id],
+    [trackEvent, contextValue.parameters, patterns, pipelineRun?.run_id],
   );
 
   return (
@@ -924,7 +925,7 @@ function AutoragResultsPage(): React.JSX.Element {
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
         onCancel={() =>
-          fireFormTrackingEvent(AUTORAG_EVENTS.RUN_STOPPED, {
+          trackEvent(AUTORAG_EVENTS.RUN_STOPPED, {
             outcome: TrackingOutcome.cancel,
             source: 'resultsPage',
           })

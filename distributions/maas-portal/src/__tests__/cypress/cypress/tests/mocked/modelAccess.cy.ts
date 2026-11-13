@@ -80,15 +80,38 @@ describe('Grid Model Access', () => {
     });
   });
 
-  it('filters admin subscriptions by subscription name', () => {
+  it('filters admin subscriptions by subscription text fragment across subscription details', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     portal.visit('/maas/model-access');
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');
-    cy.findByTestId('model-access-table-toolbar').findByRole('combobox').click();
-    cy.findByRole('option', { name: 'Basic Team Subscription' }).click();
-    cy.findByTestId('subscription-row').should('have.length', 1);
+
+    // Matches the subscription display name
+    subscriptionsPage.filterByTypeahead('subscription', 'Basic Team', undefined, 'model-access');
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
     cy.findByRole('link', { name: 'Basic Team Subscription' }).should('be.visible');
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('not.exist');
+
+    // Matches the group name
+    subscriptionsPage.filterByTypeahead('subscription', 'beta-testers', undefined, 'model-access');
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
+
+    // Matches the model display name across multiple subscriptions
+    subscriptionsPage.filterByTypeahead('subscription', 'Flan T5', undefined, 'model-access');
+    cy.findAllByTestId('subscription-row').should('have.length', 3);
+    cy.findByRole('link', { name: 'Basic Team Subscription' }).should('be.visible');
+    cy.findByRole('link', { name: 'Premium Team Subscription' }).should('be.visible');
+    cy.findByRole('link', { name: 'Enterprise Multi-Group Llama Access' }).should('not.exist');
+
+    // A search with no matches empties the table until cleared
+    subscriptionsPage.filterByTypeahead(
+      'subscription',
+      'missing-subscription',
+      undefined,
+      'model-access',
+    );
+    cy.findAllByTestId('subscription-row').should('not.exist');
+    cy.findAllByRole('button', { name: 'Clear all filters' }).first().click();
+    cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');
   });
 
   it('filters admin subscriptions by group', () => {
@@ -104,17 +127,29 @@ describe('Grid Model Access', () => {
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('not.exist');
   });
 
-  it('filters admin subscriptions by model', () => {
+  it('filters admin subscriptions by model selection and by model text', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     portal.visit('/maas/model-access');
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');
     cy.findByTestId('model-access-table-toolbar-dropdown').click();
     cy.findByTestId('model-access-table-toolbar-option-model').findByRole('menuitem').click();
+
+    // Selecting a model option filters to its subscriptions
     cy.findByTestId('model-access-table-toolbar').findByRole('combobox').type('llama');
     cy.findByRole('option', { name: 'llama-3-70b-instruct' }).click();
-    cy.findByTestId('subscription-row').should('have.length', 1);
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
     cy.findByRole('link', { name: 'Enterprise Multi-Group Llama Access' }).should('be.visible');
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('not.exist');
+
+    // A typed model text search matches the model display name
+    cy.findByTestId('model-access-model-filter-toggle')
+      .findByRole('button', { name: 'Clear input value' })
+      .click();
+    cy.findByTestId('model-access-model-filter-toggle').findByRole('combobox').type('Granite 3 8B');
+    cy.findByRole('option', { name: 'Filter by "Granite 3 8B"' }).click();
+    cy.findAllByTestId('subscription-row').should('have.length', 1);
+    cy.findByRole('link', { name: 'Premium Team Subscription' }).should('be.visible');
+    cy.findByRole('link', { name: 'Enterprise Multi-Group Llama Access' }).should('not.exist');
   });
 
   it('shows the empty and error states from admin-subscriptions', () => {

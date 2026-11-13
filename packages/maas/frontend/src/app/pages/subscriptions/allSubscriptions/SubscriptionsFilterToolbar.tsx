@@ -10,12 +10,14 @@ import {
   MaaSSettingsListFilteredProperties,
 } from '~/app/types/event-tracking';
 import {
-  modelAccessFilterOptions,
+  subscriptionsFilterOptions,
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 
-type ModelAccessToolbarProps = {
+type SubscriptionsFilterToolbarProps = {
+  testIdPrefix?: string;
+  children?: React.ReactNode;
   filterData: SubscriptionsFilterDataType;
   onFilterUpdate: (
     key: SubscriptionsFilterOptions,
@@ -23,21 +25,16 @@ type ModelAccessToolbarProps = {
   ) => void;
   /** Source of the typeahead filter options; values match on resource names. */
   subscriptions: MaaSSubscription[];
-  /** Toolbar content rendered after the filters, e.g. a create button. */
-  children?: React.ReactNode;
 };
 
-/**
- * Toolbar for the read-only Model Access page and the MaaS governance
- * subscriptions tab: filters the subscriptions table through Model / Group /
- * Subscription typeahead selects where the user picks a value from a list,
- * types to narrow the list and selects an item, or commits a partial text
- * fragment to match all rows containing it.
- */
-const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
+/** Shared subscriptions toolbar: Subscription / Group / Model typeahead selects
+ * with fragment matching, used by the subscriptions page, the MaaS governance
+ * subscriptions tab, and the model access viewer. */
+const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   filterData,
   onFilterUpdate,
   subscriptions,
+  testIdPrefix = 'subscriptions',
   children,
 }) => {
   const { subscriptionOptions, groupOptions, modelOptions } = React.useMemo(() => {
@@ -65,38 +62,38 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
     } satisfies MaaSSettingsListFilteredProperties);
 
   return (
-    <FilterToolbar<keyof typeof modelAccessFilterOptions>
-      testId="model-access-table-toolbar"
-      filterOptions={modelAccessFilterOptions}
+    <FilterToolbar<keyof typeof subscriptionsFilterOptions>
+      testId={`${testIdPrefix}-table-toolbar`}
+      filterOptions={subscriptionsFilterOptions}
       filterOptionRenders={{
-        [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
+        [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
           <TypeaheadFilterField
-            options={modelOptions}
-            placeholder="Select a model"
-            testId="model-access-model-filter-toggle"
+            options={subscriptionOptions}
+            placeholder="Select a subscription"
+            testId={`${testIdPrefix}-subscription-filter-toggle`}
             onChange={onChange}
             value={value}
-            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.MODEL)}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.SUBSCRIPTION)}
           />
         ),
         [SubscriptionsFilterOptions.group]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={groupOptions}
             placeholder="Select a group"
-            testId="model-access-group-filter-toggle"
+            testId={`${testIdPrefix}-group-filter-toggle`}
             onChange={onChange}
             value={value}
             onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.GROUP)}
           />
         ),
-        [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
+        [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
           <TypeaheadFilterField
-            options={subscriptionOptions}
-            placeholder="Select a subscription"
-            testId="model-access-subscription-filter-toggle"
+            options={modelOptions}
+            placeholder="Select a model"
+            testId={`${testIdPrefix}-model-filter-toggle`}
             onChange={onChange}
             value={value}
-            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.SUBSCRIPTION)}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.MODEL)}
           />
         ),
       }}
@@ -108,4 +105,4 @@ const ModelAccessToolbar: React.FC<ModelAccessToolbarProps> = ({
   );
 };
 
-export default ModelAccessToolbar;
+export default SubscriptionsFilterToolbar;

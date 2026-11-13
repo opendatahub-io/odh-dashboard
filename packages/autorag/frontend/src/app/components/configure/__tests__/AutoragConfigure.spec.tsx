@@ -8,7 +8,7 @@ import * as React from 'react';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import type { ConnectionModalProps } from '@odh-dashboard/autox-core/ui/components/feature';
 import { UIErrorHandler } from '@odh-dashboard/autox-core/ui/components/primitive';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
@@ -26,13 +26,13 @@ import {
   AUTORAG_FAILURE_CATEGORY,
   TrackingOutcome,
 } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 const mockNotificationError = jest.fn();
 const mockNotificationWarning = jest.fn();
@@ -340,7 +340,7 @@ const renderWithQueryClient = (
       </UIErrorHandler>
     </QueryClientProvider>
   );
-  return render(
+  return renderWithTracking(
     options?.onKnowledgeSourceConfigured ? (
       <RunTriggeredTrackingContext.Provider
         value={{
@@ -1169,15 +1169,12 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-        {
-          knowledgeSourceType: 's3',
-          countOfDocuments: 1,
-          outcome: TrackingOutcome.submit,
-          success: true,
-        },
-      );
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, {
+        knowledgeSourceType: 's3',
+        countOfDocuments: 1,
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
     });
 
     it('should fire with countOfDocuments: 1 even when the picker returns multiple files (only the first is committed)', () => {
@@ -1186,15 +1183,12 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-folder'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-        {
-          knowledgeSourceType: 's3',
-          countOfDocuments: 1,
-          outcome: TrackingOutcome.submit,
-          success: true,
-        },
-      );
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, {
+        knowledgeSourceType: 's3',
+        countOfDocuments: 1,
+        outcome: TrackingOutcome.submit,
+        success: true,
+      });
     });
 
     it('should fire with outcome: cancel and success: false when the S3 file browser is dismissed without a selection', () => {
@@ -1203,26 +1197,23 @@ describe('AutoragConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-cancel'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-        AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-        {
-          knowledgeSourceType: 's3',
-          countOfDocuments: 0,
-          outcome: TrackingOutcome.cancel,
-          success: false,
-        },
-      );
+      expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, {
+        knowledgeSourceType: 's3',
+        countOfDocuments: 0,
+        outcome: TrackingOutcome.cancel,
+        success: false,
+      });
     });
 
     it('should not fire a cancel event when the browser is closed immediately after a successful selection', () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledTimes(1);
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
+      expect(trackEventMock).toHaveBeenCalledTimes(1);
+      expect(trackEventMock).toHaveBeenCalledWith(
         AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
         expect.objectContaining({ outcome: TrackingOutcome.submit }),
       );
@@ -1237,19 +1228,16 @@ describe('AutoragConfigure', () => {
       expect(fileInput).not.toBeNull();
 
       const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       fireEvent.change(fileInput!, { target: { files: [goodFile] } });
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-          {
-            knowledgeSourceType: 'upload',
-            countOfDocuments: 1,
-            outcome: TrackingOutcome.submit,
-            success: true,
-          },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, {
+          knowledgeSourceType: 'upload',
+          countOfDocuments: 1,
+          outcome: TrackingOutcome.submit,
+          success: true,
+        });
       });
     });
 
@@ -1266,23 +1254,20 @@ describe('AutoragConfigure', () => {
       getMockS3MutateAsync().mockRejectedValueOnce(
         new Error('upload exploded: s3://acme-secret-bucket'),
       );
-      fireFormTrackingEventMock.mockClear();
+      trackEventMock.mockClear();
       fireEvent.change(fileInput!, { target: { files: [file] } });
 
       await waitFor(() => {
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED,
-          {
-            knowledgeSourceType: 'upload',
-            countOfDocuments: 0,
-            outcome: TrackingOutcome.submit,
-            success: false,
-            error: AUTORAG_FAILURE_CATEGORY,
-          },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.KNOWLEDGE_SOURCE_CONFIGURED, {
+          knowledgeSourceType: 'upload',
+          countOfDocuments: 0,
+          outcome: TrackingOutcome.submit,
+          success: false,
+          error: AUTORAG_FAILURE_CATEGORY,
+        });
       });
 
-      const allTrackingCalls = JSON.stringify(fireFormTrackingEventMock.mock.calls);
+      const allTrackingCalls = JSON.stringify(trackEventMock.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-secret-bucket');
     });
 

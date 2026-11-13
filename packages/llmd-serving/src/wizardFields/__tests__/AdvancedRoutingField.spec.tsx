@@ -197,7 +197,6 @@ describe('AdvancedRoutingField tracking', () => {
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
-      routingConfigurationId: '__default-optimized-routing__',
       isDefaultRouting: true,
     });
   });
@@ -216,7 +215,6 @@ describe('AdvancedRoutingField tracking', () => {
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
-      routingConfigurationId: 'router-config-1',
       isDefaultRouting: false,
     });
   });
@@ -237,7 +235,6 @@ describe('AdvancedRoutingField tracking', () => {
     });
 
     expect(mockTrackEvent).toHaveBeenCalledWith(LlmdTrackingEvent.ROUTING_SELECTED, {
-      routingConfigurationId: 'router-config-2',
       isDefaultRouting: false,
     });
   });
@@ -280,7 +277,6 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData(allConfigs)}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
-      { wrapper },
     );
 
     await waitFor(() => {
@@ -375,7 +371,6 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData([mockCompatibleConfig, mockIncompatibleConfig])}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
-      { wrapper },
     );
 
     await waitFor(() => {
@@ -398,7 +393,6 @@ describe('AdvancedRoutingField component — incompatible config handling', () =
         externalData={buildExternalData([mockCompatibleConfig])}
         dependencies={{ topologyType: { topologyType: TopologyType.SINGLE_NODE } }}
       />,
-      { wrapper },
     );
 
     await waitFor(() => {
