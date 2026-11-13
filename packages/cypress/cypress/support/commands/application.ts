@@ -272,6 +272,11 @@ const handleKeycloakLogin = (credentials: UserAuthConfig): void => {
     '#kc-login:visible, input[type="submit"]:visible, button[type="submit"]:visible';
   const findVisibleUsername = () =>
     cy.get(usernameSelector, { timeout: 15000 }).filter(':visible').first();
+  const findEditableUsername = () =>
+    cy
+      .get(usernameSelector, { timeout: 15000 })
+      .filter(':visible:not([readonly]):not([disabled])')
+      .first();
   const findVisiblePassword = () =>
     cy.get(passwordSelector, { timeout: 15000 }).filter(':visible').first();
 
@@ -290,12 +295,14 @@ const handleKeycloakLogin = (credentials: UserAuthConfig): void => {
     }
   });
 
-  // Wait for the final form after a username-only Keycloak step and refill the
-  // username because some broker flows replace the form during navigation.
-  findVisibleUsername().should('be.visible');
-  findVisibleUsername().clear();
-  findVisibleUsername().type(credentials.USERNAME);
-  findVisibleUsername().should('have.value', credentials.USERNAME);
+  // Refill the username when the password form includes an editable field.
+  cy.get('body').then(($body) => {
+    if ($body.find(usernameSelector).filter(':visible:not([readonly]):not([disabled])').length) {
+      findEditableUsername().clear();
+      findEditableUsername().type(credentials.USERNAME);
+      findEditableUsername().should('have.value', credentials.USERNAME);
+    }
+  });
   findVisiblePassword().should('be.visible');
   findVisiblePassword().clear();
   findVisiblePassword().type(credentials.PASSWORD, { log: false });
