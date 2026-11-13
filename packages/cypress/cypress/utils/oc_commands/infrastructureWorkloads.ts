@@ -1,4 +1,5 @@
 import { applyOpenShiftYaml } from './baseCommands';
+import { verifyClusterTrainingRuntimeAvailable } from './trainingJobs';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import type { CommandLineResult } from '../../types';
 
@@ -64,16 +65,7 @@ export const setupInfrastructureWorkloadsResources = (
       ),
     )
     .then((result) => assertApplied('Kueue resources', result))
-    .then(() => cy.fixture('resources/yaml/training-runtime.yaml'))
-    .then((yamlTemplate: string) =>
-      applyOpenShiftYaml(
-        replaceTemplateVariables(yamlTemplate, {
-          namespace: config.managedProjectName,
-          trainingRuntimeName: config.trainingRuntimeName,
-        }),
-      ),
-    )
-    .then((result) => assertApplied('TrainingRuntime', result))
+    .then(() => verifyClusterTrainingRuntimeAvailable(config.trainingRuntimeName))
     .then(() => cy.fixture('resources/yaml/train-job.yaml'))
     .then((yamlTemplate: string) =>
       applyOpenShiftYaml(
