@@ -92,11 +92,9 @@ const getRequiredPortalConfig = (): {
 };
 
 describe('MaaS Portal role access and API-key lifecycle', () => {
-  const portalTest = runMaaSPortalE2E ? it : it.skip;
-
-  before(() => {
+  before(function setupMaaSPortalResources() {
     if (!runMaaSPortalE2E) {
-      return;
+      this.skip();
     }
 
     const { organizationId, userGroups, adminUser } = getRequiredPortalConfig();
@@ -146,9 +144,9 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
     cleanupApiKeys(apiKeyName);
   });
 
-  portalTest(
+  it(
     'validates role access, API-key creation and revocation, and revoked-key authorization',
-    { tags: ['@Smoke', '@Dashboard', '@MaaS', '@MaaSPortal', '@MaaSAccess'] },
+    { tags: ['@Smoke', '@Dashboard', '@MaaS', '@MaaSPortal', '@MaaSAccess', '@Maintain'] },
     () => {
       const { portalUrl, adminUser, portalUser } = getRequiredPortalConfig();
 

@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "path": "packages/cypress/cypress/tests/e2e/maasPortal/testMaaSPortal.cy.ts",
+    "owner": "quality-e2e-testing-reviewers",
+    "reason": "Requires MaaS Portal Keycloak users, organization, and group claims that standard Cypress CI does not provision; run explicitly with ENABLE_MAAS_PORTAL_E2E."
+  }
+]
