@@ -164,8 +164,8 @@ export const getModelDeployedTrackingProperties = ({
   const hasInjectedValidatedArgs = (runtimeArgs ?? []).includes(TOOL_CALLING_INJECTED_ARGS_MARKER);
 
   return {
-    ...additionalProperties,
     ...navState.extraDeployTrackingProperties,
+    ...additionalProperties,
     enableToolCalling:
       selectedOptions.some((option) => option.title === TOOL_CALLING_CONFIGURATION_TITLE) ||
       hasInjectedValidatedArgs,
