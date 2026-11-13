@@ -297,7 +297,7 @@ describe('MaaS Portal extensions', () => {
     expect(governanceRoute).toBeDefined();
   });
 
-  it('should expose the read-only Model Access page route to MaaS admins', () => {
+  it('should expose the read-only Model access page route to MaaS admins', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
     store.setFeatureFlags({ ADMIN_USER: false, MAAS_MODEL_ACCESS_ADMIN: true });
@@ -309,7 +309,7 @@ describe('MaaS Portal extensions', () => {
     expect(modelAccessRoute).toBeDefined();
   });
 
-  it('should hide the read-only Model Access page route from non-admins', () => {
+  it('should hide the read-only Model access page route from non-admins', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
     store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: false });
@@ -321,7 +321,7 @@ describe('MaaS Portal extensions', () => {
     ).toBe(false);
   });
 
-  it('should keep the read-only Model Access page route available to admins', () => {
+  it('should keep the read-only Model access page route available to admins', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
     store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
@@ -333,7 +333,7 @@ describe('MaaS Portal extensions', () => {
     expect(modelAccessRoutes).toHaveLength(1);
   });
 
-  it('should select the portal Model Access navigation item for the read-only route', () => {
+  it('should select the portal Model access navigation item for the read-only route', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
     store.setFeatureFlags({ MAAS_MODEL_ACCESS_ADMIN: true });
@@ -382,7 +382,7 @@ describe('MaaS Portal extensions', () => {
     expect(governanceExtensions).toHaveLength(0);
   });
 
-  it('should show Model Access navigation and route only for whoami administrators', () => {
+  it('should show Model access navigation and route only for whoami administrators', () => {
     const store = new PluginStore(buildCatalog());
     enablePortalFlags(store);
 

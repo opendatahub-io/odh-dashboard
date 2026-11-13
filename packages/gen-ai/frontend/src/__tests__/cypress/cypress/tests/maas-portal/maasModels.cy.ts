@@ -70,7 +70,7 @@ describe('MaaS Portal models', () => {
     cy.intercept('GET', `${modelsPath}*`, { statusCode: 503, body: {} }).as('modelsError');
     maasModelsPage.visit();
     cy.wait('@modelsError');
-    maasModelsPage.findError().should('contain.text', 'Unable to load MaaS models');
+    maasModelsPage.findError().should('contain.text', 'Unable to load page');
     maasModelsPage.findLoading().should('not.exist');
 
     cy.intercept('GET', `${modelsPath}*`, { data: [mockMaaSModel()] }).as('modelsRetry');
