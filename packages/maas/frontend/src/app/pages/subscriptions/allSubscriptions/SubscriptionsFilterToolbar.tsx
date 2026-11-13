@@ -69,7 +69,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
         [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={subscriptionOptions}
-            placeholder="Filter by subscription name, ID, or description"
+            placeholder="Filter by subscription name"
             testId={`${testIdPrefix}-subscription-filter-toggle`}
             onChange={onChange}
             value={value}
