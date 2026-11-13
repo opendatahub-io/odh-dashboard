@@ -126,13 +126,69 @@ function topLevelOnly(body) {
   return out;
 }
 
-function stripLineComments(content) {
-  return content.replace(/^\s*\/\/.*$/gm, '');
+/**
+ * Removes `//` line comments (whole-line or trailing) and `/* *\/` block comments that sit
+ * outside string literals. Newlines are kept so line structure is preserved.
+ */
+function stripComments(content) {
+  let out = '';
+  let quote = null;
+  for (let i = 0; i < content.length; i++) {
+    const ch = content[i];
+    const next = content[i + 1];
+    if (quote) {
+      out += ch;
+      if (ch === '\\') {
+        out += next ?? '';
+        i++;
+      } else if (ch === quote) {
+        quote = null;
+      }
+    } else if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      out += ch;
+    } else if (ch === '/' && next === '/') {
+      while (i < content.length && content[i] !== '\n') {
+        i++;
+      }
+      out += '\n';
+    } else if (ch === '/' && next === '*') {
+      const end = content.indexOf('*/', i + 2);
+      const stop = end === -1 ? content.length : end + 2;
+      out += content.slice(i, stop).replace(/[^\n]/g, '');
+      i = stop - 1;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
+/**
+ * Parses `key: true|false` lines into `{ key: boolean }`. Every non-blank line must be a single
+ * boolean assignment, so a default the parser cannot read fails loudly instead of being skipped.
+ */
+function parseBooleanAssignments(body, label) {
+  const values = {};
+  for (const raw of stripComments(body).split('\n')) {
+    const line = raw.trim();
+    if (!line) {
+      continue;
+    }
+    const m = line.match(/^['"]?([A-Za-z_$][\w$]*)['"]?\s*:\s*(true|false)\s*,?$/);
+    if (!m) {
+      throw new Error(
+        `${label}: cannot parse default "${line}"; use one "flag: true|false" per line`,
+      );
+    }
+    values[m[1]] = m[2] === 'true';
+  }
+  return values;
 }
 
 function keysFromObjectBody(body) {
   const keys = [];
-  for (const match of stripLineComments(topLevelOnly(body)).matchAll(
+  for (const match of topLevelOnly(stripComments(body)).matchAll(
     /^\s*['"]?([A-Za-z_$][\w$]*)['"]?\??\s*:/gm,
   )) {
     keys.push(match[1]);
@@ -246,28 +302,11 @@ function parseGoStructFlags(content, structName) {
   return keys;
 }
 
-/** Turns `true` / `false` into booleans; anything else is kept as source text. */
-function parseLiteral(text) {
-  if (text === 'true') {
-    return true;
-  }
-  if (text === 'false') {
-    return false;
-  }
-  return text;
-}
-
 /** Backend: `{ flag: boolean }` from the `dashboardConfig` literal inside `<name>`. */
 function parseBackendDefaults(content, constName) {
   const cr = extractBlock(content, `export const ${constName}`, constName);
-  const body = stripLineComments(
-    topLevelOnly(extractBlock(cr, 'dashboardConfig:', `${constName}.dashboardConfig`)),
-  );
-  const values = {};
-  for (const m of body.matchAll(/^\s*['"]?([\w$]+)['"]?\s*:\s*([^,\n]+?)\s*,?\s*$/gm)) {
-    values[m[1]] = parseLiteral(m[2]);
-  }
-  return values;
+  const body = extractBlock(cr, 'dashboardConfig:', `${constName}.dashboardConfig`);
+  return parseBooleanAssignments(body, `${constName}.dashboardConfig`);
 }
 
 /**
@@ -291,9 +330,9 @@ function parseGoDefaults(content, structName, varName) {
   }
   const blank = extractBlock(content, `var ${varName} = `, varName);
   const literal = extractBlock(blank, `${structName}{`, `${varName} ${structName}`);
-  for (const m of literal.matchAll(/^\s*(\w+):\s*([^,\n]+?)\s*,\s*$/gm)) {
-    const tag = tagByField[m[1]] ?? m[1];
-    values[tag] = parseLiteral(m[2]);
+  const assigned = parseBooleanAssignments(literal, `${varName}.${structName}`);
+  for (const [field, value] of Object.entries(assigned)) {
+    values[tagByField[field] ?? field] = value;
   }
   return values;
 }

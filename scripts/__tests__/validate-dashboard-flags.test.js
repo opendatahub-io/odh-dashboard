@@ -190,6 +190,75 @@ describe('parsers', () => {
       ['"disableTracking" defaults to true in backend but false in coreBff'],
     );
   });
+
+  it('parseGoDefaults reads a value followed by a trailing or block comment', () => {
+    const commented = GO.replace(
+      '\t\t\tEnablement:      true,\n',
+      '\t\t\tEnablement:      false, // off by default\n',
+    ).replace('\t\t\tDisableTracking: true,\n', '\t\t\tDisableTracking: false, /* off */\n');
+    assert.deepEqual(parseGoDefaults(commented, 'DashboardFeatureFlags', 'BlankDashboardCR'), {
+      enablement: false,
+      disableTracking: false,
+    });
+  });
+
+  it('parseBackendDefaults reads a value followed by a trailing or block comment', () => {
+    const commented = BACKEND.replace(
+      '      enablement: true,\n',
+      '      enablement: false, // off by default\n',
+    ).replace('      disableTracking: false,\n', '      disableTracking: true, /* on */\n');
+    assert.deepEqual(parseBackendDefaults(commented, 'blankDashboardCR'), {
+      enablement: false,
+      disableTracking: true,
+    });
+  });
+
+  it('reports drift hidden behind a trailing comment on either side', () => {
+    const go = GO.replace(
+      '\t\t\tDisableTracking: true,\n',
+      '\t\t\tDisableTracking: true, // enable tracking by default\n',
+    );
+    assert.deepEqual(
+      compareDefaults({
+        backend: parseBackendDefaults(BACKEND, 'blankDashboardCR'),
+        coreBff: parseGoDefaults(go, 'DashboardFeatureFlags', 'BlankDashboardCR'),
+      }),
+      ['"disableTracking" defaults to false in backend but true in coreBff'],
+    );
+  });
+
+  it('parseGoDefaults rejects a default it cannot parse', () => {
+    const unparsed = GO.replace(
+      '\t\t\tDisableTracking: true,\n',
+      '\t\t\tDisableTracking: !false,\n',
+    );
+    assert.throws(
+      () => parseGoDefaults(unparsed, 'DashboardFeatureFlags', 'BlankDashboardCR'),
+      /cannot parse default "DisableTracking: !false,"/,
+    );
+  });
+
+  it('parseBackendDefaults rejects a default it cannot parse', () => {
+    const unparsed = BACKEND.replace(
+      '      disableTracking: false,\n',
+      '      disableTracking: false, enablement: true,\n',
+    );
+    assert.throws(
+      () => parseBackendDefaults(unparsed, 'blankDashboardCR'),
+      /cannot parse default "disableTracking: false, enablement: true,"/,
+    );
+  });
+
+  it('keeps "//" inside string literals when stripping comments', () => {
+    const withUrl = TS_TYPE.replace(
+      '  optionalFlag?: boolean;\n',
+      "  optionalFlag?: 'https://example.com'; // trailing\n",
+    );
+    assert.deepEqual(parseTsTypeFlags(withUrl, 'DashboardCommonConfig'), [
+      'enablement',
+      'optionalFlag',
+    ]);
+  });
 });
 
 describe('compareFlags', () => {
