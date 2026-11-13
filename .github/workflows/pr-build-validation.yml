@@ -380,6 +380,44 @@ jobs:
           path: /tmp/odh-core-bff.tar.gz
           retention-days: 1
 
+  # RHAII is a standalone distribution with a release Dockerfile rather than
+  # Dockerfile.workspace. Keep this explicit so its PR image build is validated
+  # without changing the module-oriented discovery convention.
+  rhaii-build:
+    name: 'Phase 1: RHAII Image Build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    needs: [check-skip, hermetic-preflight]
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Build RHAII image
+        run: |
+          set -euo pipefail
+          docker build \
+            --tag rhaii-dashboard:pr-build \
+            --file distributions/rhaii/Dockerfile \
+            .
+
+      - name: Save RHAII image
+        run: docker save rhaii-dashboard:pr-build | gzip > /tmp/rhaii-dashboard.tar.gz
+
+      - name: Upload RHAII image artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: rhaii-dashboard-image
+          path: /tmp/rhaii-dashboard.tar.gz
+          retention-days: 1
+
   # Phase 1 (operator): Build the dashboard-operator container image.
   # The operator Dockerfile is built from the repo root because it COPYs both
   # dashboard-operator/ sources and manifests/ into the image. The resulting image
@@ -857,6 +895,108 @@ jobs:
           echo ""
           echo "✅ PASS: BUILD_MODE=RHOAI correctly applied RHOAI branding"
           echo "::endgroup::"
+
+  # RHAII has a standalone release image that embeds the Core BFF. Validate it
+  # in its own Kind cluster so the runtime contract stays independent from the
+  # ODH dashboard/operator integration scenario in Phase 4.
+  rhaii-runtime-validation:
+    name: 'Phase 2-3: RHAII Runtime Validation'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # for download-artifact
+    needs: [check-skip, rhaii-build]
+    if: needs.check-skip.outputs.should-skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Download RHAII image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.2.1
+        with:
+          name: rhaii-dashboard-image
+          path: /tmp
+
+      - name: Install Kind
+        run: |
+          set -euo pipefail
+          KIND_URL="https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64"
+          KIND_SHA256="513a7213d6d3332dd9ef27c24dab35e5ef10a04fa27274fe1c14d8a246493ded"
+
+          curl -sLo /tmp/kind "$KIND_URL"
+          echo "${KIND_SHA256}  /tmp/kind" | sha256sum --check --status
+          chmod +x /tmp/kind
+          sudo mv /tmp/kind /usr/local/bin/kind
+
+      - name: Create RHAII Kind cluster
+        run: |
+          set -euo pipefail
+          kind create cluster --name rhaii-test --wait 300s
+
+      - name: Load RHAII image to Kind
+        run: |
+          set -euo pipefail
+          docker load < /tmp/rhaii-dashboard.tar.gz
+          kind load docker-image rhaii-dashboard:pr-build --name rhaii-test
+
+      - name: Deploy RHAII runtime validation overlay
+        run: |
+          set -euo pipefail
+          kubectl create namespace opendatahub
+          kubectl kustomize --load-restrictor LoadRestrictionsNone \
+            .github/pr-build-simulation/rhaii | kubectl apply -f -
+
+      - name: Validate RHAII runtime and packaged assets
+        run: |
+          set -euo pipefail
+
+          if ! kubectl rollout status deployment/rhaii-dashboard -n opendatahub --timeout=120s; then
+            echo "::group::RHAII deployment diagnostics"
+            kubectl get deployment,replicaset,pods -n opendatahub -o wide || true
+            kubectl describe deployment rhaii-dashboard -n opendatahub || true
+            kubectl describe pods -n opendatahub -l deployment=rhaii-dashboard || true
+            kubectl logs -n opendatahub -l deployment=rhaii-dashboard --all-containers --tail=100 || true
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          PORT_FORWARD_PID=""
+          cleanup() {
+            if [ -n "$PORT_FORWARD_PID" ]; then
+              kill "$PORT_FORWARD_PID" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          kubectl port-forward -n opendatahub service/rhaii-dashboard 4000:4000 \
+            > /tmp/rhaii-port-forward.log 2>&1 &
+          PORT_FORWARD_PID=$!
+
+          for attempt in {1..24}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4000/healthcheck >/dev/null; then
+              break
+            fi
+            if ! kill -0 "$PORT_FORWARD_PID" >/dev/null 2>&1; then
+              cat /tmp/rhaii-port-forward.log
+              exit 1
+            fi
+            sleep 2
+          done
+          curl --fail --silent --show-error http://127.0.0.1:4000/healthcheck >/dev/null
+
+          curl --fail --silent --show-error http://127.0.0.1:4000/ > /tmp/rhaii-index.html
+          grep -qi '<html' /tmp/rhaii-index.html
+
+          curl --fail --silent --show-error --dump-header /tmp/rhaii-remote.headers \
+            --output /tmp/rhaii-remote.js \
+            http://127.0.0.1:4000/_mf/modelServing/remoteEntry.js
+          grep -Eqi '^content-type: (application|text)/javascript' /tmp/rhaii-remote.headers
+          test -s /tmp/rhaii-remote.js
 
   # Phase 4: Operator Integration (Kind cluster)
   operator-integration:
@@ -1543,10 +1683,12 @@ jobs:
       - docker-build-odh
       - docker-build-rhoai
       - core-bff-build
+      - rhaii-build
       - operator-build
       - manifest-validation
       - runtime-validation-odh
       - runtime-validation-rhoai
+      - rhaii-runtime-validation
       - operator-integration
       - detect-bff-changes
       - bff-build-validation
@@ -1563,9 +1705,11 @@ jobs:
           echo "Phase 1 (Docker Build ODH): ${{ needs.docker-build-odh.result }}"
           echo "Phase 1 (Docker Build RHOAI): ${{ needs.docker-build-rhoai.result }}"
           echo "Phase 1 (Core BFF Image Build): ${{ needs.core-bff-build.result }}"
+          echo "Phase 1 (RHAII Image Build): ${{ needs.rhaii-build.result }}"
           echo "Phase 1 (Operator Image Build): ${{ needs.operator-build.result }}"
           echo "Phase 2-3 (Runtime ODH): ${{ needs.runtime-validation-odh.result }}"
           echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
+          echo "Phase 2-3 (RHAII Runtime): ${{ needs.rhaii-runtime-validation.result }}"
           echo "Phase 4 (Operator Integration): ${{ needs.operator-integration.result }}"
           echo "Phase 5 (Manifest Validation): ${{ needs.manifest-validation.result }}"
           echo "BFF Detection: ${{ needs.detect-bff-changes.result }}"
@@ -1580,10 +1724,12 @@ jobs:
                         "${{ needs.docker-build-odh.result }}" \
                         "${{ needs.docker-build-rhoai.result }}" \
                         "${{ needs.core-bff-build.result }}" \
+                        "${{ needs.rhaii-build.result }}" \
                         "${{ needs.operator-build.result }}" \
                         "${{ needs.manifest-validation.result }}" \
                         "${{ needs.runtime-validation-odh.result }}" \
                         "${{ needs.runtime-validation-rhoai.result }}" \
+                        "${{ needs.rhaii-runtime-validation.result }}" \
                         "${{ needs.operator-integration.result }}" \
                         "${{ needs.detect-bff-changes.result }}" \
                         "${{ needs.bff-build-validation.result }}" \
