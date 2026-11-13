@@ -1929,12 +1929,12 @@ run_self_test() {
     cat > "${jira_config}/.run/jira.json" <<'JSON'
 {
   "key": "RHOAIENG-100655",
-  "url": "https://issues.redhat.com/browse/RHOAIENG-100655",
+  "url": "https://jira.example.test/browse/RHOAIENG-100655",
   "issues": [
-    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580"},
-    {"key": "RHOAIENG-100583", "url": "https://issues.redhat.com/browse/RHOAIENG-100583"},
-    {"key": "RHOAIENG-100655", "url": "https://issues.redhat.com/browse/RHOAIENG-100655"},
-    {"key": "bad]\n[more]\n@org/team\n<script>alert(1)</script>", "url": "https://issues.redhat.com/browse/RHOAIENG-100655"}
+    {"key": "RHOAIENG-100580", "url": "https://jira.example.test/browse/RHOAIENG-100580"},
+    {"key": "RHOAIENG-100583", "url": "https://jira.example.test/browse/RHOAIENG-100583"},
+    {"key": "RHOAIENG-100655", "url": "https://jira.example.test/browse/RHOAIENG-100655"},
+    {"key": "bad]\n[more]\n@org/team\n<script>alert(1)</script>", "url": "https://jira.example.test/browse/RHOAIENG-100655"}
   ]
 }
 JSON
@@ -1960,16 +1960,16 @@ JSON
   fi
 
   # Multi-issue product-ask: overall computed from per-issue statuses.
-  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]},{\"key\":\"RHOAIENG-100583\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100583\",\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for import.\"],\"needs_human\":true}]}}" > "${tmp}/pa-multi.json"
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]},{\"key\":\"RHOAIENG-100583\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100583\",\"status\":\"mismatch-unjustified\",\"mismatched\":[\"Jira asks for import.\"],\"needs_human\":true}]}}" > "${tmp}/pa-multi.json"
   render_jira_fixture pa-multi
   body=$(jq -r .body "${tmp}/pa-multi-out.json")
   if ! grep -qF '**Overall:** `mismatch-unjustified` · needs human review' <<<"${body}"; then
     echo "FAIL pa-multi: Overall line missing or wrong" >&2
     fail=1
-  elif ! grep -qF '### [RHOAIENG-100580](https://issues.redhat.com/browse/RHOAIENG-100580)' <<<"${body}"; then
+  elif ! grep -qF '### [RHOAIENG-100580](https://jira.example.test/browse/RHOAIENG-100580)' <<<"${body}"; then
     echo "FAIL pa-multi: first issue heading missing" >&2
     fail=1
-  elif ! grep -qF '### [RHOAIENG-100583](https://issues.redhat.com/browse/RHOAIENG-100583)' <<<"${body}"; then
+  elif ! grep -qF '### [RHOAIENG-100583](https://jira.example.test/browse/RHOAIENG-100583)' <<<"${body}"; then
     echo "FAIL pa-multi: second issue heading missing" >&2
     fail=1
   elif ! jq -e '.confidence.level == "low"' "${tmp}/pa-multi-out.json" >/dev/null; then
@@ -1980,13 +1980,13 @@ JSON
   fi
 
   # Single-issue product-ask: key linked on status line, no Overall.
-  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-single.json"
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-single.json"
   render_jira_fixture pa-single
   body=$(jq -r .body "${tmp}/pa-single-out.json")
   if grep -qF '**Overall:**' <<<"${body}"; then
     echo "FAIL pa-single: Overall line should not appear for one issue" >&2
     fail=1
-  elif ! grep -qF '[RHOAIENG-100655](https://issues.redhat.com/browse/RHOAIENG-100655)' <<<"${body}"; then
+  elif ! grep -qF '[RHOAIENG-100655](https://jira.example.test/browse/RHOAIENG-100655)' <<<"${body}"; then
     echo "FAIL pa-single: key link missing on status line" >&2
     fail=1
   elif ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
@@ -2000,7 +2000,7 @@ JSON
   printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://example.com)\\n\\n@org/team\\n\\n[more](https://example.com\",\"status\":\"aligned\",\"aligned\":[\"Safe link only.\"]},{\"key\":\"bad]\\n[more]\\n@org/team\\n<script>alert(1)</script>\",\"url\":\"https://example.com\",\"status\":\"aligned\",\"aligned\":[\"Hostile key only.\"]}]}}" > "${tmp}/pa-hostile.json"
   render_jira_fixture pa-hostile
   body=$(jq -r .body "${tmp}/pa-hostile-out.json")
-  if ! grep -qF '[RHOAIENG-100655](https://issues.redhat.com/browse/RHOAIENG-100655)' <<<"${body}"; then
+  if ! grep -qF '[RHOAIENG-100655](https://jira.example.test/browse/RHOAIENG-100655)' <<<"${body}"; then
     echo "FAIL pa-hostile: trusted issue link missing" >&2
     fail=1
   elif grep -qF -e 'https://example.com)' \
@@ -2021,7 +2021,7 @@ JSON
 
   # Hostile aligned/mismatched prose: strip comments before mention suppression,
   # escape HTML, keep newlines. Comment-separated @mentions must not go live.
-  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Matches.\\n\\n<!-- hide -->\\n## Injected\\n<script>alert(1)</script>\\n@<!-- conceal -->org/team\"],\"mismatched\":[\"Drift.\\n<!-- x -->\\n<details>\\n@<!-- hide -->alice\"]}]}}" > "${tmp}/pa-prose.json"
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100655\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100655\",\"status\":\"aligned\",\"aligned\":[\"Matches.\\n\\n<!-- hide -->\\n## Injected\\n<script>alert(1)</script>\\n@<!-- conceal -->org/team\"],\"mismatched\":[\"Drift.\\n<!-- x -->\\n<details>\\n@<!-- hide -->alice\"]}]}}" > "${tmp}/pa-prose.json"
   render_jira_fixture pa-prose
   body=$(jq -r .body "${tmp}/pa-prose-out.json")
   if ! grep -qF 'Matches.' <<<"${body}"; then
@@ -2075,15 +2075,15 @@ JSON
   "id": "jira-snapshot",
   "status": "ok",
   "key": "RHOAIENG-100580",
-  "url": "https://issues.redhat.com/browse/RHOAIENG-100580",
+  "url": "https://jira.example.test/browse/RHOAIENG-100580",
   "issues": [
-    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580", "summary": "Export"},
+    {"key": "RHOAIENG-100580", "url": "https://jira.example.test/browse/RHOAIENG-100580", "summary": "Export"},
     {"key": "RHOAIENG-100583", "status": "error", "reason": "http-404"},
     {"key": "RHOAIENG-100655", "status": "error", "reason": "URLError"}
   ]
 }
 JSON
-  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]}]}}" > "${tmp}/pa-partial.json"
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]}]}}" > "${tmp}/pa-partial.json"
   render_jira_fixture pa-partial
   body=$(jq -r .body "${tmp}/pa-partial-out.json")
   if ! grep -qF '**Status:** `aligned`' <<<"${body}"; then
@@ -2108,14 +2108,14 @@ JSON
   "id": "jira-snapshot",
   "status": "ok",
   "key": "RHOAIENG-100580",
-  "url": "https://issues.redhat.com/browse/RHOAIENG-100580",
+  "url": "https://jira.example.test/browse/RHOAIENG-100580",
   "issues": [
-    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580", "summary": "Export"}
+    {"key": "RHOAIENG-100580", "url": "https://jira.example.test/browse/RHOAIENG-100580", "summary": "Export"}
   ],
   "omitted_keys": ["RHOAIENG-100511", "RHOAIENG-100512"]
 }
 JSON
-  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]}]}}" > "${tmp}/pa-omitted.json"
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100580\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100580\",\"status\":\"aligned\",\"aligned\":[\"Export feature matches.\"]}]}}" > "${tmp}/pa-omitted.json"
   render_jira_fixture pa-omitted
   body=$(jq -r .body "${tmp}/pa-omitted-out.json")
   if ! grep -qF '**Evaluation limits:**' <<<"${body}"; then
@@ -2139,16 +2139,16 @@ JSON
   cat > "${jira_config}/.run/jira.json" <<'JSON'
 {
   "key": "RHOAIENG-100828",
-  "url": "https://issues.redhat.com/browse/RHOAIENG-100828",
+  "url": "https://jira.example.test/browse/RHOAIENG-100828",
   "issues": [
-    {"key": "RHOAIENG-100828", "url": "https://issues.redhat.com/browse/RHOAIENG-100828", "summary": "Sticky key"}
+    {"key": "RHOAIENG-100828", "url": "https://jira.example.test/browse/RHOAIENG-100828", "summary": "Sticky key"}
   ]
 }
 JSON
   printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOA...\",\"url\":\"***/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-truncated.json"
   render_jira_fixture pa-truncated
   body=$(jq -r .body "${tmp}/pa-truncated-out.json")
-  if ! grep -qF '[RHOAIENG-100828](https://issues.redhat.com/browse/RHOAIENG-100828)' <<<"${body}"; then
+  if ! grep -qF '[RHOAIENG-100828](https://jira.example.test/browse/RHOAIENG-100828)' <<<"${body}"; then
     echo "FAIL pa-truncated: snapshot key was not linked" >&2
     fail=1
   elif grep -qF -e 'RHOA...' -e '***' <<<"${body}"; then
@@ -2164,7 +2164,7 @@ JSON
   printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"***\",\"url\":\"***/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-masked.json"
   render_jira_fixture pa-masked
   body=$(jq -r .body "${tmp}/pa-masked-out.json")
-  if ! grep -qF '[RHOAIENG-100828](https://issues.redhat.com/browse/RHOAIENG-100828)' <<<"${body}"; then
+  if ! grep -qF '[RHOAIENG-100828](https://jira.example.test/browse/RHOAIENG-100828)' <<<"${body}"; then
     echo "FAIL pa-masked: snapshot key was not linked" >&2
     fail=1
   elif grep -qF '***' <<<"${body}"; then
@@ -2194,7 +2194,7 @@ JSON
 
   # The same conflict carrying the snapshot issue's URL must not be recovered
   # through URL matching: a well-formed key that cannot be claimed is final.
-  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-conflict-url.json"
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-999999\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-conflict-url.json"
   render_jira_fixture pa-conflict-url
   body=$(jq -r .body "${tmp}/pa-conflict-url-out.json")
   if grep -qF 'RHOAIENG-100828' <<<"${body}"; then
@@ -2216,15 +2216,15 @@ JSON
   cat > "${jira_config}/.run/jira.json" <<'JSON'
 {
   "issues": [
-    {"key": "RHOAIENG-100828", "url": "https://issues.redhat.com/browse/RHOAIENG-100828", "summary": "First"},
-    {"key": "RHOAIENG-100829", "url": "https://issues.redhat.com/browse/RHOAIENG-100829", "summary": "Second"}
+    {"key": "RHOAIENG-100828", "url": "https://jira.example.test/browse/RHOAIENG-100828", "summary": "First"},
+    {"key": "RHOAIENG-100829", "url": "https://jira.example.test/browse/RHOAIENG-100829", "summary": "Second"}
   ]
 }
 JSON
-  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100828\",\"url\":\"https://issues.redhat.com/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"First matches.\"]},{\"key\":\"***\",\"status\":\"aligned\",\"aligned\":[\"Second matches.\"]}]}}" > "${tmp}/pa-multi-orphan.json"
+  printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"RHOAIENG-100828\",\"url\":\"https://jira.example.test/browse/RHOAIENG-100828\",\"status\":\"aligned\",\"aligned\":[\"First matches.\"]},{\"key\":\"***\",\"status\":\"aligned\",\"aligned\":[\"Second matches.\"]}]}}" > "${tmp}/pa-multi-orphan.json"
   render_jira_fixture pa-multi-orphan
   body=$(jq -r .body "${tmp}/pa-multi-orphan-out.json")
-  if ! grep -qF '[RHOAIENG-100828](https://issues.redhat.com/browse/RHOAIENG-100828)' <<<"${body}"; then
+  if ! grep -qF '[RHOAIENG-100828](https://jira.example.test/browse/RHOAIENG-100828)' <<<"${body}"; then
     echo "FAIL pa-multi-orphan: exact-match key lost its link" >&2
     fail=1
   elif grep -qF 'RHOAIENG-100829' <<<"${body}"; then
@@ -2265,7 +2265,7 @@ JSON
   cat > "${jira_config}/.run/jira.json" <<'JSON'
 {
   "issues": [
-    {"key": "RHOAIENG-100580", "url": "https://issues.redhat.com/browse/RHOAIENG-100580", "summary": "Export"},
+    {"key": "RHOAIENG-100580", "url": "https://jira.example.test/browse/RHOAIENG-100580", "summary": "Export"},
     {"key": "RHOAIENG-100583", "status": "error", "reason": "http-404"}
   ]
 }
@@ -2273,7 +2273,7 @@ JSON
   printf '%s' "{${common},\"product_ask\":{\"status\":\"aligned\",\"issues\":[{\"key\":\"***\",\"status\":\"aligned\",\"aligned\":[\"Fixes the bug.\"]}]}}" > "${tmp}/pa-mixed-unresolved.json"
   render_jira_fixture pa-mixed-unresolved
   body=$(jq -r .body "${tmp}/pa-mixed-unresolved-out.json")
-  if grep -qF '](https://issues.redhat.com/browse/RHOAIENG-100580)' <<<"${body}"; then
+  if grep -qF '](https://jira.example.test/browse/RHOAIENG-100580)' <<<"${body}"; then
     echo "FAIL pa-mixed-unresolved: unusable key inherited the only fetched snapshot key" >&2
     fail=1
   elif grep -qF '***' <<<"${body}"; then
@@ -2327,9 +2327,19 @@ JSON
     echo "PASS sticky Signal table includes risk and confidence"
   fi
 
+  # Compute the expected GitHub diff anchor rather than hardcoding a digest:
+  # a literal sha256 in a fixture reads like a live link and can drift from the
+  # path it is supposed to describe.
+  diff_anchor() {
+    python3 -c 'import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode("utf-8")).hexdigest())' "$1"
+  }
+  local a_anchor b_anchor
+  a_anchor="$(diff_anchor a.ts)"
+  b_anchor="$(diff_anchor b.ts)"
+
   body=$(jq -r .body "${tmp}/request-changes-out.json")
   if ! grep -Fq '**Waiting on author** — 1 blocking finding' <<<"${body}" ||
-     ! grep -Fq '[a.ts:12](https://github.com/o/r/pull/1/changes#diff-0d18d4eb377a214157ad45e7ee0f189a2d7370788a483e729c7f269d94cafe41R12)' <<<"${body}" ||
+     ! grep -Fq "[a.ts:12](https://github.com/o/r/pull/1/changes#diff-${a_anchor}R12)" <<<"${body}" ||
      grep -Fq '/blob/' <<<"${body}"; then
     echo "FAIL request-changes: status count or PR Files-changed link missing" >&2
     fail=1
@@ -2343,7 +2353,7 @@ JSON
     '$common * {findings: [{severity: "medium", category: "style-conventions", file: "b.ts", description: "Nit."}]}' \
     > "${tmp}/loc-noline.json"
   body=$(transform_review_result "${tmp}/loc-noline.json" | jq -r .body)
-  if ! grep -Fq 'changes#diff-ded2f7f761b76f9c30486fd9f691b40d810bc23774a5438361dbb362ce039f63)' <<<"${body}" ||
+  if ! grep -Fq "changes#diff-${b_anchor})" <<<"${body}" ||
      grep -Eq 'diff-[0-9a-f]{64}R' <<<"${body}"; then
     echo "FAIL loc-noline: line-less finding should anchor the file without a line suffix" >&2
     fail=1
@@ -2460,7 +2470,7 @@ JSON
   fi
 
   prepare_summary_only_result "${tmp}/request-changes-out.json" "${tmp}/summary-only.json"
-  if ! jq -e '(.findings[0] | has("line") | not) and (.body | contains("0d18d4eb377a214157ad45e7ee0f189a2d7370788a483e729c7f269d94cafe41R12"))' "${tmp}/summary-only.json" >/dev/null; then
+  if ! jq -e --arg anchor "${a_anchor}R12" '(.findings[0] | has("line") | not) and (.body | contains($anchor))' "${tmp}/summary-only.json" >/dev/null; then
     echo "FAIL summary-only: expected linked PR-diff body location without structured line" >&2
     fail=1
   else

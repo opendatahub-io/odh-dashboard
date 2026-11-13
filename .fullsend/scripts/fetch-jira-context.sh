@@ -253,8 +253,8 @@ PY
   # A site URL cannot be used as the API endpoint for scoped tokens.
   REVIEW_PR_TITLE='fix: export' \
   REVIEW_PR_BODY=$'Fixes RHOAIENG-82129\n' \
-  JIRA_BASE_URL='https://redhat.atlassian.net' \
-  FULLSEND_ADAPTER_URL='https://redhat.atlassian.net' \
+  JIRA_BASE_URL='https://jira.example.test' \
+  FULLSEND_ADAPTER_URL='https://jira.example.test' \
   JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
     run_producer "${tmp}" >/dev/null
 
@@ -269,7 +269,7 @@ PY
   # Missing gateway URL is reported without trying the browse site.
   REVIEW_PR_TITLE='fix: export' \
   REVIEW_PR_BODY=$'Fixes RHOAIENG-82129\n' \
-  JIRA_BASE_URL='https://redhat.atlassian.net' \
+  JIRA_BASE_URL='https://jira.example.test' \
   FULLSEND_ADAPTER_URL='' \
   JIRA_USERNAME='user' JIRA_API_TOKEN='token' \
     run_producer "${tmp}" >/dev/null
@@ -298,7 +298,7 @@ PY
 
   # HTML-commented template sample + real Fixes: URL at the top.
   REVIEW_PR_TITLE='fix: export RHOAIENG-100655' \
-  REVIEW_PR_BODY=$'<!-- Fixes: https://issues.redhat.com/browse/RHOAIENG-123456 -->\nFixes: https://issues.redhat.com/browse/RHOAIENG-100655\n\n## Problem\nBroken.\n' \
+  REVIEW_PR_BODY=$'<!-- Fixes: https://jira.example.test/browse/RHOAIENG-123456 -->\nFixes: https://jira.example.test/browse/RHOAIENG-100655\n\n## Problem\nBroken.\n' \
   JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
@@ -313,7 +313,7 @@ PY
 
   # Multiline comment containing a heading does not end the body preamble.
   REVIEW_PR_TITLE='fix: export RHOAIENG-100655' \
-  REVIEW_PR_BODY=$'<!-- template\nFixes: https://issues.redhat.com/browse/RHOAIENG-123456\n## Tracking\n-->\nFixes: https://issues.redhat.com/browse/RHOAIENG-100655\n\n## Problem\nBroken.\n' \
+  REVIEW_PR_BODY=$'<!-- template\nFixes: https://jira.example.test/browse/RHOAIENG-123456\n## Tracking\n-->\nFixes: https://jira.example.test/browse/RHOAIENG-100655\n\n## Problem\nBroken.\n' \
   JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
@@ -328,7 +328,7 @@ PY
 
   # Four Fixes: lines at the top (PR #10264 shape).
   REVIEW_PR_TITLE='fix: multi' \
-  REVIEW_PR_BODY=$'Fixes: https://issues.redhat.com/browse/RHOAIENG-100580\nFixes: https://issues.redhat.com/browse/RHOAIENG-100583\nFixes: https://issues.redhat.com/browse/RHOAIENG-100584\nFixes: https://issues.redhat.com/browse/RHOAIENG-100585\n\n## Problem\nMulti.\n' \
+  REVIEW_PR_BODY=$'Fixes: https://jira.example.test/browse/RHOAIENG-100580\nFixes: https://jira.example.test/browse/RHOAIENG-100583\nFixes: https://jira.example.test/browse/RHOAIENG-100584\nFixes: https://jira.example.test/browse/RHOAIENG-100585\n\n## Problem\nMulti.\n' \
   JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
@@ -423,7 +423,7 @@ PY
 
   # Commented key only: no key found.
   REVIEW_PR_TITLE='docs' \
-  REVIEW_PR_BODY=$'<!-- Fixes: https://issues.redhat.com/browse/RHOAIENG-123456 -->\n\n## Problem\nNo real tracker.\n' \
+  REVIEW_PR_BODY=$'<!-- Fixes: https://jira.example.test/browse/RHOAIENG-123456 -->\n\n## Problem\nNo real tracker.\n' \
   JIRA_BASE_URL='' JIRA_USERNAME='' JIRA_API_TOKEN='' \
     run_producer "${tmp}" >/dev/null
 
@@ -462,7 +462,7 @@ json.dump({
     "summary": "Trusted host snapshot",
     "description": "Sanitized Jira description",
     "status_name": "In Progress",
-    "url": "https://redhat.atlassian.net/browse/RHOAIENG-57547",
+    "url": "https://jira.example.test/browse/RHOAIENG-57547",
 }, open(sys.argv[1], "w", encoding="utf-8"))
 PY
   FULLSEND_JIRA_SNAPSHOT_READY=1 run_producer "${tmp}" >/dev/null
@@ -488,10 +488,10 @@ json.dump({
     "summary": "Trusted host snapshot",
     "description": "Sanitized Jira description",
     "status_name": "In Progress",
-    "url": "https://redhat.atlassian.net/browse/RHOAIENG-57547",
+    "url": "https://jira.example.test/browse/RHOAIENG-57547",
     "issues": [
-        {"key": "RHOAIENG-57547", "summary": "First", "description": "d1", "status_name": "In Progress", "url": "https://redhat.atlassian.net/browse/RHOAIENG-57547"},
-        {"key": "RHOAIENG-57548", "summary": "Second", "description": "d2", "status_name": "New", "url": "https://redhat.atlassian.net/browse/RHOAIENG-57548"},
+        {"key": "RHOAIENG-57547", "summary": "First", "description": "d1", "status_name": "In Progress", "url": "https://jira.example.test/browse/RHOAIENG-57547"},
+        {"key": "RHOAIENG-57548", "summary": "Second", "description": "d2", "status_name": "New", "url": "https://jira.example.test/browse/RHOAIENG-57548"},
     ],
 }, open(sys.argv[1], "w", encoding="utf-8"))
 PY
