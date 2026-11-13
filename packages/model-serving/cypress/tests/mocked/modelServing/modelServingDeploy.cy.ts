@@ -1011,6 +1011,49 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findTokenWarningAlert().should('be.visible');
   });
 
+  it('should preserve undo and redo when pasting a trimmed direct URI', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([mockInferenceServiceK8sResource({})]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([mockServingRuntimeK8sResource({})]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
+    modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+    modelServingWizard.findSaveConnectionCheckbox().uncheck();
+    modelServingWizard.findNextButton().should('be.disabled');
+
+    const uri = 'https://test.io/organization/test-model';
+    modelServingWizard
+      .findUrilocationInput()
+      .click()
+      .trigger('paste', {
+        clipboardData: {
+          getData: () => `  ${uri}  `,
+        },
+      });
+    modelServingWizard.findUrilocationInput().should('have.value', uri);
+    modelServingWizard.findNextButton().should('be.enabled');
+
+    // Native editing commands exercise browser undo history and controlled form state.
+    modelServingWizard.findUrilocationInput().then(($input) => {
+      $input[0].ownerDocument.execCommand('undo');
+    });
+    modelServingWizard.findUrilocationInput().should('have.value', '');
+    modelServingWizard.findNextButton().should('be.disabled');
+    modelServingWizard.findUrilocationInput().then(($input) => {
+      $input[0].ownerDocument.execCommand('redo');
+    });
+    modelServingWizard.findUrilocationInput().should('have.value', uri);
+    modelServingWizard.findNextButton().should('be.enabled');
+  });
+
   it('Check path error in KServe Wizard', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
@@ -1196,9 +1239,12 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findOCIModelURI().click();
     modelServingWizard.findOCIModelURI().trigger('paste', {
       clipboardData: {
-        getData: () => 'https://test.io/organization/test-model:latest',
+        getData: () => '  https://test.io/organization/test-model:latest  ',
       },
     });
+    modelServingWizard
+      .findOCIModelURI()
+      .should('have.value', 'test.io/organization/test-model:latest');
     modelServingWizard.findNextButton().should('be.enabled').click();
     //Step 2: Model Deployment
     modelServingWizard.findModelDeploymentNameInput().type('test-model');
