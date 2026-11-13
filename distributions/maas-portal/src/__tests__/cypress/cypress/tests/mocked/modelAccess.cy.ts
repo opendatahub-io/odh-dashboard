@@ -80,30 +80,35 @@ describe('Grid Model access', () => {
     });
   });
 
-  it('filters admin subscriptions by free-text search across subscription details', () => {
+  it('filters admin subscriptions by subscription text fragment across subscription details', () => {
     setupPortalMocks({ isMaaSAdmin: true });
     portal.visit('/maas/model-access');
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');
 
     // Matches the subscription display name
-    cy.findByTestId('model-access-subscription-filter-input').type('Basic Team');
+    subscriptionsPage.filterByTypeahead('subscription', 'Basic Team', undefined, 'model-access');
     cy.findAllByTestId('subscription-row').should('have.length', 1);
     cy.findByRole('link', { name: 'Basic Team Subscription' }).should('be.visible');
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('not.exist');
 
     // Matches the group name
-    cy.findByTestId('model-access-subscription-filter-input').clear().type('beta-testers');
+    subscriptionsPage.filterByTypeahead('subscription', 'beta-testers', undefined, 'model-access');
     cy.findAllByTestId('subscription-row').should('have.length', 1);
 
     // Matches the model display name across multiple subscriptions
-    cy.findByTestId('model-access-subscription-filter-input').clear().type('Flan T5');
+    subscriptionsPage.filterByTypeahead('subscription', 'Flan T5', undefined, 'model-access');
     cy.findAllByTestId('subscription-row').should('have.length', 3);
     cy.findByRole('link', { name: 'Basic Team Subscription' }).should('be.visible');
     cy.findByRole('link', { name: 'Premium Team Subscription' }).should('be.visible');
     cy.findByRole('link', { name: 'Enterprise Multi-Group Llama Access' }).should('not.exist');
 
     // A search with no matches empties the table until cleared
-    cy.findByTestId('model-access-subscription-filter-input').clear().type('missing-subscription');
+    subscriptionsPage.filterByTypeahead(
+      'subscription',
+      'missing-subscription',
+      undefined,
+      'model-access',
+    );
     cy.findAllByTestId('subscription-row').should('not.exist');
     cy.findAllByRole('button', { name: 'Clear all filters' }).first().click();
     cy.findByTestId('subscriptions-table').should('contain.text', 'Premium Team Subscription');

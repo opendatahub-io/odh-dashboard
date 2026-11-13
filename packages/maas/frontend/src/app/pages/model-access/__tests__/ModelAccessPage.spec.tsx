@@ -97,16 +97,35 @@ const renderTwoSubscriptions = () => {
   return renderPage();
 };
 
-const selectFilterType = async (user: ReturnType<typeof userEvent.setup>, optionTestId: string) => {
-  await user.click(screen.getByTestId('model-access-table-toolbar-dropdown'));
+const selectFilterType = async (
+  user: ReturnType<typeof userEvent.setup>,
+  optionTestId: string,
+  toolbarTestId = 'model-access-table-toolbar',
+) => {
+  await user.click(screen.getByTestId(`${toolbarTestId}-dropdown`));
   // The data-testid lands on the list item; the click handler is on its menu item button.
   await user.click(within(screen.getByTestId(optionTestId)).getByRole('menuitem'));
 };
 
-const openTypeahead = async (user: ReturnType<typeof userEvent.setup>) => {
-  const combobox = within(screen.getByTestId('model-access-table-toolbar')).getByRole('combobox');
+const openTypeahead = async (
+  user: ReturnType<typeof userEvent.setup>,
+  toolbarTestId = 'model-access-table-toolbar',
+) => {
+  const combobox = within(screen.getByTestId(toolbarTestId)).getByRole('combobox');
   await user.click(combobox);
   return combobox;
+};
+
+/** Selects the subscription filter category and commits a partial text fragment. */
+const filterBySubscriptionText = async (
+  user: ReturnType<typeof userEvent.setup>,
+  text: string,
+  toolbarTestId = 'model-access-table-toolbar',
+) => {
+  await selectFilterType(user, `${toolbarTestId}-option-subscription`, toolbarTestId);
+  const input = await openTypeahead(user, toolbarTestId);
+  await user.type(input, text);
+  await user.click(screen.getByRole('option', { name: `Filter by "${text}"` }));
 };
 
 describe('ModelAccessPage', () => {
@@ -205,7 +224,7 @@ describe('ModelAccessPage', () => {
     expect(screen.getByTestId('create-subscription-button')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument();
 
-    await user.type(screen.getByTestId('subscriptions-subscription-filter-input'), 'ANITE 3');
+    await filterBySubscriptionText(user, 'ANITE 3', 'subscriptions-table-toolbar');
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
     await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
 
@@ -247,13 +266,14 @@ describe('ModelAccessPage', () => {
     await screen.findByRole('link', { name: 'Premium Team' });
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(2);
 
-    await user.type(screen.getByTestId('model-access-subscription-filter-input'), 'Basic Team');
+    // A partial fragment that does not exactly match an option label commits as a text filter
+    await filterBySubscriptionText(user, 'Basic');
 
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Basic Team' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Premium Team' })).not.toBeInTheDocument();
-    // The active filter renders as a chip labeled with the display name
-    expect(screen.getByTestId('subscription-filter-chip')).toHaveTextContent('Basic Team');
+    // The active filter renders as a chip labeled with the fragment
+    expect(screen.getByTestId('subscription-filter-chip')).toHaveTextContent('Basic');
   });
 
   it('should filter the table by the selected group', async () => {
@@ -308,7 +328,7 @@ describe('ModelAccessPage', () => {
       renderPage();
       await screen.findByRole('link', { name: 'Premium Team' });
 
-      await user.type(screen.getByTestId('model-access-subscription-filter-input'), text);
+      await filterBySubscriptionText(user, text);
 
       expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
       expect(screen.getByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
@@ -343,13 +363,14 @@ describe('ModelAccessPage', () => {
     await user.click(screen.getByRole('option', { name: 'Filter by "AB"' }));
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(3);
     expect(screen.queryByRole('link', { name: 'other' })).not.toBeInTheDocument();
-    expect(screen.getByTestId('model-filter-chip')).toHaveTextContent('Filter by "AB"');
-    expect(input).toHaveValue('Filter by "AB"');
+    expect(screen.getByTestId('model-filter-chip')).toHaveTextContent('AB');
+    expect(input).toHaveValue('AB');
 
     await user.clear(input);
     await user.type(input, 'xabx');
-    // Text search remains available even when the input exactly matches a model.
-    expect(screen.getByRole('option', { name: 'Filter by "xabx"' })).toBeInTheDocument();
+    // An exact match with an existing option hides the create option; selecting the
+    // option filters by its resource name instead.
+    expect(screen.queryByRole('option', { name: 'Filter by "xabx"' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('option', { name: 'xabx' }));
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'xabx' })).toBeInTheDocument();
@@ -372,7 +393,8 @@ describe('ModelAccessPage', () => {
       expect(screen.queryByRole('link', { name: 'Basic Team' })).not.toBeInTheDocument();
 
       await selectFilterType(user, 'model-access-table-toolbar-option-subscription');
-      await user.type(screen.getByTestId('model-access-subscription-filter-input'), 'Basic');
+      await user.type(await openTypeahead(user), 'Basic');
+      await user.click(screen.getByRole('option', { name: 'Filter by "Basic"' }));
       expect(screen.queryByTestId('subscription-row')).not.toBeInTheDocument();
     },
   );
@@ -396,7 +418,7 @@ describe('ModelAccessPage', () => {
     await screen.findByRole('link', { name: 'Premium Team' });
 
     // Subscription: Basic Team
-    await user.type(screen.getByTestId('model-access-subscription-filter-input'), 'Basic Team');
+    await filterBySubscriptionText(user, 'Basic');
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
 
     // Group: ai-grid-users belongs to Premium Team only, so no subscription matches both

@@ -154,7 +154,7 @@ describe('Subscriptions Page', () => {
     const pendingRow = subscriptionsPage.getRow('pending-sub');
     pendingRow.findPhase().should('contain.text', 'Pending');
 
-    subscriptionsPage.findFilterInput().should('exist').type('Premium Team');
+    subscriptionsPage.filterByTypeahead('subscription', 'premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
     subscriptionsPage.findRows().should('have.length', 8);
@@ -204,18 +204,23 @@ describe('Subscriptions Page', () => {
     premiumRow.findExpandedGroupName().should('not.be.visible');
   });
 
-  it('should filter subscriptions by display name and description', () => {
-    subscriptionsPage.findFilterInput().type('Team Subscription');
+  it('should filter subscriptions by typeahead selections and partial text fragments', () => {
+    subscriptionsPage.filterByTypeahead('subscription', 'Team Subscription');
     subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
 
-    subscriptionsPage.findFilterInput().type('enterprise');
-    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.filterByTypeahead('subscription', 'enterprise');
+    subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
 
-    subscriptionsPage.findFilterInput().type('general users');
+    subscriptionsPage.filterByTypeahead('model', 'Flan');
+    subscriptionsPage.findRows().should('have.length', 4);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 8);
+
+    subscriptionsPage.filterByTypeahead('group', 'interns', 'interns');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
@@ -346,7 +351,7 @@ describe('View Subscription Page', () => {
     subscriptionsPage.findRows().should('have.length', 8);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
-    subscriptionsPage.findFilterInput().type('Premium Team');
+    subscriptionsPage.filterByTypeahead('subscription', 'premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);

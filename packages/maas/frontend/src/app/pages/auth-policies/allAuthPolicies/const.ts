@@ -1,13 +1,25 @@
 export enum AuthPoliciesFilterOptions {
-  keyword = 'keyword',
+  model = 'model',
+  group = 'group',
+  policy = 'policy',
 }
 
+/** MaaS governance authorization policies tab: Model / Group / Authorization policy typeahead selects. */
 export const authPoliciesFilterOptions = {
-  [AuthPoliciesFilterOptions.keyword]: 'Keyword',
+  [AuthPoliciesFilterOptions.model]: 'Model',
+  [AuthPoliciesFilterOptions.group]: 'Group',
+  [AuthPoliciesFilterOptions.policy]: 'Authorization policy',
 };
 
-export type AuthPoliciesFilterDataType = Record<AuthPoliciesFilterOptions, string | undefined>;
+export type AuthPoliciesFilterSelection = { label: string; value: string };
+
+export type AuthPoliciesFilterDataType = Record<
+  AuthPoliciesFilterOptions,
+  string | AuthPoliciesFilterSelection | undefined
+>;
 
 export const initialAuthPoliciesFilterData: AuthPoliciesFilterDataType = {
-  [AuthPoliciesFilterOptions.keyword]: '',
+  [AuthPoliciesFilterOptions.model]: undefined,
+  [AuthPoliciesFilterOptions.group]: undefined,
+  [AuthPoliciesFilterOptions.policy]: undefined,
 };

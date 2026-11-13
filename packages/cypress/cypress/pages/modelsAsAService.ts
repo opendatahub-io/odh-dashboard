@@ -5,6 +5,20 @@ import { TableRow } from './components/table';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 import type { UserAuthConfig } from '../types';
 
+/**
+ * Types a partial text fragment into a typeahead filter and commits it. By
+ * default the typed text is committed as a fragment via the "Filter by"
+ * create option; pass optionName to select a specific menu option instead
+ * (required when the text exactly matches an existing option, which hides
+ * the create option).
+ */
+const filterByTypeahead = (toggleTestId: string, text: string, optionName?: string): void => {
+  cy.findByTestId(toggleTestId).click();
+  cy.findByTestId(toggleTestId).find('input').clear();
+  cy.findByTestId(toggleTestId).find('input').type(text);
+  cy.findByRole('option', { name: optionName ?? `Filter by "${text}"` }).click();
+};
+
 // MaaS Wizard Field helpers for the model deployment wizard
 class MaaSWizardField {
   findProjectMembersRadio() {
@@ -665,8 +679,31 @@ class SubscriptionsPage {
     return cy.findByTestId('app-page-description');
   }
 
-  findFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscriptions-subscription-filter-input');
+  findFilterToggle(
+    category: 'model' | 'group' | 'subscription',
+    testIdPrefix = 'subscriptions',
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`${testIdPrefix}-${category}-filter-toggle`);
+  }
+
+  /** Model is the default filter category; select it explicitly for clarity after filtering others. */
+  selectFilterCategory(
+    category: 'model' | 'group' | 'subscription',
+    testIdPrefix = 'subscriptions',
+  ): void {
+    cy.findByTestId(`${testIdPrefix}-table-toolbar-dropdown`).click();
+    cy.findByTestId(`${testIdPrefix}-table-toolbar-option-${category}`).click();
+  }
+
+  /** Commits a partial text fragment (or a specific option) in a typeahead filter. */
+  filterByTypeahead(
+    category: 'model' | 'group' | 'subscription',
+    text: string,
+    optionName?: string,
+    testIdPrefix = 'subscriptions',
+  ): void {
+    this.selectFilterCategory(category, testIdPrefix);
+    filterByTypeahead(`${testIdPrefix}-${category}-filter-toggle`, text, optionName);
   }
 
   findFilterResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1396,8 +1433,24 @@ class AuthPoliciesPage {
     return cy.findByTestId('empty-auth-policies-page');
   }
 
-  findKeywordFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('auth-policies-filter-name-input');
+  findFilterToggle(category: 'model' | 'group' | 'policy'): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`auth-policies-${category}-filter-toggle`);
+  }
+
+  /** Model is the default filter category; select it explicitly for clarity after filtering others. */
+  selectFilterCategory(category: 'model' | 'group' | 'policy'): void {
+    cy.findByTestId('auth-policies-table-toolbar-dropdown').click();
+    cy.findByTestId(`auth-policies-table-toolbar-option-${category}`).click();
+  }
+
+  /** Commits a partial text fragment (or a specific option) in a typeahead filter. */
+  filterByTypeahead(
+    category: 'model' | 'group' | 'policy',
+    text: string,
+    optionName?: string,
+  ): void {
+    this.selectFilterCategory(category);
+    filterByTypeahead(`auth-policies-${category}-filter-toggle`, text, optionName);
   }
 
   clearAllFilters(): void {
@@ -1924,8 +1977,22 @@ class OverviewTabPage {
     return cy.findByRole('menuitem', { name });
   }
 
-  findFilterInput(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`overview-${name}-name-filter-input`);
+  findFilterToggle(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`overview-${name}-name-filter-toggle`);
+  }
+
+  /** Commits a partial text fragment (or a specific option) in a typeahead filter. */
+  filterByTypeahead(name: string, text: string, optionName?: string): void {
+    const filterKeys: Record<string, string> = {
+      model: 'modelName',
+      project: 'project',
+      group: 'groupName',
+      subscription: 'subscriptionName',
+      policy: 'authPolicyName',
+    };
+    this.findFilterDropdownButton().click();
+    this.findFilterDropdownItem(filterKeys[name]).click();
+    filterByTypeahead(`overview-${name}-name-filter-toggle`, text, optionName);
   }
 
   findFilterDropdownButton(): Cypress.Chainable<JQuery<HTMLElement>> {

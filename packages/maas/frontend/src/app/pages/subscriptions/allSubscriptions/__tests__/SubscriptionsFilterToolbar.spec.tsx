@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { act, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SubscriptionsFilterToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsFilterToolbar';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import {
-  MODEL_TEXT_FILTER_PREFIX,
   SubscriptionsFilterDataType,
+  SubscriptionsFilterOptions,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
 
 type TypeaheadSelectProps = {
@@ -14,8 +14,7 @@ type TypeaheadSelectProps = {
     filterValue: string,
     options: { value: string; content: string }[],
   ) => unknown[];
-  onInputChange?: (value: string) => void;
-  onToggle?: (open: boolean) => void;
+  isCreatable?: boolean;
 };
 
 let typeaheadProps: TypeaheadSelectProps;
@@ -28,6 +27,8 @@ jest.mock('@odh-dashboard/ui-core/components/TypeaheadSelect', () => ({
   },
 }));
 
+const renderedCategories: string[] = [];
+
 jest.mock('@odh-dashboard/ui-core/components/FilterToolbar', () => ({
   __esModule: true,
   default: ({
@@ -37,57 +38,81 @@ jest.mock('@odh-dashboard/ui-core/components/FilterToolbar', () => ({
       string,
       (props: { onChange: () => void; value?: string }) => React.ReactNode
     >;
-  }) => <>{filterOptionRenders.model({ onChange: jest.fn() })}</>,
+  }) => {
+    renderedCategories.length = 0;
+    return (
+      <>
+        {Object.entries(filterOptionRenders).map(([category, renderField]) => {
+          renderedCategories.push(category);
+          return renderField({ onChange: jest.fn() });
+        })}
+      </>
+    );
+  },
 }));
 
-const graniteSubscription = {
+const subscription = {
   name: 'granite-sub',
   namespace: 'maas',
   owner: { groups: [{ name: 'team-a' }] },
-  modelRefs: [{ name: 'granite-8b' }],
+  modelRefs: [{ name: 'granite-8b', displayName: 'Granite 8B' }],
 } as unknown as MaaSSubscription;
 
 const renderToolbar = (filterData: SubscriptionsFilterDataType) =>
   render(
     <SubscriptionsFilterToolbar
-      subscriptions={[graniteSubscription]}
+      subscriptions={[subscription]}
       filterData={filterData}
       onFilterUpdate={jest.fn()}
     />,
   );
 
-describe('SubscriptionsFilterToolbar model typeahead filtering', () => {
-  it('matches model options and the text filter using trimmed input', () => {
-    renderToolbar({ subscription: '', group: '', model: '' });
+describe('SubscriptionsFilterToolbar', () => {
+  it('should render typeahead filter fields for subscription, group, and model', () => {
+    renderToolbar({
+      subscription: undefined,
+      group: undefined,
+      model: undefined,
+    });
 
+    expect(renderedCategories).toEqual(
+      expect.arrayContaining([
+        SubscriptionsFilterOptions.subscription,
+        SubscriptionsFilterOptions.group,
+        SubscriptionsFilterOptions.model,
+      ]),
+    );
+  });
+
+  it('should derive deduplicated and sorted options from the loaded subscriptions', () => {
+    renderToolbar({
+      subscription: undefined,
+      group: undefined,
+      model: undefined,
+    });
+
+    // The model field renders last; its options derive from modelRefs
+    expect(typeaheadProps.selectOptions).toEqual([{ value: 'granite-8b', content: 'Granite 8B' }]);
+  });
+
+  it('should support committing typed text as a fragment filter', () => {
+    renderToolbar({
+      subscription: undefined,
+      group: undefined,
+      model: undefined,
+    });
+
+    // A committed fragment has no matching option value; the field must stay creatable
+    // so the "Filter by" option can commit it
+    expect(typeaheadProps.isCreatable).toBe(true);
+
+    // Fragment matching filters options by label or resource name, case-insensitively
     const filterFunction = typeaheadProps.filterFunction!;
     expect(filterFunction).toBeDefined();
-
-    const results = filterFunction(' Granite ', typeaheadProps.selectOptions) as {
+    const results = filterFunction('granite', typeaheadProps.selectOptions) as {
       value: string;
       content: string;
     }[];
-
-    // The Granite option should still be matched despite surrounding spaces...
     expect(results.map((option) => option.value)).toContain('granite-8b');
-    // ...and the generated text filter should use the trimmed text.
-    expect(results).toContainEqual({
-      value: `${MODEL_TEXT_FILTER_PREFIX}Granite`,
-      content: 'Filter by "Granite"',
-    });
-  });
-
-  it('removes the stale text filter option when the menu closes', () => {
-    renderToolbar({ subscription: '', group: '', model: '' });
-
-    const textOption = `${MODEL_TEXT_FILTER_PREFIX}Granite`;
-
-    // Typing adds the "Filter by" option to the dropdown
-    act(() => typeaheadProps.onInputChange!(' Granite '));
-    expect(typeaheadProps.selectOptions.map((option) => option.value)).toContain(textOption);
-
-    // Closing the menu without selecting should clear the stale option
-    act(() => typeaheadProps.onToggle!(false));
-    expect(typeaheadProps.selectOptions.map((option) => option.value)).not.toContain(textOption);
   });
 });

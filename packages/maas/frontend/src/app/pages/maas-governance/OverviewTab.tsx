@@ -1,16 +1,19 @@
 import * as React from 'react';
-import { Alert, Bullseye, PageSection, Spinner } from '@patternfly/react-core';
-import { useLocation } from 'react-router-dom';
+import { Alert, Bullseye, PageSection, Spinner, ToolbarItem } from '@patternfly/react-core';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { buildOverviewGroups } from '~/app/utilities/buildOverviewRows';
 import OverviewTable from './overview/OverviewTable';
 import OverviewToolbar from './overview/OverviewToolbar';
+import OverviewViewToggle from './overview/OverviewViewToggle';
+import GroupsTable from './overview/GroupsTable';
 import {
   initialOverviewFilterData,
   OverviewFilterDataType,
   OverviewFilterOptions,
 } from './overview/const';
-import { filterOverviewModels } from './overview/utils';
+import { filterOverviewGroups, filterOverviewModels } from './overview/utils';
 import EmptyStatePage from './EmptyStatePage';
 
 const OVERVIEW_RETURN_TO = `${URL_PREFIX}/maas-governance/overview`;
@@ -38,6 +41,27 @@ const OverviewTab: React.FC = () => {
     };
   });
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get('view') === 'groups' ? 'groups' : 'models';
+
+  const onSelectView = React.useCallback(
+    (nextView: 'models' | 'groups') => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (nextView === 'groups') {
+            next.set('view', 'groups');
+          } else {
+            next.delete('view');
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
   const onFilterUpdate = React.useCallback(
     (key: string, value?: string | { label: string; value: string }) => {
       setFilterData((prev) => ({ ...prev, [key]: value }));
@@ -50,6 +74,15 @@ const OverviewTab: React.FC = () => {
   const filteredRows = React.useMemo(
     () => filterOverviewModels(rows, filterData),
     [rows, filterData],
+  );
+
+  const groupRows = React.useMemo(
+    () => buildOverviewGroups(subscriptions, policies),
+    [subscriptions, policies],
+  );
+  const filteredGroupRows = React.useMemo(
+    () => filterOverviewGroups(groupRows, filterData),
+    [groupRows, filterData],
   );
 
   if (!loaded && !error) {
@@ -97,19 +130,35 @@ const OverviewTab: React.FC = () => {
     );
   }
 
+  const toolbarContent = (
+    <>
+      <ToolbarItem>
+        <OverviewViewToggle view={view} onChange={onSelectView} />
+      </ToolbarItem>
+      <OverviewToolbar
+        filterData={filterData}
+        onFilterUpdate={onFilterUpdate}
+        rows={rows}
+        returnTo={OVERVIEW_RETURN_TO}
+      />
+    </>
+  );
+
   return (
     <PageSection isFilled>
-      <OverviewTable
-        data={filteredRows}
-        onClearFilters={onClearFilters}
-        toolbarContent={
-          <OverviewToolbar
-            filterData={filterData}
-            onFilterUpdate={onFilterUpdate}
-            returnTo={OVERVIEW_RETURN_TO}
-          />
-        }
-      />
+      {view === 'groups' ? (
+        <GroupsTable
+          data={filteredGroupRows}
+          onClearFilters={onClearFilters}
+          toolbarContent={toolbarContent}
+        />
+      ) : (
+        <OverviewTable
+          data={filteredRows}
+          onClearFilters={onClearFilters}
+          toolbarContent={toolbarContent}
+        />
+      )}
     </PageSection>
   );
 };
