@@ -9,6 +9,9 @@ import {
 import type { TrackEvent, TrackPageEvent } from '../../types';
 
 // Importing the React entry point must never load an SDK or concrete adapter.
+jest.mock('@segment/analytics-page-tools', () => {
+  throw new Error('The analytics React entry point loaded SDK page-context tools');
+});
 jest.mock('@segment/analytics-next', () => {
   throw new Error('The analytics React entry point loaded Segment');
 });

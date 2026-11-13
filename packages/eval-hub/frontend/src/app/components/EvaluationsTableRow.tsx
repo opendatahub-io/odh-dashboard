@@ -4,7 +4,7 @@ import { Button, Checkbox, Tooltip } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { EvaluationJob, EvaluationJobState, KueueWorkloadStatus } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import {
   formatDate,
   getAllBenchmarkNames,
@@ -55,6 +55,8 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   isKueueWorkloadStatusLoading = false,
   isKueueEnabled,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const navigate = useNavigate();
   const [showStopModal, setShowStopModal] = React.useState(false);
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
@@ -144,7 +146,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         error: statusMessage,
       });
     }
-  }, [job.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [trackEvalHubEvent, job.status.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStopComplete = React.useCallback(() => {
     setIsStopping(true);

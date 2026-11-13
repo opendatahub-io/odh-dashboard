@@ -118,7 +118,7 @@ describe('ModelAccessPage', () => {
   it('should render admin-subscriptions data in the real read-only table', async () => {
     renderPage();
     expect(await screen.findByRole('link', { name: 'Premium Team' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Model Access' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Model access' })).toBeInTheDocument();
     expect(screen.getByText('Premium Team Subscription')).toBeInTheDocument();
     expect(screen.getAllByTestId('subscription-row')).toHaveLength(1);
     expect(screen.queryByText('Basic Team')).not.toBeInTheDocument();

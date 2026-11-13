@@ -21,7 +21,8 @@
     "react": "^18"
   },
   "dependencies": {
-    "@segment/analytics-next": "^1.84.0"
+    "@segment/analytics-next": "^1.84.0",
+    "@segment/analytics-page-tools": "1.0.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "workspace:*",

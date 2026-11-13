@@ -25,12 +25,14 @@ import {
   projectHomeRoute,
 } from '~/app/routes';
 import type { Collection } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { CURATED_SUITE_PAGE_CONFIG, isCuratedEvaluationTarget } from '~/app/curatedSuiteConfig';
 import './BenchmarkSuitesPage.scss';
 
 const CuratedBenchmarkSuitesPage: React.FC = () => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const { namespace, evaluationTarget } = useParams<{
     namespace: string;
     evaluationTarget: string;
@@ -57,7 +59,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
     navigate(evaluationCreateSuiteRoute(namespace), {
       state: evaluationCuratedBenchmarkSuitesNavigationState(evaluationTarget),
     });
-  }, [evaluationTarget, navigate, namespace]);
+  }, [trackEvalHubEvent, evaluationTarget, navigate, namespace]);
 
   const trackCustomizeCollection = React.useCallback(
     (collection: Collection) => {
@@ -77,7 +79,7 @@ const CuratedBenchmarkSuitesPage: React.FC = () => {
         },
       );
     },
-    [evaluationTarget],
+    [trackEvalHubEvent, evaluationTarget],
   );
 
   const handleCustomizeCollection = React.useCallback(

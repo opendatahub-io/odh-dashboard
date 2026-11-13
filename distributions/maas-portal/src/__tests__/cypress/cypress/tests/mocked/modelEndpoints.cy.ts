@@ -113,7 +113,7 @@ describe('Grid Model endpoints', () => {
     cy.intercept('GET', modelsPath, { statusCode: 503, body: {} }).as('modelsError');
     portal.visit('/maas/models');
     cy.wait('@modelsError');
-    maasModelsPage.findError().should('contain.text', 'Unable to load MaaS models');
+    maasModelsPage.findError().should('contain.text', 'Unable to load page');
     cy.intercept('GET', modelsPath, { data: [model()] }).as('modelsRetry');
     maasModelsPage.findRetry().click();
     cy.wait('@modelsRetry');

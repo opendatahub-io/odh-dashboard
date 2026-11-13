@@ -1,20 +1,18 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { loadRemote } from '@module-federation/runtime';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import MlflowRunTabs from '~/app/components/MlflowRunTabs';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
+const { mockTrackEvent, render } = setupTrackingTest();
 
 jest.mock('@module-federation/runtime', () => ({
   loadRemote: jest.fn(),
 }));
 
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
-
 const mockLoadRemote = jest.mocked(loadRemote);
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 const RemoteComponent = jest.fn(() => <div data-testid="remote-run-tabs" />);
 
@@ -102,7 +100,7 @@ describe('MlflowRunTabs', () => {
     expect(mockLoadRemote).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId('remote-run-tabs')).toBeInTheDocument();
     expect(screen.queryByTestId('mlflow-run-tabs-error')).not.toBeInTheDocument();
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should show a retryable error and track the event after exhausting automatic retries', async () => {
@@ -115,10 +113,15 @@ describe('MlflowRunTabs', () => {
 
     expect(mockLoadRemote).toHaveBeenCalledTimes(3);
     expect(screen.getByTestId('mlflow-run-tabs-error')).toBeInTheDocument();
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.MLFLOW_RUN_TABS_LOAD_FAILED,
-      {},
+      {
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'unknown',
+      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 

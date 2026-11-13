@@ -1,4 +1,5 @@
-import type { IdentifyEventProperties } from './types';
+import { getDefaultPageContext } from '@segment/analytics-page-tools';
+import type { IdentifyEventProperties, TrackEventOptions, TrackingPageContext } from './types';
 
 declare global {
   interface Window {
@@ -23,10 +24,24 @@ export type IdentifyTraits = {
   clusterID: string;
 };
 
+const PAGE_CONTEXT_KEYS: ReadonlyArray<keyof TrackingPageContext> = [
+  'path',
+  'referrer',
+  'search',
+  'title',
+  'url',
+];
+
+const isCompletePageContext = (
+  page: TrackingPageContext | undefined,
+): page is TrackingPageContext =>
+  !!page && PAGE_CONTEXT_KEYS.every((key) => typeof page[key] === 'string');
+
 export const fireTrackingEvent = (
   eventName: string,
   properties: BaseTrackingEventProperties,
   params: { clusterID: string; devMode: boolean; version: string },
+  options?: TrackEventOptions,
 ): void => {
   const { clusterID, devMode, version } = params;
   if (devMode) {
@@ -40,13 +55,16 @@ export const fireTrackingEvent = (
       window.alert('Got a page or identify event. Must not happen');
     }
   } else if (window.analytics) {
+    const page = options?.pageContextPolicy?.(getDefaultPageContext());
+    if (options?.pageContextPolicy && !isCompletePageContext(page)) {
+      throw new Error('Page-context policies must return all page fields as strings');
+    }
     window.analytics.track(
       eventName,
       { ...properties, clusterID },
       {
-        app: {
-          version,
-        },
+        app: { version },
+        ...(page ? { page } : {}),
       },
     );
   }

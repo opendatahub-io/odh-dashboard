@@ -1,19 +1,16 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { Drawer, DrawerContent } from '@patternfly/react-core';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import CollectionDrawerPanel, {
   BenchmarkWithProvider,
 } from '~/app/components/CollectionDrawerPanel';
 import { Collection } from '~/app/types';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
+const { mockTrackEvent, render } = setupTrackingTest();
 
 jest.mock('~/app/components/benchmarkUtils', () => ({
   getCategoryColor: () => 'blue',
@@ -22,10 +19,6 @@ jest.mock('~/app/components/benchmarkUtils', () => ({
   getMetricDisplayName: (m: string) => m,
   toSafeExternalUrl: (url?: string) => url,
   VISIBLE_METRICS_COUNT: 3,
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('~/app/utilities/benchmarkDatasetUrls', () => ({
@@ -112,18 +105,18 @@ describe('CollectionDrawerPanel', () => {
 
     expect(onRunCollection).toHaveBeenCalledWith(collection, true);
     expect(onCustomizeCollection).toHaveBeenCalledWith(collection);
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
       {
+        event_source: 'evalhub_ui',
+        collection_type: 'custom',
+        provider_type: 'unknown',
         runType: 'collection',
-        collectionName: 'Test Collection',
+
         benchmarkTypes: '[]',
         countOfBenchmarks: 0,
       },
-      {
-        collectionType: 'custom',
-        providerType: undefined,
-      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
