@@ -104,8 +104,20 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('page-description')).toHaveTextContent(
       'Configure your suite, describe your goal, and choose benchmarks.',
     );
-    expect(screen.getByText('Set the suite name and description.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Set the suite name, description, and optional recommendation settings.'),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-evaluates')).toHaveTextContent('Model');
+    expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveValue(12);
+    expect(screen.getByTestId('goal-suite-max-benchmarks')).not.toHaveAttribute('placeholder');
+    expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('moderate');
+    expect(screen.queryByRole('option', { name: /default/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Leave blank to use the default of 12 (1–50).'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Leave blank to use the default of Moderate.'),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText('The recommended benchmarks are configured to evaluate models.'),
     ).toBeInTheDocument();
@@ -122,6 +134,35 @@ describe('CreateSuiteFromGoalPage', () => {
     );
     fireEvent.submit(screen.getByTestId('suite-settings-form'));
     expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
+  });
+
+  it('should block invalid benchmark limits and preserve optional settings when navigating', async () => {
+    await renderPage();
+
+    fireEvent.change(screen.getByTestId('goal-suite-name'), {
+      target: { value: 'Reasoning suite' },
+    });
+    fireEvent.change(screen.getByTestId('goal-suite-max-benchmarks'), {
+      target: { value: '51' },
+    });
+    expect(await screen.findByTestId('suite-builder-max-benchmarks-error')).toHaveTextContent(
+      'Enter a whole number between 1 and 50.',
+    );
+    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('goal-suite-max-benchmarks'), {
+      target: { value: '24' },
+    });
+    fireEvent.change(screen.getByTestId('goal-suite-strictness'), {
+      target: { value: 'strict' },
+    });
+    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
+    expect(screen.getByTestId('goal-suite-max-benchmarks')).toHaveValue(24);
+    expect(screen.getByTestId('goal-suite-strictness')).toHaveValue('strict');
   });
 
   it('should advance after valid settings and preserve values when returning', async () => {

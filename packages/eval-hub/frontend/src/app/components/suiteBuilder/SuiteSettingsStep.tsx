@@ -4,6 +4,8 @@ import {
   Form,
   FormHelperText,
   FormGroup,
+  FormSelect,
+  FormSelectOption,
   HelperText,
   HelperTextItem,
   TextArea,
@@ -39,7 +41,7 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettin
         Suite settings
       </Title>
       <Content component="p" className="pf-v6-u-mb-lg">
-        Set the suite name and description.
+        Set the suite name, description, and optional recommendation settings.
       </Content>
       <Form
         id="suite-settings-form"
@@ -89,6 +91,73 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettin
                 resizeOrientation="vertical"
                 data-testid="goal-suite-description"
               />
+            )}
+          />
+        </FormGroup>
+        <FormGroup label="Maximum benchmarks" fieldId="goal-suite-max-benchmarks">
+          <Controller
+            name="maxBenchmarks"
+            control={control}
+            render={({ field, fieldState }) => (
+              <>
+                <TextInput
+                  id="goal-suite-max-benchmarks"
+                  type="number"
+                  min={1}
+                  max={50}
+                  step={1}
+                  value={field.value}
+                  onChange={(_event, value) => field.onChange(value)}
+                  onBlur={field.onBlur}
+                  validated={fieldState.error ? 'error' : 'default'}
+                  aria-invalid={fieldState.error ? true : undefined}
+                  data-testid="goal-suite-max-benchmarks"
+                />
+                {fieldState.error?.message ? (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem
+                        variant="error"
+                        data-testid="suite-builder-max-benchmarks-error"
+                      >
+                        {fieldState.error.message}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                ) : null}
+              </>
+            )}
+          />
+        </FormGroup>
+        <FormGroup label="Strictness" fieldId="goal-suite-strictness">
+          <Controller
+            name="strictness"
+            control={control}
+            render={({ field, fieldState }) => (
+              <>
+                <FormSelect
+                  id="goal-suite-strictness"
+                  value={field.value}
+                  onChange={(_event, value) => field.onChange(value)}
+                  onBlur={field.onBlur}
+                  validated={fieldState.error ? 'error' : 'default'}
+                  aria-invalid={fieldState.error ? true : undefined}
+                  data-testid="goal-suite-strictness"
+                >
+                  <FormSelectOption value="lenient" label="Lenient" />
+                  <FormSelectOption value="moderate" label="Moderate" />
+                  <FormSelectOption value="strict" label="Strict" />
+                </FormSelect>
+                {fieldState.error?.message ? (
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem variant="error" data-testid="suite-builder-strictness-error">
+                        {fieldState.error.message}
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
+                ) : null}
+              </>
             )}
           />
         </FormGroup>

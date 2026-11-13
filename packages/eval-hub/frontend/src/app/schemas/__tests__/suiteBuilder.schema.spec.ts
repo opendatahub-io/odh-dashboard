@@ -39,7 +39,68 @@ describe('suite builder schemas', () => {
         suiteName: 'Reasoning suite',
       }).success,
     ).toBe(true);
-    expect(suiteSettingsFieldNames).toEqual(['suiteName', 'suiteDescription']);
+    expect(suiteSettingsFieldNames).toEqual([
+      'suiteName',
+      'suiteDescription',
+      'maxBenchmarks',
+      'strictness',
+    ]);
+  });
+
+  it('should default optional generation settings and validate supplied values', () => {
+    expect(suiteBuilderDefaultValues.maxBenchmarks).toBe('12');
+    expect(suiteBuilderDefaultValues.strictness).toBe('moderate');
+    expect(
+      suiteSettingsSchema.safeParse({
+        ...suiteBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      suiteSettingsSchema.safeParse({
+        ...suiteBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
+        maxBenchmarks: '',
+      }).success,
+    ).toBe(true);
+
+    for (const maxBenchmarks of ['1', '12', '50']) {
+      expect(
+        suiteSettingsSchema.safeParse({
+          ...suiteBuilderDefaultValues,
+          suiteName: 'Reasoning suite',
+          maxBenchmarks,
+        }).success,
+      ).toBe(true);
+    }
+
+    for (const maxBenchmarks of ['0', '51', '1.5', 'not a number']) {
+      expect(
+        suiteSettingsSchema.safeParse({
+          ...suiteBuilderDefaultValues,
+          suiteName: 'Reasoning suite',
+          maxBenchmarks,
+        }).success,
+      ).toBe(false);
+    }
+
+    for (const strictness of ['', 'lenient', 'moderate', 'strict'] as const) {
+      expect(
+        suiteSettingsSchema.safeParse({
+          ...suiteBuilderDefaultValues,
+          suiteName: 'Reasoning suite',
+          strictness,
+        }).success,
+      ).toBe(true);
+    }
+    expect(
+      suiteSettingsSchema.safeParse({
+        ...suiteBuilderDefaultValues,
+        suiteName: 'Reasoning suite',
+        strictness: 'unknown',
+      }).success,
+    ).toBe(false);
   });
 
   it('should trim, require, and limit the evaluation goal', () => {
@@ -115,12 +176,16 @@ describe('suite builder schemas', () => {
       suiteBuilderSchema.parse({
         ...suiteBuilderDefaultValues,
         suiteName: 'Reasoning suite',
+        maxBenchmarks: '24',
+        strictness: 'strict',
         evaluationGoal: 'Evaluate factual accuracy.',
         generatorModel: RECOMMENDATION_MODEL,
       }),
     ).toEqual({
       ...suiteBuilderDefaultValues,
       suiteName: 'Reasoning suite',
+      maxBenchmarks: '24',
+      strictness: 'strict',
       evaluationGoal: 'Evaluate factual accuracy.',
       generatorModel: RECOMMENDATION_MODEL,
     });
