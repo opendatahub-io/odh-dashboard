@@ -2,6 +2,7 @@ export type DeployPrefillData = {
   modelName: string;
   modelUri?: string;
   catalogModelId?: string;
+  extraDeployTrackingProperties?: Record<string, string | number | boolean | string[] | undefined>;
   returnRouteValue?: string;
   cancelReturnRouteValue?: string;
   wizardStartIndex?: number;
