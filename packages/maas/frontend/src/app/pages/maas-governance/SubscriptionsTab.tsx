@@ -11,6 +11,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
+import { CallerOrganizationContext, groupLabel } from '~/app/shared/GroupName';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsTable';
 import SubscriptionsToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsToolbar';
@@ -58,6 +59,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
     subscriptionsError: error,
     refresh,
   } = useMaaSGovernanceContext();
+  const organization = React.useContext(CallerOrganizationContext);
   const [filterData, setFilterData] = React.useState<SubscriptionsFilterDataType>(
     initialSubscriptionsFilterData,
   );
@@ -92,6 +94,8 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
           subscription.displayName,
           subscription.description,
           ...subscription.owner.groups.map((group) => group.name),
+          // On Model access, also the group as it is shown: "<org-name>/<group>".
+          ...subscription.owner.groups.map((group) => groupLabel(group.name, organization)),
           ...subscription.modelRefs.flatMap((ref) => [ref.name, ref.displayName]),
         ].some((text) => text?.toLowerCase().includes(subscriptionText))
       ) {
@@ -116,7 +120,7 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
       }
       return true;
     });
-  }, [subscriptions, filterData]);
+  }, [subscriptions, filterData, organization]);
 
   const [deleteSubscription, setDeleteSubscription] = React.useState<MaaSSubscription | undefined>(
     undefined,

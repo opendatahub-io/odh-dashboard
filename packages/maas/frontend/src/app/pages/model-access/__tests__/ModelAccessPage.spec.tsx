@@ -128,8 +128,10 @@ describe('ModelAccessPage', () => {
     expect(screen.queryByTestId('subscription-actions')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /create subscription/i })).not.toBeInTheDocument();
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
-    expect(mockRestGET).toHaveBeenCalledTimes(1);
-    expect(mockRestGET.mock.calls[0][1]).toBe('/maas/api/v1/admin-subscriptions');
+    // The page also reads whoami for the caller's organization (GroupName).
+    expect(mockRestGET.mock.calls.map((call) => call[1]).toSorted()).toEqual(
+      ['/maas/api/v1/whoami', '/maas/api/v1/admin-subscriptions'].toSorted(),
+    );
   });
 
   it('should expand the groups and models supplied by admin-subscriptions', async () => {
