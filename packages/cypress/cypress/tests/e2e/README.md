@@ -233,8 +233,9 @@ function findActions() {
 Tests are parameterized using tags and applied to the 'it' block:
 
 * `Smoke`: P1/2 Critical Priority Test Cases
-* `Sanity`: P3 Normal Priority Test Cases
-* `Tier1`: P4 Low Priority Test Cases
+* `Tier1`: P3 Low Priority Test Cases
+* `Tier2`: P4 Normal Priority Test Cases
+* `tier3`: Negative and destructive Test Cases
 * `ODS-1234`: Test Case ID (if applicable)
 * `Dashboard/NIM etc.`: High-Level Team
 * `Workbenches/Pipelines etc.`: Functional Area
@@ -245,7 +246,7 @@ Tests are parameterized using tags and applied to the 'it' block:
 
 **Usage in tests:**
 ```javascript
-it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }, () => {})
+it('test name', { tags: ['@Tier1', '@TierSet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }, () => {})
 ```
 
 ### CI Test Selection
@@ -269,7 +270,7 @@ Feature Store suites because those flows exercise dashboard egress to the pipeli
 server, Thanos, and Feast. Small impact sets run as explicit specs; larger sets use
 the narrowest available package CI tags. Deleting Cypress support code, or
 encountering a broad impact set that cannot be mapped to package CI tags, falls back
-to the canonical `@SmokeSet1`–`@SmokeSet5` and `@SanitySet1`–`@SanitySet5` tag
+to the canonical `@SmokeSet1`–`@SmokeSet5` and `@TierSet1`–`@TierSet5` tag
 groups.
 
 Every selected tag must resolve to at least one executable test before the
@@ -282,7 +283,7 @@ and renamed specs must carry a CI-selectable tag or be listed in
 remove the only remaining executable coverage for one of its CI tags.
 
 Reverse-impact selection recognizes workspace CI tags, the frontend CI tag map,
-and the canonical Smoke/Sanity sets. Nested upstream mocked suites are indexed
+and the canonical Smoke/Tier sets. Nested upstream mocked suites are indexed
 with their TypeScript import aliases so a mock-only helper does not trigger
 all-E2E fallback. This indexing does not register those suites in the central
 Cypress runner. If imports reachable from E2E specs or their support are unresolved
@@ -310,7 +311,7 @@ The **Cypress E2E CI selection for this PR** summary is limited to the CI tags a
 specs selected for the PR under test, including default regression when enabled.
 It is not a comprehensive test plan or full feature/release validation.
 The report explains each CI job's reason, tags or explicit specs,
-and planned executions, including why broad support changes need Smoke/Sanity
+and planned executions, including why broad support changes need Smoke/Tier
 coverage and additional impacted specs. Counts may overlap across jobs. Build jobs
 prepare application assets and do not execute tests.
 

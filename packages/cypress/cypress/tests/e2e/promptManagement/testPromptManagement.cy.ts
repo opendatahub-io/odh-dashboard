@@ -57,8 +57,8 @@ describe('Verify Prompt Management page', () => {
     'Create a prompt and verify it appears in the prompts table',
     {
       tags: [
-        '@Sanity',
-        '@SanitySet1',
+        '@Tier1',
+        '@Tier1Set1',
         '@PromptManagement',
         '@MLflow',
         '@NonConcurrent',

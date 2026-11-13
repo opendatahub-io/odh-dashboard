@@ -115,7 +115,7 @@ describe('Feature Store Page Validation', () => {
 
   it(
     'Navigates through Feature Store pages and verifies that the data count is displayed correctly',
-    { tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Sanity', '@SanitySet1'] },
+    { tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Tier1', '@Tier1Set1'] },
     () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 

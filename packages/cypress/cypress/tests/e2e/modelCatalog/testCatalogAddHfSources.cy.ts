@@ -56,7 +56,7 @@ describe('Verify Hugging Face catalog source add, validate, and preview', () => 
   it(
     'Add a Hugging Face source with public, gated, and private models via token validation and preview',
     {
-      tags: ['@Sanity', '@SanitySet4', '@Dashboard', '@ModelCatalog', '@NonConcurrent'],
+      tags: ['@Tier1', '@Tier1Set4', '@Dashboard', '@ModelCatalog', '@NonConcurrent'],
     },
     () => {
       const publicModelFull = `${testData.organization}/${testData.publicModel}`;

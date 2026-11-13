@@ -87,7 +87,7 @@ describe('Verify user can connect Feature Stores to Workbenches', () => {
   it(
     'Select a feature store during workbench creation and verify connectivity',
     {
-      tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Sanity', '@SanitySet1'],
+      tags: ['@Dashboard', '@FeatureStore', '@FeatureStoreCI', '@Tier1', '@Tier1Set1'],
     },
     () => {
       cy.step('Log in as admin user');
