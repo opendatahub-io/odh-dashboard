@@ -10,6 +10,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./rspack": "./src/rspack/index.ts",
+    "./security-policy": "./src/security-policy.ts",
     "./webpack": "./src/webpack/index.ts"
   },
   "engines": {

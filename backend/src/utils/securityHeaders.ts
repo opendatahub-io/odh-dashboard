@@ -1,12 +1,13 @@
 import { FastifyHttpProxyOptions } from '@fastify/http-proxy';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { IncomingHttpHeaders } from 'http';
+import { CONTENT_SECURITY_POLICY } from '@odh-dashboard/app-config/security-policy';
 import { getCacheControlForStaticFile, isStaticAsset } from './cacheHeaders';
 
 /**
- * Header values shared with OpenShift Console `WithSecurityHeaders`.
+ * Baseline browser security headers applied to every response.
  * Cache-Control is selective: no-store on API paths, filename policy for proxied
- * static assets. Console also sends `Pragma: no-cache` and no-store on every response.
+ * static assets.
  */
 export const REFERRER_POLICY = 'strict-origin-when-cross-origin';
 export const X_CONTENT_TYPE_OPTIONS = 'nosniff';
@@ -22,6 +23,48 @@ const COMMON_SECURITY_HEADERS: ReadonlyArray<[string, string]> = [
   ['X-DNS-Prefetch-Control', X_DNS_PREFETCH_CONTROL],
   ['Referrer-Policy', REFERRER_POLICY],
 ];
+
+/*
+ * The policy itself is defined once, in `@odh-dashboard/app-config/security-policy`, so
+ * the backend and the dev server cannot drift. The Go core-bff cannot import TypeScript,
+ * so it keeps one literal mirror asserted by `securityHeaders.spec.ts`:
+ * - `distributions/core-bff/bff/internal/constants/headers.go`
+ */
+
+export const CSP_HEADER_ENFORCE = 'Content-Security-Policy';
+export const CSP_HEADER_REPORT_ONLY = 'Content-Security-Policy-Report-Only';
+/** Environment variable that selects the header mode. */
+export const CSP_MODE_ENV_VAR = 'CSP_MODE';
+
+export type CspMode = 'enforce' | 'report-only';
+
+/**
+ * `report-only` sends `Content-Security-Policy-Report-Only`; `enforce` sends the
+ * enforcing header; unknown values fail closed to enforcement.
+ *
+ * TEMPORARY: unset or empty now resolves to
+ * `report-only` instead of `enforce`, so a deployment that does not set CSP_MODE
+ * reports violations instead of blocking them. Revert the empty-string branch to
+ * `enforce` once the violation baseline is captured.
+ */
+export const resolveCspMode = (raw: string | undefined): CspMode => {
+  const value = (raw ?? '').trim().toLowerCase();
+  return value === '' || value === 'report-only' ? 'report-only' : 'enforce';
+};
+
+export const resolveCspHeaderName = (mode: CspMode): string =>
+  mode === 'report-only' ? CSP_HEADER_REPORT_ONLY : CSP_HEADER_ENFORCE;
+
+/** Reads `CSP_MODE` from the environment. Both serving paths read the same variable. */
+export const getCspMode = (): CspMode => resolveCspMode(process.env[CSP_MODE_ENV_VAR]);
+
+/**
+ * True when `CSP_MODE` is unset, empty, or whitespace-only: the TEMPORARY case where the
+ * header mode falls back to Report-Only without an explicit operator choice. Startup logs a
+ * warning so that fallback is visible instead of silent.
+ */
+export const isImplicitCspReportOnly = (raw: string | undefined): boolean =>
+  (raw ?? '').trim() === '';
 
 /** Code and text suffixes. Fonts and images use {@link isStaticAsset}. */
 const LIKELY_CODE_EXT = /\.(?:js|mjs|cjs|css|map|json|wasm|html?|txt)$/i;
@@ -96,10 +139,44 @@ export const setNoStoreCacheHeaders = (reply: FastifyReply): void => {
   reply.header('Cache-Control', CACHE_CONTROL_NO_STORE);
 };
 
+/** `text/html` with an optional charset, as set by `@fastify/view` and `@fastify/static`. */
+export const isHtmlContentType = (value: unknown): boolean => {
+  const contentType = Array.isArray(value) ? value[0] : value;
+  const mediaType = String(contentType ?? '')
+    .split(';')[0]
+    .trim()
+    .toLowerCase();
+  return mediaType === 'text/html';
+};
+
 /**
- * Applies shared browser security headers on normal HTTP replies.
- * Common security headers are set on every response (including static `/*` and `/_mf/`).
- * no-store is applied on host `/api` and `/wss` paths.
+ * Sets the CSP on HTML documents only. JSON APIs and static assets carry no policy.
+ * Must run after the payload content type is known — `onSend` satisfies that.
+ * Only the header name depends on the mode; the directive string is byte-identical.
+ *
+ * Called from the SPA route (`routes/root.ts`), the only place this server renders a
+ * document of its own. It is not part of {@link applySecurityHeaders}, so a module proxy
+ * reply that happens to be HTML keeps the upstream UI's headers rather than receiving the
+ * dashboard policy.
+ */
+export const applyContentSecurityPolicy = (
+  reply: FastifyReply,
+  mode: CspMode = getCspMode(),
+): void => {
+  if (!isHtmlContentType(reply.getHeader('content-type'))) {
+    return;
+  }
+  reply.header(resolveCspHeaderName(mode), CONTENT_SECURITY_POLICY);
+};
+
+/**
+ * Applies the browser security headers that belong on every response: the common headers on
+ * every reply (including static `/*` and `/_mf/`), and no-store on host `/api` and `/wss`
+ * paths.
+ *
+ * The CSP is not applied here. It protects only the documents this server renders itself,
+ * so it lives in the route that serves them (`routes/root.ts`); proxied upstream documents
+ * (module `proxyService` replies) and JSON APIs do not receive it.
  */
 export const applySecurityHeaders = (request: FastifyRequest, reply: FastifyReply): void => {
   for (const [name, value] of COMMON_SECURITY_HEADERS) {

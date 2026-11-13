@@ -20,6 +20,8 @@ const (
 	HeaderCrossOriginOpenerPolicy     = "Cross-Origin-Opener-Policy"
 	HeaderXFrameOptions               = "X-Frame-Options"
 	HeaderXDNSPrefetchControl         = "X-DNS-Prefetch-Control"
+	HeaderContentSecurityPolicy       = "Content-Security-Policy"
+	HeaderCSPReportOnly               = "Content-Security-Policy-Report-Only"
 	HeaderCookie                      = "Cookie"
 	HeaderSetCookie                   = "Set-Cookie"
 	HeaderProxyAuthorization          = "Proxy-Authorization"
@@ -69,4 +71,43 @@ const (
 	CrossOriginOpenerPolicySameOrigin         = "same-origin"
 	XFrameOptionsDeny                         = "DENY"
 	XDNSPrefetchControlOff                    = "off"
+
+	// SegmentTelemetryOrigin is the origin the dashboard's Segment client loads its
+	// bundle from and sends events to. packages/analytics/src/initSegment.ts hardcodes
+	// the same values — update both together if the endpoint ever moves.
+	// Analytics only initializes when tracking is enabled, but the origin is
+	// allowlisted unconditionally so enabling tracking never breaks under the policy.
+	SegmentTelemetryOrigin = "https://console.redhat.com"
+
+	// ContentSecurityPolicy is the policy for this application's own documents: index.html
+	// as served for `/`, for a direct index.html request, and as the deep-link fallback.
+	// Proxied upstream documents and dev-only tooling (the Swagger UI page) keep their own
+	// headers. The value must stay identical to the shared definition in
+	// packages/app-config/src/security-policy.ts, which the Node backend and the rspack dev
+	// server both consume; a parity test in the backend suite
+	// (backend/src/utils/__tests__/securityHeaders.spec.ts) reads this constant and fails on
+	// drift. Both header modes send the same directive string; only the header name changes.
+	// See docs/content-security-policy.md for the directive rationale.
+	ContentSecurityPolicy = "default-src 'self'; " +
+		"base-uri 'self'; " +
+		"object-src 'none'; " +
+		"script-src 'self' " + SegmentTelemetryOrigin + "; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' https: data: blob:; " +
+		"font-src 'self' data:; " +
+		"media-src 'self' https: data: blob:; " +
+		"connect-src 'self' " + SegmentTelemetryOrigin + "; " +
+		"frame-src 'self' https:; " +
+		"form-action 'self'; " +
+		"worker-src 'self' blob:; " +
+		"frame-ancestors 'none'"
+
+	// CSPModeEnvVar selects the header mode. "report-only" sends
+	// Content-Security-Policy-Report-Only; "enforce" and unknown non-empty values send
+	// the enforcing header, so a typo fails closed. Must match the Node backend.
+	//
+	// TEMPORARY: unset or empty also sends Report-Only, so a deployment that does not set
+	// the variable reports violations instead of blocking them. Switch it back to the
+	// enforcing header once deployments running Report-Only report no unexpected violations.
+	CSPModeEnvVar = "CSP_MODE"
 )

@@ -88,6 +88,16 @@ export default defineConfig({
   defaultCommandTimeout: 10000,
   requestTimeout: 10000,
   e2e: {
+    // Keep the application's Content-Security-Policy instead of stripping it.
+    // Cypress always removes the directives it needs for its own instrumentation
+    // (frame-ancestors, navigate-to, require-trusted-types-for, sandbox, trusted-types)
+    // and, with this option enabled, removes or rewrites the six it can be told to allow
+    // (child-src, default-src, frame-src, form-action, script-src, script-src-elem). Every other
+    // directive is enforced as in production, so frame-src, form-action and
+    // frame-ancestors coverage comes from the policy parity tests, not from here.
+    // Violations fail the spec via cypress/support/cspViolations.ts, which also checks
+    // that the document carried a policy.
+    experimentalCspAllowList: true,
     injectDocumentDomain: true,
     baseUrl: BASE_URL,
     userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
