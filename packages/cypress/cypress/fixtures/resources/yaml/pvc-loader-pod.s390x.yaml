@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{POD_NAME}}
+  namespace: {{NAMESPACE}}
+spec:
+  containers:
+    - name: s3-downloader
+      # IBM Z Triton image is proven to pull in user namespaces on s390x clusters.
+      # curl 8.20 ships with --aws-sigv4 support — no extra packages needed.
+      image: icr.io/ibmz/ibmz-accelerated-for-nvidia-triton-inference-server:latest
+      command: ["/bin/bash", "-c"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+        capabilities:
+          drop:
+            - ALL
+      args:
+        - |
+          set -e
+          ENDPOINT="{{AWS_S3_ENDPOINT}}"
+          ENDPOINT="${ENDPOINT%/}"
+          BUCKET="{{AWS_S3_BUCKET}}"
+          PREFIX="{{MODEL_PATH}}"
+          REGION="{{AWS_DEFAULT_REGION}}"
+          DEST="/mnt/models"
+
+          # URL-encode the prefix (replace / with %2F)
+          ENCODED_PREFIX=$(echo "${PREFIX}" | sed 's|/|%2F|g')
+
+          # Scratch files live outside the PVC so they never end up in the model dir.
+          KEYS_FILE="/tmp/s3-keys.txt"
+          PAGE_FILE="/tmp/s3-page.xml"
+          TOKEN_FILE="/tmp/s3-token.txt"
+          : > "${KEYS_FILE}"
+
+          echo "Listing objects ..."
+          # ListObjectsV2 returns at most 1000 keys per response, so follow
+          # NextContinuationToken until the listing is no longer truncated.
+          CONTINUATION=""
+          PAGES=0
+          while :; do
+            LIST_URL="${ENDPOINT}/${BUCKET}?list-type=2&prefix=${ENCODED_PREFIX}&max-keys=1000"
+            if [ -n "${CONTINUATION}" ]; then
+              LIST_URL="${LIST_URL}&continuation-token=${CONTINUATION}"
+            fi
+
+            curl -sSf \
+              --aws-sigv4 "aws:amz:${REGION}:s3" \
+              --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+              "${LIST_URL}" \
+              -o "${PAGE_FILE}"
+
+            # Appends this page's keys and writes the (URL-encoded) next token, or an
+            # empty file when the listing is complete.
+            python3 -c "
+          import sys, urllib.parse, xml.etree.ElementTree as ET
+          page, keys_path, token_path = sys.argv[1:4]
+          root = ET.parse(page).getroot()
+          with open(keys_path, 'a') as f:
+              for k in root.findall('.//{*}Key'):
+                  if not k.text.endswith('/'):
+                      f.write(k.text + '\n')
+          token = root.findtext('{*}NextContinuationToken') or ''
+          if root.findtext('{*}IsTruncated') == 'true' and not token:
+              sys.exit(1)
+          with open(token_path, 'w') as f:
+              f.write(urllib.parse.quote(token, safe='') if token else '')
+          " "${PAGE_FILE}" "${KEYS_FILE}" "${TOKEN_FILE}"
+
+            PAGES=$((PAGES + 1))
+            CONTINUATION=$(cat "${TOKEN_FILE}")
+            if [ -z "${CONTINUATION}" ]; then
+              break
+            fi
+          done
+
+          if [ ! -s "${KEYS_FILE}" ]; then
+            echo "ERROR: no objects found"
+            exit 1
+          fi
+
+          TOTAL=$(wc -l < "${KEYS_FILE}" | tr -d ' ')
+          echo "Found ${TOTAL} objects across ${PAGES} listing page(s)"
+
+          COUNT=0
+          while IFS= read -r KEY; do
+            # Keep the full key path: the InferenceService mounts the PVC with
+            # subPath=<model path>, so files must live under /mnt/models/<model path>/.
+            OUT="${DEST}/${KEY}"
+            mkdir -p "$(dirname "${OUT}")"
+            COUNT=$((COUNT + 1))
+            echo "Downloading object ${COUNT} of ${TOTAL} ..."
+            for attempt in 1 2 3; do
+              if curl -sSf \
+                --aws-sigv4 "aws:amz:${REGION}:s3" \
+                --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+                "${ENDPOINT}/${BUCKET}/${KEY}" \
+                -o "${OUT}"; then
+                break
+              fi
+              if [ "${attempt}" -eq 3 ]; then
+                echo "ERROR: failed to download object ${COUNT} of ${TOTAL} after 3 attempts"
+                exit 1
+              fi
+              echo "Download of object ${COUNT} of ${TOTAL} failed (attempt ${attempt} of 3). Retrying in 5 seconds..."
+              sleep 5
+            done
+          done < "${KEYS_FILE}"
+
+          # Only reached when every page was listed and every object downloaded.
+          touch "${DEST}/.copy-complete"
+          echo "S3 copy completed successfully"
+      volumeMounts:
+        - name: model-store
+          mountPath: /mnt/models
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "{{AWS_ACCESS_KEY_ID}}"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "{{AWS_SECRET_ACCESS_KEY}}"
+        - name: AWS_DEFAULT_REGION
+          value: "{{AWS_DEFAULT_REGION}}"
+        - name: AWS_S3_ENDPOINT
+          value: "{{AWS_S3_ENDPOINT}}"
+        - name: AWS_S3_BUCKET
+          value: "{{AWS_S3_BUCKET}}"
+  volumes:
+    - name: model-store
+      persistentVolumeClaim:
+        claimName: {{PVC_NAME}}
+  restartPolicy: Never

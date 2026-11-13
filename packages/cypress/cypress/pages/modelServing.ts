@@ -907,8 +907,8 @@ class ModelServingSection {
     return this.findDeploymentsTable();
   }
 
-  findModelServerDeployedName(name: string) {
-    return this.find().findByTestId('deployed-model-name').contains(name);
+  findModelServerDeployedName(name: string, options?: Partial<Cypress.Timeoutable>) {
+    return this.find().findByTestId('deployed-model-name').contains(name, options);
   }
 
   findModelMetricsLink(name: string) {
@@ -1156,6 +1156,15 @@ class ModelServingWizard extends Wizard {
 
   findModelFormatSelectOption(name: string) {
     return this.findModelFormatSelect().findSelectOption(name);
+  }
+
+  /**
+   * Selects serving runtime and model format in wizard Step 2.
+   * Uses force: true to ensure the format selection click succeeds even if the PatternFly menu is clipped/scrolled.
+   */
+  selectServingRuntimeAndFormat(runtime: string, format: string) {
+    this.selectServingRuntimeOption(runtime);
+    this.findModelFormatSelectOption(format).should('exist').click({ force: true });
   }
 
   /** Selects the auto-select radio (works for both serving runtimes and model deployment configs). */

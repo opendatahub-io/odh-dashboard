@@ -1,4 +1,5 @@
 import { pollUntilSuccess } from './baseCommands';
+import { createCustomResource } from './customResources';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 import { replacePlaceholdersInYaml } from '../yaml_files';
@@ -171,3 +172,32 @@ export const renderYamlFileWithReplacements = (
   cy
     .readFile(yamlPath, 'utf8')
     .then((yamlContent) => replacePlaceholdersInYaml(yamlContent, replacements));
+
+/**
+ * Ensures that a ServingRuntime template is created cleanly in the applications namespace.
+ * Cleans up any existing template with the given name, then creates the resource from YAML.
+ *
+ * @param servingRuntimeName The metadata.name of the ServingRuntime inside the Template.
+ * @param servingRuntimeYamlPath Path to the YAML fixture defining the custom resource.
+ * @returns A Cypress.Chainable resolving to the creation result with exit code 0 verified.
+ */
+export const ensureServingRuntimeTemplate = (
+  name?: string,
+  yamlPath?: string,
+): Cypress.Chainable<unknown> => {
+  if (!name || !yamlPath) {
+    return cy.wrap(undefined);
+  }
+
+  const namespace = Cypress.env('APPLICATIONS_NAMESPACE') as string | undefined;
+  if (!namespace) {
+    throw new Error('APPLICATIONS_NAMESPACE is not configured.');
+  }
+
+  return cleanupTemplates(name, { failOnError: true }).then(() =>
+    createCustomResource(namespace, yamlPath).then((result) => {
+      expect(result.exitCode, `Failed to create ${name}: ${result.stderr}`).to.equal(0);
+      return result;
+    }),
+  );
+};

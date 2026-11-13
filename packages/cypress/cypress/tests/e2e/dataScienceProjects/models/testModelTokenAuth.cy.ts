@@ -17,8 +17,10 @@ import {
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import { ensureServingRuntimeTemplate } from '../../../../utils/oc_commands/templates';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { skipOnArm } from '../../../../utils/skipUtils';
+import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -27,7 +29,7 @@ let modelName: string;
 let modelFilePath: string;
 let modelFormat: string;
 let servingRuntime: string;
-const awsBucket = 'BUCKET_1' as const;
+let awsBucket: 'BUCKET_1' | 'BUCKET_3';
 const uuid = generateTestUUID();
 
 describe('A model can be deployed with token auth', () => {
@@ -35,27 +37,34 @@ describe('A model can be deployed with token auth', () => {
 
   retryableBefore(() => {
     cy.log('Loading test data');
-    return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml').then(
-      (fixtureData: DataScienceProjectData) => {
+    return loadDSPFixture('e2e/dataScienceProjects/testModelTokenAuth.yaml')
+      .then((fixtureData) => {
         testData = fixtureData;
         projectName = `${testData.projectResourceName}-${uuid}`;
         modelName = testData.singleModelName;
         modelFilePath = testData.modelOpenVinoExamplePath;
         modelFormat = testData.modelFormat;
         servingRuntime = testData.servingRuntime;
+        awsBucket = testData.awsBucket ?? 'BUCKET_1';
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
         cy.log(`Loaded project name: ${projectName}`);
+
+        return ensureServingRuntimeTemplate(
+          testData.servingRuntimeName,
+          testData.servingRuntimeYamlPath,
+        );
+      })
+      .then(() => {
         // Create a Project
         provisionProjectForModelServing(
           projectName,
           awsBucket,
           'resources/yaml/data_connection_model_serving.yaml',
         );
-      },
-    );
+      });
   });
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
@@ -66,7 +75,15 @@ describe('A model can be deployed with token auth', () => {
   it(
     'Verify that a model can be deployed with token auth',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@ModelServingCI', '@KServeCI'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@ModelServingCI',
+        '@KServeCI',
+        '@NonConcurrent',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -104,8 +121,7 @@ describe('A model can be deployed with token auth', () => {
         .then((val) => {
           resourceName = val as string;
         });
-      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-      modelServingWizard.selectServingRuntimeOption(servingRuntime);
+      modelServingWizard.selectServingRuntimeAndFormat(servingRuntime, modelFormat);
       modelServingWizard.findNextButton().click();
 
       cy.step('Step 3: Advanced settings');
@@ -120,7 +136,9 @@ describe('A model can be deployed with token auth', () => {
 
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(testData.singleModelName);
+      modelServingSection
+        .findModelServerDeployedName(testData.singleModelName, { timeout: MODEL_STATUS_TIMEOUT })
+        .should('be.visible');
 
       // Verify the model created
       cy.step('Verify that the Model is running');
@@ -188,7 +206,9 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizardEdit.findNextButton().click();
       // Submit
       modelServingWizardEdit.findSubmitButton().click();
-      modelServingSection.findModelServerDeployedName(testData.singleModelName);
+      modelServingSection
+        .findModelServerDeployedName(testData.singleModelName, { timeout: MODEL_STATUS_TIMEOUT })
+        .should('be.visible');
 
       cy.step('Verify that the Model is running');
       cy.then(() => {
