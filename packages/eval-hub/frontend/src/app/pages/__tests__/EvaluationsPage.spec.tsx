@@ -1,8 +1,9 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { EvaluationJobsResult } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import {
@@ -10,11 +11,13 @@ import {
   mockCuratedBenchmarkSuiteCollections,
 } from '~/app/mockBenchmarkSuiteCollections';
 import EvaluationsPage from '~/app/pages/EvaluationsPage';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
+const { mockTrackEvent, render } = setupTrackingTest();
+
 const mockRefresh = jest.fn();
-const mockTrackEventOnce = jest.fn();
+
 const mockUseCollectionsQuery = jest.fn();
 const mockUseDeleteCollectionMutation = jest.fn();
 const mockDeleteCollection = jest.fn();
@@ -29,13 +32,6 @@ const mockUseEvalHubHealth = jest.fn<
   { isHealthy: boolean; loaded: boolean; error: Error | undefined },
   []
 >();
-
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  createEvalHubTrackingScope: () => ({ trackEventOnce: mockTrackEventOnce, clear: jest.fn() }),
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
 
 jest.mock('~/app/hooks/useEvaluationJobs', () => ({
   useEvaluationJobs: () => mockUseEvaluationJobs(),
@@ -351,13 +347,17 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(screen.getByTestId('create-evaluation-button'));
 
-    expect(mockTrackEventOnce).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_GALLERY_VIEWED,
-      'test-project:tenant:all',
-      { surface: 'my_benchmark_suites' },
-      { collectionType: 'custom' },
+      {
+        event_source: 'evalhub_ui',
+        collection_type: 'custom',
+        provider_type: 'unknown',
+        surface: 'my_benchmark_suites',
+      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should open the suite details drawer when selecting a Gallery suite name', () => {
@@ -520,54 +520,64 @@ describe('EvaluationsPage', () => {
   it('should track collection filter values and ignore empty values', () => {
     renderPage('test-project');
 
+    mockTrackEvent.mockClear();
     const searchInput = screen.getByPlaceholderText('Search collections');
     fireEvent.change(searchInput, { target: { value: '  suite  ' } });
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
 
     fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
       {
+        event_source: 'evalhub_ui',
+        collection_type: 'system',
+        provider_type: 'unknown',
         filterType: 'search',
         value: '5',
         surface: 'collection_gallery',
       },
-      expect.objectContaining({ collectionType: 'system' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
 
-    mockTrackEvalHubEvent.mockClear();
+    mockTrackEvent.mockClear();
     fireEvent.change(searchInput, { target: { value: '' } });
     fireEvent.keyDown(searchInput, { key: 'Enter' });
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('benchmark-suites-category-filter'));
     clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
     clickFilterOption('benchmark-suites-category-filter-option-code');
-    expect(mockTrackEvalHubEvent).toHaveBeenLastCalledWith(
+    expect(mockTrackEvent).toHaveBeenLastCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
       {
+        event_source: 'evalhub_ui',
+        collection_type: 'system',
+        provider_type: 'unknown',
         filterType: 'category',
         value: 'code, trustworthiness',
         surface: 'collection_gallery',
       },
-      expect.objectContaining({ collectionType: 'system' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
 
-    mockTrackEvalHubEvent.mockClear();
+    mockTrackEvent.mockClear();
     clickFilterOption('benchmark-suites-category-filter-option-code');
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.BENCHMARK_COLLECTION_FILTER_APPLIED,
       {
+        event_source: 'evalhub_ui',
+        collection_type: 'system',
+        provider_type: 'unknown',
         filterType: 'category',
         value: 'trustworthiness',
         surface: 'collection_gallery',
       },
-      expect.objectContaining({ collectionType: 'system' }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
 
-    mockTrackEvalHubEvent.mockClear();
+    mockTrackEvent.mockClear();
     clickFilterOption('benchmark-suites-category-filter-option-trustworthiness');
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should not gate the Evaluate tab on the Runs request', () => {
@@ -594,9 +604,16 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(screen.getByTestId('create-suite-button'));
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
-      surface: 'my_benchmark_suites',
-    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED,
+      {
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'unknown',
+        surface: 'my_benchmark_suites',
+      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+    );
   });
 
   it('should keep the create-suite card visible while tenant suites are loading', () => {
@@ -635,10 +652,10 @@ describe('EvaluationsPage', () => {
     fireEvent.click(screen.getByTestId('benchmark-suite-delete-cancel'));
 
     expect(screen.queryByTestId('benchmark-suite-delete-modal')).not.toBeInTheDocument();
-    expect(mockTrackEvalHubEvent).not.toHaveBeenCalledWith(
+    expect(mockTrackEvent).not.toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_DELETED,
       expect.anything(),
-      expect.anything(),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -652,16 +669,12 @@ describe('EvaluationsPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/copy',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_CUSTOMIZE_CLICKED,
       expect.objectContaining({
-        collectionName: 'Model suite 2',
         surface: 'my_benchmark_suites',
       }),
-      expect.objectContaining({
-        collectionType: 'custom',
-        providerType: expect.any(String),
-      }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -675,18 +688,16 @@ describe('EvaluationsPage', () => {
       '/evaluation/test-project/create/collections/model-suite-2/edit',
     );
     expect(screen.getByTestId('location-state')).toHaveTextContent('{"source":"evaluate"}');
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED,
       expect.objectContaining({
-        collectionName: 'Model suite 2',
         surface: 'my_benchmark_suites',
       }),
-      expect.objectContaining({
-        collectionType: 'custom',
-        providerType: expect.any(String),
-      }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledTimes(1);
+    expect(
+      mockTrackEvent.mock.calls.filter(([name]) => name === EVAL_HUB_EVENTS.COLLECTION_EDIT_OPENED),
+    ).toHaveLength(1);
   });
 
   it('should show a success notification after deleting a benchmark suite', async () => {
@@ -701,16 +712,16 @@ describe('EvaluationsPage', () => {
       'Collection deleted',
       '"Model suite 2" has been deleted.',
     );
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_DELETED,
       {
-        collectionName: 'Model suite 2',
+        event_source: 'evalhub_ui',
+        collection_type: 'custom',
+        provider_type: 'mock_eval_suite',
+
         outcome: 'success',
       },
-      expect.objectContaining({
-        collectionType: 'custom',
-        providerType: expect.any(String),
-      }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -829,9 +840,16 @@ describe('EvaluationsPage', () => {
 
     fireEvent.click(screen.getByTestId('browse-all-benchmarks-explore'));
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED, {
-      surface: 'my_benchmark_suites',
-    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.BENCHMARK_CATALOG_OPENED,
+      {
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'unknown',
+        surface: 'my_benchmark_suites',
+      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+    );
   });
 
   it('should open the start evaluation run modal for a suite', () => {

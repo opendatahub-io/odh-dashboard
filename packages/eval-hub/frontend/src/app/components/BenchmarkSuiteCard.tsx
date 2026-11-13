@@ -40,7 +40,8 @@ import {
 import { Link } from 'react-router-dom';
 import type { MenuToggleElement } from '@patternfly/react-core';
 import type { Collection } from '~/app/types';
-import { trackEvalHubEvent, type EvalHubCollectionSurface } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
+import type { EvalHubCollectionSurface } from '~/app/tracking/evalhubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { isCollectionCategory, type CollectionCategory } from '~/app/pages/const';
 import {
@@ -323,6 +324,8 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
   onSelect,
   reservePopularHeader = false,
 }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
   const domains = [...new Set((collection.domains ?? []).map(normalizeCategory).filter(Boolean))];
@@ -421,7 +424,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         providerType: collection.benchmarks?.[0]?.provider_id,
       },
     );
-  }, [collection]);
+  }, [trackEvalHubEvent, collection]);
   const handlePrimaryAction = React.useCallback(() => {
     if (primaryAction.tracksRunSelection !== false) {
       trackRunSelected();
@@ -445,7 +448,7 @@ const BenchmarkSuiteCard: React.FC<BenchmarkSuiteCardProps> = ({
         },
       );
     }
-  }, [onSelect, collection, trackingSurface]);
+  }, [trackEvalHubEvent, onSelect, collection, trackingSurface]);
   const renderActionButton = (action: BenchmarkSuiteCardButton, actionName: 'primary') =>
     action.href ? (
       <Button

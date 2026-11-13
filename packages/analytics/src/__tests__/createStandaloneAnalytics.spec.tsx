@@ -105,4 +105,42 @@ describe('standalone tracking compatibility', () => {
     expect(track).toHaveBeenCalledTimes(1);
     expect(mockLoad).not.toHaveBeenCalled();
   });
+
+  it('should forward per-event policies through the regular standalone provider', () => {
+    window.clusterID = 'standalone-cluster';
+    window.analytics = { track, page };
+    const pageContextPolicy = jest.fn(() => ({
+      path: '/redacted',
+      url: 'https://safe.example/redacted',
+      referrer: '',
+      search: '',
+      title: 'Safe title',
+    }));
+    const tracking = createStandaloneAnalytics({ devMode: false, version: 'standalone-version' });
+    const rendered = renderHook(useTrackEvent, {
+      wrapper: ({ children }: React.PropsWithChildren) => (
+        <AnalyticsTrackingProvider value={tracking}>{children}</AnalyticsTrackingProvider>
+      ),
+    });
+    rendered.result.current('standalone-event', { success: false }, { pageContextPolicy });
+    expect(track.mock.calls).toEqual([
+      [
+        'standalone-event',
+        { success: false, clusterID: 'standalone-cluster' },
+        {
+          app: { version: 'standalone-version' },
+          page: {
+            path: '/redacted',
+            url: 'https://safe.example/redacted',
+            referrer: '',
+            search: '',
+            title: 'Safe title',
+          },
+        },
+      ],
+    ]);
+    expect(pageContextPolicy).toHaveBeenCalledTimes(1);
+    expect(page).not.toHaveBeenCalled();
+    expect(mockLoad).not.toHaveBeenCalled();
+  });
 });

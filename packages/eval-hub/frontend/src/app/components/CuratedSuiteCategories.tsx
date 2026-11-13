@@ -5,7 +5,7 @@ import { Card, CardBody, Content, Grid, GridItem, Title } from '@patternfly/reac
 import { RhStandardAiModelIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { evaluationCuratedBenchmarkSuitesRoute } from '~/app/routes';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import './CuratedSuiteCategories.scss';
 
@@ -93,60 +93,63 @@ type CuratedSuiteCategoriesProps = {
   namespace: string;
 };
 
-const CuratedSuiteCategories: React.FC<CuratedSuiteCategoriesProps> = ({ namespace }) => (
-  <section className="evalhub-curated-suite-categories" data-testid="curated-suite-categories">
-    <Title headingLevel="h2" size="xl" className="evalhub-curated-suite-categories__title">
-      Red Hat validated collections
-    </Title>
-    <Content component="p" className="evalhub-curated-suite-categories__description">
-      Explore collections validated by Red Hat for evaluating models and agents.
-    </Content>
-    <Grid hasGutter>
-      {CURATED_CATEGORIES.map((category) => {
-        const Icon = category.icon;
-        return (
-          <GridItem key={category.id} sm={12} md={6} lg={4}>
-            <Link
-              to={getCategoryHref(namespace, category)}
-              className="evalhub-curated-suite-categories__link"
-              onClick={() =>
-                trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CATEGORY_SELECTED, {
-                  categoryId: category.id,
-                  evaluationTarget: category.evaluationTargets?.[0],
-                  surface: 'my_benchmark_suites',
-                })
-              }
-              data-testid={`curated-suite-category-card-${category.id}`}
-            >
-              <Card isFullHeight className="evalhub-curated-suite-categories__card">
-                <CardBody>
-                  <span
-                    className={`evalhub-curated-suite-categories__icon evalhub-curated-suite-categories__icon--${category.iconColor}`}
-                    aria-hidden="true"
-                  >
-                    <Icon />
-                  </span>
-                  <Title
-                    headingLevel="h3"
-                    size="md"
-                    className="evalhub-curated-suite-categories__card-title"
-                  >
-                    {category.title}
-                  </Title>
-                  <Content
-                    component="p"
-                    className="evalhub-curated-suite-categories__card-description"
-                  >
-                    {category.description}
-                  </Content>
-                </CardBody>
-              </Card>
-            </Link>
-          </GridItem>
-        );
-      })}
-    </Grid>
-  </section>
-);
+const CuratedSuiteCategories: React.FC<CuratedSuiteCategoriesProps> = ({ namespace }) => {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+  return (
+    <section className="evalhub-curated-suite-categories" data-testid="curated-suite-categories">
+      <Title headingLevel="h2" size="xl" className="evalhub-curated-suite-categories__title">
+        Red Hat validated collections
+      </Title>
+      <Content component="p" className="evalhub-curated-suite-categories__description">
+        Explore collections validated by Red Hat for evaluating models and agents.
+      </Content>
+      <Grid hasGutter>
+        {CURATED_CATEGORIES.map((category) => {
+          const Icon = category.icon;
+          return (
+            <GridItem key={category.id} sm={12} md={6} lg={4}>
+              <Link
+                to={getCategoryHref(namespace, category)}
+                className="evalhub-curated-suite-categories__link"
+                onClick={() =>
+                  trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_CATEGORY_SELECTED, {
+                    categoryId: category.id,
+                    evaluationTarget: category.evaluationTargets?.[0],
+                    surface: 'my_benchmark_suites',
+                  })
+                }
+                data-testid={`curated-suite-category-card-${category.id}`}
+              >
+                <Card isFullHeight className="evalhub-curated-suite-categories__card">
+                  <CardBody>
+                    <span
+                      className={`evalhub-curated-suite-categories__icon evalhub-curated-suite-categories__icon--${category.iconColor}`}
+                      aria-hidden="true"
+                    >
+                      <Icon />
+                    </span>
+                    <Title
+                      headingLevel="h3"
+                      size="md"
+                      className="evalhub-curated-suite-categories__card-title"
+                    >
+                      {category.title}
+                    </Title>
+                    <Content
+                      component="p"
+                      className="evalhub-curated-suite-categories__card-description"
+                    >
+                      {category.description}
+                    </Content>
+                  </CardBody>
+                </Card>
+              </Link>
+            </GridItem>
+          );
+        })}
+      </Grid>
+    </section>
+  );
+};
 
 export default CuratedSuiteCategories;

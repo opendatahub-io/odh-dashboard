@@ -1,15 +1,13 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import CreateBenchmarkSuiteCard from '~/app/components/CreateBenchmarkSuiteCard';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 
-jest.mock('~/app/tracking/evalhubTracking', () => ({
-  trackEvalHubEvent: jest.fn(),
-}));
-
-const mockTrackEvalHubEvent = jest.mocked(trackEvalHubEvent);
+const { mockTrackEvent, render } = setupTrackingTest();
 
 describe('CreateBenchmarkSuiteCard', () => {
   beforeEach(() => {
@@ -68,8 +66,15 @@ describe('CreateBenchmarkSuiteCard', () => {
 
     fireEvent.click(screen.getByTestId('create-suite-button'));
 
-    expect(mockTrackEvalHubEvent).toHaveBeenCalledWith(EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED, {
-      surface: 'my_benchmark_suites',
-    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      EVAL_HUB_EVENTS.COLLECTION_CREATE_OPENED,
+      {
+        event_source: 'evalhub_ui',
+        collection_type: 'unknown',
+        provider_type: 'unknown',
+        surface: 'my_benchmark_suites',
+      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+    );
   });
 });

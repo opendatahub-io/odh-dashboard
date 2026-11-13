@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockFlatBenchmark } from '~/__mocks__/mockBenchmark';
 import CopySuiteBenchmarkDetailsOverlay from '~/app/components/CopySuiteBenchmarkDetailsOverlay';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { render } = setupTrackingTest();
 
 const TestOverlay: React.FC = () => {
   const [isOpen, setIsOpen] = React.useState(false);
