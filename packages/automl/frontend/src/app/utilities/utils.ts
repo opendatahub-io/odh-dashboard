@@ -447,6 +447,11 @@ export function getBestModelFromStageMap(
 const normalizeModelIdentifier = (value: string): string =>
   value.replace(/[\s_-]+/g, '').toLowerCase();
 
+const FULL_MODEL_SUFFIX = '_FULL';
+const hasCanonicalFullSuffix = (value: string): boolean => /_FULL$/i.test(value);
+const hasMalformedFullSuffix = (value: string): boolean =>
+  /FULL$/i.test(value) && !hasCanonicalFullSuffix(value);
+
 /** Resolves a model identifier to a unique loaded model record key. */
 export function resolveModelRecordKey(
   models: Record<string, { name?: string } | null | undefined>,
@@ -455,6 +460,26 @@ export function resolveModelRecordKey(
   if (!modelIdentifier) {
     return undefined;
   }
+  const fullModelIdentifier = hasCanonicalFullSuffix(modelIdentifier)
+    ? modelIdentifier
+    : `${modelIdentifier}${FULL_MODEL_SUFFIX}`;
+  const caseInsensitiveFullModelIdentifier = fullModelIdentifier.toLowerCase();
+  const fullModelMatches = [
+    ...new Set(
+      Object.entries(models)
+        .filter(
+          ([key, model]) =>
+            model != null &&
+            (key.toLowerCase() === caseInsensitiveFullModelIdentifier ||
+              model.name?.toLowerCase() === caseInsensitiveFullModelIdentifier),
+        )
+        .map(([key]) => key),
+    ),
+  ];
+  if (fullModelMatches.length > 0) {
+    return fullModelMatches.length === 1 ? fullModelMatches[0] : undefined;
+  }
+
   if (Object.hasOwn(models, modelIdentifier) && models[modelIdentifier] != null) {
     return modelIdentifier;
   }
@@ -464,6 +489,11 @@ export function resolveModelRecordKey(
   if (exactNameMatches.length > 0) {
     return exactNameMatches.length === 1 ? exactNameMatches[0] : undefined;
   }
+
+  if (hasMalformedFullSuffix(modelIdentifier)) {
+    return undefined;
+  }
+
   const normalizedIdentifier = normalizeModelIdentifier(modelIdentifier);
   const matchingKeys = Object.entries(models)
     .filter(
@@ -473,7 +503,11 @@ export function resolveModelRecordKey(
           (model.name != null && normalizeModelIdentifier(model.name) === normalizedIdentifier)),
     )
     .map(([key]) => key);
-  return matchingKeys.length === 1 ? matchingKeys[0] : undefined;
+  if (matchingKeys.length > 0) {
+    return matchingKeys.length === 1 ? matchingKeys[0] : undefined;
+  }
+
+  return undefined;
 }
 
 /** Maps a stage-map best_model value to a key in the loaded models record. */

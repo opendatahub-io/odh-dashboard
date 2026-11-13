@@ -925,6 +925,76 @@ describe('resolveBestModelKey', () => {
     );
   });
 
+  it('matches a model identifier to a unique delimiter-suffixed record', () => {
+    expect(
+      resolveBestModelKey(
+        { XGBoost_BAG_L1_FULL: { name: 'XGBoost_BAG_L1_FULL' } },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('XGBoost_BAG_L1_FULL');
+  });
+
+  it('matches a short model identifier when the suffix is delimiter-separated', () => {
+    expect(resolveBestModelKey({ Theta_FULL: { name: 'Theta_FULL' } }, 'Theta')).toBe('Theta_FULL');
+  });
+
+  it('does not match a model record without the required FULL suffix', () => {
+    expect(
+      resolveBestModelKey({ model_a: { name: 'XGBoost_BAG_L1_V2' } }, 'XGBoost_BAG_L1'),
+    ).toBeUndefined();
+  });
+
+  it('prefers the required FULL record over other suffixed records', () => {
+    expect(
+      resolveBestModelKey(
+        {
+          model_a: { name: 'XGBoost_BAG_L1_FULL' },
+          model_b: { name: 'XGBoost_BAG_L1_V2' },
+        },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('model_a');
+  });
+
+  it('prefers the FULL record over an exact base-name record', () => {
+    expect(
+      resolveBestModelKey(
+        {
+          base: { name: 'XGBoost_BAG_L1' },
+          full: { name: 'XGBoost_BAG_L1_FULL' },
+        },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('full');
+  });
+
+  it('ignores null FULL records when resolving a non-null alias', () => {
+    expect(
+      resolveBestModelKey(
+        {
+          XGBoost_BAG_L1_FULL: null,
+          alias: { name: 'XGBoost_BAG_L1_FULL' },
+        },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('alias');
+  });
+
+  it('matches the FULL suffix case-insensitively', () => {
+    expect(
+      resolveBestModelKey(
+        { xgboost_bag_l1_full: { name: 'xgboost_bag_l1_full' } },
+        'XGBoost_BAG_L1',
+      ),
+    ).toBe('xgboost_bag_l1_full');
+  });
+
+  it('does not normalize a malformed FULL suffix to the canonical record', () => {
+    expect(
+      resolveBestModelKey({ full: { name: 'XGBoost_BAG_L1_FULL' } }, 'XGBoost_BAG_L1FULL'),
+    ).toBeUndefined();
+  });
+
   it('prefers a unique exact model name before normalized matching', () => {
     expect(
       resolveBestModelKey(

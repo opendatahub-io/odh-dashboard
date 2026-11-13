@@ -18,6 +18,24 @@ const MODEL_NAMES = [
   'WeightedEnsemble_L2_FULL',
 ];
 
+const TIMESERIES_RUN_ID = 'ba44c73f-307c-4529-84e9-27a0698ae2ae';
+const TIMESERIES_MODEL_NAMES = ['RecursiveTabular_FULL', 'Theta_FULL', 'WeightedEnsemble_FULL'];
+
+const TOPOLOGY_CASES = [
+  {
+    name: 'tabular',
+    runId: RUN_ID,
+    componentId: 'autogluon_models_training',
+    modelNames: MODEL_NAMES,
+  },
+  {
+    name: 'time-series',
+    runId: TIMESERIES_RUN_ID,
+    componentId: 'autogluon_timeseries_models_training',
+    modelNames: TIMESERIES_MODEL_NAMES,
+  },
+] as const;
+
 // Top features by importance for this run (shared across all three models) — see
 // each model's metrics/feature_importance.json in the seed data above.
 const TOP_FEATURES = ['Name', 'Pclass', 'Sex'];
@@ -112,6 +130,55 @@ describe('AutoML Results Page', () => {
 
       // roc_auc column should now be visible
       automlResultsPage.findMetricHeader('roc_auc').should('exist');
+    });
+  });
+
+  describe('Topology model labels', () => {
+    TOPOLOGY_CASES.forEach(({ name, runId, componentId, modelNames }) => {
+      it(`should identify ${name} models in collapsed and expanded topology states`, () => {
+        automlResultsPage.visit(NAMESPACE, runId);
+
+        automlResultsPage
+          .findTopologyNodeLabel(componentId, 'model', 0)
+          .should('be.visible')
+          .and('have.css', 'white-space', 'normal')
+          .and('have.css', 'overflow-wrap', 'anywhere')
+          .and('have.text', modelNames[0])
+          .then(($label) => {
+            const range = document.createRange();
+            range.selectNodeContents($label[0]);
+            expect(range.getClientRects().length, 'wrapped model label lines').to.be.greaterThan(1);
+          });
+        automlResultsPage.findTopologyRowLabel(1).should('not.exist');
+        automlResultsPage
+          .findModelsExpandToggle()
+          .should('contain.text', `Show all ${modelNames.length} models`)
+          .click();
+
+        modelNames.forEach((modelName, branchIndex) => {
+          automlResultsPage
+            .findTopologyRowLabel(branchIndex)
+            .should('be.visible')
+            .and('have.text', modelName);
+        });
+
+        automlResultsPage
+          .findModelsExpandToggle()
+          .should('contain.text', 'Collapse models')
+          .click();
+        automlResultsPage.findTopologyRowLabel(1).should('not.exist');
+        automlResultsPage
+          .findTopologyNodeLabel(componentId, 'model', 0)
+          .should('be.visible')
+          .and('have.css', 'white-space', 'normal')
+          .and('have.css', 'overflow-wrap', 'anywhere')
+          .and('have.text', modelNames[0])
+          .then(($label) => {
+            const range = document.createRange();
+            range.selectNodeContents($label[0]);
+            expect(range.getClientRects().length, 'wrapped model label lines').to.be.greaterThan(1);
+          });
+      });
     });
   });
 

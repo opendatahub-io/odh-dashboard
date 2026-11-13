@@ -20,8 +20,11 @@ export type TreeEdgePathOptions = {
 /**
  * Horizontal x-range occupied by a row label sitting to the left of a branch node.
  */
-export const fanOutLabelClearX = (targetLeft: number): { start: number; end: number } => ({
-  start: targetLeft - ROW_LABEL_GAP - ROW_LABEL_WIDTH,
+export const fanOutLabelClearX = (
+  targetLeft: number,
+  rowLabelWidth = ROW_LABEL_WIDTH,
+): { start: number; end: number } => ({
+  start: targetLeft - ROW_LABEL_GAP - rowLabelWidth,
   end: targetLeft - ROW_LABEL_GAP,
 });
 
