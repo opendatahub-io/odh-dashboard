@@ -102,7 +102,9 @@ The ODH Dashboard has **custom handling for the `namespace` variable**. When a d
 
 ### Adding namespace filter support
 
-If your dashboard should support namespace filtering, include the following variable definition:
+For dashboards that apply the namespace selection in PromQL, include the following variable
+definition. The `customAllValue` setting is appropriate for that PromQL pattern, including when
+the dashboard is viewed outside ODH. Include the following variable definition:
 
 ```yaml
 variables:
@@ -141,6 +143,21 @@ variables:
 ### Matcher query
 
 The `matchers` field should contain a Prometheus metric query that returns namespaces relevant to your dashboard. This query is **only used as a fallback** when the dashboard is loaded outside of ODH (e.g., directly in the Perses UI).
+
+### Scoped datasource pattern
+
+Dashboards using a scoped Prometheus datasource with a namespace query parameter must use concrete
+namespace values instead of a wildcard All value. Omit `customAllValue` on the namespace variable;
+the ODH Dashboard transforms it to a project-backed `StaticListVariable`, and Perses expands All
+to repeated concrete parameters such as `namespace=project-a&namespace=project-b`. Rely on the
+datasource query parameter for tenancy and do not add a duplicate `namespace=~"$namespace"`
+matcher to the panel or variable PromQL.
+
+```yaml
+spec:
+  queryParams:
+    namespace: ${namespace:queryparam}
+```
 
 ## Complete Example
 

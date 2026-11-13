@@ -23,6 +23,9 @@ import { createPluginLoader } from '../persesPluginsLoader';
 import { OdhDatasourceApi, CachedDatasourceAPI, PERSES_PROXY_BASE_PATH } from '../perses-client';
 import { usePatternFlyTheme } from '../theme';
 
+export { PersesDashboardGate } from './PersesDashboardGate';
+export type { PersesDashboardGateProps } from './PersesDashboardGate';
+
 const DEFAULT_DURATION: DurationString = '30m';
 const DEFAULT_REFRESH_INTERVAL: DurationString = '60s';
 
