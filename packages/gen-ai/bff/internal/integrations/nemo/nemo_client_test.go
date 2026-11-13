@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -157,6 +158,27 @@ func TestCheckGuardrails_ServerError(t *testing.T) {
 	_, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello"}}, minimalInlineConfig())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "status 500")
+}
+
+func TestCheckGuardrails_DoesNotFollowRedirect(t *testing.T) {
+	var redirected atomic.Bool
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		redirected.Store(true)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer target.Close()
+
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", target.URL)
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	}))
+	defer source.Close()
+
+	client := NewNemoGuardrailsClient(source.URL, "test-token", true, nil)
+	_, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello"}}, minimalInlineConfig())
+
+	require.ErrorContains(t, err, "status 307")
+	assert.False(t, redirected.Load(), "the user token and conversation must not reach the redirect target")
 }
 
 func TestCheckGuardrails_InvalidJSON(t *testing.T) {

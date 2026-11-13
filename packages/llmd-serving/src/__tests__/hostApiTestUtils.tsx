@@ -1,3 +1,5 @@
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import type { TrackEvent } from '@odh-dashboard/analytics/types';
 import React from 'react';
 import { HostApiCoreContext, type HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
 import {
@@ -7,14 +9,14 @@ import {
 
 type TestProviders = {
   coreApi: HostApiCoreServices;
-  trackEvent: jest.MockedFunction<HostApiCoreServices['trackEvent']>;
+  trackEvent: jest.MockedFunction<TrackEvent>;
   notification: jest.Mocked<NotificationAPI>;
   wrapper: React.FC<React.PropsWithChildren>;
 };
 
 type TestProviderOptions = {
   dashboardNamespace?: string;
-  trackEvent?: HostApiCoreServices['trackEvent'];
+  trackEvent?: TrackEvent;
 };
 
 export const createTestProviders = ({
@@ -25,7 +27,6 @@ export const createTestProviders = ({
   const coreApi: HostApiCoreServices = {
     dashboardNamespace,
     checkAccess: jest.fn(),
-    trackEvent,
     fetchDashboardConfig: jest.fn(),
     fetchClusterSettings: jest.fn(),
     updateClusterSettings: jest.fn(),
@@ -36,10 +37,14 @@ export const createTestProviders = ({
     info: jest.fn(),
     warning: jest.fn(),
   } satisfies NotificationAPI;
+  const noOp = () => undefined;
+  const tracking = { trackEvent, trackPageEvent: noOp };
   const Wrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <HostApiCoreContext.Provider value={coreApi}>
-      <NotificationContext.Provider value={notification}>{children}</NotificationContext.Provider>
-    </HostApiCoreContext.Provider>
+    <AnalyticsTrackingProvider value={tracking}>
+      <HostApiCoreContext.Provider value={coreApi}>
+        <NotificationContext.Provider value={notification}>{children}</NotificationContext.Provider>
+      </HostApiCoreContext.Provider>
+    </AnalyticsTrackingProvider>
   );
 
   return { coreApi, trackEvent, notification, wrapper: Wrapper };

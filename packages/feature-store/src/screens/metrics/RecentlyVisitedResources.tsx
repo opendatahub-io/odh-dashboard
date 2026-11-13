@@ -14,7 +14,7 @@ import { PathMissingIcon, PlusIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { recentlyVisitedResourcesColumns, EMPTY_STATE_MESSAGES } from './const';
 import { formatResourceType, getResourceRoute } from './utils';
 import useRecentlyVisitedResources from '../../apiHooks/useRecentlyVisitedResources';
@@ -32,6 +32,7 @@ type RecentlyVisitedResourcesProps = {
 const RecentlyVisitedResourcesTableRow: React.FC<{
   item: RecentlyVisitedResource;
 }> = ({ item }) => {
+  const trackEvent = useTrackEvent();
   const resourceType = formatResourceType(item.object);
   const resourceLink = getResourceRoute(resourceType, item.object_name, item.project);
   return (
@@ -41,7 +42,7 @@ const RecentlyVisitedResourcesTableRow: React.FC<{
           to={resourceLink}
           aria-label={`Go to ${item.object_name} ${resourceType} in ${item.project} project`}
           onClick={() => {
-            fireMiscTrackingEvent(FEATURE_STORE_EVENTS.RECENTLY_VIEWED_SELECTED, {
+            trackEvent(FEATURE_STORE_EVENTS.RECENTLY_VIEWED_SELECTED, {
               resourceType,
             } satisfies RecentlyViewedSelectedProperties);
           }}

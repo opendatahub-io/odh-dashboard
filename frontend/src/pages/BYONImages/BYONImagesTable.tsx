@@ -1,11 +1,7 @@
 import React from 'react';
 import { debounce, type DebouncedFunc } from 'lodash-es';
-import {
-  DashboardEmptyTableView,
-  Table,
-  TrackingOutcome,
-  type FormTrackingEventProperties,
-} from '@odh-dashboard/ui-core';
+import { DashboardEmptyTableView, Table } from '@odh-dashboard/ui-core';
+import { TrackingOutcome, type FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import { BYONImage } from '#~/types';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
 import { WORKBENCH_VISIBILITY } from '#~/concepts/hardwareProfiles/const';

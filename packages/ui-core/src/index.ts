@@ -3,14 +3,6 @@ export type { UpdateObjectAtPropAndValue } from './types';
 export { ThemeContext, useThemeContext } from './contexts/ThemeContext';
 export type { ThemeContextProps } from './contexts/ThemeContext';
 
-export { TrackingOutcome } from './types/analytics';
-export type {
-  FormTrackingEventProperties,
-  MiscTrackingEventProperties,
-  LinkTrackingEventProperties,
-  IdentifyEventProperties,
-} from './types/analytics';
-
 export { NotificationContext, useNotification } from './contexts/NotificationContext';
 export type { NotificationAction, NotificationAPI } from './contexts/NotificationContext';
 
@@ -139,10 +131,15 @@ export type {
   ProjectIdentity,
   WorkingProjectContextType,
   WorkingProjectProviderProps,
-  WorkingProjectStatus,
   WorkingProjectNavigation,
   WorkingProjectNavigationTransaction,
 } from './context/WorkingProjectContext';
+export {
+  WorkingProjectSelectorLabelValue,
+  WorkingProjectStatusLabelValue,
+  WorkingProjectStatusValue,
+} from './context/WorkingProjectContext';
+export type { WorkingProjectStatus } from './context/WorkingProjectContext';
 
 export { useWorkingProjectSynchronization } from './hooks/useWorkingProjectSynchronization';
 export type {

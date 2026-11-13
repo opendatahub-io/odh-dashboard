@@ -13,11 +13,15 @@ const (
 	// Used in Auth CR allowedGroups to grant dashboard access to every authenticated identity.
 	SystemAuthenticated = "system:authenticated"
 
-	// AuthInstanceName is the CR instance name for the Auth singleton.
+	// AuthInstanceName is the CR instance name for the Auth singleton, and the only
+	// valid name for it. The operator pins this via serviceApi.AuthInstanceName and the
+	// CRD enforces it with the CEL rule `self.metadata.name == 'auth'`
+	// ("Auth name must be auth"), so the API server rejects any other name at admission.
+	//
+	// Use this for BOTH reading the CR and naming it in a SelfSubjectAccessReview.
+	// An SSAR naming anything else authorizes against an object that cannot exist; it
+	// only returns allowed=true while the granting ClusterRole omits resourceNames.
 	AuthInstanceName = "auth"
-
-	// DefaultAuthName is the SSAR resource name used for admin/allowed checks.
-	DefaultAuthName = "default-auth"
 )
 
 // AuthGVR is the GroupVersionResource for the Auth CRD.

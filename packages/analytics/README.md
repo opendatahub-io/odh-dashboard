@@ -1,22 +1,22 @@
 # @odh-dashboard/analytics
 
-Shared Segment analytics implementation for ODH Dashboard.
+Shared analytics contracts, React providers, and Segment implementation for ODH Dashboard.
 
 ## Purpose
 
-Provides the concrete Segment implementation for host applications. Feature packages describe events; the host decides how those events are delivered.
+Provides shared tracking contracts and the concrete Segment implementation for host applications. Feature packages describe events; the host decides how those events are delivered.
 
 ## Design
 
 ```mermaid
 flowchart LR
   Component[React component] --> Hook[useTrackEvent]
-  Hook --> Adapter[Host-provided tracking adapter]
+  Hook --> Adapter[Host-configured tracking adapter]
   Helper[Pure helper or service] -->|Injected callback| Adapter
   Adapter --> Implementation[Analytics implementation]
 ```
 
-The host mounts `HostApiCoreContext` with a `trackEvent` callback. React components and custom hooks obtain that callback through `useTrackEvent()` from `@odh-dashboard/plugin-core/host-api`. Pure helpers and services receive it as an argument, so they can fire events without calling React hooks.
+The host mounts `AnalyticsTrackingProvider` with a `value` containing `trackEvent` and `trackPageEvent` callbacks. React components and custom hooks obtain those callbacks through `useTrackEvent()` and `useTrackPageEvent()` from `@odh-dashboard/analytics/react`. The provider neither initializes an SDK nor emits events. Invoking an operation without a provider throws; disabled hosts supply explicit stable no-ops. Pure helpers and services receive it as an argument, so they can fire events without calling React hooks.
 
 Custom events use one operation: `trackEvent(name, properties)`. Keep event names, privacy-reviewed payload types, and event builders in the feature that owns them.
 
@@ -28,27 +28,25 @@ Custom events use one operation: `trackEvent(name, properties)`. Keep event name
 | Host / distribution      | Supply the callback, apply consent and enablement policy, initialize the SDK, bind environment metadata, and own page tracking and user identity. |
 | Analytics implementation | Integrate with the Segment SDK, deliver custom/page/identity events, and provide anonymous user ID hashing.                                       |
 
-Each distribution supplies a concrete adapter or an explicit intentional no-op. Mount the provider for every supported application entry point; do not rely on an unmounted context to disable tracking.
+Each distribution supplies a concrete adapter or an explicit intentional no-op. Mount the provider for every application entry point that renders tracking-hook consumers; do not rely on an unmounted context to disable tracking.
 
 Page and identity operations belong to the host lifecycle. Keep them separate from feature custom events to preserve routing, identity, and event-count semantics.
 
 ### Import Boundaries
 
 - `@odh-dashboard/analytics`: implementation functions for host integration.
-- `@odh-dashboard/ui-core/types/analytics`: shared contracts, including `TrackingOutcome` and property types. This entry point imports neither React nor Segment.
-- `@odh-dashboard/plugin-core/host-api`: the injected tracking contract and `useTrackEvent()` hook for features.
+- `@odh-dashboard/analytics/standalone`: the compatibility factory for standalone bootstrap wiring, without SDK initialization.
+- `@odh-dashboard/analytics/types`: SDK-free shared contracts, including `TrackEvent`, `TrackPageEvent`, `TrackingOutcome`, and property types. This entry point imports neither React nor Segment.
+- `@odh-dashboard/analytics/react`: the SDK-free provider and tracking hooks. This entry point imports neither the implementation nor Segment. Its context is shared as a singleton across hosts and federated remotes.
 
-Feature code uses the host tracking API and shared contracts from ui-core. It does not import this package, import the Segment SDK, or access analytics globals. The `@odh-dashboard/no-direct-analytics` lint rule enforces this boundary in guarded feature files.
+Use the contracts and React entry points in feature code, and reserve the standalone entry point for standalone bootstrap wiring. The `@odh-dashboard/no-direct-analytics` lint rule allows only the contracts and React entry points in guarded files; standalone bootstrap files use a file-specific override.
 
 ## Usage
 
 ### Feature Helpers
 
 ```ts
-import type { HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
-import { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';
-
-type TrackEvent = HostApiCoreServices['trackEvent'];
+import { TrackingOutcome, type TrackEvent } from '@odh-dashboard/analytics/types';
 
 export const fireModelDeleted = (trackEvent: TrackEvent, outcome: TrackingOutcome): void => {
   trackEvent('Model Deleted', { outcome, type: 'single' });
@@ -59,50 +57,47 @@ A React caller obtains `trackEvent` with `useTrackEvent()` and passes it to the 
 
 ### Host Integration
 
-Bind runtime cluster ID, development mode, and app version in the host adapter supplied to `HostApiCoreContext.trackEvent`. A host-owned configuration getter returns the current policy and metadata on every call, including calls from long-running work that retained an earlier callback.
+Use `createSegmentTracking` from the implementation entry point to create stable custom-event and page callbacks. Supply a getter for current cluster ID, development mode, app version, and optional delivery enablement. The shared adapter reads it on every call, so hosts configure delivery without implementing the callbacks. Pass the resulting object as the provider's `value`. Keep that object stable between renders, and replace it when callbacks change, following React context conventions.
 
 ```tsx
-import React from 'react';
-import { HostApiCoreContext, type HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
-import { fireTrackingEvent } from '@odh-dashboard/analytics';
+import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
+import { createSegmentTracking } from '@odh-dashboard/analytics';
 
-type TrackingConfig = {
-  enabled: boolean;
-  clusterID: string;
-  devMode: boolean;
-  version: string;
-};
+// Create once; read current host settings when an event is sent.
+const tracking = createSegmentTracking(() => ({
+  clusterID: getClusterID(),
+  devMode: DEV_MODE,
+  version: APP_VERSION,
+  enabled: isTrackingEnabled(),
+}));
 
-type HostTrackingProviderProps = React.PropsWithChildren<{
-  services: Omit<HostApiCoreServices, 'trackEvent'>;
-  getTrackingConfig: () => TrackingConfig;
-}>;
-
-function HostTrackingProvider({
-  services,
-  getTrackingConfig,
-  children,
-}: HostTrackingProviderProps) {
-  const trackEvent = React.useMemo<HostApiCoreServices['trackEvent']>(
-    () => (name, properties) => {
-      const { enabled, ...metadata } = getTrackingConfig();
-      if (enabled) {
-        fireTrackingEvent(name, properties, metadata);
-      }
-    },
-    [getTrackingConfig],
-  );
-  const value = React.useMemo(() => ({ ...services, trackEvent }), [services, trackEvent]);
-
-  return <HostApiCoreContext.Provider value={value}>{children}</HostApiCoreContext.Provider>;
-}
+<AnalyticsTrackingProvider value={tracking}>
+  <App />
+</AnalyticsTrackingProvider>;
 ```
 
-The host supplies its other core services and a stable configuration getter backed by current host state. This example wires custom events; host lifecycle code must also apply the policy to SDK initialization, page events, and identify operations.
+RHOAI uses the shared Segment adapter with its existing runtime metadata and SDK enablement behavior. Its legacy custom/page helpers reuse the same adapter. RHAII, MaaS Portal, and intentionally disabled standalone roots mount `NoopAnalyticsTrackingProvider` from `@odh-dashboard/analytics/react`. It supplies stable no-ops for both operations; tests needing spies use `AnalyticsTrackingProvider`. Federated feature roots inherit the host provider. Keep SDK initialization, consent, router effects, and identity in the host lifecycle.
+
+Standalone roots call `createStandaloneAnalytics({ devMode, version })` from `@odh-dashboard/analytics/standalone` once outside React rendering and pass the result to `AnalyticsTrackingProvider`. The application supplies its build-time values. The factory logs events in development mode; otherwise, it forwards through an existing `window.analytics` and remains silent when none exists. It reads the current `window.clusterID` per operation, defaulting to `''`. It neither initializes the SDK nor changes consent or identity ownership. Hosts with different metadata or delivery policies use `createSegmentTracking(getOptions)` explicitly.
+
+### Per-event page-context policy
+
+`TrackEvent` accepts optional delivery options as its third argument. A feature can supply a `pageContextPolicy` callback, typed entirely from `@odh-dashboard/analytics/types`, to sanitize the page context captured for that event. Existing two-argument calls retain their behavior.
+
+The concrete adapter uses the SDK's page-context utility, including canonical URL handling, then applies the policy before forwarding a native `context.page` override. The policy must return all five page fields (`path`, `url`, `referrer`, `search`, and `title`) as strings. Incomplete results cause a synchronous error, and exceptions thrown by the policy propagate to the caller. Both prevent SDK delivery. Policies are per-event, are never serialized, and need no registration or shared registry.
+
+Disabled delivery, development logging, and absent SDKs do not evaluate policies. Page and identity operations are unchanged. Hosts forwarding custom events must pass all `TrackEvent` arguments to their concrete adapter; explicit no-op hosts continue discarding events. Deploy updated concrete adapters before consumers start supplying policy options; older adapters do not apply this capability.
 
 ### SDK Initialization
 
-`initSegment` initializes the shared browser client on `window.analytics`. It skips initialization when disabled or given an empty key. It does **not** stop an existing client, and repeated enabled calls load a client again. Hosts must coordinate initialization and configuration changes, gate all event operations on current enablement, and define how disabling tracking handles queued events. Passing `enabled: false` alone is not a runtime opt-out mechanism.
+`initSegment` initializes the shared browser client on `window.analytics`. It skips initialization when disabled or given an empty key. It does **not** stop an existing client, and repeated enabled calls load a client again.
+
+The two `enabled` options control different operations:
+
+- `initSegment({ enabled: false, ... })` skips initialization. It does not stop delivery through an existing client.
+- Returning `enabled: false` from the `createSegmentTracking` options getter suppresses subsequent custom-event and page calls through that adapter. It does not stop identity calls, other delivery paths, or events already queued by the SDK.
+
+Hosts coordinate initialization and configuration changes, apply current enablement to every delivery path, and decide how to handle queued events when tracking is disabled.
 
 After the host has authorized initialization:
 
@@ -117,4 +112,4 @@ const anonId = await computeAnonymousUserId('username');
 
 ## Verification
 
-Feature tests inject callback spies through the real host context or directly into pure helpers and assert event names, literal payloads, and counts. Host adapter tests verify metadata, enablement, and forwarding to the implementation. Exercise intentional no-op adapters to ensure application interactions remain functional when tracking is disabled.
+Feature tests inject callback spies through the real analytics provider or directly into pure helpers and assert event names, literal payloads, and counts. Host adapter tests verify metadata, enablement, and forwarding to the implementation. Exercise intentional no-op adapters to ensure application interactions remain functional when tracking is disabled.

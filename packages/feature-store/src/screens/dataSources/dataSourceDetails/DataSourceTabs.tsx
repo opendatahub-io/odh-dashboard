@@ -15,7 +15,7 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import DataSourceDetailsView from './DataSourceDetailsView';
 import { DataSourceDetailsTab } from '../const';
 import { DataSource } from '../../../types/dataSources';
@@ -116,6 +116,7 @@ const SchemaTabContent: React.FC<{
 };
 
 const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSource }) => {
+  const trackEvent = useTrackEvent();
   const { currentProject } = useFeatureStoreProject();
   const {
     data: featureViews,
@@ -173,7 +174,7 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
       unmountOnExit
       onSelect={(e, tabIndex) => {
         if (tabIndex !== activeTabKey) {
-          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
+          trackEvent(FEATURE_STORE_EVENTS.TAB_SWITCHED, {
             tabName: String(tabIndex),
             pageType: 'detail',
             resourceType: RESOURCE_TYPES.DATA_SOURCE,

@@ -11,32 +11,14 @@ import type {
 // Keep in sync with PORTAL_MODEL_ACCESS_PATH in ./portalPaths.ts (value imports are disallowed here).
 const PORTAL_MODEL_ACCESS_PATH = '/maas/model-access';
 
+// The landing redirects ('/' and '/maas') are router redirects in ./bootstrap.tsx.
 const extensions: Extension[] = [
-  // Root redirect
-  {
-    type: 'app.route',
-    properties: {
-      path: '/',
-      component: () => import('./RootRedirect'),
-    },
-  } satisfies RouteExtension,
-
   {
     type: 'app.route',
     flags: { required: ['observabilityDashboard'] },
     properties: {
       path: '/observe-and-monitor/dashboard/*',
       component: () => import('./observability/ObservabilityDashboard'),
-    },
-  } satisfies RouteExtension,
-
-  // /maas redirect — overrides the package's MaaSRedirect with the
-  // portal's own root redirect
-  {
-    type: 'app.route',
-    properties: {
-      path: '/maas',
-      component: () => import('./RootRedirect'),
     },
   } satisfies RouteExtension,
 
@@ -68,7 +50,7 @@ const extensions: Extension[] = [
     },
   } satisfies SuppressExtension,
 
-  // The portal exposes the dedicated Model Access page instead of the
+  // The portal exposes the dedicated Model access page instead of the
   // legacy MaaS governance navigation item.
   {
     type: 'app.suppress',
@@ -127,7 +109,7 @@ const extensions: Extension[] = [
     flags: { required: ['observabilityDashboard'] },
     properties: {
       id: 'portal-observability-dashboard',
-      title: 'Observability dashboard',
+      title: 'Observability',
       href: '/observe-and-monitor/dashboard',
       path: '/observe-and-monitor/dashboard/*',
       group: '4_dashboard',
@@ -138,7 +120,7 @@ const extensions: Extension[] = [
     flags: { required: ['MAAS_MODEL_ACCESS_ADMIN'] },
     properties: {
       id: 'maas-model-access-portal',
-      title: 'Model Access',
+      title: 'Model access',
       href: PORTAL_MODEL_ACCESS_PATH,
       path: `${PORTAL_MODEL_ACCESS_PATH}/*`,
     },

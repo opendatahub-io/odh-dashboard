@@ -30,7 +30,7 @@ import { getServingRuntimeFromName } from '@odh-dashboard/model-serving/shared';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
-import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import DashboardModalFooter from '@odh-dashboard/ui-core/components/DashboardModalFooter';
 import {

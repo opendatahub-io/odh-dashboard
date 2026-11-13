@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   fireNimAccountEnabled,
   NimAccountEnabledMode,
@@ -15,6 +16,7 @@ export const useNimAccountEnabledTracking = (
   resetTrackingRefs: () => void;
   trackSubmitApiFailure: (mode: NimAccountEnabledMode) => void;
 } => {
+  const trackEvent = useTrackEvent();
   const hasTrackedSubmitRef = React.useRef(false);
   const hasSeenValidationPendingRef = React.useRef(false);
 
@@ -23,15 +25,18 @@ export const useNimAccountEnabledTracking = (
     hasSeenValidationPendingRef.current = false;
   }, []);
 
-  const trackSubmitApiFailure = React.useCallback((mode: NimAccountEnabledMode) => {
-    hasTrackedSubmitRef.current = true;
-    fireNimAccountEnabled({
-      outcome: TrackingOutcome.submit,
-      success: false,
-      error: NimFailureCategory.API_FAILED,
-      mode,
-    });
-  }, []);
+  const trackSubmitApiFailure = React.useCallback(
+    (mode: NimAccountEnabledMode) => {
+      hasTrackedSubmitRef.current = true;
+      fireNimAccountEnabled(trackEvent, {
+        outcome: TrackingOutcome.submit,
+        success: false,
+        error: NimFailureCategory.API_FAILED,
+        mode,
+      });
+    },
+    [trackEvent],
+  );
 
   React.useEffect(() => {
     if (!submitted || hasTrackedSubmitRef.current) {
@@ -49,7 +54,7 @@ export const useNimAccountEnabledTracking = (
 
     if (accountStatus === NIMAccountStatus.READY) {
       hasTrackedSubmitRef.current = true;
-      fireNimAccountEnabled({
+      fireNimAccountEnabled(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: true,
         mode: submitMode,
@@ -59,14 +64,14 @@ export const useNimAccountEnabledTracking = (
 
     if (accountStatus === NIMAccountStatus.ERROR) {
       hasTrackedSubmitRef.current = true;
-      fireNimAccountEnabled({
+      fireNimAccountEnabled(trackEvent, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: NimFailureCategory.VALIDATION_FAILED,
         mode: submitMode,
       });
     }
-  }, [submitted, accountStatus, submitMode]);
+  }, [submitted, accountStatus, submitMode, trackEvent]);
 
   return { resetTrackingRefs, trackSubmitApiFailure };
 };

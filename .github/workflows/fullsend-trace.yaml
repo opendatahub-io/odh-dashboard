@@ -1,0 +1,302 @@
+# Adds Fullsend review detail to MLflow traces after each review finishes.
+#
+# Fullsend on Pi only exports run / sandbox / agent spans. This workflow reads the
+# run's `fullsend-review` artifact and sends extra spans under the same trace ID:
+# one per review sub-agent (model, cost, tokens, files read), one per tool call,
+# guidance coverage for the PR, and the review result. See
+# .fullsend/scripts/trace-bridge.py.
+#
+# It runs after the review, outside it, so a telemetry failure can never break a
+# review. The artifact is untrusted (the sandbox read PR code): it is only parsed
+# as JSON by the script and never executed or interpolated into a shell. No PR
+# code is checked out; the guidance list is computed from the default branch.
+#
+# Setup (both are needed, the workflow is a no-op without the variable):
+#   environment    fullsend-trace, deployment branches limited to the default branch only
+#   repo variable  FULLSEND_TRACE_OTLP_ENDPOINT  e.g. https://<mlflow>/v1/traces
+#   env secret     FULLSEND_TRACE_OTLP_HEADERS   (a secret of that environment, not of the
+#                  repository: a branch could dispatch an edited workflow that reads it) e.g.
+#                  Authorization=Basic%20<b64>,x-mlflow-experiment-id=<id>
+# RHOAI MLflow (3.17+) serves everything under /mlflow: use
+# https://<route>/mlflow/v1/traces, a Bearer token for a service account that can
+# `update` experiments.mlflow.kubeflow.org, and add X-MLFLOW-WORKSPACE=<namespace>.
+# Leave Fullsend's own OTEL_EXPORTER_OTLP_TRACES_ENDPOINT unset: this workflow
+# re-sends the run / agent spans itself. If that variable is set later, add
+# --no-base-spans below.
+#
+# Backfill: run this workflow manually with a past Fullsend run ID (artifacts
+# are kept 90 days). If the trace is already in MLflow without the bridge marker
+# (an earlier export was partial or lost its marker), the run stops; check the
+# trace, then rerun manually with recover=mark-only (spans complete),
+# recover=resend (resend all spans; already accepted ones count twice) or
+# recover=bridge-only (Fullsend exported the trace itself and the bridge never sent
+# to it: add only bridge spans; never after a bridge export, which would send them twice).
+name: fullsend-trace
+
+on:
+  workflow_run:
+    workflows: [fullsend]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Fullsend workflow run ID to trace
+        required: true
+      recover:
+        description: Recovery for a trace already in MLflow without the bridge marker
+        type: choice
+        options: [none, mark-only, resend, bridge-only]
+        default: none
+
+permissions: {}
+
+concurrency:
+  group: fullsend-trace-${{ github.event.workflow_run.id || inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  trace:
+    # The secret lives in this environment, which only the default branch may deploy to: a
+    # dispatch of an edited workflow or bridge from another branch can't read it.
+    environment: fullsend-trace
+    if: >-
+      vars.FULLSEND_TRACE_OTLP_ENDPOINT != ''
+      && (github.event_name == 'workflow_dispatch'
+          || github.event.workflow_run.conclusion == 'success'
+          || github.event.workflow_run.conclusion == 'failure')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .claude/rules
+            .fullsend/scripts
+            docs/adr
+            packages/*/docs/adr
+          sparse-checkout-cone-mode: false
+
+      - name: Download review artifact
+        id: artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::run_id must be numeric"; exit 1; }
+          # API errors in these checks fail the step (so it can be rerun); only a definite
+          # negative result skips the trace.
+          # Only trace runs of this repository's own fullsend.yaml for events that use the base
+          # repository's definition. A fork PR can edit fullsend.yaml and run it on
+          # pull_request or pull_request_review, and that run's artifact must not reach MLflow.
+          src=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
+            '"\(.path) \(.event) \(.repository.full_name) \(.head_sha) \(.created_at // "-") \(.head_repository.full_name // "-") \(.head_branch // "")"')
+          read -r src_path src_event src_repo src_sha src_started src_head_repo src_branch <<< "$src"
+          default_branch=$(gh api "repos/$REPO" --jq '.default_branch')
+          case "$src_event" in
+            pull_request_target | issue_comment | issues | workflow_dispatch | schedule) ;;
+            *) src_event="" ;;
+          esac
+          # Except for pull_request_target (the PR's base branch definition), the run must use
+          # the default branch's fullsend.yaml: a dispatch from another ref could run an edited one.
+          # The branch name alone could be a same-named tag, so the run's commit must also be
+          # on the default branch (identical to or behind its tip).
+          if [[ "$src_event" != pull_request_target ]]; then
+            on_default=""
+            if [[ "$src_branch" == "$default_branch" && "$src_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              on_default=$(gh api "repos/$REPO/compare/$default_branch...$src_sha" --jq '.status')
+            fi
+            [[ "$on_default" == identical || "$on_default" == behind ]] || src_event=""
+          else
+            # pull_request_target runs the PR base branch's fullsend.yaml: the base must be the
+            # default branch (an edited file on another branch could be targeted by a PR).
+            # The run's PR is found by its head; none, several or a failed lookup is rejected.
+            # The base is checked now, so it must also not have changed since the run was created
+            # (a PR retargeted to the default branch afterwards). created_at is the original run's
+            # time; run_started_at moves on a rerun. An unreadable timeline is rejected.
+            matches=""
+            if [[ "$src_head_repo" == */* && -n "$src_branch" ]]; then
+              matches=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
+                -f head="${src_head_repo%%/*}:$src_branch" \
+                --jq '.[] | "\(.head.repo.full_name // "-") \(.head.ref) \(.base.ref) \(.number)"' \
+                | awk -v r="$src_head_repo" -v b="$src_branch" '$1 == r && $2 == b {print $3, $4}')
+            fi
+            src_pr=${matches#* }
+            if [[ "$matches" != "$default_branch "* || ! "$src_pr" =~ ^[0-9]+$ || ! "$src_started" =~ ^[0-9T:-]+Z$ ]]; then
+              src_event=""
+            else
+              changes=$(gh api --paginate "repos/$REPO/issues/$src_pr/timeline" \
+                --jq '.[] | select(.event == "base_ref_changed") | .created_at')
+            fi
+            if [[ -n "$src_event" ]] && awk -v t="$src_started" '$1 >= t {found=1} END {exit !found}' <<< "$changes"; then
+              src_event=""  # retargeted after the run started: its base then is unknown
+            fi
+          fi
+          if [[ "$src_path" != .github/workflows/fullsend.yaml || "$src_repo" != "$REPO" || -z "$src_event" ]]; then
+            echo "::warning::Run $RUN_ID is not a trusted Fullsend run (workflow, event, branch or repository); nothing to trace."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          dest="$RUNNER_TEMP/artifact"
+          mkdir -p "$dest"
+          # Only a confirmed absence is a no-op; API and download errors fail the job so
+          # telemetry is not silently lost.
+          count=$(gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts" --paginate \
+            --jq '[.artifacts[] | select(.name == "fullsend-review" and .expired == false)] | length' \
+            | awk '{n += $1} END {print n + 0}')
+          if [[ "$count" == 0 ]]; then
+            echo "::notice::Run $RUN_ID has no fullsend-review artifact (not a review run); nothing to trace."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh run download "$RUN_ID" -R "$REPO" -n fullsend-review -D "$dest"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "dir=$dest" >> "$GITHUB_OUTPUT"
+          echo "run_url=https://github.com/$REPO/actions/runs/$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve PR files, author and applicable guidance
+        id: pr
+        if: steps.artifact.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ART: ${{ steps.artifact.outputs.dir }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+        run: |
+          set -euo pipefail
+          # The PR identity comes from the Fullsend run's own metadata, never from the artifact
+          # (written in the sandbox): the run's head commit, head repository and head branch
+          # must match exactly one PR (open or closed). Otherwise the trace is sent without
+          # PR identity.
+          run=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq \
+            '"\(.event) \(.head_sha) \(.head_repository.full_name // "-") \(.run_started_at // .created_at) \(.updated_at) \(.run_attempt // 0) \(.head_branch // "")"' \
+            || true)
+          read -r event head_sha head_repo started finished attempt head_branch <<< "$run" || true
+          pr=""
+          # Only a pull_request_target run's head is the PR's head; an issue_comment or review
+          # run reports the default branch, which can't identify the PR. (The commit-to-PR API
+          # returns nothing for a fork's commits, so look up by head owner and branch.)
+          if [[ "$event" == pull_request_target && "$head_sha" =~ ^[0-9a-f]{40}$
+                && "$head_repo" == */* && -n "$head_branch" ]]; then
+            pr=$(gh api --paginate -X GET "repos/$REPO/pulls" -f state=all -f per_page=100 \
+              -f head="${head_repo%%/*}:$head_branch" \
+              --jq '.[] | "\(.number) \(.head.repo.full_name // "-") \(.head.ref)"' \
+              | awk -v r="$head_repo" -v b="$head_branch" '$2 == r && $3 == b {print $1}' | sort -u || true)
+          fi
+          if [[ ! "$pr" =~ ^[1-9][0-9]{0,8}$ ]]; then  # none, several, or a failed lookup
+            echo "::warning::No single PR matches the run's head commit and branch; tracing without PR identity."
+            exit 0
+          fi
+          if ! meta=$(gh api "repos/$REPO/pulls/$pr" --jq '"\(.user.login) \(.head.sha)"'); then
+            echo "::warning::PR lookup failed; tracing without PR identity."
+            exit 0
+          fi
+          author=${meta% *}
+          current_head=${meta#* }
+          # The match must own the reviewed commit (a stale PR from a reused branch doesn't):
+          # it is the PR's head, or one of its commits once the PR has moved on.
+          commits=$current_head
+          if [[ "$head_sha" != "$current_head" ]]; then
+            commits=$(gh api --paginate "repos/$REPO/pulls/$pr/commits" --jq '.[].sha' || true)
+          fi
+          if ! grep -qx "$head_sha" <<< "$commits"; then
+            echo "::warning::PR #$pr doesn't contain the reviewed commit; tracing without PR identity."
+            exit 0
+          fi
+          echo "pr_number=$pr" >> "$GITHUB_OUTPUT"
+          # A rerun keeps the original run's commit, but the review fetches the PR's head at run
+          # time, so on a rerun the reviewed commit is unknown: omit it, coverage and the verdict.
+          if [[ "$attempt" != 1 ]]; then
+            echo "::notice::Run attempt $attempt: the reviewed commit is unknown; tracing without it, coverage or the verdict."
+            head_sha=""
+          else
+            echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"  # the reviewed commit, from the run
+          fi
+          # Coverage is scored against the files of the reviewed commit. The PR files API
+          # only shows the current head, so coverage is omitted once the PR has moved on
+          # (a later push, or a backfill of an older review).
+          files=""
+          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$head_sha" == "$current_head" ]]; then
+            files="$RUNNER_TEMP/pr-files.txt"
+            if ! gh api --paginate "repos/$REPO/pulls/$pr/files" --jq '.[].filename' > "$files"; then
+              echo "::warning::PR files lookup failed; tracing without guidance coverage."
+              files=""
+            fi
+          else
+            echo "::notice::PR head moved past the reviewed commit; tracing without guidance coverage."
+          fi
+          # The verdict is the Fullsend bot's review of that commit, submitted while this run
+          # was running (between its start and its last update); the bridge prefers it to the
+          # sandbox-written artifact action. Zero or several candidates is ambiguous, so the
+          # bridge then uses the artifact's action (e.g. "failure", which posts no review).
+          verdict=""
+          ts='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$'
+          if [[ "$head_sha" =~ ^[0-9a-f]{40}$ && "$started" =~ $ts && "$finished" =~ $ts ]]; then
+            states=$(gh api --paginate "repos/$REPO/pulls/$pr/reviews" \
+              --jq ".[] | select(.commit_id == \"$head_sha\" and .user.type == \"Bot\" and .user.login == \"fullsend-ai-review[bot]\" and .submitted_at >= \"$started\" and .submitted_at <= \"$finished\") | .state") \
+              || { echo "::warning::Review lookup failed; tracing without the review verdict fallback."; states=""; }
+            state=""
+            [[ $(printf '%s\n' "$states" | grep -c .) -eq 1 ]] && state=$states
+            case "$state" in
+              APPROVED) verdict=approve ;;
+              CHANGES_REQUESTED) verdict=request-changes ;;
+              COMMENTED) verdict=comment ;;
+            esac
+          fi
+          # Guidance coverage needs the repo-guidance selector; without it the trace
+          # is sent without coverage.
+          selector=.fullsend/scripts/fetch-guidance-context.sh
+          if [[ -z "$files" ]]; then
+            :
+          elif [[ -f "$selector" ]]; then
+            FULLSEND_ADAPTER_REPO_DIR="$GITHUB_WORKSPACE" FULLSEND_ADAPTER_PR_FILES="$files" \
+              bash "$selector" "$RUNNER_TEMP/guidance.json" \
+              || echo "::warning::Guidance selection failed; tracing without coverage."
+          else
+            echo "::notice::$selector not found; tracing without guidance coverage."
+          fi
+          # Explicit ifs: an `a && b` as the last command would fail the step when a is false.
+          echo "author=$author" >> "$GITHUB_OUTPUT"
+          if [[ -n "$files" ]]; then echo "files=$files" >> "$GITHUB_OUTPUT"; fi
+          if [[ -n "$verdict" ]]; then echo "verdict=$verdict" >> "$GITHUB_OUTPUT"; fi
+          if [[ -s "$RUNNER_TEMP/guidance.json" ]]; then
+            echo "guidance=$RUNNER_TEMP/guidance.json" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send spans
+        if: steps.artifact.outputs.found == 'true'
+        env:
+          OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${{ vars.FULLSEND_TRACE_OTLP_ENDPOINT }}
+          OTEL_EXPORTER_OTLP_TRACES_HEADERS: ${{ secrets.FULLSEND_TRACE_OTLP_HEADERS }}
+          ART: ${{ steps.artifact.outputs.dir }}
+          RUN_URL: ${{ steps.artifact.outputs.run_url }}
+          PR_FILES: ${{ steps.pr.outputs.files }}
+          PR_AUTHOR: ${{ steps.pr.outputs.author }}
+          GUIDANCE: ${{ steps.pr.outputs.guidance }}
+          VERDICT: ${{ steps.pr.outputs.verdict }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number || 'none' }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha || 'none' }}
+          REPO: ${{ github.repository }}
+          RECOVER: ${{ inputs.recover }}
+        run: |
+          set -euo pipefail
+          # The PR identity and reviewed commit are the ones verified above (or none), never
+          # the artifact's.
+          args=(--artifact "$ART" --run-url "$RUN_URL" --pr-number "$PR_NUMBER" --repo "$REPO"
+                --head-sha "$HEAD_SHA")
+          [[ -n "$PR_FILES" ]] && args+=(--pr-files "$PR_FILES")
+          [[ -n "$PR_AUTHOR" ]] && args+=(--pr-author "$PR_AUTHOR")
+          [[ -n "$GUIDANCE" ]] && args+=(--guidance "$GUIDANCE")
+          [[ -n "$VERDICT" ]] && args+=(--verdict "$VERDICT")
+          case "$RECOVER" in
+            mark-only) args+=(--mark-only) ;;
+            resend) args+=(--force) ;;
+            bridge-only) args+=(--no-base-spans) ;;
+          esac
+          python3 -I .fullsend/scripts/trace-bridge.py "${args[@]}"

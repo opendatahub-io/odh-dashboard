@@ -37,12 +37,7 @@ const initIntercepts = ({ isEmpty = false }) => {
           ],
     ),
   );
-  cy.interceptOdh(
-    'GET /api/config',
-    mockDashboardConfig({
-      disableConnectionTypes: false,
-    }),
-  );
+  cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
   cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
 };
 

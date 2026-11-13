@@ -20,8 +20,10 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import YAML from 'yaml';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- standard page shell wrapper
-import { ApplicationsPage, TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
-import { useDashboardNamespace, useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { ApplicationsPage, useNotification } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   getDisplayNameFromK8sResource,
   isK8sNameDescriptionDataValid,

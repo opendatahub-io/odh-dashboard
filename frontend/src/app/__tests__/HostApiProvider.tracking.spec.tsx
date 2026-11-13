@@ -1,5 +1,5 @@
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent, useTrackPageEvent } from '@odh-dashboard/analytics/react';
 import HostApiProvider from '#~/app/HostApiProvider';
 
 let mockDevMode = false;
@@ -26,11 +26,12 @@ describe('HostApiProvider custom-event forwarding', () => {
   const originalAnalytics = Object.getOwnPropertyDescriptor(window, 'analytics');
   const originalClusterID = Object.getOwnPropertyDescriptor(window, 'clusterID');
   const track = jest.fn();
+  const page = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockDevMode = false;
-    window.analytics = { track };
+    window.analytics = { track, page };
     window.clusterID = 'cluster-rhoai';
   });
 
@@ -78,6 +79,29 @@ describe('HostApiProvider custom-event forwarding', () => {
     const { result } = renderHook(useTrackEvent, { wrapper: HostApiProvider });
 
     expect(() => result.current('custom-event', {})).not.toThrow();
+    expect(track).not.toHaveBeenCalled();
+  });
+  it('should forward one page with metadata and emit nothing on mount or rerender', () => {
+    const rendered = renderHook(useTrackPageEvent, { wrapper: HostApiProvider });
+    rendered.rerender();
+    expect(page).not.toHaveBeenCalled();
+    rendered.result.current();
+    rendered.rerender();
+    expect(page.mock.calls).toStrictEqual([
+      [undefined, { clusterID: 'cluster-rhoai' }, { app: { version: '3.0.0-test' } }],
+    ]);
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it('should suppress pages in development and safely ignore a missing SDK', () => {
+    const { result } = renderHook(useTrackPageEvent, { wrapper: HostApiProvider });
+    mockDevMode = true;
+    jest.spyOn(console, 'log').mockImplementation();
+    result.current();
+    mockDevMode = false;
+    Reflect.deleteProperty(window, 'analytics');
+    expect(() => result.current()).not.toThrow();
+    expect(page).not.toHaveBeenCalled();
     expect(track).not.toHaveBeenCalled();
   });
 });

@@ -33,6 +33,7 @@ export const techPreviewFlags = {
   genAiTracing: false,
   guardrails: false,
   modelAsService: true,
+  mySubscriptions: false,
   inferencePriorityField: false,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
@@ -52,6 +53,7 @@ export const techPreviewFlags = {
   agentOps: false,
   dataRegistry: false,
   dataConnectHub: false,
+  aiSafety: false,
   hardwareProfileDRA: false,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -372,6 +374,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PLUGIN_DATA_CONNECT_HUB]: {
     featureFlags: ['dataConnectHub'],
+  },
+  [SupportedArea.PLUGIN_AI_SAFETY]: {
+    featureFlags: ['aiSafety'],
   },
   [SupportedArea.INFERENCE_PRIORITY_FIELD]: {
     featureFlags: ['inferencePriorityField'],

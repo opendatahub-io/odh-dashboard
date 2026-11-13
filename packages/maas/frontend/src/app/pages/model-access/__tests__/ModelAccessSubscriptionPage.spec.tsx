@@ -135,10 +135,10 @@ describe('ModelAccessSubscriptionPage', () => {
     expect(screen.queryByRole('columnheader', { name: 'Project' })).not.toBeInTheDocument();
   });
 
-  it('should link back to the Model Access page', async () => {
+  it('should link back to the Model access page', async () => {
     renderPage();
     const backLink = await screen.findByTestId('breadcrumb-model-access-link');
-    expect(backLink).toHaveTextContent('Model Access');
+    expect(backLink).toHaveTextContent('Model access');
     expect(backLink).toHaveAttribute('href', '/maas/model-access');
   });
 

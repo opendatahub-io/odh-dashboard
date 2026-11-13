@@ -330,6 +330,9 @@ docker build \
 The BFF supports the following configuration options:
 
 - `PORT`: HTTP server port (default: 8080)
+- `HOST`: API server listen host (default: empty, binds all interfaces)
+- `DEV_MODE`: Explicit local-development mode (default: false; required for `ALLOW_LOCAL_MODEL_ENDPOINTS`)
+- `ALLOW_LOCAL_MODEL_ENDPOINTS`: Allow verifying model endpoints on localhost/loopback addresses (default: false; local development only — requires `DEV_MODE=true` and a `HOST` bound to loopback, and is refused when a TLS cert file is configured; see [docs/developer/BFF_OVERVIEW.md](docs/developer/BFF_OVERVIEW.md))
 - `STATIC_ASSETS_DIR`: Directory for static assets (default: "./static")
 - `LOG_LEVEL`: Logging level (default: "INFO" for production, "debug" for development via Makefile)
 - `ALLOWED_ORIGINS`: CORS allowed origins (default: none)
@@ -367,10 +370,15 @@ What the script does (high level):
 
 - Detects repo URL and current branch; validates HTTPS fetch URL
 - Creates a Docker BuildConfig via `oc new-app` (initially scoped to `packages/gen-ai`)
+- Labels the BFF Pod template `app.kubernetes.io/name=gen-ai` so NeMo Guardrails ingress can select it
 - Patches the BuildConfig to use the root-context `packages/gen-ai/Dockerfile.workspace` in standalone mode
 - Cancels the auto-triggered first build and starts a new one
 - Waits for the Service and creates an edge Route on port 8080
 - Prints the public Route URL when ready
+
+> **Note:** The BFF adds its NeMo Guardrails ingress rule when it creates a `NemoGuardrails` CR.
+> Existing CRs keep their current rule; add the same `spec.networkPolicy.additionalIngress`
+> selector to them or recreate disposable CRs before testing guardrails.
 
 Cleanup (optional): use your usual `oc delete` flow, or run the companion cleanup script if available:
 

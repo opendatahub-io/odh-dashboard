@@ -1,10 +1,11 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { fireEvent, render, renderHook, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { useFetchState } from 'mod-arch-core';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { getCollection } from '~/app/api/k8s';
 import { useProviders } from '~/app/hooks/useProviders';
 import { useCopySuiteForm, type CopySuiteBenchmark } from '~/app/pages/useCopySuiteForm';
@@ -18,6 +19,8 @@ import {
 import { copySuiteSchema, type CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import type { Collection, Provider } from '~/app/types';
+
+const { render, renderHook } = setupTrackingTest();
 
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),

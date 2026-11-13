@@ -15,7 +15,6 @@ export { useSecretOps } from './hooks/useSecretOps';
 export { useWatchConnectionTypes } from './hooks/useWatchConnectionTypes';
 export { useServingConnections } from './hooks/useServingConnections';
 export { useIsProjectNIMSupported } from './hooks/useIsProjectNIMSupported';
-export { useTrackEvent } from './hooks/useTrackEvent';
 export type {
   HostApiCoreServices,
   HostApiInfraServices,

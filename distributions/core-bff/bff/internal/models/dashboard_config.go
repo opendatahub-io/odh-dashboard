@@ -62,32 +62,39 @@ type DashboardFeatureFlags struct {
 	DisableModelRegistry         bool `json:"disableModelRegistry"`
 	DisableModelRegistrySecureDB bool `json:"disableModelRegistrySecureDB"`
 	DisableServingRuntimeParams  bool `json:"disableServingRuntimeParams"`
-	DisableConnectionTypes       bool `json:"disableConnectionTypes"`
 	DisableStorageClasses        bool `json:"disableStorageClasses"`
 	DisableNIMModelServing       bool `json:"disableNIMModelServing"`
 	DisableAdminConnectionTypes  bool `json:"disableAdminConnectionTypes"`
 	DisableFeatureStore          bool `json:"disableFeatureStore"`
 	FeatureStoreAdmin            bool `json:"featureStoreAdmin"`
 	DataRegistry                 bool `json:"dataRegistry"`
-	DisableFineTuning            bool `json:"disableFineTuning"`
-	DisableKueue                 bool `json:"disableKueue"`
-	DisableLMEval                bool `json:"disableLMEval"`
-	DisableLLMd                  bool `json:"disableLLMd"`
+	DataConnectHub               bool `json:"dataConnectHub"`
 	GenAiStudio                  bool `json:"genAiStudio"`
+	GenAiTracing                 bool `json:"genAiTracing"`
 	Guardrails                   bool `json:"guardrails"`
+	AiSafety                     bool `json:"aiSafety"`
 	Automl                       bool `json:"automl"`
 	Autorag                      bool `json:"autorag"`
 	ModelAsService               bool `json:"modelAsService"`
+	MySubscriptions              bool `json:"mySubscriptions"`
+	InferencePriorityField       bool `json:"inferencePriorityField"`
 	AiAssetCustomEndpoints       bool `json:"aiAssetCustomEndpoints"`
-	MaasAuthPolicies             bool `json:"maasAuthPolicies"`
+	DisableFineTuning            bool `json:"disableFineTuning"`
+	DisableKueue                 bool `json:"disableKueue"`
+	DisableLMEval                bool `json:"disableLMEval"`
 	Mlflow                       bool `json:"mlflow"`
+	WorkbenchesV2                bool `json:"workbenchesV2"`
 	McpCatalog                   bool `json:"mcpCatalog"`
 	McpRegistry                  bool `json:"mcpRegistry"`
-	GenAiMcpRegistryServers      bool `json:"genAiMcpRegistryServers"`
 	SkillRegistry                bool `json:"skillRegistry"`
+	GenAiMcpRegistryServers      bool `json:"genAiMcpRegistryServers"`
+	AgentOps                     bool `json:"agentOps"`
+	AgentOpsDeploy               bool `json:"agentOpsDeploy"`
 	AgentsCatalog                bool `json:"agentsCatalog"`
 	ToolCalling                  bool `json:"toolCalling"`
 	TrainingJobs                 bool `json:"trainingJobs"`
+	DisableLLMd                  bool `json:"disableLLMd"`
+	LlmdTemplates                bool `json:"llmdTemplates"`
 	ProjectRBAC                  bool `json:"projectRBAC"`
 	RoleManagement               bool `json:"roleManagement"`
 	DeploymentWizardYAMLViewer   bool `json:"deploymentWizardYAMLViewer"`
@@ -99,9 +106,13 @@ type DashboardFeatureFlags struct {
 	VLLMDeploymentOnMaaS         bool `json:"vLLMDeploymentOnMaaS"`
 	LlmGatewayField              bool `json:"llmGatewayField"`
 	PromptManagement             bool `json:"promptManagement"`
-	MySubscriptions              bool `json:"mySubscriptions"`
-	ModelCapabilities            bool `json:"modelCapabilities"`
+	GlobalProjectPrompts         bool `json:"globalProjectPrompts"`
 	HardwareProfileDRA           bool `json:"hardwareProfileDRA"`
+	Gpuaas                       bool `json:"gpuaas"`
+	ModelCapabilities            bool `json:"modelCapabilities"`
+	ObservabilityDashboard       bool `json:"observabilityDashboard"`
+	NimWizard                    bool `json:"nimWizard"`
+	NimServiceOperator           bool `json:"nimServiceOperator"`
 }
 
 type NotebookController struct {
@@ -164,45 +175,57 @@ var BlankDashboardCR = DashboardConfig{
 			DisableModelRegistry:         false,
 			DisableModelRegistrySecureDB: false,
 			DisableServingRuntimeParams:  false,
-			DisableConnectionTypes:       false,
 			DisableStorageClasses:        false,
 			DisableNIMModelServing:       false,
 			DisableAdminConnectionTypes:  false,
 			DisableFeatureStore:          false,
 			FeatureStoreAdmin:            false,
 			DataRegistry:                 false,
+			DataConnectHub:               false,
+			GenAiStudio:                  true,
+			GenAiTracing:                 false,
+			Guardrails:                   false,
+			AiSafety:                     false,
+			Automl:                       true,
+			Autorag:                      true,
+			ModelAsService:               true,
+			MySubscriptions:              false,
+			InferencePriorityField:       false,
+			AiAssetCustomEndpoints:       false,
 			DisableFineTuning:            true,
 			DisableKueue:                 true,
 			DisableLMEval:                true,
-			DisableLLMd:                  false,
-			GenAiStudio:                  false,
-			Guardrails:                   false,
-			Automl:                       false,
-			Autorag:                      false,
-			ModelAsService:               true,
-			AiAssetCustomEndpoints:       false,
-			MaasAuthPolicies:             true,
 			Mlflow:                       true,
+			WorkbenchesV2:                false,
 			McpCatalog:                   false,
 			McpRegistry:                  false,
-			GenAiMcpRegistryServers:      false,
 			SkillRegistry:                false,
+			GenAiMcpRegistryServers:      false,
+			AgentOps:                     false,
+			AgentOpsDeploy:               false,
 			AgentsCatalog:                false,
 			ToolCalling:                  false,
 			TrainingJobs:                 true,
+			DisableLLMd:                  false,
+			LlmdTemplates:                false,
 			ProjectRBAC:                  true,
 			RoleManagement:               true,
 			DeploymentWizardYAMLViewer:   false,
 			ExternalVectorStores:         false,
+			AgentConfigManagement:        false,
 			GenAiAgentDeployment:         false,
 			GenAiImageUpload:             false,
 			GenAiAudioUpload:             false,
 			VLLMDeploymentOnMaaS:         false,
-			LlmGatewayField:              false,
-			PromptManagement:             false,
-			MySubscriptions:              false,
-			ModelCapabilities:            false,
+			LlmGatewayField:              true,
+			PromptManagement:             true,
+			GlobalProjectPrompts:         false,
 			HardwareProfileDRA:           false,
+			Gpuaas:                       true,
+			ModelCapabilities:            false,
+			ObservabilityDashboard:       true,
+			NimWizard:                    true,
+			NimServiceOperator:           false,
 		},
 		NotebookController: &NotebookController{
 			Enabled: true,

@@ -18,7 +18,7 @@ import { projectDetails, projectListPage } from '../../../../pages/projects';
 import { modelServingGlobal, modelServingWizard } from '../../../../pages/modelServing';
 import { ModelLocationSelectOption, ModelTypeLabel } from '../../../../utils/modelServingConstants';
 import type { DataScienceProjectData, ServingRuntimeSettingsTestData } from '../../../../types';
-import { unsupportedStatusAcceptanceModal } from '../../../../pages/modelDeploymentSettings/llmAcceleratorConfigurations';
+import { unsupportedStatusAcceptanceModal } from '../../../../pages/modelDeploymentSettings/llmInferenceServiceConfigurations';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 

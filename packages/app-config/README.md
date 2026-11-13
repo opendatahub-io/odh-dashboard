@@ -12,6 +12,13 @@ Provides runtime and build-time configuration values consumed across the fronten
 import { getAppConfig } from '@odh-dashboard/app-config';
 ```
 
+## Testing
+
+Both `pnpm run test-unit` and `pnpm run test-unit-coverage` run Jest followed by
+offline subtree integration tests. Install the [test prerequisites](../../docs/dev-setup.md#test-prerequisites)
+first. Jest arguments are forwarded unchanged, for example
+`pnpm run test-unit --runInBand`; the subtree suite always runs after Jest succeeds.
+
 ## Contents
 
 | Path | Description |

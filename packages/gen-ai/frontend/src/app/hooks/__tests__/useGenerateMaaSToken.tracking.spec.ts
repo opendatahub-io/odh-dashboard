@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import useGenerateMaaSToken from '~/app/hooks/useGenerateMaaSToken';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 

@@ -49,9 +49,11 @@ export type GroupReference = {
   name: string;
 };
 
+// All fields are optional per the BFF OpenAPI TokenMetadata schema; e.g. an
+// auth policy may carry only labels for metering.
 export type TokenMetadata = {
-  organizationId: string;
-  costCenter: string;
+  organizationId?: string;
+  costCenter?: string;
   labels?: Record<string, string>;
 };
 

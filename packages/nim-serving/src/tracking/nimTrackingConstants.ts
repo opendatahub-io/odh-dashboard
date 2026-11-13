@@ -1,5 +1,4 @@
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome, type TrackEvent } from '@odh-dashboard/analytics/types';
 
 export enum NimAccountTrackingEvent {
   ENABLED = 'Model Serving NIM Account Enabled',
@@ -36,12 +35,18 @@ export type NimAccountRemovedProperties = {
   error?: NimFailureCategory;
 };
 
-export const fireNimAccountEnabled = (properties: NimAccountEnabledProperties): void => {
-  fireFormTrackingEvent(NimAccountTrackingEvent.ENABLED, properties);
+export const fireNimAccountEnabled = (
+  trackEvent: TrackEvent,
+  properties: NimAccountEnabledProperties,
+): void => {
+  trackEvent(NimAccountTrackingEvent.ENABLED, properties);
 };
 
-export const fireNimAccountRemoved = (properties: NimAccountRemovedProperties): void => {
-  fireFormTrackingEvent(NimAccountTrackingEvent.REMOVED, properties);
+export const fireNimAccountRemoved = (
+  trackEvent: TrackEvent,
+  properties: NimAccountRemovedProperties,
+): void => {
+  trackEvent(NimAccountTrackingEvent.REMOVED, properties);
 };
 
 export { TrackingOutcome };

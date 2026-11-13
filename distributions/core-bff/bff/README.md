@@ -131,7 +131,7 @@ curl -i -X POST -H "x-forwarded-access-token: FAKE_CLUSTER_ADMIN_TOKEN" -H "Cont
 
 ### Route Security
 
-Authenticated endpoints use `secureRoute()` (token validation + audit logging) and admin endpoints use `secureAdminRoute()` (token validation + SSAR admin check + audit logging). Admin detection checks SSAR for `patch` on `auths/default-auth`. Non-admin users receive 403. Namespace validation is handled separately by `isAllowedNamespace`.
+Authenticated endpoints use `secureRoute()` (token validation + audit logging) and admin endpoints use `secureAdminRoute()` (token validation + SSAR admin check + audit logging). Admin detection checks SSAR for `patch` on `auths/auth`. Non-admin users receive 403. Namespace validation is handled separately by `isAllowedNamespace`.
 
 ### Privilege Model
 

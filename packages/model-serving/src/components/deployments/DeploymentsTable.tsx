@@ -1,6 +1,7 @@
 import React from 'react';
-import { SortableData, Table, TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { SortableData, Table } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { DeploymentRow } from './row/DeploymentsTableRow';
 import {

@@ -45,6 +45,11 @@ const useTopologyController = (graphId: string): Visualization | null => {
     );
     const onGraphLayoutEnd = () => {
       visualizationController.getGraph().fit(75);
+      // After the initial fit, stop auto-fitting on subsequent layouts so that
+      // polling-driven node updates (e.g. MLMD status changes every 3 s) do not
+      // reset the user's zoom / pan.
+      visualizationController.setFitToScreenOnLayout(false);
+      visualizationController.removeEventListener(GRAPH_LAYOUT_END_EVENT, onGraphLayoutEnd);
     };
     visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, onGraphLayoutEnd);
 

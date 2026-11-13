@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import type {
@@ -14,15 +14,15 @@ import {
   RUNTIME_IMAGE_LIBRARY_PATH,
 } from '../const';
 import { getRuntimeImageInstallRoute } from '../utils';
+import { createTrackingRender } from '../../../__tests__/TrackingProvider';
+
+const mockTrackEvent = jest.fn();
+const render = createTrackingRender(mockTrackEvent);
 
 let mockExtensions: RuntimeImageInstallTargetExtension[] = [];
 jest.mock('@odh-dashboard/plugin-core', () => ({
   ...jest.requireActual('@odh-dashboard/plugin-core'),
   useExtensions: () => mockExtensions,
-}));
-jest.mock('@odh-dashboard/plugin-core/host-api', () => ({
-  ...jest.requireActual('@odh-dashboard/plugin-core/host-api'),
-  useTrackEvent: () => jest.fn(),
 }));
 
 const MockTarget: React.FC<RuntimeImageInstallTargetProps> = ({
@@ -60,14 +60,14 @@ const acceleratorTarget: RuntimeImageInstallTargetExtension = {
   type: 'model-serving.runtime-image/install-target',
   properties: {
     id: 'llmInferenceServiceConfig',
-    label: 'LLM accelerator configuration',
+    label: 'LLM inference service configuration',
     description:
       'Install as an LLMInferenceServiceConfig for LLM inference service deployments. Compatible with Models as a Service.',
     selectedState: {
-      listName: 'LLM accelerator configurations',
+      listName: 'LLM inference service configurations',
       description: 'and the LLM inference service deployment wizard.',
     },
-    installTargetName: 'LLM accelerator configuration',
+    installTargetName: 'LLM inference service configuration',
     component: () => Promise.resolve({ default: MockTarget }),
   },
 };
@@ -133,7 +133,9 @@ describe('RuntimeImageInstallPage', () => {
     });
 
     expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeEnabled();
-    expect(screen.getByRole('radio', { name: /LLM accelerator configuration/ })).toBeDisabled();
+    expect(
+      screen.getByRole('radio', { name: /LLM inference service configuration/ }),
+    ).toBeDisabled();
     expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeChecked();
     expect(screen.getByTestId('runtime-image-single-target-alert')).toHaveTextContent(
       'This runtime image only supports the serving runtime template install target.',
@@ -141,7 +143,7 @@ describe('RuntimeImageInstallPage', () => {
     expect(screen.getByText(servingTarget.properties.description)).toBeVisible();
     expect(screen.getByText(acceleratorTarget.properties.description)).toBeVisible();
     expect(screen.getByTestId('runtime-image-install-next')).toBeEnabled();
-    fireEvent.click(screen.getByRole('radio', { name: /LLM accelerator configuration/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /LLM inference service configuration/ }));
     expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeChecked();
   });
 
@@ -244,8 +246,12 @@ describe('RuntimeImageInstallPage', () => {
       },
     });
     expect(screen.getByRole('radio', { name: /Serving runtime template/ })).toBeDisabled();
-    expect(screen.getByRole('radio', { name: /LLM accelerator configuration/ })).toBeEnabled();
-    expect(screen.getByRole('radio', { name: /LLM accelerator configuration/ })).toBeChecked();
+    expect(
+      screen.getByRole('radio', { name: /LLM inference service configuration/ }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole('radio', { name: /LLM inference service configuration/ }),
+    ).toBeChecked();
     expect(screen.getByTestId('runtime-image-single-target-alert')).toBeVisible();
     expect(screen.getByTestId('runtime-image-install-next')).toBeEnabled();
   });
@@ -269,14 +275,14 @@ describe('RuntimeImageInstallPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('runtime-image-install-next')).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('radio', { name: /LLM accelerator configuration/ }));
-    expect(screen.getByText('LLM accelerator configurations')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: /LLM inference service configuration/ }));
+    expect(screen.getByText('LLM inference service configurations')).toBeInTheDocument();
     expect(screen.getByText('Configure')).toBeInTheDocument();
     expect(screen.getByTestId('runtime-image-install-next')).toBeEnabled();
 
     fireEvent.click(screen.getByRole('radio', { name: /Serving runtime template/ }));
     expect(screen.getByText('Serving runtime templates')).toBeInTheDocument();
-    expect(screen.queryByText('LLM accelerator configurations')).not.toBeInTheDocument();
+    expect(screen.queryByText('LLM inference service configurations')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('runtime-image-install-next'));
     expect(JSON.parse((await screen.findByTestId('target-payload')).textContent)).toEqual(
       expect.objectContaining({
@@ -296,7 +302,7 @@ describe('RuntimeImageInstallPage', () => {
     mockExtensions = [acceleratorTarget];
     const data = mockRuntimeImageActionData();
     renderPage(data);
-    fireEvent.click(screen.getByRole('radio', { name: /LLM accelerator configuration/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /LLM inference service configuration/ }));
     fireEvent.click(screen.getByTestId('runtime-image-install-next'));
     expect((await screen.findByTestId('target-payload')).textContent).toBe(
       data.deploymentResources.llmInferenceServiceConfig,

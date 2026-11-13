@@ -1,7 +1,7 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import type { DeploymentHookPayloadFor } from '@odh-dashboard/model-serving/extension-points';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { enqueuePostDeployAlert } from '~/app/utilities/postDeployAlertStore';
 import { createMaaSModelRef, deleteMaaSModelRef, updateMaaSModelRef } from '~/app/api/maas-models';
 import { ModelDeploymentMode } from '~/app/types/event-tracking';

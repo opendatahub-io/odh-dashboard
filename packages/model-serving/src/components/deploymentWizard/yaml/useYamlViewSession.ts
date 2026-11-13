@@ -8,6 +8,8 @@ type YamlViewSessionResult = {
   viewMode: ModelDeploymentWizardViewMode;
   switchToForm: () => void;
   switchToYaml: (edit?: boolean) => void;
+  lastUpdatedSource: ModelDeploymentWizardViewMode;
+  setLastUpdatedSource: React.Dispatch<React.SetStateAction<ModelDeploymentWizardViewMode>>;
 };
 
 export const useYamlViewSession = (
@@ -19,9 +21,15 @@ export const useYamlViewSession = (
 
   const [viewMode, setViewMode] = React.useState<ModelDeploymentWizardViewMode>(initialViewMode);
 
+  const isAutoFallback = initialViewMode === 'yaml-edit';
+
+  const [lastUpdatedSource, setLastUpdatedSource] = React.useState<ModelDeploymentWizardViewMode>(
+    isAutoFallback ? 'yaml-edit' : 'form',
+  );
+
   return {
     isYAMLViewerEnabled,
-    isAutoFallback: initialViewMode === 'yaml-edit',
+    isAutoFallback,
     viewMode,
     switchToForm: () => {
       setViewMode('form');
@@ -39,5 +47,7 @@ export const useYamlViewSession = (
         setViewMode('yaml-preview');
       }
     },
+    lastUpdatedSource,
+    setLastUpdatedSource,
   };
 };

@@ -1,9 +1,16 @@
 import * as React from 'react';
-import { resolveWorkingProject } from '@odh-dashboard/foundation';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  resolveWorkingProject,
+  RouteProjectKindValue,
+  WorkingProjectListStatusValue,
+  type RouteProjectInput,
+} from '@odh-dashboard/foundation';
 import { isAiProject } from '@odh-dashboard/k8s-core';
 import {
   type ProjectIdentity,
   type WorkingProjectNavigation,
+  WorkingProjectStatusValue,
   WorkingProjectProvider,
 } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
@@ -12,7 +19,9 @@ import {
   type WorkingProjectChange,
 } from '@odh-dashboard/ui-core/hooks/useWorkingProjectSynchronization';
 import {
+  getProjectDetailsRouteInput,
   getStoredWorkingProjectName,
+  getWorkingProjectStatus,
   toWorkingProjectIdentity,
 } from './workingProjectAdapterUtils';
 
@@ -23,12 +32,27 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
   const { projects, preferredProject, updatePreferredProject, loaded, loadError } =
     React.useContext(ProjectsContext);
   const available = loaded && !loadError;
+  const location = useLocation();
+  const navigate = useNavigate();
   const navigation = React.useRef(new Map<symbol, WorkingProjectNavigation>());
   const routeSyncCount = React.useRef(0);
-  const registerProjectRouteSync = React.useCallback(() => {
+  // Re-render when mounted route-sync registrations change.
+  const [, setRouteSyncVersion] = React.useState(0);
+
+  const routeSyncs = React.useRef(new Map<symbol, RouteProjectInput>());
+  const registerProjectRouteSync = React.useCallback((route?: RouteProjectInput) => {
+    const owner = Symbol('project-route-sync');
     routeSyncCount.current += 1;
+    if (route !== undefined) {
+      routeSyncs.current.set(owner, route);
+      setRouteSyncVersion((version) => version + 1);
+    }
     return () => {
       routeSyncCount.current -= 1;
+      if (route !== undefined) {
+        routeSyncs.current.delete(owner);
+        setRouteSyncVersion((version) => version + 1);
+      }
     };
   }, []);
   const pendingNavigation = React.useRef<{ token: symbol; owner: symbol } | null>(null);
@@ -47,9 +71,9 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
     }
   }, []);
   const registerProjectNavigation = React.useCallback(
-    (navigate: WorkingProjectNavigation) => {
+    (navigateProject: WorkingProjectNavigation) => {
       const owner = Symbol('project-navigation');
-      navigation.current.set(owner, navigate);
+      navigation.current.set(owner, navigateProject);
       return () => {
         navigation.current.delete(owner);
         if (pendingNavigation.current?.owner === owner) {
@@ -75,13 +99,36 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
     [projects],
   );
   const preferredName = preferredProject?.metadata.name;
+  const registeredRouteInput = Array.from(routeSyncs.current.values()).at(-1);
+  const initialProjectDetailsRoute = React.useMemo<RouteProjectInput | null>(() => {
+    if (!available) {
+      return null;
+    }
+
+    return getProjectDetailsRouteInput(location.pathname, new Set(projectByName.keys()), (name) =>
+      navigate(`/projects/${name}`, { replace: true }),
+    );
+  }, [available, location.pathname, navigate, projectByName]);
+  const route = registeredRouteInput ?? initialProjectDetailsRoute;
+  const routeInvalid = route?.kind === RouteProjectKindValue.Invalid;
+  const workingProjectStatus = getWorkingProjectStatus({ loaded, loadError, routeInvalid });
+  // Route-invalid is a provider/UI state. Synchronization must retain its previous
+  // source status so it does not treat an invalid route as a project-source failure.
+  const synchronizationStatus =
+    workingProjectStatus === WorkingProjectStatusValue.RouteInvalid
+      ? WorkingProjectStatusValue.Listed
+      : workingProjectStatus;
   const knownPreferred = available ? projectByName.get(preferredName ?? '') : undefined;
   const storedName = available && !knownPreferred ? getStoredWorkingProjectName() : null;
   const resolution = resolveWorkingProject({
     list: available
-      ? { status: 'listed', projects: identities }
-      : { status: loadError ? 'error' : 'loading' },
-    route: null,
+      ? { status: WorkingProjectListStatusValue.Listed, projects: identities }
+      : {
+          status: loadError
+            ? WorkingProjectListStatusValue.Error
+            : WorkingProjectListStatusValue.Loading,
+        },
+    route,
     storedName: knownPreferred?.metadata.name ?? storedName,
     isAiProject: ({ name }) => {
       const source = projectByName.get(name);
@@ -90,7 +137,10 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
   });
   const resolvedName = resolution.activeProject?.name;
   React.useEffect(() => {
-    if (!available || !resolvedName || resolvedName === preferredName) {
+    const invalidRouteRegistered = Array.from(routeSyncs.current.values()).some(
+      (routeInput) => routeInput?.kind === RouteProjectKindValue.Invalid,
+    );
+    if (!available || !resolvedName || resolvedName === preferredName || invalidRouteRegistered) {
       return;
     }
     const resolved = projectByName.get(resolvedName);
@@ -106,6 +156,23 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
       }
       const source = projectByName.get(identity.name);
       if (source) {
+        const routeSelectionChanged =
+          route?.kind === RouteProjectKindValue.Invalid ||
+          (route?.kind === RouteProjectKindValue.Project && route.name !== identity.name);
+        if (routeSelectionChanged) {
+          const routeOwner = Array.from(routeSyncs.current.entries()).find(
+            ([, routeInput]) => routeInput === route,
+          )?.[0];
+          if (routeOwner) {
+            routeSyncs.current.delete(routeOwner);
+            setRouteSyncVersion((version) => version + 1);
+          }
+          updatePreferredProject(source);
+          if (route.kind === RouteProjectKindValue.Invalid && route.recover) {
+            route.recover(source.metadata.name);
+          }
+          return;
+        }
         const registration = Array.from(navigation.current.entries()).pop();
         if (change?.source === 'storage' && !registration && routeSyncCount.current > 0) {
           // A route that syncs its URL project cannot follow an external selection
@@ -114,12 +181,12 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
           return;
         }
         if (change?.source === 'storage' && change.replace && registration) {
-          const [owner, navigate] = registration;
+          const [owner, navigateProject] = registration;
           cancelProjectNavigation();
           // The mounted surface supplies its own builder; the host never parses feature routes.
           const token = Symbol('project-switch');
           pendingNavigation.current = { token, owner };
-          navigate(toWorkingProjectIdentity(source), {
+          navigateProject(toWorkingProjectIdentity(source), {
             commit: () => {
               if (pendingNavigation.current?.token !== token) {
                 return;
@@ -145,19 +212,26 @@ const RhoaiWorkingProjectAdapter: React.FC<Props> = ({ children }) => {
         }
       }
     },
-    [available, projectByName, preferredName, updatePreferredProject, cancelProjectNavigation],
+    [
+      available,
+      projectByName,
+      preferredName,
+      updatePreferredProject,
+      cancelProjectNavigation,
+      route,
+    ],
   );
 
   useWorkingProjectSynchronization({
     projects: resolution.orderedProjects,
     activeProject: resolution.activeProject,
-    status: loadError ? 'project-source-error' : loaded ? 'listed' : 'loading',
+    status: synchronizationStatus,
     onProjectChange: selectProject,
   });
 
   return (
     <WorkingProjectProvider
-      status={loadError ? 'project-source-error' : loaded ? 'listed' : 'loading'}
+      status={workingProjectStatus}
       projects={resolution.orderedProjects}
       activeProject={resolution.activeProject}
       onProjectChange={selectProject}

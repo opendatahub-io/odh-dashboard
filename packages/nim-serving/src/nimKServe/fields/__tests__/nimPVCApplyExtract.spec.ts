@@ -2,6 +2,11 @@ import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import {
+  LimitNameResourceType,
+  setupDefaults,
+  type K8sNameDescriptionFieldData,
+} from '@odh-dashboard/k8s-core';
+import {
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
 } from '../../../pages/deploymentWizard/fields/NIMPVCField';
@@ -12,6 +17,13 @@ import {
   NIM_TEMPLATE_PVC_NAME,
 } from '../../../constants';
 import { applyNIMPVCFieldData, extractNIMPVCFieldData } from '../nimPVCApplyExtract';
+
+const makePvcNameData = (name: string, k8sName: string): K8sNameDescriptionFieldData =>
+  setupDefaults({
+    initialData: { name, k8sName },
+    limitNameResourceType: LimitNameResourceType.PVC,
+    editableK8sName: true,
+  });
 
 const makeServingRuntime = (
   overrides?: Partial<ServingRuntimeKind['spec']>,
@@ -34,7 +46,7 @@ const makeDeployment = (server?: ServingRuntimeKind): KServeDeployment => ({
 
 const makeFieldValue = (overrides?: Partial<NIMPVCFieldValue>): NIMPVCFieldValue => ({
   storageMode: NIMPVCStorageMode.NEW,
-  pvcName: 'my-nim-pvc',
+  existingPvcDisplayName: 'my-nim-pvc',
   subPath: '',
   storageClassName: 'gp3-csi',
   storageSizeGi: DEFAULT_STORAGE_SIZE_GI,
@@ -51,7 +63,7 @@ describe('applyNIMPVCFieldData', () => {
   it('should add a PVC volume to the serving runtime', () => {
     const result = applyNIMPVCFieldData(
       makeDeployment(makeServingRuntime()),
-      makeFieldValue({ pvcName: 'nim-cache' }),
+      makeFieldValue({ existingPvcDisplayName: 'nim-cache' }),
     );
     expect(result.server?.spec.volumes).toContainEqual({
       name: 'nim-cache',
@@ -62,7 +74,7 @@ describe('applyNIMPVCFieldData', () => {
   it('should add a volume mount to the kserve-container', () => {
     const result = applyNIMPVCFieldData(
       makeDeployment(makeServingRuntime()),
-      makeFieldValue({ pvcName: 'nim-cache' }),
+      makeFieldValue({ existingPvcDisplayName: 'nim-cache' }),
     );
     const container = result.server?.spec.containers.find((c) => c.name === 'kserve-container');
     expect(container?.volumeMounts).toContainEqual(
@@ -115,7 +127,7 @@ describe('applyNIMPVCFieldData', () => {
   it('should translate display names with spaces into valid k8s names', () => {
     const result = applyNIMPVCFieldData(
       makeDeployment(makeServingRuntime()),
-      makeFieldValue({ pvcName: 'pr pvc test' }),
+      makeFieldValue({ existingPvcDisplayName: 'pr pvc test' }),
     );
     expect(result.server?.spec.volumes).toContainEqual({
       name: 'pr-pvc-test',
@@ -128,6 +140,40 @@ describe('applyNIMPVCFieldData', () => {
         mountPath: '/mnt/models/cache',
       }),
     );
+
+    const fromPvcNameData = applyNIMPVCFieldData(
+      makeDeployment(makeServingRuntime()),
+      makeFieldValue({
+        existingPvcDisplayName: '',
+        newPvcNameData: makePvcNameData('My Cache PVC', 'custom-nim-cache'),
+      }),
+    );
+    expect(fromPvcNameData.server?.spec.volumes).toContainEqual({
+      name: 'custom-nim-cache',
+      persistentVolumeClaim: { claimName: 'custom-nim-cache' },
+    });
+  });
+
+  it('should use a DNS-label volume name when the PVC claim name contains dots', () => {
+    const result = applyNIMPVCFieldData(
+      makeDeployment(makeServingRuntime()),
+      makeFieldValue({
+        storageMode: NIMPVCStorageMode.EXISTING,
+        existingPvcDisplayName: 'model.cache',
+        existingPvcK8sName: 'model.cache',
+      }),
+    );
+    expect(result.server?.spec.volumes).toContainEqual({
+      name: 'modelcache',
+      persistentVolumeClaim: { claimName: 'model.cache' },
+    });
+    const container = result.server?.spec.containers.find((c) => c.name === 'kserve-container');
+    expect(container?.volumeMounts).toContainEqual(
+      expect.objectContaining({
+        name: 'modelcache',
+        mountPath: '/mnt/models/cache',
+      }),
+    );
   });
 
   it('should preserve existing volumes', () => {
@@ -136,7 +182,7 @@ describe('applyNIMPVCFieldData', () => {
     });
     const result = applyNIMPVCFieldData(
       makeDeployment(runtime),
-      makeFieldValue({ pvcName: 'nim-cache' }),
+      makeFieldValue({ existingPvcDisplayName: 'nim-cache' }),
     );
     expect(result.server?.spec.volumes).toHaveLength(2);
     expect(result.server?.spec.volumes?.[0]).toEqual({ name: 'shm', emptyDir: {} });
@@ -160,7 +206,7 @@ describe('applyNIMPVCFieldData', () => {
     });
     const result = applyNIMPVCFieldData(
       makeDeployment(runtime),
-      makeFieldValue({ pvcName: 'pr pvc test' }),
+      makeFieldValue({ existingPvcDisplayName: 'pr pvc test' }),
     );
     expect(result.server?.spec.volumes).toEqual([
       { name: 'shm', emptyDir: {} },
@@ -181,7 +227,7 @@ describe('applyNIMPVCFieldData', () => {
     });
     const result = applyNIMPVCFieldData(
       makeDeployment(runtime),
-      makeFieldValue({ pvcName: 'nim-cache' }),
+      makeFieldValue({ existingPvcDisplayName: 'nim-cache' }),
     );
     const pvcVolumes = result.server?.spec.volumes?.filter(
       (v) => v.persistentVolumeClaim?.claimName === 'nim-cache',
@@ -243,11 +289,27 @@ describe('extractNIMPVCFieldData', () => {
     const result = extractNIMPVCFieldData(makeDeployment(runtime));
     expect(result).toEqual({
       storageMode: NIMPVCStorageMode.EXISTING,
-      pvcName: 'nim-cache',
+      existingPvcDisplayName: 'nim-cache',
+      existingPvcK8sName: 'nim-cache',
       subPath: 'models',
       storageClassName: '',
       storageSizeGi: DEFAULT_STORAGE_SIZE_GI,
     });
+  });
+
+  it('should extract claimName when volume name was sanitized separately', () => {
+    const runtime = makeServingRuntime({
+      containers: [
+        {
+          name: 'kserve-container',
+          volumeMounts: [{ name: 'modelcache', mountPath: '/mnt/models/cache' }],
+        },
+      ],
+      volumes: [{ name: 'modelcache', persistentVolumeClaim: { claimName: 'model.cache' } }],
+    });
+    const result = extractNIMPVCFieldData(makeDeployment(runtime));
+    expect(result?.existingPvcDisplayName).toBe('model.cache');
+    expect(result?.existingPvcK8sName).toBe('model.cache');
   });
 
   it('should default subPath to empty string when not set', () => {

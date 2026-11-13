@@ -191,6 +191,10 @@ describe('useCatalogDeployPrefillData', () => {
     expect(renderResult.result.current.deployPrefill.huggingFaceApiKeyAlertText).toMatch(
       /gated access on Hugging Face/i,
     );
+    expect(renderResult.result.current.deployPrefill.extraDeployTrackingProperties).toEqual({
+      hfAccessType: 'gated_auto',
+      isAccessGranted: false,
+    });
   });
 
   it('should rebuild deployPrefill when sourceId changes', () => {

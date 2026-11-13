@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import {
   Content,
@@ -333,6 +334,7 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
   initialSelectedMetrics,
   onSelectedMetricsChange,
 }) => {
+  const trackEvent = useTrackEvent();
   const [isOpen, setIsOpen] = React.useState(false);
   // Tracks which metrics have already fired AutoML Backtest Window Metric Viewed this mount,
   // so toggling a metric off and back on doesn't re-fire it for the same modal session.
@@ -382,14 +384,17 @@ const BacktestWindowChart: React.FC<BacktestWindowChartProps> = ({
   // Fires one "viewed" event per metric that becomes newly visible, skipping any metric
   // already recorded in trackedMetricsRef so toggling a metric off and back on (or
   // selecting "Show all" more than once) doesn't re-fire it in the same modal session.
-  const trackNewlyAddedMetrics = React.useCallback((addedMetrics: string[]) => {
-    addedMetrics.forEach((metric) => {
-      if (!trackedMetricsRef.current.has(metric)) {
-        trackedMetricsRef.current.add(metric);
-        fireAutomlBacktestWindowMetricViewed(metric);
-      }
-    });
-  }, []);
+  const trackNewlyAddedMetrics = React.useCallback(
+    (addedMetrics: string[]) => {
+      addedMetrics.forEach((metric) => {
+        if (!trackedMetricsRef.current.has(metric)) {
+          trackedMetricsRef.current.add(metric);
+          fireAutomlBacktestWindowMetricViewed(trackEvent, metric);
+        }
+      });
+    },
+    [trackEvent],
+  );
 
   const onSelect = React.useCallback(
     (_e: React.MouseEvent | undefined, value: string | number | undefined) => {

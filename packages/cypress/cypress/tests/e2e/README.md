@@ -91,6 +91,24 @@ Before you begin, ensure you have the following installed:
 
 ## Running Tests
 
+### Data Registry E2E cluster prerequisites
+
+The Data Registry browser test runs against a live cluster. The cluster must have
+the Data Registry services and a ready Feast operator installed, with the
+`featurestores.feast.dev` CRD available. The test discovers the Data Registry namespace by the
+`dataregistry.opendatahub.io/enabled=true` label applied by the Feast module operator, so its name
+can vary.
+It creates `FeatureStore/data-registry` in that namespace if it does not already
+exist; the fixture sets `spec.feastProject` to `data_registry`. The test fixture
+uses the `default` collection in its generated project, so that collection must
+be available to new test projects.
+
+The browse flow tests RHOAI Secret fallback. The Data Registry connections API
+must return the generated RHOAI connection in `data`, which requires DCH to be
+unconfigured or its connection-list lookup to hit a fallback-eligible failure.
+A successful DCH list response, including an empty one, keeps RHOAI connections
+as display metadata only and does not satisfy this test.
+
 ### Run Tests in Interactive Mode
 
 Use the Cypress Test Runner for an interactive GUI:
@@ -199,6 +217,23 @@ Use `retryableBefore`. If using an `after` method, include `if (!wasSetupPerform
 Test Data should be referenced from fixture files and loaded into the test in the hook (`retryableBefore`). Typically, testData is then assigned a type, and a custom function is created to assign values to a variable.
 
 `retryableBefore` skips its callback when `IS_NON_ADMIN_RUN` is set, because it is meant for admin-only setup. If a test that runs in non-admin mode needs fixture data, load the fixture in a plain `before()` hook and keep only admin setup in `retryableBefore`.
+
+#### Architecture-Specific Fixture Remapping (`FILEMAPPING`)
+
+When running tests on non-x86 architectures (such as `s390x`), test fixtures and resource YAMLs can be automatically remapped using the `FILEMAPPING` configuration in `test-variables.yml`.
+
+`loadYamlFixture` and helper loaders resolve paths through `FILEMAPPING` when running on an `s390x` cluster:
+
+```yaml
+FILEMAPPING:
+  e2e/dataScienceProjects/testModelTokenAuth.yaml: e2e/dataScienceProjects/testModelTokenAuth.s390x.yaml
+  e2e/dataScienceProjects/testDeployOCIModel.yaml: e2e/dataScienceProjects/testDeployOCIModel.s390x.yaml
+  e2e/dataScienceProjects/testModelPvcDeployment.yaml: e2e/dataScienceProjects/testModelPvcDeployment.s390x.yaml
+  resources/yaml/pvc-loader-pod.yaml: resources/yaml/pvc-loader-pod.s390x.yaml
+  e2e/dataScienceProjects/testSingleModelAdminCreation.yaml: e2e/dataScienceProjects/testSingleModelAdminCreation.s390x.yaml
+  e2e/hardwareProfiles/testModelServingTolerations.yaml: e2e/hardwareProfiles/testModelServingTolerations.s390x.yaml
+  e2e/dataScienceProjects/testWorkbenchStorageClasses.yaml: e2e/dataScienceProjects/testWorkbenchStorageClasses.s390x.yaml
+```
 
 ### Test IDs
 

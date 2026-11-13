@@ -86,7 +86,7 @@ Flag code that defaults to "allowed" when permission checks fail or are missing:
 
 ### Check 3: Assumed access / deprecated admin patterns
 
-The `isAdmin` boolean means "can patch auths/default-auth" — it does NOT mean the user can do arbitrary operations. Code that treats `isAdmin` as a universal access pass skips the actual SSAR check and will break for users who are "dashboard admins" but lack specific permissions.
+The `isAdmin` boolean means "can patch auths/auth" — it does NOT mean the user can do arbitrary operations. Code that treats `isAdmin` as a universal access pass skips the actual SSAR check and will break for users who are "dashboard admins" but lack specific permissions.
 
 Flag usage of:
 

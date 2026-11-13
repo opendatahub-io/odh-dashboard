@@ -2,8 +2,8 @@ import React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import type { HardwareProfileKind } from '@odh-dashboard/k8s-core';
 import { deleteHardwareProfile } from '@odh-dashboard/internal/api';
-import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { getHardwareProfileDisplayName } from './utils';
+import DeleteModal from '@odh-dashboard/ui-core/components/DeleteModal';
+import { getHardwareProfileDisplayName } from '../../shared/utils';
 
 type DeleteHardwareProfileModalProps = {
   hardwareProfile: HardwareProfileKind;

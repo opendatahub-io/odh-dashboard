@@ -1,13 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { fireModelDeployed } from '../../../shared/tracking/deploymentTracking';
+import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 type UseExitWizardOptions = {
   returnRoute?: string;
   cancelReturnRoute?: string;
   isEdit?: boolean;
+  formData: UseModelDeploymentWizardState;
 };
 
 type UseExitWizardReturn = {
@@ -22,6 +24,7 @@ export const useExitDeploymentWizard = ({
   returnRoute,
   cancelReturnRoute,
   isEdit,
+  formData,
 }: UseExitWizardOptions): UseExitWizardReturn => {
   const navigate = useNavigate();
   const trackEvent = useTrackEvent();
@@ -44,11 +47,19 @@ export const useExitDeploymentWizard = ({
     navigate(returnRoute ?? '/ai-hub/models/deployments');
   }, [navigate, returnRoute]);
 
+  const deploymentMethod = formData.state.deploymentMethod?.method;
   const handleExitConfirm = React.useCallback(() => {
-    fireModelDeployed(trackEvent, { outcome: TrackingOutcome.cancel }, isEdit);
+    fireModelDeployed(
+      trackEvent,
+      {
+        outcome: TrackingOutcome.cancel,
+        ...(deploymentMethod && { deploymentMethod }),
+      },
+      isEdit,
+    );
     setIsExitModalOpen(false);
     exitWizardOnCancel();
-  }, [trackEvent, exitWizardOnCancel, isEdit]);
+  }, [trackEvent, exitWizardOnCancel, isEdit, deploymentMethod]);
 
   return {
     isExitModalOpen,

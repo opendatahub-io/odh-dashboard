@@ -1,4 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { ConnectionTestStatus, ConnectionTestResult } from '#~/concepts/connectionTypes/types';
 

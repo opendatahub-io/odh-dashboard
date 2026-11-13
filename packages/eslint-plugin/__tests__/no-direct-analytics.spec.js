@@ -31,9 +31,16 @@ for (const source of [
   `export * from '${legacy}/deep';`,
   `import { fireTrackingEvent } from '@odh-dashboard/analytics';`,
   `import '@odh-dashboard/analytics/deep';`,
-  `import '@odh-dashboard/analytics/types';`,
   `import '@odh-dashboard/analytics/types/deep';`,
   `import '@odh-dashboard/analytics/types-extra';`,
+  `import '@odh-dashboard/analytics/react/deep';`,
+  `import '@odh-dashboard/analytics/react-extra';`,
+  `import { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';`,
+  `export { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';`,
+  `export * from '@odh-dashboard/analytics/standalone';`,
+  `import '@odh-dashboard/analytics/standalone/deep';`,
+  `import '@odh-dashboard/analytics/standalone-extra';`,
+  `export * from '@odh-dashboard/analytics/react/deep';`,
   `export * from '@odh-dashboard/analytics';`,
   `import '@segment/analytics-next';`,
   `import '@segment/analytics-next/deep';`,
@@ -62,11 +69,14 @@ for (const global of ['window', 'globalThis', 'self']) {
 }
 
 for (const source of [
-  `import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api'; useTrackEvent()('event', {});`,
-  `import { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';`,
-  `export { TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';`,
-  `export * from '@odh-dashboard/ui-core/types/analytics';`,
-  `import * as contracts from '@odh-dashboard/ui-core/types/analytics'; contracts.TrackingOutcome;`,
+  `import { useTrackEvent } from '@odh-dashboard/analytics/react'; useTrackEvent()('event', {});`,
+  `import { AnalyticsTrackingProvider, useTrackPageEvent } from '@odh-dashboard/analytics/react';`,
+  `export { useTrackEvent } from '@odh-dashboard/analytics/react';`,
+  `import * as tracking from '@odh-dashboard/analytics/react'; tracking.useTrackEvent();`,
+  `import { TrackingOutcome } from '@odh-dashboard/analytics/types';`,
+  `export { TrackingOutcome } from '@odh-dashboard/analytics/types';`,
+  `export * from '@odh-dashboard/analytics/types';`,
+  `import * as contracts from '@odh-dashboard/analytics/types'; contracts.TrackingOutcome;`,
   `import { unrelated } from '@odh-dashboard/ui-core';`,
   `export * from '@odh-dashboard/ui-core';`,
   `const feature = { analytics: {} }; feature.analytics;`,
@@ -90,6 +100,30 @@ it('should keep infrastructure, composition roots, and Cypress observation outsi
   }
 });
 
+describe('standalone bootstrap exception', () => {
+  const config = guarded(base, ['src/**/*.{ts,tsx}']);
+  const scoped = makeLinter({
+    ...config,
+    overrides: [...config.overrides, { files: ['src/bootstrap.tsx'], rules: { [ruleId]: 'off' } }],
+  });
+  const standalone = `import { createStandaloneAnalytics } from '@odh-dashboard/analytics/standalone';`;
+
+  it('should block standalone wiring in bootstrap files by default', async () => {
+    expect(await lint(standalone, 'src/bootstrap.tsx')).toEqual([
+      expect.objectContaining({ ruleId, severity: 2 }),
+    ]);
+  });
+
+  it('should limit the explicit exception to the configured composition root', async () => {
+    expect(await lint(standalone, 'src/bootstrap.tsx', scoped)).toEqual([]);
+    for (const file of ['src/feature.ts', 'src/app/bootstrap.tsx', 'src/__tests__/feature.ts']) {
+      expect(await lint(standalone, file, scoped)).toEqual([
+        expect.objectContaining({ ruleId, severity: 2 }),
+      ]);
+    }
+  });
+});
+
 it('should document literal dynamic imports and require as outside static import guards', async () => {
   expect(await lint(`import('${legacy}'); require('@segment/analytics-next');`)).toEqual([]);
 });
@@ -106,10 +140,10 @@ it('should permit TypeScript contracts with both type import syntaxes', async ()
   );
   expect(
     await lint(
-      `import type { FormTrackingEventProperties } from '@odh-dashboard/ui-core/types/analytics';
-       import { type LinkTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/ui-core/types/analytics';
-       export type { IdentifyEventProperties } from '@odh-dashboard/ui-core/types/analytics';
-       import type * as contracts from '@odh-dashboard/ui-core/types/analytics';
+      `import type { FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
+       import { type LinkTrackingEventProperties, TrackingOutcome } from '@odh-dashboard/analytics/types';
+       export type { IdentifyEventProperties } from '@odh-dashboard/analytics/types';
+       import type * as contracts from '@odh-dashboard/analytics/types';
        type Outcome = typeof contracts.TrackingOutcome;`,
       undefined,
       typed,

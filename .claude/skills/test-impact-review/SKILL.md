@@ -6,7 +6,7 @@ argument-hint: "[PR number | path | branch]"
 
 # Test Impact Review
 
-Assurance-grade readiness check for how the change is tested. Scores **Automation**, **Efficiency**, and **Evidence depth**. This is narrower than a test run and is a readiness check only (not a code-finding producer): it judges durable automation, tier/efficiency, and whether the available proof covers the change and protects feature integrity while those tests stay green. Available proof means author-supplied description evidence plus suites that required PR status checks run for the changed packages; this skill judges whether that combined proof is adequate for the actual changes.
+Assurance-grade readiness check for how the change is tested. Scores **Automation**, **Efficiency**, and **Evidence depth**. This is narrower than a test run and is a readiness check only (not a code-finding producer): it judges durable automation, tier/efficiency, and whether the available proof covers the change and protects feature integrity while those tests stay green. Available proof means author-supplied description evidence, committed automation in the diff, plus suites that required PR status checks run for the changed packages; this skill judges whether that combined proof is adequate for the actual changes.
 
 ## Invocation contract
 
@@ -65,6 +65,7 @@ Are tests written efficiently? Call out duplication. Prefer unit tests over Cypr
 Dig into available testing evidence (author-supplied and required-CI suites, plus related automation): does it sufficiently cover the changes that were made, and will feature integrity hold so long as those tests continue to pass?
 
 - **Required-CI suites need no author call-out.** Treat them as proving themselves, per the [required-CI presumption](#inputs-and-direct-cli-defaults). Do not fail, warn, or report “could not verify” because the description does not restate that run, and never ask the author to paste CI output into prose. This skill does not inspect CI status or confirm the checks are green — the merge gate does that; do not add a CI row or caveat here.
+- **Committed automation counts as runtime proof.** A unit, component, or Cypress test that drives the changed scenario and asserts the outcome is evidence depth even before it executes: read its steps and judge whether it covers the change. Do not downgrade because the test “has not run” locally or CI has not reported — required-CI status checks and the merge gate own execution. When such automation covers the flow, an author-reported manual check is optional and neither stronger nor additionally required.
 - **Author-supplied proof is still required for what required CI cannot show:** UI/visual proof for UI changes, cluster or manual checks, suites outside required CI, and test-quality judgments (see Automation and Efficiency). Missing proof for any of these stays ❌ as below.
 - Testing proof **not called out in the PR description** → ❌, even when the tree already has good automation. Silent “tests exist in the tree” is not enough. Exception: suites covered by required CI, per the first bullet.
 - Proof present but does not cover the changed behavior, or green tests would not protect integrity → ❌.

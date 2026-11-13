@@ -34,12 +34,7 @@ describe('Connection types', () => {
   beforeEach(() => {
     asProductAdminUser();
 
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disableConnectionTypes: false,
-      }),
-    );
+    cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh('GET /api/connection-types', [
       {
         ...mockConnectionTypeConfigMap({

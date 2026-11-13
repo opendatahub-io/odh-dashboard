@@ -474,11 +474,44 @@ export const usePatternFlyTheme = (): { muiTheme: Theme; chartsTheme: PersesChar
   const currentYear = new Date().getFullYear();
 
   return React.useMemo(() => {
+    // MUI buttons are DOM-rendered, so the live PF control-radius token can be
+    // passed through as a CSS variable: it follows theme changes without
+    // re-creating the MUI theme and keeps the token's unit intact. Falls back
+    // to 6px when the token is not defined.
+    const controlRadius = 'var(--pf-t--global--border--radius--control--default, 6px)';
+
+    const patternflyMuiTheme = mapPatterflyThemeToMUI(theme, currentYear);
+    // Preserve the mapped MuiButton colors/interaction states and override
+    // only the root radius so MUI buttons follow the active PF control radius.
+    const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null && !Array.isArray(value);
+    const muiButton = patternflyMuiTheme.components?.MuiButton;
+    const rawStyleOverrides = muiButton?.styleOverrides;
+    const muiButtonStyleOverrides: Record<string, unknown> = isPlainRecord(rawStyleOverrides)
+      ? rawStyleOverrides
+      : {};
+    const muiButtonRoot: Record<string, unknown> = isPlainRecord(muiButtonStyleOverrides.root)
+      ? muiButtonStyleOverrides.root
+      : {};
+
     const muiTheme = getTheme(theme, {
       shape: {
         borderRadius: 6,
       },
-      ...mapPatterflyThemeToMUI(theme, currentYear),
+      ...patternflyMuiTheme,
+      components: {
+        ...(patternflyMuiTheme.components ?? {}),
+        MuiButton: {
+          ...muiButton,
+          styleOverrides: {
+            ...muiButtonStyleOverrides,
+            root: {
+              ...muiButtonRoot,
+              borderRadius: controlRadius,
+            },
+          },
+        },
+      },
     });
 
     // PatternFly default text color as hex (ECharts does not resolve CSS variables)

@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome, useNotification } from '@odh-dashboard/ui-core';
+import { useNotification } from '@odh-dashboard/ui-core';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   getTemplateEnabled,
   setListDisabled,
@@ -20,7 +22,6 @@ import {
   getResourceVersions,
 } from '@odh-dashboard/model-serving/shared/tracking/limitedSupportTracking';
 import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { patchDashboardConfigTemplateDisablementBackend } from '@odh-dashboard/internal/services/dashboardService';
 import { patchTemplateAcceptedAnnotationBackend } from '@odh-dashboard/internal/services/templateService';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
@@ -33,6 +34,7 @@ type CustomServingRuntimeEnabledToggleProps = {
 const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledToggleProps> = ({
   template,
 }) => {
+  const trackEvent = useTrackEvent();
   const {
     servingRuntimeTemplateDisablement: {
       data: templateDisablement,
@@ -71,7 +73,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
       patchDashboardConfigTemplateDisablementBackend(templateDisablementUpdated, dashboardNamespace)
         .then(() => {
           setEnabled(checked);
-          fireServingRuntimeTemplateEnablementChanged({
+          fireServingRuntimeTemplateEnablementChanged(trackEvent, {
             outcome: TrackingOutcome.submit,
             success: true,
             enabled: checked,
@@ -83,7 +85,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
             `Error ${checked ? 'enabling' : 'disabling'} the serving runtime`,
             e.message,
           );
-          fireServingRuntimeTemplateEnablementChanged({
+          fireServingRuntimeTemplateEnablementChanged(trackEvent, {
             outcome: TrackingOutcome.submit,
             success: false,
             // The patch failed, so the state reverts — report the actual state, not the intended one.
@@ -102,6 +104,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
       dashboardNamespace,
       refreshDisablement,
       notification,
+      trackEvent,
     ],
   );
 
@@ -122,7 +125,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
     // TODO: Use passthrough API once admin panel has been migrated to support it
     patchTemplateAcceptedAnnotationBackend(template.metadata.namespace, template.metadata.name)
       .then(() => {
-        fireRiskAccepted(fireMiscTrackingEvent, {
+        fireRiskAccepted(trackEvent, {
           runtimeResourceType: 'serving-runtime-template',
           resourceId: template.metadata.name,
           resourceName: getServingRuntimeDisplayNameFromTemplate(template),
@@ -139,7 +142,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
         );
         setLoading(false);
       });
-  }, [template, enableTemplate, notification]);
+  }, [template, enableTemplate, notification, trackEvent]);
 
   return (
     <>
@@ -157,7 +160,7 @@ const CustomServingRuntimeEnabledToggle: React.FC<CustomServingRuntimeEnabledTog
           onAccept={handleAccept}
           onClose={(dismissAction: UnsupportedStatusDismissAction) => {
             setShowAcceptanceModal(false);
-            fireRiskDismissed(fireMiscTrackingEvent, {
+            fireRiskDismissed(trackEvent, {
               runtimeResourceType: 'serving-runtime-template',
               resourceId: template.metadata.name,
               resourceName: getServingRuntimeDisplayNameFromTemplate(template),

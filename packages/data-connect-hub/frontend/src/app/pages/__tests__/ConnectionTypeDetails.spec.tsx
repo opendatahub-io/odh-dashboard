@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { mockConnectionType } from '~/__mocks__/mockConnectionType';
@@ -7,18 +7,12 @@ import { createConnection } from '~/app/api/dch';
 import CreateConnectionWizard from '~/app/components/CreateConnectionWizard';
 import { useConnectionType } from '~/app/hooks/useConnectionType';
 import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
-import * as trackingUtilities from '~/app/utilities/tracking';
+import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import ConnectionTypeDetails from '~/app/pages/ConnectionTypeDetails';
 import type { CreateConnectionRequest } from '~/app/types';
 
 jest.mock('~/app/hooks/useConnectionType');
 jest.mock('~/app/hooks/useConnectionAccess');
-jest.mock('~/app/utilities/tracking', () => ({
-  DATA_CONNECT_HUB_EVENT_NAMES: {
-    addStarted: 'Connections Add Started',
-  },
-  fireDataConnectHubTrackEvent: jest.fn(),
-}));
 jest.mock('~/app/api/dch', () => ({
   createConnection: jest.fn(),
 }));
@@ -33,6 +27,10 @@ const mockCreateConnection = jest.mocked(createConnection);
 const mockCreateConnectionWizard = jest.mocked(CreateConnectionWizard);
 const mockCreateRequest = jest.fn();
 const mockTrackEvent = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={mockTrackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: TrackingWrapper });
 
 const createRequest: CreateConnectionRequest = {
   name: 'warehouse',
@@ -57,7 +55,6 @@ const renderDetails = (
 describe('ConnectionTypeDetails', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
     mockUseConnectionAccess.mockReturnValue({ isAllowed: true, loaded: true });
     mockCreateConnection.mockReturnValue(mockCreateRequest);
     mockCreateConnectionWizard.mockImplementation(({ isOpen, onClose, onCreate }) =>
@@ -100,9 +97,9 @@ describe('ConnectionTypeDetails', () => {
     renderDetails();
     await user.click(screen.getByTestId('connection-type-details-create-connection'));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith({
-      eventName: 'Connections Add Started',
-      properties: { project: 'test-project', source: 'connection_type_catalog' },
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'connection_type_catalog',
     });
 
     expect(screen.getByTestId('mock-create-connection-wizard')).toBeTruthy();
@@ -151,9 +148,9 @@ describe('ConnectionTypeDetails', () => {
     ).toBeTruthy();
 
     fireEvent.click(button);
-    expect(mockTrackEvent).not.toHaveBeenCalledWith({
-      eventName: 'Connections Add Started',
-      properties: { project: 'test-project', source: 'connection_type_catalog' },
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'connection_type_catalog',
     });
     expect(screen.queryByTestId('mock-create-connection-wizard')).toBeNull();
   });

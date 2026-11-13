@@ -1,20 +1,21 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { ExtensibilityContextProvider } from '@odh-dashboard/plugin-core/extensibility';
 import { ThemeProvider } from './ThemeContext';
 import { ErrorBoundary } from './ErrorBoundary';
-import { ExtensibilityContextProvider } from './plugins/ExtensibilityContext';
 import Shell from './Shell';
 import ShellHeader from './ShellHeader';
 import ShellNav from './ShellNav';
 import ShellRoutes from './ShellRoutes';
+import pluginExtensions from './plugins/pluginExtensions';
 
 const router = createBrowserRouter([
   {
     path: '*',
     element: (
       <ThemeProvider>
-        <ExtensibilityContextProvider>
+        <ExtensibilityContextProvider staticExtensions={pluginExtensions}>
           <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
             <ShellRoutes />
           </Shell>

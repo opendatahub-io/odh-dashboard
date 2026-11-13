@@ -8,7 +8,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { useTrackEvent } from '@odh-dashboard/plugin-core/host-api';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ValidatedConfigurationOptionCard } from './ValidatedConfigurationOptionCard';
 import type { ValidatedConfigurationsFieldHook } from './useValidatedConfigurationsField';
 import {

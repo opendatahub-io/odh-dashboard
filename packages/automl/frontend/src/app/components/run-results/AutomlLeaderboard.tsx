@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Bullseye,
   Button,
@@ -428,6 +429,7 @@ function AutomlLeaderboard({
   onClickSaveNotebook,
   onRegisterModel,
 }: AutomlLeaderboardProps): React.JSX.Element | null {
+  const trackEvent = useTrackEvent();
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const {
     models,
@@ -731,10 +733,14 @@ function AutomlLeaderboard({
         direction,
       }));
       if (sortColumnId) {
-        fireAutomlLeaderboardSorted(getColumnName(sortColumnId, sortColumnId), direction);
+        fireAutomlLeaderboardSorted(
+          trackEvent,
+          getColumnName(sortColumnId, sortColumnId),
+          direction,
+        );
       }
     },
-    [sortableColumnIds],
+    [sortableColumnIds, trackEvent],
   );
 
   // Helper function to get sort params for a column

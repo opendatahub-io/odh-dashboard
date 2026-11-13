@@ -45,7 +45,7 @@ func (r *StatusRepository) GetStatus(
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// Uses SSAR: patch on auths/default-auth.
+	// Uses SSAR: patch on auths/auth.
 	// Status is a session probe, not an authorization gate. Match Fastify's
 	// conservative flags on review failures without discarding the authenticated user.
 	isAdmin, err := client.IsUserAdmin(ctx, identity)
@@ -55,7 +55,7 @@ func (r *StatusRepository) GetStatus(
 	}
 
 	// Check if Auth CRD is present. When absent, all users are allowed (no group restrictions).
-	// When present, non-admin users need SSAR for get on auths/default-auth.
+	// When present, non-admin users need SSAR for get on auths/auth.
 	isAllowed := true
 	if !isAdmin {
 		isAllowed, err = resolveIsAllowed(ctx, client, identity, authRepo)
@@ -85,7 +85,7 @@ func (r *StatusRepository) GetStatus(
 // 1. If Auth CRD is absent (discovery error): all users allowed (no group restrictions).
 // 2. If Auth CR has system:authenticated in allowedGroups: all authenticated users allowed.
 // 3. If Auth cannot be read or parsed, fall through to the caller's authoritative SSAR.
-// 4. Otherwise: SSAR for get on auths/default-auth.
+// 4. Otherwise: SSAR for get on auths/auth.
 func resolveIsAllowed(
 	ctx context.Context, client k8s.KubernetesClientInterface,
 	identity *k8s.RequestIdentity, authRepo *AuthRepository,

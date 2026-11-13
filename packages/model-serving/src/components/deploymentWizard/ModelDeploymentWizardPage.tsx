@@ -100,7 +100,7 @@ export const ModelDeploymentWizardPage: React.FC = () => {
             ? 'Update your model deployment configuration.'
             : 'Configure deployment options for this model version.'
         }
-        existingData={existingData}
+        initialFormDataFromNav={existingData}
         existingDeployment={existingDeployment}
         returnRoute={returnRoute}
         cancelReturnRoute={cancelReturnRoute}

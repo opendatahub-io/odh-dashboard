@@ -1,22 +1,24 @@
 import * as React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { screen, fireEvent, within } from '@testing-library/react';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import { getBenchmarkDatasetUrl } from '~/app/utilities/benchmarkDatasetUrls';
 import BenchmarkDrawerTileContent from '~/app/components/BenchmarkDrawerTileContent';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { mockTrackEvent, render } = setupTrackingTest();
 
 jest.mock('~/app/utilities/benchmarkDatasetUrls', () => ({
   getBenchmarkDatasetUrl: jest.fn(),
 }));
 
-const mockFireEvent = jest.mocked(fireMiscTrackingEvent);
 const mockGetDatasetUrl = jest.mocked(getBenchmarkDatasetUrl);
 
 const expectTracked = (eventName: string, properties: unknown): void => {
-  expect(mockFireEvent).toHaveBeenCalledWith(eventName, expect.objectContaining(properties));
+  expect(mockTrackEvent).toHaveBeenCalledWith(
+    eventName,
+    expect.objectContaining(properties),
+    expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+  );
 };
 
 describe('BenchmarkDrawerTileContent', () => {

@@ -1,13 +1,21 @@
 /* eslint-disable camelcase -- PipelineRun type uses snake_case */
 import '@testing-library/jest-dom';
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render as rtlRender, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import AutomlRunsTableRow, {
   getStatusLabelProps,
 } from '~/app/components/AutomlRunsTable/AutomlRunsTableRow';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEvent = jest.fn();
+
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactNode) => rtlRender(ui, { wrapper: TrackingWrapper });
 
 const mockHandleRetry = jest.fn().mockResolvedValue(undefined);
 const mockHandleConfirmStop = jest.fn().mockResolvedValue(undefined);
@@ -308,6 +316,21 @@ describe('AutomlRunsTableRow', () => {
       await userEvent.click(kebab);
       await userEvent.click(screen.getByTestId('stop-run-action'));
       expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+    });
+
+    it.each([
+      ['RUNNING', 'stop-run-action', 'AutoML Run Stopped'],
+      ['SUCCEEDED', 'delete-run-action', 'AutoML Run Deleted'],
+    ] as const)('should forward cancellation once for %s runs', async (state, action, event) => {
+      render(
+        <MemoryRouter>
+          <AutomlRunsTableRow run={{ ...mockRun, state }} namespace={mockNamespace} />
+        </MemoryRouter>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      await userEvent.click(screen.getByTestId(action));
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(trackEvent.mock.calls).toEqual([[event, { outcome: 'cancel', source: 'runsList' }]]);
     });
 
     it('should show run name in stop modal', async () => {

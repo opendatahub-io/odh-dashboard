@@ -1,26 +1,17 @@
 /* eslint-disable camelcase */
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import {
-  createEvalHubTrackingScope,
-  trackEvalHubEvent,
-  trackEvalHubEventOnce,
-} from '~/app/tracking/evalhubTracking';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { createEvalHubTracking } from '~/app/tracking/evalhubTracking';
 import {
   EVAL_HUB_EVENTS,
   type CollectionSavedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvent = jest.fn();
+const {
+  trackEvent: trackEvalHubEvent,
+  trackEventOnce: trackEvalHubEventOnce,
+  createScope: createEvalHubTrackingScope,
+} = createEvalHubTracking(mockTrackEvent);
 
 describe('EvalHub tracking helper', () => {
   beforeEach(() => {
@@ -28,7 +19,7 @@ describe('EvalHub tracking helper', () => {
     window.__evalHubTrackingEvents?.clear();
   });
 
-  it('routes collection saves through form tracking with a normalized submit outcome', () => {
+  it('preserves form scalar filtering and a normalized submit outcome', () => {
     trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_SAVED, {
       outcome: TrackingOutcome.submit,
       success: true,
@@ -39,7 +30,7 @@ describe('EvalHub tracking helper', () => {
       countOfEvaluatesAssetTypes: 1,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_SAVED,
       expect.objectContaining({
         outcome: TrackingOutcome.submit,
@@ -49,9 +40,9 @@ describe('EvalHub tracking helper', () => {
         fromCurated: false,
         countOfEvaluatesAssetTypes: 1,
       }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
-    expect(mockFireFormTrackingEvent.mock.calls[0][1]).not.toHaveProperty('collectionName');
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent.mock.calls[0][1]).not.toHaveProperty('collectionName');
   });
 
   it('preserves existing keys and adds only shared context', () => {
@@ -61,14 +52,18 @@ describe('EvalHub tracking helper', () => {
       { collectionType: 'custom', providerType: 'lmeval' },
     );
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Evaluations Run Metric Selected', {
-      metricName: 'accuracy',
-      benchmarkName: 'ARC Easy',
-      isDefault: false,
-      event_source: 'evalhub_ui',
-      collection_type: 'custom',
-      provider_type: 'lmeval',
-    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      'Evaluations Run Metric Selected',
+      {
+        metricName: 'accuracy',
+        benchmarkName: 'ARC Easy',
+        isDefault: false,
+        event_source: 'evalhub_ui',
+        collection_type: 'custom',
+        provider_type: 'lmeval',
+      },
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+    );
   });
 
   it('redacts URL values without removing the existing key', () => {
@@ -78,7 +73,7 @@ describe('EvalHub tracking helper', () => {
       surface: 'benchmark_drawer',
     });
 
-    expect(mockFireMiscTrackingEvent.mock.calls[0][1]).toEqual(
+    expect(mockTrackEvent.mock.calls[0][1]).toEqual(
       expect.objectContaining({ url: 'https://example.com' }),
     );
   });
@@ -92,8 +87,8 @@ describe('EvalHub tracking helper', () => {
 
     trackEvalHubEvent(EVAL_HUB_EVENTS.JOB_CREATE_OPENED, properties);
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
-    const payload = mockFireMiscTrackingEvent.mock.calls[0][1];
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    const payload = mockTrackEvent.mock.calls[0][1];
     expect(payload).not.toHaveProperty('username');
     expect(payload).not.toHaveProperty('credentials');
     expect(payload).toEqual({
@@ -118,8 +113,8 @@ describe('EvalHub tracking helper', () => {
 
     trackEvalHubEvent(EVAL_HUB_EVENTS.COLLECTION_SAVED, properties);
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledTimes(1);
-    const payload = mockFireFormTrackingEvent.mock.calls[0][1];
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    const payload = mockTrackEvent.mock.calls[0][1];
     expect(payload).not.toHaveProperty('apiKey');
     expect(payload).not.toHaveProperty('collectionName');
     expect(payload).toEqual(expect.objectContaining({ success: true }));
@@ -132,8 +127,8 @@ describe('EvalHub tracking helper', () => {
       { collectionType: 'custom' },
     );
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
-    const payload = mockFireMiscTrackingEvent.mock.calls[0][1];
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    const payload = mockTrackEvent.mock.calls[0][1];
     expect(payload).not.toHaveProperty('collectionName');
     expect(payload).toEqual(
       expect.objectContaining({ outcome: 'success', collection_type: 'custom' }),
@@ -147,12 +142,13 @@ describe('EvalHub tracking helper', () => {
       { collectionType: 'system' },
     );
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.COLLECTION_DETAIL_VIEWED,
       expect.objectContaining({
         collectionName: 'Safety benchmarks',
         collection_type: 'system',
       }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -162,7 +158,7 @@ describe('EvalHub tracking helper', () => {
       collectionName: 'some-collection',
     });
 
-    expect(mockFireMiscTrackingEvent.mock.calls[0][1]).not.toHaveProperty('collectionName');
+    expect(mockTrackEvent.mock.calls[0][1]).not.toHaveProperty('collectionName');
   });
 
   it('emits once for a stable render key', () => {
@@ -175,7 +171,7 @@ describe('EvalHub tracking helper', () => {
       countOfRuns: 2,
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('allows the same key to emit again in a new mounted-view visit', () => {
@@ -189,7 +185,7 @@ describe('EvalHub tracking helper', () => {
       surface: 'comparison_view',
       countOfRuns: 2,
     });
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
 
     trackingScope.clear();
     trackingScope.trackEventOnce(EVAL_HUB_EVENTS.COMPARISON_VIEW_RENDERED, 'run-1,run-2', {
@@ -197,6 +193,100 @@ describe('EvalHub tracking helper', () => {
       countOfRuns: 2,
     });
 
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalledTimes(2);
+    expect(mockTrackEvent).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('injected Eval Hub privacy contract', () => {
+  it('should reduce raw status diagnostics to a category without leaking messages', () => {
+    const trackEvent = jest.fn();
+    const tracking = createEvalHubTracking(trackEvent);
+    tracking.trackEvent(EVAL_HUB_EVENTS.EVALUATION_COMPLETED, {
+      evaluationName: 'Example run',
+      runOutcome: 'failed',
+      error: { message: 'secret-token and private-user', message_code: 'gpu_unavailable' },
+    });
+    expect(trackEvent.mock.calls).toEqual([
+      [
+        EVAL_HUB_EVENTS.EVALUATION_COMPLETED,
+        {
+          evaluationName: 'Example run',
+          runOutcome: 'failed',
+          error: 'gpu_unavailable',
+          event_source: 'evalhub_ui',
+          collection_type: 'unknown',
+          provider_type: 'unknown',
+        },
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+      ],
+    ]);
+  });
+
+  it('should preserve false, zero, and explicit undefined form values while filtering non-scalars', () => {
+    const trackEvent = jest.fn();
+    const tracking = createEvalHubTracking(trackEvent);
+    const properties: CollectionSavedProperties = {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      saveMode: 'create' as const,
+      action: 'save' as const,
+      fromCurated: false,
+      countOfEvaluatesAssetTypes: 0,
+      error_category: undefined,
+      collectionName: 'Curated suite',
+    };
+    Object.assign(properties, { collectionName: ['private-name'] });
+    tracking.trackEvent(EVAL_HUB_EVENTS.COLLECTION_SAVED, properties, { collectionType: 'system' });
+    expect(trackEvent.mock.calls).toEqual([
+      [
+        EVAL_HUB_EVENTS.COLLECTION_SAVED,
+        {
+          outcome: 'submit',
+          success: false,
+          saveMode: 'create',
+          action: 'save',
+          fromCurated: false,
+          countOfEvaluatesAssetTypes: 0,
+          error_category: undefined,
+          event_source: 'evalhub_ui',
+          collection_type: 'system',
+          provider_type: 'unknown',
+        },
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
+      ],
+    ]);
+  });
+});
+
+it('should supply the feature-owned page policy as delivery options, separate from event properties', () => {
+  const deliver = jest.fn<void, Parameters<import('@odh-dashboard/analytics/types').TrackEvent>>();
+  createEvalHubTracking(deliver).trackEvent(EVAL_HUB_EVENTS.JOB_CREATE_OPENED, {
+    surface: 'benchmark_suites_page',
+  });
+  expect(deliver).toHaveBeenCalledTimes(1);
+  const options = deliver.mock.calls[0][2];
+  if (!options?.pageContextPolicy) {
+    throw new Error('Page-context policy was not forwarded');
+  }
+  expect(
+    options.pageContextPolicy({
+      path: '/evaluation/private-ns/results/private-job',
+      url: 'https://example.com/evaluation/private-ns/results/private-job?token=secret#fragment',
+      referrer: 'https://example.com/evaluation/private-ns/create/start?private=value',
+      search: '?token=secret',
+      title: 'Evaluation results',
+    }),
+  ).toEqual({
+    path: '/evaluation/[redacted]/results/[redacted]',
+    url: 'https://example.com/evaluation/[redacted]/results/[redacted]',
+    referrer: 'https://example.com/evaluation/[redacted]/create/start',
+    search: '',
+    title: 'Evaluation results',
+  });
+  expect(deliver.mock.calls[0][1]).toEqual({
+    surface: 'benchmark_suites_page',
+    event_source: 'evalhub_ui',
+    collection_type: 'unknown',
+    provider_type: 'unknown',
   });
 });

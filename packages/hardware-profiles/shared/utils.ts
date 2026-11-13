@@ -356,6 +356,10 @@ export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKi
   hardwareProfile.metadata.annotations?.['opendatahub.io/display-name'] ||
   hardwareProfile.metadata.name;
 
+export const getHardwareProfileDescription = (
+  hardwareProfile: HardwareProfileKind,
+): string | undefined => hardwareProfile.metadata.annotations?.['opendatahub.io/description'];
+
 export const getLocalQueueLabel = (): string => 'Local queue';
 
 export const isDRAHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>

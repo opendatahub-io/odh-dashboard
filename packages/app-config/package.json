@@ -18,8 +18,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test-unit": "jest --silent",
-    "test-unit-coverage": "jest --silent --coverage",
+    "test-unit": "bash scripts/test-unit.sh",
+    "test-unit-coverage": "bash scripts/test-unit.sh --coverage",
     "type-check": "tsc --noEmit"
   },
   "peerDependencies": {

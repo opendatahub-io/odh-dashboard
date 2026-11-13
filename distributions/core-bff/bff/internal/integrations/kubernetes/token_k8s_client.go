@@ -269,17 +269,17 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity
 	return username, nil
 }
 
-// IsUserAdmin checks if the user can patch the auths/default-auth singleton
+// IsUserAdmin checks if the user can patch the auths/auth singleton
 // (services.platform.opendatahub.io). This is NOT generic cluster-admin detection -
-// it checks SSAR for "patch" on "auths/default-auth" specifically.
+// it checks SSAR for "patch" on "auths/auth" specifically.
 // Parity: mirrors Fastify's adminUtils.ts isUserAdmin(), which performs the same
-// SSAR check against auths/default-auth to determine dashboard admin status.
+// SSAR check against auths/auth to determine dashboard admin status.
 // See also: IsClusterAdmin() for the generic wildcard SSAR check.
 func (kc *TokenKubernetesClient) IsUserAdmin(ctx context.Context, _ *RequestIdentity) (bool, error) {
 	return kc.checkAuthSingletonAccess(ctx, "patch")
 }
 
-// IsUserAllowed checks if the user can get the auths/default-auth singleton,
+// IsUserAllowed checks if the user can get the auths/auth singleton,
 func (kc *TokenKubernetesClient) IsUserAllowed(ctx context.Context, _ *RequestIdentity) (bool, error) {
 	return kc.checkAuthSingletonAccess(ctx, "get")
 }
@@ -288,12 +288,16 @@ func (kc *TokenKubernetesClient) checkAuthSingletonAccess(ctx context.Context, v
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	// Name must be the same constant used to read the CR (see repositories.AuthRepository.GetAuth).
+	// The CRD pins the singleton to "auth" via a CEL rule, so any other name would authorize
+	// against a resource that cannot exist - silently denying every admin once the granting
+	// ClusterRole is scoped with resourceNames.
 	sar := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authv1.ResourceAttributes{
-				Group:    "services.platform.opendatahub.io",
-				Resource: "auths",
-				Name:     models.DefaultAuthName,
+				Group:    models.AuthGVR.Group,
+				Resource: models.AuthGVR.Resource,
+				Name:     models.AuthInstanceName,
 				Verb:     verb,
 			},
 		},

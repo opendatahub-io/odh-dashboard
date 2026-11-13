@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import isEqual from 'lodash-es/isEqual';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { sortBenchmarksByName } from '~/app/utilities/benchmarkListFilters';
 import {
   getThresholdInputValue,
@@ -22,7 +22,7 @@ import {
   EVAL_HUB_EVENTS,
   type CollectionSavedProperties,
 } from '~/app/tracking/evalhubTrackingConstants';
-import { trackEvalHubEvent } from '~/app/tracking/evalhubTracking';
+import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import { getCuratedCollectionConfig } from '~/app/curatedSuiteConfig';
 // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
 // import { isSuiteEvaluatesOption, type SuiteEvaluatesOption } from '~/app/pages/const';
@@ -693,6 +693,8 @@ export function useCopySuiteForm({
   onSaveAndRunRequest,
   cancelRoute,
 }: UseCopySuiteFormParams) {
+  const { trackEvalHubEvent } = useEvalHubTracking();
+
   const navigate = useNavigate();
   const notification = useNotification();
   const { refresh: refreshCollections } = useCollectionsContext();
@@ -1023,7 +1025,7 @@ export function useCopySuiteForm({
         { collectionType: 'custom' },
       );
     },
-    [isCreateMode, isEditMode, isSourceCollectionCurated, sourceCollection],
+    [trackEvalHubEvent, isCreateMode, isEditMode, isSourceCollectionCurated, sourceCollection],
   );
 
   const cloneCollectionForRun = React.useCallback(
@@ -1112,6 +1114,7 @@ export function useCopySuiteForm({
       }
     },
     [
+      trackEvalHubEvent,
       sourceCollection,
       namespace,
       form,
@@ -1196,6 +1199,7 @@ export function useCopySuiteForm({
       }
     },
     [
+      trackEvalHubEvent,
       isCreateMode,
       namespace,
       form,

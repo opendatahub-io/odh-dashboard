@@ -3,7 +3,7 @@
 # yamllint disable rule:line-length
 # Self-hosted Renovate runner. Renovate owns version updates for npm, gomod,
 # github-actions and Dockerfiles; Dependabot keeps security updates only.
-# Config: .github/renovate.json5. Runbook: .github/security-audit-triage.md
+# Config: .github/renovate.json5. Runbook: docs/security-cve.md#renovate
 #
 # Authentication uses the odh-dashboard-agent GitHub App:
 #   - CLAUDE_APP_ID / CLAUDE_APP_PRIVATE_KEY are repo secrets shared with

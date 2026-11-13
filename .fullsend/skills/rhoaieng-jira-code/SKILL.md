@@ -57,16 +57,3 @@ not run in the PR description instead of skipping them silently.
 
 Add or update the tests the acceptance criteria call for: Jest unit tests for
 hooks and utilities, Cypress mocked tests for UI flows.
-
-## Pull request
-
-Target `main`. Write the PR description in the shape of
-`.github/pull_request_template.md`: `## Problem`, `## Solution` and
-`## Evidence` with real content, plus `## Justifications` only when needed.
-Put the Jira issue URL on the template's `Fixes:` line, list the implemented
-acceptance criteria under Solution, and under Evidence list the commands you
-ran and their results. Fullsend's review checks this structure.
-
-The inherited post-script pushes the branch, creates the PR and links it on the
-Jira issue. Do not push, create PRs, change Jira labels or status, or merge from
-the sandbox.

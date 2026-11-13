@@ -6,8 +6,8 @@
 # groups and cooldowns are inert. `target-branch` is deliberately omitted:
 # Dependabot does not apply an entry's security-update settings when it is set,
 # and every ecosystem already targets the default branch. Keep the
-# `directories` lists accurate: scripts/security-audit/discover-dependabot-dirs.sh
-# reads them for the weekly audit.
+# `directories` lists accurate: they decide which manifests get these
+# security-update settings (groups, labels).
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -107,6 +107,7 @@ updates:
       - /dashboard-operator
       - /distributions/core-bff/bff
       - /packages/agent-ops/bff
+      - /packages/ai-safety/bff
       - /packages/automl/bff
       - /packages/autorag/bff
       - /packages/eval-hub/bff

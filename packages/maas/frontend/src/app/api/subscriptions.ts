@@ -93,8 +93,16 @@ export const isMaaSModelRefSummary = (v: unknown): v is MaaSModelRefSummary =>
   (v.phase === undefined || typeof v.phase === 'string') &&
   (v.endpoint === undefined || typeof v.endpoint === 'string');
 
+// Labels are a string-valued map; exclude null and arrays, which also pass typeof 'object'.
+const isStringRecord = (v: unknown): v is Record<string, string> =>
+  isRecord(v) && !Array.isArray(v) && Object.values(v).every((value) => typeof value === 'string');
+
 const isTokenMetadata = (v: unknown): v is TokenMetadata =>
-  isRecord(v) && typeof v.organizationId === 'string' && typeof v.costCenter === 'string';
+  isRecord(v) &&
+  !Array.isArray(v) &&
+  (v.organizationId === undefined || typeof v.organizationId === 'string') &&
+  (v.costCenter === undefined || typeof v.costCenter === 'string') &&
+  (v.labels === undefined || isStringRecord(v.labels));
 
 export const isMaaSAuthPolicy = (v: unknown): v is MaaSAuthPolicy =>
   isRecord(v) &&

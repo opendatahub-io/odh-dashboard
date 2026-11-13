@@ -1,4 +1,4 @@
-import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import { type FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import {
   getKueueAnalyticsSubState,
   type KueueSubState,
@@ -62,7 +62,11 @@ export const fireModelDeployed = (
   const eventName = isEdit
     ? DeploymentTrackingEvent.MODEL_UPDATED
     : DeploymentTrackingEvent.MODEL_DEPLOYED;
-  trackEvent(eventName, properties);
+  try {
+    trackEvent(eventName, properties);
+  } catch {
+    // Analytics must never block the user interaction being tracked.
+  }
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

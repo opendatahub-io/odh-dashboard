@@ -842,7 +842,7 @@ func (app *App) resolveNemoClient(r *http.Request) (nemopkg.NemoClientInterface,
 			return nil, fmt.Errorf("failed to discover NemoGuardrails service: %w", err)
 		}
 		if discoveredURL == "" {
-			logger.Debug("NeMo Guardrails unavailable: no NemoGuardrails CR found in namespace", "namespace", namespace)
+			logger.Debug("NeMo Guardrails unavailable: no ready NemoGuardrails endpoint found in namespace", "namespace", namespace)
 			return nil, nil
 		}
 

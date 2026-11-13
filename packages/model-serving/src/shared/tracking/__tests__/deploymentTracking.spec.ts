@@ -1,4 +1,4 @@
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import {
   fireModelDeployed,
   DeploymentTrackingEvent,
@@ -109,5 +109,18 @@ describe('fireModelDeployed', () => {
         modelLocationType: 'existing',
       }),
     );
+  });
+
+  it('should not throw when trackEvent throws an error', () => {
+    const throwingTrackEvent = jest.fn().mockImplementation(() => {
+      throw new Error('Analytics service unavailable');
+    });
+    const properties: DeploymentTrackingProperties = {
+      outcome: TrackingOutcome.cancel,
+    };
+
+    expect(() => {
+      fireModelDeployed(throwingTrackEvent, properties, false);
+    }).not.toThrow();
   });
 });

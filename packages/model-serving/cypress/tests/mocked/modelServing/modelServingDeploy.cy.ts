@@ -1876,9 +1876,9 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // YAML Viewer
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      modelServingWizard.findYAMLEditorEmptyState().should('exist');
-      modelServingWizard.findYAMLViewerToggle('Form').should('exist').click();
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.yaml.findYAMLEditorEmptyState().should('exist');
+      modelServingWizard.yaml.findYAMLViewerToggle('Form').should('exist').click();
 
       // Fill form to llmd and check yaml preview
       modelServingWizard
@@ -1897,8 +1897,8 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Verify yaml preview contents (use .contains() command, not .should('contain.text'),
       // because cy.contains() normalizes &nbsp; to regular spaces while the assertion does not)
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.containsText('apiVersion: serving.kserve.io/v1alpha2');
       yamlEditor.containsText('kind: LLMInferenceService');
       yamlEditor.containsText('name: test-model');
@@ -1951,17 +1951,17 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       // Step 4: Review - switch to YAML preview, verify the auto-generated YAML
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.containsText('kind: LLMInferenceService');
       yamlEditor.containsText('name: test-model');
 
       // Enter manual edit mode via the confirmation modal
-      modelServingWizard.findManualEditModeButton().click();
-      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
 
       // Once in yaml-edit mode, the Form toggle is disabled (cannot go back to wizard)
-      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+      modelServingWizard.yaml.findYAMLViewerToggle('Form').should('be.disabled');
 
       // Edit metadata.name in the YAML editor and verify the change propagates to the request
       yamlEditor.replaceInEditor('name: test-model', 'name: yaml-edited-model');
@@ -2029,18 +2029,18 @@ describe('Model Serving Deploy Wizard', () => {
       modelServingGlobal.findDeployModelButton().click();
 
       // Immediately switch to YAML mode without touching the wizard form
-      modelServingWizard.findYAMLViewerToggle('YAML').should('exist').click();
-      modelServingWizard.findYAMLEditorEmptyState().should('exist');
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.yaml.findYAMLEditorEmptyState().should('exist');
 
       // Enter manual edit mode via the confirmation modal
-      modelServingWizard.findManualEditModeButton().click();
-      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
 
       // Form toggle is disabled; submit is disabled until YAML is provided
-      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+      modelServingWizard.yaml.findYAMLViewerToggle('Form').should('be.disabled');
       modelServingWizard.findSubmitButton().should('be.disabled');
 
-      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
       yamlEditor.findStartFromScratchButton().click();
       yamlEditor.waitForReady();
 
@@ -2101,6 +2101,42 @@ describe('Model Serving Deploy Wizard', () => {
       });
     });
 
+    it('should show inline monaco-yaml diagnostics for malformed YAML in edit mode', () => {
+      initIntercepts({});
+      initMockConnectionSecretIntercepts({});
+      initMockModelAuthIntercepts({});
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.findDeployModelButton().click();
+
+      modelServingWizard.yaml.findYAMLViewerToggle('YAML').should('exist').click();
+      modelServingWizard.yaml.findManualEditModeButton().click();
+      modelServingWizard.yaml.findSwitchToYAMLEditorConfirmButton().click();
+
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
+      yamlEditor.findStartFromScratchButton().click();
+      yamlEditor.waitForReady();
+
+      // Malformed mapping value — monaco-yaml should report inline error markers while typing
+      yamlEditor.setValue('invalid: yaml:\n  - broken');
+      yamlEditor.expectErrorMarkers();
+
+      // Valid document clears syntax markers
+      yamlEditor.setValue(
+        [
+          'apiVersion: serving.kserve.io/v1alpha2',
+          'kind: LLMInferenceService',
+          'metadata:',
+          '  name: linted-model',
+          '  namespace: test-project',
+          'spec:',
+          '  model:',
+          '    uri: hf://test/model',
+        ].join('\n'),
+      );
+      yamlEditor.expectNoErrorMarkers();
+    });
+
     it('should auto-fallback to YAML edit mode if the form data extraction fails', () => {
       initIntercepts({});
       initMockConnectionSecretIntercepts({});
@@ -2137,14 +2173,51 @@ describe('Model Serving Deploy Wizard', () => {
 
       modelServingGlobal.visit('test-project');
       modelServingGlobal.getModelRow('Unparseable Model').findKebabAction('Edit').click();
-      modelServingWizard.findYAMLViewerToggle('YAML').should('have.attr', 'aria-pressed', 'true');
-      modelServingWizard.findYAMLViewerToggle('Form').should('be.disabled');
+      modelServingWizard.yaml
+        .findYAMLViewerToggle('YAML')
+        .should('have.attr', 'aria-pressed', 'true');
+      modelServingWizard.yaml.findYAMLViewerToggle('Form').should('be.disabled');
 
       cy.findByTestId('yaml-fallback-alert').should('exist');
       cy.findByTestId('yaml-fallback-alert').should(
         'contain.text',
         'This deployment contains custom configuration that cannot be displayed in the form',
       );
+    });
+
+    it('should remove managedFields from the YAML editor content', () => {
+      initIntercepts({});
+      initMockConnectionSecretIntercepts({});
+      initMockModelAuthIntercepts({});
+
+      const deploymentWithManagedFields = mockLLMInferenceServiceK8sResource({
+        name: 'managed-fields-model',
+        displayName: 'Managed Fields Model',
+        modelUri: 's3://my-bucket/my-model',
+      });
+      delete deploymentWithManagedFields.metadata.annotations?.['opendatahub.io/model-type'];
+      deploymentWithManagedFields.metadata.managedFields = [{ manager: 'kubectl' }];
+
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceModel, ns: 'test-project' },
+        mockK8sResourceList([deploymentWithManagedFields]),
+      );
+      cy.interceptK8sList(
+        { model: ServingRuntimeModel, ns: 'test-project' },
+        mockK8sResourceList([]),
+      );
+      cy.interceptK8s(
+        'GET',
+        { model: LLMInferenceServiceModel, ns: 'test-project', name: 'managed-fields-model' },
+        deploymentWithManagedFields,
+      );
+
+      modelServingGlobal.visit('test-project');
+      modelServingGlobal.getModelRow('Managed Fields Model').findKebabAction('Edit').click();
+
+      const yamlEditor = modelServingWizard.yaml.findYAMLCodeEditor();
+      yamlEditor.getValue().should('contain', 'name: managed-fields-model');
+      yamlEditor.getValue().should('not.contain', 'managedFields');
     });
   });
 

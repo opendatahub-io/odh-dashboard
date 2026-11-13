@@ -18,31 +18,35 @@ declare const softTrue: (condition: boolean, message?: string) => void;
 interface CategorizedResults {
   successResults: UrlValidationResultWithLocation[];
   transientErrors: UrlValidationResultWithLocation[];
+  blockedErrors: UrlValidationResultWithLocation[];
   permanentErrors: UrlValidationResultWithLocation[];
 }
 
 /**
- * Categorize URL validation results into success, transient errors, and permanent errors
+ * Categorize URL validation results into success, transient errors, bot-blocked errors, and permanent errors
  */
 export const categorizeValidationResults = (
   results: UrlValidationResultWithLocation[],
 ): CategorizedResults => {
   const successResults: UrlValidationResultWithLocation[] = [];
   const transientErrors: UrlValidationResultWithLocation[] = [];
+  const blockedErrors: UrlValidationResultWithLocation[] = [];
   const permanentErrors: UrlValidationResultWithLocation[] = [];
 
   results.forEach((result) => {
-    const category = getErrorType(result.status, result.error);
+    const category = getErrorType(result.status, result.error, result.url);
     if (category === 'valid') {
       successResults.push(result);
     } else if (category === 'transient') {
       transientErrors.push(result);
+    } else if (category === 'blocked') {
+      blockedErrors.push(result);
     } else {
       permanentErrors.push(result);
     }
   });
 
-  return { successResults, transientErrors, permanentErrors };
+  return { successResults, transientErrors, blockedErrors, permanentErrors };
 };
 
 /**
@@ -52,13 +56,14 @@ export const logValidationResults = (
   categorized: CategorizedResults,
   urlToLocationsMap: Map<string, UrlLocation[]>,
 ): void => {
-  const { successResults, transientErrors, permanentErrors } = categorized;
+  const { successResults, transientErrors, blockedErrors, permanentErrors } = categorized;
 
   // Log results summary
   cy.step(
     `\n📊 Validation Summary:\n` +
       `  ✅ Successful: ${successResults.length}\n` +
       `  ⚠️  Transient Errors (warnings): ${transientErrors.length}\n` +
+      `  ⚠️  Bot-Blocked (unverifiable from CI): ${blockedErrors.length}\n` +
       `  ❌ Permanent Errors (failures): ${permanentErrors.length}\n`,
   );
 
@@ -70,12 +75,19 @@ export const logValidationResults = (
 
   // Log transient errors as warnings (not failures)
   transientErrors.forEach((result) => {
-    const errorType = getErrorType(result.status, result.error);
+    const errorType = getErrorType(result.status, result.error, result.url);
     cy.step(
       `⚠️  WARNING (transient error): ${result.url} - ${errorType}: ${result.status}${
         result.error ? ` (${result.error})` : ''
       }`,
     );
+  });
+
+  // Log bot-blocked URLs as warnings (not failures) — the CDN/WAF in front of
+  // these domains rejects non-browser clients, so a 403 is not a broken link.
+  blockedErrors.forEach((result) => {
+    const logMessage = formatValidationMessage(result, urlToLocationsMap);
+    cy.step(logMessage);
   });
 
   // Log permanent errors (will be asserted separately)
@@ -91,7 +103,7 @@ export const logValidationResults = (
  */
 export const assertPermanentErrors = (permanentErrors: UrlValidationResultWithLocation[]): void => {
   permanentErrors.forEach((result) => {
-    const errorType = getErrorType(result.status, result.error);
+    const errorType = getErrorType(result.status, result.error, result.url);
 
     // Use soft assertion for permanent errors only
     softTrue(
@@ -109,7 +121,7 @@ export const assertPermanentErrors = (permanentErrors: UrlValidationResultWithLo
  * Log final summary message based on validation results
  */
 export const logFinalSummary = (categorized: CategorizedResults, totalResults: number): void => {
-  const { transientErrors, permanentErrors } = categorized;
+  const { transientErrors, blockedErrors, permanentErrors } = categorized;
 
   // Note about transient errors if any
   if (transientErrors.length > 0) {
@@ -120,9 +132,20 @@ export const logFinalSummary = (categorized: CategorizedResults, totalResults: n
     );
   }
 
+  // Note about bot-blocked URLs if any
+  if (blockedErrors.length > 0) {
+    cy.step(
+      `\nℹ️  Note: ${blockedErrors.length} URL(s) are behind bot protection (WAF) that rejects non-browser ` +
+        `clients, so they cannot be verified from CI. These are treated as warnings and do not fail the test. ` +
+        `The links work in real browsers.`,
+    );
+  }
+
   // Success message if no permanent errors
   if (permanentErrors.length === 0) {
-    cy.step(`\n✅ All ${totalResults} URLs are either reachable or have only transient errors.`);
+    cy.step(
+      `\n✅ All ${totalResults} URLs are reachable, have only transient errors, or are bot-blocked (unverifiable from CI).`,
+    );
   }
 };
 

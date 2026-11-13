@@ -1,12 +1,10 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import { createEvaluationJob } from '~/app/api/k8s';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
@@ -19,16 +17,13 @@ import type {
   SourceMode,
 } from '~/app/types';
 
+const { mockTrackEvent, render } = setupTrackingTest();
+
 const mockNavigate = jest.fn();
 const mockMlflowSelectorMounted = jest.fn();
 const mockMlflowSelectorUnmounted = jest.fn();
 const mockUseHardwareProfiles = jest.fn();
 const mockUseKueueAvailability = jest.fn();
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
 
 jest.mock('@odh-dashboard/internal/concepts/mlflow', () => {
   const actualReact = jest.requireActual<typeof import('react')>('react');
@@ -104,7 +99,6 @@ jest.mock('~/app/hooks/useNotification', () => ({
 }));
 
 const mockCreateEvaluationJob = jest.mocked(createEvaluationJob);
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
 
 const collection: Collection = {
   resource: { id: 'source-suite' },
@@ -228,14 +222,15 @@ describe('StartEvaluationRunModal', () => {
   it('should track job create opened when the modal opens', () => {
     renderModal();
 
-    expect(jest.mocked(fireMiscTrackingEvent)).toHaveBeenCalledTimes(1);
-    expect(jest.mocked(fireMiscTrackingEvent)).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.JOB_CREATE_OPENED,
       expect.objectContaining({
         surface: 'copy_suite',
         collection_type: 'custom',
         provider_type: 'provider-a',
       }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 
@@ -350,13 +345,14 @@ describe('StartEvaluationRunModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(cloneSignal?.aborted).toBe(true);
     expect(onClonePendingChange).toHaveBeenLastCalledWith(false);
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
       expect.objectContaining({
         source: 'copy_suite',
         evaluationName: 'Copied suite',
         outcome: TrackingOutcome.cancel,
       }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
 
     await act(async () => {
@@ -410,9 +406,10 @@ describe('StartEvaluationRunModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
       expect.objectContaining({ outcome: TrackingOutcome.cancel }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
 
     await act(async () => {
@@ -505,9 +502,10 @@ describe('StartEvaluationRunModal', () => {
     });
 
     expect(mockNavigate).not.toHaveBeenCalled();
-    expect(mockFireFormTrackingEvent).not.toHaveBeenCalledWith(
+    expect(mockTrackEvent).not.toHaveBeenCalledWith(
       EVAL_HUB_EVENTS.EVALUATION_RUN_STARTED,
       expect.objectContaining({ outcome: TrackingOutcome.submit, success: true }),
+      expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
     );
   });
 });

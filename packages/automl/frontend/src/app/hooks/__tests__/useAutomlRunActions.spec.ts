@@ -1,17 +1,16 @@
+import React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { act } from '@testing-library/react';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useDeletePipelineRunMutation } from '~/app/hooks/useDeletePipelineRunMutation';
 import { useRetryPipelineRunMutation } from '~/app/hooks/useRetryPipelineRunMutation';
 import { useTerminatePipelineRunMutation } from '~/app/hooks/useTerminatePipelineRunMutation';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
-import {
-  AUTOML_FAILURE_CATEGORY,
-  fireAutomlRunDeleted,
-  fireAutomlRunRetried,
-  fireAutomlRunStopped,
-} from '~/app/utilities/tracking';
+import { AUTOML_FAILURE_CATEGORY } from '~/app/utilities/tracking';
+
+const trackEvent = jest.fn();
 
 jest.mock('@tanstack/react-query', () => ({
   useQueryClient: jest.fn(),
@@ -31,21 +30,16 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(),
 }));
 
-jest.mock('~/app/utilities/tracking', () => ({
-  ...jest.requireActual('~/app/utilities/tracking'),
-  fireAutomlRunRetried: jest.fn(),
-  fireAutomlRunStopped: jest.fn(),
-  fireAutomlRunDeleted: jest.fn(),
-}));
-
 const useQueryClientMock = jest.mocked(useQueryClient);
 const useRetryPipelineRunMutationMock = jest.mocked(useRetryPipelineRunMutation);
 const useTerminatePipelineRunMutationMock = jest.mocked(useTerminatePipelineRunMutation);
 const useDeletePipelineRunMutationMock = jest.mocked(useDeletePipelineRunMutation);
 const useNotificationMock = jest.mocked(useNotification);
-const fireAutomlRunRetriedMock = jest.mocked(fireAutomlRunRetried);
-const fireAutomlRunStoppedMock = jest.mocked(fireAutomlRunStopped);
-const fireAutomlRunDeletedMock = jest.mocked(fireAutomlRunDeleted);
+
+const renderActions = (...params: Parameters<typeof useAutomlRunActions>) =>
+  renderHook(() => useAutomlRunActions(...params), {
+    wrapper: ({ children }) => React.createElement(TrackingProvider, { trackEvent }, children),
+  });
 
 const SENSITIVE_ERROR_MESSAGE =
   'Failed to delete run (403): AccessDenied for tenant acme-corp using key AKIAabc123';
@@ -80,10 +74,34 @@ describe('useAutomlRunActions', () => {
     useDeletePipelineRunMutationMock.mockReturnValue({ mutateAsync: deleteMutateAsync } as any);
   });
 
+  it.each([
+    ['handleRetry', 'AutoML Run Retried'],
+    ['handleConfirmStop', 'AutoML Run Stopped'],
+    ['handleDelete', 'AutoML Run Deleted'],
+  ] as const)(
+    'should forward one successful %s event even when the caller refresh fails',
+    async (action, event) => {
+      retryMutateAsync.mockResolvedValue(undefined);
+      terminateMutateAsync.mockResolvedValue(undefined);
+      deleteMutateAsync.mockResolvedValue(undefined);
+      const onActionComplete = jest.fn().mockRejectedValue(new Error('refresh failed'));
+      const result = renderActions('test-ns', 'run-1', 'resultsPage', onActionComplete);
+      expect(trackEvent).not.toHaveBeenCalled();
+
+      await act(async () => result.result.current[action]());
+
+      expect(trackEvent.mock.calls).toEqual([
+        [event, { outcome: 'submit', success: true, source: 'resultsPage' }],
+      ]);
+      expect(onActionComplete).toHaveBeenCalledTimes(1);
+      expect(result).hookToHaveUpdateCount(1);
+    },
+  );
+
   describe('handleRetry', () => {
     it('should fire the allowlisted failure category, not the raw error message, on failure', async () => {
       retryMutateAsync.mockRejectedValue(new Error(SENSITIVE_ERROR_MESSAGE));
-      const renderResult = testHook(useAutomlRunActions)('test-ns', 'run-1', 'runsList');
+      const renderResult = renderActions('test-ns', 'run-1', 'runsList');
 
       await act(async () => {
         await expect(renderResult.result.current.handleRetry()).rejects.toThrow();
@@ -95,13 +113,14 @@ describe('useAutomlRunActions', () => {
         SENSITIVE_ERROR_MESSAGE,
       );
       // ...but analytics must only ever see the fixed, allowlisted category.
-      expect(fireAutomlRunRetriedMock).toHaveBeenCalledWith({
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Run Retried', {
         outcome: 'submit',
         success: false,
         error: AUTOML_FAILURE_CATEGORY,
         source: 'runsList',
       });
-      const allTrackingCalls = JSON.stringify(fireAutomlRunRetriedMock.mock.calls);
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+      const allTrackingCalls = JSON.stringify(trackEvent.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-corp');
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });
@@ -110,20 +129,21 @@ describe('useAutomlRunActions', () => {
   describe('handleConfirmStop', () => {
     it('should fire the allowlisted failure category, not the raw error message, on failure', async () => {
       terminateMutateAsync.mockRejectedValue(new Error(SENSITIVE_ERROR_MESSAGE));
-      const renderResult = testHook(useAutomlRunActions)('test-ns', 'run-1', 'runsList');
+      const renderResult = renderActions('test-ns', 'run-1', 'runsList');
 
       await act(async () => {
         await expect(renderResult.result.current.handleConfirmStop()).rejects.toThrow();
       });
 
       expect(notificationError).toHaveBeenCalledWith('Failed to stop run', SENSITIVE_ERROR_MESSAGE);
-      expect(fireAutomlRunStoppedMock).toHaveBeenCalledWith({
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Run Stopped', {
         outcome: 'submit',
         success: false,
         error: AUTOML_FAILURE_CATEGORY,
         source: 'runsList',
       });
-      const allTrackingCalls = JSON.stringify(fireAutomlRunStoppedMock.mock.calls);
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+      const allTrackingCalls = JSON.stringify(trackEvent.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-corp');
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });
@@ -132,7 +152,7 @@ describe('useAutomlRunActions', () => {
   describe('handleDelete', () => {
     it('should fire the allowlisted failure category, not the raw error message, on failure', async () => {
       deleteMutateAsync.mockRejectedValue(new Error(SENSITIVE_ERROR_MESSAGE));
-      const renderResult = testHook(useAutomlRunActions)('test-ns', 'run-1', 'runsList');
+      const renderResult = renderActions('test-ns', 'run-1', 'runsList');
 
       await act(async () => {
         await expect(renderResult.result.current.handleDelete()).rejects.toThrow();
@@ -142,13 +162,14 @@ describe('useAutomlRunActions', () => {
         'Failed to delete run',
         SENSITIVE_ERROR_MESSAGE,
       );
-      expect(fireAutomlRunDeletedMock).toHaveBeenCalledWith({
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Run Deleted', {
         outcome: 'submit',
         success: false,
         error: AUTOML_FAILURE_CATEGORY,
         source: 'runsList',
       });
-      const allTrackingCalls = JSON.stringify(fireAutomlRunDeletedMock.mock.calls);
+      expect(trackEvent).toHaveBeenCalledTimes(1);
+      const allTrackingCalls = JSON.stringify(trackEvent.mock.calls);
       expect(allTrackingCalls).not.toContain('acme-corp');
       expect(allTrackingCalls).not.toContain('AKIAabc123');
     });

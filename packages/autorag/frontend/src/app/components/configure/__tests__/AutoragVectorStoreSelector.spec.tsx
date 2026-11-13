@@ -7,22 +7,20 @@ import type { SecretSelection } from '@odh-dashboard/autox-core/ui/components/fe
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
-import {
-  fireAutoragVectorStoreConfigured,
-  TrackingOutcome,
-  type VectorStoreProviderType,
-} from '~/app/utilities/tracking';
+import { TrackingOutcome, type VectorStoreProviderType } from '~/app/utilities/tracking';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 let mockVectorModalOnSubmit:
   ((name: string, provider: VectorStoreProviderType) => Promise<void>) | undefined;
 let mockVectorRefresh: () => Promise<SecretListItem[] | undefined> = async () => [];
 let mockVectorSelection: SecretSelection | undefined;
 let mockVectorOnChange: ((value: SecretSelection | undefined) => void) | undefined;
-
-jest.mock('~/app/utilities/tracking', () => ({
-  ...jest.requireActual('~/app/utilities/tracking'),
-  fireAutoragVectorStoreConfigured: jest.fn(),
-}));
 
 jest.mock('~/app/components/common/VectorDbConnectionModal', () => ({
   __esModule: true,
@@ -103,7 +101,6 @@ jest.mock('@odh-dashboard/autox-core/ui/components/feature', () => ({
 
 const schema = createConfigureSchema();
 const mockUseParams = jest.mocked(useParams);
-const mockFireAutoragVectorStoreConfigured = jest.mocked(fireAutoragVectorStoreConfigured);
 
 const FormWrapper: React.FC<{
   children: React.ReactNode;
@@ -132,7 +129,7 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should query one database Secret filter for all providers', () => {
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -152,7 +149,7 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should not render RAG template mode controls', () => {
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -164,7 +161,7 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should render an action to add a vector database connection', () => {
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -180,7 +177,7 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should offer exactly Milvus, PGVector, and Neo4j creation options', async () => {
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -205,7 +202,7 @@ describe('AutoragVectorStoreSelector', () => {
     ['pgvector', 'add-pgvector-connection-option'],
     ['neo4j', 'add-neo4j-connection-option'],
   ])('should preselect %s when adding that connection', async (provider, optionTestId) => {
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -219,7 +216,7 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should preselect Milvus from the split-button primary action', () => {
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -234,7 +231,7 @@ describe('AutoragVectorStoreSelector', () => {
   it('should store the selected vector database Secret name', () => {
     let values: typeof schema.defaults | undefined;
 
-    render(
+    renderWithTracking(
       <FormWrapper onChange={(nextValues) => (values = nextValues)}>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -247,7 +244,7 @@ describe('AutoragVectorStoreSelector', () => {
   it('should clear the form value when the selected connection disappears', () => {
     let values: typeof schema.defaults | undefined;
 
-    render(
+    renderWithTracking(
       <FormWrapper onChange={(nextValues) => (values = nextValues)}>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -261,7 +258,7 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should display the unavailable initial connection without restoring its form value', () => {
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector
           initialSecret={{
@@ -301,7 +298,7 @@ describe('AutoragVectorStoreSelector', () => {
     };
     /* eslint-enable camelcase */
 
-    render(
+    renderWithTracking(
       <FormWrapper defaultValues={validDefaults} onChange={(nextValues) => (values = nextValues)}>
         <AutoragVectorStoreSelector
           initialSecret={{
@@ -357,7 +354,7 @@ describe('AutoragVectorStoreSelector', () => {
       );
     };
 
-    render(
+    renderWithTracking(
       <FormWrapper onChange={(nextValues) => (values = nextValues)}>
         <ControlledSelector />
       </FormWrapper>,
@@ -369,14 +366,12 @@ describe('AutoragVectorStoreSelector', () => {
       'data-selected-value',
       'legacy-milvus',
     );
-    expect(mockFireAutoragVectorStoreConfigured).toHaveBeenCalledWith({
+    expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Vector Store Configured', {
       providerType: 'milvus',
       outcome: TrackingOutcome.submit,
       success: true,
     });
-    expect(JSON.stringify(mockFireAutoragVectorStoreConfigured.mock.calls)).not.toContain(
-      'MILVUS_SERVER_CERT',
-    );
+    expect(JSON.stringify(trackEventMock.mock.calls)).not.toContain('MILVUS_SERVER_CERT');
 
     fireEvent.click(screen.getByTestId('remount-selector'));
     expect(screen.getByTestId('database-secret-selector')).toHaveAttribute(
@@ -387,7 +382,7 @@ describe('AutoragVectorStoreSelector', () => {
 
   it('should reject creation when the new vector database Secret is missing after refresh', async () => {
     mockVectorRefresh = async () => [];
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -413,7 +408,7 @@ describe('AutoragVectorStoreSelector', () => {
         ...(databaseProviders === undefined ? {} : { databaseProviders }),
       } as SecretListItem,
     ];
-    render(
+    renderWithTracking(
       <FormWrapper onChange={(nextValues) => (values = nextValues)}>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -435,7 +430,7 @@ describe('AutoragVectorStoreSelector', () => {
         databaseProviders: ['pgvector'],
       },
     ];
-    render(
+    renderWithTracking(
       <FormWrapper>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -463,7 +458,7 @@ describe('AutoragVectorStoreSelector', () => {
         databaseProviders: ['milvus'],
       },
     ];
-    render(
+    renderWithTracking(
       <FormWrapper onChange={(nextValues) => (values = nextValues)}>
         <AutoragVectorStoreSelector />
       </FormWrapper>,
@@ -476,14 +471,12 @@ describe('AutoragVectorStoreSelector', () => {
       ).resolves.toBeUndefined();
     });
     expect(values?.db_secret_name).toBe('new-vector-db-secret');
-    expect(mockFireAutoragVectorStoreConfigured).toHaveBeenCalledWith({
+    expect(trackEventMock).toHaveBeenCalledWith('AutoRAG Vector Store Configured', {
       providerType: 'milvus',
       outcome: TrackingOutcome.submit,
       success: true,
     });
-    expect(JSON.stringify(mockFireAutoragVectorStoreConfigured.mock.calls)).not.toContain(
-      'MILVUS_CA_CERT',
-    );
+    expect(JSON.stringify(trackEventMock.mock.calls)).not.toContain('MILVUS_CA_CERT');
   });
 
   it('should preserve a selected connection when the selector remounts', () => {
@@ -505,7 +498,7 @@ describe('AutoragVectorStoreSelector', () => {
       );
     };
 
-    render(
+    renderWithTracking(
       <FormWrapper>
         <ControlledSelector />
       </FormWrapper>,
@@ -547,7 +540,7 @@ describe('AutoragVectorStoreSelector', () => {
       );
     };
 
-    render(
+    renderWithTracking(
       <FormWrapper>
         <ControlledSelector />
       </FormWrapper>,

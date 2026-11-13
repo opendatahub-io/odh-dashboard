@@ -1,8 +1,5 @@
-import type { HostApiCoreServices } from '@odh-dashboard/plugin-core/host-api';
-import { type FormTrackingEventProperties } from '@odh-dashboard/ui-core';
+import type { TrackEvent, FormTrackingEventProperties } from '@odh-dashboard/analytics/types';
 import type { TopologyType } from '../types';
-
-type TrackEvent = HostApiCoreServices['trackEvent'];
 
 export enum LlmdTrackingEvent {
   TOPOLOGY_TYPE_SELECTED = 'Model Serving LLM-D Topology Type Selected',
@@ -15,7 +12,6 @@ export type TopologyTypeSelectedProperties = {
 };
 
 export type RoutingSelectedProperties = {
-  routingConfigurationId: string;
   isDefaultRouting: boolean;
 };
 
@@ -38,54 +34,54 @@ export const fireRoutingSelected = (
 /** Where a config form was seeded from when created. */
 export type ConfigSource = 'template' | 'editor';
 
-export enum LlmAcceleratorConfigTrackingEvent {
-  CREATED = 'Model Serving LLM Accelerator Config Created',
-  UPDATED = 'Model Serving LLM Accelerator Config Updated',
-  DELETED = 'Model Serving LLM Accelerator Config Deleted',
-  ENABLEMENT_CHANGED = 'Model Serving LLM Accelerator Config Enablement Changed',
+export enum LlmInferenceServiceConfigTrackingEvent {
+  CREATED = 'Model Serving LLM Inference Service Config Created',
+  UPDATED = 'Model Serving LLM Inference Service Config Updated',
+  DELETED = 'Model Serving LLM Inference Service Config Deleted',
+  ENABLEMENT_CHANGED = 'Model Serving LLM Inference Service Config Enablement Changed',
 }
 
-export type LlmAcceleratorConfigCreatedProperties = FormTrackingEventProperties & {
+export type LlmInferenceServiceConfigCreatedProperties = FormTrackingEventProperties & {
   /** Form mode; 'create' is also accepted for callers without an Add form. */
   mode: 'add' | 'create' | 'duplicate' | 'install';
 };
 
-export type LlmAcceleratorConfigEnablementChangedProperties = FormTrackingEventProperties & {
+export type LlmInferenceServiceConfigEnablementChangedProperties = FormTrackingEventProperties & {
   /** The actual enabled state after the toggle attempt (reverts to the prior state on failure). */
   enabled: boolean;
 };
 
-export const fireLlmAcceleratorConfigCreated = (
+export const fireLlmInferenceServiceConfigCreated = (
   trackEvent: TrackEvent,
-  properties: LlmAcceleratorConfigCreatedProperties,
+  properties: LlmInferenceServiceConfigCreatedProperties,
 ): void => {
   const { mode, ...outcomeProperties } = properties;
-  trackEvent(LlmAcceleratorConfigTrackingEvent.CREATED, {
+  trackEvent(LlmInferenceServiceConfigTrackingEvent.CREATED, {
     ...outcomeProperties,
     mode: mode === 'duplicate' ? 'duplicate' : 'create',
     ...(mode === 'install' && { source: 'install' }),
   });
 };
 
-export const fireLlmAcceleratorConfigUpdated = (
+export const fireLlmInferenceServiceConfigUpdated = (
   trackEvent: TrackEvent,
   properties: FormTrackingEventProperties,
 ): void => {
-  trackEvent(LlmAcceleratorConfigTrackingEvent.UPDATED, properties);
+  trackEvent(LlmInferenceServiceConfigTrackingEvent.UPDATED, properties);
 };
 
-export const fireLlmAcceleratorConfigDeleted = (
+export const fireLlmInferenceServiceConfigDeleted = (
   trackEvent: TrackEvent,
   properties: FormTrackingEventProperties,
 ): void => {
-  trackEvent(LlmAcceleratorConfigTrackingEvent.DELETED, properties);
+  trackEvent(LlmInferenceServiceConfigTrackingEvent.DELETED, properties);
 };
 
-export const fireLlmAcceleratorConfigEnablementChanged = (
+export const fireLlmInferenceServiceConfigEnablementChanged = (
   trackEvent: TrackEvent,
-  properties: LlmAcceleratorConfigEnablementChangedProperties,
+  properties: LlmInferenceServiceConfigEnablementChangedProperties,
 ): void => {
-  trackEvent(LlmAcceleratorConfigTrackingEvent.ENABLEMENT_CHANGED, properties);
+  trackEvent(LlmInferenceServiceConfigTrackingEvent.ENABLEMENT_CHANGED, properties);
 };
 
 export enum TopologyConfigTrackingEvent {

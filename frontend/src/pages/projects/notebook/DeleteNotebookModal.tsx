@@ -5,7 +5,7 @@ import {
   getDisplayNameFromK8sResource,
   isGeneratedSecretName,
 } from '@odh-dashboard/k8s-core';
-import { TrackingOutcome } from '@odh-dashboard/ui-core';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
 import { NotebookKind } from '#~/k8sTypes';
 import { deleteConfigMap, deleteNotebook, isGeneratedConfigMapName } from '#~/api';
