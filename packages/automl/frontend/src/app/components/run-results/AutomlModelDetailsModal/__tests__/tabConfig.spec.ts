@@ -10,6 +10,7 @@ describe('getVisibleTabs', () => {
     expect(keys).toEqual([
       'model-information',
       'feature-summary',
+      'model-schema',
       'model-evaluation',
       'confusion-matrix',
       'roc-curve',
@@ -23,6 +24,7 @@ describe('getVisibleTabs', () => {
     expect(keys).toEqual([
       'model-information',
       'feature-summary',
+      'model-schema',
       'model-evaluation',
       'confusion-matrix',
       'roc-curve',
@@ -33,7 +35,12 @@ describe('getVisibleTabs', () => {
   it('should exclude confusion matrix for regression', () => {
     const tabs = getVisibleTabs('regression');
     const keys = tabs.map((t) => t.key);
-    expect(keys).toEqual(['model-information', 'feature-summary', 'model-evaluation']);
+    expect(keys).toEqual([
+      'model-information',
+      'feature-summary',
+      'model-schema',
+      'model-evaluation',
+    ]);
     expect(keys).not.toContain('confusion-matrix');
   });
 
@@ -42,7 +49,11 @@ describe('getVisibleTabs', () => {
     const modelConfigTabs = tabs.filter((t) => t.section === 'Model configuration');
     const evaluationTabs = tabs.filter((t) => t.section === 'Evaluation');
 
-    expect(modelConfigTabs.map((t) => t.key)).toEqual(['model-information', 'feature-summary']);
+    expect(modelConfigTabs.map((t) => t.key)).toEqual([
+      'model-information',
+      'feature-summary',
+      'model-schema',
+    ]);
     expect(evaluationTabs.map((t) => t.key)).toEqual([
       'model-evaluation',
       'confusion-matrix',
@@ -60,7 +71,12 @@ describe('getVisibleTabs', () => {
   it('should show backtest-window tab for timeseries and exclude classification tabs', () => {
     const tabs = getVisibleTabs('timeseries');
     const keys = tabs.map((t) => t.key);
-    expect(keys).toEqual(['model-information', 'model-evaluation', 'backtest-window']);
+    expect(keys).toEqual([
+      'model-information',
+      'model-schema',
+      'model-evaluation',
+      'backtest-window',
+    ]);
     expect(keys).not.toContain('confusion-matrix');
     expect(keys).not.toContain('feature-summary');
     expect(keys).not.toContain('precision-recall');

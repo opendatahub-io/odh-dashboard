@@ -7,13 +7,15 @@ import {
   ContentVariants,
   Flex,
   FlexItem,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
   Popover,
   Title,
 } from '@patternfly/react-core';
+import {
+  Tearsheet,
+  TearsheetBody,
+  TearsheetFooter,
+  TearsheetHeader,
+} from '@patternfly/react-component-groups';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
@@ -148,6 +150,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   const tabContentProps = {
     model,
+    namespace,
     taskType,
     parameters,
     createdAt,
@@ -167,16 +170,15 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
 
   return (
     <>
-      <Modal
-        variant="large"
+      <Tearsheet
         isOpen={isOpen}
         onClose={onClose}
         aria-labelledby="automl-model-details-title"
         data-testid="automl-model-details-modal"
         className="automl-model-details-modal"
       >
-        <ModalHeader title="Model details" labelId="automl-model-details-title" />
-        <ModalBody>
+        <TearsheetHeader title="Model details" labelId="automl-model-details-title" />
+        <TearsheetBody>
           <AutomlModelDetailsModalHeader
             models={models}
             currentModelName={selectedModelName}
@@ -266,13 +268,13 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
               </div>
             </FlexItem>
           </Flex>
-        </ModalBody>
-        <ModalFooter>
+        </TearsheetBody>
+        <TearsheetFooter>
           <Button variant="link" onClick={onClose} data-testid="model-details-close">
             Close
           </Button>
-        </ModalFooter>
-      </Modal>
+        </TearsheetFooter>
+      </Tearsheet>
 
       {/* Print-only container: portalled to document.body so it sits outside
           the PF modal DOM — avoids backdrop/overflow/centering issues across
@@ -302,6 +304,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
                   <TabComponent
                     print
                     model={model}
+                    namespace={namespace}
                     taskType={taskType}
                     parameters={parameters}
                     createdAt={createdAt}

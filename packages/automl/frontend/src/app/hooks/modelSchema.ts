@@ -11,6 +11,45 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
 
+/**
+ * A single input field from model.json's `inference.input_data_schema.instances.fields`.
+ * `datatype` uses the inference vocabulary (e.g. "integer", "number", "string"), which is
+ * normalized to the CSV-schema type vocabulary by `normalizeInferenceDatatype`.
+ */
+export type AutomlModelInputField = {
+  name: string;
+  datatype: string;
+  shape?: number[];
+  role?: string;
+  required?: boolean;
+};
+
+const AutomlModelInputFieldSchema = z.object({
+  name: z.string(),
+  datatype: z.string(),
+  shape: z.array(z.number()).optional(),
+  role: z.string().optional(),
+  required: z.boolean().optional(),
+});
+
+const AutomlInferenceSchema = z.object({
+  input_data_schema: z
+    .object({
+      protocol: z.string().optional(),
+      instances: z
+        .object({
+          required: z.boolean().optional(),
+          fields: z.array(AutomlModelInputFieldSchema),
+        })
+        .optional(),
+    })
+    .optional(),
+  // Not consumed by the UI; tolerated so the parse does not reject future payloads.
+  sample_payload: z.unknown().optional(),
+});
+
+export type AutomlInference = z.infer<typeof AutomlInferenceSchema>;
+
 const AutomlModelBaseSchema = z.object({
   name: z.string(),
   location: z.object({
@@ -20,6 +59,9 @@ const AutomlModelBaseSchema = z.object({
   metrics: z.object({
     test_data: z.record(z.string(), z.number()),
   }),
+  // Optional: absent in model.json files written before the inference block existed.
+  // Zod strips unknown keys, so older files without `inference` still parse.
+  inference: AutomlInferenceSchema.optional(),
 });
 
 // Legacy tabular schema (pre-3.5): notebook singular, no metrics in location

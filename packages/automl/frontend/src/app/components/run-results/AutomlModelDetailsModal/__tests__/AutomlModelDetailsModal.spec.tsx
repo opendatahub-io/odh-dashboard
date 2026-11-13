@@ -31,6 +31,10 @@ jest.mock('~/app/hooks/useModelEvaluationArtifactsQuery', () => ({
   useModelEvaluationArtifactsQuery: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useS3GetFileSchemaQuery', () => ({
+  useS3GetFileSchemaQuery: jest.fn(),
+}));
+
 // PF Modal renders into a portal; queries against the whole document work by default.
 
 const defaultProps = {
@@ -56,6 +60,16 @@ describe('AutomlModelDetailsModal', () => {
       featureImportance: mockTabularFeatureImportances.CatBoost_BAG_L2_FULL,
       confusionMatrix: mockTabularConfusionMatrices.CatBoost_BAG_L2_FULL,
       isLoading: false,
+    });
+
+    // Mock useS3GetFileSchemaQuery (used by the Model schema tab)
+    const { useS3GetFileSchemaQuery } = jest.requireMock('~/app/hooks/useS3GetFileSchemaQuery');
+    useS3GetFileSchemaQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      resetSchemaCache: jest.fn(),
     });
   });
 

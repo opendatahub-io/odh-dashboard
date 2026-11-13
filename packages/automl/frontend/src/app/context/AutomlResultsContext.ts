@@ -5,6 +5,7 @@ import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
 import type { PipelineRun } from '~/app/types';
 import { DEFAULT_EVAL_METRIC_BY_TASK } from '~/app/utilities/const';
 import { getBestModelFromStageMap, getTaskType, resolveBestModelKey } from '~/app/utilities/utils';
+import type { AutomlInference } from '~/app/hooks/modelSchema';
 
 const configureSchema = createConfigureSchema();
 
@@ -20,6 +21,8 @@ export type AutomlModel = {
   metrics: {
     test_data: Record<string, number>;
   };
+  /** Parsed from model.json's `inference` block; absent in older model.json files. */
+  inference?: AutomlInference;
 };
 /* eslint-enable camelcase */
 
