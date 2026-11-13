@@ -282,6 +282,12 @@ type DashboardStatus struct {
 	// +optional
 	ModuleStatuses map[string]ModuleStatus `json:"moduleStatuses,omitempty"`
 
+	// NamespacedRBACGrants records operator-issued cross-namespace grant identities
+	// so revocation does not depend on recipient-mutable Role or RoleBinding data.
+	// Entries use the internal "namespace/component" identity format.
+	// +optional
+	NamespacedRBACGrants []string `json:"namespacedRBACGrants,omitempty"`
+
 	// Distribution reports the product distribution identity.
 	// +optional
 	Distribution *Distribution `json:"distribution,omitempty"`

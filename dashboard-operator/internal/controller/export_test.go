@@ -63,7 +63,7 @@ func (r *DashboardReconciler) ReconcileNamespacedRBAC(ctx context.Context, dashb
 }
 
 func (r *DashboardReconciler) CleanupNamespacedRBAC(ctx context.Context) error {
-	return r.cleanupNamespacedRBAC(ctx)
+	return r.cleanupNamespacedRBAC(ctx, &v1alpha1.Dashboard{})
 }
 
 func (r *DashboardReconciler) ReconcileDegradedCondition(
@@ -74,7 +74,7 @@ func (r *DashboardReconciler) ReconcileDegradedCondition(
 }
 
 func (r *DashboardReconciler) GCStaleNamespacedRBAC(ctx context.Context, desired map[string]bool) error {
-	return r.gcStaleNamespacedRBAC(ctx, desired)
+	return r.gcStaleNamespacedRBAC(ctx, &v1alpha1.Dashboard{}, desired)
 }
 
 var ConsoleLinkGVK = consoleLinkGVK

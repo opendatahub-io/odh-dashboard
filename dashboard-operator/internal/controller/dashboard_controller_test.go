@@ -536,6 +536,48 @@ func TestReconcile_RemovedModuleDemandFailureUpdatesStatus(t *testing.T) {
 	assert.Equal(t, "https://previous.example.com/", updated.Status.MaaSConsumerPortalURL)
 }
 
+func TestReconcile_RemovedNamespacedRBACFailureUpdatesStatus(t *testing.T) {
+	s := testScheme(t)
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{ManagementSpec: common.ManagementSpec{ManagementState: common.Removed}},
+		Status: v1alpha1.DashboardStatus{Status: common.Status{
+			Phase: common.PhaseReady,
+			Conditions: []common.Condition{{
+				Type: string(common.ConditionTypeReady), Status: metav1.ConditionTrue, Reason: "AllDependentsHealthy",
+			}},
+		}},
+	}
+	base := fake.NewClientBuilder().WithScheme(s).WithObjects(dashboard).WithStatusSubresource(dashboard).Build()
+	listErr := errors.New("forced namespaced RBAC list failure")
+	apiReader := interceptor.NewClient(base, interceptor.Funcs{
+		List: func(ctx context.Context, delegate client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			if _, isRoleBindingList := list.(*rbacv1.RoleBindingList); isRoleBindingList {
+				return listErr
+			}
+			return delegate.List(ctx, list, opts...)
+		},
+	})
+	r := &ctrlpkg.DashboardReconciler{
+		Client: base, APIReader: apiReader, Scheme: s,
+		Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)})
+	require.ErrorIs(t, err, listErr)
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, base.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
+	require.NotNil(t, provisioning)
+	assert.Equal(t, metav1.ConditionFalse, provisioning.Status)
+	assert.Equal(t, "NamespacedRBACFailed", provisioning.Reason)
+	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+}
+
 func TestReconcile_Deletion(t *testing.T) {
 	s := testScheme(t)
 

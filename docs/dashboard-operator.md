@@ -436,9 +436,12 @@ granting itself access.
 
 Removing the consent label causes the controller to revoke the managed Role and
 RoleBinding before other deployment, removal, or finalizer work runs. Revocation
-recognizes the operator-reserved RoleBinding name and immutable RoleRef as well
-as management labels, so changing subjects or stripping mutable labels cannot
-hide an active grant from cleanup.
+uses an operator-owned inventory in Dashboard status, so changing subjects,
+stripping mutable labels, replacing the reserved RoleBinding, or changing its
+name cannot hide an active grant from cleanup. The controller first empties the
+Role rules, then removes every RoleBinding that references the reserved Role and
+deletes the Role. It retains the inventory entry and reports a NotReady condition
+until deletion is confirmed, including when a finalizer delays Role deletion.
 
 An empty writer list is fail-closed: the webhook denies changes to protected
 fields and labels, and the controller removes existing cross-namespace grants

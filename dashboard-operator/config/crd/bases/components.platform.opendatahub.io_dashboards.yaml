@@ -361,6 +361,14 @@ spec:
                   type: object
                 description: ModuleStatuses reports the deployment state of each module.
                 type: object
+              namespacedRBACGrants:
+                description: |-
+                  NamespacedRBACGrants records operator-issued cross-namespace grant identities
+                  so revocation does not depend on recipient-mutable Role or RoleBinding data.
+                  Entries use the internal "namespace/component" identity format.
+                items:
+                  type: string
+                type: array
               observedGeneration:
                 description: |-
                   ObservedGeneration is the most recent .metadata.generation observed

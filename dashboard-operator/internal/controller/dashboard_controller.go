@@ -189,7 +189,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
 			// Revoke cross-namespace grants before any unrelated cleanup can fail or
 			// wait. The finalizer must not retain access after namespace consent ends.
-			if err := r.cleanupNamespacedRBAC(ctx); err != nil {
+			if err := r.cleanupNamespacedRBAC(ctx, dashboard); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to cleanup namespaced RBAC: %w", err)
 			}
 			if dashboard.Spec.LegacyRedirects != nil {
@@ -271,7 +271,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Info("ManagementState is Removed, tearing down resources")
 		// Revoke grants before module, portal, redirect, or core teardown. Those
 		// independent operations may fail and must not delay authorization cleanup.
-		if err := r.cleanupNamespacedRBAC(ctx); err != nil {
+		if err := r.cleanupNamespacedRBAC(ctx, dashboard); err != nil {
+			r.persistRemovedFailureStatus(ctx, dashboard, previousStatus, cm, "NamespacedRBACFailed", err)
 			return ctrl.Result{}, fmt.Errorf("failed to cleanup namespaced RBAC: %w", err)
 		}
 		var legacyRedirectErr error
@@ -902,7 +903,7 @@ func (r *DashboardReconciler) cleanupRayDashboardGatewayRBAC(ctx context.Context
 // cleanupCrossNamespaceResources explicitly removes resources on soft removal
 // as well as CR deletion. Observability remains shared while the portal needs it.
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, dashboard *v1alpha1.Dashboard, preserveObservability bool) error {
-	if err := r.cleanupNamespacedRBAC(ctx); err != nil {
+	if err := r.cleanupNamespacedRBAC(ctx, dashboard); err != nil {
 		return fmt.Errorf("namespaced RBAC cleanup: %w", err)
 	}
 
