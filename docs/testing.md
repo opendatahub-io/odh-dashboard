@@ -173,7 +173,7 @@ The planner always runs changed Cypress specs, computes the executable reverse i
 of changed Cypress support code, and validates selected tags before starting browser
 jobs. Small impact sets run as explicit specs, broad sets use package CI tags, and
 only unmappable broad impact or support deletion falls back to the canonical Smoke
-and Sanity tag groups. If those canonical groups do not cover every required test,
+and Tier tag groups. If those canonical groups do not cover every required test,
 the planner schedules the residual specs explicitly rather than dropping them. It
 fails selection for empty tags, unmatched impactful paths, unschedulable specs, and
 all-skipped selections, and reports executed, failed, and skipped counts after the
@@ -187,7 +187,7 @@ under test, their selection reasons, and expected executions. The summary includ
 default regression checks when enabled. It describes a limited automated CI check,
 not a comprehensive test plan or full feature/release validation.
 Global support changes can affect most CI-runnable specs and trigger broad
-Smoke/Sanity coverage when package CI tags cannot cover the impact. Any remaining
+Smoke/Tier coverage when package CI tags cannot cover the impact. Any remaining
 specs run explicitly. Counts are per-job test executions and can overlap across
 jobs. **Build Cypress application assets** jobs prepare code for Cypress; they do
 not execute tests. **Browser E2E** jobs run the selected dashboard journeys, and

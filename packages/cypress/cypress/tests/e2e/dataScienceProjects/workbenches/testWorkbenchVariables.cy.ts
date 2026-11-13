@@ -91,7 +91,7 @@ describe('Workbenches - variable tests', () => {
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
     {
-      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+      tags: ['@Tier1', '@Tier1Set3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = projectName;
@@ -206,7 +206,7 @@ describe('Workbenches - variable tests', () => {
   it(
     'Verify user can inject Secret environment variables manually using Key / Value',
     {
-      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+      tags: ['@Tier1', '@Tier1Set3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = projectName;
@@ -270,7 +270,7 @@ describe('Workbenches - variable tests', () => {
   it(
     'Verify user can inject ConfigMap environment variables manually using Key / Value',
     {
-      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+      tags: ['@Tier1', '@Tier1Set3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = deriveWorkbenchName(projectName, 'secondwb-');
