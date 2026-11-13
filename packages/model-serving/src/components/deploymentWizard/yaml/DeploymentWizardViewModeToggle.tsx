@@ -5,6 +5,7 @@ import {
   Label,
   List,
   ListItem,
+  Spinner,
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
@@ -19,6 +20,8 @@ type DeploymentWizardViewModeToggleProps = {
   switchToYaml: () => void;
   yamlErrors: Error[];
   canUpdateFormFromYaml: boolean;
+  isSwitchToFormLoading: boolean;
+  isSwitchToYamlLoading: boolean;
 };
 
 export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeToggleProps> = ({
@@ -28,9 +31,15 @@ export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeTo
   switchToYaml,
   yamlErrors,
   canUpdateFormFromYaml,
+  isSwitchToFormLoading,
+  isSwitchToYamlLoading,
 }) => {
   const [isBidirectionalYamlWizardGaEnabled] = useFeatureFlag('bidirectionalYamlWizardGa');
   const [isYamlErrorsModalOpen, setIsYamlErrorsModalOpen] = React.useState(false);
+
+  const isFormDisabled = isBidirectionalYamlWizardGaEnabled
+    ? isSwitchToFormLoading
+    : viewMode === 'yaml-edit';
 
   return (
     <Flex>
@@ -45,7 +54,15 @@ export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeTo
         <ToggleGroup aria-label="Deployment view mode">
           <ToggleGroupItem
             data-testid="form-view"
-            text="Form"
+            text={
+              isSwitchToFormLoading ? (
+                <>
+                  Form <Spinner size="sm" aria-hidden="true" />
+                </>
+              ) : (
+                'Form'
+              )
+            }
             buttonId="form-view"
             isSelected={viewMode === 'form'}
             onChange={() => {
@@ -55,13 +72,22 @@ export const DeploymentWizardViewModeToggle: React.FC<DeploymentWizardViewModeTo
                 switchToForm(viewMode === 'yaml-edit');
               }
             }}
-            isDisabled={isBidirectionalYamlWizardGaEnabled ? false : viewMode === 'yaml-edit'}
+            isDisabled={isFormDisabled}
           />
           <ToggleGroupItem
             data-testid="yaml-view"
-            text="YAML"
+            text={
+              isSwitchToYamlLoading ? (
+                <>
+                  YAML <Spinner size="sm" aria-hidden="true" />
+                </>
+              ) : (
+                'YAML'
+              )
+            }
             buttonId="yaml-view"
             isSelected={viewMode !== 'form'}
+            isDisabled={isSwitchToYamlLoading}
             onChange={() => {
               if (viewMode === 'form') {
                 switchToYaml();
