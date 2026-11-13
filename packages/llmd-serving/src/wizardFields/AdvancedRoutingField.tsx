@@ -19,10 +19,10 @@ import { useDashboardNamespace } from '@odh-dashboard/plugin-core/host-api';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { LLMD_DEPLOYMENT_METHOD_KEY } from './deploymentMethodField';
-import { isTopologyTypeFieldData } from './TopologyTypeField';
-import type { TopologyTypeFieldData } from './TopologyTypeField';
 import {
   TopologyType,
+  isTopologyTypeFieldData,
+  type TopologyTypeFieldData,
   RoutingTypeLabels,
   type LLMInferenceServiceConfigKind,
   getConfigRoutingType,
@@ -32,6 +32,7 @@ import { isConfigEnabled } from '../utils';
 import { useFetchRouterConfigs } from '../api/LLMInferenceServiceConfigs';
 import { isLLMInferenceServiceActive } from '../formUtils';
 import { fireRoutingSelected } from '../tracking/llmdTrackingConstants';
+import { DEFAULT_ROUTING_KEY, LLMD_ROUTING_FIELD_ID } from '../const';
 
 // --- External data hook ---
 
@@ -92,8 +93,6 @@ const getCompatibleRouterConfigs = (
     return supportedTopologies.length === 0 || supportedTopologies.includes(topologyType);
   });
 };
-
-const DEFAULT_ROUTING_KEY = '__default-optimized-routing__';
 
 const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
   value,
@@ -211,7 +210,6 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
             onChange={(key, isPlaceholder) => {
               if (!key || isPlaceholder || key === DEFAULT_ROUTING_KEY) {
                 fireRoutingSelected(trackEvent, {
-                  routingConfigurationId: DEFAULT_ROUTING_KEY,
                   isDefaultRouting: true,
                 });
                 onChange({ selectedConfig: undefined });
@@ -219,7 +217,6 @@ const AdvancedRoutingFieldComponent: AdvancedRoutingFieldType['component'] = ({
               }
               const config = (routerConfigs ?? []).find((c) => c.metadata.name === key);
               fireRoutingSelected(trackEvent, {
-                routingConfigurationId: key,
                 isDefaultRouting: false,
               });
               onChange({ selectedConfig: config ?? value?.selectedConfig });
@@ -288,7 +285,7 @@ const isActive = (wizardState: RecursivePartial<WizardFormData['state']>): boole
 // --- Field definition ---
 
 export const AdvancedRoutingFieldWizardField: AdvancedRoutingFieldType = {
-  id: 'llmd-serving/advanced-routing',
+  id: LLMD_ROUTING_FIELD_ID,
   step: 'modelDeployment',
   type: 'addition',
   isActive,

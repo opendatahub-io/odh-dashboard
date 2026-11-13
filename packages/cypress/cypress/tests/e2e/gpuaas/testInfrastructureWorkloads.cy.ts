@@ -45,7 +45,7 @@ const buildTestContext = (testData: InfrastructureWorkloadsTestData, uuid: strin
     config: {
       managedProjectName: withUuid(testData.managedProjectName),
       trainJobName: withUuid(testData.trainJobName),
-      trainingRuntimeName: withUuid(testData.trainingRuntimeName),
+      trainingRuntimeName: testData.trainingRuntimeName,
       hardwareProfileName: withUuid(testData.hardwareProfileName),
       resourceFlavorName: withUuid(testData.resourceFlavorName),
       clusterQueueName: withUuid(testData.clusterQueueName),
@@ -132,10 +132,17 @@ const setupTestResources = (context: TestContext): Cypress.Chainable<TestContext
 describeAdminOnly('Infrastructure Workloads visibility', () => {
   const uuid = generateTestUUID();
   let context: TestContext | undefined;
+  let kueueEnabledInDashboard = false;
 
   before(() => {
     cy.step('Verify Kueue is managed outside the DataScienceCluster');
     isKueueUnmanaged().should('equal', true);
+    cy.getDashboardConfig('dashboardConfig.disableKueue').then((disableKueue) => {
+      kueueEnabledInDashboard = disableKueue === false;
+      if (!kueueEnabledInDashboard) {
+        cy.log('Skipping admin Admissions test: Kueue is disabled in OdhDashboardConfig.');
+      }
+    });
   });
 
   retryableBefore(() =>
@@ -239,7 +246,10 @@ describeAdminOnly('Infrastructure Workloads visibility', () => {
   it(
     'shows all Infrastructure tabs and Admission metrics to an administrator',
     { tags: ['@Kueue', '@Dashboard', '@Infrastructure', '@Featureflagged', '@GpuaasCI'] },
-    () => {
+    function adminInfrastructureTabs() {
+      if (!kueueEnabledInDashboard) {
+        this.skip();
+      }
       if (!context) {
         throw new Error('Test setup did not complete');
       }

@@ -1,5 +1,11 @@
 import { PREFERRED_NAMESPACE_STORAGE_KEY } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
-import { getStoredWorkingProjectName } from '#~/concepts/projects/workingProjectAdapterUtils';
+import { RouteProjectKindValue } from '@odh-dashboard/foundation';
+import { WorkingProjectStatusValue } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
+import {
+  getProjectDetailsRouteInput,
+  getStoredWorkingProjectName,
+  getWorkingProjectStatus,
+} from '#~/concepts/projects/workingProjectAdapterUtils';
 
 describe('getStoredWorkingProjectName', () => {
   afterEach(() => {
@@ -28,5 +34,39 @@ describe('getStoredWorkingProjectName', () => {
       throw new Error('blocked');
     });
     expect(getStoredWorkingProjectName()).toBeNull();
+  });
+});
+
+describe('getWorkingProjectStatus', () => {
+  it.each([
+    [false, undefined, false, WorkingProjectStatusValue.Loading],
+    [true, new Error('unavailable'), true, WorkingProjectStatusValue.ProjectSourceError],
+    [true, undefined, true, WorkingProjectStatusValue.RouteInvalid],
+    [true, undefined, false, WorkingProjectStatusValue.Listed],
+  ])(
+    'should resolve status precedence for loaded=%s, error=%s, invalid=%s',
+    (loaded, loadError, routeInvalid, expected) => {
+      expect(getWorkingProjectStatus({ loaded, loadError, routeInvalid })).toBe(expected);
+    },
+  );
+});
+
+describe('getProjectDetailsRouteInput', () => {
+  const recover = jest.fn();
+
+  afterEach(() => jest.clearAllMocks());
+
+  it.each([
+    ['/projects/known', new Set(['known']), null],
+    ['/projects/missing', new Set(['known']), RouteProjectKindValue.Invalid],
+    ['/projects/%E0%A4%A', new Set(['known']), RouteProjectKindValue.Invalid],
+    ['/home', new Set(['known']), null],
+  ])('should classify project-details paths safely', (pathname, projectNames, expectedKind) => {
+    const result = getProjectDetailsRouteInput(pathname, projectNames, recover);
+
+    expect(result?.kind ?? null).toBe(expectedKind);
+    if (result?.kind === RouteProjectKindValue.Invalid) {
+      expect(result.recover).toBe(recover);
+    }
   });
 });

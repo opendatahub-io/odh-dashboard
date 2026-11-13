@@ -1,10 +1,10 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ConnectionsTab, { synchronizeTypeSelection } from '~/app/pages/ConnectionsTab';
-import * as trackingUtilities from '~/app/utilities/tracking';
+import TrackingProvider from '~/__tests__/unit/testUtils/TrackingProvider';
 import { useConnections } from '~/app/hooks/useConnections';
 import { useConnectionTypes } from '~/app/hooks/useConnectionTypes';
 import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
@@ -16,19 +16,6 @@ jest.mock('~/app/hooks/useConnections');
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useConnectionAccess');
 jest.mock('~/app/hooks/useNamespaces');
-jest.mock('~/app/utilities/tracking', () => ({
-  DATA_CONNECT_HUB_EVENT_NAMES: {
-    addStarted: 'Connections Add Started',
-    typeSelected: 'Connections Type Selected',
-    connectionCreated: 'Connections Connection Created',
-    createCanceled: 'Connections Create Canceled',
-    deleteInitiated: 'Connections Connection Delete Initiated',
-    listFilterApplied: 'Connections List Filter Applied',
-  },
-  getConnectionTypeProvider: (connectionType?: { resource: { provider: string } }) =>
-    connectionType?.resource.provider,
-  fireDataConnectHubTrackEvent: jest.fn(),
-}));
 const mockNotificationSuccess = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({ success: mockNotificationSuccess, error: jest.fn() }),
@@ -71,6 +58,10 @@ const mockUseNamespaces = jest.mocked(useNamespaces);
 const mockVerifyConnection = jest.mocked(verifyConnection);
 const mockDeleteConnection = jest.mocked(deleteConnection);
 const mockTrackEvent = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={mockTrackEvent}>{children}</TrackingProvider>
+);
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: TrackingWrapper });
 
 const renderConnectionsTab = (props: React.ComponentProps<typeof ConnectionsTab>) =>
   render(
@@ -153,7 +144,6 @@ const newConnectionType = new ConnectionTypeInstance({
 describe('ConnectionsTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(trackingUtilities.fireDataConnectHubTrackEvent).mockImplementation(mockTrackEvent);
     mockVerifyConnection.mockImplementation(() => () => Promise.resolve());
     mockDeleteConnection.mockImplementation(() => () => Promise.resolve());
     mockUseConnections.mockReturnValue([connections, true, undefined, jest.fn()]);
@@ -332,10 +322,11 @@ describe('ConnectionsTab', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith({
-      eventName: 'Connections Add Started',
-      properties: { project: 'test-project', source: 'connections_tab' },
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'connections_tab',
     });
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('tracks starting the create connection flow from the empty state', async () => {
@@ -345,10 +336,11 @@ describe('ConnectionsTab', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create connection' }));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith({
-      eventName: 'Connections Add Started',
-      properties: { project: 'test-project', source: 'empty_state' },
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'empty_state',
     });
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('disables creating a connection when the user has read-only access', async () => {
@@ -367,9 +359,9 @@ describe('ConnectionsTab', () => {
 
     fireEvent.click(button);
     expect(screen.queryByTestId('create-connection-tearsheet')).toBeNull();
-    expect(mockTrackEvent).not.toHaveBeenCalledWith({
-      eventName: 'Connections Add Started',
-      properties: { project: 'test-project', source: 'connections_tab' },
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('Connections Add Started', {
+      project: 'test-project',
+      source: 'connections_tab',
     });
   });
 
@@ -405,16 +397,16 @@ describe('ConnectionsTab', () => {
       renderConnectionsTab({ namespace: 'test-project' });
 
       await user.type(screen.getByRole('textbox', { name: 'Filter by name' }), 'object');
-      expect(mockTrackEvent).not.toHaveBeenCalledWith({
-        eventName: 'Connections List Filter Applied',
-        properties: { filterType: 'name', project: 'test-project' },
+      expect(mockTrackEvent).not.toHaveBeenCalledWith('Connections List Filter Applied', {
+        filterType: 'name',
+        project: 'test-project',
       });
 
       jest.advanceTimersByTime(750);
 
-      expect(mockTrackEvent).toHaveBeenCalledWith({
-        eventName: 'Connections List Filter Applied',
-        properties: { filterType: 'name', project: 'test-project' },
+      expect(mockTrackEvent).toHaveBeenCalledWith('Connections List Filter Applied', {
+        filterType: 'name',
+        project: 'test-project',
       });
     } finally {
       jest.useRealTimers();
@@ -432,9 +424,9 @@ describe('ConnectionsTab', () => {
       jest.advanceTimersByTime(750);
 
       expect(mockTrackEvent).toHaveBeenCalledTimes(1);
-      expect(mockTrackEvent).toHaveBeenCalledWith({
-        eventName: 'Connections List Filter Applied',
-        properties: { filterType: 'name', project: 'test-project' },
+      expect(mockTrackEvent).toHaveBeenCalledWith('Connections List Filter Applied', {
+        filterType: 'name',
+        project: 'test-project',
       });
     } finally {
       jest.useRealTimers();
@@ -467,9 +459,9 @@ describe('ConnectionsTab', () => {
 
     expect(screen.getByText('warehouse')).toBeTruthy();
     expect(screen.queryByText('object-store')).toBeNull();
-    expect(mockTrackEvent).toHaveBeenCalledWith({
-      eventName: 'Connections List Filter Applied',
-      properties: { filterType: 'type', project: 'test-project' },
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections List Filter Applied', {
+      filterType: 'type',
+      project: 'test-project',
     });
 
     fireEvent.click(within(postgresqlFilter).getByRole('checkbox'));
@@ -522,10 +514,11 @@ describe('ConnectionsTab', () => {
     await user.click(screen.getByRole('button', { name: 'Actions for warehouse' }));
     await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith({
-      eventName: 'Connections Connection Delete Initiated',
-      properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
+    expect(mockTrackEvent).toHaveBeenCalledWith('Connections Connection Delete Initiated', {
+      project: 'test-project',
+      connectionTypeProvider: 'postgresql',
     });
+    expect(mockTrackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('disables deleting a connection when the user has read-only access', async () => {
@@ -546,9 +539,9 @@ describe('ConnectionsTab', () => {
 
     fireEvent.click(deleteItem);
     expect(screen.queryByTestId('delete-modal')).toBeNull();
-    expect(mockTrackEvent).not.toHaveBeenCalledWith({
-      eventName: 'Connections Connection Delete Initiated',
-      properties: { project: 'test-project', connectionTypeProvider: 'postgresql' },
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('Connections Connection Delete Initiated', {
+      project: 'test-project',
+      connectionTypeProvider: 'postgresql',
     });
   });
 
