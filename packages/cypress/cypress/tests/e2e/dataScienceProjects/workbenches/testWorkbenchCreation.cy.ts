@@ -84,7 +84,15 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
   it(
     'Create Workbench from the launcher page and verify that it is created successfully.',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@ODS-2218', '@Dashboard', '@Workbenches'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@ODS-1931',
+        '@ODS-2218',
+        '@Dashboard',
+        '@Workbenches',
+        '@s390X',
+      ],
     },
     () => {
       const workbenchName = deriveWorkbenchName(editTestNamespace);

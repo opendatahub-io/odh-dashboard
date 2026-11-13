@@ -61,7 +61,7 @@ describe('Install a Serving runtime template from the Runtime library', () => {
 
   it(
     'should install the first ServingRuntime search result as a reusable template',
-    { tags: ['@Dashboard', '@ModelServing', '@ModelServingCI', '@KServeCI'] },
+    { tags: ['@Dashboard', '@ModelServing', '@ModelServingCI', '@KServeCI', '@s390X'] },
     () => {
       cy.step('Log in as a platform administrator and open the Runtime library');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);

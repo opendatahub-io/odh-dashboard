@@ -137,7 +137,15 @@ describe('Workbench Storage Classes Tests', () => {
   it(
     'Create workbench with RWO storage and verify storage attachment',
     {
-      tags: ['@Smoke', '@SmokeSet2', '@Storage', '@ODS-1931', '@Dashboard', '@Workbenches'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet2',
+        '@Storage',
+        '@ODS-1931',
+        '@Dashboard',
+        '@Workbenches',
+        '@s390X',
+      ],
     },
     () => {
       let selectedImageStream: string;

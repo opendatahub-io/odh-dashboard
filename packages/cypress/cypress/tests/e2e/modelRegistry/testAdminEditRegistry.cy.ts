@@ -57,7 +57,7 @@ describe('Verify that admin users can edit a model registry', () => {
   it(
     'Logs in as admin user and edits an existing model registry',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@s390X'],
     },
     () => {
       cy.step('Login as an Admin');
