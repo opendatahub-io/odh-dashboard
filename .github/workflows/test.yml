@@ -508,7 +508,7 @@ jobs:
           ${{ env.IS_DRAFT != 'true' &&
           matrix.test-group.runner == 'standalone-app' }}
         # v4.6.0
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
@@ -557,7 +557,7 @@ jobs:
       - name: Upload unit coverage to Codecov
         if: env.IS_DRAFT != 'true'
         # v4.6.0
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
@@ -598,7 +598,7 @@ jobs:
           ${{ env.IS_DRAFT != 'true' &&
           needs.Get-Test-Groups.outputs.full-dashboard-matrix == 'true' }}
         # v4.6.0
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
