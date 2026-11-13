@@ -6,7 +6,7 @@ require (
 	github.com/distribution/reference v0.6.0
 	github.com/opendatahub-io/odh-platform-utilities v0.4.0
 	github.com/opendatahub-io/odh-platform-utilities/framework v0.1.0
-	github.com/opendatahub-io/operator-chaos v0.0.0-20260521100204-4dab974d613c
+	github.com/opendatahub-io/operator-chaos v0.0.0-20261030150551-a836134115d8
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/stretchr/testify v1.12.1
 	gopkg.in/yaml.v3 v3.0.1
