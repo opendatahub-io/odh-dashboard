@@ -74,6 +74,8 @@ const renderDetail = (loaded = true) => {
 };
 
 describe('QuotaUsageDetailPanel tracking', () => {
+  afterEach(() => jest.restoreAllMocks());
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(useClusterQueueWorkloads).mockReturnValue({
@@ -95,6 +97,7 @@ describe('QuotaUsageDetailPanel tracking', () => {
   });
 
   it('should preserve breadcrumb selection and its two events', () => {
+    jest.spyOn(Date, 'now').mockReturnValue(10_000);
     const { onSelectionChange } = renderDetail();
     fireEvent.click(screen.getByTestId('quota-usage-breadcrumb-production'));
     expect(onSelectionChange).toHaveBeenCalledTimes(1);

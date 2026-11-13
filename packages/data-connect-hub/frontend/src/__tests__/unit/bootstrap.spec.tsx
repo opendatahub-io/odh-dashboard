@@ -9,6 +9,12 @@ import {
 import { fireDataConnectHubTrackEvent } from '~/app/utilities/tracking';
 import DataConnectHubWrapper from '~/odh/DataConnectHubWrapper';
 
+jest.mock('~/app/utilities/const', () => ({
+  ...jest.requireActual<typeof import('~/app/utilities/const')>('~/app/utilities/const'),
+  DEV_MODE: true,
+  APP_VERSION: 'test-version',
+}));
+
 jest.mock('mod-arch-core', () => {
   const Provider = ({ children }: React.PropsWithChildren) => <>{children}</>;
   return {
@@ -55,12 +61,6 @@ jest.mock('~/app/AppRoutes', () => jest.requireMock('~/app/App'));
 
 describe('standalone tracking wiring', () => {
   it('should log standalone interactions through the shared compatibility adapter', async () => {
-    const originalEnv = process.env;
-    process.env = {
-      ...originalEnv,
-      APP_ENV: 'development',
-      INTERNAL_DASHBOARD_VERSION: 'test-version',
-    };
     const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
     const rootElement = document.createElement('div');
     rootElement.id = 'root';
@@ -88,7 +88,6 @@ describe('standalone tracking wiring', () => {
       createRoot.mockRestore();
       rootElement.remove();
       log.mockRestore();
-      process.env = originalEnv;
     }
   });
 

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   isConnectionType,
   isConnectionTypeDataField,
@@ -178,6 +179,7 @@ function AutoragConfigure({
   onDatabaseSecretChange,
   onMaaSModelsReady,
 }: AutoragConfigureProps): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const autoragConnectionTypes = React.useMemo(
@@ -448,7 +450,7 @@ function AutoragConfigure({
           return;
         }
         setValue('input_data_keys', [uploadResult.key], { shouldValidate: true });
-        fireAutoragKnowledgeSourceConfigured({
+        fireAutoragKnowledgeSourceConfigured(trackEvent, {
           knowledgeSourceType: 'upload',
           countOfDocuments: 1,
           outcome: TrackingOutcome.submit,
@@ -470,7 +472,7 @@ function AutoragConfigure({
                 : errorMessage,
             );
           }
-          fireAutoragKnowledgeSourceConfigured({
+          fireAutoragKnowledgeSourceConfigured(trackEvent, {
             knowledgeSourceType: 'upload',
             countOfDocuments: 0,
             outcome: TrackingOutcome.submit,
@@ -485,6 +487,7 @@ function AutoragConfigure({
       }
     },
     [
+      trackEvent,
       inputDataBucketName,
       inputDataSecretName,
       namespace,
@@ -1323,7 +1326,7 @@ function AutoragConfigure({
             }
           }}
           onOutcome={(outcome) =>
-            fireAutoragS3ConnectionCreated({
+            fireAutoragS3ConnectionCreated(trackEvent, {
               outcome:
                 outcome.outcome === 'submit' ? TrackingOutcome.submit : TrackingOutcome.cancel,
               ...(outcome.success === false && { error: 'actionFailed' }),
@@ -1351,7 +1354,7 @@ function AutoragConfigure({
         isOpen={Boolean(fileExplorerMode)}
         onClose={() => {
           if (fileExplorerMode === 'input_data' && !inputDataS3SelectionCommittedRef.current) {
-            fireAutoragKnowledgeSourceConfigured({
+            fireAutoragKnowledgeSourceConfigured(trackEvent, {
               knowledgeSourceType: 's3',
               countOfDocuments: 0,
               outcome: TrackingOutcome.cancel,
@@ -1371,7 +1374,7 @@ function AutoragConfigure({
               setValue('input_data_keys', [filePath], { shouldValidate: true });
               setSelectedInputDataFile(file);
               inputDataS3SelectionCommittedRef.current = true;
-              fireAutoragKnowledgeSourceConfigured({
+              fireAutoragKnowledgeSourceConfigured(trackEvent, {
                 knowledgeSourceType: 's3',
                 // Only files[0] is ever committed to input_data_keys, so report 1 committed
                 // document regardless of how many files the picker returned (e.g. a folder).

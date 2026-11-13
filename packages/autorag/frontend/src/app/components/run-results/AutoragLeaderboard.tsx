@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Alert,
   Bullseye,
@@ -440,6 +441,7 @@ function AutoragLeaderboard({
   onViewCode,
   onRunIndexingPipeline,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
+  const trackEvent = useTrackEvent();
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const {
     patterns,
@@ -624,6 +626,7 @@ function AutoragLeaderboard({
         const isShown = col.isShown ?? false;
         if (wasVisible !== isShown) {
           fireAutoragResultsColumnToggled(
+            trackEvent,
             getColumnAnalyticsName(
               col.key,
               columnDefs.find((column) => column.id === col.key)?.metric,
@@ -642,7 +645,7 @@ function AutoragLeaderboard({
         newVisibleIds.has(prev.id) ? prev : { id: fallbackSortId, direction: 'asc' },
       );
     },
-    [visibleColumnIds, columnDefs],
+    [trackEvent, visibleColumnIds, columnDefs],
   );
 
   // All visible columns in user order, used for both header and body rendering
@@ -1374,7 +1377,7 @@ function AutoragLeaderboard({
         applyColumns={handleApplyColumns}
         presets={columnPresets}
         onPresetSelect={(presetLabel) =>
-          fireAutoragLeaderboardPresetApplied(getPresetAnalyticsType(presetLabel))
+          fireAutoragLeaderboardPresetApplied(trackEvent, getPresetAnalyticsType(presetLabel))
         }
       />
     </Card>

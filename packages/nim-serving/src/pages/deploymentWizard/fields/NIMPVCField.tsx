@@ -18,10 +18,19 @@ import type { WizardField } from '@odh-dashboard/model-serving/shared/types/form
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/shared/wizard-fields';
 import { getStorageClasses } from '@odh-dashboard/internal/api/k8s/storageClasses';
 import { getDashboardPvcs } from '@odh-dashboard/internal/api/k8s/pvcs';
+import K8sNameDescriptionField from '@odh-dashboard/ui-core/components/K8sNameDescriptionField';
 import useFetch, {
   FetchStateCallbackPromise,
   NotReadyError,
 } from '@odh-dashboard/ui-core/hooks/useFetch';
+import {
+  handleUpdateLogic,
+  isK8sNameDescriptionDataValid,
+  LimitNameResourceType,
+  setupDefaults,
+  translateDisplayNameForK8s,
+  type K8sNameDescriptionFieldData,
+} from '@odh-dashboard/k8s-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { categorizePVCs, type ExistingPVCOption } from './nimPVCUtils';
@@ -39,7 +48,9 @@ export enum NIMPVCStorageMode {
 
 export type NIMPVCFieldValue = {
   storageMode: NIMPVCStorageMode;
-  pvcName: string;
+  newPvcNameData?: K8sNameDescriptionFieldData;
+  existingPvcDisplayName: string;
+  existingPvcK8sName?: string;
   subPath: string;
   storageClassName: string;
   storageSizeGi: number;
@@ -48,17 +59,56 @@ export type NIMPVCFieldValue = {
 const DEFAULT_SUBPATH = '';
 const DEFAULT_STORAGE_SIZE_GI = 50;
 const MIN_STORAGE_SIZE_GI = 1;
+const defaultNewPvcNameData = (): K8sNameDescriptionFieldData =>
+  setupDefaults({
+    initialData: { name: '', k8sName: '' },
+    limitNameResourceType: LimitNameResourceType.PVC,
+    editableK8sName: true,
+  });
+
+export const getNIMPVCDisplayName = (fieldData: NIMPVCFieldValue): string =>
+  fieldData.newPvcNameData ? fieldData.newPvcNameData.name : fieldData.existingPvcDisplayName;
+
+export const getNIMPVCK8sName = (fieldData: NIMPVCFieldValue): string =>
+  fieldData.newPvcNameData
+    ? fieldData.newPvcNameData.k8sName.value
+    : fieldData.existingPvcK8sName || translateDisplayNameForK8s(fieldData.existingPvcDisplayName);
 
 const nimPVCFieldSchema = z
   .object({
     storageMode: z.nativeEnum(NIMPVCStorageMode),
-    pvcName: z.string().min(1, 'Cluster storage name is required'),
+    newPvcNameData: z
+      .custom<K8sNameDescriptionFieldData>(
+        (value): value is K8sNameDescriptionFieldData =>
+          typeof value === 'object' && value !== null && 'name' in value && 'k8sName' in value,
+      )
+      .optional(),
+    existingPvcDisplayName: z.string(),
+    existingPvcK8sName: z.string().optional(),
     subPath: z.string(),
     storageClassName: z.string(),
     storageSizeGi: z.number().min(MIN_STORAGE_SIZE_GI, 'Storage size must be at least 1 GiB'),
   })
   .superRefine((data, ctx) => {
-    if (data.storageMode === NIMPVCStorageMode.NEW && !data.storageClassName) {
+    if (data.storageMode === NIMPVCStorageMode.EXISTING) {
+      if (!(data.existingPvcK8sName || data.existingPvcDisplayName)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Cluster storage name is required',
+          path: ['existingPvcDisplayName'],
+        });
+      }
+      return;
+    }
+
+    if (!data.newPvcNameData || !isK8sNameDescriptionDataValid(data.newPvcNameData)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Enter a valid resource name',
+        path: ['newPvcNameData', 'k8sName'],
+      });
+    }
+    if (!data.storageClassName) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Storage class is required for new storage',
@@ -146,7 +196,9 @@ const useNIMPVCExternalData = (dependencies?: {
 
 const getDefaultFieldValue = (): NIMPVCFieldValue => ({
   storageMode: NIMPVCStorageMode.NEW,
-  pvcName: '',
+  newPvcNameData: defaultNewPvcNameData(),
+  existingPvcDisplayName: '',
+  existingPvcK8sName: '',
   subPath: DEFAULT_SUBPATH,
   storageClassName: '',
   storageSizeGi: DEFAULT_STORAGE_SIZE_GI,
@@ -180,7 +232,7 @@ export const SubPathField: React.FC<SubPathFieldProps> = ({
       id="nim-subpath"
       data-testid="nim-subpath-input"
       value={subPath}
-      onChange={(_event, val) => onSubPathChange(val)}
+      onChange={(_event: React.FormEvent<HTMLInputElement>, val: string) => onSubPathChange(val)}
       placeholder="/"
       isDisabled={isDisabled}
     />
@@ -245,9 +297,11 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
 
   const existingPVCOptions: TypeaheadSelectOption[] = existingPVCs.map((pvc) => ({
     value: pvc.name,
-    content: pvc.name,
+    content: pvc.displayName,
     group: pvc.category,
   }));
+
+  const { newPvcNameData } = fieldValue;
 
   return (
     <FormSection>
@@ -263,7 +317,9 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
                 : NIMPVCStorageMode.NEW;
             updateField({
               storageMode: mode,
-              pvcName: '',
+              newPvcNameData: mode === NIMPVCStorageMode.NEW ? defaultNewPvcNameData() : undefined,
+              existingPvcDisplayName: '',
+              existingPvcK8sName: '',
               subPath: DEFAULT_SUBPATH,
               storageClassName:
                 mode === NIMPVCStorageMode.NEW
@@ -284,23 +340,19 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
       </FormGroup>
 
       <div className="pf-v6-u-pl-xl">
-        {fieldValue.storageMode === NIMPVCStorageMode.NEW ? (
+        {fieldValue.storageMode === NIMPVCStorageMode.NEW && newPvcNameData ? (
           <>
-            <FormGroup label="Cluster storage name" fieldId="nim-pvc-name" isRequired>
-              <HelperText>
-                <HelperTextItem>
-                  This cluster storage can be reused for future deployments of this NIM image.
-                </HelperTextItem>
-              </HelperText>
-              <TextInput
-                id="nim-pvc-name"
-                data-testid="nim-pvc-name-input"
-                value={fieldValue.pvcName}
-                onChange={(_event, val) => updateField({ pvcName: val })}
-                placeholder="nim-pvc"
-                isDisabled={isDisabled}
-              />
-            </FormGroup>
+            <K8sNameDescriptionField
+              data={newPvcNameData}
+              onDataChange={(key, nextValue) => {
+                const nextData = handleUpdateLogic(newPvcNameData)(key, nextValue);
+                updateField({ newPvcNameData: nextData });
+              }}
+              dataTestId="nim-pvc-name"
+              nameLabel="Cluster storage name"
+              nameHelperTextAbove="This cluster storage can be reused for future deployments of this NIM image."
+              hideDescription
+            />
 
             <SubPathField
               subPath={fieldValue.subPath}
@@ -358,15 +410,21 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
               <TypeaheadSelect
                 dataTestId="nim-existing-pvc-select"
                 selectOptions={existingPVCOptions}
-                selected={fieldValue.pvcName || undefined}
+                selected={
+                  fieldValue.existingPvcK8sName || fieldValue.existingPvcDisplayName || undefined
+                }
                 onSelect={(_, val) => {
-                  const pvcName = String(val);
-                  if (pvcName === fieldValue.pvcName) {
+                  const claimName = String(val);
+                  if (
+                    claimName ===
+                    (fieldValue.existingPvcK8sName || fieldValue.existingPvcDisplayName)
+                  ) {
                     return;
                   }
-                  const selectedPVC = existingPVCMap.get(pvcName);
+                  const selectedPVC = existingPVCMap.get(claimName);
                   updateField({
-                    pvcName,
+                    existingPvcDisplayName: selectedPVC?.displayName ?? claimName,
+                    existingPvcK8sName: claimName,
                     subPath: selectedPVC?.subPath ?? DEFAULT_SUBPATH,
                   });
                 }}
@@ -424,9 +482,9 @@ export const NIMPVCFieldWizardField: NIMPVCFieldType = {
             value.storageMode === NIMPVCStorageMode.NEW ? 'New storage' : 'Existing storage',
         },
         {
-          key: 'pvcName',
+          key: 'existingPvcDisplayName',
           label: 'Cluster storage name',
-          value: () => value.pvcName || '-',
+          value: () => getNIMPVCDisplayName(value) || '-',
         },
         {
           key: 'subPath',

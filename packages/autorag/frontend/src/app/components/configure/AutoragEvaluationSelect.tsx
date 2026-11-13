@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { Button } from '@patternfly/react-core';
 import { DesktopIcon, PlusCircleIcon, StorageDomainIcon } from '@patternfly/react-icons';
 import type { FileRejection } from 'react-dropzone';
@@ -28,6 +29,7 @@ import {
 } from '~/app/utilities/tracking';
 
 function AutoragEvaluationSelect(): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const { namespace } = useParams();
 
   const notification = useNotification();
@@ -101,7 +103,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
                 : errorMessage,
             );
             setStatus('danger');
-            fireAutoragEvaluationSourceConfigured({
+            fireAutoragEvaluationSourceConfigured(trackEvent, {
               evaluationSourceType: 'upload',
               countOfDocuments: 0,
               outcome: TrackingOutcome.submit,
@@ -113,7 +115,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
 
           field.onChange(response.key);
           setStatus('success');
-          fireAutoragEvaluationSourceConfigured({
+          fireAutoragEvaluationSourceConfigured(trackEvent, {
             evaluationSourceType: 'upload',
             countOfDocuments: 1,
             outcome: TrackingOutcome.submit,
@@ -181,7 +183,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
           isOpen
           onClose={() => {
             if (!s3SelectionCommittedRef.current) {
-              fireAutoragEvaluationSourceConfigured({
+              fireAutoragEvaluationSourceConfigured(trackEvent, {
                 evaluationSourceType: 's3',
                 countOfDocuments: 0,
                 outcome: TrackingOutcome.cancel,
@@ -199,7 +201,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
               const filePath = file.path.replace(/^\//, '');
               field.onChange(filePath);
               s3SelectionCommittedRef.current = true;
-              fireAutoragEvaluationSourceConfigured({
+              fireAutoragEvaluationSourceConfigured(trackEvent, {
                 evaluationSourceType: 's3',
                 countOfDocuments: files.length,
                 outcome: TrackingOutcome.submit,

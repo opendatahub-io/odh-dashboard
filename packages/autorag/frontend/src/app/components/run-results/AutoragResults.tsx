@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { Alert, AlertActionCloseButton, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -48,6 +49,7 @@ type AutoragResultsProps = {
 };
 
 function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
+  const trackEvent = useTrackEvent();
   const { namespace, runId: routeRunId } = useParams<{ namespace: string; runId: string }>();
   const fetchS3File = useFetchS3File();
   const navigate = useNavigate();
@@ -264,10 +266,13 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
     };
   }, [namespace, routeRunId]);
 
-  const handleViewDetails = React.useCallback((patternKey: string) => {
-    setSelectedPatternKey(patternKey);
-    fireAutoragPatternDetailsViewed('resultsTable');
-  }, []);
+  const handleViewDetails = React.useCallback(
+    (patternKey: string) => {
+      setSelectedPatternKey(patternKey);
+      fireAutoragPatternDetailsViewed(trackEvent, 'resultsTable');
+    },
+    [trackEvent],
+  );
 
   const handleOpenRunIndexing = React.useCallback(
     (patternName: string) => {
@@ -364,7 +369,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         const safePatternName = sanitizeFilename(patternLabel);
         const filename = `${displayName}_${safePatternName}_${notebookType}_notebook.ipynb`;
         downloadBlob(notebook, filename);
-        fireAutoragNotebookDownloaded(notebookType);
+        fireAutoragNotebookDownloaded(trackEvent, notebookType);
       } catch (error) {
         if (
           isAbortError(error) ||
@@ -382,7 +387,7 @@ function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): Reac
         activeDownloadControllers.current.delete(controller);
       }
     },
-    [fetchS3File, namespace, ragPatternsBasePath, pipelineRun?.display_name],
+    [trackEvent, fetchS3File, namespace, ragPatternsBasePath, pipelineRun?.display_name],
   );
 
   const runIndexingHandler = indexingPipelineAvailable ? handleOpenRunIndexing : undefined;

@@ -1,7 +1,86 @@
+import { PluginStore } from '@odh-dashboard/plugin-core';
+import { isWizardTrackingPropertiesExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
 import extensions from '../extensions';
+import { extractLlmdDeploymentTrackingProperties } from '../../src/tracking/llmdWizardTracking';
 import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
 import { ROUTING_CONFIGS_TAB_PATH } from '../../src/settings/routingConfigs/paths';
+
+describe('llm-d deployment tracking registration', () => {
+  it.each([true, false])(
+    'should contribute configuration properties with gateway enabled=%s',
+    async (gatewayEnabled) => {
+      const store = new PluginStore({ llmd: extensions });
+      store.setFeatureFlags({
+        'llmd-serving': true,
+        'llmd-topology-configs': true,
+        'llmd-gateway-field': gatewayEnabled,
+      });
+      const contributors = store.getExtensions().filter(isWizardTrackingPropertiesExtension);
+      expect(contributors).toHaveLength(1);
+      expect(contributors[0].flags).toEqual({ required: ['llmd-serving'] });
+      // Jest does not transform dynamic imports in extension CodeRefs. The Cypress cases
+      // exercise resolution; here verify filtering and invoke the real extractor directly.
+      expect(String(contributors[0].properties.getProperties)).toContain(
+        'extractLlmdDeploymentTrackingProperties',
+      );
+      const extractor = extractLlmdDeploymentTrackingProperties;
+      const fields: Record<string, unknown> = {
+        deploymentMethod: { method: 'llm-inference-service-llmd' },
+        numReplicas: { data: 2 },
+        'llmd-serving/topology-type': { topologyType: 'workload-single-node' },
+        'llmd-serving/custom-topology-config': { selectedConfig: 'default' },
+        ...(gatewayEnabled ? { 'llmd-serving/gateway': { selections: [] } } : {}),
+      };
+      const properties = extractor(fields as WizardFormData['state']);
+      expect(properties).toMatchObject({
+        isDefaultTopology: true,
+      });
+      if (gatewayEnabled) {
+        expect(properties).toMatchObject({
+          numberOfGateways: 0,
+          usesMaasDefault: false,
+          usesOpenShiftInference: false,
+          usesCustomGateway: false,
+        });
+      } else {
+        for (const key of [
+          'numberOfGateways',
+          'usesMaasDefault',
+          'usesOpenShiftInference',
+          'usesCustomGateway',
+        ]) {
+          expect(properties).not.toHaveProperty(key);
+        }
+        expect(
+          store
+            .getExtensions()
+            .filter(
+              (ext) =>
+                'fieldId' in ext.properties && ext.properties.fieldId === 'llmd-serving/gateway',
+            ),
+        ).toHaveLength(0);
+      }
+    },
+  );
+
+  it('should remain registered without topology and disappear without serving', () => {
+    const store = new PluginStore({ llmd: extensions });
+    store.setFeatureFlags({
+      'llmd-serving': true,
+      'llmd-topology-configs': false,
+      'llmd-gateway-field': false,
+    });
+    expect(store.getExtensions().filter(isWizardTrackingPropertiesExtension)).toHaveLength(1);
+    store.setFeatureFlags({
+      'llmd-serving': false,
+      'llmd-topology-configs': true,
+      'llmd-gateway-field': true,
+    });
+    expect(store.getExtensions().filter(isWizardTrackingPropertiesExtension)).toHaveLength(0);
+  });
+});
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
 
