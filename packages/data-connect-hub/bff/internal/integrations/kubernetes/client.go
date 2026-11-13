@@ -14,4 +14,5 @@ type KubernetesClientInterface interface {
 	CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource string) (bool, error)
 	IsClusterAdmin(identity *RequestIdentity) (bool, error)
 	GetUser(identity *RequestIdentity) (string, error)
+	SecretExists(ctx context.Context, namespace, name string) (bool, error)
 }
