@@ -41,6 +41,85 @@ func TestOperatorRoleCoversDeployedClusterRoles(t *testing.T) {
 	}
 }
 
+func TestOperatorRoleDoesNotAllowImpersonation(t *testing.T) {
+	operatorRole := readClusterRole(t, filepath.Join("..", "..", "config", "rbac", "role.yaml"))
+
+	for _, rule := range operatorRole.Rules {
+		assert.False(t, ruleAllowsImpersonation(rule),
+			"operator ClusterRole must not grant impersonation; apiGroups=%v resources=%v resourceNames=%v",
+			rule.APIGroups, rule.Resources, rule.ResourceNames)
+	}
+}
+
+func TestRuleAllowsImpersonation(t *testing.T) {
+	tests := []struct {
+		name string
+		rule rbacv1.PolicyRule
+		want bool
+	}{
+		{
+			name: "explicit impersonate",
+			rule: rbacv1.PolicyRule{APIGroups: []string{"apps"}, Resources: []string{"deployments"}, Verbs: []string{"impersonate"}},
+			want: true,
+		},
+		{
+			name: "wildcard verb on core users",
+			rule: rbacv1.PolicyRule{APIGroups: []string{""}, Resources: []string{"users"}, Verbs: []string{"*"}},
+			want: true,
+		},
+		{
+			name: "wildcard group and resource",
+			rule: rbacv1.PolicyRule{APIGroups: []string{"*"}, Resources: []string{"*"}, Verbs: []string{"*"}},
+			want: true,
+		},
+		{
+			name: "wildcard verb on UID",
+			rule: rbacv1.PolicyRule{APIGroups: []string{"authentication.k8s.io"}, Resources: []string{"uids"}, Verbs: []string{"*"}},
+			want: true,
+		},
+		{
+			name: "wildcard verb on user extra",
+			rule: rbacv1.PolicyRule{APIGroups: []string{"authentication.k8s.io"}, Resources: []string{"userextras/scopes"}, Verbs: []string{"*"}},
+			want: true,
+		},
+		{
+			name: "wildcard verb on unrelated core resource",
+			rule: rbacv1.PolicyRule{APIGroups: []string{""}, Resources: []string{"configmaps"}, Verbs: []string{"*"}},
+		},
+		{
+			name: "wildcard verb on unrelated API group",
+			rule: rbacv1.PolicyRule{APIGroups: []string{"apps"}, Resources: []string{"users"}, Verbs: []string{"*"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, ruleAllowsImpersonation(tt.rule))
+		})
+	}
+}
+
+func ruleAllowsImpersonation(rule rbacv1.PolicyRule) bool {
+	if slices.Contains(rule.Verbs, "impersonate") {
+		return true
+	}
+	if !slices.Contains(rule.Verbs, "*") {
+		return false
+	}
+
+	for _, resource := range rule.Resources {
+		if containsOrWildcard(rule.APIGroups, "") &&
+			(resource == "*" || slices.Contains([]string{"users", "groups", "serviceaccounts"}, resource)) {
+			return true
+		}
+		if containsOrWildcard(rule.APIGroups, "authentication.k8s.io") &&
+			(resource == "*" || resource == "uids" || strings.HasPrefix(resource, "userextras/")) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestUncoveredPermissions(t *testing.T) {
 	apiServers := func(verbs, names []string) rbacv1.PolicyRule {
 		return rbacv1.PolicyRule{
