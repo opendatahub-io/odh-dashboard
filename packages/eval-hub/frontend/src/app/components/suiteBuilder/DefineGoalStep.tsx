@@ -22,27 +22,37 @@ import { AngleDownIcon, AngleUpIcon, PencilAltIcon } from '@patternfly/react-ico
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
 import { defineGoalExamples } from '~/app/components/suiteBuilder/data/defineGoalExamples';
 import RecommendationModelModal from '~/app/components/suiteBuilder/RecommendationModelModal';
-import type { RecommendationModelProfile } from '~/app/types';
 import {
   defineGoalFieldNames,
+  generatorModelSelectionSchema,
   MAX_EVALUATION_GOAL_LENGTH,
   type SuiteBuilderFormValues,
+  type GeneratorModelSelection,
 } from '~/app/schemas/suiteBuilder.schema';
+import type { InferenceServiceItem } from '~/app/types';
 
 import './DefineGoalStep.scss';
 
 type DefineGoalStepProps = {
-  recommendationModels: RecommendationModelProfile[];
+  inferenceServices: InferenceServiceItem[];
+  inferenceServicesLoaded: boolean;
+  inferenceServicesError: Error | undefined;
+  selectedModelIsAvailable: boolean;
   canRecommend: boolean;
 };
 
 const VISIBLE_EXAMPLE_COUNT = 3;
 
-const DefineGoalStep: React.FC<DefineGoalStepProps> = ({ recommendationModels, canRecommend }) => {
+const DefineGoalStep: React.FC<DefineGoalStepProps> = ({
+  inferenceServices,
+  inferenceServicesLoaded,
+  inferenceServicesError,
+  selectedModelIsAvailable,
+  canRecommend,
+}) => {
   const { control, setValue, trigger } = useFormContext<SuiteBuilderFormValues>();
   const { goToNextStep } = useWizardContext();
-  const generatorModelId = useWatch({ control, name: 'generatorModelId' });
-  const selectedModel = recommendationModels.find((model) => model.id === generatorModelId);
+  const selectedModel = useWatch({ control, name: 'generatorModel' });
   const [isModelModalOpen, setIsModelModalOpen] = React.useState(false);
   const [areAllExamplesVisible, setAreAllExamplesVisible] = React.useState(false);
   const visibleExamples = areAllExamplesVisible
@@ -67,11 +77,12 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({ recommendationModels, c
     setIsModelModalOpen(false);
   };
 
-  const handleSaveModel = (modelId: string) => {
-    if (!recommendationModels.some((model) => model.id === modelId)) {
+  const handleSaveModel = (model: GeneratorModelSelection) => {
+    const parsedModel = generatorModelSelectionSchema.safeParse(model);
+    if (!parsedModel.success) {
       return;
     }
-    setValue('generatorModelId', modelId, {
+    setValue('generatorModel', parsedModel.data, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
@@ -142,34 +153,35 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({ recommendationModels, c
           <FlexItem>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
               <FlexItem data-testid="selected-recommendation-model">
-                {selectedModel?.displayName ?? 'Unavailable'}
+                {selectedModel?.name ?? 'No model selected'}
               </FlexItem>
-              {recommendationModels.length > 0 ? (
-                <FlexItem>
-                  <Button
-                    type="button"
-                    variant="plain"
-                    size="sm"
-                    icon={<PencilAltIcon aria-hidden />}
-                    aria-label="Edit recommendation model"
-                    onClick={handleOpenModelModal}
-                    data-testid="edit-recommendation-model"
-                  />
-                </FlexItem>
-              ) : null}
+              <FlexItem>
+                <Button
+                  type="button"
+                  variant="plain"
+                  size="sm"
+                  icon={<PencilAltIcon aria-hidden />}
+                  aria-label={
+                    selectedModel ? 'Edit recommendation model' : 'Choose recommendation model'
+                  }
+                  onClick={handleOpenModelModal}
+                  data-testid="edit-recommendation-model"
+                />
+              </FlexItem>
             </Flex>
           </FlexItem>
         </Flex>
-        {recommendationModels.length === 0 ? (
+        {selectedModel?.source === 'cluster' && !selectedModelIsAvailable ? (
           <FormHelperText>
             <HelperText>
-              <HelperTextItem data-testid="recommendation-model-unavailable">
-                Recommendation models are unavailable in this environment.
+              <HelperTextItem variant="warning" data-testid="selected-recommendation-model-stale">
+                {inferenceServicesError || !inferenceServicesLoaded
+                  ? 'Could not confirm this project model is available. Choose another model or use an external endpoint.'
+                  : 'This project model is no longer available or its endpoint has changed. Choose another model or use an external endpoint.'}
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
         ) : null}
-
         <section
           className="evalhub-goal-suite__examples"
           aria-labelledby="define-goal-examples-title"
@@ -232,10 +244,16 @@ const DefineGoalStep: React.FC<DefineGoalStepProps> = ({ recommendationModels, c
       </Form>
 
       <RecommendationModelModal
-        key={isModelModalOpen ? (selectedModel?.id ?? 'no-selection') : 'closed'}
+        key={
+          isModelModalOpen
+            ? `${selectedModel?.source ?? 'no-selection'}-${selectedModel?.name ?? ''}`
+            : 'closed'
+        }
         isOpen={isModelModalOpen}
-        selectedModelId={selectedModel?.id ?? ''}
-        recommendationModels={recommendationModels}
+        selectedModel={selectedModel}
+        inferenceServices={inferenceServices}
+        inferenceServicesLoaded={inferenceServicesLoaded}
+        inferenceServicesError={inferenceServicesError}
         onClose={handleCloseModelModal}
         onSave={handleSaveModel}
       />

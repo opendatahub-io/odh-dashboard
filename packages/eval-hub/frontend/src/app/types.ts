@@ -3,12 +3,6 @@ export type DisplayNameAnnotations = Partial<{
   'openshift.io/display-name': string;
 }>;
 
-export type RecommendationModelProfile = {
-  id: string;
-  displayName: string;
-  isDefault?: boolean;
-};
-
 export type K8sCondition = {
   type: string;
   status: string;

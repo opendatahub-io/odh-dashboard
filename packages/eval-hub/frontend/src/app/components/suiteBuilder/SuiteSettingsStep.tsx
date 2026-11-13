@@ -1,38 +1,27 @@
 import * as React from 'react';
 import {
-  Alert,
   Content,
   Form,
   FormHelperText,
   FormGroup,
   HelperText,
   HelperTextItem,
-  Skeleton,
   TextArea,
   TextInput,
   Title,
   useWizardContext,
 } from '@patternfly/react-core';
 import { Controller, useFormContext } from 'react-hook-form';
-import CategoryField from '~/app/components/suiteBuilder/CategoryField';
 import {
   suiteSettingsFieldNames,
   type SuiteBuilderFormValues,
 } from '~/app/schemas/suiteBuilder.schema';
 
 type SuiteSettingsStepProps = {
-  categoryOptions: string[];
-  categoriesLoaded: boolean;
-  categoryLoadError: Error | undefined;
   canContinueSettings: boolean;
 };
 
-const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({
-  categoryOptions,
-  categoriesLoaded,
-  categoryLoadError,
-  canContinueSettings,
-}) => {
+const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({ canContinueSettings }) => {
   const { control, trigger } = useFormContext<SuiteBuilderFormValues>();
   const { goToNextStep } = useWizardContext();
   const handleSettingsSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -50,7 +39,7 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({
         Suite settings
       </Title>
       <Content component="p" className="pf-v6-u-mb-lg">
-        Set the suite name, description, and category.
+        Set the suite name and description.
       </Content>
       <Form
         id="suite-settings-form"
@@ -102,36 +91,6 @@ const SuiteSettingsStep: React.FC<SuiteSettingsStepProps> = ({
               />
             )}
           />
-        </FormGroup>
-        <FormGroup label="Category" fieldId="goal-suite-category" isRequired>
-          {!categoriesLoaded && !categoryLoadError ? (
-            <Skeleton
-              data-testid="suite-builder-category-skeleton"
-              width="100%"
-              height="40px"
-              screenreaderText="Loading categories"
-            />
-          ) : null}
-          {categoryLoadError ? (
-            <Alert
-              variant="danger"
-              isInline
-              title="Unable to load categories"
-              data-testid="suite-builder-category-error-state"
-            />
-          ) : null}
-          {categoriesLoaded && !categoryLoadError ? (
-            <CategoryField options={categoryOptions} isDisabled={categoryOptions.length === 0} />
-          ) : null}
-          {categoriesLoaded && !categoryLoadError && categoryOptions.length === 0 ? (
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem data-testid="suite-builder-category-empty">
-                  No categories are available from this project’s configured benchmark providers.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
-          ) : null}
         </FormGroup>
         <FormGroup label="Evaluates" fieldId="goal-suite-evaluates" isRequired>
           <Content component="p" className="pf-v6-u-mb-0" data-testid="goal-suite-evaluates">

@@ -24,6 +24,7 @@ type SourceModelFieldsProps = {
   onEndpointUrlChange: (val: string) => void;
   apiKeySecretRef: string;
   onApiKeyChange: (val: string) => void;
+  modelNameError?: string;
   endpointUrlError: string | undefined;
   touched: Record<string, boolean>;
   markTouched: (field: string) => void;
@@ -39,6 +40,7 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
   onEndpointUrlChange,
   apiKeySecretRef,
   onApiKeyChange,
+  modelNameError,
   endpointUrlError,
   touched,
   markTouched,
@@ -138,6 +140,13 @@ const SourceModelFields: React.FC<SourceModelFieldsProps> = ({
               <HelperTextItem>The model name is case-sensitive.</HelperTextItem>
             </HelperText>
           </FormHelperText>
+          {touched.modelName && modelNameError ? (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="error">{modelNameError}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          ) : null}
         </FormGroup>
       </StackItem>
       <StackItem>

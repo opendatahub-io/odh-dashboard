@@ -6,11 +6,11 @@ import { useParams } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import ContextBreadcrumb from '~/app/components/ContextBreadcrumb';
 import DefineGoalStep from '~/app/components/suiteBuilder/DefineGoalStep';
-import { getCategoryOptions } from '~/app/components/suiteBuilder/CategoryField';
 import SuiteBuilderFooter from '~/app/components/suiteBuilder/SuiteBuilderFooter';
 import SuiteSettingsStep from '~/app/components/suiteBuilder/SuiteSettingsStep';
 import { useProjectDisplayName } from '~/app/hooks/useProjectDisplayName';
-import { useProviders } from '~/app/hooks/useProviders';
+import { useInferenceServices } from '~/app/hooks/useInferenceServices';
+import { getGeneratorModelEndpoint } from '~/app/utils/generatorModelUtils';
 import {
   evaluationCreateSuiteChooserRoute,
   evaluationsBaseRoute,
@@ -25,20 +25,17 @@ import {
   suiteSettingsSchema,
   type SuiteBuilderFormValues,
 } from '~/app/schemas/suiteBuilder.schema';
-import useRecommendationModelProfiles from '~/app/hooks/useRecommendationModelProfiles';
-import type { RecommendationModelProfile } from '~/app/types';
 
 import './CreateSuiteFromGoalPage.scss';
-
-const EMPTY_RECOMMENDATION_MODELS: RecommendationModelProfile[] = [];
 
 const CreateSuiteFromGoalPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
   const projectDisplayName = useProjectDisplayName(namespace);
-  const { providers, loaded, loadError } = useProviders(namespace ?? '');
-  const { data: recommendationModels = EMPTY_RECOMMENDATION_MODELS } =
-    useRecommendationModelProfiles(namespace);
-  const categoryOptions = React.useMemo(() => getCategoryOptions(providers), [providers]);
+  const {
+    inferenceServices,
+    loaded: inferenceServicesLoaded,
+    loadError: inferenceServicesError,
+  } = useInferenceServices(namespace ?? '');
   const methods = useForm<SuiteBuilderFormValues>({
     defaultValues: suiteBuilderDefaultValues,
     resolver: zodResolver(suiteBuilderSchema),
@@ -46,24 +43,14 @@ const CreateSuiteFromGoalPage: React.FC = () => {
     reValidateMode: 'onChange',
     shouldUnregister: false,
   });
-  const [suiteName, suiteDescription, suiteDomains] = useWatch({
+  const [suiteName, suiteDescription] = useWatch({
     control: methods.control,
     name: [...suiteSettingsFieldNames],
   });
-  const [evaluationGoal, generatorModelId] = useWatch({
+  const [evaluationGoal, generatorModel] = useWatch({
     control: methods.control,
     name: [...defineGoalFieldNames],
   });
-  React.useEffect(() => {
-    if (!generatorModelId) {
-      const defaultModel = recommendationModels.find((model) => model.isDefault);
-      if (defaultModel) {
-        methods.setValue('generatorModelId', defaultModel.id, {
-          shouldValidate: true,
-        });
-      }
-    }
-  }, [generatorModelId, methods, recommendationModels]);
   const { errors } = useFormState({
     control: methods.control,
     name: [...suiteSettingsFieldNames],
@@ -75,24 +62,27 @@ const CreateSuiteFromGoalPage: React.FC = () => {
   const isSuiteSettingsValid = suiteSettingsSchema.safeParse({
     suiteName,
     suiteDescription,
-    suiteDomains,
   }).success;
   const hasSuiteSettingsErrors = suiteSettingsFieldNames.some((fieldName) => errors[fieldName]);
-  const canContinueSettings =
-    loaded &&
-    loadError === undefined &&
-    categoryOptions.length > 0 &&
-    isSuiteSettingsValid &&
-    !hasSuiteSettingsErrors;
+  const canContinueSettings = isSuiteSettingsValid && !hasSuiteSettingsErrors;
   const isDefineGoalValid = defineGoalSchema.safeParse({
     evaluationGoal,
-    generatorModelId,
+    generatorModel,
   }).success;
+  const selectedGeneratorModelIsAvailable =
+    generatorModel?.source !== 'cluster' ||
+    (inferenceServicesLoaded &&
+      !inferenceServicesError &&
+      inferenceServices.some(
+        (service) =>
+          service.name === generatorModel.name &&
+          getGeneratorModelEndpoint(service) === generatorModel.url,
+      ));
   const hasDefineGoalErrors = defineGoalFieldNames.some((fieldName) => defineGoalErrors[fieldName]);
   const canRecommend =
     canContinueSettings &&
     isDefineGoalValid &&
-    recommendationModels.some((model) => model.id === generatorModelId) &&
+    selectedGeneratorModelIsAvailable &&
     !hasDefineGoalErrors;
   const cancelRoute = evaluationCreateSuiteChooserRoute(namespace);
 
@@ -131,16 +121,14 @@ const CreateSuiteFromGoalPage: React.FC = () => {
             }
           >
             <WizardStep name="Suite settings" id="suite-settings">
-              <SuiteSettingsStep
-                categoryOptions={categoryOptions}
-                categoriesLoaded={loaded}
-                categoryLoadError={loadError}
-                canContinueSettings={canContinueSettings}
-              />
+              <SuiteSettingsStep canContinueSettings={canContinueSettings} />
             </WizardStep>
             <WizardStep name="Define goal" id="define-goal" isDisabled={!canContinueSettings}>
               <DefineGoalStep
-                recommendationModels={recommendationModels}
+                inferenceServices={inferenceServices}
+                inferenceServicesLoaded={inferenceServicesLoaded}
+                inferenceServicesError={inferenceServicesError}
+                selectedModelIsAvailable={selectedGeneratorModelIsAvailable}
                 canRecommend={canRecommend}
               />
             </WizardStep>

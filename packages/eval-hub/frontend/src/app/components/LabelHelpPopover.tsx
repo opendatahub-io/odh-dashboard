@@ -13,6 +13,7 @@ const LabelHelpPopover: React.FC<LabelHelpPopoverProps> = ({ ariaLabel, content,
     <Button
       variant="plain"
       isInline
+      hasNoPadding
       aria-label={ariaLabel}
       className="pf-v6-c-form__group-label-help"
     >

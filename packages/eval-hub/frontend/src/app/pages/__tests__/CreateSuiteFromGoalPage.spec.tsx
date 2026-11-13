@@ -1,11 +1,11 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { mockProvider } from '~/__mocks__/mockProvider';
-import { useProviders } from '~/app/hooks/useProviders';
+import { useInferenceServices } from '~/app/hooks/useInferenceServices';
 import CreateSuiteFromGoalPage from '~/app/pages/CreateSuiteFromGoalPage';
-import type { Provider } from '~/app/types';
+import { verifyConnection } from '~/app/api/k8s';
+import type { InferenceServiceItem } from '~/app/types';
 
 jest.mock('@odh-dashboard/ui-core', () => ({
   ...jest.requireActual('@odh-dashboard/ui-core'),
@@ -14,8 +14,13 @@ jest.mock('@odh-dashboard/ui-core', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/useProviders', () => ({
-  useProviders: jest.fn(),
+jest.mock('~/app/hooks/useInferenceServices', () => ({
+  useInferenceServices: jest.fn(),
+}));
+
+jest.mock('~/app/api/k8s', () => ({
+  ...jest.requireActual('~/app/api/k8s'),
+  verifyConnection: jest.fn(),
 }));
 
 jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
@@ -24,14 +29,30 @@ jest.mock('~/app/hooks/useNamespaceSelectorWithPersistence', () => ({
   }),
 }));
 
-const mockUseProviders = jest.mocked(useProviders);
+const mockUseInferenceServices = jest.mocked(useInferenceServices);
+const mockVerifyConnection = jest.mocked(verifyConnection);
 
-const TestQueryClientProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [queryClient] = React.useState(
-    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
-  );
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-};
+const inferenceServiceFixtures: InferenceServiceItem[] = [
+  {
+    name: 'granite-3b',
+    url: 'https://granite.example.com',
+    ready: true,
+    model_format_name: 'vLLM',
+  },
+  {
+    name: 'llama-3.2-1b-instruct',
+    url: 'https://llama.example.com/v1',
+    ready: true,
+    model_format_name: 'vLLM',
+  },
+  {
+    name: 'mistral-7b-instruct',
+    url: 'https://mistral.example.com/base/',
+    ready: true,
+    model_format_name: 'vLLM',
+  },
+  { name: 'missing-url', ready: true, model_format_name: 'vLLM' },
+];
 
 const LocationDisplay: React.FC = () => {
   const { pathname } = useLocation();
@@ -39,21 +60,19 @@ const LocationDisplay: React.FC = () => {
 };
 
 const createPageElement = () => (
-  <TestQueryClientProvider>
-    <MemoryRouter initialEntries={['/evaluation/test-project/create-suite/from-goal']}>
-      <LocationDisplay />
-      <Routes>
-        <Route
-          path="/evaluation/:namespace/create-suite/from-goal"
-          element={<CreateSuiteFromGoalPage />}
-        />
-        <Route
-          path="/evaluation/:namespace/create-suite"
-          element={<div data-testid="suite-chooser-route" />}
-        />
-      </Routes>
-    </MemoryRouter>
-  </TestQueryClientProvider>
+  <MemoryRouter initialEntries={['/evaluation/test-project/create-suite/from-goal']}>
+    <LocationDisplay />
+    <Routes>
+      <Route
+        path="/evaluation/:namespace/create-suite/from-goal"
+        element={<CreateSuiteFromGoalPage />}
+      />
+      <Route
+        path="/evaluation/:namespace/create-suite"
+        element={<div data-testid="suite-chooser-route" />}
+      />
+    </Routes>
+  </MemoryRouter>
 );
 
 const renderPage = async () => {
@@ -66,26 +85,18 @@ const renderPage = async () => {
   return rendered;
 };
 
-const providerWithCategories = (categories: (string | undefined)[]): Provider =>
-  mockProvider({
-    benchmarks: categories.map((category, index) => ({
-      id: `benchmark-${index}`,
-      name: `Benchmark ${index}`,
-      category,
-    })),
-  });
-
 describe('CreateSuiteFromGoalPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseProviders.mockReturnValue({
-      providers: [mockProvider()],
+    mockUseInferenceServices.mockReturnValue({
+      inferenceServices: inferenceServiceFixtures,
       loaded: true,
       loadError: undefined,
+      warning: undefined,
     });
   });
 
-  it('should validate suite name and category before allowing the next step', async () => {
+  it('should require only a suite name before allowing the next step', async () => {
     await renderPage();
 
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
@@ -93,15 +104,12 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('page-description')).toHaveTextContent(
       'Configure your suite, describe your goal, and choose benchmarks.',
     );
-    expect(screen.getByText('Set the suite name, description, and category.')).toBeInTheDocument();
+    expect(screen.getByText('Set the suite name and description.')).toBeInTheDocument();
     expect(screen.getByTestId('goal-suite-evaluates')).toHaveTextContent('Model');
     expect(
       screen.getByText('The recommended benchmarks are configured to evaluate models.'),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('goal-suite-category-input')).toHaveAttribute(
-      'placeholder',
-      'Select category',
-    );
+    expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
 
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
@@ -113,52 +121,21 @@ describe('CreateSuiteFromGoalPage', () => {
       'Enter a suite name.',
     );
     fireEvent.submit(screen.getByTestId('suite-settings-form'));
-    expect(await screen.findByTestId('suite-builder-category-error')).toHaveTextContent(
-      'Select a category.',
-    );
     expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
   });
 
-  it('should derive, trim, deduplicate, and sort categories from providers', async () => {
-    mockUseProviders.mockReturnValue({
-      providers: [providerWithCategories([' Zeta ', 'alpha', 'ALPHA', undefined, 'Beta'])],
-      loaded: true,
-      loadError: undefined,
-    });
-    await renderPage();
-
-    fireEvent.click(screen.getByTestId('goal-suite-category-input'));
-
-    expect(await screen.findByTestId('goal-suite-category-option-alpha')).toHaveTextContent(
-      'Alpha',
-    );
-    expect(screen.getByTestId('goal-suite-category-option-Beta')).toHaveTextContent('Beta');
-    expect(screen.getByTestId('goal-suite-category-option-Zeta')).toHaveTextContent('Zeta');
-    expect(screen.queryAllByTestId(/^goal-suite-category-option-/)).toHaveLength(3);
-    fireEvent.click(
-      within(screen.getByTestId('goal-suite-category-option-alpha')).getByRole('checkbox'),
-    );
-    expect(screen.getByTestId('goal-suite-category-tag-alpha')).toHaveTextContent('Alpha');
-  });
-
   it('should advance after valid settings and preserve values when returning', async () => {
-    await renderPage();
+    const { rerender } = await renderPage();
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
     expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
 
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
       target: { value: 'Reasoning suite' },
     });
-    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
+    expect(screen.getByTestId('next-suite-settings')).toBeEnabled();
     fireEvent.change(screen.getByTestId('goal-suite-description'), {
       target: { value: 'Check general reasoning performance.' },
     });
-    fireEvent.click(screen.getByTestId('goal-suite-category-input'));
-    fireEvent.click(
-      within(await screen.findByTestId('goal-suite-category-option-Reasoning')).getByRole(
-        'checkbox',
-      ),
-    );
     await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
     fireEvent.click(screen.getByTestId('next-suite-settings'));
 
@@ -172,8 +149,8 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue('');
     expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveAttribute('maxlength', '2000');
     expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
-    await waitFor(() =>
-      expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent('granite-3b'),
+    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
+      'No model selected',
     );
 
     fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
@@ -189,7 +166,7 @@ describe('CreateSuiteFromGoalPage', () => {
       'aria-pressed',
       'true',
     );
-    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
 
     fireEvent.click(screen.getByTestId('define-goal-view-examples'));
     expect(screen.getByTestId('define-goal-example-adversarial-content')).toBeInTheDocument();
@@ -203,25 +180,92 @@ describe('CreateSuiteFromGoalPage', () => {
     );
 
     fireEvent.click(screen.getByTestId('edit-recommendation-model'));
-    expect(screen.getByText('Change recommendation model')).toBeInTheDocument();
+    expect(screen.getByText('Choose a recommendation model')).toBeInTheDocument();
     expect(
       screen.getByText('Choose the model that suggests benchmarks for your goal.'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    expect(
+      within(screen.getByTestId('recommendation-model-option-missing-url')).getByRole('option', {
+        hidden: true,
+      }),
+    ).toBeDisabled();
+    expect(screen.getByTestId('recommendation-model-option-external')).toBeInTheDocument();
     fireEvent.click(
       within(
-        await screen.findByTestId('recommendation-model-option-preview-llama-3-2-1b'),
-      ).getByText('llama-3.2-1b-instruct'),
+        await screen.findByTestId('recommendation-model-option-llama-3.2-1b-instruct'),
+      ).getByRole('option', { hidden: true }),
     );
     fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
-    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent('granite-3b');
+    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
+      'No model selected',
+    );
+    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
 
     fireEvent.click(screen.getByTestId('edit-recommendation-model'));
     fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
     fireEvent.click(
-      within(await screen.findByTestId('recommendation-model-option-preview-mistral-7b')).getByText(
-        'mistral-7b-instruct',
+      within(await screen.findByTestId('recommendation-model-option-granite-3b')).getByRole(
+        'option',
+        { hidden: true },
       ),
+    );
+    fireEvent.click(screen.getByTestId('save-recommendation-model'));
+    await waitFor(() =>
+      expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent('granite-3b'),
+    );
+    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled();
+
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(screen.getByTestId('recommendation-model-option-external')).getByRole('option', {
+        hidden: true,
+      }),
+    );
+    expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent(
+      'Other (External endpoint)',
+    );
+    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
+    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent('granite-3b');
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent('granite-3b');
+    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
+
+    mockUseInferenceServices.mockReturnValue({
+      inferenceServices: inferenceServiceFixtures.map((service) =>
+        service.name === 'granite-3b'
+          ? { ...service, url: 'https://updated-granite.example.com' }
+          : service,
+      ),
+      loaded: true,
+      loadError: undefined,
+      warning: undefined,
+    });
+    rerender(createPageElement());
+    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled());
+    expect(screen.getByTestId('selected-recommendation-model-stale')).toHaveTextContent(
+      'no longer available or its endpoint has changed',
+    );
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    expect(screen.getByTestId('save-recommendation-model')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
+
+    mockUseInferenceServices.mockReturnValue({
+      inferenceServices: inferenceServiceFixtures,
+      loaded: true,
+      loadError: undefined,
+      warning: undefined,
+    });
+    rerender(createPageElement());
+    await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
+
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    fireEvent.click(
+      within(
+        await screen.findByTestId('recommendation-model-option-mistral-7b-instruct'),
+      ).getByRole('option', { hidden: true }),
     );
     fireEvent.click(screen.getByTestId('save-recommendation-model'));
     await waitFor(() =>
@@ -244,7 +288,6 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('goal-suite-description')).toHaveValue(
       'Check general reasoning performance.',
     );
-    expect(screen.getByTestId('goal-suite-category-tag-Reasoning')).toHaveTextContent('Reasoning');
     fireEvent.change(screen.getByTestId('goal-suite-name'), { target: { value: '' } });
     await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeDisabled());
     expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
@@ -259,99 +302,95 @@ describe('CreateSuiteFromGoalPage', () => {
     expect(screen.getByTestId('goal-suite-evaluation-goal')).toHaveValue(evaluationGoal);
   });
 
-  it('should show loading, empty, and error states for categories', async () => {
-    mockUseProviders.mockReturnValue({
-      providers: [],
-      loaded: false,
-      loadError: undefined,
-    });
-    const { rerender } = await renderPage();
-    expect(screen.getByTestId('suite-builder-category-skeleton')).toBeInTheDocument();
-    expect(screen.queryByTestId('goal-suite-category-input')).not.toBeInTheDocument();
-    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
-
-    mockUseProviders.mockReturnValue({
-      providers: [],
+  it('should allow a validated external recommendation model when project model discovery fails', async () => {
+    mockUseInferenceServices.mockReturnValue({
+      inferenceServices: [],
       loaded: true,
-      loadError: undefined,
-    });
-    rerender(createPageElement());
-    expect(screen.getByTestId('suite-builder-category-empty')).toBeInTheDocument();
-    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
-    expect(screen.getByTestId('goal-suite-category-input')).toBeDisabled();
-
-    mockUseProviders.mockReturnValue({
-      providers: [],
-      loaded: false,
       loadError: new Error('offline'),
+      warning: undefined,
     });
-    rerender(createPageElement());
-    expect(screen.getByTestId('suite-builder-category-error-state')).toHaveTextContent(
-      'Unable to load categories',
-    );
-    expect(screen.queryByTestId('suite-builder-category-skeleton')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('goal-suite-category-input')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
-    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
-  });
-
-  it('should require available providers for settings navigation and recover when they load', async () => {
-    mockUseProviders.mockReturnValue({
-      providers: [providerWithCategories(['Reasoning'])],
-      loaded: true,
-      loadError: undefined,
-    });
-    const { rerender } = await renderPage();
+    await renderPage();
 
     fireEvent.change(screen.getByTestId('goal-suite-name'), {
-      target: { value: 'Reasoning suite' },
+      target: { value: 'External model suite' },
     });
-    fireEvent.click(screen.getByTestId('goal-suite-category-input'));
+    await waitFor(() => expect(screen.getByTestId('next-suite-settings')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('next-suite-settings'));
+    fireEvent.change(screen.getByTestId('goal-suite-evaluation-goal'), {
+      target: { value: 'Evaluate answer quality.' },
+    });
+    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    expect(screen.getByText(/Could not load project models/)).toBeInTheDocument();
     fireEvent.click(
-      within(await screen.findByTestId('goal-suite-category-option-Reasoning')).getByRole(
-        'checkbox',
+      within(screen.getByTestId('recommendation-model-option-external')).getByRole('option', {
+        hidden: true,
+      }),
+    );
+    expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent(
+      'Other (External endpoint)',
+    );
+    fireEvent.click(screen.getByTestId('recommendation-model-toggle'));
+    expect(
+      within(screen.getByTestId('recommendation-model-option-external')).getByRole('option', {
+        hidden: true,
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('validate-connection-button')).toBeDisabled();
+    expect(screen.getByTestId('save-recommendation-model')).toBeDisabled();
+    fireEvent.change(screen.getByTestId('model-name-input'), {
+      target: { value: 'external-chat-model' },
+    });
+    fireEvent.change(screen.getByTestId('endpoint-url-input'), {
+      target: { value: 'https://api.example.com/v1' },
+    });
+    fireEvent.change(screen.getByTestId('api-key-input'), {
+      target: { value: 'evalhub-api-secret' },
+    });
+    expect(screen.getByTestId('validate-connection-button')).toBeEnabled();
+    expect(screen.getByTestId('save-recommendation-model')).toBeEnabled();
+    fireEvent.blur(screen.getByTestId('endpoint-url-input'));
+    expect(mockVerifyConnection).not.toHaveBeenCalled();
+    mockVerifyConnection.mockReturnValue(() =>
+      Promise.resolve({ success: true, message: 'Request completed.' }),
+    );
+    fireEvent.click(screen.getByTestId('validate-connection-button'));
+    await waitFor(() =>
+      expect(mockVerifyConnection).toHaveBeenCalledWith(
+        '',
+        'test-project',
+        expect.objectContaining({
+          source_type: 'model',
+          base_url: 'https://api.example.com/v1',
+          model_id: 'external-chat-model',
+          secret_name: 'evalhub-api-secret',
+        }),
       ),
     );
-    await waitFor(() => {
-      expect(screen.getByTestId('next-suite-settings')).toBeEnabled();
-    });
-    fireEvent.click(screen.getByTestId('next-suite-settings'));
-    expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Suite settings/ }));
+    expect(await screen.findByText('Connection established successfully.')).toBeInTheDocument();
+    expect(screen.getByTestId('save-recommendation-model')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('save-recommendation-model'));
 
-    mockUseProviders.mockReturnValue({
-      providers: [providerWithCategories(['Reasoning'])],
-      loaded: false,
-      loadError: undefined,
-    });
-    rerender(createPageElement());
-    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
-    fireEvent.submit(screen.getByTestId('suite-settings-form'));
-    expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
-
-    mockUseProviders.mockReturnValue({
-      providers: [providerWithCategories(['Reasoning'])],
-      loaded: false,
-      loadError: new Error('offline'),
-    });
-    rerender(createPageElement());
-    expect(screen.getByTestId('next-suite-settings')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Define goal/ })).toBeDisabled();
-    fireEvent.submit(screen.getByTestId('suite-settings-form'));
-    expect(screen.queryByTestId('define-goal-step')).not.toBeInTheDocument();
-
-    mockUseProviders.mockReturnValue({
-      providers: [providerWithCategories(['Reasoning'])],
-      loaded: true,
-      loadError: undefined,
-    });
-    rerender(createPageElement());
-    await waitFor(() => {
-      expect(screen.getByTestId('next-suite-settings')).toBeEnabled();
-      expect(screen.getByRole('button', { name: /Define goal/ })).toBeEnabled();
-    });
-    fireEvent.submit(screen.getByTestId('suite-settings-form'));
-    expect(await screen.findByTestId('define-goal-step')).toBeInTheDocument();
+    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
+      'external-chat-model',
+    );
+    expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('edit-recommendation-model'));
+    expect(screen.getByTestId('recommendation-model-toggle')).toHaveTextContent(
+      'Other (External endpoint)',
+    );
+    expect(screen.getByTestId('model-name-input')).toHaveValue('external-chat-model');
+    expect(screen.getByTestId('endpoint-url-input')).toHaveValue('https://api.example.com/v1');
+    expect(screen.getByTestId('api-key-input')).toHaveValue('evalhub-api-secret');
+    expect(screen.getByTestId('external-endpoint-compatibility-alert')).toHaveTextContent(
+      'This model must expose an OpenAI-compatible chat/completions endpoint.',
+    );
+    expect(screen.getByRole('dialog')).not.toHaveTextContent(/Enter the provider's API base URL/i);
+    fireEvent.click(screen.getByTestId('cancel-recommendation-model'));
+    expect(screen.getByTestId('selected-recommendation-model')).toHaveTextContent(
+      'external-chat-model',
+    );
   });
 });

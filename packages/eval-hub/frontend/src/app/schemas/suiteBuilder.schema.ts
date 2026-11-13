@@ -1,17 +1,35 @@
+/* eslint-disable camelcase */
 import * as z from 'zod';
+import { getUrlValidationError } from '~/app/utils/validationUtils';
 
 export const suiteSettingsSchema = z.object({
   suiteName: z.string().trim().min(1, 'Enter a suite name.'),
   suiteDescription: z.string(),
-  suiteDomains: z.array(z.string()).min(1, 'Select a category.'),
 });
 
-export const suiteSettingsFieldNames = ['suiteName', 'suiteDescription', 'suiteDomains'] as const;
+export const suiteSettingsFieldNames = ['suiteName', 'suiteDescription'] as const;
 
 export const MAX_EVALUATION_GOAL_LENGTH = 2000;
-export const defineGoalFieldNames = ['evaluationGoal', 'generatorModelId'] as const;
+export const defineGoalFieldNames = ['evaluationGoal', 'generatorModel'] as const;
 
-export const defineGoalSchema = z.object({
+export const generatorModelSelectionSchema = z.object({
+  source: z.enum(['cluster', 'external']),
+  name: z.string().trim().min(1, 'Model name is required.'),
+  url: z
+    .string()
+    .trim()
+    .superRefine((url, context) => {
+      const error = getUrlValidationError(url);
+      if (error) {
+        context.addIssue({ code: 'custom', message: error });
+      }
+    }),
+  auth: z.object({ secret_ref: z.string().trim().optional() }).optional(),
+});
+
+export type GeneratorModelSelection = z.infer<typeof generatorModelSelectionSchema>;
+
+const defineGoalShape = {
   evaluationGoal: z
     .string()
     .trim()
@@ -20,17 +38,34 @@ export const defineGoalSchema = z.object({
       MAX_EVALUATION_GOAL_LENGTH,
       `Evaluation goal must be ${MAX_EVALUATION_GOAL_LENGTH.toLocaleString()} characters or fewer.`,
     ),
-  generatorModelId: z.string().min(1, 'Select a recommendation model.'),
-});
+  generatorModel: generatorModelSelectionSchema.nullable(),
+};
 
-export const suiteBuilderSchema = suiteSettingsSchema.extend(defineGoalSchema.shape);
+const requireGeneratorModel = (
+  values: { generatorModel: GeneratorModelSelection | null },
+  context: z.RefinementCtx,
+) => {
+  if (values.generatorModel === null) {
+    context.addIssue({
+      code: 'custom',
+      path: ['generatorModel'],
+      message: 'Select a recommendation model.',
+    });
+  }
+};
+
+export const defineGoalSchema = z.object(defineGoalShape).superRefine(requireGeneratorModel);
+
+export const suiteBuilderSchema = suiteSettingsSchema
+  .extend(defineGoalShape)
+  .superRefine(requireGeneratorModel);
 
 export type SuiteBuilderFormValues = z.infer<typeof suiteBuilderSchema>;
 
 export const suiteBuilderDefaultValues: SuiteBuilderFormValues = {
   suiteName: '',
   suiteDescription: '',
-  suiteDomains: [],
   evaluationGoal: '',
-  generatorModelId: '',
+  generatorModel: null,
 };
+/* eslint-enable camelcase */

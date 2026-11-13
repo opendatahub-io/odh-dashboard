@@ -17,6 +17,7 @@ import {
 import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
 import type { EvalHubTrackingContext } from '~/app/tracking/evalhubTracking';
 import buildEvaluationRequest from '~/app/utils/buildEvaluationRequest';
+import { normalizeInferenceServiceUrl } from '~/app/utils/modelCompatibility';
 import type { ReconfigureFormData } from '~/app/utils/extractReconfigureData';
 import { parseS3DatasetUrl } from '~/app/utils/s3DatasetUrl';
 import { getUrlValidationError } from '~/app/utils/validationUtils';
@@ -871,15 +872,7 @@ export function useStartEvaluationRunForm({
           return '';
         }
         try {
-          const url = new URL(serviceUrl);
-          // URL parses non-HTTP(S) schemes (e.g. ftp:) successfully; reject them so the
-          // submission fails with the invalid-endpoint error instead of creating a job.
-          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-            throw new Error('unsupported protocol');
-          }
-          const pathname = url.pathname.replace(/\/+$/, '');
-          url.pathname = pathname.endsWith('/v1') ? pathname : `${pathname}/v1`;
-          return url.toString();
+          return normalizeInferenceServiceUrl(serviceUrl);
         } catch {
           clusterUrlParseError = new Error('The selected model endpoint URL is invalid.');
           return '';
