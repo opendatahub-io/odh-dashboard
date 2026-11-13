@@ -1,16 +1,15 @@
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Table, Tbody } from '@patternfly/react-table';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
 import type { EvaluationJob } from '~/app/types';
 import EvaluationsTableRow from '~/app/components/EvaluationsTableRow';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { mockTrackEvent, render } = setupTrackingTest();
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -25,7 +24,6 @@ jest.mock('~/app/api/k8s', () => ({
 
 const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const mockOnActionComplete = jest.fn();
 const mockOnShowStatus = jest.fn();
@@ -465,11 +463,12 @@ describe('EvaluationsTableRow', () => {
       });
       rerender(renderTree(failedJob));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         'Evaluations Evaluation Completed',
         expect.objectContaining({ runOutcome: 'failed', error: 'evaluation_job_updated' }),
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
       );
-      const trackedCall = mockFireMiscTrackingEvent.mock.calls.find(
+      const trackedCall = mockTrackEvent.mock.calls.find(
         ([eventName]) => eventName === 'Evaluations Evaluation Completed',
       );
       expect(JSON.stringify(trackedCall)).not.toContain('user-provided-name');
@@ -484,9 +483,10 @@ describe('EvaluationsTableRow', () => {
       delete failedJob.status.message?.message_code;
       rerender(renderTree(failedJob));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         'Evaluations Evaluation Completed',
         expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
       );
     });
 
@@ -498,9 +498,10 @@ describe('EvaluationsTableRow', () => {
 
       rerender(renderTree(completedJob));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         'Evaluations Evaluation Completed',
         expect.objectContaining({ runOutcome: 'completed', error: undefined }),
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
       );
     });
 
@@ -516,11 +517,12 @@ describe('EvaluationsTableRow', () => {
 
       rerender(renderTree(failedJob));
 
-      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         'Evaluations Evaluation Completed',
         expect.objectContaining({ runOutcome: 'failed', error: 'unknown_error' }),
+        expect.objectContaining({ pageContextPolicy: expect.any(Function) }),
       );
-      expect(JSON.stringify(mockFireMiscTrackingEvent.mock.calls)).not.toContain(marker);
+      expect(JSON.stringify(mockTrackEvent.mock.calls)).not.toContain(marker);
     });
   });
 });

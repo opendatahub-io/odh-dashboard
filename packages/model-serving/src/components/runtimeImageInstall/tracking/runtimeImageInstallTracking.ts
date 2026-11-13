@@ -14,7 +14,7 @@ export type CreateStartedProperties = {
   hardware: string;
 };
 
-export type ConfigurationType = 'serving-runtime-template' | 'llm-accelerator-configuration';
+export type ConfigurationType = 'serving-runtime-template' | 'llm-inference-service-configuration';
 
 export type ConfigurationSelectedProperties = {
   configurationType: ConfigurationType;
@@ -27,7 +27,7 @@ export type CreateCompletedProperties = FormTrackingEventProperties & {
 /** Map internal target IDs to user-facing configuration type values. */
 const TARGET_ID_TO_CONFIGURATION_TYPE: Record<RuntimeImageInstallTargetId, ConfigurationType> = {
   servingRuntimeTemplate: 'serving-runtime-template',
-  llmInferenceServiceConfig: 'llm-accelerator-configuration',
+  llmInferenceServiceConfig: 'llm-inference-service-configuration',
 };
 
 export const toConfigurationType = (targetId: RuntimeImageInstallTargetId): ConfigurationType =>

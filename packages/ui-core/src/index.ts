@@ -131,10 +131,15 @@ export type {
   ProjectIdentity,
   WorkingProjectContextType,
   WorkingProjectProviderProps,
-  WorkingProjectStatus,
   WorkingProjectNavigation,
   WorkingProjectNavigationTransaction,
 } from './context/WorkingProjectContext';
+export {
+  WorkingProjectSelectorLabelValue,
+  WorkingProjectStatusLabelValue,
+  WorkingProjectStatusValue,
+} from './context/WorkingProjectContext';
+export type { WorkingProjectStatus } from './context/WorkingProjectContext';
 
 export { useWorkingProjectSynchronization } from './hooks/useWorkingProjectSynchronization';
 export type {

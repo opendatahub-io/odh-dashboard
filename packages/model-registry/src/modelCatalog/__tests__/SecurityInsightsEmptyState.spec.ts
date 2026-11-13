@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import * as React from 'react';
+import { NoopAnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import { MemoryRouter } from 'react-router-dom';
 
 let mockLoaded = true;
@@ -25,22 +26,22 @@ jest.mock('@odh-dashboard/internal/components/table/TableRowTitleDescription', (
   };
 });
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
 import SecurityInsightsView from '../SecurityInsightsView';
 
 const renderView = () =>
   render(
     React.createElement(
-      MemoryRouter,
+      NoopAnalyticsTrackingProvider,
       null,
-      React.createElement(SecurityInsightsView, {
-        sourceId: 'src-1',
-        modelName: 'test-model',
-        namespace: 'test-ns',
-      }),
+      React.createElement(
+        MemoryRouter,
+        null,
+        React.createElement(SecurityInsightsView, {
+          sourceId: 'src-1',
+          modelName: 'test-model',
+          namespace: 'test-ns',
+        }),
+      ),
     ),
   );
 

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '../../__tests__/unit/testUtils/TrackingProvider';
 import WorkloadOverview from '../WorkloadOverview';
 import { GPUAAS_EVENTS } from '../../tracking/gpuaasTrackingConstants';
 import type { WorkloadOverviewRow } from '../../utils/workloadOverview';
@@ -10,10 +10,6 @@ import type { WorkloadOverviewRow } from '../../utils/workloadOverview';
 jest.mock('react', () => ({
   ...jest.requireActual<typeof React>('react'),
   lazy: () => () => null,
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('../../hooks/useWorkloadAdmissionMetrics', () => ({
@@ -28,7 +24,11 @@ jest.mock('../../hooks/useWorkloadAdmissionMetrics', () => ({
   })),
 }));
 
-const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvent = jest.fn();
+const mockTrackPageEvent = jest.fn();
+const TrackingWrapper = createTrackingWrapper(mockTrackEvent, mockTrackPageEvent);
+const renderTracked = (element: React.ReactElement) =>
+  render(element, { wrapper: TrackingWrapper });
 const mockPopoverClosed = jest.fn();
 const workloads: WorkloadOverviewRow[] = [
   { bucket: 'active', detail: 'running', statusFilters: ['Running'] },
@@ -36,12 +36,13 @@ const workloads: WorkloadOverviewRow[] = [
 ];
 
 describe('WorkloadOverview tracking events', () => {
+  afterEach(() => expect(mockTrackPageEvent).not.toHaveBeenCalled());
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   const renderOverview = () =>
-    render(
+    renderTracked(
       <WorkloadOverview
         workloads={workloads}
         loaded
@@ -50,17 +51,25 @@ describe('WorkloadOverview tracking events', () => {
         onPopoverClosed={mockPopoverClosed}
         onViewInTable={jest.fn()}
         onViewInTableClicked={(overviewSegment) =>
-          fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_VIEW_IN_TABLE_CLICKED, {
+          mockTrackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_VIEW_IN_TABLE_CLICKED, {
             overviewSegment,
           })
         }
         onStatusOverviewSegmentClick={(statusClicked) =>
-          fireMiscTrackingEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED, {
+          mockTrackEvent(GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED, {
             statusClicked,
           })
         }
       />,
     );
+
+  it('should emit nothing on load or rerender', () => {
+    const element = <WorkloadOverview workloads={workloads} loaded={false} />;
+    const { rerender } = renderTracked(element);
+    rerender(<WorkloadOverview workloads={workloads} loaded />);
+    rerender(<WorkloadOverview workloads={workloads} loaded />);
+    expect(mockTrackEvent).not.toHaveBeenCalled();
+  });
 
   it('tracks status segment clicks and section toggles', async () => {
     const user = userEvent.setup();
@@ -69,11 +78,11 @@ describe('WorkloadOverview tracking events', () => {
     await user.click(screen.getByTestId('workload-segment-active'));
     await user.click(screen.getByRole('button', { name: /Workload overview/i }));
 
-    expect(mockFireMisc).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED,
       { statusClicked: 'active' },
     );
-    expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_SECTION_TOGGLED, {
       sectionName: 'workload-overview',
       action: 'collapse',
     });
@@ -90,7 +99,7 @@ describe('WorkloadOverview tracking events', () => {
       screen.getByRole('tab', { name: tab === 'admissions' ? 'Admissions' : 'Status' }),
     );
 
-    expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_OVERVIEW_TAB_SELECTED, {
+    expect(mockTrackEvent).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_OVERVIEW_TAB_SELECTED, {
       tabName,
     });
   });
@@ -102,7 +111,7 @@ describe('WorkloadOverview tracking events', () => {
     await user.click(screen.getByTestId('workload-count-active'));
     await user.click(screen.getByRole('button', { name: 'View in table' }));
 
-    expect(mockFireMisc).toHaveBeenCalledWith(
+    expect(mockTrackEvent).toHaveBeenCalledWith(
       GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_VIEW_IN_TABLE_CLICKED,
       { overviewSegment: 'active' },
     );
@@ -148,7 +157,7 @@ describe('WorkloadOverview tracking events', () => {
       await user.click(target);
 
       expect(mockPopoverClosed).not.toHaveBeenCalled();
-      expect(mockFireMisc).toHaveBeenLastCalledWith(
+      expect(mockTrackEvent).toHaveBeenLastCalledWith(
         GPUAAS_EVENTS.WORKLOADS_TAB_STATUS_OVERVIEW_SEGMENT_CLICKED,
         { statusClicked: 'waiting' },
       );

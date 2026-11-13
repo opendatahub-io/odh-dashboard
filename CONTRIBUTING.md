@@ -21,6 +21,10 @@ When reviewing pull requests, please refer to our comprehensive [PR Review Guide
 
 For development standards and coding guidelines, please review our [Best Practices](docs/best-practices.md) documentation. This covers React coding standards, component architecture, performance considerations, and PatternFly usage guidelines.
 
+## Security and CVEs
+
+For dependency vulnerabilities, Dependabot/Renovate PRs, PR audit gates, and how to fix a CVE on `main` or a release branch, see [Security and CVE Handling](docs/security-cve.md).
+
 ## Writing code
 
 ### Running locally

@@ -1,8 +1,5 @@
+import type { TrackEvent } from '@odh-dashboard/analytics/types';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
@@ -36,8 +33,11 @@ export const AUTOML_EVENTS = {
   MODEL_DETAILS_VIEWED: 'AutoML Model Details Viewed',
 } as const;
 
-export const fireAutomlProjectDropdownOptionSelected = (selectedProject: string): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED, { selectedProject });
+export const fireAutomlProjectDropdownOptionSelected = (
+  trackEvent: TrackEvent,
+  selectedProject: string,
+): void => {
+  trackEvent(AUTOML_EVENTS.PROJECT_DROPDOWN_OPTION_SELECTED, { selectedProject });
 };
 
 /** Maps AutoML's internal task_type values to the product-wide predictionType taxonomy. */
@@ -139,10 +139,11 @@ export type ModelActionOutcomeProperties = {
  * there's no success/error to report.
  */
 export const fireAutomlRunDetailsDefined = (
+  trackEvent: TrackEvent,
   outcome: TrackingOutcome,
   hasDescription: boolean,
 ): void => {
-  fireFormTrackingEvent(AUTOML_EVENTS.RUN_DETAILS_DEFINED, { outcome, hasDescription });
+  trackEvent(AUTOML_EVENTS.RUN_DETAILS_DEFINED, { outcome, hasDescription });
 };
 
 /**
@@ -151,9 +152,10 @@ export const fireAutomlRunDetailsDefined = (
  * Used to measure funnel retention through the multi-section AutoML configure page.
  */
 export const fireAutomlTrainingDataConfigured = (
+  trackEvent: TrackEvent,
   trainingDataSourceType: 'select' | 'upload',
 ): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, { trainingDataSourceType });
+  trackEvent(AUTOML_EVENTS.TRAINING_DATA_CONFIGURED, { trainingDataSourceType });
 };
 
 /**
@@ -161,36 +163,47 @@ export const fireAutomlTrainingDataConfigured = (
  * funnel retention through the multi-section AutoML configure page. Prediction type and
  * whether it matched the recommendation are captured later, at run creation time.
  */
-export const fireAutomlTargetColumnConfigured = (): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED, {});
+export const fireAutomlTargetColumnConfigured = (trackEvent: TrackEvent): void => {
+  trackEvent(AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED, {});
 };
 
 export const fireAutomlRunCreated = (
+  trackEvent: TrackEvent,
   properties: RunConfigTrackingProperties & RunOutcomeTrackingProperties,
 ): void => {
-  fireFormTrackingEvent(AUTOML_EVENTS.RUN_CREATED, properties);
+  trackEvent(AUTOML_EVENTS.RUN_CREATED, properties);
 };
 
 export const fireAutomlRunReconfigured = (
+  trackEvent: TrackEvent,
   properties: RunConfigTrackingProperties &
     RunOutcomeTrackingProperties & { changedFields: string[] },
 ): void => {
-  fireFormTrackingEvent(AUTOML_EVENTS.RUN_RECONFIGURED, {
+  trackEvent(AUTOML_EVENTS.RUN_RECONFIGURED, {
     ...properties,
     changedFields: properties.changedFields.join(','),
   });
 };
 
-export const fireAutomlRunStopped = (properties: RunOutcomeTrackingProperties): void => {
-  fireFormTrackingEvent(AUTOML_EVENTS.RUN_STOPPED, properties);
+export const fireAutomlRunStopped = (
+  trackEvent: TrackEvent,
+  properties: RunOutcomeTrackingProperties,
+): void => {
+  trackEvent(AUTOML_EVENTS.RUN_STOPPED, properties);
 };
 
-export const fireAutomlRunRetried = (properties: RunOutcomeTrackingProperties): void => {
-  fireFormTrackingEvent(AUTOML_EVENTS.RUN_RETRIED, properties);
+export const fireAutomlRunRetried = (
+  trackEvent: TrackEvent,
+  properties: RunOutcomeTrackingProperties,
+): void => {
+  trackEvent(AUTOML_EVENTS.RUN_RETRIED, properties);
 };
 
-export const fireAutomlRunDeleted = (properties: RunOutcomeTrackingProperties): void => {
-  fireFormTrackingEvent(AUTOML_EVENTS.RUN_DELETED, properties);
+export const fireAutomlRunDeleted = (
+  trackEvent: TrackEvent,
+  properties: RunOutcomeTrackingProperties,
+): void => {
+  trackEvent(AUTOML_EVENTS.RUN_DELETED, properties);
 };
 
 /** Maps tabConfig.ts tab keys (kebab-case) to camelCase names for AutoML Model Details Tab Viewed tracking. */
@@ -207,23 +220,33 @@ const MODEL_DETAILS_TAB_NAME_MAP: Record<string, string> = {
 export const mapModelDetailsTabName = (tabKey: string): string =>
   MODEL_DETAILS_TAB_NAME_MAP[tabKey] ?? tabKey;
 
-export const fireAutomlModelDetailsTabViewed = (tabKey: string, taskType?: string): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_DETAILS_TAB_VIEWED, {
+export const fireAutomlModelDetailsTabViewed = (
+  trackEvent: TrackEvent,
+  tabKey: string,
+  taskType?: string,
+): void => {
+  trackEvent(AUTOML_EVENTS.MODEL_DETAILS_TAB_VIEWED, {
     tabName: mapModelDetailsTabName(tabKey),
     predictionType: mapPredictionType(taskType),
   });
 };
 
-export const fireAutomlBacktestWindowMetricViewed = (metricName: string): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.BACKTEST_WINDOW_METRIC_VIEWED, { metricName });
+export const fireAutomlBacktestWindowMetricViewed = (
+  trackEvent: TrackEvent,
+  metricName: string,
+): void => {
+  trackEvent(AUTOML_EVENTS.BACKTEST_WINDOW_METRIC_VIEWED, { metricName });
 };
 
-export const fireAutomlNotebookDownloaded = (source: ModelActionSource): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.NOTEBOOK_DOWNLOADED, { downloadType: 'notebook', source });
+export const fireAutomlNotebookDownloaded = (
+  trackEvent: TrackEvent,
+  source: ModelActionSource,
+): void => {
+  trackEvent(AUTOML_EVENTS.NOTEBOOK_DOWNLOADED, { downloadType: 'notebook', source });
 };
 
-export const fireAutomlRunNotebookDownloaded = (): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED, { downloadType: 'runNotebook' });
+export const fireAutomlRunNotebookDownloaded = (trackEvent: TrackEvent): void => {
+  trackEvent(AUTOML_EVENTS.RUN_NOTEBOOK_DOWNLOADED, { downloadType: 'runNotebook' });
 };
 
 /**
@@ -233,27 +256,32 @@ export const fireAutomlRunNotebookDownloaded = (): void => {
  * proof of a completed download. Unlike `fireAutomlNotebookDownloaded`, which fires after a
  * verified successful blob download, there is no reliable "completed" signal available here.
  */
-export const fireAutomlModelDetailsDownloadInitiated = (): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED, {
+export const fireAutomlModelDetailsDownloadInitiated = (trackEvent: TrackEvent): void => {
+  trackEvent(AUTOML_EVENTS.MODEL_DETAILS_DOWNLOAD_INITIATED, {
     downloadType: 'modelDetails',
   });
 };
 
 export const fireAutomlModelRegistered = (
+  trackEvent: TrackEvent,
   properties: ModelActionOutcomeProperties & { registryTarget?: string },
 ): void => {
-  fireFormTrackingEvent(AUTOML_EVENTS.MODEL_REGISTERED, properties);
+  trackEvent(AUTOML_EVENTS.MODEL_REGISTERED, properties);
 };
 
-export const fireAutomlS3ConnectionCreated = (properties: RunOutcomeTrackingProperties): void => {
-  fireFormTrackingEvent(AUTOML_EVENTS.S3_CONNECTION_CREATED, properties);
+export const fireAutomlS3ConnectionCreated = (
+  trackEvent: TrackEvent,
+  properties: RunOutcomeTrackingProperties,
+): void => {
+  trackEvent(AUTOML_EVENTS.S3_CONNECTION_CREATED, properties);
 };
 
 export const fireAutomlLeaderboardSorted = (
+  trackEvent: TrackEvent,
   sortColumn: string,
   sortDirection: 'asc' | 'desc',
 ): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.LEADERBOARD_SORTED, { sortColumn, sortDirection });
+  trackEvent(AUTOML_EVENTS.LEADERBOARD_SORTED, { sortColumn, sortDirection });
 };
 
 /**
@@ -268,12 +296,13 @@ export const fireAutomlLeaderboardSorted = (
  * for the create-run flow.
  */
 export const fireAutomlFlowExited = (
+  trackEvent: TrackEvent,
   exitType: 'abandon' | 'navigate',
   lastFunnelStep: AutomlFunnelStep,
   exitDestination: AutomlExitDestination,
   changedFields?: string,
 ): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.FLOW_EXITED, {
+  trackEvent(AUTOML_EVENTS.FLOW_EXITED, {
     exitType,
     lastFunnelStep,
     exitDestination,
@@ -309,8 +338,11 @@ export const isAutomlResultsNavigationState = (
  * router state set by the link/navigation that brought the user here, falling back to `'other'`
  * when the page was reached without that state (e.g. a bookmarked/pasted URL or a page refresh).
  */
-export const fireAutomlResultsViewed = (entrySource: AutomlResultsEntrySource): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.RESULTS_VIEWED, { entrySource });
+export const fireAutomlResultsViewed = (
+  trackEvent: TrackEvent,
+  entrySource: AutomlResultsEntrySource,
+): void => {
+  trackEvent(AUTOML_EVENTS.RESULTS_VIEWED, { entrySource });
 };
 
 /** Which control on the results page the user drilled into a model's details from. */
@@ -322,7 +354,8 @@ export type ModelDetailsEntrySource = 'resultsTable' | 'pipelineViz' | 'other';
  * the source is captured for when it does).
  */
 export const fireAutomlModelDetailsViewed = (
+  trackEvent: TrackEvent,
   entrySource: ModelDetailsEntrySource = 'resultsTable',
 ): void => {
-  fireMiscTrackingEvent(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, { entrySource });
+  trackEvent(AUTOML_EVENTS.MODEL_DETAILS_VIEWED, { entrySource });
 };

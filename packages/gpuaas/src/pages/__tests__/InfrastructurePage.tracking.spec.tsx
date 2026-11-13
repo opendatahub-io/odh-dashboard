@@ -2,14 +2,10 @@ import * as React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
-import {
-  GPUAAS_EVENTS,
-  QUOTA_USAGE_INTERACTION_TYPES,
-  WORKLOADS_INTERACTION_TYPES,
-} from '../../tracking/gpuaasTrackingConstants';
+import { createTrackingWrapper } from '../../__tests__/unit/testUtils/TrackingProvider';
+import { GPUAAS_EVENTS } from '../../tracking/gpuaasTrackingConstants';
 import type { ClusterMetrics } from '../../hooks/useInfrastructureMetrics';
 import InfrastructurePage from '../InfrastructurePage';
 
@@ -19,10 +15,6 @@ type InfrastructureLocationState = {
 
 const mockUseLocation = jest.fn(() => ({
   state: undefined as InfrastructureLocationState | undefined,
-}));
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -122,7 +114,11 @@ jest.mock('../../components/QuotaUsageSection', () => ({
   default: () => <div data-testid="quota-usage" />,
 }));
 
-const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockTrackEvent = jest.fn();
+const mockTrackPageEvent = jest.fn();
+const TrackingWrapper = createTrackingWrapper(mockTrackEvent, mockTrackPageEvent);
+const renderTracked = (element: React.ReactElement) =>
+  render(element, { wrapper: TrackingWrapper });
 const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
 const mockUseAccessAllowed = jest.mocked(useAccessAllowed);
 const mockUseInfrastructureMetrics = jest.requireMock('../../hooks/useInfrastructureMetrics')
@@ -131,6 +127,7 @@ const mockUseQuotaHierarchy = jest.requireMock('../../hooks/useQuotaHierarchy')
   .default as jest.Mock;
 
 describe('InfrastructurePage - Tracking Events', () => {
+  afterEach(() => expect(mockTrackPageEvent).not.toHaveBeenCalled());
   beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentMetrics = { ...mockMetrics, refresh: mockRefresh };
@@ -149,10 +146,10 @@ describe('InfrastructurePage - Tracking Events', () => {
 
   describe('Infrastructure Page Viewed', () => {
     it('fires page-viewed event when metrics are loaded', async () => {
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       await waitFor(() => {
-        expect(mockFireMisc).toHaveBeenCalledWith(
+        expect(mockTrackEvent).toHaveBeenCalledWith(
           GPUAAS_EVENTS.PAGE_VIEWED,
           expect.objectContaining({
             path: '/observe-and-monitor/infrastructure',
@@ -169,24 +166,25 @@ describe('InfrastructurePage - Tracking Events', () => {
     });
 
     it('fires page-viewed only once even if metrics update', async () => {
-      const { rerender } = render(<InfrastructurePage />);
+      const { rerender } = renderTracked(<InfrastructurePage />);
 
       await waitFor(() => {
-        expect(mockFireMisc).toHaveBeenCalledTimes(1);
+        expect(mockTrackEvent).toHaveBeenCalledTimes(1);
       });
 
+      mockCurrentMetrics = { ...mockCurrentMetrics, accelerators: { total: 16, inUse: 4 } };
       rerender(<InfrastructurePage />);
 
-      expect(mockFireMisc).toHaveBeenCalledTimes(1);
+      expect(mockTrackEvent).toHaveBeenCalledTimes(1);
     });
 
     it('fires page-viewed for non-admin users without metrics', async () => {
       mockCurrentMetrics = { ...mockMetrics, loaded: false, refresh: mockRefresh };
       mockUseAccessAllowed.mockReturnValue([false, true]);
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       await waitFor(() => {
-        expect(mockFireMisc).toHaveBeenCalledWith(
+        expect(mockTrackEvent).toHaveBeenCalledWith(
           GPUAAS_EVENTS.PAGE_VIEWED,
           expect.objectContaining({
             path: '/observe-and-monitor/infrastructure',
@@ -199,17 +197,40 @@ describe('InfrastructurePage - Tracking Events', () => {
 
     it('does not fire page-viewed for admin users until metrics are loaded', () => {
       mockCurrentMetrics = { ...mockMetrics, loaded: false, refresh: mockRefresh };
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
-      expect(mockFireMisc).not.toHaveBeenCalledWith(GPUAAS_EVENTS.PAGE_VIEWED, expect.anything());
+      expect(mockTrackEvent).not.toHaveBeenCalledWith(GPUAAS_EVENTS.PAGE_VIEWED, expect.anything());
     });
+  });
+
+  it('should track quota view once per visit, preserving its literal payload', async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderTracked(<InfrastructurePage />);
+    mockTrackEvent.mockClear();
+    await user.click(screen.getByTestId('infrastructure-tab-quota-usage'));
+    rerender(<InfrastructurePage />);
+    const viewedEvent = [
+      'Infrastructure Quota Usage Tab Viewed',
+      {
+        path: '/observe-and-monitor/infrastructure',
+        tabName: 'quota-usage',
+        cohortCount: 0,
+        clusterQueueCount: 0,
+        hasUnassignedBucket: false,
+        hasKueueEnabled: true,
+      },
+    ];
+    expect(mockTrackEvent.mock.calls).toEqual([viewedEvent]);
+    await user.click(screen.getByTestId('infrastructure-tab-utilization'));
+    await user.click(screen.getByTestId('infrastructure-tab-quota-usage'));
+    expect(mockTrackEvent.mock.calls).toEqual([viewedEvent, viewedEvent]);
   });
 
   describe('Infrastructure access failures', () => {
     it('passes access loading state to quota hierarchy', () => {
       mockUseAccessAllowed.mockReturnValue([false, false]);
 
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       expect(mockUseInfrastructureMetrics).toHaveBeenCalledWith(false);
       expect(mockUseQuotaHierarchy).toHaveBeenCalledWith(false, false);
@@ -218,7 +239,7 @@ describe('InfrastructurePage - Tracking Events', () => {
     it('keeps admin content disabled when access is denied', () => {
       mockUseAccessAllowed.mockReturnValue([false, true]);
 
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       expect(screen.getByTestId('infrastructure-tab-workloads')).toBeInTheDocument();
       expect(screen.queryByTestId('infrastructure-tab-utilization')).not.toBeInTheDocument();
@@ -231,7 +252,7 @@ describe('InfrastructurePage - Tracking Events', () => {
   it('selects the Workloads tab from location state after access loads', async () => {
     mockUseLocation.mockReturnValue({ state: { tab: 'workloads' } });
 
-    render(<InfrastructurePage />);
+    renderTracked(<InfrastructurePage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('infrastructure-tab-workloads')).toHaveAttribute(
@@ -243,7 +264,7 @@ describe('InfrastructurePage - Tracking Events', () => {
 
   describe('Infrastructure Data Refresh', () => {
     it('renders just now with lowercase after the Updated prefix', () => {
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       expect(screen.getByText('Updated just now')).toBeInTheDocument();
       expect(screen.queryByText('Updated Just now')).not.toBeInTheDocument();
@@ -251,7 +272,7 @@ describe('InfrastructurePage - Tracking Events', () => {
 
     it('refreshes active tab data after switching tabs', async () => {
       const user = userEvent.setup();
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       await user.click(screen.getByTestId('infrastructure-tab-quota-usage'));
       await waitFor(() => expect(mockQuotaRefresh).toHaveBeenCalled());
@@ -267,60 +288,82 @@ describe('InfrastructurePage - Tracking Events', () => {
 
     it('refreshes utilization and borrowing metrics on refresh button click', async () => {
       const user = userEvent.setup();
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       const refreshButton = within(screen.getByTestId('infrastructure-refresh-badge')).getByRole(
         'button',
         { name: 'Refresh' },
       );
+      mockTrackEvent.mockClear();
       await user.click(refreshButton);
 
-      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, expect.any(Object));
+      expect(mockTrackEvent.mock.calls).toEqual([
+        [
+          'Infrastructure Data Refreshed',
+          {
+            refreshSource: 'utilization',
+            outcome: 'click',
+            secondsSinceLastUpdate: expect.any(Number),
+          },
+        ],
+      ]);
       expect(mockRefresh).toHaveBeenCalled();
       expect(mockBorrowingRefresh).toHaveBeenCalled();
     });
 
     it('tracks workloads refresh on refresh button click', async () => {
       const user = userEvent.setup();
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       await user.click(screen.getByTestId('infrastructure-tab-workloads'));
       const refreshButton = within(
         screen.getByTestId('infrastructure-workloads-refresh'),
       ).getByRole('button', { name: 'Refresh' });
+      mockTrackEvent.mockClear();
       await user.click(refreshButton);
 
-      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, {
-        refreshSource: 'workloads',
-        outcome: 'click',
-        secondsSinceLastUpdate: expect.any(Number),
-      });
-      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.WORKLOADS_TAB_INTERACTED, {
-        interactionType: WORKLOADS_INTERACTION_TYPES.refresh,
-        secondsSinceTabLoad: expect.any(Number),
-      });
+      expect(mockTrackEvent.mock.calls).toEqual([
+        [
+          'Infrastructure Data Refreshed',
+          {
+            refreshSource: 'workloads',
+            outcome: 'click',
+            secondsSinceLastUpdate: expect.any(Number),
+          },
+        ],
+        [
+          'Workloads Tab Interacted',
+          { interactionType: 'refresh', secondsSinceTabLoad: expect.any(Number) },
+        ],
+      ]);
     });
 
     it('tracks quota usage refresh on refresh button click', async () => {
       const user = userEvent.setup();
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       await user.click(screen.getByTestId('infrastructure-tab-quota-usage'));
       const refreshButton = within(screen.getByTestId('quota-usage-refresh-badge')).getByRole(
         'button',
         { name: 'Refresh' },
       );
+      mockTrackEvent.mockClear();
       await user.click(refreshButton);
 
-      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.DATA_REFRESHED, {
-        refreshSource: 'quota-usage',
-        outcome: 'click',
-        secondsSinceLastUpdate: expect.any(Number),
-      });
-      expect(mockFireMisc).toHaveBeenCalledWith(GPUAAS_EVENTS.QUOTA_USAGE_TAB_INTERACTED, {
-        interactionType: QUOTA_USAGE_INTERACTION_TYPES.refresh,
-        secondsSinceTabLoad: expect.any(Number),
-      });
+      expect(mockTrackEvent.mock.calls).toEqual([
+        [
+          'Infrastructure Data Refreshed',
+          {
+            refreshSource: 'quota-usage',
+            outcome: 'click',
+            secondsSinceLastUpdate: expect.any(Number),
+          },
+        ],
+        [
+          'Infrastructure Quota Usage Tab Interacted',
+          { interactionType: 'refresh', secondsSinceTabLoad: expect.any(Number) },
+        ],
+      ]);
     });
 
     it('includes secondsSinceLastUpdate when lastRefreshed is available', async () => {
@@ -330,7 +373,7 @@ describe('InfrastructurePage - Tracking Events', () => {
         lastRefreshed: new Date(Date.now() - 30_000),
         refresh: mockRefresh,
       };
-      render(<InfrastructurePage />);
+      renderTracked(<InfrastructurePage />);
 
       const refreshButton = within(screen.getByTestId('infrastructure-refresh-badge')).getByRole(
         'button',
@@ -338,7 +381,7 @@ describe('InfrastructurePage - Tracking Events', () => {
       );
       await user.click(refreshButton);
 
-      expect(mockFireMisc).toHaveBeenCalledWith(
+      expect(mockTrackEvent).toHaveBeenCalledWith(
         GPUAAS_EVENTS.DATA_REFRESHED,
         expect.objectContaining({
           secondsSinceLastUpdate: expect.any(Number),

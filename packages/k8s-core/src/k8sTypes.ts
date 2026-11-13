@@ -347,6 +347,7 @@ export type DashboardCommonConfig = {
   disableLLMd?: boolean;
   llmdTemplates?: boolean;
   deploymentWizardYAMLViewer?: boolean;
+  bidirectionalYamlWizardGa?: boolean;
   externalVectorStores?: boolean;
   agentConfigManagement?: boolean;
   genAiAgentDeployment?: boolean;
@@ -367,6 +368,7 @@ export type DashboardCommonConfig = {
   workbenchesV2?: boolean;
   dataRegistry?: boolean;
   dataConnectHub?: boolean;
+  aiSafety?: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

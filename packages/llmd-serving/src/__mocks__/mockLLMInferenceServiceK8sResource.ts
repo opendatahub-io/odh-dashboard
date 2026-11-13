@@ -19,6 +19,7 @@ type MockLLMInferenceServiceConfigType = {
   addresses?: { name?: string; url?: string }[];
   additionalLabels?: Record<string, string>;
   isNonDashboardItem?: boolean;
+  isExistingResource?: boolean;
   modelType?: ServingRuntimeModelType;
   isStopped?: boolean;
   baseRefs?: { name?: string }[];
@@ -51,6 +52,7 @@ export const mockLLMInferenceServiceK8sResource = ({
   secretName,
   gatewayRefs,
   isLLMd = true,
+  isExistingResource = true,
   additionalAnnotations,
   resourceClaims,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
@@ -67,16 +69,20 @@ export const mockLLMInferenceServiceK8sResource = ({
       ...(secretName && { 'opendatahub.io/connections': secretName }),
       ...additionalAnnotations,
     },
-    creationTimestamp,
+    ...(isExistingResource
+      ? {
+          creationTimestamp,
+          generation: 1,
+          resourceVersion: '5188930',
+          uid: genUID('llm-service'),
+        }
+      : {}),
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
-    generation: 1,
     labels: {
       name,
     },
     name,
     namespace,
-    resourceVersion: '5188930',
-    uid: genUID('llm-service'),
   },
   spec: {
     ...(baseRefs && { baseRefs }),

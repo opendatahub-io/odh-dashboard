@@ -31,7 +31,7 @@ func (app *App) NemoGuardrailsInitHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	result, err := app.repositories.NemoGuardrails.InitNemoGuardrails(client, ctx, namespace)
+	result, err := app.repositories.NemoGuardrails.InitNemoGuardrails(client, ctx, namespace, app.dashboardNamespace)
 	if err != nil {
 		var alreadyInit *models.ErrNemoGuardrailsAlreadyInitialised
 		if errors.As(err, &alreadyInit) {

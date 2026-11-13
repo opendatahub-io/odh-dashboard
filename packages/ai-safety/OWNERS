@@ -1,0 +1,8 @@
+# OWNERS
+
+approvers:
+  - ai-safety-approvers
+reviewers:
+  - ai-safety-reviewers
+labels:
+  - 'area/ai-safety'

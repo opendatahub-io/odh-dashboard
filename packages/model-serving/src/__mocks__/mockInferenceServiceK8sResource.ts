@@ -44,6 +44,7 @@ type MockResourceConfigType = {
   nodeSelector?: NodeSelector;
   resourceClaims?: PodSpec['resourceClaims'];
   isNonDashboardItem?: boolean;
+  isExistingResource?: boolean;
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string;
   hardwareProfileResourceVersion?: string;
@@ -124,6 +125,7 @@ export const mockInferenceServiceK8sResource = ({
   nodeSelector,
   resourceClaims,
   isNonDashboardItem = false,
+  isExistingResource = true,
   hardwareProfileName = '',
   hardwareProfileNamespace = undefined,
   hardwareProfileResourceVersion = undefined,
@@ -156,9 +158,15 @@ export const mockInferenceServiceK8sResource = ({
       ...(path && { 'opendatahub.io/connection-path': path }),
       ...additionalAnnotations,
     },
-    creationTimestamp,
+    ...(isExistingResource
+      ? {
+          creationTimestamp,
+          generation: 1,
+          resourceVersion: '1309350',
+          uid: genUID('service'),
+        }
+      : {}),
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
-    generation: 1,
     labels: {
       name,
       ...additionalLabels,
@@ -167,8 +175,6 @@ export const mockInferenceServiceK8sResource = ({
     },
     name,
     namespace,
-    resourceVersion: '1309350',
-    uid: genUID('service'),
   },
   spec: {
     predictor: {

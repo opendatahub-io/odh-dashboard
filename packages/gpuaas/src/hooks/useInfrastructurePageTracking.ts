@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import type { ClusterMetrics } from './useInfrastructureMetrics';
 import { INFRASTRUCTURE_SECTIONS } from '../const';
 import { GPUAAS_EVENTS, type PageViewedProperties } from '../tracking/gpuaasTrackingConstants';
@@ -8,6 +8,7 @@ const useInfrastructurePageTracking = (
   metrics: ClusterMetrics,
   isKueueAvailable: boolean,
 ): void => {
+  const trackEvent = useTrackEvent();
   const hasTrackedPageView = React.useRef(false);
 
   React.useEffect(() => {
@@ -28,9 +29,10 @@ const useInfrastructurePageTracking = (
         avgComputeUtilPct: metrics.computeUtilization?.percentage,
         avgMemoryUtilPct: metrics.memoryUtilization?.percentage,
       };
-      fireMiscTrackingEvent(GPUAAS_EVENTS.PAGE_VIEWED, props);
+      trackEvent(GPUAAS_EVENTS.PAGE_VIEWED, props);
     }
   }, [
+    trackEvent,
     metrics.loaded,
     metrics.accelerators,
     metrics.computeUtilization,

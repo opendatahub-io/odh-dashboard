@@ -1,19 +1,13 @@
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { ServingRuntimeAPIProtocol } from '@odh-dashboard/model-serving/shared';
 import {
-  ServingRuntimeTemplateTrackingEvent,
   fireServingRuntimeTemplateCreated,
   fireServingRuntimeTemplateUpdated,
   fireServingRuntimeTemplateDeleted,
   fireServingRuntimeTemplateEnablementChanged,
 } from '../servingRuntimeTemplateTracking';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-}));
-
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
+const trackEvent = jest.fn();
 
 describe('fireServingRuntimeTemplateCreated', () => {
   beforeEach(() => {
@@ -21,7 +15,7 @@ describe('fireServingRuntimeTemplateCreated', () => {
   });
 
   it('should fire the Created event with mode and categorical properties on success', () => {
-    fireServingRuntimeTemplateCreated({
+    fireServingRuntimeTemplateCreated(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'create',
@@ -29,33 +23,30 @@ describe('fireServingRuntimeTemplateCreated', () => {
       modelTypes: 'predictive,generative',
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.CREATED,
-      {
-        outcome: TrackingOutcome.submit,
-        success: true,
-        mode: 'create',
-        apiProtocol: ServingRuntimeAPIProtocol.REST,
-        modelTypes: 'predictive,generative',
-      },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Serving Runtime Template Created', {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: 'create',
+      apiProtocol: ServingRuntimeAPIProtocol.REST,
+      modelTypes: 'predictive,generative',
+    });
   });
 
   it('should attribute install submit and cancel to the install source without user content', () => {
-    fireServingRuntimeTemplateCreated({
+    fireServingRuntimeTemplateCreated(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'install',
       apiProtocol: ServingRuntimeAPIProtocol.REST,
       modelTypes: 'generative',
     });
-    fireServingRuntimeTemplateCreated({
+    fireServingRuntimeTemplateCreated(trackEvent, {
       outcome: TrackingOutcome.cancel,
       mode: 'install',
     });
-    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
+    expect(trackEvent).toHaveBeenNthCalledWith(
       1,
-      ServingRuntimeTemplateTrackingEvent.CREATED,
+      'Model Serving Serving Runtime Template Created',
       {
         outcome: TrackingOutcome.submit,
         success: true,
@@ -65,39 +56,42 @@ describe('fireServingRuntimeTemplateCreated', () => {
         modelTypes: 'generative',
       },
     );
-    expect(mockFireFormTrackingEvent).toHaveBeenNthCalledWith(
+    expect(trackEvent).toHaveBeenNthCalledWith(
       2,
-      ServingRuntimeTemplateTrackingEvent.CREATED,
+      'Model Serving Serving Runtime Template Created',
       { outcome: TrackingOutcome.cancel, mode: 'create', source: 'install' },
     );
   });
 
   it('should normalize Add form mode to the existing create analytics value', () => {
-    fireServingRuntimeTemplateCreated({
+    fireServingRuntimeTemplateCreated(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'add',
     });
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.CREATED,
-      { outcome: TrackingOutcome.submit, success: true, mode: 'create' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Serving Runtime Template Created', {
+      outcome: TrackingOutcome.submit,
+      success: true,
+      mode: 'create',
+    });
   });
 
   it('should retain install attribution when submission fails', () => {
-    fireServingRuntimeTemplateCreated({
+    fireServingRuntimeTemplateCreated(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: false,
       mode: 'install',
     });
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.CREATED,
-      { outcome: TrackingOutcome.submit, success: false, mode: 'create', source: 'install' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Serving Runtime Template Created', {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      mode: 'create',
+      source: 'install',
+    });
   });
 
   it('should fire the Created event with mode duplicate', () => {
-    fireServingRuntimeTemplateCreated({
+    fireServingRuntimeTemplateCreated(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       mode: 'duplicate',
@@ -105,32 +99,36 @@ describe('fireServingRuntimeTemplateCreated', () => {
       modelTypes: 'predictive',
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.CREATED,
+    expect(trackEvent).toHaveBeenCalledWith(
+      'Model Serving Serving Runtime Template Created',
       expect.objectContaining({ mode: 'duplicate', apiProtocol: ServingRuntimeAPIProtocol.GRPC }),
     );
   });
 
   it('should fire the Created event with success false on failure (no free-form error/PII)', () => {
-    fireServingRuntimeTemplateCreated({
+    fireServingRuntimeTemplateCreated(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: false,
       mode: 'create',
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.CREATED,
-      { outcome: TrackingOutcome.submit, success: false, mode: 'create' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Serving Runtime Template Created', {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      mode: 'create',
+    });
   });
 
   it('should fire the Created event with cancel outcome', () => {
-    fireServingRuntimeTemplateCreated({ outcome: TrackingOutcome.cancel, mode: 'create' });
+    fireServingRuntimeTemplateCreated(trackEvent, {
+      outcome: TrackingOutcome.cancel,
+      mode: 'create',
+    });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.CREATED,
-      { outcome: TrackingOutcome.cancel, mode: 'create' },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Serving Runtime Template Created', {
+      outcome: TrackingOutcome.cancel,
+      mode: 'create',
+    });
   });
 });
 
@@ -140,15 +138,15 @@ describe('fireServingRuntimeTemplateUpdated', () => {
   });
 
   it('should fire the Updated event on success', () => {
-    fireServingRuntimeTemplateUpdated({
+    fireServingRuntimeTemplateUpdated(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       apiProtocol: ServingRuntimeAPIProtocol.GRPC,
       modelTypes: 'generative',
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.UPDATED,
+    expect(trackEvent).toHaveBeenCalledWith(
+      'Model Serving Serving Runtime Template Updated',
       expect.objectContaining({
         success: true,
         apiProtocol: ServingRuntimeAPIProtocol.GRPC,
@@ -158,12 +156,11 @@ describe('fireServingRuntimeTemplateUpdated', () => {
   });
 
   it('should fire the Updated event with cancel outcome', () => {
-    fireServingRuntimeTemplateUpdated({ outcome: TrackingOutcome.cancel });
+    fireServingRuntimeTemplateUpdated(trackEvent, { outcome: TrackingOutcome.cancel });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.UPDATED,
-      { outcome: TrackingOutcome.cancel },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Serving Runtime Template Updated', {
+      outcome: TrackingOutcome.cancel,
+    });
   });
 });
 
@@ -173,21 +170,23 @@ describe('fireServingRuntimeTemplateDeleted', () => {
   });
 
   it('should fire the Deleted event on success', () => {
-    fireServingRuntimeTemplateDeleted({ outcome: TrackingOutcome.submit, success: true });
+    fireServingRuntimeTemplateDeleted(trackEvent, {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.DELETED,
-      { outcome: TrackingOutcome.submit, success: true },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Serving Runtime Template Deleted', {
+      outcome: TrackingOutcome.submit,
+      success: true,
+    });
   });
 
   it('should fire the Deleted event with cancel outcome when the dialog is dismissed', () => {
-    fireServingRuntimeTemplateDeleted({ outcome: TrackingOutcome.cancel });
+    fireServingRuntimeTemplateDeleted(trackEvent, { outcome: TrackingOutcome.cancel });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.DELETED,
-      { outcome: TrackingOutcome.cancel },
-    );
+    expect(trackEvent).toHaveBeenCalledWith('Model Serving Serving Runtime Template Deleted', {
+      outcome: TrackingOutcome.cancel,
+    });
   });
 });
 
@@ -197,15 +196,54 @@ describe('fireServingRuntimeTemplateEnablementChanged', () => {
   });
 
   it('should fire the Enablement Changed event with the new enabled state', () => {
-    fireServingRuntimeTemplateEnablementChanged({
+    fireServingRuntimeTemplateEnablementChanged(trackEvent, {
       outcome: TrackingOutcome.submit,
       success: true,
       enabled: false,
     });
 
-    expect(mockFireFormTrackingEvent).toHaveBeenCalledWith(
-      ServingRuntimeTemplateTrackingEvent.ENABLEMENT_CHANGED,
+    expect(trackEvent).toHaveBeenCalledWith(
+      'Model Serving Serving Runtime Template Enablement Changed',
       { outcome: TrackingOutcome.submit, success: true, enabled: false },
     );
+  });
+});
+
+describe('failure forwarding', () => {
+  it.each([
+    [
+      'updated',
+      fireServingRuntimeTemplateUpdated,
+      'Model Serving Serving Runtime Template Updated',
+    ],
+    [
+      'deleted',
+      fireServingRuntimeTemplateDeleted,
+      'Model Serving Serving Runtime Template Deleted',
+    ],
+  ])(
+    'should emit exactly one %s failure without adding properties',
+    (_name, fireEvent, eventName) => {
+      const injectedTracking = jest.fn();
+      fireEvent(injectedTracking, { outcome: TrackingOutcome.submit, success: false });
+      expect(injectedTracking.mock.calls).toEqual([
+        [eventName, { outcome: 'submit', success: false }],
+      ]);
+    },
+  );
+
+  it('should forward the reverted enablement state on failure', () => {
+    const injectedTracking = jest.fn();
+    fireServingRuntimeTemplateEnablementChanged(injectedTracking, {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      enabled: true,
+    });
+    expect(injectedTracking.mock.calls).toEqual([
+      [
+        'Model Serving Serving Runtime Template Enablement Changed',
+        { outcome: 'submit', success: false, enabled: true },
+      ],
+    ]);
   });
 });

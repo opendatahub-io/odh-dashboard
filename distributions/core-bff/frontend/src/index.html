@@ -10,6 +10,13 @@
   <meta content="Core BFF" id="appName" name="application-name">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <link href="/images/favicon.ico" rel="icon" type="image/x-icon">
+  <script>
+    // PatternFly Felt theme class is applied before the app boots so tokens
+    // are correct on first paint, matching the dashboard host surfaces.
+    (function () {
+      document.documentElement.classList.add('pf-v6-theme-felt');
+    })();
+  </script>
 </head>
 
 <body>

@@ -14,13 +14,12 @@ import {
   isTabRoutePageExtension,
   isTabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { useExtensions } from '@odh-dashboard/plugin-core';
+import { compareNavItemGroups, useExtensions } from '@odh-dashboard/plugin-core';
 import { useAccessReviewExtensions } from '#~/utilities/useAccessReviewExtensions';
 import { StatusReportIcon } from '#~/app/status-provider/StatusReportIcon';
 import { getStatusReportSummary } from '#~/app/status-provider/utils';
 import { NavItem } from './NavItem';
 import { NavItemTitle } from './NavItemTitle';
-import { compareNavItemGroups } from './utils';
 import NavIcon from './NavIcon';
 
 type AnyNavExtension = NavExtension | TabRoutePageExtension;

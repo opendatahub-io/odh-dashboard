@@ -14,10 +14,10 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { RuntimeImageInstallTargetProps } from '@odh-dashboard/model-serving/extension-points/runtime-image-install-target';
 import { RuntimeImageInstallTrackingEvent } from '@odh-dashboard/model-serving/components/runtimeImageInstall/tracking/runtimeImageInstallTracking';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { parseServingRuntimeTemplate } from './parseServingRuntimeTemplate';
 import { fireServingRuntimeTemplateCreated } from '../settings/servingRuntimeTemplates/tracking/servingRuntimeTemplateTracking';
 import ServingRuntimeTemplateFormBody from '../settings/servingRuntimeTemplates/ServingRuntimeTemplateFormBody';
@@ -27,6 +27,7 @@ const ServingRuntimeInstallTarget: React.FC<RuntimeImageInstallTargetProps> = ({
   onBack,
   cancelReturnRoute,
 }) => {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const parsed = React.useMemo(() => {
     try {
@@ -57,11 +58,11 @@ const ServingRuntimeInstallTarget: React.FC<RuntimeImageInstallTargetProps> = ({
               <Button
                 variant="link"
                 onClick={() => {
-                  fireServingRuntimeTemplateCreated({
+                  fireServingRuntimeTemplateCreated(trackEvent, {
                     outcome: TrackingOutcome.cancel,
                     mode: 'install',
                   });
-                  fireFormTrackingEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
+                  trackEvent(RuntimeImageInstallTrackingEvent.CREATE_COMPLETED, {
                     outcome: TrackingOutcome.cancel,
                     configurationType: 'serving-runtime-template',
                   });

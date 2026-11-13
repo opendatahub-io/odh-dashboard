@@ -11,7 +11,6 @@ const notProvidedAsync = (name: string) => () =>
 export const HostApiCoreContext = React.createContext<HostApiCoreServices>({
   dashboardNamespace: '',
   checkAccess: notProvided('checkAccess'),
-  trackEvent: notProvided('trackEvent'),
   fetchDashboardConfig: notProvidedAsync('fetchDashboardConfig'),
   fetchClusterSettings: notProvidedAsync('fetchClusterSettings'),
   updateClusterSettings: notProvidedAsync('updateClusterSettings'),

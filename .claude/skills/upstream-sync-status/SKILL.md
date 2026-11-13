@@ -62,6 +62,7 @@ Extract the `subtree` object from the JSON. It contains:
 - `branch` — the upstream branch to track (e.g. `main`)
 - `src` — the subdirectory in the upstream repo (e.g. `clients/ui`; may be empty string for whole-repo syncs)
 - `commit` — the SHA of the last synced upstream commit
+- `exclude` — optional literal file paths and directory prefixes ending in `/`, relative to `src`; missing or empty means no exclusions
 
 Parse the GitHub owner/repo from the `repo` URL (strip `https://github.com/` prefix and `.git` suffix).
 
@@ -80,12 +81,23 @@ If `src` is a non-empty string, filter commits to only those touching files unde
 For each commit SHA returned, check whether it touches files under the `src` path:
 
 ```bash
-gh api "repos/<owner>/<repo>/commits/<sha>" --jq '[.files[].filename]'
+gh api --paginate "repos/<owner>/<repo>/commits/<sha>" --jq '.files[] | {filename, previous_filename, status}'
 ```
 
-Keep only commits where at least one file starts with the `src` prefix.
+Keep commits where a current or previous filename starts with `src + "/"`
+(normalize a trailing slash first). Check both sides of renames so moves into or
+out of the subtree remain visible.
 
 If `src` is an empty string, all commits are relevant (the entire repo is synced).
+
+For each relevant commit, strip the `src` prefix from each in-subtree path and
+apply `exclude` literally: file entries match exactly; entries ending in `/`
+match that directory and its descendants. Do not interpret glob characters.
+Classify a commit as **content changes** if any changed path is included, or
+**tracking only** if all changed paths are excluded. For renames, either included
+endpoint counts as content changes. Both categories still require syncing to
+advance `subtree.commit`. If GitHub truncates the file list, inspect the commit
+in a temporary upstream clone before declaring it tracking only.
 
 ### Step 4: Get PR details for each relevant commit
 
@@ -112,11 +124,11 @@ odh-dashboard's copy of the <package-name> upstream is up to date at commit `<sh
 ```markdown
 ## <Package-Name> Sync Status
 
-odh-dashboard's copy of the <package-name> upstream is not up to date. There are **N commits** on `<owner>/<repo>` `<branch>` (since synced commit `<short-sha>`) that touch `<src>`:
+There are **N unsynced commits** on `<owner>/<repo>` `<branch>` (since synced commit `<short-sha>`) that touch `<src>`: **C with content changes** and **T tracking only**.
 
-| Commit | PR | Author | Merged | Description |
-|--------|----|--------|--------|-------------|
-| `<short-sha>` | [#XXXX](https://github.com/<owner>/<repo>/pull/XXXX) | author | YYYY-MM-DD | commit message without PR ref |
+| Commit | PR | Author | Merged | Impact | Description |
+|--------|----|--------|--------|--------|-------------|
+| `<short-sha>` | [#XXXX](https://github.com/<owner>/<repo>/pull/XXXX) | author | YYYY-MM-DD | Content changes / Tracking only | commit message without PR ref |
 ...
 ```
 
@@ -127,6 +139,8 @@ odh-dashboard's copy of the <package-name> upstream is not up to date. There are
 - The Description column is the first line of the commit message with the trailing `(#XXXX)` removed.
 
 If `src` is empty, omit the "that touch `<src>`" clause from the summary.
+If all unsynced commits are tracking only, explicitly state that no included
+upstream files changed; syncing is needed only to advance the tracked commit.
 
 **Local branch status (always shown after the upstream report):**
 

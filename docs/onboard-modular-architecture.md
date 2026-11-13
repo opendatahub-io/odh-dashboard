@@ -91,6 +91,9 @@ To enable your module in the main dashboard, register a `SupportedArea` and a fe
    ```
 
 4. `manifests/base/crd/odhdashboardconfigs.opendatahub.io.crd.yaml` — add the flag as a `boolean` property under `dashboardConfig` so it can be set on a cluster.
+5. `backend/src/utils/constants.ts` (`blankDashboardCR`, typed by `backend/src/types.ts`) and `distributions/core-bff/bff/internal/models/dashboard_config.go` (`DashboardFeatureFlags` and `BlankDashboardCR`) — add the flag with the same default value. The backend and core BFF merge these defaults under the cluster's OdhDashboardConfig.
+
+Run `pnpm run validate:flags` to confirm every copy has the flag; CI runs the same check.
 
 The scaffolded `frontend/src/odh/extensions.ts` already references `SupportedArea.PLUGIN_<YOUR_MODULE>` and the `yourModuleName` flag.
 

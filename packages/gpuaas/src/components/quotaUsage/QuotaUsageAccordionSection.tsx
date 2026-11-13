@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   Accordion,
   AccordionContent,
@@ -43,6 +43,7 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
   contentClassName,
   nodeType = QUOTA_NODE_TYPE.clusterQueue,
 }) => {
+  const trackEvent = useTrackEvent();
   const accordion = (
     <Accordion
       asDefinitionList={false}
@@ -60,7 +61,7 @@ const QuotaUsageAccordionSection: React.FC<QuotaUsageAccordionSectionProps> = ({
             <AccordionToggle
               id={`${id}-toggle`}
               onClick={() => {
-                fireMiscTrackingEvent(GPUAAS_EVENTS.QUOTA_USAGE_DETAIL_SECTION_TOGGLED, {
+                trackEvent(GPUAAS_EVENTS.QUOTA_USAGE_DETAIL_SECTION_TOGGLED, {
                   sectionName: QUOTA_USAGE_DETAIL_SECTION_NAMES_BY_ID[id],
                   isExpanded: !isExpanded,
                   nodeType: QUOTA_NODE_TYPE_TRACKING[nodeType],

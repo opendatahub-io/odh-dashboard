@@ -4,7 +4,7 @@ import { render, screen, within, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useTaskExecutorError } from '@odh-dashboard/autox-core/ui/hooks';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import AutoragLeaderboard from '~/app/components/run-results/AutoragLeaderboard';
 import { AutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import type { ComponentStageMap } from '~/app/hooks/useComponentStageMap';
@@ -13,13 +13,13 @@ import type { PipelineRun } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import { AUTORAG_EVENTS } from '~/app/utilities/tracking';
 import { resolveObjectiveReference } from '~/app/utilities/metricUtils';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
   ...jest.requireActual('@odh-dashboard/autox-core/ui/hooks'),
@@ -320,7 +320,7 @@ const renderWithContext = ({
     componentStageMap,
   };
 
-  return render(
+  return renderWithTracking(
     <MemoryRouter initialEntries={[`/autorag/${namespace}/results/test-run-123`]}>
       <Routes>
         <Route
@@ -1601,16 +1601,16 @@ describe('AutoragLeaderboard component', () => {
           pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
         });
         showAllColumns();
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
         fireEvent.click(screen.getByTestId('column-check-metric---unitxt---answer_correctness--'));
         fireEvent.click(screen.getByText('Save'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
-          { columnName: 'answerCorrectness', isVisible: false },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED, {
+          columnName: 'answerCorrectness',
+          isVisible: false,
+        });
       });
 
       it('should fire with the settings column id when hiding a settings column', () => {
@@ -1619,16 +1619,16 @@ describe('AutoragLeaderboard component', () => {
           pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
         });
         showAllColumns();
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
         fireEvent.click(screen.getByTestId('column-check-chunkingMethod'));
         fireEvent.click(screen.getByText('Save'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
-          { columnName: 'chunkingMethod', isVisible: false },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED, {
+          columnName: 'chunkingMethod',
+          isVisible: false,
+        });
       });
 
       it('should fire with the mapped metric name when hiding the sticky optimized metric column', () => {
@@ -1641,10 +1641,10 @@ describe('AutoragLeaderboard component', () => {
         fireEvent.click(screen.getByTestId('column-check-optimized-metric'));
         fireEvent.click(screen.getByText('Save'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
-          { columnName: 'answerFaithfulness', isVisible: false },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED, {
+          columnName: 'answerFaithfulness',
+          isVisible: false,
+        });
       });
 
       it('should fire with isVisible: true when showing a hidden column', () => {
@@ -1657,10 +1657,10 @@ describe('AutoragLeaderboard component', () => {
         fireEvent.click(screen.getByTestId('column-check-metric---unitxt---answer_correctness--'));
         fireEvent.click(screen.getByText('Save'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
-          { columnName: 'answerCorrectness', isVisible: true },
-        );
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED, {
+          columnName: 'answerCorrectness',
+          isVisible: true,
+        });
       });
 
       it('should not fire when the modal is cancelled', () => {
@@ -1673,7 +1673,7 @@ describe('AutoragLeaderboard component', () => {
         fireEvent.click(screen.getByTestId('column-check-optimized-metric'));
         fireEvent.click(screen.getByText('Cancel'));
 
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        expect(trackEventMock).not.toHaveBeenCalledWith(
           AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
           expect.anything(),
         );
@@ -1691,7 +1691,7 @@ describe('AutoragLeaderboard component', () => {
         fireEvent.click(checkbox);
         fireEvent.click(screen.getByText('Save'));
 
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        expect(trackEventMock).not.toHaveBeenCalledWith(
           AUTORAG_EVENTS.RESULTS_COLUMN_TOGGLED,
           expect.anything(),
         );
@@ -1704,17 +1704,16 @@ describe('AutoragLeaderboard component', () => {
           patterns: mockStandardPatterns,
           pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
         });
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
         fireEvent.click(screen.getByTestId('organize-by-toggle'));
         fireEvent.click(screen.getByText('Optimization metrics and chunking'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
-          { presetType: 'optimizationMetricsAndChunking' },
-        );
+        expect(trackEventMock).toHaveBeenCalledTimes(1);
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED, {
+          presetType: 'optimizationMetricsAndChunking',
+        });
       });
 
       it('should fire on selection even if the modal is subsequently cancelled', () => {
@@ -1722,18 +1721,17 @@ describe('AutoragLeaderboard component', () => {
           patterns: mockStandardPatterns,
           pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
         });
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
         fireEvent.click(screen.getByTestId('organize-by-toggle'));
         fireEvent.click(screen.getByText('Full configuration'));
         fireEvent.click(screen.getByText('Cancel'));
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
-          { presetType: 'fullConfiguration' },
-        );
+        expect(trackEventMock).toHaveBeenCalledTimes(1);
+        expect(trackEventMock).toHaveBeenCalledWith(AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED, {
+          presetType: 'fullConfiguration',
+        });
       });
 
       it('should not fire when the modal is opened but no preset is selected', () => {
@@ -1741,13 +1739,13 @@ describe('AutoragLeaderboard component', () => {
           patterns: mockStandardPatterns,
           pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
         });
-        fireMiscTrackingEventMock.mockClear();
+        trackEventMock.mockClear();
 
         fireEvent.click(screen.getByTestId('manage-columns-button'));
         fireEvent.click(screen.getByTestId('column-check-optimized-metric'));
         fireEvent.click(screen.getByText('Save'));
 
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
+        expect(trackEventMock).not.toHaveBeenCalledWith(
           AUTORAG_EVENTS.LEADERBOARD_PRESET_APPLIED,
           expect.anything(),
         );

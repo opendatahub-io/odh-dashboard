@@ -623,6 +623,7 @@ describe('NIM Models Deployments', () => {
       // Carry the hardware profile annotations so the wizard prefills the saved profile on edit
       mockK8sResourceList([
         mockNimInferenceService({
+          isExistingResource: true,
           hardwareProfileName: 'default-profile',
           hardwareProfileNamespace: 'opendatahub',
           hardwareProfileResourceVersion: '1309350',
@@ -650,8 +651,11 @@ describe('NIM Models Deployments', () => {
     cy.interceptK8sList(
       { model: PVCModel, ns: 'test-project' },
       mockK8sResourceList([
-        mockNimModelPVC({ name: 'my-nim-wizard-pvc' }),
-        mockNimModelPVC({ name: 'updated-nim-wizard-pvc' }),
+        mockNimModelPVC({ name: 'my-nim-wizard-pvc', displayName: 'My NIM Wizard PVC' }),
+        mockNimModelPVC({
+          name: 'updated-nim-wizard-pvc',
+          displayName: 'Updated NIM Wizard PVC',
+        }),
       ]),
     );
     cy.interceptK8s(
@@ -725,9 +729,9 @@ describe('NIM Models Deployments', () => {
     modelServingWizardEdit.nim
       .findStorageModeSelect()
       .should('contain.text', 'Use existing cluster storage');
-    modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'my-nim-wizard-pvc');
+    modelServingWizardEdit.nim.findExistingPVCInput().should('have.value', 'My NIM Wizard PVC');
     modelServingWizardEdit.nim.findSubPathInput().should('have.value', 'arctic-embed-l');
-    modelServingWizardEdit.nim.selectExistingPVC('updated-nim-wizard-pvc');
+    modelServingWizardEdit.nim.selectExistingPVC('Updated NIM Wizard PVC');
     modelServingWizardEdit.nim
       .findSubPathInput()
       .type('{selectall}updated-cache-path')

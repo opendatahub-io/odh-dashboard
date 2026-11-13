@@ -11,6 +11,7 @@
 [Large Tasks with Claude Code Goals]: ai-agent-large-tasks.md
 [Upstream Sync]: upstream-sync.md
 [Konflux Build Simulation]: KONFLUX_BUILD_SIMULATION.md
+[Security and CVE Handling]: security-cve.md
 
 # Dashboard Documentation
 
@@ -36,3 +37,4 @@ This is the general documentation of the Dashboard component.
 * [Large Tasks with Claude Code Goals]
 * [Upstream Sync]
 * [Konflux Build Simulation]
+* [Security and CVE Handling]

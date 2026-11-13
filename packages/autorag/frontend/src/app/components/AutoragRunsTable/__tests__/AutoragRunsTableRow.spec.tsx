@@ -6,6 +6,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import AutoragRunsTableRow from '~/app/components/AutoragRunsTable/AutoragRunsTableRow';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
+
+const trackEventMock = jest.fn();
+const TrackingWrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <TrackingProvider trackEvent={trackEventMock}>{children}</TrackingProvider>
+);
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 const mockHandleRetry = jest.fn().mockResolvedValue(undefined);
 const mockHandleConfirmStop = jest.fn().mockResolvedValue(undefined);
@@ -35,7 +42,7 @@ describe('AutoragRunsTableRow', () => {
   });
 
   it('should render run name', () => {
-    render(
+    renderWithTracking(
       <MemoryRouter>
         <AutoragRunsTableRow run={mockRun} namespace={mockNamespace} />
       </MemoryRouter>,
@@ -44,7 +51,7 @@ describe('AutoragRunsTableRow', () => {
   });
 
   it('should render description', () => {
-    render(
+    renderWithTracking(
       <MemoryRouter>
         <AutoragRunsTableRow run={mockRun} namespace={mockNamespace} />
       </MemoryRouter>,
@@ -53,7 +60,7 @@ describe('AutoragRunsTableRow', () => {
   });
 
   it('should render em dash for missing description', () => {
-    render(
+    renderWithTracking(
       <MemoryRouter>
         <AutoragRunsTableRow
           run={{ ...mockRun, description: undefined }}
@@ -65,7 +72,7 @@ describe('AutoragRunsTableRow', () => {
   });
 
   it('should render state with Label', () => {
-    render(
+    renderWithTracking(
       <MemoryRouter>
         <AutoragRunsTableRow run={mockRun} namespace={mockNamespace} />
       </MemoryRouter>,
@@ -73,9 +80,35 @@ describe('AutoragRunsTableRow', () => {
     expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
   });
 
+  it.each([
+    ['RUNNING', 'stop-run-action', 'stop-run-modal', 'AutoRAG Run Stopped'],
+    ['SUCCEEDED', 'delete-run-action', 'delete-run-modal', 'AutoRAG Experiment Deleted'],
+  ] as const)(
+    'should track a %s run confirmation cancellation once without success',
+    async (state, actionId, modalId, eventName) => {
+      renderWithTracking(
+        <MemoryRouter>
+          <AutoragRunsTableRow run={{ ...mockRun, state }} namespace={mockNamespace} />
+        </MemoryRouter>,
+      );
+      expect(trackEventMock).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      await userEvent.click(screen.getByTestId(actionId));
+      expect(trackEventMock).not.toHaveBeenCalled();
+      await userEvent.click(
+        within(screen.getByTestId(modalId)).getByRole('button', { name: 'Cancel' }),
+      );
+      expect(trackEventMock.mock.calls).toEqual([
+        [eventName, { outcome: 'cancel', source: 'runsList' }],
+      ]);
+      expect(screen.queryByTestId(modalId)).not.toBeInTheDocument();
+      expect(mockHandleConfirmStop).not.toHaveBeenCalled();
+    },
+  );
+
   describe('kebab action menu', () => {
     it('should show reconfigure and delete actions for succeeded runs', async () => {
-      render(
+      renderWithTracking(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'SUCCEEDED' }} namespace={mockNamespace} />
         </MemoryRouter>,
@@ -89,7 +122,7 @@ describe('AutoragRunsTableRow', () => {
     });
 
     it('should only show reconfigure action for canceling runs', async () => {
-      render(
+      renderWithTracking(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'CANCELING' }} namespace={mockNamespace} />
         </MemoryRouter>,
@@ -103,7 +136,7 @@ describe('AutoragRunsTableRow', () => {
     });
 
     it('should show stop action for running runs', async () => {
-      render(
+      renderWithTracking(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'RUNNING' }} namespace={mockNamespace} />
         </MemoryRouter>,
@@ -114,7 +147,7 @@ describe('AutoragRunsTableRow', () => {
     });
 
     it('should show retry action for failed runs', async () => {
-      render(
+      renderWithTracking(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'FAILED' }} namespace={mockNamespace} />
         </MemoryRouter>,
@@ -125,7 +158,7 @@ describe('AutoragRunsTableRow', () => {
     });
 
     it('should show retry action for canceled runs', async () => {
-      render(
+      renderWithTracking(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'CANCELED' }} namespace={mockNamespace} />
         </MemoryRouter>,
@@ -136,7 +169,7 @@ describe('AutoragRunsTableRow', () => {
     });
 
     it('should open stop modal when stop action is clicked', async () => {
-      render(
+      renderWithTracking(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'RUNNING' }} namespace={mockNamespace} />
         </MemoryRouter>,
@@ -148,7 +181,7 @@ describe('AutoragRunsTableRow', () => {
     });
 
     it('should show run name in stop modal', async () => {
-      render(
+      renderWithTracking(
         <MemoryRouter>
           <AutoragRunsTableRow
             run={{ ...mockRun, state: 'RUNNING', display_name: 'My Run' }}
@@ -164,7 +197,7 @@ describe('AutoragRunsTableRow', () => {
     });
 
     it('should call handleRetry when retry action is clicked', async () => {
-      render(
+      renderWithTracking(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'FAILED' }} namespace={mockNamespace} />
         </MemoryRouter>,

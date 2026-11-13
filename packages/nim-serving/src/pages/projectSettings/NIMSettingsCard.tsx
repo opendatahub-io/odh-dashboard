@@ -20,12 +20,17 @@ import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { useNIMSettingsAccessAllowed } from './useNIMSettingsAccessAllowed';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
 import { deleteNIMResources } from '../../api/accounts/api';
-import { fireNimAccountRemoved, NimFailureCategory } from '../../tracking/nimTrackingConstants';
+import {
+  fireNimAccountRemoved,
+  NimFailureCategory,
+  type NimAccountRemovedProperties,
+} from '../../tracking/nimTrackingConstants';
 
 const NIM_DESCRIPTION =
   'NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use microservices designed ' +
@@ -52,6 +57,7 @@ type NIMSettingsCardProps = {
 };
 
 const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
+  const trackEvent = useTrackEvent();
   const { status, errorMessages, loadError, refresh, startRevalidation } =
     useNIMAccountStatus(namespace);
 
@@ -66,14 +72,14 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const isDeletePollSettled = React.useCallback(() => deletePollSettledRef.current, []);
   const hasTrackedDeleteRef = React.useRef(false);
   const trackDeleteRemoved = React.useCallback(
-    (properties: Parameters<typeof fireNimAccountRemoved>[0]) => {
+    (properties: NimAccountRemovedProperties) => {
       if (hasTrackedDeleteRef.current) {
         return;
       }
       hasTrackedDeleteRef.current = true;
-      fireNimAccountRemoved(properties);
+      fireNimAccountRemoved(trackEvent, properties);
     },
-    [],
+    [trackEvent],
   );
   const stopPollingDeleteStatus = React.useCallback((error?: Error) => {
     deletePollSettledRef.current = true;

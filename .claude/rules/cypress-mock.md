@@ -192,7 +192,7 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 
-cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableConnectionTypes: false }));
+cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
 cy.interceptOdh('GET /api/connection-types', [mockConnectionTypeConfigMap({})]);
 ```
 

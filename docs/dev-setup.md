@@ -14,6 +14,15 @@ ODH requires the following to run:
 - [Podman](https://github.com/containers/podman)
 - [Quay.io](https://quay.io/)
 
+### Test prerequisites
+
+The root and app-config `test-unit` and `test-unit-coverage` commands include
+offline subtree integration tests that require Bash, Git, and `jq` on `PATH`,
+in addition to Node.js and the installed workspace dependencies. Install `jq`
+with `brew install jq` on macOS, `sudo apt-get install jq` on Debian/Ubuntu,
+or `sudo dnf install jq` on Fedora/RHEL. Verify it with `jq --version`.
+The unit-test CI job provisions `jq` before running the suite.
+
 ## Development
 
 1. Clone the repository

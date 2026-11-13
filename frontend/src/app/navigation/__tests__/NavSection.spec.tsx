@@ -14,6 +14,7 @@ import { useAccessReviewExtensions } from '#~/utilities/useAccessReviewExtension
 import { NavSection } from '#~/app/navigation/NavSection';
 
 jest.mock('@odh-dashboard/plugin-core', () => ({
+  ...jest.requireActual('@odh-dashboard/plugin-core'),
   useExtensions: jest.fn(),
 }));
 

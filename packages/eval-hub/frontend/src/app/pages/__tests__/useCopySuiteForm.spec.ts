@@ -1,11 +1,8 @@
 /* eslint-disable camelcase */
 import { act, waitFor } from '@testing-library/react';
 import { useNavigate } from 'react-router-dom';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { renderHook } from '~/__tests__/unit/testUtils/hooks';
+import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
+
 import { cloneCollection, createCollection, patchCollection } from '~/app/api/k8s';
 import { useCollectionsContext } from '~/app/context/CollectionsContext';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -19,10 +16,7 @@ import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type { Collection, Provider } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const { mockTrackEvent, renderHook } = setupTrackingTest();
 
 jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn(),
@@ -57,8 +51,7 @@ const mockPatchCollection = jest.mocked(patchCollection);
 const mockUseNotification = jest.mocked(useNotification);
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseCollectionsContext = jest.mocked(useCollectionsContext);
-const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+
 const mockRefreshCollections = jest.fn();
 const defaultSuiteNamePattern =
   /^Curated suite - [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} (AM|PM)$/;
@@ -762,7 +755,7 @@ describe('useCopySuiteForm', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
     expect(mockCloneCollection).not.toHaveBeenCalled();
 
-    const savedCall = mockFireFormTrackingEvent.mock.calls.find(
+    const savedCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(savedCall?.[1]).toEqual(
@@ -877,7 +870,7 @@ describe('useCopySuiteForm', () => {
       expect.objectContaining({ name: 'New suite' }),
     );
     expect(createFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
-    const runSelectedCall = mockFireMiscTrackingEvent.mock.calls.find(
+    const runSelectedCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.BENCHMARK_RUN_SELECTED,
     );
     expect(runSelectedCall?.[1]).toEqual(
@@ -889,7 +882,7 @@ describe('useCopySuiteForm', () => {
       }),
     );
     expect(runSelectedCall?.[1]).not.toHaveProperty('collectionName');
-    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+    const saveAndRunCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(saveAndRunCall?.[1]).toEqual(
@@ -1754,8 +1747,8 @@ describe('useCopySuiteForm', () => {
     );
     expect(cloneFetcher).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(cloned).toEqual(clonedCollection);
-    expect(mockFireMiscTrackingEvent).toHaveBeenCalled();
-    const saveAndRunCall = mockFireFormTrackingEvent.mock.calls.find(
+    expect(mockTrackEvent).toHaveBeenCalled();
+    const saveAndRunCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(saveAndRunCall?.[1]).toEqual(
@@ -1859,7 +1852,7 @@ describe('useCopySuiteForm', () => {
 
     await expect(clonePromise).resolves.toBeUndefined();
     expect(mockNotification.error).not.toHaveBeenCalled();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should abort a create run when its parent request is cancelled', async () => {
@@ -1908,7 +1901,7 @@ describe('useCopySuiteForm', () => {
 
     await expect(createPromise).resolves.toBeUndefined();
     expect(mockNotification.error).not.toHaveBeenCalled();
-    expect(mockFireMiscTrackingEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
   it('should build a pending collection from current form state', async () => {
@@ -2005,7 +1998,7 @@ describe('useCopySuiteForm', () => {
       '"Saved suite" has been added to your collections.',
     );
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
-    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+    const copiedCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(copiedCall?.[1]).toEqual(
@@ -2039,7 +2032,7 @@ describe('useCopySuiteForm', () => {
       await result.result.current.handleSaveOnly();
     });
 
-    const copiedCall = mockFireFormTrackingEvent.mock.calls.find(
+    const copiedCall = mockTrackEvent.mock.calls.find(
       ([eventName]) => eventName === EVAL_HUB_EVENTS.COLLECTION_SAVED,
     );
     expect(copiedCall?.[1]).toEqual(

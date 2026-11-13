@@ -143,12 +143,17 @@ The RHAII Tilt integration establishes the federation foundation: the host loads
 and includes KServe extensions plus a local demo model for validation. It is local development and
 demo wiring, not a production model-serving deployment.
 
+RHAII access checks use standard Kubernetes SelfSubjectAccessReview requests through the host's
+Core BFF transport. Reviews require explicit approval; pending, disabled, and failed checks deny
+access, and superseded responses are ignored. Live verification that the production authentication
+and BFF path preserves the caller's identity and namespace-scoped permissions remains pending.
+
 The Deploy/Edit wizard is not yet fully supported by that host. A follow-up must integrate the
-remaining host capabilities that the wizard depends on, including access checks, serving-runtime
-templates, serving-connection and connection-type services, project serving-platform configuration,
-and the applicable dashboard configuration, settings, and analytics services. Treat the RHAII
-integration as validation of the established federation contract; do not represent it as complete
-Deploy/Edit wizard support until those host integrations are implemented and verified.
+remaining host capabilities that the wizard depends on, including serving-runtime templates,
+serving-connection and connection-type services, project serving-platform configuration, and the
+applicable dashboard configuration, settings, and analytics services. Treat the RHAII integration as
+validation of the established federation contract; do not represent it as complete Deploy/Edit
+wizard support until those host integrations are implemented and verified.
 
 ### Dependency Boundary Status
 

@@ -1,9 +1,6 @@
-// These host adapters bind environment-specific values (clusterID, devMode, version)
-// to @odh-dashboard/analytics. Feature packages access custom-event tracking
-// through plugin-core's useTrackEvent().
-// Remove this module once custom-event consumers use the host tracking API or
-// injected callbacks, and environment binding plus page/identity callers have
-// moved to host-owned tracking adapters.
+// Configures the shared Segment adapter and retains legacy tracking helpers.
+// Feature packages use @odh-dashboard/analytics/react or injected callbacks.
+// Remove these wrappers as their consumers migrate; SDK and identity lifecycle remain host-owned.
 import type {
   FormTrackingEventProperties,
   IdentifyEventProperties,
@@ -11,8 +8,7 @@ import type {
   MiscTrackingEventProperties,
 } from '@odh-dashboard/analytics/types';
 import {
-  fireTrackingEvent as fireTrackingEventCore,
-  firePageEvent as firePageEventCore,
+  createSegmentTracking,
   fireIdentifyEvent as fireIdentifyEventCore,
 } from '@odh-dashboard/analytics';
 import { DEV_MODE, INTERNAL_DASHBOARD_VERSION } from '#~/utilities/const';
@@ -23,18 +19,20 @@ const getTrackingParams = () => ({
   version: INTERNAL_DASHBOARD_VERSION,
 });
 
+export const segmentTracking = createSegmentTracking(getTrackingParams);
+
 export const fireFormTrackingEvent = (
   eventName: string,
   properties: FormTrackingEventProperties,
 ): void => {
-  fireTrackingEventCore(eventName, properties, getTrackingParams());
+  segmentTracking.trackEvent(eventName, properties);
 };
 
 export const fireLinkTrackingEvent = (
   eventName: string,
   properties: LinkTrackingEventProperties,
 ): void => {
-  fireTrackingEventCore(eventName, properties, getTrackingParams());
+  segmentTracking.trackEvent(eventName, properties);
 };
 
 export const fireMiscTrackingEvent = (
@@ -45,15 +43,15 @@ export const fireMiscTrackingEvent = (
     /* eslint-disable-next-line no-console */
     console.warn('This tracking event type is a last resort for legacy purposes');
   }
-  fireTrackingEventCore(eventName, properties, getTrackingParams());
+  segmentTracking.trackEvent(eventName, properties);
 };
 
 export const fireSimpleTrackingEvent = (eventName: string): void => {
-  fireTrackingEventCore(eventName, {}, getTrackingParams());
+  segmentTracking.trackEvent(eventName, {});
 };
 
 export const firePageEvent = (): void => {
-  firePageEventCore(getTrackingParams());
+  segmentTracking.trackPageEvent();
 };
 
 export const fireIdentifyEvent = (properties: IdentifyEventProperties): void => {

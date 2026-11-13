@@ -2,6 +2,7 @@
 // @ts-nocheck - Overlay file copied into the starter repo where path aliases are configured.
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { NoopAnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import {
   BrowserStorageContextProvider,
@@ -28,14 +29,16 @@ const modularArchConfig: ModularArchConfig = {
 
 root.render(
   <React.StrictMode>
-    <Router>
-      <ModularArchContextProvider config={modularArchConfig}>
-        <BrowserStorageContextProvider>
-          <NotificationContextProvider>
-            <App />
-          </NotificationContextProvider>
-        </BrowserStorageContextProvider>
-      </ModularArchContextProvider>
-    </Router>
+    <NoopAnalyticsTrackingProvider>
+      <Router>
+        <ModularArchContextProvider config={modularArchConfig}>
+          <BrowserStorageContextProvider>
+            <NotificationContextProvider>
+              <App />
+            </NotificationContextProvider>
+          </BrowserStorageContextProvider>
+        </ModularArchContextProvider>
+      </Router>
+    </NoopAnalyticsTrackingProvider>
   </React.StrictMode>,
 );

@@ -2,8 +2,11 @@
 // controls delivery and metadata. In guarded files, reject direct implementation,
 // SDK, and global access while allowing SDK-free contracts.
 
-// Features may share SDK-free contracts through this exact entry point.
-const allowedModules = new Set(['@odh-dashboard/analytics/types']);
+// Allow only SDK-free contracts and React APIs by default.
+const allowedModules = new Set([
+  '@odh-dashboard/analytics/types',
+  '@odh-dashboard/analytics/react',
+]);
 // Direct adapters and SDK imports bypass host tracking; block their subpaths too.
 const blockedModules = [
   '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils',
@@ -49,7 +52,7 @@ module.exports = {
     schema: [],
     messages: {
       directAnalytics:
-        'Feature analytics must use useTrackEvent() from @odh-dashboard/plugin-core/host-api or an injected host callback.',
+        'Feature analytics must use useTrackEvent() from @odh-dashboard/analytics/react or an injected host callback.',
     },
   },
   create(context) {

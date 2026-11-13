@@ -9,26 +9,16 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/k8s-core/__mocks__/mockConnectionType';
 import type { ExplorerFiles } from '@odh-dashboard/internal/concepts/fileExplorer/types';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/useS3GetFileSchemaQuery';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { AUTOML_EVENTS } from '~/app/utilities/tracking';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
   AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/automlTrainingDataFile';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const fireFormTrackingEventMock = jest.mocked(fireFormTrackingEvent);
-const fireMiscTrackingEventMock = jest.mocked(fireMiscTrackingEvent);
+const trackEvent = jest.fn();
 
 const mockNotificationError = jest.fn();
 
@@ -329,7 +319,9 @@ const renderWithQueryClient = (
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
+      <TrackingProvider trackEvent={trackEvent}>
+        <FormWrapper defaultValues={defaultValues}>{component}</FormWrapper>
+      </TrackingProvider>
     </QueryClientProvider>,
   );
 };
@@ -442,11 +434,12 @@ describe('AutomlConfigure', () => {
       await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
 
       await waitFor(() =>
-        expect(fireFormTrackingEventMock).toHaveBeenCalledWith(
-          AUTOML_EVENTS.S3_CONNECTION_CREATED,
-          { outcome: 'submit', success: true },
-        ),
+        expect(trackEvent).toHaveBeenCalledWith('AutoML S3 Connection Created', {
+          outcome: 'submit',
+          success: true,
+        }),
       );
+      expect(trackEvent).toHaveBeenCalledTimes(1);
     });
 
     it('should show the mapped create error and track a failed connection creation', async () => {
@@ -457,11 +450,12 @@ describe('AutomlConfigure', () => {
       await userEvent.setup().click(screen.getByRole('button', { name: 'Add connection' }));
 
       expect(await screen.findByText('create backend detail')).toBeInTheDocument();
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.S3_CONNECTION_CREATED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML S3 Connection Created', {
         outcome: 'submit',
         success: false,
         error: 'actionFailed',
       });
+      expect(trackEvent).toHaveBeenCalledTimes(1);
     });
 
     it('should show the mapped submit error after connection creation succeeds', async () => {
@@ -479,9 +473,10 @@ describe('AutomlConfigure', () => {
       openConnectionModal();
       await userEvent.setup().click(screen.getByRole('button', { name: 'Cancel' }));
 
-      expect(fireFormTrackingEventMock).toHaveBeenCalledWith(AUTOML_EVENTS.S3_CONNECTION_CREATED, {
+      expect(trackEvent).toHaveBeenCalledWith('AutoML S3 Connection Created', {
         outcome: 'cancel',
       });
+      expect(trackEvent).toHaveBeenCalledTimes(1);
     });
 
     it('should NOT show training data source toggle when no secret is selected', () => {
@@ -1053,11 +1048,10 @@ describe('AutomlConfigure', () => {
         renderComponent();
         selectSecretAndFile();
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
-          { trainingDataSourceType: 'select' },
-        );
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+        expect(trackEvent).toHaveBeenCalledWith('AutoML Training Data Configured', {
+          trainingDataSourceType: 'select',
+        });
+        expect(trackEvent).toHaveBeenCalledTimes(1);
       });
 
       it('should fire AutoML Training Data Configured with trainingDataSourceType "upload" when a file is uploaded', async () => {
@@ -1069,37 +1063,34 @@ describe('AutomlConfigure', () => {
         dropFilesOnTrainingDataUploadZone([goodFile]);
 
         await waitFor(() => {
-          expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-            AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
-            { trainingDataSourceType: 'upload' },
-          );
+          expect(trackEvent).toHaveBeenCalledWith('AutoML Training Data Configured', {
+            trainingDataSourceType: 'upload',
+          });
         });
       });
 
       it('should fire AutoML Target Column Configured once when a target column is selected', () => {
         renderComponent();
         selectSecretAndFile();
-        fireMiscTrackingEventMock.mockClear();
+        trackEvent.mockClear();
 
         selectTargetColumn();
+        selectTargetColumn();
 
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-          AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
-          {},
-        );
-        expect(fireMiscTrackingEventMock).toHaveBeenCalledTimes(1);
+        expect(trackEvent).toHaveBeenCalledWith('AutoML Target Column Configured', {});
+        expect(trackEvent).toHaveBeenCalledTimes(1);
       });
 
       it('should NOT re-fire AutoML Target Column Configured when a different prediction type is picked afterward', () => {
         renderComponent();
         selectSecretAndFile();
         selectTargetColumn(); // fires once
-        fireMiscTrackingEventMock.mockClear();
+        trackEvent.mockClear();
 
         selectPredictionType('multiclass');
 
-        expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
-          AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+        expect(trackEvent).not.toHaveBeenCalledWith(
+          'AutoML Target Column Configured',
           expect.anything(),
         );
       });
@@ -1720,12 +1711,12 @@ describe('AutomlConfigure', () => {
         },
       );
 
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
-        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+      expect(trackEvent).not.toHaveBeenCalledWith(
+        'AutoML Training Data Configured',
         expect.anything(),
       );
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
-        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+      expect(trackEvent).not.toHaveBeenCalledWith(
+        'AutoML Target Column Configured',
         expect.anything(),
       );
     });
@@ -1756,8 +1747,8 @@ describe('AutomlConfigure', () => {
       );
 
       // Mount: the pre-populated target column must not count as a user selection.
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
-        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
+      expect(trackEvent).not.toHaveBeenCalledWith(
+        'AutoML Target Column Configured',
         expect.anything(),
       );
       expect(onFunnelStepChange).not.toHaveBeenCalled();
@@ -1766,10 +1757,7 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('target_column-select'));
       fireEvent.click(screen.getByRole('option', { name: /income/ }));
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTOML_EVENTS.TARGET_COLUMN_CONFIGURED,
-        {},
-      );
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Target Column Configured', {});
       expect(onFunnelStepChange).toHaveBeenCalledWith('predictionType');
     });
 
@@ -1795,8 +1783,8 @@ describe('AutomlConfigure', () => {
       );
 
       // Mount: the pre-populated training data file must not count as a user selection.
-      expect(fireMiscTrackingEventMock).not.toHaveBeenCalledWith(
-        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
+      expect(trackEvent).not.toHaveBeenCalledWith(
+        'AutoML Training Data Configured',
         expect.anything(),
       );
 
@@ -1804,10 +1792,9 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-      expect(fireMiscTrackingEventMock).toHaveBeenCalledWith(
-        AUTOML_EVENTS.TRAINING_DATA_CONFIGURED,
-        { trainingDataSourceType: 'select' },
-      );
+      expect(trackEvent).toHaveBeenCalledWith('AutoML Training Data Configured', {
+        trainingDataSourceType: 'select',
+      });
     });
 
     it('should pre-select the prediction type card when task_type is provided', () => {

@@ -60,11 +60,15 @@ export type UseModelDeploymentWizardState = WizardFormData & {
 };
 
 export const useModelDeploymentWizard = (
-  initialData?: InitialWizardFormData,
+  initialFormDataFromNav?: InitialWizardFormData,
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
 ): UseModelDeploymentWizardState => {
   const vLLMDeploymentOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
+
+  const [initialFormData, setInitialFormData] = React.useState<InitialWizardFormData | undefined>(
+    initialFormDataFromNav,
+  );
 
   // Declare reducer state first so field hooks can access it
   // `fieldValues` are user-provided, `initialValues` are calculated by the reducer
@@ -91,14 +95,14 @@ export const useModelDeploymentWizard = (
 
   const modelLocationData = useModelLocationData(
     project.projectName,
-    initialData?.modelLocationData,
+    initialFormData?.modelLocationData,
   );
   const createConnectionData = useCreateConnectionData(
     project.projectName,
-    initialData?.createConnectionData,
+    initialFormData?.createConnectionData,
     modelLocationData.data,
   );
-  const modelType = useModelTypeField(initialData?.modelTypeField, modelLocationData.data);
+  const modelType = useModelTypeField(initialFormData?.modelTypeField, modelLocationData.data);
 
   // loaded state
   const modelSourceLoaded = React.useMemo(() => {
@@ -107,36 +111,36 @@ export const useModelDeploymentWizard = (
 
   // Step 2: Model Deployment
   const k8sNameDesc = useK8sNameDescriptionFieldData({
-    initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
-    editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
+    initialData: extractK8sNameDescriptionFieldData(initialFormData?.k8sNameDesc),
+    editableK8sName: !initialFormData?.k8sNameDesc?.k8sName.state.immutable,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
     namespace: project.projectName ?? undefined,
     regexp: INFERENCE_SERVICE_NAME_REGEX,
     invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   });
   const modelFormatState = useModelFormatField(
-    initialData?.modelFormat,
+    initialFormData?.modelFormat,
     modelType.data,
     project.projectName,
   );
 
-  const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
+  const numReplicas = useNumReplicasField(initialFormData?.numReplicas ?? undefined);
 
   // Step 3: Advanced Options - Individual Fields
   const modelAvailability = useModelAvailabilityFields(
-    initialData?.modelAvailability,
+    initialFormData?.modelAvailability,
     modelType.data,
   );
 
   const externalRoute = useExternalRouteField(
-    initialData?.externalRoute ?? undefined,
+    initialFormData?.externalRoute ?? undefined,
     modelType,
     formState.modelServer,
     formState.deploymentMethod,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
-    initialData?.tokenAuthentication ?? undefined,
+    initialFormData?.tokenAuthentication ?? undefined,
     modelType,
     formState.modelServer,
     formState.deploymentMethod,
@@ -144,32 +148,35 @@ export const useModelDeploymentWizard = (
   );
 
   const runtimeArgs = useRuntimeArgsField(
-    initialData?.runtimeArgs ??
+    initialFormData?.runtimeArgs ??
       buildRuntimeArgsFromValidatedSelections(
-        initialData?.validatedConfigurations,
-        initialData?.selectedValidatedConfigurations,
+        initialFormData?.validatedConfigurations,
+        initialFormData?.selectedValidatedConfigurations,
       ),
   );
   const environmentVariables = useEnvironmentVariablesField(
-    initialData?.environmentVariables ?? undefined,
+    initialFormData?.environmentVariables ?? undefined,
   );
   const deploymentStrategy = useDeploymentStrategyField(
-    initialData?.deploymentStrategy ?? undefined,
+    initialFormData?.deploymentStrategy ?? undefined,
     modelType,
     formState.modelServer,
     formState.deploymentMethod,
   );
   const validatedConfigurationSelection = useValidatedConfigurationsField(
-    initialData?.selectedValidatedConfigurations,
+    initialFormData?.selectedValidatedConfigurations,
   );
-  const huggingFaceApiKey = useHuggingFaceApiKeyField(initialData?.huggingFaceApiKey);
+  const huggingFaceApiKey = useHuggingFaceApiKeyField(initialFormData?.huggingFaceApiKey);
   const requiresHuggingFaceApiKey = React.useMemo(
     () =>
       Boolean(
-        initialData?.requiresHuggingFaceApiKey ||
-          initialData?.huggingFaceApiKey?.configuredSecretName,
+        initialFormData?.requiresHuggingFaceApiKey ||
+          initialFormData?.huggingFaceApiKey?.configuredSecretName,
       ),
-    [initialData?.requiresHuggingFaceApiKey, initialData?.huggingFaceApiKey?.configuredSecretName],
+    [
+      initialFormData?.requiresHuggingFaceApiKey,
+      initialFormData?.huggingFaceApiKey?.configuredSecretName,
+    ],
   );
 
   // Step 4: Summary
@@ -238,7 +245,7 @@ export const useModelDeploymentWizard = (
     hardwareProfileVisibleIn,
     hardwareProfileResourceNamespace,
     hardwareProfileNamespace,
-  ] = initialData?.hardwareProfile ?? [];
+  ] = initialFormData?.hardwareProfile ?? [];
   const hardwareProfileConfig = useHardwareProfileConfig(
     hardwareProfileName,
     hardwareProfileResources,
@@ -265,7 +272,13 @@ export const useModelDeploymentWizard = (
 
   // The reducer manages dynamic field state and computes active fields from merged state
   const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
-    useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
+    useDeploymentWizardReducer(
+      mergedFormState,
+      formReducerDispatch,
+      setInitialFormData,
+      externalDataMap,
+      initialFormData,
+    );
 
   const tokenAuthOverrides = React.useMemo(
     () => computedOverrides.tokenAuthentication ?? {},
@@ -302,7 +315,7 @@ export const useModelDeploymentWizard = (
   );
 
   return {
-    initialData,
+    initialData: initialFormData,
     state: stateWithOverrides,
     computedOverrides,
     deployMethodActivationInput,

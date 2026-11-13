@@ -3,13 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { createTrackingTestWrapper } from '../../../__tests__/unit/testUtils/TrackingProvider';
 import { NIMAccountStatus } from '../../../api/accounts/hooks';
 import { createNIMResources, createOrReplaceSecret } from '../../../api/accounts/api';
-import {
-  fireNimAccountEnabled,
-  NimAccountEnabledMode,
-  NimFailureCategory,
-} from '../../../tracking/nimTrackingConstants';
+import { NimAccountEnabledMode, NimFailureCategory } from '../../../tracking/nimTrackingConstants';
 import NIMApiKeyModal from '../NIMApiKeyModal';
 
 jest.mock('../../../api/accounts/api', () => ({
@@ -17,14 +14,12 @@ jest.mock('../../../api/accounts/api', () => ({
   createOrReplaceSecret: jest.fn(),
 }));
 
-jest.mock('../../../tracking/nimTrackingConstants', () => ({
-  ...jest.requireActual('../../../tracking/nimTrackingConstants'),
-  fireNimAccountEnabled: jest.fn(),
-}));
-
 const mockCreateNIMResources = jest.mocked(createNIMResources);
 const mockCreateOrReplaceSecret = jest.mocked(createOrReplaceSecret);
-const mockFireNimAccountEnabled = jest.mocked(fireNimAccountEnabled);
+const trackEvent = jest.fn();
+const trackPageEvent = jest.fn();
+const TrackingWrapper = createTrackingTestWrapper({ trackEvent, trackPageEvent });
+const renderWithTracking = (ui: React.ReactElement) => render(ui, { wrapper: TrackingWrapper });
 
 const defaultProps = {
   onClose: jest.fn(),
@@ -40,9 +35,13 @@ describe('NIMApiKeyModal tracking', () => {
     mockCreateOrReplaceSecret.mockResolvedValue({} as never);
   });
 
+  afterEach(() => {
+    expect(trackPageEvent).not.toHaveBeenCalled();
+  });
+
   it('should track successful enable after account validation', async () => {
     const refresh = jest.fn().mockResolvedValue(undefined);
-    const { rerender } = render(
+    const { rerender } = renderWithTracking(
       <NIMApiKeyModal
         {...defaultProps}
         refresh={refresh}
@@ -70,36 +69,39 @@ describe('NIMApiKeyModal tracking', () => {
     );
 
     await waitFor(() => {
-      expect(mockFireNimAccountEnabled).toHaveBeenCalledWith({
+      expect(trackEvent).toHaveBeenCalledWith('Model Serving NIM Account Enabled', {
         outcome: TrackingOutcome.submit,
         success: true,
         mode: NimAccountEnabledMode.ENABLE,
       });
     });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should track API failures on submit with an allowlisted error category', async () => {
     mockCreateNIMResources.mockRejectedValue(new Error('Forbidden'));
 
-    render(<NIMApiKeyModal {...defaultProps} accountStatus={NIMAccountStatus.NOT_FOUND} />);
+    renderWithTracking(
+      <NIMApiKeyModal {...defaultProps} accountStatus={NIMAccountStatus.NOT_FOUND} />,
+    );
 
     await userEvent.type(screen.getByTestId('nim-api-key-input'), 'nvapi-test-key');
     await userEvent.click(screen.getByTestId('nim-api-key-submit'));
 
     await waitFor(() => {
-      expect(mockFireNimAccountEnabled).toHaveBeenCalledWith({
+      expect(trackEvent).toHaveBeenCalledWith('Model Serving NIM Account Enabled', {
         outcome: TrackingOutcome.submit,
         success: false,
         error: NimFailureCategory.API_FAILED,
         mode: NimAccountEnabledMode.ENABLE,
       });
     });
-    expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should track validation failures after replace submit', async () => {
     const refresh = jest.fn().mockResolvedValue(undefined);
-    const { rerender } = render(
+    const { rerender } = renderWithTracking(
       <NIMApiKeyModal {...defaultProps} refresh={refresh} accountStatus={NIMAccountStatus.READY} />,
     );
 
@@ -123,19 +125,19 @@ describe('NIMApiKeyModal tracking', () => {
     );
 
     await waitFor(() => {
-      expect(mockFireNimAccountEnabled).toHaveBeenCalledWith({
+      expect(trackEvent).toHaveBeenCalledWith('Model Serving NIM Account Enabled', {
         outcome: TrackingOutcome.submit,
         success: false,
         error: NimFailureCategory.VALIDATION_FAILED,
         mode: NimAccountEnabledMode.REPLACE,
       });
     });
-    expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledTimes(1);
   });
 
   it('should not track submit failure when refresh fails after a successful create', async () => {
     const refresh = jest.fn().mockRejectedValue(new Error('Refresh failed'));
-    render(
+    renderWithTracking(
       <NIMApiKeyModal
         {...defaultProps}
         refresh={refresh}
@@ -151,12 +153,12 @@ describe('NIMApiKeyModal tracking', () => {
       expect(screen.getByText('Refresh failed')).toBeInTheDocument();
     });
 
-    expect(mockFireNimAccountEnabled).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 
   it('should track a successful retry after validation failure', async () => {
     const refresh = jest.fn().mockResolvedValue(undefined);
-    const { rerender } = render(
+    const { rerender } = renderWithTracking(
       <NIMApiKeyModal
         {...defaultProps}
         refresh={refresh}
@@ -183,7 +185,7 @@ describe('NIMApiKeyModal tracking', () => {
     );
 
     await waitFor(() => {
-      expect(mockFireNimAccountEnabled).toHaveBeenCalledWith({
+      expect(trackEvent).toHaveBeenCalledWith('Model Serving NIM Account Enabled', {
         outcome: TrackingOutcome.submit,
         success: false,
         error: NimFailureCategory.VALIDATION_FAILED,
@@ -207,8 +209,8 @@ describe('NIMApiKeyModal tracking', () => {
     );
 
     await waitFor(() => {
-      expect(mockFireNimAccountEnabled).toHaveBeenCalledTimes(2);
-      expect(mockFireNimAccountEnabled).toHaveBeenLastCalledWith({
+      expect(trackEvent).toHaveBeenCalledTimes(2);
+      expect(trackEvent).toHaveBeenLastCalledWith('Model Serving NIM Account Enabled', {
         outcome: TrackingOutcome.submit,
         success: true,
         mode: NimAccountEnabledMode.REPLACE,
@@ -217,19 +219,37 @@ describe('NIMApiKeyModal tracking', () => {
   });
 
   it('should not include the API key in tracking payloads', async () => {
-    mockCreateNIMResources.mockRejectedValue(new Error('Forbidden'));
+    mockCreateNIMResources.mockRejectedValue(new Error('Forbidden: nvapi-secret-key'));
 
-    render(<NIMApiKeyModal {...defaultProps} accountStatus={NIMAccountStatus.NOT_FOUND} />);
+    renderWithTracking(
+      <NIMApiKeyModal {...defaultProps} accountStatus={NIMAccountStatus.NOT_FOUND} />,
+    );
 
     await userEvent.type(screen.getByTestId('nim-api-key-input'), 'nvapi-secret-key');
     await userEvent.click(screen.getByTestId('nim-api-key-submit'));
 
     await waitFor(() => {
-      expect(mockFireNimAccountEnabled).toHaveBeenCalled();
+      expect(trackEvent).toHaveBeenCalled();
     });
 
-    const trackingPayload = JSON.stringify(mockFireNimAccountEnabled.mock.calls[0]);
+    const trackingPayload = JSON.stringify(trackEvent.mock.calls[0]);
     expect(trackingPayload).not.toContain('nvapi-secret-key');
     expect(trackingPayload).not.toContain('Forbidden');
   });
+
+  it.each([NIMAccountStatus.NOT_FOUND, NIMAccountStatus.READY])(
+    'should emit nothing when cancelling an unsubmitted account dialog in %s state',
+    async (accountStatus) => {
+      renderWithTracking(<NIMApiKeyModal {...defaultProps} accountStatus={accountStatus} />);
+
+      await userEvent.type(screen.getByTestId('nim-api-key-input'), 'nvapi-secret-key');
+      await userEvent.click(screen.getByTestId('nim-api-key-cancel'));
+
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+      expect(trackEvent).not.toHaveBeenCalled();
+      expect(trackPageEvent).not.toHaveBeenCalled();
+      expect(mockCreateNIMResources).not.toHaveBeenCalled();
+      expect(mockCreateOrReplaceSecret).not.toHaveBeenCalled();
+    },
+  );
 });

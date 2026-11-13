@@ -2,6 +2,7 @@ import type { KServeDeployment } from '@odh-dashboard/kserve/types';
 import type { ServingContainer } from '@odh-dashboard/model-serving/shared';
 import { translateDisplayNameForK8s, type Volume, type VolumeMount } from '@odh-dashboard/k8s-core';
 import {
+  getNIMPVCK8sName,
   NIMPVCStorageMode,
   type NIMPVCFieldValue,
 } from '../../pages/deploymentWizard/fields/NIMPVCField';
@@ -32,7 +33,8 @@ const addPVCVolumeToRuntime = (
     return deployment;
   }
 
-  const k8sPvcName = translateDisplayNameForK8s(pvcName);
+  // PVC claim names may be DNS subdomains (e.g. model.cache); pod volume names must be DNS labels.
+  const volumeName = translateDisplayNameForK8s(pvcName);
   const server = structuredClone(deployment.server);
   const cacheVolumeNames = new Set(
     server.spec.containers.flatMap((c) =>
@@ -42,11 +44,11 @@ const addPVCVolumeToRuntime = (
     ),
   );
   const volume: Volume = {
-    name: k8sPvcName,
-    persistentVolumeClaim: { claimName: k8sPvcName },
+    name: volumeName,
+    persistentVolumeClaim: { claimName: pvcName },
   };
   const volumeMount: VolumeMount = {
-    name: k8sPvcName,
+    name: volumeName,
     mountPath: NIM_CACHE_MOUNT_PATH,
     subPath: normalizeSubPath(subPath),
   };
@@ -55,7 +57,7 @@ const addPVCVolumeToRuntime = (
     ...(server.spec.volumes ?? []).filter(
       (v) =>
         !isTemplateOrCachePvcVolume(v, cacheVolumeNames) &&
-        v.persistentVolumeClaim?.claimName !== k8sPvcName,
+        v.persistentVolumeClaim?.claimName !== pvcName,
     ),
     volume,
   ];
@@ -85,7 +87,8 @@ const addPVCVolumeToRuntime = (
 export const applyNIMPVCFieldData = (
   deployment: KServeDeployment,
   fieldData: NIMPVCFieldValue,
-): KServeDeployment => addPVCVolumeToRuntime(deployment, fieldData.pvcName, fieldData.subPath);
+): KServeDeployment =>
+  addPVCVolumeToRuntime(deployment, getNIMPVCK8sName(fieldData), fieldData.subPath);
 
 /**
  * Extracts PVC field data from an existing KServe deployment by inspecting
@@ -120,9 +123,11 @@ export const extractNIMPVCFieldData = (
     return undefined;
   }
 
+  const { claimName } = pvcVolume.persistentVolumeClaim;
   return {
     storageMode: NIMPVCStorageMode.EXISTING,
-    pvcName: pvcVolume.persistentVolumeClaim.claimName,
+    existingPvcDisplayName: claimName,
+    existingPvcK8sName: claimName,
     subPath: cacheMount.subPath ?? '',
     storageClassName: '',
     storageSizeGi: DEFAULT_STORAGE_SIZE_GI,

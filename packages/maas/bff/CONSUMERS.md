@@ -13,7 +13,7 @@ These paths represent the **standardized inter-BFF API** for all odh-dashboard p
 | Method | Path               | Role                                                |
 | :----- | :----------------- | :-------------------------------------------------- |
 | `POST` | `/api/v1/api-keys` | Create API key (including ephemeral keys)           |
-| `GET`  | `/api/v1/models`   | List models, optional headers forwarded to maas-api |
+| `GET`  | `/api/v1/models`   | List models using the authenticated request identity |
 | `GET`  | `/api/v1/gateway-url` | Get the externally reachable MaaS API base URL   |
 
 ---
@@ -33,7 +33,7 @@ Keep this list current: **add a row in the same PR** that introduces or changes 
 
 - **Base URL:** Callers typically use a base URL ending in **`/api/v1`** and append the path (e.g. `POST …/api-keys` relative to that base).
 - **Create key:** Request body uses the mod-arch envelope; include **`ephemeral: true`** when the use case is short-lived keys (callers may hardcode this in middleware so end users do not need to).
-- **List models:** Outbound **`X-MaaS-Return-All-Models`** (or other custom headers) may be set by the **caller** or its middleware so responses include richer subscription aggregation. Note: headers are forwarded to the MaaS API **except** `Content-Type` and `Authorization`, which the MaaS BFF manages itself on the upstream call.
+- **List models:** Only **`X-MaaS-Return-All-Models`** is forwarded to MaaS API, preserving enriched model results for Gen-AI consumers. Other incoming headers, including gateway-added headers and cookies, are not forwarded. As with API-key requests, the MaaS BFF sets `Content-Type` and derives `Authorization` from the authenticated request identity.
 - **Auth:** Each consumer must send credentials the MaaS BFF expects (e.g. token header for `user_token` mode, or Kubeflow identity headers for `internal` mode).
 - **Availability:** Contract routes may return **`503 Service Unavailable`** while the upstream `maas-api` is not yet discoverable (for example MaaS is not installed on the cluster). The BFF process itself stays up and retries discovery in the background.
 
@@ -60,7 +60,7 @@ Returns **`503 Service Unavailable`** while MaaS gateway discovery has not compl
 The Gen-AI and AutoRAG BFFs call the contract endpoints in production. The bullets below describe the Gen-AI integration specifically.
 
 - **`ephemeral: true`** is intended to be set when creating keys through this path so keys are short-lived; callers of Gen-AI need not send it if the BFF always sets it.
-- Inter-BFF middleware may set **`X-MaaS-Return-All-Models: true`** on outbound calls to the MaaS BFF so aggregated subscription metadata can appear on model list entries.
+- Inter-BFF middleware sets **`X-MaaS-Return-All-Models: true`** to request enriched model results, including aggregated subscription metadata. This header is explicitly allowlisted by the MaaS BFF; Gen-AI callers do not need to change.
 - Auth to the MaaS BFF uses the Gen-AI BFF’s configured token header (often **`x-forwarded-access-token`**).
 
 ---
@@ -100,7 +100,7 @@ The Gen-AI and AutoRAG BFFs call the contract endpoints in production. The bulle
 
 ### `GET /api/v1/models`
 
-**Request:** no body. Optional headers are forwarded to maas-api (except `Content-Type` and `Authorization`, which the MaaS BFF sets on the upstream call).
+**Request:** no body. The optional `X-MaaS-Return-All-Models` header is forwarded to MaaS API; all other incoming headers are excluded. The BFF sets `Content-Type` and derives `Authorization` from the authenticated request identity.
 
 **Success `200 OK`**
 

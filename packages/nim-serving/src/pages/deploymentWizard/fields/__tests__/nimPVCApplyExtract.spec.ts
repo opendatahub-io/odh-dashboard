@@ -25,7 +25,7 @@ const makeDeployment = (pvcName?: string, subPath?: string): NIMDeployment => ({
 
 const makeFieldValue = (overrides?: Partial<NIMPVCFieldValue>): NIMPVCFieldValue => ({
   storageMode: NIMPVCStorageMode.NEW,
-  pvcName: 'test-pvc',
+  existingPvcDisplayName: 'test-pvc',
   subPath: '',
   storageClassName: 'gp3-csi',
   storageSizeGi: 50,
@@ -34,16 +34,26 @@ const makeFieldValue = (overrides?: Partial<NIMPVCFieldValue>): NIMPVCFieldValue
 
 describe('applyNIMPVCFieldData', () => {
   it('should set PVC name on the deployment', () => {
-    const result = applyNIMPVCFieldData(makeDeployment(), makeFieldValue({ pvcName: 'my-pvc' }));
+    const result = applyNIMPVCFieldData(
+      makeDeployment(),
+      makeFieldValue({ existingPvcDisplayName: 'my-pvc' }),
+    );
     expect(result.model.spec.storage?.pvc?.name).toBe('my-pvc');
   });
 
-  it('should translate display names with spaces into valid k8s names', () => {
-    const result = applyNIMPVCFieldData(
-      makeDeployment(),
-      makeFieldValue({ pvcName: 'pr pvc test' }),
-    );
-    expect(result.model.spec.storage?.pvc?.name).toBe('pr-pvc-test');
+  it('should use existingPvcK8sName or newPvcNameData when set, otherwise translate the display name', () => {
+    expect(
+      applyNIMPVCFieldData(
+        makeDeployment(),
+        makeFieldValue({ existingPvcDisplayName: 'My PVC', existingPvcK8sName: 'custom-pvc' }),
+      ).model.spec.storage?.pvc?.name,
+    ).toBe('custom-pvc');
+    expect(
+      applyNIMPVCFieldData(
+        makeDeployment(),
+        makeFieldValue({ existingPvcDisplayName: 'pr pvc test' }),
+      ).model.spec.storage?.pvc?.name,
+    ).toBe('pr-pvc-test');
   });
 
   it('should omit subPath when it is empty (default)', () => {
@@ -79,7 +89,7 @@ describe('applyNIMPVCFieldData', () => {
 
   it('should not mutate the original deployment', () => {
     const deployment = makeDeployment();
-    applyNIMPVCFieldData(deployment, makeFieldValue({ pvcName: 'changed' }));
+    applyNIMPVCFieldData(deployment, makeFieldValue({ existingPvcDisplayName: 'changed' }));
     expect(deployment.model.spec.storage).toBeUndefined();
   });
 });
@@ -89,7 +99,8 @@ describe('extractNIMPVCFieldData', () => {
     const result = extractNIMPVCFieldData(makeDeployment('my-pvc', 'models'));
     expect(result).toEqual({
       storageMode: NIMPVCStorageMode.EXISTING,
-      pvcName: 'my-pvc',
+      existingPvcDisplayName: 'my-pvc',
+      existingPvcK8sName: 'my-pvc',
       subPath: 'models',
       storageClassName: '',
       storageSizeGi: 50,

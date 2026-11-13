@@ -406,6 +406,8 @@ When rendering multiple dashboards, use the default `syncToUrl={false}` so each 
 
 Theming is handled automatically by `PersesProvider`. It reads the current PatternFly light/dark mode and maps it to MUI theme overrides and ECharts chart colors.
 
+MUI button corners follow PatternFly's live `--pf-t--global--border--radius--control--default` CSS token (with a 6px fallback), so they pick up the Felt pill radius without rebuilding the MUI theme.
+
 ### Component reference
 
 | Component | Description |

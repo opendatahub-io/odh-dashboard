@@ -6,6 +6,62 @@
     <meta name="theme-color" content="#ffffff" />
     <title><%= htmlRspackPlugin.options.title %></title>
     <script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script>
+    <script>
+      // PatternFly theme classes are applied before the app boots so tokens
+      // are correct on first paint. Felt is always on; light/dark composes
+      // via .pf-v6-theme-dark and glass/high-contrast via their classes.
+      // Resolution mirrors ThemeContext (dark follows the color scheme or OS;
+      // Glass is the default contrast unless the OS opts out). The legacy
+      // odh.dashboard.ui.theme key is migrated
+      // once so saved light/dark choices survive. OS "Reduce Transparency"
+      // overrides glass when the scheme is system (see App.scss).
+      (function () {
+        var root = document.documentElement;
+        root.classList.add('pf-v6-theme-felt');
+        try {
+          var SCHEME_KEY = 'odh.dashboard.ui.colorScheme';
+          var LEGACY_KEY = 'odh.dashboard.ui.theme';
+          var CONTRAST_KEY = 'odh.dashboard.ui.contrastMode';
+          var read = function (key) {
+            var raw = localStorage.getItem(key);
+            if (raw === null) {
+              return null;
+            }
+            try {
+              return JSON.parse(raw);
+            } catch (e) {
+              return raw;
+            }
+          };
+          var scheme = read(SCHEME_KEY);
+          if (scheme === null) {
+            var legacy = read(LEGACY_KEY);
+            if (legacy === 'dark' || legacy === 'light') {
+              scheme = legacy;
+              localStorage.setItem(SCHEME_KEY, JSON.stringify(legacy));
+            }
+            localStorage.removeItem(LEGACY_KEY);
+          }
+          var dark =
+            scheme === 'dark' ||
+            (scheme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          root.classList.toggle('pf-v6-theme-dark', dark);
+          var contrast = read(CONTRAST_KEY);
+          var glass = contrast === 'glass';
+          var highContrast = contrast === 'high-contrast';
+          if (contrast === null || contrast === 'system') {
+            highContrast = window.matchMedia('(prefers-contrast: more)').matches;
+            glass =
+              !highContrast && !window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
+          }
+          root.classList.toggle('pf-v6-theme-glass', glass);
+          root.classList.toggle('pf-v6-theme-high-contrast', highContrast);
+        } catch (e) {
+          // Restricted contexts (iframe, private browsing): ThemeContext
+          // re-applies the resolved classes after mount.
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

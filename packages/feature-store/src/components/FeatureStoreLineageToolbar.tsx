@@ -5,7 +5,7 @@ import {
   MultiSelection,
   type SelectionOptions,
 } from '@odh-dashboard/ui-core/components/MultiSelection';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   extractFilterOptionsFromLineage,
   extractFilterOptionsFromFeatureViewLineage,
@@ -45,6 +45,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
   lineageDataLoaded = false,
   isFeatureViewToolbar = false,
 }) => {
+  const trackEvent = useTrackEvent();
   React.useEffect(() => {
     const hasFilters = Object.values(searchFilters).some(
       (filter) => Array.isArray(filter) && filter.length > 0,
@@ -99,7 +100,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
           .map((s) => s.name);
         if (selectedNames.length > 0) {
           newFilters[filterType] = selectedNames;
-          fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
+          trackEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
             filterType: String(filterType),
             pageType: isFeatureViewToolbar ? 'detail' : 'overview',
           } satisfies LineageFilterAppliedProperties);
@@ -109,7 +110,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
         onSearchFiltersChange(newFilters);
       }
     },
-    [onSearchFiltersChange, searchFilters, isFeatureViewToolbar],
+    [trackEvent, onSearchFiltersChange, searchFilters, isFeatureViewToolbar],
   );
 
   const getEntityOptions = useMemo(() => {
@@ -345,7 +346,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
             label="Hide nodes without relationships"
             isChecked={hideNodesWithoutRelationships}
             onChange={(_event, checked) => {
-              fireMiscTrackingEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
+              trackEvent(FEATURE_STORE_EVENTS.LINEAGE_FILTER_APPLIED, {
                 filterType: 'hideNodesWithoutRelationships',
                 hideObjects: checked,
                 pageType: isFeatureViewToolbar ? 'detail' : 'overview',

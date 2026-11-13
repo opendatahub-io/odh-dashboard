@@ -59,6 +59,36 @@ describe('listAuthPolicies', () => {
 
     await expect(listAuthPolicies()({} as never)).rejects.toThrow('Invalid response format');
   });
+
+  describe('meteringMetadata', () => {
+    it.each([
+      ['labels-only', { labels: { team: 'engineering' } }],
+      ['empty', {}],
+      ['partial', { organizationId: 'org-123' }],
+      [
+        'fully populated',
+        { organizationId: 'org-123', costCenter: 'engineering', labels: { team: 'engineering' } },
+      ],
+    ])('should resolve with %s metering metadata intact', async (_name, meteringMetadata) => {
+      mockRestGET.mockResolvedValue({ data: [{ ...validPolicy, meteringMetadata }] });
+
+      const result = await listAuthPolicies()({} as never);
+      expect(result).toHaveLength(1);
+      expect(result[0].meteringMetadata).toEqual(meteringMetadata);
+    });
+
+    it.each([
+      ['non-string organizationId', { organizationId: 123 }],
+      ['non-string costCenter', { costCenter: null }],
+      ['array metadata', ['org-123']],
+      ['array labels', { labels: ['team'] }],
+      ['non-string label values', { labels: { team: 1 } }],
+    ])('should throw for %s', async (_name, meteringMetadata) => {
+      mockRestGET.mockResolvedValue({ data: [{ ...validPolicy, meteringMetadata }] });
+
+      await expect(listAuthPolicies()({} as never)).rejects.toThrow('Invalid response format');
+    });
+  });
 });
 
 describe('getPolicyInfo', () => {

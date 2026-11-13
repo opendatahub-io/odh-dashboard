@@ -62,6 +62,20 @@ matching artifacts exist, so visibility is data-dependent — a catalog model wi
 simply does not show the tabs. Predicates stay pending while the catalog instances namespace is
 unresolved, and the tab content stays in loading state until the namespace resolves.
 
+## Tracking
+
+- Insights tabs and the interaction-provider extension use the host callbacks from
+  `@odh-dashboard/analytics/react`. Federated features inherit the host provider; do not
+  wrap them in a no-op provider or initialize Segment here.
+- Preserve event names, properties, counts, once-only view events, and the 500 ms filter
+  debounce. Simple events with omitted properties still forward `{}`. Page operations
+  remain separate from custom events; exposing the page callback does not add router tracking.
+- Intentional adapter difference: migrated miscellaneous events no longer emit the legacy
+  last-resort warning in development. Shared development logging and delivery suppression
+  remain host-owned.
+- The upstream standalone bootstrap uses an empty plugin store and does not render these
+  dashboard extensions, so it needs no analytics provider or new dependency for this migration.
+
 ## Known Issues / Gotchas
 
 - **Upstream vendoring**: Do not land kubeflow-bound fixes only in `upstream/` — contribute to [kubeflow/model-registry](https://github.com/kubeflow/model-registry), then run `pnpm run update-subtree`. Local-only patches drift from upstream and complicate sync.
