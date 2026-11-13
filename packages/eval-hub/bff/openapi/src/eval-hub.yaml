@@ -235,6 +235,77 @@ paths:
       summary: Create Collection
       description: Creates a tenant-scoped benchmark collection.
 
+  /eval-hub/api/v1/evaluations/collections/generation:
+    summary: Generate a benchmark collection proposal
+    description: >-
+      Starts a tenant-scoped dry-run collection generation. The operation does
+      not create a collection; callers review the result and submit it separately.
+    post:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: '#/components/parameters/namespaceRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionGenerationRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/CollectionGenerationAcceptedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: createCollectionGeneration
+      summary: Generate Collection Proposal
+      description: >-
+        Starts proposal generation and returns a pollable resource. The Location
+        header is a BFF-relative URL containing the same namespace.
+
+  /eval-hub/api/v1/evaluations/collections/generation/{id}:
+    summary: Retrieve a collection generation resource
+    description: Retrieves a tenant-scoped collection generation by resource ID.
+    get:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Collection generation resource ID
+          schema:
+            type: string
+            minLength: 1
+        - $ref: '#/components/parameters/namespaceRequired'
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionGenerationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getCollectionGeneration
+      summary: Get Collection Generation
+      description: >-
+        Returns pending, running, completed, failed, or cancelled generation
+        state. A completed resource includes its proposal result.
+
   /eval-hub/api/v1/evaluations/collections/{id}:
     summary: Get, patch, or delete a single benchmark collection
     description: >-
@@ -1080,6 +1151,391 @@ components:
         secret_ref:
           type: string
           description: Reference to a Kubernetes secret containing the API key or token
+
+    CollectionGenerationModel:
+      type: object
+      required:
+        - name
+        - url
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Generator model name.
+        url:
+          type: string
+          minLength: 1
+          description: Generator model endpoint URL.
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Model-specific parameters. Never include API keys or credentials here.
+        auth:
+          $ref: '#/components/schemas/ModelAuth'
+
+    CollectionGenerationRequest:
+      type: object
+      required:
+        - evaluation_goal
+        - model
+      properties:
+        evaluation_goal:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          pattern: '\S'
+          description: Non-blank natural-language goal; the service trims surrounding whitespace.
+        model:
+          $ref: '#/components/schemas/CollectionGenerationModel'
+        provider_filter:
+          type: string
+          minLength: 1
+          description: Optional comma-separated provider IDs. Omit to search all providers visible to the tenant.
+        max_benchmarks:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 12
+        strictness:
+          type: string
+          enum: [lenient, moderate, strict]
+          default: moderate
+        generation_effort:
+          type: string
+          enum: [low, standard, high]
+          default: standard
+          description: Requested generation effort preset; server budgets remain capped.
+      additionalProperties: false
+
+    CollectionGenerationRequestSummary:
+      allOf:
+        - $ref: '#/components/schemas/CollectionGenerationRequest'
+        - type: object
+          required:
+            - max_benchmarks
+            - strictness
+            - generation_effort
+          description: Normalized request with all defaulted options present.
+
+    CollectionGenerationResourceMetadata:
+      type: object
+      required:
+        - id
+        - tenant
+        - owner
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: ID of the backing evaluation job.
+        tenant:
+          type: string
+          minLength: 1
+        owner:
+          type: string
+          minLength: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CollectionGenerationProgressAction:
+      type: object
+      required:
+        - name
+        - completed_at
+      properties:
+        name:
+          type: string
+          enum:
+            [
+              guardrails_check,
+              search_benchmarks,
+              get_provider_details,
+              list_collections,
+              validate_proposal,
+              calibrate_proposal,
+              finalize_proposal,
+            ]
+        completed_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+
+    CollectionGenerationProgress:
+      type: object
+      required:
+        - phase
+        - updated_at
+      properties:
+        phase:
+          type: string
+          enum: [guardrails, catalog_discovery, model_generation, validation, finalization]
+        updated_at:
+          type: string
+          format: date-time
+        last_completed_action:
+          $ref: '#/components/schemas/CollectionGenerationProgressAction'
+      additionalProperties: false
+
+    CollectionGenerationStatusError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          enum:
+            [
+              guardrails_rejected,
+              guardrails_unavailable,
+              model_failed,
+              tool_failed,
+              validation_failed,
+              timeout,
+              launch_failed,
+              workload_failed,
+            ]
+        message:
+          type: string
+          minLength: 1
+          description: Sanitized tenant-facing explanation without prompt, model output, Secret, or credential contents.
+        category:
+          type: string
+          enum: [prompt_injection, exfiltration, topic_relevance, unsupported_capability]
+          description: Present only for guardrails_rejected.
+      oneOf:
+        - properties:
+            code:
+              type: string
+              enum: [guardrails_rejected]
+          required: [code, category]
+        - properties:
+            code:
+              type: string
+              enum:
+                [
+                  guardrails_unavailable,
+                  model_failed,
+                  tool_failed,
+                  validation_failed,
+                  timeout,
+                  launch_failed,
+                  workload_failed,
+                ]
+          required: [code]
+          not:
+            required: [category]
+      additionalProperties: false
+
+    CollectionGenerationStatus:
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        progress:
+          $ref: '#/components/schemas/CollectionGenerationProgress'
+          description: Present only while running.
+        error:
+          $ref: '#/components/schemas/CollectionGenerationStatusError'
+          description: Required only when state is failed.
+      description: Failed generations require error; progress is present only while running.
+      oneOf:
+        - properties:
+            state:
+              enum: [pending]
+          required: [state]
+          not:
+            anyOf:
+              - required: [error]
+              - required: [progress]
+        - properties:
+            state:
+              enum: [running]
+          required: [state]
+          not:
+            required: [error]
+        - properties:
+            state:
+              enum: [completed]
+          required: [state]
+          not:
+            anyOf:
+              - required: [error]
+              - required: [progress]
+        - properties:
+            state:
+              enum: [failed]
+          required: [state, error]
+          not:
+            required: [progress]
+        - properties:
+            state:
+              enum: [cancelled]
+          required: [state]
+          not:
+            anyOf:
+              - required: [error]
+              - required: [progress]
+      additionalProperties: false
+
+    CollectionGenerationBenchmarkReason:
+      type: object
+      required:
+        - provider_id
+        - id
+        - reason
+      properties:
+        provider_id:
+          type: string
+          minLength: 1
+        id:
+          type: string
+          minLength: 1
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Model-generated explanatory rationale, not a verified fact.
+      additionalProperties: false
+
+    CollectionGenerationExplanation:
+      type: object
+      required:
+        - selected_benchmarks
+        - rejected_benchmarks
+      properties:
+        selected_benchmarks:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CollectionGenerationBenchmarkReason'
+        rejected_benchmarks:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/CollectionGenerationBenchmarkReason'
+      additionalProperties: false
+
+    CollectionGenerationAction:
+      type: object
+      required:
+        - name
+        - outcome
+        - summary
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        outcome:
+          type: string
+          enum: [success, error]
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Redacted summary without credentials or arbitrary model output.
+      additionalProperties: false
+
+    CollectionGenerationResult:
+      type: object
+      required:
+        - collection
+        - yaml
+        - rationale
+        - explanation
+        - actions
+      properties:
+        collection:
+          allOf:
+            - $ref: '#/components/schemas/CollectionCreateRequest'
+            - type: object
+              properties:
+                benchmarks:
+                  minItems: 1
+              anyOf:
+                - required: [category]
+                - required: [domains]
+                  properties:
+                    domains:
+                      type: array
+                      minItems: 1
+        yaml:
+          type: string
+          minLength: 1
+          description: YAML serialization of the collection object above.
+        rationale:
+          type: string
+          minLength: 1
+        explanation:
+          $ref: '#/components/schemas/CollectionGenerationExplanation'
+        actions:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/CollectionGenerationAction'
+        actions_truncated:
+          type: boolean
+      additionalProperties: false
+
+    CollectionGenerationResource:
+      type: object
+      required:
+        - resource
+        - request
+        - status
+      properties:
+        resource:
+          $ref: '#/components/schemas/CollectionGenerationResourceMetadata'
+        request:
+          $ref: '#/components/schemas/CollectionGenerationRequestSummary'
+        status:
+          $ref: '#/components/schemas/CollectionGenerationStatus'
+        result:
+          $ref: '#/components/schemas/CollectionGenerationResult'
+          description: Required when status.state is completed and absent for every other state.
+      oneOf:
+        - properties:
+            status:
+              type: object
+              properties:
+                state:
+                  enum: [completed]
+              required: [state]
+          required: [result]
+        - properties:
+            status:
+              type: object
+              properties:
+                state:
+                  enum: [pending, running, failed, cancelled]
+              required: [state]
+          not:
+            required: [result]
+      additionalProperties: false
+
+    CollectionGenerationEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/CollectionGenerationResource'
 
     JobModel:
       type: object
@@ -2538,35 +2994,35 @@ components:
               total_count: 2
               truncated: false
             data:
-                - resource:
-                    id: 'eval-job-001'
-                    tenant: 'MMLU Benchmark'
-                    created_at: '2026-02-20T10:00:00Z'
-                    updated_at: '2026-02-20T11:30:00Z'
-                  status:
-                    state: 'completed'
-                  results:
-                    benchmarks:
-                      - id: 'arc_easy'
-                        provider_id: 'lm_evaluation_harness'
-                        metrics:
-                          score: 0.85
-                  model:
-                    name: 'meta-llama/Llama-3.1-8B-Instruct'
+              - resource:
+                  id: 'eval-job-001'
+                  tenant: 'MMLU Benchmark'
+                  created_at: '2026-02-20T10:00:00Z'
+                  updated_at: '2026-02-20T11:30:00Z'
+                status:
+                  state: 'completed'
+                results:
                   benchmarks:
                     - id: 'arc_easy'
                       provider_id: 'lm_evaluation_harness'
-                - resource:
-                    id: 'eval-job-002'
-                    tenant: 'HellaSwag Eval'
-                    created_at: '2026-02-24T08:00:00Z'
-                  status:
-                    state: 'running'
-                  model:
-                    name: 'mistralai/Mistral-7B-v0.1'
-                  benchmarks:
-                    - id: 'hellaswag'
-                      provider_id: 'lm_evaluation_harness'
+                      metrics:
+                        score: 0.85
+                model:
+                  name: 'meta-llama/Llama-3.1-8B-Instruct'
+                benchmarks:
+                  - id: 'arc_easy'
+                    provider_id: 'lm_evaluation_harness'
+              - resource:
+                  id: 'eval-job-002'
+                  tenant: 'HellaSwag Eval'
+                  created_at: '2026-02-24T08:00:00Z'
+                status:
+                  state: 'running'
+                model:
+                  name: 'mistralai/Mistral-7B-v0.1'
+                benchmarks:
+                  - id: 'hellaswag'
+                    provider_id: 'lm_evaluation_harness'
 
     CollectionsResponse:
       description: List of benchmark collections from EvalHub
@@ -2621,6 +3077,45 @@ components:
                 - id: 'arc_challenge'
                   provider_id: 'lm_evaluation_harness'
                   weight: 1
+
+    CollectionGenerationResponse:
+      description: Pollable collection generation resource from EvalHub
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CollectionGenerationEnvelope'
+
+    CollectionGenerationAcceptedResponse:
+      description: Newly accepted collection generation resource from EvalHub
+      headers:
+        Location:
+          description: BFF-relative URL for polling the generation resource, including its namespace.
+          required: true
+          schema:
+            type: string
+            format: uri-reference
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CollectionGenerationEnvelope'
+          example:
+            data:
+              resource:
+                id: 'generation-001'
+                tenant: 'default'
+                owner: 'dev-user@example.com'
+                created_at: '2026-01-01T00:00:00Z'
+                updated_at: '2026-01-01T00:00:00Z'
+              request:
+                evaluation_goal: 'Assess reasoning and factual accuracy'
+                model:
+                  name: 'my-model'
+                  url: 'https://models.example.com/v1'
+                max_benchmarks: 12
+                strictness: moderate
+                generation_effort: standard
+              status:
+                state: pending
 
     ProvidersResponse:
       description: List of evaluation providers with their benchmark catalogues
@@ -2734,6 +3229,13 @@ components:
 
     NotFound:
       description: Not Found - Requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    ServiceUnavailable:
+      description: Service Unavailable - Generation service is not configured or available
       content:
         application/json:
           schema:

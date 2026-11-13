@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Alert,
   Bullseye,
+  Button,
   Content,
   Drawer,
   DrawerContent,
@@ -21,7 +22,7 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
@@ -31,6 +32,7 @@ import { evalHubEvaluationsRoute } from '~/app/utilities/routes';
 import { getLatestEvaluationJob } from '~/app/utilities/evaluationUtils';
 import {
   evaluationCopySuiteRoute,
+  evaluationCreateSuiteChooserRoute,
   evaluationEditSuiteRoute,
   evaluationEvaluateNavigationState,
   evaluationGalleryNavigationState,
@@ -290,6 +292,17 @@ const EvaluationsPage: React.FC = () => {
                   />
                 }
                 description={EVALUATE_DESCRIPTION}
+                headerAction={
+                  <Button
+                    variant="primary"
+                    component={(props) => (
+                      <Link {...props} to={evaluationCreateSuiteChooserRoute(namespace)} />
+                    )}
+                    data-testid="create-suite-header-button"
+                  >
+                    Create suite
+                  </Button>
+                }
                 loaded={healthLoaded && (!isHealthy || !isRunsTab || loaded)}
                 loadError={!isHealthy ? healthError : isRunsTab ? error : undefined}
                 loadErrorPage={

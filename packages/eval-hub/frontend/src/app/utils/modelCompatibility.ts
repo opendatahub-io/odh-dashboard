@@ -1,4 +1,5 @@
 import type { InferenceServiceItem } from '~/app/types';
+import { getUrlValidationError } from '~/app/utils/validationUtils';
 
 /**
  * Model formats known to serve OpenAI-compatible chat/completions endpoints.
@@ -37,4 +38,32 @@ export const getIncompatibleModelReason = (is: InferenceServiceItem): string | u
     return `Model format "${is.model_format_name}" is not compatible with evaluation benchmarks. Evaluations require an OpenAI-compatible chat/completions endpoint (e.g. vLLM, TGIS).`;
   }
   return undefined;
+};
+
+/**
+ * Normalize a project inference service URL to the OpenAI-compatible API root used by EvalHub.
+ */
+export const normalizeInferenceServiceUrl = (serviceUrl: string): string => {
+  const url = new URL(serviceUrl);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('The selected model endpoint URL is invalid.');
+  }
+  const pathname = url.pathname.replace(/\/+$/, '');
+  url.pathname = pathname.endsWith('/v1') ? pathname : `${pathname}/v1`;
+  return url.toString();
+};
+
+/** Returns the normalized EvalHub endpoint URL when the project model exposes a usable URL. */
+export const getInferenceServiceEvalEndpoint = (
+  inferenceService: InferenceServiceItem,
+): string | undefined => {
+  if (!inferenceService.url?.trim()) {
+    return undefined;
+  }
+  try {
+    const url = normalizeInferenceServiceUrl(inferenceService.url);
+    return getUrlValidationError(url) ? undefined : url;
+  } catch {
+    return undefined;
+  }
 };

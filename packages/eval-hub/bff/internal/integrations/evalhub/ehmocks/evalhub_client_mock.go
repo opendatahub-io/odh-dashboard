@@ -13,11 +13,14 @@ import (
 
 // MockEvalHubClient provides canned responses for development and testing.
 type MockEvalHubClient struct {
-	mu                        sync.RWMutex
-	collectionOverrides       map[string]*evalhub.Collection
-	deletedCollections        map[string]bool
-	LastListCollectionsParams *evalhub.ListCollectionsParams
-	logsTruncated             bool
+	mu                                sync.RWMutex
+	collectionOverrides               map[string]*evalhub.Collection
+	collectionGenerations             map[string]*evalhub.CollectionGenerationResource
+	deletedCollections                map[string]bool
+	LastListCollectionsParams         *evalhub.ListCollectionsParams
+	LastCollectionGenerationRequest   *evalhub.CreateCollectionGenerationRequest
+	LastCollectionGenerationNamespace string
+	logsTruncated                     bool
 }
 
 func NewMockEvalHubClient() *MockEvalHubClient {
@@ -122,6 +125,92 @@ func (m *MockEvalHubClient) CreateCollection(
 		PassCriteria:      req.PassCriteria,
 		Benchmarks:        req.Benchmarks,
 	}, nil
+}
+
+func (m *MockEvalHubClient) CreateCollectionGeneration(
+	_ context.Context,
+	namespace string,
+	req evalhub.CreateCollectionGenerationRequest,
+) (*evalhub.CollectionGenerationResource, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.LastCollectionGenerationNamespace = namespace
+	m.LastCollectionGenerationRequest = &req
+	if m.collectionGenerations == nil {
+		m.collectionGenerations = make(map[string]*evalhub.CollectionGenerationResource)
+	}
+
+	request := evalhub.CollectionGenerationRequestSummary{
+		EvaluationGoal:   req.EvaluationGoal,
+		Model:            req.Model,
+		ProviderFilter:   req.ProviderFilter,
+		MaxBenchmarks:    12,
+		Strictness:       "moderate",
+		GenerationEffort: "standard",
+	}
+	if req.MaxBenchmarks != nil {
+		request.MaxBenchmarks = *req.MaxBenchmarks
+	}
+	if req.Strictness != "" {
+		request.Strictness = req.Strictness
+	}
+	if req.GenerationEffort != "" {
+		request.GenerationEffort = req.GenerationEffort
+	}
+
+	generation := &evalhub.CollectionGenerationResource{
+		Resource: evalhub.CollectionGenerationResourceMetadata{
+			ID:        "generation-001",
+			Tenant:    namespace,
+			Owner:     "dev-user@example.com",
+			CreatedAt: "2026-01-01T00:00:00Z",
+			UpdatedAt: "2026-01-01T00:00:00Z",
+		},
+		Request: request,
+		Status:  evalhub.CollectionGenerationStatus{State: "pending"},
+	}
+	m.collectionGenerations[generation.Resource.ID] = generation
+	return generation, nil
+}
+
+func (m *MockEvalHubClient) SetCollectionGeneration(id string, generation *evalhub.CollectionGenerationResource) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.collectionGenerations == nil {
+		m.collectionGenerations = make(map[string]*evalhub.CollectionGenerationResource)
+	}
+	m.collectionGenerations[id] = generation
+}
+
+func (m *MockEvalHubClient) GetCollectionGeneration(
+	_ context.Context,
+	id string,
+	namespace string,
+) (*evalhub.CollectionGenerationResource, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	generation := m.collectionGenerations[id]
+	if generation == nil && id == "generation-001" {
+		// Contract tests use a fresh mock client per request, so keep one stable
+		// pollable fixture available independently of a preceding POST.
+		generation = &evalhub.CollectionGenerationResource{
+			Resource: evalhub.CollectionGenerationResourceMetadata{
+				ID: "generation-001", Tenant: namespace, Owner: "dev-user@example.com",
+				CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:00:00Z",
+			},
+			Request: evalhub.CollectionGenerationRequestSummary{
+				EvaluationGoal: "Assess reasoning and factual accuracy",
+				Model:          evalhub.JobModel{Name: "my-model", URL: "https://models.example.com/v1"},
+				MaxBenchmarks:  12, Strictness: "moderate", GenerationEffort: "standard",
+			},
+			Status: evalhub.CollectionGenerationStatus{State: "pending"},
+		}
+	}
+	if generation != nil && generation.Resource.Tenant == namespace {
+		return generation, nil
+	}
+	return nil, nil
 }
 
 func containsCI(s, substr string) bool {

@@ -1,6 +1,11 @@
 /* eslint-disable camelcase */
 import type { InferenceServiceItem } from '~/app/types';
-import { isEvalCompatibleModel, getIncompatibleModelReason } from '~/app/utils/modelCompatibility';
+import {
+  getInferenceServiceEvalEndpoint,
+  getIncompatibleModelReason,
+  isEvalCompatibleModel,
+  normalizeInferenceServiceUrl,
+} from '~/app/utils/modelCompatibility';
 
 const makeModel = (overrides: Partial<InferenceServiceItem> = {}): InferenceServiceItem => ({
   name: 'test-model',
@@ -96,5 +101,38 @@ describe('getIncompatibleModelReason', () => {
     expect(reason).toContain('gRPC');
     expect(reason).not.toContain('AutoGluon');
   });
+});
+
+describe('normalizeInferenceServiceUrl', () => {
+  it.each([
+    ['https://model.example.com', 'https://model.example.com/v1'],
+    ['https://model.example.com/base/', 'https://model.example.com/base/v1'],
+    ['https://model.example.com/v1/', 'https://model.example.com/v1'],
+    ['http://model.example.com:8080/v1', 'http://model.example.com:8080/v1'],
+  ])('normalizes %s to %s', (input, expected) => {
+    expect(normalizeInferenceServiceUrl(input)).toBe(expected);
+  });
+
+  it('rejects invalid URLs and non-HTTP protocols', () => {
+    expect(() => normalizeInferenceServiceUrl('not-a-url')).toThrow();
+    expect(() => normalizeInferenceServiceUrl('ftp://model.example.com')).toThrow(
+      'The selected model endpoint URL is invalid.',
+    );
+  });
+});
+
+describe('getInferenceServiceEvalEndpoint', () => {
+  it('returns the normalized URL for a valid model endpoint', () => {
+    expect(
+      getInferenceServiceEvalEndpoint(makeModel({ url: 'https://model.example.com/base' })),
+    ).toBe('https://model.example.com/base/v1');
+  });
+
+  it.each([undefined, '', 'ftp://model.example.com', 'not-a-url'])(
+    'returns undefined when the model endpoint URL is unusable: %s',
+    (url) => {
+      expect(getInferenceServiceEvalEndpoint(makeModel({ url }))).toBeUndefined();
+    },
+  );
 });
 /* eslint-enable camelcase */
