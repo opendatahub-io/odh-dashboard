@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html lang="en-US" class="pf-v6-theme-felt">
 
 <head>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,15 +10,7 @@
   <meta content="MLflow" id="appName" name="application-name">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <link href="/images/favicon.ico" rel="icon" type="image/svg+xml">
-  <script>
-    // PatternFly Felt theme class is applied before the app boots so tokens
-    // are correct on first paint, matching the dashboard host the user
-    // navigated from. MLflow's dark mode is driven by the fork's own theme
-    // system (synced from the dashboard), not by root classes.
-    (function () {
-      document.documentElement.classList.add('pf-v6-theme-felt');
-    })();
-  </script>
+
 </head>
 
 <body>

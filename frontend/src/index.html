@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html lang="en-US" class="pf-v6-theme-felt">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,9 +7,10 @@
     <title><%= htmlRspackPlugin.options.title %></title>
     <script id="mf-remotes-json" type="application/json"><?- mfRemotesJson ?></script>
     <script>
-      // PatternFly theme classes are applied before the app boots so tokens
-      // are correct on first paint. Felt is always on; light/dark composes
-      // via .pf-v6-theme-dark and glass/high-contrast via their classes.
+      // Conditional theme classes are applied before the app boots so tokens
+      // are correct on first paint. Felt is static on the html element;
+      // light/dark composes via .pf-v6-theme-dark and glass/high-contrast
+      // via their classes.
       // Resolution mirrors ThemeContext (dark follows the color scheme or OS;
       // Glass is the default contrast unless the OS opts out). The legacy
       // odh.dashboard.ui.theme key is migrated
@@ -17,7 +18,6 @@
       // overrides glass when the scheme is system (see App.scss).
       (function () {
         var root = document.documentElement;
-        root.classList.add('pf-v6-theme-felt');
         try {
           var SCHEME_KEY = 'odh.dashboard.ui.colorScheme';
           var LEGACY_KEY = 'odh.dashboard.ui.theme';
