@@ -135,11 +135,12 @@ is skipped before project and PGVector provisioning. If MaaS is configured but i
 are invalid or unready, setup fails fast instead of falling back to the simulator.
 
 The AutoRAG fixture uses the configured S3 credentials and `BUCKET_2` from
-`test-variables.yml`. The preflight checks that the bucket, endpoint, region, and S3
-connection/secret name are present and that the endpoint has a supported root-path URL shape;
-it does not authenticate to the bucket or verify its permissions. For disconnected clusters, set
-`CYPRESS_DSPA_S3_ENDPOINT` to
-the cluster-internal S3 endpoint. With usable MaaS but missing or structurally invalid S3
+`test-variables.yml`. The preflight checks that the bucket, region, credentials, and S3
+connection/secret name are present. It resolves the effective endpoint from
+`CYPRESS_DSPA_S3_ENDPOINT` when set, otherwise from the selected bucket endpoint, and requires
+that endpoint to have a supported root-path URL shape; it does not authenticate to the bucket or
+verify its permissions. For disconnected clusters, set `CYPRESS_DSPA_S3_ENDPOINT` to the
+cluster-internal S3 endpoint. With usable MaaS but missing or structurally invalid S3
 configuration, lifecycle coverage may still run, but completion/results coverage is skipped.
 Operational S3 access failures with structurally valid configuration may fail during project or
 run setup instead of being skipped.
