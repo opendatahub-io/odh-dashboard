@@ -14,6 +14,13 @@ const PGVECTOR_NETWORK_CHECK_BASE_SELECTOR =
   'app.kubernetes.io/name=autorag-pgvector-network-check,app.kubernetes.io/part-of=autorag-e2e';
 const PGVECTOR_RESOURCE_BASE_SELECTOR =
   'app.kubernetes.io/name=autorag-pgvector,app.kubernetes.io/part-of=autorag-e2e';
+const PGVECTOR_FIXED_RESOURCES = [
+  { kind: 'deployment', name: PGVECTOR_DEPLOYMENT },
+  { kind: 'secret', name: 'autorag-pgvector-credentials' },
+  { kind: 'configmap', name: 'autorag-pgvector-init' },
+  { kind: 'service', name: PGVECTOR_SERVICE },
+  { kind: 'networkpolicy', name: PGVECTOR_SERVICE },
+] as const;
 const PGVECTOR_NETWORK_CHECK_TIMEOUT_SECONDS = 720;
 const PGVECTOR_NETWORK_CHECK_BACKOFF_LIMIT = 1;
 const PGVECTOR_NETWORK_CHECK_CONNECT_TIMEOUT_SECONDS = 2;
@@ -139,6 +146,48 @@ const resolveAutoragPgvectorOwner = (namespace: string): Cypress.Chainable<strin
 const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
 
 const ensureNoUnownedAutoragResources = (namespace: string): Cypress.Chainable<void> => {
+  const checkFixedResourceNames = (index: number): Cypress.Chainable<void> => {
+    if (index >= PGVECTOR_FIXED_RESOURCES.length) {
+      return cy.wrap(undefined as void);
+    }
+
+    const resource = PGVECTOR_FIXED_RESOURCES[index];
+    return cy
+      .exec(
+        `oc get ${resource.kind} ${shellQuote(resource.name)} -n ${shellQuote(namespace)} -o json`,
+        { failOnNonZeroExit: false, log: false },
+      )
+      .then((result) => {
+        if (result.exitCode !== 0) {
+          if (/not found/i.test(commandOutput(result))) {
+            return;
+          }
+          throw new Error(
+            `Unable to check for existing AutoRAG PGVector ${resource.kind}/${
+              resource.name
+            } in ${namespace}: ${commandOutput(result)}`,
+          );
+        }
+
+        let existingResource: { metadata?: { labels?: Record<string, string> } };
+        try {
+          existingResource = JSON.parse(result.stdout) as typeof existingResource;
+        } catch {
+          throw new Error(
+            `AutoRAG PGVector ${resource.kind}/${resource.name} lookup returned invalid JSON.`,
+          );
+        }
+
+        const owner = existingResource.metadata?.labels?.[E2E_OWNER_LABEL];
+        throw new Error(
+          `Cannot provision AutoRAG PGVector in ${namespace} because existing ${resource.kind}/${
+            resource.name
+          } has ${owner ? `owner ${owner}` : 'no recoverable owner'}.`,
+        );
+      })
+      .then(() => checkFixedResourceNames(index + 1));
+  };
+
   const checkResources = (
     resourceTypes: string,
     selector: string,
@@ -178,14 +227,15 @@ const ensureNoUnownedAutoragResources = (namespace: string): Cypress.Chainable<v
         return cy.wrap(undefined as void);
       });
 
-  return checkResources('jobs', PGVECTOR_NETWORK_CHECK_BASE_SELECTOR, 'network-check Jobs').then(
-    () =>
+  return checkFixedResourceNames(0)
+    .then(() => checkResources('jobs', PGVECTOR_NETWORK_CHECK_BASE_SELECTOR, 'network-check Jobs'))
+    .then(() =>
       checkResources(
         'all,configmap,secret,networkpolicy',
         PGVECTOR_RESOURCE_BASE_SELECTOR,
         'resources',
       ),
-  );
+    );
 };
 
 const getOperatorDeployment = (): Cypress.Chainable<{ name: string; namespace: string }> => {

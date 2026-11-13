@@ -96,12 +96,17 @@ type PipelineVersionListResponse = {
   pipeline_versions?: PipelineVersionSummary[];
 };
 
+const MANAGED_PIPELINE_CURL_CONNECT_TIMEOUT_SECONDS = 5;
+const MANAGED_PIPELINE_CURL_MAX_TIME_SECONDS = 25;
+
 const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
 
 const listManagedPipelines = (projectName: string): Cypress.Chainable<PipelineSummary[]> => {
   const pipelineListCmd =
     `oc exec deploy/ds-pipeline-dspa -n ${shellQuote(projectName)} -c ds-pipeline-api-server -- ` +
-    `curl -ksSf 'https://localhost:8888/apis/v2beta1/pipelines?page_size=100' 2>/dev/null`;
+    `curl --connect-timeout ${MANAGED_PIPELINE_CURL_CONNECT_TIMEOUT_SECONDS} ` +
+    `--max-time ${MANAGED_PIPELINE_CURL_MAX_TIME_SECONDS} -ksSf ` +
+    `'https://localhost:8888/apis/v2beta1/pipelines?page_size=100' 2>/dev/null`;
   return cy
     .exec(pipelineListCmd, { failOnNonZeroExit: false, timeout: 30000, log: false })
     .then((result: CommandLineResult): PipelineSummary[] => {
@@ -139,7 +144,8 @@ const hasUsablePipelineVersions = (
       `oc exec deploy/ds-pipeline-dspa -n ${shellQuote(
         projectName,
       )} -c ds-pipeline-api-server -- ` +
-      `curl -ksSf ${shellQuote(
+      `curl --connect-timeout ${MANAGED_PIPELINE_CURL_CONNECT_TIMEOUT_SECONDS} ` +
+      `--max-time ${MANAGED_PIPELINE_CURL_MAX_TIME_SECONDS} -ksSf ${shellQuote(
         `https://localhost:8888/apis/v2beta1/pipelines/${encodeURIComponent(
           pipelineId,
         )}/versions?page_size=100`,
