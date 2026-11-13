@@ -10,7 +10,6 @@ const useIsAreaAvailable = (area: SupportedAreaType): IsAreaAvailableStatus =>
     reliantAreas: null,
     requiredComponents: null,
     requiredCapabilities: null,
-    customCondition: () => false,
   };
 
 export default useIsAreaAvailable;

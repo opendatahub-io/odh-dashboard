@@ -179,7 +179,6 @@ describe('assembleLLMdDeployment', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
     mockUseHardwareProfiles.mockReturnValue({
       projectProfiles: [[projectDRAProfile], true, undefined],

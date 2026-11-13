@@ -144,7 +144,6 @@ describe('assembleInferenceService', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
     mockUseHardwareProfiles.mockReturnValue({
       projectProfiles: [[projectDRAProfile], true, undefined],

@@ -58,7 +58,6 @@ jest.mock('@odh-dashboard/plugin-core/areas', () => ({
     reliantAreas: {},
     requiredComponents: {},
     requiredCapabilities: {},
-    customCondition: () => false,
   })),
   SupportedArea: {
     MODEL_REGISTRY: 'model-registry',

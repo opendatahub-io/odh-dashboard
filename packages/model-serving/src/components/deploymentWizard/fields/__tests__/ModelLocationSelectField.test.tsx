@@ -258,7 +258,6 @@ const mockAreaStatus = (status: boolean): IsAreaAvailableStatus => ({
   reliantAreas: null,
   requiredCapabilities: null,
   requiredComponents: null,
-  customCondition: () => false,
 });
 
 const mockConnections: Connection[] = [];

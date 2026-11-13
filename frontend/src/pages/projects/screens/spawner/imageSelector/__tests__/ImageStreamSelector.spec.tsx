@@ -45,7 +45,6 @@ describe('ImageStreamSelector', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
   });
 
