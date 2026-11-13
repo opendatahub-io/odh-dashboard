@@ -10,8 +10,6 @@ import {
   Label,
   Popover,
 } from '@patternfly/react-core';
-import { type APIOptions, type FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
-import { getMaaSWhoAmI } from '~/app/api/whoami';
 
 /** The signed-in user's organization, from whoami; set only for an organization-scoped identity. */
 export type CallerOrganization = { id: string; name: string };
@@ -23,19 +21,6 @@ export type CallerOrganization = { id: string; name: string };
 export const CallerOrganizationContext = React.createContext<CallerOrganization | undefined>(
   undefined,
 );
-
-/** Reads the caller's organization from whoami: undefined until loaded, or for a user without one. */
-export const useCallerOrganization = (): CallerOrganization | undefined => {
-  const callback = React.useCallback<FetchStateCallbackPromise<CallerOrganization | undefined>>(
-    (opts: APIOptions) =>
-      getMaaSWhoAmI()(opts).then((whoAmI) =>
-        whoAmI.orgId && whoAmI.orgName ? { id: whoAmI.orgId, name: whoAmI.orgName } : undefined,
-      ),
-    [],
-  );
-  const [organization] = useFetchState<CallerOrganization | undefined>(callback, undefined);
-  return organization;
-};
 
 /** The group's name inside the caller's organization, or undefined for any other group. */
 const groupInOrganization = (

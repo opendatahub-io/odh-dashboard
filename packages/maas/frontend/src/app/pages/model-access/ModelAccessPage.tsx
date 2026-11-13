@@ -2,7 +2,8 @@ import * as React from 'react';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { MaaSGovernanceProvider } from '~/app/context/MaaSGovernanceContext';
 import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
-import { CallerOrganizationContext, useCallerOrganization } from '~/app/shared/GroupName';
+import { CallerOrganizationContext } from '~/app/shared/GroupName';
+import { useCallerOrganization } from '~/app/hooks/useCallerOrganization';
 import { getModelAccessSubscriptionViewUrl } from './utils';
 
 /**
@@ -35,7 +36,7 @@ const ModelAccessPageContent: React.FC = () => (
 
 const ModelAccessPage: React.FC = () => {
   // Groups of the caller's organization show by its name (GroupName).
-  const organization = useCallerOrganization();
+  const [organization] = useCallerOrganization();
   return (
     <CallerOrganizationContext.Provider value={organization}>
       <MaaSGovernanceProvider subscriptionsEndpoint="admin-subscriptions" subscriptionsOnly>
