@@ -15,8 +15,9 @@
 #      Floors/caps live in rating-policy.json.
 #   2. Categorize sticky ## TODO (Findings / Checks / Judgement / Nits).
 #      Do not append the stock /fs-fix "Next steps" footer.
-#   3. Link file/line references in the sticky summary and suppress inline
-#      review comments by omitting line numbers only from the CLI payload.
+#   3. Link file/line references in the sticky summary to the PR's Files
+#      changed view (diff anchor, not a commit-pinned blob URL) and suppress
+#      inline review comments by omitting line numbers only from the CLI payload.
 #   4. Render the durable structured review: change summary, host status,
 #      Signal|Level|Assessment (risk/confidence), decisions, findings, Jira
 #      coherence, inspected evidence, signals, checks, and labels.
@@ -102,7 +103,7 @@ export FULLSEND_CONFIG_DIR
 # $1 = path to agent-result.json. Writes transformed JSON to stdout.
 transform_review_result() {
   python3 - "$1" <<'PY'
-import json, os, re, sys
+import hashlib, json, os, re, sys
 from datetime import datetime, timezone
 from urllib.parse import quote, urlsplit
 
@@ -656,6 +657,16 @@ def escape_link_syntax(text):
     """Escape backslashes and brackets so Markdown renders them literally."""
     return text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
+def repo_relative_path(path):
+    """Diff-anchor path: repo-relative, no leading slash or ./ prefix.
+
+    .lstrip("./") would eat the dot in .github/x.yml, so strip explicitly.
+    """
+    p = (path or "").strip()
+    while p.startswith("./"):
+        p = p[2:]
+    return p.lstrip("/")
+
 def render_location(result, finding, server_url):
     path = (finding.get("file") or "").strip()
     line = finding.get("line")
@@ -665,12 +676,38 @@ def render_location(result, finding, server_url):
     safe_display = code_span_text(label)
     repo = (result.get("repo") or os.environ.get("GITHUB_REPOSITORY") or "").strip("/")
     sha = (result.get("head_sha") or "").strip()
-    if not path or path.lower() == "n/a" or not repo or not sha:
+    pr_number = str(result.get("pr_number") or os.environ.get("PR_NUMBER") or "").strip()
+    if not path or path.lower() == "n/a" or not repo:
         return f"`{safe_display}`"
-    target = f"{server_url.rstrip('/')}/{repo}/blob/{sha}/{quote(path.lstrip('/'), safe='/')}"
-    if line:
-        target += f"#L{line}"
     link_label = escape_link_syntax(safe_display)
+    # Only an ASCII line number can form a GitHub line anchor.
+    line_suffix = str(line).strip() if line else ""
+    if not re.fullmatch(r"[0-9]+", line_suffix):
+        line_suffix = ""
+    if pr_number:
+        # PR-scoped diff anchor — the destination inline review comments use.
+        # A commit-pinned /blob/ URL is not the PR diff: when the head commit
+        # is not on a branch in this repo (fork PR head, force-push), GitHub
+        # warns "This commit does not belong to any branch..." and the reader
+        # leaves the review flow. `diff-` is the SHA256 of the repo-relative
+        # path; R is the post-image (right) side. Files that are not part of
+        # the PR diff have no anchor, so GitHub lands at the top of the diff.
+        anchor = "diff-" + hashlib.sha256(
+            repo_relative_path(path).encode("utf-8")
+        ).hexdigest()
+        target = f"{server_url.rstrip('/')}/{repo}/pull/{pr_number}/changes#{anchor}"
+        if line_suffix:
+            target += f"R{line_suffix}"
+    elif sha:
+        # No PR context: keep the commit-pinned file view.
+        target = (
+            f"{server_url.rstrip('/')}/{repo}/blob/{sha}/"
+            f"{quote(repo_relative_path(path), safe='/')}"
+        )
+        if line_suffix:
+            target += f"#L{line_suffix}"
+    else:
+        return f"`{safe_display}`"
     return f"[{link_label}]({target})"
 
 def clean(text):
@@ -2292,11 +2329,37 @@ JSON
 
   body=$(jq -r .body "${tmp}/request-changes-out.json")
   if ! grep -Fq '**Waiting on author** — 1 blocking finding' <<<"${body}" ||
-     ! grep -Fq '[a.ts:12](https://github.com/o/r/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/a.ts#L12)' <<<"${body}"; then
-    echo "FAIL request-changes: status count or commit-pinned link missing" >&2
+     ! grep -Fq '[a.ts:12](https://github.com/o/r/pull/1/changes#diff-0d18d4eb377a214157ad45e7ee0f189a2d7370788a483e729c7f269d94cafe41R12)' <<<"${body}" ||
+     grep -Fq '/blob/' <<<"${body}"; then
+    echo "FAIL request-changes: status count or PR Files-changed link missing" >&2
     fail=1
   else
-    echo "PASS request-changes status and linked location"
+    echo "PASS request-changes status and PR Files-changed link"
+  fi
+
+  # A finding without a line anchors the file only; a result with no PR number
+  # falls back to the commit-pinned blob URL instead of dropping the link.
+  jq -n --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {findings: [{severity: "medium", category: "style-conventions", file: "b.ts", description: "Nit."}]}' \
+    > "${tmp}/loc-noline.json"
+  body=$(transform_review_result "${tmp}/loc-noline.json" | jq -r .body)
+  if ! grep -Fq 'changes#diff-ded2f7f761b76f9c30486fd9f691b40d810bc23774a5438361dbb362ce039f63)' <<<"${body}" ||
+     grep -Eq 'diff-[0-9a-f]{64}R' <<<"${body}"; then
+    echo "FAIL loc-noline: line-less finding should anchor the file without a line suffix" >&2
+    fail=1
+  else
+    echo "PASS line-less finding anchors the file without a line suffix"
+  fi
+
+  jq -n --argjson common "$(printf '{%s}' "${common}")" \
+    '$common * {findings: [{severity: "medium", category: "style-conventions", file: "b.ts", line: 7, description: "Nit."}]} | del(.pr_number)' \
+    > "${tmp}/loc-no-pr.json"
+  body=$(transform_review_result "${tmp}/loc-no-pr.json" | jq -r .body)
+  if ! grep -Fq 'blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/b.ts#L7' <<<"${body}"; then
+    echo "FAIL loc-no-pr: missing pr_number should fall back to the commit-pinned blob URL" >&2
+    fail=1
+  else
+    echo "PASS missing pr_number falls back to the commit-pinned blob URL"
   fi
   body=$(jq -r .body "${tmp}/needs-human-out.json")
   if ! grep -Fq '**Needs human judgment.**' <<<"${body}" ||
@@ -2397,8 +2460,8 @@ JSON
   fi
 
   prepare_summary_only_result "${tmp}/request-changes-out.json" "${tmp}/summary-only.json"
-  if ! jq -e '(.findings[0] | has("line") | not) and (.body | contains("a.ts#L12"))' "${tmp}/summary-only.json" >/dev/null; then
-    echo "FAIL summary-only: expected linked body location without structured line" >&2
+  if ! jq -e '(.findings[0] | has("line") | not) and (.body | contains("0d18d4eb377a214157ad45e7ee0f189a2d7370788a483e729c7f269d94cafe41R12"))' "${tmp}/summary-only.json" >/dev/null; then
+    echo "FAIL summary-only: expected linked PR-diff body location without structured line" >&2
     fail=1
   else
     echo "PASS summary-only suppresses inline comments"
